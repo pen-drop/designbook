@@ -2,14 +2,17 @@
 
 ## Sections
 
-### 1. Interactive Workflows
-MDX-based workflow pages in Storybook with React components for design activities
+### 1. Homepage
+Landing page with hero section, service overview, featured projects, and call-to-action
 
-### 2. Component Library
-Shared Debo* base components for cards, collapsibles, sections, and data display
+### 2. Services
+Detailed service pages presenting the agency's offerings with descriptions and benefits
 
-### 3. AI Command Integration
-Cursor AI commands that guide users through design workflows and save structured data
+### 3. Portfolio
+Project showcase with case studies, technologies used, and results
 
-### 4. Design Token System
-Centralized design tokens and theme management integrated with Tailwind and DaisyUI
+### 4. About & Team
+Agency story, values, and team presentation with roles and expertise
+
+### 5. Blog & Contact
+Insights section for thought leadership and contact/inquiry forms
