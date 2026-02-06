@@ -1,5 +1,8 @@
+import { Meta } from '@storybook/addon-docs/blocks';
 import { DeboSection, ProductOverviewCard, DeboNumberedList } from '../source/components/index.js';
 import '../source/index.css';
+
+<Meta title="Product" />
 
 # Product Vision
 
@@ -99,9 +102,9 @@ export function parseRoadmap(md) {
   renderContent={(data) => <ProductOverviewCard overview={data} />}
 />
 
-## Product Roadmap
+## Sections
 
-The product roadmap breaks your vision into 3–5 development sections, ordered by priority.
+The product is broken into 3–5 development sections, ordered by priority.
 Each section represents a self-contained area that can be designed and built independently.
 
 <DeboSection
@@ -109,5 +112,5 @@ Each section represents a self-contained area that can be designed and built ind
   parser={parseRoadmap}
   command="/product-roadmap"
   emptyMessage="No product roadmap defined yet"
-  renderContent={(data) => <DeboNumberedList items={data.sections} />}
+  renderContent={(data) => <DeboNumberedList items={data.sections} linkTo="/docs/sections-overview--docs" />}
 />

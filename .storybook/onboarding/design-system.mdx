@@ -1,0 +1,87 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { DeboSection, DesignTokensCard, ShellSpecCard } from '../source/components/index.js';
+import '../source/index.css';
+
+<Meta title="Design System" />
+
+# Design System
+
+Choose your color palette and typography to define the visual identity of your product.
+Use the AI command to select colors and fonts — the result is displayed here automatically.
+
+export function parseDesignTokens(md) {
+  const result = { colors: null, typography: null };
+  const colorsSection = md.match(/## Colors\s*\n+([\s\S]*?)(?=\n## |\n#[^#]|$)/);
+  if (colorsSection && colorsSection[1]) {
+    const colors = {};
+    const lines = colorsSection[1].split('\n');
+    for (const line of lines) {
+      const match = line.match(/^-\s+(Primary|Secondary|Neutral):\s*(.+)/i);
+      if (match) {
+        colors[match[1].toLowerCase()] = match[2].trim().toLowerCase();
+      }
+    }
+    if (colors.primary || colors.secondary || colors.neutral) {
+      result.colors = colors;
+    }
+  }
+  const typoSection = md.match(/## Typography\s*\n+([\s\S]*?)(?=\n## |\n#[^#]|$)/);
+  if (typoSection && typoSection[1]) {
+    const typography = {};
+    const lines = typoSection[1].split('\n');
+    for (const line of lines) {
+      const match = line.match(/^-\s+(Heading|Body|Mono):\s*(.+)/i);
+      if (match) {
+        typography[match[1].toLowerCase()] = match[2].trim();
+      }
+    }
+    if (typography.heading || typography.body) {
+      result.typography = typography;
+    }
+  }
+  return (result.colors || result.typography) ? result : null;
+}
+
+---
+
+<DeboSection
+  dataPath="design-system/design-tokens.md"
+  parser={parseDesignTokens}
+  command="/design-tokens"
+  emptyMessage="No design tokens defined yet"
+  renderContent={(data) => <DesignTokensCard tokens={data} />}
+/>
+
+## Application Shell
+
+Design the persistent navigation and layout that wraps all sections of your application.
+
+export function parseShellSpec(md) {
+  const result = { overview: '', navigationItems: [], userMenu: '', layoutPattern: '', responsiveBehavior: '', designNotes: '' };
+  function extractSection(name) {
+    const regex = new RegExp('## ' + name + '\\s*\\n+([\\s\\S]*?)(?=\\n## |\\n#[^#]|$)');
+    const match = md.match(regex);
+    return match ? match[1].trim() : '';
+  }
+  result.overview = extractSection('Overview');
+  const navText = extractSection('Navigation Structure');
+  if (navText) {
+    result.navigationItems = navText.split('\n')
+      .filter(line => line.trim().startsWith('- '))
+      .map(line => line.trim().slice(2).trim());
+  }
+  result.userMenu = extractSection('User Menu');
+  result.layoutPattern = extractSection('Layout Pattern');
+  result.responsiveBehavior = extractSection('Responsive Behavior');
+  result.designNotes = extractSection('Design Notes');
+  if (!result.overview && result.navigationItems.length === 0 && !result.layoutPattern) return null;
+  return result;
+}
+
+<DeboSection
+  dataPath="design-shell/shell-spec.md"
+  parser={parseShellSpec}
+  command="/design-shell"
+  emptyMessage="No shell specification defined yet"
+  renderContent={(data) => <ShellSpecCard spec={data} />}
+/>

@@ -16,6 +16,11 @@ const preview = {
     }),
   ],
   parameters: {
+    options: {
+      storySort: {
+        order: ['Product', 'Data Model', 'Design System', 'Sections', ['Overview', '*'], 'Export', '*'],
+      },
+    },
     controls: {
       matchers: {
        color: /(background|color)$/i,

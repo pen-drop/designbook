@@ -55,11 +55,10 @@ export function ProductOverviewCard({ overview }) {
 
       {overview.features && overview.features.length > 0 && (
         <DeboCollapsible title="Key Features" count={overview.features.length}>
-          <ul className="debo:space-y-2 debo:ml-1">
+          <ul className="debo:list-disc debo:pl-5 debo:space-y-1">
             {overview.features.map((feature, index) => (
-              <li key={index} className="debo:flex debo:items-start debo:gap-4">
-                <span className="debo:w-1.5 debo:h-1.5 debo:rounded-full debo:bg-primary debo:mt-2 debo:shrink-0" />
-                <span className="debo:text-base-content/80">{feature}</span>
+              <li key={index} className="debo:text-base-content/80">
+                {feature}
               </li>
             ))}
           </ul>

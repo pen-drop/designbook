@@ -40,7 +40,7 @@ export function DeboCollapsible({ title, count, defaultOpen = false, children })
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {open && <div className="debo:pt-2">{children}</div>}
+      {open && <div className="debo:pt-2 debo:p-6">{children}</div>}
     </div>
   );
 }

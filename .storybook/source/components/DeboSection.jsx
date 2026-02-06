@@ -20,7 +20,7 @@ export function DeboSection({ dataPath, parser, command, emptyMessage, renderCon
 
   if (loading) {
     return (
-      <div className="debo:flex debo:justify-center debo:py-12">
+      <div className="debo:font-sans debo:flex debo:justify-center debo:py-12">
         <span className="debo:loading debo:loading-spinner debo:loading-md" />
       </div>
     );
@@ -28,7 +28,7 @@ export function DeboSection({ dataPath, parser, command, emptyMessage, renderCon
 
   if (error) {
     return (
-      <div className="debo:alert debo:alert-error debo:my-4">
+      <div className="debo:font-sans debo:alert debo:alert-error debo:my-4">
         <span>Failed to load data: {error}</span>
       </div>
     );
@@ -36,7 +36,7 @@ export function DeboSection({ dataPath, parser, command, emptyMessage, renderCon
 
   if (!data) {
     return (
-      <div className="debo:max-w-2xl debo:mx-auto debo:py-8">
+      <div className="debo:font-sans debo:max-w-2xl debo:mx-auto debo:py-8">
         <DeboEmptyState
           message={emptyMessage}
           command={command}
@@ -47,7 +47,7 @@ export function DeboSection({ dataPath, parser, command, emptyMessage, renderCon
   }
 
   return (
-    <div className="debo:max-w-2xl debo:mx-auto debo:py-6 debo:space-y-4">
+    <div className="debo:font-sans debo:max-w-2xl debo:mx-auto debo:py-6 debo:space-y-4">
       {renderContent(data)}
       <div className="debo:flex debo:items-center debo:justify-between debo:px-1">
         <p className="debo:text-base-content/40 debo:text-xs">

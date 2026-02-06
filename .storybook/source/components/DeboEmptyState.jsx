@@ -8,7 +8,7 @@
  */
 export function DeboEmptyState({ message, command, filePath }) {
   return (
-    <div className="debo:card debo:bg-base-200 debo:border debo:border-base-300">
+    <div className="debo:font-sans debo:card debo:bg-base-200 debo:border debo:border-base-300">
       <div className="debo:card-body debo:items-center debo:text-center">
         <h3 className="debo:card-title debo:text-base-content/70">{message}</h3>
         <p className="debo:text-base-content/50 debo:mt-2">

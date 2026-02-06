@@ -5,162 +5,106 @@ license: MIT
 compatibility: Requires Storybook, React, Tailwind CSS v4, DaisyUI v5.
 metadata:
   author: designbook
-  version: "1.0"
+  version: "2.0"
 ---
 
 Build and maintain the Designbook shared component library for Storybook MDX pages.
 
 ## Architecture
 
-Designbook components live in `.storybook/source/` and follow these core principles:
+### Read-Only Display Principle
 
-### Storybook is Read-Only Display
-
-- **No forms, no editors, no save buttons** in Storybook MDX pages
-- Storybook pages display **references to AI commands** for data input
-- Users run AI commands in their editor for conversational data entry
-- Results are saved as **Markdown files** in `designbook/`
-- Storybook **loads and displays** saved data via Vite plugin middleware
-
-### Data Flow
+Storybook **never** provides write access. All data input happens through AI commands in the editor.
 
 ```
 AI Command (input) → designbook/*.md (storage) → Storybook MDX (display)
 ```
 
 - `GET /__designbook/load?path=<relative-path>` — reads files from `designbook/`
-- `POST /__designbook/save` — writes files to `designbook/`
+- `POST /__designbook/save` — writes files (used by AI commands only, never by Storybook UI)
 - Vite plugin: `.storybook/source/vite-plugin-designbook-save.js`
 
-### CSS Isolation
+### Component Library
 
-All components use **`debo:` prefixed Tailwind classes** (Designbook prefix):
+- **Barrel exports**: `.storybook/source/components/index.js` — always check here for existing components before creating new ones
+- **Shared base components** use the `Debo` prefix (e.g., `DeboCard`, `DeboSection`)
+- **Workflow-specific components** keep descriptive names (e.g., `ProductOverviewCard`) and compose from `Debo*` base components
+- **Hooks**: `.storybook/source/hooks/` — reusable React hooks (e.g., `useDesignbookData`)
 
-```css
-/* .storybook/source/index.css */
-@import "tailwindcss" prefix(debo);
-```
+## Global Component Rules
 
-**Rules:**
-- React components in `.storybook/source/` **MUST** use `debo:` prefixed classes exclusively
-- Dark mode: `debo:dark:` variant (e.g., `debo:dark:bg-gray-800`)
-- DaisyUI classes are also scoped under the `debo:` prefix
-- Drupal/Twig components **MUST NOT** use `debo:` prefixed classes
+These rules apply to **every** component in `.storybook/source/`.
 
-## Shared Component Library (`Debo*`)
+### 1. CSS Isolation — `debo:` Prefix
 
-All shared base components use the `Debo` prefix. Workflow-specific components (like `ProductOverviewCard`) keep descriptive names and compose from `Debo*` base components.
-
-### `DeboCard`
-
-Card wrapper with consistent styling.
+All Tailwind classes **MUST** use the `debo:` prefix. No exceptions.
 
 ```jsx
-<DeboCard title="Optional title">
-  <p>Card content...</p>
-</DeboCard>
+// ✅ Correct
+<div className="debo:flex debo:gap-4 debo:p-6 debo:bg-base-100">
+
+// ❌ Wrong — unprefixed classes will leak into Drupal/Twig scope
+<div className="flex gap-4 p-6 bg-base-100">
 ```
 
-**Props:**
-- `title` (string, optional) — Card heading
-- `children` — Card body content
+- CSS entry point: `.storybook/source/index.css` → `@import "tailwindcss" prefix(debo);`
+- Dark mode variant: `debo:dark:` (e.g., `debo:dark:bg-gray-800`)
+- DaisyUI classes also use the `debo:` prefix (e.g., `debo:card`, `debo:btn`)
+- Responsive variants: `debo:md:`, `debo:lg:`, etc.
 
-**Styling:** `debo:card debo:bg-base-100 debo:border debo:border-base-300 debo:shadow-sm` + `debo:card-body`
+### 2. Display-Only — No Write Operations
 
-### `DeboCollapsible`
+- **Never** add forms, editors, text inputs, or save buttons
+- Components display data and reference AI commands — nothing more
+- Empty states show which AI command to run (e.g., "Run `/product-vision` to get started")
+- The only interactive elements allowed: collapse/expand toggles, reload buttons, navigation
 
-Expandable/collapsible section with title, count badge, and chevron toggle.
+### 3. Props-Based Data Flow
 
-```jsx
-<DeboCollapsible title="Problems & Solutions" count={3}>
-  <ul>...</ul>
-</DeboCollapsible>
+- All components receive data through **props** — no direct data fetching inside presentational components
+- Data loading happens in container components or the `useDesignbookData` hook
+- Parsers convert Markdown strings to structured data objects
+- Components must handle `null`/empty data gracefully
+
+### 4. Naming Conventions
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Shared base component | `Debo<Name>.jsx` | `DeboCard.jsx`, `DeboSection.jsx` |
+| Workflow-specific component | `<Descriptive>.jsx` | `ProductOverviewCard.jsx` |
+| Hook | `use<Name>.js` | `useDesignbookData.js` |
+| Parser | Exported function in component or separate file | `parseProductOverview()` |
+
+### 5. File Size & Responsibility
+
+- Each component file should be **< 50 lines** — single responsibility
+- If a component grows, split it into smaller `Debo*` base components
+- Compose complex UIs from small building blocks, don't create monoliths
+
+### 6. Theme Support
+
+- Every component must work in **both light and dark** themes
+- Use DaisyUI semantic colors (`debo:bg-base-100`, `debo:text-base-content`) over hardcoded colors
+- Only use `debo:dark:` overrides when semantic colors don't suffice
+- Test both themes during validation
+
+### 7. Composition Over Duplication
+
+- Check `index.js` barrel exports before creating a new component — it might already exist
+- Workflow-specific components should **compose** `Debo*` base components
+- If you find repeated patterns across components, extract them into a new `Debo*` shared component
+
+### 8. Export Registration
+
+Every new component **MUST** be added to the barrel export at `.storybook/source/components/index.js`:
+
+```js
+// Shared base components (Debo*)
+export { DeboNewComponent } from './DeboNewComponent.jsx';
+
+// Workflow-specific components
+export { MyWorkflowCard } from './MyWorkflowCard.jsx';
 ```
-
-**Props:**
-- `title` (string) — Section heading
-- `count` (number, optional) — Badge showing item count
-- `children` — Collapsible content
-- `defaultOpen` (boolean, optional) — Initial open state
-
-**Behavior:** Manages its own open/close state. Renders chevron icon that rotates on toggle.
-
-### `DeboSection`
-
-Page section that combines data loading, empty state, content rendering, reload, and AI command reference.
-
-```jsx
-<DeboSection
-  title="Product Roadmap"
-  dataPath="product/product-roadmap.md"
-  parser={parseRoadmap}
-  command="/product-roadmap"
-  emptyMessage="No product roadmap defined yet"
-  renderContent={(data) => <DeboNumberedList items={data.sections} />}
-/>
-```
-
-**Props:**
-- `title` (string) — Section display title
-- `dataPath` (string) — Relative path within `designbook/` to load
-- `parser` (function) — Markdown-to-data parser: `(markdownString) => parsedData | null`
-- `command` (string) — AI command name (e.g., `/product-roadmap`)
-- `emptyMessage` (string) — Displayed when no data exists
-- `renderContent` (function) — `(parsedData) => JSX` — how to render the loaded data
-
-**Behavior:** Uses `useDesignbookData` hook internally. Shows loading spinner → error alert → empty state with AI command reference → content with reload button and command reference footer.
-
-### `DeboEmptyState`
-
-Empty state display with AI command reference and instructions.
-
-```jsx
-<DeboEmptyState
-  message="No product vision defined yet"
-  command="/product-vision"
-  filePath="designbook/product/product-overview.md"
-/>
-```
-
-**Props:**
-- `message` (string) — Main empty state heading
-- `command` (string) — AI command to reference
-- `filePath` (string, optional) — Where the data will be saved
-
-### `DeboNumberedList`
-
-Numbered list of items with title and description.
-
-```jsx
-<DeboNumberedList items={[
-  { title: "Homepage", description: "Landing page with overview..." },
-  { title: "About", description: "Company info and team..." },
-]} />
-```
-
-**Props:**
-- `items` (array) — `[{ title: string, description: string }]`
-
-### `useDesignbookData` Hook
-
-Custom React hook for the common fetch/parse/reload pattern.
-
-```jsx
-const { data, loading, error, reload } = useDesignbookData(
-  'product/product-overview.md',
-  parseProductOverview
-);
-```
-
-**Parameters:**
-- `path` (string) — Relative path within `designbook/`
-- `parser` (function) — `(markdownString) => parsedData | null`
-
-**Returns:**
-- `data` — Parsed data or `null`
-- `loading` (boolean) — Loading state
-- `error` (string | null) — Error message
-- `reload` (function) — Refetch and reparse data
 
 ## File Structure
 
@@ -171,77 +115,104 @@ const { data, loading, error, reload } = useDesignbookData(
 │   ├── vite.config.js                      # Independent Vite config for React components
 │   ├── vite-plugin-designbook-save.js      # Vite middleware for file load/save
 │   ├── components/
-│   │   ├── index.js                        # Barrel exports
-│   │   ├── DeboCard.jsx                    # Card wrapper
-│   │   ├── DeboCollapsible.jsx             # Expand/collapse section
-│   │   ├── DeboSection.jsx                 # Full section with data loading
-│   │   ├── DeboEmptyState.jsx              # Empty state with AI command ref
-│   │   ├── DeboNumberedList.jsx            # Numbered list (roadmap, steps)
-│   │   ├── ProductOverviewCard.jsx         # Composed from DeboCard + DeboCollapsible
-│   │   └── ...                             # Future workflow-specific components
+│   │   ├── index.js                        # Barrel exports (check before creating!)
+│   │   ├── Debo*.jsx                       # Shared base components
+│   │   └── <Workflow>*.jsx                 # Workflow-specific composed components
 │   └── hooks/
 │       └── useDesignbookData.js            # Data loading hook
 ├── onboarding/
-│   ├── product-vision.mdx                  # Product page (vision + roadmap sections)
-│   └── ...
+│   └── *.mdx                              # MDX pages using components
+```
+
+## Creating a New Component
+
+### Step 1: Check Existing Components
+
+Read `.storybook/source/components/index.js` to see what already exists. Don't duplicate.
+
+### Step 2: Create the Component File
+
+Place in `.storybook/source/components/`. Follow naming conventions (see above).
+
+```jsx
+import React from 'react';
+
+export function DeboNewThing({ title, children }) {
+  return (
+    <div className="debo:p-4 debo:bg-base-100 debo:rounded-lg">
+      {title && <h3 className="debo:text-lg debo:font-semibold debo:text-base-content">{title}</h3>}
+      {children}
+    </div>
+  );
+}
+```
+
+Key checklist:
+- [ ] All classes use `debo:` prefix
+- [ ] Props-based, no internal data fetching (unless it's a container)
+- [ ] Handles null/empty props gracefully
+- [ ] Works in light and dark themes (semantic DaisyUI colors)
+- [ ] < 50 lines, single responsibility
+- [ ] No forms, editors, or save operations
+
+### Step 3: Register in Barrel Export
+
+Add to `.storybook/source/components/index.js`.
+
+### Step 4: Use in MDX
+
+```mdx
+import { DeboNewThing } from '../source/components/index.js';
+import '../source/index.css';
+
+<DeboNewThing title="Hello">
+  Content here...
+</DeboNewThing>
 ```
 
 ## Creating a New Workflow Section
 
-When adding a new workflow to an MDX page:
+When adding a data-backed workflow section to an MDX page:
 
 ### Step 1: Create the AI Command
 
-Create `.cursor/commands/<command-name>.md` with the conversational workflow pattern:
+Create `.cursor/commands/<command-name>.md` with the conversational pattern:
 - Gather input → Ask questions → Present draft → Confirm → Save file
 - Output: `designbook/<area>/<filename>.md`
 
 ### Step 2: Create a Markdown Parser
 
-Each workflow needs a parser function that converts Markdown to structured data:
+Each workflow needs a parser that converts Markdown to structured data:
 
 ```jsx
-export function parseRoadmap(md) {
-  // Parse markdown into { sections: [{ title, description }] }
-  // Return null if parsing fails
+export function parseMyData(md) {
+  // Parse markdown string into structured data object
+  // Return null if parsing fails or data is empty
 }
 ```
 
-### Step 3: Add `DeboSection` to MDX
+### Step 3: Add DeboSection to MDX
+
+Use the `DeboSection` component which handles the full data loading lifecycle (loading → error → empty → content):
 
 ```mdx
-import { parseRoadmap } from '../source/parsers/roadmap.js';
-
-## Product Roadmap
+import { DeboSection, DeboNumberedList } from '../source/components/index.js';
+import { parseMyData } from '../source/parsers/mydata.js';
 
 <DeboSection
-  dataPath="product/product-roadmap.md"
-  parser={parseRoadmap}
-  command="/product-roadmap"
-  emptyMessage="No product roadmap defined yet"
-  renderContent={(data) => <DeboNumberedList items={data.sections} />}
+  dataPath="area/my-data.md"
+  parser={parseMyData}
+  command="/my-command"
+  emptyMessage="No data defined yet"
+  renderContent={(data) => <DeboNumberedList items={data.items} />}
 />
 ```
 
-### Step 4: Validate with Agent Browser
+### Step 4: Validate
 
-```bash
-agent-browser open "http://localhost:6009/iframe.html?id=<page-id>--docs&viewMode=docs"
-agent-browser snapshot
-```
-
-Verify:
+Verify in Storybook:
 - Empty state shows AI command reference
 - Data state displays loaded content correctly
 - Reload button refreshes data
+- Both light and dark themes work
 - CSS isolation intact (no style leakage)
-
-## Component Guidelines
-
-- **Display-Only**: Components in Storybook MUST NOT save data — saving happens via AI commands only
-- **Props-Based**: All components accept data via props (no direct imports of data)
-- **`debo:` Prefix**: All Tailwind classes use `debo:` prefix for CSS isolation
-- **Composable**: Use `Debo*` base components instead of inline implementations
-- **Light/Dark**: Support both themes via `debo:dark:` variants
-- **Small Files**: Each component <50 lines, single responsibility
-- **No Write Operations**: Never add forms, editors, or save buttons to Storybook
