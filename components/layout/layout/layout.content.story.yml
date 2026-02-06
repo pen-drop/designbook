@@ -1,0 +1,18 @@
+name: Content
+props:
+  spacing_attributes:
+    class: ["pb-auto", "pt-auto"]
+  attributes:
+    class: ["@layout[md]"]
+slots:
+  content:
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: default
+      variant: "default"
+      slots:
+        title: "New movie 1 is released!"
+        text:
+          - type: html_tag
+            tag: p
+            value: "Click the button to watch on Jetflix app."

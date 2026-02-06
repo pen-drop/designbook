@@ -1,0 +1,25 @@
+/**
+ * DaisyCMS Light Theme
+ * Generated from .pendrop/output/pendrop.theme.tokens.json
+ * Do not edit manually
+ */
+
+@plugin "daisyui/theme" {
+  name: daisycms;
+  default: true;
+  color-scheme: light;
+  
+  /* Base colors */
+  base-100: var(--color-base-100);
+  base-200: var(--color-base-200);
+  base-300: var(--color-base-300);
+  base-content: var(--color-base-content);
+  
+  /* Primary colors */
+  primary: var(--color-primary-primary);
+  primary-content: var(--color-primary-primary-content);
+  
+  /* Secondary colors */
+  secondary: var(--color-secondary-secondary);
+  secondary-content: var(--color-secondary-secondary-content);
+}

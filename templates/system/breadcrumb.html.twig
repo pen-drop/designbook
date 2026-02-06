@@ -1,0 +1,28 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a breadcrumb trail.
+ *
+ * Available variables:
+ * - breadcrumb: Breadcrumb trail items.
+ *
+ * @ingroup themeable
+ */
+#}
+
+
+{% if breadcrumb %}
+
+  {% set breadcrumb_content %}
+    {{ include('ui_suite_daisyui:breadcrumbs', {
+      items: breadcrumb,
+    }, with_context: false) }}
+  {% endset %}
+  {{ include('daisy_cms_daisyui:layout', {
+    content: breadcrumb_content,
+    attributes: create_attribute().addClass('pb-sm container-md')
+  }, with_context: false)
+  }}
+
+
+{% endif %}

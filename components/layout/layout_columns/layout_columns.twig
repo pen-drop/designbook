@@ -1,0 +1,36 @@
+{#
+/**
+ * @file
+ * section
+ *
+ * See section.component.yml for documentation.
+ */
+#}
+
+{% set items_count = items_count|default(4) %}
+{% set attributes = attributes|default(create_attribute()) %}
+{% set spacing_attributes = spacing_attributes|default(create_attribute()) %}
+{% set alignment_attributes = alignment_attributes|default(create_attribute()) %}
+{#
+  Pass columns to items.
+#}
+{% set items = [] %}
+{%- for i in 1..items_count -%}
+  {% set items = items|merge([_context['column_' ~ i ]]) %}
+{% endfor %}
+
+{#
+  Template
+#}
+
+{{ include ('daisy_cms_daisyui:layout', {
+    attributes: attributes,
+    spacing_attributes: spacing_attributes,
+    items: items,
+    background: background,
+    theme: theme,
+    display_header: display_header,
+    item_attributes: alignment_attributes,
+    header: header
+  })
+}}

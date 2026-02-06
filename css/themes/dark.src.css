@@ -1,0 +1,18 @@
+/**
+ * Dark theme
+ * Generated from .pendrop/output/pendrop.theme.tokens.json
+ * Do not edit manually
+ */
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  
+  base-100: var(--color-neutral-900);
+  base-200: var(--color-neutral-200);
+  base-300: var(--color-neutral-300);
+  base-content: var(--color-neutral-100);
+  primary: var(--color-neutral-100);
+  primary-content: var(--color-blue-500);
+  secondary: var(--color-neutral-100);
+  secondary-content: var(--color-pink-500);
+}

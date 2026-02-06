@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * button-group
+ *
+ * Drupal SDC component. See button-group.component.yml for documentation.
+ */
+#}
+{# Defaults #}
+{% set attributes = attributes|default(create_attribute()) %}
+{% set align = align|default('center') %}
+
+{# Compute classes based on props #}
+{% set base_classes = 'flex flex-col lg:flex-row pt-8 gap-y-2 lg:gap-x-2 lg:gap-y-0' %}
+{% set justify_class = '' %}
+{% if align == 'center' %}
+  {% set justify_class = 'justify-center' %}
+{% elseif align == 'right' %}
+  {% set justify_class = 'justify-end' %}
+{% endif %}
+
+{% set attributes = attributes.addClass([base_classes, justify_class]) %}
+
+{# Template #}
+<div{{ attributes }}>
+  {{ buttons }}
+</div>

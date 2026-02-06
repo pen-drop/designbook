@@ -1,0 +1,113 @@
+################################################################################
+# DaisyUI classes.
+################################################################################
+
+################################################################################
+# Spacing.
+################################################################################
+
+spacing_padding_top:
+  category: "Spacing"
+  label: "Padding top"
+  description: "Utilities for controlling an element's padding top."
+  links:
+    - "https://tailwindcss.com/docs/padding"
+  options:
+    pt-auto: Auto
+    pt-lg: Large
+    pt-md: Medium
+    pt-sm: Small
+
+spacing_padding_bottom:
+  category: "Spacing"
+  label: "Padding bottom"
+  description: "Utilities for controlling an element's padding bottom."
+  links:
+    - "css/utilities/padding.pcss"
+  options:
+    pb-auto: Auto
+    pb-lg: Large
+    pb-md: Medium
+    pb-sm: Small
+
+spacing_margin_bottom:
+  category: "Spacing"
+  label: "Margin bottom"
+  description: "Utilities for controlling an element's margin bottom."
+  links:
+    - "css/utilities/margin.pcss"
+  options:
+    mb-auto: "Auto"
+    mb-lg: "Large"
+    mb-md: "Medium"
+    mb-sm: "Small"
+
+################################################################################
+# Layout.
+################################################################################
+
+layout_layout:
+  category: "Layout"
+  label: "Layout"
+  description: "Handle layout component."
+  links:
+    - "https://daisyui.com/docs/utilities/#-2"
+  options:
+    grid-1--sm-left container-md: 1 column small left
+    grid-1 container-sm: 1 column small
+    grid-1 container-md: 1 column
+    grid-1: 1 column full
+    grid-2 container-md: 2 column
+    grid-2-33x66 container-md: 2 columns 33x66
+    grid-2-66x33 container-md: 2 columns 66x33
+    grid-2-33x66 container-sm: 2 columns 66x33
+    grid-2-66x33 container-sm: 2 columns 33x66 (small)
+    grid-3-25x50x25 container-md: 3 columns 33x33x33
+    grid-3 container-md: 3 columns 33x33x33 (small)
+    grid-4 container-md: 4 columns 25x25x25
+    grid-5 container-md: 5 columns 20x20x20x20
+
+
+alignment_vertical:
+  category: "Alignment"
+  label: "Vertical alignment"
+  description: "Handle vertical alignment."
+  links:
+    - "https://daisyui.com/docs/utilities/#-2"
+  options:
+    align-top:
+      class: ""
+      label: Align top
+    align-middle:
+      class: "flex items-center justify-center"
+      label: Align middle
+    stretch:
+      class: "flex flex-1"
+      label: Stretch to fill
+
+
+################################################################################
+# Disable DaisyUI classes.
+################################################################################
+
+daisyui_glass:
+  enabled: false
+
+sizing_width:
+  enabled: false
+
+typography_font_size:
+  enabled: false
+
+daisyui_mask:
+  enabled: false
+
+colors_background_color:
+  enabled: false
+
+colors_text_color:
+  enabled: false
+
+colors_border_color:
+  enabled: false
+

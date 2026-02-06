@@ -1,0 +1,74 @@
+alert-info alert-success alert-warning alert-error
+alert-outline alert-dash
+avatar-online avatar-offline
+badge-primary badge-neutral badge-secondary badge-accent badge-info badge-success badge-warning badge-error
+badge-outline badge-dash
+badge-xs badge-sm badge-md badge-lg badge-xl
+btn-primary btn-neutral btn-secondary btn-accent btn-info btn-success btn-warning btn-error
+btn-outline btn-dash
+btn-xs btn-sm btn-md btn-lg btn-xl
+btn-wide btn-block
+btn-square btn-circle
+card-side
+card-border card-dash
+card-xs card-sm card-md card-lg card-xl
+carousel-center carousel-end
+chat-end
+chat-bubble-primary chat-bubble-secondary chat-bubble-accent chat-bubble-info chat-bubble-success chat-bubble-warning chat-bubble-error
+collapse-plus collapse-arrow
+divider-primary divider-secondary divider-accent divider-neutral divider-info divider-success divider-warning divider-error
+divider-start divider-end
+grid-rows-1 grid-rows-2 grid-rows-3
+footer-center
+select2-dropdown
+drawer-end
+gap-0 gap-2 gap-4 gap-8 gap-12
+sm:gap-0 sm:gap-2 sm:gap-4 sm:gap-8 sm:gap-12
+md:gap-0 md:gap-2 md:gap-4 md:gap-8 md:gap-12
+lg:gap-0 lg:gap-2 lg:gap-4 lg:gap-8 lg:gap-12
+xl:gap-0 xl:gap-2 xl:gap-4 xl:gap-8 xl:gap-12
+2xl:gap-0 2xl:gap-2 2xl:gap-4 2xl:gap-8 2xl:gap-12
+grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-5 grid-cols-6 grid-cols-7 grid-cols-8 grid-cols-9 grid-cols-10 grid-cols-11 grid-cols-12
+sm:grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 sm:grid-cols-4 sm:grid-cols-5 sm:grid-cols-6 sm:grid-cols-7 sm:grid-cols-8 sm:grid-cols-9 sm:grid-cols-10 sm:grid-cols-11 sm:grid-cols-12
+md:grid-cols-1 md:grid-cols-2 md:grid-cols-3 md:grid-cols-4 md:grid-cols-5 md:grid-cols-6 md:grid-cols-7 md:grid-cols-8 md:grid-cols-9 md:grid-cols-10 md:grid-cols-11 md:grid-cols-12
+lg:grid-cols-1 lg:grid-cols-2 lg:grid-cols-3 lg:grid-cols-4 lg:grid-cols-5 lg:grid-cols-6 lg:grid-cols-7 lg:grid-cols-8 lg:grid-cols-9 lg:grid-cols-10 lg:grid-cols-11 lg:grid-cols-12
+xl:grid-cols-1 xl:grid-cols-2 xl:grid-cols-3 xl:grid-cols-4 xl:grid-cols-5 xl:grid-cols-6 xl:grid-cols-7 xl:grid-cols-8 xl:grid-cols-9 xl:grid-cols-10 xl:grid-cols-11 xl:grid-cols-12
+2xl:grid-cols-1 2xl:grid-cols-2 2xl:grid-cols-3 2xl:grid-cols-4 2xl:grid-cols-5 2xl:grid-cols-6 2xl:grid-cols-7 2xl:grid-cols-8 2xl:grid-cols-9 2xl:grid-cols-10 2xl:grid-cols-11 2xl:grid-cols-12
+col-span-1 col-span-2 col-span-3 col-span-4 col-span-5 col-span-6 col-span-7 col-span-8 col-span-9 col-span-10 col-span-11 col-span-12
+sm:col-span-1 sm:col-span-2 sm:col-span-3 sm:col-span-4 sm:col-span-5 sm:col-span-6 sm:col-span-7 sm:col-span-8 sm:col-span-9 sm:col-span-10 sm:col-span-11 sm:col-span-12
+md:col-span-1 md:col-span-2 md:col-span-3 md:col-span-4 md:col-span-5 md:col-span-6 md:col-span-7 md:col-span-8 md:col-span-9 md:col-span-10 md:col-span-11 md:col-span-12
+lg:col-span-1 lg:col-span-2 lg:col-span-3 lg:col-span-4 lg:col-span-5 lg:col-span-6 lg:col-span-7 lg:col-span-8 lg:col-span-9 lg:col-span-10 lg:col-span-11 lg:col-span-12
+xl:col-span-1 xl:col-span-2 xl:col-span-3 xl:col-span-4 xl:col-span-5 xl:col-span-6 xl:col-span-7 xl:col-span-8 xl:col-span-9 xl:col-span-10 xl:col-span-11 xl:col-span-12
+2xl:col-span-1 2xl:col-span-2 2xl:col-span-3 2xl:col-span-4 2xl:col-span-5 2xl:col-span-6 2xl:col-span-7 2xl:col-span-8 2xl:col-span-9 2xl:col-span-10 2xl:col-span-11 2xl:col-span-12
+col-start-1 col-start-2 col-start-3 col-start-4 col-start-5 col-start-6 col-start-7 col-start-8 col-start-9 col-start-10 col-start-11 col-start-12
+sm:col-start-1 sm:col-start-2 sm:col-start-3 sm:col-start-4 sm:col-start-5 sm:col-start-6 sm:col-start-7 sm:col-start-8 sm:col-start-9 sm:col-start-10 sm:col-start-11 sm:col-start-12
+md:col-start-1 md:col-start-2 md:col-start-3 md:col-start-4 md:col-start-5 md:col-start-6 md:col-start-7 md:col-start-8 md:col-start-9 md:col-start-10 md:col-start-11 md:col-start-12
+lg:col-start-1 lg:col-start-2 lg:col-start-3 lg:col-start-4 lg:col-start-5 lg:col-start-6 lg:col-start-7 lg:col-start-8 lg:col-start-9 lg:col-start-10 lg:col-start-11 lg:col-start-12
+xl:col-start-1 xl:col-start-2 xl:col-start-3 xl:col-start-4 xl:col-start-5 xl:col-start-6 xl:col-start-7 xl:col-start-8 xl:col-start-9 xl:col-start-10 xl:col-start-11 xl:col-start-12
+2xl:col-start-1 2xl:col-start-2 2xl:col-start-3 2xl:col-start-4 2xl:col-start-5 2xl:col-start-6 2xl:col-start-7 2xl:col-start-8 2xl:col-start-9 2xl:col-start-10 2xl:col-start-11 2xl:col-start-12
+col-end-2 col-end-3 col-end-4 col-end-5 col-end-6 col-end-7 col-end-8 col-end-9 col-end-10 col-end-11 col-end-12 col-end-13
+sm:col-end-2 sm:col-end-3 sm:col-end-4 sm:col-end-5 sm:col-end-6 sm:col-end-7 sm:col-end-8 sm:col-end-9 sm:col-end-10 sm:col-end-11 sm:col-end-12 sm:col-end-13
+md:col-end-2 md:col-end-3 md:col-end-4 md:col-end-5 md:col-end-6 md:col-end-7 md:col-end-8 md:col-end-9 md:col-end-10 md:col-end-11 md:col-end-12 md:col-end-13
+lg:col-end-2 lg:col-end-3 lg:col-end-4 lg:col-end-5 lg:col-end-6 lg:col-end-7 lg:col-end-8 lg:col-end-9 lg:col-end-10 lg:col-end-11 lg:col-end-12 lg:col-end-13
+xl:col-end-2 xl:col-end-3 xl:col-end-4 xl:col-end-5 xl:col-end-6 xl:col-end-7 xl:col-end-8 xl:col-end-9 xl:col-end-10 xl:col-end-11 xl:col-end-12 xl:col-end-13
+2xl:col-end-2 2xl:col-end-3 2xl:col-end-4 2xl:col-end-5 2xl:col-end-6 2xl:col-end-7 2xl:col-end-8 2xl:col-end-9 2xl:col-end-10 2xl:col-end-11 2xl:col-end-12 2xl:col-end-13
+link-primary link-neutral link-secondary link-accent link-info link-success link-warning link-error
+loading-spinner loading-dots loading-ring loading-ball loading-bars loading-infinity
+loading-xs loading-sm loading-md loading-lg loading-xl
+menu-xs menu-sm menu-md menu-lg menu-xl
+menu-vertical menu-horizontal
+modal-bottom modal-middle modal-top modal-start modal-end
+md:modal-bottom md:modal-middle md:modal-top md:modal-start md:modal-end
+progress-primary progress-neutral progress-secondary progress-accent progress-info progress-success progress-warning progress-error
+stack-top stack-bottom stack-start stack-end
+stats-vertical stats-horizontal
+step-primary step-neutral step-secondary step-accent step-info step-success step-warning step-error
+steps-vertical steps-horizontal
+table-xs table-sm table-md table-lg table-xl
+tabs-border tabs-lift tabs-box
+tabs-xs tabs-sm tabs-md tabs-lg tabs-xl
+timeline-vertical timeline-horizontal
+toast-start toast-center toast-end toast-top toast-middle toast-bottom
+tooltip-primary tooltip-neutral tooltip-secondary tooltip-accent tooltip-info tooltip-success tooltip-warning tooltip-error
+tooltip-top tooltip-bottom tooltip-left tooltip-right
+bg-black bg-red-500 bg-white bg-yellow-500

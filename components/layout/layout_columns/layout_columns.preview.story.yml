@@ -1,0 +1,52 @@
+name: Grid 2
+props:
+  attributes:
+    class: ["container-md grid-2"]
+  spacing_attributes:
+    class: ["pt-auto pb-auto"]
+  theme: dark
+slots:
+  column_1:
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: preview
+      variant: "default"
+      slots:
+        title: "New movie 1 is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."
+  column_2:
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: preview
+      variant: "default"
+      slots:
+        title: "New movie 2 is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."
+  column_3:
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: preview
+      variant: "default"
+      slots:
+        title: "New movie 3 is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."
+  column_4:
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: preview
+      variant: "default"
+      slots:
+        title: "New movie 4 is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."

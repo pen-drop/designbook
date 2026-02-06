@@ -1,0 +1,38 @@
+/**
+ * Color tokens (primitives + light theme)
+ * Generated from .pendrop/output/pendrop.theme.tokens.json
+ * Do not edit manually
+ */
+
+:root {
+  /* Primitive colors */
+  --color-black: rgb(0 0 0);
+  --color-white: rgb(255 255 255);
+  --color-neutral-100: rgb(255 255 255);
+  --color-neutral-200: rgb(247 247 247);
+  --color-neutral-300: rgb(237 237 237);
+  --color-neutral-900: rgb(23 23 28);
+  --color-blue-500: rgb(66 41 214);
+  --color-pink-500: rgb(245 48 153);
+  
+  /* Light theme semantic colors */
+  --color-primary-primary: var(--color-blue-500);
+  --color-primary-primary-content: var(--color-neutral-100);
+  --color-secondary-secondary: var(--color-pink-500);
+  --color-secondary-secondary-content: var(--color-neutral-100);
+  --color-base-100: var(--color-neutral-100);
+  --color-base-200: var(--color-neutral-200);
+  --color-base-300: var(--color-neutral-300);
+  --color-base-content: var(--color-neutral-900);
+}
+
+[data-theme="dark"] {
+  --color-primary-primary: var(--color-neutral-100);
+  --color-primary-primary-content: var(--color-blue-500);
+  --color-secondary-secondary: var(--color-neutral-100);
+  --color-secondary-secondary-content: var(--color-pink-500);
+  --color-base-100: var(--color-neutral-900);
+  --color-base-200: var(--color-neutral-200);
+  --color-base-300: var(--color-neutral-300);
+  --color-base-content: var(--color-neutral-100);
+}

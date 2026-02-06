@@ -1,0 +1,53 @@
+{#
+/**
+ * @file
+ * Default theme implementation for status messages.
+ *
+ * Displays status, error, and warning messages, grouped by type.
+ *
+ * An invisible heading identifies the messages for assistive technology.
+ * Sighted users see a colored box. See http://www.w3.org/TR/WCAG-TECHS/H69.html
+ * for info.
+ *
+ * Add an ARIA label to the contentinfo area so that assistive technology
+ * user agents will better describe this landmark.
+ *
+ * Available variables:
+ * - message_list: List of messages to be displayed, grouped by type.
+ * - status_headings: List of all status types.
+ * - attributes: HTML attributes for the element, including:
+ *   - class: HTML classes.
+ *
+ * @ingroup themeable
+ */
+#}
+{% if message_list|length != 0 %}
+  {% set highlighted %}
+<div data-drupal-messages>
+  {% for type, messages in message_list %}
+    {% set variant = '' %}
+    {% set variant = (type == 'status') ? 'info' : variant %}
+    {% set variant = (type == 'warning') ? 'warning' : variant %}
+    {% set variant = (type == 'error') ? 'error' : variant %}
+
+    {% for message in messages %}
+      {#
+        We ignore 'attributes' because in case of multiple different type
+        messages we will have previous messages attributes in the next.
+        For example: we have 1st status message then the 2nd error message,
+        so we will have the css classes from 1st in the 2nd.
+      #}
+      {{ include('ui_suite_daisyui:alert', {
+      variant: variant,
+      message: message,
+      }, with_context: false) }}
+    {% endfor %}
+  {% endfor %}
+</div>
+  {% endset %}
+  {{ include('daisy_cms_daisyui:layout', {
+    content: highlighted,
+    attributes: create_attribute().addClass('pb-sm container-md')
+  }, with_context: false)
+  }}
+{% endif %}

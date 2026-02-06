@@ -1,0 +1,2 @@
+# DaisyCMS theme
+

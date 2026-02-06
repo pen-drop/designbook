@@ -1,0 +1,63 @@
+may_daisy_layout_icon_pack:
+  enabled: true
+  label: "DaisyUI Layout icons"
+  description: "Sample spritemap to use as a starting point for custom icon packs."
+  extractor: svg_sprite
+  config:
+    sources:
+      - "dist/layout-icons.svg"
+  settings:
+    size:
+      title: Size
+      type: "integer"
+      minimum: 12
+      maximum: 128
+      multipleOf: 4
+      default: 16
+    alt:
+      title: "Alt text"
+      type: "string"
+      description: "Accessibility alternative text, leave empty for decorative icon."
+    title:
+      title: "Semantic title"
+      type: "string"
+      description: "If this icon convey meaning, provide text-based alternatives, leave empty for decorative icon."
+    color:
+      title: "Color"
+      type: "string"
+      enum:
+        - text-primary
+        - text-primary-content
+        - text-secondary
+        - text-secondary-content
+        - text-accent
+        - text-accent-content
+        - text-neutral
+        - text-neutral-content
+        - text-base-100
+        - text-base-200
+        - text-base-300
+        - text-base-content
+        - text-info
+        - text-info-content
+        - text-success
+        - text-success-content
+        - text-warning
+        - text-warning-content
+        - text-error
+        - text-error-content
+  template: >
+    <svg
+        class="{{ color|default('text-base-content') }}"
+        width="{{ size|default(114) }}"
+        height="{{ size|default(58) }}"
+        aria-hidden="true"
+        {% if alt %}
+        aria-label="{{ alt }}"
+        {% endif %}
+        >
+        {% if title %}
+        <title>{{ title }}</title>
+        {% endif %}
+        <use href="{{ source }}#{{ icon_id }}"/>
+    </svg>

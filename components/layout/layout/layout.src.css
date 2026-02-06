@@ -1,0 +1,8 @@
+/**
+ * Layout Grid Utility Classes
+ */
+@reference '../../../css/app.src.css';
+
+.layout-background {
+  @apply absolute top-0 left-0 z-[-1] h-full w-full overflow-hidden;
+}

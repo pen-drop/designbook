@@ -1,0 +1,26 @@
+name: DaisyCMS
+type: theme
+description: ''
+core_version_requirement: ^11
+'base theme': ui_suite_daisyui
+regions:
+  navbar_start: 'Navbar start'
+  navbar_center: 'Navbar center'
+  navbar_end: 'Navbar end'
+  highlighted: Highlighted
+  breadcrumb: Breadcrumb
+  content: Content
+  footer: Footer
+
+libraries:
+  - daisy_cms_daisyui/core
+
+libraries-override:
+  ui_suite_daisyui/daisyui:
+    css:
+      theme:
+        https://cdn.jsdelivr.net/npm/daisyui@5: false
+        https://cdn.jsdelivr.net/npm/daisyui@5/themes.css: false
+
+version: 1.0.0
+generator: 'ui_suite_daisyui_starterkit:1.0.0'

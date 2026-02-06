@@ -1,0 +1,56 @@
+name: Demo
+variant: circular
+props:
+  attributes:
+    class: [ "container-md" ]
+  show_arrows: true
+  show_pagination: true
+  slides_per_view: 3
+  autoplay: true
+  options:
+    align: prev
+    circular: true
+    moveType: freeScroll
+    defaultIndex: 1
+slots:
+  items:
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: default
+      variant: "default"
+      slots:
+        title: "New movie A is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: default
+      variant: "default"
+      slots:
+        title: "New movie B is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: default
+      variant: "default"
+      slots:
+        title: "New movie C is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: default
+      variant: "default"
+      slots:
+        title: "New movie D is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."

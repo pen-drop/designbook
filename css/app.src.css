@@ -1,0 +1,47 @@
+@import "./tailwind.config.pcss";
+
+/**
+ * We include tailwindcss into an own layer
+ * to prevent wrong layer ordering
+ *
+ * @see https://github.com/tailwindlabs/tailwindcss/issues/15864
+ */
+@import "tailwindcss" source(none);
+
+
+
+/**
+ * Include design tokens from Figma
+ */
+@import "./tokens/color.src.css";
+@import "./tokens/spacing.src.css";
+@import "./tokens/font.src.css";
+@import "./tokens/radius.src.css";
+@import "./tokens/opacity.src.css";
+
+/**
+ * Include DaisyUI themes
+ */
+@import "./themes/daisycms.src.css";
+@import "./themes/dark.src.css";
+
+/**
+ * Include additional plugins here
+ */
+@import "./plugins/_daisyui.config.src.css";
+@import "./plugins/_tailwindcss.typography.config.src.css";
+
+/**
+ * Declare all source files to take into account all utility classes used in the theme for the build process.
+ */
+@source "../templates/**/*.{twig,js}";
+@source "../components/**/*.{twig,js,yml}";
+@source "../*.ui_styles.yml";
+@source "../ui_examples/*.yml";
+@source "./safelist.txt";
+@source "../../../contrib/ui_suite_daisyui/templates/**/*.{twig,js}";
+@source "../../../contrib/ui_suite_daisyui/components/**/*.{twig,js,yml}";
+@source "../../../contrib/ui_suite_daisyui/src/css/safelist.txt";
+@source "../../../contrib/ui_suite_daisyui/*.ui_styles.yml";
+@source "../../../contrib/ui_suite_daisyui/**/*.{twig,js,yml}";
+

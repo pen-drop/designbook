@@ -1,0 +1,10 @@
+name: Preview
+props:
+  align: center
+slots:
+  buttons:
+    - type: component
+      component: "ui_suite_daisyui:button"
+    - type: component
+      component: "ui_suite_daisyui:button"
+

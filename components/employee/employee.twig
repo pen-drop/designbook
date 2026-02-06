@@ -1,0 +1,54 @@
+{#
+/**
+ * @file
+ * Employee component template.
+ *
+ * Available slots:
+ * - image: Employee image (component)
+ * - name: Employee name (text)
+ * - position: Employee position/title (text)
+ * - button: Action button (component)
+ */
+#}
+{% set classes = [
+  'employee',
+  'flex',
+  'flex-col',
+  'items-center',
+  'gap-[var(--spacing-4)]',
+] %}
+
+{% set attributes = attributes.addClass(classes) %}
+
+<div{{ attributes }}>
+  {# Employee image #}
+  {% if image %}
+    <div class="employee-image rounded-[var(--radius-4xl)] overflow-hidden">
+      {{ image }}
+    </div>
+  {% endif %}
+
+  {# Employee details container #}
+  <div class="employee-details flex flex-col items-center gap-[var(--spacing-1)]">
+    {# Employee name #}
+    {% if name %}
+      <div class="employee-name text-3xl font-bold text-base-content">
+        {{ name }}
+      </div>
+    {% endif %}
+
+    {# Employee position #}
+    {% if position %}
+      <div class="employee-position text-base text-base-content">
+        {{ position }}
+      </div>
+    {% endif %}
+  </div>
+
+  {# Action button #}
+  {% if button %}
+    <div class="employee-button">
+      {{ button }}
+    </div>
+  {% endif %}
+</div>

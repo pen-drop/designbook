@@ -1,0 +1,8 @@
+<?php
+
+/**
+ * @file
+ * Functions to support theming in the UI Suite DaisyUI theme.
+ */
+
+declare(strict_types=1);

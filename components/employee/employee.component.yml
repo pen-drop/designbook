@@ -1,0 +1,32 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: Employee
+status: stable
+description: Employee card component with image, name, position, and action button
+provider: daisy_cms_daisyui
+variants:
+  default:
+    title: Default
+    description: Default employee card variant
+props:
+  type: object
+  properties:
+    variant:
+      type: string
+      title: Variant
+      description: Component variant
+      default: default
+      enum:
+        - default
+slots:
+  image:
+    title: Image
+    description: Employee image
+  name:
+    title: Name
+    description: Employee name
+  position:
+    title: Position
+    description: Employee position or title
+  button:
+    title: Button
+    description: Action button

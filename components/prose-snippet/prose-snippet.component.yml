@@ -1,0 +1,33 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+
+name: Prose Snippet
+
+status: stable
+props:
+  type: object
+  properties:
+    heading_level:
+      title: "Heading level"
+      type: integer
+      enum:
+        - 1
+        - 2
+        - 3
+        - 4
+      "meta:enum":
+        1: h1
+        2: "h2 (Default)"
+        3: h3
+        4: h4
+slots:
+  pre_headline:
+    title: Pre Headline
+  headline:
+    title: Headline
+  sub_headline:
+    title: Sub Headline
+  content:
+    title: Content
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

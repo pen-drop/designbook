@@ -1,0 +1,26 @@
+{#
+/**
+ * @file
+ * prose
+ *
+ * See prose.component.yml for documentation.
+ */
+#}
+
+{% set heading_level = heading_level|default('h2') %}
+{%
+  set classes = [
+    'prose',
+  ]
+%}
+
+<div{{ attributes.addClass(classes) }}>
+  {% if pre_headline %}
+    <div class="h4">{{ pre_headline }}</div>
+  {% endif %}
+  <h{{ heading_level }}>{{ headline }}</h{{ heading_level }}>
+  {% if sub_headline %}
+    <div class="h4">{{ sub_headline }}</div>
+  {% endif %}
+  {{ content }}
+</div>

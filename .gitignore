@@ -1,0 +1,8 @@
+node_modules/*
+dist/*
+*.css
+components/*/*.js
+!*.src.css
+!*.src.js
+package-lock.json
+!.storybook/*js

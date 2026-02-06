@@ -1,0 +1,14 @@
+# No value because same as plugin ID.
+daisycms:
+  label: "DaisyCMS"
+  label_context: "color"
+  key: "data-theme"
+  target: html
+
+# No value because same as plugin ID.
+dark:
+  label: "Dark"
+  label_context: "color"
+  key: "data-theme"
+  target: html
+

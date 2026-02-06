@@ -1,0 +1,81 @@
+{#
+/**
+ * @file
+ * Section Slider Component Template
+ *
+ * A flexible slider powered by egjs-flicking that accepts any content.
+ *
+ * Slots:
+ * - items: Array of slide content (HTML, render arrays, components)
+ *
+ * Props:
+ * - show_arrows: boolean (default: true)
+ * - show_pagination: boolean (default: true)
+ * - variant: string ('center'|'prev'|'circular', default: 'center')
+ * - options: object (flicking configuration overrides)
+ * - items_gap: boolean (default: false)
+ */
+#}
+
+{{ attach_library('daisy_cms_daisyui/slider') }}
+
+{% set spacing_attributes = spacing_attributes|default(create_attribute()) %}
+{% set attributes = attributes|default(create_attribute()) %}
+
+{% if theme %}
+  {% set spacing_attributes = spacing_attributes.setAttribute('data-theme', theme).setAttribute('data-on-background', "true") %}
+{% endif %}
+
+{% set options = {
+  panelsPerView: props.panels_per_view|default(1),
+  circular: props.circular|default(false),
+  showArrows: show_arrows,
+  showPagination: show_pagination,
+  autoPlay: auto_play
+} %}
+
+{# Handle different item formats #}
+{% set slides = [] %}
+
+{# Check if items is directly a list/array #}
+{% if items is iterable %}
+  {% set slides = items %}
+  {# Check if items has a content property (render array) #}
+{% elseif items.content is defined and items.content is iterable %}
+  {% set slides = items.content %}
+  {# Check if items is a single item #}
+{% elseif items %}
+  {% set slides = [items] %}
+{% endif %}
+
+<div {{ spacing_attributes }}>
+  <div {{ attributes.addClass('slider') }}>
+    <div class="flicking-viewport" data-flicking-options='{{ options|json_encode|escape("html_attr") }}'>
+      <div class="flicking-camera">
+        {# Render slides #}
+        {% for key, item in slides %}
+          {# Skip Drupal render array metadata keys #}
+          {% if key is not same as('#type') and key is not same as('#theme') and key is not same as('#cache') and not (key starts with '#') %}
+            <div class="flicking-panel">
+              <div class="panel-content">
+                {{ item }}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      {% if show_arrows == true %}
+        <button class="flicking-arrow-prev" type="button" aria-label="Previous slide">
+        </button>
+        <button class="flicking-arrow-next" type="button" aria-label="Next slide">
+        </button>
+      {% endif %}
+
+      {% if show_pagination == true %}
+        {# Pagination inside viewport #}
+        <div class="flicking-pagination"></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
