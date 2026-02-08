@@ -32,6 +32,7 @@
         "stylelint-config-tailwindcss": "^1.0.0",
         "stylelint-prettier": "^5.0.3",
         "tailwindcss": "^4.0.0-beta.9",
+        "twing": "^7.3.0",
         "vite": "^6.3.5",
         "vite-plugin-static-copy": "^2.3.0"
     },

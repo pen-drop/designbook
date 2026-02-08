@@ -60,14 +60,6 @@ const config = {
       ],
       build: {
         rollupOptions: {
-          // Externalize modules imported by .twig files that are provided
-          // by the SDC plugin at runtime (twing, drupal-attribute, etc.)
-          external(id, importer) {
-            if (importer?.endsWith('.twig')) {
-              return id === 'twing' || id === 'drupal-attribute';
-            }
-            return false;
-          },
           onwarn(warning, warn) {
             // Suppress CSS @property warnings (DaisyUI radial progress)
             if (warning.message?.includes('Unknown at rule: @property')) return;
