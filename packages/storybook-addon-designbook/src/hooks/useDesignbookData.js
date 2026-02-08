@@ -20,6 +20,7 @@ export function useDesignbookData(path, parser) {
     setLoading(true);
     setError(null);
     try {
+      // eslint-disable-next-line no-undef
       const res = await fetch(`/__designbook/load?path=${encodeURIComponent(path)}`);
       if (res.status === 404) {
         setData(null);
@@ -32,7 +33,11 @@ export function useDesignbookData(path, parser) {
         try {
           const json = JSON.parse(text);
           if (json.content != null) content = json.content;
-          else if (json.exists === false) { setData(null); setLoading(false); return; }
+          else if (json.exists === false) {
+            setData(null);
+            setLoading(false);
+            return;
+          }
         } catch {
           // Not JSON — use raw text (plain text response)
         }

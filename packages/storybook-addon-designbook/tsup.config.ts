@@ -76,7 +76,8 @@ export default defineConfig(async () => {
       entry: nodeEntries,
       platform: 'node',
       target: NODE_TARGET,
-      onSuccess: 'cp -r src/onboarding dist/onboarding && cp -r src/components dist/components && cp -r src/hooks dist/hooks',
+      onSuccess:
+        'cp -r src/onboarding dist/onboarding && cp -r src/components dist/components && cp -r src/hooks dist/hooks',
     });
   }
 

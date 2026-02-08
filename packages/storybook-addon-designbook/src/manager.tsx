@@ -16,7 +16,7 @@ addons.register(ADDON_ID, (api) => {
   addons.add(TOOL_ID, {
     type: types.TOOL,
     title: 'Designbook',
-    match: ({ viewMode, tabId }) => !!((viewMode && viewMode.match(/^(story|docs)$/))),
+    match: ({ viewMode }) => !!(viewMode && viewMode.match(/^(story|docs)$/)),
     render: () => <Tool api={api} />,
   });
 
@@ -27,6 +27,4 @@ addons.register(ADDON_ID, (api) => {
     match: ({ viewMode }) => viewMode === 'story',
     render: ({ active }) => <Panel active={active} />,
   });
-
-
 });

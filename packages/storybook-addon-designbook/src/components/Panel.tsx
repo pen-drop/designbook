@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { AddonPanel, Placeholder } from 'storybook/internal/components';
+import { AddonPanel } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 
 interface PanelProps {
@@ -45,10 +45,18 @@ export const Panel: React.FC<PanelProps> = memo(function DesignbookPanel(props: 
 
         <Title style={{ marginTop: '1rem' }}>Available Commands</Title>
         <List>
-          <Item><Command>/product-vision</Command> - Define product vision</Item>
-          <Item><Command>/product-roadmap</Command> - Create roadmap</Item>
-          <Item><Command>/data-model</Command> - Define data model</Item>
-          <Item><Command>/design-tokens</Command> - Design-Tokens document</Item>
+          <Item>
+            <Command>/product-vision</Command> - Define product vision
+          </Item>
+          <Item>
+            <Command>/product-roadmap</Command> - Create roadmap
+          </Item>
+          <Item>
+            <Command>/data-model</Command> - Define data model
+          </Item>
+          <Item>
+            <Command>/design-tokens</Command> - Design-Tokens document
+          </Item>
         </List>
       </Container>
     </AddonPanel>
