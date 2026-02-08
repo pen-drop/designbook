@@ -191,6 +191,29 @@ If you only need to run the integration-specific Storybook (without rebuilding t
 pnpm run dev:integration:drupal
 ```
 
+## CI/CD
+
+### Build Pipeline (`.github/workflows/build.yml`)
+Runs on every push. Tests against Node 20.19 and 22.12.
+
+Steps:
+1. **Lint addon** — `pnpm --filter storybook-addon-designbook lint` (ESLint)
+2. **Build addon** — `pnpm --filter storybook-addon-designbook build` (CSS + tsup)
+3. **Build Integration (Storybook)** — `pnpm --filter test-integration-drupal build-storybook`
+
+### Linting
+The addon has ESLint configured with `eslint-plugin-react`, `eslint-plugin-storybook`, and `eslint-plugin-prettier`:
+```bash
+# Run lint
+pnpm --filter storybook-addon-designbook lint
+
+# Run lint with auto-fix
+pnpm --filter storybook-addon-designbook lint:fix
+```
+
+### Release Pipeline (`.github/workflows/release.yml`)
+**Manual trigger only** (`workflow_dispatch`). Will be configured later for npm publishing via `auto`.
+
 ## CSS Isolation: Tailwind Prefix
 
 To prevent CSS class collisions between original Storybook/Drupal components and the new Designbook React components, we use **Tailwind CSS v4's `prefix()` feature**.

@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint addon
+        run: pnpm --filter storybook-addon-designbook lint
+
       - name: Build addon
         run: pnpm --filter storybook-addon-designbook build
 
