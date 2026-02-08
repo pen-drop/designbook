@@ -1,0 +1,116 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { DeboSection, DeboProductOverviewCard, DeboNumberedList } from '../components/index.js';
+import '../index.css';
+
+<Meta title="Product" />
+
+# Product Vision
+
+The product vision defines what you're building, which problems it solves, and the key features.
+Use the AI command to define or update your product vision — the result is displayed here automatically.
+
+export function parseProductOverview(md) {
+  const lines = md.split('\n');
+  const result = { name: '', description: '', problems: [], features: [] };
+  let section = null;
+  let currentProblem = null;
+  let descLines = [];
+  for (const line of lines) {
+    const h1 = line.match(/^#\s+(.+)/);
+    const h2 = line.match(/^##\s+(.+)/);
+    const h3 = line.match(/^###\s+(?:Problem\s+\d+:\s*)?(.+)/);
+    const bullet = line.match(/^-\s+(.+)/);
+    if (h1 && !result.name) {
+      result.name = h1[1].trim();
+      continue;
+    }
+    if (h2) {
+      if (section === 'description') {
+        result.description = descLines.join(' ').trim();
+        descLines = [];
+      }
+      if (currentProblem) {
+        result.problems.push(currentProblem);
+        currentProblem = null;
+      }
+      const sectionName = h2[1].trim().toLowerCase();
+      if (sectionName.includes('description')) section = 'description';
+      else if (sectionName.includes('problem') || sectionName.includes('solution')) section = 'problems';
+      else if (sectionName.includes('feature')) section = 'features';
+      else section = null;
+      continue;
+    }
+    if (section === 'description' && line.trim()) {
+      descLines.push(line.trim());
+      continue;
+    }
+    if (section === 'problems') {
+      if (h3) {
+        if (currentProblem) result.problems.push(currentProblem);
+        currentProblem = { title: h3[1].trim(), solution: '' };
+        continue;
+      }
+      if (currentProblem && line.trim()) {
+        currentProblem.solution = currentProblem.solution
+          ? currentProblem.solution + ' ' + line.trim()
+          : line.trim();
+      }
+      continue;
+    }
+    if (section === 'features' && bullet) {
+      result.features.push(bullet[1].trim());
+      continue;
+    }
+  }
+  if (section === 'description') {
+    result.description = descLines.join(' ').trim();
+  }
+  if (currentProblem) {
+    result.problems.push(currentProblem);
+  }
+  return result.name ? result : null;
+}
+
+export function parseRoadmap(md) {
+  const lines = md.split('\n');
+  const sections = [];
+  let currentSection = null;
+  for (const line of lines) {
+    const h3 = line.match(/^###\s+\d+\.\s+(.+)/);
+    if (h3) {
+      if (currentSection) sections.push(currentSection);
+      currentSection = { title: h3[1].trim(), description: '' };
+      continue;
+    }
+    if (currentSection && line.trim() && !line.match(/^#+\s/)) {
+      currentSection.description = currentSection.description
+        ? currentSection.description + ' ' + line.trim()
+        : line.trim();
+    }
+  }
+  if (currentSection) sections.push(currentSection);
+  return sections.length > 0 ? { sections } : null;
+}
+
+---
+
+<DeboSection
+  dataPath="product/product-overview.md"
+  parser={parseProductOverview}
+  command="/product-vision"
+  emptyMessage="No product vision defined yet"
+  renderContent={(data) => <DeboProductOverviewCard overview={data} />}
+/>
+
+## Sections
+
+The product is broken into 3–5 development sections, ordered by priority.
+Each section represents a self-contained area that can be designed and built independently.
+
+<DeboSection
+  dataPath="product/product-roadmap.md"
+  parser={parseRoadmap}
+  command="/product-roadmap"
+  emptyMessage="No product roadmap defined yet"
+  renderContent={(data) => <DeboNumberedList items={data.sections} linkTo="/docs/sections-overview--docs" />}
+/>

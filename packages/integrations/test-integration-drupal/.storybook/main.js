@@ -2,15 +2,15 @@ import { join } from 'node:path' // 1. Add dependencies.
 import { cwd } from 'node:process'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import designbookSave from './source/vite-plugin-designbook-save.js'
-import {baseTheme} from '../.daisy_ui.js';
+
+import { baseTheme } from '../.daisy_ui.js';
 const { uiPatternsDefs } = require(`./defs.js`);
 
 console.log(baseTheme);
 /** @type { import('@storybook/html-vite').StorybookConfig } */
 const config = {
   "stories": [
-    "./onboarding/*.mdx",
+
     "../foundations/**/*.mdx",
     "../components/**/*.component.yml",
     join(baseTheme, "components/**/*.component.yml"),
@@ -19,6 +19,7 @@ const config = {
   addons: [
     '@storybook/addon-themes',
     '@storybook/addon-docs',
+    'storybook-addon-designbook',
     {
       name: 'storybook-addon-sdc', // 3. Configure addon.
       options: {
@@ -56,7 +57,6 @@ const config = {
       plugins: [
         react({ include: /\.storybook\/source\/.*\.[jt]sx?$/ }),
         tailwindcss(),
-        designbookSave(join(cwd())),
       ],
     });
   },
