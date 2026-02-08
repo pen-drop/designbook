@@ -58,6 +58,15 @@ const config = {
         react({ include: /\.storybook\/source\/.*\.[jt]sx?$/ }),
         tailwindcss(),
       ],
+      build: {
+        rollupOptions: {
+          onwarn(warning, warn) {
+            // Suppress CSS @property warnings (DaisyUI radial progress)
+            if (warning.message?.includes('Unknown at rule: @property')) return;
+            warn(warning);
+          },
+        },
+      },
     });
   },
 };
