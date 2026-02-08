@@ -59,6 +59,9 @@ const config = {
         tailwindcss(),
       ],
       build: {
+        // Use esbuild for CSS minification instead of lightningcss
+        // to avoid false @property warnings that cause CI failures
+        cssMinify: 'esbuild',
         rollupOptions: {
           onwarn(warning, warn) {
             // Suppress CSS @property warnings (DaisyUI radial progress)
