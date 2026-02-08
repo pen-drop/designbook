@@ -32,3 +32,6 @@ pnpm-debug.log*
 
 # Turbo
 .turbo
+
+# Allow CSS in src
+!src/*.css
