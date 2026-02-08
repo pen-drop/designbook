@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Designbook** is the product name for our framework-agnostic, Storybook-based design and workflow environment. It migrates **Design OS workflows** into a **Storybook workflow** that works with any component framework Storybook supports.
+**Designbook** is the product name for our framework-agnostic, Storybook-based design and workflow environment. It provides a **Storybook workflow** that works with any component framework Storybook supports.
 
 **Target Audience**: Designbook primarily targets **designers and product planners** who define the "what" of the product. Developers play a **supporting role** to ensure components are correctly generated from specifications.
 
@@ -12,9 +12,7 @@
 
 **Framework Flexibility**: Designbook leverages Storybook's powerful rendering capabilities to work with React, Vue, Angular, Web Components, Svelte, or any other framework Storybook supports. The workflow system (AI commands, data storage, MDX documentation) is completely independent of your component framework choice.
 
-**Current Implementation**: This repository currently uses Drupal Single Directory Components (SDC) with Twig templates, but the same Designbook workflow system can be applied to any Storybook-supported framework.
-
-Design OS (located in `source/design-os/`) serves as the template and reference for structured product planning, design, and documentation workflows. The goal is to gradually adopt these workflows piece by piece into MDX format so they can be used within Storybook as part of Designbook.
+**Current Implementation**: This repository currently uses Drupal Single Directory Components (SDC) with Twig templates as the **first integration deployment**. The same Designbook workflow system applies to any Storybook-supported framework. React, Vue, Svelte, and others will follow and land under `packages/integrations/` for testing.
 
 ## Current Setup
 
@@ -23,7 +21,16 @@ Design OS (located in `source/design-os/`) serves as the template and reference 
 - **Rendering**: Storybook handles all component rendering (framework-agnostic)
 - **Documentation**: MDX files supported in `.storybook/onboarding/` and `foundations/`
 - **React Components**: Storybook also supports React components for interactive documentation and workflow UIs
-- **React Source Location**: `.storybook/source/` - React components used in onboarding MDX files
+- **Monorepo Structure**:
+  - `packages/storybook-addon-designbook/`: Core addon with React components and logic (Framework Agnostic)
+  - `packages/integrations/`: Integration packages for various frameworks
+    - `test-integration-drupal`: Current Drupal SDC integration example
+    - *Future*: `test-integration-react`, `test-integration-vue`, etc. will be added here for testing.
+- **Key Locations**:
+  - `packages/storybook-addon-designbook/src/components`: React components (Debo*)
+  - `packages/storybook-addon-designbook/src/onboarding`: Onboarding MDX files
+  - `packages/storybook-addon-designbook/src/hooks`: React hooks
+  - `packages/storybook-addon-designbook/src/index.css`: Core styles
 
 ### Current Component Implementation (Drupal-Specific)
 - **Component System**: Drupal Single Directory Components (SDC) using YAML definitions
@@ -32,17 +39,6 @@ Design OS (located in `source/design-os/`) serves as the template and reference 
 - **Components Location**: `components/` directory with `.component.yml` and `.story.yml` files
 
 > **Important**: The component system shown above is specific to this Drupal implementation. If you're using Designbook with React, Vue, or another framework, your `components/` directory structure will differ, but the Designbook workflow system remains identical.
-
-### Design OS Reference
-- **Location**: `source/design-os/`
-- **Purpose**: Template and reference for structured product planning workflows
-- **Structure**: React-based application with guided workflows for:
-  - Product vision and roadmap definition
-  - Data model design
-  - Design system tokens
-  - Section specifications
-  - Screen design components
-  - Export packages
 
 ## Architecture Principles
 
@@ -105,105 +101,67 @@ AI commands are defined in `.cursor/commands/` and handle all data input:
 
 Each AI command follows a conversational pattern: gather input → ask questions → present draft → confirm → save file.
 
-## Migration Strategy
+## Core Workflows
 
-### Goal
-Transfer Design OS workflows into MDX format for use within Storybook, enabling structured product planning and design documentation directly in the Storybook environment.
+The following workflow areas are core to Designbook:
 
-### Approach: Gradual Piece-by-Piece Adoption
-
-Rather than a complete migration, we're adopting Design OS workflows incrementally:
-
-1. **Identify Workflow Components**: Extract specific workflows from Design OS that align with our needs
-2. **Create AI Command**: Build a Cursor AI command in `.cursor/commands/` for conversational data input
-3. **Define File Format**: Establish Markdown file structure in `designbook/` for saved data
-4. **Create React Components**: Build display components in `.storybook/source/` for rendering saved data
-5. **Create MDX Page**: Build Storybook page that shows AI command reference + loads/displays saved data
-6. **Integrate into Storybook**: Add MDX files to Storybook's documentation structure
-7. **Iterate and Refine**: Test each piece in the Storybook context and refine as needed
-
-### Workflow Areas to Migrate
-
-Based on Design OS structure (`source/design-os/agents.md`), the following workflow areas are candidates for migration:
-
-#### 1. Product Planning Workflows
+### 1. Product Planning Workflows
 **Owner**: Product Planners
 - **Product Vision** (`/product-vision`): Define product description, problems/solutions, key features
 - **Product Roadmap** (`/product-roadmap`): Break product into development sections
 - **Output Format**: MDX documentation pages in Storybook
 
-#### 2. Data Model Definition
+### 2. Data Model Definition
 **Owner**: Designers & Product Planners
 - **Data Model** (`/data-model`): Define core entities and relationships
 - **Output Format**: MDX documentation with structured data model definitions
 
-#### 3. Design System Documentation
+### 3. Design System Documentation
 **Owner**: Designers
 - **Design Tokens** (`/design-tokens`): Color palette and typography definitions
 - **Integration**: Link to existing Tailwind/DaisyUI design tokens
 - **Output Format**: MDX pages documenting design system decisions
 
-#### 4. Component Specification Workflows
+### 4. Component Specification Workflows
 **Owner**: Designers
 **Support**: Developers (ensure correct component generation)
 - **Section Specification** (`/shape-section`): Define component requirements
 - **Sample Data** (`/sample-data`): Create sample data for components
 - **Output Format**: MDX documentation accompanying component stories
 
-#### 5. Design Documentation
+### 5. Design Documentation
 **Owner**: Designers
 - **Screen Design** (`/design-screen`): Document UI designs and layouts
 - **Screenshots** (`/screenshot-design`): Capture and document design states
 - **Output Format**: MDX pages with embedded images and design documentation
 
-## Design OS Workflow Reference
-
-When working on migration tasks, refer to `source/design-os/agents.md` for:
-- Complete workflow definitions
-- File structure patterns
-- Design requirements and guidelines
-- Export and handoff processes
-
-## Current Component Structure (Drupal-Specific)
-
-Our current Drupal components follow this pattern:
-```
-components/
-└── [component-name]/
-    ├── [component-name].component.yml    # Component definition (props, variants, slots)
-    ├── [component-name].[variant].story.yml  # Story definitions
-    └── [component-name].twig             # Twig template
-```
-
-> **Note**: This structure is specific to Drupal SDC. If you're using Designbook with React, Vue, or another framework, your component structure will follow that framework's conventions. The Designbook workflow system adapts to any component structure Storybook supports.
-
 ## Integration Points
 
 ### Storybook Configuration
-- **Main Config**: `.storybook/main.js` - Configured to load MDX files from:
-  - `./onboarding/*.mdx`
-  - `../foundations/**/*.mdx`
-  - Component YAML files
-- **Preview Config**: `.storybook/preview.js` - Theme support and autodocs enabled
+- **Main Config**: Defined in integration packages (e.g. `packages/integrations/test-integration-drupal/.storybook/main.js`)
+- **Addon**: `storybook-addon-designbook` is added to the addons list
 
 ### MDX Documentation Structure
-When creating MDX files for Design OS workflows:
+When creating MDX files for workflows:
 - Place onboarding/workflow MDX files in `.storybook/onboarding/` or `foundations/`
 - Use Storybook's MDX syntax for interactive documentation
-- **Embed React Components**: Import and use React components from `.storybook/source/` within MDX files
+- **Embed React Components**: Import and use React components from the addon within MDX files
 - Link to component stories and documentation
 - Maintain consistency with existing Storybook documentation patterns
 
 ### React Components for Workflows
-- **Source Location**: `.storybook/source/` - All React components used in onboarding MDX files
+- **Source Location**: `packages/storybook-addon-designbook/src/components/`
 - **Purpose**: Interactive UI elements for workflow documentation (forms, wizards, step indicators, etc.)
-- **Integration**: React components are imported and used directly in MDX files
-- **Pattern**: Mirror Design OS React components (`source/design-os/src/components/`) but adapt for Storybook MDX context
-- **Examples**: 
-  - Workflow step indicators
-  - Interactive forms for product planning
-  - Data model visualization components
-  - Design system token displays
+- **Naming**: All components exported from here are prefixed with `Debo` (e.g., `DeboProductOverviewCard`) to avoid conflicts.
+- **Integration**: Imported from the addon package in MDX files:
+  ```javascript
+  import { DeboProductOverviewCard } from 'storybook-addon-designbook';
+  ```
+- **Linting (mandatory)**: When components in `packages/storybook-addon-designbook/src/` are added or modified, always run lint before committing:
+  ```bash
+  pnpm --filter storybook-addon-designbook lint
+  ```
+  Fix any lint errors with `pnpm --filter storybook-addon-designbook lint:fix`.
 
 ## Design System Context
 
@@ -213,28 +171,71 @@ When creating MDX files for Design OS workflows:
 - **Build Tool**: Vite
 - **Theme System**: Light/Dark theme support via `data-theme` attribute
 
-### Design OS Design System
-- **Reference**: `source/design-os/src/lib/design-system-loader.ts`
-- **Tokens**: Color palettes and typography definitions
-- **Integration**: Align Design OS design tokens with our Tailwind/DaisyUI setup
+## Setup & Installation
 
-### CSS Isolation: Tailwind Prefix
+### Package Manager
+We use **pnpm** for dependency management. If you don't have it installed:
 
-To prevent CSS class collisions between original Storybook/Drupal components and the new Design OS React components, we use **Tailwind CSS v4's `prefix()` feature**.
+```bash
+npm install -g pnpm
+```
+
+### User/Tester - "Agent Browser"
+The **Agent Browser** is an internal AI tool, not user-installable software. To test the integration:
+
+1.  From the project root:
+    ```bash
+    pnpm run dev
+    ```
+2.  This starts both the addon build watcher and the Storybook instance.
+3.  Open the URL provided in the terminal (usually `http://localhost:6009`).
+
+### Alternative: Integration Only
+If you only need to run the integration-specific Storybook (without rebuilding the addon):
+```bash
+pnpm run dev:integration:drupal
+```
+
+## CI/CD
+
+### Build Pipeline (`.github/workflows/build.yml`)
+Runs on every push. Tests against Node 20.19 and 22.12.
+
+Steps:
+1. **Lint addon** — `pnpm --filter storybook-addon-designbook lint` (ESLint)
+2. **Build addon** — `pnpm --filter storybook-addon-designbook build` (CSS + tsup)
+3. **Build Integration (Storybook)** — `pnpm --filter test-integration-drupal build-storybook`
+
+### Linting
+The addon has ESLint configured with `eslint-plugin-react`, `eslint-plugin-storybook`, and `eslint-plugin-prettier`:
+```bash
+# Run lint
+pnpm --filter storybook-addon-designbook lint
+
+# Run lint with auto-fix
+pnpm --filter storybook-addon-designbook lint:fix
+```
+
+### Release Pipeline (`.github/workflows/release.yml`)
+**Manual trigger only** (`workflow_dispatch`). Will be configured later for npm publishing via `auto`.
+
+## CSS Isolation: Tailwind Prefix
+
+To prevent CSS class collisions between original Storybook/Drupal components and the new Designbook React components, we use **Tailwind CSS v4's `prefix()` feature**.
 
 **How it works:**
-- The CSS entry point at `.storybook/source/` imports Tailwind with a prefix:
+- The addon CSS (`packages/storybook-addon-designbook/src/index.css`) imports Tailwind with a prefix:
   ```css
   @import "tailwindcss" prefix(debo);
   ```
-- All React components in `.storybook/source/` use `debo:` prefixed utility classes:
+- All React components in the addon use `debo:` prefixed utility classes:
   ```jsx
   <div className="debo:flex debo:gap-4 debo:p-6 debo:bg-white debo:dark:bg-gray-800">
   ```
-- The main project CSS (`css/app.src.css`) continues to use **unprefixed** Tailwind classes for Drupal/Twig components
+- The integration project CSS (e.g. `packages/integrations/test-integration-drupal/css/app.src.css`) continues to use **unprefixed** Tailwind classes for Drupal/Twig components
 
 **Rules:**
-- React components in `.storybook/source/` **MUST** use `debo:` prefixed classes exclusively
+- React components in the addon **MUST** use `debo:` prefixed classes exclusively
 - Drupal/Twig components **MUST NOT** use `debo:` prefixed classes
 - Dark mode in React components uses `debo:dark:` variant (e.g., `debo:dark:bg-gray-800`)
 - DaisyUI classes in React components are also scoped under the `debo:` prefix
@@ -245,23 +246,13 @@ To prevent CSS class collisions between original Storybook/Drupal components and
 - No need to duplicate `data-theme` attribute into Shadow roots
 - Simpler to implement, debug, and maintain
 
-## Migration Principles
-
-1. **Preserve Workflow Logic**: Maintain the structured, step-by-step approach from Design OS
-2. **Adapt to Storybook**: Convert React-based UI to MDX documentation format with embedded React components
-3. **React Component Migration**: Extract and adapt React components from Design OS to `.storybook/source/` for use in MDX files
-4. **Incremental Adoption**: Migrate one workflow area at a time
-5. **Maintain Reference**: Keep `source/design-os/` as the source of truth for original workflows
-6. **Document Decisions**: Record migration decisions and adaptations in MDX comments or documentation
-
 ## File Locations
 
-- **Design OS Reference**: `source/design-os/`
-- **Design OS Agents**: `source/design-os/agents.md`
-- **Storybook Config**: `.storybook/main.js`, `.storybook/preview.js`
-- **React Components Source**: `.storybook/source/` - Display components for onboarding MDX files
-- **Vite Plugin**: `.storybook/source/vite-plugin-designbook-save.js` - Middleware for file loading
-- **Onboarding MDX Files**: `.storybook/onboarding/*.mdx` - Read-only display pages with AI command references
+- **Storybook Addon**: `packages/storybook-addon-designbook/`
+- **React Components Source**: `packages/storybook-addon-designbook/src/components/`
+- **MDX Files**: `packages/storybook-addon-designbook/src/onboarding/`
+- **Vite Plugin**: Managed internally by the addon
+- **Integrations**: `packages/integrations/` (e.g. `test-integration-drupal`)
 - **AI Commands**: `.cursor/commands/` - Conversational AI commands for data input
 - **Designbook Data**: `designbook/` - Saved workflow data (Markdown files, git-tracked)
 - **Components**: `components/` - Drupal Twig components
@@ -270,42 +261,44 @@ To prevent CSS class collisions between original Storybook/Drupal components and
 
 ## Usage Guidelines
 
-When working on migration tasks:
+When working on workflow definition tasks:
 
-1. **Reference Design OS**: Always check `source/design-os/agents.md` for original workflow definitions
-2. **Create AI Command First**: Build a Cursor AI command in `.cursor/commands/` for conversational data input — Storybook never has write access
-3. **Define File Format**: Establish the Markdown file structure for `designbook/` output
-4. **Extract Display Components**: Identify React components needed to display saved data (not for input)
-5. **Create React Components**: Build display-only components in `.storybook/source/` for Storybook MDX context
-6. **Create MDX Page**: Build Storybook page showing AI command reference + loading/displaying saved data
-7. **No Forms in Storybook**: Never add data input forms, editors, or save buttons to Storybook pages
-8. **Test in Storybook**: Verify MDX files and embedded React components render correctly in Storybook
-9. **Validate with Agent Browser**: Use the Agent Browser tool to validate data display, empty states, reload functionality, and theme switching
-10. **Document Changes**: Note any adaptations made for the Storybook context
-11. **Iterate**: Refine based on usage and feedback
+1. **Create AI Command First**: Build a Cursor AI command in `.cursor/commands/` for conversational data input — Storybook never has write access
+2. **Define File Format**: Establish the Markdown file structure for `designbook/` output
+3. **Extract Display Components**: Identify React components needed to display saved data (not for input)
+4. **Create React Components**: Build display-only components in `packages/storybook-addon-designbook/src/components/` for Storybook MDX context
+5. **Create MDX Page**: Build Storybook page showing AI command reference + loading/displaying saved data
+6. **No Forms in Storybook**: Never add data input forms, editors, or save buttons to Storybook pages
+7. **Test in Storybook**: Verify MDX files and embedded React components render correctly in Storybook
+8. **Validate with Agent Browser**: Use the Agent Browser tool to validate data display, empty states, reload functionality, and theme switching
+9. **Document Changes**: Note any adaptations made for the Storybook context
+10. **Iterate**: Refine based on usage and feedback
 
 ## React Components in MDX
 
 ### Structure
 ```
-.storybook/
-├── source/                    # React components source
-│   ├── components/            # Reusable React components
-│   │   ├── WorkflowStep.tsx
-│   │   ├── ProductForm.tsx
+packages/storybook-addon-designbook/
+├── src/
+│   ├── components/            # Reusable React components (Debo*)
+│   │   ├── DeboStepIndicator.jsx
+│   │   ├── DeboProductOverviewCard.jsx
 │   │   └── ...
-│   └── utils/                 # Utility functions
-├── onboarding/               # Onboarding MDX files
-│   ├── welcome.mdx           # Uses React components from source/
-│   └── product-vision.mdx
-└── ...
+│   ├── hooks/                 # React hooks (useDesignbookData)
+│   ├── onboarding/            # Onboarding MDX files
+│   └── index.css              # Addon styles (debo: prefix)
+├── dist/                      # Built artifacts
+└── package.json
+
 ```
 
 ### Example MDX Usage (Read-Only Display Pattern)
 ```mdx
 import { useState, useEffect } from 'react';
-import { ProductOverviewCard } from '../source/components/index.js';
-import '../source/index.css';
+import { DeboProductOverviewCard } from '../components/index.js'; // Internal import in addon context
+// or
+// import { DeboProductOverviewCard } from 'storybook-addon-designbook'; // In integration context
+
 
 export function ProductVisionDisplay() {
   const [data, setData] = useState(null);
@@ -335,7 +328,7 @@ export function ProductVisionDisplay() {
 
 ### Validation with Agent Browser
 
-When validating migrated workflows and components:
+When validating workflows and components:
 
 - **Use Agent Browser**: Always use the Agent Browser tool to validate the final implementation
 - **Verify Rendering**: Check that MDX pages and React components render correctly in Storybook
@@ -344,13 +337,4 @@ When validating migrated workflows and components:
 - **User Experience**: Confirm that the workflow experience matches the requirements and provides a smooth user journey
 - **Component Functionality**: Test that all React components accept props correctly and handle user interactions properly
 
-The Agent Browser provides a reliable way to verify that the migrated workflows work correctly in the actual Storybook environment before considering the migration complete.
-
-## Next Steps
-
-As workflows are migrated:
-- Document each migrated workflow in this file
-- Extract and adapt React components from Design OS to `.storybook/source/`
-- Create MDX templates for common workflow patterns with React component integration
-- Establish conventions for workflow documentation structure
-- Update Storybook configuration if needed to support React components in MDX
+The Agent Browser provides a reliable way to verify that the workflows work correctly in the actual Storybook environment.

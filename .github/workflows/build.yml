@@ -1,0 +1,37 @@
+name: Build
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'ci skip') && !contains(github.event.head_commit.message, 'skip ci')"
+    strategy:
+      matrix:
+        node-version: [20.19, 22.12]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint addon
+        run: pnpm --filter storybook-addon-designbook lint
+
+      - name: Build addon
+        run: pnpm --filter storybook-addon-designbook build
+
+      - name: Build Integration (Storybook)
+        run: pnpm --filter test-integration-drupal build-storybook

@@ -122,26 +122,29 @@ designbook/
 
 ## Usage
 
-### Start Storybook
-```bash
-npm run storybook
-```
-Opens Storybook at `http://localhost:6009`
+### Development Build (Recommended)
+This command runs both the **addon build watcher** and **Storybook** in parallel, ensuring that changes to the addon are immediately reflected in Storybook.
 
-### Production Build
 ```bash
-npm run build-storybook
+pnpm run dev
 ```
 
-### Development Build
-```bash
-npm run dev
-```
+### Granular Commands
+If you need to run processes separately:
+
+- **Addon only** (watch mode):
+  ```bash
+  pnpm run dev:addon
+  ```
+- **Integration Storybook**:
+  ```bash
+  pnpm run dev:integration:drupal
+  ```
 
 ### CSS Linting
 ```bash
-npm run lint:css
-npm run lint:css:fix
+pnpm run lint:css
+pnpm run lint:css:fix
 ```
 
 ## CSS Isolation: Tailwind Prefix

@@ -1,0 +1,48 @@
+name: Grid_50x50
+props:
+  spacing_attributes:
+    class: [ "pb-auto", "pt-auto" ]
+  attributes:
+    class: [ "grid-2 container-md" ]
+slots:
+  items:
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: default
+      variant: "default"
+      slots:
+        title: "New movie 1 is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: default
+      variant: "default"
+      slots:
+        title: "New movie 2 is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: default
+      variant: "default"
+      slots:
+        title: "New movie 3 is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."
+    - type: component
+      component: "ui_suite_daisyui:card"
+      story: default
+      variant: "default"
+      slots:
+        title: "New movie 4 is released!"
+        text:
+          type: html_tag
+          tag: p
+          value: "Click the button to watch on Jetflix app."

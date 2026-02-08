@@ -22,18 +22,18 @@ AI Command (input) → designbook/*.md (storage) → Storybook MDX (display)
 
 - `GET /__designbook/load?path=<relative-path>` — reads files from `designbook/`
 - `POST /__designbook/save` — writes files (used by AI commands only, never by Storybook UI)
-- Vite plugin: `.storybook/source/vite-plugin-designbook-save.js`
+- Vite plugin: `packages/storybook-addon-designbook/src/vite-plugin.ts`
 
 ### Component Library
 
-- **Barrel exports**: `.storybook/source/components/index.js` — always check here for existing components before creating new ones
+- **Barrel exports**: `packages/storybook-addon-designbook/src/components/index.js` — always check here for existing components before creating new ones
 - **Shared base components** use the `Debo` prefix (e.g., `DeboCard`, `DeboSection`)
-- **Workflow-specific components** keep descriptive names (e.g., `ProductOverviewCard`) and compose from `Debo*` base components
-- **Hooks**: `.storybook/source/hooks/` — reusable React hooks (e.g., `useDesignbookData`)
+- **Workflow-specific components** also use the `Debo` prefix (e.g., `DeboProductOverviewCard`) and compose from `Debo*` base components
+- **Hooks**: `packages/storybook-addon-designbook/src/hooks/` — reusable React hooks (e.g., `useDesignbookData`)
 
 ## Global Component Rules
 
-These rules apply to **every** component in `.storybook/source/`.
+These rules apply to **every** component in `packages/storybook-addon-designbook/src/`.
 
 ### 1. CSS Isolation — `debo:` Prefix
 
@@ -47,7 +47,7 @@ All Tailwind classes **MUST** use the `debo:` prefix. No exceptions.
 <div className="flex gap-4 p-6 bg-base-100">
 ```
 
-- CSS entry point: `.storybook/source/index.css` → `@import "tailwindcss" prefix(debo);`
+- CSS entry point: `packages/storybook-addon-designbook/src/index.css` → `@import "tailwindcss" prefix(debo);`
 - Dark mode variant: `debo:dark:` (e.g., `debo:dark:bg-gray-800`)
 - DaisyUI classes also use the `debo:` prefix (e.g., `debo:card`, `debo:btn`)
 - Responsive variants: `debo:md:`, `debo:lg:`, etc.
@@ -71,7 +71,7 @@ All Tailwind classes **MUST** use the `debo:` prefix. No exceptions.
 | Type | Pattern | Example |
 |------|---------|---------|
 | Shared base component | `Debo<Name>.jsx` | `DeboCard.jsx`, `DeboSection.jsx` |
-| Workflow-specific component | `<Descriptive>.jsx` | `ProductOverviewCard.jsx` |
+| Workflow-specific component | `Debo<Name>.jsx` | `DeboProductOverviewCard.jsx` |
 | Hook | `use<Name>.js` | `useDesignbookData.js` |
 | Parser | Exported function in component or separate file | `parseProductOverview()` |
 
@@ -96,7 +96,7 @@ All Tailwind classes **MUST** use the `debo:` prefix. No exceptions.
 
 ### 8. Export Registration
 
-Every new component **MUST** be added to the barrel export at `.storybook/source/components/index.js`:
+Every new component **MUST** be added to the barrel export at `packages/storybook-addon-designbook/src/components/index.js`:
 
 ```js
 // Shared base components (Debo*)
@@ -109,15 +109,15 @@ export { MyWorkflowCard } from './MyWorkflowCard.jsx';
 ## File Structure
 
 ```
-.storybook/
-├── source/
+packages/storybook-addon-designbook/
+├── src/
 │   ├── index.css                           # CSS entry: @import "tailwindcss" prefix(debo)
 │   ├── vite.config.js                      # Independent Vite config for React components
-│   ├── vite-plugin-designbook-save.js      # Vite middleware for file load/save
+│   ├── vite-plugin.ts                      # Vite middleware for file load/save
 │   ├── components/
 │   │   ├── index.js                        # Barrel exports (check before creating!)
 │   │   ├── Debo*.jsx                       # Shared base components
-│   │   └── <Workflow>*.jsx                 # Workflow-specific composed components
+│   │   └── Debo<Workflow>*.jsx             # Workflow-specific composed components (MUST use Debo prefix)
 │   └── hooks/
 │       └── useDesignbookData.js            # Data loading hook
 ├── onboarding/
@@ -128,11 +128,11 @@ export { MyWorkflowCard } from './MyWorkflowCard.jsx';
 
 ### Step 1: Check Existing Components
 
-Read `.storybook/source/components/index.js` to see what already exists. Don't duplicate.
+Read `packages/storybook-addon-designbook/src/components/index.js` to see what already exists. Don't duplicate.
 
 ### Step 2: Create the Component File
 
-Place in `.storybook/source/components/`. Follow naming conventions (see above).
+Place in `packages/storybook-addon-designbook/src/components/`. Follow naming conventions (see above).
 
 ```jsx
 import React from 'react';
@@ -157,13 +157,13 @@ Key checklist:
 
 ### Step 3: Register in Barrel Export
 
-Add to `.storybook/source/components/index.js`.
+Add to `packages/storybook-addon-designbook/src/components/index.js`.
 
 ### Step 4: Use in MDX
 
 ```mdx
-import { DeboNewThing } from '../source/components/index.js';
-import '../source/index.css';
+import { DeboNewThing } from '../components/index.js';
+import '../index.css';
 
 <DeboNewThing title="Hello">
   Content here...
@@ -196,8 +196,8 @@ export function parseMyData(md) {
 Use the `DeboSection` component which handles the full data loading lifecycle (loading → error → empty → content):
 
 ```mdx
-import { DeboSection, DeboNumberedList } from '../source/components/index.js';
-import { parseMyData } from '../source/parsers/mydata.js';
+import { DeboSection, DeboNumberedList } from '../components/index.js';
+import { parseMyData } from '../utils/parsers/mydata.js';
 
 <DeboSection
   dataPath="area/my-data.md"
