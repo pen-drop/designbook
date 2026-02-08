@@ -60,12 +60,9 @@ const config = {
       ],
       build: {
         rollupOptions: {
-          external: ['drupal-attribute'],
           onwarn(warning, warn) {
             // Suppress CSS @property warnings (DaisyUI radial progress)
             if (warning.message?.includes('Unknown at rule: @property')) return;
-            // Suppress drupal-attribute resolve warnings
-            if (warning.message?.includes('drupal-attribute')) return;
             warn(warning);
           },
         },

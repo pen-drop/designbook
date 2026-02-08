@@ -54,6 +54,9 @@ importers:
       daisyui:
         specifier: ^5.0
         version: 5.5.18
+      drupal-attribute:
+        specifier: ^1.2.1
+        version: 1.2.1
       glob:
         specifier: ^11.0.1
         version: 11.1.0
