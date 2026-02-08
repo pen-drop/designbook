@@ -178,15 +178,18 @@ npm install -g pnpm
 ### User/Tester - "Agent Browser"
 The **Agent Browser** is an internal AI tool, not user-installable software. To test the integration:
 
-1.  Navigate to the integration directory:
+1.  From the project root:
     ```bash
-    cd packages/integrations/test-integration-drupal
+    pnpm run dev
     ```
-2.  Run Storybook:
-    ```bash
-    pnpm run storybook
-    ```
-3.  Open the URL provided in the terminal (usually `http://localhost:6006`).
+2.  This starts both the addon build watcher and the Storybook instance.
+3.  Open the URL provided in the terminal (usually `http://localhost:6009`).
+
+### Alternative: Integration Only
+If you only need to run the integration-specific Storybook (without rebuilding the addon):
+```bash
+pnpm run dev:integration:drupal
+```
 
 ## CSS Isolation: Tailwind Prefix
 

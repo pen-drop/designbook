@@ -7,14 +7,15 @@
   ],
   "type": "module",
   "devDependencies": {
+    "npm-run-all2": "^8.0.4",
     "prettier": "^3.5.3"
   },
   "scripts": {
     "build": "pnpm run build --workspaces",
     "test": "pnpm run test --workspaces",
-    "storybook": "pnpm --filter test-integration-drupal run storybook",
-    "build-storybook": "pnpm --filter test-integration-drupal run build-storybook",
-    "dev": "pnpm --filter test-integration-drupal run dev",
+    "dev": "run-p dev:addon dev:integration:drupal",
+    "dev:addon": "pnpm --filter storybook-addon-designbook build:watch",
+    "dev:integration:drupal": "pnpm --filter test-integration-drupal storybook",
     "lint:css": "pnpm --filter test-integration-drupal run lint:css",
     "lint:css:fix": "pnpm --filter test-integration-drupal run lint:css:fix"
   },
