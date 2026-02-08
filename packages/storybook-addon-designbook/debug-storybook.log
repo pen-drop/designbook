@@ -1,0 +1,10 @@
+[20:38:37.356] [INFO] storybook v10.3.0-alpha.4
+[20:38:38.568] [PROMPT] Port 6006 is not available. 
+Would you like to run Storybook on port 6007 instead? {"choice":true}
+[20:38:39.144] [DEBUG] Getting package.json info for /home/cw/projects/designbook/packages/storybook-addon-designbook/package.json...
+[20:38:39.910] [ERROR] [38;2;241;97;97mTypeError: __require.resolve is not a function[39m
+    at Object.stories (file://./dist/preset.js:100:31)
+    at file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.3.0-alpha.4_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-XQIKML43.js:10114:36
+[20:38:39.912] [WARN] Broken build, fix the error above.
+You may need to refresh the browser.
+[20:38:49.055] [PROMPT] Would you like to send anonymous crash reports to improve Storybook and fix bugs faster? {"choice":true}

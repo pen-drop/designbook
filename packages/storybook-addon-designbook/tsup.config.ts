@@ -26,12 +26,12 @@ export default defineConfig(async () => {
     clean: false,
     format: ['esm'],
     treeshake: true,
-    splitting: true,
+    splitting: false,
     /*
      The following packages are provided by Storybook and should always be externalized
      Meaning they shouldn't be bundled with the addon, and they shouldn't be regular dependencies either
     */
-    external: ['react', 'react-dom', '@storybook/icons'],
+    external: ['react', 'react-dom', '@storybook/icons', /\.css$/],
   };
 
   const configs: Options[] = [];
@@ -76,7 +76,7 @@ export default defineConfig(async () => {
       entry: nodeEntries,
       platform: 'node',
       target: NODE_TARGET,
-      onSuccess: 'cp -r src/onboarding dist/onboarding && cp -r src/components dist/components && cp -r src/hooks dist/hooks && cp src/index.css dist/index.css',
+      onSuccess: 'cp -r src/onboarding dist/onboarding && cp -r src/components dist/components && cp -r src/hooks dist/hooks',
     });
   }
 

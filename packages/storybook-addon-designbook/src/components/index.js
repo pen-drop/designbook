@@ -4,6 +4,7 @@
  * React components for interactive workflow UIs in Storybook MDX files.
  * All components use `debo:` prefixed Tailwind classes for CSS isolation.
  */
+import '../index.css';
 
 // Shared base components (Debo*)
 export { DeboCard } from './DeboCard.jsx';

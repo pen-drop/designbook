@@ -175,12 +175,18 @@ We use **pnpm** for dependency management. If you don't have it installed:
 npm install -g pnpm
 ```
 
-### Agent Browser
-The "Agent Browser" referenced in verification steps is a tool used by the AI agent to validate the application. You do not need to install it. To verify the application yourself, simply run Storybook:
+### User/Tester - "Agent Browser"
+The **Agent Browser** is an internal AI tool, not user-installable software. To test the integration:
 
-```bash
-pnpm run storybook
-```
+1.  Navigate to the integration directory:
+    ```bash
+    cd packages/integrations/test-integration-drupal
+    ```
+2.  Run Storybook:
+    ```bash
+    pnpm run storybook
+    ```
+3.  Open the URL provided in the terminal (usually `http://localhost:6006`).
 
 ## CSS Isolation: Tailwind Prefix
 
