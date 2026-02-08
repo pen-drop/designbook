@@ -3,11 +3,11 @@ variant: default
 props:
   variant: default
 slots:
-  image:
-    type: component
-    component: "daisy_cms_daisyui:image"
-    props:
-      aspect-ratio: "4:3"
+#   image:
+#     type: component
+#     component: "daisy_cms_daisyui:image"
+#     props:
+#       aspect-ratio: "4:3"
   name: "Steffan Müller"
   position: "Designer"
   button:

@@ -25,7 +25,7 @@
         "prettier": "^3.5.3",
         "storybook": "^9.1.12",
         "storybook-addon-sdc": "^0.15.1",
-        "storybook-addon-designbook": "*",
+        "storybook-addon-designbook": "workspace:*",
         "stylelint": "^16.15.0",
         "stylelint-config-standard": "^37.0.0",
         "stylelint-config-tailwindcss": "^1.0.0",

@@ -1,10 +1,9 @@
-name: Grid 25x25x25x25 (Theme dark)
+name: Grid_50x50
 props:
   spacing_attributes:
     class: [ "pb-auto", "pt-auto" ]
   attributes:
-    class: [ "grid-4 container-md" ]
-  theme: dark
+    class: [ "grid-2 container-md" ]
 slots:
   items:
     - type: component

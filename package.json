@@ -10,8 +10,13 @@
     "prettier": "^3.5.3"
   },
   "scripts": {
-    "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces"
+    "build": "pnpm run build --workspaces",
+    "test": "pnpm run test --workspaces",
+    "storybook": "pnpm --filter test-integration-drupal run storybook",
+    "build-storybook": "pnpm --filter test-integration-drupal run build-storybook",
+    "dev": "pnpm --filter test-integration-drupal run dev",
+    "lint:css": "pnpm --filter test-integration-drupal run lint:css",
+    "lint:css:fix": "pnpm --filter test-integration-drupal run lint:css:fix"
   },
   "packageManager": "pnpm@9.1.0"
 }

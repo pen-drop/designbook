@@ -1,4 +1,4 @@
-name: Grid 1 - small left
+name: Grid_1_sm_left
 props:
   spacing_attributes:
     class: [ "pb-auto", "pt-auto" ]

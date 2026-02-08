@@ -166,7 +166,23 @@ When creating MDX files for workflows:
 - **Build Tool**: Vite
 - **Theme System**: Light/Dark theme support via `data-theme` attribute
 
-### CSS Isolation: Tailwind Prefix
+## Setup & Installation
+
+### Package Manager
+We use **pnpm** for dependency management. If you don't have it installed:
+
+```bash
+npm install -g pnpm
+```
+
+### Agent Browser
+The "Agent Browser" referenced in verification steps is a tool used by the AI agent to validate the application. You do not need to install it. To verify the application yourself, simply run Storybook:
+
+```bash
+pnpm run storybook
+```
+
+## CSS Isolation: Tailwind Prefix
 
 To prevent CSS class collisions between original Storybook/Drupal components and the new Designbook React components, we use **Tailwind CSS v4's `prefix()` feature**.
 

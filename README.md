@@ -124,24 +124,24 @@ designbook/
 
 ### Start Storybook
 ```bash
-npm run storybook
+pnpm run storybook
 ```
 Opens Storybook at `http://localhost:6009`
 
 ### Production Build
 ```bash
-npm run build-storybook
+pnpm run build-storybook
 ```
 
 ### Development Build
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ### CSS Linting
 ```bash
-npm run lint:css
-npm run lint:css:fix
+pnpm run lint:css
+pnpm run lint:css:fix
 ```
 
 ## CSS Isolation: Tailwind Prefix

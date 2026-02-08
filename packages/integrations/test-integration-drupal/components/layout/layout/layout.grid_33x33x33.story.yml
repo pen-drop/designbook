@@ -1,9 +1,9 @@
-name: Grid 25x25x25x25
+name: Grid_33x33x33
 props:
   spacing_attributes:
     class: [ "pb-auto", "pt-auto" ]
   attributes:
-    class: [ "grid-4 container-md" ]
+    class: [ "grid-3 container-md" ]
 slots:
   items:
     - type: component
@@ -32,16 +32,6 @@ slots:
       variant: "default"
       slots:
         title: "New movie 3 is released!"
-        text:
-          type: html_tag
-          tag: p
-          value: "Click the button to watch on Jetflix app."
-    - type: component
-      component: "ui_suite_daisyui:card"
-      story: default
-      variant: "default"
-      slots:
-        title: "New movie 4 is released!"
         text:
           type: html_tag
           tag: p
