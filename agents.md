@@ -2,19 +2,36 @@
 
 ## Project Overview
 
-**Designbook** is the product name for our Storybook-based design and workflow environment. It migrates **Design OS workflows** into our **Drupal Storybook workflow**. Design OS (located in `source/design-os/`) serves as the template and reference for structured product planning, design, and documentation workflows. The goal is to gradually adopt these workflows piece by piece into MDX format so they can be used within Storybook as part of Designbook.
+**Designbook** is the product name for our framework-agnostic, Storybook-based design and workflow environment. It migrates **Design OS workflows** into a **Storybook workflow** that works with any component framework Storybook supports.
+
+**Target Audience**: Designbook primarily targets **designers and product planners** who define the "what" of the product. Developers play a **supporting role** to ensure components are correctly generated from specifications.
+
+**Collaboration Model**:
+- **Designers & Product Planners**: Own the main workflows (product vision, data models, design systems, component specs, screen designs)
+- **Developers**: Support by ensuring technical correctness, component generation, and implementation validation
+
+**Framework Flexibility**: Designbook leverages Storybook's powerful rendering capabilities to work with React, Vue, Angular, Web Components, Svelte, or any other framework Storybook supports. The workflow system (AI commands, data storage, MDX documentation) is completely independent of your component framework choice.
+
+**Current Implementation**: This repository currently uses Drupal Single Directory Components (SDC) with Twig templates, but the same Designbook workflow system can be applied to any Storybook-supported framework.
+
+Design OS (located in `source/design-os/`) serves as the template and reference for structured product planning, design, and documentation workflows. The goal is to gradually adopt these workflows piece by piece into MDX format so they can be used within Storybook as part of Designbook.
 
 ## Current Setup
 
-### Drupal Storybook Environment
+### Storybook Environment (Framework-Agnostic Core)
 - **Framework**: Storybook 9.1.12 with HTML/Vite
+- **Rendering**: Storybook handles all component rendering (framework-agnostic)
+- **Documentation**: MDX files supported in `.storybook/onboarding/` and `foundations/`
+- **React Components**: Storybook also supports React components for interactive documentation and workflow UIs
+- **React Source Location**: `.storybook/source/` - React components used in onboarding MDX files
+
+### Current Component Implementation (Drupal-Specific)
 - **Component System**: Drupal Single Directory Components (SDC) using YAML definitions
 - **Templates**: Twig templates for component rendering
 - **Addon**: `storybook-addon-sdc` for Drupal component integration
 - **Components Location**: `components/` directory with `.component.yml` and `.story.yml` files
-- **Documentation**: MDX files supported in `.storybook/onboarding/` and `foundations/`
-- **React Components**: Storybook also supports React components for interactive documentation and workflow UIs
-- **React Source Location**: `.storybook/source/` - React components used in onboarding MDX files
+
+> **Important**: The component system shown above is specific to this Drupal implementation. If you're using Designbook with React, Vue, or another framework, your `components/` directory structure will differ, but the Designbook workflow system remains identical.
 
 ### Design OS Reference
 - **Location**: `source/design-os/`
@@ -38,6 +55,15 @@
 - Users run AI commands in their editor (Cursor) for conversational, guided data entry
 - Results are saved as **Markdown files** in the `designbook/` directory
 - Storybook **loads and displays** saved data via Vite plugin middleware
+
+### Storybook Handles All Rendering
+
+**Storybook's rendering engine is framework-agnostic.** This is what makes Designbook flexible.
+
+- Storybook can render components from **any supported framework** (React, Vue, Angular, Web Components, Svelte, etc.)
+- The Designbook workflow system (AI commands, MDX documentation, data storage) is **completely independent** of your component framework
+- Whether you use Drupal Twig, React, Vue, or any other framework, the Designbook workflows remain the same
+- You can even mix multiple frameworks in the same Storybook instance
 
 ### Data Flow Pattern
 
@@ -101,25 +127,31 @@ Rather than a complete migration, we're adopting Design OS workflows incremental
 Based on Design OS structure (`source/design-os/agents.md`), the following workflow areas are candidates for migration:
 
 #### 1. Product Planning Workflows
+**Owner**: Product Planners
 - **Product Vision** (`/product-vision`): Define product description, problems/solutions, key features
 - **Product Roadmap** (`/product-roadmap`): Break product into development sections
 - **Output Format**: MDX documentation pages in Storybook
 
 #### 2. Data Model Definition
+**Owner**: Designers & Product Planners
 - **Data Model** (`/data-model`): Define core entities and relationships
 - **Output Format**: MDX documentation with structured data model definitions
 
 #### 3. Design System Documentation
+**Owner**: Designers
 - **Design Tokens** (`/design-tokens`): Color palette and typography definitions
 - **Integration**: Link to existing Tailwind/DaisyUI design tokens
 - **Output Format**: MDX pages documenting design system decisions
 
 #### 4. Component Specification Workflows
+**Owner**: Designers
+**Support**: Developers (ensure correct component generation)
 - **Section Specification** (`/shape-section`): Define component requirements
 - **Sample Data** (`/sample-data`): Create sample data for components
 - **Output Format**: MDX documentation accompanying component stories
 
 #### 5. Design Documentation
+**Owner**: Designers
 - **Screen Design** (`/design-screen`): Document UI designs and layouts
 - **Screenshots** (`/screenshot-design`): Capture and document design states
 - **Output Format**: MDX pages with embedded images and design documentation
@@ -132,9 +164,9 @@ When working on migration tasks, refer to `source/design-os/agents.md` for:
 - Design requirements and guidelines
 - Export and handoff processes
 
-## Current Component Structure
+## Current Component Structure (Drupal-Specific)
 
-Our Drupal components follow this pattern:
+Our current Drupal components follow this pattern:
 ```
 components/
 └── [component-name]/
@@ -142,6 +174,8 @@ components/
     ├── [component-name].[variant].story.yml  # Story definitions
     └── [component-name].twig             # Twig template
 ```
+
+> **Note**: This structure is specific to Drupal SDC. If you're using Designbook with React, Vue, or another framework, your component structure will follow that framework's conventions. The Designbook workflow system adapts to any component structure Storybook supports.
 
 ## Integration Points
 
