@@ -53,6 +53,16 @@ const config = {
   },
   async viteFinal(config) {
     const { mergeConfig } = await import('vite');
+
+    // Remove plugins from vite.config.js that are only for the Drupal build
+    // (vite-plugin-static-copy, svg-sprite) - they fail during Storybook build
+    if (config.plugins) {
+      config.plugins = config.plugins.filter(p => {
+        const name = p?.name || p?.[0]?.name || '';
+        return !name.includes('static-copy') && !name.includes('svg-sprite');
+      });
+    }
+
     return mergeConfig(config, {
       plugins: [
         react({ include: /\.storybook\/source\/.*\.[jt]sx?$/ }),
