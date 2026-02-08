@@ -157,6 +157,11 @@ When creating MDX files for workflows:
   ```javascript
   import { DeboProductOverviewCard } from 'storybook-addon-designbook';
   ```
+- **Linting (mandatory)**: When components in `packages/storybook-addon-designbook/src/` are added or modified, always run lint before committing:
+  ```bash
+  pnpm --filter storybook-addon-designbook lint
+  ```
+  Fix any lint errors with `pnpm --filter storybook-addon-designbook lint:fix`.
 
 ## Design System Context
 
