@@ -1,4 +1,7 @@
 ---
+name: /opsx-onboard
+id: opsx-onboard
+category: Workflow
 description: Guided onboarding - walk through a complete OpenSpec workflow cycle with narration
 ---
 
