@@ -31,6 +31,10 @@ This skill orchestrates the generation of W3C-compliant Design Tokens from Figma
    - Validates W3C token structure
    - Reports token statistics
 
+5. **Finalize Tokens** (`./steps/finalize-tokens.md`)
+   - Passes generated tokens to `designbook-tokens` skill
+   - Ensures consistent storage location
+
 ## Parameters
 - None required (processes all tokens from input file)
 

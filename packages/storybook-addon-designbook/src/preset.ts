@@ -1,9 +1,9 @@
-import { designbookSavePlugin } from './vite-plugin';
+import { designbookLoadPlugin } from './vite-plugin';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const viteFinal = async (config: any) => {
   const { plugins = [] } = config;
-  plugins.push(designbookSavePlugin(process.cwd()));
+  plugins.push(designbookLoadPlugin(process.cwd()));
   return {
     ...config,
     plugins,

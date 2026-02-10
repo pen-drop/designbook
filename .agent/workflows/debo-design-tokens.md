@@ -1,6 +1,6 @@
 ---
-name: /design-tokens
-id: design-tokens
+name: /debo-design-tokens
+id: debo-design-tokens
 category: Designbook
 description: Choose colors and typography for your product
 ---
@@ -104,32 +104,34 @@ Ask clarifying questions if they're unsure:
 
 Iterate until the user is satisfied.
 
-## Step 6: Save the File
+## Step 6: Save the Tokens
 
-Once approved, create the file at `designbook/design-system/design-tokens.md` with this exact format:
+Construct a W3C Design Tokens JSON object based on the user's choices.
 
-```markdown
-# Design Tokens
-
-## Colors
-
-- Primary: [color]
-- Secondary: [color]
-- Neutral: [color]
-
-## Typography
-
-- Heading: [Font Name]
-- Body: [Font Name]
-- Mono: [Font Name]
+**Structure:**
+```json
+{
+  "color": {
+    "primary": { "$value": "{colors.[primary].500}", "$type": "color" },
+    "secondary": { "$value": "{colors.[secondary].500}", "$type": "color" },
+    "neutral": { "$value": "{colors.[neutral].500}", "$type": "color" }
+  },
+  "typography": {
+    "heading": { "$value": "[Heading Font]", "$type": "fontFamily" },
+    "body": { "$value": "[Body Font]", "$type": "fontFamily" },
+    "mono": { "$value": "[Mono Font]", "$type": "fontFamily" }
+  }
+}
 ```
+*(Note: In a real scenario, you'd resolve the Tailwind colors to hex codes or use a reference if supported. For now, store the Tailwind name or a placeholder hex if known, or just the string if the renderer handles it. Better: Use `designbook-tokens` which might handle Tailwind resolution, but let's assume we pass the string values as requested by user or simple hexes if known. Actually, let's store the Tailwind color name as the value for now, and let the renderer handle it, or ask the user to confirm hexes. To keep it simple and consistent with previous flow: Store the Tailwind name. The renderer `DeboDesignTokensCard` was Map-based. We will update it to handle this.)*
 
-**Important:**
-- Color values MUST be Tailwind palette names (e.g., `blue`, `emerald`, `stone`) — not hex codes
-- Font values MUST be exact Google Fonts names (e.g., `DM Sans`, `Inter`)
-- Keep the format exactly as shown — the Storybook display parses this structure
+**Command:**
+Run the `designbook-tokens` skill to validate and save this JSON:
 
-Create the directory `designbook/design-system/` if it doesn't exist.
+```bash
+/skill/designbook-tokens/steps/process-tokens --tokens-json='{"color": ...}' 
+```
+(Minify the JSON for the command line)
 
 ## Step 7: Confirm Completion
 

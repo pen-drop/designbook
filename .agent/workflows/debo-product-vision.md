@@ -1,6 +1,6 @@
 ---
-name: /product-vision
-id: product-vision
+name: /debo-product-vision
+id: debo-product-vision
 category: Designbook
 description: Define your product vision through a guided conversation
 ---

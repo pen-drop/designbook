@@ -1,61 +1,26 @@
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { Plugin, ViteDevServer, Connect } from 'vite';
 
-interface DesignbookSaveBody {
-  path: string;
-  content: string;
-}
-
 /**
- * Vite plugin that provides a dev-server middleware for saving
- * Designbook workflow outputs to disk.
+ * Vite plugin that provides a dev-server middleware for loading
+ * Designbook workflow outputs from disk.
  */
-export function designbookSavePlugin(projectRoot: string): Plugin {
+// function findDesignbookDir(startPath: string): string { ... } - REMOVED
+
+export function designbookLoadPlugin(projectRoot: string): Plugin {
+  // Use designbook folder relative to CWD as requested
   const baseDir = resolve(projectRoot, 'designbook');
 
+  if (!existsSync(baseDir)) {
+    console.log(`[Designbook] designbook directory not found at ${baseDir}`);
+  } else {
+    console.log(`[Designbook] Using designbook directory at: ${baseDir}`);
+  }
+
   return {
-    name: 'designbook-save',
+    name: 'designbook-load',
     configureServer(server: ViteDevServer) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      server.middlewares.use('/__designbook/save', async (req: Connect.IncomingMessage, res: any) => {
-        if (req.method !== 'POST') {
-          res.statusCode = 405;
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
-          return;
-        }
-
-        try {
-          const body = await readBody(req);
-          const { path: filePath, content } = JSON.parse(body) as DesignbookSaveBody;
-
-          if (!filePath || typeof content !== 'string') {
-            res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Missing path or content' }));
-            return;
-          }
-
-          // Prevent path traversal
-          if (filePath.includes('..')) {
-            res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Invalid path' }));
-            return;
-          }
-
-          const fullPath = resolve(baseDir, filePath);
-          mkdirSync(dirname(fullPath), { recursive: true });
-          writeFileSync(fullPath, content, 'utf-8');
-
-          res.setHeader('Content-Type', 'application/json');
-          res.statusCode = 200;
-          res.end(JSON.stringify({ ok: true, path: `designbook/${filePath}` }));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-          res.statusCode = 500;
-          res.end(JSON.stringify({ error: err.message }));
-        }
-      });
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       server.middlewares.use('/__designbook/load', (req: Connect.IncomingMessage, res: any) => {
         if (req.method !== 'GET') {
@@ -80,7 +45,7 @@ export function designbookSavePlugin(projectRoot: string): Plugin {
           if (!existsSync(fullPath)) {
             res.setHeader('Content-Type', 'application/json');
             res.statusCode = 200;
-            res.end(JSON.stringify({ exists: false, content: null }));
+            res.end(JSON.stringify({ exists: false, content: null, searchedPath: fullPath, baseDir }));
             return;
           }
 
@@ -96,13 +61,4 @@ export function designbookSavePlugin(projectRoot: string): Plugin {
       });
     },
   };
-}
-
-function readBody(req: Connect.IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', (chunk) => (data += chunk));
-    req.on('end', () => resolve(data));
-    req.on('error', reject);
-  });
 }

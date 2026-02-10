@@ -65,3 +65,7 @@ name: designbook-skill-name
 - **Frontmatter**: Defines the slash command (`name`) and description.
 - **Content**: The prompt the agent follows.
 - **Skills**: Workflows can invoke skills stored in `.agent/skills/` using the `<skill>` tag. This separates high-level direction (workflow) from complex execution logic (skill).
+
+## Path Configuration
+
+**Important:** All folders mentioned inside `designbook` skills and `debo` commands/workflows should be considered relative to the `packages/integrations/test-integration-drupal` folder. This is the designated test environment for designbook commands.
