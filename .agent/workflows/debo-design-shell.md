@@ -5,16 +5,16 @@ category: Designbook
 description: Design the application shell — navigation and layout
 ---
 
-Help the user design the application shell — the persistent navigation and layout that wraps all sections. The result is saved to `designbook/design-shell/shell-spec.md`.
+Help the user design the application shell — the persistent navigation and layout that wraps all sections. The result is saved to `${DESIGNBOOK_DIST}/design-shell/shell-spec.md`.
 
 **Steps**
 
 ## Step 1: Check Prerequisites
 
 Check if the following files exist:
-- `designbook/product/product-overview.md` — product vision (required)
-- `designbook/product/product-roadmap.md` — roadmap sections (required)
-- `designbook/design-system/design-tokens.md` — design tokens (optional)
+- `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
+- `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
+- `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (optional)
 
 **If product vision or roadmap are missing**, tell the user:
 
@@ -88,7 +88,7 @@ Iterate until the user is satisfied.
 
 ## Step 5: Save the File
 
-Once approved, create the file at `designbook/design-shell/shell-spec.md` with this exact format:
+Once approved, create the file at `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` with this exact format:
 
 ```markdown
 # Application Shell
@@ -116,11 +116,11 @@ Once approved, create the file at `designbook/design-shell/shell-spec.md` with t
 [Any additional design decisions, conventions, or notes]
 ```
 
-Create the directory `designbook/design-shell/` if it doesn't exist.
+Create the directory `${DESIGNBOOK_DIST}/design-shell/` if it doesn't exist.
 
 ## Step 6: Confirm Completion
 
-> "I've saved the shell specification to `designbook/design-shell/shell-spec.md`.
+> "I've saved the shell specification to `${DESIGNBOOK_DIST}/design-shell/shell-spec.md`.
 >
 > **Shell design:**
 > - Layout: [pattern]
@@ -135,4 +135,4 @@ Create the directory `designbook/design-shell/` if it doesn't exist.
 - Navigation items should map to roadmap sections where possible
 - Consider the product type when suggesting layout patterns (corporate site vs. app vs. tool)
 - The markdown format must match exactly for Storybook to parse it
-- If `designbook/design-shell/shell-spec.md` already exists, read it first and ask: "You already have a shell specification. Would you like to update it or start fresh?"
+- If `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` already exists, read it first and ask: "You already have a shell specification. Would you like to update it or start fresh?"

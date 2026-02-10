@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const TARGET_FILE = path.resolve(process.cwd(), 'designbook/design-tokens.json');
+const dist = process.env.DESIGNBOOK_DIST || 'designbook';
+const TARGET_FILE = path.resolve(process.cwd(), dist, 'design-tokens.json');
 
 // Basic W3C Validation (Extend later with schema)
 function validateW3C(tokens) {

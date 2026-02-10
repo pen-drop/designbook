@@ -5,18 +5,18 @@ category: Designbook
 description: Package the product plan for implementation
 ---
 
-Package all Designbook artifacts into a self-contained export directory that can be used in a separate implementation project. The result is saved to `designbook/export/product-plan/`.
+Package all Designbook artifacts into a self-contained export directory that can be used in a separate implementation project. The result is saved to `${DESIGNBOOK_DIST}/export/product-plan/`.
 
 **Steps**
 
 ## Step 1: Check Prerequisites
 
 Check if the following files exist:
-- `designbook/product/product-overview.md` — product vision (required)
-- `designbook/product/product-roadmap.md` — roadmap sections (required)
-- `designbook/data-model/data-model.md` — data model (recommended)
-- `designbook/design-system/design-tokens.md` — design tokens (recommended)
-- `designbook/design-shell/shell-spec.md` — application shell (recommended)
+- `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
+- `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
+- `${DESIGNBOOK_DIST}/data-model.json` — data model (recommended)
+- `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (recommended)
+- `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` — application shell (recommended)
 
 Also check for section artifacts:
 - For each section in the roadmap, check for: `spec.md`, `data.json`, `screen-designs.md`, `screenshots.md`
@@ -52,7 +52,7 @@ Wait for confirmation.
 
 ## Step 2: Generate Product Overview Document
 
-Create `designbook/export/product-plan/product-overview.md`:
+Create `${DESIGNBOOK_DIST}/export/product-plan/product-overview.md`:
 - Include the product name, description, problems/solutions, and key features from the product vision
 - Include the roadmap sections list
 - Include the data model summary
@@ -60,7 +60,7 @@ Create `designbook/export/product-plan/product-overview.md`:
 
 ## Step 3: Generate Implementation Instructions
 
-Create incremental milestone files in `designbook/export/product-plan/instructions/incremental/`:
+Create incremental milestone files in `${DESIGNBOOK_DIST}/export/product-plan/instructions/incremental/`:
 
 **Milestone 01: Foundation** (`01-foundation.md`):
 - Project setup (framework, dependencies)
@@ -77,48 +77,48 @@ Create incremental milestone files in `designbook/export/product-plan/instructio
 - UI requirements to satisfy
 - Reference to screen designs and screenshots
 
-Also create `designbook/export/product-plan/instructions/one-shot-instructions.md` combining all milestones.
+Also create `${DESIGNBOOK_DIST}/export/product-plan/instructions/one-shot-instructions.md` combining all milestones.
 
 ## Step 4: Generate Prompts
 
-Create `designbook/export/product-plan/prompts/one-shot-prompt.md`:
+Create `${DESIGNBOOK_DIST}/export/product-plan/prompts/one-shot-prompt.md`:
 - A single, comprehensive prompt for an AI coding agent
 - References all instruction files
 - Includes project setup and implementation order
 
-Create `designbook/export/product-plan/prompts/section-prompt.md`:
+Create `${DESIGNBOOK_DIST}/export/product-plan/prompts/section-prompt.md`:
 - A template prompt for implementing a single section
 - Placeholder for section name and references
 - Includes section-specific instructions
 
 ## Step 5: Copy Design System
 
-Create `designbook/export/product-plan/design-system/`:
+Create `${DESIGNBOOK_DIST}/export/product-plan/design-system/`:
 - `tokens.css` — CSS custom properties for colors and typography
 - `tailwind-colors.md` — Color definitions for Tailwind config
 - `fonts.md` — Font setup instructions (Google Fonts links, font-family values)
 
-Generate these from `designbook/design-system/design-tokens.md`.
+Generate these from `${DESIGNBOOK_DIST}/design-system/design-tokens.md`.
 
 ## Step 6: Copy Data Model
 
-Create `designbook/export/product-plan/data-model/`:
+Create `${DESIGNBOOK_DIST}/export/product-plan/data-model/`:
 - `README.md` — Entity descriptions and relationships
 - `types.ts` — TypeScript interfaces for all entities
 - `sample-data.json` — Combined sample data from all sections
 
-Generate from `designbook/data-model/data-model.md` and section `data.json` files.
+Generate from `${DESIGNBOOK_DIST}/data-model.json` and section `data.json` files.
 
 ## Step 7: Copy Shell
 
-Create `designbook/export/product-plan/shell/`:
+Create `${DESIGNBOOK_DIST}/export/product-plan/shell/`:
 - `README.md` — Shell specification (layout, navigation, responsive behavior)
 
-Copy from `designbook/design-shell/shell-spec.md`.
+Copy from `${DESIGNBOOK_DIST}/design-shell/shell-spec.md`.
 
 ## Step 8: Copy Section Artifacts
 
-For each section, create `designbook/export/product-plan/sections/[section-id]/`:
+For each section, create `${DESIGNBOOK_DIST}/export/product-plan/sections/[section-id]/`:
 - `README.md` — Section specification
 - `tests.md` — Test instructions based on user flows
 - `sample-data.json` — Section sample data (if exists)
@@ -132,7 +132,7 @@ Generate test instructions from section specs:
 
 ## Step 9: Generate README
 
-Create `designbook/export/product-plan/README.md`:
+Create `${DESIGNBOOK_DIST}/export/product-plan/README.md`:
 - Quick start guide
 - Directory structure overview
 - How to use (incremental vs one-shot)
@@ -140,7 +140,7 @@ Create `designbook/export/product-plan/README.md`:
 
 ## Step 10: Confirm Completion
 
-> "I've generated the export package at `designbook/export/product-plan/`.
+> "I've generated the export package at `${DESIGNBOOK_DIST}/export/product-plan/`.
 >
 > **Package contents:**
 > - Product overview

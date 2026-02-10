@@ -5,15 +5,15 @@ category: Designbook
 description: Define your product roadmap based on the product vision
 ---
 
-Help the user create or update their product roadmap for Designbook. The roadmap breaks the product vision into 3–5 development sections. The result is saved to `designbook/product/product-roadmap.md`.
+Help the user create or update their product roadmap for Designbook. The roadmap breaks the product vision into 3–5 development sections. The result is saved to `${DESIGNBOOK_DIST}/product/product-roadmap.md`.
 
 **Steps**
 
 ## Step 1: Check Current State
 
 First, check if the following files exist:
-- `designbook/product/product-overview.md` — the product vision
-- `designbook/product/product-roadmap.md` — an existing roadmap
+- `${DESIGNBOOK_DIST}/product/product-overview.md` — the product vision
+- `${DESIGNBOOK_DIST}/product/product-roadmap.md` — an existing roadmap
 
 **If no product vision exists**, tell the user:
 
@@ -38,7 +38,7 @@ Then proceed to Step 2 or re-enter the full flow based on their choice.
 
 ## Step 2: Analyze and Propose Sections
 
-Read `designbook/product/product-overview.md` and analyze:
+Read `${DESIGNBOOK_DIST}/product/product-overview.md` and analyze:
 - The product name and core description
 - The problems being solved
 - The key features listed
@@ -71,7 +71,7 @@ Keep iterating until the user approves the sections.
 
 ## Step 4: Save the File
 
-Once the user approves, create the file at `designbook/product/product-roadmap.md` with this exact format:
+Once the user approves, create the file at `${DESIGNBOOK_DIST}/product/product-roadmap.md` with this exact format:
 
 ```markdown
 # Product Roadmap
@@ -94,13 +94,13 @@ Once the user approves, create the file at `designbook/product/product-roadmap.m
 - Order by development priority (most important first)
 - 3–5 sections is ideal, avoid more than 5
 
-Create the directory `designbook/product/` if it doesn't exist.
+Create the directory `${DESIGNBOOK_DIST}/product/` if it doesn't exist.
 
 ## Step 5: Confirm Completion
 
 Let the user know:
 
-> "I've saved your product roadmap to `designbook/product/product-roadmap.md`. Open Storybook to see the [N] development sections displayed below your product vision on the Product page.
+> "I've saved your product roadmap to `${DESIGNBOOK_DIST}/product/product-roadmap.md`. Open Storybook to see the [N] development sections displayed below your product vision on the Product page.
 >
 > Your sections:
 > 1. **[Section 1]** — [Description]

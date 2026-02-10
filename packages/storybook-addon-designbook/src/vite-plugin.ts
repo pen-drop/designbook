@@ -8,9 +8,16 @@ import type { Plugin, ViteDevServer, Connect } from 'vite';
  */
 // function findDesignbookDir(startPath: string): string { ... } - REMOVED
 
-export function designbookLoadPlugin(projectRoot: string): Plugin {
-  // Use designbook folder relative to CWD as requested
-  const baseDir = resolve(projectRoot, 'designbook');
+export interface DesignbookPluginOptions {
+  fsRoot?: string;
+}
+
+export function designbookLoadPlugin(projectRoot: string, options: DesignbookPluginOptions = {}): Plugin {
+  // Allow configuring the root directory via options
+  const distPath = options.fsRoot || 'designbook';
+
+
+  const baseDir = resolve(projectRoot, distPath);
 
   if (!existsSync(baseDir)) {
     console.log(`[Designbook] designbook directory not found at ${baseDir}`);

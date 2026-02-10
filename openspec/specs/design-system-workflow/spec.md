@@ -1,57 +1,44 @@
 ## Requirements
 
-### Requirement: Design System Display Page (Read-Only)
-The system SHALL provide an MDX documentation page at `.storybook/onboarding/design-system.mdx` with `<Meta title="Design System" />` that displays design tokens and references the AI command for input. The page SHALL use `DeboSection` shared components.
+### Requirement: Interactive Interview
+The `debo-design-tokens` workflow SHALL contain the logic to interview the user for token values (colors, typography).
 
-#### Scenario: User accesses design system page with no data
-- **WHEN** user navigates to the Design System page in Storybook
-- **AND** no design tokens exist at `designbook/design-system/design-tokens.md`
-- **THEN** the page displays an empty state via `DeboSection` with a reference to the `/design-tokens` AI command
+#### Scenario: Interview Process
+- **WHEN** the user starts the workflow
+- **THEN** the workflow asks specific questions to gather design decisions (e.g. "What is your primary brand color?")
+- **AND** collects these answers to pass to the skill
 
-#### Scenario: User accesses design system page with existing data
-- **WHEN** user navigates to the Design System page in Storybook
-- **AND** design tokens exist at `designbook/design-system/design-tokens.md`
-- **THEN** the page loads and displays colors and typography using `DeboSection`
-- **AND** the data is rendered using the `DesignTokensCard` React component
+### Requirement: Skill Delegation for Storage
+The workflow SHALL NOT save the file directly. It MUST pass the collected data to the `designbook-design-tokens` skill for validation and storage.
 
-#### Scenario: User updates design tokens
-- **WHEN** user wants to update design tokens
-- **THEN** the section footer references the `/design-tokens` AI command
+#### Scenario: Prompt-based Generation
+- **WHEN** the user chooses to generate tokens via prompting
+- **THEN** the agent guides the user to select colors and fonts
+- **AND** the final output is saved as `designbook/design-tokens.json` in W3C format (NOT markdown)
 
-### Requirement: AI Command for Design Tokens Input
-The system SHALL provide a Cursor AI command at `.cursor/commands/design-tokens.md` that guides the user through choosing colors and typography.
+#### Scenario: Token Display
+- **WHEN** the tokens are generated (via any method)
+- **THEN** the Storybook addon reads `designbook/design-tokens.json` to display the design system
 
-#### Scenario: AI command reads product vision
-- **WHEN** user runs the `/design-tokens` AI command
-- **AND** product vision exists
-- **THEN** the AI reads it to understand the product context and suggest fitting colors/fonts
+### Requirement: Central Storage Authority
+The `designbook-tokens` skill SHALL be the sole authority for validating and saving the final `designbook/design-tokens.json` file.
 
-#### Scenario: AI command handles missing prerequisites
-- **WHEN** user runs the `/design-tokens` AI command
-- **AND** no product vision exists
-- **THEN** the AI suggests running `/product-vision` first
+#### Scenario: Save from Upstream
+- **WHEN** it receives token data (from `debo-design-tokens` interview OR `designbook-figma-tokens`)
+- **THEN** it validates the W3C structure
+- **AND** saves it to the canonical path
 
-#### Scenario: AI guides color selection
-- **WHEN** the AI helps choose colors
-- **THEN** it presents Tailwind palette options for primary, secondary, and neutral
-- **AND** suggestions are contextual to the product type
+### Requirement: Input Agnosticism
+The skill SHALL accept W3C-formatted JSON from any valid source.
 
-#### Scenario: AI guides typography selection
-- **WHEN** the AI helps choose typography
-- **THEN** it presents Google Fonts options for heading, body, and mono
-- **AND** suggests popular pairings
+#### Scenario: Validation
+- **WHEN** input is received
+- **THEN** schema validation is performed before saving
 
-#### Scenario: File output
-- **WHEN** the user approves the final choices
-- **THEN** the AI saves to `designbook/design-system/design-tokens.md`
-- **AND** the file uses the structured Markdown format with `## Colors` and `## Typography` sections
+### Requirement: Figma Tokens Output Delegation
+**FROM**: The `designbook-figma-tokens` skill saves the generated tokens directly to `.pendrop/output/pendrop.theme.tokens.json`.
+**TO**: The skill SHALL pass the generated W3C JSON to the `designbook-tokens` skill for final validation and storage.
 
-### Requirement: Design Tokens Markdown File Format
-The design tokens file SHALL follow a structured Markdown format.
-
-#### Scenario: File format matches expected structure
-- **WHEN** the AI command saves the file
-- **THEN** it starts with `# Design Tokens`
-- **AND** contains `## Colors` with `- Primary: [name]`, `- Secondary: [name]`, `- Neutral: [name]`
-- **AND** contains `## Typography` with `- Heading: [font]`, `- Body: [font]`, `- Mono: [font]`
-- **AND** color values are Tailwind palette names, font values are Google Fonts names
+#### Scenario: Token Handoff
+- **WHEN** tokens are successfully generated from Figma
+- **THEN** they are passed to the `designbook-tokens` skill
