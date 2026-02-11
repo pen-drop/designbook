@@ -26,7 +26,7 @@ Stop here.
 
 **If design tokens are missing**, show a warning but continue:
 
-> "Note: Design tokens haven't been defined yet. I'll proceed with the specification, but you may want to run `/design-tokens` first for consistent design decisions."
+> "Note: Design tokens haven't been defined yet. I'll proceed with the specification, but you may want to run `/debo-design-tokens` first for consistent design decisions."
 
 Read all available files to understand the product context.
 
