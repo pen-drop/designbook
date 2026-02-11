@@ -5,14 +5,14 @@ The system SHALL provide an MDX documentation page at `.storybook/onboarding/dat
 
 #### Scenario: User accesses data model page with no data
 - **WHEN** user navigates to the Data Model page in Storybook
-- **AND** no data model exists at `designbook/data-model/data-model.md`
+- **AND** no data model exists at `designbook/data-model.json`
 - **THEN** the page displays an empty state via `DeboSection` with a reference to the `/data-model` AI command
 
 #### Scenario: User accesses data model page with existing data
 - **WHEN** user navigates to the Data Model page in Storybook
-- **AND** data model data exists at `designbook/data-model/data-model.md`
+- **AND** data model data exists at `designbook/data-model.json`
 - **THEN** the page loads and displays entities and relationships using `DeboSection`
-- **AND** the data is rendered using the `DataModelCard` React component via `renderContent` prop
+- **AND** the data is rendered using the `DeboDataModelCard` React component via `renderContent` prop
 - **AND** a reload button allows refreshing the data without page navigation
 
 #### Scenario: User updates data model
@@ -22,7 +22,7 @@ The system SHALL provide an MDX documentation page at `.storybook/onboarding/dat
 - **AND** after the AI command completes, the user clicks reload to see updated data
 
 ### Requirement: AI Command for Data Model Input
-The system SHALL provide a Cursor AI command at `.cursor/commands/data-model.md` that handles the conversational data model workflow, reads the existing product vision and roadmap for context, and saves results to `designbook/data-model/data-model.md`.
+The system SHALL provide a Cursor AI command at `.agent/workflows/debo-data-model.md` with `id: debo-data-model`. This command handles the conversational data model workflow, reads the existing product vision and roadmap for context, and uses the `designbook-data-model` skill to save results to `designbook/data-model.json`.
 
 #### Scenario: AI command reads product vision and roadmap
 - **WHEN** user runs the `/data-model` AI command
@@ -47,22 +47,7 @@ The system SHALL provide a Cursor AI command at `.cursor/commands/data-model.md`
 - **THEN** the user can add, remove, or modify entities and relationships
 - **AND** the AI asks clarifying questions to refine the model
 
-#### Scenario: File output
+#### Scenario: File output via skill
 - **WHEN** the user approves the final data model
-- **THEN** the AI command saves the result to `designbook/data-model/data-model.md`
-- **AND** the file follows the structured Markdown format with `## Entities` and `## Relationships` sections
-
-### Requirement: Data Model Markdown File Format
-The data model Markdown file at `designbook/data-model/data-model.md` SHALL follow a structured format compatible with the data model parser, matching the Design OS format.
-
-#### Scenario: File format matches expected structure
-- **WHEN** the AI command saves the data model file
-- **THEN** the file starts with `# Data Model`
-- **AND** contains a `## Entities` section with `### EntityName` headings followed by descriptions
-- **AND** contains a `## Relationships` section with bullet-point relationship descriptions
-- **AND** entity names are singular (User, not Users)
-
-#### Scenario: Parser extracts entities and relationships
-- **WHEN** the MDX page parses the data model Markdown
-- **THEN** it extracts an array of `{ name, description }` entity objects
-- **AND** it extracts an array of relationship strings
+- **THEN** the AI command invokes the `designbook-data-model` skill with the structured data
+- **AND** the skill saves the result to `designbook/data-model.json` validating against `schema/data-model.json`

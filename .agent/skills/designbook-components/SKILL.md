@@ -20,7 +20,7 @@ Storybook **never** provides write access. All data input happens through AI com
 AI Command (input) → designbook/*.md (storage) → Storybook MDX (display)
 ```
 
-- `GET /__designbook/load?path=<relative-path>` — reads files from `designbook/`
+- `GET /__designbook/load?path=<relative-path>` — reads files from the configured `dist` directory (default: `designbook/`)
 - `POST /__designbook/save` — writes files (used by AI commands only, never by Storybook UI)
 - Vite plugin: `packages/storybook-addon-designbook/src/vite-plugin.ts`
 

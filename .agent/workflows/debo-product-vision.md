@@ -5,7 +5,7 @@ category: Designbook
 description: Define your product vision through a guided conversation
 ---
 
-Help the user define their product vision for Designbook. This is a conversational, multi-step process. The result is saved to `designbook/product/product-overview.md`.
+Help the user define their product vision for Designbook. This is a conversational, multi-step process. The result is saved to `${DESIGNBOOK_DIST}/product/product-overview.md`.
 
 **Steps**
 
@@ -62,7 +62,7 @@ Iterate until the user is satisfied.
 
 ## Step 4: Save the File
 
-Once the user approves, create the file at `designbook/product/product-overview.md` with this exact format:
+Once the user approves, create the file at `${DESIGNBOOK_DIST}/product/product-overview.md` with this exact format:
 
 ```markdown
 # [Product Name]
@@ -89,13 +89,13 @@ Once the user approves, create the file at `designbook/product/product-overview.
 
 **Important:** The `# [Product Name]` heading at the top is required — this is what the Storybook display parses as the product title.
 
-Create the directory `designbook/product/` if it doesn't exist.
+Create the directory `${DESIGNBOOK_DIST}/product/` if it doesn't exist.
 
 ## Step 5: Confirm Completion
 
 Let the user know:
 
-> "I've saved your product vision to `designbook/product/product-overview.md`. Open Storybook to see **[Product Name]** displayed on the Product Vision page. You can run `/product-roadmap` next to break this down into development sections."
+> "I've saved your product vision to `${DESIGNBOOK_DIST}/product/product-overview.md`. Open Storybook to see **[Product Name]** displayed on the Product Vision page. You can run `/product-roadmap` next to break this down into development sections."
 
 **Guardrails**
 - Be conversational and helpful, not robotic
@@ -104,4 +104,4 @@ Let the user know:
 - Keep the final output concise and clear
 - The markdown format must match exactly for Storybook to parse it
 - **Always ensure the product has a name** — if user didn't provide one, ask for it
-- If `designbook/product/product-overview.md` already exists, read it first and tell the user: "You already have a product vision defined. Would you like to update it or start fresh?"
+- If `${DESIGNBOOK_DIST}/product/product-overview.md` already exists, read it first and tell the user: "You already have a product vision defined. Would you like to update it or start fresh?"

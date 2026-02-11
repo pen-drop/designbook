@@ -150,9 +150,9 @@ All shared `Debo*` components, workflow-specific display components, and the `us
 - **THEN** `DeboCard`, `DeboCollapsible`, `DeboSection`, `DeboEmptyState`, and `DeboNumberedList` are available
 - **AND** `useDesignbookData` is available
 
-#### Scenario: Barrel export includes DataModelCard
+#### Scenario: Barrel export includes DeboDataModelCard
 - **WHEN** an MDX file imports from `.storybook/source/components/index.js`
-- **THEN** `DataModelCard` is available alongside existing exports
+- **THEN** `DeboDataModelCard` is available alongside existing exports
 - **AND** all previously exported components remain available
 
 #### Scenario: Barrel export includes DesignTokensCard

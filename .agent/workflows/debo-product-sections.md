@@ -1,29 +1,29 @@
 ---
-name: /product-roadmap
-id: product-roadmap
+name: /debo-product-sections
+id: debo-product-sections
 category: Designbook
-description: Define your product roadmap based on the product vision
+description: Define your product sections based on the product vision
 ---
 
-Help the user create or update their product roadmap for Designbook. The roadmap breaks the product vision into 3–5 development sections. The result is saved to `designbook/product/product-roadmap.md`.
+Help the user create or update their product sections for Designbook. The sections break the product vision into 3–5 development areas. The result is saved to `${DESIGNBOOK_DIST}/sections/[id].section.yml`.
 
 **Steps**
 
 ## Step 1: Check Current State
 
 First, check if the following files exist:
-- `designbook/product/product-overview.md` — the product vision
-- `designbook/product/product-roadmap.md` — an existing roadmap
+- `${DESIGNBOOK_DIST}/product/product-overview.md` — the product vision
+- `${DESIGNBOOK_DIST}/sections/*.section.yml` — existing sections
 
 **If no product vision exists**, tell the user:
 
-> "I don't see a product vision yet. The roadmap builds on your product vision — please run `/product-vision` first to define what you're building, then come back to `/product-roadmap`."
+> "I don't see a product vision yet. The sections build on your product vision — please run `/product-vision` first to define what you're building, then come back to `/sections`."
 
 Stop here.
 
-**If a roadmap already exists**, read both files and present the current state:
+**If sections already exist**, read both files and present the current state:
 
-> "I see you already have a product roadmap with [N] sections:
+> "I see you already have [N] sections:
 >
 > 1. **[Section 1]** — [Description]
 > 2. **[Section 2]** — [Description]
@@ -38,7 +38,7 @@ Then proceed to Step 2 or re-enter the full flow based on their choice.
 
 ## Step 2: Analyze and Propose Sections
 
-Read `designbook/product/product-overview.md` and analyze:
+Read `${DESIGNBOOK_DIST}/product/product-overview.md` and analyze:
 - The product name and core description
 - The problems being solved
 - The key features listed
@@ -62,45 +62,38 @@ Present the proposal:
 
 ## Step 3: Refine with User
 
-Iterate on the sections based on user feedback. Ask clarifying questions as needed:
-- "Should [feature X] be its own section or part of [Section Y]?"
-- "What would you consider the most critical section to build first?"
-- "Are there any major areas I'm missing?"
+Iterate on the sections based on user feedback. Ask clarifying questions as needed.
 
 Keep iterating until the user approves the sections.
 
-## Step 4: Save the File
+## Step 4: Save the Files
 
-Once the user approves, create the file at `designbook/product/product-roadmap.md` with this exact format:
+Once the user approves, create individual YAML files for each section in the `${DESIGNBOOK_DIST}/sections/` directory.
 
-```markdown
-# Product Roadmap
+For each section, create a file named `${DESIGNBOOK_DIST}/sections/[id].section.yml` with this format:
 
-## Sections
-
-### 1. [Section Title]
-[One sentence description]
-
-### 2. [Section Title]
-[One sentence description]
-
-### 3. [Section Title]
-[One sentence description]
+```yaml
+id: section-id-kebab-case
+title: Section Title
+description: One sentence description
+status: planned
+order: 1
 ```
 
 **Important:**
-- The `### N. Title` format with numbered headings is required — this is what the Storybook display parses
-- Keep descriptions to one sentence — concise and clear
-- Order by development priority (most important first)
-- 3–5 sections is ideal, avoid more than 5
+- `id` must be kebab-case and unique
+- The filename must match the `id` (e.g., `unified-dashboard.section.yml`)
+- `status` defaults to "planned"
+- `order` should reflect the sequence (1, 2, 3...)
 
-Create the directory `designbook/product/` if it doesn't exist.
+Create the directory `${DESIGNBOOK_DIST}/sections/` if it doesn't exist.
+Remove any legacy `${DESIGNBOOK_DIST}/sections.json` file if it exists.
 
 ## Step 5: Confirm Completion
 
 Let the user know:
 
-> "I've saved your product roadmap to `designbook/product/product-roadmap.md`. Open Storybook to see the [N] development sections displayed below your product vision on the Product page.
+> "I've saved your product sections to `${DESIGNBOOK_DIST}/sections/`. Open Storybook to see the [N] development sections displayed below your product vision on the Product page.
 >
 > Your sections:
 > 1. **[Section 1]** — [Description]
@@ -110,10 +103,9 @@ Let the user know:
 > **Next step:** You can now use these sections to plan your design and development work."
 
 **Guardrails**
-- Always read the product vision first — the roadmap must align with it
+- always read `schema/sections.json` before saving to ensure the output is valid
+- Always read the product vision first — the sections must align with it
 - If no product vision exists, redirect to `/product-vision` and stop
 - Be conversational and help the user think through the breakdown
-- Don't just list generic sections — make them specific to the user's product
 - Keep sections self-contained — each should be designable and buildable independently
-- The markdown format must match exactly for Storybook to parse it
 - 3–5 sections is the sweet spot — push back gently if the user wants too many or too few

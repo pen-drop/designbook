@@ -16,6 +16,7 @@
     "dev": "run-p dev:addon dev:integration:drupal",
     "dev:addon": "pnpm --filter storybook-addon-designbook build:watch",
     "dev:integration:drupal": "pnpm --filter test-integration-drupal storybook",
+    "lint": "pnpm --filter storybook-addon-designbook lint",
     "lint:css": "pnpm --filter test-integration-drupal run lint:css",
     "lint:css:fix": "pnpm --filter test-integration-drupal run lint:css:fix"
   },

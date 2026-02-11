@@ -5,16 +5,16 @@ category: Designbook
 description: Create sample data and type definitions for a section
 ---
 
-Help the user create realistic sample data for one of their roadmap sections. The result is saved to `designbook/sections/[section-id]/data.json`.
+Help the user create realistic sample data for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/data.json`.
 
 **Steps**
 
 ## Step 1: Check Prerequisites
 
 Check if the following files exist:
-- `designbook/product/product-overview.md` — product vision (required)
-- `designbook/product/product-roadmap.md` — roadmap sections (required)
-- `designbook/data-model/data-model.md` — data model (required for understanding entities)
+- `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
+- `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
+- `${DESIGNBOOK_DIST}/data-model.json` — data model (required for understanding entities)
 
 **If product vision, roadmap, or data model are missing**, tell the user:
 
@@ -26,7 +26,7 @@ Check if the following files exist:
 Stop here.
 
 Read all available files. Also check for an existing section specification:
-- `designbook/sections/[section-id]/spec.md` — section spec (strongly recommended)
+- `${DESIGNBOOK_DIST}/sections/[section-id]/spec.md` — section spec (strongly recommended)
 
 If the spec doesn't exist, warn:
 
@@ -34,7 +34,7 @@ If the spec doesn't exist, warn:
 
 ## Step 2: Select Section
 
-Parse the roadmap to extract sections. Check which sections already have data by looking for existing files at `designbook/sections/[section-id]/data.json`.
+Parse the roadmap to extract sections. Check which sections already have data by looking for existing files at `${DESIGNBOOK_DIST}/sections/[section-id]/data.json`.
 
 **Section ID conversion:** Convert the section title to kebab-case by lowercasing, removing `&`, replacing non-alphanumeric characters with `-`, and trimming leading/trailing dashes.
 
@@ -96,7 +96,7 @@ Iterate until the user is satisfied.
 
 ## Step 5: Save the File
 
-Once approved, create the file at `designbook/sections/[section-id]/data.json` with this format:
+Once approved, create the file at `${DESIGNBOOK_DIST}/sections/[section-id]/data.json` with this format:
 
 ```json
 {
@@ -127,11 +127,11 @@ Once approved, create the file at `designbook/sections/[section-id]/data.json` w
 }
 ```
 
-Create the directory `designbook/sections/[section-id]/` if it doesn't exist.
+Create the directory `${DESIGNBOOK_DIST}/sections/[section-id]/` if it doesn't exist.
 
 ## Step 6: Confirm Completion
 
-> "I've saved the sample data to `designbook/sections/[section-id]/data.json`.
+> "I've saved the sample data to `${DESIGNBOOK_DIST}/sections/[section-id]/data.json`.
 >
 > **[Section Title] sample data:**
 > - [N] models defined

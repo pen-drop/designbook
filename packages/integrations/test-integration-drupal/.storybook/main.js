@@ -14,7 +14,8 @@ const config = {
     "../foundations/**/*.mdx",
     "../components/**/*.component.yml",
     join(baseTheme, "components/**/*.component.yml"),
-    "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)"
+    "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+    "../designbook/sections/*.section.yml"
   ],
   addons: [
     '@storybook/addon-themes',

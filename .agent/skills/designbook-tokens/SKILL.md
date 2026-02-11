@@ -5,7 +5,7 @@ description: Validates and stores design tokens in W3C format.
 
 # Designbook Tokens Skill
 
-This skill is the central authority for validating and saving design tokens to the project. It accepts a W3C-formatted JSON object (passed as a string or file path), validation schema (optional), and persists it to `designbook/design-tokens.json`.
+This skill is the central authority for validating and saving design tokens to the project. It accepts a W3C-formatted JSON object (passed as a string or file path), validation schema (optional), and persists it to `${DESIGNBOOK_DIST}/design-tokens.json`.
 
 ## Usage
 

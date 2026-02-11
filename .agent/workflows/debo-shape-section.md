@@ -5,18 +5,18 @@ category: Designbook
 description: Define a section specification — user flows, UI requirements, and scope
 ---
 
-Help the user define a section specification for one of their roadmap sections. The result is saved to `designbook/sections/[section-id]/spec.md`.
+Help the user define a section specification for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/spec.md`.
 
 **Steps**
 
 ## Step 1: Check Prerequisites
 
 Check if the following files exist:
-- `designbook/product/product-overview.md` — product vision (required)
-- `designbook/product/product-roadmap.md` — roadmap sections (required)
-- `designbook/data-model/data-model.md` — data model (optional, helpful)
-- `designbook/design-system/design-tokens.md` — design tokens (optional)
-- `designbook/design-shell/shell-spec.md` — application shell (optional)
+- `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
+- `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
+- `${DESIGNBOOK_DIST}/data-model.json` — data model (optional, helpful)
+- `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (optional)
+- `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` — application shell (optional)
 
 **If product vision or roadmap are missing**, tell the user:
 
@@ -30,7 +30,7 @@ Read all available files to understand the product context.
 
 ## Step 2: Select Section
 
-Parse the roadmap to extract the sections. Check which sections already have specs by looking for existing files at `designbook/sections/[section-id]/spec.md`.
+Parse the roadmap to extract the sections. Check which sections already have specs by looking for existing files at `${DESIGNBOOK_DIST}/sections/[section-id]/spec.md`.
 
 **Section ID conversion:** Convert the section title to kebab-case by lowercasing, removing `&`, replacing non-alphanumeric characters with `-`, and trimming leading/trailing dashes. Examples:
 - "Homepage" → "homepage"
@@ -95,7 +95,7 @@ Iterate until the user is satisfied.
 
 ## Step 5: Save the File
 
-Once approved, create the file at `designbook/sections/[section-id]/spec.md` with this exact format:
+Once approved, create the file at `${DESIGNBOOK_DIST}/sections/[section-id]/spec.md` with this exact format:
 
 ```markdown
 # [Section Title] Specification
@@ -117,11 +117,11 @@ Once approved, create the file at `designbook/sections/[section-id]/spec.md` wit
 - shell: [true/false]
 ```
 
-Create the directory `designbook/sections/[section-id]/` if it doesn't exist.
+Create the directory `${DESIGNBOOK_DIST}/sections/[section-id]/` if it doesn't exist.
 
 ## Step 6: Confirm Completion
 
-> "I've saved the section specification to `designbook/sections/[section-id]/spec.md`.
+> "I've saved the section specification to `${DESIGNBOOK_DIST}/sections/[section-id]/spec.md`.
 >
 > **[Section Title]:**
 > - User Flows: [N] defined

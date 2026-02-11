@@ -1,131 +1,71 @@
 ---
-name: /data-model
-id: data-model
+name: /debo-data-model
+id: debo-data-model
 category: Designbook
 description: Define your data model through a guided conversation
 ---
 
-Help the user define the core data model for their product. This establishes the "nouns" of the system — the entities and their relationships. The result is saved to `designbook/data-model/data-model.md`.
+Help the user define the core data model for their product. This establishes the "nouns" of the system — the entities and their relationships. The result is saved to `${DESIGNBOOK_DIST}/data-model.json` using the `designbook-data-model` skill.
 
 **Steps**
 
-## Step 1: Check Prerequisites
+## Step 1: Context & Prerequisites
 
-First, check if the following files exist:
-- `designbook/product/product-overview.md` — the product vision
-- `designbook/product/product-roadmap.md` — the product roadmap
+Read the following files to understand the product:
+- `${DESIGNBOOK_DIST}/product/product-overview.md`
+- `${DESIGNBOOK_DIST}/product/product-roadmap.md`
 
-**If no product vision exists**, tell the user:
+Check if `${DESIGNBOOK_DIST}/data-model.json` exists. If so, read it to understand the current model.
 
-> "Before defining your data model, you'll need to establish your product vision. Please run `/product-vision` first, then `/product-roadmap` to define your sections."
+Check the `DESIGNBOOK_TECHNOLOGY` environment variable. 
+- If it is `drupal`, **READ** `.agent/skills/designbook-data-model-drupal/SKILL.md` to understand Drupal-specific entity and field naming conventions. Be sure to apply these conventions in the next steps.
 
-Stop here.
+## Step 2: Gather Requirements
 
-**If product vision exists**, read it (and the roadmap if available) to understand the product context. Proceed to Step 2.
+Analyze the product vision and existing model. Propose or refine the data model structure in terms of **Entity Types**, **Bundles**, and **Fields**.
+- **Entity Types**: High-level categories (e.g., `node`, `user`, `taxonomy_term`).
+- **Bundles**: Specific variations (e.g., `article` and `page` are bundles of `node`).
+- **Fields**: Data attributes (e.g., `title`, `body`, `tags`).
 
-## Step 2: Gather Initial Input
+Engage with the user to define these. Ask clarifying questions.
+> "Based on your product vision, I suggest the following data model..."
 
-Review the product overview and roadmap, then present your initial analysis:
+## Step 3: Define JSON Structure
 
-> "Based on your product vision for **[Product Name]** and your roadmap sections, I can see you're building [brief summary].
->
-> Let me help you define the core data model — the main "things" your app will work with.
->
-> Looking at your product, here are some entities I'm seeing:
->
-> - **[Entity 1]** — [Brief description based on product overview]
-> - **[Entity 2]** — [Brief description based on sections]
-> - **[Entity 3]** — [Brief description]
->
-> Does this capture the main things your app works with? What would you add, remove, or change?"
+Construct a JSON object matching the `schema/data-model.json` structure (Content -> Entity Type -> Bundle -> Fields).
 
-Wait for their response before proceeding.
-
-## Step 3: Refine Entities and Relationships
-
-Ask clarifying questions to refine the model:
-
-- "Are there any other core entities in your system that users will create, view, or manage?"
-- "For [Entity], what does it represent in your system?"
-- "How do these entities relate to each other? For example, does a [Entity1] have many [Entity2]?"
-
-Keep the conversation focused on:
-- **Entity names** — What are the main nouns? (Use singular: User, not Users)
-- **Plain-language descriptions** — What does each entity represent?
-- **Relationships** — How do entities connect to each other?
-
-**Important:** Do NOT define every field or database schema details. Keep it minimal and conceptual.
-
-## Step 4: Present Draft and Refine
-
-Once you have enough information, present a draft:
-
-> "Here's your data model:
->
-> **Entities:**
->
-> - **[Entity1]** — [Description]
-> - **[Entity2]** — [Description]
->
-> **Relationships:**
->
-> - [Entity1] has many [Entity2]
-> - [Entity2] belongs to [Entity1]
->
-> Does this look right? Any adjustments?"
-
-Iterate until the user is satisfied.
-
-## Step 5: Save the File
-
-Once the user approves, create the file at `designbook/data-model/data-model.md` with this exact format:
-
-```markdown
-# Data Model
-
-## Entities
-
-### [EntityName]
-[Plain-language description of what this entity represents and its purpose in the system.]
-
-### [AnotherEntity]
-[Plain-language description.]
-
-## Relationships
-
-- [Entity1] has many [Entity2]
-- [Entity2] belongs to [Entity1]
-- [Entity3] belongs to both [Entity1] and [Entity2]
+Example structure:
+```json
+{
+  "content": {
+    "node": {
+      "article": {
+        "title": "Article",
+        "description": "A news article or blog post.",
+        "fields": {
+          "title": { "type": "string", "label": "Title" },
+          "body": { "type": "text", "label": "Body" }
+        }
+      }
+    }
+  }
+}
 ```
 
-**Important:**
-- Entity names should be singular (User, not Users; Project, not Projects)
-- Keep descriptions minimal — focus on what each entity represents, not every field
-- Relationships should describe how entities connect conceptually
-- Use plain language that a non-technical person could understand
+Present the proposed structure to the user for approval.
 
-Create the directory `designbook/data-model/` if it doesn't exist.
+## Step 4: Save Data Model
 
-## Step 6: Confirm Completion
+Once approved, follow these instructions to save the data:
 
-Let the user know:
+1.  Write the JSON content to a temporary file `${DESIGNBOOK_TMP}/data-model-draft.json`.
+2.  Run the `designbook-data-model` skill to validate and save it.
 
-> "I've saved your data model to `designbook/data-model/data-model.md`.
->
-> **Entities defined:**
-> - [List entities]
->
-> **Relationships:**
-> - [List key relationships]
->
-> Open Storybook to see the data model displayed on the Data Model page. You can run `/data-model` again anytime to update it."
+```bash
+/skill/designbook-data-model/steps/process-data-model ${DESIGNBOOK_TMP}/data-model-draft.json
+```
 
-**Guardrails**
-- Be conversational and helpful, not robotic
-- Ask follow-up questions when answers are vague
-- Keep the data model minimal — entity names, descriptions, and relationships
-- Do NOT define detailed schemas, field types, or validation rules
-- Use plain language that a non-technical person could understand
-- Entity names should be singular
-- The markdown format must match exactly for Storybook to parse it
-- If `designbook/data-model/data-model.md` already exists, read it first and tell the user: "You already have a data model defined. Would you like to update it or start fresh?"
+## Step 5: Confirmation
+
+Confirm to the user that the data model has been updated and is visible in Storybook.
+> "I've updated the data model. You can view it in the Storybook Data Model tab."

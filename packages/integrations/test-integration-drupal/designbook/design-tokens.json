@@ -1,21 +1,21 @@
 {
   "color": {
     "primary": {
-      "$value": "blue",
+      "$value": "Indigo",
       "$type": "color"
     },
     "secondary": {
-      "$value": "emerald",
+      "$value": "Emerald",
       "$type": "color"
     },
     "neutral": {
-      "$value": "slate",
+      "$value": "Slate",
       "$type": "color"
     }
   },
   "typography": {
     "heading": {
-      "$value": "Inter",
+      "$value": "Outfit",
       "$type": "fontFamily"
     },
     "body": {

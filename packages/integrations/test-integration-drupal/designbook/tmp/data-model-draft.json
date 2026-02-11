@@ -1,0 +1,101 @@
+{
+    "content": {
+        "node": {
+            "article": {
+                "title": "Article",
+                "description": "A news article or blog post.",
+                "fields": {
+                    "field_title": {
+                        "type": "string",
+                        "label": "Title"
+                    },
+                    "field_body": {
+                        "type": "text",
+                        "label": "Body"
+                    },
+                    "field_existing_prefix": {
+                        "type": "text",
+                        "label": "Existing Prefix"
+                    },
+                    "field_category": {
+                        "type": "entity_reference",
+                        "label": "Category",
+                        "settings": {
+                            "target_type": "taxonomy_term",
+                            "handler": "default:taxonomy_term",
+                            "handler_settings": {
+                                "target_bundles": {
+                                    "category": "category"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "page": {
+                "title": "Basic Page",
+                "description": "Use for static content.",
+                "fields": {
+                    "field_body": {
+                        "type": "text",
+                        "label": "Body"
+                    }
+                }
+            },
+            "product": {
+                "title": "Product",
+                "description": "A product available for purchase.",
+                "fields": {
+                    "field_title": {
+                        "type": "string",
+                        "label": "Title"
+                    },
+                    "field_body": {
+                        "type": "text",
+                        "label": "Description"
+                    },
+                    "field_image": {
+                        "type": "entity_reference",
+                        "label": "Product Image",
+                        "settings": {
+                            "target_type": "media",
+                            "handler": "default:media",
+                            "handler_settings": {
+                                "target_bundles": {
+                                    "image": "image"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "media": {
+            "image": {
+                "title": "Image",
+                "fields": {
+                    "field_caption": {
+                        "type": "string",
+                        "label": "Caption"
+                    }
+                }
+            }
+        },
+        "taxonomy_term": {
+            "category": {
+                "title": "Category",
+                "description": "Categories for content grouping.",
+                "fields": {
+                    "name": {
+                        "type": "string",
+                        "label": "Name"
+                    },
+                    "description": {
+                        "type": "text_long",
+                        "label": "Description"
+                    }
+                }
+            }
+        }
+    }
+}
