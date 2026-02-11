@@ -1,0 +1,30 @@
+{#
+/**
+ * @file
+ * Template for Alert component.
+ *
+ * Available variables:
+ * - variant: Visual style of the alert (info, warning, error)
+ * - icon: Visual indicator on the left side
+ * - message: Alert message content
+ */
+#}
+{% set classes = [
+  'component',
+  'alert',
+  variant ? 'alert--' ~ variant : 'alert--info',
+] %}
+
+<div{{ attributes.addClass(classes) }} role="alert">
+  {% if icon %}
+    <div class="alert__icon">
+      {{ icon }}
+    </div>
+  {% endif %}
+  
+  {% if message %}
+    <div class="alert__message">
+      {{ message }}
+    </div>
+  {% endif %}
+</div>

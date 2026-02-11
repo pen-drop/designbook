@@ -34,7 +34,8 @@
     "*.d.ts"
   ],
   "scripts": {
-    "prebuild": "node -e \"fs.rmSync('./dist', { recursive: true, force: true })\"",
+    "clean": "node -e \"fs.rmSync('./dist', { recursive: true, force: true })\"",
+    "prebuild": "pnpm run clean",
     "build:css": "tailwindcss -i ./src/index.css -o ./dist/index.css",
     "build": "pnpm run build:css && tsup && mkdir -p ./dist/onboarding && cp ./src/onboarding/section.story.tpl ./dist/onboarding/section.story.tpl",
     "build:watch": "run-p build:css:watch build:tsup:watch",

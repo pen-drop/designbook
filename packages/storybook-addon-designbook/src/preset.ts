@@ -100,7 +100,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
             importPath: relativePath,
             exportName: exportName,
             title: `Sections/${title}`,
-            tags: ['autodocs', 'docs-only'],
+            tags: ['!autodocs'],
           },
         ];
       } catch (err) {

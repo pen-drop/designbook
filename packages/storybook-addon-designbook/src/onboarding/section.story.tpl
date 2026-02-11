@@ -1,4 +1,5 @@
 import React from 'react';
+import { createRoot } from 'react-dom/client';
 import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/DeboSectionDetailPage.jsx';
 
 function SectionPage() {
@@ -10,14 +11,16 @@ function SectionPage() {
 
 export default {
   title: 'Sections/__SECTION_TITLE__',
-  tags: ['autodocs', 'docs-only'],
+  tags: ['!autodocs'],
   parameters: {
-    docsOnly: true,
     layout: 'fullscreen',
-    docs: {
-      page: SectionPage,
-    },
   },
 };
 
-export const __EXPORT_NAME__ = {};
+export const __EXPORT_NAME__ = {
+  render: () => {
+    const container = document.createElement('div');
+    createRoot(container).render(React.createElement(SectionPage));
+    return container;
+  },
+};
