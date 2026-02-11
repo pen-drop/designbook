@@ -80,14 +80,16 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
             let sections: any[] = [];
 
             if (existsSync(sectionsDir)) {
-              const files = readdirSync(sectionsDir).filter(f => f.endsWith('.section.yml'));
-              sections = files.map(file => {
-                try {
-                  return parseYaml(readFileSync(join(sectionsDir, file), 'utf-8'));
-                } catch (e) {
-                  return null;
-                }
-              }).filter(Boolean);
+              const files = readdirSync(sectionsDir).filter((f) => f.endsWith('.section.yml'));
+              sections = files
+                .map((file) => {
+                  try {
+                    return parseYaml(readFileSync(join(sectionsDir, file), 'utf-8'));
+                  } catch {
+                    return null;
+                  }
+                })
+                .filter(Boolean);
 
               // Sort by order if possible
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -119,6 +121,6 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
           res.end(JSON.stringify({ error: err.message }));
         }
       });
-    }
+    },
   };
 }

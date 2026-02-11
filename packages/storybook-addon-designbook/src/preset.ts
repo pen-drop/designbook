@@ -5,8 +5,8 @@ import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 
-
 const __filename = fileURLToPath(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const __dirname = dirname(__filename);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,7 +24,7 @@ export const viteFinal = async (config: any, options: any) => {
       if (distMatch && distMatch[1]) {
         fsRoot = distMatch[1].trim();
       }
-    } catch (e) {
+    } catch {
       // Ignore
     }
   }
@@ -45,6 +45,7 @@ export const webpack = async (config: any) => {
   return config;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const stories = async (entry: string[] = [], options: any) => {
   const onboardingGlob = require.resolve('../package.json').replace('package.json', 'dist/onboarding/*.mdx');
 
@@ -71,6 +72,7 @@ export const stories = async (entry: string[] = [], options: any) => {
  * Reads the YAML file and creates one story index entry per section file.
  * Follows the same pattern as the SDC addon: importPath = fileName.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const experimental_indexers = async (existingIndexers: any[]) => {
   const sectionsIndexer = {
     test: /\.section\.yml$/,
@@ -92,13 +94,15 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
 
         console.log('[Designbook] Indexing section:', { fileName, exportName, title, relativePath });
 
-        return [{
-          type: 'story' as const,
-          importPath: relativePath,
-          exportName: exportName,
-          title: `Sections/${title}`,
-          tags: ['autodocs', 'docs-only'],
-        }];
+        return [
+          {
+            type: 'story' as const,
+            importPath: relativePath,
+            exportName: exportName,
+            title: `Sections/${title}`,
+            tags: ['autodocs', 'docs-only'],
+          },
+        ];
       } catch (err) {
         console.error('[Designbook] Error indexing section file:', fileName, err);
         return [];
