@@ -1,7 +1,0 @@
-name: Button enabled
-variant: default
-props:
-  variant: default
-  state: enabled
-slots:
-  text: Button Text

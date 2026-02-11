@@ -1,7 +1,0 @@
-name: Button disabled
-variant: default
-props:
-  variant: default
-  state: disabled
-slots:
-  text: Button Text

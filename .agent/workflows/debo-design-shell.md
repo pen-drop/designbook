@@ -19,8 +19,8 @@ Check if the following files exist:
 **If product vision or roadmap are missing**, tell the user:
 
 > "Before designing the shell, you need to define your product and sections. Please run:
-> 1. `/product-vision` — Define your product
-> 2. `/product-roadmap` — Define your sections"
+> 1. `/debo-product-vision` — Define your product
+> 2. `/debo-product-roadmap` — Define your sections"
 
 Stop here.
 

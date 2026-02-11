@@ -7,15 +7,20 @@ LOAD_CONFIG_SCRIPT="$SCRIPT_DIR/load-config.cjs"
 # Load config using the JS script
 CONFIG_JSON=$(node "$LOAD_CONFIG_SCRIPT")
 
-# Parse JSON using node and export variables
-# We use node to avoid jq dependency if possible, though jq is cleaner.
-# Assuming node is available since we used it above.
+# Dynamically export all config keys as DESIGNBOOK_* environment variables.
+# Nested YAML keys (e.g. drupal.theme) are flattened with underscores and uppercased.
+# Example: drupal.theme → DESIGNBOOK_DRUPAL_THEME
+eval "$(echo "$CONFIG_JSON" | node -e "
+const config = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
+for (const [key, value] of Object.entries(config)) {
+  const envName = 'DESIGNBOOK_' + key.replace(/\./g, '_').toUpperCase();
+  // Escape single quotes in values for safe shell export
+  const escaped = String(value).replace(/'/g, \"'\\\\''\");
+  console.log('export ' + envName + \"='\" + escaped + \"'\");
+}
+")"
 
-export DESIGNBOOK_DIST=$(echo "$CONFIG_JSON" | node -e "console.log(JSON.parse(fs.readFileSync(0, 'utf-8')).dist)" 2>/dev/null)
-export DESIGNBOOK_TMP=$(echo "$CONFIG_JSON" | node -e "console.log(JSON.parse(fs.readFileSync(0, 'utf-8')).tmp)" 2>/dev/null)
-export DESIGNBOOK_TECHNOLOGY=$(echo "$CONFIG_JSON" | node -e "console.log(JSON.parse(fs.readFileSync(0, 'utf-8')).technology)" 2>/dev/null)
-
-# Fallbacks if parsing failed (though load-config should handle defaults)
+# Fallbacks if config was empty or parsing failed
 if [ -z "$DESIGNBOOK_DIST" ]; then export DESIGNBOOK_DIST="designbook"; fi
 if [ -z "$DESIGNBOOK_TMP" ]; then export DESIGNBOOK_TMP="tmp"; fi
 if [ -z "$DESIGNBOOK_TECHNOLOGY" ]; then export DESIGNBOOK_TECHNOLOGY="html"; fi

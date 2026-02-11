@@ -1,5 +1,5 @@
 ---
-name: designbook-components
+name: designbook-addon-components
 description: Create and maintain Designbook shared React components for Storybook MDX pages. Use when building display components, workflow sections, or extending the Debo* component library.
 license: MIT
 compatibility: Requires Storybook, React, Tailwind CSS v4, DaisyUI v5.

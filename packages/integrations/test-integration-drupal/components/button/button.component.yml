@@ -1,38 +1,27 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
-name: Button
-status: stable
-description: Button component with multiple variants and states
+name: button
+status: experimental
+description: "Simple button component with filled default and outline variant"
 provider: daisy_cms_daisyui
-
 variants:
   default:
     title: Default
-    description: Default button style
+    description: "Filled/solid button"
   outline:
     title: Outline
-    description: Outlined button style
-
+    description: "Button with border only"
 props:
   type: object
   properties:
     variant:
       type: string
-      title: Variant
-      description: Visual style variant of the button
+      title: "Visual Variant"
+      description: "Choose button style"
       enum:
         - default
         - outline
       default: default
-    state:
-      type: string
-      title: State
-      description: Button state (enabled or disabled)
-      enum:
-        - enabled
-        - disabled
-      default: enabled
-
 slots:
   text:
-    title: Button Text
-    description: The text content displayed on the button
+    title: "Button Text"
+    description: "The clickable label"

@@ -1,6 +1,0 @@
-name: Preview
-slots:
-  pre_headline: 'Pre headline'
-  headline: 'Headline'
-  sub_headline: 'Pre headline'
-  content: 'test'

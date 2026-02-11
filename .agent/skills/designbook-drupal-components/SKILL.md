@@ -1,18 +1,25 @@
 ---
 name: Designbook Drupal Components
-description: Creates Drupal SDC component files (.component.yml and .twig) from structured component definition.
+description: Creates Drupal SDC component files (.component.yml, .story.yml, and .twig) from structured component definition. Load this skill when DESIGNBOOK_TECHNOLOGY is drupal.
 ---
 
 # Designbook Drupal Components
 
-This skill generates Drupal Single Directory Component (SDC) files from a structured component definition. It creates both the YAML configuration and the Twig template files.
+This skill generates Drupal Single Directory Component (SDC) files from a structured component definition. It creates three files per component, each documented in its own reference file:
 
-## Capability
+| File | Reference | Description |
+|------|-----------|-------------|
+| `.component.yml` | [`resources/component-yml.md`](resources/component-yml.md) | SDC metadata (props, slots, variants) |
+| `.story.yml` | [`resources/story-yml.md`](resources/story-yml.md) | SDC Storybook stories |
+| `.twig` | [`resources/twig.md`](resources/twig.md) | Twig template |
 
-### Create Component
-**Trigger**: When called with a component definition (typically from `/debo-design-component` workflow).
+> ⛔ **CRITICAL RULE**: Stories must **NEVER** be placed inside `.component.yml`. Stories are **always** a separate `.story.yml` file.
 
-**Action**: Generate component files in the standard Drupal SDC structure.
+## Prerequisites
+
+1. This skill is **technology-specific** and should only be used when `DESIGNBOOK_TECHNOLOGY` is set to `drupal` in `designbook.config.yml`.
+2. Load the configuration using the `designbook-configuration` skill to check the technology value before invoking this skill.
+3. `DESIGNBOOK_DRUPAL_THEME` must be set (via `drupal.theme` in `designbook.config.yml`). All component files are written to `DESIGNBOOK_DRUPAL_THEME/components/[component-name]/`.
 
 ## Input Parameters
 
@@ -48,6 +55,18 @@ Expected as JSON object:
       "title": "Button Text",
       "description": "The clickable label"
     }
+  ],
+  "stories": [
+    {
+      "id": "preview",
+      "title": "Preview",
+      "props": { "variant": "default" },
+      "slots": {
+        "text": [
+          { "type": "element", "value": "Click me" }
+        ]
+      }
+    }
   ]
 }
 ```
@@ -62,6 +81,17 @@ Expected as JSON object:
 - `variants` (array, defaults to empty)
 - `props` (array, defaults to empty)
 - `slots` (array, defaults to empty)
+- `stories` (array, defaults to empty)
+
+## Output Structure
+
+```
+$DESIGNBOOK_DRUPAL_THEME/components/
+└── [component-name]/
+    ├── [component-name].component.yml  # SDC metadata
+    ├── [component-name].story.yml      # SDC Storybook stories
+    └── [component-name].twig           # Twig template
+```
 
 ## Execution Steps
 
@@ -79,23 +109,32 @@ If validation fails, report the error and stop:
 
 ### Step 2: Normalize Component Name
 
-Convert the component name to lowercase-kebab-case for file system:
+Derive two name formats:
+
+**Kebab-case** — for file system (directories and file names):
 - "Button" → "button"
 - "HeroSection" → "hero-section"
 - "CardWithImage" → "card-with-image"
 
 Store as `componentNameKebab`.
 
+**Snake_case** — for the `name:` field inside `.component.yml`:
+- "Button" → "button"
+- "HeroSection" → "hero_section"
+- "CardWithImage" → "card_with_image"
+
+Store as `componentNameSnake`.
+
 ### Step 3: Check for Existing Component
 
 Check if the component directory already exists:
 
 ```bash
-ls components/[componentNameKebab]/
+ls $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/
 ```
 
 **If exists:**
-> "⚠️  Component `[name]` already exists at `components/[componentNameKebab]/`
+> "⚠️  Component `[name]` already exists at `$DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/`
 >
 > Do you want to **overwrite** it? (y/n)"
 
@@ -104,194 +143,52 @@ Wait for confirmation. If "n", stop execution.
 ### Step 4: Create Component Directory
 
 ```bash
-mkdir -p components/[componentNameKebab]
+mkdir -p $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]
 ```
 
 ### Step 5: Generate .component.yml
 
-Build the YAML structure:
+→ Follow instructions in [`resources/component-yml.md`](resources/component-yml.md)
 
-**Base structure:**
-```yaml
-$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
-name: [name]
-status: [status]
-description: [description]
-provider: [provider]
-```
+### Step 6: Generate .story.yml
 
-**Add variants** (if provided):
-```yaml
-variants:
-  [variant.id]:
-    title: [variant.title]
-    description: [variant.description]
-```
+→ Follow instructions in [`resources/story-yml.md`](resources/story-yml.md)
 
-**Add props** (if provided):
-```yaml
-props:
-  type: object
-  properties:
-    [prop.name]:
-      type: [prop.type]
-      title: [prop.title]
-      description: [prop.description]
-      enum: [prop.enum]  # if provided
-      default: [prop.default]  # if provided
-  required: [[list of required prop names]]  # if any props are required
-```
+### Step 7: Generate .twig
 
-**Add slots** (if provided):
-```yaml
-slots:
-  [slot.name]:
-    title: [slot.title]
-    description: [slot.description]
-```
+→ Follow instructions in [`resources/twig.md`](resources/twig.md)
 
-**Write to file:**
-```
-components/[componentNameKebab]/[componentNameKebab].component.yml
-```
+### Step 8: Verify Output
 
-### Step 6: Generate .twig Template
-
-Create a basic Twig template with helpful structure:
-
-**Template content:**
-```twig
-{#
-/**
- * @file
- * Template for [name] component.
- *
- * Available variables:
-[For each prop:]
- * - [prop.name]: [prop.description]
-[For each slot:]
- * - [slot.name]: [slot.description]
- */
-#}
-{% set classes = [
-  'component',
-  '[componentNameKebab]',
-  variant ? '[componentNameKebab]--' ~ variant : '[componentNameKebab]--default',
-] %}
-
-<div{{ attributes.addClass(classes) }}>
-[For each slot:]
-  {% if [slot.name] %}
-    <div class="[componentNameKebab]__[slot.name]">
-      {{ [slot.name] }}
-    </div>
-  {% endif %}
-[End for]
-</div>
-```
-
-**Write to file:**
-```
-components/[componentNameKebab]/[componentNameKebab].twig
-```
-
-### Step 7: Verify Output
-
-Check that both files were created successfully:
+Check that all three files were created successfully:
 
 ```bash
-ls -la components/[componentNameKebab]/
+ls -la $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/
 ```
 
 Expected files:
 - `[componentNameKebab].component.yml`
+- `[componentNameKebab].story.yml`
 - `[componentNameKebab].twig`
 
 **If successful:**
 > "✅ **Component created successfully!**
 >
 > **Files:**
-> - `components/[componentNameKebab]/[componentNameKebab].component.yml`
-> - `components/[componentNameKebab]/[componentNameKebab].twig`
+> - `$DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].component.yml`
+> - `$DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].story.yml`
+> - `$DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].twig`
 >
 > **Component details:**
 > - Name: [name]
 > - Status: [status]
 > - Variants: [count]
 > - Props: [count]
-> - Slots: [count]"
+> - Slots: [count]
+> - Stories: [count]"
 
 **If failed:**
 > "❌ Failed to create component files. Check the error above."
-
-## Output Structure
-
-```
-components/
-└── [component-name]/
-    ├── [component-name].component.yml  # Drupal SDC configuration
-    └── [component-name].twig           # Twig template
-```
-
-## YAML Generation Rules
-
-### Props Type Mapping
-- `string` → `type: string`
-- `boolean` → `type: boolean`
-- `number` → `type: number` or `type: integer`
-- `array` → `type: array`
-- `object` → `type: object`
-
-### Props with Enums
-If a prop has `enum` values, add the `enum` field:
-```yaml
-variant:
-  type: string
-  enum:
-    - default
-    - outline
-    - ghost
-```
-
-### Required Props
-If any props have `required: true`, add a `required` array at the props level:
-```yaml
-props:
-  type: object
-  properties:
-    # ... properties
-  required:
-    - propName1
-    - propName2
-```
-
-### Empty Collections
-If `variants`, `props`, or `slots` are empty, omit them from the YAML (don't include empty objects).
-
-## Twig Generation Rules
-
-### Class Structure
-Always include base BEM-style classes:
-```twig
-{% set classes = [
-  'component',
-  '[component-name]',
-  variant ? '[component-name]--' ~ variant : '[component-name]--default',
-] %}
-```
-
-### Slot Rendering
-For each slot, create a conditional wrapper:
-```twig
-{% if slot_name %}
-  <div class="[component-name]__[slot-name]">
-    {{ slot_name }}
-  </div>
-{% endif %}
-```
-
-### Comments
-Include a Drupal-style file docblock with available variables.
 
 ## Error Handling
 
@@ -300,46 +197,12 @@ Include a Drupal-style file docblock with available variables.
 - **Component already exists**: Ask for confirmation before overwriting
 - **Directory creation fails**: Report filesystem error
 - **File write fails**: Report which file failed and why
-
-## Usage Example
-
-Called from `/debo-design-component` workflow:
-
-```bash
-# User runs workflow
-/debo-design-component
-
-# Workflow gathers data, then calls this skill:
-Execute: .agent/skills/designbook-drupal-components/SKILL.md
-With parameters: {
-  "name": "Button",
-  "description": "A clickable button",
-  "status": "experimental",
-  "provider": "daisy_cms_daisyui",
-  "variants": [{"id": "default", "title": "Default", "description": "..."}],
-  "props": [{"name": "variant", "type": "string", ...}],
-  "slots": [{"name": "text", "title": "Button Text", ...}]
-}
-```
-
-Result:
-```
-components/button/
-├── button.component.yml
-└── button.twig
-```
-
-## Integration
-
-This skill is designed to work with:
-- **Input**: `/debo-design-component` workflow (conversational data gathering)
-- **Output**: Drupal SDC component files ready for Storybook
-- **Next Steps**: User can add CSS, create stories, or integrate with Figma workflows
+- **Schema validation fails**: Show errors and fix before continuing
 
 ## Design Principles
 
-1. **Idempotent**: Running multiple times with same input produces same result
-2. **Validated**: All inputs are checked before file generation
-3. **Safe**: Asks for confirmation before overwriting existing components
-4. **Helpful**: Generates complete, well-structured boilerplate code
-5. **Standard**: Follows Drupal SDC conventions and best practices
+1. **Three files, three concerns**: Metadata, stories, and template are always separate
+2. **Idempotent**: Running multiple times with same input produces same result
+3. **Validated**: Component YAML is validated against the Drupal SDC schema
+4. **Safe**: Asks for confirmation before overwriting existing components
+5. **Standard**: Follows Drupal SDC and SDC Storybook conventions
