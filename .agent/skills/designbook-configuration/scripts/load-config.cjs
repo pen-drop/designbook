@@ -20,24 +20,39 @@ function findConfig() {
 }
 
 function parseYaml(content) {
-    // Simple YAML parser for flat key-value pairs
-    // This avoids dependency on js-yaml for this bootstrap script
+    // Simple YAML parser supporting one level of nesting.
+    // Nested keys are flattened with dots (e.g. drupal.theme).
     const config = {};
     const lines = content.split('\n');
+    let currentParent = null;
+
     for (const line of lines) {
+        if (!line.trim() || line.trim().startsWith('#')) continue;
+
+        const indent = line.search(/\S/);
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) continue;
-
         const colonIndex = trimmed.indexOf(':');
-        if (colonIndex > -1) {
-            const key = trimmed.slice(0, colonIndex).trim();
-            let value = trimmed.slice(colonIndex + 1).trim();
+        if (colonIndex === -1) continue;
 
-            // Remove quotes if present
-            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-                value = value.slice(1, -1);
+        const key = trimmed.slice(0, colonIndex).trim();
+        let value = trimmed.slice(colonIndex + 1).trim();
+
+        // Remove quotes if present
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+        }
+
+        if (indent === 0) {
+            if (value === '') {
+                // Parent key with nested children
+                currentParent = key;
+            } else {
+                currentParent = null;
+                config[key] = value;
             }
-            config[key] = value;
+        } else if (currentParent && value !== '') {
+            // Nested key — flatten as parent.child
+            config[`${currentParent}.${key}`] = value;
         }
     }
     return config;

@@ -25,6 +25,7 @@ source .agent/skills/designbook-configuration/scripts/set-env.sh
 echo $DESIGNBOOK_DIST
 echo $DESIGNBOOK_TECHNOLOGY
 echo $DESIGNBOOK_TMP
+echo $DESIGNBOOK_DRUPAL_THEME
 ```
 
 ## Configuration File
@@ -35,4 +36,6 @@ The `designbook.config.yml` file should be placed in the project root.
 technology: "drupal"
 dist: "packages/integrations/test-integration-drupal/designbook"
 tmp: "tmp"
+drupal:
+  theme: "packages/integrations/test-integration-drupal"
 ```
