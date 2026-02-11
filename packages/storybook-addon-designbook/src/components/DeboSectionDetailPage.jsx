@@ -218,7 +218,7 @@ export function DeboSectionDetailPage({ sectionId, title }) {
         ) : (
           <DeboEmptyState
             message={`No specification for ${title} yet`}
-            command="/shape-section"
+            command={`/debo-shape-section ${sectionId}`}
             filePath={`designbook/sections/${sectionId}/spec.md`}
           />
         )}
@@ -231,7 +231,7 @@ export function DeboSectionDetailPage({ sectionId, title }) {
         ) : (
           <DeboEmptyState
             message="No sample data defined yet"
-            command="/sample-data"
+            command={`/debo-sample-data ${sectionId}`}
             filePath={`designbook/sections/${sectionId}/data.json`}
           />
         )}
@@ -260,7 +260,7 @@ export function DeboSectionDetailPage({ sectionId, title }) {
         ) : (
           <DeboEmptyState
             message="No screen designs yet"
-            command="/design-screen"
+            command={`/debo-design-screen ${sectionId}`}
             filePath={`designbook/sections/${sectionId}/screen-designs.md`}
           />
         )}
@@ -286,7 +286,7 @@ export function DeboSectionDetailPage({ sectionId, title }) {
         ) : (
           <DeboEmptyState
             message="No screenshots captured yet"
-            command="/screenshot-design"
+            command={`/debo-screenshot-design ${sectionId}`}
             filePath={`designbook/sections/${sectionId}/`}
           />
         )}

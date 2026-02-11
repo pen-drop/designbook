@@ -11,7 +11,745 @@ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
 LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */function mr(a){var r=typeof Symbol=="function"&&Symbol.iterator,t=r&&a[r],e=0;if(t)return t.call(a);if(a&&typeof a.length=="number")return{next:function(){return a&&e>=a.length&&(a=void 0),{value:a&&a[e++],done:!a}}};throw new TypeError(r?"Object is not iterable.":"Symbol.iterator is not defined.")}function br(a,r){var t=typeof Symbol=="function"&&a[Symbol.iterator];if(!t)return a;var e=t.call(a),n,i=[],o;try{for(;(r===void 0||r-- >0)&&!(n=e.next()).done;)i.push(n.value)}catch(s){o={error:s}}finally{try{n&&!n.done&&(t=e.return)&&t.call(e)}finally{if(o)throw o.error}}return i}function Ue(){for(var a=[],r=0;r<arguments.length;r++)a=a.concat(br(arguments[r]));return a}var pe=function(a){return typeof a>"u"},Ze=(function(){function a(t,e){var n,i;if(this._canceled=!1,e)try{for(var o=mr(Object.keys(e)),s=o.next();!s.done;s=o.next()){var u=s.value;this[u]=e[u]}}catch(l){n={error:l}}finally{try{s&&!s.done&&(i=o.return)&&i.call(o)}finally{if(n)throw n.error}}this.eventType=t}var r=a.prototype;return r.stop=function(){this._canceled=!0},r.isCanceled=function(){return this._canceled},a})(),xe=(function(){function a(){this._eventHandler={}}var r=a.prototype;return r.trigger=function(t){for(var e=[],n=1;n<arguments.length;n++)e[n-1]=arguments[n];var i=t instanceof Ze?t.eventType:t,o=Ue(this._eventHandler[i]||[]);return o.length<=0?this:(t instanceof Ze?(t.currentTarget=this,o.forEach(function(s){s(t)})):o.forEach(function(s){s.apply(void 0,Ue(e))}),this)},r.once=function(t,e){var n=this;if(typeof t=="object"&&pe(e)){var i=t;for(var o in i)this.once(o,i[o]);return this}else if(typeof t=="string"&&typeof e=="function"){var s=function(){for(var u=[],l=0;l<arguments.length;l++)u[l]=arguments[l];e.apply(void 0,Ue(u)),n.off(t,s)};this.on(t,s)}return this},r.hasOn=function(t){return!!this._eventHandler[t]},r.on=function(t,e){if(typeof t=="object"&&pe(e)){var n=t;for(var i in n)this.on(i,n[i]);return this}else if(typeof t=="string"&&typeof e=="function"){var o=this._eventHandler[t];pe(o)&&(this._eventHandler[t]=[],o=this._eventHandler[t]),o.push(e)}return this},r.off=function(t,e){if(pe(t))return this._eventHandler={},this;if(pe(e)){if(typeof t=="string")return delete this._eventHandler[t],this;var n=t;for(var i in n)this.off(i,n[i]);return this}var o=this._eventHandler[t];if(o){for(var s=o.length,u=0;u<s;++u)if(o[u]===e){o.splice(u,1),s<=1&&delete this._eventHandler[t];break}}return this},a.VERSION="3.0.5",a})(),x=Ze;function dt(a,r){for(var t=a.length,e=0;e<t;++e)if(r(a[e],e))return!0;return!1}function _n(a,r){for(var t=a.length,e=0;e<t;++e)if(r(a[e],e))return a[e];return null}function pn(a){var r=a;if(typeof r>"u"){if(typeof navigator>"u"||!navigator)return"";r=navigator.userAgent||""}return r.toLowerCase()}function vt(a,r){try{return new RegExp(a,"g").exec(r)}catch{return null}}function Er(){if(typeof navigator>"u"||!navigator||!navigator.userAgentData)return!1;var a=navigator.userAgentData,r=a.brands||a.uaList;return!!(r&&r.length)}function Pr(a,r){var t=vt("("+a+")((?:\\/|\\s|:)([0-9|\\.|_]+))",r);return t?t[3]:""}function Je(a){return a.replace(/_/g,".")}function me(a,r){var t=null,e="-1";return dt(a,function(n){var i=vt("("+n.test+")((?:\\/|\\s|:)([0-9|\\.|_]+))?",r);return!i||n.brand?!1:(t=n,e=i[3]||"-1",n.versionAlias?e=n.versionAlias:n.versionTest&&(e=Pr(n.versionTest.toLowerCase(),r)||e),e=Je(e),!0)}),{preset:t,version:e}}function Ie(a,r){var t={brand:"",version:"-1"};return dt(a,function(e){var n=mn(r,e);return n?(t.brand=e.id,t.version=e.versionAlias||n.version,t.version!=="-1"):!1}),t}function mn(a,r){return _n(a,function(t){var e=t.brand;return vt(""+r.test,e.toLowerCase())})}var bn=[{test:"phantomjs",id:"phantomjs"},{test:"whale",id:"whale"},{test:"edgios|edge|edg",id:"edge"},{test:"msie|trident|windows phone",id:"ie",versionTest:"iemobile|msie|rv"},{test:"miuibrowser",id:"miui browser"},{test:"samsungbrowser",id:"samsung internet"},{test:"samsung",id:"samsung internet",versionTest:"version"},{test:"chrome|crios",id:"chrome"},{test:"firefox|fxios",id:"firefox"},{test:"android",id:"android browser",versionTest:"version"},{test:"safari|iphone|ipad|ipod",id:"safari",versionTest:"version"}],En=[{test:"(?=.*applewebkit/(53[0-7]|5[0-2]|[0-4]))(?=.*\\schrome)",id:"chrome",versionTest:"chrome"},{test:"chromium",id:"chrome"},{test:"whale",id:"chrome",versionAlias:"-1",brand:!0}],Qe=[{test:"applewebkit",id:"webkit",versionTest:"applewebkit|safari"}],Pn=[{test:"(?=(iphone|ipad))(?!(.*version))",id:"webview"},{test:"(?=(android|iphone|ipad))(?=.*(naver|daum|; wv))",id:"webview"},{test:"webview",id:"webview"}],On=[{test:"windows phone",id:"windows phone"},{test:"windows 2000",id:"window",versionAlias:"5.0"},{test:"windows nt",id:"window"},{test:"win32|windows",id:"window"},{test:"iphone|ipad|ipod",id:"ios",versionTest:"iphone os|cpu os"},{test:"macos|macintel|mac os x",id:"mac"},{test:"android|linux armv81",id:"android"},{test:"tizen",id:"tizen"},{test:"webos|web0s",id:"webos"}];function yn(a){return!!me(Pn,a).preset}function Or(a){var r=pn(a),t=!!/mobi/g.exec(r),e={name:"unknown",version:"-1",majorVersion:-1,webview:yn(r),chromium:!1,chromiumVersion:"-1",webkit:!1,webkitVersion:"-1"},n={name:"unknown",version:"-1",majorVersion:-1},i=me(bn,r),o=i.preset,s=i.version,u=me(On,r),l=u.preset,c=u.version,f=me(En,r);if(e.chromium=!!f.preset,e.chromiumVersion=f.version,!e.chromium){var d=me(Qe,r);e.webkit=!!d.preset,e.webkitVersion=d.version}return l&&(n.name=l.id,n.version=c,n.majorVersion=parseInt(c,10)),o&&(e.name=o.id,e.version=s,e.webview&&n.name==="ios"&&e.name!=="safari"&&(e.webview=!1)),e.majorVersion=parseInt(e.version,10),{browser:e,os:n,isMobile:t,isHints:!1}}function yr(a){var r=navigator.userAgentData,t=(r.uaList||r.brands).slice(),e=r.mobile||!1,n=t[0],i=(r.platform||navigator.platform).toLowerCase(),o={name:n.brand,version:n.version,majorVersion:-1,webkit:!1,webkitVersion:"-1",chromium:!1,chromiumVersion:"-1",webview:!!Ie(Pn,t).brand||yn(pn())},s={name:"unknown",version:"-1",majorVersion:-1};o.webkit=!o.chromium&&dt(Qe,function(d){return mn(t,d)});var u=Ie(En,t);if(o.chromium=!!u.brand,o.chromiumVersion=u.version||"-1",!o.chromium){var l=Ie(Qe,t);o.webkit=!!l.brand,o.webkitVersion=l.version||"-1"}var c=_n(On,function(d){return new RegExp(""+d.test,"g").exec(i)});s.name=c?c.id:"";{var f=Ie(bn,t);o.name=f.brand||o.name,o.version=f.brand&&a?a.uaFullVersion:f.version}return o.webkit&&(s.name=e?"ios":"mac"),s.name==="ios"&&o.webview&&(o.version="-1"),s.version=Je(s.version),o.version=Je(o.version),s.majorVersion=parseInt(s.version,10),o.majorVersion=parseInt(o.version,10),{browser:o,os:s,isMobile:e,isHints:!0}}function xr(a){return Er()?yr():Or(a)}function Tr(a){return Object.keys(a)}var et="__observers__",we="__computed__",We=1,Xe="__CFCS_DETECTED_DEPENDENCIES__",tt=function(a,r){return tt=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(t,e){t.__proto__=e}||function(t,e){for(var n in e)Object.prototype.hasOwnProperty.call(e,n)&&(t[n]=e[n])},tt(a,r)};function Rr(a,r){if(typeof r!="function"&&r!==null)throw new TypeError("Class extends value "+String(r)+" is not a constructor or null");tt(a,r);function t(){this.constructor=a}a.prototype=r===null?Object.create(r):(t.prototype=r.prototype,new t)}function gt(){Object[Xe]=Object[Xe]||{};var a=Object[Xe];return a[We]=a[We]||[],a[We]}function Ir(){var a=gt();return a[a.length-1]}function Cr(a){var r=gt(),t=[],e={host:a,observers:t,push:function(n){a!==n&&t.indexOf(n)===-1&&t.push(n)}};return r.push(e),e}function wr(){var a=gt();return a.pop()}var xn=(function(){function a(t){this._emitter=new xe,this._current=t}var r=a.prototype;return Object.defineProperty(r,"current",{get:function(){var t=Ir();return t==null||t.push(this),this._current},set:function(t){this._setCurrent(t)},enumerable:!1,configurable:!0}),r.subscribe=function(t){return this.current,this._emitter.on("update",t),this},r.unsubscribe=function(t){return this._emitter.off("update",t),this},r._setCurrent=function(t){var e=this._current,n=t!==e;this._current=t,n&&this._emitter.trigger("update",t,e)},r.toString=function(){return"".concat(this.current)},r.valueOf=function(){return this.current},a})(),Sr=(function(a){Rr(r,a);function r(e){var n=a.call(this)||this;return n._computedCallback=e,n._registered=[],n._onCheckUpdate=function(){n._setCurrent(n.current)},n._current=n.current,n}var t=r.prototype;return Object.defineProperty(t,"current",{get:function(){var e=this;Cr(this);var n=this._computedCallback(),i=wr();return this._registered.forEach(function(o){o.unsubscribe(e._onCheckUpdate)}),i.observers.forEach(function(o){o.subscribe(e._onCheckUpdate)}),this._registered=i.observers,n},enumerable:!1,configurable:!0}),r})(xn);function tn(a,r,t){t===void 0&&(t=r);var e={configurable:!0,get:function(){return J(this,t).current},set:function(n){J(this,t,n).current=n}};Object.defineProperty(a,r,e),t!==r&&Object.defineProperty(a,t,{configurable:!0,get:function(){return J(this,t).current}})}function Ar(){for(var a=[],r=0;r<arguments.length;r++)a[r]=arguments[r];return a.length>1?tn(a[0],a[1]):function(t,e){return tn(t,e,a[0])}}function kr(a){a.subscribe=function(r,t){this[r],J(this,r).subscribe(t)},a.unsubscribe=function(r,t){var e=this;if(!r){Tr(_t(this)).forEach(function(n){e.unsubscribe(n)});return}r in this&&J(this,r).unsubscribe(t)}}function Nr(a){var r=a.prototype;kr(r)}function Dr(a){return new xn(a)}function Lr(a){return new Sr(a)}function Mr(a){var r={};return Object.defineProperty(a,et,{get:function(){return r}}),r}function _t(a,r){var t,e;a[et]||Mr(a);var n=a[et];if(!r){var i=(e=(t=a==null?void 0:a.constructor)===null||t===void 0?void 0:t.prototype)===null||e===void 0?void 0:e[we];i&&i.forEach(function(o){!(o in n)&&o in a&&a[o]})}return n}function J(a,r,t){var e=_t(a);return e[r]||(e[r]=Dr(t)),e[r]}function zr(a,r,t){var e=t.get;function n(){var s=_t(this,!0);return r in s||(s[r]=Lr(e.bind(this))),J(this,r).current}var i={configurable:!0,get:n};a[we]||(a[we]=[]);var o=a[we];return o.indexOf(r)===-1&&o.push(r),Object.defineProperty(a,r,i),i}/*! *****************************************************************************
+***************************************************************************** */
+function __values$1(o) {
+  var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+  if (m) return m.call(o);
+  if (o && typeof o.length === "number") return {
+    next: function() {
+      if (o && i >= o.length) o = void 0;
+      return {
+        value: o && o[i++],
+        done: !o
+      };
+    }
+  };
+  throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+}
+function __read$1(o, n) {
+  var m = typeof Symbol === "function" && o[Symbol.iterator];
+  if (!m) return o;
+  var i = m.call(o), r, ar = [], e;
+  try {
+    while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+  } catch (error) {
+    e = {
+      error
+    };
+  } finally {
+    try {
+      if (r && !r.done && (m = i["return"])) m.call(i);
+    } finally {
+      if (e) throw e.error;
+    }
+  }
+  return ar;
+}
+function __spread$1() {
+  for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read$1(arguments[i]));
+  return ar;
+}
+var isUndefined = function(value) {
+  return typeof value === "undefined";
+};
+var ComponentEvent = /* @__PURE__ */ (function() {
+  function ComponentEvent2(eventType, props) {
+    var e_1, _a;
+    this._canceled = false;
+    if (props) {
+      try {
+        for (var _b = __values$1(Object.keys(props)), _c = _b.next(); !_c.done; _c = _b.next()) {
+          var key = _c.value;
+          this[key] = props[key];
+        }
+      } catch (e_1_1) {
+        e_1 = {
+          error: e_1_1
+        };
+      } finally {
+        try {
+          if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+        } finally {
+          if (e_1) throw e_1.error;
+        }
+      }
+    }
+    this.eventType = eventType;
+  }
+  var __proto = ComponentEvent2.prototype;
+  __proto.stop = function() {
+    this._canceled = true;
+  };
+  __proto.isCanceled = function() {
+    return this._canceled;
+  };
+  return ComponentEvent2;
+})();
+var Component = /* @__PURE__ */ (function() {
+  function Component2() {
+    this._eventHandler = {};
+  }
+  var __proto = Component2.prototype;
+  __proto.trigger = function(event) {
+    var params = [];
+    for (var _i = 1; _i < arguments.length; _i++) {
+      params[_i - 1] = arguments[_i];
+    }
+    var eventName = event instanceof ComponentEvent ? event.eventType : event;
+    var handlers = __spread$1(this._eventHandler[eventName] || []);
+    if (handlers.length <= 0) {
+      return this;
+    }
+    if (event instanceof ComponentEvent) {
+      event.currentTarget = this;
+      handlers.forEach(function(handler) {
+        handler(event);
+      });
+    } else {
+      handlers.forEach(function(handler) {
+        handler.apply(void 0, __spread$1(params));
+      });
+    }
+    return this;
+  };
+  __proto.once = function(eventName, handlerToAttach) {
+    var _this = this;
+    if (typeof eventName === "object" && isUndefined(handlerToAttach)) {
+      var eventHash = eventName;
+      for (var key in eventHash) {
+        this.once(key, eventHash[key]);
+      }
+      return this;
+    } else if (typeof eventName === "string" && typeof handlerToAttach === "function") {
+      var listener_1 = function() {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+          args[_i] = arguments[_i];
+        }
+        handlerToAttach.apply(void 0, __spread$1(args));
+        _this.off(eventName, listener_1);
+      };
+      this.on(eventName, listener_1);
+    }
+    return this;
+  };
+  __proto.hasOn = function(eventName) {
+    return !!this._eventHandler[eventName];
+  };
+  __proto.on = function(eventName, handlerToAttach) {
+    if (typeof eventName === "object" && isUndefined(handlerToAttach)) {
+      var eventHash = eventName;
+      for (var name in eventHash) {
+        this.on(name, eventHash[name]);
+      }
+      return this;
+    } else if (typeof eventName === "string" && typeof handlerToAttach === "function") {
+      var handlerList = this._eventHandler[eventName];
+      if (isUndefined(handlerList)) {
+        this._eventHandler[eventName] = [];
+        handlerList = this._eventHandler[eventName];
+      }
+      handlerList.push(handlerToAttach);
+    }
+    return this;
+  };
+  __proto.off = function(eventName, handlerToDetach) {
+    if (isUndefined(eventName)) {
+      this._eventHandler = {};
+      return this;
+    }
+    if (isUndefined(handlerToDetach)) {
+      if (typeof eventName === "string") {
+        delete this._eventHandler[eventName];
+        return this;
+      } else {
+        var eventHash = eventName;
+        for (var name in eventHash) {
+          this.off(name, eventHash[name]);
+        }
+        return this;
+      }
+    }
+    var handlerList = this._eventHandler[eventName];
+    if (handlerList) {
+      var length = handlerList.length;
+      for (var i = 0; i < length; ++i) {
+        if (handlerList[i] === handlerToDetach) {
+          handlerList.splice(i, 1);
+          if (length <= 1) {
+            delete this._eventHandler[eventName];
+          }
+          break;
+        }
+      }
+    }
+    return this;
+  };
+  Component2.VERSION = "3.0.5";
+  return Component2;
+})();
+var ComponentEvent$1 = ComponentEvent;
+function some(arr, callback) {
+  var length = arr.length;
+  for (var i = 0; i < length; ++i) {
+    if (callback(arr[i], i)) {
+      return true;
+    }
+  }
+  return false;
+}
+function find$1(arr, callback) {
+  var length = arr.length;
+  for (var i = 0; i < length; ++i) {
+    if (callback(arr[i], i)) {
+      return arr[i];
+    }
+  }
+  return null;
+}
+function getUserAgentString(agent2) {
+  var userAgent = agent2;
+  if (typeof userAgent === "undefined") {
+    if (typeof navigator === "undefined" || !navigator) {
+      return "";
+    }
+    userAgent = navigator.userAgent || "";
+  }
+  return userAgent.toLowerCase();
+}
+function execRegExp(pattern, text) {
+  try {
+    return new RegExp(pattern, "g").exec(text);
+  } catch (e) {
+    return null;
+  }
+}
+function hasUserAgentData() {
+  if (typeof navigator === "undefined" || !navigator || !navigator.userAgentData) {
+    return false;
+  }
+  var userAgentData = navigator.userAgentData;
+  var brands = userAgentData.brands || userAgentData.uaList;
+  return !!(brands && brands.length);
+}
+function findVersion(versionTest, userAgent) {
+  var result = execRegExp("(" + versionTest + ")((?:\\/|\\s|:)([0-9|\\.|_]+))", userAgent);
+  return result ? result[3] : "";
+}
+function convertVersion(text) {
+  return text.replace(/_/g, ".");
+}
+function findPreset(presets, userAgent) {
+  var userPreset = null;
+  var version = "-1";
+  some(presets, function(preset) {
+    var result = execRegExp("(" + preset.test + ")((?:\\/|\\s|:)([0-9|\\.|_]+))?", userAgent);
+    if (!result || preset.brand) {
+      return false;
+    }
+    userPreset = preset;
+    version = result[3] || "-1";
+    if (preset.versionAlias) {
+      version = preset.versionAlias;
+    } else if (preset.versionTest) {
+      version = findVersion(preset.versionTest.toLowerCase(), userAgent) || version;
+    }
+    version = convertVersion(version);
+    return true;
+  });
+  return {
+    preset: userPreset,
+    version
+  };
+}
+function findPresetBrand(presets, brands) {
+  var brandInfo = {
+    brand: "",
+    version: "-1"
+  };
+  some(presets, function(preset) {
+    var result = findBrand(brands, preset);
+    if (!result) {
+      return false;
+    }
+    brandInfo.brand = preset.id;
+    brandInfo.version = preset.versionAlias || result.version;
+    return brandInfo.version !== "-1";
+  });
+  return brandInfo;
+}
+function findBrand(brands, preset) {
+  return find$1(brands, function(_a) {
+    var brand = _a.brand;
+    return execRegExp("" + preset.test, brand.toLowerCase());
+  });
+}
+var BROWSER_PRESETS = [{
+  test: "phantomjs",
+  id: "phantomjs"
+}, {
+  test: "whale",
+  id: "whale"
+}, {
+  test: "edgios|edge|edg",
+  id: "edge"
+}, {
+  test: "msie|trident|windows phone",
+  id: "ie",
+  versionTest: "iemobile|msie|rv"
+}, {
+  test: "miuibrowser",
+  id: "miui browser"
+}, {
+  test: "samsungbrowser",
+  id: "samsung internet"
+}, {
+  test: "samsung",
+  id: "samsung internet",
+  versionTest: "version"
+}, {
+  test: "chrome|crios",
+  id: "chrome"
+}, {
+  test: "firefox|fxios",
+  id: "firefox"
+}, {
+  test: "android",
+  id: "android browser",
+  versionTest: "version"
+}, {
+  test: "safari|iphone|ipad|ipod",
+  id: "safari",
+  versionTest: "version"
+}];
+var CHROMIUM_PRESETS = [{
+  test: "(?=.*applewebkit/(53[0-7]|5[0-2]|[0-4]))(?=.*\\schrome)",
+  id: "chrome",
+  versionTest: "chrome"
+}, {
+  test: "chromium",
+  id: "chrome"
+}, {
+  test: "whale",
+  id: "chrome",
+  versionAlias: "-1",
+  brand: true
+}];
+var WEBKIT_PRESETS = [{
+  test: "applewebkit",
+  id: "webkit",
+  versionTest: "applewebkit|safari"
+}];
+var WEBVIEW_PRESETS = [{
+  test: "(?=(iphone|ipad))(?!(.*version))",
+  id: "webview"
+}, {
+  test: "(?=(android|iphone|ipad))(?=.*(naver|daum|; wv))",
+  id: "webview"
+}, {
+  // test webview
+  test: "webview",
+  id: "webview"
+}];
+var OS_PRESETS = [{
+  test: "windows phone",
+  id: "windows phone"
+}, {
+  test: "windows 2000",
+  id: "window",
+  versionAlias: "5.0"
+}, {
+  test: "windows nt",
+  id: "window"
+}, {
+  test: "win32|windows",
+  id: "window"
+}, {
+  test: "iphone|ipad|ipod",
+  id: "ios",
+  versionTest: "iphone os|cpu os"
+}, {
+  test: "macos|macintel|mac os x",
+  id: "mac"
+}, {
+  test: "android|linux armv81",
+  id: "android"
+}, {
+  test: "tizen",
+  id: "tizen"
+}, {
+  test: "webos|web0s",
+  id: "webos"
+}];
+function isWebView(userAgent) {
+  return !!findPreset(WEBVIEW_PRESETS, userAgent).preset;
+}
+function getLegacyAgent(userAgent) {
+  var nextAgent = getUserAgentString(userAgent);
+  var isMobile = !!/mobi/g.exec(nextAgent);
+  var browser = {
+    name: "unknown",
+    version: "-1",
+    majorVersion: -1,
+    webview: isWebView(nextAgent),
+    chromium: false,
+    chromiumVersion: "-1",
+    webkit: false,
+    webkitVersion: "-1"
+  };
+  var os = {
+    name: "unknown",
+    version: "-1",
+    majorVersion: -1
+  };
+  var _a = findPreset(BROWSER_PRESETS, nextAgent), browserPreset = _a.preset, browserVersion = _a.version;
+  var _b = findPreset(OS_PRESETS, nextAgent), osPreset = _b.preset, osVersion = _b.version;
+  var chromiumPreset = findPreset(CHROMIUM_PRESETS, nextAgent);
+  browser.chromium = !!chromiumPreset.preset;
+  browser.chromiumVersion = chromiumPreset.version;
+  if (!browser.chromium) {
+    var webkitPreset = findPreset(WEBKIT_PRESETS, nextAgent);
+    browser.webkit = !!webkitPreset.preset;
+    browser.webkitVersion = webkitPreset.version;
+  }
+  if (osPreset) {
+    os.name = osPreset.id;
+    os.version = osVersion;
+    os.majorVersion = parseInt(osVersion, 10);
+  }
+  if (browserPreset) {
+    browser.name = browserPreset.id;
+    browser.version = browserVersion;
+    if (browser.webview && os.name === "ios" && browser.name !== "safari") {
+      browser.webview = false;
+    }
+  }
+  browser.majorVersion = parseInt(browser.version, 10);
+  return {
+    browser,
+    os,
+    isMobile,
+    isHints: false
+  };
+}
+function getClientHintsAgent(osData) {
+  var userAgentData = navigator.userAgentData;
+  var brands = (userAgentData.uaList || userAgentData.brands).slice();
+  var isMobile = userAgentData.mobile || false;
+  var firstBrand = brands[0];
+  var platform = (userAgentData.platform || navigator.platform).toLowerCase();
+  var browser = {
+    name: firstBrand.brand,
+    version: firstBrand.version,
+    majorVersion: -1,
+    webkit: false,
+    webkitVersion: "-1",
+    chromium: false,
+    chromiumVersion: "-1",
+    webview: !!findPresetBrand(WEBVIEW_PRESETS, brands).brand || isWebView(getUserAgentString())
+  };
+  var os = {
+    name: "unknown",
+    version: "-1",
+    majorVersion: -1
+  };
+  browser.webkit = !browser.chromium && some(WEBKIT_PRESETS, function(preset) {
+    return findBrand(brands, preset);
+  });
+  var chromiumBrand = findPresetBrand(CHROMIUM_PRESETS, brands);
+  browser.chromium = !!chromiumBrand.brand;
+  browser.chromiumVersion = chromiumBrand.version || "-1";
+  if (!browser.chromium) {
+    var webkitBrand = findPresetBrand(WEBKIT_PRESETS, brands);
+    browser.webkit = !!webkitBrand.brand;
+    browser.webkitVersion = webkitBrand.version || "-1";
+  }
+  var platfomResult = find$1(OS_PRESETS, function(preset) {
+    return new RegExp("" + preset.test, "g").exec(platform);
+  });
+  os.name = platfomResult ? platfomResult.id : "";
+  {
+    var browserBrand = findPresetBrand(BROWSER_PRESETS, brands);
+    browser.name = browserBrand.brand || browser.name;
+    browser.version = browserBrand.brand && osData ? osData.uaFullVersion : browserBrand.version;
+  }
+  if (browser.webkit) {
+    os.name = isMobile ? "ios" : "mac";
+  }
+  if (os.name === "ios" && browser.webview) {
+    browser.version = "-1";
+  }
+  os.version = convertVersion(os.version);
+  browser.version = convertVersion(browser.version);
+  os.majorVersion = parseInt(os.version, 10);
+  browser.majorVersion = parseInt(browser.version, 10);
+  return {
+    browser,
+    os,
+    isMobile,
+    isHints: true
+  };
+}
+function agent(userAgent) {
+  if (hasUserAgentData()) {
+    return getClientHintsAgent();
+  } else {
+    return getLegacyAgent(userAgent);
+  }
+}
+function keys(obj) {
+  return Object.keys(obj);
+}
+var OBSERVERS_PATH = "__observers__";
+var COMPUTED_PATH = "__computed__";
+var CFCS_DETECTED_DEPENDENCIES_VERSION = 1;
+var CFCS_DETECTED_DEPENDENCIES = "__CFCS_DETECTED_DEPENDENCIES__";
+var extendStatics$4 = function(d, b) {
+  extendStatics$4 = Object.setPrototypeOf || {
+    __proto__: []
+  } instanceof Array && function(d2, b2) {
+    d2.__proto__ = b2;
+  } || function(d2, b2) {
+    for (var p in b2) if (Object.prototype.hasOwnProperty.call(b2, p)) d2[p] = b2[p];
+  };
+  return extendStatics$4(d, b);
+};
+function __extends$4(d, b) {
+  if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+  extendStatics$4(d, b);
+  function __() {
+    this.constructor = d;
+  }
+  d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+function getDetectedStack() {
+  Object[CFCS_DETECTED_DEPENDENCIES] = Object[CFCS_DETECTED_DEPENDENCIES] || {};
+  var versionList = Object[CFCS_DETECTED_DEPENDENCIES];
+  versionList[CFCS_DETECTED_DEPENDENCIES_VERSION] = versionList[CFCS_DETECTED_DEPENDENCIES_VERSION] || [];
+  return versionList[CFCS_DETECTED_DEPENDENCIES_VERSION];
+}
+function getCurrentDetected() {
+  var stack = getDetectedStack();
+  return stack[stack.length - 1];
+}
+function detectDependencies(host) {
+  var stack = getDetectedStack();
+  var observers = [];
+  var detected = {
+    host,
+    observers,
+    push: function(observer) {
+      if (host !== observer && observers.indexOf(observer) === -1) {
+        observers.push(observer);
+      }
+    }
+  };
+  stack.push(detected);
+  return detected;
+}
+function endDetectDependencies() {
+  var stack = getDetectedStack();
+  return stack.pop();
+}
+var Observer = /* @__PURE__ */ (function() {
+  function Observer2(value) {
+    this._emitter = new Component();
+    this._current = value;
+  }
+  var __proto = Observer2.prototype;
+  Object.defineProperty(__proto, "current", {
+    /**
+     * return the current value.
+     */
+    get: function() {
+      var currentDetected = getCurrentDetected();
+      currentDetected === null || currentDetected === void 0 ? void 0 : currentDetected.push(this);
+      return this._current;
+    },
+    set: function(value) {
+      this._setCurrent(value);
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.subscribe = function(callback) {
+    this.current;
+    this._emitter.on("update", callback);
+    return this;
+  };
+  __proto.unsubscribe = function(callback) {
+    this._emitter.off("update", callback);
+    return this;
+  };
+  __proto._setCurrent = function(value) {
+    var prevValue = this._current;
+    var isUpdate = value !== prevValue;
+    this._current = value;
+    if (isUpdate) {
+      this._emitter.trigger("update", value, prevValue);
+    }
+  };
+  __proto.toString = function() {
+    return "".concat(this.current);
+  };
+  __proto.valueOf = function() {
+    return this.current;
+  };
+  return Observer2;
+})();
+var ComputedObserver = /* @__PURE__ */ (function(_super) {
+  __extends$4(ComputedObserver2, _super);
+  function ComputedObserver2(_computedCallback) {
+    var _this = _super.call(this) || this;
+    _this._computedCallback = _computedCallback;
+    _this._registered = [];
+    _this._onCheckUpdate = function() {
+      _this._setCurrent(_this.current);
+    };
+    _this._current = _this.current;
+    return _this;
+  }
+  var __proto = ComputedObserver2.prototype;
+  Object.defineProperty(__proto, "current", {
+    get: function() {
+      var _this = this;
+      detectDependencies(this);
+      var value = this._computedCallback();
+      var results = endDetectDependencies();
+      this._registered.forEach(function(observer) {
+        observer.unsubscribe(_this._onCheckUpdate);
+      });
+      results.observers.forEach(function(observer) {
+        observer.subscribe(_this._onCheckUpdate);
+      });
+      this._registered = results.observers;
+      return value;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  return ComputedObserver2;
+})(Observer);
+function injectObserve(prototype, memberName, publicName) {
+  if (publicName === void 0) {
+    publicName = memberName;
+  }
+  var nextAttributes = {
+    configurable: true,
+    get: function() {
+      return getObserver(this, publicName).current;
+    },
+    set: function(value) {
+      getObserver(this, publicName, value).current = value;
+    }
+  };
+  Object.defineProperty(prototype, memberName, nextAttributes);
+  if (publicName !== memberName) {
+    Object.defineProperty(prototype, publicName, {
+      configurable: true,
+      get: function() {
+        return getObserver(this, publicName).current;
+      }
+    });
+  }
+}
+function Observe() {
+  var args = [];
+  for (var _i = 0; _i < arguments.length; _i++) {
+    args[_i] = arguments[_i];
+  }
+  if (args.length > 1) {
+    return injectObserve(args[0], args[1]);
+  }
+  return function(prototype, memberName) {
+    return injectObserve(prototype, memberName, args[0]);
+  };
+}
+function injectReactiveSubscribe(object) {
+  object["subscribe"] = function(name, callback) {
+    this[name];
+    getObserver(this, name).subscribe(callback);
+  };
+  object["unsubscribe"] = function(name, callback) {
+    var _this = this;
+    if (!name) {
+      keys(getObservers(this)).forEach(function(observerName) {
+        _this.unsubscribe(observerName);
+      });
+      return;
+    }
+    if (!(name in this)) {
+      return;
+    }
+    getObserver(this, name).unsubscribe(callback);
+  };
+}
+function ReactiveSubscribe(Constructor) {
+  var prototype = Constructor.prototype;
+  injectReactiveSubscribe(prototype);
+}
+function observe(defaultValue) {
+  return new Observer(defaultValue);
+}
+function computed(computedCallback) {
+  return new ComputedObserver(computedCallback);
+}
+function defineObservers(instance) {
+  var observers = {};
+  Object.defineProperty(instance, OBSERVERS_PATH, {
+    get: function() {
+      return observers;
+    }
+  });
+  return observers;
+}
+function getObservers(instance, isComputed) {
+  var _a, _b;
+  if (!instance[OBSERVERS_PATH]) {
+    defineObservers(instance);
+  }
+  var observers = instance[OBSERVERS_PATH];
+  if (!isComputed) {
+    var computedList = (_b = (_a = instance === null || instance === void 0 ? void 0 : instance.constructor) === null || _a === void 0 ? void 0 : _a.prototype) === null || _b === void 0 ? void 0 : _b[COMPUTED_PATH];
+    if (computedList) {
+      computedList.forEach(function(name) {
+        if (!(name in observers) && name in instance) {
+          instance[name];
+        }
+      });
+    }
+  }
+  return observers;
+}
+function getObserver(instance, name, defaultValue) {
+  var observers = getObservers(instance);
+  if (!observers[name]) {
+    observers[name] = observe(defaultValue);
+  }
+  return observers[name];
+}
+function Computed(prototype, memberName, attributes) {
+  var get = attributes.get;
+  function getComputed() {
+    var observers = getObservers(this, true);
+    if (!(memberName in observers)) {
+      observers[memberName] = computed(get.bind(this));
+    }
+    return getObserver(this, memberName).current;
+  }
+  var nextAttributes = {
+    configurable: true,
+    get: getComputed
+  };
+  prototype[COMPUTED_PATH] || (prototype[COMPUTED_PATH] = []);
+  var computedList = prototype[COMPUTED_PATH];
+  if (computedList.indexOf(memberName) === -1) {
+    computedList.push(memberName);
+  }
+  Object.defineProperty(prototype, memberName, nextAttributes);
+  return nextAttributes;
+}
+/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -24,7 +762,9423 @@ MERCHANTABLITY OR NON-INFRINGEMENT.
 
 See the Apache Version 2.0 License for specific language governing permissions
 and limitations under the License.
-***************************************************************************** */var nt=function(a,r){return nt=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(t,e){t.__proto__=e}||function(t,e){for(var n in e)e.hasOwnProperty(n)&&(t[n]=e[n])},nt(a,r)};function ve(a,r){nt(a,r);function t(){this.constructor=a}a.prototype=r===null?Object.create(r):(t.prototype=r.prototype,new t)}var k=function(){return k=Object.assign||function(r){for(var t,e=1,n=arguments.length;e<n;e++){t=arguments[e];for(var i in t)Object.prototype.hasOwnProperty.call(t,i)&&(r[i]=t[i])}return r},k.apply(this,arguments)};function rt(a,r,t,e){var n=arguments.length,i=n<3?r:e===null?e=Object.getOwnPropertyDescriptor(r,t):e,o;if(typeof Reflect=="object"&&typeof Reflect.decorate=="function")i=Reflect.decorate(a,r,t,e);else for(var s=a.length-1;s>=0;s--)(o=a[s])&&(i=(n<3?o(i):n>3?o(r,t,i):o(r,t))||i);return n>3&&i&&Object.defineProperty(r,t,i),i}var z;typeof window>"u"?z={navigator:{userAgent:""}}:z=window;var Te=1,jr=2,Fr=4,ce=6,Vr=8,Br=16,fe=24,Ve=30,Ne="left",it="right",at="middle",Tn={1:Ne,2:at,3:it},Rn="any",Hr="none",Ur="shift",Wr="ctrl",Xr="alt",Gr="meta",Yr=16,Kr=30,nn="ontouchstart"in z&&xr().browser.name==="safari",qr=(function(){if(typeof document>"u")return"";for(var a=(document.head||document.getElementsByTagName("head")[0]).style,r=["transform","webkitTransform","msTransform","mozTransform"],t=0,e=r.length;t<e;t++)if(r[t]in a)return r[t];return""})(),ot={"-webkit-user-select":"none","-ms-user-select":"none","-moz-user-select":"none","user-select":"none","-webkit-user-drag":"none"},rn=function(a){for(var r=[],t=0,e=a.length;t<e;t++)r.push(a[t]);return r},In=function(a,r){r===void 0&&(r=!1);var t;if(typeof a=="string"){var e=a.match(/^<([a-z]+)\s*([^>]*)>/);if(e){var n=document.createElement("div");n.innerHTML=a,t=rn(n.childNodes)}else t=rn(document.querySelectorAll(a));r||(t=t.length>=1?t[0]:void 0)}else a===z?t=a:"value"in a||"current"in a?t=a.value||a.current:a.nodeName&&(a.nodeType===1||a.nodeType===9)?t=a:"jQuery"in z&&a instanceof jQuery||a.constructor.prototype.jquery?t=r?a.toArray():a.get(0):Array.isArray(a)&&(t=a.map(function(i){return In(i)}),r||(t=t.length>=1?t[0]:void 0));return t},ie=z.requestAnimationFrame||z.webkitRequestAnimationFrame,be=z.cancelAnimationFrame||z.webkitCancelAnimationFrame;if(ie&&!be){var Ge={},$r=ie;ie=function(a){var r=function(e){Ge[t]&&a(e)},t=$r(r);return Ge[t]=!0,t},be=function(a){delete Ge[a]}}else ie&&be||(ie=function(a){return z.setTimeout(function(){a(z.performance&&z.performance.now&&z.performance.now()||new Date().getTime())},16)},be=z.clearTimeout);var Zr=function(a){return ie(a)},Jr=function(a){be(a)},K=function(a,r){var t={};for(var e in a)e&&(t[e]=r(a[e],e));return t},Cn=function(a,r){var t={};for(var e in a)e&&r(a[e],e)&&(t[e]=a[e]);return t},pt=function(a,r){for(var t in a)if(t&&!r(a[t],t))return!1;return!0},Ee=function(a,r){return pt(a,function(t,e){return t===r[e]})},Ye={},wn=function(a,r){return Ye[r]||(Ye[r]=ei(r)),Ye[r](a)},an=function(a,r){return!a||!r?a:K(a,function(t,e){return wn(t,typeof r=="number"?r:r[e])})},Se=function(a){if(!isFinite(a))return 0;var r="".concat(a);if(r.indexOf("e")>=0){for(var t=0,e=1;Math.round(a*e)/e!==a;)e*=10,t++;return t}return r.indexOf(".")>=0?r.length-r.indexOf(".")-1:0},Qr=function(a){return 1/Math.pow(10,a)},ei=function(a){var r=a<1?Math.pow(10,Se(a)):1;return function(t){return a===0?0:Math.round(Math.round(t/a)*a*r)/r}},ti=function(a,r){return Math.atan2(r,a)*180/Math.PI},ni=function(a){var r=!0;return Object.keys(ot).forEach(function(t){(!a||a[t]!==ot[t])&&(r=!1)}),r},ri=function(a,r){return a&&r?Ve:a?ce:r?fe:Te},Ce=function(a,r,t){return t?!!(r===Ve||r&a&&t&a):!!(r&a)},ii=function(a,r,t){var e,n=(e={},e[Te]="auto",e[Ve]="none",e[fe]="pan-x",e[ce]="pan-y",e),i={};if(a&&a.style){var o=r.touchAction?r.touchAction:n[t],s=k(k({},ot),{"touch-action":a.style["touch-action"]==="none"?"none":o});Object.keys(s).forEach(function(u){i[u]=a.style[u]}),Object.keys(s).forEach(function(u){a.style[u]=s[u]})}return i},ai=function(a,r){a&&a.style&&r&&Object.keys(r).forEach(function(t){a.style[t]=r[t]})},oi=(function(){function a(t){this._axes=t,this.holdingCount=0}var r=a.prototype;return r.hold=function(t,e){var n=this._getRoundPos(t).roundPos;this._axes.trigger(new x("hold",{pos:n,input:e.input||null,inputEvent:e.event||null,isTrusted:!0}))},r.triggerRelease=function(t){var e=this._getRoundPos(t.destPos,t.depaPos),n=e.roundPos,i=e.roundDepa;t.destPos=n,t.depaPos=i,t.setTo=this._createUserControll(t.destPos,t.duration),this._axes.trigger(new x("release",k(k({},t),{bounceRatio:this._getBounceRatio(n)})))},r.triggerChange=function(t,e,n,i){var o=this;i===void 0&&(i=!1);var s=this.animationManager,u=s.axisManager,l=s.getEventInfo(),c=this._getRoundPos(t,e),f=c.roundPos,d=c.roundDepa,h=u.moveTo(f,d),v=(n==null?void 0:n.event)||(l==null?void 0:l.event)||null,g={pos:h.pos,delta:h.delta,bounceRatio:this._getBounceRatio(h.pos),holding:i,inputEvent:v,isTrusted:!!v,input:(n==null?void 0:n.input)||(l==null?void 0:l.input)||null,set:v?this._createUserControll(h.pos):function(){}},p=new x("change",g);return this._axes.trigger(p),Object.keys(h.pos).forEach(function(_){var m=h.pos[_];J(o._axes,_,m).current=m}),v&&u.set(g.set().destPos),!p.isCanceled()},r.triggerAnimationStart=function(t){var e=this._getRoundPos(t.destPos,t.depaPos),n=e.roundPos,i=e.roundDepa;t.destPos=n,t.depaPos=i,t.setTo=this._createUserControll(t.destPos,t.duration);var o=new x("animationStart",t);return this._axes.trigger(o),!o.isCanceled()},r.triggerAnimationEnd=function(t){t===void 0&&(t=!1),this._axes.trigger(new x("animationEnd",{isTrusted:t}))},r.triggerFinish=function(t){t===void 0&&(t=!1),this._axes.trigger(new x("finish",{isTrusted:t}))},r.setAnimationManager=function(t){this.animationManager=t},r.destroy=function(){this._axes.off()},r._createUserControll=function(t,e){e===void 0&&(e=0);var n={destPos:k({},t),duration:e};return function(i,o){return i&&(n.destPos=k({},i)),o!==void 0&&(n.duration=o),n}},r._getRoundPos=function(t,e){var n=this._axes.options.round;return{roundPos:an(t,n),roundDepa:an(e,n)}},r._getBounceRatio=function(t){return this._axes.axisManager.map(t,function(e,n){return e<n.range[0]&&n.bounce[0]!==0?(n.range[0]-e)/n.bounce[0]:e>n.range[1]&&n.bounce[1]!==0?(e-n.range[1])/n.bounce[1]:0})},rt([Ar],a.prototype,"holdingCount",void 0),a})(),si=(function(){function a(t){this._options=t,this._prevented=!1}var r=a.prototype;return r.isInterrupting=function(){return this._options.interruptable||this._prevented},r.isInterrupted=function(){return!this._options.interruptable&&this._prevented},r.setInterrupt=function(t){this._options.interruptable||(this._prevented=t)},a})(),Sn=function(a,r,t,e){var n=a,i=[t[0]?r[0]:e?r[0]-e[0]:r[0],t[1]?r[1]:e?r[1]+e[1]:r[1]];return n=Math.max(i[0],n),n=Math.min(i[1],n),n},An=function(a,r){return a<r[0]||a>r[1]},ui=function(a,r,t,e){return!e[0]&&a===r[0]-t[0]||!e[1]&&a===r[1]+t[1]},li=function(a,r){var t=Math.sqrt(a/r*2);return t<100?0:t},on=function(a,r,t){return t[1]&&a>r[1]||t[0]&&a<r[0]},Oe=function(a,r,t){var e=a,n=r[0],i=r[1],o=i-n;return t[1]&&a>i&&(e=(e-i)%o+n),t[0]&&a<n&&(e=(e-n)%o+i),e},ci=(function(){function a(t){var e=this;this._axis=t,this._complementOptions(),this._pos=Object.keys(this._axis).reduce(function(n,i){return n[i]=e._axis[i].startPos,n},{})}var r=a.prototype;return r.getDelta=function(t,e){var n=this.get(t);return K(this.get(e),function(i,o){return i-n[o]})},r.get=function(t){var e=this;return t&&Array.isArray(t)?t.reduce(function(n,i){return i&&i in e._pos&&(n[i]=e._pos[i]),n},{}):k(k({},this._pos),t||{})},r.moveTo=function(t,e){e===void 0&&(e=this._pos);var n=K(this._pos,function(i,o){return o in t&&o in e?t[o]-e[o]:0});return this.set(this.map(t,function(i,o){return o?Oe(i,o.range,o.circular):0})),{pos:k({},this._pos),delta:n}},r.set=function(t){for(var e in t)e&&e in this._pos&&(this._pos[e]=t[e])},r.every=function(t,e){var n=this._axis;return pt(t,function(i,o){return e(i,n[o],o)})},r.filter=function(t,e){var n=this._axis;return Cn(t,function(i,o){return e(i,n[o],o)})},r.map=function(t,e){var n=this._axis;return K(t,function(i,o){return e(i,n[o],o)})},r.isOutside=function(t){return!this.every(t?this.get(t):this._pos,function(e,n){return!An(e,n.range)})},r.getAxisOptions=function(t){return this._axis[t]},r.setAxis=function(t){var e=this;Object.keys(t).forEach(function(n){if(!e._axis[n])throw new Error("Axis ".concat(n," does not exist in Axes instance"));e._axis[n]=k(k({},e._axis[n]),t[n])}),this._complementOptions()},r._complementOptions=function(){var t=this;Object.keys(this._axis).forEach(function(e){t._axis[e]=k({range:[0,100],startPos:t._axis[e].range[0],bounce:[0,0],circular:[!1,!1]},t._axis[e]),["bounce","circular"].forEach(function(n){var i=t._axis,o=i[e][n];/string|number|boolean/.test(typeof o)&&(i[e][n]=[o,o])})})},a})(),fi="ontouchstart"in z,Ae="PointerEvent"in z,hi="MSPointerEvent"in z,di=Ae||hi,vi=function(a,r){return!!(!r||r.indexOf(Rn)>-1||r.indexOf(Hr)>-1&&!a.shiftKey&&!a.ctrlKey&&!a.altKey&&!a.metaKey||r.indexOf(Ur)>-1&&a.shiftKey||r.indexOf(Wr)>-1&&a.ctrlKey||r.indexOf(Xr)>-1&&a.altKey||r.indexOf(Gr)>-1&&a.metaKey)},Be=(function(){function a(){var t=this;this._stopContextMenu=function(e){e.preventDefault(),z.removeEventListener("contextmenu",t._stopContextMenu)}}var r=a.prototype;return r.extendEvent=function(t){var e,n=this.prevEvent,i=this._getCenter(t),o=n?this._getMovement(t):{x:0,y:0},s=n?this._getScale(t):1,u=n?ti(i.x-n.center.x,i.y-n.center.y):0,l=n?n.deltaX+o.x:o.x,c=n?n.deltaY+o.y:o.y,f=o.x,d=o.y,h=this._latestInterval,v=Date.now(),g=h?v-h.timestamp:0,p=n?n.velocityX:0,_=n?n.velocityY:0,m=n?n.directionX:1,E=n?n.directionY:1;return f>0?m=1:f<0&&(m=-1),d>0?E=1:d<0&&(E=-1),(!h||g>=Yr)&&(h&&(e=[(l-h.deltaX)/g,(c-h.deltaY)/g],p=e[0],_=e[1]),this._latestInterval={timestamp:v,deltaX:l,deltaY:c}),{srcEvent:t,scale:s,angle:u,center:i,deltaX:l,deltaY:c,offsetX:f,offsetY:d,directionX:m,directionY:E,velocityX:p,velocityY:_,preventSystemEvent:!0}},r._getDistance=function(t,e){var n=e.clientX-t.clientX,i=e.clientY-t.clientY;return Math.sqrt(n*n+i*i)},r._getButton=function(t){var e={1:Ne,2:it,4:at},n=this._isTouchEvent(t)?Ne:e[t.buttons];return n||null},r._isTouchEvent=function(t){return t.type&&t.type.indexOf("touch")>-1},r._isValidButton=function(t,e){return e.indexOf(t)>-1},r._isValidEvent=function(t,e,n){return(!e||vi(t,e))&&(!n||this._isValidButton(this._getButton(t),n))},r._preventMouseButton=function(t,e){e===it?z.addEventListener("contextmenu",this._stopContextMenu):e===at&&t.preventDefault()},a})(),gi=(function(a){ve(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e.start=["mousedown"],e.move=["mousemove"],e.end=["mouseup"],e}var t=r.prototype;return t.onEventStart=function(e,n,i){var o=this._getButton(e);return this._isValidEvent(e,n,i)?(this._preventMouseButton(e,o),this.extendEvent(e)):null},t.onEventMove=function(e,n,i){return this._isValidEvent(e,n,i)?this.extendEvent(e):null},t.onEventEnd=function(){},t.onRelease=function(){this.prevEvent=null},t.getTouches=function(e,n){return n&&this._isValidButton(Tn[e.which],n)&&this.end.indexOf(e.type)===-1?1:0},t._getScale=function(){return 1},t._getCenter=function(e){return{x:e.clientX,y:e.clientY}},t._getMovement=function(e){var n=this.prevEvent.srcEvent;return{x:e.clientX-n.clientX,y:e.clientY-n.clientY}},r})(Be),_i=(function(a){ve(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e.start=["touchstart"],e.move=["touchmove"],e.end=["touchend","touchcancel"],e}var t=r.prototype;return t.onEventStart=function(e,n){return this._baseTouches=e.touches,this._isValidEvent(e,n)?this.extendEvent(e):null},t.onEventMove=function(e,n){return this._isValidEvent(e,n)?this.extendEvent(e):null},t.onEventEnd=function(e){this._baseTouches=e.touches},t.onRelease=function(){this.prevEvent=null,this._baseTouches=null},t.getTouches=function(e){return e.touches.length},t._getScale=function(e){return e.touches.length!==2||this._baseTouches.length<2?null:this._getDistance(e.touches[0],e.touches[1])/this._getDistance(this._baseTouches[0],this._baseTouches[1])},t._getCenter=function(e){return{x:e.touches[0].clientX,y:e.touches[0].clientY}},t._getMovement=function(e){var n=this.prevEvent.srcEvent;return e.touches[0].identifier!==n.touches[0].identifier?{x:0,y:0}:{x:e.touches[0].clientX-n.touches[0].clientX,y:e.touches[0].clientY-n.touches[0].clientY}},r})(Be),pi=(function(a){ve(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e.start=Ae?["pointerdown"]:["MSPointerDown"],e.move=Ae?["pointermove"]:["MSPointerMove"],e.end=Ae?["pointerup","pointercancel"]:["MSPointerUp","MSPointerCancel"],e._firstInputs=[],e._recentInputs=[],e}var t=r.prototype;return t.onEventStart=function(e,n,i){var o=this._getButton(e);return this._isValidEvent(e,n,i)?(this._preventMouseButton(e,o),this._updatePointerEvent(e),this.extendEvent(e)):null},t.onEventMove=function(e,n,i){return this._isValidEvent(e,n,i)?(this._updatePointerEvent(e),this.extendEvent(e)):null},t.onEventEnd=function(e){this._removePointerEvent(e)},t.onRelease=function(){this.prevEvent=null,this._firstInputs=[],this._recentInputs=[]},t.getTouches=function(){return this._recentInputs.length},t._getScale=function(){return this._recentInputs.length!==2?null:this._getDistance(this._recentInputs[0],this._recentInputs[1])/this._getDistance(this._firstInputs[0],this._firstInputs[1])},t._getCenter=function(e){return{x:e.clientX,y:e.clientY}},t._getMovement=function(e){var n=this.prevEvent.srcEvent;return e.pointerId!==n.pointerId?{x:0,y:0}:{x:e.clientX-n.clientX,y:e.clientY-n.clientY}},t._updatePointerEvent=function(e){var n=this,i=!1;this._recentInputs.forEach(function(o,s){o.pointerId===e.pointerId&&(i=!0,n._recentInputs[s]=e)}),i||(this._firstInputs.push(e),this._recentInputs.push(e))},t._removePointerEvent=function(e){this._firstInputs=this._firstInputs.filter(function(n){return n.pointerId!==e.pointerId}),this._recentInputs=this._recentInputs.filter(function(n){return n.pointerId!==e.pointerId})},r})(Be),mi=(function(a){ve(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e.start=["mousedown","touchstart"],e.move=["mousemove","touchmove"],e.end=["mouseup","touchend","touchcancel"],e}var t=r.prototype;return t.onEventStart=function(e,n,i){var o=this._getButton(e);return this._isTouchEvent(e)&&(this._baseTouches=e.touches),this._isValidEvent(e,n,i)?(this._preventMouseButton(e,o),this.extendEvent(e)):null},t.onEventMove=function(e,n,i){return this._isValidEvent(e,n,i)?this.extendEvent(e):null},t.onEventEnd=function(e){this._isTouchEvent(e)&&(this._baseTouches=e.touches)},t.onRelease=function(){this.prevEvent=null,this._baseTouches=null},t.getTouches=function(e,n){return this._isTouchEvent(e)?e.touches.length:this._isValidButton(Tn[e.which],n)&&this.end.indexOf(e.type)===-1?1:0},t._getScale=function(e){return this._isTouchEvent(e)?e.touches.length!==2||this._baseTouches.length<2?1:this._getDistance(e.touches[0],e.touches[1])/this._getDistance(this._baseTouches[0],this._baseTouches[1]):this.prevEvent.scale},t._getCenter=function(e){return this._isTouchEvent(e)?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY}},t._getMovement=function(e){var n=this,i=this.prevEvent.srcEvent,o=[e,i].map(function(l){return n._isTouchEvent(l)?{id:l.touches[0].identifier,x:l.touches[0].clientX,y:l.touches[0].clientY}:{id:null,x:l.clientX,y:l.clientY}}),s=o[0],u=o[1];return s.id===u.id?{x:s.x-u.x,y:s.y-u.y}:{x:0,y:0}},r})(Be),kn=function(a,r){return r.reduce(function(t,e,n){return a[n]&&(t[a[n]]=e),t},{})},sn=function(a){a===void 0&&(a=[]);var r=!1,t=!1,e=!1;return a.forEach(function(n){switch(n){case"mouse":t=!0;break;case"touch":r=fi;break;case"pointer":e=di}}),e?new pi:r&&t?new mi:r?new _i:t?new gi:null};function un(a){return a.indexOf("touch")>-1?{passive:!1}:!1}var bi=(function(){function a(t){var e=t.options,n=t.interruptManager,i=t.eventManager,o=t.axisManager,s=t.animationManager;this._isOutside=!1,this._moveDistance=null,this._isStopped=!1,this.options=e,this._interruptManager=n,this._eventManager=i,this._axisManager=o,this._animationManager=s}var r=a.prototype;return r.get=function(t){return this._axisManager.get(t.axes)},r.hold=function(t,e){if(!(this._interruptManager.isInterrupted()||!t.axes.length)){var n={input:t,event:e};this._isStopped=!1,this._interruptManager.setInterrupt(!0),this._animationManager.stopAnimation(n),++this._eventManager.holdingCount,this._moveDistance||this._eventManager.hold(this._axisManager.get(),n),this._isOutside=this._axisManager.isOutside(t.axes),this._moveDistance=this._axisManager.get(t.axes)}},r.change=function(t,e,n,i){if(!(this._isStopped||!this._interruptManager.isInterrupting()||this._axisManager.every(n,function(d){return d===0}))){var o=e.srcEvent?e.srcEvent:e;if(!o.__childrenAxesAlreadyChanged){var s=this._moveDistance||this._axisManager.get(t.axes),u;u=K(s,function(d,h){return d+(n[h]||0)}),this._moveDistance&&(this._moveDistance=this._axisManager.map(u,function(d,h){var v=h.circular,g=h.range;return v&&(v[0]||v[1])?Oe(d,g,v):d})),this._isOutside&&this._axisManager.every(s,function(d,h){return!An(d,h.range)})&&(this._isOutside=!1),s=this._atOutside(s),u=this._atOutside(u),(!this.options.nested||!this._isEndofAxis(n,s,u))&&(o.__childrenAxesAlreadyChanged=!0);var l={input:t,event:e};if(i){var c=this._animationManager.getDuration(u,s);this._animationManager.animateTo(u,c,l)}else{var f=!this._eventManager.triggerChange(u,s,l,!0);f&&(this._isStopped=!0,this._moveDistance=null,this._animationManager.finish(!1))}}}},r.release=function(t,e,n,i){if(!(this._isStopped||!this._interruptManager.isInterrupting()||!this._moveDistance)){var o=e.srcEvent?e.srcEvent:e;o.__childrenAxesAlreadyReleased&&(n=n.map(function(){return 0}));var s=this._axisManager.get(t.axes),u=this._axisManager.get(),l=this._animationManager.getDisplacement(n),c=kn(t.axes,l),f=this._axisManager.get(this._axisManager.map(c,function(_,m,E){return m.circular&&(m.circular[0]||m.circular[1])?s[E]+_:Sn(s[E]+_,m.range,m.circular,m.bounce)}));o.__childrenAxesAlreadyReleased=!0;var d=this._animationManager.getDuration(f,s,i);d===0&&(f=k({},u));var h={depaPos:u,destPos:f,duration:d,delta:this._axisManager.getDelta(u,f),inputEvent:e,input:t,isTrusted:!0};--this._eventManager.holdingCount,this._eventManager.triggerRelease(h),this._eventManager.holdingCount===0&&(this._moveDistance=null);var v=this._animationManager.getUserControl(h),g=Ee(v.destPos,u),p={input:t,event:e};g||v.duration===0?(g||this._eventManager.triggerChange(v.destPos,u,p,!0),this._interruptManager.setInterrupt(!1),this._axisManager.isOutside()?this._animationManager.restore(p):this._eventManager.triggerFinish(!0)):this._animationManager.animateTo(v.destPos,v.duration,p)}},r._atOutside=function(t){var e=this;return this._isOutside?this._axisManager.map(t,function(n,i){var o=i.range[0]-i.bounce[0],s=i.range[1]+i.bounce[1];return n>s?s:n<o?o:n}):this._axisManager.map(t,function(n,i){var o=i.range[0],s=i.range[1],u=i.bounce,l=i.circular;return l[0]&&n<o||l[1]&&n>s?n:n<o?o-e._animationManager.interpolate(o-n,u[0]):n>s?s+e._animationManager.interpolate(n-s,u[1]):n})},r._isEndofAxis=function(t,e,n){return this._axisManager.every(e,function(i,o,s){return t[s]===0||e[s]===n[s]&&ui(i,o.range,o.bounce,o.circular)})},a})(),Ke=function(a,r,t){return Math.max(Math.min(a,t),r)},Ei=(function(){function a(t){var e=t.options,n=t.interruptManager,i=t.eventManager,o=t.axisManager;this._options=e,this.interruptManager=n,this.eventManager=i,this.axisManager=o,this.animationEnd=this.animationEnd.bind(this)}var r=a.prototype;return r.getDuration=function(t,e,n){var i=this,o;if(typeof n<"u")o=n;else{var s=K(e,function(u,l){return li(Math.abs(u-t[l]),i._options.deceleration)});o=Object.keys(s).reduce(function(u,l){return Math.max(u,s[l])},-1/0)}return Ke(o,this._options.minimumDuration,this._options.maximumDuration)},r.getDisplacement=function(t){var e=Math.pow(t.reduce(function(i,o){return i+o*o},0),1/t.length),n=Math.abs(e/-this._options.deceleration);return t.map(function(i){return i/2*n})},r.stopAnimation=function(t){if(this._animateParam){var e=this.axisManager.get(),n=this.axisManager.map(e,function(i,o){return Oe(i,o.range,o.circular)});pt(n,function(i,o){return e[o]===i})||this.eventManager.triggerChange(n,e,t,!!t),this._animateParam=null,this._raf&&Jr(this._raf),this._raf=null,this.eventManager.triggerAnimationEnd(!!(t!=null&&t.event))}},r.getEventInfo=function(){return this._animateParam&&this._animateParam.input&&this._animateParam.inputEvent?{input:this._animateParam.input,event:this._animateParam.inputEvent}:null},r.restore=function(t){var e=this.axisManager.get(),n=this.axisManager.map(e,function(i,o){return Math.min(o.range[1],Math.max(o.range[0],i))});this.stopAnimation(),this.animateTo(n,this.getDuration(e,n),t)},r.animationEnd=function(){var t=this.getEventInfo();this._animateParam=null;var e=this.axisManager.filter(this.axisManager.get(),function(n,i){return on(n,i.range,i.circular)});Object.keys(e).length>0&&this.setTo(this.axisManager.map(e,function(n,i){return Oe(n,i.range,i.circular)})),this.interruptManager.setInterrupt(!1),this.eventManager.triggerAnimationEnd(!!t),this.axisManager.isOutside()?this.restore(t):this.finish(!!t)},r.finish=function(t){this._animateParam=null,this.interruptManager.setInterrupt(!1),this.eventManager.triggerFinish(t)},r.getUserControl=function(t){var e=t.setTo();return e.destPos=this.axisManager.get(e.destPos),e.duration=Ke(e.duration,this._options.minimumDuration,this._options.maximumDuration),e},r.animateTo=function(t,e,n){var i=this;this.stopAnimation();var o=this._createAnimationParam(t,e,n),s=k({},o.depaPos),u=this.eventManager.triggerAnimationStart(o),l=this.getUserControl(o);if(!u&&this.axisManager.every(l.destPos,function(f,d){return on(f,d.range,d.circular)})&&console.warn("You can't stop the 'animation' event when 'circular' is true."),u&&!Ee(l.destPos,s)){var c=(n==null?void 0:n.event)||null;this._animateLoop({depaPos:s,destPos:l.destPos,duration:l.duration,delta:this.axisManager.getDelta(s,l.destPos),isTrusted:!!c,inputEvent:c,input:(n==null?void 0:n.input)||null},function(){return i.animationEnd()})}},r.setTo=function(t,e){e===void 0&&(e=0);var n=Object.keys(t),i=this.axisManager.get(n);if(Ee(t,i))return this;this.interruptManager.setInterrupt(!0);var o=Cn(t,function(s,u){return i[u]!==s});return Object.keys(o).length?(o=this.axisManager.map(o,function(s,u){var l=u.range,c=u.circular;return c&&(c[0]||c[1])?s:Sn(s,l,c)}),Ee(o,i)?this:(e>0?this.animateTo(o,e):(this.stopAnimation(),this.eventManager.triggerChange(o),this.finish(!1)),this)):this},r.setBy=function(t,e){return e===void 0&&(e=0),this.setTo(K(this.axisManager.get(Object.keys(t)),function(n,i){return n+t[i]}),e)},r.setOptions=function(t){this._options=k(k({},this._options),t)},r._createAnimationParam=function(t,e,n){var i=this.axisManager.get(),o=t,s=(n==null?void 0:n.event)||null;return{depaPos:i,destPos:o,duration:Ke(e,this._options.minimumDuration,this._options.maximumDuration),delta:this.axisManager.getDelta(i,o),inputEvent:s,input:(n==null?void 0:n.input)||null,isTrusted:!!s,done:this.animationEnd}},r._animateLoop=function(t,e){var n=this;if(t.duration){this._animateParam=k(k({},t),{startTime:new Date().getTime()});var i=K(t.destPos,function(u){return u}),o=this._initState(this._animateParam),s=function(){n._raf=null;var u=n._animateParam,l=n._getNextState(o),c=!n.eventManager.triggerChange(l.pos,o.pos);if(o=l,l.finished){u.destPos=n._getFinalPos(u.destPos,i),Ee(u.destPos,n.axisManager.get(Object.keys(u.destPos)))||n.eventManager.triggerChange(u.destPos,l.pos),e();return}else c?n.finish(!1):n._raf=Zr(s)};s()}else this.eventManager.triggerChange(t.destPos),e()},r._getFinalPos=function(t,e){var n=this,i=1e-6,o=K(t,function(s,u){if(s>=e[u]-i&&s<=e[u]+i)return e[u];var l=n._getRoundUnit(s,u),c=wn(s,l);return c});return o},r._getRoundUnit=function(t,e){var n=this._options.round,i=null;if(!n){var o=this.axisManager.getAxisOptions(e);i=Qr(Math.max(Se(o.range[0]),Se(o.range[1]),Se(t)))}return i||n},a})(),Pi=(function(a){ve(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e._useDuration=!0,e}var t=r.prototype;return t.interpolate=function(e,n){var i=this._easing(1e-5)/1e-5;return this._easing(e/(n*i))*n},t.updateAnimation=function(e){var n,i=this._animateParam;if(i){var o=new Date().getTime()-i.startTime,s=(e==null?void 0:e.destPos)||i.destPos,u=(n=e==null?void 0:e.duration)!==null&&n!==void 0?n:i.duration;if(e!=null&&e.restart||u<=o){this.setTo(s,u-o);return}if(e!=null&&e.destPos){var l=this.axisManager.get();this._initialEasingPer=this._prevEasingPer,i.delta=this.axisManager.getDelta(l,s),i.destPos=s}if(e!=null&&e.duration){var c=(o+this._durationOffset)/i.duration;this._durationOffset=c*u-o,i.duration=u}}},t._initState=function(e){return this._initialEasingPer=0,this._prevEasingPer=0,this._durationOffset=0,{pos:e.depaPos,easingPer:0,finished:!1}},t._getNextState=function(e){var n=this,i=this._animateParam,o=e.pos,s=i.destPos,u=K(o,function(h,v){return h<=s[v]?1:-1}),l=new Date().getTime()-i.startTime,c=(l+this._durationOffset)/i.duration,f=this._easing(c),d=this.axisManager.map(o,function(h,v,g){var p=c>=1?s[g]:h+i.delta[g]*(f-n._prevEasingPer)/(1-n._initialEasingPer),_=Oe(p,v.range,v.circular);if(p!==_){var m=u[g]*(v.range[1]-v.range[0]);s[g]-=m,o[g]-=m}return _});return this._prevEasingPer=f,{pos:d,easingPer:f,finished:f>=1}},t._easing=function(e){return e>1?1:this._options.easing(e)},r})(Ei),Oi=(function(a){ve(r,a);function r(e,n,i){e===void 0&&(e={}),n===void 0&&(n={}),i===void 0&&(i={});var o=a.call(this)||this;return o.axis=e,o._inputs=[],o.options=k({easing:function(s){return 1-Math.pow(1-s,3)},interruptable:!0,maximumDuration:1/0,minimumDuration:0,deceleration:6e-4,round:null,nested:!1},n),Object.keys(i).forEach(function(s){o.axis[s].startPos=i[s]}),o.interruptManager=new si(o.options),o.axisManager=new ci(o.axis),o.eventManager=new oi(o),o.animationManager=new Pi(o),o.inputObserver=new bi(o),o.eventManager.setAnimationManager(o.animationManager),o.eventManager.triggerChange(o.axisManager.get()),o}var t=r.prototype;return Object.defineProperty(t,"holding",{get:function(){return this.eventManager.holdingCount>0},enumerable:!1,configurable:!0}),t.connect=function(e,n){var i;return typeof e=="string"?i=e.split(" "):i=e.concat(),~this._inputs.indexOf(n)&&this.disconnect(n),n.mapAxes(i),n.connect(this.inputObserver),this._inputs.push(n),this},t.disconnect=function(e){if(e){var n=this._inputs.indexOf(e);n>=0&&(this._inputs[n].disconnect(),this._inputs.splice(n,1))}else this._inputs.forEach(function(i){return i.disconnect()}),this._inputs=[];return this},t.get=function(e){return this.axisManager.get(e)},t.setTo=function(e,n){return n===void 0&&(n=0),this.animationManager.setTo(e,n),this},t.setBy=function(e,n){return n===void 0&&(n=0),this.animationManager.setBy(e,n),this},t.setOptions=function(e){return this.options=k(k({},this.options),e),this.animationManager.setOptions(e),this},t.setAxis=function(e){return this.axisManager.setAxis(e),this},t.stopAnimation=function(){return this.animationManager.stopAnimation(),this.animationManager.finish(!1),this},t.updateAnimation=function(e){return this.animationManager.updateAnimation(e),this},t.isBounceArea=function(e){return this.axisManager.isOutside(e)},t.destroy=function(){this.disconnect(),this.eventManager.destroy()},r.VERSION="3.9.2",r.TRANSFORM=qr,r.DIRECTION_NONE=Te,r.DIRECTION_LEFT=jr,r.DIRECTION_RIGHT=Fr,r.DIRECTION_UP=Vr,r.DIRECTION_DOWN=Br,r.DIRECTION_HORIZONTAL=ce,r.DIRECTION_VERTICAL=fe,r.DIRECTION_ALL=Ve,rt([zr],r.prototype,"holding",null),r=rt([Nr],r),r})(xe),yi=function(a,r){if(r<0||r>90)return Te;var t=Math.abs(a);return t>r&&t<180-r?fe:ce},xi=(function(){function a(t,e){var n=this;this.axes=[],this.element=null,this._enabled=!1,this._activeEvent=null,this._atRightEdge=!1,this._rightEdgeTimer=0,this._dragged=!1,this._isOverThreshold=!1,this._preventClickWhenDragged=function(i){n._dragged&&(i.preventDefault(),i.stopPropagation()),n._dragged=!1},this._voidFunction=function(){},this.element=In(t),this.options=k({inputType:["touch","mouse","pointer"],inputKey:[Rn],inputButton:[Ne],scale:[1,1],thresholdAngle:45,threshold:0,preventClickOnDrag:!1,preventDefaultOnDrag:!1,iOSEdgeSwipeThreshold:Kr,releaseOnScroll:!1,touchAction:null},e),this._onPanstart=this._onPanstart.bind(this),this._onPanmove=this._onPanmove.bind(this),this._onPanend=this._onPanend.bind(this)}var r=a.prototype;return r.mapAxes=function(t){this._direction=ri(!!t[0],!!t[1]),this.axes=t},r.connect=function(t){return this._activeEvent&&(this._detachElementEvent(),this._detachWindowEvent(this._activeEvent)),this._attachElementEvent(t),this},r.disconnect=function(){return this._detachElementEvent(),this._detachWindowEvent(this._activeEvent),this._direction=Te,this},r.destroy=function(){this.disconnect(),this.element=null},r.enable=function(){var t=sn(this.options.inputType);if(t)this._enabled||(this._enabled=!0,this._originalCssProps=ii(this.element,this.options,this._direction));else throw new Error("PanInput cannot be enabled if there is no available input event.");return this},r.disable=function(){return this._enabled&&(this._enabled=!1,ni(this._originalCssProps)||ai(this.element,this._originalCssProps)),this},r.isEnabled=function(){return this._enabled},r.release=function(){var t=this._activeEvent,e=t.prevEvent;return t.onRelease(),this._observer.release(this,e,[0,0]),this._detachWindowEvent(t),this},r._onPanstart=function(t){var e=this.options,n=e.inputKey,i=e.inputButton,o=e.preventDefaultOnDrag,s=this._activeEvent,u=s.onEventStart(t,n,i);if(!(!u||!this._enabled||s.getTouches(t,i)>1)&&u.srcEvent.cancelable!==!1){var l=this.options.iOSEdgeSwipeThreshold;this._dragged=!1,this._isOverThreshold=!1,this._observer.hold(this,u),this._atRightEdge=nn&&u.center.x>window.innerWidth-l,this._attachWindowEvent(s),o&&u.srcEvent.type!=="touchstart"&&u.srcEvent.preventDefault(),s.prevEvent=u}},r._onPanmove=function(t){var e=this,n=this.options,i=n.iOSEdgeSwipeThreshold,o=n.preventClickOnDrag,s=n.releaseOnScroll,u=n.inputKey,l=n.inputButton,c=n.threshold,f=n.thresholdAngle,d=this._activeEvent,h=d.onEventMove(t,u,l),v=d.getTouches(t,l);if(v===0||s&&h&&!h.srcEvent.cancelable){this._onPanend(t);return}if(!(!h||!this._enabled||v>1)){var g=yi(h.angle,f),p=Ce(ce,this._direction,g),_=Ce(fe,this._direction,g);if(d.prevEvent&&nn){var m=h.center.x<0;if(m){this.release();return}else if(this._atRightEdge){clearTimeout(this._rightEdgeTimer);var E=h.deltaX<-i;E?this._atRightEdge=!1:this._rightEdgeTimer=window.setTimeout(function(){return e.release()},100)}}var T=this._getDistance([h.deltaX,h.deltaY],[p,_]),C=this._getOffset([h.offsetX,h.offsetY],[p,_]),N=C.some(function(M){return M!==0});N&&(h.srcEvent.cancelable!==!1&&h.srcEvent.preventDefault(),h.srcEvent.stopPropagation()),h.preventSystemEvent=N,N&&(this._isOverThreshold||T>=c)&&(this._dragged=o,this._isOverThreshold=!0,this._observer.change(this,h,kn(this.axes,C))),d.prevEvent=h}},r._onPanend=function(t){var e=this.options.inputButton,n=this._activeEvent;if(n.onEventEnd(t),!(!this._enabled||n.getTouches(t,e)!==0)){this._detachWindowEvent(n),clearTimeout(this._rightEdgeTimer);var i=n.prevEvent,o=this._isOverThreshold?this._getOffset([Math.abs(i.velocityX)*i.directionX,Math.abs(i.velocityY)*i.directionY],[Ce(ce,this._direction),Ce(fe,this._direction)]):[0,0];n.onRelease(),this._observer.release(this,i,o)}},r._attachWindowEvent=function(t){var e=this;t==null||t.move.forEach(function(n){window.addEventListener(n,e._onPanmove,un(n))}),t==null||t.end.forEach(function(n){window.addEventListener(n,e._onPanend,un(n))})},r._detachWindowEvent=function(t){var e=this;t==null||t.move.forEach(function(n){window.removeEventListener(n,e._onPanmove)}),t==null||t.end.forEach(function(n){window.removeEventListener(n,e._onPanend)})},r._getOffset=function(t,e){var n=this.options.scale;return[e[0]?t[0]*n[0]:0,e[1]?t[1]*n[1]:0]},r._getDistance=function(t,e){return Math.sqrt(Number(e[0])*Math.pow(t[0],2)+Number(e[1])*Math.pow(t[1],2))},r._attachElementEvent=function(t){var e=this,n=sn(this.options.inputType),i=this.element;if(n){if(!i)throw new Error("Element to connect input does not exist.");this._observer=t,this.enable(),this._activeEvent=n,i.addEventListener("click",this._preventClickWhenDragged,!0),n.start.forEach(function(o){i.addEventListener(o,e._onPanstart)}),n.move.forEach(function(o){i.addEventListener(o,e._voidFunction)})}},r._detachElementEvent=function(){var t=this,e=this._activeEvent,n=this.element;n&&(n.removeEventListener("click",this._preventClickWhenDragged,!0),e==null||e.start.forEach(function(i){n.removeEventListener(i,t._onPanstart)}),e==null||e.move.forEach(function(i){n.removeEventListener(i,t._voidFunction)})),this.disable(),this._observer=null},a})(),st=function(a,r){return st=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(t,e){t.__proto__=e}||function(t,e){for(var n in e)Object.prototype.hasOwnProperty.call(e,n)&&(t[n]=e[n])},st(a,r)};function ge(a,r){if(typeof r!="function"&&r!==null)throw new TypeError("Class extends value "+String(r)+" is not a constructor or null");st(a,r);function t(){this.constructor=a}a.prototype=r===null?Object.create(r):(t.prototype=r.prototype,new t)}var he=function(){return he=Object.assign||function(r){for(var t,e=1,n=arguments.length;e<n;e++){t=arguments[e];for(var i in t)Object.prototype.hasOwnProperty.call(t,i)&&(r[i]=t[i])}return r},he.apply(this,arguments)};function Ti(){for(var a=0,r=0,t=arguments.length;r<t;r++)a+=arguments[r].length;for(var e=Array(a),n=0,r=0;r<t;r++)for(var i=arguments[r],o=0,s=i.length;o<s;o++,n++)e[n]=i[o];return e}var mt=typeof window<"u",Ri=mt?window.navigator.userAgent:"",Ii=mt?"getComputedStyle"in window:!1,Ci=/MSIE|Trident|Windows Phone|Edge/.test(Ri),wi=mt?"addEventListener"in document:!1,ut="width",Pe="height";function ke(a,r){return a.getAttribute(r)||""}function De(a){return[].slice.call(a)}function Si(a,r){return r===void 0&&(r="data-"),!!a.getAttribute(r+"width")}function Nn(a,r){return r===void 0&&(r="data-"),"loading"in a&&a.getAttribute("loading")==="lazy"||!!a.getAttribute(r+"lazy")}function Ai(a,r){return r===void 0&&(r="data-"),!!a.getAttribute(r+"skip")}function Dn(a,r,t){wi?a.addEventListener(r,t,!1):a.attachEvent?a.attachEvent("on"+r,t):a["on"+r]=t}function Ln(a,r,t){a.removeEventListener?a.removeEventListener(r,t,!1):a.detachEvent?a.detachEvent("on"+r,t):a["on"+r]=null}function ki(a){return Mn(a,"Width")}function Ni(a){return Mn(a,"Height")}function Di(a){return(Ii?window.getComputedStyle(a):a.currentStyle)||{}}function Mn(a,r){var t=a["client"+r]||a["offset"+r];return parseFloat(t||Di(a)[r.toLowerCase()])||0}function Li(a,r,t){var e=De(a.querySelectorAll(Ti(["["+t+"skip] ["+t+"width]"],r.map(function(n){return["["+t+"skip] "+n,n+"["+t+"skip]","["+t+"width] "+n].join(", ")})).join(", ")));return De(a.querySelectorAll("["+t+"width], "+r.join(", "))).filter(function(n){return e.indexOf(n)===-1})}var oe=[];function zn(a,r){!oe.length&&Dn(window,"resize",Fn),a.__PREFIX__=r,oe.push(a),jn(a)}function Mi(a,r){var t=oe.indexOf(a);if(!(t<0)){var e=ke(a,r+"fixed");delete a.__PREFIX__,a.style[e===Pe?ut:Pe]="",oe.splice(t,1),!oe.length&&Ln(window,"resize",Fn)}}function jn(a,r){r===void 0&&(r="data-");var t=a.__PREFIX__||r,e=parseInt(ke(a,""+t+ut),10)||0,n=parseInt(ke(a,""+t+Pe),10)||0,i=ke(a,t+"fixed");if(i===Pe){var o=Ni(a)||n;a.style[ut]=e/n*o+"px"}else{var o=ki(a)||e;a.style[Pe]=n/e*o+"px"}}function Fn(){oe.forEach(function(a){jn(a)})}var bt=(function(a){ge(r,a);function r(e,n){n===void 0&&(n={});var i=a.call(this)||this;i.isReady=!1,i.isPreReady=!1,i.hasDataSize=!1,i.hasLoading=!1,i.isSkip=!1,i.onCheck=function(s){i.clear(),s&&s.type==="error"&&i.onError(i.element),!(i.hasLoading&&i.checkElement())&&i.onReady()},i.options=he({prefix:"data-"},n),i.element=e;var o=i.options.prefix;return i.hasDataSize=Si(e,o),i.isSkip=Ai(e,o),i.hasLoading=Nn(e,o),i}var t=r.prototype;return t.check=function(){return this.isSkip||!this.checkElement()?(this.onAlreadyReady(),!1):(this.hasDataSize&&zn(this.element,this.options.prefix),(this.hasDataSize||this.hasLoading)&&this.onAlreadyPreReady(),!0)},t.addEvents=function(){var e=this,n=this.element;this.constructor.EVENTS.forEach(function(i){Dn(n,i,e.onCheck)})},t.clear=function(){var e=this,n=this.element;this.constructor.EVENTS.forEach(function(i){Ln(n,i,e.onCheck)}),this.removeAutoSizer()},t.destroy=function(){this.clear(),this.off()},t.removeAutoSizer=function(){if(this.hasDataSize){var e=this.options.prefix;Mi(this.element,e)}},t.onError=function(e){this.trigger("error",{element:this.element,target:e})},t.onPreReady=function(){this.isPreReady||(this.isPreReady=!0,this.trigger("preReady",{element:this.element,hasLoading:this.hasLoading,isSkip:this.isSkip}))},t.onReady=function(){var e=this.isPreReady;this.isPreReady=!0,!this.isReady&&(this.removeAutoSizer(),this.isReady=!0,this.trigger("ready",{element:this.element,withPreReady:!e,hasLoading:this.hasLoading,isSkip:this.isSkip}))},t.onAlreadyError=function(e){var n=this;setTimeout(function(){n.onError(e)})},t.onAlreadyPreReady=function(){var e=this;setTimeout(function(){e.onPreReady()})},t.onAlreadyReady=function(){var e=this;setTimeout(function(){e.onReady()})},r.EVENTS=[],r})(xe),zi=(function(a){ge(r,a);function r(){return a!==null&&a.apply(this,arguments)||this}var t=r.prototype;return t.setHasLoading=function(e){this.hasLoading=e},t.check=function(){return this.isSkip?(this.onAlreadyReady(),!1):(this.hasDataSize?(zn(this.element,this.options.prefix),this.onAlreadyPreReady()):this.trigger("requestChildren"),!0)},t.checkElement=function(){return!0},t.destroy=function(){this.clear(),this.trigger("requestDestroy"),this.off()},t.onAlreadyPreReady=function(){a.prototype.onAlreadyPreReady.call(this),this.trigger("reqeustReadyChildren")},r.EVENTS=[],r})(bt),ji=(function(a){ge(r,a);function r(e){e===void 0&&(e={});var n=a.call(this)||this;return n.readyCount=0,n.preReadyCount=0,n.totalCount=0,n.totalErrorCount=0,n.isPreReadyOver=!0,n.elementInfos=[],n.options=he({loaders:{},prefix:"data-"},e),n}var t=r.prototype;return t.check=function(e){var n=this,i=this.options.prefix;this.clear(),this.elementInfos=De(e).map(function(s,u){var l=n.getLoader(s,{prefix:i});return l.check(),l.on("error",function(c){n.onError(u,c.target)}).on("preReady",function(c){var f=n.elementInfos[u];f.hasLoading=c.hasLoading,f.isSkip=c.isSkip;var d=n.checkPreReady(u);n.onPreReadyElement(u),d&&n.onPreReady()}).on("ready",function(c){var f=c.withPreReady,d=c.hasLoading,h=c.isSkip,v=n.elementInfos[u];v.hasLoading=d,v.isSkip=h;var g=f&&n.checkPreReady(u),p=n.checkReady(u);f&&n.onPreReadyElement(u),n.onReadyElement(u),g&&n.onPreReady(),p&&n.onReady()}),{loader:l,element:s,hasLoading:!1,hasError:!1,isPreReady:!1,isReady:!1,isSkip:!1}});var o=this.elementInfos.length;return this.totalCount=o,o||setTimeout(function(){n.onPreReady(),n.onReady()}),this},t.getTotalCount=function(){return this.totalCount},t.isPreReady=function(){return this.elementInfos.every(function(e){return e.isPreReady})},t.isReady=function(){return this.elementInfos.every(function(e){return e.isReady})},t.hasError=function(){return this.totalErrorCount>0},t.clear=function(){this.isPreReadyOver=!1,this.totalCount=0,this.preReadyCount=0,this.readyCount=0,this.totalErrorCount=0,this.elementInfos.forEach(function(e){e.loader&&e.loader.destroy()}),this.elementInfos=[]},t.destroy=function(){this.clear(),this.off()},t.getLoader=function(e,n){var i=this,o=e.tagName.toLowerCase(),s=this.options.loaders,u=n.prefix,l=Object.keys(s);if(s[o])return new s[o](e,n);var c=new zi(e,n),f=De(e.querySelectorAll(l.join(", ")));c.setHasLoading(f.some(function(h){return Nn(h,u)}));var d=this.clone().on("error",function(h){c.onError(h.target)}).on("ready",function(){c.onReady()});return c.on("requestChildren",function(){var h=Li(e,l,i.options.prefix);d.check(h).on("preReady",function(v){v.isReady||c.onPreReady()})}).on("reqeustReadyChildren",function(){d.check(f)}).on("requestDestroy",function(){d.destroy()}),c},t.clone=function(){return new r(he({},this.options))},t.checkPreReady=function(e){return this.elementInfos[e].isPreReady=!0,++this.preReadyCount,!(this.preReadyCount<this.totalCount)},t.checkReady=function(e){return this.elementInfos[e].isReady=!0,++this.readyCount,!(this.readyCount<this.totalCount)},t.onError=function(e,n){var i=this.elementInfos[e];i.hasError=!0,this.trigger(new x("error",{element:i.element,index:e,target:n,errorCount:this.getErrorCount(),totalErrorCount:++this.totalErrorCount}))},t.onPreReadyElement=function(e){var n=this.elementInfos[e];this.trigger(new x("preReadyElement",{element:n.element,index:e,preReadyCount:this.preReadyCount,readyCount:this.readyCount,totalCount:this.totalCount,isPreReady:this.isPreReady(),isReady:this.isReady(),hasLoading:n.hasLoading,isSkip:n.isSkip}))},t.onPreReady=function(){this.isPreReadyOver=!0,this.trigger(new x("preReady",{readyCount:this.readyCount,totalCount:this.totalCount,isReady:this.isReady(),hasLoading:this.hasLoading()}))},t.onReadyElement=function(e){var n=this.elementInfos[e];this.trigger(new x("readyElement",{index:e,element:n.element,hasError:n.hasError,errorCount:this.getErrorCount(),totalErrorCount:this.totalErrorCount,preReadyCount:this.preReadyCount,readyCount:this.readyCount,totalCount:this.totalCount,isPreReady:this.isPreReady(),isReady:this.isReady(),hasLoading:n.hasLoading,isPreReadyOver:this.isPreReadyOver,isSkip:n.isSkip}))},t.onReady=function(){this.trigger(new x("ready",{errorCount:this.getErrorCount(),totalErrorCount:this.totalErrorCount,totalCount:this.totalCount}))},t.getErrorCount=function(){return this.elementInfos.filter(function(e){return e.hasError}).length},t.hasLoading=function(){return this.elementInfos.some(function(e){return e.hasLoading})},r})(xe),Fi=(function(a){ge(r,a);function r(){return a!==null&&a.apply(this,arguments)||this}var t=r.prototype;return t.checkElement=function(){var e=this.element,n=e.getAttribute("src");if(e.complete){if(n)return e.naturalWidth||this.onAlreadyError(e),!1;this.onAlreadyPreReady()}return this.addEvents(),Ci&&e.setAttribute("src",n),!0},r.EVENTS=["load","error"],r})(bt),Vi=(function(a){ge(r,a);function r(){return a!==null&&a.apply(this,arguments)||this}var t=r.prototype;return t.checkElement=function(){var e=this.element;return e.readyState>=1?!1:e.error?(this.onAlreadyError(e),!1):(this.addEvents(),!0)},r.EVENTS=["loadedmetadata","error"],r})(bt),Bi=(function(a){ge(r,a);function r(t){return t===void 0&&(t={}),a.call(this,he({loaders:{img:Fi,video:Vi}},t))||this}return r})(ji),lt=function(a,r){return lt=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(t,e){t.__proto__=e}||function(t,e){for(var n in e)Object.prototype.hasOwnProperty.call(e,n)&&(t[n]=e[n])},lt(a,r)};function H(a,r){if(typeof r!="function"&&r!==null)throw new TypeError("Class extends value "+String(r)+" is not a constructor or null");lt(a,r);function t(){this.constructor=a}a.prototype=r===null?Object.create(r):(t.prototype=r.prototype,new t)}var B=function(){return B=Object.assign||function(r){for(var t,e=1,n=arguments.length;e<n;e++){t=arguments[e];for(var i in t)Object.prototype.hasOwnProperty.call(t,i)&&(r[i]=t[i])}return r},B.apply(this,arguments)};function se(a,r,t,e){function n(i){return i instanceof t?i:new t(function(o){o(i)})}return new(t||(t=Promise))(function(i,o){function s(c){try{l(e.next(c))}catch(f){o(f)}}function u(c){try{l(e.throw(c))}catch(f){o(f)}}function l(c){c.done?i(c.value):n(c.value).then(s,u)}l((e=e.apply(a,[])).next())})}function ue(a,r){var t={label:0,sent:function(){if(i[0]&1)throw i[1];return i[1]},trys:[],ops:[]},e,n,i,o;return o={next:s(0),throw:s(1),return:s(2)},typeof Symbol=="function"&&(o[Symbol.iterator]=function(){return this}),o;function s(l){return function(c){return u([l,c])}}function u(l){if(e)throw new TypeError("Generator is already executing.");for(;o&&(o=0,l[0]&&(t=0)),t;)try{if(e=1,n&&(i=l[0]&2?n.return:l[0]?n.throw||((i=n.return)&&i.call(n),0):n.next)&&!(i=i.call(n,l[1])).done)return i;switch(n=0,i&&(l=[l[0]&2,i.value]),l[0]){case 0:case 1:i=l;break;case 4:return t.label++,{value:l[1],done:!1};case 5:t.label++,n=l[1],l=[0];continue;case 7:l=t.ops.pop(),t.trys.pop();continue;default:if(i=t.trys,!(i=i.length>0&&i[i.length-1])&&(l[0]===6||l[0]===2)){t=0;continue}if(l[0]===3&&(!i||l[1]>i[0]&&l[1]<i[3])){t.label=l[1];break}if(l[0]===6&&t.label<i[1]){t.label=i[1],i=l;break}if(i&&t.label<i[2]){t.label=i[2],t.ops.push(l);break}i[2]&&t.ops.pop(),t.trys.pop();continue}l=r.call(a,t)}catch(c){l=[6,c],n=0}finally{e=i=0}if(l[0]&5)throw l[1];return{value:l[0]?l[1]:void 0,done:!0}}}function He(a){var r=typeof Symbol=="function"&&Symbol.iterator,t=r&&a[r],e=0;if(t)return t.call(a);if(a&&typeof a.length=="number")return{next:function(){return a&&e>=a.length&&(a=void 0),{value:a&&a[e++],done:!a}}};throw new TypeError(r?"Object is not iterable.":"Symbol.iterator is not defined.")}function Hi(a,r){var t=typeof Symbol=="function"&&a[Symbol.iterator];if(!t)return a;var e=t.call(a),n,i=[],o;try{for(;(r===void 0||r-- >0)&&!(n=e.next()).done;)i.push(n.value)}catch(s){o={error:s}}finally{try{n&&!n.done&&(t=e.return)&&t.call(e)}finally{if(o)throw o.error}}return i}function U(){for(var a=[],r=0;r<arguments.length;r++)a=a.concat(Hi(arguments[r]));return a}var I={WRONG_TYPE:0,ELEMENT_NOT_FOUND:1,VAL_MUST_NOT_NULL:2,NOT_ATTACHED_TO_FLICKING:3,WRONG_OPTION:4,INDEX_OUT_OF_RANGE:5,POSITION_NOT_REACHABLE:6,TRANSFORM_NOT_SUPPORTED:7,STOP_CALLED_BY_USER:8,ANIMATION_INTERRUPTED:9,ANIMATION_ALREADY_PLAYING:10,NOT_ALLOWED_IN_FRAMEWORK:11,NOT_INITIALIZED:12},w={WRONG_TYPE:function(a,r){return a+"("+typeof a+") is not a "+r.map(function(t){return'"'+t+'"'}).join(" or ")+"."},ELEMENT_NOT_FOUND:function(a){return'Element with selector "'+a+'" not found.'},VAL_MUST_NOT_NULL:function(a,r){return r+" should be provided. Given: "+a},NOT_ATTACHED_TO_FLICKING:'This module is not attached to the Flicking instance. "init()" should be called first.',WRONG_OPTION:function(a,r){return'Option "'+a+'" is not in correct format, given: '+r},INDEX_OUT_OF_RANGE:function(a,r,t){return'Index "'+a+'" is out of range: should be between '+r+" and "+t+"."},POSITION_NOT_REACHABLE:function(a){return'Position "'+a+'" is not reachable.'},TRANSFORM_NOT_SUPPORTED:"Browser does not support CSS transform.",STOP_CALLED_BY_USER:"Event stop() is called by user.",ANIMATION_INTERRUPTED:"Animation is interrupted by user input.",ANIMATION_ALREADY_PLAYING:"Animation is already playing.",NOT_ALLOWED_IN_FRAMEWORK:"This behavior is not allowed in the frameworks like React, Vue, or Angular.",NOT_INITIALIZED:"Flicking is not initialized yet, call init() first.",NO_ACTIVE:"There's no active panel that Flicking has selected. This may be due to the absence of any panels.",NOT_ALLOWED_IN_VIRTUAL:"This behavior is not allowed when the virtual option is enabled"},O={READY:"ready",BEFORE_RESIZE:"beforeResize",AFTER_RESIZE:"afterResize",HOLD_START:"holdStart",HOLD_END:"holdEnd",MOVE_START:"moveStart",MOVE:"move",MOVE_END:"moveEnd",WILL_CHANGE:"willChange",CHANGED:"changed",WILL_RESTORE:"willRestore",RESTORED:"restored",SELECT:"select",NEED_PANEL:"needPanel",VISIBLE_CHANGE:"visibleChange",REACH_EDGE:"reachEdge",PANEL_CHANGE:"panelChange"},le={PREV:"prev",CENTER:"center",NEXT:"next"},y={PREV:"PREV",NEXT:"NEXT",NONE:null},Z={SNAP:"snap",FREE_SCROLL:"freeScroll",STRICT:"strict"},Ui={DEFAULT_VIRTUAL:"flicking-panel"},Vn={LINEAR:"linear",BOUND:"bound"},ae={LTR:"ltr",RTL:"rtl"},Wi=function(a,r){var t=null;if(ne(a)){var e=document,n=e.querySelector(a);if(!n)throw new R(w.ELEMENT_NOT_FOUND(a),I.ELEMENT_NOT_FOUND);t=n}else a&&a.nodeType===Node.ELEMENT_NODE&&(t=a);if(!t)throw new R(w.WRONG_TYPE(a,["HTMLElement","string"]),I.WRONG_TYPE);return t},Xi=function(a,r){if(a==null)throw new R(w.VAL_MUST_NOT_NULL(a,r),I.VAL_MUST_NOT_NULL)},Q=function(a,r,t){return Math.max(Math.min(a,t),r)},P=function(a){if(!a)throw new R(w.NOT_ATTACHED_TO_FLICKING,I.NOT_ATTACHED_TO_FLICKING);return a},Et=function(a){return[].slice.call(a)},Pt=function(a,r){var t;if(ne(a))switch(a){case le.PREV:t=0;break;case le.CENTER:t=.5*r;break;case le.NEXT:t=r;break;default:if(t=ct(a,r),t==null)throw new R(w.WRONG_OPTION("align",a),I.WRONG_OPTION)}else t=a;return t},Gi=function(a,r){var t;if(Array.isArray(a))t=a.map(function(n){return ct(n,r)});else{var e=ct(a,r);t=[e,e]}return t.map(function(n){if(n==null)throw new R(w.WRONG_OPTION("bounce",a),I.WRONG_OPTION);return n})},ct=function(a,r){var t=Yi(a);return t==null?null:t.percentage*r+t.absolute},Yi=function(a){var r=/(?:(\+|\-)\s*)?(\d+(?:\.\d+)?(%|px)?)/g;if(typeof a=="number")return{percentage:0,absolute:a};for(var t={percentage:0,absolute:0},e=0,n=r.exec(a);n!=null;){var i=n[1],o=n[2],s=n[3],u=parseFloat(o);if(e<=0&&(i=i||"+"),!i)return null;var l=i==="+"?1:-1;s==="%"?t.percentage+=l*(u/100):t.absolute+=l*u,++e,n=r.exec(a)}return e===0?null:t},Le=function(a){return typeof a=="object"?a.panel:a},te=function(a,r){return a===r?y.NONE:a<r?y.NEXT:y.PREV},ln=function(a){Array.isArray(a)||(a=[a]);var r=[];return a.forEach(function(t){if(ne(t)){var e=document.createElement("div");for(e.innerHTML=t,r.push.apply(r,U(Et(e.children)));e.firstChild;)e.removeChild(e.firstChild)}else if(t&&t.nodeType===Node.ELEMENT_NODE)r.push(t);else throw new R(w.WRONG_TYPE(t,["HTMLElement","string"]),I.WRONG_TYPE)}),r},Me=function(a,r){return a<0?Q(a+r,0,r):Q(a,0,r)},ze=function(a,r){var t,e;try{for(var n=He(a),i=n.next();!i.done;i=n.next()){var o=i.value;if(o===r)return!0}}catch(s){t={error:s}}finally{try{i&&!i.done&&(e=n.return)&&e.call(n)}finally{if(t)throw t.error}}return!1},ne=function(a){return typeof a=="string"},Bn=function(a,r,t){var e=t-r;if(a<r){var n=(r-a)%e;a=t-n}else if(a>t){var n=(a-t)%e;a=r+n}return a},Ki=function(a,r){var t,e;try{for(var n=He(a),i=n.next();!i.done;i=n.next()){var o=i.value;if(r(o))return o}}catch(s){t={error:s}}finally{try{i&&!i.done&&(e=n.return)&&e.call(n)}finally{if(t)throw t.error}}return null},qi=function(a,r){for(var t=0;t<a.length;t++)if(r(a[t]))return t;return-1},je=function(a,r,t){return(a-r)/(t-r)},de=function(a){return a?window.getComputedStyle(a)||a.currentStyle:{}},Hn=function(a,r){var t=r.width,e=r.height;a&&(t!=null&&(ne(t)?a.style.width=t:a.style.width=t+"px"),e!=null&&(ne(e)?a.style.height=e:a.style.height=e+"px"))},qe=function(a,r,t){return a>=r&&a<=t},Un=function(a,r){return a>=r?a%r:a<0?Me((a+1)%r-1,r):a},Fe=function(a){for(var r=new Array(a),t=0;t<a;t++)r[t]=t;return r},ee=function(a){var r=a.el,t=a.horizontal,e=a.useFractionalSize,n=a.useOffset,i=a.style,o=0;if(e){var s=parseFloat(t?i.width:i.height)||0,u=i.boxSizing==="border-box",l=t?parseFloat(i.borderLeftWidth||"0")+parseFloat(i.borderRightWidth||"0"):parseFloat(i.borderTopWidth||"0")+parseFloat(i.borderBottomWidth||"0");if(u)o=n?s:s-l;else{var c=t?parseFloat(i.paddingLeft||"0")+parseFloat(i.paddingRight||"0"):parseFloat(i.paddingTop||"0")+parseFloat(i.paddingBottom||"0");o=n?s+c+l:s+c}}else{var f=t?"Width":"Height";o=n?r["offset"+f]:r["client"+f]}return Math.max(o,0)},$i=Object.setPrototypeOf||function(a,r){return a.__proto__=r,a},R=(function(a){H(r,a);function r(t,e){var n=a.call(this,t)||this;return $i(n,r.prototype),n.name="FlickingError",n.code=e,n}return r})(Error),Zi=(function(){function a(t,e){this._flicking=t,this._el=e,this._width=0,this._height=0,this._padding={left:0,right:0,top:0,bottom:0},this._isBorderBoxSizing=!1}var r=a.prototype;return Object.defineProperty(r,"element",{get:function(){return this._el},enumerable:!1,configurable:!0}),Object.defineProperty(r,"width",{get:function(){return this._width-this._padding.left-this._padding.right},enumerable:!1,configurable:!0}),Object.defineProperty(r,"height",{get:function(){return this._height-this._padding.top-this._padding.bottom},enumerable:!1,configurable:!0}),Object.defineProperty(r,"padding",{get:function(){return this._padding},enumerable:!1,configurable:!0}),r.setSize=function(t){var e=t.width,n=t.height,i=this._el,o=this._padding,s=this._isBorderBoxSizing;if(e!=null)if(ne(e))i.style.width=e;else{var u=s?e+o.left+o.right:e;i.style.width=u+"px"}if(n!=null)if(ne(n))i.style.height=n;else{var l=s?n+o.top+o.bottom:n;i.style.height=l+"px"}this.resize()},r.resize=function(){var t=this._el,e=de(t),n=this._flicking.useFractionalSize;this._width=ee({el:t,horizontal:!0,useFractionalSize:n,useOffset:!1,style:e}),this._height=ee({el:t,horizontal:!1,useFractionalSize:n,useOffset:!1,style:e}),this._padding={left:e.paddingLeft?parseFloat(e.paddingLeft):0,right:e.paddingRight?parseFloat(e.paddingRight):0,top:e.paddingTop?parseFloat(e.paddingTop):0,bottom:e.paddingBottom?parseFloat(e.paddingBottom):0},this._isBorderBoxSizing=e.boxSizing==="border-box"},a})(),Ji=(function(){function a(t){var e=this;this._onResizeWrapper=function(){e._onResize([])},this._onResize=function(n){var i=e._flicking,o=i.resizeDebounce,s=i.maxResizeDebounce,u=i.element,l=n.find(function(d){return d.target===i.element})&&n.length===1;if(l){var c={width:i.viewport.width,height:i.viewport.height},f={width:ee({el:u,horizontal:!0,useFractionalSize:e._flicking.useFractionalSize,useOffset:!1,style:de(u)}),height:ee({el:u,horizontal:!1,useFractionalSize:e._flicking.useFractionalSize,useOffset:!1,style:de(u)})};if(c.height===f.height&&c.width===f.width)return}o<=0?i.resize():(e._maxResizeDebounceTimer<=0&&s>0&&s>=o&&(e._maxResizeDebounceTimer=window.setTimeout(e._doScheduledResize,s)),e._resizeTimer>0&&(clearTimeout(e._resizeTimer),e._resizeTimer=0),e._resizeTimer=window.setTimeout(e._doScheduledResize,o))},this._doScheduledResize=function(){clearTimeout(e._resizeTimer),clearTimeout(e._maxResizeDebounceTimer),e._maxResizeDebounceTimer=-1,e._resizeTimer=-1,e._flicking.resize()},this._skipFirstResize=(function(){var n=!0;return function(i){if(n){n=!1;return}e._onResize(i)}})(),this._flicking=t,this._enabled=!1,this._resizeObserver=null,this._resizeTimer=-1,this._maxResizeDebounceTimer=-1}var r=a.prototype;return Object.defineProperty(r,"enabled",{get:function(){return this._enabled},enumerable:!1,configurable:!0}),r.enable=function(){var t=this._flicking,e=t.viewport;if(this._enabled&&this.disable(),t.useResizeObserver&&window.ResizeObserver){var n=e.width!==0||e.height!==0,i=n?new ResizeObserver(this._skipFirstResize):new ResizeObserver(this._onResize);this._resizeObserver=i,this.observe(t.viewport.element),t.observePanelResize&&this.observePanels()}else window.addEventListener("resize",this._onResizeWrapper);return this._enabled=!0,this},r.observePanels=function(){var t=this;return this._flicking.panels.forEach(function(e){t.observe(e.element)}),this},r.unobservePanels=function(){var t=this;return this._flicking.panels.forEach(function(e){t.unobserve(e.element)}),this},r.observe=function(t){var e=this._resizeObserver;return e?(e.observe(t),this):this},r.unobserve=function(t){var e=this._resizeObserver;return e?(e.unobserve(t),this._flicking.observePanelResize&&this.unobservePanels(),this):this},r.disable=function(){if(!this._enabled)return this;var t=this._resizeObserver;return t?(t.disconnect(),this._resizeObserver=null):window.removeEventListener("resize",this._onResizeWrapper),this._enabled=!1,this},a})(),Qi=(function(){function a(t){this._element=t,this._rendered=!0}var r=a.prototype;return Object.defineProperty(r,"element",{get:function(){return this._element},enumerable:!1,configurable:!0}),Object.defineProperty(r,"rendered",{get:function(){return this._rendered},enumerable:!1,configurable:!0}),r.show=function(t){var e=this.element,n=t.camera.element;e.parentElement!==n&&(n.appendChild(e),this._rendered=!0)},r.hide=function(t){var e=this.element,n=t.camera.element;e.parentElement===n&&(n.removeChild(e),this._rendered=!1)},a})(),cn=(function(){function a(t){this._flicking=t}var r=a.prototype;return Object.defineProperty(r,"element",{get:function(){return this._virtualElement.nativeElement},enumerable:!1,configurable:!0}),Object.defineProperty(r,"rendered",{get:function(){return this._virtualElement.visible},enumerable:!1,configurable:!0}),Object.defineProperty(r,"_virtualElement",{get:function(){var t=this._flicking,e=this._panel.elementIndex,n=t.virtual.elements;return n[e]},enumerable:!1,configurable:!0}),r.init=function(t){this._panel=t},r.show=function(){},r.hide=function(){},a})(),ea=(function(){function a(t,e){var n,i,o,s;this._flicking=t,this._renderPanel=(n=e==null?void 0:e.renderPanel)!==null&&n!==void 0?n:function(){return""},this._initialPanelCount=(i=e==null?void 0:e.initialPanelCount)!==null&&i!==void 0?i:-1,this._cache=(o=e==null?void 0:e.cache)!==null&&o!==void 0?o:!1,this._panelClass=(s=e==null?void 0:e.panelClass)!==null&&s!==void 0?s:Ui.DEFAULT_VIRTUAL,this._elements=[]}var r=a.prototype;return Object.defineProperty(r,"elements",{get:function(){return this._elements},enumerable:!1,configurable:!0}),Object.defineProperty(r,"renderPanel",{get:function(){return this._renderPanel},set:function(t){this._renderPanel=t,this._flicking.renderer.panels.forEach(function(e){return e.uncacheRenderResult()})},enumerable:!1,configurable:!0}),Object.defineProperty(r,"initialPanelCount",{get:function(){return this._initialPanelCount},enumerable:!1,configurable:!0}),Object.defineProperty(r,"cache",{get:function(){return this._cache},set:function(t){this._cache=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"panelClass",{get:function(){return this._panelClass},set:function(t){this._panelClass=t},enumerable:!1,configurable:!0}),r.init=function(){var t=this._flicking;if(t.virtualEnabled){!t.externalRenderer&&!t.renderExternal&&this._initVirtualElements();var e=t.camera.children;this._elements=e.map(function(n){return{nativeElement:n,visible:!0}})}},r.show=function(t){var e=this._elements[t],n=e.nativeElement;e.visible=!0,n.style.display&&(n.style.display="")},r.hide=function(t){var e=this._elements[t],n=e.nativeElement;e.visible=!1,n.style.display="none"},r.append=function(t){t===void 0&&(t=1);var e=this._flicking;return this.insert(e.panels.length,t)},r.prepend=function(t){return t===void 0&&(t=1),this.insert(0,t)},r.insert=function(t,e){if(e===void 0&&(e=1),e<=0)return[];var n=this._flicking;return n.renderer.batchInsert({index:t,elements:Fe(e),hasDOMInElements:!1})},r.remove=function(t,e){if(e<=0)return[];var n=this._flicking;return n.renderer.batchRemove({index:t,deleteCount:e,hasDOMInElements:!1})},r._initVirtualElements=function(){var t=this,e=this._flicking,n=e.camera.element,i=e.panelsPerView,o=document.createDocumentFragment(),s=Fe(i+1).map(function(u){var l=document.createElement("div");return l.className=t._panelClass,l.dataset.elementIndex=u.toString(),l});s.forEach(function(u){o.appendChild(u)}),n.appendChild(o)},a})(),F={HOLD:"hold",CHANGE:"change",RELEASE:"release",ANIMATION_END:"animationEnd",FINISH:"finish"},A="flick",S;(function(a){a[a.IDLE=0]="IDLE",a[a.HOLDING=1]="HOLDING",a[a.DRAGGING=2]="DRAGGING",a[a.ANIMATING=3]="ANIMATING",a[a.DISABLED=4]="DISABLED"})(S||(S={}));var Re=(function(){function a(){this._delta=0,this._targetPanel=null}var r=a.prototype;return Object.defineProperty(r,"delta",{get:function(){return this._delta},enumerable:!1,configurable:!0}),Object.defineProperty(r,"targetPanel",{get:function(){return this._targetPanel},set:function(t){this._targetPanel=t},enumerable:!1,configurable:!0}),r.onEnter=function(t){this._delta=t._delta,this._targetPanel=t._targetPanel},r.onHold=function(t){},r.onChange=function(t){},r.onRelease=function(t){},r.onAnimationEnd=function(t){},r.onFinish=function(t){},r._moveToChangedPosition=function(t){var e=t.flicking,n=t.axesEvent,i=t.transitTo,o=n.delta[A];if(o){this._delta+=o;var s=e.camera,u=s.position,l=n.pos[A],c=e.circularEnabled?Bn(l,s.range.min,s.range.max):l;s.lookAt(c);var f=new x(O.MOVE,{isTrusted:n.isTrusted,holding:this.holding,direction:te(0,n.delta[A]),axesEvent:n});e.trigger(f),f.isCanceled()&&(s.lookAt(u),i(S.DISABLED))}},a})(),fn=(function(a){H(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e.holding=!1,e.animating=!1,e}var t=r.prototype;return t.onEnter=function(){this._delta=0,this._targetPanel=null},t.onHold=function(e){var n=e.flicking,i=e.axesEvent,o=e.transitTo;if(n.renderer.panelCount<=0){o(S.DISABLED);return}var s=new x(O.HOLD_START,{axesEvent:i});n.trigger(s),s.isCanceled()?o(S.DISABLED):o(S.HOLDING)},t.onChange=function(e){var n=e.flicking,i=e.axesEvent,o=e.transitTo,s=n.control.controller,u=s.animatingContext,l=new x(O.MOVE_START,{isTrusted:i.isTrusted,holding:this.holding,direction:te(u.start,u.end),axesEvent:i});n.trigger(l),l.isCanceled()?o(S.DISABLED):o(S.ANIMATING).onChange(e)},r})(Re),ta=(function(a){H(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e.holding=!0,e.animating=!1,e._releaseEvent=null,e}var t=r.prototype;return t.onChange=function(e){var n=e.flicking,i=e.axesEvent,o=e.transitTo,s=i.inputEvent;if(s){var u=n.horizontal?s.offsetX:s.offsetY,l=new x(O.MOVE_START,{isTrusted:i.isTrusted,holding:this.holding,direction:te(0,-u),axesEvent:i});n.trigger(l),l.isCanceled()?o(S.DISABLED):o(S.DRAGGING).onChange(e)}},t.onRelease=function(e){var n=e.flicking,i=e.axesEvent,o=e.transitTo;if(n.trigger(new x(O.HOLD_END,{axesEvent:i})),i.delta.flick!==0){i.setTo({flick:n.camera.position},0),o(S.IDLE);return}this._releaseEvent=i},t.onFinish=function(e){var n,i,o=e.flicking,s=e.transitTo;if(s(S.IDLE),!!this._releaseEvent){var u=this._releaseEvent,l=u.inputEvent.srcEvent,c;if(l.type==="touchend"){var f=l,d=f.changedTouches[0];c=document.elementFromPoint(d.clientX,d.clientY)}else c=l.target;var h=o.renderer.panels,v=null;try{for(var g=He(h),p=g.next();!p.done;p=g.next()){var _=p.value;if(_.contains(c)){v=_;break}}}catch(T){n={error:T}}finally{try{p&&!p.done&&(i=g.return)&&i.call(g)}finally{if(n)throw n.error}}if(v){var m=o.camera.position,E=v.position;o.trigger(new x(O.SELECT,{index:v.index,panel:v,direction:te(m,E)}))}}},r})(Re),na=(function(a){H(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e.holding=!0,e.animating=!0,e}var t=r.prototype;return t.onChange=function(e){this._moveToChangedPosition(e)},t.onRelease=function(e){var n,i=e.flicking,o=e.axesEvent,s=e.transitTo;if(i.trigger(new x(O.HOLD_END,{axesEvent:o})),i.renderer.panelCount<=0){s(S.IDLE);return}s(S.ANIMATING);var u=i.control,l=o.destPos[A],c=Math.max(o.duration,i.duration);try{u.moveToPosition(l,c,o)}catch{s(S.IDLE),o.setTo((n={},n[A]=i.camera.position,n),0)}},r})(Re),ra=(function(a){H(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e.holding=!1,e.animating=!0,e}var t=r.prototype;return t.onHold=function(e){var n=e.flicking,i=e.axesEvent,o=e.transitTo,s=this._targetPanel,u=n.control;this._delta=0,n.control.updateInput(),n.changeOnHold&&s&&u.setActive(s,u.activePanel,i.isTrusted);var l=new x(O.HOLD_START,{axesEvent:i});n.trigger(l),l.isCanceled()?o(S.DISABLED):o(S.DRAGGING)},t.onChange=function(e){this._moveToChangedPosition(e)},t.onFinish=function(e){var n=e.flicking,i=e.axesEvent,o=e.transitTo,s=n.control,u=s.controller,l=u.animatingContext;o(S.IDLE),n.trigger(new x(O.MOVE_END,{isTrusted:i.isTrusted,direction:te(l.start,l.end),axesEvent:i}));var c=this._targetPanel;c&&s.setActive(c,s.activePanel,i.isTrusted)},r})(Re),ia=(function(a){H(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e.holding=!1,e.animating=!0,e}var t=r.prototype;return t.onAnimationEnd=function(e){var n=e.transitTo;n(S.IDLE)},t.onChange=function(e){var n=e.axesEvent,i=e.transitTo;n.stop(),i(S.IDLE)},t.onRelease=function(e){var n=e.axesEvent,i=e.transitTo;n.delta.flick===0&&i(S.IDLE)},r})(Re),aa=(function(){function a(){var t=this;this.transitTo=function(e){var n;switch(e){case S.IDLE:n=new fn;break;case S.HOLDING:n=new ta;break;case S.DRAGGING:n=new na;break;case S.ANIMATING:n=new ra;break;case S.DISABLED:n=new ia;break}return n.onEnter(t._state),t._state=n,t._state},this._state=new fn}var r=a.prototype;return Object.defineProperty(r,"state",{get:function(){return this._state},enumerable:!1,configurable:!0}),r.fire=function(t,e){var n=this._state,i=B(B({},e),{transitTo:this.transitTo});switch(t){case F.HOLD:n.onHold(i);break;case F.CHANGE:n.onChange(i);break;case F.RELEASE:n.onRelease(i);break;case F.ANIMATION_END:n.onAnimationEnd(i);break;case F.FINISH:n.onFinish(i);break}},a})(),oa=(function(){function a(){var t=this;this._onAxesHold=function(){t._dragged=!1},this._onAxesChange=function(){var e;t._dragged=!!(!((e=t._panInput)===null||e===void 0)&&e.isEnabled())},this._preventClickWhenDragged=function(e){t._dragged&&(e.preventDefault(),e.stopPropagation()),t._dragged=!1},this._resetInternalValues(),this._stateMachine=new aa}var r=a.prototype;return Object.defineProperty(r,"axes",{get:function(){return this._axes},enumerable:!1,configurable:!0}),Object.defineProperty(r,"panInput",{get:function(){return this._panInput},enumerable:!1,configurable:!0}),Object.defineProperty(r,"stateMachine",{get:function(){return this._stateMachine},enumerable:!1,configurable:!0}),Object.defineProperty(r,"state",{get:function(){return this._stateMachine.state},enumerable:!1,configurable:!0}),Object.defineProperty(r,"animatingContext",{get:function(){return this._animatingContext},enumerable:!1,configurable:!0}),Object.defineProperty(r,"controlParams",{get:function(){var t=this._axes;if(!t)return{range:{min:0,max:0},position:0,circular:!1};var e=t.axis[A];return{range:{min:e.range[0],max:e.range[1]},circular:e.circular[0],position:this.position}},enumerable:!1,configurable:!0}),Object.defineProperty(r,"enabled",{get:function(){var t,e;return(e=(t=this._panInput)===null||t===void 0?void 0:t.isEnabled())!==null&&e!==void 0?e:!1},enumerable:!1,configurable:!0}),Object.defineProperty(r,"position",{get:function(){var t,e;return(e=(t=this._axes)===null||t===void 0?void 0:t.get([A])[A])!==null&&e!==void 0?e:0},enumerable:!1,configurable:!0}),Object.defineProperty(r,"range",{get:function(){var t,e;return(e=(t=this._axes)===null||t===void 0?void 0:t.axis[A].range)!==null&&e!==void 0?e:[0,0]},enumerable:!1,configurable:!0}),Object.defineProperty(r,"bounce",{get:function(){var t;return(t=this._axes)===null||t===void 0?void 0:t.axis[A].bounce},enumerable:!1,configurable:!0}),r.init=function(t){var e,n=this;this._flicking=t,this._axes=new Oi((e={},e[A]={range:[0,0],circular:!1,bounce:[0,0]},e),{deceleration:t.deceleration,interruptable:t.interruptable,nested:t.nested,easing:t.easing}),this._panInput=new xi(t.viewport.element,{inputType:t.inputType,threshold:t.dragThreshold,iOSEdgeSwipeThreshold:t.iOSEdgeSwipeThreshold,preventDefaultOnDrag:t.preventDefaultOnDrag,scale:t.horizontal?[t.camera.panelOrder===ae.RTL?1:-1,0]:[0,-1],releaseOnScroll:!0});var i=this._axes;i.connect(t.horizontal?[A,""]:["",A],this._panInput);var o=function(u){var l=F[u];i.on(l,function(c){n._stateMachine.fire(l,{flicking:t,axesEvent:c})})};for(var s in F)o(s);return this},r.destroy=function(){var t;this._axes&&(this.removePreventClickHandler(),this._axes.destroy()),(t=this._panInput)===null||t===void 0||t.destroy(),this._resetInternalValues()},r.enable=function(){var t;return(t=this._panInput)===null||t===void 0||t.enable(),this},r.disable=function(){var t;return(t=this._panInput)===null||t===void 0||t.disable(),this},r.release=function(){var t;return(t=this._panInput)===null||t===void 0||t.release(),this},r.updateAnimation=function(t,e){var n,i;return this._animatingContext=B(B({},this._animatingContext),{end:t}),(i=this._axes)===null||i===void 0||i.updateAnimation({destPos:(n={},n[A]=t,n),duration:e}),this},r.stopAnimation=function(){var t;return(t=this._axes)===null||t===void 0||t.stopAnimation(),this},r.update=function(t){var e,n=P(this._flicking),i=n.camera,o=this._axes,s=o.axis[A];return s.circular=[t.circular,t.circular],s.range=[t.range.min,t.range.max],s.bounce=Gi(n.bounce,i.size),o.axisManager.set((e={},e[A]=t.position,e)),this},r.addPreventClickHandler=function(){var t=P(this._flicking),e=this._axes,n=t.camera.element;return e.on(F.HOLD,this._onAxesHold),e.on(F.CHANGE,this._onAxesChange),n.addEventListener("click",this._preventClickWhenDragged,!0),this},r.removePreventClickHandler=function(){var t=P(this._flicking),e=this._axes,n=t.camera.element;return e.off(F.HOLD,this._onAxesHold),e.off(F.CHANGE,this._onAxesChange),n.removeEventListener("click",this._preventClickWhenDragged,!0),this},r.animateTo=function(t,e,n){var i=this,o,s=this._axes,u=this._stateMachine.state;if(!s)return Promise.reject(new R(w.NOT_ATTACHED_TO_FLICKING,I.NOT_ATTACHED_TO_FLICKING));var l=this.getCurrentPosition();if(l===t){var c=P(this._flicking);return c.camera.lookAt(t),u.targetPanel&&c.control.setActive(u.targetPanel,c.control.activePanel,(o=n==null?void 0:n.isTrusted)!==null&&o!==void 0?o:!1),Promise.resolve()}this._animatingContext={start:l,end:t,offset:0};var f=function(){var d,h,v=function(){i._animatingContext={start:0,end:0,offset:0}};s.once(F.FINISH,v),n?n.setTo((d={},d[A]=t,d),e):s.setTo((h={},h[A]=t,h),e)};return new Promise(function(d,h){var v=function(){s.off(F.HOLD,g),d()},g=function(){s.off(F.FINISH,v),h(new R(w.ANIMATION_INTERRUPTED,I.ANIMATION_INTERRUPTED))};s.once(F.FINISH,v),s.once(F.HOLD,g),f()})},r.getCurrentPosition=function(){var t,e;return(e=(t=this._axes)===null||t===void 0?void 0:t.get([A])[A])!==null&&e!==void 0?e:0},r.updateDirection=function(){var t=P(this._flicking),e=this._axes,n=this._panInput;e.disconnect(n),e.connect(t.horizontal?[A,""]:["",A],n),n.options.scale=t.horizontal?[t.camera.panelOrder===ae.RTL?1:-1,0]:[0,-1]},r._resetInternalValues=function(){this._flicking=null,this._axes=null,this._panInput=null,this._animatingContext={start:0,end:0,offset:0},this._dragged=!1},a})(),Ot=(function(){function a(){this._flicking=null,this._controller=new oa,this._activePanel=null}var r=a.prototype;return Object.defineProperty(r,"controller",{get:function(){return this._controller},enumerable:!1,configurable:!0}),Object.defineProperty(r,"activeIndex",{get:function(){var t,e;return(e=(t=this._activePanel)===null||t===void 0?void 0:t.index)!==null&&e!==void 0?e:-1},enumerable:!1,configurable:!0}),Object.defineProperty(r,"activePanel",{get:function(){return this._activePanel},enumerable:!1,configurable:!0}),Object.defineProperty(r,"animating",{get:function(){return this._controller.state.animating},enumerable:!1,configurable:!0}),Object.defineProperty(r,"holding",{get:function(){return this._controller.state.holding},enumerable:!1,configurable:!0}),r.init=function(t){return this._flicking=t,this._controller.init(t),this},r.destroy=function(){this._controller.destroy(),this._flicking=null,this._activePanel=null},r.enable=function(){return this._controller.enable(),this},r.disable=function(){return this._controller.disable(),this},r.release=function(){return this._controller.release(),this},r.updateAnimation=function(t,e,n){var i=this._controller.state,o=this._getPosition(t,n??y.NONE);return i.targetPanel=t,this._controller.updateAnimation(o,e),this},r.stopAnimation=function(){var t=this._controller.state;return t.targetPanel=null,this._controller.stopAnimation(),this},r.updatePosition=function(t){var e=P(this._flicking),n=e.camera,i=this._activePanel;i&&n.lookAt(n.clampToReachablePosition(i.position))},r.updateInput=function(){var t=P(this._flicking),e=t.camera;return this._controller.update(e.controlParams),this},r.resetActive=function(){return this._activePanel=null,this},r.moveToPanel=function(t,e){var n=e.duration,i=e.direction,o=i===void 0?y.NONE:i,s=e.axesEvent;return se(this,void 0,void 0,function(){var u;return ue(this,function(l){return u=this._getPosition(t,o),this._triggerIndexChangeEvent(t,t.position,s,o),[2,this._animateToPosition({position:u,duration:n,newActivePanel:t,axesEvent:s})]})})},r.setActive=function(t,e,n){var i,o=P(this._flicking);this._activePanel=t,this._nextPanel=null,o.camera.updateAdaptiveHeight(),t!==e?o.trigger(new x(O.CHANGED,{index:t.index,panel:t,prevIndex:(i=e==null?void 0:e.index)!==null&&i!==void 0?i:-1,prevPanel:e,isTrusted:n,direction:e?te(e.position,t.position):y.NONE})):o.trigger(new x(O.RESTORED,{isTrusted:n}))},r.copy=function(t){this._flicking=t._flicking,this._activePanel=t._activePanel,this._controller=t._controller},r._triggerIndexChangeEvent=function(t,e,n,i){var o,s=P(this._flicking),u=t!==this._activePanel?O.WILL_CHANGE:O.WILL_RESTORE,l=s.camera,c=this._activePanel,f=new x(u,{index:t.index,panel:t,isTrusted:(n==null?void 0:n.isTrusted)||!1,direction:i??te((o=c==null?void 0:c.position)!==null&&o!==void 0?o:l.position,e)});if(this._nextPanel=t,s.trigger(f),f.isCanceled())throw new R(w.STOP_CALLED_BY_USER,I.STOP_CALLED_BY_USER)},r._animateToPosition=function(t){var e=t.position,n=t.duration,i=t.newActivePanel,o=t.axesEvent;return se(this,void 0,void 0,function(){var s,u,l,c,f=this;return ue(this,function(d){return s=P(this._flicking),u=n,Math.abs(u-e)<s.animationThreshold&&(u=0),l=function(){return f._controller.animateTo(e,u,o)},c=this._controller.state,c.targetPanel=i,u<=0?[2,l()]:[2,l().then(function(){return se(f,void 0,void 0,function(){return ue(this,function(h){switch(h.label){case 0:return s.initialized?[4,s.renderer.render()]:[3,2];case 1:h.sent(),h.label=2;case 2:return[2]}})})}).catch(function(h){if(!(o&&h instanceof R&&h.code===I.ANIMATION_INTERRUPTED))throw h})]})})},r._getPosition=function(t,e){e===void 0&&(e=y.NONE);var n=P(this._flicking),i=n.camera,o=t.position,s=i.findNearestAnchor(o);if(t.removed||!s)throw new R(w.POSITION_NOT_REACHABLE(t.position),I.POSITION_NOT_REACHABLE);if(!i.canReach(t))o=s.position,t=s.panel;else if(n.circularEnabled){var u=this._controller.position,l=i.rangeDiff,c=[o,o+l,o-l].filter(function(f){return e===y.NONE?!0:e===y.PREV?f<=u:f>=u});o=c.reduce(function(f,d){return Math.abs(u-d)<Math.abs(u-f)?d:f},1/0)}return o},a})(),V=(function(){function a(t){var e=t.index,n=t.position,i=t.panel;this._index=e,this._pos=n,this._panel=i}var r=a.prototype;return Object.defineProperty(r,"index",{get:function(){return this._index},enumerable:!1,configurable:!0}),Object.defineProperty(r,"position",{get:function(){return this._pos},enumerable:!1,configurable:!0}),Object.defineProperty(r,"panel",{get:function(){return this._panel},enumerable:!1,configurable:!0}),a})(),sa=(function(a){H(r,a);function r(e){var n=(e===void 0?{}:e).count,i=n===void 0?1/0:n,o=a.call(this)||this;return o._count=i,o}var t=r.prototype;return Object.defineProperty(t,"count",{get:function(){return this._count},set:function(e){this._count=e},enumerable:!1,configurable:!0}),t.moveToPosition=function(e,n,i){var o=P(this._flicking),s=o.camera,u=s.findActiveAnchor(),l=s.findNearestAnchor(s.position),c=this._controller.state;if(!u||!l)return Promise.reject(new R(w.POSITION_NOT_REACHABLE(e),I.POSITION_NOT_REACHABLE));var f=this._calcSnapThreshold(o.threshold,e,u),d=o.animating?c.delta:e-s.position,h=Math.abs(d),v=i&&i.delta[A]!==0?Math.abs(i.delta[A]):h,g;if(v>=f&&v>0)g=this._findSnappedAnchor(e,l);else if(h>=o.threshold&&h>0)g=this._findAdjacentAnchor(e,d,l);else return this.moveToPanel(l.panel,{duration:n,axesEvent:i});return this._triggerIndexChangeEvent(g.panel,e,i),this._animateToPosition({position:s.clampToReachablePosition(g.position),duration:n,newActivePanel:g.panel,axesEvent:i})},t._findSnappedAnchor=function(e,n){var i=P(this._flicking),o=i.camera,s=this._count,u=o.position,l=o.clampToReachablePosition(e),c=o.findAnchorIncludePosition(l);if(!n||!c)throw new R(w.POSITION_NOT_REACHABLE(e),I.POSITION_NOT_REACHABLE);if(!isFinite(s))return c;var f=i.panelCount,d=o.anchorPoints,h=Math.sign(e-u)*Math.floor(Math.abs(e-u)/o.rangeDiff);e>u&&c.index<n.index||c.position>n.position&&c.index===n.index?h+=1:(e<u&&c.index>n.index||c.position<n.position&&c.index===n.index)&&(h-=1);var v=h*f,g=c.index+v;if(Math.abs(g-n.index)<=s){var p=d[c.index];return new V({index:p.index,position:p.position+h*o.rangeDiff,panel:p.panel})}if(i.circularEnabled){var _=d[Un(n.index+Math.sign(e-u)*s,f)],m=Math.floor(s/f);return e>u&&_.index<n.index?m+=1:e<u&&_.index>n.index&&(m-=1),new V({index:_.index,position:_.position+m*o.rangeDiff,panel:_.panel})}else return d[Q(n.index+Math.sign(e-u)*s,0,d.length-1)]},t._findAdjacentAnchor=function(e,n,i){var o,s=P(this._flicking),u=s.camera;if(u.circularEnabled){var l=u.findAnchorIncludePosition(e);if(l&&l.position!==i.position)return l}var c=(o=n>0?u.getNextAnchor(i):u.getPrevAnchor(i))!==null&&o!==void 0?o:i;return c},t._calcSnapThreshold=function(e,n,i){var o=n>i.position,s=i.panel,u=s.size,l=s.alignPosition;return Math.max(e,o?u-l+s.margin.next:l+s.margin.prev)},r})(Ot),ua=(function(a){H(r,a);function r(e){var n=(e===void 0?{}:e).stopAtEdge,i=n===void 0?!0:n,o=a.call(this)||this;return o._stopAtEdge=i,o}var t=r.prototype;return Object.defineProperty(t,"stopAtEdge",{get:function(){return this._stopAtEdge},set:function(e){this._stopAtEdge=e},enumerable:!1,configurable:!0}),t.updatePosition=function(e){var n=P(this._flicking),i=n.camera,o=this._activePanel;if(o){var s=o.range,u=s.min+(s.max-s.min)*e;i.lookAt(i.clampToReachablePosition(u))}},t.moveToPosition=function(e,n,i){var o=P(this._flicking),s=o.camera,u=s.clampToReachablePosition(e),l=s.findAnchorIncludePosition(u);if(!l)return Promise.reject(new R(w.POSITION_NOT_REACHABLE(e),I.POSITION_NOT_REACHABLE));var c=l.panel;return c!==this._activePanel&&this._triggerIndexChangeEvent(c,e,i),this._animateToPosition({position:this._stopAtEdge?u:e,duration:n,newActivePanel:c,axesEvent:i})},r})(Ot),la=(function(a){H(r,a);function r(e){var n=(e===void 0?{}:e).count,i=n===void 0?1:n,o=a.call(this)||this;return o.setActive=function(s,u,l){a.prototype.setActive.call(o,s,u,l),o.updateInput()},o._count=i,o._resetIndexRange(),o}var t=r.prototype;return Object.defineProperty(t,"count",{get:function(){return this._count},set:function(e){this._count=e},enumerable:!1,configurable:!0}),t.destroy=function(){a.prototype.destroy.call(this),this._resetIndexRange()},t.updateInput=function(){var e,n=P(this._flicking),i=n.camera,o=n.renderer,s=this._controller,u=i.controlParams,l=this._count,c=s.state.animating?(e=i.findNearestAnchor(i.position))===null||e===void 0?void 0:e.panel:this._activePanel;if(!c)return s.update(u),this._resetIndexRange(),this;var f=u.range,d=c.position,h=c.index,v=o.panelCount,g=h-l,p=h+l;g<0&&(g=n.circularEnabled?Me((g+1)%v-1,v):Q(g,0,v-1)),p>=v&&(p=n.circularEnabled?p%v:Q(p,0,v-1));var _=o.panels[g],m=o.panels[p],E=Math.max(_.position,f.min),T=Math.min(m.position,f.max);return E>d&&(E-=i.rangeDiff),T<d&&(T+=i.rangeDiff),u.range={min:E,max:T},u.circular&&(u.position<E&&(u.position+=i.rangeDiff),u.position>T&&(u.position-=i.rangeDiff)),u.circular=!1,s.update(u),this._indexRange={min:_.index,max:m.index},this},t.moveToPanel=function(e,n){return se(this,void 0,void 0,function(){var i,o,s;return ue(this,function(u){return i=P(this._flicking),o=i.camera,s=this._controller,s.update(o.controlParams),[2,a.prototype.moveToPanel.call(this,e,n)]})})},t.moveToPosition=function(e,n,i){var o,s=P(this._flicking),u=s.camera,l=(o=this._nextPanel)!==null&&o!==void 0?o:this._activePanel,c=this._controller.range,f=this._indexRange,d=u.range,h=this._controller.state,v=Q(u.clampToReachablePosition(e),c[0],c[1]),g=u.findAnchorIncludePosition(v);if(!g||!l)return Promise.reject(new R(w.POSITION_NOT_REACHABLE(e),I.POSITION_NOT_REACHABLE));var p=l.position,_=s.animating?h.delta:e-u.position,m=Math.abs(_)>=s.threshold,E=e>p?u.getNextAnchor(g):u.getPrevAnchor(g),T,C,N=u.anchorPoints,M=N[0],Y=N[N.length-1],j=e<d.min&&qe(M.panel.index,f.min,f.max),q=e>d.max&&qe(Y.panel.index,f.min,f.max),L=E&&(f.min<=f.max?qe(E.index,f.min,f.max):E.index>=f.min||E.index<=f.max);if(j||q){var X=e<d.min?M:Y;C=X.panel,T=X.position}else if(m&&g.position!==l.position)C=g.panel,T=g.position;else if(m&&L)C=E.panel,T=E.position;else{var $=u.findNearestAnchor(u.position);return $?this.moveToPanel($.panel,{duration:n,axesEvent:i}):Promise.reject(new R(w.POSITION_NOT_REACHABLE(e),I.POSITION_NOT_REACHABLE))}return this._triggerIndexChangeEvent(C,e,i),this._animateToPosition({position:T,duration:n,newActivePanel:C,axesEvent:i})},t._resetIndexRange=function(){this._indexRange={min:0,max:0}},r})(Ot),yt=(function(){function a(t){this._flicking=t}var r=a.prototype;return r.getAnchors=function(){var t=this._flicking.renderer.panels;return t.map(function(e,n){return new V({index:n,position:e.position,panel:e})})},r.findAnchorIncludePosition=function(t){var e=this._flicking.camera.anchorPoints,n=e.filter(function(i){return i.panel.includePosition(t,!0)});return n.reduce(function(i,o){return i&&Math.abs(i.position-t)<Math.abs(o.position-t)?i:o},null)},r.findNearestAnchor=function(t){var e=this._flicking.camera.anchorPoints;if(e.length<=0)return null;for(var n=1/0,i=0;i<e.length;i++){var o=e[i],s=Math.abs(o.position-t);if(s>n)return e[i-1];n=s}return e[e.length-1]},r.clampToReachablePosition=function(t){var e=this._flicking.camera,n=e.range;return Q(t,n.min,n.max)},r.getCircularOffset=function(){return 0},r.canReach=function(t){var e=this._flicking.camera,n=e.range;if(t.removed)return!1;var i=t.position;return i>=n.min&&i<=n.max},r.canSee=function(t){var e=this._flicking.camera,n=e.visibleRange;return t.isVisibleOnRange(n.min,n.max)},a})(),hn=(function(a){H(r,a);function r(){return a!==null&&a.apply(this,arguments)||this}var t=r.prototype;return t.checkAvailability=function(){return!0},t.getRange=function(){var e,n,i=this._flicking.renderer,o=i.getPanel(0),s=i.getPanel(i.panelCount-1);return{min:(e=o==null?void 0:o.position)!==null&&e!==void 0?e:0,max:(n=s==null?void 0:s.position)!==null&&n!==void 0?n:0}},r})(yt),ca=(function(a){H(r,a);function r(){return a!==null&&a.apply(this,arguments)||this}var t=r.prototype;return t.checkAvailability=function(){var e=this._flicking,n=e.renderer,i=n.panels;if(i.length<=0)return!1;var o=i[0],s=i[i.length-1],u=o.range.min-o.margin.prev,l=s.range.max+s.margin.next,c=e.camera.size,f=l-u,d=i.every(function(h){return f-h.size>=c});return d},t.getRange=function(){var e=this._flicking,n=e.renderer.panels;if(n.length<=0)return{min:0,max:0};var i=n[0],o=n[n.length-1],s=i.range.min-i.margin.prev,u=o.range.max+o.margin.next;return{min:s,max:u}},t.getAnchors=function(){var e=this._flicking,n=e.renderer.panels;return n.map(function(i,o){return new V({index:o,position:i.position,panel:i})})},t.findNearestAnchor=function(e){var n=this._flicking.camera,i=n.anchorPoints;if(i.length<=0)return null;for(var o=n.range,s=1/0,u=-1,l=0;l<i.length;l++){var c=i[l],f=Math.min(Math.abs(c.position-e),Math.abs(c.position-o.min+o.max-e),Math.abs(e-o.min+o.max-c.position));f<s&&(s=f,u=l)}return i[u]},t.findAnchorIncludePosition=function(e){var n=this._flicking.camera,i=n.range,o=n.anchorPoints,s=n.rangeDiff,u=o.length,l=Bn(e,i.min,i.max),c=a.prototype.findAnchorIncludePosition.call(this,l);if(u>0&&(e===i.min||e===i.max)){var f=[c,new V({index:0,position:o[0].position+s,panel:o[0].panel}),new V({index:u-1,position:o[u-1].position-s,panel:o[u-1].panel})].filter(function(h){return!!h});c=f.reduce(function(h,v){return h&&Math.abs(h.position-e)<Math.abs(v.position-e)?h:v},null)}if(!c)return null;if(e<i.min){var d=-Math.floor((i.min-e)/s)-1;return new V({index:c.index,position:c.position+s*d,panel:c.panel})}else if(e>i.max){var d=Math.floor((e-i.max)/s)+1;return new V({index:c.index,position:c.position+s*d,panel:c.panel})}return c},t.getCircularOffset=function(){var e=this._flicking,n=e.camera;if(!n.circularEnabled)return 0;var i=e.panels.filter(function(u){return u.toggled}),o=i.filter(function(u){return u.toggleDirection===y.PREV}),s=i.filter(function(u){return u.toggleDirection===y.NEXT});return this._calcPanelAreaSum(o)-this._calcPanelAreaSum(s)},t.clampToReachablePosition=function(e){return e},t.canReach=function(e){return!e.removed},t.canSee=function(e){var n=this._flicking.camera,i=n.range,o=n.rangeDiff,s=n.visibleRange,u=a.prototype.canSee.call(this,e);return s.min<i.min?u||e.isVisibleOnRange(s.min+o,s.max+o):s.max>i.max?u||e.isVisibleOnRange(s.min-o,s.max-o):u},t._calcPanelAreaSum=function(e){return e.reduce(function(n,i){return n+i.sizeIncludingMargin},0)},r})(yt),dn=(function(a){H(r,a);function r(){return a!==null&&a.apply(this,arguments)||this}var t=r.prototype;return t.checkAvailability=function(){var e=this._flicking,n=e.renderer,i=n.getPanel(0),o=n.getPanel(n.panelCount-1);if(!i||!o)return!1;var s=e.camera.size,u=i.range.min,l=o.range.max,c=l-u,f=s<c;return f},t.getRange=function(){var e=this._flicking,n=e.renderer,i=e.camera.alignPosition,o=n.getPanel(0),s=n.getPanel(n.panelCount-1);if(!o||!s)return{min:0,max:0};var u=e.camera.size,l=o.range.min,c=s.range.max,f=c-l,d=u<f,h=l+i,v=c-u+i;if(d)return{min:h,max:v};var g=e.camera.align,p=typeof g=="object"?g.camera:g,_=h+Pt(p,v-h);return{min:_,max:_}},t.getAnchors=function(){var e=this._flicking,n=e.camera,i=e.renderer.panels;if(i.length<=0)return[];var o=e.camera.range,s=i.filter(function(g){return n.canReach(g)});if(s.length>0){var u=s[0].position!==o.min,l=s[s.length-1].position!==o.max,c=u?1:0,f=s.map(function(g,p){return new V({index:p+c,position:g.position,panel:g})});return u&&f.splice(0,0,new V({index:0,position:o.min,panel:i[s[0].index-1]})),l&&f.push(new V({index:f.length,position:o.max,panel:i[s[s.length-1].index+1]})),f}else if(o.min!==o.max){var d=this._findNearestPanel(o.min,i),h=d.index===i.length-1?d.prev():d,v=h.next();return[new V({index:0,position:o.min,panel:h}),new V({index:1,position:o.max,panel:v})]}else return[new V({index:0,position:o.min,panel:this._findNearestPanel(o.min,i)})]},t.findAnchorIncludePosition=function(e){var n=this._flicking.camera,i=n.range,o=n.anchorPoints;return o.length<=0?null:e<=i.min?o[0]:e>=i.max?o[o.length-1]:a.prototype.findAnchorIncludePosition.call(this,e)},t._findNearestPanel=function(e,n){for(var i=1/0,o=0;o<n.length;o++){var s=n[o],u=Math.abs(s.position-e);if(u>i)return n[o-1];i=u}return n[n.length-1]},r})(yt),fa=(function(){function a(t,e){var n=this,i=(e===void 0?{}:e).align,o=i===void 0?le.CENTER:i;this._lookedOffset=0,this._checkTranslateSupport=function(){var s,u,l=["webkitTransform","msTransform","MozTransform","OTransform","transform"],c=document.documentElement.style,f="";try{for(var d=He(l),h=d.next();!h.done;h=d.next()){var v=h.value;v in c&&(f=v)}}catch(g){s={error:g}}finally{try{h&&!h.done&&(u=d.return)&&u.call(d)}finally{if(s)throw s.error}}if(!f)throw new R(w.TRANSFORM_NOT_SUPPORTED,I.TRANSFORM_NOT_SUPPORTED);n._transform=f},this._flicking=t,this._resetInternalValues(),this._align=o}var r=a.prototype;return Object.defineProperty(r,"element",{get:function(){return this._el},enumerable:!1,configurable:!0}),Object.defineProperty(r,"children",{get:function(){return Et(this._el.children)},enumerable:!1,configurable:!0}),Object.defineProperty(r,"position",{get:function(){return this._position},enumerable:!1,configurable:!0}),Object.defineProperty(r,"alignPosition",{get:function(){return this._alignPos},enumerable:!1,configurable:!0}),Object.defineProperty(r,"offset",{get:function(){return this._offset-this._circularOffset},enumerable:!1,configurable:!0}),Object.defineProperty(r,"circularEnabled",{get:function(){return this._circularEnabled},enumerable:!1,configurable:!0}),Object.defineProperty(r,"mode",{get:function(){return this._mode},enumerable:!1,configurable:!0}),Object.defineProperty(r,"range",{get:function(){return this._range},enumerable:!1,configurable:!0}),Object.defineProperty(r,"rangeDiff",{get:function(){return this._range.max-this._range.min},enumerable:!1,configurable:!0}),Object.defineProperty(r,"visiblePanels",{get:function(){return this._visiblePanels},enumerable:!1,configurable:!0}),Object.defineProperty(r,"visibleRange",{get:function(){return{min:this._position-this._alignPos,max:this._position-this._alignPos+this.size}},enumerable:!1,configurable:!0}),Object.defineProperty(r,"anchorPoints",{get:function(){return this._anchors},enumerable:!1,configurable:!0}),Object.defineProperty(r,"controlParams",{get:function(){return{range:this._range,position:this._position,circular:this._circularEnabled}},enumerable:!1,configurable:!0}),Object.defineProperty(r,"atEdge",{get:function(){return this._position<=this._range.min||this._position>=this._range.max},enumerable:!1,configurable:!0}),Object.defineProperty(r,"size",{get:function(){var t=this._flicking;return t?t.horizontal?t.viewport.width:t.viewport.height:0},enumerable:!1,configurable:!0}),Object.defineProperty(r,"progress",{get:function(){var t=this._flicking,e=this._position+this._offset,n=this.findNearestAnchor(this._position);if(!t||!n)return NaN;var i=n.panel,o=i.position+i.offset,s=t.control.controller.bounce,u=this.range,l=u.min,c=u.max,f=this.rangeDiff;if(e===o)return i.index;if(e<o){var d=i.prev(),h=d?d.position+d.offset:l-s[0];return h>o&&(h-=f),i.index-1+je(e,h,o)}else{var v=i.next(),g=v?v.position+v.offset:c+s[1];return g<o&&(g+=f),i.index+je(e,o,g)}},enumerable:!1,configurable:!0}),Object.defineProperty(r,"panelOrder",{get:function(){return this._panelOrder},enumerable:!1,configurable:!0}),Object.defineProperty(r,"align",{get:function(){return this._align},set:function(t){this._align=t},enumerable:!1,configurable:!0}),r.init=function(){var t=this._flicking.viewport.element;return Xi(t.firstElementChild,"First element child of the viewport element"),this._el=t.firstElementChild,this._checkTranslateSupport(),this._updateMode(),this.updatePanelOrder(),this},r.destroy=function(){return this._resetInternalValues(),this},r.lookAt=function(t){var e=this,n=this._offset,i=this._lookedOffset!==n,o=P(this._flicking),s=this._position;this._position=t;var u=this._togglePanels(s,t);this._refreshVisiblePanels(),this._checkNeedPanel(),this._checkReachEnd(s,t),u?o.renderer.render().then(function(){e.updateOffset(),e._lookedOffset=e._offset}):i?(this.updateOffset(),this._lookedOffset=this._offset):this.applyTransform()},r.getPrevAnchor=function(t){if(!this._circularEnabled||t.index!==0)return this._anchors[t.index-1]||null;var e=this._anchors,n=this.rangeDiff,i=e[e.length-1];return new V({index:i.index,position:i.position-n,panel:i.panel})},r.getNextAnchor=function(t){var e=this._anchors;if(!this._circularEnabled||t.index!==e.length-1)return e[t.index+1]||null;var n=this.rangeDiff,i=e[0];return new V({index:i.index,position:i.position+n,panel:i.panel})},r.getProgressInPanel=function(t){var e=t.range;return(this._position-e.min)/(e.max-e.min)},r.findAnchorIncludePosition=function(t){return this._mode.findAnchorIncludePosition(t)},r.findNearestAnchor=function(t){return this._mode.findNearestAnchor(t)},r.findActiveAnchor=function(){var t,e=P(this._flicking),n=e.control.activePanel;return n?(t=Ki(this._anchors,function(i){return i.panel.index===n.index}))!==null&&t!==void 0?t:this.findNearestAnchor(n.position):null},r.clampToReachablePosition=function(t){return this._mode.clampToReachablePosition(t)},r.canReach=function(t){return this._mode.canReach(t)},r.canSee=function(t){return this._mode.canSee(t)},r.updateRange=function(){var t=P(this._flicking),e=t.renderer,n=e.panels;return this._updateMode(),this._range=this._mode.getRange(),n.forEach(function(i){return i.updateCircularToggleDirection()}),this},r.updateAlignPos=function(){var t=this._align,e=typeof t=="object"?t.camera:t;return this._alignPos=Pt(e,this.size),this},r.updateAnchors=function(){return this._anchors=this._mode.getAnchors(),this},r.updateAdaptiveHeight=function(){var t=P(this._flicking),e=t.control.activePanel,n=t.visiblePanels,i=U(n);if(e&&i.push(e),!(!t.horizontal||!t.adaptive||!i.length)){var o=Math.max.apply(Math,U(i.map(function(s){return s.height})));t.viewport.setSize({height:o})}},r.updateOffset=function(){var t=P(this._flicking),e=this._position,n=t.panels.filter(function(i){return!i.rendered});return this._offset=n.filter(function(i){return i.position+i.offset<e}).reduce(function(i,o){return i+o.sizeIncludingMargin},0),this._circularOffset=this._mode.getCircularOffset(),this.applyTransform(),this},r.updatePanelOrder=function(){var t=P(this._flicking);if(!t.horizontal)return this;var e=this._el,n=de(e).direction;return n!==this._panelOrder&&(this._panelOrder=n===ae.RTL?ae.RTL:ae.LTR,t.initialized&&t.control.controller.updateDirection()),this},r.resetNeedPanelHistory=function(){return this._needPanelTriggered={prev:!1,next:!1},this},r.applyTransform=function(){var t=this._el,e=P(this._flicking),n=e.renderer;if(n.rendering||!e.initialized)return this;var i=this._position-this._alignPos-this._offset+this._circularOffset;return t.style[this._transform]=e.horizontal?"translate("+(this._panelOrder===ae.RTL?i:-i)+"px)":"translate(0, "+-i+"px)",this},r._resetInternalValues=function(){this._position=0,this._lookedOffset=0,this._alignPos=0,this._offset=0,this._circularOffset=0,this._circularEnabled=!1,this._range={min:0,max:0},this._visiblePanels=[],this._anchors=[],this._needPanelTriggered={prev:!1,next:!1}},r._refreshVisiblePanels=function(){var t=this,e=P(this._flicking),n=e.renderer.panels,i=n.filter(function(l){return t.canSee(l)}),o=this._visiblePanels;this._visiblePanels=i;var s=i.filter(function(l){return!ze(o,l)}),u=o.filter(function(l){return!ze(i,l)});(s.length>0||u.length>0)&&e.renderer.render().then(function(){e.trigger(new x(O.VISIBLE_CHANGE,{added:s,removed:u,visiblePanels:i}))})},r._checkNeedPanel=function(){var t=this._needPanelTriggered;if(!(t.prev&&t.next)){var e=P(this._flicking),n=e.renderer.panels;if(n.length<=0){t.prev||(e.trigger(new x(O.NEED_PANEL,{direction:y.PREV})),t.prev=!0),t.next||(e.trigger(new x(O.NEED_PANEL,{direction:y.NEXT})),t.next=!0);return}var i=this._position,o=this.size,s=this._range,u=e.needPanelThreshold,l=i-this._alignPos,c=l+o,f=n[0],d=n[n.length-1];if(!t.prev){var h=f.range.min;(l<=h+u||i<=s.min+u)&&(e.trigger(new x(O.NEED_PANEL,{direction:y.PREV})),t.prev=!0)}if(!t.next){var v=d.range.max;(c>=v-u||i>=s.max-u)&&(e.trigger(new x(O.NEED_PANEL,{direction:y.NEXT})),t.next=!0)}}},r._checkReachEnd=function(t,e){var n=P(this._flicking),i=this._range,o=t>i.min&&t<i.max,s=e>i.min&&e<i.max;if(!(!o||s)){var u=e<=i.min?y.PREV:y.NEXT;n.trigger(new x(O.REACH_EDGE,{direction:u}))}},r._updateMode=function(){var t=P(this._flicking);if(t.circular){var e=new ca(t),n=e.checkAvailability();if(n)this._mode=e;else{var i=t.circularFallback;this._mode=i===Vn.BOUND?new dn(t):new hn(t)}this._circularEnabled=n}else this._mode=t.bound?new dn(t):new hn(t),this._circularEnabled=!1},r._togglePanels=function(t,e){if(e===t)return!1;var n=P(this._flicking),i=n.renderer.panels,o=i.map(function(s){return s.toggle(t,e)});return o.some(function(s){return s})},a})(),ha=(function(){function a(t){var e=t.align,n=e===void 0?le.CENTER:e,i=t.strategy;this._flicking=null,this._panels=[],this._rendering=!1,this._align=n,this._strategy=i}var r=a.prototype;return Object.defineProperty(r,"panels",{get:function(){return this._panels},enumerable:!1,configurable:!0}),Object.defineProperty(r,"rendering",{get:function(){return this._rendering},enumerable:!1,configurable:!0}),Object.defineProperty(r,"panelCount",{get:function(){return this._panels.length},enumerable:!1,configurable:!0}),Object.defineProperty(r,"strategy",{get:function(){return this._strategy},enumerable:!1,configurable:!0}),Object.defineProperty(r,"align",{get:function(){return this._align},set:function(t){this._align=t;var e=Le(t);this._panels.forEach(function(n){n.align=e})},enumerable:!1,configurable:!0}),r.init=function(t){return this._flicking=t,this._collectPanels(),this},r.destroy=function(){this._flicking=null,this._panels=[]},r.getPanel=function(t){return this._panels[t]||null},r.forceRenderAllPanels=function(){return this._panels.forEach(function(t){return t.markForShow()}),Promise.resolve()},r.getRenderedPanels=function(){var t=P(this._flicking);return t.renderer.panels.filter(function(e){return e.rendered})},r.updatePanelSize=function(){var t=P(this._flicking),e=this._panels;if(e.length<=0)return this;if(t.panelsPerView>0){var n=e[0];n.resize(),this._updatePanelSizeByGrid(n,e)}else t.panels.forEach(function(i){return i.resize()});return this},r.batchInsert=function(){for(var t=[],e=0;e<arguments.length;e++)t[e]=arguments[e];var n=this.batchInsertDefer.apply(this,U(t));return n.length<=0?[]:(this.updateAfterPanelChange(n,[]),n)},r.batchInsertDefer=function(){for(var t=this,e=[],n=0;n<arguments.length;n++)e[n]=arguments[n];var i=this._panels,o=P(this._flicking),s=i[0],u=Le(this._align),l=e.reduce(function(c,f){var d,h=Me(f.index,i.length),v=i.slice(h),g=f.elements.map(function(_,m){return t._createPanel(_,{index:h+m,align:u,flicking:o})});if(i.splice.apply(i,U([h,0],g)),f.hasDOMInElements&&t._insertPanelElements(g,(d=v[0])!==null&&d!==void 0?d:null),o.panelsPerView>0){var p=s||g[0].resize();t._updatePanelSizeByGrid(p,g)}else g.forEach(function(_){return _.resize()});return v.forEach(function(_){_.increaseIndex(g.length),_.updatePosition()}),U(c,g)},[]);return l},r.batchRemove=function(){for(var t=[],e=0;e<arguments.length;e++)t[e]=arguments[e];var n=this.batchRemoveDefer.apply(this,U(t));return n.length<=0?[]:(this.updateAfterPanelChange([],n),n)},r.batchRemoveDefer=function(){for(var t=this,e=[],n=0;n<arguments.length;n++)e[n]=arguments[n];var i=this._panels,o=P(this._flicking),s=o.control,u=s.activePanel,l=e.reduce(function(c,f){var d=f.index,h=f.deleteCount,v=Me(d,i.length),g=i.slice(v+h),p=i.splice(v,h);return p.length<=0?[]:(g.forEach(function(_){_.decreaseIndex(p.length),_.updatePosition()}),f.hasDOMInElements&&t._removePanelElements(p),p.forEach(function(_){return _.destroy()}),ze(p,u)&&s.resetActive(),U(c,p))},[]);return l},r.updateAfterPanelChange=function(t,e){var n,i=P(this._flicking),o=i.camera,s=i.control,u=this._panels,l=s.activePanel;if(this._updateCameraAndControl(),i.autoResize&&i.useResizeObserver&&(t.forEach(function(f){f.element&&i.autoResizer.observe(f.element)}),e.forEach(function(f){f.element&&i.autoResizer.unobserve(f.element)})),this.render(),!i.animating)if(!l||l.removed)if(u.length<=0)o.lookAt(0);else{var c=(n=l==null?void 0:l.index)!==null&&n!==void 0?n:0;c>u.length-1&&(c=u.length-1),s.moveToPanel(u[c],{duration:0}).catch(function(){})}else s.moveToPanel(l,{duration:0}).catch(function(){});i.camera.updateOffset(),(t.length>0||e.length>0)&&(i.trigger(new x(O.PANEL_CHANGE,{added:t,removed:e})),this.checkPanelContentsReady(U(t,e)))},r.checkPanelContentsReady=function(t){var e=this,n=P(this._flicking),i=n.resizeOnContentsReady,o=this._panels;if(!(!i||n.virtualEnabled)){var s=function(l){return l.element&&!!l.element.querySelector("img, video")};if(t=t.filter(function(l){return s(l)}),!(t.length<=0)){var u=new Bi;t.forEach(function(l){l.loading=!0}),u.on("readyElement",function(l){if(!e._flicking){u.destroy();return}var c=t[l.index],f=n.camera,d=n.control,h=d.activePanel?f.getProgressInPanel(d.activePanel):0;c.loading=!1,c.resize(),o.slice(c.index+1).forEach(function(v){return v.updatePosition()}),n.initialized&&(f.updateRange(),f.updateOffset(),f.updateAnchors(),d.animating||(d.updatePosition(h),d.updateInput()))}),u.on("preReady",function(l){e._flicking&&e.render(),l.readyCount===l.totalCount&&u.destroy()}),u.on("ready",function(){e._flicking&&e.render(),u.destroy()}),u.check(t.map(function(l){return l.element}))}}},r._updateCameraAndControl=function(){var t=P(this._flicking),e=t.camera,n=t.control;e.updateRange(),e.updateOffset(),e.updateAnchors(),e.resetNeedPanelHistory(),n.updateInput()},r._showOnlyVisiblePanels=function(t){var e=t.renderer.panels,n=t.camera,i=n.visiblePanels.reduce(function(o,s){return o[s.index]=!0,o},{});e.forEach(function(o){o.index in i||o.loading?o.markForShow():t.holding||o.markForHide()})},r._updatePanelSizeByGrid=function(t,e){var n=P(this._flicking),i=n.panelsPerView;if(i<=0)throw new R(w.WRONG_OPTION("panelsPerView",i),I.WRONG_OPTION);if(!(e.length<=0)){var o=n.camera.size,s=t.margin.prev+t.margin.next,u=(o-s*(i-1))/i,l=n.horizontal?{width:u}:{height:u},c=B({size:u,margin:t.margin},!n.horizontal&&{height:t.height});n.noPanelStyleOverride||this._strategy.updatePanelSizes(n,l),n.panels.forEach(function(f){return f.resize(c)})}},r._removeAllChildsFromCamera=function(){for(var t=P(this._flicking),e=t.camera.element;e.firstChild;)e.removeChild(e.firstChild)},r._insertPanelElements=function(t,e){e===void 0&&(e=null);var n=P(this._flicking),i=n.camera,o=i.element,s=(e==null?void 0:e.element)||null,u=document.createDocumentFragment();t.forEach(function(l){return u.appendChild(l.element)}),o.insertBefore(u,s)},r._removePanelElements=function(t){var e=P(this._flicking),n=e.camera.element;t.forEach(function(i){n.removeChild(i.element)})},r._afterRender=function(){var t=P(this._flicking);if(t.camera.applyTransform(),t.useCSSOrder){var e=t.renderer.panels.filter(function(n){return n.rendered});this._strategy.getRenderingIndexesByOrder(t).forEach(function(n,i){e[n].element&&(e[n].element.style.order=""+i)})}},a})(),da=(function(a){H(r,a);function r(){return a!==null&&a.apply(this,arguments)||this}var t=r.prototype;return t.render=function(){return se(this,void 0,void 0,function(){var e,n;return ue(this,function(i){return e=P(this._flicking),n=this._strategy,n.updateRenderingPanels(e),n.renderPanels(e),this._resetPanelElementOrder(),this._afterRender(),[2]})})},t._collectPanels=function(){var e=P(this._flicking),n=e.camera;this._removeAllTextNodes(),this._panels=this._strategy.collectPanels(e,n.children)},t._createPanel=function(e,n){return this._strategy.createPanel(e,n)},t._resetPanelElementOrder=function(){var e=P(this._flicking),n=e.camera.element,i=[];e.useCSSOrder?i=this.getRenderedPanels().map(function(o){return o.element}).reverse():i=this._strategy.getRenderingElementsByOrder(e).reverse(),i.forEach(function(o,s){var u=i[s-1]?i[s-1]:null;o.nextElementSibling!==u&&n.insertBefore(o,u)})},t._removeAllTextNodes=function(){var e=P(this._flicking),n=e.camera.element;Et(n.childNodes).forEach(function(i){i.nodeType===Node.TEXT_NODE&&n.removeChild(i)})},r})(ha),ft=(function(){function a(t){var e=t.index,n=t.align,i=t.flicking,o=t.elementProvider;this._index=e,this._flicking=i,this._elProvider=o,this._align=n,this._removed=!1,this._rendered=!0,this._loading=!1,this._resetInternalStates()}var r=a.prototype;return Object.defineProperty(r,"element",{get:function(){return this._elProvider.element},enumerable:!1,configurable:!0}),Object.defineProperty(r,"elementProvider",{get:function(){return this._elProvider},enumerable:!1,configurable:!0}),Object.defineProperty(r,"index",{get:function(){return this._index},enumerable:!1,configurable:!0}),Object.defineProperty(r,"position",{get:function(){return this._pos+this._alignPos},enumerable:!1,configurable:!0}),Object.defineProperty(r,"size",{get:function(){return this._size},enumerable:!1,configurable:!0}),Object.defineProperty(r,"sizeIncludingMargin",{get:function(){return this._size+this._margin.prev+this._margin.next},enumerable:!1,configurable:!0}),Object.defineProperty(r,"height",{get:function(){return this._height},enumerable:!1,configurable:!0}),Object.defineProperty(r,"margin",{get:function(){return this._margin},enumerable:!1,configurable:!0}),Object.defineProperty(r,"alignPosition",{get:function(){return this._alignPos},enumerable:!1,configurable:!0}),Object.defineProperty(r,"removed",{get:function(){return this._removed},enumerable:!1,configurable:!0}),Object.defineProperty(r,"rendered",{get:function(){return this._rendered},enumerable:!1,configurable:!0}),Object.defineProperty(r,"loading",{get:function(){return this._loading},set:function(t){this._loading=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"range",{get:function(){return{min:this._pos,max:this._pos+this._size}},enumerable:!1,configurable:!0}),Object.defineProperty(r,"toggled",{get:function(){return this._toggled},enumerable:!1,configurable:!0}),Object.defineProperty(r,"toggleDirection",{get:function(){return this._toggleDirection},enumerable:!1,configurable:!0}),Object.defineProperty(r,"offset",{get:function(){var t=this._toggleDirection,e=this._flicking.camera.rangeDiff;return t===y.NONE||!this._toggled?0:t===y.PREV?-e:e},enumerable:!1,configurable:!0}),Object.defineProperty(r,"progress",{get:function(){var t=this._flicking;return this.index-t.camera.progress},enumerable:!1,configurable:!0}),Object.defineProperty(r,"outsetProgress",{get:function(){var t=this.position+this.offset,e=this._alignPos,n=this._flicking.camera,i=n.position;if(i===t)return 0;if(i<t){var o=t+(n.size-n.alignPosition)+e;return-je(i,t,o)}else{var s=t-(n.alignPosition+this._size-e);return 1-je(i,s,t)}},enumerable:!1,configurable:!0}),Object.defineProperty(r,"visibleRatio",{get:function(){var t=this.range,e=this._size,n=this.offset,i=this._flicking.camera.visibleRange,o={min:t.min+n,max:t.max+n};if(o.max<=i.min||o.min>=i.max)return 0;var s=e;return i.min>o.min&&(s-=i.min-o.min),i.max<o.max&&(s-=o.max-i.max),s/e},enumerable:!1,configurable:!0}),Object.defineProperty(r,"align",{get:function(){return this._align},set:function(t){this._align=t,this._updateAlignPos()},enumerable:!1,configurable:!0}),r.markForShow=function(){this._rendered=!0,this._elProvider.show(this._flicking)},r.markForHide=function(){this._rendered=!1,this._elProvider.hide(this._flicking)},r.resize=function(t){var e,n=this.element,i=this._flicking,o=i.horizontal,s=i.useFractionalSize;if(!n)return this;if(t)this._size=t.size,this._margin=B({},t.margin),this._height=(e=t.height)!==null&&e!==void 0?e:ee({el:n,horizontal:!1,useFractionalSize:s,useOffset:!0,style:de(n)});else{var u=de(n);this._size=ee({el:n,horizontal:o,useFractionalSize:s,useOffset:!0,style:u}),this._margin=o?{prev:parseFloat(u.marginLeft||"0"),next:parseFloat(u.marginRight||"0")}:{prev:parseFloat(u.marginTop||"0"),next:parseFloat(u.marginBottom||"0")},this._height=o?ee({el:n,horizontal:!1,useFractionalSize:s,useOffset:!0,style:u}):this._size}return this.updatePosition(),this._updateAlignPos(),this},r.setSize=function(t){return Hn(this.element,t),this},r.contains=function(t){var e;return!!(!((e=this.element)===null||e===void 0)&&e.contains(t))},r.destroy=function(){this._resetInternalStates(),this._removed=!0},r.includePosition=function(t,e){return e===void 0&&(e=!1),this.includeRange(t,t,e)},r.includeRange=function(t,e,n){n===void 0&&(n=!1);var i=this._margin,o=this.range;return n&&(o.min-=i.prev,o.max+=i.next),e>=o.min&&t<=o.max},r.isVisibleOnRange=function(t,e){var n=this.range;return e>n.min&&t<n.max},r.focus=function(t){return this._flicking.moveTo(this._index,t)},r.prev=function(){var t=this._index,e=this._flicking,n=e.renderer,i=n.panelCount;return i===1?null:e.circularEnabled?n.getPanel(t===0?i-1:t-1):n.getPanel(t-1)},r.next=function(){var t=this._index,e=this._flicking,n=e.renderer,i=n.panelCount;return i===1?null:e.circularEnabled?n.getPanel(t===i-1?0:t+1):n.getPanel(t+1)},r.increaseIndex=function(t){return this._index+=Math.max(t,0),this},r.decreaseIndex=function(t){return this._index-=Math.max(t,0),this},r.updatePosition=function(){var t=this._flicking.renderer.panels[this._index-1];return this._pos=t?t.range.max+t.margin.next+this._margin.prev:this._margin.prev,this},r.toggle=function(t,e){var n=this._toggleDirection,i=this._togglePosition;if(n===y.NONE||e===t)return!1;var o=this._toggled;return e>t?i>=t&&i<=e&&(this._toggled=n===y.NEXT):i<=t&&i>=e&&(this._toggled=n!==y.NEXT),o!==this._toggled},r.updateCircularToggleDirection=function(){var t=this._flicking;if(!t.circularEnabled)return this._toggleDirection=y.NONE,this._togglePosition=0,this._toggled=!1,this;var e=t.camera,n=e.range,i=e.alignPosition,o=e.visibleRange,s=o.max-o.min,u=n.min-i,l=n.max-i+s,c=this.includeRange(l-s,l,!1),f=this.includeRange(u,u+s,!1);return this._toggled=!1,c?(this._toggleDirection=y.PREV,this._togglePosition=this.range.max+n.min-n.max+i,this.toggle(1/0,e.position)):f?(this._toggleDirection=y.NEXT,this._togglePosition=this.range.min+n.max-s+i,this.toggle(-1/0,e.position)):(this._toggleDirection=y.NONE,this._togglePosition=0),this},r._updateAlignPos=function(){this._alignPos=Pt(this._align,this._size)},r._resetInternalStates=function(){this._size=0,this._pos=0,this._margin={prev:0,next:0},this._height=0,this._alignPos=0,this._toggled=!1,this._togglePosition=0,this._toggleDirection=y.NONE},a})(),va=(function(){function a(t){var e=t.providerCtor;this._providerCtor=e}var r=a.prototype;return r.renderPanels=function(){},r.getRenderingIndexesByOrder=function(t){var e=t.renderer.panels.filter(function(s){return s.rendered}),n=e.filter(function(s){return s.toggled&&s.toggleDirection===y.PREV}),i=e.filter(function(s){return s.toggled&&s.toggleDirection===y.NEXT}),o=e.filter(function(s){return!s.toggled});return U(n,o,i).map(function(s){return s.index})},r.getRenderingElementsByOrder=function(t){var e=t.panels;return this.getRenderingIndexesByOrder(t).map(function(n){return e[n].element})},r.updateRenderingPanels=function(t){t.renderOnlyVisible?this._showOnlyVisiblePanels(t):t.panels.forEach(function(e){return e.markForShow()})},r.collectPanels=function(t,e){var n=this,i=Le(t.renderer.align);return e.map(function(o,s){return new ft({index:s,elementProvider:new n._providerCtor(o),align:i,flicking:t})})},r.createPanel=function(t,e){return new ft(B(B({},e),{elementProvider:new this._providerCtor(t)}))},r.updatePanelSizes=function(t,e){t.panels.forEach(function(n){return n.setSize(e)})},r._showOnlyVisiblePanels=function(t){var e=t.renderer.panels,n=t.camera,i=n.visiblePanels.reduce(function(o,s){return o[s.index]=!0,o},{});e.forEach(function(o){o.index in i||o.loading?o.markForShow():t.holding||o.markForHide()}),n.updateOffset()},a})(),vn=(function(a){H(r,a);function r(e){var n=a.call(this,e)||this;return e.elementProvider.init(n),n._elProvider=e.elementProvider,n._cachedInnerHTML=null,n}var t=r.prototype;return Object.defineProperty(t,"element",{get:function(){return this._elProvider.element},enumerable:!1,configurable:!0}),Object.defineProperty(t,"cachedInnerHTML",{get:function(){return this._cachedInnerHTML},enumerable:!1,configurable:!0}),Object.defineProperty(t,"elementIndex",{get:function(){var e=this._flicking,n=e.panelsPerView+1,i=e.panelCount,o=this._index;return this._toggled&&(o=this._toggleDirection===y.NEXT?o+i:o-i),Un(o,n)},enumerable:!1,configurable:!0}),t.cacheRenderResult=function(e){this._cachedInnerHTML=e},t.uncacheRenderResult=function(){this._cachedInnerHTML=null},t.render=function(){var e=this._flicking,n=e.virtual,i=n.renderPanel,o=n.cache,s=this._elProvider.element,u=this._cachedInnerHTML||i(this,this._index);u!==s.innerHTML&&(s.innerHTML=u,o&&this.cacheRenderResult(u))},t.increaseIndex=function(e){return this.uncacheRenderResult(),a.prototype.increaseIndex.call(this,e)},t.decreaseIndex=function(e){return this.uncacheRenderResult(),a.prototype.decreaseIndex.call(this,e)},r})(ft),ga=(function(){function a(){}var r=a.prototype;return r.renderPanels=function(t){var e=t.virtual,n=t.visiblePanels,i=Fe(t.panelsPerView+1);n.forEach(function(o){var s=o.elementIndex;o.render(),e.show(s),i[s]=-1}),i.filter(function(o){return o>=0}).forEach(function(o){e.hide(o)})},r.getRenderingIndexesByOrder=function(t){var e=t.virtual,n=U(t.visiblePanels).filter(function(s){return s.rendered}).sort(function(s,u){return s.position+s.offset-(u.position+u.offset)});if(n.length<=0)return e.elements.map(function(s,u){return u});var i=n.map(function(s){return s.elementIndex}),o=e.elements.map(function(s,u){return B(B({},s),{idx:u})}).filter(function(s){return!s.visible}).map(function(s){return s.idx});return U(i,o)},r.getRenderingElementsByOrder=function(t){var e=t.virtual,n=e.elements;return this.getRenderingIndexesByOrder(t).map(function(i){return n[i].nativeElement})},r.updateRenderingPanels=function(t){var e=t.renderer.panels,n=t.camera,i=n.visiblePanels.reduce(function(o,s){return o[s.index]=!0,o},{});e.forEach(function(o){o.index in i||o.loading?o.markForShow():o.markForHide()}),n.updateOffset()},r.collectPanels=function(t){var e=Le(t.renderer.align);return Fe(t.virtual.initialPanelCount).map(function(n){return new vn({index:n,elementProvider:new cn(t),align:e,flicking:t})})},r.createPanel=function(t,e){return new vn(B(B({},e),{elementProvider:new cn(e.flicking)}))},r.updatePanelSizes=function(t,e){t.virtual.elements.forEach(function(n){Hn(n.nativeElement,e)}),t.panels.forEach(function(n){return n.setSize(e)})},a})(),_a=(function(a){H(r,a);function r(e,n){var i=n===void 0?{}:n,o=i.align,s=o===void 0?le.CENTER:o,u=i.defaultIndex,l=u===void 0?0:u,c=i.horizontal,f=c===void 0?!0:c,d=i.circular,h=d===void 0?!1:d,v=i.circularFallback,g=v===void 0?Vn.LINEAR:v,p=i.bound,_=p===void 0?!1:p,m=i.adaptive,E=m===void 0?!1:m,T=i.panelsPerView,C=T===void 0?-1:T,N=i.noPanelStyleOverride,M=N===void 0?!1:N,Y=i.resizeOnContentsReady,j=Y===void 0?!1:Y,q=i.nested,L=q===void 0?!1:q,X=i.needPanelThreshold,$=X===void 0?0:X,_e=i.preventEventsBeforeInit,re=_e===void 0?!0:_e,Rt=i.deceleration,Wn=Rt===void 0?.0075:Rt,It=i.duration,Xn=It===void 0?500:It,Ct=i.easing,Gn=Ct===void 0?function(pr){return 1-Math.pow(1-pr,3)}:Ct,wt=i.inputType,Yn=wt===void 0?["mouse","touch"]:wt,St=i.moveType,Kn=St===void 0?"snap":St,At=i.threshold,qn=At===void 0?40:At,kt=i.dragThreshold,$n=kt===void 0?1:kt,Nt=i.interruptable,Zn=Nt===void 0?!0:Nt,Dt=i.bounce,Jn=Dt===void 0?"20%":Dt,Lt=i.iOSEdgeSwipeThreshold,Qn=Lt===void 0?30:Lt,Mt=i.preventClickOnDrag,er=Mt===void 0?!0:Mt,zt=i.preventDefaultOnDrag,tr=zt===void 0?!1:zt,jt=i.disableOnInit,nr=jt===void 0?!1:jt,Ft=i.changeOnHold,rr=Ft===void 0?!1:Ft,Vt=i.renderOnlyVisible,ir=Vt===void 0?!1:Vt,Bt=i.virtual,Ht=Bt===void 0?null:Bt,Ut=i.autoInit,ar=Ut===void 0?!0:Ut,Wt=i.autoResize,or=Wt===void 0?!0:Wt,Xt=i.useResizeObserver,sr=Xt===void 0?!0:Xt,Gt=i.resizeDebounce,ur=Gt===void 0?0:Gt,Yt=i.observePanelResize,lr=Yt===void 0?!1:Yt,Kt=i.maxResizeDebounce,cr=Kt===void 0?100:Kt,qt=i.useFractionalSize,fr=qt===void 0?!1:qt,$t=i.externalRenderer,hr=$t===void 0?null:$t,Zt=i.renderExternal,dr=Zt===void 0?null:Zt,Jt=i.optimizeSizeUpdate,vr=Jt===void 0?!1:Jt,Qt=i.animationThreshold,gr=Qt===void 0?.5:Qt,en=i.useCSSOrder,_r=en===void 0?!1:en,b=a.call(this)||this;return b._scheduleResize=!1,b._initialized=!1,b._plugins=[],b._isResizing=!1,b._align=s,b._defaultIndex=l,b._horizontal=f,b._circular=h,b._circularFallback=g,b._bound=_,b._adaptive=E,b._panelsPerView=C,b._noPanelStyleOverride=M,b._resizeOnContentsReady=j,b._nested=L,b._virtual=Ht,b._needPanelThreshold=$,b._preventEventsBeforeInit=re,b._deceleration=Wn,b._duration=Xn,b._easing=Gn,b._inputType=Yn,b._moveType=Kn,b._threshold=qn,b._dragThreshold=$n,b._interruptable=Zn,b._bounce=Jn,b._iOSEdgeSwipeThreshold=Qn,b._preventClickOnDrag=er,b._preventDefaultOnDrag=tr,b._disableOnInit=nr,b._changeOnHold=rr,b._renderOnlyVisible=ir,b._autoInit=ar,b._autoResize=or,b._useResizeObserver=sr,b._resizeDebounce=ur,b._maxResizeDebounce=cr,b._observePanelResize=lr,b._useFractionalSize=fr,b._externalRenderer=hr,b._renderExternal=dr,b._optimizeSizeUpdate=vr,b._animationThreshold=gr,b._useCSSOrder=_r,b._viewport=new Zi(b,Wi(e)),b._autoResizer=new Ji(b),b._renderer=b._createRenderer(),b._camera=b._createCamera(),b._control=b._createControl(),b._virtualManager=new ea(b,Ht),b._autoInit&&b.init(),b}var t=r.prototype;return Object.defineProperty(t,"control",{get:function(){return this._control},enumerable:!1,configurable:!0}),Object.defineProperty(t,"camera",{get:function(){return this._camera},enumerable:!1,configurable:!0}),Object.defineProperty(t,"renderer",{get:function(){return this._renderer},enumerable:!1,configurable:!0}),Object.defineProperty(t,"viewport",{get:function(){return this._viewport},enumerable:!1,configurable:!0}),Object.defineProperty(t,"autoResizer",{get:function(){return this._autoResizer},enumerable:!1,configurable:!0}),Object.defineProperty(t,"initialized",{get:function(){return this._initialized},enumerable:!1,configurable:!0}),Object.defineProperty(t,"circularEnabled",{get:function(){return this._camera.circularEnabled},enumerable:!1,configurable:!0}),Object.defineProperty(t,"virtualEnabled",{get:function(){return this._panelsPerView>0&&this._virtual!=null},enumerable:!1,configurable:!0}),Object.defineProperty(t,"index",{get:function(){return this._control.activeIndex},enumerable:!1,configurable:!0}),Object.defineProperty(t,"element",{get:function(){return this._viewport.element},enumerable:!1,configurable:!0}),Object.defineProperty(t,"currentPanel",{get:function(){return this._control.activePanel},enumerable:!1,configurable:!0}),Object.defineProperty(t,"panels",{get:function(){return this._renderer.panels},enumerable:!1,configurable:!0}),Object.defineProperty(t,"panelCount",{get:function(){return this._renderer.panelCount},enumerable:!1,configurable:!0}),Object.defineProperty(t,"visiblePanels",{get:function(){return this._camera.visiblePanels},enumerable:!1,configurable:!0}),Object.defineProperty(t,"animating",{get:function(){return this._control.animating},enumerable:!1,configurable:!0}),Object.defineProperty(t,"holding",{get:function(){return this._control.holding},enumerable:!1,configurable:!0}),Object.defineProperty(t,"activePlugins",{get:function(){return this._plugins},enumerable:!1,configurable:!0}),Object.defineProperty(t,"align",{get:function(){return this._align},set:function(e){this._align=e,this._renderer.align=e,this._camera.align=e,this.resize()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"defaultIndex",{get:function(){return this._defaultIndex},set:function(e){this._defaultIndex=e},enumerable:!1,configurable:!0}),Object.defineProperty(t,"horizontal",{get:function(){return this._horizontal},set:function(e){this._horizontal=e,this._control.controller.updateDirection(),this.resize()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"circular",{get:function(){return this._circular},set:function(e){this._circular=e,this.resize()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"circularFallback",{get:function(){return this._circularFallback},enumerable:!1,configurable:!0}),Object.defineProperty(t,"bound",{get:function(){return this._bound},set:function(e){this._bound=e,this.resize()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"adaptive",{get:function(){return this._adaptive},set:function(e){this._adaptive=e,this.resize()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"panelsPerView",{get:function(){return this._panelsPerView},set:function(e){this._panelsPerView=e,this.resize()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"noPanelStyleOverride",{get:function(){return this._noPanelStyleOverride},set:function(e){this._noPanelStyleOverride=e,this.resize()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"resizeOnContentsReady",{get:function(){return this._resizeOnContentsReady},set:function(e){this._resizeOnContentsReady=e,e&&this._renderer.checkPanelContentsReady(this._renderer.panels)},enumerable:!1,configurable:!0}),Object.defineProperty(t,"nested",{get:function(){return this._nested},set:function(e){this._nested=e;var n=this._control.controller.axes;n&&(n.options.nested=e)},enumerable:!1,configurable:!0}),Object.defineProperty(t,"needPanelThreshold",{get:function(){return this._needPanelThreshold},set:function(e){this._needPanelThreshold=e},enumerable:!1,configurable:!0}),Object.defineProperty(t,"preventEventsBeforeInit",{get:function(){return this._preventEventsBeforeInit},set:function(e){this._preventEventsBeforeInit=e},enumerable:!1,configurable:!0}),Object.defineProperty(t,"deceleration",{get:function(){return this._deceleration},set:function(e){this._deceleration=e;var n=this._control.controller.axes;n&&(n.options.deceleration=e)},enumerable:!1,configurable:!0}),Object.defineProperty(t,"easing",{get:function(){return this._easing},set:function(e){this._easing=e;var n=this._control.controller.axes;n&&(n.options.easing=e)},enumerable:!1,configurable:!0}),Object.defineProperty(t,"duration",{get:function(){return this._duration},set:function(e){this._duration=e},enumerable:!1,configurable:!0}),Object.defineProperty(t,"inputType",{get:function(){return this._inputType},set:function(e){this._inputType=e;var n=this._control.controller.panInput;n&&(n.options.inputType=e)},enumerable:!1,configurable:!0}),Object.defineProperty(t,"moveType",{get:function(){return this._moveType},set:function(e){this._moveType=e;var n=this._control,i=this._createControl(),o=n.activePanel;i.copy(n);var s=o?this._camera.getProgressInPanel(o):0;this._control=i,this._control.updatePosition(s),this._control.updateInput()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"threshold",{get:function(){return this._threshold},set:function(e){this._threshold=e},enumerable:!1,configurable:!0}),Object.defineProperty(t,"dragThreshold",{get:function(){return this._dragThreshold},set:function(e){this._dragThreshold=e;var n=this._control.controller.panInput;n&&(n.options.threshold=e)},enumerable:!1,configurable:!0}),Object.defineProperty(t,"animationThreshold",{get:function(){return this._animationThreshold},set:function(e){this._animationThreshold=e},enumerable:!1,configurable:!0}),Object.defineProperty(t,"useCSSOrder",{get:function(){return this._useCSSOrder},set:function(e){this._useCSSOrder=e},enumerable:!1,configurable:!0}),Object.defineProperty(t,"interruptable",{get:function(){return this._interruptable},set:function(e){this._interruptable=e;var n=this._control.controller.axes;n&&(n.options.interruptable=e)},enumerable:!1,configurable:!0}),Object.defineProperty(t,"bounce",{get:function(){return this._bounce},set:function(e){this._bounce=e,this._control.updateInput()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"iOSEdgeSwipeThreshold",{get:function(){return this._iOSEdgeSwipeThreshold},set:function(e){this._iOSEdgeSwipeThreshold=e;var n=this._control.controller.panInput;n&&(n.options.iOSEdgeSwipeThreshold=e)},enumerable:!1,configurable:!0}),Object.defineProperty(t,"preventClickOnDrag",{get:function(){return this._preventClickOnDrag},set:function(e){var n=this._preventClickOnDrag;if(e!==n){var i=this._control.controller;e?i.addPreventClickHandler():i.removePreventClickHandler(),this._preventClickOnDrag=e}},enumerable:!1,configurable:!0}),Object.defineProperty(t,"preventDefaultOnDrag",{get:function(){return this._preventDefaultOnDrag},set:function(e){this._preventDefaultOnDrag=e;var n=this._control.controller.panInput;n&&(n.options.preventDefaultOnDrag=e)},enumerable:!1,configurable:!0}),Object.defineProperty(t,"disableOnInit",{get:function(){return this._disableOnInit},set:function(e){this._disableOnInit=e},enumerable:!1,configurable:!0}),Object.defineProperty(t,"changeOnHold",{get:function(){return this._changeOnHold},set:function(e){this._changeOnHold=e},enumerable:!1,configurable:!0}),Object.defineProperty(t,"renderOnlyVisible",{get:function(){return this._renderOnlyVisible},set:function(e){this._renderOnlyVisible=e,this._renderer.render()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"virtual",{get:function(){return this._virtualManager},enumerable:!1,configurable:!0}),Object.defineProperty(t,"autoInit",{get:function(){return this._autoInit},enumerable:!1,configurable:!0}),Object.defineProperty(t,"autoResize",{get:function(){return this._autoResize},set:function(e){this._autoResize=e,this._initialized&&(e?this._autoResizer.enable():this._autoResizer.disable())},enumerable:!1,configurable:!0}),Object.defineProperty(t,"useResizeObserver",{get:function(){return this._useResizeObserver},set:function(e){this._useResizeObserver=e,this._initialized&&this._autoResize&&this._autoResizer.enable()},enumerable:!1,configurable:!0}),Object.defineProperty(t,"observePanelResize",{get:function(){return this._observePanelResize},set:function(e){this._observePanelResize=e,this._initialized&&this._autoResize&&(e?this._autoResizer.observePanels():this._autoResizer.unobservePanels())},enumerable:!1,configurable:!0}),Object.defineProperty(t,"resizeDebounce",{get:function(){return this._resizeDebounce},enumerable:!1,configurable:!0}),Object.defineProperty(t,"maxResizeDebounce",{get:function(){return this._maxResizeDebounce},enumerable:!1,configurable:!0}),Object.defineProperty(t,"useFractionalSize",{get:function(){return this._useFractionalSize},enumerable:!1,configurable:!0}),Object.defineProperty(t,"externalRenderer",{get:function(){return this._externalRenderer},enumerable:!1,configurable:!0}),Object.defineProperty(t,"renderExternal",{get:function(){return this._renderExternal},enumerable:!1,configurable:!0}),Object.defineProperty(t,"optimizeSizeUpdate",{get:function(){return this._optimizeSizeUpdate},set:function(e){this._optimizeSizeUpdate=e},enumerable:!1,configurable:!0}),t.init=function(){var e=this;if(this._initialized)return Promise.resolve();var n=this._camera,i=this._renderer,o=this._control,s=this._virtualManager,u=this.trigger,l=this._preventEventsBeforeInit;return n.init(),s.init(),i.init(this),o.init(this),l&&(this.trigger=function(){return e}),this._initialResize(),this._moveToInitialPanel(),this._autoResize&&this._autoResizer.enable(),this._preventClickOnDrag&&o.controller.addPreventClickHandler(),this._disableOnInit&&this.disableInput(),i.checkPanelContentsReady(i.panels),this._initialized=!0,i.render().then(function(){e._plugins.forEach(function(c){return c.init(e)}),l&&(e.trigger=u),e.trigger(new x(O.READY))})},t.destroy=function(){this.off(),this._autoResizer.disable(),this._control.destroy(),this._camera.destroy(),this._renderer.destroy(),this._plugins.forEach(function(e){return e.destroy()}),this._scheduleResize=!1,this._initialized=!1,this._isResizing=!1},t.prev=function(e){var n,i,o;return e===void 0&&(e=this._duration),this.moveTo((o=(i=(n=this._control.activePanel)===null||n===void 0?void 0:n.prev())===null||i===void 0?void 0:i.index)!==null&&o!==void 0?o:-1,e,y.PREV)},t.next=function(e){var n,i,o;return e===void 0&&(e=this._duration),this.moveTo((o=(i=(n=this._control.activePanel)===null||n===void 0?void 0:n.next())===null||i===void 0?void 0:i.index)!==null&&o!==void 0?o:this._renderer.panelCount,e,y.NEXT)},t.moveTo=function(e,n,i){n===void 0&&(n=this._duration),i===void 0&&(i=y.NONE);var o=this._renderer,s=o.panelCount,u=o.getPanel(e);return u?this._control.animating?Promise.reject(new R(w.ANIMATION_ALREADY_PLAYING,I.ANIMATION_ALREADY_PLAYING)):(this._control.holding&&this._control.controller.release(),this._control.moveToPanel(u,{duration:n,direction:i})):Promise.reject(new R(w.INDEX_OUT_OF_RANGE(e,0,s-1),I.INDEX_OUT_OF_RANGE))},t.updateAnimation=function(e,n,i){if(this._control.animating){var o=this._renderer,s=o.panelCount,u=o.getPanel(e);if(!u)throw new R(w.INDEX_OUT_OF_RANGE(e,0,s-1),I.INDEX_OUT_OF_RANGE);this._control.updateAnimation(u,n,i)}},t.stopAnimation=function(){this._control.animating&&this._control.stopAnimation()},t.getPanel=function(e){return this._renderer.getPanel(e)},t.enableInput=function(){return this._control.enable(),this},t.disableInput=function(){return this._control.disable(),this},t.getStatus=function(e){var n,i,o=e===void 0?{}:e,s=o.index,u=s===void 0?!0:s,l=o.position,c=l===void 0?!0:l,f=o.includePanelHTML,d=f===void 0?!1:f,h=o.visiblePanelsOnly,v=h===void 0?!1:h,g=this._camera,p=v?this.visiblePanels:this.panels,_={panels:p.map(function(T){var C={index:T.index};return d&&(C.html=T.element.outerHTML),C})};if(u&&(_.index=this.index),c){var m=g.findNearestAnchor(g.position);m&&(_.position={panel:m.panel.index,progressInPanel:g.getProgressInPanel(m.panel)})}if(v){var E=this.visiblePanels;_.visibleOffset=(i=(n=E[0])===null||n===void 0?void 0:n.index)!==null&&i!==void 0?i:0}return _},t.setStatus=function(e){var n;if(!this._initialized)throw new R(w.NOT_INITIALIZED,I.NOT_INITIALIZED);var i=e.index,o=e.position,s=e.visibleOffset,u=e.panels,l=this._renderer,c=this._control;if(!((n=u[0])===null||n===void 0)&&n.html&&!this._renderExternal&&(l.batchRemove({index:0,deleteCount:this.panels.length,hasDOMInElements:!0}),l.batchInsert({index:0,elements:ln(u.map(function(p){return p.html})),hasDOMInElements:!0})),i!=null){var f=s?i-s:i;this.moveTo(f,0).catch(function(){})}if(o&&this._moveType===Z.FREE_SCROLL){var d=o.panel,h=o.progressInPanel,f=s?d-s:d,v=l.panels[f].range,g=v.min+(v.max-v.min)*h;c.moveToPosition(g,0).catch(function(){})}},t.addPlugins=function(){for(var e,n=this,i=[],o=0;o<arguments.length;o++)i[o]=arguments[o];return this._initialized&&i.forEach(function(s){return s.init(n)}),(e=this._plugins).push.apply(e,U(i)),this},t.removePlugins=function(){for(var e=this,n=[],i=0;i<arguments.length;i++)n[i]=arguments[i];return n.forEach(function(o){var s=qi(e._plugins,function(u){return u===o});s>=0&&(o.destroy(),e._plugins.splice(s,1))}),this},t.resize=function(){return se(this,void 0,void 0,function(){var e,n,i,o,s,u,l,c,f,d,h;return ue(this,function(v){switch(v.label){case 0:return this._initialized?this._isResizing?(this._scheduleResize=!0,[2]):(this._scheduleResize=!1,this._isResizing=!0,e=this._viewport,n=this._renderer,i=this._camera,o=this._control,s=o.activePanel,u=e.width,l=e.height,c=s?i.getProgressInPanel(s):0,this.trigger(new x(O.BEFORE_RESIZE,{width:u,height:l,element:e.element})),e.resize(),this._optimizeSizeUpdate?this.horizontal&&e.width!==u||!this.horizontal&&e.height!==l?[4,n.forceRenderAllPanels()]:[3,2]:[3,3]):[2];case 1:v.sent(),v.label=2;case 2:return[3,5];case 3:return[4,n.forceRenderAllPanels()];case 4:v.sent(),v.label=5;case 5:return this._initialized?(n.updatePanelSize(),i.updateAlignPos(),i.updateRange(),i.updateAnchors(),i.updateAdaptiveHeight(),i.updatePanelOrder(),i.updateOffset(),[4,n.render()]):[2];case 6:return v.sent(),this._initialized?(o.animating||(o.updatePosition(c),o.updateInput()),f=e.width,d=e.height,h=f!==u||d!==l,this.trigger(new x(O.AFTER_RESIZE,{width:e.width,height:e.height,prev:{width:u,height:l},sizeChanged:h,element:e.element})),this._isResizing=!1,this._scheduleResize&&this.resize(),[2]):[2]}})})},t.append=function(e){return this.insert(this._renderer.panelCount,e)},t.prepend=function(e){return this.insert(0,e)},t.insert=function(e,n){if(this._renderExternal)throw new R(w.NOT_ALLOWED_IN_FRAMEWORK,I.NOT_ALLOWED_IN_FRAMEWORK);return this._renderer.batchInsert({index:e,elements:ln(n),hasDOMInElements:!0})},t.remove=function(e,n){if(n===void 0&&(n=1),this._renderExternal)throw new R(w.NOT_ALLOWED_IN_FRAMEWORK,I.NOT_ALLOWED_IN_FRAMEWORK);return this._renderer.batchRemove({index:e,deleteCount:n,hasDOMInElements:!0})},t._createControl=function(){var e,n=this._moveType,i=Object.keys(Z).map(function(u){return Z[u]}),o=Array.isArray(n)?n[0]:n,s=Array.isArray(n)?(e=n[1])!==null&&e!==void 0?e:{}:{};if(!ze(i,o))throw new R(w.WRONG_OPTION("moveType",JSON.stringify(n)),I.WRONG_OPTION);switch(o){case Z.SNAP:return new sa(s);case Z.FREE_SCROLL:return new ua(s);case Z.STRICT:return new la(s)}},t._createCamera=function(){return this._circular&&this._bound&&console.warn('"circular" and "bound" option cannot be used together, ignoring bound.'),new fa(this,{align:this._align})},t._createRenderer=function(){var e=this._externalRenderer;return this._virtual&&this._panelsPerView<=0&&console.warn('"virtual" and "panelsPerView" option should be used together, ignoring virtual.'),e||(this._renderExternal?this._createExternalRenderer():this._createVanillaRenderer())},t._createExternalRenderer=function(){var e=this._renderExternal,n=e.renderer,i=e.rendererOptions;return new n(B({align:this._align},i))},t._createVanillaRenderer=function(){var e=this.virtualEnabled;return new da({align:this._align,strategy:e?new ga:new va({providerCtor:Qi})})},t._moveToInitialPanel=function(){var e=this._renderer,n=this._control,i=this._camera,o=e.getPanel(this._defaultIndex)||e.getPanel(0);if(o){var s=i.findNearestAnchor(o.position),u=s&&o.position!==s.panel.position&&o.index!==s.panel.index?s.panel:o;if(n.setActive(u,null,!1),!s)throw new R(w.POSITION_NOT_REACHABLE(u.position),I.POSITION_NOT_REACHABLE);var l=u.position;i.canReach(u)||(l=s.position),i.lookAt(l),n.updateInput(),i.updateOffset()}},t._initialResize=function(){var e=this._viewport,n=this._renderer,i=this._camera,o=this._control;this.trigger(new x(O.BEFORE_RESIZE,{width:0,height:0,element:e.element})),e.resize(),n.updatePanelSize(),i.updateAlignPos(),i.updateRange(),i.updateAnchors(),i.updateOffset(),o.updateInput();var s=e.width,u=e.height,l=s!==0||u!==0;this.trigger(new x(O.AFTER_RESIZE,{width:e.width,height:e.height,prev:{width:0,height:0},sizeChanged:l,element:e.element}))},r.VERSION="4.15.0",r})(xe),pa=(function(){function a(t){var e=this,n=t===void 0?{}:t,i=n.duration,o=i===void 0?2e3:i,s=n.animationDuration,u=s===void 0?void 0:s,l=n.direction,c=l===void 0?y.NEXT:l,f=n.stopOnHover,d=f===void 0?!1:f,h=n.delayAfterHover;this._flicking=null,this._timerId=0,this._mouseEntered=!1,this._playing=!1,this.play=function(){e._movePanel(e._duration)},this.stop=function(){e._playing=!1,clearTimeout(e._timerId)},this._onMouseEnter=function(){e._mouseEntered=!0,e.stop()},this._onMouseLeave=function(){e._mouseEntered=!1,e._movePanel(e._delayAfterHover)},this._duration=o,this._animationDuration=u,this._direction=c,this._stopOnHover=d,this._delayAfterHover=h??o}var r=a.prototype;return Object.defineProperty(r,"duration",{get:function(){return this._duration},set:function(t){this._duration=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"animationDuration",{get:function(){return this._animationDuration},set:function(t){this._animationDuration=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"direction",{get:function(){return this._direction},set:function(t){this._direction=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"stopOnHover",{get:function(){return this._stopOnHover},set:function(t){this._stopOnHover=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"delayAfterHover",{get:function(){return this._delayAfterHover},set:function(t){this._delayAfterHover=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"playing",{get:function(){return this._playing},enumerable:!1,configurable:!0}),r.init=function(t){var e;if(this._flicking&&this.destroy(),t.on((e={},e[O.MOVE_START]=this.stop,e[O.HOLD_START]=this.stop,e[O.MOVE_END]=this.play,e[O.SELECT]=this.play,e)),this._flicking=t,this._stopOnHover){var n=this._flicking.element;n.addEventListener("mouseenter",this._onMouseEnter,!1),n.addEventListener("mouseleave",this._onMouseLeave,!1)}this.play()},r.destroy=function(){var t=this._flicking;if(this._mouseEntered=!1,this.stop(),!!t){t.off(O.MOVE_START,this.stop),t.off(O.HOLD_START,this.stop),t.off(O.MOVE_END,this.play),t.off(O.SELECT,this.play);var e=t.element;e.removeEventListener("mouseenter",this._onMouseEnter,!1),e.removeEventListener("mouseleave",this._onMouseLeave,!1),this._flicking=null}},r.update=function(){},r._movePanel=function(t){var e=this,n=this._flicking,i=this._direction;n&&(this.stop(),!(this._mouseEntered||n.animating)&&(this._playing=!0,this._timerId=window.setTimeout(function(){var o,s,u=e._animationDuration||n.duration,l=n.moveType;if(l===Z.FREE_SCROLL||(l==null?void 0:l[0])===Z.FREE_SCROLL){var c=n.camera.range,f=n.camera.position,d=n.currentPanel,h=d.prev(),v=d.next(),g=d.position,p=(o=v==null?void 0:v.position)!==null&&o!==void 0?o:c.max,_=(s=h==null?void 0:h.position)!==null&&s!==void 0?s:c.min;if(_>g&&(_=c.min-(c.max-_)),p<g&&(p+=c.max),i===y.NEXT){var m=p-g,E=p-f;f<g&&(E=p-f),u*=E/m}else{var m=g-_,E=f-_;f>g&&(E=f-_),u*=E/m}}i===y.NEXT?n.next(u).catch(function(){}):n.prev(u).catch(function(){}),e.play()},t)))},a})(),G={CLICK:"click",MOUSE_DOWN:"mousedown",TOUCH_START:"touchstart"},$e={PREV_SELECTOR:".flicking-arrow-prev",NEXT_SELECTOR:".flicking-arrow-next",DISABLED_CLASS:"flicking-arrow-disabled"},D={SELECTOR:".flicking-pagination",PREFIX:"flicking-pagination",BULLET_WRAPPER_SUFFIX:"bullets",BULLET_SUFFIX:"bullet",BULLET_ACTIVE_SUFFIX:"bullet-active",FRACTION_WRAPPER_SUFFIX:"fraction",FRACTION_CURRENT_SUFFIX:"fraction-current",FRACTION_TOTAL_SUFFIX:"fraction-total",SCROLL_UNINIT_SUFFIX:"uninitialized",SCROLL_WRAPPER_SUFFIX:"scroll",SCROLL_SLIDER_SUFFIX:"slider",SCROLL_PREV_SUFFIX:"bullet-prev",SCROLL_NEXT_SUFFIX:"bullet-next",TYPE:{BULLET:"bullet",FRACTION:"fraction",SCROLL:"scroll"}},W=function(a,r){if(a)if(a.classList)a.classList.add(r);else{var t=a.className.split(" ");t.indexOf(r)<0&&(a.className=a.className+" "+r)}},ye=function(a,r){if(a)if(a.classList)a.classList.remove(r);else{var t=new RegExp("( |^)"+r+"( |$)","g");a.className.replace(t," ")}},gn=function(a,r,t){var e=r.querySelector(a);if(!e)throw new Error("[Flicking-"+t+"] Couldn't find element with the given selector: "+a);return e},ma=(function(){function a(t){var e=this,n=t===void 0?{}:t,i=n.parentEl,o=i===void 0?null:i,s=n.prevElSelector,u=s===void 0?$e.PREV_SELECTOR:s,l=n.nextElSelector,c=l===void 0?$e.NEXT_SELECTOR:l,f=n.disabledClass,d=f===void 0?$e.DISABLED_CLASS:f,h=n.moveCount,v=h===void 0?1:h,g=n.moveByViewportSize,p=g===void 0?!1:g;this._flicking=null,this._preventInputPropagation=function(_){_.stopPropagation()},this._onPrevClick=function(){var _=e._flicking,m=_.camera,E=m.anchorPoints;if(!(_.animating||E.length<=0)){var T=E[0],C=e._moveCount;if(e._moveByViewportSize)_.control.moveToPosition(m.position-m.size,_.duration).catch(e._onCatch);else if(_.circularEnabled){for(var N=_.currentPanel,M=0;M<C;M++)N=N.prev();N.focus().catch(e._onCatch)}else _.index>T.panel.index?_.moveTo(Math.max(_.index-C,T.panel.index)).catch(e._onCatch):m.position>m.range.min&&_.moveTo(_.index).catch(e._onCatch)}},this._onNextClick=function(){var _=e._flicking,m=_.camera,E=m.anchorPoints;if(!(_.animating||E.length<=0)){var T=E[E.length-1],C=e._moveCount;if(e._moveByViewportSize)_.control.moveToPosition(m.position+m.size,_.duration).catch(e._onCatch);else if(_.circularEnabled){for(var N=_.currentPanel,M=0;M<C;M++)N=N.next();N.focus().catch(e._onCatch)}else _.index<T.panel.index?_.moveTo(Math.min(_.index+C,T.panel.index)).catch(e._onCatch):m.position>m.range.min&&_.moveTo(_.index).catch(e._onCatch)}},this._onAnimation=function(){var _=e._flicking,m=_.camera,E=_.control.controller;_.holding?e._updateClass(m.position):e._updateClass(E.animatingContext.end)},this._onCatch=function(_){if(!(_ instanceof R))throw _},this._parentEl=o,this._prevElSelector=u,this._nextElSelector=c,this._disabledClass=d,this._moveCount=v,this._moveByViewportSize=p}var r=a.prototype;return Object.defineProperty(r,"prevEl",{get:function(){return this._prevEl},enumerable:!1,configurable:!0}),Object.defineProperty(r,"nextEl",{get:function(){return this._nextEl},enumerable:!1,configurable:!0}),Object.defineProperty(r,"parentEl",{get:function(){return this._parentEl},set:function(t){this._parentEl=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"prevElSelector",{get:function(){return this._prevElSelector},set:function(t){this._prevElSelector=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"nextElSelector",{get:function(){return this._nextElSelector},set:function(t){this._nextElSelector=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"disabledClass",{get:function(){return this._disabledClass},set:function(t){this._disabledClass=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"moveCount",{get:function(){return this._moveCount},set:function(t){this._moveCount=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"moveByViewportSize",{get:function(){return this._moveByViewportSize},set:function(t){this._moveByViewportSize=t},enumerable:!1,configurable:!0}),r.init=function(t){var e=this;this._flicking&&this.destroy(),this._flicking=t,t.on(O.MOVE,this._onAnimation);var n=this._parentEl?this._parentEl:t.element,i=gn(this._prevElSelector,n,"Arrow"),o=gn(this._nextElSelector,n,"Arrow");[G.MOUSE_DOWN,G.TOUCH_START].forEach(function(s){i.addEventListener(s,e._preventInputPropagation,{passive:!0}),o.addEventListener(s,e._preventInputPropagation,{passive:!0})}),i.addEventListener(G.CLICK,this._onPrevClick),o.addEventListener(G.CLICK,this._onNextClick),this._prevEl=i,this._nextEl=o,this.update()},r.destroy=function(){var t=this,e=this._flicking;if(e){e.off(O.MOVE,this._onAnimation);var n=this._prevEl,i=this._nextEl;[G.MOUSE_DOWN,G.TOUCH_START].forEach(function(o){n.removeEventListener(o,t._preventInputPropagation),i.removeEventListener(o,t._preventInputPropagation)}),n.removeEventListener(G.CLICK,this._onPrevClick),i.removeEventListener(G.CLICK,this._onNextClick),this._flicking=null}},r.update=function(){this._updateClass(this._flicking.camera.position)},r._updateClass=function(t){var e=this._flicking,n=this._disabledClass,i=this._prevEl,o=this._nextEl,s=e.camera.range,u=e.circularEnabled?!1:t<=s.min,l=e.circularEnabled?!1:t>=s.max;u?W(i,n):ye(i,n),l?W(o,n):ye(o,n)},a})();/*! *****************************************************************************
+***************************************************************************** */
+var extendStatics$3 = function(d, b) {
+  extendStatics$3 = Object.setPrototypeOf || {
+    __proto__: []
+  } instanceof Array && function(d2, b2) {
+    d2.__proto__ = b2;
+  } || function(d2, b2) {
+    for (var p in b2) if (b2.hasOwnProperty(p)) d2[p] = b2[p];
+  };
+  return extendStatics$3(d, b);
+};
+function __extends$3(d, b) {
+  extendStatics$3(d, b);
+  function __() {
+    this.constructor = d;
+  }
+  d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+var __assign$2 = function() {
+  __assign$2 = Object.assign || function __assign2(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+    }
+    return t;
+  };
+  return __assign$2.apply(this, arguments);
+};
+function __decorate(decorators, target, key, desc) {
+  var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+  else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+var win;
+if (typeof window === "undefined") {
+  win = {
+    navigator: {
+      userAgent: ""
+    }
+  };
+} else {
+  win = window;
+}
+var DIRECTION_NONE = 1;
+var DIRECTION_LEFT = 2;
+var DIRECTION_RIGHT = 4;
+var DIRECTION_HORIZONTAL = 2 | 4;
+var DIRECTION_UP = 8;
+var DIRECTION_DOWN = 16;
+var DIRECTION_VERTICAL = 8 | 16;
+var DIRECTION_ALL = 2 | 4 | 8 | 16;
+var MOUSE_LEFT = "left";
+var MOUSE_RIGHT = "right";
+var MOUSE_MIDDLE = "middle";
+var MOUSE_BUTTON_CODE_MAP = {
+  1: MOUSE_LEFT,
+  2: MOUSE_MIDDLE,
+  3: MOUSE_RIGHT
+};
+var ANY = "any";
+var NONE = "none";
+var SHIFT = "shift";
+var CTRL = "ctrl";
+var ALT = "alt";
+var META = "meta";
+var VELOCITY_INTERVAL = 16;
+var IOS_EDGE_THRESHOLD = 30;
+var IS_IOS_SAFARI = "ontouchstart" in win && agent().browser.name === "safari";
+var TRANSFORM = (function() {
+  if (typeof document === "undefined") {
+    return "";
+  }
+  var bodyStyle = (document.head || document.getElementsByTagName("head")[0]).style;
+  var target = ["transform", "webkitTransform", "msTransform", "mozTransform"];
+  for (var i = 0, len = target.length; i < len; i++) {
+    if (target[i] in bodyStyle) {
+      return target[i];
+    }
+  }
+  return "";
+})();
+var PREVENT_DRAG_CSSPROPS = {
+  "-webkit-user-select": "none",
+  "-ms-user-select": "none",
+  "-moz-user-select": "none",
+  "user-select": "none",
+  "-webkit-user-drag": "none"
+};
+var toArray$2 = function(nodes) {
+  var el = [];
+  for (var i = 0, len = nodes.length; i < len; i++) {
+    el.push(nodes[i]);
+  }
+  return el;
+};
+var $ = function(param, multi) {
+  if (multi === void 0) {
+    multi = false;
+  }
+  var el;
+  if (typeof param === "string") {
+    var match = param.match(/^<([a-z]+)\s*([^>]*)>/);
+    if (match) {
+      var dummy = document.createElement("div");
+      dummy.innerHTML = param;
+      el = toArray$2(dummy.childNodes);
+    } else {
+      el = toArray$2(document.querySelectorAll(param));
+    }
+    if (!multi) {
+      el = el.length >= 1 ? el[0] : void 0;
+    }
+  } else if (param === win) {
+    el = param;
+  } else if ("value" in param || "current" in param) {
+    el = param.value || param.current;
+  } else if (param.nodeName && (param.nodeType === 1 || param.nodeType === 9)) {
+    el = param;
+  } else if ("jQuery" in win && param instanceof jQuery || param.constructor.prototype.jquery) {
+    el = multi ? param.toArray() : param.get(0);
+  } else if (Array.isArray(param)) {
+    el = param.map(function(v) {
+      return $(v);
+    });
+    if (!multi) {
+      el = el.length >= 1 ? el[0] : void 0;
+    }
+  }
+  return el;
+};
+var raf = win.requestAnimationFrame || win.webkitRequestAnimationFrame;
+var caf = win.cancelAnimationFrame || win.webkitCancelAnimationFrame;
+if (raf && !caf) {
+  var keyInfo_1 = {};
+  var oldraf_1 = raf;
+  raf = function(callback) {
+    var wrapCallback = function(timestamp) {
+      if (keyInfo_1[key]) {
+        callback(timestamp);
+      }
+    };
+    var key = oldraf_1(wrapCallback);
+    keyInfo_1[key] = true;
+    return key;
+  };
+  caf = function(key) {
+    delete keyInfo_1[key];
+  };
+} else if (!(raf && caf)) {
+  raf = function(callback) {
+    return win.setTimeout(function() {
+      callback(win.performance && win.performance.now && win.performance.now() || (/* @__PURE__ */ new Date()).getTime());
+    }, 16);
+  };
+  caf = win.clearTimeout;
+}
+var requestAnimationFrame = function(fp) {
+  return raf(fp);
+};
+var cancelAnimationFrame = function(key) {
+  caf(key);
+};
+var map = function(obj, callback) {
+  var tranformed = {};
+  for (var k in obj) {
+    if (k) {
+      tranformed[k] = callback(obj[k], k);
+    }
+  }
+  return tranformed;
+};
+var filter = function(obj, callback) {
+  var filtered = {};
+  for (var k in obj) {
+    if (k && callback(obj[k], k)) {
+      filtered[k] = obj[k];
+    }
+  }
+  return filtered;
+};
+var every = function(obj, callback) {
+  for (var k in obj) {
+    if (k && !callback(obj[k], k)) {
+      return false;
+    }
+  }
+  return true;
+};
+var equal = function(target, base) {
+  return every(target, function(v, k) {
+    return v === base[k];
+  });
+};
+var roundNumFunc = {};
+var roundNumber = function(num, roundUnit) {
+  if (!roundNumFunc[roundUnit]) {
+    roundNumFunc[roundUnit] = getRoundFunc(roundUnit);
+  }
+  return roundNumFunc[roundUnit](num);
+};
+var roundNumbers = function(num, roundUnit) {
+  if (!num || !roundUnit) {
+    return num;
+  }
+  return map(num, function(value, key) {
+    return roundNumber(value, typeof roundUnit === "number" ? roundUnit : roundUnit[key]);
+  });
+};
+var getDecimalPlace = function(val) {
+  if (!isFinite(val)) {
+    return 0;
+  }
+  var v = "".concat(val);
+  if (v.indexOf("e") >= 0) {
+    var p = 0;
+    var e = 1;
+    while (Math.round(val * e) / e !== val) {
+      e *= 10;
+      p++;
+    }
+    return p;
+  }
+  return v.indexOf(".") >= 0 ? v.length - v.indexOf(".") - 1 : 0;
+};
+var inversePow = function(n) {
+  return 1 / Math.pow(10, n);
+};
+var getRoundFunc = function(v) {
+  var p = v < 1 ? Math.pow(10, getDecimalPlace(v)) : 1;
+  return function(n) {
+    if (v === 0) {
+      return 0;
+    }
+    return Math.round(Math.round(n / v) * v * p) / p;
+  };
+};
+var getAngle = function(posX, posY) {
+  return Math.atan2(posY, posX) * 180 / Math.PI;
+};
+var isCssPropsFromAxes = function(originalCssProps) {
+  var same = true;
+  Object.keys(PREVENT_DRAG_CSSPROPS).forEach(function(prop) {
+    if (!originalCssProps || originalCssProps[prop] !== PREVENT_DRAG_CSSPROPS[prop]) {
+      same = false;
+    }
+  });
+  return same;
+};
+var getDirection$1 = function(useHorizontal, useVertical) {
+  if (useHorizontal && useVertical) {
+    return DIRECTION_ALL;
+  } else if (useHorizontal) {
+    return DIRECTION_HORIZONTAL;
+  } else if (useVertical) {
+    return DIRECTION_VERTICAL;
+  } else {
+    return DIRECTION_NONE;
+  }
+};
+var useDirection = function(checkType, direction, userDirection) {
+  if (userDirection) {
+    return !!(direction === DIRECTION_ALL || direction & checkType && userDirection & checkType);
+  } else {
+    return !!(direction & checkType);
+  }
+};
+var setCssProps = function(element, option, direction) {
+  var _a;
+  var touchActionMap = (_a = {}, _a[DIRECTION_NONE] = "auto", _a[DIRECTION_ALL] = "none", _a[DIRECTION_VERTICAL] = "pan-x", _a[DIRECTION_HORIZONTAL] = "pan-y", _a);
+  var oldCssProps = {};
+  if (element && element.style) {
+    var touchAction = option.touchAction ? option.touchAction : touchActionMap[direction];
+    var newCssProps_1 = __assign$2(__assign$2({}, PREVENT_DRAG_CSSPROPS), {
+      "touch-action": element.style["touch-action"] === "none" ? "none" : touchAction
+    });
+    Object.keys(newCssProps_1).forEach(function(prop) {
+      oldCssProps[prop] = element.style[prop];
+    });
+    Object.keys(newCssProps_1).forEach(function(prop) {
+      element.style[prop] = newCssProps_1[prop];
+    });
+  }
+  return oldCssProps;
+};
+var revertCssProps = function(element, originalCssProps) {
+  if (element && element.style && originalCssProps) {
+    Object.keys(originalCssProps).forEach(function(prop) {
+      element.style[prop] = originalCssProps[prop];
+    });
+  }
+  return;
+};
+var EventManager = /* @__PURE__ */ (function() {
+  function EventManager2(_axes) {
+    this._axes = _axes;
+    this.holdingCount = 0;
+  }
+  var __proto = EventManager2.prototype;
+  __proto.hold = function(pos, option) {
+    var roundPos = this._getRoundPos(pos).roundPos;
+    this._axes.trigger(new ComponentEvent$1("hold", {
+      pos: roundPos,
+      input: option.input || null,
+      inputEvent: option.event || null,
+      isTrusted: true
+    }));
+  };
+  __proto.triggerRelease = function(param) {
+    var _a = this._getRoundPos(param.destPos, param.depaPos), roundPos = _a.roundPos, roundDepa = _a.roundDepa;
+    param.destPos = roundPos;
+    param.depaPos = roundDepa;
+    param.setTo = this._createUserControll(param.destPos, param.duration);
+    this._axes.trigger(new ComponentEvent$1("release", __assign$2(__assign$2({}, param), {
+      bounceRatio: this._getBounceRatio(roundPos)
+    })));
+  };
+  __proto.triggerChange = function(pos, depaPos, option, holding) {
+    var _this = this;
+    if (holding === void 0) {
+      holding = false;
+    }
+    var animationManager = this.animationManager;
+    var axisManager = animationManager.axisManager;
+    var eventInfo = animationManager.getEventInfo();
+    var _a = this._getRoundPos(pos, depaPos), roundPos = _a.roundPos, roundDepa = _a.roundDepa;
+    var moveTo = axisManager.moveTo(roundPos, roundDepa);
+    var inputEvent = (option === null || option === void 0 ? void 0 : option.event) || (eventInfo === null || eventInfo === void 0 ? void 0 : eventInfo.event) || null;
+    var param = {
+      pos: moveTo.pos,
+      delta: moveTo.delta,
+      bounceRatio: this._getBounceRatio(moveTo.pos),
+      holding,
+      inputEvent,
+      isTrusted: !!inputEvent,
+      input: (option === null || option === void 0 ? void 0 : option.input) || (eventInfo === null || eventInfo === void 0 ? void 0 : eventInfo.input) || null,
+      set: inputEvent ? this._createUserControll(moveTo.pos) : function() {
+      }
+      // eslint-disable-line @typescript-eslint/no-empty-function
+    };
+    var event = new ComponentEvent$1("change", param);
+    this._axes.trigger(event);
+    Object.keys(moveTo.pos).forEach(function(axis) {
+      var p = moveTo.pos[axis];
+      getObserver(_this._axes, axis, p).current = p;
+    });
+    if (inputEvent) {
+      axisManager.set(param.set().destPos);
+    }
+    return !event.isCanceled();
+  };
+  __proto.triggerAnimationStart = function(param) {
+    var _a = this._getRoundPos(param.destPos, param.depaPos), roundPos = _a.roundPos, roundDepa = _a.roundDepa;
+    param.destPos = roundPos;
+    param.depaPos = roundDepa;
+    param.setTo = this._createUserControll(param.destPos, param.duration);
+    var event = new ComponentEvent$1("animationStart", param);
+    this._axes.trigger(event);
+    return !event.isCanceled();
+  };
+  __proto.triggerAnimationEnd = function(isTrusted) {
+    if (isTrusted === void 0) {
+      isTrusted = false;
+    }
+    this._axes.trigger(new ComponentEvent$1("animationEnd", {
+      isTrusted
+    }));
+  };
+  __proto.triggerFinish = function(isTrusted) {
+    if (isTrusted === void 0) {
+      isTrusted = false;
+    }
+    this._axes.trigger(new ComponentEvent$1("finish", {
+      isTrusted
+    }));
+  };
+  __proto.setAnimationManager = function(animationManager) {
+    this.animationManager = animationManager;
+  };
+  __proto.destroy = function() {
+    this._axes.off();
+  };
+  __proto._createUserControll = function(pos, duration) {
+    if (duration === void 0) {
+      duration = 0;
+    }
+    var userControl = {
+      destPos: __assign$2({}, pos),
+      duration
+    };
+    return function(toPos, userDuration) {
+      if (toPos) {
+        userControl.destPos = __assign$2({}, toPos);
+      }
+      if (userDuration !== void 0) {
+        userControl.duration = userDuration;
+      }
+      return userControl;
+    };
+  };
+  __proto._getRoundPos = function(pos, depaPos) {
+    var roundUnit = this._axes.options.round;
+    return {
+      roundPos: roundNumbers(pos, roundUnit),
+      roundDepa: roundNumbers(depaPos, roundUnit)
+    };
+  };
+  __proto._getBounceRatio = function(pos) {
+    return this._axes.axisManager.map(pos, function(v, opt) {
+      if (v < opt.range[0] && opt.bounce[0] !== 0) {
+        return (opt.range[0] - v) / opt.bounce[0];
+      } else if (v > opt.range[1] && opt.bounce[1] !== 0) {
+        return (v - opt.range[1]) / opt.bounce[1];
+      } else {
+        return 0;
+      }
+    });
+  };
+  __decorate([Observe], EventManager2.prototype, "holdingCount", void 0);
+  return EventManager2;
+})();
+var InterruptManager = /* @__PURE__ */ (function() {
+  function InterruptManager2(_options) {
+    this._options = _options;
+    this._prevented = false;
+  }
+  var __proto = InterruptManager2.prototype;
+  __proto.isInterrupting = function() {
+    return this._options.interruptable || this._prevented;
+  };
+  __proto.isInterrupted = function() {
+    return !this._options.interruptable && this._prevented;
+  };
+  __proto.setInterrupt = function(prevented) {
+    if (!this._options.interruptable) {
+      this._prevented = prevented;
+    }
+  };
+  return InterruptManager2;
+})();
+var getInsidePosition = function(destPos, range2, circular, bounce) {
+  var toDestPos = destPos;
+  var targetRange = [circular[0] ? range2[0] : bounce ? range2[0] - bounce[0] : range2[0], circular[1] ? range2[1] : bounce ? range2[1] + bounce[1] : range2[1]];
+  toDestPos = Math.max(targetRange[0], toDestPos);
+  toDestPos = Math.min(targetRange[1], toDestPos);
+  return toDestPos;
+};
+var isOutside = function(pos, range2) {
+  return pos < range2[0] || pos > range2[1];
+};
+var isEndofBounce = function(pos, range2, bounce, circular) {
+  return !circular[0] && pos === range2[0] - bounce[0] || !circular[1] && pos === range2[1] + bounce[1];
+};
+var getDuration = function(distance, deceleration) {
+  var duration = Math.sqrt(distance / deceleration * 2);
+  return duration < 100 ? 0 : duration;
+};
+var isCircularable = function(destPos, range2, circular) {
+  return circular[1] && destPos > range2[1] || circular[0] && destPos < range2[0];
+};
+var getCirculatedPos = function(pos, range2, circular) {
+  var toPos = pos;
+  var min = range2[0];
+  var max = range2[1];
+  var length = max - min;
+  if (circular[1] && pos > max) {
+    toPos = (toPos - max) % length + min;
+  }
+  if (circular[0] && pos < min) {
+    toPos = (toPos - min) % length + max;
+  }
+  return toPos;
+};
+var AxisManager = /* @__PURE__ */ (function() {
+  function AxisManager2(_axis) {
+    var _this = this;
+    this._axis = _axis;
+    this._complementOptions();
+    this._pos = Object.keys(this._axis).reduce(function(pos, v) {
+      pos[v] = _this._axis[v].startPos;
+      return pos;
+    }, {});
+  }
+  var __proto = AxisManager2.prototype;
+  __proto.getDelta = function(depaPos, destPos) {
+    var fullDepaPos = this.get(depaPos);
+    return map(this.get(destPos), function(v, k) {
+      return v - fullDepaPos[k];
+    });
+  };
+  __proto.get = function(axes) {
+    var _this = this;
+    if (axes && Array.isArray(axes)) {
+      return axes.reduce(function(acc, v) {
+        if (v && v in _this._pos) {
+          acc[v] = _this._pos[v];
+        }
+        return acc;
+      }, {});
+    } else {
+      return __assign$2(__assign$2({}, this._pos), axes || {});
+    }
+  };
+  __proto.moveTo = function(pos, depaPos) {
+    if (depaPos === void 0) {
+      depaPos = this._pos;
+    }
+    var delta = map(this._pos, function(v, key) {
+      return key in pos && key in depaPos ? pos[key] - depaPos[key] : 0;
+    });
+    this.set(this.map(pos, function(v, opt) {
+      return opt ? getCirculatedPos(v, opt.range, opt.circular) : 0;
+    }));
+    return {
+      pos: __assign$2({}, this._pos),
+      delta
+    };
+  };
+  __proto.set = function(pos) {
+    for (var k in pos) {
+      if (k && k in this._pos) {
+        this._pos[k] = pos[k];
+      }
+    }
+  };
+  __proto.every = function(pos, callback) {
+    var axisOptions = this._axis;
+    return every(pos, function(value, key) {
+      return callback(value, axisOptions[key], key);
+    });
+  };
+  __proto.filter = function(pos, callback) {
+    var axisOptions = this._axis;
+    return filter(pos, function(value, key) {
+      return callback(value, axisOptions[key], key);
+    });
+  };
+  __proto.map = function(pos, callback) {
+    var axisOptions = this._axis;
+    return map(pos, function(value, key) {
+      return callback(value, axisOptions[key], key);
+    });
+  };
+  __proto.isOutside = function(axes) {
+    return !this.every(axes ? this.get(axes) : this._pos, function(v, opt) {
+      return !isOutside(v, opt.range);
+    });
+  };
+  __proto.getAxisOptions = function(key) {
+    return this._axis[key];
+  };
+  __proto.setAxis = function(axis) {
+    var _this = this;
+    Object.keys(axis).forEach(function(key) {
+      if (!_this._axis[key]) {
+        throw new Error("Axis ".concat(key, " does not exist in Axes instance"));
+      }
+      _this._axis[key] = __assign$2(__assign$2({}, _this._axis[key]), axis[key]);
+    });
+    this._complementOptions();
+  };
+  __proto._complementOptions = function() {
+    var _this = this;
+    Object.keys(this._axis).forEach(function(axis) {
+      _this._axis[axis] = __assign$2({
+        range: [0, 100],
+        startPos: _this._axis[axis].range[0],
+        bounce: [0, 0],
+        circular: [false, false]
+      }, _this._axis[axis]);
+      ["bounce", "circular"].forEach(function(v) {
+        var axisOption = _this._axis;
+        var key = axisOption[axis][v];
+        if (/string|number|boolean/.test(typeof key)) {
+          axisOption[axis][v] = [key, key];
+        }
+      });
+    });
+  };
+  return AxisManager2;
+})();
+var SUPPORT_TOUCH = "ontouchstart" in win;
+var SUPPORT_POINTER = "PointerEvent" in win;
+var SUPPORT_MSPOINTER = "MSPointerEvent" in win;
+var SUPPORT_POINTER_EVENTS = SUPPORT_POINTER || SUPPORT_MSPOINTER;
+var isValidKey = function(event, inputKey) {
+  if (!inputKey || inputKey.indexOf(ANY) > -1 || inputKey.indexOf(NONE) > -1 && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey || inputKey.indexOf(SHIFT) > -1 && event.shiftKey || inputKey.indexOf(CTRL) > -1 && event.ctrlKey || inputKey.indexOf(ALT) > -1 && event.altKey || inputKey.indexOf(META) > -1 && event.metaKey) {
+    return true;
+  }
+  return false;
+};
+var EventInput = /* @__PURE__ */ (function() {
+  function EventInput2() {
+    var _this = this;
+    this._stopContextMenu = function(event) {
+      event.preventDefault();
+      win.removeEventListener("contextmenu", _this._stopContextMenu);
+    };
+  }
+  var __proto = EventInput2.prototype;
+  __proto.extendEvent = function(event) {
+    var _a;
+    var prevEvent = this.prevEvent;
+    var center = this._getCenter(event);
+    var movement = prevEvent ? this._getMovement(event) : {
+      x: 0,
+      y: 0
+    };
+    var scale = prevEvent ? this._getScale(event) : 1;
+    var angle = prevEvent ? getAngle(center.x - prevEvent.center.x, center.y - prevEvent.center.y) : 0;
+    var deltaX = prevEvent ? prevEvent.deltaX + movement.x : movement.x;
+    var deltaY = prevEvent ? prevEvent.deltaY + movement.y : movement.y;
+    var offsetX = movement.x;
+    var offsetY = movement.y;
+    var latestInterval = this._latestInterval;
+    var timeStamp = Date.now();
+    var deltaTime = latestInterval ? timeStamp - latestInterval.timestamp : 0;
+    var velocityX = prevEvent ? prevEvent.velocityX : 0;
+    var velocityY = prevEvent ? prevEvent.velocityY : 0;
+    var directionX = prevEvent ? prevEvent.directionX : 1;
+    var directionY = prevEvent ? prevEvent.directionY : 1;
+    if (offsetX > 0) {
+      directionX = 1;
+    } else if (offsetX < 0) {
+      directionX = -1;
+    }
+    if (offsetY > 0) {
+      directionY = 1;
+    } else if (offsetY < 0) {
+      directionY = -1;
+    }
+    if (!latestInterval || deltaTime >= VELOCITY_INTERVAL) {
+      if (latestInterval) {
+        _a = [(deltaX - latestInterval.deltaX) / deltaTime, (deltaY - latestInterval.deltaY) / deltaTime], velocityX = _a[0], velocityY = _a[1];
+      }
+      this._latestInterval = {
+        timestamp: timeStamp,
+        deltaX,
+        deltaY
+      };
+    }
+    return {
+      srcEvent: event,
+      scale,
+      angle,
+      center,
+      deltaX,
+      deltaY,
+      offsetX,
+      offsetY,
+      directionX,
+      directionY,
+      velocityX,
+      velocityY,
+      preventSystemEvent: true
+    };
+  };
+  __proto._getDistance = function(start, end) {
+    var x = end.clientX - start.clientX;
+    var y = end.clientY - start.clientY;
+    return Math.sqrt(x * x + y * y);
+  };
+  __proto._getButton = function(event) {
+    var buttonCodeMap = {
+      1: MOUSE_LEFT,
+      2: MOUSE_RIGHT,
+      4: MOUSE_MIDDLE
+    };
+    var button = this._isTouchEvent(event) ? MOUSE_LEFT : buttonCodeMap[event.buttons];
+    return button ? button : null;
+  };
+  __proto._isTouchEvent = function(event) {
+    return event.type && event.type.indexOf("touch") > -1;
+  };
+  __proto._isValidButton = function(button, inputButton) {
+    return inputButton.indexOf(button) > -1;
+  };
+  __proto._isValidEvent = function(event, inputKey, inputButton) {
+    return (!inputKey || isValidKey(event, inputKey)) && (!inputButton || this._isValidButton(this._getButton(event), inputButton));
+  };
+  __proto._preventMouseButton = function(event, button) {
+    if (button === MOUSE_RIGHT) {
+      win.addEventListener("contextmenu", this._stopContextMenu);
+    } else if (button === MOUSE_MIDDLE) {
+      event.preventDefault();
+    }
+  };
+  return EventInput2;
+})();
+var MouseEventInput = /* @__PURE__ */ (function(_super) {
+  __extends$3(MouseEventInput2, _super);
+  function MouseEventInput2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this.start = ["mousedown"];
+    _this.move = ["mousemove"];
+    _this.end = ["mouseup"];
+    return _this;
+  }
+  var __proto = MouseEventInput2.prototype;
+  __proto.onEventStart = function(event, inputKey, inputButton) {
+    var button = this._getButton(event);
+    if (!this._isValidEvent(event, inputKey, inputButton)) {
+      return null;
+    }
+    this._preventMouseButton(event, button);
+    return this.extendEvent(event);
+  };
+  __proto.onEventMove = function(event, inputKey, inputButton) {
+    if (!this._isValidEvent(event, inputKey, inputButton)) {
+      return null;
+    }
+    return this.extendEvent(event);
+  };
+  __proto.onEventEnd = function() {
+    return;
+  };
+  __proto.onRelease = function() {
+    this.prevEvent = null;
+    return;
+  };
+  __proto.getTouches = function(event, inputButton) {
+    if (inputButton) {
+      return this._isValidButton(MOUSE_BUTTON_CODE_MAP[event.which], inputButton) && this.end.indexOf(event.type) === -1 ? 1 : 0;
+    }
+    return 0;
+  };
+  __proto._getScale = function() {
+    return 1;
+  };
+  __proto._getCenter = function(event) {
+    return {
+      x: event.clientX,
+      y: event.clientY
+    };
+  };
+  __proto._getMovement = function(event) {
+    var prev = this.prevEvent.srcEvent;
+    return {
+      x: event.clientX - prev.clientX,
+      y: event.clientY - prev.clientY
+    };
+  };
+  return MouseEventInput2;
+})(EventInput);
+var TouchEventInput = /* @__PURE__ */ (function(_super) {
+  __extends$3(TouchEventInput2, _super);
+  function TouchEventInput2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this.start = ["touchstart"];
+    _this.move = ["touchmove"];
+    _this.end = ["touchend", "touchcancel"];
+    return _this;
+  }
+  var __proto = TouchEventInput2.prototype;
+  __proto.onEventStart = function(event, inputKey) {
+    this._baseTouches = event.touches;
+    if (!this._isValidEvent(event, inputKey)) {
+      return null;
+    }
+    return this.extendEvent(event);
+  };
+  __proto.onEventMove = function(event, inputKey) {
+    if (!this._isValidEvent(event, inputKey)) {
+      return null;
+    }
+    return this.extendEvent(event);
+  };
+  __proto.onEventEnd = function(event) {
+    this._baseTouches = event.touches;
+    return;
+  };
+  __proto.onRelease = function() {
+    this.prevEvent = null;
+    this._baseTouches = null;
+    return;
+  };
+  __proto.getTouches = function(event) {
+    return event.touches.length;
+  };
+  __proto._getScale = function(event) {
+    if (event.touches.length !== 2 || this._baseTouches.length < 2) {
+      return null;
+    }
+    return this._getDistance(event.touches[0], event.touches[1]) / this._getDistance(this._baseTouches[0], this._baseTouches[1]);
+  };
+  __proto._getCenter = function(event) {
+    return {
+      x: event.touches[0].clientX,
+      y: event.touches[0].clientY
+    };
+  };
+  __proto._getMovement = function(event) {
+    var prev = this.prevEvent.srcEvent;
+    if (event.touches[0].identifier !== prev.touches[0].identifier) {
+      return {
+        x: 0,
+        y: 0
+      };
+    }
+    return {
+      x: event.touches[0].clientX - prev.touches[0].clientX,
+      y: event.touches[0].clientY - prev.touches[0].clientY
+    };
+  };
+  return TouchEventInput2;
+})(EventInput);
+var PointerEventInput = /* @__PURE__ */ (function(_super) {
+  __extends$3(PointerEventInput2, _super);
+  function PointerEventInput2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this.start = SUPPORT_POINTER ? ["pointerdown"] : ["MSPointerDown"];
+    _this.move = SUPPORT_POINTER ? ["pointermove"] : ["MSPointerMove"];
+    _this.end = SUPPORT_POINTER ? ["pointerup", "pointercancel"] : ["MSPointerUp", "MSPointerCancel"];
+    _this._firstInputs = [];
+    _this._recentInputs = [];
+    return _this;
+  }
+  var __proto = PointerEventInput2.prototype;
+  __proto.onEventStart = function(event, inputKey, inputButton) {
+    var button = this._getButton(event);
+    if (!this._isValidEvent(event, inputKey, inputButton)) {
+      return null;
+    }
+    this._preventMouseButton(event, button);
+    this._updatePointerEvent(event);
+    return this.extendEvent(event);
+  };
+  __proto.onEventMove = function(event, inputKey, inputButton) {
+    if (!this._isValidEvent(event, inputKey, inputButton)) {
+      return null;
+    }
+    this._updatePointerEvent(event);
+    return this.extendEvent(event);
+  };
+  __proto.onEventEnd = function(event) {
+    this._removePointerEvent(event);
+  };
+  __proto.onRelease = function() {
+    this.prevEvent = null;
+    this._firstInputs = [];
+    this._recentInputs = [];
+    return;
+  };
+  __proto.getTouches = function() {
+    return this._recentInputs.length;
+  };
+  __proto._getScale = function() {
+    if (this._recentInputs.length !== 2) {
+      return null;
+    }
+    return this._getDistance(this._recentInputs[0], this._recentInputs[1]) / this._getDistance(this._firstInputs[0], this._firstInputs[1]);
+  };
+  __proto._getCenter = function(event) {
+    return {
+      x: event.clientX,
+      y: event.clientY
+    };
+  };
+  __proto._getMovement = function(event) {
+    var prev = this.prevEvent.srcEvent;
+    if (event.pointerId !== prev.pointerId) {
+      return {
+        x: 0,
+        y: 0
+      };
+    }
+    return {
+      x: event.clientX - prev.clientX,
+      y: event.clientY - prev.clientY
+    };
+  };
+  __proto._updatePointerEvent = function(event) {
+    var _this = this;
+    var addFlag = false;
+    this._recentInputs.forEach(function(e, i) {
+      if (e.pointerId === event.pointerId) {
+        addFlag = true;
+        _this._recentInputs[i] = event;
+      }
+    });
+    if (!addFlag) {
+      this._firstInputs.push(event);
+      this._recentInputs.push(event);
+    }
+  };
+  __proto._removePointerEvent = function(event) {
+    this._firstInputs = this._firstInputs.filter(function(x) {
+      return x.pointerId !== event.pointerId;
+    });
+    this._recentInputs = this._recentInputs.filter(function(x) {
+      return x.pointerId !== event.pointerId;
+    });
+  };
+  return PointerEventInput2;
+})(EventInput);
+var TouchMouseEventInput = /* @__PURE__ */ (function(_super) {
+  __extends$3(TouchMouseEventInput2, _super);
+  function TouchMouseEventInput2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this.start = ["mousedown", "touchstart"];
+    _this.move = ["mousemove", "touchmove"];
+    _this.end = ["mouseup", "touchend", "touchcancel"];
+    return _this;
+  }
+  var __proto = TouchMouseEventInput2.prototype;
+  __proto.onEventStart = function(event, inputKey, inputButton) {
+    var button = this._getButton(event);
+    if (this._isTouchEvent(event)) {
+      this._baseTouches = event.touches;
+    }
+    if (!this._isValidEvent(event, inputKey, inputButton)) {
+      return null;
+    }
+    this._preventMouseButton(event, button);
+    return this.extendEvent(event);
+  };
+  __proto.onEventMove = function(event, inputKey, inputButton) {
+    if (!this._isValidEvent(event, inputKey, inputButton)) {
+      return null;
+    }
+    return this.extendEvent(event);
+  };
+  __proto.onEventEnd = function(event) {
+    if (this._isTouchEvent(event)) {
+      this._baseTouches = event.touches;
+    }
+    return;
+  };
+  __proto.onRelease = function() {
+    this.prevEvent = null;
+    this._baseTouches = null;
+    return;
+  };
+  __proto.getTouches = function(event, inputButton) {
+    if (this._isTouchEvent(event)) {
+      return event.touches.length;
+    } else {
+      return this._isValidButton(MOUSE_BUTTON_CODE_MAP[event.which], inputButton) && this.end.indexOf(event.type) === -1 ? 1 : 0;
+    }
+  };
+  __proto._getScale = function(event) {
+    if (this._isTouchEvent(event)) {
+      if (event.touches.length !== 2 || this._baseTouches.length < 2) {
+        return 1;
+      }
+      return this._getDistance(event.touches[0], event.touches[1]) / this._getDistance(this._baseTouches[0], this._baseTouches[1]);
+    }
+    return this.prevEvent.scale;
+  };
+  __proto._getCenter = function(event) {
+    if (this._isTouchEvent(event)) {
+      return {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY
+      };
+    }
+    return {
+      x: event.clientX,
+      y: event.clientY
+    };
+  };
+  __proto._getMovement = function(event) {
+    var _this = this;
+    var prev = this.prevEvent.srcEvent;
+    var _a = [event, prev].map(function(e) {
+      if (_this._isTouchEvent(e)) {
+        return {
+          id: e.touches[0].identifier,
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        };
+      }
+      return {
+        id: null,
+        x: e.clientX,
+        y: e.clientY
+      };
+    }), nextSpot = _a[0], prevSpot = _a[1];
+    return nextSpot.id === prevSpot.id ? {
+      x: nextSpot.x - prevSpot.x,
+      y: nextSpot.y - prevSpot.y
+    } : {
+      x: 0,
+      y: 0
+    };
+  };
+  return TouchMouseEventInput2;
+})(EventInput);
+var toAxis = function(source, offset) {
+  return offset.reduce(function(acc, v, i) {
+    if (source[i]) {
+      acc[source[i]] = v;
+    }
+    return acc;
+  }, {});
+};
+var convertInputType = function(inputType) {
+  if (inputType === void 0) {
+    inputType = [];
+  }
+  var hasTouch = false;
+  var hasMouse = false;
+  var hasPointer = false;
+  inputType.forEach(function(v) {
+    switch (v) {
+      case "mouse":
+        hasMouse = true;
+        break;
+      case "touch":
+        hasTouch = SUPPORT_TOUCH;
+        break;
+      case "pointer":
+        hasPointer = SUPPORT_POINTER_EVENTS;
+    }
+  });
+  if (hasPointer) {
+    return new PointerEventInput();
+  } else if (hasTouch && hasMouse) {
+    return new TouchMouseEventInput();
+  } else if (hasTouch) {
+    return new TouchEventInput();
+  } else if (hasMouse) {
+    return new MouseEventInput();
+  }
+  return null;
+};
+function getAddEventOptions(eventName) {
+  return eventName.indexOf("touch") > -1 ? {
+    passive: false
+  } : false;
+}
+var InputObserver = /* @__PURE__ */ (function() {
+  function InputObserver2(_a) {
+    var options = _a.options, interruptManager = _a.interruptManager, eventManager = _a.eventManager, axisManager = _a.axisManager, animationManager = _a.animationManager;
+    this._isOutside = false;
+    this._moveDistance = null;
+    this._isStopped = false;
+    this.options = options;
+    this._interruptManager = interruptManager;
+    this._eventManager = eventManager;
+    this._axisManager = axisManager;
+    this._animationManager = animationManager;
+  }
+  var __proto = InputObserver2.prototype;
+  __proto.get = function(input) {
+    return this._axisManager.get(input.axes);
+  };
+  __proto.hold = function(input, event) {
+    if (this._interruptManager.isInterrupted() || !input.axes.length) {
+      return;
+    }
+    var changeOption = {
+      input,
+      event
+    };
+    this._isStopped = false;
+    this._interruptManager.setInterrupt(true);
+    this._animationManager.stopAnimation(changeOption);
+    ++this._eventManager.holdingCount;
+    if (!this._moveDistance) {
+      this._eventManager.hold(this._axisManager.get(), changeOption);
+    }
+    this._isOutside = this._axisManager.isOutside(input.axes);
+    this._moveDistance = this._axisManager.get(input.axes);
+  };
+  __proto.change = function(input, event, offset, useAnimation) {
+    if (this._isStopped || !this._interruptManager.isInterrupting() || this._axisManager.every(offset, function(v) {
+      return v === 0;
+    })) {
+      return;
+    }
+    var nativeEvent = event.srcEvent ? event.srcEvent : event;
+    if (nativeEvent.__childrenAxesAlreadyChanged) {
+      return;
+    }
+    var depaPos = this._moveDistance || this._axisManager.get(input.axes);
+    var destPos;
+    destPos = map(depaPos, function(v, k) {
+      return v + (offset[k] || 0);
+    });
+    if (this._moveDistance) {
+      this._moveDistance = this._axisManager.map(destPos, function(v, _a) {
+        var circular = _a.circular, range2 = _a.range;
+        return circular && (circular[0] || circular[1]) ? getCirculatedPos(v, range2, circular) : v;
+      });
+    }
+    if (this._isOutside && this._axisManager.every(depaPos, function(v, opt) {
+      return !isOutside(v, opt.range);
+    })) {
+      this._isOutside = false;
+    }
+    depaPos = this._atOutside(depaPos);
+    destPos = this._atOutside(destPos);
+    if (!this.options.nested || !this._isEndofAxis(offset, depaPos, destPos)) {
+      nativeEvent.__childrenAxesAlreadyChanged = true;
+    }
+    var changeOption = {
+      input,
+      event
+    };
+    if (useAnimation) {
+      var duration = this._animationManager.getDuration(destPos, depaPos);
+      this._animationManager.animateTo(destPos, duration, changeOption);
+    } else {
+      var isCanceled = !this._eventManager.triggerChange(destPos, depaPos, changeOption, true);
+      if (isCanceled) {
+        this._isStopped = true;
+        this._moveDistance = null;
+        this._animationManager.finish(false);
+      }
+    }
+  };
+  __proto.release = function(input, event, velocity, inputDuration) {
+    if (this._isStopped || !this._interruptManager.isInterrupting() || !this._moveDistance) {
+      return;
+    }
+    var nativeEvent = event.srcEvent ? event.srcEvent : event;
+    if (nativeEvent.__childrenAxesAlreadyReleased) {
+      velocity = velocity.map(function() {
+        return 0;
+      });
+    }
+    var pos = this._axisManager.get(input.axes);
+    var depaPos = this._axisManager.get();
+    var displacement = this._animationManager.getDisplacement(velocity);
+    var offset = toAxis(input.axes, displacement);
+    var destPos = this._axisManager.get(this._axisManager.map(offset, function(v, opt, k) {
+      if (opt.circular && (opt.circular[0] || opt.circular[1])) {
+        return pos[k] + v;
+      } else {
+        return getInsidePosition(pos[k] + v, opt.range, opt.circular, opt.bounce);
+      }
+    }));
+    nativeEvent.__childrenAxesAlreadyReleased = true;
+    var duration = this._animationManager.getDuration(destPos, pos, inputDuration);
+    if (duration === 0) {
+      destPos = __assign$2({}, depaPos);
+    }
+    var param = {
+      depaPos,
+      destPos,
+      duration,
+      delta: this._axisManager.getDelta(depaPos, destPos),
+      inputEvent: event,
+      input,
+      isTrusted: true
+    };
+    --this._eventManager.holdingCount;
+    this._eventManager.triggerRelease(param);
+    if (this._eventManager.holdingCount === 0) {
+      this._moveDistance = null;
+    }
+    var userWish = this._animationManager.getUserControl(param);
+    var isEqual = equal(userWish.destPos, depaPos);
+    var changeOption = {
+      input,
+      event
+    };
+    if (isEqual || userWish.duration === 0) {
+      if (!isEqual) {
+        this._eventManager.triggerChange(userWish.destPos, depaPos, changeOption, true);
+      }
+      this._interruptManager.setInterrupt(false);
+      if (this._axisManager.isOutside()) {
+        this._animationManager.restore(changeOption);
+      } else {
+        this._eventManager.triggerFinish(true);
+      }
+    } else {
+      this._animationManager.animateTo(userWish.destPos, userWish.duration, changeOption);
+    }
+  };
+  __proto._atOutside = function(pos) {
+    var _this = this;
+    if (this._isOutside) {
+      return this._axisManager.map(pos, function(v, opt) {
+        var tn = opt.range[0] - opt.bounce[0];
+        var tx = opt.range[1] + opt.bounce[1];
+        return v > tx ? tx : v < tn ? tn : v;
+      });
+    } else {
+      return this._axisManager.map(pos, function(v, opt) {
+        var min = opt.range[0];
+        var max = opt.range[1];
+        var out = opt.bounce;
+        var circular = opt.circular;
+        if (circular[0] && v < min || circular[1] && v > max) {
+          return v;
+        } else if (v < min) {
+          return min - _this._animationManager.interpolate(min - v, out[0]);
+        } else if (v > max) {
+          return max + _this._animationManager.interpolate(v - max, out[1]);
+        }
+        return v;
+      });
+    }
+  };
+  __proto._isEndofAxis = function(offset, depaPos, destPos) {
+    return this._axisManager.every(depaPos, function(value, option, key) {
+      return offset[key] === 0 || depaPos[key] === destPos[key] && isEndofBounce(value, option.range, option.bounce, option.circular);
+    });
+  };
+  return InputObserver2;
+})();
+var clamp$1 = function(value, min, max) {
+  return Math.max(Math.min(value, max), min);
+};
+var AnimationManager = /* @__PURE__ */ (function() {
+  function AnimationManager2(_a) {
+    var options = _a.options, interruptManager = _a.interruptManager, eventManager = _a.eventManager, axisManager = _a.axisManager;
+    this._options = options;
+    this.interruptManager = interruptManager;
+    this.eventManager = eventManager;
+    this.axisManager = axisManager;
+    this.animationEnd = this.animationEnd.bind(this);
+  }
+  var __proto = AnimationManager2.prototype;
+  __proto.getDuration = function(depaPos, destPos, wishDuration) {
+    var _this = this;
+    var duration;
+    if (typeof wishDuration !== "undefined") {
+      duration = wishDuration;
+    } else {
+      var durations_1 = map(destPos, function(v, k) {
+        return getDuration(Math.abs(v - depaPos[k]), _this._options.deceleration);
+      });
+      duration = Object.keys(durations_1).reduce(function(max, v) {
+        return Math.max(max, durations_1[v]);
+      }, -Infinity);
+    }
+    return clamp$1(duration, this._options.minimumDuration, this._options.maximumDuration);
+  };
+  __proto.getDisplacement = function(velocity) {
+    var totalVelocity = Math.pow(velocity.reduce(function(total, v) {
+      return total + v * v;
+    }, 0), 1 / velocity.length);
+    var duration = Math.abs(totalVelocity / -this._options.deceleration);
+    return velocity.map(function(v) {
+      return v / 2 * duration;
+    });
+  };
+  __proto.stopAnimation = function(option) {
+    if (this._animateParam) {
+      var orgPos_1 = this.axisManager.get();
+      var pos = this.axisManager.map(orgPos_1, function(v, opt) {
+        return getCirculatedPos(v, opt.range, opt.circular);
+      });
+      if (!every(pos, function(v, k) {
+        return orgPos_1[k] === v;
+      })) {
+        this.eventManager.triggerChange(pos, orgPos_1, option, !!option);
+      }
+      this._animateParam = null;
+      if (this._raf) {
+        cancelAnimationFrame(this._raf);
+      }
+      this._raf = null;
+      this.eventManager.triggerAnimationEnd(!!(option === null || option === void 0 ? void 0 : option.event));
+    }
+  };
+  __proto.getEventInfo = function() {
+    if (this._animateParam && this._animateParam.input && this._animateParam.inputEvent) {
+      return {
+        input: this._animateParam.input,
+        event: this._animateParam.inputEvent
+      };
+    } else {
+      return null;
+    }
+  };
+  __proto.restore = function(option) {
+    var pos = this.axisManager.get();
+    var destPos = this.axisManager.map(pos, function(v, opt) {
+      return Math.min(opt.range[1], Math.max(opt.range[0], v));
+    });
+    this.stopAnimation();
+    this.animateTo(destPos, this.getDuration(pos, destPos), option);
+  };
+  __proto.animationEnd = function() {
+    var beforeParam = this.getEventInfo();
+    this._animateParam = null;
+    var circularTargets = this.axisManager.filter(this.axisManager.get(), function(v, opt) {
+      return isCircularable(v, opt.range, opt.circular);
+    });
+    if (Object.keys(circularTargets).length > 0) {
+      this.setTo(this.axisManager.map(circularTargets, function(v, opt) {
+        return getCirculatedPos(v, opt.range, opt.circular);
+      }));
+    }
+    this.interruptManager.setInterrupt(false);
+    this.eventManager.triggerAnimationEnd(!!beforeParam);
+    if (this.axisManager.isOutside()) {
+      this.restore(beforeParam);
+    } else {
+      this.finish(!!beforeParam);
+    }
+  };
+  __proto.finish = function(isTrusted) {
+    this._animateParam = null;
+    this.interruptManager.setInterrupt(false);
+    this.eventManager.triggerFinish(isTrusted);
+  };
+  __proto.getUserControl = function(param) {
+    var userWish = param.setTo();
+    userWish.destPos = this.axisManager.get(userWish.destPos);
+    userWish.duration = clamp$1(userWish.duration, this._options.minimumDuration, this._options.maximumDuration);
+    return userWish;
+  };
+  __proto.animateTo = function(destPos, duration, option) {
+    var _this = this;
+    this.stopAnimation();
+    var param = this._createAnimationParam(destPos, duration, option);
+    var depaPos = __assign$2({}, param.depaPos);
+    var retTrigger = this.eventManager.triggerAnimationStart(param);
+    var userWish = this.getUserControl(param);
+    if (!retTrigger && this.axisManager.every(userWish.destPos, function(v, opt) {
+      return isCircularable(v, opt.range, opt.circular);
+    })) {
+      console.warn("You can't stop the 'animation' event when 'circular' is true.");
+    }
+    if (retTrigger && !equal(userWish.destPos, depaPos)) {
+      var inputEvent = (option === null || option === void 0 ? void 0 : option.event) || null;
+      this._animateLoop({
+        depaPos,
+        destPos: userWish.destPos,
+        duration: userWish.duration,
+        delta: this.axisManager.getDelta(depaPos, userWish.destPos),
+        isTrusted: !!inputEvent,
+        inputEvent,
+        input: (option === null || option === void 0 ? void 0 : option.input) || null
+      }, function() {
+        return _this.animationEnd();
+      });
+    }
+  };
+  __proto.setTo = function(pos, duration) {
+    if (duration === void 0) {
+      duration = 0;
+    }
+    var axes = Object.keys(pos);
+    var orgPos = this.axisManager.get(axes);
+    if (equal(pos, orgPos)) {
+      return this;
+    }
+    this.interruptManager.setInterrupt(true);
+    var movedPos = filter(pos, function(v, k) {
+      return orgPos[k] !== v;
+    });
+    if (!Object.keys(movedPos).length) {
+      return this;
+    }
+    movedPos = this.axisManager.map(movedPos, function(v, opt) {
+      var range2 = opt.range, circular = opt.circular;
+      if (circular && (circular[0] || circular[1])) {
+        return v;
+      } else {
+        return getInsidePosition(v, range2, circular);
+      }
+    });
+    if (equal(movedPos, orgPos)) {
+      return this;
+    }
+    if (duration > 0) {
+      this.animateTo(movedPos, duration);
+    } else {
+      this.stopAnimation();
+      this.eventManager.triggerChange(movedPos);
+      this.finish(false);
+    }
+    return this;
+  };
+  __proto.setBy = function(pos, duration) {
+    if (duration === void 0) {
+      duration = 0;
+    }
+    return this.setTo(map(this.axisManager.get(Object.keys(pos)), function(v, k) {
+      return v + pos[k];
+    }), duration);
+  };
+  __proto.setOptions = function(options) {
+    this._options = __assign$2(__assign$2({}, this._options), options);
+  };
+  __proto._createAnimationParam = function(pos, duration, option) {
+    var depaPos = this.axisManager.get();
+    var destPos = pos;
+    var inputEvent = (option === null || option === void 0 ? void 0 : option.event) || null;
+    return {
+      depaPos,
+      destPos,
+      duration: clamp$1(duration, this._options.minimumDuration, this._options.maximumDuration),
+      delta: this.axisManager.getDelta(depaPos, destPos),
+      inputEvent,
+      input: (option === null || option === void 0 ? void 0 : option.input) || null,
+      isTrusted: !!inputEvent,
+      done: this.animationEnd
+    };
+  };
+  __proto._animateLoop = function(param, complete) {
+    var _this = this;
+    if (param.duration) {
+      this._animateParam = __assign$2(__assign$2({}, param), {
+        startTime: (/* @__PURE__ */ new Date()).getTime()
+      });
+      var originalIntendedPos_1 = map(param.destPos, function(v) {
+        return v;
+      });
+      var state_1 = this._initState(this._animateParam);
+      var loop_1 = function() {
+        _this._raf = null;
+        var animateParam = _this._animateParam;
+        var nextState = _this._getNextState(state_1);
+        var isCanceled = !_this.eventManager.triggerChange(nextState.pos, state_1.pos);
+        state_1 = nextState;
+        if (nextState.finished) {
+          animateParam.destPos = _this._getFinalPos(animateParam.destPos, originalIntendedPos_1);
+          if (!equal(animateParam.destPos, _this.axisManager.get(Object.keys(animateParam.destPos)))) {
+            _this.eventManager.triggerChange(animateParam.destPos, nextState.pos);
+          }
+          complete();
+          return;
+        } else if (isCanceled) {
+          _this.finish(false);
+        } else {
+          _this._raf = requestAnimationFrame(loop_1);
+        }
+      };
+      loop_1();
+    } else {
+      this.eventManager.triggerChange(param.destPos);
+      complete();
+    }
+  };
+  __proto._getFinalPos = function(destPos, originalIntendedPos) {
+    var _this = this;
+    var ERROR_LIMIT = 1e-6;
+    var finalPos = map(destPos, function(value, key) {
+      if (value >= originalIntendedPos[key] - ERROR_LIMIT && value <= originalIntendedPos[key] + ERROR_LIMIT) {
+        return originalIntendedPos[key];
+      } else {
+        var roundUnit = _this._getRoundUnit(value, key);
+        var result = roundNumber(value, roundUnit);
+        return result;
+      }
+    });
+    return finalPos;
+  };
+  __proto._getRoundUnit = function(val, key) {
+    var roundUnit = this._options.round;
+    var minRoundUnit = null;
+    if (!roundUnit) {
+      var options = this.axisManager.getAxisOptions(key);
+      minRoundUnit = inversePow(Math.max(getDecimalPlace(options.range[0]), getDecimalPlace(options.range[1]), getDecimalPlace(val)));
+    }
+    return minRoundUnit || roundUnit;
+  };
+  return AnimationManager2;
+})();
+var EasingManager = /* @__PURE__ */ (function(_super) {
+  __extends$3(EasingManager2, _super);
+  function EasingManager2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this._useDuration = true;
+    return _this;
+  }
+  var __proto = EasingManager2.prototype;
+  __proto.interpolate = function(displacement, threshold) {
+    var initSlope = this._easing(1e-5) / 1e-5;
+    return this._easing(displacement / (threshold * initSlope)) * threshold;
+  };
+  __proto.updateAnimation = function(options) {
+    var _a;
+    var animateParam = this._animateParam;
+    if (!animateParam) {
+      return;
+    }
+    var diffTime = (/* @__PURE__ */ new Date()).getTime() - animateParam.startTime;
+    var pos = (options === null || options === void 0 ? void 0 : options.destPos) || animateParam.destPos;
+    var duration = (_a = options === null || options === void 0 ? void 0 : options.duration) !== null && _a !== void 0 ? _a : animateParam.duration;
+    if ((options === null || options === void 0 ? void 0 : options.restart) || duration <= diffTime) {
+      this.setTo(pos, duration - diffTime);
+      return;
+    }
+    if (options === null || options === void 0 ? void 0 : options.destPos) {
+      var currentPos = this.axisManager.get();
+      this._initialEasingPer = this._prevEasingPer;
+      animateParam.delta = this.axisManager.getDelta(currentPos, pos);
+      animateParam.destPos = pos;
+    }
+    if (options === null || options === void 0 ? void 0 : options.duration) {
+      var ratio = (diffTime + this._durationOffset) / animateParam.duration;
+      this._durationOffset = ratio * duration - diffTime;
+      animateParam.duration = duration;
+    }
+  };
+  __proto._initState = function(info) {
+    this._initialEasingPer = 0;
+    this._prevEasingPer = 0;
+    this._durationOffset = 0;
+    return {
+      pos: info.depaPos,
+      easingPer: 0,
+      finished: false
+    };
+  };
+  __proto._getNextState = function(prevState) {
+    var _this = this;
+    var animateParam = this._animateParam;
+    var prevPos = prevState.pos;
+    var destPos = animateParam.destPos;
+    var directions = map(prevPos, function(value, key) {
+      return value <= destPos[key] ? 1 : -1;
+    });
+    var diffTime = (/* @__PURE__ */ new Date()).getTime() - animateParam.startTime;
+    var ratio = (diffTime + this._durationOffset) / animateParam.duration;
+    var easingPer = this._easing(ratio);
+    var toPos = this.axisManager.map(prevPos, function(pos, options, key) {
+      var nextPos = ratio >= 1 ? destPos[key] : pos + animateParam.delta[key] * (easingPer - _this._prevEasingPer) / (1 - _this._initialEasingPer);
+      var circulatedPos = getCirculatedPos(nextPos, options.range, options.circular);
+      if (nextPos !== circulatedPos) {
+        var rangeOffset = directions[key] * (options.range[1] - options.range[0]);
+        destPos[key] -= rangeOffset;
+        prevPos[key] -= rangeOffset;
+      }
+      return circulatedPos;
+    });
+    this._prevEasingPer = easingPer;
+    return {
+      pos: toPos,
+      easingPer,
+      finished: easingPer >= 1
+    };
+  };
+  __proto._easing = function(p) {
+    return p > 1 ? 1 : this._options.easing(p);
+  };
+  return EasingManager2;
+})(AnimationManager);
+var Axes = /* @__PURE__ */ (function(_super) {
+  __extends$3(Axes2, _super);
+  function Axes2(axis, options, startPos) {
+    if (axis === void 0) {
+      axis = {};
+    }
+    if (options === void 0) {
+      options = {};
+    }
+    if (startPos === void 0) {
+      startPos = {};
+    }
+    var _this = _super.call(this) || this;
+    _this.axis = axis;
+    _this._inputs = [];
+    _this.options = __assign$2({
+      easing: function(x) {
+        return 1 - Math.pow(1 - x, 3);
+      },
+      interruptable: true,
+      maximumDuration: Infinity,
+      minimumDuration: 0,
+      deceleration: 6e-4,
+      round: null,
+      nested: false
+    }, options);
+    Object.keys(startPos).forEach(function(key) {
+      _this.axis[key].startPos = startPos[key];
+    });
+    _this.interruptManager = new InterruptManager(_this.options);
+    _this.axisManager = new AxisManager(_this.axis);
+    _this.eventManager = new EventManager(_this);
+    _this.animationManager = new EasingManager(_this);
+    _this.inputObserver = new InputObserver(_this);
+    _this.eventManager.setAnimationManager(_this.animationManager);
+    _this.eventManager.triggerChange(_this.axisManager.get());
+    return _this;
+  }
+  var __proto = Axes2.prototype;
+  Object.defineProperty(__proto, "holding", {
+    /**
+     * @name Axes#holding
+     * @desc Returns true if at least one input is in progress.
+     * @ko 입력이 하나 이상 진행 중인지 여부를 반환한다.
+     *
+     * @readonly
+     * @type {boolean}
+     * @example
+     * ```js
+     * const axes = new eg.Axes({
+     *  x: {
+     *    range: [0, 100],
+     *  },
+     * });
+     *
+     * axes.holding
+     * ```
+     */
+    get: function() {
+      return this.eventManager.holdingCount > 0;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.connect = function(axes, inputType) {
+    var mapped;
+    if (typeof axes === "string") {
+      mapped = axes.split(" ");
+    } else {
+      mapped = axes.concat();
+    }
+    if (~this._inputs.indexOf(inputType)) {
+      this.disconnect(inputType);
+    }
+    inputType.mapAxes(mapped);
+    inputType.connect(this.inputObserver);
+    this._inputs.push(inputType);
+    return this;
+  };
+  __proto.disconnect = function(inputType) {
+    if (inputType) {
+      var index = this._inputs.indexOf(inputType);
+      if (index >= 0) {
+        this._inputs[index].disconnect();
+        this._inputs.splice(index, 1);
+      }
+    } else {
+      this._inputs.forEach(function(v) {
+        return v.disconnect();
+      });
+      this._inputs = [];
+    }
+    return this;
+  };
+  __proto.get = function(axes) {
+    return this.axisManager.get(axes);
+  };
+  __proto.setTo = function(pos, duration) {
+    if (duration === void 0) {
+      duration = 0;
+    }
+    this.animationManager.setTo(pos, duration);
+    return this;
+  };
+  __proto.setBy = function(pos, duration) {
+    if (duration === void 0) {
+      duration = 0;
+    }
+    this.animationManager.setBy(pos, duration);
+    return this;
+  };
+  __proto.setOptions = function(options) {
+    this.options = __assign$2(__assign$2({}, this.options), options);
+    this.animationManager.setOptions(options);
+    return this;
+  };
+  __proto.setAxis = function(axis) {
+    this.axisManager.setAxis(axis);
+    return this;
+  };
+  __proto.stopAnimation = function() {
+    this.animationManager.stopAnimation();
+    this.animationManager.finish(false);
+    return this;
+  };
+  __proto.updateAnimation = function(options) {
+    this.animationManager.updateAnimation(options);
+    return this;
+  };
+  __proto.isBounceArea = function(axes) {
+    return this.axisManager.isOutside(axes);
+  };
+  __proto.destroy = function() {
+    this.disconnect();
+    this.eventManager.destroy();
+  };
+  Axes2.VERSION = "3.9.2";
+  Axes2.TRANSFORM = TRANSFORM;
+  Axes2.DIRECTION_NONE = DIRECTION_NONE;
+  Axes2.DIRECTION_LEFT = DIRECTION_LEFT;
+  Axes2.DIRECTION_RIGHT = DIRECTION_RIGHT;
+  Axes2.DIRECTION_UP = DIRECTION_UP;
+  Axes2.DIRECTION_DOWN = DIRECTION_DOWN;
+  Axes2.DIRECTION_HORIZONTAL = DIRECTION_HORIZONTAL;
+  Axes2.DIRECTION_VERTICAL = DIRECTION_VERTICAL;
+  Axes2.DIRECTION_ALL = DIRECTION_ALL;
+  __decorate([Computed], Axes2.prototype, "holding", null);
+  Axes2 = __decorate([ReactiveSubscribe], Axes2);
+  return Axes2;
+})(Component);
+var getDirectionByAngle = function(angle, thresholdAngle) {
+  if (thresholdAngle < 0 || thresholdAngle > 90) {
+    return DIRECTION_NONE;
+  }
+  var toAngle = Math.abs(angle);
+  return toAngle > thresholdAngle && toAngle < 180 - thresholdAngle ? DIRECTION_VERTICAL : DIRECTION_HORIZONTAL;
+};
+var PanInput = /* @__PURE__ */ (function() {
+  function PanInput2(el, options) {
+    var _this = this;
+    this.axes = [];
+    this.element = null;
+    this._enabled = false;
+    this._activeEvent = null;
+    this._atRightEdge = false;
+    this._rightEdgeTimer = 0;
+    this._dragged = false;
+    this._isOverThreshold = false;
+    this._preventClickWhenDragged = function(e) {
+      if (_this._dragged) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      _this._dragged = false;
+    };
+    this._voidFunction = function() {
+    };
+    this.element = $(el);
+    this.options = __assign$2({
+      inputType: ["touch", "mouse", "pointer"],
+      inputKey: [ANY],
+      inputButton: [MOUSE_LEFT],
+      scale: [1, 1],
+      thresholdAngle: 45,
+      threshold: 0,
+      preventClickOnDrag: false,
+      preventDefaultOnDrag: false,
+      iOSEdgeSwipeThreshold: IOS_EDGE_THRESHOLD,
+      releaseOnScroll: false,
+      touchAction: null
+    }, options);
+    this._onPanstart = this._onPanstart.bind(this);
+    this._onPanmove = this._onPanmove.bind(this);
+    this._onPanend = this._onPanend.bind(this);
+  }
+  var __proto = PanInput2.prototype;
+  __proto.mapAxes = function(axes) {
+    this._direction = getDirection$1(!!axes[0], !!axes[1]);
+    this.axes = axes;
+  };
+  __proto.connect = function(observer) {
+    if (this._activeEvent) {
+      this._detachElementEvent();
+      this._detachWindowEvent(this._activeEvent);
+    }
+    this._attachElementEvent(observer);
+    return this;
+  };
+  __proto.disconnect = function() {
+    this._detachElementEvent();
+    this._detachWindowEvent(this._activeEvent);
+    this._direction = DIRECTION_NONE;
+    return this;
+  };
+  __proto.destroy = function() {
+    this.disconnect();
+    this.element = null;
+  };
+  __proto.enable = function() {
+    var activeEvent = convertInputType(this.options.inputType);
+    if (!activeEvent) {
+      throw new Error("PanInput cannot be enabled if there is no available input event.");
+    } else if (!this._enabled) {
+      this._enabled = true;
+      this._originalCssProps = setCssProps(this.element, this.options, this._direction);
+    }
+    return this;
+  };
+  __proto.disable = function() {
+    if (this._enabled) {
+      this._enabled = false;
+      if (!isCssPropsFromAxes(this._originalCssProps)) {
+        revertCssProps(this.element, this._originalCssProps);
+      }
+    }
+    return this;
+  };
+  __proto.isEnabled = function() {
+    return this._enabled;
+  };
+  __proto.release = function() {
+    var activeEvent = this._activeEvent;
+    var prevEvent = activeEvent.prevEvent;
+    activeEvent.onRelease();
+    this._observer.release(this, prevEvent, [0, 0]);
+    this._detachWindowEvent(activeEvent);
+    return this;
+  };
+  __proto._onPanstart = function(event) {
+    var _a = this.options, inputKey = _a.inputKey, inputButton = _a.inputButton, preventDefaultOnDrag = _a.preventDefaultOnDrag;
+    var activeEvent = this._activeEvent;
+    var panEvent = activeEvent.onEventStart(event, inputKey, inputButton);
+    if (!panEvent || !this._enabled || activeEvent.getTouches(event, inputButton) > 1) {
+      return;
+    }
+    if (panEvent.srcEvent.cancelable !== false) {
+      var edgeThreshold = this.options.iOSEdgeSwipeThreshold;
+      this._dragged = false;
+      this._isOverThreshold = false;
+      this._observer.hold(this, panEvent);
+      this._atRightEdge = IS_IOS_SAFARI && panEvent.center.x > window.innerWidth - edgeThreshold;
+      this._attachWindowEvent(activeEvent);
+      preventDefaultOnDrag && panEvent.srcEvent.type !== "touchstart" && panEvent.srcEvent.preventDefault();
+      activeEvent.prevEvent = panEvent;
+    }
+  };
+  __proto._onPanmove = function(event) {
+    var _this = this;
+    var _a = this.options, iOSEdgeSwipeThreshold = _a.iOSEdgeSwipeThreshold, preventClickOnDrag = _a.preventClickOnDrag, releaseOnScroll = _a.releaseOnScroll, inputKey = _a.inputKey, inputButton = _a.inputButton, threshold = _a.threshold, thresholdAngle = _a.thresholdAngle;
+    var activeEvent = this._activeEvent;
+    var panEvent = activeEvent.onEventMove(event, inputKey, inputButton);
+    var touches = activeEvent.getTouches(event, inputButton);
+    if (touches === 0 || releaseOnScroll && panEvent && !panEvent.srcEvent.cancelable) {
+      this._onPanend(event);
+      return;
+    }
+    if (!panEvent || !this._enabled || touches > 1) {
+      return;
+    }
+    var userDirection = getDirectionByAngle(panEvent.angle, thresholdAngle);
+    var useHorizontal = useDirection(DIRECTION_HORIZONTAL, this._direction, userDirection);
+    var useVertical = useDirection(DIRECTION_VERTICAL, this._direction, userDirection);
+    if (activeEvent.prevEvent && IS_IOS_SAFARI) {
+      var swipeLeftToRight = panEvent.center.x < 0;
+      if (swipeLeftToRight) {
+        this.release();
+        return;
+      } else if (this._atRightEdge) {
+        clearTimeout(this._rightEdgeTimer);
+        var swipeRightToLeft = panEvent.deltaX < -iOSEdgeSwipeThreshold;
+        if (swipeRightToLeft) {
+          this._atRightEdge = false;
+        } else {
+          this._rightEdgeTimer = window.setTimeout(function() {
+            return _this.release();
+          }, 100);
+        }
+      }
+    }
+    var distance = this._getDistance([panEvent.deltaX, panEvent.deltaY], [useHorizontal, useVertical]);
+    var offset = this._getOffset([panEvent.offsetX, panEvent.offsetY], [useHorizontal, useVertical]);
+    var prevent = offset.some(function(v) {
+      return v !== 0;
+    });
+    if (prevent) {
+      if (panEvent.srcEvent.cancelable !== false) {
+        panEvent.srcEvent.preventDefault();
+      }
+      panEvent.srcEvent.stopPropagation();
+    }
+    panEvent.preventSystemEvent = prevent;
+    if (prevent && (this._isOverThreshold || distance >= threshold)) {
+      this._dragged = preventClickOnDrag;
+      this._isOverThreshold = true;
+      this._observer.change(this, panEvent, toAxis(this.axes, offset));
+    }
+    activeEvent.prevEvent = panEvent;
+  };
+  __proto._onPanend = function(event) {
+    var inputButton = this.options.inputButton;
+    var activeEvent = this._activeEvent;
+    activeEvent.onEventEnd(event);
+    if (!this._enabled || activeEvent.getTouches(event, inputButton) !== 0) {
+      return;
+    }
+    this._detachWindowEvent(activeEvent);
+    clearTimeout(this._rightEdgeTimer);
+    var prevEvent = activeEvent.prevEvent;
+    var velocity = this._isOverThreshold ? this._getOffset([Math.abs(prevEvent.velocityX) * prevEvent.directionX, Math.abs(prevEvent.velocityY) * prevEvent.directionY], [useDirection(DIRECTION_HORIZONTAL, this._direction), useDirection(DIRECTION_VERTICAL, this._direction)]) : [0, 0];
+    activeEvent.onRelease();
+    this._observer.release(this, prevEvent, velocity);
+  };
+  __proto._attachWindowEvent = function(activeEvent) {
+    var _this = this;
+    activeEvent === null || activeEvent === void 0 ? void 0 : activeEvent.move.forEach(function(event) {
+      window.addEventListener(event, _this._onPanmove, getAddEventOptions(event));
+    });
+    activeEvent === null || activeEvent === void 0 ? void 0 : activeEvent.end.forEach(function(event) {
+      window.addEventListener(event, _this._onPanend, getAddEventOptions(event));
+    });
+  };
+  __proto._detachWindowEvent = function(activeEvent) {
+    var _this = this;
+    activeEvent === null || activeEvent === void 0 ? void 0 : activeEvent.move.forEach(function(event) {
+      window.removeEventListener(event, _this._onPanmove);
+    });
+    activeEvent === null || activeEvent === void 0 ? void 0 : activeEvent.end.forEach(function(event) {
+      window.removeEventListener(event, _this._onPanend);
+    });
+  };
+  __proto._getOffset = function(properties, direction) {
+    var scale = this.options.scale;
+    return [direction[0] ? properties[0] * scale[0] : 0, direction[1] ? properties[1] * scale[1] : 0];
+  };
+  __proto._getDistance = function(delta, direction) {
+    return Math.sqrt(Number(direction[0]) * Math.pow(delta[0], 2) + Number(direction[1]) * Math.pow(delta[1], 2));
+  };
+  __proto._attachElementEvent = function(observer) {
+    var _this = this;
+    var activeEvent = convertInputType(this.options.inputType);
+    var element = this.element;
+    if (!activeEvent) {
+      return;
+    }
+    if (!element) {
+      throw new Error("Element to connect input does not exist.");
+    }
+    this._observer = observer;
+    this.enable();
+    this._activeEvent = activeEvent;
+    element.addEventListener("click", this._preventClickWhenDragged, true);
+    activeEvent.start.forEach(function(event) {
+      element.addEventListener(event, _this._onPanstart);
+    });
+    activeEvent.move.forEach(function(event) {
+      element.addEventListener(event, _this._voidFunction);
+    });
+  };
+  __proto._detachElementEvent = function() {
+    var _this = this;
+    var activeEvent = this._activeEvent;
+    var element = this.element;
+    if (element) {
+      element.removeEventListener("click", this._preventClickWhenDragged, true);
+      activeEvent === null || activeEvent === void 0 ? void 0 : activeEvent.start.forEach(function(event) {
+        element.removeEventListener(event, _this._onPanstart);
+      });
+      activeEvent === null || activeEvent === void 0 ? void 0 : activeEvent.move.forEach(function(event) {
+        element.removeEventListener(event, _this._voidFunction);
+      });
+    }
+    this.disable();
+    this._observer = null;
+  };
+  return PanInput2;
+})();
+var extendStatics$2 = function(d, b) {
+  extendStatics$2 = Object.setPrototypeOf || {
+    __proto__: []
+  } instanceof Array && function(d2, b2) {
+    d2.__proto__ = b2;
+  } || function(d2, b2) {
+    for (var p in b2) if (Object.prototype.hasOwnProperty.call(b2, p)) d2[p] = b2[p];
+  };
+  return extendStatics$2(d, b);
+};
+function __extends$2(d, b) {
+  if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+  extendStatics$2(d, b);
+  function __() {
+    this.constructor = d;
+  }
+  d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+var __assign$1 = function() {
+  __assign$1 = Object.assign || function __assign2(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+    }
+    return t;
+  };
+  return __assign$1.apply(this, arguments);
+};
+function __spreadArrays() {
+  for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+  for (var r = Array(s), k = 0, i = 0; i < il; i++) for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++) r[k] = a[j];
+  return r;
+}
+var isWindow = typeof window !== "undefined";
+var ua = isWindow ? window.navigator.userAgent : "";
+var SUPPORT_COMPUTEDSTYLE = isWindow ? !!("getComputedStyle" in window) : false;
+var IS_IE = /MSIE|Trident|Windows Phone|Edge/.test(ua);
+var SUPPORT_ADDEVENTLISTENER = isWindow ? !!("addEventListener" in document) : false;
+var WIDTH = "width";
+var HEIGHT = "height";
+function getAttribute(el, name) {
+  return el.getAttribute(name) || "";
+}
+function toArray$1(arr) {
+  return [].slice.call(arr);
+}
+function hasSizeAttribute(target, prefix) {
+  if (prefix === void 0) {
+    prefix = "data-";
+  }
+  return !!target.getAttribute(prefix + "width");
+}
+function hasLoadingAttribute(target, prefix) {
+  if (prefix === void 0) {
+    prefix = "data-";
+  }
+  return "loading" in target && target.getAttribute("loading") === "lazy" || !!target.getAttribute(prefix + "lazy");
+}
+function hasSkipAttribute(target, prefix) {
+  if (prefix === void 0) {
+    prefix = "data-";
+  }
+  return !!target.getAttribute(prefix + "skip");
+}
+function addEvent(element, type, handler) {
+  if (SUPPORT_ADDEVENTLISTENER) {
+    element.addEventListener(type, handler, false);
+  } else if (element.attachEvent) {
+    element.attachEvent("on" + type, handler);
+  } else {
+    element["on" + type] = handler;
+  }
+}
+function removeEvent(element, type, handler) {
+  if (element.removeEventListener) {
+    element.removeEventListener(type, handler, false);
+  } else if (element.detachEvent) {
+    element.detachEvent("on" + type, handler);
+  } else {
+    element["on" + type] = null;
+  }
+}
+function innerWidth(el) {
+  return getSize(el, "Width");
+}
+function innerHeight(el) {
+  return getSize(el, "Height");
+}
+function getStyles(el) {
+  return (SUPPORT_COMPUTEDSTYLE ? window.getComputedStyle(el) : el.currentStyle) || {};
+}
+function getSize(el, name) {
+  var size = el["client" + name] || el["offset" + name];
+  return parseFloat(size || getStyles(el)[name.toLowerCase()]) || 0;
+}
+function getContentElements(element, tags, prefix) {
+  var skipElements = toArray$1(element.querySelectorAll(__spreadArrays(["[" + prefix + "skip] [" + prefix + "width]"], tags.map(function(tag) {
+    return ["[" + prefix + "skip] " + tag, tag + "[" + prefix + "skip]", "[" + prefix + "width] " + tag].join(", ");
+  })).join(", ")));
+  return toArray$1(element.querySelectorAll("[" + prefix + "width], " + tags.join(", "))).filter(function(el) {
+    return skipElements.indexOf(el) === -1;
+  });
+}
+var elements = [];
+function addAutoSizer(element, prefix) {
+  !elements.length && addEvent(window, "resize", resizeAllAutoSizers);
+  element.__PREFIX__ = prefix;
+  elements.push(element);
+  resize(element);
+}
+function removeAutoSizer(element, prefix) {
+  var index = elements.indexOf(element);
+  if (index < 0) {
+    return;
+  }
+  var fixed = getAttribute(element, prefix + "fixed");
+  delete element.__PREFIX__;
+  element.style[fixed === HEIGHT ? WIDTH : HEIGHT] = "";
+  elements.splice(index, 1);
+  !elements.length && removeEvent(window, "resize", resizeAllAutoSizers);
+}
+function resize(element, prefix) {
+  if (prefix === void 0) {
+    prefix = "data-";
+  }
+  var elementPrefix = element.__PREFIX__ || prefix;
+  var dataWidth = parseInt(getAttribute(element, "" + elementPrefix + WIDTH), 10) || 0;
+  var dataHeight = parseInt(getAttribute(element, "" + elementPrefix + HEIGHT), 10) || 0;
+  var fixed = getAttribute(element, elementPrefix + "fixed");
+  if (fixed === HEIGHT) {
+    var size = innerHeight(element) || dataHeight;
+    element.style[WIDTH] = dataWidth / dataHeight * size + "px";
+  } else {
+    var size = innerWidth(element) || dataWidth;
+    element.style[HEIGHT] = dataHeight / dataWidth * size + "px";
+  }
+}
+function resizeAllAutoSizers() {
+  elements.forEach(function(element) {
+    resize(element);
+  });
+}
+var Loader = /* @__PURE__ */ (function(_super) {
+  __extends$2(Loader2, _super);
+  function Loader2(element, options) {
+    if (options === void 0) {
+      options = {};
+    }
+    var _this = _super.call(this) || this;
+    _this.isReady = false;
+    _this.isPreReady = false;
+    _this.hasDataSize = false;
+    _this.hasLoading = false;
+    _this.isSkip = false;
+    _this.onCheck = function(e) {
+      _this.clear();
+      if (e && e.type === "error") {
+        _this.onError(_this.element);
+      }
+      if (_this.hasLoading && _this.checkElement()) {
+        return;
+      }
+      _this.onReady();
+    };
+    _this.options = __assign$1({
+      prefix: "data-"
+    }, options);
+    _this.element = element;
+    var prefix = _this.options.prefix;
+    _this.hasDataSize = hasSizeAttribute(element, prefix);
+    _this.isSkip = hasSkipAttribute(element, prefix);
+    _this.hasLoading = hasLoadingAttribute(element, prefix);
+    return _this;
+  }
+  var __proto = Loader2.prototype;
+  __proto.check = function() {
+    if (this.isSkip || !this.checkElement()) {
+      this.onAlreadyReady();
+      return false;
+    }
+    if (this.hasDataSize) {
+      addAutoSizer(this.element, this.options.prefix);
+    }
+    if (this.hasDataSize || this.hasLoading) {
+      this.onAlreadyPreReady();
+    }
+    return true;
+  };
+  __proto.addEvents = function() {
+    var _this = this;
+    var element = this.element;
+    this.constructor.EVENTS.forEach(function(name) {
+      addEvent(element, name, _this.onCheck);
+    });
+  };
+  __proto.clear = function() {
+    var _this = this;
+    var element = this.element;
+    this.constructor.EVENTS.forEach(function(name) {
+      removeEvent(element, name, _this.onCheck);
+    });
+    this.removeAutoSizer();
+  };
+  __proto.destroy = function() {
+    this.clear();
+    this.off();
+  };
+  __proto.removeAutoSizer = function() {
+    if (this.hasDataSize) {
+      var prefix = this.options.prefix;
+      removeAutoSizer(this.element, prefix);
+    }
+  };
+  __proto.onError = function(target) {
+    this.trigger("error", {
+      element: this.element,
+      target
+    });
+  };
+  __proto.onPreReady = function() {
+    if (this.isPreReady) {
+      return;
+    }
+    this.isPreReady = true;
+    this.trigger("preReady", {
+      element: this.element,
+      hasLoading: this.hasLoading,
+      isSkip: this.isSkip
+    });
+  };
+  __proto.onReady = function() {
+    var isPreReady = this.isPreReady;
+    this.isPreReady = true;
+    if (this.isReady) {
+      return;
+    }
+    this.removeAutoSizer();
+    this.isReady = true;
+    this.trigger("ready", {
+      element: this.element,
+      withPreReady: !isPreReady,
+      hasLoading: this.hasLoading,
+      isSkip: this.isSkip
+    });
+  };
+  __proto.onAlreadyError = function(target) {
+    var _this = this;
+    setTimeout(function() {
+      _this.onError(target);
+    });
+  };
+  __proto.onAlreadyPreReady = function() {
+    var _this = this;
+    setTimeout(function() {
+      _this.onPreReady();
+    });
+  };
+  __proto.onAlreadyReady = function() {
+    var _this = this;
+    setTimeout(function() {
+      _this.onReady();
+    });
+  };
+  Loader2.EVENTS = [];
+  return Loader2;
+})(Component);
+var ElementLoader = /* @__PURE__ */ (function(_super) {
+  __extends$2(ElementLoader2, _super);
+  function ElementLoader2() {
+    return _super !== null && _super.apply(this, arguments) || this;
+  }
+  var __proto = ElementLoader2.prototype;
+  __proto.setHasLoading = function(hasLoading) {
+    this.hasLoading = hasLoading;
+  };
+  __proto.check = function() {
+    if (this.isSkip) {
+      this.onAlreadyReady();
+      return false;
+    }
+    if (this.hasDataSize) {
+      addAutoSizer(this.element, this.options.prefix);
+      this.onAlreadyPreReady();
+    } else {
+      this.trigger("requestChildren");
+    }
+    return true;
+  };
+  __proto.checkElement = function() {
+    return true;
+  };
+  __proto.destroy = function() {
+    this.clear();
+    this.trigger("requestDestroy");
+    this.off();
+  };
+  __proto.onAlreadyPreReady = function() {
+    _super.prototype.onAlreadyPreReady.call(this);
+    this.trigger("reqeustReadyChildren");
+  };
+  ElementLoader2.EVENTS = [];
+  return ElementLoader2;
+})(Loader);
+var ImReadyManager = /* @__PURE__ */ (function(_super) {
+  __extends$2(ImReadyManager2, _super);
+  function ImReadyManager2(options) {
+    if (options === void 0) {
+      options = {};
+    }
+    var _this = _super.call(this) || this;
+    _this.readyCount = 0;
+    _this.preReadyCount = 0;
+    _this.totalCount = 0;
+    _this.totalErrorCount = 0;
+    _this.isPreReadyOver = true;
+    _this.elementInfos = [];
+    _this.options = __assign$1({
+      loaders: {},
+      prefix: "data-"
+    }, options);
+    return _this;
+  }
+  var __proto = ImReadyManager2.prototype;
+  __proto.check = function(elements2) {
+    var _this = this;
+    var prefix = this.options.prefix;
+    this.clear();
+    this.elementInfos = toArray$1(elements2).map(function(element, index) {
+      var loader = _this.getLoader(element, {
+        prefix
+      });
+      loader.check();
+      loader.on("error", function(e) {
+        _this.onError(index, e.target);
+      }).on("preReady", function(e) {
+        var info = _this.elementInfos[index];
+        info.hasLoading = e.hasLoading;
+        info.isSkip = e.isSkip;
+        var isPreReady = _this.checkPreReady(index);
+        _this.onPreReadyElement(index);
+        isPreReady && _this.onPreReady();
+      }).on("ready", function(_a) {
+        var withPreReady = _a.withPreReady, hasLoading = _a.hasLoading, isSkip = _a.isSkip;
+        var info = _this.elementInfos[index];
+        info.hasLoading = hasLoading;
+        info.isSkip = isSkip;
+        var isPreReady = withPreReady && _this.checkPreReady(index);
+        var isReady = _this.checkReady(index);
+        withPreReady && _this.onPreReadyElement(index);
+        _this.onReadyElement(index);
+        isPreReady && _this.onPreReady();
+        isReady && _this.onReady();
+      });
+      return {
+        loader,
+        element,
+        hasLoading: false,
+        hasError: false,
+        isPreReady: false,
+        isReady: false,
+        isSkip: false
+      };
+    });
+    var length = this.elementInfos.length;
+    this.totalCount = length;
+    if (!length) {
+      setTimeout(function() {
+        _this.onPreReady();
+        _this.onReady();
+      });
+    }
+    return this;
+  };
+  __proto.getTotalCount = function() {
+    return this.totalCount;
+  };
+  __proto.isPreReady = function() {
+    return this.elementInfos.every(function(info) {
+      return info.isPreReady;
+    });
+  };
+  __proto.isReady = function() {
+    return this.elementInfos.every(function(info) {
+      return info.isReady;
+    });
+  };
+  __proto.hasError = function() {
+    return this.totalErrorCount > 0;
+  };
+  __proto.clear = function() {
+    this.isPreReadyOver = false;
+    this.totalCount = 0;
+    this.preReadyCount = 0;
+    this.readyCount = 0;
+    this.totalErrorCount = 0;
+    this.elementInfos.forEach(function(info) {
+      if (info.loader) {
+        info.loader.destroy();
+      }
+    });
+    this.elementInfos = [];
+  };
+  __proto.destroy = function() {
+    this.clear();
+    this.off();
+  };
+  __proto.getLoader = function(element, options) {
+    var _this = this;
+    var tagName = element.tagName.toLowerCase();
+    var loaders = this.options.loaders;
+    var prefix = options.prefix;
+    var tags = Object.keys(loaders);
+    if (loaders[tagName]) {
+      return new loaders[tagName](element, options);
+    }
+    var loader = new ElementLoader(element, options);
+    var children = toArray$1(element.querySelectorAll(tags.join(", ")));
+    loader.setHasLoading(children.some(function(el) {
+      return hasLoadingAttribute(el, prefix);
+    }));
+    var childrenImReady = this.clone().on("error", function(e) {
+      loader.onError(e.target);
+    }).on("ready", function() {
+      loader.onReady();
+    });
+    loader.on("requestChildren", function() {
+      var contentElements = getContentElements(element, tags, _this.options.prefix);
+      childrenImReady.check(contentElements).on("preReady", function(e) {
+        if (!e.isReady) {
+          loader.onPreReady();
+        }
+      });
+    }).on("reqeustReadyChildren", function() {
+      childrenImReady.check(children);
+    }).on("requestDestroy", function() {
+      childrenImReady.destroy();
+    });
+    return loader;
+  };
+  __proto.clone = function() {
+    return new ImReadyManager2(__assign$1({}, this.options));
+  };
+  __proto.checkPreReady = function(index) {
+    this.elementInfos[index].isPreReady = true;
+    ++this.preReadyCount;
+    if (this.preReadyCount < this.totalCount) {
+      return false;
+    }
+    return true;
+  };
+  __proto.checkReady = function(index) {
+    this.elementInfos[index].isReady = true;
+    ++this.readyCount;
+    if (this.readyCount < this.totalCount) {
+      return false;
+    }
+    return true;
+  };
+  __proto.onError = function(index, target) {
+    var info = this.elementInfos[index];
+    info.hasError = true;
+    this.trigger(new ComponentEvent$1("error", {
+      element: info.element,
+      index,
+      target,
+      errorCount: this.getErrorCount(),
+      totalErrorCount: ++this.totalErrorCount
+    }));
+  };
+  __proto.onPreReadyElement = function(index) {
+    var info = this.elementInfos[index];
+    this.trigger(new ComponentEvent$1("preReadyElement", {
+      element: info.element,
+      index,
+      preReadyCount: this.preReadyCount,
+      readyCount: this.readyCount,
+      totalCount: this.totalCount,
+      isPreReady: this.isPreReady(),
+      isReady: this.isReady(),
+      hasLoading: info.hasLoading,
+      isSkip: info.isSkip
+    }));
+  };
+  __proto.onPreReady = function() {
+    this.isPreReadyOver = true;
+    this.trigger(new ComponentEvent$1("preReady", {
+      readyCount: this.readyCount,
+      totalCount: this.totalCount,
+      isReady: this.isReady(),
+      hasLoading: this.hasLoading()
+    }));
+  };
+  __proto.onReadyElement = function(index) {
+    var info = this.elementInfos[index];
+    this.trigger(new ComponentEvent$1("readyElement", {
+      index,
+      element: info.element,
+      hasError: info.hasError,
+      errorCount: this.getErrorCount(),
+      totalErrorCount: this.totalErrorCount,
+      preReadyCount: this.preReadyCount,
+      readyCount: this.readyCount,
+      totalCount: this.totalCount,
+      isPreReady: this.isPreReady(),
+      isReady: this.isReady(),
+      hasLoading: info.hasLoading,
+      isPreReadyOver: this.isPreReadyOver,
+      isSkip: info.isSkip
+    }));
+  };
+  __proto.onReady = function() {
+    this.trigger(new ComponentEvent$1("ready", {
+      errorCount: this.getErrorCount(),
+      totalErrorCount: this.totalErrorCount,
+      totalCount: this.totalCount
+    }));
+  };
+  __proto.getErrorCount = function() {
+    return this.elementInfos.filter(function(info) {
+      return info.hasError;
+    }).length;
+  };
+  __proto.hasLoading = function() {
+    return this.elementInfos.some(function(info) {
+      return info.hasLoading;
+    });
+  };
+  return ImReadyManager2;
+})(Component);
+var ImageLoader = /* @__PURE__ */ (function(_super) {
+  __extends$2(ImageLoader2, _super);
+  function ImageLoader2() {
+    return _super !== null && _super.apply(this, arguments) || this;
+  }
+  var __proto = ImageLoader2.prototype;
+  __proto.checkElement = function() {
+    var element = this.element;
+    var src = element.getAttribute("src");
+    if (element.complete) {
+      if (src) {
+        if (!element.naturalWidth) {
+          this.onAlreadyError(element);
+        }
+        return false;
+      } else {
+        this.onAlreadyPreReady();
+      }
+    }
+    this.addEvents();
+    IS_IE && element.setAttribute("src", src);
+    return true;
+  };
+  ImageLoader2.EVENTS = ["load", "error"];
+  return ImageLoader2;
+})(Loader);
+var VideoLoader = /* @__PURE__ */ (function(_super) {
+  __extends$2(VideoLoader2, _super);
+  function VideoLoader2() {
+    return _super !== null && _super.apply(this, arguments) || this;
+  }
+  var __proto = VideoLoader2.prototype;
+  __proto.checkElement = function() {
+    var element = this.element;
+    if (element.readyState >= 1) {
+      return false;
+    }
+    if (element.error) {
+      this.onAlreadyError(element);
+      return false;
+    }
+    this.addEvents();
+    return true;
+  };
+  VideoLoader2.EVENTS = ["loadedmetadata", "error"];
+  return VideoLoader2;
+})(Loader);
+var ImReady = /* @__PURE__ */ (function(_super) {
+  __extends$2(ImReady2, _super);
+  function ImReady2(options) {
+    if (options === void 0) {
+      options = {};
+    }
+    return _super.call(this, __assign$1({
+      loaders: {
+        img: ImageLoader,
+        video: VideoLoader
+      }
+    }, options)) || this;
+  }
+  return ImReady2;
+})(ImReadyManager);
+var extendStatics$1 = function(d, b) {
+  extendStatics$1 = Object.setPrototypeOf || {
+    __proto__: []
+  } instanceof Array && function(d2, b2) {
+    d2.__proto__ = b2;
+  } || function(d2, b2) {
+    for (var p in b2) if (Object.prototype.hasOwnProperty.call(b2, p)) d2[p] = b2[p];
+  };
+  return extendStatics$1(d, b);
+};
+function __extends$1(d, b) {
+  if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+  extendStatics$1(d, b);
+  function __() {
+    this.constructor = d;
+  }
+  d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+var __assign = function() {
+  __assign = Object.assign || function __assign2(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+      for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+    }
+    return t;
+  };
+  return __assign.apply(this, arguments);
+};
+function __awaiter(thisArg, _arguments, P, generator) {
+  function adopt(value) {
+    return value instanceof P ? value : new P(function(resolve) {
+      resolve(value);
+    });
+  }
+  return new (P || (P = Promise))(function(resolve, reject) {
+    function fulfilled(value) {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function rejected(value) {
+      try {
+        step(generator["throw"](value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function step(result) {
+      result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+    }
+    step((generator = generator.apply(thisArg, [])).next());
+  });
+}
+function __generator(thisArg, body) {
+  var _ = {
+    label: 0,
+    sent: function() {
+      if (t[0] & 1) throw t[1];
+      return t[1];
+    },
+    trys: [],
+    ops: []
+  }, f, y, t, g;
+  return g = {
+    next: verb(0),
+    "throw": verb(1),
+    "return": verb(2)
+  }, typeof Symbol === "function" && (g[Symbol.iterator] = function() {
+    return this;
+  }), g;
+  function verb(n) {
+    return function(v) {
+      return step([n, v]);
+    };
+  }
+  function step(op) {
+    if (f) throw new TypeError("Generator is already executing.");
+    while (g && (g = 0, op[0] && (_ = 0)), _) try {
+      if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+      if (y = 0, t) op = [op[0] & 2, t.value];
+      switch (op[0]) {
+        case 0:
+        case 1:
+          t = op;
+          break;
+        case 4:
+          _.label++;
+          return {
+            value: op[1],
+            done: false
+          };
+        case 5:
+          _.label++;
+          y = op[1];
+          op = [0];
+          continue;
+        case 7:
+          op = _.ops.pop();
+          _.trys.pop();
+          continue;
+        default:
+          if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+            _ = 0;
+            continue;
+          }
+          if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
+            _.label = op[1];
+            break;
+          }
+          if (op[0] === 6 && _.label < t[1]) {
+            _.label = t[1];
+            t = op;
+            break;
+          }
+          if (t && _.label < t[2]) {
+            _.label = t[2];
+            _.ops.push(op);
+            break;
+          }
+          if (t[2]) _.ops.pop();
+          _.trys.pop();
+          continue;
+      }
+      op = body.call(thisArg, _);
+    } catch (e) {
+      op = [6, e];
+      y = 0;
+    } finally {
+      f = t = 0;
+    }
+    if (op[0] & 5) throw op[1];
+    return {
+      value: op[0] ? op[1] : void 0,
+      done: true
+    };
+  }
+}
+function __values(o) {
+  var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+  if (m) return m.call(o);
+  if (o && typeof o.length === "number") return {
+    next: function() {
+      if (o && i >= o.length) o = void 0;
+      return {
+        value: o && o[i++],
+        done: !o
+      };
+    }
+  };
+  throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+}
+function __read(o, n) {
+  var m = typeof Symbol === "function" && o[Symbol.iterator];
+  if (!m) return o;
+  var i = m.call(o), r, ar = [], e;
+  try {
+    while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+  } catch (error) {
+    e = {
+      error
+    };
+  } finally {
+    try {
+      if (r && !r.done && (m = i["return"])) m.call(i);
+    } finally {
+      if (e) throw e.error;
+    }
+  }
+  return ar;
+}
+function __spread() {
+  for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+  return ar;
+}
+typeof SuppressedError === "function" ? SuppressedError : function(error, suppressed, message) {
+  var e = new Error(message);
+  return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+};
+var CODE = {
+  WRONG_TYPE: 0,
+  ELEMENT_NOT_FOUND: 1,
+  VAL_MUST_NOT_NULL: 2,
+  NOT_ATTACHED_TO_FLICKING: 3,
+  WRONG_OPTION: 4,
+  INDEX_OUT_OF_RANGE: 5,
+  POSITION_NOT_REACHABLE: 6,
+  TRANSFORM_NOT_SUPPORTED: 7,
+  STOP_CALLED_BY_USER: 8,
+  ANIMATION_INTERRUPTED: 9,
+  ANIMATION_ALREADY_PLAYING: 10,
+  NOT_ALLOWED_IN_FRAMEWORK: 11,
+  NOT_INITIALIZED: 12
+};
+var MESSAGE = {
+  WRONG_TYPE: function(wrongVal, correctTypes) {
+    return wrongVal + "(" + typeof wrongVal + ") is not a " + correctTypes.map(function(type) {
+      return '"' + type + '"';
+    }).join(" or ") + ".";
+  },
+  ELEMENT_NOT_FOUND: function(selector) {
+    return 'Element with selector "' + selector + '" not found.';
+  },
+  VAL_MUST_NOT_NULL: function(val, name) {
+    return name + " should be provided. Given: " + val;
+  },
+  NOT_ATTACHED_TO_FLICKING: 'This module is not attached to the Flicking instance. "init()" should be called first.',
+  WRONG_OPTION: function(optionName, val) {
+    return 'Option "' + optionName + '" is not in correct format, given: ' + val;
+  },
+  INDEX_OUT_OF_RANGE: function(val, min, max) {
+    return 'Index "' + val + '" is out of range: should be between ' + min + " and " + max + ".";
+  },
+  POSITION_NOT_REACHABLE: function(position) {
+    return 'Position "' + position + '" is not reachable.';
+  },
+  TRANSFORM_NOT_SUPPORTED: "Browser does not support CSS transform.",
+  STOP_CALLED_BY_USER: "Event stop() is called by user.",
+  ANIMATION_INTERRUPTED: "Animation is interrupted by user input.",
+  ANIMATION_ALREADY_PLAYING: "Animation is already playing.",
+  NOT_ALLOWED_IN_FRAMEWORK: "This behavior is not allowed in the frameworks like React, Vue, or Angular.",
+  NOT_INITIALIZED: "Flicking is not initialized yet, call init() first.",
+  NO_ACTIVE: "There's no active panel that Flicking has selected. This may be due to the absence of any panels.",
+  NOT_ALLOWED_IN_VIRTUAL: "This behavior is not allowed when the virtual option is enabled"
+};
+var EVENTS = {
+  READY: "ready",
+  BEFORE_RESIZE: "beforeResize",
+  AFTER_RESIZE: "afterResize",
+  HOLD_START: "holdStart",
+  HOLD_END: "holdEnd",
+  MOVE_START: "moveStart",
+  MOVE: "move",
+  MOVE_END: "moveEnd",
+  WILL_CHANGE: "willChange",
+  CHANGED: "changed",
+  WILL_RESTORE: "willRestore",
+  RESTORED: "restored",
+  SELECT: "select",
+  NEED_PANEL: "needPanel",
+  VISIBLE_CHANGE: "visibleChange",
+  REACH_EDGE: "reachEdge",
+  PANEL_CHANGE: "panelChange"
+};
+var ALIGN = {
+  PREV: "prev",
+  CENTER: "center",
+  NEXT: "next"
+};
+var DIRECTION = {
+  PREV: "PREV",
+  NEXT: "NEXT",
+  NONE: null
+};
+var MOVE_TYPE = {
+  SNAP: "snap",
+  FREE_SCROLL: "freeScroll",
+  STRICT: "strict"
+};
+var CLASS = {
+  DEFAULT_VIRTUAL: "flicking-panel"
+};
+var CIRCULAR_FALLBACK = {
+  LINEAR: "linear",
+  BOUND: "bound"
+};
+var ORDER = {
+  LTR: "ltr",
+  RTL: "rtl"
+};
+var getElement$1 = function(el, parent) {
+  var targetEl = null;
+  if (isString(el)) {
+    var parentEl = document;
+    var queryResult = parentEl.querySelector(el);
+    if (!queryResult) {
+      throw new FlickingError(MESSAGE.ELEMENT_NOT_FOUND(el), CODE.ELEMENT_NOT_FOUND);
+    }
+    targetEl = queryResult;
+  } else if (el && el.nodeType === Node.ELEMENT_NODE) {
+    targetEl = el;
+  }
+  if (!targetEl) {
+    throw new FlickingError(MESSAGE.WRONG_TYPE(el, ["HTMLElement", "string"]), CODE.WRONG_TYPE);
+  }
+  return targetEl;
+};
+var checkExistence = function(value, nameOnErrMsg) {
+  if (value == null) {
+    throw new FlickingError(MESSAGE.VAL_MUST_NOT_NULL(value, nameOnErrMsg), CODE.VAL_MUST_NOT_NULL);
+  }
+};
+var clamp = function(x, min, max) {
+  return Math.max(Math.min(x, max), min);
+};
+var getFlickingAttached = function(val) {
+  if (!val) {
+    throw new FlickingError(MESSAGE.NOT_ATTACHED_TO_FLICKING, CODE.NOT_ATTACHED_TO_FLICKING);
+  }
+  return val;
+};
+var toArray = function(iterable) {
+  return [].slice.call(iterable);
+};
+var parseAlign$1 = function(align, size) {
+  var alignPoint;
+  if (isString(align)) {
+    switch (align) {
+      case ALIGN.PREV:
+        alignPoint = 0;
+        break;
+      case ALIGN.CENTER:
+        alignPoint = 0.5 * size;
+        break;
+      case ALIGN.NEXT:
+        alignPoint = size;
+        break;
+      default:
+        alignPoint = parseArithmeticSize(align, size);
+        if (alignPoint == null) {
+          throw new FlickingError(MESSAGE.WRONG_OPTION("align", align), CODE.WRONG_OPTION);
+        }
+    }
+  } else {
+    alignPoint = align;
+  }
+  return alignPoint;
+};
+var parseBounce = function(bounce, size) {
+  var parsedBounce;
+  if (Array.isArray(bounce)) {
+    parsedBounce = bounce.map(function(val) {
+      return parseArithmeticSize(val, size);
+    });
+  } else {
+    var parsedVal = parseArithmeticSize(bounce, size);
+    parsedBounce = [parsedVal, parsedVal];
+  }
+  return parsedBounce.map(function(val) {
+    if (val == null) {
+      throw new FlickingError(MESSAGE.WRONG_OPTION("bounce", bounce), CODE.WRONG_OPTION);
+    }
+    return val;
+  });
+};
+var parseArithmeticSize = function(cssValue, base) {
+  var parsed = parseArithmeticExpression(cssValue);
+  if (parsed == null) return null;
+  return parsed.percentage * base + parsed.absolute;
+};
+var parseArithmeticExpression = function(cssValue) {
+  var cssRegex = /(?:(\+|\-)\s*)?(\d+(?:\.\d+)?(%|px)?)/g;
+  if (typeof cssValue === "number") {
+    return {
+      percentage: 0,
+      absolute: cssValue
+    };
+  }
+  var parsed = {
+    percentage: 0,
+    absolute: 0
+  };
+  var idx = 0;
+  var matchResult = cssRegex.exec(cssValue);
+  while (matchResult != null) {
+    var sign = matchResult[1];
+    var value = matchResult[2];
+    var unit = matchResult[3];
+    var parsedValue = parseFloat(value);
+    if (idx <= 0) {
+      sign = sign || "+";
+    }
+    if (!sign) {
+      return null;
+    }
+    var signMultiplier = sign === "+" ? 1 : -1;
+    if (unit === "%") {
+      parsed.percentage += signMultiplier * (parsedValue / 100);
+    } else {
+      parsed.absolute += signMultiplier * parsedValue;
+    }
+    ++idx;
+    matchResult = cssRegex.exec(cssValue);
+  }
+  if (idx === 0) {
+    return null;
+  }
+  return parsed;
+};
+var parsePanelAlign = function(align) {
+  return typeof align === "object" ? align.panel : align;
+};
+var getDirection = function(start, end) {
+  if (start === end) return DIRECTION.NONE;
+  return start < end ? DIRECTION.NEXT : DIRECTION.PREV;
+};
+var parseElement = function(element) {
+  if (!Array.isArray(element)) {
+    element = [element];
+  }
+  var elements2 = [];
+  element.forEach(function(el) {
+    if (isString(el)) {
+      var tempDiv = document.createElement("div");
+      tempDiv.innerHTML = el;
+      elements2.push.apply(elements2, __spread(toArray(tempDiv.children)));
+      while (tempDiv.firstChild) {
+        tempDiv.removeChild(tempDiv.firstChild);
+      }
+    } else if (el && el.nodeType === Node.ELEMENT_NODE) {
+      elements2.push(el);
+    } else {
+      throw new FlickingError(MESSAGE.WRONG_TYPE(el, ["HTMLElement", "string"]), CODE.WRONG_TYPE);
+    }
+  });
+  return elements2;
+};
+var getMinusCompensatedIndex = function(idx, max) {
+  return idx < 0 ? clamp(idx + max, 0, max) : clamp(idx, 0, max);
+};
+var includes = function(array, target) {
+  var e_1, _a;
+  try {
+    for (var array_1 = __values(array), array_1_1 = array_1.next(); !array_1_1.done; array_1_1 = array_1.next()) {
+      var val = array_1_1.value;
+      if (val === target) return true;
+    }
+  } catch (e_1_1) {
+    e_1 = {
+      error: e_1_1
+    };
+  } finally {
+    try {
+      if (array_1_1 && !array_1_1.done && (_a = array_1.return)) _a.call(array_1);
+    } finally {
+      if (e_1) throw e_1.error;
+    }
+  }
+  return false;
+};
+var isString = function(val) {
+  return typeof val === "string";
+};
+var circulatePosition = function(pos, min, max) {
+  var size = max - min;
+  if (pos < min) {
+    var offset = (min - pos) % size;
+    pos = max - offset;
+  } else if (pos > max) {
+    var offset = (pos - max) % size;
+    pos = min + offset;
+  }
+  return pos;
+};
+var find = function(array, checker) {
+  var e_2, _a;
+  try {
+    for (var array_2 = __values(array), array_2_1 = array_2.next(); !array_2_1.done; array_2_1 = array_2.next()) {
+      var val = array_2_1.value;
+      if (checker(val)) {
+        return val;
+      }
+    }
+  } catch (e_2_1) {
+    e_2 = {
+      error: e_2_1
+    };
+  } finally {
+    try {
+      if (array_2_1 && !array_2_1.done && (_a = array_2.return)) _a.call(array_2);
+    } finally {
+      if (e_2) throw e_2.error;
+    }
+  }
+  return null;
+};
+var findIndex = function(array, checker) {
+  for (var idx = 0; idx < array.length; idx++) {
+    if (checker(array[idx])) {
+      return idx;
+    }
+  }
+  return -1;
+};
+var getProgress$1 = function(pos, prev, next) {
+  return (pos - prev) / (next - prev);
+};
+var getStyle = function(el) {
+  if (!el) {
+    return {};
+  }
+  return window.getComputedStyle(el) || el.currentStyle;
+};
+var setSize = function(el, _a) {
+  var width = _a.width, height = _a.height;
+  if (!el) {
+    return;
+  }
+  if (width != null) {
+    if (isString(width)) {
+      el.style.width = width;
+    } else {
+      el.style.width = width + "px";
+    }
+  }
+  if (height != null) {
+    if (isString(height)) {
+      el.style.height = height;
+    } else {
+      el.style.height = height + "px";
+    }
+  }
+};
+var isBetween = function(val, min, max) {
+  return val >= min && val <= max;
+};
+var circulateIndex = function(index, max) {
+  if (index >= max) {
+    return index % max;
+  } else if (index < 0) {
+    return getMinusCompensatedIndex((index + 1) % max - 1, max);
+  } else {
+    return index;
+  }
+};
+var range = function(end) {
+  var arr = new Array(end);
+  for (var i = 0; i < end; i++) {
+    arr[i] = i;
+  }
+  return arr;
+};
+var getElementSize = function(_a) {
+  var el = _a.el, horizontal = _a.horizontal, useFractionalSize = _a.useFractionalSize, useOffset = _a.useOffset, style = _a.style;
+  var size = 0;
+  if (useFractionalSize) {
+    var baseSize = parseFloat(horizontal ? style.width : style.height) || 0;
+    var isBorderBoxSizing = style.boxSizing === "border-box";
+    var border = horizontal ? parseFloat(style.borderLeftWidth || "0") + parseFloat(style.borderRightWidth || "0") : parseFloat(style.borderTopWidth || "0") + parseFloat(style.borderBottomWidth || "0");
+    if (isBorderBoxSizing) {
+      size = useOffset ? baseSize : baseSize - border;
+    } else {
+      var padding = horizontal ? parseFloat(style.paddingLeft || "0") + parseFloat(style.paddingRight || "0") : parseFloat(style.paddingTop || "0") + parseFloat(style.paddingBottom || "0");
+      size = useOffset ? baseSize + padding + border : baseSize + padding;
+    }
+  } else {
+    var sizeStr = horizontal ? "Width" : "Height";
+    size = useOffset ? el["offset" + sizeStr] : el["client" + sizeStr];
+  }
+  return Math.max(size, 0);
+};
+var setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
+  obj.__proto__ = proto;
+  return obj;
+};
+var FlickingError = /* @__PURE__ */ (function(_super) {
+  __extends$1(FlickingError2, _super);
+  function FlickingError2(message, code) {
+    var _this = _super.call(this, message) || this;
+    setPrototypeOf(_this, FlickingError2.prototype);
+    _this.name = "FlickingError";
+    _this.code = code;
+    return _this;
+  }
+  return FlickingError2;
+})(Error);
+var Viewport = /* @__PURE__ */ (function() {
+  function Viewport2(flicking, el) {
+    this._flicking = flicking;
+    this._el = el;
+    this._width = 0;
+    this._height = 0;
+    this._padding = {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0
+    };
+    this._isBorderBoxSizing = false;
+  }
+  var __proto = Viewport2.prototype;
+  Object.defineProperty(__proto, "element", {
+    /**
+     * A viewport(root) element
+     * @ko 뷰포트(root) 엘리먼트
+     * @type {HTMLElement}
+     * @readonly
+     */
+    get: function() {
+      return this._el;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "width", {
+    /**
+     * Viewport width, without paddings
+     * @ko 뷰포트 너비
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._width - this._padding.left - this._padding.right;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "height", {
+    /**
+     * Viewport height, without paddings
+     * @ko 뷰포트 높이
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._height - this._padding.top - this._padding.bottom;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "padding", {
+    /**
+     * Viewport paddings
+     * @ko 뷰포트 CSS padding 값
+     * @type {object}
+     * @property {number} left CSS `padding-left`
+     * @property {number} right CSS `padding-right`
+     * @property {number} top CSS `padding-top`
+     * @property {number} bottom CSS `padding-bottom`
+     * @readonly
+     */
+    get: function() {
+      return this._padding;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.setSize = function(_a) {
+    var width = _a.width, height = _a.height;
+    var el = this._el;
+    var padding = this._padding;
+    var isBorderBoxSizing = this._isBorderBoxSizing;
+    if (width != null) {
+      if (isString(width)) {
+        el.style.width = width;
+      } else {
+        var newWidth = isBorderBoxSizing ? width + padding.left + padding.right : width;
+        el.style.width = newWidth + "px";
+      }
+    }
+    if (height != null) {
+      if (isString(height)) {
+        el.style.height = height;
+      } else {
+        var newHeight = isBorderBoxSizing ? height + padding.top + padding.bottom : height;
+        el.style.height = newHeight + "px";
+      }
+    }
+    this.resize();
+  };
+  __proto.resize = function() {
+    var el = this._el;
+    var elStyle = getStyle(el);
+    var useFractionalSize = this._flicking.useFractionalSize;
+    this._width = getElementSize({
+      el,
+      horizontal: true,
+      useFractionalSize,
+      useOffset: false,
+      style: elStyle
+    });
+    this._height = getElementSize({
+      el,
+      horizontal: false,
+      useFractionalSize,
+      useOffset: false,
+      style: elStyle
+    });
+    this._padding = {
+      left: elStyle.paddingLeft ? parseFloat(elStyle.paddingLeft) : 0,
+      right: elStyle.paddingRight ? parseFloat(elStyle.paddingRight) : 0,
+      top: elStyle.paddingTop ? parseFloat(elStyle.paddingTop) : 0,
+      bottom: elStyle.paddingBottom ? parseFloat(elStyle.paddingBottom) : 0
+    };
+    this._isBorderBoxSizing = elStyle.boxSizing === "border-box";
+  };
+  return Viewport2;
+})();
+var AutoResizer = /* @__PURE__ */ (function() {
+  function AutoResizer2(flicking) {
+    var _this = this;
+    this._onResizeWrapper = function() {
+      _this._onResize([]);
+    };
+    this._onResize = function(entries) {
+      var flicking2 = _this._flicking;
+      var resizeDebounce = flicking2.resizeDebounce;
+      var maxResizeDebounce = flicking2.maxResizeDebounce;
+      var resizedViewportElement = flicking2.element;
+      var isResizedViewportOnly = entries.find(function(e) {
+        return e.target === flicking2.element;
+      }) && entries.length === 1;
+      if (isResizedViewportOnly) {
+        var beforeSize = {
+          width: flicking2.viewport.width,
+          height: flicking2.viewport.height
+        };
+        var afterSize = {
+          width: getElementSize({
+            el: resizedViewportElement,
+            horizontal: true,
+            useFractionalSize: _this._flicking.useFractionalSize,
+            useOffset: false,
+            style: getStyle(resizedViewportElement)
+          }),
+          height: getElementSize({
+            el: resizedViewportElement,
+            horizontal: false,
+            useFractionalSize: _this._flicking.useFractionalSize,
+            useOffset: false,
+            style: getStyle(resizedViewportElement)
+          })
+        };
+        if (beforeSize.height === afterSize.height && beforeSize.width === afterSize.width) {
+          return;
+        }
+      }
+      if (resizeDebounce <= 0) {
+        void flicking2.resize();
+      } else {
+        if (_this._maxResizeDebounceTimer <= 0) {
+          if (maxResizeDebounce > 0 && maxResizeDebounce >= resizeDebounce) {
+            _this._maxResizeDebounceTimer = window.setTimeout(_this._doScheduledResize, maxResizeDebounce);
+          }
+        }
+        if (_this._resizeTimer > 0) {
+          clearTimeout(_this._resizeTimer);
+          _this._resizeTimer = 0;
+        }
+        _this._resizeTimer = window.setTimeout(_this._doScheduledResize, resizeDebounce);
+      }
+    };
+    this._doScheduledResize = function() {
+      clearTimeout(_this._resizeTimer);
+      clearTimeout(_this._maxResizeDebounceTimer);
+      _this._maxResizeDebounceTimer = -1;
+      _this._resizeTimer = -1;
+      void _this._flicking.resize();
+    };
+    this._skipFirstResize = /* @__PURE__ */ (function() {
+      var isFirstResize = true;
+      return function(entries) {
+        if (isFirstResize) {
+          isFirstResize = false;
+          return;
+        }
+        _this._onResize(entries);
+      };
+    })();
+    this._flicking = flicking;
+    this._enabled = false;
+    this._resizeObserver = null;
+    this._resizeTimer = -1;
+    this._maxResizeDebounceTimer = -1;
+  }
+  var __proto = AutoResizer2.prototype;
+  Object.defineProperty(__proto, "enabled", {
+    get: function() {
+      return this._enabled;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.enable = function() {
+    var flicking = this._flicking;
+    var viewport = flicking.viewport;
+    if (this._enabled) {
+      this.disable();
+    }
+    if (flicking.useResizeObserver && !!window.ResizeObserver) {
+      var viewportSizeNot0 = viewport.width !== 0 || viewport.height !== 0;
+      var resizeObserver = viewportSizeNot0 ? new ResizeObserver(this._skipFirstResize) : new ResizeObserver(this._onResize);
+      this._resizeObserver = resizeObserver;
+      this.observe(flicking.viewport.element);
+      if (flicking.observePanelResize) {
+        this.observePanels();
+      }
+    } else {
+      window.addEventListener("resize", this._onResizeWrapper);
+    }
+    this._enabled = true;
+    return this;
+  };
+  __proto.observePanels = function() {
+    var _this = this;
+    this._flicking.panels.forEach(function(panel) {
+      _this.observe(panel.element);
+    });
+    return this;
+  };
+  __proto.unobservePanels = function() {
+    var _this = this;
+    this._flicking.panels.forEach(function(panel) {
+      _this.unobserve(panel.element);
+    });
+    return this;
+  };
+  __proto.observe = function(element) {
+    var resizeObserver = this._resizeObserver;
+    if (!resizeObserver) return this;
+    resizeObserver.observe(element);
+    return this;
+  };
+  __proto.unobserve = function(element) {
+    var resizeObserver = this._resizeObserver;
+    if (!resizeObserver) return this;
+    resizeObserver.unobserve(element);
+    if (this._flicking.observePanelResize) {
+      this.unobservePanels();
+    }
+    return this;
+  };
+  __proto.disable = function() {
+    if (!this._enabled) return this;
+    var resizeObserver = this._resizeObserver;
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      this._resizeObserver = null;
+    } else {
+      window.removeEventListener("resize", this._onResizeWrapper);
+    }
+    this._enabled = false;
+    return this;
+  };
+  return AutoResizer2;
+})();
+var VanillaElementProvider = /* @__PURE__ */ (function() {
+  function VanillaElementProvider2(element) {
+    this._element = element;
+    this._rendered = true;
+  }
+  var __proto = VanillaElementProvider2.prototype;
+  Object.defineProperty(__proto, "element", {
+    get: function() {
+      return this._element;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "rendered", {
+    get: function() {
+      return this._rendered;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.show = function(flicking) {
+    var el = this.element;
+    var cameraEl = flicking.camera.element;
+    if (el.parentElement !== cameraEl) {
+      cameraEl.appendChild(el);
+      this._rendered = true;
+    }
+  };
+  __proto.hide = function(flicking) {
+    var el = this.element;
+    var cameraEl = flicking.camera.element;
+    if (el.parentElement === cameraEl) {
+      cameraEl.removeChild(el);
+      this._rendered = false;
+    }
+  };
+  return VanillaElementProvider2;
+})();
+var VirtualElementProvider = /* @__PURE__ */ (function() {
+  function VirtualElementProvider2(flicking) {
+    this._flicking = flicking;
+  }
+  var __proto = VirtualElementProvider2.prototype;
+  Object.defineProperty(__proto, "element", {
+    get: function() {
+      return this._virtualElement.nativeElement;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "rendered", {
+    get: function() {
+      return this._virtualElement.visible;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "_virtualElement", {
+    get: function() {
+      var flicking = this._flicking;
+      var elIndex = this._panel.elementIndex;
+      var virtualElements = flicking.virtual.elements;
+      return virtualElements[elIndex];
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function(panel) {
+    this._panel = panel;
+  };
+  __proto.show = function() {
+  };
+  __proto.hide = function() {
+  };
+  return VirtualElementProvider2;
+})();
+var VirtualManager = /* @__PURE__ */ (function() {
+  function VirtualManager2(flicking, options) {
+    var _a, _b, _c, _d;
+    this._flicking = flicking;
+    this._renderPanel = (_a = options === null || options === void 0 ? void 0 : options.renderPanel) !== null && _a !== void 0 ? _a : function() {
+      return "";
+    };
+    this._initialPanelCount = (_b = options === null || options === void 0 ? void 0 : options.initialPanelCount) !== null && _b !== void 0 ? _b : -1;
+    this._cache = (_c = options === null || options === void 0 ? void 0 : options.cache) !== null && _c !== void 0 ? _c : false;
+    this._panelClass = (_d = options === null || options === void 0 ? void 0 : options.panelClass) !== null && _d !== void 0 ? _d : CLASS.DEFAULT_VIRTUAL;
+    this._elements = [];
+  }
+  var __proto = VirtualManager2.prototype;
+  Object.defineProperty(__proto, "elements", {
+    get: function() {
+      return this._elements;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "renderPanel", {
+    // Options
+    /**
+     * A rendering function for the panel element's innerHTML
+     * @ko 패널 엘리먼트의 innerHTML을 렌더링하는 함수
+     * @type {function}
+     * @param {VirtualPanel} panel Instance of the panel<ko>패널 인스턴스</ko>
+     * @param {number} index Index of the panel<ko>패널 인덱스</ko>
+     * @default "() => {}"
+     */
+    get: function() {
+      return this._renderPanel;
+    },
+    set: function(val) {
+      this._renderPanel = val;
+      this._flicking.renderer.panels.forEach(function(panel) {
+        return panel.uncacheRenderResult();
+      });
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "initialPanelCount", {
+    /**
+     * Initial panel count to render
+     * @ko 최초로 렌더링할 패널의 개수
+     * @readonly
+     * @type {number}
+     * @default -1
+     */
+    get: function() {
+      return this._initialPanelCount;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "cache", {
+    /**
+     * Whether to cache rendered panel's innerHTML
+     * @ko 렌더링된 패널의 innerHTML 정보를 캐시할지 여부
+     * @type {boolean}
+     * @default false
+     */
+    get: function() {
+      return this._cache;
+    },
+    set: function(val) {
+      this._cache = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "panelClass", {
+    /**
+     * The class name that will be applied to rendered panel elements
+     * @ko 렌더링되는 패널 엘리먼트에 적용될 클래스 이름
+     * @type {string}
+     * @default "flicking-panel"
+     */
+    get: function() {
+      return this._panelClass;
+    },
+    set: function(val) {
+      this._panelClass = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function() {
+    var flicking = this._flicking;
+    if (!flicking.virtualEnabled) return;
+    if (!flicking.externalRenderer && !flicking.renderExternal) {
+      this._initVirtualElements();
+    }
+    var virtualElements = flicking.camera.children;
+    this._elements = virtualElements.map(function(el) {
+      return {
+        nativeElement: el,
+        visible: true
+      };
+    });
+  };
+  __proto.show = function(index) {
+    var el = this._elements[index];
+    var nativeEl = el.nativeElement;
+    el.visible = true;
+    if (nativeEl.style.display) {
+      nativeEl.style.display = "";
+    }
+  };
+  __proto.hide = function(index) {
+    var el = this._elements[index];
+    var nativeEl = el.nativeElement;
+    el.visible = false;
+    nativeEl.style.display = "none";
+  };
+  __proto.append = function(count) {
+    if (count === void 0) {
+      count = 1;
+    }
+    var flicking = this._flicking;
+    return this.insert(flicking.panels.length, count);
+  };
+  __proto.prepend = function(count) {
+    if (count === void 0) {
+      count = 1;
+    }
+    return this.insert(0, count);
+  };
+  __proto.insert = function(index, count) {
+    if (count === void 0) {
+      count = 1;
+    }
+    if (count <= 0) return [];
+    var flicking = this._flicking;
+    return flicking.renderer.batchInsert({
+      index,
+      elements: range(count),
+      hasDOMInElements: false
+    });
+  };
+  __proto.remove = function(index, count) {
+    if (count <= 0) return [];
+    var flicking = this._flicking;
+    return flicking.renderer.batchRemove({
+      index,
+      deleteCount: count,
+      hasDOMInElements: false
+    });
+  };
+  __proto._initVirtualElements = function() {
+    var _this = this;
+    var flicking = this._flicking;
+    var cameraElement = flicking.camera.element;
+    var panelsPerView = flicking.panelsPerView;
+    var fragment = document.createDocumentFragment();
+    var newElements = range(panelsPerView + 1).map(function(idx) {
+      var panelEl = document.createElement("div");
+      panelEl.className = _this._panelClass;
+      panelEl.dataset.elementIndex = idx.toString();
+      return panelEl;
+    });
+    newElements.forEach(function(el) {
+      fragment.appendChild(el);
+    });
+    cameraElement.appendChild(fragment);
+  };
+  return VirtualManager2;
+})();
+var EVENT = {
+  HOLD: "hold",
+  CHANGE: "change",
+  RELEASE: "release",
+  ANIMATION_END: "animationEnd",
+  FINISH: "finish"
+};
+var POSITION_KEY = "flick";
+var STATE_TYPE;
+(function(STATE_TYPE2) {
+  STATE_TYPE2[STATE_TYPE2["IDLE"] = 0] = "IDLE";
+  STATE_TYPE2[STATE_TYPE2["HOLDING"] = 1] = "HOLDING";
+  STATE_TYPE2[STATE_TYPE2["DRAGGING"] = 2] = "DRAGGING";
+  STATE_TYPE2[STATE_TYPE2["ANIMATING"] = 3] = "ANIMATING";
+  STATE_TYPE2[STATE_TYPE2["DISABLED"] = 4] = "DISABLED";
+})(STATE_TYPE || (STATE_TYPE = {}));
+var State = /* @__PURE__ */ (function() {
+  function State2() {
+    this._delta = 0;
+    this._targetPanel = null;
+  }
+  var __proto = State2.prototype;
+  Object.defineProperty(__proto, "delta", {
+    /**
+     * A sum of delta values of change events from the last hold event of Axes
+     * @ko 이전 hold이벤트부터 change에 의해 발생한 이동 delta값의 합산
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._delta;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "targetPanel", {
+    /**
+     * A panel to set as {@link Control#activePanel} after the animation is finished
+     * @ko 애니메이션 종료시 {@link Control#activePanel}로 설정할 패널
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._targetPanel;
+    },
+    set: function(val) {
+      this._targetPanel = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.onEnter = function(prevState) {
+    this._delta = prevState._delta;
+    this._targetPanel = prevState._targetPanel;
+  };
+  __proto.onHold = function(ctx) {
+  };
+  __proto.onChange = function(ctx) {
+  };
+  __proto.onRelease = function(ctx) {
+  };
+  __proto.onAnimationEnd = function(ctx) {
+  };
+  __proto.onFinish = function(ctx) {
+  };
+  __proto._moveToChangedPosition = function(ctx) {
+    var flicking = ctx.flicking, axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    var delta = axesEvent.delta[POSITION_KEY];
+    if (!delta) {
+      return;
+    }
+    this._delta += delta;
+    var camera = flicking.camera;
+    var prevPosition = camera.position;
+    var position = axesEvent.pos[POSITION_KEY];
+    var newPosition = flicking.circularEnabled ? circulatePosition(position, camera.range.min, camera.range.max) : position;
+    camera.lookAt(newPosition);
+    var moveEvent = new ComponentEvent$1(EVENTS.MOVE, {
+      isTrusted: axesEvent.isTrusted,
+      holding: this.holding,
+      direction: getDirection(0, axesEvent.delta[POSITION_KEY]),
+      axesEvent
+    });
+    flicking.trigger(moveEvent);
+    if (moveEvent.isCanceled()) {
+      camera.lookAt(prevPosition);
+      transitTo(STATE_TYPE.DISABLED);
+    }
+  };
+  return State2;
+})();
+var IdleState = /* @__PURE__ */ (function(_super) {
+  __extends$1(IdleState2, _super);
+  function IdleState2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this.holding = false;
+    _this.animating = false;
+    return _this;
+  }
+  var __proto = IdleState2.prototype;
+  __proto.onEnter = function() {
+    this._delta = 0;
+    this._targetPanel = null;
+  };
+  __proto.onHold = function(ctx) {
+    var flicking = ctx.flicking, axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    if (flicking.renderer.panelCount <= 0) {
+      transitTo(STATE_TYPE.DISABLED);
+      return;
+    }
+    var holdStartEvent = new ComponentEvent$1(EVENTS.HOLD_START, {
+      axesEvent
+    });
+    flicking.trigger(holdStartEvent);
+    if (holdStartEvent.isCanceled()) {
+      transitTo(STATE_TYPE.DISABLED);
+    } else {
+      transitTo(STATE_TYPE.HOLDING);
+    }
+  };
+  __proto.onChange = function(ctx) {
+    var flicking = ctx.flicking, axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    var controller = flicking.control.controller;
+    var animatingContext = controller.animatingContext;
+    var moveStartEvent = new ComponentEvent$1(EVENTS.MOVE_START, {
+      isTrusted: axesEvent.isTrusted,
+      holding: this.holding,
+      direction: getDirection(animatingContext.start, animatingContext.end),
+      axesEvent
+    });
+    flicking.trigger(moveStartEvent);
+    if (moveStartEvent.isCanceled()) {
+      transitTo(STATE_TYPE.DISABLED);
+    } else {
+      transitTo(STATE_TYPE.ANIMATING).onChange(ctx);
+    }
+  };
+  return IdleState2;
+})(State);
+var HoldingState = /* @__PURE__ */ (function(_super) {
+  __extends$1(HoldingState2, _super);
+  function HoldingState2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this.holding = true;
+    _this.animating = false;
+    _this._releaseEvent = null;
+    return _this;
+  }
+  var __proto = HoldingState2.prototype;
+  __proto.onChange = function(ctx) {
+    var flicking = ctx.flicking, axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    var inputEvent = axesEvent.inputEvent;
+    if (!inputEvent) {
+      return;
+    }
+    var offset = flicking.horizontal ? inputEvent.offsetX : inputEvent.offsetY;
+    var moveStartEvent = new ComponentEvent$1(EVENTS.MOVE_START, {
+      isTrusted: axesEvent.isTrusted,
+      holding: this.holding,
+      direction: getDirection(0, -offset),
+      axesEvent
+    });
+    flicking.trigger(moveStartEvent);
+    if (moveStartEvent.isCanceled()) {
+      transitTo(STATE_TYPE.DISABLED);
+    } else {
+      transitTo(STATE_TYPE.DRAGGING).onChange(ctx);
+    }
+  };
+  __proto.onRelease = function(ctx) {
+    var flicking = ctx.flicking, axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    flicking.trigger(new ComponentEvent$1(EVENTS.HOLD_END, {
+      axesEvent
+    }));
+    if (axesEvent.delta.flick !== 0) {
+      axesEvent.setTo({
+        flick: flicking.camera.position
+      }, 0);
+      transitTo(STATE_TYPE.IDLE);
+      return;
+    }
+    this._releaseEvent = axesEvent;
+  };
+  __proto.onFinish = function(ctx) {
+    var e_1, _a;
+    var flicking = ctx.flicking, transitTo = ctx.transitTo;
+    transitTo(STATE_TYPE.IDLE);
+    if (!this._releaseEvent) {
+      return;
+    }
+    var releaseEvent = this._releaseEvent;
+    var srcEvent = releaseEvent.inputEvent.srcEvent;
+    var clickedElement;
+    if (srcEvent.type === "touchend") {
+      var touchEvent = srcEvent;
+      var touch = touchEvent.changedTouches[0];
+      clickedElement = document.elementFromPoint(touch.clientX, touch.clientY);
+    } else {
+      clickedElement = srcEvent.target;
+    }
+    var panels = flicking.renderer.panels;
+    var clickedPanel = null;
+    try {
+      for (var panels_1 = __values(panels), panels_1_1 = panels_1.next(); !panels_1_1.done; panels_1_1 = panels_1.next()) {
+        var panel = panels_1_1.value;
+        if (panel.contains(clickedElement)) {
+          clickedPanel = panel;
+          break;
+        }
+      }
+    } catch (e_1_1) {
+      e_1 = {
+        error: e_1_1
+      };
+    } finally {
+      try {
+        if (panels_1_1 && !panels_1_1.done && (_a = panels_1.return)) _a.call(panels_1);
+      } finally {
+        if (e_1) throw e_1.error;
+      }
+    }
+    if (clickedPanel) {
+      var cameraPosition = flicking.camera.position;
+      var clickedPanelPosition = clickedPanel.position;
+      flicking.trigger(new ComponentEvent$1(EVENTS.SELECT, {
+        index: clickedPanel.index,
+        panel: clickedPanel,
+        // Direction to the clicked panel
+        direction: getDirection(cameraPosition, clickedPanelPosition)
+      }));
+    }
+  };
+  return HoldingState2;
+})(State);
+var DraggingState = /* @__PURE__ */ (function(_super) {
+  __extends$1(DraggingState2, _super);
+  function DraggingState2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this.holding = true;
+    _this.animating = true;
+    return _this;
+  }
+  var __proto = DraggingState2.prototype;
+  __proto.onChange = function(ctx) {
+    this._moveToChangedPosition(ctx);
+  };
+  __proto.onRelease = function(ctx) {
+    var _a;
+    var flicking = ctx.flicking, axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    flicking.trigger(new ComponentEvent$1(EVENTS.HOLD_END, {
+      axesEvent
+    }));
+    if (flicking.renderer.panelCount <= 0) {
+      transitTo(STATE_TYPE.IDLE);
+      return;
+    }
+    transitTo(STATE_TYPE.ANIMATING);
+    var control = flicking.control;
+    var position = axesEvent.destPos[POSITION_KEY];
+    var duration = Math.max(axesEvent.duration, flicking.duration);
+    try {
+      void control.moveToPosition(position, duration, axesEvent);
+    } catch (err) {
+      transitTo(STATE_TYPE.IDLE);
+      axesEvent.setTo((_a = {}, _a[POSITION_KEY] = flicking.camera.position, _a), 0);
+    }
+  };
+  return DraggingState2;
+})(State);
+var AnimatingState = /* @__PURE__ */ (function(_super) {
+  __extends$1(AnimatingState2, _super);
+  function AnimatingState2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this.holding = false;
+    _this.animating = true;
+    return _this;
+  }
+  var __proto = AnimatingState2.prototype;
+  __proto.onHold = function(ctx) {
+    var flicking = ctx.flicking, axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    var targetPanel = this._targetPanel;
+    var control = flicking.control;
+    this._delta = 0;
+    flicking.control.updateInput();
+    if (flicking.changeOnHold && targetPanel) {
+      control.setActive(targetPanel, control.activePanel, axesEvent.isTrusted);
+    }
+    var holdStartEvent = new ComponentEvent$1(EVENTS.HOLD_START, {
+      axesEvent
+    });
+    flicking.trigger(holdStartEvent);
+    if (holdStartEvent.isCanceled()) {
+      transitTo(STATE_TYPE.DISABLED);
+    } else {
+      transitTo(STATE_TYPE.DRAGGING);
+    }
+  };
+  __proto.onChange = function(ctx) {
+    this._moveToChangedPosition(ctx);
+  };
+  __proto.onFinish = function(ctx) {
+    var flicking = ctx.flicking, axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    var control = flicking.control;
+    var controller = control.controller;
+    var animatingContext = controller.animatingContext;
+    transitTo(STATE_TYPE.IDLE);
+    flicking.trigger(new ComponentEvent$1(EVENTS.MOVE_END, {
+      isTrusted: axesEvent.isTrusted,
+      direction: getDirection(animatingContext.start, animatingContext.end),
+      axesEvent
+    }));
+    var targetPanel = this._targetPanel;
+    if (targetPanel) {
+      control.setActive(targetPanel, control.activePanel, axesEvent.isTrusted);
+    }
+  };
+  return AnimatingState2;
+})(State);
+var DisabledState = /* @__PURE__ */ (function(_super) {
+  __extends$1(DisabledState2, _super);
+  function DisabledState2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this.holding = false;
+    _this.animating = true;
+    return _this;
+  }
+  var __proto = DisabledState2.prototype;
+  __proto.onAnimationEnd = function(ctx) {
+    var transitTo = ctx.transitTo;
+    transitTo(STATE_TYPE.IDLE);
+  };
+  __proto.onChange = function(ctx) {
+    var axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    axesEvent.stop();
+    transitTo(STATE_TYPE.IDLE);
+  };
+  __proto.onRelease = function(ctx) {
+    var axesEvent = ctx.axesEvent, transitTo = ctx.transitTo;
+    if (axesEvent.delta.flick === 0) {
+      transitTo(STATE_TYPE.IDLE);
+    }
+  };
+  return DisabledState2;
+})(State);
+var StateMachine = /* @__PURE__ */ (function() {
+  function StateMachine2() {
+    var _this = this;
+    this.transitTo = function(nextStateType) {
+      var nextState;
+      switch (nextStateType) {
+        case STATE_TYPE.IDLE:
+          nextState = new IdleState();
+          break;
+        case STATE_TYPE.HOLDING:
+          nextState = new HoldingState();
+          break;
+        case STATE_TYPE.DRAGGING:
+          nextState = new DraggingState();
+          break;
+        case STATE_TYPE.ANIMATING:
+          nextState = new AnimatingState();
+          break;
+        case STATE_TYPE.DISABLED:
+          nextState = new DisabledState();
+          break;
+      }
+      nextState.onEnter(_this._state);
+      _this._state = nextState;
+      return _this._state;
+    };
+    this._state = new IdleState();
+  }
+  var __proto = StateMachine2.prototype;
+  Object.defineProperty(__proto, "state", {
+    get: function() {
+      return this._state;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.fire = function(eventType, externalCtx) {
+    var currentState = this._state;
+    var ctx = __assign(__assign({}, externalCtx), {
+      transitTo: this.transitTo
+    });
+    switch (eventType) {
+      case EVENT.HOLD:
+        currentState.onHold(ctx);
+        break;
+      case EVENT.CHANGE:
+        currentState.onChange(ctx);
+        break;
+      case EVENT.RELEASE:
+        currentState.onRelease(ctx);
+        break;
+      case EVENT.ANIMATION_END:
+        currentState.onAnimationEnd(ctx);
+        break;
+      case EVENT.FINISH:
+        currentState.onFinish(ctx);
+        break;
+    }
+  };
+  return StateMachine2;
+})();
+var AxesController = /* @__PURE__ */ (function() {
+  function AxesController2() {
+    var _this = this;
+    this._onAxesHold = function() {
+      _this._dragged = false;
+    };
+    this._onAxesChange = function() {
+      var _a;
+      _this._dragged = !!((_a = _this._panInput) === null || _a === void 0 ? void 0 : _a.isEnabled());
+    };
+    this._preventClickWhenDragged = function(e) {
+      if (_this._dragged) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      _this._dragged = false;
+    };
+    this._resetInternalValues();
+    this._stateMachine = new StateMachine();
+  }
+  var __proto = AxesController2.prototype;
+  Object.defineProperty(__proto, "axes", {
+    /**
+     * An {@link https://naver.github.io/egjs-axes/docs/api/Axes Axes} instance
+     * @ko {@link https://naver.github.io/egjs-axes/docs/api/Axes Axes}의 인스턴스
+     * @type {Axes | null}
+     * @see https://naver.github.io/egjs-axes/docs/api/Axes
+     * @readonly
+     */
+    get: function() {
+      return this._axes;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "panInput", {
+    /**
+     * An {@link https://naver.github.io/egjs-axes/docs/api/PanInput PanInput} instance
+     * @ko {@link https://naver.github.io/egjs-axes/docs/api/PanInput PanInput}의 인스턴스
+     * @type {PanInput | null}
+     * @see https://naver.github.io/egjs-axes/docs/api/PanInput
+     * @readonly
+     */
+    get: function() {
+      return this._panInput;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "stateMachine", {
+    /**
+     * @internal
+     */
+    get: function() {
+      return this._stateMachine;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "state", {
+    /**
+     * A activated {@link State} that shows the current status of the user input or the animation
+     * @ko 현재 활성화된 {@link State} 인스턴스로 사용자 입력 또는 애니메이션 상태를 나타냅니다
+     * @type {State}
+     */
+    get: function() {
+      return this._stateMachine.state;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "animatingContext", {
+    /**
+     * A context of the current animation playing
+     * @ko 현재 재생중인 애니메이션 정보
+     * @type {object}
+     * @property {number} start A start position of the animation<ko>애니메이션 시작 지점</ko>
+     * @property {number} end A end position of the animation<ko>애니메이션 끝 지점</ko>
+     * @property {number} offset camera offset<ko>카메라 오프셋</ko>
+     * @readonly
+     */
+    get: function() {
+      return this._animatingContext;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "controlParams", {
+    /**
+     * A current control parameters of the Axes instance
+     * @ko 활성화된 현재 Axes 패러미터들
+     * @type {ControlParams}
+     */
+    get: function() {
+      var axes = this._axes;
+      if (!axes) {
+        return {
+          range: {
+            min: 0,
+            max: 0
+          },
+          position: 0,
+          circular: false
+        };
+      }
+      var axis = axes.axis[POSITION_KEY];
+      return {
+        range: {
+          min: axis.range[0],
+          max: axis.range[1]
+        },
+        circular: axis.circular[0],
+        position: this.position
+      };
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "enabled", {
+    /**
+     * A Boolean indicating whether the user input is enabled
+     * @ko 현재 사용자 입력이 활성화되었는지를 나타내는 값
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      var _a, _b;
+      return (_b = (_a = this._panInput) === null || _a === void 0 ? void 0 : _a.isEnabled()) !== null && _b !== void 0 ? _b : false;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "position", {
+    /**
+     * Current position value in {@link https://naver.github.io/egjs-axes/release/latest/doc/eg.Axes.html Axes} instance
+     * @ko {@link https://naver.github.io/egjs-axes/release/latest/doc/eg.Axes.html Axes} 인스턴스 내부의 현재 좌표 값
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      var _a, _b;
+      return (_b = (_a = this._axes) === null || _a === void 0 ? void 0 : _a.get([POSITION_KEY])[POSITION_KEY]) !== null && _b !== void 0 ? _b : 0;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "range", {
+    /**
+     * Current range value in {@link https://naver.github.io/egjs-axes/release/latest/doc/eg.Axes.html Axes} instance
+     * @ko {@link https://naver.github.io/egjs-axes/release/latest/doc/eg.Axes.html Axes} 인스턴스 내부의 현재 이동 범위 값
+     * @type {number[]}
+     * @readonly
+     */
+    get: function() {
+      var _a, _b;
+      return (_b = (_a = this._axes) === null || _a === void 0 ? void 0 : _a.axis[POSITION_KEY].range) !== null && _b !== void 0 ? _b : [0, 0];
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "bounce", {
+    /**
+     * Actual bounce size(px)
+     * @ko 적용된 bounce 크기(px 단위)
+     * @type {number[]}
+     * @readonly
+     */
+    get: function() {
+      var _a;
+      return (_a = this._axes) === null || _a === void 0 ? void 0 : _a.axis[POSITION_KEY].bounce;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function(flicking) {
+    var _a;
+    var _this = this;
+    this._flicking = flicking;
+    this._axes = new Axes((_a = {}, _a[POSITION_KEY] = {
+      range: [0, 0],
+      circular: false,
+      bounce: [0, 0]
+    }, _a), {
+      deceleration: flicking.deceleration,
+      interruptable: flicking.interruptable,
+      nested: flicking.nested,
+      easing: flicking.easing
+    });
+    this._panInput = new PanInput(flicking.viewport.element, {
+      inputType: flicking.inputType,
+      threshold: flicking.dragThreshold,
+      iOSEdgeSwipeThreshold: flicking.iOSEdgeSwipeThreshold,
+      preventDefaultOnDrag: flicking.preventDefaultOnDrag,
+      scale: flicking.horizontal ? [flicking.camera.panelOrder === ORDER.RTL ? 1 : -1, 0] : [0, -1],
+      releaseOnScroll: true
+    });
+    var axes = this._axes;
+    axes.connect(flicking.horizontal ? [POSITION_KEY, ""] : ["", POSITION_KEY], this._panInput);
+    var _loop_1 = function(key2) {
+      var eventType = EVENT[key2];
+      axes.on(eventType, function(e) {
+        _this._stateMachine.fire(eventType, {
+          flicking,
+          axesEvent: e
+        });
+      });
+    };
+    for (var key in EVENT) {
+      _loop_1(key);
+    }
+    return this;
+  };
+  __proto.destroy = function() {
+    var _a;
+    if (this._axes) {
+      this.removePreventClickHandler();
+      this._axes.destroy();
+    }
+    (_a = this._panInput) === null || _a === void 0 ? void 0 : _a.destroy();
+    this._resetInternalValues();
+  };
+  __proto.enable = function() {
+    var _a;
+    (_a = this._panInput) === null || _a === void 0 ? void 0 : _a.enable();
+    return this;
+  };
+  __proto.disable = function() {
+    var _a;
+    (_a = this._panInput) === null || _a === void 0 ? void 0 : _a.disable();
+    return this;
+  };
+  __proto.release = function() {
+    var _a;
+    (_a = this._panInput) === null || _a === void 0 ? void 0 : _a.release();
+    return this;
+  };
+  __proto.updateAnimation = function(position, duration) {
+    var _a;
+    var _b;
+    this._animatingContext = __assign(__assign({}, this._animatingContext), {
+      end: position
+    });
+    (_b = this._axes) === null || _b === void 0 ? void 0 : _b.updateAnimation({
+      destPos: (_a = {}, _a[POSITION_KEY] = position, _a),
+      duration
+    });
+    return this;
+  };
+  __proto.stopAnimation = function() {
+    var _a;
+    (_a = this._axes) === null || _a === void 0 ? void 0 : _a.stopAnimation();
+    return this;
+  };
+  __proto.update = function(controlParams) {
+    var _a;
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var axes = this._axes;
+    var axis = axes.axis[POSITION_KEY];
+    axis.circular = [controlParams.circular, controlParams.circular];
+    axis.range = [controlParams.range.min, controlParams.range.max];
+    axis.bounce = parseBounce(flicking.bounce, camera.size);
+    axes.axisManager.set((_a = {}, _a[POSITION_KEY] = controlParams.position, _a));
+    return this;
+  };
+  __proto.addPreventClickHandler = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var axes = this._axes;
+    var cameraEl = flicking.camera.element;
+    axes.on(EVENT.HOLD, this._onAxesHold);
+    axes.on(EVENT.CHANGE, this._onAxesChange);
+    cameraEl.addEventListener("click", this._preventClickWhenDragged, true);
+    return this;
+  };
+  __proto.removePreventClickHandler = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var axes = this._axes;
+    var cameraEl = flicking.camera.element;
+    axes.off(EVENT.HOLD, this._onAxesHold);
+    axes.off(EVENT.CHANGE, this._onAxesChange);
+    cameraEl.removeEventListener("click", this._preventClickWhenDragged, true);
+    return this;
+  };
+  __proto.animateTo = function(position, duration, axesEvent) {
+    var _this = this;
+    var _a;
+    var axes = this._axes;
+    var state = this._stateMachine.state;
+    if (!axes) {
+      return Promise.reject(new FlickingError(MESSAGE.NOT_ATTACHED_TO_FLICKING, CODE.NOT_ATTACHED_TO_FLICKING));
+    }
+    var startPos = this.getCurrentPosition();
+    if (startPos === position) {
+      var flicking = getFlickingAttached(this._flicking);
+      flicking.camera.lookAt(position);
+      if (state.targetPanel) {
+        flicking.control.setActive(state.targetPanel, flicking.control.activePanel, (_a = axesEvent === null || axesEvent === void 0 ? void 0 : axesEvent.isTrusted) !== null && _a !== void 0 ? _a : false);
+      }
+      return Promise.resolve();
+    }
+    this._animatingContext = {
+      start: startPos,
+      end: position,
+      offset: 0
+    };
+    var animate = function() {
+      var _a2, _b;
+      var resetContext = function() {
+        _this._animatingContext = {
+          start: 0,
+          end: 0,
+          offset: 0
+        };
+      };
+      axes.once(EVENT.FINISH, resetContext);
+      if (axesEvent) {
+        axesEvent.setTo((_a2 = {}, _a2[POSITION_KEY] = position, _a2), duration);
+      } else {
+        axes.setTo((_b = {}, _b[POSITION_KEY] = position, _b), duration);
+      }
+    };
+    return new Promise(function(resolve, reject) {
+      var animationFinishHandler = function() {
+        axes.off(EVENT.HOLD, interruptionHandler);
+        resolve();
+      };
+      var interruptionHandler = function() {
+        axes.off(EVENT.FINISH, animationFinishHandler);
+        reject(new FlickingError(MESSAGE.ANIMATION_INTERRUPTED, CODE.ANIMATION_INTERRUPTED));
+      };
+      axes.once(EVENT.FINISH, animationFinishHandler);
+      axes.once(EVENT.HOLD, interruptionHandler);
+      animate();
+    });
+  };
+  __proto.getCurrentPosition = function() {
+    var _a, _b;
+    return (_b = (_a = this._axes) === null || _a === void 0 ? void 0 : _a.get([POSITION_KEY])[POSITION_KEY]) !== null && _b !== void 0 ? _b : 0;
+  };
+  __proto.updateDirection = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var axes = this._axes;
+    var panInput = this._panInput;
+    axes.disconnect(panInput);
+    axes.connect(flicking.horizontal ? [POSITION_KEY, ""] : ["", POSITION_KEY], panInput);
+    panInput.options.scale = flicking.horizontal ? [flicking.camera.panelOrder === ORDER.RTL ? 1 : -1, 0] : [0, -1];
+  };
+  __proto._resetInternalValues = function() {
+    this._flicking = null;
+    this._axes = null;
+    this._panInput = null;
+    this._animatingContext = {
+      start: 0,
+      end: 0,
+      offset: 0
+    };
+    this._dragged = false;
+  };
+  return AxesController2;
+})();
+var Control = /* @__PURE__ */ (function() {
+  function Control2() {
+    this._flicking = null;
+    this._controller = new AxesController();
+    this._activePanel = null;
+  }
+  var __proto = Control2.prototype;
+  Object.defineProperty(__proto, "controller", {
+    /**
+     * A controller that handles the {@link https://naver.github.io/egjs-axes/ @egjs/axes} events
+     * @ko {@link https://naver.github.io/egjs-axes/ @egjs/axes}의 이벤트를 처리하는 컨트롤러 컴포넌트
+     * @type {AxesController}
+     * @readonly
+     */
+    get: function() {
+      return this._controller;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "activeIndex", {
+    /**
+     * Index number of the {@link Flicking#currentPanel currentPanel}
+     * @ko {@link Flicking#currentPanel currentPanel}의 인덱스 번호
+     * @type {number}
+     * @default 0
+     * @readonly
+     */
+    get: function() {
+      var _a, _b;
+      return (_b = (_a = this._activePanel) === null || _a === void 0 ? void 0 : _a.index) !== null && _b !== void 0 ? _b : -1;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "activePanel", {
+    /**
+     * An active panel
+     * @ko 현재 선택된 패널
+     * @type {Panel | null}
+     * @readonly
+     */
+    get: function() {
+      return this._activePanel;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "animating", {
+    /**
+     * Whether Flicking's animating
+     * @ko 현재 애니메이션 동작 여부
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      return this._controller.state.animating;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "holding", {
+    /**
+     * Whether user is clicking or touching
+     * @ko 현재 사용자가 클릭/터치중인지 여부
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      return this._controller.state.holding;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function(flicking) {
+    this._flicking = flicking;
+    this._controller.init(flicking);
+    return this;
+  };
+  __proto.destroy = function() {
+    this._controller.destroy();
+    this._flicking = null;
+    this._activePanel = null;
+  };
+  __proto.enable = function() {
+    this._controller.enable();
+    return this;
+  };
+  __proto.disable = function() {
+    this._controller.disable();
+    return this;
+  };
+  __proto.release = function() {
+    this._controller.release();
+    return this;
+  };
+  __proto.updateAnimation = function(panel, duration, direction) {
+    var state = this._controller.state;
+    var position = this._getPosition(panel, direction !== null && direction !== void 0 ? direction : DIRECTION.NONE);
+    state.targetPanel = panel;
+    this._controller.updateAnimation(position, duration);
+    return this;
+  };
+  __proto.stopAnimation = function() {
+    var state = this._controller.state;
+    state.targetPanel = null;
+    this._controller.stopAnimation();
+    return this;
+  };
+  __proto.updatePosition = function(progressInPanel) {
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var activePanel = this._activePanel;
+    if (activePanel) {
+      camera.lookAt(camera.clampToReachablePosition(activePanel.position));
+    }
+  };
+  __proto.updateInput = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    this._controller.update(camera.controlParams);
+    return this;
+  };
+  __proto.resetActive = function() {
+    this._activePanel = null;
+    return this;
+  };
+  __proto.moveToPanel = function(panel, _a) {
+    var duration = _a.duration, _b = _a.direction, direction = _b === void 0 ? DIRECTION.NONE : _b, axesEvent = _a.axesEvent;
+    return __awaiter(this, void 0, void 0, function() {
+      var position;
+      return __generator(this, function(_c) {
+        position = this._getPosition(panel, direction);
+        this._triggerIndexChangeEvent(panel, panel.position, axesEvent, direction);
+        return [2, this._animateToPosition({
+          position,
+          duration,
+          newActivePanel: panel,
+          axesEvent
+        })];
+      });
+    });
+  };
+  __proto.setActive = function(newActivePanel, prevActivePanel, isTrusted) {
+    var _a;
+    var flicking = getFlickingAttached(this._flicking);
+    this._activePanel = newActivePanel;
+    this._nextPanel = null;
+    flicking.camera.updateAdaptiveHeight();
+    if (newActivePanel !== prevActivePanel) {
+      flicking.trigger(new ComponentEvent$1(EVENTS.CHANGED, {
+        index: newActivePanel.index,
+        panel: newActivePanel,
+        prevIndex: (_a = prevActivePanel === null || prevActivePanel === void 0 ? void 0 : prevActivePanel.index) !== null && _a !== void 0 ? _a : -1,
+        prevPanel: prevActivePanel,
+        isTrusted,
+        direction: prevActivePanel ? getDirection(prevActivePanel.position, newActivePanel.position) : DIRECTION.NONE
+      }));
+    } else {
+      flicking.trigger(new ComponentEvent$1(EVENTS.RESTORED, {
+        isTrusted
+      }));
+    }
+  };
+  __proto.copy = function(control) {
+    this._flicking = control._flicking;
+    this._activePanel = control._activePanel;
+    this._controller = control._controller;
+  };
+  __proto._triggerIndexChangeEvent = function(panel, position, axesEvent, direction) {
+    var _a;
+    var flicking = getFlickingAttached(this._flicking);
+    var triggeringEvent = panel !== this._activePanel ? EVENTS.WILL_CHANGE : EVENTS.WILL_RESTORE;
+    var camera = flicking.camera;
+    var activePanel = this._activePanel;
+    var event = new ComponentEvent$1(triggeringEvent, {
+      index: panel.index,
+      panel,
+      isTrusted: (axesEvent === null || axesEvent === void 0 ? void 0 : axesEvent.isTrusted) || false,
+      direction: direction !== null && direction !== void 0 ? direction : getDirection((_a = activePanel === null || activePanel === void 0 ? void 0 : activePanel.position) !== null && _a !== void 0 ? _a : camera.position, position)
+    });
+    this._nextPanel = panel;
+    flicking.trigger(event);
+    if (event.isCanceled()) {
+      throw new FlickingError(MESSAGE.STOP_CALLED_BY_USER, CODE.STOP_CALLED_BY_USER);
+    }
+  };
+  __proto._animateToPosition = function(_a) {
+    var position = _a.position, duration = _a.duration, newActivePanel = _a.newActivePanel, axesEvent = _a.axesEvent;
+    return __awaiter(this, void 0, void 0, function() {
+      var flicking, nextDuration, animate, state;
+      var _this = this;
+      return __generator(this, function(_b) {
+        flicking = getFlickingAttached(this._flicking);
+        nextDuration = duration;
+        if (Math.abs(nextDuration - position) < flicking.animationThreshold) {
+          nextDuration = 0;
+        }
+        animate = function() {
+          return _this._controller.animateTo(position, nextDuration, axesEvent);
+        };
+        state = this._controller.state;
+        state.targetPanel = newActivePanel;
+        if (nextDuration <= 0) {
+          return [2, animate()];
+        } else {
+          return [2, animate().then(function() {
+            return __awaiter(_this, void 0, void 0, function() {
+              return __generator(this, function(_a2) {
+                switch (_a2.label) {
+                  case 0:
+                    if (!flicking.initialized) return [3, 2];
+                    return [4, flicking.renderer.render()];
+                  case 1:
+                    _a2.sent();
+                    _a2.label = 2;
+                  case 2:
+                    return [
+                      2
+                      /*return*/
+                    ];
+                }
+              });
+            });
+          }).catch(function(err) {
+            if (axesEvent && err instanceof FlickingError && err.code === CODE.ANIMATION_INTERRUPTED) return;
+            throw err;
+          })];
+        }
+      });
+    });
+  };
+  __proto._getPosition = function(panel, direction) {
+    if (direction === void 0) {
+      direction = DIRECTION.NONE;
+    }
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var position = panel.position;
+    var nearestAnchor = camera.findNearestAnchor(position);
+    if (panel.removed || !nearestAnchor) {
+      throw new FlickingError(MESSAGE.POSITION_NOT_REACHABLE(panel.position), CODE.POSITION_NOT_REACHABLE);
+    }
+    if (!camera.canReach(panel)) {
+      position = nearestAnchor.position;
+      panel = nearestAnchor.panel;
+    } else if (flicking.circularEnabled) {
+      var camPos_1 = this._controller.position;
+      var camRangeDiff = camera.rangeDiff;
+      var possiblePositions = [position, position + camRangeDiff, position - camRangeDiff].filter(function(pos) {
+        if (direction === DIRECTION.NONE) return true;
+        return direction === DIRECTION.PREV ? pos <= camPos_1 : pos >= camPos_1;
+      });
+      position = possiblePositions.reduce(function(nearestPosition, pos) {
+        if (Math.abs(camPos_1 - pos) < Math.abs(camPos_1 - nearestPosition)) {
+          return pos;
+        } else {
+          return nearestPosition;
+        }
+      }, Infinity);
+    }
+    return position;
+  };
+  return Control2;
+})();
+var AnchorPoint = /* @__PURE__ */ (function() {
+  function AnchorPoint2(_a) {
+    var index = _a.index, position = _a.position, panel = _a.panel;
+    this._index = index;
+    this._pos = position;
+    this._panel = panel;
+  }
+  var __proto = AnchorPoint2.prototype;
+  Object.defineProperty(__proto, "index", {
+    /**
+     * Index of AnchorPoint
+     * @ko AnchorPoint의 인덱스
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._index;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "position", {
+    /**
+     * Position of AnchorPoint
+     * @ko AnchorPoint의 좌표
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._pos;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "panel", {
+    /**
+     * A {@link Panel} instance AnchorPoint is referencing to
+     * @ko AnchorPoint가 참조하고 있는 {@link Panel}
+     * @type {Panel}
+     * @readonly
+     */
+    get: function() {
+      return this._panel;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  return AnchorPoint2;
+})();
+var SnapControl = /* @__PURE__ */ (function(_super) {
+  __extends$1(SnapControl2, _super);
+  function SnapControl2(_a) {
+    var _b = (_a === void 0 ? {} : _a).count, count = _b === void 0 ? Infinity : _b;
+    var _this = _super.call(this) || this;
+    _this._count = count;
+    return _this;
+  }
+  var __proto = SnapControl2.prototype;
+  Object.defineProperty(__proto, "count", {
+    /**
+     * Maximum number of panels can go after release
+     * @ko 입력 중단 이후 통과하여 이동할 수 있는 패널의 최대 갯수
+     * @type {number}
+     * @default Infinity
+     */
+    get: function() {
+      return this._count;
+    },
+    set: function(val) {
+      this._count = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.moveToPosition = function(position, duration, axesEvent) {
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var activeAnchor = camera.findActiveAnchor();
+    var anchorAtCamera = camera.findNearestAnchor(camera.position);
+    var state = this._controller.state;
+    if (!activeAnchor || !anchorAtCamera) {
+      return Promise.reject(new FlickingError(MESSAGE.POSITION_NOT_REACHABLE(position), CODE.POSITION_NOT_REACHABLE));
+    }
+    var snapThreshold = this._calcSnapThreshold(flicking.threshold, position, activeAnchor);
+    var posDelta = flicking.animating ? state.delta : position - camera.position;
+    var absPosDelta = Math.abs(posDelta);
+    var snapDelta = axesEvent && axesEvent.delta[POSITION_KEY] !== 0 ? Math.abs(axesEvent.delta[POSITION_KEY]) : absPosDelta;
+    var targetAnchor;
+    if (snapDelta >= snapThreshold && snapDelta > 0) {
+      targetAnchor = this._findSnappedAnchor(position, anchorAtCamera);
+    } else if (absPosDelta >= flicking.threshold && absPosDelta > 0) {
+      targetAnchor = this._findAdjacentAnchor(position, posDelta, anchorAtCamera);
+    } else {
+      return this.moveToPanel(anchorAtCamera.panel, {
+        duration,
+        axesEvent
+      });
+    }
+    this._triggerIndexChangeEvent(targetAnchor.panel, position, axesEvent);
+    return this._animateToPosition({
+      position: camera.clampToReachablePosition(targetAnchor.position),
+      duration,
+      newActivePanel: targetAnchor.panel,
+      axesEvent
+    });
+  };
+  __proto._findSnappedAnchor = function(position, anchorAtCamera) {
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var count = this._count;
+    var currentPos = camera.position;
+    var clampedPosition = camera.clampToReachablePosition(position);
+    var anchorAtPosition = camera.findAnchorIncludePosition(clampedPosition);
+    if (!anchorAtCamera || !anchorAtPosition) {
+      throw new FlickingError(MESSAGE.POSITION_NOT_REACHABLE(position), CODE.POSITION_NOT_REACHABLE);
+    }
+    if (!isFinite(count)) {
+      return anchorAtPosition;
+    }
+    var panelCount = flicking.panelCount;
+    var anchors = camera.anchorPoints;
+    var loopCount = Math.sign(position - currentPos) * Math.floor(Math.abs(position - currentPos) / camera.rangeDiff);
+    if (position > currentPos && anchorAtPosition.index < anchorAtCamera.index || anchorAtPosition.position > anchorAtCamera.position && anchorAtPosition.index === anchorAtCamera.index) {
+      loopCount += 1;
+    } else if (position < currentPos && anchorAtPosition.index > anchorAtCamera.index || anchorAtPosition.position < anchorAtCamera.position && anchorAtPosition.index === anchorAtCamera.index) {
+      loopCount -= 1;
+    }
+    var circularIndexOffset = loopCount * panelCount;
+    var anchorAtPositionIndex = anchorAtPosition.index + circularIndexOffset;
+    if (Math.abs(anchorAtPositionIndex - anchorAtCamera.index) <= count) {
+      var anchor = anchors[anchorAtPosition.index];
+      return new AnchorPoint({
+        index: anchor.index,
+        position: anchor.position + loopCount * camera.rangeDiff,
+        panel: anchor.panel
+      });
+    }
+    if (flicking.circularEnabled) {
+      var targetAnchor = anchors[circulateIndex(anchorAtCamera.index + Math.sign(position - currentPos) * count, panelCount)];
+      var loop = Math.floor(count / panelCount);
+      if (position > currentPos && targetAnchor.index < anchorAtCamera.index) {
+        loop += 1;
+      } else if (position < currentPos && targetAnchor.index > anchorAtCamera.index) {
+        loop -= 1;
+      }
+      return new AnchorPoint({
+        index: targetAnchor.index,
+        position: targetAnchor.position + loop * camera.rangeDiff,
+        panel: targetAnchor.panel
+      });
+    } else {
+      return anchors[clamp(anchorAtCamera.index + Math.sign(position - currentPos) * count, 0, anchors.length - 1)];
+    }
+  };
+  __proto._findAdjacentAnchor = function(position, posDelta, anchorAtCamera) {
+    var _a;
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    if (camera.circularEnabled) {
+      var anchorIncludePosition = camera.findAnchorIncludePosition(position);
+      if (anchorIncludePosition && anchorIncludePosition.position !== anchorAtCamera.position) {
+        return anchorIncludePosition;
+      }
+    }
+    var adjacentAnchor = (_a = posDelta > 0 ? camera.getNextAnchor(anchorAtCamera) : camera.getPrevAnchor(anchorAtCamera)) !== null && _a !== void 0 ? _a : anchorAtCamera;
+    return adjacentAnchor;
+  };
+  __proto._calcSnapThreshold = function(threshold, position, activeAnchor) {
+    var isNextDirection = position > activeAnchor.position;
+    var panel = activeAnchor.panel;
+    var panelSize = panel.size;
+    var alignPos = panel.alignPosition;
+    return Math.max(threshold, isNextDirection ? panelSize - alignPos + panel.margin.next : alignPos + panel.margin.prev);
+  };
+  return SnapControl2;
+})(Control);
+var FreeControl = /* @__PURE__ */ (function(_super) {
+  __extends$1(FreeControl2, _super);
+  function FreeControl2(_a) {
+    var _b = (_a === void 0 ? {} : _a).stopAtEdge, stopAtEdge = _b === void 0 ? true : _b;
+    var _this = _super.call(this) || this;
+    _this._stopAtEdge = stopAtEdge;
+    return _this;
+  }
+  var __proto = FreeControl2.prototype;
+  Object.defineProperty(__proto, "stopAtEdge", {
+    /**
+     * Make scroll animation to stop at the start/end of the scroll area, not going out the bounce area
+     * @ko 스크롤 애니메이션을 스크롤 영역의 시작과 끝부분에서 멈추도록 하여, 바운스 영역을 넘어가지 않도록 합니다
+     * @type {boolean}
+     * @default true
+     */
+    get: function() {
+      return this._stopAtEdge;
+    },
+    set: function(val) {
+      this._stopAtEdge = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.updatePosition = function(progressInPanel) {
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var activePanel = this._activePanel;
+    if (activePanel) {
+      var panelRange = activePanel.range;
+      var newPosition = panelRange.min + (panelRange.max - panelRange.min) * progressInPanel;
+      camera.lookAt(camera.clampToReachablePosition(newPosition));
+    }
+  };
+  __proto.moveToPosition = function(position, duration, axesEvent) {
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var targetPos = camera.clampToReachablePosition(position);
+    var anchorAtPosition = camera.findAnchorIncludePosition(targetPos);
+    if (!anchorAtPosition) {
+      return Promise.reject(new FlickingError(MESSAGE.POSITION_NOT_REACHABLE(position), CODE.POSITION_NOT_REACHABLE));
+    }
+    var targetPanel = anchorAtPosition.panel;
+    if (targetPanel !== this._activePanel) {
+      this._triggerIndexChangeEvent(targetPanel, position, axesEvent);
+    }
+    return this._animateToPosition({
+      position: this._stopAtEdge ? targetPos : position,
+      duration,
+      newActivePanel: targetPanel,
+      axesEvent
+    });
+  };
+  return FreeControl2;
+})(Control);
+var StrictControl = /* @__PURE__ */ (function(_super) {
+  __extends$1(StrictControl2, _super);
+  function StrictControl2(_a) {
+    var _b = (_a === void 0 ? {} : _a).count, count = _b === void 0 ? 1 : _b;
+    var _this = _super.call(this) || this;
+    _this.setActive = function(newActivePanel, prevActivePanel, isTrusted) {
+      _super.prototype.setActive.call(_this, newActivePanel, prevActivePanel, isTrusted);
+      _this.updateInput();
+    };
+    _this._count = count;
+    _this._resetIndexRange();
+    return _this;
+  }
+  var __proto = StrictControl2.prototype;
+  Object.defineProperty(__proto, "count", {
+    /**
+     * Maximum number of panels that can be moved at a time
+     * @ko 최대로 움직일 수 있는 패널의 개수
+     * @type {number}
+     * @default 1
+     */
+    get: function() {
+      return this._count;
+    },
+    set: function(val) {
+      this._count = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.destroy = function() {
+    _super.prototype.destroy.call(this);
+    this._resetIndexRange();
+  };
+  __proto.updateInput = function() {
+    var _a;
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var renderer = flicking.renderer;
+    var controller = this._controller;
+    var controlParams = camera.controlParams;
+    var count = this._count;
+    var activePanel = controller.state.animating ? (_a = camera.findNearestAnchor(camera.position)) === null || _a === void 0 ? void 0 : _a.panel : this._activePanel;
+    if (!activePanel) {
+      controller.update(controlParams);
+      this._resetIndexRange();
+      return this;
+    }
+    var cameraRange = controlParams.range;
+    var currentPos = activePanel.position;
+    var currentIndex = activePanel.index;
+    var panelCount = renderer.panelCount;
+    var prevPanelIndex = currentIndex - count;
+    var nextPanelIndex = currentIndex + count;
+    if (prevPanelIndex < 0) {
+      prevPanelIndex = flicking.circularEnabled ? getMinusCompensatedIndex((prevPanelIndex + 1) % panelCount - 1, panelCount) : clamp(prevPanelIndex, 0, panelCount - 1);
+    }
+    if (nextPanelIndex >= panelCount) {
+      nextPanelIndex = flicking.circularEnabled ? nextPanelIndex % panelCount : clamp(nextPanelIndex, 0, panelCount - 1);
+    }
+    var prevPanel = renderer.panels[prevPanelIndex];
+    var nextPanel = renderer.panels[nextPanelIndex];
+    var prevPos = Math.max(prevPanel.position, cameraRange.min);
+    var nextPos = Math.min(nextPanel.position, cameraRange.max);
+    if (prevPos > currentPos) {
+      prevPos -= camera.rangeDiff;
+    }
+    if (nextPos < currentPos) {
+      nextPos += camera.rangeDiff;
+    }
+    controlParams.range = {
+      min: prevPos,
+      max: nextPos
+    };
+    if (controlParams.circular) {
+      if (controlParams.position < prevPos) {
+        controlParams.position += camera.rangeDiff;
+      }
+      if (controlParams.position > nextPos) {
+        controlParams.position -= camera.rangeDiff;
+      }
+    }
+    controlParams.circular = false;
+    controller.update(controlParams);
+    this._indexRange = {
+      min: prevPanel.index,
+      max: nextPanel.index
+    };
+    return this;
+  };
+  __proto.moveToPanel = function(panel, options) {
+    return __awaiter(this, void 0, void 0, function() {
+      var flicking, camera, controller;
+      return __generator(this, function(_a) {
+        flicking = getFlickingAttached(this._flicking);
+        camera = flicking.camera;
+        controller = this._controller;
+        controller.update(camera.controlParams);
+        return [2, _super.prototype.moveToPanel.call(this, panel, options)];
+      });
+    });
+  };
+  __proto.moveToPosition = function(position, duration, axesEvent) {
+    var _a;
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var currentPanel = (_a = this._nextPanel) !== null && _a !== void 0 ? _a : this._activePanel;
+    var axesRange = this._controller.range;
+    var indexRange = this._indexRange;
+    var cameraRange = camera.range;
+    var state = this._controller.state;
+    var clampedPosition = clamp(camera.clampToReachablePosition(position), axesRange[0], axesRange[1]);
+    var anchorAtPosition = camera.findAnchorIncludePosition(clampedPosition);
+    if (!anchorAtPosition || !currentPanel) {
+      return Promise.reject(new FlickingError(MESSAGE.POSITION_NOT_REACHABLE(position), CODE.POSITION_NOT_REACHABLE));
+    }
+    var prevPos = currentPanel.position;
+    var posDelta = flicking.animating ? state.delta : position - camera.position;
+    var isOverThreshold = Math.abs(posDelta) >= flicking.threshold;
+    var adjacentAnchor = position > prevPos ? camera.getNextAnchor(anchorAtPosition) : camera.getPrevAnchor(anchorAtPosition);
+    var targetPos;
+    var targetPanel;
+    var anchors = camera.anchorPoints;
+    var firstAnchor = anchors[0];
+    var lastAnchor = anchors[anchors.length - 1];
+    var shouldBounceToFirst = position < cameraRange.min && isBetween(firstAnchor.panel.index, indexRange.min, indexRange.max);
+    var shouldBounceToLast = position > cameraRange.max && isBetween(lastAnchor.panel.index, indexRange.min, indexRange.max);
+    var isAdjacent = adjacentAnchor && (indexRange.min <= indexRange.max ? isBetween(adjacentAnchor.index, indexRange.min, indexRange.max) : adjacentAnchor.index >= indexRange.min || adjacentAnchor.index <= indexRange.max);
+    if (shouldBounceToFirst || shouldBounceToLast) {
+      var targetAnchor = position < cameraRange.min ? firstAnchor : lastAnchor;
+      targetPanel = targetAnchor.panel;
+      targetPos = targetAnchor.position;
+    } else if (isOverThreshold && anchorAtPosition.position !== currentPanel.position) {
+      targetPanel = anchorAtPosition.panel;
+      targetPos = anchorAtPosition.position;
+    } else if (isOverThreshold && isAdjacent) {
+      targetPanel = adjacentAnchor.panel;
+      targetPos = adjacentAnchor.position;
+    } else {
+      var anchorAtCamera = camera.findNearestAnchor(camera.position);
+      if (!anchorAtCamera) {
+        return Promise.reject(new FlickingError(MESSAGE.POSITION_NOT_REACHABLE(position), CODE.POSITION_NOT_REACHABLE));
+      }
+      return this.moveToPanel(anchorAtCamera.panel, {
+        duration,
+        axesEvent
+      });
+    }
+    this._triggerIndexChangeEvent(targetPanel, position, axesEvent);
+    return this._animateToPosition({
+      position: targetPos,
+      duration,
+      newActivePanel: targetPanel,
+      axesEvent
+    });
+  };
+  __proto._resetIndexRange = function() {
+    this._indexRange = {
+      min: 0,
+      max: 0
+    };
+  };
+  return StrictControl2;
+})(Control);
+var CameraMode = /* @__PURE__ */ (function() {
+  function CameraMode2(flicking) {
+    this._flicking = flicking;
+  }
+  var __proto = CameraMode2.prototype;
+  __proto.getAnchors = function() {
+    var panels = this._flicking.renderer.panels;
+    return panels.map(function(panel, index) {
+      return new AnchorPoint({
+        index,
+        position: panel.position,
+        panel
+      });
+    });
+  };
+  __proto.findAnchorIncludePosition = function(position) {
+    var anchors = this._flicking.camera.anchorPoints;
+    var anchorsIncludingPosition = anchors.filter(function(anchor) {
+      return anchor.panel.includePosition(position, true);
+    });
+    return anchorsIncludingPosition.reduce(function(nearest, anchor) {
+      if (!nearest) return anchor;
+      return Math.abs(nearest.position - position) < Math.abs(anchor.position - position) ? nearest : anchor;
+    }, null);
+  };
+  __proto.findNearestAnchor = function(position) {
+    var anchors = this._flicking.camera.anchorPoints;
+    if (anchors.length <= 0) return null;
+    var prevDist = Infinity;
+    for (var anchorIdx = 0; anchorIdx < anchors.length; anchorIdx++) {
+      var anchor = anchors[anchorIdx];
+      var dist = Math.abs(anchor.position - position);
+      if (dist > prevDist) {
+        return anchors[anchorIdx - 1];
+      }
+      prevDist = dist;
+    }
+    return anchors[anchors.length - 1];
+  };
+  __proto.clampToReachablePosition = function(position) {
+    var camera = this._flicking.camera;
+    var range2 = camera.range;
+    return clamp(position, range2.min, range2.max);
+  };
+  __proto.getCircularOffset = function() {
+    return 0;
+  };
+  __proto.canReach = function(panel) {
+    var camera = this._flicking.camera;
+    var range2 = camera.range;
+    if (panel.removed) return false;
+    var panelPos = panel.position;
+    return panelPos >= range2.min && panelPos <= range2.max;
+  };
+  __proto.canSee = function(panel) {
+    var camera = this._flicking.camera;
+    var visibleRange = camera.visibleRange;
+    return panel.isVisibleOnRange(visibleRange.min, visibleRange.max);
+  };
+  return CameraMode2;
+})();
+var LinearCameraMode = /* @__PURE__ */ (function(_super) {
+  __extends$1(LinearCameraMode2, _super);
+  function LinearCameraMode2() {
+    return _super !== null && _super.apply(this, arguments) || this;
+  }
+  var __proto = LinearCameraMode2.prototype;
+  __proto.checkAvailability = function() {
+    return true;
+  };
+  __proto.getRange = function() {
+    var _a, _b;
+    var renderer = this._flicking.renderer;
+    var firstPanel = renderer.getPanel(0);
+    var lastPanel = renderer.getPanel(renderer.panelCount - 1);
+    return {
+      min: (_a = firstPanel === null || firstPanel === void 0 ? void 0 : firstPanel.position) !== null && _a !== void 0 ? _a : 0,
+      max: (_b = lastPanel === null || lastPanel === void 0 ? void 0 : lastPanel.position) !== null && _b !== void 0 ? _b : 0
+    };
+  };
+  return LinearCameraMode2;
+})(CameraMode);
+var CircularCameraMode = /* @__PURE__ */ (function(_super) {
+  __extends$1(CircularCameraMode2, _super);
+  function CircularCameraMode2() {
+    return _super !== null && _super.apply(this, arguments) || this;
+  }
+  var __proto = CircularCameraMode2.prototype;
+  __proto.checkAvailability = function() {
+    var flicking = this._flicking;
+    var renderer = flicking.renderer;
+    var panels = renderer.panels;
+    if (panels.length <= 0) {
+      return false;
+    }
+    var firstPanel = panels[0];
+    var lastPanel = panels[panels.length - 1];
+    var firstPanelPrev = firstPanel.range.min - firstPanel.margin.prev;
+    var lastPanelNext = lastPanel.range.max + lastPanel.margin.next;
+    var visibleSize = flicking.camera.size;
+    var panelSizeSum = lastPanelNext - firstPanelPrev;
+    var canSetCircularMode = panels.every(function(panel) {
+      return panelSizeSum - panel.size >= visibleSize;
+    });
+    return canSetCircularMode;
+  };
+  __proto.getRange = function() {
+    var flicking = this._flicking;
+    var panels = flicking.renderer.panels;
+    if (panels.length <= 0) {
+      return {
+        min: 0,
+        max: 0
+      };
+    }
+    var firstPanel = panels[0];
+    var lastPanel = panels[panels.length - 1];
+    var firstPanelPrev = firstPanel.range.min - firstPanel.margin.prev;
+    var lastPanelNext = lastPanel.range.max + lastPanel.margin.next;
+    return {
+      min: firstPanelPrev,
+      max: lastPanelNext
+    };
+  };
+  __proto.getAnchors = function() {
+    var flicking = this._flicking;
+    var panels = flicking.renderer.panels;
+    return panels.map(function(panel, index) {
+      return new AnchorPoint({
+        index,
+        position: panel.position,
+        panel
+      });
+    });
+  };
+  __proto.findNearestAnchor = function(position) {
+    var camera = this._flicking.camera;
+    var anchors = camera.anchorPoints;
+    if (anchors.length <= 0) return null;
+    var camRange = camera.range;
+    var minDist = Infinity;
+    var minDistIndex = -1;
+    for (var anchorIdx = 0; anchorIdx < anchors.length; anchorIdx++) {
+      var anchor = anchors[anchorIdx];
+      var dist = Math.min(Math.abs(anchor.position - position), Math.abs(anchor.position - camRange.min + camRange.max - position), Math.abs(position - camRange.min + camRange.max - anchor.position));
+      if (dist < minDist) {
+        minDist = dist;
+        minDistIndex = anchorIdx;
+      }
+    }
+    return anchors[minDistIndex];
+  };
+  __proto.findAnchorIncludePosition = function(position) {
+    var camera = this._flicking.camera;
+    var range2 = camera.range;
+    var anchors = camera.anchorPoints;
+    var rangeDiff = camera.rangeDiff;
+    var anchorCount = anchors.length;
+    var positionInRange = circulatePosition(position, range2.min, range2.max);
+    var anchorInRange = _super.prototype.findAnchorIncludePosition.call(this, positionInRange);
+    if (anchorCount > 0 && (position === range2.min || position === range2.max)) {
+      var possibleAnchors = [anchorInRange, new AnchorPoint({
+        index: 0,
+        position: anchors[0].position + rangeDiff,
+        panel: anchors[0].panel
+      }), new AnchorPoint({
+        index: anchorCount - 1,
+        position: anchors[anchorCount - 1].position - rangeDiff,
+        panel: anchors[anchorCount - 1].panel
+      })].filter(function(anchor) {
+        return !!anchor;
+      });
+      anchorInRange = possibleAnchors.reduce(function(nearest, anchor) {
+        if (!nearest) return anchor;
+        return Math.abs(nearest.position - position) < Math.abs(anchor.position - position) ? nearest : anchor;
+      }, null);
+    }
+    if (!anchorInRange) return null;
+    if (position < range2.min) {
+      var loopCount = -Math.floor((range2.min - position) / rangeDiff) - 1;
+      return new AnchorPoint({
+        index: anchorInRange.index,
+        position: anchorInRange.position + rangeDiff * loopCount,
+        panel: anchorInRange.panel
+      });
+    } else if (position > range2.max) {
+      var loopCount = Math.floor((position - range2.max) / rangeDiff) + 1;
+      return new AnchorPoint({
+        index: anchorInRange.index,
+        position: anchorInRange.position + rangeDiff * loopCount,
+        panel: anchorInRange.panel
+      });
+    }
+    return anchorInRange;
+  };
+  __proto.getCircularOffset = function() {
+    var flicking = this._flicking;
+    var camera = flicking.camera;
+    if (!camera.circularEnabled) return 0;
+    var toggled = flicking.panels.filter(function(panel) {
+      return panel.toggled;
+    });
+    var toggledPrev = toggled.filter(function(panel) {
+      return panel.toggleDirection === DIRECTION.PREV;
+    });
+    var toggledNext = toggled.filter(function(panel) {
+      return panel.toggleDirection === DIRECTION.NEXT;
+    });
+    return this._calcPanelAreaSum(toggledPrev) - this._calcPanelAreaSum(toggledNext);
+  };
+  __proto.clampToReachablePosition = function(position) {
+    return position;
+  };
+  __proto.canReach = function(panel) {
+    if (panel.removed) return false;
+    return true;
+  };
+  __proto.canSee = function(panel) {
+    var camera = this._flicking.camera;
+    var range2 = camera.range;
+    var rangeDiff = camera.rangeDiff;
+    var visibleRange = camera.visibleRange;
+    var visibleInCurrentRange = _super.prototype.canSee.call(this, panel);
+    if (visibleRange.min < range2.min) {
+      return visibleInCurrentRange || panel.isVisibleOnRange(visibleRange.min + rangeDiff, visibleRange.max + rangeDiff);
+    } else if (visibleRange.max > range2.max) {
+      return visibleInCurrentRange || panel.isVisibleOnRange(visibleRange.min - rangeDiff, visibleRange.max - rangeDiff);
+    }
+    return visibleInCurrentRange;
+  };
+  __proto._calcPanelAreaSum = function(panels) {
+    return panels.reduce(function(sum, panel) {
+      return sum + panel.sizeIncludingMargin;
+    }, 0);
+  };
+  return CircularCameraMode2;
+})(CameraMode);
+var BoundCameraMode = /* @__PURE__ */ (function(_super) {
+  __extends$1(BoundCameraMode2, _super);
+  function BoundCameraMode2() {
+    return _super !== null && _super.apply(this, arguments) || this;
+  }
+  var __proto = BoundCameraMode2.prototype;
+  __proto.checkAvailability = function() {
+    var flicking = this._flicking;
+    var renderer = flicking.renderer;
+    var firstPanel = renderer.getPanel(0);
+    var lastPanel = renderer.getPanel(renderer.panelCount - 1);
+    if (!firstPanel || !lastPanel) {
+      return false;
+    }
+    var viewportSize = flicking.camera.size;
+    var firstPanelPrev = firstPanel.range.min;
+    var lastPanelNext = lastPanel.range.max;
+    var panelAreaSize = lastPanelNext - firstPanelPrev;
+    var isBiggerThanViewport = viewportSize < panelAreaSize;
+    return isBiggerThanViewport;
+  };
+  __proto.getRange = function() {
+    var flicking = this._flicking;
+    var renderer = flicking.renderer;
+    var alignPos = flicking.camera.alignPosition;
+    var firstPanel = renderer.getPanel(0);
+    var lastPanel = renderer.getPanel(renderer.panelCount - 1);
+    if (!firstPanel || !lastPanel) {
+      return {
+        min: 0,
+        max: 0
+      };
+    }
+    var viewportSize = flicking.camera.size;
+    var firstPanelPrev = firstPanel.range.min;
+    var lastPanelNext = lastPanel.range.max;
+    var panelAreaSize = lastPanelNext - firstPanelPrev;
+    var isBiggerThanViewport = viewportSize < panelAreaSize;
+    var firstPos = firstPanelPrev + alignPos;
+    var lastPos = lastPanelNext - viewportSize + alignPos;
+    if (isBiggerThanViewport) {
+      return {
+        min: firstPos,
+        max: lastPos
+      };
+    } else {
+      var align = flicking.camera.align;
+      var alignVal = typeof align === "object" ? align.camera : align;
+      var pos = firstPos + parseAlign$1(alignVal, lastPos - firstPos);
+      return {
+        min: pos,
+        max: pos
+      };
+    }
+  };
+  __proto.getAnchors = function() {
+    var flicking = this._flicking;
+    var camera = flicking.camera;
+    var panels = flicking.renderer.panels;
+    if (panels.length <= 0) {
+      return [];
+    }
+    var range2 = flicking.camera.range;
+    var reachablePanels = panels.filter(function(panel) {
+      return camera.canReach(panel);
+    });
+    if (reachablePanels.length > 0) {
+      var shouldPrependBoundAnchor = reachablePanels[0].position !== range2.min;
+      var shouldAppendBoundAnchor = reachablePanels[reachablePanels.length - 1].position !== range2.max;
+      var indexOffset_1 = shouldPrependBoundAnchor ? 1 : 0;
+      var newAnchors = reachablePanels.map(function(panel, idx) {
+        return new AnchorPoint({
+          index: idx + indexOffset_1,
+          position: panel.position,
+          panel
+        });
+      });
+      if (shouldPrependBoundAnchor) {
+        newAnchors.splice(0, 0, new AnchorPoint({
+          index: 0,
+          position: range2.min,
+          panel: panels[reachablePanels[0].index - 1]
+        }));
+      }
+      if (shouldAppendBoundAnchor) {
+        newAnchors.push(new AnchorPoint({
+          index: newAnchors.length,
+          position: range2.max,
+          panel: panels[reachablePanels[reachablePanels.length - 1].index + 1]
+        }));
+      }
+      return newAnchors;
+    } else if (range2.min !== range2.max) {
+      var nearestPanelAtMin = this._findNearestPanel(range2.min, panels);
+      var panelAtMin = nearestPanelAtMin.index === panels.length - 1 ? nearestPanelAtMin.prev() : nearestPanelAtMin;
+      var panelAtMax = panelAtMin.next();
+      return [new AnchorPoint({
+        index: 0,
+        position: range2.min,
+        panel: panelAtMin
+      }), new AnchorPoint({
+        index: 1,
+        position: range2.max,
+        panel: panelAtMax
+      })];
+    } else {
+      return [new AnchorPoint({
+        index: 0,
+        position: range2.min,
+        panel: this._findNearestPanel(range2.min, panels)
+      })];
+    }
+  };
+  __proto.findAnchorIncludePosition = function(position) {
+    var camera = this._flicking.camera;
+    var range2 = camera.range;
+    var anchors = camera.anchorPoints;
+    if (anchors.length <= 0) return null;
+    if (position <= range2.min) {
+      return anchors[0];
+    } else if (position >= range2.max) {
+      return anchors[anchors.length - 1];
+    } else {
+      return _super.prototype.findAnchorIncludePosition.call(this, position);
+    }
+  };
+  __proto._findNearestPanel = function(pos, panels) {
+    var prevDist = Infinity;
+    for (var panelIdx = 0; panelIdx < panels.length; panelIdx++) {
+      var panel = panels[panelIdx];
+      var dist = Math.abs(panel.position - pos);
+      if (dist > prevDist) {
+        return panels[panelIdx - 1];
+      }
+      prevDist = dist;
+    }
+    return panels[panels.length - 1];
+  };
+  return BoundCameraMode2;
+})(CameraMode);
+var Camera = /* @__PURE__ */ (function() {
+  function Camera2(flicking, _a) {
+    var _this = this;
+    var _b = (_a === void 0 ? {} : _a).align, align = _b === void 0 ? ALIGN.CENTER : _b;
+    this._lookedOffset = 0;
+    this._checkTranslateSupport = function() {
+      var e_1, _a2;
+      var transforms = ["webkitTransform", "msTransform", "MozTransform", "OTransform", "transform"];
+      var supportedStyle = document.documentElement.style;
+      var transformName = "";
+      try {
+        for (var transforms_1 = __values(transforms), transforms_1_1 = transforms_1.next(); !transforms_1_1.done; transforms_1_1 = transforms_1.next()) {
+          var prefixedTransform = transforms_1_1.value;
+          if (prefixedTransform in supportedStyle) {
+            transformName = prefixedTransform;
+          }
+        }
+      } catch (e_1_1) {
+        e_1 = {
+          error: e_1_1
+        };
+      } finally {
+        try {
+          if (transforms_1_1 && !transforms_1_1.done && (_a2 = transforms_1.return)) _a2.call(transforms_1);
+        } finally {
+          if (e_1) throw e_1.error;
+        }
+      }
+      if (!transformName) {
+        throw new FlickingError(MESSAGE.TRANSFORM_NOT_SUPPORTED, CODE.TRANSFORM_NOT_SUPPORTED);
+      }
+      _this._transform = transformName;
+    };
+    this._flicking = flicking;
+    this._resetInternalValues();
+    this._align = align;
+  }
+  var __proto = Camera2.prototype;
+  Object.defineProperty(__proto, "element", {
+    // Internal states getter
+    /**
+     * The camera element(`.flicking-camera`)
+     * @ko 카메라 엘리먼트(`.flicking-camera`)
+     * @type {HTMLElement}
+     * @readonly
+     */
+    get: function() {
+      return this._el;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "children", {
+    /**
+     * An array of the child elements of the camera element(`.flicking-camera`)
+     * @ko 카메라 엘리먼트(`.flicking-camera`)의 자식 엘리먼트 배열
+     * @type {HTMLElement[]}
+     * @readonly
+     */
+    get: function() {
+      return toArray(this._el.children);
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "position", {
+    /**
+     * Current position of the camera
+     * @ko Camera의 현재 좌표
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._position;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "alignPosition", {
+    /**
+     * Align position inside the viewport where {@link Panel}'s {@link Panel#alignPosition alignPosition} should be located at
+     * @ko 패널의 정렬 기준 위치. 뷰포트 내에서 {@link Panel}의 {@link Panel#alignPosition alignPosition}이 위치해야 하는 곳입니다
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._alignPos;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "offset", {
+    /**
+     * Position offset, used for the {@link Flicking#renderOnlyVisible renderOnlyVisible} option
+     * @ko Camera의 좌표 오프셋. {@link Flicking#renderOnlyVisible renderOnlyVisible} 옵션을 위해 사용됩니다.
+     * @type {number}
+     * @default 0
+     * @readonly
+     */
+    get: function() {
+      return this._offset - this._circularOffset;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "circularEnabled", {
+    /**
+     * Whether the `circular` option is enabled.
+     * The {@link Flicking#circular circular} option can't be enabled when sum of the panel sizes are too small.
+     * @ko {@link Flicking#circular circular} 옵션이 활성화되었는지 여부를 나타내는 멤버 변수.
+     * {@link Flicking#circular circular} 옵션은 패널의 크기의 합이 충분하지 않을 경우 비활성화됩니다.
+     * @type {boolean}
+     * @default false
+     * @readonly
+     */
+    get: function() {
+      return this._circularEnabled;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "mode", {
+    /**
+     * A current camera mode
+     * @type {CameraMode}
+     * @readonly
+     */
+    get: function() {
+      return this._mode;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "range", {
+    /**
+     * A range that Camera's {@link Camera#position position} can reach
+     * @ko Camera의 {@link Camera#position position}이 도달 가능한 범위
+     * @type {object}
+     * @property {number} min A minimum position<ko>최소 위치</ko>
+     * @property {number} max A maximum position<ko>최대 위치</ko>
+     * @readonly
+     */
+    get: function() {
+      return this._range;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "rangeDiff", {
+    /**
+     * A difference between Camera's minimum and maximum position that can reach
+     * @ko Camera가 도달 가능한 최소/최대 좌표의 차이
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._range.max - this._range.min;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "visiblePanels", {
+    /**
+     * An array of visible panels from the current position
+     * @ko 현재 보이는 패널들의 배열
+     * @type {Panel[]}
+     * @readonly
+     */
+    get: function() {
+      return this._visiblePanels;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "visibleRange", {
+    /**
+     * A range of the visible area from the current position
+     * @ko 현재 위치에서 보이는 범위
+     * @type {object}
+     * @property {number} min A minimum position<ko>최소 위치</ko>
+     * @property {number} min A maximum position<ko>최대 위치</ko>
+     * @readonly
+     */
+    get: function() {
+      return {
+        min: this._position - this._alignPos,
+        max: this._position - this._alignPos + this.size
+      };
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "anchorPoints", {
+    /**
+     * An array of {@link AnchorPoint}s that Camera can be stopped at
+     * @ko 카메라가 도달 가능한 {@link AnchorPoint}의 목록
+     * @type {AnchorPoint[]}
+     * @readonly
+     */
+    get: function() {
+      return this._anchors;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "controlParams", {
+    /**
+     * A current parameters of the Camera for updating {@link AxesController}
+     * @ko {@link AxesController}를 업데이트하기 위한 현재 Camera 패러미터들
+     * @type {ControlParams}
+     * @readonly
+     */
+    get: function() {
+      return {
+        range: this._range,
+        position: this._position,
+        circular: this._circularEnabled
+      };
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "atEdge", {
+    /**
+     * A Boolean value indicating whether Camera's over the minimum or maximum position reachable
+     * @ko 현재 카메라가 도달 가능한 범위의 최소 혹은 최대점을 넘어섰는지를 나타냅니다
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      return this._position <= this._range.min || this._position >= this._range.max;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "size", {
+    /**
+     * Return the size of the viewport
+     * @ko 뷰포트 크기를 반환합니다
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      var flicking = this._flicking;
+      return flicking ? flicking.horizontal ? flicking.viewport.width : flicking.viewport.height : 0;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "progress", {
+    /**
+     * Return the camera's position progress from the first panel to last panel
+     * Range is from 0 to last panel's index
+     * @ko 첫번째 패널로부터 마지막 패널까지의 카메라 위치의 진행도를 반환합니다
+     * 범위는 0부터 마지막 패널의 인덱스까지입니다
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      var flicking = this._flicking;
+      var position = this._position + this._offset;
+      var nearestAnchor = this.findNearestAnchor(this._position);
+      if (!flicking || !nearestAnchor) {
+        return NaN;
+      }
+      var nearestPanel = nearestAnchor.panel;
+      var panelPos = nearestPanel.position + nearestPanel.offset;
+      var bounceSize = flicking.control.controller.bounce;
+      var _a = this.range, prevRange = _a.min, nextRange = _a.max;
+      var rangeDiff = this.rangeDiff;
+      if (position === panelPos) {
+        return nearestPanel.index;
+      }
+      if (position < panelPos) {
+        var prevPanel = nearestPanel.prev();
+        var prevPosition = prevPanel ? prevPanel.position + prevPanel.offset : prevRange - bounceSize[0];
+        if (prevPosition > panelPos) {
+          prevPosition -= rangeDiff;
+        }
+        return nearestPanel.index - 1 + getProgress$1(position, prevPosition, panelPos);
+      } else {
+        var nextPanel = nearestPanel.next();
+        var nextPosition = nextPanel ? nextPanel.position + nextPanel.offset : nextRange + bounceSize[1];
+        if (nextPosition < panelPos) {
+          nextPosition += rangeDiff;
+        }
+        return nearestPanel.index + getProgress$1(position, panelPos, nextPosition);
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "panelOrder", {
+    /**
+     * {@link https://developer.mozilla.org/en-US/docs/Web/CSS/direction direction} CSS property applied to the camera element(`.flicking-camera`)
+     * @ko 카메라 엘리먼트(`.flicking-camera`)에 적용된 {@link https://developer.mozilla.org/en-US/docs/Web/CSS/direction direction} CSS 속성
+     * @type {string}
+     * @readonly
+     */
+    get: function() {
+      return this._panelOrder;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "align", {
+    // Options Getter
+    /**
+     * A value indicating where the {@link Camera#alignPosition alignPosition} should be located at inside the viewport element
+     * @ko {@link Camera#alignPosition alignPosition}이 뷰포트 엘리먼트 내의 어디에 위치해야 하는지를 나타내는 값
+     * @type {ALIGN | string | number}
+     */
+    get: function() {
+      return this._align;
+    },
+    // Options Setter
+    set: function(val) {
+      this._align = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function() {
+    var viewportEl = this._flicking.viewport.element;
+    checkExistence(viewportEl.firstElementChild, "First element child of the viewport element");
+    this._el = viewportEl.firstElementChild;
+    this._checkTranslateSupport();
+    this._updateMode();
+    this.updatePanelOrder();
+    return this;
+  };
+  __proto.destroy = function() {
+    this._resetInternalValues();
+    return this;
+  };
+  __proto.lookAt = function(pos) {
+    var _this = this;
+    var prevOffset = this._offset;
+    var isChangedOffset = this._lookedOffset !== prevOffset;
+    var flicking = getFlickingAttached(this._flicking);
+    var prevPos = this._position;
+    this._position = pos;
+    var toggled = this._togglePanels(prevPos, pos);
+    this._refreshVisiblePanels();
+    this._checkNeedPanel();
+    this._checkReachEnd(prevPos, pos);
+    if (toggled) {
+      void flicking.renderer.render().then(function() {
+        _this.updateOffset();
+        _this._lookedOffset = _this._offset;
+      });
+    } else if (isChangedOffset) {
+      this.updateOffset();
+      this._lookedOffset = this._offset;
+    } else {
+      this.applyTransform();
+    }
+  };
+  __proto.getPrevAnchor = function(anchor) {
+    if (!this._circularEnabled || anchor.index !== 0) {
+      return this._anchors[anchor.index - 1] || null;
+    } else {
+      var anchors = this._anchors;
+      var rangeDiff = this.rangeDiff;
+      var lastAnchor = anchors[anchors.length - 1];
+      return new AnchorPoint({
+        index: lastAnchor.index,
+        position: lastAnchor.position - rangeDiff,
+        panel: lastAnchor.panel
+      });
+    }
+  };
+  __proto.getNextAnchor = function(anchor) {
+    var anchors = this._anchors;
+    if (!this._circularEnabled || anchor.index !== anchors.length - 1) {
+      return anchors[anchor.index + 1] || null;
+    } else {
+      var rangeDiff = this.rangeDiff;
+      var firstAnchor = anchors[0];
+      return new AnchorPoint({
+        index: firstAnchor.index,
+        position: firstAnchor.position + rangeDiff,
+        panel: firstAnchor.panel
+      });
+    }
+  };
+  __proto.getProgressInPanel = function(panel) {
+    var panelRange = panel.range;
+    return (this._position - panelRange.min) / (panelRange.max - panelRange.min);
+  };
+  __proto.findAnchorIncludePosition = function(position) {
+    return this._mode.findAnchorIncludePosition(position);
+  };
+  __proto.findNearestAnchor = function(position) {
+    return this._mode.findNearestAnchor(position);
+  };
+  __proto.findActiveAnchor = function() {
+    var _a;
+    var flicking = getFlickingAttached(this._flicking);
+    var activePanel = flicking.control.activePanel;
+    if (!activePanel) return null;
+    return (_a = find(this._anchors, function(anchor) {
+      return anchor.panel.index === activePanel.index;
+    })) !== null && _a !== void 0 ? _a : this.findNearestAnchor(activePanel.position);
+  };
+  __proto.clampToReachablePosition = function(position) {
+    return this._mode.clampToReachablePosition(position);
+  };
+  __proto.canReach = function(panel) {
+    return this._mode.canReach(panel);
+  };
+  __proto.canSee = function(panel) {
+    return this._mode.canSee(panel);
+  };
+  __proto.updateRange = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var renderer = flicking.renderer;
+    var panels = renderer.panels;
+    this._updateMode();
+    this._range = this._mode.getRange();
+    panels.forEach(function(panel) {
+      return panel.updateCircularToggleDirection();
+    });
+    return this;
+  };
+  __proto.updateAlignPos = function() {
+    var align = this._align;
+    var alignVal = typeof align === "object" ? align.camera : align;
+    this._alignPos = parseAlign$1(alignVal, this.size);
+    return this;
+  };
+  __proto.updateAnchors = function() {
+    this._anchors = this._mode.getAnchors();
+    return this;
+  };
+  __proto.updateAdaptiveHeight = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var activePanel = flicking.control.activePanel;
+    var visiblePanels = flicking.visiblePanels;
+    var selectedPanels = __spread(visiblePanels);
+    if (activePanel) {
+      selectedPanels.push(activePanel);
+    }
+    if (!flicking.horizontal || !flicking.adaptive || !selectedPanels.length) return;
+    var maxHeight = Math.max.apply(Math, __spread(selectedPanels.map(function(panel) {
+      return panel.height;
+    })));
+    flicking.viewport.setSize({
+      height: maxHeight
+    });
+  };
+  __proto.updateOffset = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var position = this._position;
+    var unRenderedPanels = flicking.panels.filter(function(panel) {
+      return !panel.rendered;
+    });
+    this._offset = unRenderedPanels.filter(function(panel) {
+      return panel.position + panel.offset < position;
+    }).reduce(function(offset, panel) {
+      return offset + panel.sizeIncludingMargin;
+    }, 0);
+    this._circularOffset = this._mode.getCircularOffset();
+    this.applyTransform();
+    return this;
+  };
+  __proto.updatePanelOrder = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    if (!flicking.horizontal) return this;
+    var el = this._el;
+    var direction = getStyle(el).direction;
+    if (direction !== this._panelOrder) {
+      this._panelOrder = direction === ORDER.RTL ? ORDER.RTL : ORDER.LTR;
+      if (flicking.initialized) {
+        flicking.control.controller.updateDirection();
+      }
+    }
+    return this;
+  };
+  __proto.resetNeedPanelHistory = function() {
+    this._needPanelTriggered = {
+      prev: false,
+      next: false
+    };
+    return this;
+  };
+  __proto.applyTransform = function() {
+    var el = this._el;
+    var flicking = getFlickingAttached(this._flicking);
+    var renderer = flicking.renderer;
+    if (renderer.rendering || !flicking.initialized) return this;
+    var actualPosition = this._position - this._alignPos - this._offset + this._circularOffset;
+    el.style[this._transform] = flicking.horizontal ? "translate(" + (this._panelOrder === ORDER.RTL ? actualPosition : -actualPosition) + "px)" : "translate(0, " + -actualPosition + "px)";
+    return this;
+  };
+  __proto._resetInternalValues = function() {
+    this._position = 0;
+    this._lookedOffset = 0;
+    this._alignPos = 0;
+    this._offset = 0;
+    this._circularOffset = 0;
+    this._circularEnabled = false;
+    this._range = {
+      min: 0,
+      max: 0
+    };
+    this._visiblePanels = [];
+    this._anchors = [];
+    this._needPanelTriggered = {
+      prev: false,
+      next: false
+    };
+  };
+  __proto._refreshVisiblePanels = function() {
+    var _this = this;
+    var flicking = getFlickingAttached(this._flicking);
+    var panels = flicking.renderer.panels;
+    var newVisiblePanels = panels.filter(function(panel) {
+      return _this.canSee(panel);
+    });
+    var prevVisiblePanels = this._visiblePanels;
+    this._visiblePanels = newVisiblePanels;
+    var added = newVisiblePanels.filter(function(panel) {
+      return !includes(prevVisiblePanels, panel);
+    });
+    var removed = prevVisiblePanels.filter(function(panel) {
+      return !includes(newVisiblePanels, panel);
+    });
+    if (added.length > 0 || removed.length > 0) {
+      void flicking.renderer.render().then(function() {
+        flicking.trigger(new ComponentEvent$1(EVENTS.VISIBLE_CHANGE, {
+          added,
+          removed,
+          visiblePanels: newVisiblePanels
+        }));
+      });
+    }
+  };
+  __proto._checkNeedPanel = function() {
+    var needPanelTriggered = this._needPanelTriggered;
+    if (needPanelTriggered.prev && needPanelTriggered.next) return;
+    var flicking = getFlickingAttached(this._flicking);
+    var panels = flicking.renderer.panels;
+    if (panels.length <= 0) {
+      if (!needPanelTriggered.prev) {
+        flicking.trigger(new ComponentEvent$1(EVENTS.NEED_PANEL, {
+          direction: DIRECTION.PREV
+        }));
+        needPanelTriggered.prev = true;
+      }
+      if (!needPanelTriggered.next) {
+        flicking.trigger(new ComponentEvent$1(EVENTS.NEED_PANEL, {
+          direction: DIRECTION.NEXT
+        }));
+        needPanelTriggered.next = true;
+      }
+      return;
+    }
+    var cameraPosition = this._position;
+    var cameraSize = this.size;
+    var cameraRange = this._range;
+    var needPanelThreshold = flicking.needPanelThreshold;
+    var cameraPrev = cameraPosition - this._alignPos;
+    var cameraNext = cameraPrev + cameraSize;
+    var firstPanel = panels[0];
+    var lastPanel = panels[panels.length - 1];
+    if (!needPanelTriggered.prev) {
+      var firstPanelPrev = firstPanel.range.min;
+      if (cameraPrev <= firstPanelPrev + needPanelThreshold || cameraPosition <= cameraRange.min + needPanelThreshold) {
+        flicking.trigger(new ComponentEvent$1(EVENTS.NEED_PANEL, {
+          direction: DIRECTION.PREV
+        }));
+        needPanelTriggered.prev = true;
+      }
+    }
+    if (!needPanelTriggered.next) {
+      var lastPanelNext = lastPanel.range.max;
+      if (cameraNext >= lastPanelNext - needPanelThreshold || cameraPosition >= cameraRange.max - needPanelThreshold) {
+        flicking.trigger(new ComponentEvent$1(EVENTS.NEED_PANEL, {
+          direction: DIRECTION.NEXT
+        }));
+        needPanelTriggered.next = true;
+      }
+    }
+  };
+  __proto._checkReachEnd = function(prevPos, newPos) {
+    var flicking = getFlickingAttached(this._flicking);
+    var range2 = this._range;
+    var wasBetweenRange = prevPos > range2.min && prevPos < range2.max;
+    var isBetweenRange = newPos > range2.min && newPos < range2.max;
+    if (!wasBetweenRange || isBetweenRange) return;
+    var direction = newPos <= range2.min ? DIRECTION.PREV : DIRECTION.NEXT;
+    flicking.trigger(new ComponentEvent$1(EVENTS.REACH_EDGE, {
+      direction
+    }));
+  };
+  __proto._updateMode = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    if (flicking.circular) {
+      var circularMode = new CircularCameraMode(flicking);
+      var canSetCircularMode = circularMode.checkAvailability();
+      if (canSetCircularMode) {
+        this._mode = circularMode;
+      } else {
+        var fallbackMode = flicking.circularFallback;
+        this._mode = fallbackMode === CIRCULAR_FALLBACK.BOUND ? new BoundCameraMode(flicking) : new LinearCameraMode(flicking);
+      }
+      this._circularEnabled = canSetCircularMode;
+    } else {
+      this._mode = flicking.bound ? new BoundCameraMode(flicking) : new LinearCameraMode(flicking);
+      this._circularEnabled = false;
+    }
+  };
+  __proto._togglePanels = function(prevPos, pos) {
+    if (pos === prevPos) return false;
+    var flicking = getFlickingAttached(this._flicking);
+    var panels = flicking.renderer.panels;
+    var toggled = panels.map(function(panel) {
+      return panel.toggle(prevPos, pos);
+    });
+    return toggled.some(function(isToggled) {
+      return isToggled;
+    });
+  };
+  return Camera2;
+})();
+var Renderer$1 = /* @__PURE__ */ (function() {
+  function Renderer2(_a) {
+    var _b = _a.align, align = _b === void 0 ? ALIGN.CENTER : _b, strategy = _a.strategy;
+    this._flicking = null;
+    this._panels = [];
+    this._rendering = false;
+    this._align = align;
+    this._strategy = strategy;
+  }
+  var __proto = Renderer2.prototype;
+  Object.defineProperty(__proto, "panels", {
+    // Internal states Getter
+    /**
+     * Array of panels
+     * @ko 전체 패널들의 배열
+     * @type {Panel[]}
+     * @readonly
+     * @see Panel
+     */
+    get: function() {
+      return this._panels;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "rendering", {
+    /**
+     * A boolean value indicating whether rendering is in progress
+     * @ko 현재 렌더링이 시작되어 끝나기 전까지의 상태인지의 여부
+     * @type {boolean}
+     * @readonly
+     * @internal
+     */
+    get: function() {
+      return this._rendering;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "panelCount", {
+    /**
+     * Count of panels
+     * @ko 전체 패널의 개수
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._panels.length;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "strategy", {
+    /**
+     * @internal
+     */
+    get: function() {
+      return this._strategy;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "align", {
+    // Options Getter
+    /**
+     * A {@link Panel}'s {@link Panel#align align} value that applied to all panels
+     * @ko {@link Panel}에 공통적으로 적용할 {@link Panel#align align} 값
+     * @type {Constants.ALIGN | string | number}
+     */
+    get: function() {
+      return this._align;
+    },
+    // Options Setter
+    set: function(val) {
+      this._align = val;
+      var panelAlign = parsePanelAlign(val);
+      this._panels.forEach(function(panel) {
+        panel.align = panelAlign;
+      });
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function(flicking) {
+    this._flicking = flicking;
+    this._collectPanels();
+    return this;
+  };
+  __proto.destroy = function() {
+    this._flicking = null;
+    this._panels = [];
+  };
+  __proto.getPanel = function(index) {
+    return this._panels[index] || null;
+  };
+  __proto.forceRenderAllPanels = function() {
+    this._panels.forEach(function(panel) {
+      return panel.markForShow();
+    });
+    return Promise.resolve();
+  };
+  __proto.getRenderedPanels = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    return flicking.renderer.panels.filter(function(panel) {
+      return panel.rendered;
+    });
+  };
+  __proto.updatePanelSize = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var panels = this._panels;
+    if (panels.length <= 0) return this;
+    if (flicking.panelsPerView > 0) {
+      var firstPanel = panels[0];
+      firstPanel.resize();
+      this._updatePanelSizeByGrid(firstPanel, panels);
+    } else {
+      flicking.panels.forEach(function(panel) {
+        return panel.resize();
+      });
+    }
+    return this;
+  };
+  __proto.batchInsert = function() {
+    var items = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      items[_i] = arguments[_i];
+    }
+    var allPanelsInserted = this.batchInsertDefer.apply(this, __spread(items));
+    if (allPanelsInserted.length <= 0) return [];
+    this.updateAfterPanelChange(allPanelsInserted, []);
+    return allPanelsInserted;
+  };
+  __proto.batchInsertDefer = function() {
+    var _this = this;
+    var items = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      items[_i] = arguments[_i];
+    }
+    var panels = this._panels;
+    var flicking = getFlickingAttached(this._flicking);
+    var prevFirstPanel = panels[0];
+    var align = parsePanelAlign(this._align);
+    var allPanelsInserted = items.reduce(function(addedPanels, item) {
+      var _a;
+      var insertingIdx = getMinusCompensatedIndex(item.index, panels.length);
+      var panelsPushed = panels.slice(insertingIdx);
+      var panelsInserted = item.elements.map(function(el, idx) {
+        return _this._createPanel(el, {
+          index: insertingIdx + idx,
+          align,
+          flicking
+        });
+      });
+      panels.splice.apply(panels, __spread([insertingIdx, 0], panelsInserted));
+      if (item.hasDOMInElements) {
+        _this._insertPanelElements(panelsInserted, (_a = panelsPushed[0]) !== null && _a !== void 0 ? _a : null);
+      }
+      if (flicking.panelsPerView > 0) {
+        var firstPanel = prevFirstPanel || panelsInserted[0].resize();
+        _this._updatePanelSizeByGrid(firstPanel, panelsInserted);
+      } else {
+        panelsInserted.forEach(function(panel) {
+          return panel.resize();
+        });
+      }
+      panelsPushed.forEach(function(panel) {
+        panel.increaseIndex(panelsInserted.length);
+        panel.updatePosition();
+      });
+      return __spread(addedPanels, panelsInserted);
+    }, []);
+    return allPanelsInserted;
+  };
+  __proto.batchRemove = function() {
+    var items = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      items[_i] = arguments[_i];
+    }
+    var allPanelsRemoved = this.batchRemoveDefer.apply(this, __spread(items));
+    if (allPanelsRemoved.length <= 0) return [];
+    this.updateAfterPanelChange([], allPanelsRemoved);
+    return allPanelsRemoved;
+  };
+  __proto.batchRemoveDefer = function() {
+    var _this = this;
+    var items = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      items[_i] = arguments[_i];
+    }
+    var panels = this._panels;
+    var flicking = getFlickingAttached(this._flicking);
+    var control = flicking.control;
+    var activePanel = control.activePanel;
+    var allPanelsRemoved = items.reduce(function(removed, item) {
+      var index = item.index, deleteCount = item.deleteCount;
+      var removingIdx = getMinusCompensatedIndex(index, panels.length);
+      var panelsPulled = panels.slice(removingIdx + deleteCount);
+      var panelsRemoved = panels.splice(removingIdx, deleteCount);
+      if (panelsRemoved.length <= 0) return [];
+      panelsPulled.forEach(function(panel) {
+        panel.decreaseIndex(panelsRemoved.length);
+        panel.updatePosition();
+      });
+      if (item.hasDOMInElements) {
+        _this._removePanelElements(panelsRemoved);
+      }
+      panelsRemoved.forEach(function(panel) {
+        return panel.destroy();
+      });
+      if (includes(panelsRemoved, activePanel)) {
+        control.resetActive();
+      }
+      return __spread(removed, panelsRemoved);
+    }, []);
+    return allPanelsRemoved;
+  };
+  __proto.updateAfterPanelChange = function(panelsAdded, panelsRemoved) {
+    var _a;
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera, control = flicking.control;
+    var panels = this._panels;
+    var activePanel = control.activePanel;
+    this._updateCameraAndControl();
+    if (flicking.autoResize && flicking.useResizeObserver) {
+      panelsAdded.forEach(function(panel) {
+        if (panel.element) {
+          flicking.autoResizer.observe(panel.element);
+        }
+      });
+      panelsRemoved.forEach(function(panel) {
+        if (panel.element) {
+          flicking.autoResizer.unobserve(panel.element);
+        }
+      });
+    }
+    void this.render();
+    if (!flicking.animating) {
+      if (!activePanel || activePanel.removed) {
+        if (panels.length <= 0) {
+          camera.lookAt(0);
+        } else {
+          var targetIndex = (_a = activePanel === null || activePanel === void 0 ? void 0 : activePanel.index) !== null && _a !== void 0 ? _a : 0;
+          if (targetIndex > panels.length - 1) {
+            targetIndex = panels.length - 1;
+          }
+          void control.moveToPanel(panels[targetIndex], {
+            duration: 0
+          }).catch(function() {
+            return void 0;
+          });
+        }
+      } else {
+        void control.moveToPanel(activePanel, {
+          duration: 0
+        }).catch(function() {
+          return void 0;
+        });
+      }
+    }
+    flicking.camera.updateOffset();
+    if (panelsAdded.length > 0 || panelsRemoved.length > 0) {
+      flicking.trigger(new ComponentEvent$1(EVENTS.PANEL_CHANGE, {
+        added: panelsAdded,
+        removed: panelsRemoved
+      }));
+      this.checkPanelContentsReady(__spread(panelsAdded, panelsRemoved));
+    }
+  };
+  __proto.checkPanelContentsReady = function(checkingPanels) {
+    var _this = this;
+    var flicking = getFlickingAttached(this._flicking);
+    var resizeOnContentsReady = flicking.resizeOnContentsReady;
+    var panels = this._panels;
+    if (!resizeOnContentsReady || flicking.virtualEnabled) return;
+    var hasContents = function(panel) {
+      return panel.element && !!panel.element.querySelector("img, video");
+    };
+    checkingPanels = checkingPanels.filter(function(panel) {
+      return hasContents(panel);
+    });
+    if (checkingPanels.length <= 0) return;
+    var contentsReadyChecker = new ImReady();
+    checkingPanels.forEach(function(panel) {
+      panel.loading = true;
+    });
+    contentsReadyChecker.on("readyElement", function(e) {
+      if (!_this._flicking) {
+        contentsReadyChecker.destroy();
+        return;
+      }
+      var panel = checkingPanels[e.index];
+      var camera = flicking.camera;
+      var control = flicking.control;
+      var prevProgressInPanel = control.activePanel ? camera.getProgressInPanel(control.activePanel) : 0;
+      panel.loading = false;
+      panel.resize();
+      panels.slice(panel.index + 1).forEach(function(panelBehind) {
+        return panelBehind.updatePosition();
+      });
+      if (!flicking.initialized) return;
+      camera.updateRange();
+      camera.updateOffset();
+      camera.updateAnchors();
+      if (control.animating) ;
+      else {
+        control.updatePosition(prevProgressInPanel);
+        control.updateInput();
+      }
+    });
+    contentsReadyChecker.on("preReady", function(e) {
+      if (_this._flicking) {
+        void _this.render();
+      }
+      if (e.readyCount === e.totalCount) {
+        contentsReadyChecker.destroy();
+      }
+    });
+    contentsReadyChecker.on("ready", function() {
+      if (_this._flicking) {
+        void _this.render();
+      }
+      contentsReadyChecker.destroy();
+    });
+    contentsReadyChecker.check(checkingPanels.map(function(panel) {
+      return panel.element;
+    }));
+  };
+  __proto._updateCameraAndControl = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera, control = flicking.control;
+    camera.updateRange();
+    camera.updateOffset();
+    camera.updateAnchors();
+    camera.resetNeedPanelHistory();
+    control.updateInput();
+  };
+  __proto._showOnlyVisiblePanels = function(flicking) {
+    var panels = flicking.renderer.panels;
+    var camera = flicking.camera;
+    var visibleIndexes = camera.visiblePanels.reduce(function(visibles, panel) {
+      visibles[panel.index] = true;
+      return visibles;
+    }, {});
+    panels.forEach(function(panel) {
+      if (panel.index in visibleIndexes || panel.loading) {
+        panel.markForShow();
+      } else if (!flicking.holding) {
+        panel.markForHide();
+      }
+    });
+  };
+  __proto._updatePanelSizeByGrid = function(referencePanel, panels) {
+    var flicking = getFlickingAttached(this._flicking);
+    var panelsPerView = flicking.panelsPerView;
+    if (panelsPerView <= 0) {
+      throw new FlickingError(MESSAGE.WRONG_OPTION("panelsPerView", panelsPerView), CODE.WRONG_OPTION);
+    }
+    if (panels.length <= 0) return;
+    var viewportSize = flicking.camera.size;
+    var gap = referencePanel.margin.prev + referencePanel.margin.next;
+    var panelSize = (viewportSize - gap * (panelsPerView - 1)) / panelsPerView;
+    var panelSizeObj = flicking.horizontal ? {
+      width: panelSize
+    } : {
+      height: panelSize
+    };
+    var firstPanelSizeObj = __assign({
+      size: panelSize,
+      margin: referencePanel.margin
+    }, !flicking.horizontal && {
+      height: referencePanel.height
+    });
+    if (!flicking.noPanelStyleOverride) {
+      this._strategy.updatePanelSizes(flicking, panelSizeObj);
+    }
+    flicking.panels.forEach(function(panel) {
+      return panel.resize(firstPanelSizeObj);
+    });
+  };
+  __proto._removeAllChildsFromCamera = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var cameraElement = flicking.camera.element;
+    while (cameraElement.firstChild) {
+      cameraElement.removeChild(cameraElement.firstChild);
+    }
+  };
+  __proto._insertPanelElements = function(panels, nextSibling) {
+    if (nextSibling === void 0) {
+      nextSibling = null;
+    }
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    var cameraElement = camera.element;
+    var nextSiblingElement = (nextSibling === null || nextSibling === void 0 ? void 0 : nextSibling.element) || null;
+    var fragment = document.createDocumentFragment();
+    panels.forEach(function(panel) {
+      return fragment.appendChild(panel.element);
+    });
+    cameraElement.insertBefore(fragment, nextSiblingElement);
+  };
+  __proto._removePanelElements = function(panels) {
+    var flicking = getFlickingAttached(this._flicking);
+    var cameraElement = flicking.camera.element;
+    panels.forEach(function(panel) {
+      cameraElement.removeChild(panel.element);
+    });
+  };
+  __proto._afterRender = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    flicking.camera.applyTransform();
+    if (flicking.useCSSOrder) {
+      var renderedPanels_1 = flicking.renderer.panels.filter(function(panel) {
+        return panel.rendered;
+      });
+      this._strategy.getRenderingIndexesByOrder(flicking).forEach(function(domIndex, index) {
+        if (renderedPanels_1[domIndex].element) {
+          renderedPanels_1[domIndex].element.style.order = "" + index;
+        }
+      });
+    }
+  };
+  return Renderer2;
+})();
+var VanillaRenderer = /* @__PURE__ */ (function(_super) {
+  __extends$1(VanillaRenderer2, _super);
+  function VanillaRenderer2() {
+    return _super !== null && _super.apply(this, arguments) || this;
+  }
+  var __proto = VanillaRenderer2.prototype;
+  __proto.render = function() {
+    return __awaiter(this, void 0, void 0, function() {
+      var flicking, strategy;
+      return __generator(this, function(_a) {
+        flicking = getFlickingAttached(this._flicking);
+        strategy = this._strategy;
+        strategy.updateRenderingPanels(flicking);
+        strategy.renderPanels(flicking);
+        this._resetPanelElementOrder();
+        this._afterRender();
+        return [
+          2
+          /*return*/
+        ];
+      });
+    });
+  };
+  __proto._collectPanels = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var camera = flicking.camera;
+    this._removeAllTextNodes();
+    this._panels = this._strategy.collectPanels(flicking, camera.children);
+  };
+  __proto._createPanel = function(el, options) {
+    return this._strategy.createPanel(el, options);
+  };
+  __proto._resetPanelElementOrder = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var cameraEl = flicking.camera.element;
+    var reversedElements = [];
+    if (flicking.useCSSOrder) {
+      reversedElements = this.getRenderedPanels().map(function(panel) {
+        return panel.element;
+      }).reverse();
+    } else {
+      reversedElements = this._strategy.getRenderingElementsByOrder(flicking).reverse();
+    }
+    reversedElements.forEach(function(el, idx) {
+      var nextEl = reversedElements[idx - 1] ? reversedElements[idx - 1] : null;
+      if (el.nextElementSibling !== nextEl) {
+        cameraEl.insertBefore(el, nextEl);
+      }
+    });
+  };
+  __proto._removeAllTextNodes = function() {
+    var flicking = getFlickingAttached(this._flicking);
+    var cameraElement = flicking.camera.element;
+    toArray(cameraElement.childNodes).forEach(function(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        cameraElement.removeChild(node);
+      }
+    });
+  };
+  return VanillaRenderer2;
+})(Renderer$1);
+var Panel = /* @__PURE__ */ (function() {
+  function Panel2(_a) {
+    var index = _a.index, align = _a.align, flicking = _a.flicking, elementProvider = _a.elementProvider;
+    this._index = index;
+    this._flicking = flicking;
+    this._elProvider = elementProvider;
+    this._align = align;
+    this._removed = false;
+    this._rendered = true;
+    this._loading = false;
+    this._resetInternalStates();
+  }
+  var __proto = Panel2.prototype;
+  Object.defineProperty(__proto, "element", {
+    // Internal States Getter
+    /**
+     * `HTMLElement` that panel's referencing
+     * @ko 패널이 참조하고 있는 `HTMLElement`
+     * @type {HTMLElement}
+     * @readonly
+     */
+    get: function() {
+      return this._elProvider.element;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "elementProvider", {
+    /**
+     * @internal
+     * @readonly
+     */
+    get: function() {
+      return this._elProvider;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "index", {
+    /**
+     * Index of the panel
+     * @ko 패널의 인덱스
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._index;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "position", {
+    /**
+     * Position of the panel, including {@link Panel#alignPosition alignPosition}
+     * @ko 패널의 현재 좌표, {@link Panel#alignPosition alignPosition}을 포함하고 있습니다
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._pos + this._alignPos;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "size", {
+    /**
+     * Cached size of the panel element
+     * This is equal to {@link Panel#element element}'s `offsetWidth` if {@link Flicking#horizontal horizontal} is `true`, and `offsetHeight` else
+     * @ko 패널 엘리먼트의 캐시된 크기
+     * 이 값은 {@link Flicking#horizontal horizontal}이 `true`일 경우 {@link Panel#element element}의 `offsetWidth`와 동일하고, `false`일 경우 `offsetHeight`와 동일합니다
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._size;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "sizeIncludingMargin", {
+    /**
+     * Panel's size including CSS `margin`
+     * This value includes {@link Panel#element element}'s margin left/right if {@link Flicking#horizontal horizontal} is `true`, and margin top/bottom else
+     * @ko CSS `margin`을 포함한 패널의 크기
+     * 이 값은 {@link Flicking#horizontal horizontal}이 `true`일 경우 margin left/right을 포함하고, `false`일 경우 margin top/bottom을 포함합니다
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._size + this._margin.prev + this._margin.next;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "height", {
+    /**
+     * Height of the panel element
+     * @ko 패널 엘리먼트의 높이
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._height;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "margin", {
+    /**
+     * Cached CSS `margin` value of the panel element
+     * @ko 패널 엘리먼트의 CSS `margin` 값
+     * @type {object}
+     * @property {number} prev CSS `margin-left` when the {@link Flicking#horizontal horizontal} is `true`, and `margin-top` else
+     * <ko>{@link Flicking#horizontal horizontal}이 `true`일 경우 `margin-left`, `false`일 경우 `margin-top`에 해당하는 값</ko>
+     * @property {number} next CSS `margin-right` when the {@link Flicking#horizontal horizontal} is `true`, and `margin-bottom` else
+     * <ko>{@link Flicking#horizontal horizontal}이 `true`일 경우 `margin-right`, `false`일 경우 `margin-bottom`에 해당하는 값</ko>
+     * @readonly
+     */
+    get: function() {
+      return this._margin;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "alignPosition", {
+    /**
+     * Align position inside the panel where {@link Camera}'s {@link Camera#alignPosition alignPosition} inside viewport should be located at
+     * @ko 패널의 정렬 기준 위치. {@link Camera}의 뷰포트 내에서의 {@link Camera#alignPosition alignPosition}이 위치해야 하는 곳입니다
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._alignPos;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "removed", {
+    /**
+     * A value indicating whether the panel's {@link Flicking#remove remove}d
+     * @ko 패널이 {@link Flicking#remove remove}되었는지 여부를 나타내는 값
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      return this._removed;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "rendered", {
+    /**
+     * A value indicating whether the panel's element is being rendered on the screen
+     * @ko 패널의 엘리먼트가 화면상에 렌더링되고있는지 여부를 나타내는 값
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      return this._rendered;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "loading", {
+    /**
+     * A value indicating whether the panel's image/video is not loaded and waiting for resize
+     * @ko 패널 내부의 이미지/비디오가 아직 로드되지 않아 {@link Panel#resize resize}될 것인지를 나타내는 값
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      return this._loading;
+    },
+    set: function(val) {
+      this._loading = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "range", {
+    /**
+     * Panel element's range of the bounding box
+     * @ko 패널 엘리먼트의 Bounding box 범위
+     * @type {object}
+     * @property {number} [min] Bounding box's left({@link Flicking#horizontal horizontal}: true) / top({@link Flicking#horizontal horizontal}: false)
+     * @property {number} [max] Bounding box's right({@link Flicking#horizontal horizontal}: true) / bottom({@link Flicking#horizontal horizontal}: false)
+     * @readonly
+     */
+    get: function() {
+      return {
+        min: this._pos,
+        max: this._pos + this._size
+      };
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "toggled", {
+    /**
+     * A value indicating whether the panel's position is toggled by circular behavior
+     * @ko 패널의 위치가 circular 동작에 의해 토글되었는지 여부를 나타내는 값
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      return this._toggled;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "toggleDirection", {
+    /**
+     * A direction where the panel's position is toggled
+     * @ko 패널의 위치가 circular 동작에 의해 토글되는 방향
+     * @type {DIRECTION}
+     * @readonly
+     */
+    get: function() {
+      return this._toggleDirection;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "offset", {
+    /**
+     * Actual position offset determined by {@link Panel#order}
+     * @ko {@link Panel#order}에 의한 실제 위치 변경값
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      var toggleDirection = this._toggleDirection;
+      var cameraRangeDiff = this._flicking.camera.rangeDiff;
+      return toggleDirection === DIRECTION.NONE || !this._toggled ? 0 : toggleDirection === DIRECTION.PREV ? -cameraRangeDiff : cameraRangeDiff;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "progress", {
+    /**
+     * Progress of movement between previous or next panel relative to current panel
+     * @ko 이 패널로부터 이전/다음 패널으로의 이동 진행률
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      var flicking = this._flicking;
+      return this.index - flicking.camera.progress;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "outsetProgress", {
+    /**
+     * Progress of movement between points that panel is completely invisible outside of viewport(prev direction: -1, selected point: 0, next direction: 1)
+     * @ko 현재 패널이 뷰포트 영역 밖으로 완전히 사라지는 지점을 기준으로 하는 진행도(prev방향: -1, 선택 지점: 0, next방향: 1)
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      var position = this.position + this.offset;
+      var alignPosition = this._alignPos;
+      var camera = this._flicking.camera;
+      var camPos = camera.position;
+      if (camPos === position) {
+        return 0;
+      }
+      if (camPos < position) {
+        var disappearPosNext = position + (camera.size - camera.alignPosition) + alignPosition;
+        return -getProgress$1(camPos, position, disappearPosNext);
+      } else {
+        var disappearPosPrev = position - (camera.alignPosition + this._size - alignPosition);
+        return 1 - getProgress$1(camPos, disappearPosPrev, position);
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "visibleRatio", {
+    /**
+     * Percentage of area where panel is visible in the viewport
+     * @ko 뷰포트 안에서 패널이 보이는 영역의 비율
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      var range2 = this.range;
+      var size = this._size;
+      var offset = this.offset;
+      var visibleRange = this._flicking.camera.visibleRange;
+      var checkingRange = {
+        min: range2.min + offset,
+        max: range2.max + offset
+      };
+      if (checkingRange.max <= visibleRange.min || checkingRange.min >= visibleRange.max) {
+        return 0;
+      }
+      var visibleSize = size;
+      if (visibleRange.min > checkingRange.min) {
+        visibleSize -= visibleRange.min - checkingRange.min;
+      }
+      if (visibleRange.max < checkingRange.max) {
+        visibleSize -= checkingRange.max - visibleRange.max;
+      }
+      return visibleSize / size;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "align", {
+    // Options Getter
+    /**
+     * A value indicating where the {@link Panel#alignPosition alignPosition} should be located at inside the panel element
+     * @ko {@link Panel#alignPosition alignPosition}이 패널 내의 어디에 위치해야 하는지를 나타내는 값
+     * @type {Constants.ALIGN | string | number}
+     */
+    get: function() {
+      return this._align;
+    },
+    // Options Setter
+    set: function(val) {
+      this._align = val;
+      this._updateAlignPos();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.markForShow = function() {
+    this._rendered = true;
+    this._elProvider.show(this._flicking);
+  };
+  __proto.markForHide = function() {
+    this._rendered = false;
+    this._elProvider.hide(this._flicking);
+  };
+  __proto.resize = function(cached) {
+    var _a;
+    var el = this.element;
+    var flicking = this._flicking;
+    var horizontal = flicking.horizontal, useFractionalSize = flicking.useFractionalSize;
+    if (!el) {
+      return this;
+    }
+    if (cached) {
+      this._size = cached.size;
+      this._margin = __assign({}, cached.margin);
+      this._height = (_a = cached.height) !== null && _a !== void 0 ? _a : getElementSize({
+        el,
+        horizontal: false,
+        useFractionalSize,
+        useOffset: true,
+        style: getStyle(el)
+      });
+    } else {
+      var elStyle = getStyle(el);
+      this._size = getElementSize({
+        el,
+        horizontal,
+        useFractionalSize,
+        useOffset: true,
+        style: elStyle
+      });
+      this._margin = horizontal ? {
+        prev: parseFloat(elStyle.marginLeft || "0"),
+        next: parseFloat(elStyle.marginRight || "0")
+      } : {
+        prev: parseFloat(elStyle.marginTop || "0"),
+        next: parseFloat(elStyle.marginBottom || "0")
+      };
+      this._height = horizontal ? getElementSize({
+        el,
+        horizontal: false,
+        useFractionalSize,
+        useOffset: true,
+        style: elStyle
+      }) : this._size;
+    }
+    this.updatePosition();
+    this._updateAlignPos();
+    return this;
+  };
+  __proto.setSize = function(size) {
+    setSize(this.element, size);
+    return this;
+  };
+  __proto.contains = function(element) {
+    var _a;
+    return !!((_a = this.element) === null || _a === void 0 ? void 0 : _a.contains(element));
+  };
+  __proto.destroy = function() {
+    this._resetInternalStates();
+    this._removed = true;
+  };
+  __proto.includePosition = function(pos, includeMargin) {
+    if (includeMargin === void 0) {
+      includeMargin = false;
+    }
+    return this.includeRange(pos, pos, includeMargin);
+  };
+  __proto.includeRange = function(min, max, includeMargin) {
+    if (includeMargin === void 0) {
+      includeMargin = false;
+    }
+    var margin = this._margin;
+    var panelRange = this.range;
+    if (includeMargin) {
+      panelRange.min -= margin.prev;
+      panelRange.max += margin.next;
+    }
+    return max >= panelRange.min && min <= panelRange.max;
+  };
+  __proto.isVisibleOnRange = function(min, max) {
+    var panelRange = this.range;
+    return max > panelRange.min && min < panelRange.max;
+  };
+  __proto.focus = function(duration) {
+    return this._flicking.moveTo(this._index, duration);
+  };
+  __proto.prev = function() {
+    var index = this._index;
+    var flicking = this._flicking;
+    var renderer = flicking.renderer;
+    var panelCount = renderer.panelCount;
+    if (panelCount === 1) return null;
+    return flicking.circularEnabled ? renderer.getPanel(index === 0 ? panelCount - 1 : index - 1) : renderer.getPanel(index - 1);
+  };
+  __proto.next = function() {
+    var index = this._index;
+    var flicking = this._flicking;
+    var renderer = flicking.renderer;
+    var panelCount = renderer.panelCount;
+    if (panelCount === 1) return null;
+    return flicking.circularEnabled ? renderer.getPanel(index === panelCount - 1 ? 0 : index + 1) : renderer.getPanel(index + 1);
+  };
+  __proto.increaseIndex = function(val) {
+    this._index += Math.max(val, 0);
+    return this;
+  };
+  __proto.decreaseIndex = function(val) {
+    this._index -= Math.max(val, 0);
+    return this;
+  };
+  __proto.updatePosition = function() {
+    var prevPanel = this._flicking.renderer.panels[this._index - 1];
+    this._pos = prevPanel ? prevPanel.range.max + prevPanel.margin.next + this._margin.prev : this._margin.prev;
+    return this;
+  };
+  __proto.toggle = function(prevPos, newPos) {
+    var toggleDirection = this._toggleDirection;
+    var togglePosition = this._togglePosition;
+    if (toggleDirection === DIRECTION.NONE || newPos === prevPos) return false;
+    var prevToggled = this._toggled;
+    if (newPos > prevPos) {
+      if (togglePosition >= prevPos && togglePosition <= newPos) {
+        this._toggled = toggleDirection === DIRECTION.NEXT;
+      }
+    } else {
+      if (togglePosition <= prevPos && togglePosition >= newPos) {
+        this._toggled = toggleDirection !== DIRECTION.NEXT;
+      }
+    }
+    return prevToggled !== this._toggled;
+  };
+  __proto.updateCircularToggleDirection = function() {
+    var flicking = this._flicking;
+    if (!flicking.circularEnabled) {
+      this._toggleDirection = DIRECTION.NONE;
+      this._togglePosition = 0;
+      this._toggled = false;
+      return this;
+    }
+    var camera = flicking.camera;
+    var camRange = camera.range;
+    var camAlignPosition = camera.alignPosition;
+    var camVisibleRange = camera.visibleRange;
+    var camVisibleSize = camVisibleRange.max - camVisibleRange.min;
+    var minimumVisible = camRange.min - camAlignPosition;
+    var maximumVisible = camRange.max - camAlignPosition + camVisibleSize;
+    var shouldBeVisibleAtMin = this.includeRange(maximumVisible - camVisibleSize, maximumVisible, false);
+    var shouldBeVisibleAtMax = this.includeRange(minimumVisible, minimumVisible + camVisibleSize, false);
+    this._toggled = false;
+    if (shouldBeVisibleAtMin) {
+      this._toggleDirection = DIRECTION.PREV;
+      this._togglePosition = this.range.max + camRange.min - camRange.max + camAlignPosition;
+      this.toggle(Infinity, camera.position);
+    } else if (shouldBeVisibleAtMax) {
+      this._toggleDirection = DIRECTION.NEXT;
+      this._togglePosition = this.range.min + camRange.max - camVisibleSize + camAlignPosition;
+      this.toggle(-Infinity, camera.position);
+    } else {
+      this._toggleDirection = DIRECTION.NONE;
+      this._togglePosition = 0;
+    }
+    return this;
+  };
+  __proto._updateAlignPos = function() {
+    this._alignPos = parseAlign$1(this._align, this._size);
+  };
+  __proto._resetInternalStates = function() {
+    this._size = 0;
+    this._pos = 0;
+    this._margin = {
+      prev: 0,
+      next: 0
+    };
+    this._height = 0;
+    this._alignPos = 0;
+    this._toggled = false;
+    this._togglePosition = 0;
+    this._toggleDirection = DIRECTION.NONE;
+  };
+  return Panel2;
+})();
+var NormalRenderingStrategy = /* @__PURE__ */ (function() {
+  function NormalRenderingStrategy2(_a) {
+    var providerCtor = _a.providerCtor;
+    this._providerCtor = providerCtor;
+  }
+  var __proto = NormalRenderingStrategy2.prototype;
+  __proto.renderPanels = function() {
+  };
+  __proto.getRenderingIndexesByOrder = function(flicking) {
+    var renderedPanels = flicking.renderer.panels.filter(function(panel) {
+      return panel.rendered;
+    });
+    var toggledPrev = renderedPanels.filter(function(panel) {
+      return panel.toggled && panel.toggleDirection === DIRECTION.PREV;
+    });
+    var toggledNext = renderedPanels.filter(function(panel) {
+      return panel.toggled && panel.toggleDirection === DIRECTION.NEXT;
+    });
+    var notToggled = renderedPanels.filter(function(panel) {
+      return !panel.toggled;
+    });
+    return __spread(toggledPrev, notToggled, toggledNext).map(function(panel) {
+      return panel.index;
+    });
+  };
+  __proto.getRenderingElementsByOrder = function(flicking) {
+    var panels = flicking.panels;
+    return this.getRenderingIndexesByOrder(flicking).map(function(index) {
+      return panels[index].element;
+    });
+  };
+  __proto.updateRenderingPanels = function(flicking) {
+    if (flicking.renderOnlyVisible) {
+      this._showOnlyVisiblePanels(flicking);
+    } else {
+      flicking.panels.forEach(function(panel) {
+        return panel.markForShow();
+      });
+    }
+  };
+  __proto.collectPanels = function(flicking, elements2) {
+    var _this = this;
+    var align = parsePanelAlign(flicking.renderer.align);
+    return elements2.map(function(el, index) {
+      return new Panel({
+        index,
+        elementProvider: new _this._providerCtor(el),
+        align,
+        flicking
+      });
+    });
+  };
+  __proto.createPanel = function(element, options) {
+    return new Panel(__assign(__assign({}, options), {
+      elementProvider: new this._providerCtor(element)
+    }));
+  };
+  __proto.updatePanelSizes = function(flicking, size) {
+    flicking.panels.forEach(function(panel) {
+      return panel.setSize(size);
+    });
+  };
+  __proto._showOnlyVisiblePanels = function(flicking) {
+    var panels = flicking.renderer.panels;
+    var camera = flicking.camera;
+    var visibleIndexes = camera.visiblePanels.reduce(function(visibles, panel) {
+      visibles[panel.index] = true;
+      return visibles;
+    }, {});
+    panels.forEach(function(panel) {
+      if (panel.index in visibleIndexes || panel.loading) {
+        panel.markForShow();
+      } else if (!flicking.holding) {
+        panel.markForHide();
+      }
+    });
+    camera.updateOffset();
+  };
+  return NormalRenderingStrategy2;
+})();
+var VirtualPanel = /* @__PURE__ */ (function(_super) {
+  __extends$1(VirtualPanel2, _super);
+  function VirtualPanel2(options) {
+    var _this = _super.call(this, options) || this;
+    options.elementProvider.init(_this);
+    _this._elProvider = options.elementProvider;
+    _this._cachedInnerHTML = null;
+    return _this;
+  }
+  var __proto = VirtualPanel2.prototype;
+  Object.defineProperty(__proto, "element", {
+    /**
+     * `HTMLElement` that panel's referencing
+     * @ko 패널이 참조하고 있는 `HTMLElement`
+     * @type {HTMLElement}
+     * @readonly
+     */
+    get: function() {
+      return this._elProvider.element;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "cachedInnerHTML", {
+    /**
+     * Cached innerHTML by the previous render function
+     * @ko 이전 렌더링에서 캐시된 innerHTML 정보
+     * @type {string|null}
+     * @readonly
+     */
+    get: function() {
+      return this._cachedInnerHTML;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "elementIndex", {
+    /**
+     * An number for indexing which element it will be rendered on
+     * @ko 몇 번째 엘리먼트에 렌더링될 것인지를 나타내는 숫자
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      var flicking = this._flicking;
+      var virtualElCount = flicking.panelsPerView + 1;
+      var panelCount = flicking.panelCount;
+      var index = this._index;
+      if (this._toggled) {
+        index = this._toggleDirection === DIRECTION.NEXT ? index + panelCount : index - panelCount;
+      }
+      return circulateIndex(index, virtualElCount);
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.cacheRenderResult = function(result) {
+    this._cachedInnerHTML = result;
+  };
+  __proto.uncacheRenderResult = function() {
+    this._cachedInnerHTML = null;
+  };
+  __proto.render = function() {
+    var flicking = this._flicking;
+    var _a = flicking.virtual, renderPanel = _a.renderPanel, cache = _a.cache;
+    var element = this._elProvider.element;
+    var newInnerHTML = this._cachedInnerHTML || renderPanel(this, this._index);
+    if (newInnerHTML === element.innerHTML) return;
+    element.innerHTML = newInnerHTML;
+    if (cache) {
+      this.cacheRenderResult(newInnerHTML);
+    }
+  };
+  __proto.increaseIndex = function(val) {
+    this.uncacheRenderResult();
+    return _super.prototype.increaseIndex.call(this, val);
+  };
+  __proto.decreaseIndex = function(val) {
+    this.uncacheRenderResult();
+    return _super.prototype.decreaseIndex.call(this, val);
+  };
+  return VirtualPanel2;
+})(Panel);
+var VirtualRenderingStrategy = /* @__PURE__ */ (function() {
+  function VirtualRenderingStrategy2() {
+  }
+  var __proto = VirtualRenderingStrategy2.prototype;
+  __proto.renderPanels = function(flicking) {
+    var virtualManager = flicking.virtual;
+    var visiblePanels = flicking.visiblePanels;
+    var invisibleIndexes = range(flicking.panelsPerView + 1);
+    visiblePanels.forEach(function(panel) {
+      var elementIndex = panel.elementIndex;
+      panel.render();
+      virtualManager.show(elementIndex);
+      invisibleIndexes[elementIndex] = -1;
+    });
+    invisibleIndexes.filter(function(val) {
+      return val >= 0;
+    }).forEach(function(idx) {
+      virtualManager.hide(idx);
+    });
+  };
+  __proto.getRenderingIndexesByOrder = function(flicking) {
+    var virtualManager = flicking.virtual;
+    var visiblePanels = __spread(flicking.visiblePanels).filter(function(panel) {
+      return panel.rendered;
+    }).sort(function(panel1, panel2) {
+      return panel1.position + panel1.offset - (panel2.position + panel2.offset);
+    });
+    if (visiblePanels.length <= 0) return virtualManager.elements.map(function(_, idx) {
+      return idx;
+    });
+    var visibleIndexes = visiblePanels.map(function(panel) {
+      return panel.elementIndex;
+    });
+    var invisibleIndexes = virtualManager.elements.map(function(el, idx) {
+      return __assign(__assign({}, el), {
+        idx
+      });
+    }).filter(function(el) {
+      return !el.visible;
+    }).map(function(el) {
+      return el.idx;
+    });
+    return __spread(visibleIndexes, invisibleIndexes);
+  };
+  __proto.getRenderingElementsByOrder = function(flicking) {
+    var virtualManager = flicking.virtual;
+    var elements2 = virtualManager.elements;
+    return this.getRenderingIndexesByOrder(flicking).map(function(index) {
+      return elements2[index].nativeElement;
+    });
+  };
+  __proto.updateRenderingPanels = function(flicking) {
+    var panels = flicking.renderer.panels;
+    var camera = flicking.camera;
+    var visibleIndexes = camera.visiblePanels.reduce(function(visibles, panel) {
+      visibles[panel.index] = true;
+      return visibles;
+    }, {});
+    panels.forEach(function(panel) {
+      if (panel.index in visibleIndexes || panel.loading) {
+        panel.markForShow();
+      } else {
+        panel.markForHide();
+      }
+    });
+    camera.updateOffset();
+  };
+  __proto.collectPanels = function(flicking) {
+    var align = parsePanelAlign(flicking.renderer.align);
+    return range(flicking.virtual.initialPanelCount).map(function(index) {
+      return new VirtualPanel({
+        index,
+        elementProvider: new VirtualElementProvider(flicking),
+        align,
+        flicking
+      });
+    });
+  };
+  __proto.createPanel = function(_el, options) {
+    return new VirtualPanel(__assign(__assign({}, options), {
+      elementProvider: new VirtualElementProvider(options.flicking)
+    }));
+  };
+  __proto.updatePanelSizes = function(flicking, size) {
+    flicking.virtual.elements.forEach(function(el) {
+      setSize(el.nativeElement, size);
+    });
+    flicking.panels.forEach(function(panel) {
+      return panel.setSize(size);
+    });
+  };
+  return VirtualRenderingStrategy2;
+})();
+var Flicking = /* @__PURE__ */ (function(_super) {
+  __extends$1(Flicking2, _super);
+  function Flicking2(root, _a) {
+    var _b = _a === void 0 ? {} : _a, _c = _b.align, align = _c === void 0 ? ALIGN.CENTER : _c, _d = _b.defaultIndex, defaultIndex = _d === void 0 ? 0 : _d, _e = _b.horizontal, horizontal = _e === void 0 ? true : _e, _f = _b.circular, circular = _f === void 0 ? false : _f, _g = _b.circularFallback, circularFallback = _g === void 0 ? CIRCULAR_FALLBACK.LINEAR : _g, _h = _b.bound, bound = _h === void 0 ? false : _h, _j = _b.adaptive, adaptive = _j === void 0 ? false : _j, _k = _b.panelsPerView, panelsPerView = _k === void 0 ? -1 : _k, _l = _b.noPanelStyleOverride, noPanelStyleOverride = _l === void 0 ? false : _l, _m = _b.resizeOnContentsReady, resizeOnContentsReady = _m === void 0 ? false : _m, _o = _b.nested, nested = _o === void 0 ? false : _o, _p = _b.needPanelThreshold, needPanelThreshold = _p === void 0 ? 0 : _p, _q = _b.preventEventsBeforeInit, preventEventsBeforeInit = _q === void 0 ? true : _q, _r = _b.deceleration, deceleration = _r === void 0 ? 75e-4 : _r, _s = _b.duration, duration = _s === void 0 ? 500 : _s, _t = _b.easing, easing = _t === void 0 ? function(x) {
+      return 1 - Math.pow(1 - x, 3);
+    } : _t, _u = _b.inputType, inputType = _u === void 0 ? ["mouse", "touch"] : _u, _v = _b.moveType, moveType = _v === void 0 ? "snap" : _v, _w = _b.threshold, threshold = _w === void 0 ? 40 : _w, _x = _b.dragThreshold, dragThreshold = _x === void 0 ? 1 : _x, _y = _b.interruptable, interruptable = _y === void 0 ? true : _y, _z = _b.bounce, bounce = _z === void 0 ? "20%" : _z, _0 = _b.iOSEdgeSwipeThreshold, iOSEdgeSwipeThreshold = _0 === void 0 ? 30 : _0, _1 = _b.preventClickOnDrag, preventClickOnDrag = _1 === void 0 ? true : _1, _2 = _b.preventDefaultOnDrag, preventDefaultOnDrag = _2 === void 0 ? false : _2, _3 = _b.disableOnInit, disableOnInit = _3 === void 0 ? false : _3, _4 = _b.changeOnHold, changeOnHold = _4 === void 0 ? false : _4, _5 = _b.renderOnlyVisible, renderOnlyVisible = _5 === void 0 ? false : _5, _6 = _b.virtual, virtual = _6 === void 0 ? null : _6, _7 = _b.autoInit, autoInit = _7 === void 0 ? true : _7, _8 = _b.autoResize, autoResize = _8 === void 0 ? true : _8, _9 = _b.useResizeObserver, useResizeObserver = _9 === void 0 ? true : _9, _10 = _b.resizeDebounce, resizeDebounce = _10 === void 0 ? 0 : _10, _11 = _b.observePanelResize, observePanelResize = _11 === void 0 ? false : _11, _12 = _b.maxResizeDebounce, maxResizeDebounce = _12 === void 0 ? 100 : _12, _13 = _b.useFractionalSize, useFractionalSize = _13 === void 0 ? false : _13, _14 = _b.externalRenderer, externalRenderer = _14 === void 0 ? null : _14, _15 = _b.renderExternal, renderExternal = _15 === void 0 ? null : _15, _16 = _b.optimizeSizeUpdate, optimizeSizeUpdate = _16 === void 0 ? false : _16, _17 = _b.animationThreshold, animationThreshold = _17 === void 0 ? 0.5 : _17, _18 = _b.useCSSOrder, useCSSOrder = _18 === void 0 ? false : _18;
+    var _this = _super.call(this) || this;
+    _this._scheduleResize = false;
+    _this._initialized = false;
+    _this._plugins = [];
+    _this._isResizing = false;
+    _this._align = align;
+    _this._defaultIndex = defaultIndex;
+    _this._horizontal = horizontal;
+    _this._circular = circular;
+    _this._circularFallback = circularFallback;
+    _this._bound = bound;
+    _this._adaptive = adaptive;
+    _this._panelsPerView = panelsPerView;
+    _this._noPanelStyleOverride = noPanelStyleOverride;
+    _this._resizeOnContentsReady = resizeOnContentsReady;
+    _this._nested = nested;
+    _this._virtual = virtual;
+    _this._needPanelThreshold = needPanelThreshold;
+    _this._preventEventsBeforeInit = preventEventsBeforeInit;
+    _this._deceleration = deceleration;
+    _this._duration = duration;
+    _this._easing = easing;
+    _this._inputType = inputType;
+    _this._moveType = moveType;
+    _this._threshold = threshold;
+    _this._dragThreshold = dragThreshold;
+    _this._interruptable = interruptable;
+    _this._bounce = bounce;
+    _this._iOSEdgeSwipeThreshold = iOSEdgeSwipeThreshold;
+    _this._preventClickOnDrag = preventClickOnDrag;
+    _this._preventDefaultOnDrag = preventDefaultOnDrag;
+    _this._disableOnInit = disableOnInit;
+    _this._changeOnHold = changeOnHold;
+    _this._renderOnlyVisible = renderOnlyVisible;
+    _this._autoInit = autoInit;
+    _this._autoResize = autoResize;
+    _this._useResizeObserver = useResizeObserver;
+    _this._resizeDebounce = resizeDebounce;
+    _this._maxResizeDebounce = maxResizeDebounce;
+    _this._observePanelResize = observePanelResize;
+    _this._useFractionalSize = useFractionalSize;
+    _this._externalRenderer = externalRenderer;
+    _this._renderExternal = renderExternal;
+    _this._optimizeSizeUpdate = optimizeSizeUpdate;
+    _this._animationThreshold = animationThreshold;
+    _this._useCSSOrder = useCSSOrder;
+    _this._viewport = new Viewport(_this, getElement$1(root));
+    _this._autoResizer = new AutoResizer(_this);
+    _this._renderer = _this._createRenderer();
+    _this._camera = _this._createCamera();
+    _this._control = _this._createControl();
+    _this._virtualManager = new VirtualManager(_this, virtual);
+    if (_this._autoInit) {
+      void _this.init();
+    }
+    return _this;
+  }
+  var __proto = Flicking2.prototype;
+  Object.defineProperty(__proto, "control", {
+    // Components
+    /**
+     * {@link Control} instance of the Flicking
+     * @ko 현재 Flicking에 활성화된 {@link Control} 인스턴스
+     * @type {Control}
+     * @default SnapControl
+     * @readonly
+     * @see Control
+     * @see SnapControl
+     * @see FreeControl
+     */
+    get: function() {
+      return this._control;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "camera", {
+    /**
+     * {@link Camera} instance of the Flicking
+     * @ko 현재 Flicking에 활성화된 {@link Camera} 인스턴스
+     * @type {Camera}
+     * @default LinearCamera
+     * @readonly
+     * @see Camera
+     * @see LinearCamera
+     * @see BoundCamera
+     * @see CircularCamera
+     */
+    get: function() {
+      return this._camera;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "renderer", {
+    /**
+     * {@link Renderer} instance of the Flicking
+     * @ko 현재 Flicking에 활성화된 {@link Renderer} 인스턴스
+     * @type {Renderer}
+     * @default VanillaRenderer
+     * @readonly
+     * @see Renderer
+     * @see VanillaRenderer
+     * @see ExternalRenderer
+     */
+    get: function() {
+      return this._renderer;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "viewport", {
+    /**
+     * A component that manages viewport size
+     * @ko 뷰포트 크기 정보를 담당하는 컴포넌트
+     * @type {Viewport}
+     * @readonly
+     * @see Viewport
+     */
+    get: function() {
+      return this._viewport;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "autoResizer", {
+    /**
+     * {@link AutoResizer} instance of the Flicking
+     * @ko 현재 Flicking에 활성화된 {@link AutoResizer} 인스턴스
+     * @internal
+     * @readonly
+     */
+    get: function() {
+      return this._autoResizer;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "initialized", {
+    // Internal States
+    /**
+     * Whether Flicking's {@link Flicking#init init()} is called.
+     * This is `true` when {@link Flicking#init init()} is called, and is `false` after calling {@link Flicking#destroy destroy()}.
+     * @ko Flicking의 {@link Flicking#init init()}이 호출되었는지를 나타내는 멤버 변수.
+     * 이 값은 {@link Flicking#init init()}이 호출되었으면 `true`로 변하고, {@link Flicking#destroy destroy()}호출 이후에 다시 `false`로 변경됩니다.
+     * @type {boolean}
+     * @default false
+     * @readonly
+     */
+    get: function() {
+      return this._initialized;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "circularEnabled", {
+    /**
+     * Whether the `circular` option is enabled.
+     * The {@link Flicking#circular circular} option can't be enabled when sum of the panel sizes are too small.
+     * @ko {@link Flicking#circular circular} 옵션이 활성화되었는지 여부를 나타내는 멤버 변수.
+     * {@link Flicking#circular circular} 옵션은 패널의 크기의 합이 충분하지 않을 경우 비활성화됩니다.
+     * @type {boolean}
+     * @default false
+     * @readonly
+     */
+    get: function() {
+      return this._camera.circularEnabled;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "virtualEnabled", {
+    /**
+     * Whether the `virtual` option is enabled.
+     * The {@link Flicking#virtual virtual} option can't be enabled when  {@link Flicking#panelsPerView panelsPerView} is less or equal than zero.
+     * @ko {@link Flicking#virtual virtual} 옵션이 활성화되었는지 여부를 나타내는 멤버 변수.
+     * {@link Flicking#virtual virtual} 옵션은 {@link Flicking#panelsPerView panelsPerView} 옵션의 값이 0보다 같거나 작으면 비활성화됩니다.
+     * @type {boolean}
+     * @default false
+     * @readonly
+     */
+    get: function() {
+      return this._panelsPerView > 0 && this._virtual != null;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "index", {
+    /**
+     * Index number of the {@link Flicking#currentPanel currentPanel}
+     * @ko {@link Flicking#currentPanel currentPanel}의 인덱스 번호
+     * @type {number}
+     * @default 0
+     * @readonly
+     */
+    get: function() {
+      return this._control.activeIndex;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "element", {
+    /**
+     * The root(`.flicking-viewport`) element
+     * @ko root(`.flicking-viewport`) 엘리먼트
+     * @type {HTMLElement}
+     * @readonly
+     */
+    get: function() {
+      return this._viewport.element;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "currentPanel", {
+    /**
+     * Currently active panel
+     * @ko 현재 선택된 패널
+     * @type {Panel}
+     * @readonly
+     * @see Panel
+     */
+    get: function() {
+      return this._control.activePanel;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "panels", {
+    /**
+     * Array of panels
+     * @ko 전체 패널들의 배열
+     * @type {Panel[]}
+     * @readonly
+     * @see Panel
+     */
+    get: function() {
+      return this._renderer.panels;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "panelCount", {
+    /**
+     * Count of panels
+     * @ko 전체 패널의 개수
+     * @type {number}
+     * @readonly
+     */
+    get: function() {
+      return this._renderer.panelCount;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "visiblePanels", {
+    /**
+     * Array of panels that is visible at the current position
+     * @ko 현재 보이는 패널의 배열
+     * @type {Panel[]}
+     * @readonly
+     * @see Panel
+     */
+    get: function() {
+      return this._camera.visiblePanels;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "animating", {
+    /**
+     * Whether Flicking's animating
+     * @ko 현재 애니메이션 동작 여부
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      return this._control.animating;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "holding", {
+    /**
+     * Whether user is clicking or touching
+     * @ko 현재 사용자가 클릭/터치중인지 여부
+     * @type {boolean}
+     * @readonly
+     */
+    get: function() {
+      return this._control.holding;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "activePlugins", {
+    /**
+     * A current list of activated plugins
+     * @ko 현재 활성화된 플러그인 목록
+     * @type {Plugin[]}
+     * @readonly
+     */
+    get: function() {
+      return this._plugins;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "align", {
+    // Options Getter
+    // UI / LAYOUT
+    /**
+     * Align position of the panels within viewport. You can set different values each for the panel and camera
+     * @ko 뷰포트 내에서 패널 정렬방식을 설정하는 옵션. 카메라와 패널 개별로 옵션을 설정할 수도 있습니다
+     * @type {ALIGN | string | number | { panel: string | number, camera: string | number }}
+     * @property {ALIGN | string | number} panel The align value for each {@link Panel}s<ko>개개의 {@link Panel}에 적용할 값</ko>
+     * @property {ALIGN | string | number} camera The align value for {@link Camera}<ko>{@link Camera}에 적용할 값</ko>
+     * @default "center"
+     * @see {@link https://naver.github.io/egjs-flicking/Options#align align ( Options )}
+     * @example
+     * ```ts
+     * const possibleOptions = [
+     *   // Literal strings
+     *   "prev", "center", "next",
+     *   // % values, applied to both panel & camera
+     *   "0%", "25%", "42%",
+     *   // px values, arithmetic calculation with (+/-) is also allowed.
+     *   "0px", "100px", "50% - 25px",
+     *   // numbers, same to number + px ("0px", "100px")
+     *   0, 100, 1000,
+     *   // Setting a different value for panel & camera
+     *   { panel: "10%", camera: "25%" }
+     * ];
+     *
+     * possibleOptions.forEach(align => {
+     *   new Flicking("#el", { align });
+     * });
+     * ```
+     */
+    get: function() {
+      return this._align;
+    },
+    // Options Setter
+    // UI / LAYOUT
+    set: function(val) {
+      this._align = val;
+      this._renderer.align = val;
+      this._camera.align = val;
+      void this.resize();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "defaultIndex", {
+    /**
+     * Index of the panel to move when Flicking's {@link Flicking#init init()} is called. A zero-based integer
+     * @ko Flicking의 {@link Flicking#init init()}이 호출될 때 이동할 디폴트 패널의 인덱스로, 0부터 시작하는 정수입니다.
+     * @type {number}
+     * @default 0
+     * @see {@link https://naver.github.io/egjs-flicking/Options#defaultindex defaultIndex ( Options )}
+     */
+    get: function() {
+      return this._defaultIndex;
+    },
+    set: function(val) {
+      this._defaultIndex = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "horizontal", {
+    /**
+     * Direction of panel movement (true: horizontal, false: vertical)
+     * @ko 패널 이동 방향 (true: 가로방향, false: 세로방향)
+     * @type {boolean}
+     * @default true
+     * @see {@link https://naver.github.io/egjs-flicking/Options#horizontal horizontal ( Options )}
+     */
+    get: function() {
+      return this._horizontal;
+    },
+    set: function(val) {
+      this._horizontal = val;
+      this._control.controller.updateDirection();
+      void this.resize();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "circular", {
+    /**
+     * Enables circular(continuous loop) mode, which connects first/last panel for continuous scrolling.
+     * @ko 순환 모드를 활성화합니다. 순환 모드에서는 양 끝의 패널이 서로 연결되어 끊김없는 스크롤이 가능합니다.
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#circular circular ( Options )}
+     */
+    get: function() {
+      return this._circular;
+    },
+    set: function(val) {
+      this._circular = val;
+      void this.resize();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "circularFallback", {
+    /**
+     * Set panel control mode for the case when circular cannot be enabled.
+     * "linear" will set the view's range from the top of the first panel to the top of the last panel.
+     * "bound" will prevent the view from going out of the first/last panel, so it won't show empty spaces before/after the first/last panel.
+     * @ko 순환 모드 사용 불가능시 사용할 패널 조작 범위 설정 방식을 변경합니다.
+     * "linear" 사용시 시점이 첫번째 엘리먼트 위에서부터 마지막 엘리먼트 위까지 움직일 수 있도록 설정합니다.
+     * "bound" 사용시 시점이 첫번째 엘리먼트와 마지막 엘리먼트의 끝과 끝 사이에서 움직일 수 있도록 설정합니다.
+     * @see CIRCULAR_FALLBACK
+     * @type {string}
+     * @default "linear"
+     * @see {@link https://naver.github.io/egjs-flicking/Options#circularfallback circularFallback ( Options )}
+     */
+    get: function() {
+      return this._circularFallback;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "bound", {
+    /**
+     * Prevent the view(camera element) from going out of the first/last panel, so it won't show empty spaces before/after the first/last panel
+     * Only can be enabled when `circular=false`
+     * @ko 뷰(카메라 엘리먼트)가 첫번째와 마지막 패널 밖으로 넘어가지 못하게 하여, 첫번째/마지막 패널 전/후의 빈 공간을 보이지 않도록 하는 옵션입니다
+     * `circular=false`인 경우에만 사용할 수 있습니다
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#bound bound ( Options )}
+     */
+    get: function() {
+      return this._bound;
+    },
+    set: function(val) {
+      this._bound = val;
+      void this.resize();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "adaptive", {
+    /**
+     * Update height of the viewport element after movement same to the height of the panel below. This can be only enabled when `horizontal=true`
+     * @ko 이동한 후 뷰포트 엘리먼트의 크기를 현재 패널의 높이와 동일하게 설정합니다. `horizontal=true`인 경우에만 사용할 수 있습니다.
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#adaptive adaptive ( Options )}
+     */
+    get: function() {
+      return this._adaptive;
+    },
+    set: function(val) {
+      this._adaptive = val;
+      void this.resize();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "panelsPerView", {
+    /**
+     * A visible number of panels on viewport. Enabling this option will automatically resize panel size
+     * @ko 한 화면에 보이는 패널의 개수. 이 옵션을 활성화할 경우 패널의 크기를 강제로 재조정합니다
+     * @type {number}
+     * @default -1
+     * @see {@link https://naver.github.io/egjs-flicking/Options#panelsperview panelsPerView ( Options )}
+     */
+    get: function() {
+      return this._panelsPerView;
+    },
+    set: function(val) {
+      this._panelsPerView = val;
+      void this.resize();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "noPanelStyleOverride", {
+    /**
+     * Enabling this option will not change `width/height` style of the panels if {@link Flicking#panelsPerView} is enabled.
+     * This behavior can be useful in terms of performance when you're manually managing all panel sizes
+     * @ko 이 옵션을 활성화할 경우, {@link Flicking#panelsPerView} 옵션이 활성화되었을 때 패널의 `width/height` 스타일을 변경하지 않도록 설정합니다.
+     * 모든 패널들의 크기를 직접 관리하고 있을 경우, 이 옵션을 활성화하면 성능면에서 유리할 수 있습니다
+     * @type {boolean}
+     * @default false
+     */
+    get: function() {
+      return this._noPanelStyleOverride;
+    },
+    set: function(val) {
+      this._noPanelStyleOverride = val;
+      void this.resize();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "resizeOnContentsReady", {
+    /**
+     * Enabling this option will automatically call {@link Flicking#resize} when all image/video inside panels are loaded.
+     * This can be useful when you have contents inside Flicking that changes its size when it's loaded
+     * @ko 이 옵션을 활성화할 경우, Flicking 패널 내부의 이미지/비디오들이 로드되었을 때 자동으로 {@link Flicking#resize}를 호출합니다.
+     * 이 동작은 Flicking 내부에 로드 전/후로 크기가 변하는 콘텐츠를 포함하고 있을 때 유용하게 사용하실 수 있습니다.
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#resizeOnContentsReady resizeOnContentsReady ( Options )}
+     */
+    get: function() {
+      return this._resizeOnContentsReady;
+    },
+    set: function(val) {
+      this._resizeOnContentsReady = val;
+      if (val) {
+        this._renderer.checkPanelContentsReady(this._renderer.panels);
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "nested", {
+    /**
+     * If you enable this option on child Flicking when the Flicking is placed inside the Flicking, the parent Flicking will move in the same direction after the child Flicking reaches the first/last panel.
+     * If the parent Flicking and child Flicking have different horizontal option, you do not need to set this option.
+     * @ko Flicking 내부에 Flicking이 배치될 때 하위 Flicking에서 이 옵션을 활성화하면 하위 Flicking이 첫/마지막 패널에 도달한 뒤부터 같은 방향으로 상위 Flicking이 움직입니다.
+     * 만약 상위 Flicking과 하위 Flicking이 서로 다른 horizontal 옵션을 가지고 있다면 이 옵션을 설정할 필요가 없습니다.
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#nested nested ( Options )}
+     */
+    get: function() {
+      return this._nested;
+    },
+    set: function(val) {
+      this._nested = val;
+      var axes = this._control.controller.axes;
+      if (axes) {
+        axes.options.nested = val;
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "needPanelThreshold", {
+    // EVENTS
+    /**
+     * A Threshold from viewport edge before triggering `needPanel` event
+     * @ko `needPanel`이벤트가 발생하기 위한 뷰포트 끝으로부터의 최대 거리
+     * @type {number}
+     * @default 0
+     * @see {@link https://naver.github.io/egjs-flicking/Options#needpanelthreshold needPanelThreshold ( Options )}
+     */
+    get: function() {
+      return this._needPanelThreshold;
+    },
+    // EVENTS
+    set: function(val) {
+      this._needPanelThreshold = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "preventEventsBeforeInit", {
+    /**
+     * When enabled, events are not triggered before `ready` when initializing
+     * @ko 활성화할 경우 초기화시 `ready` 이벤트 이전의 이벤트가 발생하지 않습니다.
+     * @type {boolean}
+     * @default true
+     * @see {@link https://naver.github.io/egjs-flicking/Options#preventeventsbeforeinit preventEventsBeforeInit ( Options )}
+     */
+    get: function() {
+      return this._preventEventsBeforeInit;
+    },
+    set: function(val) {
+      this._preventEventsBeforeInit = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "deceleration", {
+    // ANIMATION
+    /**
+     * Deceleration value for panel movement animation which is triggered by user input. A higher value means a shorter animation time
+     * @ko 사용자의 동작으로 가속도가 적용된 패널 이동 애니메이션의 감속도. 값이 높을수록 애니메이션 실행 시간이 짧아집니다
+     * @type {number}
+     * @default 0.0075
+     * @see {@link https://naver.github.io/egjs-flicking/Options#deceleration deceleration ( Options )}
+     */
+    get: function() {
+      return this._deceleration;
+    },
+    // ANIMATION
+    set: function(val) {
+      this._deceleration = val;
+      var axes = this._control.controller.axes;
+      if (axes) {
+        axes.options.deceleration = val;
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "easing", {
+    /**
+     * An easing function applied to the panel movement animation. Default value is `easeOutCubic`
+     * @ko 패널 이동 애니메이션에 적용할 easing 함수. 기본값은 `easeOutCubic`이다
+     * @type {function}
+     * @default x => 1 - Math.pow(1 - x, 3)
+     * @see Easing Functions Cheat Sheet {@link http://easings.net/} <ko>이징 함수 Cheat Sheet {@link http://easings.net/}</ko>
+     * @see {@link https://naver.github.io/egjs-flicking/Options#easing Easing ( Options )}
+     */
+    get: function() {
+      return this._easing;
+    },
+    set: function(val) {
+      this._easing = val;
+      var axes = this._control.controller.axes;
+      if (axes) {
+        axes.options.easing = val;
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "duration", {
+    /**
+     * Default duration of the animation (ms)
+     * @ko 디폴트 애니메이션 재생 시간 (ms)
+     * @type {number}
+     * @default 500
+     * @see {@link https://naver.github.io/egjs-flicking/Options#duration duration ( Options )}
+     */
+    get: function() {
+      return this._duration;
+    },
+    set: function(val) {
+      this._duration = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "inputType", {
+    // INPUT
+    /**
+     * Types of input devices to enable
+     * @ko 활성화할 입력 장치 종류
+     * @type {string[]}
+     * @default ["touch", "mouse"]
+     * @see {@link https://naver.github.io/egjs-axes/Options#paninput-options Possible values (PanInputOption#inputType)}
+     * <ko>{@link https://naver.github.io/egjs-axes/Options#paninput-options 가능한 값들 (PanInputOption#inputType)}</ko>
+     * @see {@link https://naver.github.io/egjs-flicking/Options#inputtype inputType ( Options )}
+     */
+    get: function() {
+      return this._inputType;
+    },
+    // INPUT
+    set: function(val) {
+      this._inputType = val;
+      var panInput = this._control.controller.panInput;
+      if (panInput) {
+        panInput.options.inputType = val;
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "moveType", {
+    /**
+     * Movement style by user input. This will change instance type of {@link Flicking#control}
+     * You can use the values of the constant {@link MOVE_TYPE}
+     * @ko 사용자 입력에 의한 이동 방식. 이 값에 따라 {@link Flicking#control}의 인스턴스 타입이 결정됩니다
+     * 상수 {@link MOVE_TYPE}에 정의된 값들을 이용할 수 있습니다
+     * @type {MOVE_TYPE | Pair<string, object>}
+     * @default "snap"
+     * @see {@link https://naver.github.io/egjs-flicking/Options#movetype moveType ( Options )}
+     * @example
+     * |moveType|control|options|
+     * |:---:|:---:|:---:|
+     * |"snap"|{@link SnapControl}||
+     * |"freeScroll"|{@link FreeControl}|{@link FreeControlOptions}|
+     *
+     * ```ts
+     * import Flicking, { MOVE_TYPE } from "@egjs/flicking";
+     *
+     * const flicking = new Flicking({
+     *   moveType: MOVE_TYPE.SNAP
+     * });
+     * ```
+     *
+     * ```ts
+     * const flicking = new Flicking({
+     *   // If you want more specific settings for the moveType
+     *   // [moveType, options for that moveType]
+     *   // In this case, it's ["freeScroll", FreeControlOptions]
+     *   moveType: [MOVE_TYPE.FREE_SCROLL, { stopAtEdge: true }]
+     * });
+     * ```
+     */
+    get: function() {
+      return this._moveType;
+    },
+    set: function(val) {
+      this._moveType = val;
+      var prevControl = this._control;
+      var newControl = this._createControl();
+      var activePanel = prevControl.activePanel;
+      newControl.copy(prevControl);
+      var prevProgressInPanel = activePanel ? this._camera.getProgressInPanel(activePanel) : 0;
+      this._control = newControl;
+      this._control.updatePosition(prevProgressInPanel);
+      this._control.updateInput();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "threshold", {
+    /**
+     * Movement threshold to change panel (unit: px). It should be dragged above the threshold to change the current panel.
+     * @ko 패널 변경을 위한 이동 임계값 (단위: px). 주어진 값 이상으로 스크롤해야만 패널 변경이 가능합니다.
+     * @type {number}
+     * @default 40
+     * @see {@link https://naver.github.io/egjs-flicking/Options#threshold Threshold ( Options )}
+     */
+    get: function() {
+      return this._threshold;
+    },
+    set: function(val) {
+      this._threshold = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "dragThreshold", {
+    /**
+     * Minimal distance of user input before recognizing (unit: px). It should be dragged above the dragThreshold to move the panel.
+     * @ko 사용자의 입력을 인식하기 위한 최소한의 거리 (단위: px). 주어진 값 이상으로 스크롤해야만 패널이 움직입니다.
+     * @type {number}
+     * @default 1
+     * @see {@link https://naver.github.io/egjs-flicking/Options#dragThreshold dragThreshold ( Options )}
+     */
+    get: function() {
+      return this._dragThreshold;
+    },
+    set: function(val) {
+      this._dragThreshold = val;
+      var panInput = this._control.controller.panInput;
+      if (panInput) {
+        panInput.options.threshold = val;
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "animationThreshold", {
+    /**
+     * The minimum distance for animation to proceed. If the distance to be moved is less than `animationThreshold`, the movement proceeds immediately without animation (duration: 0).
+     * @ko animation이 진행되기 위한 최소한의 거리. 이동하려는 거리가 `animationThreshold`보다 적으면 애니메이션 없이(duration: 0) 즉시 이동한다.
+     * @type {number}
+     * @default 0.5
+     * @see {@link https://naver.github.io/egjs-flicking/Options#animationThreshold animationThreshold ( Options )}
+     */
+    get: function() {
+      return this._animationThreshold;
+    },
+    set: function(val) {
+      this._animationThreshold = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "useCSSOrder", {
+    /**
+     * Using `useCSSOrder` does not change the DOM order, but the `order` CSS property changes the order on the screen. (When `circular` is used, the DOM order changes depending on the position.)
+     * When using `iframe`, you can prevent reloading when the DOM order changes.
+     * In svelte, CSS order is always used.
+     * @ko `useCSSOrder`를 사용하면 DOM의 순서는 변경되지 않지만 `order` css가 설정되면서 화면상 순서가 바뀐다. (`circular`를 사용한 경우 위치에 따라 DOM의 순서가 변경된다.)
+     * `iframe`을 사용하는 경우 DOM의 순서가 변경되면서 reload가 되는 것을 막을 수 있다.
+     * svelte에서는 css order를 무조건 사용한다.
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#useCSSOrder useCSSOrder ( Options )}
+     */
+    get: function() {
+      return this._useCSSOrder;
+    },
+    set: function(val) {
+      this._useCSSOrder = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "interruptable", {
+    /**
+     * Set animation to be interruptable by click/touch.
+     * @ko 사용자의 클릭/터치로 인해 애니메이션을 도중에 멈출 수 있도록 설정합니다.
+     * @type {boolean}
+     * @default true
+     * @see {@link https://naver.github.io/egjs-flicking/Options#interruptable Interruptable ( Options )}
+     */
+    get: function() {
+      return this._interruptable;
+    },
+    set: function(val) {
+      this._interruptable = val;
+      var axes = this._control.controller.axes;
+      if (axes) {
+        axes.options.interruptable = val;
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "bounce", {
+    /**
+     * The size value of the bounce area. Only can be enabled when `circular=false`.
+     * You can set different bounce value for prev/next direction by using array.
+     * `number` for px value, and `string` for px, and % value relative to viewport size.
+     * You have to call {@link Control#updateInput} after changing this to take effect.
+     * @ko Flicking이 최대 영역을 넘어서 갈 수 있는 최대 크기. `circular=false`인 경우에만 사용할 수 있습니다.
+     * 배열을 통해 prev/next 방향에 대해 서로 다른 바운스 값을 지정할 수 있습니다.
+     * `number`를 통해 px값을, `stirng`을 통해 px 혹은 뷰포트 크기 대비 %값을 사용할 수 있습니다.
+     * 이 값을 변경시 {@link Control#updateInput}를 호출해야 합니다.
+     * @type {string | number | Array<string | number>}
+     * @default "20%"
+     * @see {@link https://naver.github.io/egjs-flicking/Options#bounce bounce ( Options )}
+     * @example
+     * ```ts
+     * const possibleOptions = [
+     *   // % values, relative to viewport element(".flicking-viewport")'s size
+     *   "0%", "25%", "42%",
+     *   // px values, arithmetic calculation with (+/-) is also allowed.
+     *   "0px", "100px", "50% - 25px",
+     *   // numbers, same to number + px ("0px", "100px")
+     *   0, 100, 1000
+     * ];
+     * ```
+     *
+     * @example
+     * ```ts
+     * const flicking = new Flicking("#el", { bounce: "20%" });
+     *
+     * flicking.bounce = "100%";
+     * flicking.control.updateInput(); // Call this to update!
+     * ```
+     */
+    get: function() {
+      return this._bounce;
+    },
+    set: function(val) {
+      this._bounce = val;
+      this._control.updateInput();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "iOSEdgeSwipeThreshold", {
+    /**
+     * Size of the area from the right edge in iOS safari (in px) which enables swipe-back or swipe-forward
+     * @ko iOS Safari에서 swipe를 통한 뒤로가기/앞으로가기를 활성화하는 오른쪽 끝으로부터의 영역의 크기 (px)
+     * @type {number}
+     * @default 30
+     * @see {@link https://naver.github.io/egjs-flicking/Options#iosedgeswipethreshold iOSEdgeSwipeThreshold ( Options )}
+     */
+    get: function() {
+      return this._iOSEdgeSwipeThreshold;
+    },
+    set: function(val) {
+      this._iOSEdgeSwipeThreshold = val;
+      var panInput = this._control.controller.panInput;
+      if (panInput) {
+        panInput.options.iOSEdgeSwipeThreshold = val;
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "preventClickOnDrag", {
+    /**
+     * Automatically prevent `click` event if the user has dragged at least a single pixel on the viewport element
+     * @ko 사용자가 뷰포트 영역을 1픽셀이라도 드래그했을 경우 자동으로 {@link https://developer.mozilla.org/ko/docs/Web/API/Element/click_event click} 이벤트를 취소합니다
+     * @type {boolean}
+     * @default true
+     * @see {@link https://naver.github.io/egjs-flicking/Options#preventclickondrag preventClickOnDrag ( Options )}
+     */
+    get: function() {
+      return this._preventClickOnDrag;
+    },
+    set: function(val) {
+      var prevVal = this._preventClickOnDrag;
+      if (val === prevVal) return;
+      var controller = this._control.controller;
+      if (val) {
+        controller.addPreventClickHandler();
+      } else {
+        controller.removePreventClickHandler();
+      }
+      this._preventClickOnDrag = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "preventDefaultOnDrag", {
+    /**
+     * Whether to use the {@link https://developer.mozilla.org/ko/docs/Web/API/Event/preventDefault preventDefault} when the user starts dragging
+     * @ko 사용자가 드래그를 시작할 때 {@link https://developer.mozilla.org/ko/docs/Web/API/Event/preventDefault preventDefault} 실행 여부
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#preventDefaultOnDrag preventDefaultOnDrag ( Options )}
+     */
+    get: function() {
+      return this._preventDefaultOnDrag;
+    },
+    set: function(val) {
+      this._preventDefaultOnDrag = val;
+      var panInput = this._control.controller.panInput;
+      if (panInput) {
+        panInput.options.preventDefaultOnDrag = val;
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "disableOnInit", {
+    /**
+     * Automatically call {@link Flicking#disableInput disableInput()} on initialization
+     * @ko Flicking init시에 {@link Flicking#disableInput disableInput()}을 바로 호출합니다
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#disableoninit disableOnInit ( Options )}
+     */
+    get: function() {
+      return this._disableOnInit;
+    },
+    set: function(val) {
+      this._disableOnInit = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "changeOnHold", {
+    /**
+     * Change active panel index on mouse/touch hold while animating.
+     * `index` of the `willChange`/`willRestore` event will be used as new index.
+     * @ko 애니메이션 도중 마우스/터치 입력시 현재 활성화된 패널의 인덱스를 변경합니다.
+     * `willChange`/`willRestore` 이벤트의 `index`값이 새로운 인덱스로 사용될 것입니다.
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#changeonhold changeOnHold ( Options )}
+     */
+    get: function() {
+      return this._changeOnHold;
+    },
+    set: function(val) {
+      this._changeOnHold = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "renderOnlyVisible", {
+    // PERFORMANCE
+    /**
+     * Whether to render visible panels only. This can dramatically increase performance when there're many panels
+     * @ko 보이는 패널만 렌더링할지 여부를 설정합니다. 패널이 많을 경우에 퍼포먼스를 크게 향상시킬 수 있습니다
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#renderonlyvisible renderOnlyVisible ( Options )}
+     */
+    get: function() {
+      return this._renderOnlyVisible;
+    },
+    // PERFORMANCE
+    set: function(val) {
+      this._renderOnlyVisible = val;
+      void this._renderer.render();
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "virtual", {
+    /**
+     * By enabling this option, it will reduce memory consumption by restricting the number of DOM elements to `panelsPerView + 1`
+     * Must be used with `panelsPerview`.
+     * After Flicking's initialized, this property can be used to add/remove the panel count.
+     * @ko 이 옵션을 활성화할 경우 패널 엘리먼트의 개수를 `panelsPerView + 1` 개로 고정함으로써, 메모리 사용량을 줄일 수 있습니다.
+     * `panelsPerView` 옵션과 함께 사용되어야만 합니다.
+     * Flicking 초기화 이후에, 이 프로퍼티는 렌더링하는 패널의 개수를 추가/제거하기 위해 사용될 수 있습니다.
+     * @type {VirtualManager}
+     * @property {function} renderPanel A rendering function for the panel element's innerHTML<ko>패널 엘리먼트의 innerHTML을 렌더링하는 함수</ko>
+     * @property {number} initialPanelCount Initial panel count to render<ko>최초로 렌더링할 패널의 개수</ko>
+     * @property {boolean} [cache=false] Whether to cache rendered panel's innerHTML<ko>렌더링된 패널의 innerHTML 정보를 캐시할지 여부</ko>
+     * @property {string} [panelClass="flicking-panel"] The class name that will be applied to rendered panel elements<ko>렌더링되는 패널 엘리먼트에 적용될 클래스 이름</ko>
+     * @see {@link https://naver.github.io/egjs-flicking/Options#virtual virtual ( Options )}
+     * @example
+     * ```ts
+     * import Flicking, { VirtualPanel } from "@egjs/flicking";
+     *
+     * const flicking = new Flicking("#some_el", {
+     *   panelsPerView: 3,
+     *   virtual: {
+     *     renderPanel: (panel: VirtualPanel, index: number) => `Panel ${index}`,
+     *     initialPanelCount: 100
+     *   }
+     * });
+     *
+     * // Add 100 virtual panels (at the end)
+     * flicking.virtual.append(100);
+     *
+     * // Remove 100 virtual panels from 0 to 100
+     * flicking.virtual.remove(0, 100);
+     * ```
+     */
+    get: function() {
+      return this._virtualManager;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "autoInit", {
+    // OTHERS
+    /**
+     * Call {@link Flicking#init init()} automatically when creating Flicking's instance
+     * @ko Flicking 인스턴스를 생성할 때 자동으로 {@link Flicking#init init()}를 호출합니다
+     * @type {boolean}
+     * @default true
+     * @see {@link https://naver.github.io/egjs-flicking/Options#autoinit autoInit ( Options )}
+     * @readonly
+     */
+    get: function() {
+      return this._autoInit;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "autoResize", {
+    /**
+     * Whether to automatically call {@link Flicking#resize resize()} when the viewport element(.flicking-viewport)'s size is changed
+     * @ko 뷰포트 엘리먼트(.flicking-viewport)의 크기 변경시 {@link Flicking#resize resize()} 메소드를 자동으로 호출할지 여부를 설정합니다
+     * @type {boolean}
+     * @default true
+     */
+    get: function() {
+      return this._autoResize;
+    },
+    // OTHERS
+    set: function(val) {
+      this._autoResize = val;
+      if (!this._initialized) {
+        return;
+      }
+      if (val) {
+        this._autoResizer.enable();
+      } else {
+        this._autoResizer.disable();
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "useResizeObserver", {
+    /**
+     * Whether to listen {@link https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver ResizeObserver}'s event instead of Window's {@link https://developer.mozilla.org/ko/docs/Web/API/Window/resize_event resize} event when using the `autoResize` option
+     * @ko autoResize 옵션 사용시 {@link https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver ResizeObserver}의 이벤트를 Window객체의 {@link https://developer.mozilla.org/ko/docs/Web/API/Window/resize_event resize} 이벤트 대신 수신할지 여부를 설정합니다
+     * @type {boolean}
+     * @default true
+     * @see {@link https://naver.github.io/egjs-flicking/Options#useresizeobserver useResizeObserver ( Options )}
+     */
+    get: function() {
+      return this._useResizeObserver;
+    },
+    set: function(val) {
+      this._useResizeObserver = val;
+      if (this._initialized && this._autoResize) {
+        this._autoResizer.enable();
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "observePanelResize", {
+    /**
+     * Whether to use {@link https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver ResizeObserver} to observe the size of the panel element
+     * This is only available when `useResizeObserver` is enabled.
+     * This option garantees that the resize event is triggered when the size of the panel element is changed.
+     * @ko 이 옵션을 활성화할 경우, {@link https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver ResizeObserver}를 사용하여 패널 엘리먼트의 크기를 추적합니다.
+     * 이 옵션은 `useResizeObserver` 옵션이 활성화된 경우에만 사용할 수 있습니다.
+     * 이 옵션은 패널 엘리먼트의 크기가 변경될 경우 resize 이벤트가 발생하도록 보장합니다.
+     */
+    get: function() {
+      return this._observePanelResize;
+    },
+    set: function(val) {
+      this._observePanelResize = val;
+      if (this._initialized && this._autoResize) {
+        if (val) {
+          this._autoResizer.observePanels();
+        } else {
+          this._autoResizer.unobservePanels();
+        }
+      }
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "resizeDebounce", {
+    /**
+     * Delays size recalculation from `autoResize` by the given time in milisecond.
+     * If the size is changed again while being delayed, it cancels the previous one and delays from the beginning again.
+     * This can increase performance by preventing `resize` being called too often.
+     * @ko `autoResize` 설정시에 호출되는 크기 재계산을 주어진 시간(단위: ms)만큼 지연시킵니다.
+     * 지연시키는 도중 크기가 다시 변경되었을 경우, 이전 것을 취소하고 주어진 시간만큼 다시 지연시킵니다.
+     * 이를 통해 `resize`가 너무 많이 호출되는 것을 방지하여 성능을 향상시킬 수 있습니다.
+     * @type {number}
+     * @default 0
+     * @see {@link https://naver.github.io/egjs-flicking/Options#resizedebounce resizeDebounce ( Options )}
+     */
+    get: function() {
+      return this._resizeDebounce;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "maxResizeDebounce", {
+    /**
+     * The maximum time for size recalculation delay when using `resizeDebounce`, in milisecond.
+     * This guarantees that size recalculation is performed at least once every (n)ms.
+     * @ko `resizeDebounce` 사용시에 크기 재계산이 지연되는 최대 시간을 지정합니다. (단위: ms)
+     * 이를 통해, 적어도 (n)ms에 한번은 크기 재계산을 수행하는 것을 보장할 수 있습니다.
+     * @type {number}
+     * @default 100
+     * @see {@link https://naver.github.io/egjs-flicking/Options#maxresizedebounce maxResizeDebounce ( Options )}
+     */
+    get: function() {
+      return this._maxResizeDebounce;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "useFractionalSize", {
+    /**
+     * By enabling this, Flicking will calculate all internal size with CSS width computed with getComputedStyle.
+     * This can prevent 1px offset issue in some cases where panel size has the fractional part.
+     * All sizes will have the original size before CSS {@link https://developer.mozilla.org/en-US/docs/Web/CSS/transform transform} is applied on the element.
+     * @ko 이 옵션을 활성화할 경우, Flicking은 내부의 모든 크기를 {@link https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect getBoundingClientRect}를 이용하여 계산합니다.
+     * 이를 통해, 패널 크기에 소수점을 포함할 경우에 발생할 수 있는 일부 1px 오프셋 이슈를 해결 가능합니다.
+     * 모든 크기는 CSS {@link https://developer.mozilla.org/en-US/docs/Web/CSS/transform transform}이 엘리먼트에 적용되기 이전의 크기를 사용할 것입니다.
+     * @type {boolean}
+     * @default false
+     * @see {@link https://naver.github.io/egjs-flicking/Options#usefractionalsize useFractionalSize ( Options )}
+     */
+    get: function() {
+      return this._useFractionalSize;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "externalRenderer", {
+    /**
+     * This is an option for the frameworks(React, Vue, Angular, ...). Don't set it as it's automatically managed by Flicking.
+     * @ko 프레임워크(React, Vue, Angular, ...)에서만 사용하는 옵션으로, 자동으로 설정되므로 따로 사용하실 필요 없습니다!
+     * @default null
+     * @internal
+     * @readonly
+     */
+    get: function() {
+      return this._externalRenderer;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "renderExternal", {
+    /**
+     * This is an option for the frameworks(React, Vue, Angular, ...). Don't set it as it's automatically managed by Flicking.
+     * @ko 프레임워크(React, Vue, Angular, ...)에서만 사용하는 옵션으로, 자동으로 설정되므로 따로 사용하실 필요 없습니다!
+     * @default null
+     * @internal
+     * @readonly
+     * @deprecated
+     */
+    get: function() {
+      return this._renderExternal;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "optimizeSizeUpdate", {
+    /**
+     * This option works only when autoResize is set to true.
+     * By default, autoResize listens to changes in both the viewport's width and height, updating all panel sizes accordingly.
+     * When optimizeSizeUpdate is enabled, the update behavior is optimized based on the flicking direction:
+     * If direction is "horizontal", only changes in width will trigger panel size updates.
+     * If direction is "vertical", only changes in height will do so.
+     * This option is useful when panel heights vary and unwanted flickering occurs due to frequent size recalculations during flicking. Enabling optimizeSizeUpdate prevents unnecessary updates and helps maintain visual stability.
+     * @ko optimizeSizeUpdate는 autoResize가 true일 때만 동작합니다.
+     * 기본적으로 autoResize는 뷰포트의 width와 height 변화를 모두 감지하여 패널들의 사이즈를 업데이트합니다.
+     * 이 옵션을 활성화하면 플리킹 방향에 따라 필요한 차원(horizontal → width, vertical → height)에 대해서만 사이즈를 업데이트합니다.
+     * 내부 패널의 높이가 서로 다를 때, 플리킹 중 과도한 리사이징으로 인한 깜빡임 현상을 줄이는 데 유용합니다.
+     * @type {boolean}
+     * @default false
+     */
+    get: function() {
+      return this._optimizeSizeUpdate;
+    },
+    set: function(val) {
+      this._optimizeSizeUpdate = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function() {
+    var _this = this;
+    if (this._initialized) return Promise.resolve();
+    var camera = this._camera;
+    var renderer = this._renderer;
+    var control = this._control;
+    var virtualManager = this._virtualManager;
+    var originalTrigger = this.trigger;
+    var preventEventsBeforeInit = this._preventEventsBeforeInit;
+    camera.init();
+    virtualManager.init();
+    renderer.init(this);
+    control.init(this);
+    if (preventEventsBeforeInit) {
+      this.trigger = function() {
+        return _this;
+      };
+    }
+    this._initialResize();
+    this._moveToInitialPanel();
+    if (this._autoResize) {
+      this._autoResizer.enable();
+    }
+    if (this._preventClickOnDrag) {
+      control.controller.addPreventClickHandler();
+    }
+    if (this._disableOnInit) {
+      this.disableInput();
+    }
+    renderer.checkPanelContentsReady(renderer.panels);
+    this._initialized = true;
+    return renderer.render().then(function() {
+      _this._plugins.forEach(function(plugin) {
+        return plugin.init(_this);
+      });
+      if (preventEventsBeforeInit) {
+        _this.trigger = originalTrigger;
+      }
+      _this.trigger(new ComponentEvent$1(EVENTS.READY));
+    });
+  };
+  __proto.destroy = function() {
+    this.off();
+    this._autoResizer.disable();
+    this._control.destroy();
+    this._camera.destroy();
+    this._renderer.destroy();
+    this._plugins.forEach(function(plugin) {
+      return plugin.destroy();
+    });
+    this._scheduleResize = false;
+    this._initialized = false;
+    this._isResizing = false;
+  };
+  __proto.prev = function(duration) {
+    var _a, _b, _c;
+    if (duration === void 0) {
+      duration = this._duration;
+    }
+    return this.moveTo((_c = (_b = (_a = this._control.activePanel) === null || _a === void 0 ? void 0 : _a.prev()) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : -1, duration, DIRECTION.PREV);
+  };
+  __proto.next = function(duration) {
+    var _a, _b, _c;
+    if (duration === void 0) {
+      duration = this._duration;
+    }
+    return this.moveTo((_c = (_b = (_a = this._control.activePanel) === null || _a === void 0 ? void 0 : _a.next()) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : this._renderer.panelCount, duration, DIRECTION.NEXT);
+  };
+  __proto.moveTo = function(index, duration, direction) {
+    if (duration === void 0) {
+      duration = this._duration;
+    }
+    if (direction === void 0) {
+      direction = DIRECTION.NONE;
+    }
+    var renderer = this._renderer;
+    var panelCount = renderer.panelCount;
+    var panel = renderer.getPanel(index);
+    if (!panel) {
+      return Promise.reject(new FlickingError(MESSAGE.INDEX_OUT_OF_RANGE(index, 0, panelCount - 1), CODE.INDEX_OUT_OF_RANGE));
+    }
+    if (this._control.animating) {
+      return Promise.reject(new FlickingError(MESSAGE.ANIMATION_ALREADY_PLAYING, CODE.ANIMATION_ALREADY_PLAYING));
+    }
+    if (this._control.holding) {
+      this._control.controller.release();
+    }
+    return this._control.moveToPanel(panel, {
+      duration,
+      direction
+    });
+  };
+  __proto.updateAnimation = function(index, duration, direction) {
+    if (!this._control.animating) {
+      return;
+    }
+    var renderer = this._renderer;
+    var panelCount = renderer.panelCount;
+    var panel = renderer.getPanel(index);
+    if (!panel) {
+      throw new FlickingError(MESSAGE.INDEX_OUT_OF_RANGE(index, 0, panelCount - 1), CODE.INDEX_OUT_OF_RANGE);
+    }
+    this._control.updateAnimation(panel, duration, direction);
+  };
+  __proto.stopAnimation = function() {
+    if (!this._control.animating) {
+      return;
+    }
+    this._control.stopAnimation();
+  };
+  __proto.getPanel = function(index) {
+    return this._renderer.getPanel(index);
+  };
+  __proto.enableInput = function() {
+    this._control.enable();
+    return this;
+  };
+  __proto.disableInput = function() {
+    this._control.disable();
+    return this;
+  };
+  __proto.getStatus = function(_a) {
+    var _b, _c;
+    var _d = _a === void 0 ? {} : _a, _e = _d.index, index = _e === void 0 ? true : _e, _f = _d.position, position = _f === void 0 ? true : _f, _g = _d.includePanelHTML, includePanelHTML = _g === void 0 ? false : _g, _h = _d.visiblePanelsOnly, visiblePanelsOnly = _h === void 0 ? false : _h;
+    var camera = this._camera;
+    var panels = visiblePanelsOnly ? this.visiblePanels : this.panels;
+    var status = {
+      panels: panels.map(function(panel) {
+        var panelInfo = {
+          index: panel.index
+        };
+        if (includePanelHTML) {
+          panelInfo.html = panel.element.outerHTML;
+        }
+        return panelInfo;
+      })
+    };
+    if (index) {
+      status.index = this.index;
+    }
+    if (position) {
+      var nearestAnchor = camera.findNearestAnchor(camera.position);
+      if (nearestAnchor) {
+        status.position = {
+          panel: nearestAnchor.panel.index,
+          progressInPanel: camera.getProgressInPanel(nearestAnchor.panel)
+        };
+      }
+    }
+    if (visiblePanelsOnly) {
+      var visiblePanels = this.visiblePanels;
+      status.visibleOffset = (_c = (_b = visiblePanels[0]) === null || _b === void 0 ? void 0 : _b.index) !== null && _c !== void 0 ? _c : 0;
+    }
+    return status;
+  };
+  __proto.setStatus = function(status) {
+    var _a;
+    if (!this._initialized) {
+      throw new FlickingError(MESSAGE.NOT_INITIALIZED, CODE.NOT_INITIALIZED);
+    }
+    var index = status.index, position = status.position, visibleOffset = status.visibleOffset, panels = status.panels;
+    var renderer = this._renderer;
+    var control = this._control;
+    if (((_a = panels[0]) === null || _a === void 0 ? void 0 : _a.html) && !this._renderExternal) {
+      renderer.batchRemove({
+        index: 0,
+        deleteCount: this.panels.length,
+        hasDOMInElements: true
+      });
+      renderer.batchInsert({
+        index: 0,
+        elements: parseElement(panels.map(function(panel2) {
+          return panel2.html;
+        })),
+        hasDOMInElements: true
+      });
+    }
+    if (index != null) {
+      var panelIndex = visibleOffset ? index - visibleOffset : index;
+      void this.moveTo(panelIndex, 0).catch(function() {
+        return void 0;
+      });
+    }
+    if (position && this._moveType === MOVE_TYPE.FREE_SCROLL) {
+      var panel = position.panel, progressInPanel = position.progressInPanel;
+      var panelIndex = visibleOffset ? panel - visibleOffset : panel;
+      var panelRange = renderer.panels[panelIndex].range;
+      var newCameraPos = panelRange.min + (panelRange.max - panelRange.min) * progressInPanel;
+      void control.moveToPosition(newCameraPos, 0).catch(function() {
+        return void 0;
+      });
+    }
+  };
+  __proto.addPlugins = function() {
+    var _a;
+    var _this = this;
+    var plugins = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      plugins[_i] = arguments[_i];
+    }
+    if (this._initialized) {
+      plugins.forEach(function(item) {
+        return item.init(_this);
+      });
+    }
+    (_a = this._plugins).push.apply(_a, __spread(plugins));
+    return this;
+  };
+  __proto.removePlugins = function() {
+    var _this = this;
+    var plugins = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      plugins[_i] = arguments[_i];
+    }
+    plugins.forEach(function(item) {
+      var foundIndex = findIndex(_this._plugins, function(val) {
+        return val === item;
+      });
+      if (foundIndex >= 0) {
+        item.destroy();
+        _this._plugins.splice(foundIndex, 1);
+      }
+    });
+    return this;
+  };
+  __proto.resize = function() {
+    return __awaiter(this, void 0, void 0, function() {
+      var viewport, renderer, camera, control, activePanel, prevWidth, prevHeight, prevProgressInPanel, newWidth, newHeight, sizeChanged;
+      return __generator(this, function(_a) {
+        switch (_a.label) {
+          case 0:
+            if (!this._initialized) {
+              return [
+                2
+                /*return*/
+              ];
+            }
+            if (this._isResizing) {
+              this._scheduleResize = true;
+              return [
+                2
+                /*return*/
+              ];
+            }
+            this._scheduleResize = false;
+            this._isResizing = true;
+            viewport = this._viewport;
+            renderer = this._renderer;
+            camera = this._camera;
+            control = this._control;
+            activePanel = control.activePanel;
+            prevWidth = viewport.width;
+            prevHeight = viewport.height;
+            prevProgressInPanel = activePanel ? camera.getProgressInPanel(activePanel) : 0;
+            this.trigger(new ComponentEvent$1(EVENTS.BEFORE_RESIZE, {
+              width: prevWidth,
+              height: prevHeight,
+              element: viewport.element
+            }));
+            viewport.resize();
+            if (!this._optimizeSizeUpdate) return [3, 3];
+            if (!(this.horizontal && viewport.width !== prevWidth || !this.horizontal && viewport.height !== prevHeight)) return [3, 2];
+            return [4, renderer.forceRenderAllPanels()];
+          case 1:
+            _a.sent();
+            _a.label = 2;
+          case 2:
+            return [3, 5];
+          case 3:
+            return [4, renderer.forceRenderAllPanels()];
+          case 4:
+            _a.sent();
+            _a.label = 5;
+          case 5:
+            if (!this._initialized) {
+              return [
+                2
+                /*return*/
+              ];
+            }
+            renderer.updatePanelSize();
+            camera.updateAlignPos();
+            camera.updateRange();
+            camera.updateAnchors();
+            camera.updateAdaptiveHeight();
+            camera.updatePanelOrder();
+            camera.updateOffset();
+            return [4, renderer.render()];
+          case 6:
+            _a.sent();
+            if (!this._initialized) {
+              return [
+                2
+                /*return*/
+              ];
+            }
+            if (control.animating) ;
+            else {
+              control.updatePosition(prevProgressInPanel);
+              control.updateInput();
+            }
+            newWidth = viewport.width;
+            newHeight = viewport.height;
+            sizeChanged = newWidth !== prevWidth || newHeight !== prevHeight;
+            this.trigger(new ComponentEvent$1(EVENTS.AFTER_RESIZE, {
+              width: viewport.width,
+              height: viewport.height,
+              prev: {
+                width: prevWidth,
+                height: prevHeight
+              },
+              sizeChanged,
+              element: viewport.element
+            }));
+            this._isResizing = false;
+            if (this._scheduleResize) {
+              this.resize();
+            }
+            return [
+              2
+              /*return*/
+            ];
+        }
+      });
+    });
+  };
+  __proto.append = function(element) {
+    return this.insert(this._renderer.panelCount, element);
+  };
+  __proto.prepend = function(element) {
+    return this.insert(0, element);
+  };
+  __proto.insert = function(index, element) {
+    if (this._renderExternal) {
+      throw new FlickingError(MESSAGE.NOT_ALLOWED_IN_FRAMEWORK, CODE.NOT_ALLOWED_IN_FRAMEWORK);
+    }
+    return this._renderer.batchInsert({
+      index,
+      elements: parseElement(element),
+      hasDOMInElements: true
+    });
+  };
+  __proto.remove = function(index, deleteCount) {
+    if (deleteCount === void 0) {
+      deleteCount = 1;
+    }
+    if (this._renderExternal) {
+      throw new FlickingError(MESSAGE.NOT_ALLOWED_IN_FRAMEWORK, CODE.NOT_ALLOWED_IN_FRAMEWORK);
+    }
+    return this._renderer.batchRemove({
+      index,
+      deleteCount,
+      hasDOMInElements: true
+    });
+  };
+  __proto._createControl = function() {
+    var _a;
+    var moveType = this._moveType;
+    var moveTypes = Object.keys(MOVE_TYPE).map(function(key) {
+      return MOVE_TYPE[key];
+    });
+    var moveTypeStr = Array.isArray(moveType) ? moveType[0] : moveType;
+    var moveTypeOptions = Array.isArray(moveType) ? (_a = moveType[1]) !== null && _a !== void 0 ? _a : {} : {};
+    if (!includes(moveTypes, moveTypeStr)) {
+      throw new FlickingError(MESSAGE.WRONG_OPTION("moveType", JSON.stringify(moveType)), CODE.WRONG_OPTION);
+    }
+    switch (moveTypeStr) {
+      case MOVE_TYPE.SNAP:
+        return new SnapControl(moveTypeOptions);
+      case MOVE_TYPE.FREE_SCROLL:
+        return new FreeControl(moveTypeOptions);
+      case MOVE_TYPE.STRICT:
+        return new StrictControl(moveTypeOptions);
+    }
+  };
+  __proto._createCamera = function() {
+    if (this._circular && this._bound) {
+      console.warn('"circular" and "bound" option cannot be used together, ignoring bound.');
+    }
+    return new Camera(this, {
+      align: this._align
+    });
+  };
+  __proto._createRenderer = function() {
+    var externalRenderer = this._externalRenderer;
+    if (this._virtual && this._panelsPerView <= 0) {
+      console.warn('"virtual" and "panelsPerView" option should be used together, ignoring virtual.');
+    }
+    return externalRenderer ? externalRenderer : this._renderExternal ? this._createExternalRenderer() : this._createVanillaRenderer();
+  };
+  __proto._createExternalRenderer = function() {
+    var _a = this._renderExternal, renderer = _a.renderer, rendererOptions = _a.rendererOptions;
+    return new renderer(__assign({
+      align: this._align
+    }, rendererOptions));
+  };
+  __proto._createVanillaRenderer = function() {
+    var virtual = this.virtualEnabled;
+    return new VanillaRenderer({
+      align: this._align,
+      strategy: virtual ? new VirtualRenderingStrategy() : new NormalRenderingStrategy({
+        providerCtor: VanillaElementProvider
+      })
+    });
+  };
+  __proto._moveToInitialPanel = function() {
+    var renderer = this._renderer;
+    var control = this._control;
+    var camera = this._camera;
+    var defaultPanel = renderer.getPanel(this._defaultIndex) || renderer.getPanel(0);
+    if (!defaultPanel) return;
+    var nearestAnchor = camera.findNearestAnchor(defaultPanel.position);
+    var initialPanel = nearestAnchor && defaultPanel.position !== nearestAnchor.panel.position && defaultPanel.index !== nearestAnchor.panel.index ? nearestAnchor.panel : defaultPanel;
+    control.setActive(initialPanel, null, false);
+    if (!nearestAnchor) {
+      throw new FlickingError(MESSAGE.POSITION_NOT_REACHABLE(initialPanel.position), CODE.POSITION_NOT_REACHABLE);
+    }
+    var position = initialPanel.position;
+    if (!camera.canReach(initialPanel)) {
+      position = nearestAnchor.position;
+    }
+    camera.lookAt(position);
+    control.updateInput();
+    camera.updateOffset();
+  };
+  __proto._initialResize = function() {
+    var viewport = this._viewport;
+    var renderer = this._renderer;
+    var camera = this._camera;
+    var control = this._control;
+    this.trigger(new ComponentEvent$1(EVENTS.BEFORE_RESIZE, {
+      width: 0,
+      height: 0,
+      element: viewport.element
+    }));
+    viewport.resize();
+    renderer.updatePanelSize();
+    camera.updateAlignPos();
+    camera.updateRange();
+    camera.updateAnchors();
+    camera.updateOffset();
+    control.updateInput();
+    var newWidth = viewport.width;
+    var newHeight = viewport.height;
+    var sizeChanged = newWidth !== 0 || newHeight !== 0;
+    this.trigger(new ComponentEvent$1(EVENTS.AFTER_RESIZE, {
+      width: viewport.width,
+      height: viewport.height,
+      prev: {
+        width: 0,
+        height: 0
+      },
+      sizeChanged,
+      element: viewport.element
+    }));
+  };
+  Flicking2.VERSION = "4.15.0";
+  return Flicking2;
+})(Component);
+var AutoPlay = /* @__PURE__ */ (function() {
+  function AutoPlay2(_a) {
+    var _this = this;
+    var _b = _a === void 0 ? {} : _a, _c = _b.duration, duration = _c === void 0 ? 2e3 : _c, _d = _b.animationDuration, animationDuration = _d === void 0 ? void 0 : _d, _e = _b.direction, direction = _e === void 0 ? DIRECTION.NEXT : _e, _f = _b.stopOnHover, stopOnHover = _f === void 0 ? false : _f, delayAfterHover = _b.delayAfterHover;
+    this._flicking = null;
+    this._timerId = 0;
+    this._mouseEntered = false;
+    this._playing = false;
+    this.play = function() {
+      _this._movePanel(_this._duration);
+    };
+    this.stop = function() {
+      _this._playing = false;
+      clearTimeout(_this._timerId);
+    };
+    this._onMouseEnter = function() {
+      _this._mouseEntered = true;
+      _this.stop();
+    };
+    this._onMouseLeave = function() {
+      _this._mouseEntered = false;
+      _this._movePanel(_this._delayAfterHover);
+    };
+    this._duration = duration;
+    this._animationDuration = animationDuration;
+    this._direction = direction;
+    this._stopOnHover = stopOnHover;
+    this._delayAfterHover = delayAfterHover !== null && delayAfterHover !== void 0 ? delayAfterHover : duration;
+  }
+  var __proto = AutoPlay2.prototype;
+  Object.defineProperty(__proto, "duration", {
+    get: function() {
+      return this._duration;
+    },
+    set: function(val) {
+      this._duration = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "animationDuration", {
+    get: function() {
+      return this._animationDuration;
+    },
+    set: function(val) {
+      this._animationDuration = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "direction", {
+    get: function() {
+      return this._direction;
+    },
+    set: function(val) {
+      this._direction = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "stopOnHover", {
+    get: function() {
+      return this._stopOnHover;
+    },
+    set: function(val) {
+      this._stopOnHover = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "delayAfterHover", {
+    get: function() {
+      return this._delayAfterHover;
+    },
+    set: function(val) {
+      this._delayAfterHover = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "playing", {
+    get: function() {
+      return this._playing;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function(flicking) {
+    var _a;
+    if (this._flicking) {
+      this.destroy();
+    }
+    flicking.on((_a = {}, _a[EVENTS.MOVE_START] = this.stop, _a[EVENTS.HOLD_START] = this.stop, _a[EVENTS.MOVE_END] = this.play, _a[EVENTS.SELECT] = this.play, _a));
+    this._flicking = flicking;
+    if (this._stopOnHover) {
+      var targetEl = this._flicking.element;
+      targetEl.addEventListener("mouseenter", this._onMouseEnter, false);
+      targetEl.addEventListener("mouseleave", this._onMouseLeave, false);
+    }
+    this.play();
+  };
+  __proto.destroy = function() {
+    var flicking = this._flicking;
+    this._mouseEntered = false;
+    this.stop();
+    if (!flicking) {
+      return;
+    }
+    flicking.off(EVENTS.MOVE_START, this.stop);
+    flicking.off(EVENTS.HOLD_START, this.stop);
+    flicking.off(EVENTS.MOVE_END, this.play);
+    flicking.off(EVENTS.SELECT, this.play);
+    var targetEl = flicking.element;
+    targetEl.removeEventListener("mouseenter", this._onMouseEnter, false);
+    targetEl.removeEventListener("mouseleave", this._onMouseLeave, false);
+    this._flicking = null;
+  };
+  __proto.update = function() {
+  };
+  __proto._movePanel = function(duration) {
+    var _this = this;
+    var flicking = this._flicking;
+    var direction = this._direction;
+    if (!flicking) {
+      return;
+    }
+    this.stop();
+    if (this._mouseEntered || flicking.animating) {
+      return;
+    }
+    this._playing = true;
+    this._timerId = window.setTimeout(function() {
+      var _a, _b;
+      var animationDuration = _this._animationDuration || flicking.duration;
+      var moveType = flicking.moveType;
+      if (moveType === MOVE_TYPE.FREE_SCROLL || (moveType === null || moveType === void 0 ? void 0 : moveType[0]) === MOVE_TYPE.FREE_SCROLL) {
+        var range2 = flicking.camera.range;
+        var cameraPosition = flicking.camera.position;
+        var currentPanel = flicking.currentPanel;
+        var prevPanel = currentPanel.prev();
+        var nextPanel = currentPanel.next();
+        var currentPosition = currentPanel.position;
+        var nextPosition = (_a = nextPanel === null || nextPanel === void 0 ? void 0 : nextPanel.position) !== null && _a !== void 0 ? _a : range2.max;
+        var prevPosition = (_b = prevPanel === null || prevPanel === void 0 ? void 0 : prevPanel.position) !== null && _b !== void 0 ? _b : range2.min;
+        if (prevPosition > currentPosition) {
+          prevPosition = range2.min - (range2.max - prevPosition);
+        }
+        if (nextPosition < currentPosition) {
+          nextPosition += range2.max;
+        }
+        if (direction === DIRECTION.NEXT) {
+          var size = nextPosition - currentPosition;
+          var restSize = nextPosition - cameraPosition;
+          if (cameraPosition < currentPosition) {
+            restSize = nextPosition - cameraPosition;
+          }
+          animationDuration *= restSize / size;
+        } else {
+          var size = currentPosition - prevPosition;
+          var restSize = cameraPosition - prevPosition;
+          if (cameraPosition > currentPosition) {
+            restSize = cameraPosition - prevPosition;
+          }
+          animationDuration *= restSize / size;
+        }
+      }
+      if (direction === DIRECTION.NEXT) {
+        flicking.next(animationDuration).catch(function() {
+          return void 0;
+        });
+      } else {
+        flicking.prev(animationDuration).catch(function() {
+          return void 0;
+        });
+      }
+      _this.play();
+    }, duration);
+  };
+  return AutoPlay2;
+})();
+var BROWSER = {
+  CLICK: "click",
+  MOUSE_DOWN: "mousedown",
+  TOUCH_START: "touchstart"
+};
+var ARROW = {
+  PREV_SELECTOR: ".flicking-arrow-prev",
+  NEXT_SELECTOR: ".flicking-arrow-next",
+  DISABLED_CLASS: "flicking-arrow-disabled"
+};
+var PAGINATION = {
+  SELECTOR: ".flicking-pagination",
+  PREFIX: "flicking-pagination",
+  BULLET_WRAPPER_SUFFIX: "bullets",
+  BULLET_SUFFIX: "bullet",
+  BULLET_ACTIVE_SUFFIX: "bullet-active",
+  FRACTION_WRAPPER_SUFFIX: "fraction",
+  FRACTION_CURRENT_SUFFIX: "fraction-current",
+  FRACTION_TOTAL_SUFFIX: "fraction-total",
+  SCROLL_UNINIT_SUFFIX: "uninitialized",
+  SCROLL_WRAPPER_SUFFIX: "scroll",
+  SCROLL_SLIDER_SUFFIX: "slider",
+  SCROLL_PREV_SUFFIX: "bullet-prev",
+  SCROLL_NEXT_SUFFIX: "bullet-next",
+  TYPE: {
+    BULLET: "bullet",
+    FRACTION: "fraction",
+    SCROLL: "scroll"
+  }
+};
+var addClass = function(el, className) {
+  if (!el) return;
+  if (el.classList) {
+    el.classList.add(className);
+  } else {
+    var classes = el.className.split(" ");
+    if (classes.indexOf(className) < 0) {
+      el.className = el.className + " " + className;
+    }
+  }
+};
+var removeClass = function(el, className) {
+  if (!el) return;
+  if (el.classList) {
+    el.classList.remove(className);
+  } else {
+    var classRegex = new RegExp("( |^)" + className + "( |$)", "g");
+    el.className.replace(classRegex, " ");
+  }
+};
+var getElement = function(selector, parent, pluginName) {
+  var el = parent.querySelector(selector);
+  if (!el) {
+    throw new Error("[Flicking-" + pluginName + "] Couldn't find element with the given selector: " + selector);
+  }
+  return el;
+};
+var Arrow = /* @__PURE__ */ (function() {
+  function Arrow2(_a) {
+    var _this = this;
+    var _b = _a === void 0 ? {} : _a, _c = _b.parentEl, parentEl = _c === void 0 ? null : _c, _d = _b.prevElSelector, prevElSelector = _d === void 0 ? ARROW.PREV_SELECTOR : _d, _e = _b.nextElSelector, nextElSelector = _e === void 0 ? ARROW.NEXT_SELECTOR : _e, _f = _b.disabledClass, disabledClass = _f === void 0 ? ARROW.DISABLED_CLASS : _f, _g = _b.moveCount, moveCount = _g === void 0 ? 1 : _g, _h = _b.moveByViewportSize, moveByViewportSize = _h === void 0 ? false : _h;
+    this._flicking = null;
+    this._preventInputPropagation = function(e) {
+      e.stopPropagation();
+    };
+    this._onPrevClick = function() {
+      var flicking = _this._flicking;
+      var camera = flicking.camera;
+      var anchorPoints = camera.anchorPoints;
+      if (flicking.animating || anchorPoints.length <= 0) return;
+      var firstAnchor = anchorPoints[0];
+      var moveCount2 = _this._moveCount;
+      if (_this._moveByViewportSize) {
+        flicking.control.moveToPosition(camera.position - camera.size, flicking.duration).catch(_this._onCatch);
+      } else {
+        if (flicking.circularEnabled) {
+          var targetPanel = flicking.currentPanel;
+          for (var i = 0; i < moveCount2; i++) {
+            targetPanel = targetPanel.prev();
+          }
+          targetPanel.focus().catch(_this._onCatch);
+        } else if (flicking.index > firstAnchor.panel.index) {
+          flicking.moveTo(Math.max(flicking.index - moveCount2, firstAnchor.panel.index)).catch(_this._onCatch);
+        } else if (camera.position > camera.range.min) {
+          flicking.moveTo(flicking.index).catch(_this._onCatch);
+        }
+      }
+    };
+    this._onNextClick = function() {
+      var flicking = _this._flicking;
+      var camera = flicking.camera;
+      var anchorPoints = camera.anchorPoints;
+      if (flicking.animating || anchorPoints.length <= 0) return;
+      var lastAnchor = anchorPoints[anchorPoints.length - 1];
+      var moveCount2 = _this._moveCount;
+      if (_this._moveByViewportSize) {
+        flicking.control.moveToPosition(camera.position + camera.size, flicking.duration).catch(_this._onCatch);
+      } else {
+        if (flicking.circularEnabled) {
+          var targetPanel = flicking.currentPanel;
+          for (var i = 0; i < moveCount2; i++) {
+            targetPanel = targetPanel.next();
+          }
+          targetPanel.focus().catch(_this._onCatch);
+        } else if (flicking.index < lastAnchor.panel.index) {
+          flicking.moveTo(Math.min(flicking.index + moveCount2, lastAnchor.panel.index)).catch(_this._onCatch);
+        } else if (camera.position > camera.range.min) {
+          flicking.moveTo(flicking.index).catch(_this._onCatch);
+        }
+      }
+    };
+    this._onAnimation = function() {
+      var flicking = _this._flicking;
+      var camera = flicking.camera;
+      var controller = flicking.control.controller;
+      if (flicking.holding) {
+        _this._updateClass(camera.position);
+      } else {
+        _this._updateClass(controller.animatingContext.end);
+      }
+    };
+    this._onCatch = function(err) {
+      if (err instanceof FlickingError) return;
+      throw err;
+    };
+    this._parentEl = parentEl;
+    this._prevElSelector = prevElSelector;
+    this._nextElSelector = nextElSelector;
+    this._disabledClass = disabledClass;
+    this._moveCount = moveCount;
+    this._moveByViewportSize = moveByViewportSize;
+  }
+  var __proto = Arrow2.prototype;
+  Object.defineProperty(__proto, "prevEl", {
+    get: function() {
+      return this._prevEl;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "nextEl", {
+    get: function() {
+      return this._nextEl;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "parentEl", {
+    get: function() {
+      return this._parentEl;
+    },
+    set: function(val) {
+      this._parentEl = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "prevElSelector", {
+    get: function() {
+      return this._prevElSelector;
+    },
+    set: function(val) {
+      this._prevElSelector = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "nextElSelector", {
+    get: function() {
+      return this._nextElSelector;
+    },
+    set: function(val) {
+      this._nextElSelector = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "disabledClass", {
+    get: function() {
+      return this._disabledClass;
+    },
+    set: function(val) {
+      this._disabledClass = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "moveCount", {
+    get: function() {
+      return this._moveCount;
+    },
+    set: function(val) {
+      this._moveCount = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "moveByViewportSize", {
+    get: function() {
+      return this._moveByViewportSize;
+    },
+    set: function(val) {
+      this._moveByViewportSize = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function(flicking) {
+    var _this = this;
+    if (this._flicking) {
+      this.destroy();
+    }
+    this._flicking = flicking;
+    flicking.on(EVENTS.MOVE, this._onAnimation);
+    var parentEl = this._parentEl ? this._parentEl : flicking.element;
+    var prevEl = getElement(this._prevElSelector, parentEl, "Arrow");
+    var nextEl = getElement(this._nextElSelector, parentEl, "Arrow");
+    [BROWSER.MOUSE_DOWN, BROWSER.TOUCH_START].forEach(function(evt) {
+      prevEl.addEventListener(evt, _this._preventInputPropagation, {
+        passive: true
+      });
+      nextEl.addEventListener(evt, _this._preventInputPropagation, {
+        passive: true
+      });
+    });
+    prevEl.addEventListener(BROWSER.CLICK, this._onPrevClick);
+    nextEl.addEventListener(BROWSER.CLICK, this._onNextClick);
+    this._prevEl = prevEl;
+    this._nextEl = nextEl;
+    this.update();
+  };
+  __proto.destroy = function() {
+    var _this = this;
+    var flicking = this._flicking;
+    if (!flicking) {
+      return;
+    }
+    flicking.off(EVENTS.MOVE, this._onAnimation);
+    var prevEl = this._prevEl;
+    var nextEl = this._nextEl;
+    [BROWSER.MOUSE_DOWN, BROWSER.TOUCH_START].forEach(function(evt) {
+      prevEl.removeEventListener(evt, _this._preventInputPropagation);
+      nextEl.removeEventListener(evt, _this._preventInputPropagation);
+    });
+    prevEl.removeEventListener(BROWSER.CLICK, this._onPrevClick);
+    nextEl.removeEventListener(BROWSER.CLICK, this._onNextClick);
+    this._flicking = null;
+  };
+  __proto.update = function() {
+    this._updateClass(this._flicking.camera.position);
+  };
+  __proto._updateClass = function(pos) {
+    var flicking = this._flicking;
+    var disabledClass = this._disabledClass;
+    var prevEl = this._prevEl;
+    var nextEl = this._nextEl;
+    var cameraRange = flicking.camera.range;
+    var stopAtPrevEdge = flicking.circularEnabled ? false : pos <= cameraRange.min;
+    var stopAtNextEdge = flicking.circularEnabled ? false : pos >= cameraRange.max;
+    if (stopAtPrevEdge) {
+      addClass(prevEl, disabledClass);
+    } else {
+      removeClass(prevEl, disabledClass);
+    }
+    if (stopAtNextEdge) {
+      addClass(nextEl, disabledClass);
+    } else {
+      removeClass(nextEl, disabledClass);
+    }
+  };
+  return Arrow2;
+})();
+/*! *****************************************************************************
 Copyright (c) Microsoft Corporation.
 
 Permission to use, copy, modify, and/or distribute this software for any
@@ -37,6 +10191,588 @@ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
 LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */var ht=function(a,r){return ht=Object.setPrototypeOf||{__proto__:[]}instanceof Array&&function(t,e){t.__proto__=e}||function(t,e){for(var n in e)Object.prototype.hasOwnProperty.call(e,n)&&(t[n]=e[n])},ht(a,r)};function xt(a,r){if(typeof r!="function"&&r!==null)throw new TypeError("Class extends value "+String(r)+" is not a constructor or null");ht(a,r);function t(){this.constructor=a}a.prototype=r===null?Object.create(r):(t.prototype=r.prototype,new t)}function ba(a,r,t){if(arguments.length===2)for(var e=0,n=r.length,i;e<n;e++)(i||!(e in r))&&(i||(i=Array.prototype.slice.call(r,0,e)),i[e]=r[e]);return a.concat(i||r)}var Tt=(function(){function a(t){var e=t.flicking,n=t.pagination,i=t.wrapper;this._flicking=e,this._pagination=n,this._wrapper=i}var r=a.prototype;return r._createBulletFromString=function(t,e){var n=document.createRange(),i=n.createContextualFragment(t),o=i.firstChild;return this._addBulletEvents(o,e),o},r._addBulletEvents=function(t,e){var n=this,i=this._flicking.camera.anchorPoints,o=i[e].panel.index;t.addEventListener(G.MOUSE_DOWN,function(s){s.stopPropagation()}),t.addEventListener(G.TOUCH_START,function(s){s.stopPropagation()},{passive:!0}),t.addEventListener(G.CLICK,function(){n._flicking.moveTo(o).catch(function(s){if(!(s instanceof R))throw s})})},a})(),Ea=(function(a){xt(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e._bullets=[],e._prevIndex=-1,e}var t=r.prototype;return Object.defineProperty(t,"_bulletClass",{get:function(){var e=this._pagination;return e.classPrefix+"-"+D.BULLET_SUFFIX},enumerable:!1,configurable:!0}),Object.defineProperty(t,"_activeClass",{get:function(){var e=this._pagination;return e.classPrefix+"-"+D.BULLET_ACTIVE_SUFFIX},enumerable:!1,configurable:!0}),t.destroy=function(){this._bullets=[],this._prevIndex=-1},t.render=function(){var e=this,n=this._flicking,i=this._pagination,o=this._wrapper,s=this._bulletClass,u=this._activeClass,l=i.renderBullet,c=i.renderActiveBullet,f=i.classPrefix+"-"+D.BULLET_WRAPPER_SUFFIX,d=n.camera.anchorPoints;W(o,f),o.innerHTML=d.map(function(v,g){return c&&v.panel.index===n.index?c(s,g):l(s,g)}).join(`
-`);var h=[].slice.call(o.children);h.forEach(function(v,g){var p=d[g];p.panel.index===n.index&&(W(v,u),e._prevIndex=g),e._addBulletEvents(v,g)}),this._bullets=h},t.update=function(e){var n=this._flicking,i=this._pagination,o=this._wrapper,s=this._bullets,u=this._bulletClass,l=this._activeClass,c=this._prevIndex,f=n.camera.anchorPoints,d=i.renderBullet,h=i.renderActiveBullet;if(!(f.length<=0)){var v=f[0].panel.index,g=e-v;if(c!==g){if(h){var p=s[c];if(p){var _=this._createBulletFromString(d(u,c),c);p.parentElement.replaceChild(_,p),s[c]=_}var m=s[g],E=this._createBulletFromString(h(u+" "+l,g),g);o.replaceChild(E,m),s[g]=E}else{var m=s[g],p=s[c];p&&ye(p,l),W(m,l)}this._prevIndex=g}}},r})(Tt),Pa=(function(a){xt(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e._prevIndex=-1,e._prevTotal=-1,e}var t=r.prototype;return t.destroy=function(){this._prevIndex=-1,this._prevTotal=-1},t.render=function(){var e=this._flicking,n=this._wrapper,i=this._pagination,o=i.classPrefix+"-"+D.FRACTION_WRAPPER_SUFFIX,s=i.classPrefix+"-"+D.FRACTION_CURRENT_SUFFIX,u=i.classPrefix+"-"+D.FRACTION_TOTAL_SUFFIX;W(n,o),n.innerHTML=i.renderFraction(s,u),this.update(e.index)},t.update=function(e){var n=this._flicking,i=this._wrapper,o=this._pagination,s=n.camera.anchorPoints,u=s.length>0?e-s[0].panel.index+1:0,l=s.length;if(!(u===this._prevIndex&&l===this._prevTotal)){var c="."+o.classPrefix+"-"+D.FRACTION_CURRENT_SUFFIX,f="."+o.classPrefix+"-"+D.FRACTION_TOTAL_SUFFIX,d=i.querySelector(c),h=i.querySelector(f);d.innerHTML=o.fractionCurrentFormat(u),h.innerHTML=o.fractionTotalFormat(l),this._prevIndex=u,this._prevTotal=l}},r})(Tt),Oa=(function(a){xt(r,a);function r(){var e=a!==null&&a.apply(this,arguments)||this;return e._bullets=[],e._bulletSize=0,e._previousIndex=-1,e._sliderIndex=-1,e.moveTo=function(n){var i=e._pagination,o=e._wrapper.firstElementChild,s=e._bulletSize,u=s*i.bulletCount;o.style.transform="translate("+(u/2-(n+.5)*s)+"px)",e._sliderIndex=n},e}var t=r.prototype;return t.destroy=function(){this._bullets=[],this._bulletSize=0,this._previousIndex=-1,this._sliderIndex=-1},t.render=function(){var e=this,n=this._wrapper,i=this._flicking,o=this._pagination,s=o.renderBullet,u=i.camera.anchorPoints,l=o.classPrefix+"-"+D.SCROLL_WRAPPER_SUFFIX,c=o.classPrefix+"-"+D.BULLET_SUFFIX,f=o.classPrefix+"-"+D.SCROLL_SLIDER_SUFFIX,d=o.classPrefix+"-"+D.SCROLL_UNINIT_SUFFIX,h=document.createElement("div");W(h,f),W(n,d),W(n,l),n.appendChild(h),h.innerHTML=u.map(function(_,m){return s(c,m)}).join(`
-`);var v=[].slice.call(h.children);if(v.forEach(function(_,m){e._addBulletEvents(_,m)}),!(v.length<=0)){var g=getComputedStyle(v[0]),p=v[0].clientWidth+parseFloat(g.marginLeft)+parseFloat(g.marginRight);n.style.width=p*o.bulletCount+"px",this._bullets=v,this._bulletSize=p,this._previousIndex=-1,this.update(this._flicking.index),window.requestAnimationFrame(function(){ye(n,d)})}},t.update=function(e){var n=this._pagination,i=this._flicking,o=this._bullets,s=this._previousIndex,u=n.renderBullet,l=n.renderActiveBullet,c=i.camera.anchorPoints,f=c[0].panel.index,d=e-f;if(!(c.length<=0)){var h=n.classPrefix+"-"+D.BULLET_SUFFIX,v=n.classPrefix+"-"+D.BULLET_ACTIVE_SUFFIX,g=n.classPrefix+"-"+D.SCROLL_PREV_SUFFIX,p=n.classPrefix+"-"+D.SCROLL_NEXT_SUFFIX,_=function(j){return""+g+(j>1?j:"")},m=function(j){return""+p+(j>1?j:"")},E=new RegExp("^"+g),T=new RegExp("^"+p);if(l){var C=o[s];if(C){var N=this._createBulletFromString(u(h,s),s);C.parentElement.replaceChild(N,C),o[s]=N}var M=o[d];if(M){var Y=this._createBulletFromString(l(h,d),d);M.parentElement.replaceChild(Y,M),o[d]=Y}}o.forEach(function(j,q){for(var L=q-d,X=j.className.split(" "),$=0,_e=X;$<_e.length;$++){var re=_e[$];(re===v||E.test(re)||T.test(re))&&ye(j,re)}L===0?W(j,v):L>0?W(j,m(Math.abs(L))):W(j,_(Math.abs(L)))}),n.scrollOnChange(d,{total:o.length,prevIndex:s,sliderIndex:this._sliderIndex,direction:d>s?y.NEXT:y.PREV,bullets:ba([],o),moveTo:this.moveTo}),this._previousIndex=d}},r})(Tt),ya=(function(){function a(t){var e=this,n=t===void 0?{}:t,i=n.parentEl,o=i===void 0?null:i,s=n.selector,u=s===void 0?D.SELECTOR:s,l=n.type,c=l===void 0?D.TYPE.BULLET:l,f=n.classPrefix,d=f===void 0?D.PREFIX:f,h=n.bulletCount,v=h===void 0?5:h,g=n.renderBullet,p=g===void 0?function(L){return'<span class="'+L+'"></span>'}:g,_=n.renderActiveBullet,m=_===void 0?null:_,E=n.renderFraction,T=E===void 0?function(L,X){return'<span class="'+L+'"></span>/<span class="'+X+'"></span>'}:E,C=n.fractionCurrentFormat,N=C===void 0?function(L){return L.toString()}:C,M=n.fractionTotalFormat,Y=M===void 0?function(L){return L.toString()}:M,j=n.scrollOnChange,q=j===void 0?function(L,X){return X.moveTo(L)}:j;this._flicking=null,this.update=function(){e._removeAllChilds(),e._renderer.render()},this._onIndexChange=function(L){e._renderer.update(L.index)},this._parentEl=o,this._selector=u,this._type=c,this._classPrefix=d,this._bulletCount=v,this._renderBullet=p,this._renderActiveBullet=m,this._renderFraction=T,this._fractionCurrentFormat=N,this._fractionTotalFormat=Y,this._scrollOnChange=q}var r=a.prototype;return Object.defineProperty(r,"parentEl",{get:function(){return this._parentEl},set:function(t){this._parentEl=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"selector",{get:function(){return this._selector},set:function(t){this._selector=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"type",{get:function(){return this._type},set:function(t){this._type=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"classPrefix",{get:function(){return this._classPrefix},enumerable:!1,configurable:!0}),Object.defineProperty(r,"bulletCount",{get:function(){return this._bulletCount},set:function(t){this._bulletCount=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"renderBullet",{get:function(){return this._renderBullet},set:function(t){this._renderBullet=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"renderActiveBullet",{get:function(){return this._renderActiveBullet},set:function(t){this._renderActiveBullet=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"renderFraction",{get:function(){return this._renderFraction},set:function(t){this._renderFraction=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"fractionCurrentFormat",{get:function(){return this._fractionCurrentFormat},set:function(t){this._fractionCurrentFormat=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"fractionTotalFormat",{get:function(){return this._fractionTotalFormat},set:function(t){this._fractionTotalFormat=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"scrollOnChange",{get:function(){return this._scrollOnChange},set:function(t){this._scrollOnChange=t},enumerable:!1,configurable:!0}),Object.defineProperty(r,"bulletWrapperclassPrefixClass",{set:function(t){this._classPrefix=t},enumerable:!1,configurable:!0}),r.init=function(t){this._flicking&&this.destroy(),this._flicking=t;var e=this._type,n=this._selector,i=this._parentEl?this._parentEl:t.element,o=i.querySelector(n);if(!o)throw new Error("[Flicking-Pagination] Couldn't find element with the given selector: "+n);this._wrapper=o,this._renderer=this._createRenderer(e),t.on(O.WILL_CHANGE,this._onIndexChange),t.on(O.WILL_RESTORE,this._onIndexChange),t.on(O.PANEL_CHANGE,this.update),this.update()},r.destroy=function(){var t=this._flicking;t&&(t.off(O.WILL_CHANGE,this._onIndexChange),t.off(O.WILL_RESTORE,this._onIndexChange),t.off(O.PANEL_CHANGE,this.update),this._renderer.destroy(),this._removeAllChilds(),this._flicking=null)},r._createRenderer=function(t){var e={flicking:this._flicking,pagination:this,wrapper:this._wrapper};switch(t){case D.TYPE.BULLET:return new Ea(e);case D.TYPE.FRACTION:return new Pa(e);case D.TYPE.SCROLL:return new Oa(e);default:throw new Error('[Flicking-Pagination] type "'+t+'" is not supported.')}},r._removeAllChilds=function(){for(var t=this._wrapper;t.firstChild;)t.removeChild(t.firstChild)},a})();(function(a,r){function t(e){let n={};const i=e.getAttribute("data-flicking-options");if(i)try{n=JSON.parse(i)}catch(c){console.warn("Invalid options",c)}const o=n.showArrows,s=n.showPagination;n.panelsPerView==null&&(n.panelsPerView=1);const u=new _a(e,n),l=[];o&&l.push(new ma({prevElSelector:".flicking-arrow-prev",nextElSelector:".flicking-arrow-next"})),s&&l.push(new ya({type:"bullet"})),n.autoPlay&&(console.log(l),l.push(new pa({duration:n.autoplayDuration||5e3,direction:"NEXT",stopOnHover:!0}))),l.length&&u.addPlugins(...l)}a.behaviors.slider={attach(e){r("flicking",".slider .flicking-viewport",e).forEach(t)}}})(Drupal,once);
+***************************************************************************** */
+var extendStatics = function(d, b) {
+  extendStatics = Object.setPrototypeOf || {
+    __proto__: []
+  } instanceof Array && function(d2, b2) {
+    d2.__proto__ = b2;
+  } || function(d2, b2) {
+    for (var p in b2) if (Object.prototype.hasOwnProperty.call(b2, p)) d2[p] = b2[p];
+  };
+  return extendStatics(d, b);
+};
+function __extends(d, b) {
+  if (typeof b !== "function" && b !== null) throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+  extendStatics(d, b);
+  function __() {
+    this.constructor = d;
+  }
+  d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+function __spreadArray(to, from, pack) {
+  if (arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+    if (ar || !(i in from)) {
+      if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+      ar[i] = from[i];
+    }
+  }
+  return to.concat(ar || from);
+}
+var Renderer = /* @__PURE__ */ (function() {
+  function Renderer2(_a) {
+    var flicking = _a.flicking, pagination = _a.pagination, wrapper = _a.wrapper;
+    this._flicking = flicking;
+    this._pagination = pagination;
+    this._wrapper = wrapper;
+  }
+  var __proto = Renderer2.prototype;
+  __proto._createBulletFromString = function(html, index) {
+    var range2 = document.createRange();
+    var frag = range2.createContextualFragment(html);
+    var bullet = frag.firstChild;
+    this._addBulletEvents(bullet, index);
+    return bullet;
+  };
+  __proto._addBulletEvents = function(bullet, index) {
+    var _this = this;
+    var anchorPoints = this._flicking.camera.anchorPoints;
+    var panelIndex = anchorPoints[index].panel.index;
+    bullet.addEventListener(BROWSER.MOUSE_DOWN, function(e) {
+      e.stopPropagation();
+    });
+    bullet.addEventListener(BROWSER.TOUCH_START, function(e) {
+      e.stopPropagation();
+    }, {
+      passive: true
+    });
+    bullet.addEventListener(BROWSER.CLICK, function() {
+      _this._flicking.moveTo(panelIndex).catch(function(err) {
+        if (err instanceof FlickingError) return;
+        throw err;
+      });
+    });
+  };
+  return Renderer2;
+})();
+var BulletRenderer = /* @__PURE__ */ (function(_super) {
+  __extends(BulletRenderer2, _super);
+  function BulletRenderer2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this._bullets = [];
+    _this._prevIndex = -1;
+    return _this;
+  }
+  var __proto = BulletRenderer2.prototype;
+  Object.defineProperty(__proto, "_bulletClass", {
+    get: function() {
+      var pagination = this._pagination;
+      return pagination.classPrefix + "-" + PAGINATION.BULLET_SUFFIX;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "_activeClass", {
+    get: function() {
+      var pagination = this._pagination;
+      return pagination.classPrefix + "-" + PAGINATION.BULLET_ACTIVE_SUFFIX;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.destroy = function() {
+    this._bullets = [];
+    this._prevIndex = -1;
+  };
+  __proto.render = function() {
+    var _this = this;
+    var flicking = this._flicking;
+    var pagination = this._pagination;
+    var wrapper = this._wrapper;
+    var bulletClass = this._bulletClass;
+    var activeClass = this._activeClass;
+    var renderBullet = pagination.renderBullet;
+    var renderActiveBullet = pagination.renderActiveBullet;
+    var bulletWrapperClass = pagination.classPrefix + "-" + PAGINATION.BULLET_WRAPPER_SUFFIX;
+    var anchorPoints = flicking.camera.anchorPoints;
+    addClass(wrapper, bulletWrapperClass);
+    wrapper.innerHTML = anchorPoints.map(function(anchorPoint, index) {
+      if (renderActiveBullet && anchorPoint.panel.index === flicking.index) {
+        return renderActiveBullet(bulletClass, index);
+      } else {
+        return renderBullet(bulletClass, index);
+      }
+    }).join("\n");
+    var bullets = [].slice.call(wrapper.children);
+    bullets.forEach(function(bullet, index) {
+      var anchorPoint = anchorPoints[index];
+      if (anchorPoint.panel.index === flicking.index) {
+        addClass(bullet, activeClass);
+        _this._prevIndex = index;
+      }
+      _this._addBulletEvents(bullet, index);
+    });
+    this._bullets = bullets;
+  };
+  __proto.update = function(index) {
+    var flicking = this._flicking;
+    var pagination = this._pagination;
+    var wrapper = this._wrapper;
+    var bullets = this._bullets;
+    var bulletClass = this._bulletClass;
+    var activeClass = this._activeClass;
+    var prevIndex = this._prevIndex;
+    var anchorPoints = flicking.camera.anchorPoints;
+    var renderBullet = pagination.renderBullet;
+    var renderActiveBullet = pagination.renderActiveBullet;
+    if (anchorPoints.length <= 0) return;
+    var anchorOffset = anchorPoints[0].panel.index;
+    var activeBulletIndex = index - anchorOffset;
+    if (prevIndex === activeBulletIndex) return;
+    if (renderActiveBullet) {
+      var prevBullet = bullets[prevIndex];
+      if (prevBullet) {
+        var newBullet = this._createBulletFromString(renderBullet(bulletClass, prevIndex), prevIndex);
+        prevBullet.parentElement.replaceChild(newBullet, prevBullet);
+        bullets[prevIndex] = newBullet;
+      }
+      var activeBullet = bullets[activeBulletIndex];
+      var newActiveBullet = this._createBulletFromString(renderActiveBullet(bulletClass + " " + activeClass, activeBulletIndex), activeBulletIndex);
+      wrapper.replaceChild(newActiveBullet, activeBullet);
+      bullets[activeBulletIndex] = newActiveBullet;
+    } else {
+      var activeBullet = bullets[activeBulletIndex];
+      var prevBullet = bullets[prevIndex];
+      if (prevBullet) {
+        removeClass(prevBullet, activeClass);
+      }
+      addClass(activeBullet, activeClass);
+    }
+    this._prevIndex = activeBulletIndex;
+  };
+  return BulletRenderer2;
+})(Renderer);
+var FractionRenderer = /* @__PURE__ */ (function(_super) {
+  __extends(FractionRenderer2, _super);
+  function FractionRenderer2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this._prevIndex = -1;
+    _this._prevTotal = -1;
+    return _this;
+  }
+  var __proto = FractionRenderer2.prototype;
+  __proto.destroy = function() {
+    this._prevIndex = -1;
+    this._prevTotal = -1;
+  };
+  __proto.render = function() {
+    var flicking = this._flicking;
+    var wrapper = this._wrapper;
+    var pagination = this._pagination;
+    var fractionWrapperClass = pagination.classPrefix + "-" + PAGINATION.FRACTION_WRAPPER_SUFFIX;
+    var fractionCurrentClass = pagination.classPrefix + "-" + PAGINATION.FRACTION_CURRENT_SUFFIX;
+    var fractionTotalClass = pagination.classPrefix + "-" + PAGINATION.FRACTION_TOTAL_SUFFIX;
+    addClass(wrapper, fractionWrapperClass);
+    wrapper.innerHTML = pagination.renderFraction(fractionCurrentClass, fractionTotalClass);
+    this.update(flicking.index);
+  };
+  __proto.update = function(index) {
+    var flicking = this._flicking;
+    var wrapper = this._wrapper;
+    var pagination = this._pagination;
+    var anchorPoints = flicking.camera.anchorPoints;
+    var currentIndex = anchorPoints.length > 0 ? index - anchorPoints[0].panel.index + 1 : 0;
+    var anchorCount = anchorPoints.length;
+    if (currentIndex === this._prevIndex && anchorCount === this._prevTotal) return;
+    var fractionCurrentSelector = "." + pagination.classPrefix + "-" + PAGINATION.FRACTION_CURRENT_SUFFIX;
+    var fractionTotalSelector = "." + pagination.classPrefix + "-" + PAGINATION.FRACTION_TOTAL_SUFFIX;
+    var currentWrapper = wrapper.querySelector(fractionCurrentSelector);
+    var totalWrapper = wrapper.querySelector(fractionTotalSelector);
+    currentWrapper.innerHTML = pagination.fractionCurrentFormat(currentIndex);
+    totalWrapper.innerHTML = pagination.fractionTotalFormat(anchorCount);
+    this._prevIndex = currentIndex;
+    this._prevTotal = anchorCount;
+  };
+  return FractionRenderer2;
+})(Renderer);
+var ScrollBulletRenderer = /* @__PURE__ */ (function(_super) {
+  __extends(ScrollBulletRenderer2, _super);
+  function ScrollBulletRenderer2() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+    _this._bullets = [];
+    _this._bulletSize = 0;
+    _this._previousIndex = -1;
+    _this._sliderIndex = -1;
+    _this.moveTo = function(index) {
+      var pagination = _this._pagination;
+      var sliderEl = _this._wrapper.firstElementChild;
+      var bulletSize = _this._bulletSize;
+      var wrapperSize = bulletSize * pagination.bulletCount;
+      sliderEl.style.transform = "translate(" + (wrapperSize / 2 - (index + 0.5) * bulletSize) + "px)";
+      _this._sliderIndex = index;
+    };
+    return _this;
+  }
+  var __proto = ScrollBulletRenderer2.prototype;
+  __proto.destroy = function() {
+    this._bullets = [];
+    this._bulletSize = 0;
+    this._previousIndex = -1;
+    this._sliderIndex = -1;
+  };
+  __proto.render = function() {
+    var _this = this;
+    var wrapper = this._wrapper;
+    var flicking = this._flicking;
+    var pagination = this._pagination;
+    var renderBullet = pagination.renderBullet;
+    var anchorPoints = flicking.camera.anchorPoints;
+    var dynamicWrapperClass = pagination.classPrefix + "-" + PAGINATION.SCROLL_WRAPPER_SUFFIX;
+    var bulletClass = pagination.classPrefix + "-" + PAGINATION.BULLET_SUFFIX;
+    var sliderClass = pagination.classPrefix + "-" + PAGINATION.SCROLL_SLIDER_SUFFIX;
+    var uninitClass = pagination.classPrefix + "-" + PAGINATION.SCROLL_UNINIT_SUFFIX;
+    var sliderEl = document.createElement("div");
+    addClass(sliderEl, sliderClass);
+    addClass(wrapper, uninitClass);
+    addClass(wrapper, dynamicWrapperClass);
+    wrapper.appendChild(sliderEl);
+    sliderEl.innerHTML = anchorPoints.map(function(_, index) {
+      return renderBullet(bulletClass, index);
+    }).join("\n");
+    var bullets = [].slice.call(sliderEl.children);
+    bullets.forEach(function(bullet, index) {
+      _this._addBulletEvents(bullet, index);
+    });
+    if (bullets.length <= 0) return;
+    var bulletStyle = getComputedStyle(bullets[0]);
+    var bulletSize = bullets[0].clientWidth + parseFloat(bulletStyle.marginLeft) + parseFloat(bulletStyle.marginRight);
+    wrapper.style.width = bulletSize * pagination.bulletCount + "px";
+    this._bullets = bullets;
+    this._bulletSize = bulletSize;
+    this._previousIndex = -1;
+    this.update(this._flicking.index);
+    window.requestAnimationFrame(function() {
+      removeClass(wrapper, uninitClass);
+    });
+  };
+  __proto.update = function(index) {
+    var pagination = this._pagination;
+    var flicking = this._flicking;
+    var bullets = this._bullets;
+    var prevIndex = this._previousIndex;
+    var renderBullet = pagination.renderBullet;
+    var renderActiveBullet = pagination.renderActiveBullet;
+    var anchorPoints = flicking.camera.anchorPoints;
+    var anchorOffset = anchorPoints[0].panel.index;
+    var activeIndex = index - anchorOffset;
+    if (anchorPoints.length <= 0) return;
+    var bulletClass = pagination.classPrefix + "-" + PAGINATION.BULLET_SUFFIX;
+    var bulletActiveClass = pagination.classPrefix + "-" + PAGINATION.BULLET_ACTIVE_SUFFIX;
+    var prevClassPrefix = pagination.classPrefix + "-" + PAGINATION.SCROLL_PREV_SUFFIX;
+    var nextClassPrefix = pagination.classPrefix + "-" + PAGINATION.SCROLL_NEXT_SUFFIX;
+    var bulletPrevClass = function(offset) {
+      return "" + prevClassPrefix + (offset > 1 ? offset : "");
+    };
+    var bulletNextClass = function(offset) {
+      return "" + nextClassPrefix + (offset > 1 ? offset : "");
+    };
+    var prevClassRegex = new RegExp("^" + prevClassPrefix);
+    var nextClassRegex = new RegExp("^" + nextClassPrefix);
+    if (renderActiveBullet) {
+      var prevBullet = bullets[prevIndex];
+      if (prevBullet) {
+        var newBullet = this._createBulletFromString(renderBullet(bulletClass, prevIndex), prevIndex);
+        prevBullet.parentElement.replaceChild(newBullet, prevBullet);
+        bullets[prevIndex] = newBullet;
+      }
+      var activeBullet = bullets[activeIndex];
+      if (activeBullet) {
+        var newActiveBullet = this._createBulletFromString(renderActiveBullet(bulletClass, activeIndex), activeIndex);
+        activeBullet.parentElement.replaceChild(newActiveBullet, activeBullet);
+        bullets[activeIndex] = newActiveBullet;
+      }
+    }
+    bullets.forEach(function(bullet, idx) {
+      var indexOffset = idx - activeIndex;
+      var classList = bullet.className.split(" ");
+      for (var _i = 0, classList_1 = classList; _i < classList_1.length; _i++) {
+        var className = classList_1[_i];
+        if (className === bulletActiveClass || prevClassRegex.test(className) || nextClassRegex.test(className)) {
+          removeClass(bullet, className);
+        }
+      }
+      if (indexOffset === 0) {
+        addClass(bullet, bulletActiveClass);
+      } else if (indexOffset > 0) {
+        addClass(bullet, bulletNextClass(Math.abs(indexOffset)));
+      } else {
+        addClass(bullet, bulletPrevClass(Math.abs(indexOffset)));
+      }
+    });
+    pagination.scrollOnChange(activeIndex, {
+      total: bullets.length,
+      prevIndex,
+      sliderIndex: this._sliderIndex,
+      direction: activeIndex > prevIndex ? DIRECTION.NEXT : DIRECTION.PREV,
+      bullets: __spreadArray([], bullets),
+      moveTo: this.moveTo
+    });
+    this._previousIndex = activeIndex;
+  };
+  return ScrollBulletRenderer2;
+})(Renderer);
+var Pagination = /* @__PURE__ */ (function() {
+  function Pagination2(_a) {
+    var _this = this;
+    var _b = _a === void 0 ? {} : _a, _c = _b.parentEl, parentEl = _c === void 0 ? null : _c, _d = _b.selector, selector = _d === void 0 ? PAGINATION.SELECTOR : _d, _e = _b.type, type = _e === void 0 ? PAGINATION.TYPE.BULLET : _e, _f = _b.classPrefix, classPrefix = _f === void 0 ? PAGINATION.PREFIX : _f, _g = _b.bulletCount, bulletCount = _g === void 0 ? 5 : _g, _h = _b.renderBullet, renderBullet = _h === void 0 ? function(className) {
+      return '<span class="' + className + '"></span>';
+    } : _h, _j = _b.renderActiveBullet, renderActiveBullet = _j === void 0 ? null : _j, _k = _b.renderFraction, renderFraction = _k === void 0 ? function(currentClass, totalClass) {
+      return '<span class="' + currentClass + '"></span>/<span class="' + totalClass + '"></span>';
+    } : _k, _l = _b.fractionCurrentFormat, fractionCurrentFormat = _l === void 0 ? function(index) {
+      return index.toString();
+    } : _l, _m = _b.fractionTotalFormat, fractionTotalFormat = _m === void 0 ? function(index) {
+      return index.toString();
+    } : _m, _o = _b.scrollOnChange, scrollOnChange = _o === void 0 ? function(index, ctx) {
+      return ctx.moveTo(index);
+    } : _o;
+    this._flicking = null;
+    this.update = function() {
+      _this._removeAllChilds();
+      _this._renderer.render();
+    };
+    this._onIndexChange = function(evt) {
+      _this._renderer.update(evt.index);
+    };
+    this._parentEl = parentEl;
+    this._selector = selector;
+    this._type = type;
+    this._classPrefix = classPrefix;
+    this._bulletCount = bulletCount;
+    this._renderBullet = renderBullet;
+    this._renderActiveBullet = renderActiveBullet;
+    this._renderFraction = renderFraction;
+    this._fractionCurrentFormat = fractionCurrentFormat;
+    this._fractionTotalFormat = fractionTotalFormat;
+    this._scrollOnChange = scrollOnChange;
+  }
+  var __proto = Pagination2.prototype;
+  Object.defineProperty(__proto, "parentEl", {
+    get: function() {
+      return this._parentEl;
+    },
+    set: function(val) {
+      this._parentEl = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "selector", {
+    get: function() {
+      return this._selector;
+    },
+    set: function(val) {
+      this._selector = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "type", {
+    get: function() {
+      return this._type;
+    },
+    set: function(val) {
+      this._type = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "classPrefix", {
+    get: function() {
+      return this._classPrefix;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "bulletCount", {
+    get: function() {
+      return this._bulletCount;
+    },
+    set: function(val) {
+      this._bulletCount = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "renderBullet", {
+    get: function() {
+      return this._renderBullet;
+    },
+    set: function(val) {
+      this._renderBullet = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "renderActiveBullet", {
+    get: function() {
+      return this._renderActiveBullet;
+    },
+    set: function(val) {
+      this._renderActiveBullet = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "renderFraction", {
+    get: function() {
+      return this._renderFraction;
+    },
+    set: function(val) {
+      this._renderFraction = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "fractionCurrentFormat", {
+    get: function() {
+      return this._fractionCurrentFormat;
+    },
+    set: function(val) {
+      this._fractionCurrentFormat = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "fractionTotalFormat", {
+    get: function() {
+      return this._fractionTotalFormat;
+    },
+    set: function(val) {
+      this._fractionTotalFormat = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "scrollOnChange", {
+    get: function() {
+      return this._scrollOnChange;
+    },
+    set: function(val) {
+      this._scrollOnChange = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(__proto, "bulletWrapperclassPrefixClass", {
+    set: function(val) {
+      this._classPrefix = val;
+    },
+    enumerable: false,
+    configurable: true
+  });
+  __proto.init = function(flicking) {
+    if (this._flicking) {
+      this.destroy();
+    }
+    this._flicking = flicking;
+    var type = this._type;
+    var selector = this._selector;
+    var parentEl = this._parentEl ? this._parentEl : flicking.element;
+    var wrapper = parentEl.querySelector(selector);
+    if (!wrapper) {
+      throw new Error("[Flicking-Pagination] Couldn't find element with the given selector: " + selector);
+    }
+    this._wrapper = wrapper;
+    this._renderer = this._createRenderer(type);
+    flicking.on(EVENTS.WILL_CHANGE, this._onIndexChange);
+    flicking.on(EVENTS.WILL_RESTORE, this._onIndexChange);
+    flicking.on(EVENTS.PANEL_CHANGE, this.update);
+    this.update();
+  };
+  __proto.destroy = function() {
+    var flicking = this._flicking;
+    if (!flicking) {
+      return;
+    }
+    flicking.off(EVENTS.WILL_CHANGE, this._onIndexChange);
+    flicking.off(EVENTS.WILL_RESTORE, this._onIndexChange);
+    flicking.off(EVENTS.PANEL_CHANGE, this.update);
+    this._renderer.destroy();
+    this._removeAllChilds();
+    this._flicking = null;
+  };
+  __proto._createRenderer = function(type) {
+    var options = {
+      flicking: this._flicking,
+      pagination: this,
+      wrapper: this._wrapper
+    };
+    switch (type) {
+      case PAGINATION.TYPE.BULLET:
+        return new BulletRenderer(options);
+      case PAGINATION.TYPE.FRACTION:
+        return new FractionRenderer(options);
+      case PAGINATION.TYPE.SCROLL:
+        return new ScrollBulletRenderer(options);
+      default:
+        throw new Error('[Flicking-Pagination] type "' + type + '" is not supported.');
+    }
+  };
+  __proto._removeAllChilds = function() {
+    var wrapper = this._wrapper;
+    while (wrapper.firstChild) {
+      wrapper.removeChild(wrapper.firstChild);
+    }
+  };
+  return Pagination2;
+})();
+(function(Drupal2, once2) {
+  function initViewport(viewport) {
+    let options = {};
+    const raw = viewport.getAttribute("data-flicking-options");
+    if (raw) {
+      try {
+        options = JSON.parse(raw);
+      } catch (e) {
+        console.warn("Invalid options", e);
+      }
+    }
+    const showArrows = options.showArrows;
+    const showPagination = options.showPagination;
+    if (options.panelsPerView == null) options.panelsPerView = 1;
+    const flicking = new Flicking(viewport, options);
+    const plugins = [];
+    if (showArrows) {
+      plugins.push(new Arrow({
+        prevElSelector: ".flicking-arrow-prev",
+        nextElSelector: ".flicking-arrow-next"
+      }));
+    }
+    if (showPagination) {
+      plugins.push(new Pagination({ type: "bullet" }));
+    }
+    if (options.autoPlay) {
+      console.log(plugins);
+      plugins.push(
+        new AutoPlay({
+          duration: options.autoplayDuration || 5e3,
+          direction: "NEXT",
+          stopOnHover: true
+        })
+      );
+    }
+    if (plugins.length) {
+      flicking.addPlugins(...plugins);
+    }
+  }
+  Drupal2.behaviors.slider = {
+    attach(context) {
+      const viewports = once2(
+        "flicking",
+        ".slider .flicking-viewport",
+        context
+      );
+      viewports.forEach(initViewport);
+    }
+  };
+})(Drupal, once);

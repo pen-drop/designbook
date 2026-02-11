@@ -15,7 +15,7 @@ Check if the product vision exists at `designbook/product/product-overview.md`.
 
 **If no product vision exists**, tell the user:
 
-> "Before defining your design system, you'll need to establish your product vision. Please run `/product-vision` first."
+> "Before defining your design system, you'll need to establish your product vision. Please run `/debo-product-vision` first."
 
 Stop here.
 
