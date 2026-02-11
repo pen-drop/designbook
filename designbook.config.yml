@@ -3,3 +3,5 @@ dist: packages/integrations/test-integration-drupal/designbook
 tmp: packages/integrations/test-integration-drupal/designbook/tmp
 drupal:
   theme: packages/integrations/test-integration-drupal
+css:
+  framework: daisyui

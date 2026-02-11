@@ -5,19 +5,15 @@ description: Verifies that all CSS token files were created successfully
 
 # Verify Output
 
-This skill performs final verification that CSS generation was successful.
-
-## Purpose
-Confirms all generated CSS files exist and have valid content.
+This step performs final verification that CSS generation was successful.
 
 ## Prerequisites
-- Step 1: Verify Input (completed)
-- Step 2: Check Regeneration (completed)
-- Step 3: Generate CSS (completed)
+- Step 1–3 completed
+- `DESIGNBOOK_DRUPAL_THEME` environment variable is set
 
 ## Input
-- Expected output directory: `web/themes/custom/daisy_cms_daisyui/css/tokens/`
-- Expected theme directory: `web/themes/custom/daisy_cms_daisyui/css/themes/`
+- Expected output directory: `$DESIGNBOOK_DRUPAL_THEME/css/tokens/`
+- Expected theme directory: `$DESIGNBOOK_DRUPAL_THEME/css/themes/`
 
 ## Process
 
@@ -27,10 +23,10 @@ Confirms all generated CSS files exist and have valid content.
    - Verify: `font.src.css`
    - Verify: `radius.src.css`
    - Verify: `opacity.src.css`
-   - Command: `ls -lh web/themes/custom/daisy_cms_daisyui/css/tokens/*.src.css`
+   - Command: `ls -lh $DESIGNBOOK_DRUPAL_THEME/css/tokens/*.src.css`
 
 2. **Check theme file exists**
-   - Verify: `web/themes/custom/daisy_cms_daisyui/css/themes/dark.src.css`
+   - Verify: `$DESIGNBOOK_DRUPAL_THEME/css/themes/dark.src.css`
 
 3. **Validate CSS syntax**
    - Quick check that files contain CSS syntax
@@ -45,42 +41,15 @@ Confirms all generated CSS files exist and have valid content.
 5. **Display success summary**
    - List all generated files with sizes
    - Show token counts by type
-   - Display message: "✓ CSS token files generated successfully"
-
-## Output
-- Confirmation message with file details
+   - Display: "✅ CSS token files generated successfully"
 
 ## Error Handling
 - Missing files: List which files are missing
 - Empty files: Show which files are empty
 - Invalid CSS: Show syntax validation errors
 
-## Success Criteria
-- All 6 CSS files exist
-- Files contain valid CSS syntax
-- Files are not empty
-- Token counts match expected ranges
-
-## Final Output Example
-```
-✓ CSS token files generated successfully
-
-Generated Files:
-  Token Files (css/tokens/):
-    - color.src.css (2.4 KB, 45 tokens)
-    - spacing.src.css (1.2 KB, 12 tokens)
-    - font.src.css (1.8 KB, 18 tokens)
-    - radius.src.css (0.8 KB, 8 tokens)
-    - opacity.src.css (0.5 KB, 5 tokens)
-  
-  Theme Files (css/themes/):
-    - dark.src.css (0.9 KB, DaisyUI plugin)
-
-Total: 88 CSS custom properties generated
-```
-
 ## Integration Instructions
-Remind user to import generated CSS files in `css/app.src.css`:
+Remind user to import generated CSS files in `$DESIGNBOOK_DRUPAL_THEME/css/app.src.css`:
 ```css
 /* Design tokens */
 @import "./tokens/color.src.css";
