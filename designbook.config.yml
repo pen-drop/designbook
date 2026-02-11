@@ -1,0 +1,3 @@
+technology: drupal
+dist: packages/integrations/test-integration-drupal/designbook
+tmp: packages/integrations/test-integration-drupal/designbook/tmp

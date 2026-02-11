@@ -71,25 +71,16 @@ export function parseProductOverview(md) {
   return result.name ? result : null;
 }
 
-export function parseRoadmap(md) {
-  const lines = md.split('\n');
-  const sections = [];
-  let currentSection = null;
-  for (const line of lines) {
-    const h3 = line.match(/^###\s+\d+\.\s+(.+)/);
-    if (h3) {
-      if (currentSection) sections.push(currentSection);
-      currentSection = { title: h3[1].trim(), description: '' };
-      continue;
-    }
-    if (currentSection && line.trim() && !line.match(/^#+\s/)) {
-      currentSection.description = currentSection.description
-        ? currentSection.description + ' ' + line.trim()
-        : line.trim();
-    }
+export function parseRoadmap(jsonString) {
+  try {
+    const sections = JSON.parse(jsonString);
+    if (!Array.isArray(sections)) return null;
+    // Map to expected format if needed, but sections.json structure should be compatible
+    // DeboNumberedList expects: { title, description }
+    return sections.length > 0 ? { sections } : null;
+  } catch (e) {
+    return null;
   }
-  if (currentSection) sections.push(currentSection);
-  return sections.length > 0 ? { sections } : null;
 }
 
 ---
@@ -97,7 +88,7 @@ export function parseRoadmap(md) {
 <DeboSection
   dataPath="product/product-overview.md"
   parser={parseProductOverview}
-  command="/product-vision"
+  command="/debo-product-vision"
   emptyMessage="No product vision defined yet"
   renderContent={(data) => <DeboProductOverviewCard overview={data} />}
 />
@@ -108,7 +99,7 @@ The product is broken into 3–5 development sections, ordered by priority.
 Each section represents a self-contained area that can be designed and built independently.
 
 <DeboSection
-  dataPath="product/product-roadmap.md"
+  dataPath="sections.json"
   parser={parseRoadmap}
   command="/product-roadmap"
   emptyMessage="No product roadmap defined yet"

@@ -1,0 +1,30 @@
+{
+  "color": {
+    "primary": {
+      "$value": "Indigo",
+      "$type": "color"
+    },
+    "secondary": {
+      "$value": "Emerald",
+      "$type": "color"
+    },
+    "neutral": {
+      "$value": "Slate",
+      "$type": "color"
+    }
+  },
+  "typography": {
+    "heading": {
+      "$value": "Outfit",
+      "$type": "fontFamily"
+    },
+    "body": {
+      "$value": "Inter",
+      "$type": "fontFamily"
+    },
+    "mono": {
+      "$value": "JetBrains Mono",
+      "$type": "fontFamily"
+    }
+  }
+}

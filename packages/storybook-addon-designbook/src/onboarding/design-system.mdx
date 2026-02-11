@@ -9,45 +9,22 @@ import '../index.css';
 Choose your color palette and typography to define the visual identity of your product.
 Use the AI command to select colors and fonts — the result is displayed here automatically.
 
-export function parseDesignTokens(md) {
-  const result = { colors: null, typography: null };
-  const colorsSection = md.match(/## Colors\s*\n+([\s\S]*?)(?=\n## |\n#[^#]|$)/);
-  if (colorsSection && colorsSection[1]) {
-    const colors = {};
-    const lines = colorsSection[1].split('\n');
-    for (const line of lines) {
-      const match = line.match(/^-\s+(Primary|Secondary|Neutral):\s*(.+)/i);
-      if (match) {
-        colors[match[1].toLowerCase()] = match[2].trim().toLowerCase();
-      }
-    }
-    if (colors.primary || colors.secondary || colors.neutral) {
-      result.colors = colors;
-    }
+export const jsonParser = (content) => {
+  // If content is already an object (which useDesignbookData might return if it detected JSON), return it.
+  if (typeof content === 'object' && content !== null) return content;
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    return null;
   }
-  const typoSection = md.match(/## Typography\s*\n+([\s\S]*?)(?=\n## |\n#[^#]|$)/);
-  if (typoSection && typoSection[1]) {
-    const typography = {};
-    const lines = typoSection[1].split('\n');
-    for (const line of lines) {
-      const match = line.match(/^-\s+(Heading|Body|Mono):\s*(.+)/i);
-      if (match) {
-        typography[match[1].toLowerCase()] = match[2].trim();
-      }
-    }
-    if (typography.heading || typography.body) {
-      result.typography = typography;
-    }
-  }
-  return (result.colors || result.typography) ? result : null;
-}
+};
 
 ---
 
 <DeboSection
-  dataPath="design-system/design-tokens.md"
-  parser={parseDesignTokens}
-  command="/design-tokens"
+  dataPath="design-tokens.json"
+  parser={jsonParser}
+  command="/debo-design-tokens"
   emptyMessage="No design tokens defined yet"
   renderContent={(data) => <DeboDesignTokensCard tokens={data} />}
 />

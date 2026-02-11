@@ -1,63 +1,61 @@
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import type { Plugin, ViteDevServer, Connect } from 'vite';
+import type { Plugin, ViteDevServer } from 'vite';
+import type { IncomingMessage } from 'http';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { resolve, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parse as parseYaml } from 'yaml';
 
-interface DesignbookSaveBody {
-  path: string;
-  content: string;
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-/**
- * Vite plugin that provides a dev-server middleware for saving
- * Designbook workflow outputs to disk.
- */
-export function designbookSavePlugin(projectRoot: string): Plugin {
-  const baseDir = resolve(projectRoot, 'designbook');
+export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string } = {}): Plugin {
+  // Use config fsRoot if available, otherwise default to 'designbook'
+  const distDir = options.fsRoot || 'designbook';
+
+  // baseDir is usually process.cwd()
+  // If distDir is relative, resolve it from baseDir
+  // If absolute, use as is
+  const designbookDir = resolve(baseDir, distDir);
 
   return {
-    name: 'designbook-save',
+    name: 'vite-plugin-designbook-load',
+    enforce: 'pre',
+
+    load(id: string) {
+      // Transform .section.yml files into CSF story modules
+      // Same pattern as the SDC addon's .component.yml handling
+      if (!id.endsWith('.section.yml')) return;
+
+      try {
+        const content = readFileSync(id, 'utf-8');
+        const section = parseYaml(content);
+        const sectionId = section.id;
+        const title = section.title || 'Untitled';
+
+        // Load the CSF template and replace placeholders
+        const templatePath = resolve(__dirname, 'onboarding', 'section.story.tpl');
+        let template = readFileSync(templatePath, 'utf-8');
+        template = template.replace(/__SECTION_ID__/g, sectionId.replace(/'/g, "\\'"));
+        template = template.replace(/__SECTION_TITLE__/g, title.replace(/'/g, "\\'"));
+
+        // Generate the export name to match what the indexer declares
+        const exportName = sectionId
+          .split('-')
+          .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join('');
+        template = template.replace(/__EXPORT_NAME__/g, exportName);
+
+        return template;
+      } catch (e) {
+        console.error('[Designbook] Error loading section:', id, e);
+        return null;
+      }
+    },
+
     configureServer(server: ViteDevServer) {
+      // Middleware for loading designbook assets
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      server.middlewares.use('/__designbook/save', async (req: Connect.IncomingMessage, res: any) => {
-        if (req.method !== 'POST') {
-          res.statusCode = 405;
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
-          return;
-        }
-
-        try {
-          const body = await readBody(req);
-          const { path: filePath, content } = JSON.parse(body) as DesignbookSaveBody;
-
-          if (!filePath || typeof content !== 'string') {
-            res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Missing path or content' }));
-            return;
-          }
-
-          // Prevent path traversal
-          if (filePath.includes('..')) {
-            res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Invalid path' }));
-            return;
-          }
-
-          const fullPath = resolve(baseDir, filePath);
-          mkdirSync(dirname(fullPath), { recursive: true });
-          writeFileSync(fullPath, content, 'utf-8');
-
-          res.setHeader('Content-Type', 'application/json');
-          res.statusCode = 200;
-          res.end(JSON.stringify({ ok: true, path: `designbook/${filePath}` }));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-          res.statusCode = 500;
-          res.end(JSON.stringify({ error: err.message }));
-        }
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      server.middlewares.use('/__designbook/load', (req: Connect.IncomingMessage, res: any) => {
+      server.middlewares.use('/__designbook/load', (req: IncomingMessage, res: any) => {
         if (req.method !== 'GET') {
           res.statusCode = 405;
           res.end(JSON.stringify({ error: 'Method not allowed' }));
@@ -75,12 +73,41 @@ export function designbookSavePlugin(projectRoot: string): Plugin {
             return;
           }
 
-          const fullPath = resolve(baseDir, filePath);
+          // Special case: Aggregate sections.json from *.section.yml files
+          if (filePath === 'sections.json') {
+            const sectionsDir = resolve(designbookDir, 'sections');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let sections: any[] = [];
+
+            if (existsSync(sectionsDir)) {
+              const files = readdirSync(sectionsDir).filter((f) => f.endsWith('.section.yml'));
+              sections = files
+                .map((file) => {
+                  try {
+                    return parseYaml(readFileSync(join(sectionsDir, file), 'utf-8'));
+                  } catch {
+                    return null;
+                  }
+                })
+                .filter(Boolean);
+
+              // Sort by order if possible
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              sections.sort((a: any, b: any) => (a.order || 999) - (b.order || 999));
+            }
+
+            res.setHeader('Content-Type', 'application/json');
+            res.statusCode = 200;
+            res.end(JSON.stringify({ exists: true, content: JSON.stringify(sections, null, 2) }));
+            return;
+          }
+
+          const fullPath = resolve(designbookDir, filePath);
 
           if (!existsSync(fullPath)) {
             res.setHeader('Content-Type', 'application/json');
             res.statusCode = 200;
-            res.end(JSON.stringify({ exists: false, content: null }));
+            res.end(JSON.stringify({ exists: false, content: null, searchedPath: fullPath, baseDir: designbookDir }));
             return;
           }
 
@@ -96,13 +123,4 @@ export function designbookSavePlugin(projectRoot: string): Plugin {
       });
     },
   };
-}
-
-function readBody(req: Connect.IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', (chunk) => (data += chunk));
-    req.on('end', () => resolve(data));
-    req.on('error', reject);
-  });
 }

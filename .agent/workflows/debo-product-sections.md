@@ -1,0 +1,111 @@
+---
+name: /debo-product-sections
+id: debo-product-sections
+category: Designbook
+description: Define your product sections based on the product vision
+---
+
+Help the user create or update their product sections for Designbook. The sections break the product vision into 3–5 development areas. The result is saved to `${DESIGNBOOK_DIST}/sections/[id].section.yml`.
+
+**Steps**
+
+## Step 1: Check Current State
+
+First, check if the following files exist:
+- `${DESIGNBOOK_DIST}/product/product-overview.md` — the product vision
+- `${DESIGNBOOK_DIST}/sections/*.section.yml` — existing sections
+
+**If no product vision exists**, tell the user:
+
+> "I don't see a product vision yet. The sections build on your product vision — please run `/product-vision` first to define what you're building, then come back to `/sections`."
+
+Stop here.
+
+**If sections already exist**, read both files and present the current state:
+
+> "I see you already have [N] sections:
+>
+> 1. **[Section 1]** — [Description]
+> 2. **[Section 2]** — [Description]
+>
+> Would you like to:
+> - **Update** — Add, remove, or reorder sections
+> - **Start fresh** — Regenerate based on the current product vision"
+
+Then proceed to Step 2 or re-enter the full flow based on their choice.
+
+**If only product vision exists**, read it and proceed to Step 2.
+
+## Step 2: Analyze and Propose Sections
+
+Read `${DESIGNBOOK_DIST}/product/product-overview.md` and analyze:
+- The product name and core description
+- The problems being solved
+- The key features listed
+
+Based on this analysis, propose 3–5 sections that represent:
+- **Main areas** of the product
+- **Logical build order** — what to build first, what depends on what
+- **Self-contained feature areas** — each can be designed and built independently
+
+Present the proposal:
+
+> "Based on your product vision for **[Product Name]**, I'd suggest breaking this into these development sections:
+>
+> 1. **[Section Title]** — [One sentence description]
+> 2. **[Section Title]** — [One sentence description]
+> 3. **[Section Title]** — [One sentence description]
+>
+> These are ordered by development priority. The first section covers the core functionality, with each subsequent section building on it.
+>
+> Does this breakdown make sense? Would you like to adjust any sections or their order?"
+
+## Step 3: Refine with User
+
+Iterate on the sections based on user feedback. Ask clarifying questions as needed.
+
+Keep iterating until the user approves the sections.
+
+## Step 4: Save the Files
+
+Once the user approves, create individual YAML files for each section in the `${DESIGNBOOK_DIST}/sections/` directory.
+
+For each section, create a file named `${DESIGNBOOK_DIST}/sections/[id].section.yml` with this format:
+
+```yaml
+id: section-id-kebab-case
+title: Section Title
+description: One sentence description
+status: planned
+order: 1
+```
+
+**Important:**
+- `id` must be kebab-case and unique
+- The filename must match the `id` (e.g., `unified-dashboard.section.yml`)
+- `status` defaults to "planned"
+- `order` should reflect the sequence (1, 2, 3...)
+
+Create the directory `${DESIGNBOOK_DIST}/sections/` if it doesn't exist.
+Remove any legacy `${DESIGNBOOK_DIST}/sections.json` file if it exists.
+
+## Step 5: Confirm Completion
+
+Let the user know:
+
+> "I've saved your product sections to `${DESIGNBOOK_DIST}/sections/`. Open Storybook to see the [N] development sections displayed below your product vision on the Product page.
+>
+> Your sections:
+> 1. **[Section 1]** — [Description]
+> 2. **[Section 2]** — [Description]
+> 3. **[Section 3]** — [Description]
+>
+> **Next step:** You can now use these sections to plan your design and development work."
+
+**Guardrails**
+- always read `schema/sections.json` before saving to ensure the output is valid
+- Always read the product vision first — the sections must align with it
+- If no product vision exists, redirect to `/product-vision` and stop
+- Be conversational and help the user think through the breakdown
+- Keep sections self-contained — each should be designable and buildable independently
+- 3–5 sections is the sweet spot — push back gently if the user wants too many or too few

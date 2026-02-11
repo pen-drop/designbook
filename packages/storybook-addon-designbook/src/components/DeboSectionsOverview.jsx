@@ -46,29 +46,7 @@ async function fileExists(path) {
   }
 }
 
-/**
- * Parse roadmap markdown to extract sections.
- */
-function parseRoadmap(md) {
-  const lines = md.split('\n');
-  const sections = [];
-  let currentSection = null;
-  for (const line of lines) {
-    const h3 = line.match(/^###\s+\d+\.\s+(.+)/);
-    if (h3) {
-      if (currentSection) sections.push(currentSection);
-      currentSection = { title: h3[1].trim(), description: '' };
-      continue;
-    }
-    if (currentSection && line.trim() && !line.match(/^#+\s/)) {
-      currentSection.description = currentSection.description
-        ? currentSection.description + ' ' + line.trim()
-        : line.trim();
-    }
-  }
-  if (currentSection) sections.push(currentSection);
-  return sections;
-}
+
 
 /**
  * Status indicator dot with label.
@@ -76,14 +54,12 @@ function parseRoadmap(md) {
 function StatusDot({ label, completed }) {
   return (
     <span className="debo:flex debo:items-center debo:gap-1.5">
-      <span className={`debo:w-3 debo:h-3 debo:rounded-full debo:border-2 debo:shrink-0 ${
-        completed
-          ? 'debo:bg-success debo:border-success'
-          : 'debo:bg-transparent debo:border-base-content/20'
-      }`} />
-      <span className={`debo:text-xs ${
-        completed ? 'debo:text-base-content/60' : 'debo:text-base-content/30'
-      }`}>
+      <span className={`debo:w-3 debo:h-3 debo:rounded-full debo:border-2 debo:shrink-0 ${completed
+        ? 'debo:bg-success debo:border-success'
+        : 'debo:bg-transparent debo:border-base-content/20'
+        }`} />
+      <span className={`debo:text-xs ${completed ? 'debo:text-base-content/60' : 'debo:text-base-content/30'
+        }`}>
         {label}
       </span>
     </span>
@@ -104,31 +80,34 @@ export function DeboSectionsOverview() {
     setLoading(true);
     setError(null);
     try {
-      // Load roadmap
-      const roadmapRes = await fetch('/__designbook/load?path=product/product-roadmap.md');
-      if (!roadmapRes.ok) {
-        if (roadmapRes.status === 404) {
+      // Load roadmap from aggregated sections.json
+      const res = await fetch('/__designbook/load?path=sections.json');
+      if (!res.ok) {
+        throw new Error('Failed to load sections.json');
+      }
+      const text = await res.text();
+      let sections = [];
+      try {
+        const json = JSON.parse(text);
+        if (json.content) {
+          // The content is a stringified JSON array
+          sections = JSON.parse(json.content);
+        } else if (json.exists === false) {
           setRoadmapSections([]);
           setLoading(false);
           return;
         }
-        throw new Error('Failed to load roadmap');
+      } catch (e) {
+        console.error('Failed to parse sections.json', e);
       }
-      let roadmapText = await roadmapRes.text();
-      try {
-        const json = JSON.parse(roadmapText);
-        if (json.content != null) roadmapText = json.content;
-        else if (json.exists === false) { setRoadmapSections([]); setLoading(false); return; }
-      } catch { /* plain text */ }
 
-      const sections = parseRoadmap(roadmapText);
       setRoadmapSections(sections);
 
       // Check all 4 artifacts for each section
       const statuses = {};
       await Promise.all(
         sections.map(async (section) => {
-          const id = toSectionId(section.title);
+          const id = section.id || toSectionId(section.title);
           const [hasSpec, hasData, hasDesigns, hasScreenshots] = await Promise.all([
             fileExists(`sections/${id}/spec.md`),
             fileExists(`sections/${id}/data.json`),
@@ -169,7 +148,7 @@ export function DeboSectionsOverview() {
       <div className="debo:font-sans debo:max-w-2xl debo:mx-auto debo:py-8">
         <DeboEmptyState
           message="No roadmap sections found"
-          command="/product-roadmap"
+          command="/debo-product-sections"
           filePath="designbook/product/product-roadmap.md"
         />
       </div>

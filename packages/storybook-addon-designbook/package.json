@@ -24,6 +24,7 @@
     "./preset": "./dist/preset.js",
     "./manager": "./dist/manager.js",
     "./manager-helpers": "./dist/manager-helpers.js",
+    "./dist/*": "./dist/*",
     "./package.json": "./package.json"
   },
   "files": [
@@ -35,7 +36,7 @@
   "scripts": {
     "prebuild": "node -e \"fs.rmSync('./dist', { recursive: true, force: true })\"",
     "build:css": "tailwindcss -i ./src/index.css -o ./dist/index.css",
-    "build": "pnpm run build:css && tsup",
+    "build": "pnpm run build:css && tsup && mkdir -p ./dist/onboarding && cp ./src/onboarding/section.story.tpl ./dist/onboarding/section.story.tpl",
     "build:watch": "run-p build:css:watch build:tsup:watch",
     "build:css:watch": "tailwindcss -i ./src/index.css -o ./dist/index.css --watch",
     "build:tsup:watch": "tsup --watch",
@@ -54,6 +55,7 @@
     "@storybook/addon-docs": "next",
     "@storybook/icons": "^2.0.0",
     "@storybook/react-vite": "next",
+    "@storybook/types": "^8.6.14",
     "@tailwindcss/cli": "^4.1.18",
     "@types/node": "^20",
     "@types/react": "^18.2.65",
@@ -106,5 +108,8 @@
       "supported-frameworks"
     ],
     "icon": "https://user-images.githubusercontent.com/321738/63501763-88dbf600-c4cc-11e9-96cd-94adadc2fd72.png"
+  },
+  "dependencies": {
+    "yaml": "^2.8.2"
   }
 }
