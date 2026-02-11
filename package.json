@@ -13,7 +13,7 @@
   "scripts": {
     "build": "pnpm run build --workspaces",
     "test": "pnpm run test --workspaces",
-    "dev": "run-p dev:addon dev:integration:drupal",
+    "dev": "pnpm --filter storybook-addon-designbook clean && run-p dev:addon dev:integration:drupal",
     "dev:addon": "pnpm --filter storybook-addon-designbook build:watch",
     "dev:integration:drupal": "pnpm --filter test-integration-drupal storybook",
     "lint": "pnpm --filter storybook-addon-designbook lint",
