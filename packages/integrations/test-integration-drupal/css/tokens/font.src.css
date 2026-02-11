@@ -1,46 +1,5 @@
-/**
- * Font tokens
- * Generated from .pendrop/output/pendrop.theme.tokens.json
- * Do not edit manually
- */
-
 :root {
-  --font-family-font-sans: Inter;
-  --font-family-font-icon: Font Awesome 6 Pro;
-  --font-size-text-xs: 12px;
-  --font-size-text-sm: 14px;
-  --font-size-text-base: 16px;
-  --font-size-text-lg: 18px;
-  --font-size-text-xl: 20px;
-  --font-size-text-2xl: 24px;
-  --font-size-text-3xl: 30px;
-  --font-size-text-4xl: 36px;
-  --font-size-text-5xl: 48px;
-  --font-size-text-6xl: 60px;
-  --font-size-text-7xl: 72px;
-  --font-weight-thin: 100;
-  --font-weight-extralight: 200;
-  --font-weight-light: 300;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --font-weight-extrabold: 800;
-  --font-weight-black: 900;
-  --font-leading-leading-3: 12px;
-  --font-leading-leading-4: 16px;
-  --font-leading-leading-5: 20px;
-  --font-leading-leading-6: 24px;
-  --font-leading-leading-7: 28px;
-  --font-leading-leading-8: 32px;
-  --font-leading-leading-9: 36px;
-  --font-leading-leading-10: 40px;
-  --font-leading-leading-11: 48px;
-  --font-leading-leading-12: 56px;
-  --font-leading-leading-13: 64px;
-  --font-leading-leading-14: 80px;
-  --font-leading-leading-none: 1px;
-  --font-tracking-tracking-tight: -1px;
-  --font-tracking-tracking-normal: 0px;
-  --font-tracking-tracking-wide: 1px;
+  --font-heading: Outfit;
+  --font-body: Inter;
+  --font-mono: JetBrains Mono;
 }

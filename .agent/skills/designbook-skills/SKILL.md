@@ -78,6 +78,67 @@ fs.writeFileSync('/tmp/validate.json', JSON.stringify(parsed, null, 2));
 "
 ```
 
+## JSON Transformation (Preferred)
+
+When a skill needs to **transform JSON into another format** (CSS, YAML, config files, etc.), use [`jsonata-w`](https://github.com/pen-drop/jsonata-w) — a CLI optimized for AI-agent workflows.
+
+### Usage
+
+```bash
+npx jsonata-w transform <expression-file.jsonata>
+```
+
+### JSONata File Structure
+
+Each `.jsonata` file is self-contained with an embedded config block:
+
+```jsonata
+/**
+ * @config {
+ *   "input": "./path/to/input.json",
+ *   "output": "./path/to/output.css",
+ *   "schema": "./optional/schema.json",
+ *   "examples": "./path/to/expected-output.json"
+ * }
+ */
+(
+  /* Your JSONata expression here */
+  $
+)
+```
+
+- **input**: Path to the source JSON file (relative to the `.jsonata` file)
+- **output**: Path where the transformed result will be saved
+- **schema**: (Optional) JSON schema for validation of the output
+- **examples**: (Optional) Expected output subset for validation
+
+### Features
+
+- **Embedded Config** — No CLI arguments needed for input/output paths
+- **Auto-Unflattening** — Dot-notation keys (`{"a.b": 1}`) are automatically expanded into nested objects (`{"a": {"b": 1}}`)
+- **Inspect mode** — Use `npx jsonata-w inspect <file> --summary` to explore input structure before writing expressions
+
+### When to Use
+
+| Scenario | Tool |
+|----------|------|
+| Transform JSON → CSS, YAML, or other formats | `npx jsonata-w transform` ✅ |
+| Validate JSON against a schema | `npx ajv-cli validate` |
+| Convert YAML → JSON for validation | `node -e` inline script |
+
+### Skill Convention
+
+Place `.jsonata` expression files under `$DESIGNBOOK_DIST/[skill-name]/`:
+
+```
+$DESIGNBOOK_DIST/
+└── designbook-css-daisyui/
+    ├── generate-colors.jsonata
+    └── generate-spacing.jsonata
+```
+
+> Skills define the **instructions** (in `.agent/skills/`), while `.jsonata` transformation files live in `$DESIGNBOOK_DIST` alongside other generated/runtime artifacts.
+
 ## SKILL.md Structure
 
 Every `SKILL.md` must follow this template:

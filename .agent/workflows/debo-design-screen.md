@@ -1,6 +1,6 @@
 ---
-name: /design-screen
-id: design-screen
+name: /debo-design-screen
+id: debo-design-screen
 category: Designbook
 description: Create screen design components for a section
 ---
@@ -20,8 +20,8 @@ Check if the following files exist for the target section:
 **If spec or data are missing**, tell the user:
 
 > "Before creating screen designs, you need:
-> 1. `/shape-section` — Define the section specification
-> 2. `/sample-data` — Create sample data
+> 1. `/debo-shape-section` — Define the section specification
+> 2. `/debo-sample-data` — Create sample data
 >
 > Please run these commands first."
 
