@@ -1,0 +1,74 @@
+{#
+/**
+ * @file
+ * Template for Hero component.
+ *
+ * Available variables:
+ * - title: Hero section title
+ * - subtitle: Hero section subtitle
+ * - image_url: URL of the background image
+ * - variant: Hero style variant (default, overlay, centered, left-aligned)
+ * - min_height: Minimum height (sm, md, lg, full)
+ * - text_color: Text color scheme (light, dark)
+ * - content: Main content of the hero section
+ * - actions: Action buttons or links
+ */
+#}
+{% set height_classes = {
+  'sm': 'min-h-[300px]',
+  'md': 'min-h-[500px]',
+  'lg': 'min-h-[700px]',
+  'full': 'min-h-screen'
+} %}
+
+{% set classes = [
+  'component',
+  'hero',
+  height_classes[min_height|default('md')],
+  variant == 'overlay' ? 'hero-overlay' : '',
+  text_color == 'light' ? 'text-white' : 'text-color-black',
+] %}
+
+{% set content_classes = [
+  'hero-content',
+  variant == 'centered' ? 'text-center' : '',
+  variant == 'left-aligned' ? 'items-start text-left' : 'items-center',
+  'flex-col',
+  'max-w-7xl',
+  'w-full',
+  'px-4',
+] %}
+
+<div{{ attributes.addClass(classes) }} {{ image_url ? 'style="background-image: url(' ~ image_url ~ '); background-size: cover; background-position: center;"' : '' }}>
+  {% if variant == 'overlay' and image_url %}
+    <div class="hero-overlay bg-opacity-60 bg-color-darkgreen"></div>
+  {% endif %}
+
+  <div class="{{ content_classes|join(' ') }}">
+    <div class="max-w-4xl">
+      {% if title %}
+        <h1 class="headline-xl font-reef {{ text_color == 'light' ? 'text-white' : 'text-color-darkgreen' }}">
+          {{ title }}
+        </h1>
+      {% endif %}
+
+      {% if subtitle %}
+        <p class="copy-l mt-4 {{ text_color == 'light' ? 'text-white' : 'text-color-darkgray' }}">
+          {{ subtitle }}
+        </p>
+      {% endif %}
+
+      {% if content %}
+        <div class="hero__content mt-6">
+          {{ content }}
+        </div>
+      {% endif %}
+
+      {% if actions %}
+        <div class="hero__actions flex gap-4 mt-8 {{ variant == 'centered' ? 'justify-center' : '' }}">
+          {{ actions }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>

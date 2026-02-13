@@ -1,0 +1,58 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: hero
+status: stable
+description: A hero banner component for prominent content display
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: Title
+      description: Hero section title
+      default: ""
+    subtitle:
+      type: string
+      title: Subtitle
+      description: Hero section subtitle
+      default: ""
+    image_url:
+      type: string
+      title: Background Image URL
+      description: URL of the background image
+      default: ""
+    variant:
+      type: string
+      title: Variant
+      description: Hero style variant
+      enum:
+        - default
+        - overlay
+        - centered
+        - left-aligned
+      default: default
+    min_height:
+      type: string
+      title: Minimum Height
+      description: Minimum height of the hero section
+      enum:
+        - sm
+        - md
+        - lg
+        - full
+      default: md
+    text_color:
+      type: string
+      title: Text Color
+      description: Text color scheme
+      enum:
+        - light
+        - dark
+      default: light
+slots:
+  content:
+    title: Content
+    description: Main content of the hero section
+  actions:
+    title: Call-to-Action
+    description: Action buttons or links

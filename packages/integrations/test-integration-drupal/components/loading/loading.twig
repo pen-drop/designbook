@@ -1,0 +1,33 @@
+{#
+/**
+ * @file
+ * Template for Loading component.
+ *
+ * Available variables:
+ * - size: Size of the loading indicator (xs, sm, md, lg)
+ * - variant: Loading indicator style (spinner, dots, ring, ball, bars, infinity)
+ * - color: Color variant (primary, secondary, accent, neutral)
+ * - message: Optional loading message
+ */
+#}
+{% set classes = [
+  'component',
+  'loading',
+  'loading-animation-container',
+  'flex',
+  'flex-col',
+  'items-center',
+  'justify-center',
+  'gap-4',
+  'p-4',
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  <span class="loading loading-{{ variant|default('spinner') }} loading-{{ size|default('md') }} text-{{ color|default('primary') }}"></span>
+  
+  {% if message %}
+    <div class="loading__message text-center copy-s text-color-darkgray">
+      {{ message }}
+    </div>
+  {% endif %}
+</div>

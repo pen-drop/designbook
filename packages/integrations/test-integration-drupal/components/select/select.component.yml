@@ -1,0 +1,57 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: select
+status: stable
+description: A select dropdown form field component
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    label:
+      type: string
+      title: Label
+      description: Select field label
+      default: ""
+    placeholder:
+      type: string
+      title: Placeholder
+      description: Placeholder text when no option is selected
+      default: "Choose an option"
+    options:
+      type: array
+      title: Options
+      description: Array of select options (strings or objects with value and label)
+      default: []
+    multiple:
+      type: boolean
+      title: Multiple Selection
+      description: Allow multiple selections
+      default: false
+    required:
+      type: boolean
+      title: Required
+      description: Whether the field is required
+      default: false
+    disabled:
+      type: boolean
+      title: Disabled
+      description: Whether the field is disabled
+      default: false
+    size:
+      type: string
+      title: Size
+      description: Select field size
+      enum:
+        - xs
+        - sm
+        - md
+        - lg
+      default: md
+    error_message:
+      type: string
+      title: Error Message
+      description: Error message to display
+      default: ""
+slots:
+  help_text:
+    title: Help Text
+    description: Help text to display below the select

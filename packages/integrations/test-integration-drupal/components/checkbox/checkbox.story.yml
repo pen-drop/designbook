@@ -1,0 +1,70 @@
+stories:
+  preview:
+    title: Preview
+    props:
+      label: "Accept terms and conditions"
+      checked: false
+      size: md
+      color: primary
+  checked:
+    title: Checked State
+    props:
+      label: "Pre-selected option"
+      checked: true
+      size: md
+      color: primary
+  with_explanation:
+    title: With Explanation
+    props:
+      label: "Subscribe to newsletter"
+      checked: false
+      size: md
+      color: primary
+    slots:
+      explanation:
+        - type: element
+          value: "We will send you monthly updates about new features and content."
+  disabled:
+    title: Disabled State
+    props:
+      label: "Disabled checkbox"
+      checked: false
+      disabled: true
+      size: md
+      color: primary
+  disabled_checked:
+    title: Disabled Checked
+    props:
+      label: "Disabled and checked"
+      checked: true
+      disabled: true
+      size: md
+      color: primary
+  small_size:
+    title: Small Size
+    props:
+      label: "Small checkbox"
+      checked: false
+      size: sm
+      color: primary
+  large_size:
+    title: Large Size
+    props:
+      label: "Large checkbox"
+      checked: false
+      size: lg
+      color: primary
+  success_color:
+    title: Success Color
+    props:
+      label: "Success checkbox"
+      checked: true
+      size: md
+      color: success
+  error_color:
+    title: Error Color
+    props:
+      label: "Error checkbox"
+      checked: true
+      size: md
+      color: error

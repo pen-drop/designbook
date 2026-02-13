@@ -1,0 +1,79 @@
+{#
+/**
+ * @file
+ * Template for Card component (Kachel).
+ *
+ * Available variables:
+ * - title: Card title
+ * - variant: Card style variant (default, bordered, compact, side)
+ * - image_url: URL of the card image
+ * - image_position: Position of the image (top, bottom, left, right)
+ * - link_url: URL for the card to link to
+ * - link_text: Text for the action link/button
+ * - image: Custom image content
+ * - body: Main content of the card
+ * - actions: Action buttons or links
+ */
+#}
+{% set classes = [
+  'component',
+  'card',
+  'bg-base-100',
+  variant == 'bordered' ? 'card-bordered' : '',
+  variant == 'compact' ? 'card-compact' : '',
+  variant == 'side' ? 'card-side' : '',
+  'shadow-xl',
+] %}
+
+{% set card_wrapper = link_url ? 'a' : 'div' %}
+
+<{{ card_wrapper }}
+  {{ attributes.addClass(classes) }}
+  {{ link_url ? 'href="' ~ link_url ~ '"' : '' }}
+>
+  {% if image or image_url %}
+    {% if image_position == 'top' or image_position == 'left' %}
+      <figure class="card__image">
+        {% if image %}
+          {{ image }}
+        {% elseif image_url %}
+          <img src="{{ image_url }}" alt="{{ title }}" />
+        {% endif %}
+      </figure>
+    {% endif %}
+  {% endif %}
+
+  <div class="card-body">
+    {% if title %}
+      <h2 class="card-title headline-m text-color-darkgreen font-reef">{{ title }}</h2>
+    {% endif %}
+
+    {% if body %}
+      <div class="card__body copy-m">
+        {{ body }}
+      </div>
+    {% endif %}
+
+    {% if actions or link_text %}
+      <div class="card-actions justify-end mt-4">
+        {% if actions %}
+          {{ actions }}
+        {% elseif link_text and link_url %}
+          <a href="{{ link_url }}" class="btn btn-primary">{{ link_text }}</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if image or image_url %}
+    {% if image_position == 'bottom' or image_position == 'right' %}
+      <figure class="card__image">
+        {% if image %}
+          {{ image }}
+        {% elseif image_url %}
+          <img src="{{ image_url }}" alt="{{ title }}" />
+        {% endif %}
+      </figure>
+    {% endif %}
+  {% endif %}
+</{{ card_wrapper }}>

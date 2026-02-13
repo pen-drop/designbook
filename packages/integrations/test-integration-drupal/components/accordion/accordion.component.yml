@@ -1,0 +1,34 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: accordion
+status: stable
+description: An expandable accordion/expansion panel component
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: Title
+      description: The accordion panel title
+      default: ""
+    expanded:
+      type: boolean
+      title: Initially Expanded
+      description: Whether the accordion is expanded by default
+      default: false
+    variant:
+      type: string
+      title: Visual Variant
+      description: Accordion style variant
+      enum:
+        - default
+        - bordered
+        - compact
+      default: default
+slots:
+  header:
+    title: Header Content
+    description: Content to display in the accordion header
+  content:
+    title: Panel Content
+    description: Content to display in the expandable panel

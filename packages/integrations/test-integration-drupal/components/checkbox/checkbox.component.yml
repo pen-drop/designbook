@@ -1,0 +1,59 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: checkbox
+status: stable
+description: A checkbox form field component
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    label:
+      type: string
+      title: Label
+      description: Checkbox label text
+      default: ""
+    checked:
+      type: boolean
+      title: Checked
+      description: Whether the checkbox is checked by default
+      default: false
+    disabled:
+      type: boolean
+      title: Disabled
+      description: Whether the checkbox is disabled
+      default: false
+    size:
+      type: string
+      title: Size
+      description: Checkbox size
+      enum:
+        - xs
+        - sm
+        - md
+        - lg
+      default: md
+    color:
+      type: string
+      title: Color
+      description: Checkbox color variant
+      enum:
+        - primary
+        - secondary
+        - accent
+        - success
+        - warning
+        - error
+      default: primary
+    name:
+      type: string
+      title: Name
+      description: Form field name attribute
+      default: ""
+    value:
+      type: string
+      title: Value
+      description: Form field value attribute
+      default: ""
+slots:
+  explanation:
+    title: Explanation Text
+    description: Additional explanation or help text below the checkbox

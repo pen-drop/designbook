@@ -1,0 +1,75 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: input
+status: stable
+description: A text input form field component
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    label:
+      type: string
+      title: Label
+      description: Input field label
+      default: ""
+    placeholder:
+      type: string
+      title: Placeholder
+      description: Placeholder text
+      default: ""
+    type:
+      type: string
+      title: Input Type
+      description: HTML input type
+      enum:
+        - text
+        - email
+        - password
+        - number
+        - tel
+        - url
+        - search
+      default: text
+    required:
+      type: boolean
+      title: Required
+      description: Whether the field is required
+      default: false
+    disabled:
+      type: boolean
+      title: Disabled
+      description: Whether the field is disabled
+      default: false
+    size:
+      type: string
+      title: Size
+      description: Input field size
+      enum:
+        - xs
+        - sm
+        - md
+        - lg
+      default: md
+    variant:
+      type: string
+      title: Variant
+      description: Input style variant
+      enum:
+        - default
+        - bordered
+        - ghost
+      default: bordered
+    error_message:
+      type: string
+      title: Error Message
+      description: Error message to display
+      default: ""
+slots:
+  prefix:
+    title: Prefix Content
+    description: Content to display before the input (e.g., icon)
+  suffix:
+    title: Suffix Content
+    description: Content to display after the input (e.g., icon, button)
+  help_text:
+    title: Help Text
+    description: Help text to display below the input

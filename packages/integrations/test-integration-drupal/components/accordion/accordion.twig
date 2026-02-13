@@ -1,0 +1,38 @@
+{#
+/**
+ * @file
+ * Template for Accordion component.
+ *
+ * Available variables:
+ * - title: The accordion panel title
+ * - expanded: Whether the accordion is expanded by default
+ * - variant: Visual variant (default, bordered, compact)
+ * - header: Custom header content
+ * - content: Panel content
+ */
+#}
+{% set classes = [
+  'component',
+  'accordion',
+  variant ? 'accordion--' ~ variant : 'accordion--default',
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  <div class="collapse collapse-arrow {{ variant == 'bordered' ? 'collapse-bordered' : '' }} {{ expanded ? 'collapse-open' : 'collapse-close' }}">
+    <input type="checkbox" {{ expanded ? 'checked' : '' }} />
+    <div class="collapse-title text-xl font-medium font-reef">
+      {% if header %}
+        {{ header }}
+      {% elseif title %}
+        {{ title }}
+      {% endif %}
+    </div>
+    <div class="collapse-content">
+      {% if content %}
+        <div class="accordion__content">
+          {{ content }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,58 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: card
+status: stable
+description: A card component for displaying content blocks (Kachel)
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: Title
+      description: Card title
+      default: ""
+    variant:
+      type: string
+      title: Variant
+      description: Card style variant
+      enum:
+        - default
+        - bordered
+        - compact
+        - side
+      default: default
+    image_url:
+      type: string
+      title: Image URL
+      description: URL of the card image
+      default: ""
+    image_position:
+      type: string
+      title: Image Position
+      description: Position of the image in the card
+      enum:
+        - top
+        - bottom
+        - left
+        - right
+      default: top
+    link_url:
+      type: string
+      title: Link URL
+      description: URL for the card to link to
+      default: ""
+    link_text:
+      type: string
+      title: Link Text
+      description: Text for the action link/button
+      default: ""
+slots:
+  image:
+    title: Image Content
+    description: Custom image content (alternative to image_url)
+  body:
+    title: Body Content
+    description: Main content of the card
+  actions:
+    title: Card Actions
+    description: Action buttons or links

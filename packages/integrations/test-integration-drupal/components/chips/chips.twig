@@ -1,0 +1,39 @@
+{#
+/**
+ * @file
+ * Template for Chips component.
+ *
+ * Available variables:
+ * - items: Array of items to display as chips
+ * - removable: Whether chips can be removed
+ * - size: Size variant (xs, sm, md, lg)
+ * - icon: Custom icon for removing chips
+ */
+#}
+{% set classes = [
+  'component',
+  'chips',
+  'chips-list',
+  size ? 'chips--' ~ size : 'chips--md',
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  {% if items %}
+    {% for item in items %}
+      <div class="chip chips-list__chip badge badge-{{ size|default('md') }} bg-color-lightgreen text-color-green gap-2">
+        <span class="chip__label">{{ item }}</span>
+        {% if removable %}
+          <button type="button" class="chip__remove btn btn-ghost btn-xs btn-circle" aria-label="Remove {{ item }}">
+            {% if icon %}
+              {{ icon }}
+            {% else %}
+              <svg class="chips-list__chip-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            {% endif %}
+          </button>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>

@@ -1,0 +1,49 @@
+{#
+/**
+ * @file
+ * Template for Checkbox component.
+ *
+ * Available variables:
+ * - label: Checkbox label text
+ * - checked: Whether the checkbox is checked by default
+ * - disabled: Whether the checkbox is disabled
+ * - size: Checkbox size (xs, sm, md, lg)
+ * - color: Checkbox color variant (primary, secondary, accent, success, warning, error)
+ * - name: Form field name attribute
+ * - value: Form field value attribute
+ * - explanation: Additional explanation or help text
+ */
+#}
+{% set classes = [
+  'component',
+  'checkbox',
+  'form-control',
+] %}
+
+{% set checkbox_classes = [
+  'checkbox',
+  'checkbox-' ~ (color|default('primary')),
+  'checkbox-' ~ (size|default('md')),
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  <label class="label cursor-pointer justify-start gap-3">
+    <input
+      type="checkbox"
+      class="{{ checkbox_classes|join(' ') }}"
+      {{ checked ? 'checked' : '' }}
+      {{ disabled ? 'disabled' : '' }}
+      {{ name ? 'name="' ~ name ~ '"' : '' }}
+      {{ value ? 'value="' ~ value ~ '"' : '' }}
+    />
+    {% if label %}
+      <span class="label-text font-sarabun">{{ label }}</span>
+    {% endif %}
+  </label>
+
+  {% if explanation %}
+    <div class="checkbox__explanation ml-9 text-sm text-color-darkgray copy-xs">
+      {{ explanation }}
+    </div>
+  {% endif %}
+</div>

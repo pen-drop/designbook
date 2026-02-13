@@ -1,0 +1,75 @@
+{#
+/**
+ * @file
+ * Template for Select component.
+ *
+ * Available variables:
+ * - label: Select field label
+ * - placeholder: Placeholder text
+ * - options: Array of select options
+ * - multiple: Allow multiple selections
+ * - required: Whether the field is required
+ * - disabled: Whether the field is disabled
+ * - size: Select field size (xs, sm, md, lg)
+ * - error_message: Error message to display
+ * - help_text: Help text to display below the select
+ */
+#}
+{% set classes = [
+  'component',
+  'select',
+  'form-control',
+  'w-full',
+] %}
+
+{% set select_classes = [
+  'select',
+  'select-bordered',
+  'select-' ~ (size|default('md')),
+  'w-full',
+  error_message ? 'select-error' : '',
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  {% if label %}
+    <label class="label">
+      <span class="label-text font-reef {{ required ? 'font-semibold' : '' }}">
+        {{ label }}
+        {% if required %}
+          <span class="text-error">*</span>
+        {% endif %}
+      </span>
+    </label>
+  {% endif %}
+
+  <select
+    class="{{ select_classes|join(' ') }}"
+    {{ multiple ? 'multiple' : '' }}
+    {{ required ? 'required' : '' }}
+    {{ disabled ? 'disabled' : '' }}
+  >
+    {% if placeholder and not multiple %}
+      <option disabled selected>{{ placeholder }}</option>
+    {% endif %}
+
+    {% if options %}
+      {% for option in options %}
+        <option value="{{ option }}">{{ option }}</option>
+      {% endfor %}
+    {% endif %}
+  </select>
+
+  {% if error_message %}
+    <label class="label">
+      <span class="label-text-alt text-error">{{ error_message }}</span>
+    </label>
+  {% endif %}
+
+  {% if help_text %}
+    <label class="label">
+      <span class="label-text-alt text-color-darkgray">
+        {{ help_text }}
+      </span>
+    </label>
+  {% endif %}
+</div>

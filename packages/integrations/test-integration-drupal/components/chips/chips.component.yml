@@ -1,0 +1,32 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: chips
+status: stable
+description: A chips/tags component for displaying removable items
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    items:
+      type: array
+      title: Chip Items
+      description: Array of items to display as chips
+      default: []
+    removable:
+      type: boolean
+      title: Removable
+      description: Whether chips can be removed by clicking the close icon
+      default: true
+    size:
+      type: string
+      title: Size
+      description: Size variant of the chips
+      enum:
+        - xs
+        - sm
+        - md
+        - lg
+      default: md
+slots:
+  icon:
+    title: Remove Icon
+    description: Icon to display for removing chips (defaults to cancel icon)

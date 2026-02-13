@@ -1,0 +1,82 @@
+stories:
+  preview:
+    title: Preview
+    props:
+      label: "Select Country"
+      placeholder: "Choose a country"
+      options:
+        - Germany
+        - Austria
+        - Switzerland
+      required: false
+      size: md
+  with_help_text:
+    title: With Help Text
+    props:
+      label: "Select Language"
+      placeholder: "Choose a language"
+      options:
+        - German
+        - English
+        - French
+      required: true
+      size: md
+    slots:
+      help_text:
+        - type: element
+          value: "Select your preferred language"
+  with_error:
+    title: With Error
+    props:
+      label: "Required Field"
+      placeholder: "Please select"
+      options:
+        - Option 1
+        - Option 2
+        - Option 3
+      required: true
+      error_message: "This field is required"
+      size: md
+  disabled:
+    title: Disabled State
+    props:
+      label: "Disabled Select"
+      placeholder: "Cannot select"
+      options:
+        - Option 1
+        - Option 2
+      disabled: true
+      size: md
+  multiple:
+    title: Multiple Selection
+    props:
+      label: "Select Topics"
+      placeholder: "Choose multiple topics"
+      options:
+        - Technology
+        - Science
+        - Arts
+        - Sports
+        - Business
+      multiple: true
+      size: md
+  small_size:
+    title: Small Size
+    props:
+      label: "Small Select"
+      placeholder: "Choose"
+      options:
+        - Small 1
+        - Small 2
+        - Small 3
+      size: sm
+  large_size:
+    title: Large Size
+    props:
+      label: "Large Select"
+      placeholder: "Choose"
+      options:
+        - Large 1
+        - Large 2
+        - Large 3
+      size: lg

@@ -1,0 +1,41 @@
+stories:
+  preview:
+    title: Preview
+    props:
+      size: md
+      variant: spinner
+      color: primary
+  with_message:
+    title: With Loading Message
+    props:
+      size: md
+      variant: spinner
+      color: primary
+    slots:
+      message:
+        - type: element
+          value: "Loading..."
+  small_spinner:
+    title: Small Spinner
+    props:
+      size: sm
+      variant: spinner
+      color: primary
+  large_dots:
+    title: Large Dots
+    props:
+      size: lg
+      variant: dots
+      color: secondary
+  ring_loader:
+    title: Ring Loader
+    props:
+      size: md
+      variant: ring
+      color: accent
+  infinity:
+    title: Infinity Loader
+    props:
+      size: lg
+      variant: infinity
+      color: primary

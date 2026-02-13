@@ -1,0 +1,66 @@
+stories:
+  preview:
+    title: Preview
+    props:
+      label: "Email Address"
+      placeholder: "Enter your email"
+      type: email
+      required: false
+      size: md
+      variant: bordered
+  with_help_text:
+    title: With Help Text
+    props:
+      label: "Username"
+      placeholder: "Choose a username"
+      type: text
+      required: true
+      size: md
+      variant: bordered
+    slots:
+      help_text:
+        - type: element
+          value: "Username must be 3-20 characters long"
+  with_error:
+    title: With Error
+    props:
+      label: "Password"
+      placeholder: "Enter password"
+      type: password
+      required: true
+      error_message: "Password must be at least 8 characters"
+      size: md
+      variant: bordered
+  disabled:
+    title: Disabled State
+    props:
+      label: "Disabled Field"
+      placeholder: "Cannot edit"
+      type: text
+      disabled: true
+      size: md
+      variant: bordered
+  small_size:
+    title: Small Size
+    props:
+      label: "Search"
+      placeholder: "Search..."
+      type: search
+      size: sm
+      variant: bordered
+  large_size:
+    title: Large Size
+    props:
+      label: "Large Input"
+      placeholder: "Large input field"
+      type: text
+      size: lg
+      variant: bordered
+  ghost_variant:
+    title: Ghost Variant
+    props:
+      label: "Ghost Input"
+      placeholder: "Ghost style"
+      type: text
+      size: md
+      variant: ghost

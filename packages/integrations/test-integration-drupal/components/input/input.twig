@@ -1,0 +1,82 @@
+{#
+/**
+ * @file
+ * Template for Input component.
+ *
+ * Available variables:
+ * - label: Input field label
+ * - placeholder: Placeholder text
+ * - type: HTML input type (text, email, password, etc.)
+ * - required: Whether the field is required
+ * - disabled: Whether the field is disabled
+ * - size: Input field size (xs, sm, md, lg)
+ * - variant: Input style variant (default, bordered, ghost)
+ * - error_message: Error message to display
+ * - prefix: Content to display before the input
+ * - suffix: Content to display after the input
+ * - help_text: Help text to display below the input
+ */
+#}
+{% set classes = [
+  'component',
+  'input',
+  'form-control',
+  'w-full',
+] %}
+
+{% set input_classes = [
+  'input',
+  'input-' ~ (variant|default('bordered')),
+  'input-' ~ (size|default('md')),
+  'w-full',
+  error_message ? 'input-error' : '',
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  {% if label %}
+    <label class="label">
+      <span class="label-text font-reef {{ required ? 'font-semibold' : '' }}">
+        {{ label }}
+        {% if required %}
+          <span class="text-error">*</span>
+        {% endif %}
+      </span>
+    </label>
+  {% endif %}
+
+  <div class="input-wrapper {{ prefix or suffix ? 'flex items-center gap-2' : '' }}">
+    {% if prefix %}
+      <div class="input__prefix">
+        {{ prefix }}
+      </div>
+    {% endif %}
+
+    <input
+      type="{{ type|default('text') }}"
+      placeholder="{{ placeholder }}"
+      class="{{ input_classes|join(' ') }}"
+      {{ required ? 'required' : '' }}
+      {{ disabled ? 'disabled' : '' }}
+    />
+
+    {% if suffix %}
+      <div class="input__suffix">
+        {{ suffix }}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if error_message %}
+    <label class="label">
+      <span class="label-text-alt text-error">{{ error_message }}</span>
+    </label>
+  {% endif %}
+
+  {% if help_text %}
+    <label class="label">
+      <span class="label-text-alt text-color-darkgray">
+        {{ help_text }}
+      </span>
+    </label>
+  {% endif %}
+</div>

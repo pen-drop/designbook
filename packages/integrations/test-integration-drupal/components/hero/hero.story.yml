@@ -1,0 +1,94 @@
+stories:
+  preview:
+    title: Preview
+    props:
+      title: "Welcome to Leando"
+      subtitle: "Your learning platform for professional development"
+      image_url: "https://placehold.co/1920x600/056336/ffffff"
+      variant: overlay
+      min_height: md
+      text_color: light
+    slots:
+      actions:
+        - type: element
+          tag: a
+          value: "Get Started"
+          attributes:
+            class: btn btn-primary btn-lg
+            href: "#"
+        - type: element
+          tag: a
+          value: "Learn More"
+          attributes:
+            class: btn btn-outline btn-lg
+            href: "#"
+  centered:
+    title: Centered Layout
+    props:
+      title: "Discover New Opportunities"
+      subtitle: "Join thousands of learners worldwide"
+      image_url: "https://placehold.co/1920x600/95c11f/ffffff"
+      variant: centered
+      min_height: lg
+      text_color: light
+    slots:
+      actions:
+        - type: element
+          tag: button
+          value: "Explore Courses"
+          attributes:
+            class: btn btn-primary btn-lg
+  left_aligned:
+    title: Left Aligned
+    props:
+      title: "Professional Training"
+      subtitle: "Enhance your skills with expert-led courses"
+      image_url: "https://placehold.co/1920x600/5a84c3/ffffff"
+      variant: left-aligned
+      min_height: md
+      text_color: dark
+    slots:
+      content:
+        - type: element
+          tag: p
+          value: "Access a wide range of courses designed for professionals at all levels."
+          attributes:
+            class: copy-l mb-4
+      actions:
+        - type: element
+          tag: a
+          value: "Browse Catalog"
+          attributes:
+            class: btn btn-secondary
+            href: "#"
+  full_height:
+    title: Full Height
+    props:
+      title: "Transform Your Career"
+      subtitle: "Start learning today"
+      image_url: "https://placehold.co/1920x1080/056336/ffffff"
+      variant: overlay
+      min_height: full
+      text_color: light
+    slots:
+      actions:
+        - type: element
+          tag: button
+          value: "Sign Up Free"
+          attributes:
+            class: btn btn-primary btn-lg
+  no_image:
+    title: Without Background Image
+    props:
+      title: "Simple Hero"
+      subtitle: "Clean and minimal design"
+      variant: centered
+      min_height: sm
+      text_color: dark
+    slots:
+      actions:
+        - type: element
+          tag: button
+          value: "Get Started"
+          attributes:
+            class: btn btn-primary

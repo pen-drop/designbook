@@ -1,0 +1,44 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: loading
+status: stable
+description: A loading animation component
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    size:
+      type: string
+      title: Size
+      description: Size of the loading indicator
+      enum:
+        - xs
+        - sm
+        - md
+        - lg
+      default: md
+    variant:
+      type: string
+      title: Variant
+      description: Loading indicator style
+      enum:
+        - spinner
+        - dots
+        - ring
+        - ball
+        - bars
+        - infinity
+      default: spinner
+    color:
+      type: string
+      title: Color
+      description: Color variant using design tokens
+      enum:
+        - primary
+        - secondary
+        - accent
+        - neutral
+      default: primary
+slots:
+  message:
+    title: Loading Message
+    description: Optional loading message to display

@@ -1,0 +1,76 @@
+stories:
+  preview:
+    title: Preview
+    props:
+      title: "Card Title"
+      variant: default
+      image_url: "https://placehold.co/600x400/95c11f/ffffff"
+      image_position: top
+    slots:
+      body:
+        - type: element
+          value: "This is the card body content. It can contain text, images, and other elements."
+      actions:
+        - type: element
+          tag: a
+          value: "Learn More"
+          attributes:
+            class: btn btn-primary
+            href: "#"
+  with_link:
+    title: With Action Link
+    props:
+      title: "Featured Article"
+      variant: bordered
+      image_url: "https://placehold.co/600x400/056336/ffffff"
+      link_url: "/article/123"
+      link_text: "Read More"
+    slots:
+      body:
+        - type: element
+          value: "Discover the latest insights and updates in our featured article."
+  compact:
+    title: Compact Variant
+    props:
+      title: "Quick Info"
+      variant: compact
+      image_url: "https://placehold.co/400x300/5a84c3/ffffff"
+    slots:
+      body:
+        - type: element
+          value: "A compact card with essential information."
+  side_layout:
+    title: Side Layout
+    props:
+      title: "Side Card"
+      variant: side
+      image_url: "https://placehold.co/300x400/95c11f/ffffff"
+      image_position: left
+    slots:
+      body:
+        - type: element
+          value: "This card displays content alongside an image."
+      actions:
+        - type: element
+          tag: button
+          value: "Action"
+          attributes:
+            class: btn btn-secondary
+  no_image:
+    title: Without Image
+    props:
+      title: "Text Only Card"
+      variant: bordered
+    slots:
+      body:
+        - type: element
+          tag: div
+          value: |
+            <p class="copy-m">This card contains only text content without any images.</p>
+            <p class="copy-s text-color-darkgray">It's useful for announcements or simple messages.</p>
+      actions:
+        - type: element
+          tag: button
+          value: "Got it"
+          attributes:
+            class: btn btn-primary btn-sm
