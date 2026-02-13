@@ -1,27 +1,73 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: button
-status: experimental
-description: "Simple button component with filled default and outline variant"
+status: stable
+description: A button component with Leando design variants
 provider: daisy_cms_daisyui
-variants:
-  default:
-    title: Default
-    description: "Filled/solid button"
-  outline:
-    title: Outline
-    description: "Button with border only"
 props:
   type: object
   properties:
+    label:
+      type: string
+      title: Label
+      description: Button text label
+      default: ""
     variant:
       type: string
-      title: "Visual Variant"
-      description: "Choose button style"
+      title: Variant
+      description: Button style variant
       enum:
-        - default
-        - outline
-      default: default
+        - primary
+        - secondary
+        - secondary-noborder
+        - secondary-cookies
+        - negative-cookies
+        - tertiary
+        - blue
+        - gray
+        - search
+        - card
+      default: primary
+    type:
+      type: string
+      title: Button Type
+      description: HTML button type attribute
+      enum:
+        - button
+        - submit
+        - reset
+      default: button
+    url:
+      type: string
+      title: URL
+      description: Link URL (renders as anchor tag if provided)
+      default: ""
+    disabled:
+      type: boolean
+      title: Disabled
+      description: Whether the button is disabled
+      default: false
+    active:
+      type: boolean
+      title: Active
+      description: Whether the button is in active state
+      default: false
+    external_link:
+      type: boolean
+      title: External Link
+      description: Whether the link opens in a new tab
+      default: false
+    full_width:
+      type: boolean
+      title: Full Width
+      description: Whether button should take full width
+      default: false
 slots:
-  text:
-    title: "Button Text"
-    description: "The clickable label"
+  icon:
+    title: Icon
+    description: Icon to display inside the button
+  prefix:
+    title: Prefix Content
+    description: Content before the label
+  suffix:
+    title: Suffix Content
+    description: Content after the label

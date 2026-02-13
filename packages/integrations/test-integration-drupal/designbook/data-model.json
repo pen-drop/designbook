@@ -1,94 +1,481 @@
 {
   "content": {
     "node": {
-      "article": {
-        "title": "Article",
-        "description": "A news article or blog post.",
+      "event": {
+        "title": "Event",
+        "description": "Community events with enrollment management and scheduling",
         "fields": {
-          "field_title": {
+          "title": {
             "type": "string",
-            "label": "Title"
+            "label": "Title",
+            "required": true
           },
-          "field_body": {
-            "type": "text",
+          "body": {
+            "type": "text_long",
             "label": "Body"
           },
-          "field_existing_prefix": {
-            "type": "text",
-            "label": "Existing Prefix"
+          "field_event_address": {
+            "type": "address",
+            "label": "Address",
+            "description": "Physical location of the event"
           },
-          "field_category": {
+          "field_event_all_day": {
+            "type": "boolean",
+            "label": "All Day Event"
+          },
+          "field_enroll_method": {
+            "type": "list_string",
+            "label": "Enrollment Method"
+          },
+          "field_bbb_enabled": {
+            "type": "boolean",
+            "label": "BigBlueButton Enabled",
+            "description": "Enable online meeting via BigBlueButton"
+          },
+          "field_enable_guest_mode": {
+            "type": "boolean",
+            "label": "Enable Guest Mode"
+          },
+          "field_content_visibility": {
+            "type": "list_string",
+            "label": "Content Visibility"
+          },
+          "field_domain": {
             "type": "entity_reference",
-            "label": "Category",
+            "label": "Domain",
             "settings": {
               "target_type": "taxonomy_term",
               "handler": "default:taxonomy_term",
               "handler_settings": {
                 "target_bundles": {
-                  "category": "category"
+                  "domains": "domains"
                 }
               }
             }
+          },
+          "field_areas_of_responsility": {
+            "type": "entity_reference",
+            "label": "Areas of Responsibility",
+            "settings": {
+              "target_type": "taxonomy_term",
+              "handler": "default:taxonomy_term",
+              "handler_settings": {
+                "target_bundles": {
+                  "areas_of_responsibility": "areas_of_responsibility"
+                }
+              }
+            }
+          }
+        }
+      },
+      "topic": {
+        "title": "Inhalt",
+        "description": "Main content type for topics and articles",
+        "fields": {
+          "title": {
+            "type": "string",
+            "label": "Title",
+            "required": true
+          },
+          "body": {
+            "type": "text_long",
+            "label": "Body"
+          },
+          "field_hashtags": {
+            "type": "entity_reference",
+            "label": "Schlagworte",
+            "settings": {
+              "target_type": "taxonomy_term",
+              "handler": "default:taxonomy_term",
+              "handler_settings": {
+                "target_bundles": {
+                  "hashtags": "hashtags"
+                }
+              }
+            }
+          },
+          "field_files": {
+            "type": "file",
+            "label": "Files"
+          },
+          "field_target_groups": {
+            "type": "entity_reference",
+            "label": "Target Groups",
+            "settings": {
+              "target_type": "taxonomy_term",
+              "handler": "default:taxonomy_term",
+              "handler_settings": {
+                "target_bundles": {
+                  "target_groups": "target_groups"
+                }
+              }
+            }
+          },
+          "field_professions": {
+            "type": "entity_reference",
+            "label": "Professions",
+            "settings": {
+              "target_type": "taxonomy_term",
+              "handler": "default:taxonomy_term",
+              "handler_settings": {
+                "target_bundles": {
+                  "professions": "professions"
+                }
+              }
+            }
+          },
+          "field_topic_comments": {
+            "type": "comment",
+            "label": "Comments"
+          },
+          "field_content_visibility": {
+            "type": "list_string",
+            "label": "Content Visibility"
+          },
+          "field_domain": {
+            "type": "entity_reference",
+            "label": "Domain",
+            "settings": {
+              "target_type": "taxonomy_term",
+              "handler": "default:taxonomy_term",
+              "handler_settings": {
+                "target_bundles": {
+                  "domains": "domains"
+                }
+              }
+            }
+          },
+          "field_areas_of_responsility": {
+            "type": "entity_reference",
+            "label": "Areas of Responsibility",
+            "settings": {
+              "target_type": "taxonomy_term",
+              "handler": "default:taxonomy_term",
+              "handler_settings": {
+                "target_bundles": {
+                  "areas_of_responsibility": "areas_of_responsibility"
+                }
+              }
+            }
+          }
+        }
+      },
+      "learning_nugget": {
+        "title": "Lernpaket",
+        "description": "Learning content packages with SCORM support",
+        "fields": {
+          "title": {
+            "type": "string",
+            "label": "Title",
+            "required": true
+          },
+          "field_description": {
+            "type": "text_long",
+            "label": "Beschreibung"
+          },
+          "field_external_link": {
+            "type": "link",
+            "label": "External Link"
+          },
+          "field_icon": {
+            "type": "entity_reference",
+            "label": "Icon",
+            "settings": {
+              "target_type": "media",
+              "handler": "default:media"
+            }
+          },
+          "field_learning_duration": {
+            "type": "integer",
+            "label": "Learning Duration",
+            "description": "Duration in minutes"
+          },
+          "field_learning_nugget_files": {
+            "type": "file",
+            "label": "Learning Files"
+          },
+          "field_scorm": {
+            "type": "file",
+            "label": "SCORM Package"
+          },
+          "field_is_inactive": {
+            "type": "boolean",
+            "label": "Is Inactive"
+          },
+          "field_parent": {
+            "type": "entity_reference",
+            "label": "Parent",
+            "settings": {
+              "target_type": "node",
+              "handler": "default:node",
+              "handler_settings": {
+                "target_bundles": {
+                  "learning_nugget": "learning_nugget"
+                }
+              }
+            }
+          }
+        }
+      },
+      "cms_page": {
+        "title": "CMS Seite",
+        "description": "Content-Type für importierte CMS Seiten",
+        "fields": {
+          "title": {
+            "type": "string",
+            "label": "Title",
+            "required": true
+          },
+          "field_cms_page_type": {
+            "type": "list_string",
+            "label": "Page Type"
           }
         }
       },
       "page": {
         "title": "Basic Page",
-        "description": "Use for static content.",
+        "description": "Basic page content type",
         "fields": {
-          "field_body": {
-            "type": "text",
+          "title": {
+            "type": "string",
+            "label": "Title",
+            "required": true
+          },
+          "body": {
+            "type": "text_long",
             "label": "Body"
           }
         }
       },
-      "product": {
-        "title": "Product",
-        "description": "A product available for purchase.",
+      "landing_page": {
+        "title": "Landing Page",
+        "description": "Landing pages for campaigns and special sections",
         "fields": {
-          "field_title": {
+          "title": {
             "type": "string",
-            "label": "Title"
+            "label": "Title",
+            "required": true
           },
-          "field_body": {
-            "type": "text",
+          "body": {
+            "type": "text_long",
+            "label": "Body"
+          }
+        }
+      },
+      "social_media_post": {
+        "title": "Social Media Post",
+        "description": "Posts for social media integration",
+        "fields": {
+          "title": {
+            "type": "string",
+            "label": "Title",
+            "required": true
+          },
+          "body": {
+            "type": "text_long",
+            "label": "Body"
+          }
+        }
+      },
+      "tool": {
+        "title": "Tool",
+        "description": "Tools and resources for users",
+        "fields": {
+          "title": {
+            "type": "string",
+            "label": "Title",
+            "required": true
+          },
+          "field_description": {
+            "type": "text_long",
             "label": "Description"
+          }
+        }
+      },
+      "book": {
+        "title": "Book",
+        "description": "Book pages for structured documentation",
+        "fields": {
+          "title": {
+            "type": "string",
+            "label": "Title",
+            "required": true
           },
-          "field_image": {
-            "type": "entity_reference",
-            "label": "Product Image",
-            "settings": {
-              "target_type": "media",
-              "handler": "default:media",
-              "handler_settings": {
-                "target_bundles": {
-                  "image": "image"
-                }
-              }
-            }
+          "body": {
+            "type": "text_long",
+            "label": "Body"
           }
         }
       }
     },
     "media": {
-      "image": {
-        "title": "Image",
+      "dokument": {
+        "title": "Privates Dokument",
+        "description": "Private document files",
         "fields": {
-          "field_caption": {
+          "name": {
             "type": "string",
-            "label": "Caption"
+            "label": "Name",
+            "required": true
+          },
+          "field_media_file": {
+            "type": "file",
+            "label": "File"
+          }
+        }
+      },
+      "public_file": {
+        "title": "Public File",
+        "description": "Publicly accessible files",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
+          },
+          "field_media_file": {
+            "type": "file",
+            "label": "File"
           }
         }
       }
     },
     "taxonomy_term": {
-      "category": {
-        "title": "Category",
-        "description": "Categories for content grouping.",
+      "hashtags": {
+        "title": "Hashtags",
+        "description": "Hashtags for content tagging",
         "fields": {
           "name": {
             "type": "string",
-            "label": "Name"
+            "label": "Name",
+            "required": true
+          },
+          "description": {
+            "type": "text_long",
+            "label": "Description"
+          }
+        }
+      },
+      "professions": {
+        "title": "Berufe",
+        "description": "Professional categories",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
+          },
+          "description": {
+            "type": "text_long",
+            "label": "Description"
+          }
+        }
+      },
+      "areas_of_responsibility": {
+        "title": "Areas of Responsibility",
+        "description": "Areas of responsibility for content organization",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
+          },
+          "description": {
+            "type": "text_long",
+            "label": "Description"
+          }
+        }
+      },
+      "target_groups": {
+        "title": "Target Groups",
+        "description": "Target audience groups",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
+          },
+          "description": {
+            "type": "text_long",
+            "label": "Description"
+          }
+        }
+      },
+      "event_types": {
+        "title": "Event Types",
+        "description": "Types of events",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
+          },
+          "description": {
+            "type": "text_long",
+            "label": "Description"
+          }
+        }
+      },
+      "expertise": {
+        "title": "Expertise",
+        "description": "Areas of expertise",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
+          },
+          "description": {
+            "type": "text_long",
+            "label": "Description"
+          }
+        }
+      },
+      "federal_states": {
+        "title": "Federal States",
+        "description": "German federal states",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
+          }
+        }
+      },
+      "domains": {
+        "title": "Domains",
+        "description": "Content domains for multi-site management",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
+          },
+          "description": {
+            "type": "text_long",
+            "label": "Description"
+          }
+        }
+      },
+      "interests": {
+        "title": "Interests",
+        "description": "User interests",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
+          }
+        }
+      },
+      "topics": {
+        "title": "Topics",
+        "description": "Topic categories",
+        "fields": {
+          "name": {
+            "type": "string",
+            "label": "Name",
+            "required": true
           },
           "description": {
             "type": "text_long",

@@ -2,16 +2,123 @@ stories:
   preview:
     title: Preview
     props:
-      variant: default
-    slots:
-      text:
-        - type: element
-          value: 'Click me'
-  outline:
-    title: Outline
+      label: "Primary Button"
+      variant: primary
+      type: button
+  primary:
+    title: Primary
     props:
-      variant: outline
+      label: "Get Started"
+      variant: primary
+      type: button
+  secondary:
+    title: Secondary
+    props:
+      label: "Learn More"
+      variant: secondary
+      type: button
+  secondary_noborder:
+    title: Secondary No Border
+    props:
+      label: "View Details"
+      variant: secondary-noborder
+      type: button
+  tertiary:
+    title: Tertiary
+    props:
+      label: "Tertiary Action"
+      variant: tertiary
+      type: button
+  blue_tab:
+    title: Blue Tab Style
+    props:
+      label: "Tab Item"
+      variant: blue
+      type: button
+  gray_tab:
+    title: Gray Tab Style
+    props:
+      label: "Tab Item"
+      variant: gray
+      type: button
+  card_button:
+    title: Card Button
+    props:
+      label: "Card Action"
+      variant: card
+      type: button
+  with_icon:
+    title: With Icon
+    props:
+      label: "Search"
+      variant: primary
+      type: button
     slots:
-      text:
+      icon:
         - type: element
-          value: 'Click me'
+          tag: svg
+          value: |
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+  as_link:
+    title: As Link
+    props:
+      label: "Visit Page"
+      variant: secondary
+      url: "/example-page"
+      type: button
+  external_link:
+    title: External Link
+    props:
+      label: "External Resource"
+      variant: secondary
+      url: "https://example.com"
+      external_link: true
+  disabled:
+    title: Disabled State
+    props:
+      label: "Disabled Button"
+      variant: primary
+      disabled: true
+      type: button
+  active_state:
+    title: Active State
+    props:
+      label: "Active Button"
+      variant: primary
+      active: true
+      type: button
+  full_width:
+    title: Full Width
+    props:
+      label: "Full Width Button"
+      variant: primary
+      full_width: true
+      type: button
+  cookies_accept:
+    title: Cookie Accept
+    props:
+      label: "Accept Cookies"
+      variant: secondary-cookies
+      type: button
+  cookies_decline:
+    title: Cookie Decline
+    props:
+      label: "Decline"
+      variant: negative-cookies
+      type: button
+  search_button:
+    title: Search Button
+    props:
+      label: "Search"
+      variant: search
+      type: submit
+    slots:
+      icon:
+        - type: element
+          tag: svg
+          value: |
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
