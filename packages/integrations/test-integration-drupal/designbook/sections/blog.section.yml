@@ -3,3 +3,4 @@ title: Blog
 description: Fachartikel zu Drupal-Themen, Barrierefreiheit, Updates und Best Practices
 status: planned
 order: 5
+store: sections/blog/data.json

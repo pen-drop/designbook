@@ -1,8 +1,14 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: section_blog_blog_detail
 status: experimental
-description: "Screen: Blog — Blog Detail. Composes shell header + article entity + shell footer."
+description: "Screen: Blog — BlogDetail. Composes shell header + article entity + shell footer into a full page view."
+group: Designbook/Screen/Blog
 provider: designbook_design
+designbook:
+  section: blog
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
 slots:
   header:
     title: "Header"

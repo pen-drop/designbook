@@ -1,0 +1,31 @@
+name: default
+slots:
+  logo:
+    - type: component
+      component: 'daisy_cms_daisyui:logo'
+      props:
+        name: 'keytec'
+  navigation:
+    - type: component
+      component: 'daisy_cms_daisyui:nav-main'
+      props:
+        items:
+          - label: 'Startseite'
+            url: '/startseite'
+          - label: 'Leistungen'
+            url: '/leistungen'
+          - label: 'Projekte'
+            url: '/projekte'
+          - label: 'Über uns'
+            url: '/ueber-uns'
+          - label: 'Blog'
+            url: '/blog'
+          - label: 'Kontakt'
+            url: '/kontakt'
+  user_menu:
+    - type: component
+      component: 'daisy_cms_daisyui:button'
+      props:
+        label: 'Kontakt'
+        url: '/kontakt'
+        variant: 'primary'

@@ -1,5 +1,26 @@
-:root {
-  --color-primary: Indigo;
-  --color-secondary: Emerald;
-  --color-neutral: Slate;
+@plugin "daisyui/theme" {
+  name: "keytec";
+  default: true;
+  color-scheme: light;
+
+  --color-primary: #FF4E42;
+  --color-primary-content: #FFFFFF;
+  --color-secondary: #494FE5;
+  --color-secondary-content: #FFFFFF;
+  --color-accent: #FFC024;
+  --color-accent-content: #000000;
+  --color-neutral: #000000;
+  --color-neutral-content: #FFFFFF;
+  --color-base-100: #F7F7F4;
+  --color-base-200: #FFFFFF;
+  --color-base-300: #E5E5E0;
+  --color-base-content: #000000;
+  --color-info: #3ABFF8;
+  --color-info-content: #002B3D;
+  --color-success: #36D399;
+  --color-success-content: #003320;
+  --color-warning: #FBBD23;
+  --color-warning-content: #382800;
+  --color-error: #832626;
+  --color-error-content: #FFFFFF;
 }

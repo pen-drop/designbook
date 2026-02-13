@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Template for section-blog-blog-detail screen component.
+ *
+ * Available slots:
+ * - header: Shell header
+ * - content: Article entity (main content)
+ * - footer: Shell footer
+ */
+#}
+{{dump()}}
+<div{{ attributes.addClass(['section-blog-blog-detail']) }}>
+  {{ header }}
+  <main class="section-blog-blog-detail__content">
+    {{ content }}
+  </main>
+  {{ footer }}
+</div>

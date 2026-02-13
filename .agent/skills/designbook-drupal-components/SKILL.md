@@ -38,7 +38,7 @@ This skill generates Drupal Single Directory Component (SDC) files from a struct
 
 1. This skill is **technology-specific** and should only be used when `DESIGNBOOK_TECHNOLOGY` is set to `drupal` in `designbook.config.yml`.
 2. Load the configuration using the `designbook-configuration` skill to check the technology value before invoking this skill.
-3. `DESIGNBOOK_DRUPAL_THEME` must be set (via `drupal.theme` in `designbook.config.yml`). All component files are written to `DESIGNBOOK_DRUPAL_THEME/components/[component-name]/`.
+3. `DESIGNBOOK_DRUPAL_THEME` must be set (via `drupal.theme` in `designbook.config.yml`). UI component files are written to `$DESIGNBOOK_DRUPAL_THEME/components/[component-name]/` by default.
 
 ## Input Parameters
 
@@ -75,18 +75,11 @@ Expected as JSON object:
       "description": "The clickable label"
     }
   ],
-  "stories": [
-    {
-      "id": "preview",
-      "title": "Preview",
-      "props": { "variant": "default" },
-      "slots": {
-        "text": [
-          { "type": "element", "value": "Click me" }
-        ]
-      }
+  "thirdPartySettings": {
+    "sdcStorybook": {
+      "disableBasicStory": true
     }
-  ]
+  }  
 }
 ```
 
@@ -101,12 +94,13 @@ Expected as JSON object:
 - `props` (array, defaults to empty)
 - `slots` (array, defaults to empty)
 - `stories` (array, defaults to empty)
-- `outputDir` (string, defaults to `$DESIGNBOOK_DRUPAL_THEME/components/[component-name]`). When provided, files are written to this directory instead of the default. Used by design skills (`designbook-shell`, `designbook-entity`, `designbook-screen`) to write to `$DESIGNBOOK_DIST/design/`.
+- `outputDir` (string, defaults to `$DESIGNBOOK_DRUPAL_THEME/components/[component-name]`). When provided, files are written to this directory instead of the default. Used by design skills (`designbook-shell`, `designbook-entity`, `designbook-screen`) to write designbook components to `$DESIGNBOOK_DIST/components/`.
 
 ## Output Structure
 
 All files use the **same base name** as the directory (kebab-case):
 
+**UI Components (default):**
 ```
 $DESIGNBOOK_DRUPAL_THEME/components/
 └── [component-name]/
@@ -115,6 +109,15 @@ $DESIGNBOOK_DRUPAL_THEME/components/
     ├── [component-name].twig           # Twig template (required)
     ├── [component-name].css            # Component styles (optional)
     └── [component-name].js             # Component behavior (optional)
+```
+
+**Designbook Components (via `outputDir`):**
+```
+$DESIGNBOOK_DIST/components/
+└── [component-name]/
+    ├── [component-name].component.yml
+    ├── [component-name].story.yml
+    └── [component-name].twig
 ```
 
 When `outputDir` is provided, output goes to the specified directory instead:

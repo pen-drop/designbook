@@ -1,0 +1,19 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: entity_block_contact_person
+status: experimental
+description: "Contact Person block entity. Structural design component for author/contact boxes."
+group: Designbook/Entity
+provider: designbook_design
+designbook:
+  entity:
+    type: block_content
+    bundle: contact_person
+    record: 0
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  content:
+    title: "Content"
+    description: "Contact person content composed from UI components"
+

@@ -15,4 +15,4 @@ thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
     tags: 
-      - !autodocs
+      - "!autodocs"

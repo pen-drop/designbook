@@ -16,6 +16,8 @@ Shell components are **structural only** — they define *what* is shown (naviga
 | `shell_header` | Header with navigation, logo, user menu slots |
 | `shell_footer` | Footer with footer navigation, copyright slots |
 
+All shell components must include `group: Designbook/Shell` in their `component.yml`.
+
 ## Prerequisites
 
 1. This skill is **technology-specific** and should only be used when `DESIGNBOOK_TECHNOLOGY` is set to `drupal` in `designbook.config.yml`.
@@ -39,16 +41,15 @@ Expected as JSON object:
 
 ```
 $DESIGNBOOK_DIST/
-└── design/
-    └── shell/
-        ├── header/
-        │   ├── shell-header.component.yml
-        │   ├── shell-header.story.yml
-        │   └── shell-header.twig
-        └── footer/
-            ├── shell-footer.component.yml
-            ├── shell-footer.story.yml
-            └── shell-footer.twig
+└── components/
+    ├── shell-header/
+    │   ├── shell-header.component.yml
+    │   ├── shell-header.story.yml
+    │   └── shell-header.twig
+    └── shell-footer/
+        ├── shell-footer.component.yml
+        ├── shell-footer.story.yml
+        └── shell-footer.twig
 ```
 
 ## Execution Steps
@@ -58,8 +59,8 @@ $DESIGNBOOK_DIST/
 Check for existing shell components:
 
 ```bash
-ls $DESIGNBOOK_DIST/design/shell/header/shell-header.component.yml 2>/dev/null
-ls $DESIGNBOOK_DIST/design/shell/footer/shell-footer.component.yml 2>/dev/null
+ls $DESIGNBOOK_DIST/components/shell-header/shell-header.component.yml 2>/dev/null
+ls $DESIGNBOOK_DIST/components/shell-footer/shell-footer.component.yml 2>/dev/null
 ```
 
 **If both exist and `force` is `false`:**
@@ -117,7 +118,7 @@ find $DESIGNBOOK_DRUPAL_THEME/components/ -name "*.component.yml" 2>/dev/null | 
 
 **3.2 — Create missing UI components:**
 
-For each required UI component that doesn't exist, create it using the `designbook-drupal-components` skill. Place them in the **project's component library** (not `design/`):
+For each required UI component that doesn't exist, create it using the `designbook-drupal-components` skill. Place them in the **project's UI component library**:
 
 ```
 $DESIGNBOOK_DRUPAL_THEME/components/
@@ -166,11 +167,36 @@ Present the plan to the user and ask for confirmation:
 
 ### Step 4: Generate Header Component
 
+Build the header component definition:
+
+```yaml
+# shell-header.component.yml
+name: shell_header
+label: Shell Header
+status: experimental
+group: Designbook/Shell
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags: 
+      - "!autodocs"
+slots:
+  logo:
+    title: Logo
+    description: Branding logo
+  navigation:
+    title: Navigation
+    description: Main navigation
+  user_menu:
+    title: User Menu
+    description: User menu
+```
+
 Build the header component definition. The story must use **only component references**:
 
 ```yaml
 # shell-header.story.yml
-name: Preview
+name: default
 slots:
   logo:
     - type: component
@@ -197,15 +223,54 @@ Replace `[ui_provider]` with the project's SDC UI provider from config.
 Replace `[PRODUCT_NAME]` with the product name from `product-overview.md`.
 Replace navigation items with those built in Step 2.
 
+> ⛔ **MANDATORY Twig Template — NO HTML**: The Twig template for shell components must contain **only slot variable outputs**. No HTML tags, no wrapper elements, no BEM classes.
+
+```twig
+{# shell-header.twig — CORRECT: slots only, zero HTML #}
+{{ logo }}
+{{ navigation }}
+{{ user_menu }}
+```
+
+```twig
+{# ❌ WRONG — never do this in shell templates: #}
+<header class="shell-header">
+  <div class="shell-header__logo">{{ logo }}</div>
+  <nav class="shell-header__navigation">{{ navigation }}</nav>
+</header>
+```
+
 **Delegate** to `designbook-drupal-components` with this definition.
 
 ### Step 5: Generate Footer Component
 
-Build the footer component definition. The story must use **only component references**:
+Build the footer component definition:
+
+```yaml
+# shell-footer.component.yml
+name: shell_footer
+label: Shell Footer
+status: experimental
+group: Designbook/Shell
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags: 
+      - "!autodocs"
+slots:
+  footer_nav:
+    title: Footer Navigation
+    description: Footer navigation links
+  copyright:
+    title: Copyright
+    description: Copyright text
+```
+
+The story must use **only component references**:
 
 ```yaml
 # shell-footer.story.yml
-name: Preview
+name: default
 slots:
   footer_nav:
     - type: component
@@ -225,6 +290,14 @@ slots:
         text: '© 2026 [PRODUCT_NAME]. All rights reserved.'
 ```
 
+> ⛔ **MANDATORY Twig Template — NO HTML**: Same rule as header.
+
+```twig
+{# shell-footer.twig — CORRECT: slots only, zero HTML #}
+{{ footer_nav }}
+{{ copyright }}
+```
+
 **Delegate** to `designbook-drupal-components` with this definition.
 
 ### Step 6: Verify Output
@@ -232,7 +305,7 @@ slots:
 Check that all files were created:
 
 ```bash
-find $DESIGNBOOK_DIST/design/shell/ -type f | sort
+find $DESIGNBOOK_DIST/components/shell-* -type f | sort
 find $DESIGNBOOK_DRUPAL_THEME/components/ -name "*.component.yml" | sort
 ```
 
@@ -264,9 +337,9 @@ find $DESIGNBOOK_DRUPAL_THEME/components/ -name "*.component.yml" | sort
 
 ## Design Principles
 
-1. **No inline markup**: Shell stories contain **only `type: component`** references — never `type: element` with HTML
-2. **UI components first**: Create reusable UI components before building shell design components. UI components live in the project's component library
-3. **Structural only**: Shell Twig templates contain NO HTML markup — only slot references
+1. **No inline markup in stories**: Shell stories contain **only `type: component`** references — never `type: element` with HTML tags or attributes
+2. **No HTML in Twig templates**: Shell `.twig` files contain **only slot variable outputs** (`{{ logo }}`, `{{ navigation }}`, etc.) — **zero HTML tags**, no `<header>`, no `<div>`, no `<nav>`, no BEM classes. All HTML structure and styling lives in the referenced UI components
+3. **UI components first**: Create reusable UI components before building shell design components. UI components live in `$DESIGNBOOK_DRUPAL_THEME/components/`, designbook components live in `$DESIGNBOOK_DIST/components/`
 4. **Auto-navigation**: Menu items are derived from section.yml files, not hardcoded
 5. **Idempotent**: Skips generation if files exist (unless `force: true`)
 6. **Delegated**: Actual file creation is handled by `designbook-drupal-components`

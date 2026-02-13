@@ -1,0 +1,28 @@
+name: Author View
+slots:
+  content:
+    - type: component
+      component: daisy_cms_daisyui:contact-card
+      props:
+        name:
+          type: ref
+          field: field_name
+        title:
+          type: ref
+          field: field_title
+        email:
+          type: ref
+          field: field_email
+        phone:
+          type: ref
+          field: field_phone
+        image_url:
+          type: ref
+          field: field_media
+        image_alt:
+          type: ref
+          field: field_media
+        variant:
+          type: ref
+          field: field_variant
+

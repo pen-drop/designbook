@@ -4,12 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
 import { baseTheme } from '../.daisy_ui.js';
-import { initStorage } from './designbookStorage.js';
 import { refStoryNodeRenderer } from './refRenderer.js';
 const { uiPatternsDefs } = require(`./defs.js`);
-
-// Initialize the global data store (scans all sections/*/data.json)
-initStorage(cwd());
 
 console.log(baseTheme);
 /** @type { import('@storybook/html-vite').StorybookConfig } */

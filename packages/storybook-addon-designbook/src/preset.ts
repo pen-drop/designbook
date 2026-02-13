@@ -114,3 +114,6 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
   return [...existingIndexers, sectionsIndexer];
 };
 
+export const indexers = experimental_indexers;
+
+

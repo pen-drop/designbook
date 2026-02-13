@@ -7,7 +7,11 @@ description: Generates entity design components (node, block, media) from data m
 
 This skill generates **entity design components** from `data-model.json`. Each entity type/bundle in the data model gets its own design component with a single `content` slot that composes UI components.
 
-Entity components are **structural** — they define a single `content` slot into which all UI components are composed sequentially. The visual design of each field is achieved by referencing **UI components** in the story's `content` slot, with prop values bound to test data from `data.json` using `$ref:` prefixes.
+Entity components are **structural** — they define a single `content` slot into which all UI components are composed sequentially. The visual design of each field is achieved by referencing **UI components** in the story's `content` slot.
+
+> **Rendering**: Entity components are rendered by the **SDC addon** using Twig templates. Prop values that come from sample data use the **`type: ref`** syntax — a custom `storyNodesRenderer` that resolves field values from `data.json` at render time via `designbookStorage.js`. This keeps stories DRY: the story YAML defines the *structure* (which UI component renders which field), while the *data* comes from `data.json`.
+
+> **How `type: ref` works**: The `refRenderer` registered in `.storybook/main.js` handles `{type: ref, field: X}` nodes. It reads the entity context (`type`, `bundle`, `record`) from `designbook.entity` metadata in `component.yml`, looks up the field value in the global data store, and passes the resolved value to the Twig template. For cross-entity references, use `{type: ref, path: 'entity_type.bundle.index.field'}` which bypasses context and resolves against the full store.
 
 > ⛔ **CRITICAL RULE — No Inline Markup**: Entity stories must contain **only `type: component`** references. Never use `type: element` with HTML tags, attributes, or CSS classes. Every field must be rendered by a reusable UI component. If a required UI component doesn't exist, **create it first**.
 
@@ -17,8 +21,12 @@ Entity components are **structural** — they define a single `content` slot int
 2. Load the configuration using the `designbook-configuration` skill to get `DESIGNBOOK_DIST` and `DESIGNBOOK_DRUPAL_THEME`.
 3. `$DESIGNBOOK_DIST/data-model.json` must exist (run `/data-model` first).
 
+**Required:**
+- `$DESIGNBOOK_DIST/sections/[section-id]/data.json` — sample data consumed by the `refRenderer` at render time
+- `.storybook/designbookStorage.js` — global data store (auto-loaded by `initStorage()` in `main.js`)
+- `.storybook/refRenderer.js` — `storyNodesRenderer` plugin for `type: ref` resolution
+
 **Optional but recommended:**
-- `$DESIGNBOOK_DIST/sections/[section-id]/data.json` — sample data for story population
 - `$DESIGNBOOK_DIST/sections/[section-id]/screen-designs.md` — field-to-UI-component mapping
 
 ## Input Parameters
@@ -38,28 +46,26 @@ Expected as JSON object:
 
 ```
 $DESIGNBOOK_DIST/
-└── design/
-    └── entity/
-        ├── node/
-        │   ├── article/
-        │   │   ├── entity-node-article.component.yml
-        │   │   ├── entity-node-article.story.yml
-        │   │   └── entity-node-article.twig
-        │   └── page/
-        │       ├── entity-node-page.component.yml
-        │       ├── entity-node-page.story.yml
-        │       └── entity-node-page.twig
-        ├── block/
-        │   └── hero/
-        │       ├── entity-block-hero.component.yml
-        │       ├── entity-block-hero.story.yml
-        │       └── entity-block-hero.twig
-        └── media/
-            └── image/
-                ├── entity-media-image.component.yml
-                ├── entity-media-image.story.yml
-                └── entity-media-image.twig
+└── components/
+    ├── entity-node-article/
+    │   ├── entity-node-article.component.yml
+    │   ├── entity-node-article.full.story.yml
+    │   └── entity-node-article.twig
+    ├── entity-node-page/
+    │   ├── entity-node-page.component.yml
+    │   ├── entity-node-page.full.story.yml
+    │   └── entity-node-page.twig
+    ├── entity-block-hero/
+    │   ├── entity-block-hero.component.yml
+    │   ├── entity-block-hero.full.story.yml
+    │   └── entity-block-hero.twig
+    └── entity-media-image/
+        ├── entity-media-image.component.yml
+        ├── entity-media-image.full.story.yml
+        └── entity-media-image.twig
 ```
+
+> **Story filename convention:** `[component-name].[viewmode].story.yml` — e.g., `entity-node-article.full.story.yml`, `entity-node-article.teaser.story.yml`. Each view mode gets its own story file.
 
 ## Execution Steps
 
@@ -96,17 +102,19 @@ Extract the entity types and bundles. The data model has this structure:
 
 > **Drupal mapping:** `content.node.*` = node entities, `content.media.*` = media entities, `content.taxonomy_term.*` = taxonomy terms. Block entities may also appear here once the screen-designs.md references them.
 
-### Step 2: Read Sample Data (Optional)
+### Step 2: Verify Sample Data
 
-For each section, try to read `$DESIGNBOOK_DIST/sections/[section-id]/data.json`:
+For each section, verify that `$DESIGNBOOK_DIST/sections/[section-id]/data.json` exists:
 
 ```bash
 cat $DESIGNBOOK_DIST/sections/[section-id]/data.json
 ```
 
-If available, use the first record of each entity type to populate story slot values. If not available, use placeholder values and warn:
+This data is loaded by `designbookStorage.js` at Storybook startup and made available to the `refRenderer`. The story YAML uses `type: ref` to reference fields — the renderer resolves them against this data at render time.
 
-> "⚠️ No sample data found for section `[section-id]`. Stories will use placeholder values. Run `/sample-data` to create realistic content."
+Read the data to understand the field structure and determine record indices. If not available, warn:
+
+> "⚠️ No sample data found for section `[section-id]`. `type: ref` bindings will show `[missing: ...]` placeholders. Run `/sample-data` to create realistic content."
 
 ### Step 3: Read Screen Designs (Optional)
 
@@ -147,7 +155,7 @@ For each component found, read its `.component.yml` to understand its props and 
 
 ### Step 3d: Create Missing UI Components
 
-For each required UI component that doesn't exist yet, **create it** using the `designbook-drupal-components` skill. Place them in the project's component library:
+For each required UI component that doesn't exist yet, **create it** using the `designbook-drupal-components` skill. Place them in the project's UI component library:
 
 ```
 $DESIGNBOOK_DRUPAL_THEME/components/
@@ -199,14 +207,27 @@ For each entity type/bundle in the data model:
 - `block/hero` → `entity-block-hero`
 - `media/image` → `entity-media-image`
 
-**4.2 Create component definition with single `content` slot:**
+**4.2 Create component definition with single `content` slot and entity metadata:**
 
 ```yaml
 # entity-node-article.component.yml
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: entity_node_article
-description: "Article. Structural design component — composes UI components for entity fields."
+description: "Article entity. Structural design component — composes UI components for entity fields."
+group: Designbook/Entity
 status: experimental
 provider: designbook_design
+designbook:
+  entity:
+    type: node
+    bundle: article
+    # record: 0  ← optional; omit for random record selection
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags: 
+      - "!autodocs"
+
 slots:
   content:
     title: "Content"
@@ -214,6 +235,10 @@ slots:
 ```
 
 > **Important:** Entity components always have exactly ONE slot: `content`. All UI components are composed sequentially inside this slot.
+>
+> **`designbook.entity`** metadata tells the Vite plugin which entity type/bundle this component represents. At build time, the plugin rewrites `{type: ref, field: X}` to `{type: ref, path: entityType.bundle.[record.]X}`. If `record` is omitted, `resolvePath()` picks a random record at runtime from the available test data.
+>
+> **`thirdPartySettings.sdcStorybook.disableBasicStory: true`** prevents the SDC addon from auto-generating a default "Basic" story — only the stories defined in `.story.yml` are shown.
 
 **4.3 Generate minimal Twig template:**
 
@@ -225,59 +250,103 @@ slots:
 
 The Twig template only renders the `content` slot inside a wrapper element. No per-field slot references.
 
-**4.4 Generate story with `designbook:` metadata and `$ref:` props:**
+**4.4 Generate story with `type: ref` data bindings:**
 
-The story YAML uses a `designbook:` block to declare the data source, then composes UI components in the `content` slot. Prop values use `$ref:` prefix to bind to test data fields.
+The story YAML composes UI components in the `content` slot. **Props bound to entity fields use `type: ref`** — the `refRenderer` resolves them at render time from `data.json` via `designbookStorage.js`. Static values (CTA text, layout flags) are written as literal strings/booleans.
 
-**Example for node/article (Full View):**
+The entity context (type, bundle, record) is set automatically from the `designbook.entity` metadata in `component.yml`. The `refRenderer` uses this context to resolve `field:` references against the correct record.
+
+**Two `type: ref` forms:**
+
+| Form | Syntax | Use case |
+|------|--------|----------|
+| **Field ref** | `{type: ref, field: title}` | Resolves against the current entity record (uses entity context) |
+| **Path ref** | `{type: ref, path: block_content.contact_person.0.field_name}` | Resolves against the full data store (cross-entity, context-free) |
+
+**Example for node/article (`entity-node-article.full.story.yml`):**
+
+Given `data.json` with `node.article[0]` and `block_content.contact_person[0]`:
 
 ```yaml
-designbook:
-  testdata: designbook/sections/[section-id]/data.json
-  entity_type: node
-  bundle: article
-  record: 0
-
-name: Full View
+name: full
 slots:
   content:
-    - type: component
-      component: '[ui_provider]:heading'
-      props:
-        text: '$ref:title'
-        level: h1
-        preheadline: '$ref:field_teaser_preheadline'
+    # Hero image — field_media is an object with url/alt subfields
     - type: component
       component: '[ui_provider]:figure'
       props:
-        src: '$ref:field_media.url'
-        alt: '$ref:field_media.alt'
+        src:
+          type: ref
+          field: field_media.url
+        alt:
+          type: ref
+          field: field_media.alt
         full_width: true
+
+    # Heading — title and preheadline from entity fields
+    - type: component
+      component: '[ui_provider]:heading'
+      props:
+        text:
+          type: ref
+          field: title
+        level: h1
+        preheadline:
+          type: ref
+          field: field_teaser_preheadline
+
+    # Body — rich text content from body field
     - type: component
       component: '[ui_provider]:text-block'
       props:
-        content: '$ref:body'
+        content:
+          type: ref
+          field: body
+
+    # Author box — cross-entity ref to block_content.contact_person
     - type: component
       component: '[ui_provider]:contact-card'
       props:
-        name: '$ref:block_content.contact_person.0.field_name'
-        title: '$ref:block_content.contact_person.0.field_title'
+        name:
+          type: ref
+          path: block_content.contact_person.0.field_name
+        title:
+          type: ref
+          path: block_content.contact_person.0.field_title
+        email:
+          type: ref
+          path: block_content.contact_person.0.field_email
+        phone:
+          type: ref
+          path: block_content.contact_person.0.field_phone
+        image_url:
+          type: ref
+          path: block_content.contact_person.0.field_media.url
+        image_alt:
+          type: ref
+          path: block_content.contact_person.0.field_media.alt
         variant: author
+
+    # CTA banner — static values, no data binding
     - type: component
       component: '[ui_provider]:cta-banner'
       props:
-        headline: "Sie benötigen Unterstützung?"
-        variant: ocean
+        headline: 'Sie benötigen Unterstützung?'
+        text: 'Lassen Sie uns über Ihr Drupal-Projekt sprechen.'
+        button_label: 'Projekt besprechen'
+        button_url: '/kontakt'
+        variant: primary
 ```
 
 **Key rules for story generation:**
 
-1. **`$ref:` prefix** = resolve from `data.json` at build time. Without prefix = literal value.
-2. **Dot-notation** for nested fields: `$ref:field_media.url` → `record.field_media.url`
-3. **Cross-entity refs** use full path: `$ref:block_content.contact_person.0.field_name` (uses root data, not just the entity record)
-4. **Static components** (CTA, banners) use literal props without `$ref:`
-5. Replace `[ui_provider]` with the project's SDC provider (e.g., `daisy_cms_daisyui`)
-6. Replace `[section-id]` with the actual section ID from the input parameters
+1. **Entity-own fields** → use `{type: ref, field: <field_name>}` (short form, uses entity context from `designbook.entity`)
+2. **Nested fields** → use dot notation: `{type: ref, field: field_media.url}`
+3. **Cross-entity data** → use `{type: ref, path: <entity_type>.<bundle>.<index>.<field>}` (full path, context-free)
+4. **Static values** (CTA text, layout flags, variants) → use literal strings/booleans directly
+5. **Always `type: component`** in slots — never `type: element`
+6. Replace `[ui_provider]` with the project's SDC provider (e.g., `daisy_cms_daisyui`)
+7. Replace `[section-id]` with the actual section ID from the input parameters
 
 **4.5 Delegate** to `designbook-drupal-components` with the component definition.
 
@@ -286,7 +355,7 @@ slots:
 Check that components were created for each entity type/bundle:
 
 ```bash
-find $DESIGNBOOK_DIST/design/entity/ -name "*.component.yml" | sort
+find $DESIGNBOOK_DIST/components/entity-* -name "*.component.yml" | sort
 find $DESIGNBOOK_DRUPAL_THEME/components/ -name "*.component.yml" | sort
 ```
 
@@ -328,12 +397,13 @@ find $DESIGNBOOK_DRUPAL_THEME/components/ -name "*.component.yml" | sort
 
 1. **Single content slot**: Entity components have ONE slot (`content`). All UI components are composed sequentially inside it
 2. **No inline markup**: Entity stories contain **only `type: component`** references — never `type: element` with HTML tags or CSS classes
-3. **`$ref:` data binding**: Props use `$ref:` prefix to bind to test data from `data.json`. Literal values have no prefix
-4. **UI components first**: Create reusable UI components before building entity design components
-5. **Minimal Twig templates**: Entity Twig templates contain only `{{ content }}` inside a wrapper — no per-field slot references
-6. **Data-driven**: Component structure is derived from `data-model.json`, not manually defined
-7. **One component per pattern**: Multiple fields sharing the same visual pattern reuse the same UI component
-8. **Separation of concerns**: Design entity components (in `design/`) are structural wrappers. UI components (in `components/`) provide visual rendering
-9. **Graceful degradation**: Works without sample data (uses `[missing: field]` placeholders)
-10. **Delegated**: Actual file creation is handled by `designbook-drupal-components`
-11. **Provider**: Uses `designbook_design` as SDC provider for design components. UI components use the theme's provider
+3. **`type: ref` data binding**: Props bound to entity fields use `{type: ref, field: X}` or `{type: ref, path: X}`. Static values are literal strings. No materialized data duplication in stories
+4. **Entity context via `designbook.entity`**: The `component.yml` declares entity type, bundle, and record index. The vite plugin sets this as context for the `refRenderer`
+5. **UI components first**: Create reusable UI components before building entity design components
+6. **Minimal Twig templates**: Entity Twig templates contain only `{{ content }}` inside a wrapper — no per-field slot references
+7. **Data-driven**: Component structure is derived from `data-model.json`, not manually defined
+8. **One component per pattern**: Multiple fields sharing the same visual pattern reuse the same UI component
+9. **Separation of concerns**: Designbook entity components (in `$DESIGNBOOK_DIST/components/`) are structural wrappers. UI components (in `$DESIGNBOOK_DRUPAL_THEME/components/`) provide visual rendering
+10. **Graceful degradation**: Without `data.json`, `type: ref` renders `[missing: field_name]` placeholders
+11. **Delegated**: Actual file creation is handled by `designbook-drupal-components`
+12. **Provider**: Uses `designbook_design` as SDC provider for designbook components. UI components use the theme's provider

@@ -1,52 +1,39 @@
 /**
  * Ref Renderer — storyNodesRenderer plugin for storybook-addon-sdc.
  *
- * Handles `type: ref` story nodes that resolve entity field data
- * from the global Designbook Storage.
- *
- * Usage in story YAML:
- *   props:
- *     title:
- *       type: ref
- *       field: title
- *
- * The entity context (type, bundle, record) comes from the component's
- * designbook.entity metadata, set automatically before story processing.
- *
- * For cross-entity references, use a full path:
- *   props:
- *     author_name:
- *       type: ref
- *       path: block_content.contact_person.0.field_name
- *
- * Register in main.js:
- *   sdcStorybookOptions: {
- *     storyNodesRenderer: refStoryNodeRenderer,
- *   }
+ * Handles `type: ref` story nodes.
+ * Since data is now resolved at build time, this renderer should simply pass through
+ * the resolved value or fall back gracefully if data is missing.
  */
-import { resolveField, resolvePath } from './designbookStorage.js';
 
 export const refStoryNodeRenderer = [
     {
         appliesTo: (item) => item?.type === 'ref',
         render: (item) => {
-            let value;
+            // Build-time resolved data might have replaced the node entirely.
+            // But if we still see 'type: ref', it means resolution failed or
+            // we are in a non-entity context.
+
+            // If the item itself IS the resolved value (e.g. string/number), return it.
+            // However, SDC addon passes the *node* object here.
+
+            // If the node has been transformed by Vite plugin, it shouldn't possess 'type: ref' anymore
+            // unless we failed to resolve it.
+
+            // Fallback: Check if item is just a value wrapping
+            if (item.value !== undefined) {
+                return JSON.stringify(item.value);
+            }
+
+            if (item.path) {
+                return JSON.stringify(`[unresolved: ${item.path}]`);
+            }
 
             if (item.field) {
-                // Short field path — resolved against current entity context
-                value = resolveField(item.field);
-            } else if (item.path) {
-                // Full path — resolved against the raw store (cross-entity)
-                value = resolvePath(item.path);
+                return JSON.stringify(item.field);
             }
 
-            if (value === undefined) {
-                const ref = item.field || item.path || '?';
-                console.warn(`[refRenderer] Could not resolve: ${ref}`);
-                return JSON.stringify(`[missing: ${ref}]`);
-            }
-
-            return JSON.stringify(value);
+            return JSON.stringify('[ref: unknown]');
         },
         priority: 10,
     },

@@ -11,6 +11,24 @@ Screen components are the **top-level composition layer** — they are structura
 
 > **Visual design flow:** Screen → composes Shell + Entity → each references UI components → produces a real page preview.
 
+## Section Context & Data Resolution
+
+Screen components **must** declare `designbook.section` in their `.component.yml`. This metadata tells the system which section's sample data (`data.json`) to load into `globalThis.__designbook_store`.
+
+When the screen is rendered in Storybook:
+1. The addon reads `designbook.section` from the component metadata
+2. It loads `sections/[section-id]/data.json` into `globalThis.__designbook_store`
+3. Entity stories within the screen use `type: ref` with `path:` notation (e.g., `path: node.article.title`)
+4. The `refRenderer` resolves these paths against the loaded store
+
+```yaml
+# In .component.yml — MANDATORY for data binding
+designbook:
+  section: blog   # ← loads sections/blog/data.json into the store
+```
+
+> ⛔ **Without `designbook.section`**, all `type: ref` paths in entity stories will resolve to `[missing: ...]` because no data is loaded.
+
 > ⛔ **NAMING CONVENTION**: All files follow **kebab-case** and the directory name = file base name. Example: `dashboard-overview/section-news-dashboard-overview.component.yml`.
 
 ## Prerequisites
@@ -18,8 +36,8 @@ Screen components are the **top-level composition layer** — they are structura
 1. This skill is **technology-specific** and should only be used when `DESIGNBOOK_TECHNOLOGY` is set to `drupal` in `designbook.config.yml`.
 2. Load the configuration using the `designbook-configuration` skill to get `DESIGNBOOK_DIST`.
 3. Shell components must exist (run `designbook-shell` first):
-   - `$DESIGNBOOK_DIST/design/shell/header/shell-header.component.yml`
-   - `$DESIGNBOOK_DIST/design/shell/footer/shell-footer.component.yml`
+   - `$DESIGNBOOK_DIST/components/shell-header/shell-header.component.yml`
+   - `$DESIGNBOOK_DIST/components/shell-footer/shell-footer.component.yml`
 4. Entity components must exist for referenced entities (run `designbook-entity` first).
 5. Screen designs must exist: `$DESIGNBOOK_DIST/sections/[section-id]/screen-designs.md`
 
@@ -40,34 +58,18 @@ Expected as JSON object:
 
 ```
 $DESIGNBOOK_DIST/
-└── design/
-    └── sections/
-        └── [section-id]/
-            ├── [page-name]/
-            │   ├── section-[sectionid]-[pagename].component.yml
-            │   ├── section-[sectionid]-[pagename].story.yml
-            │   └── section-[sectionid]-[pagename].twig
-            └── [another-page]/
-                ├── section-[sectionid]-[anotherpagename].component.yml
-                ├── section-[sectionid]-[anotherpagename].story.yml
-                └── section-[sectionid]-[anotherpagename].twig
+└── components/
+    ├── section-news-article-list/
+    │   ├── section-news-article-list.component.yml
+    │   ├── section-news-article-list.story.yml
+    │   └── section-news-article-list.twig
+    └── section-news-article-detail/
+        ├── section-news-article-detail.component.yml
+        ├── section-news-article-detail.story.yml
+        └── section-news-article-detail.twig
 ```
 
-**Example:** Section "news" with pages "article-list" and "article-detail":
-
-```
-design/sections/news/
-├── article-list/
-│   ├── section-news-article-list.component.yml
-│   ├── section-news-article-list.story.yml
-│   └── section-news-article-list.twig
-└── article-detail/
-    ├── section-news-article-detail.component.yml
-    ├── section-news-article-detail.story.yml
-    └── section-news-article-detail.twig
-```
-
-> **Naming rule:** Directory name is the page name (kebab-case). File base name = `section-[sectionid]-[pagename]` (kebab-case). All files in the directory share the same base name.
+> **Naming rule:** Directory name = file base name = `section-[sectionid]-[pagename]` (kebab-case). All files in the directory share the same base name.
 
 ## Execution Steps
 
@@ -76,8 +78,8 @@ design/sections/news/
 Verify shell components exist:
 
 ```bash
-ls $DESIGNBOOK_DIST/design/shell/header/shell-header.component.yml 2>/dev/null
-ls $DESIGNBOOK_DIST/design/shell/footer/shell-footer.component.yml 2>/dev/null
+ls $DESIGNBOOK_DIST/components/shell-header/shell-header.component.yml 2>/dev/null
+ls $DESIGNBOOK_DIST/components/shell-footer/shell-footer.component.yml 2>/dev/null
 ```
 
 **If missing:**
@@ -105,6 +107,16 @@ For each section's `screen-designs.md`, extract page definitions. Each page shou
 - **Entity reference** — which entity type/bundle is shown (e.g., "node/article")
 - **View mode** — which view mode to use (e.g., "full", "teaser")
 
+The **view mode** determines the entity story that the screen composes. Entity stories are named after their view mode machine name (e.g., `full`, `teaser`). The screen story references the entity using `story: [viewmode]`.
+
+View modes can also be derived from the **data model** (`data-model.json`) if the entity defines `view_modes`. Common view modes:
+
+| View Mode | Screen Type | Entity Story Name |
+|-----------|------------|-------------------|
+| `full` | Detail page | `full` |
+| `teaser` | List page / card | `teaser` |
+| `search_result` | Search results | `search_result` |
+
 > **Parsing strategy:** Look for structured headings or sections in screen-designs.md that define individual pages. The markdown format should have clear page boundaries.
 
 **If parsing fails for a page:**
@@ -117,7 +129,7 @@ Continue with remaining pages.
 For each entity referenced in the screen designs, verify the entity component exists:
 
 ```bash
-ls $DESIGNBOOK_DIST/design/entity/[entity_type]/[bundle]/entity-[entitytype]-[bundle].component.yml 2>/dev/null
+ls $DESIGNBOOK_DIST/components/entity-[entitytype]-[bundle]/entity-[entitytype]-[bundle].component.yml 2>/dev/null
 ```
 
 **If missing:**
@@ -174,8 +186,18 @@ The **directory and file names** use **kebab-case**: `section-news-article-list.
 {
   "name": "section_[sectionid]_[pagename]",
   "description": "Screen: [Section Title] — [Page Title]. Composes shell header + entity + shell footer.",
+  "group": "Designbook/Screen/[SECTION_ID]",
   "status": "experimental",
   "provider": "designbook_design",
+  "designbook": {
+    "section": "[sectionid]"
+  },
+  "thirdPartySettings": {
+    "sdcStorybook": {
+      "disableBasicStory": true,
+      "tags": ["!autodocs"]
+    }
+  },
   "slots": [
     {
       "name": "header",
@@ -193,28 +215,76 @@ The **directory and file names** use **kebab-case**: `section-news-article-list.
       "description": "Shell footer component"
     }
   ],
-  "outputDir": "$DESIGNBOOK_DIST/design/sections/[section-id]/[page-name]"
+  "outputDir": "$DESIGNBOOK_DIST/components/section-[sectionid]-[pagename]"
 }
+```
+
+> **`group`**: Replace `[SECTION_ID]` with the actual section ID in PascalCase (e.g., `Designbook/Screen/Blog`). This groups all screen pages of one section together in the Storybook sidebar.
+>
+> ⛔ **`designbook.section` is MANDATORY**: The section ID (e.g., `blog`). This is the key that tells the addon which `sections/[sectionid]/data.json` to load into `globalThis.__designbook_store`. Without it, all `{type: ref, path: ...}` references in entity stories will not resolve.
+
+The resulting `.component.yml` looks like this:
+
+```yaml
+# section-blog-blog-detail.component.yml
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: section_blog_blog_detail
+status: experimental
+description: "Screen: Blog — BlogDetail. Composes shell header + article entity + shell footer into a full page view."
+group: Designbook/Screen/Blog
+provider: designbook_design
+designbook:
+  section: blog
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags: 
+      - "!autodocs"
+slots:
+  header:
+    title: "Header"
+    description: "Shell header component"
+  content:
+    title: "Content"
+    description: "Main content area — article entity component"
+  footer:
+    title: "Footer"
+    description: "Shell footer component"
 ```
 
 **5.3 Generate story (flat format, component references only):**
 
+The story name comes from the **view mode** of the page (machine name, lowercase). For a detail page using view mode `full`, the story is named `full`. The entity component reference includes `story:` to select the matching entity story.
+
 ```yaml
 # section-[sectionid]-[pagename].story.yml
-name: Preview
+name: '[viewmode]'
 slots:
   header:
     - type: component
       component: 'designbook_design:shell-header'
+      story: default
   content:
     - type: component
       component: 'designbook_design:entity-[entitytype]-[bundle]'
+      story: '[viewmode]'
   footer:
     - type: component
       component: 'designbook_design:shell-footer'
+      story: default
 ```
 
+**View mode → Story name mapping:**
+
+| View Mode | Story Name |
+|-----------|------------|
+| `full` | `full` |
+| `teaser` | `teaser` |
+| `search_result` | `search_result` |
+
 > **Note**: Stories use the **flat format** (top-level `name`, `slots`, `props`). No `stories:` wrapper.
+> 
+> **`story:` key**: Required on all component references. This tells the SDC addon which story to render for the composed component. Shell components use `story: default`, entity components use the view mode machine name.
 
 **5.4 Delegate** to `designbook-drupal-components` with this definition.
 
@@ -223,7 +293,7 @@ slots:
 Check that screen components were created for each section/page:
 
 ```bash
-find $DESIGNBOOK_DIST/design/sections/ -name "*.component.yml" | sort
+find $DESIGNBOOK_DIST/components/section-* -name "*.component.yml" | sort
 ```
 
 **If successful:**
@@ -249,7 +319,7 @@ find $DESIGNBOOK_DIST/design/sections/ -name "*.component.yml" | sort
 
 ## Design Principles
 
-1. **Consistent naming**: Directory name = file base name. Always kebab-case. `section-news-article-list/section-news-article-list.*`
+1. **Consistent naming**: Directory name = file base name. Always kebab-case. `section-news-article-list/section-news-article-list.*`. Group key: `Designbook/Screen/[SECTION_ID]`
 2. **Structural templates, composed design**: Screen Twig templates contain `{{ header }}{{ content }}{{ footer }}` — nothing else. But the composed story renders a **complete visual page** because shell and entity stories already reference real UI components
 3. **No inline markup**: Screen stories use **only `type: component`** references — composing shell and entity design components
 4. **Composition**: Screens compose existing shell + entity components, never duplicate their logic

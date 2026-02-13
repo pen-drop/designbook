@@ -139,6 +139,9 @@ importers:
       '@tailwindcss/cli':
         specifier: ^4.1.18
         version: 4.1.18
+      '@types/glob':
+        specifier: ^9.0.0
+        version: 9.0.0
       '@types/node':
         specifier: ^20
         version: 20.19.33
@@ -175,6 +178,9 @@ importers:
       eslint-plugin-storybook:
         specifier: next
         version: 10.3.0-alpha.4(eslint@9.39.2(jiti@2.6.1))(storybook@10.3.0-alpha.4(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.9.3)
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
       npm-run-all2:
         specifier: ^8.0.4
         version: 8.0.4
@@ -1429,6 +1435,10 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@types/glob@9.0.0':
+    resolution: {integrity: sha512-00UxlRaIUvYm4R4W9WYkN8/J+kV8fmOQ7okeH6YFtGWFMt3odD45tpG5yA5wnL7HE6lLgjaTW5n14ju2hl2NNA==}
+    deprecated: This is a stub types definition. glob provides its own type definitions, so you do not need this installed.
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -5839,6 +5849,10 @@ snapshots:
   '@types/doctrine@0.0.9': {}
 
   '@types/estree@1.0.8': {}
+
+  '@types/glob@9.0.0':
+    dependencies:
+      glob: 11.1.0
 
   '@types/json-schema@7.0.15': {}
 

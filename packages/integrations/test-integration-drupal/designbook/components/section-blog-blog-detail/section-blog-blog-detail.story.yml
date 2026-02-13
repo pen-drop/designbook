@@ -1,0 +1,14 @@
+name: Full View
+slots:
+  header:
+    - type: component
+      component: 'designbook_design:shell-header'
+      story: default
+  content:
+    - type: component
+      component: 'designbook_design:entity-node-article'
+      story: full
+  footer:
+    - type: component
+      component: 'designbook_design:shell-footer'
+      story: default

@@ -1,12 +1,16 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: shell_footer
 status: experimental
-description: "Site footer with navigation and copyright"
+description: "Shell footer — composes footer navigation and copyright."
+group: Designbook/Shell
 provider: designbook_design
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
 slots:
   footer_nav:
     title: "Footer Navigation"
-    description: "Footer navigation links component"
+    description: "Footer navigation links"
   copyright:
     title: "Copyright"
-    description: "Copyright text component"
+    description: "Copyright text"

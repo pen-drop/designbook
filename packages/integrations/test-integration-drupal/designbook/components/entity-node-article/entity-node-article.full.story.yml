@@ -1,18 +1,18 @@
-name: Full View
+name: full
 slots:
   content:
     - type: component
-      component: 'daisy_cms_daisyui:figure'
+      component: daisy_cms_daisyui:figure
       props:
         src:
           type: ref
-          field: field_media.url
+          field: field_media
         alt:
           type: ref
-          field: field_media.alt
+          field: field_media
         full_width: true
     - type: component
-      component: 'daisy_cms_daisyui:heading'
+      component: daisy_cms_daisyui:heading
       props:
         text:
           type: ref
@@ -22,13 +22,13 @@ slots:
           type: ref
           field: field_teaser_preheadline
     - type: component
-      component: 'daisy_cms_daisyui:text-block'
+      component: daisy_cms_daisyui:text-block
       props:
         content:
           type: ref
           field: body
     - type: component
-      component: 'daisy_cms_daisyui:contact-card'
+      component: daisy_cms_daisyui:contact-card
       props:
         name:
           type: ref
@@ -42,25 +42,28 @@ slots:
         phone:
           type: ref
           path: block_content.contact_person.0.field_phone
-        image_src:
+        image_url:
           type: ref
           path: block_content.contact_person.0.field_media.url
+        image_alt:
+          type: ref
+          path: block_content.contact_person.0.field_media.alt
         variant: author
     - type: component
-      component: 'daisy_cms_daisyui:cta-banner'
+      component: daisy_cms_daisyui:cta-banner
       props:
-        headline: "Sie benötigen Unterstützung?"
-        text: "Kontaktieren Sie uns und starten wir Ihr Projekt."
-        button_label: "Kontakt aufnehmen"
-        button_url: "/kontakt"
-        variant: ocean
+        headline: Sie benötigen Unterstützung?
+        text: Lassen Sie uns über Ihr Drupal-Projekt sprechen. Wir beraten Sie gerne.
+        button_label: Projekt besprechen
+        button_url: /kontakt
+        variant: primary
     - type: component
-      component: 'daisy_cms_daisyui:heading'
+      component: daisy_cms_daisyui:heading
       props:
-        text: "Das könnte Sie auch interessieren"
+        text: Das könnte Sie auch interessieren
         level: h2
     - type: component
-      component: 'daisy_cms_daisyui:article-teaser'
+      component: daisy_cms_daisyui:article-teaser
       props:
         title:
           type: ref
@@ -68,15 +71,20 @@ slots:
         preheadline:
           type: ref
           path: node.article.1.field_teaser_preheadline
-        image_src:
+        description:
+          type: ref
+          path: node.article.1.field_teaser_description
+        image_url:
           type: ref
           path: node.article.1.field_media.url
         image_alt:
           type: ref
           path: node.article.1.field_media.alt
-        url: "/blog/drupal-ki"
+        button_text:
+          type: ref
+          path: node.article.1.field_button_text
     - type: component
-      component: 'daisy_cms_daisyui:article-teaser'
+      component: daisy_cms_daisyui:article-teaser
       props:
         title:
           type: ref
@@ -84,10 +92,15 @@ slots:
         preheadline:
           type: ref
           path: node.article.2.field_teaser_preheadline
-        image_src:
+        description:
+          type: ref
+          path: node.article.2.field_teaser_description
+        image_url:
           type: ref
           path: node.article.2.field_media.url
         image_alt:
           type: ref
           path: node.article.2.field_media.alt
-        url: "/blog/barrierefreiheit"
+        button_text:
+          type: ref
+          path: node.article.2.field_button_text
