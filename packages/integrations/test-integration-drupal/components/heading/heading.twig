@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Template for heading component.
+ *
+ * Available variables:
+ * - text: The heading text content
+ * - level: HTML heading level (h1-h4)
+ * - preheadline: Optional small text above the heading
+ */
+#}
+{% set classes = [
+  'component',
+  'heading',
+  'heading--' ~ (level|default('h2')),
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  {% if preheadline %}
+    <span class="heading__preheadline">{{ preheadline }}</span>
+  {% endif %}
+  <{{ level|default('h2') }} class="heading__text">{{ text }}</{{ level|default('h2') }}>
+</div>

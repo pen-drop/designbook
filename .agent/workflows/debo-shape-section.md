@@ -21,8 +21,8 @@ Check if the following files exist:
 **If product vision or roadmap are missing**, tell the user:
 
 > "Before shaping sections, you need to define your product and roadmap. Please run:
-> 1. `/product-vision` — Define your product
-> 2. `/product-roadmap` — Define your sections"
+> 1. `/debo-product-vision` — Define your product
+> 2. `/debo-product-roadmap` — Define your sections"
 
 Stop here.
 
@@ -128,7 +128,7 @@ Create the directory `${DESIGNBOOK_DIST}/sections/[section-id]/` if it doesn't e
 > - UI Requirements: [N] defined
 > - Shell: [Inside shell / Standalone]
 >
-> Open Storybook to see the specification on the Sections page. You can run `/shape-section` again to shape the next section or update this one."
+> Open Storybook to see the specification on the Sections page. You can run `/debo-shape-section` again to shape the next section or update this one."
 
 **Guardrails**
 - Be conversational — help the user think through requirements

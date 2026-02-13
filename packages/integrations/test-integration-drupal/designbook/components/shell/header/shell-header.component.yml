@@ -1,0 +1,12 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: shell_header
+status: experimental
+description: "Site header with logo and main navigation"
+provider: designbook_design
+slots:
+  logo:
+    title: "Logo"
+    description: "Site branding component"
+  navigation:
+    title: "Navigation"
+    description: "Primary navigation component"

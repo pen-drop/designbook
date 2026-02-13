@@ -1,19 +1,24 @@
-# Keytec
+# keytec.de
 
 ## Description
-Keytec is a modern wealth-building platform that empowers users to track, manage, and grow their assets with confidence. By consolidating investments, savings, and digital assets into a single "blue" interface, it clarifies the path to financial freedom.
+Die neue Website der Drupal-Agentur keytec aus München — ein frischer, moderner Auftritt, der die Drupal-Expertise und den Certified-Partner-Status überzeugend kommuniziert und gezielt mehr Kundenanfragen generiert.
 
 ## Problems & Solutions
 
-### Problem 1: Fragmented Finances
-Users have money scattered across banks, crypto wallets, and brokerages, making it hard to see the full picture.
-**Solution**: Keytec aggregates all financial data into one secure dashboard for real-time net worth tracking.
+### Problem 1: Veraltetes Design wirkt nicht mehr zeitgemäß
+Ein frisches, modernes Design mit Premium-Ästhetik, das keytecs Position als führende Drupal-Agentur visuell unterstreicht.
 
-### Problem 2: Lack of Direction
-Many people want to "get rich" but lack a structured plan or clear milestones.
-**Solution**: Keytec provides personalized growth roadmaps and actionable insights to optimize asset allocation.
+### Problem 2: Zu wenig Leads und Kundenanfragen
+Strategisch platzierte Call-to-Actions, Kontaktmöglichkeiten und überzeugende Social Proof-Elemente (Awards, Referenzen, Kundenstimmen) auf jeder Seite.
+
+### Problem 3: Expertise wird nicht optimal kommuniziert
+Klare Darstellung der Leistungen, ausgezeichneten Projekte (Splash Award) und des Certified-Partner-Status, um Vertrauen und Kompetenz sofort sichtbar zu machen.
 
 ## Key Features
-- **Unified Dashboard**: View all assets (fiat, crypto, stocks) in one place.
-- **Growth Projections**: AI-driven tools to forecast wealth based on current habits.
-- **Secure Blue Vault**: Top-tier security for sensitive financial data.
+- Modernes, frisches Webdesign mit starker visueller Identität
+- Lead-optimierte Seitenstruktur mit prominenten CTAs
+- Projekt-Showcases mit Kundenstimmen und Ergebnissen
+- Blog mit Drupal-Fachwissen (SEO & Thought Leadership)
+- Open Source-Bereich zur Community-Positionierung
+- Zweisprachig (DE/EN)
+- Kontaktseite mit niedrigschwelligen Anfragemöglichkeiten

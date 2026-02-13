@@ -2,6 +2,8 @@
 
 > ⛔ **CRITICAL RULE**: Stories must **NEVER** be placed inside `.component.yml` (no `thirdPartySettings.sdcStorybook`). Stories are **always** a separate `.story.yml` file.
 
+> ⛔ **NAMING RULE**: The filename must match the directory name. Component in `components/nav-main/` → file is `nav-main.component.yml`. Always kebab-case.
+
 ## Build Component YAML
 
 Build the YAML structure with component metadata only — no stories, no thirdPartySettings:

@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Template for copyright component.
+ *
+ * Available variables:
+ * - text: The copyright notice text
+ */
+#}
+{% set classes = [
+  'component',
+  'copyright',
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  <p class="copyright__text">{{ text|default('© 2026 keytec. All rights reserved.') }}</p>
+</div>

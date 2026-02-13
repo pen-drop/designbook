@@ -1,0 +1,7 @@
+name: Preview
+props:
+  headline: "Sie benötigen Unterstützung?"
+  text: "Dank unserer spezialisierten Drupal-Dienste können wir auf eine Vielzahl erfolgreicher Projekte zurückblicken. Kontaktieren Sie uns und starten wir Ihr Projekt."
+  button_label: "Kontakt aufnehmen"
+  button_url: "/kontakt"
+  variant: "ocean"

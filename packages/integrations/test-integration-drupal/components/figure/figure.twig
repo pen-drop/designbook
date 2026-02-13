@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Template for figure component.
+ *
+ * Available variables:
+ * - src: URL of the image
+ * - alt: Alternative text for the image
+ * - caption: Optional caption text
+ * - full_width: Whether the image spans full width
+ */
+#}
+{% set classes = [
+  'component',
+  'figure',
+  full_width ? 'figure--full-width' : '',
+] %}
+
+<figure{{ attributes.addClass(classes) }}>
+  <img src="{{ src }}" alt="{{ alt|default('') }}" class="figure__image" loading="lazy" />
+  {% if caption %}
+    <figcaption class="figure__caption">{{ caption }}</figcaption>
+  {% endif %}
+</figure>

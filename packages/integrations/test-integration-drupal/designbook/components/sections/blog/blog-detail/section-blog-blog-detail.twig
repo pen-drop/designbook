@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Template for section-blog-blog-detail screen component.
+ *
+ * Available variables:
+ * - header: Shell header component
+ * - content: Main content area (article entity)
+ * - footer: Shell footer component
+ */
+#}
+{% set classes = [
+  'component',
+  'section-blog-blog-detail',
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  {{ header }}
+  <main class="section-blog-blog-detail__content">
+    {{ content }}
+  </main>
+  {{ footer }}
+</div>

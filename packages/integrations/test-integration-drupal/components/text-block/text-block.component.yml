@@ -1,0 +1,12 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: text_block
+status: experimental
+description: "Rich text block component for body content"
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    content:
+      type: string
+      title: "Content"
+      description: "HTML/rich text content"

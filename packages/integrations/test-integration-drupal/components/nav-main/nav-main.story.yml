@@ -1,0 +1,15 @@
+name: Preview
+props:
+  items:
+    - label: "Startseite"
+      url: "/startseite"
+    - label: "Leistungen"
+      url: "/leistungen"
+    - label: "Projekte"
+      url: "/projekte"
+    - label: "Über uns"
+      url: "/ueber-uns"
+    - label: "Blog"
+      url: "/blog"
+    - label: "Kontakt"
+      url: "/kontakt"

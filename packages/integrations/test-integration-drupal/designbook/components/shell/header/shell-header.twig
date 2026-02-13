@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Template for shell-header component.
+ *
+ * Available variables:
+ * - logo: Site branding component
+ * - navigation: Primary navigation component
+ */
+#}
+{% set classes = [
+  'component',
+  'shell-header',
+] %}
+
+<header{{ attributes.addClass(classes) }}>
+  {% if logo %}
+    <div class="shell-header__logo">
+      {{ logo }}
+    </div>
+  {% endif %}
+  {% if navigation %}
+    <div class="shell-header__navigation">
+      {{ navigation }}
+    </div>
+  {% endif %}
+</header>

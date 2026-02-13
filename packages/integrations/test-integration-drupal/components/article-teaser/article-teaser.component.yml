@@ -1,0 +1,42 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: article_teaser
+status: experimental
+description: "Article teaser card with image, preheadline, title and read button"
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: "Title"
+      description: "Article title"
+    preheadline:
+      type: string
+      title: "Preheadline"
+      description: "Category or topic label"
+    image_src:
+      type: string
+      title: "Image Source"
+      description: "Teaser image URL"
+    image_alt:
+      type: string
+      title: "Image Alt"
+      description: "Alt text for teaser image"
+    url:
+      type: string
+      title: "Article URL"
+      description: "Link to the full article"
+    button_text:
+      type: string
+      title: "Button Text"
+      description: "Read more button label"
+      default: "Lesen"
+    button_color:
+      type: string
+      title: "Button Color"
+      description: "Button color variant"
+      enum:
+        - swimsuit
+        - ocean
+        - sun
+      default: swimsuit

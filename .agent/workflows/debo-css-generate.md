@@ -7,7 +7,7 @@ description: Generate CSS token files from design tokens. Automatically selects 
 
 # Generate CSS
 
-This workflow generates CSS token files from W3C Design Tokens. It automatically loads the correct skill based on the configured CSS framework.
+This workflow generates CSS token files from W3C Design Tokens. It loads the configuration and delegates to the `designbook-css-generate` skill, which handles the full pipeline including framework-specific delegation.
 
 ## Step 1: Load Configuration
 
@@ -17,23 +17,14 @@ source .agent/skills/designbook-configuration/scripts/set-env.sh
 
 Read `DESIGNBOOK_CSS_FRAMEWORK` from the environment.
 
-## Step 2: Select and Execute Skill
+## Step 2: Execute CSS Generation Skill
 
-Based on `DESIGNBOOK_CSS_FRAMEWORK`, load the matching skill:
+Read and execute `.agent/skills/designbook-css-generate/SKILL.md`.
 
-| Framework | Skill |
-|-----------|-------|
-| `daisyui` | `.agent/skills/designbook-css-daisyui/SKILL.md` |
-
-**If `DESIGNBOOK_CSS_FRAMEWORK` is not set or unknown:**
-
-> "❌ No CSS framework configured. Add `css.framework` to `designbook.config.yml`:
-> ```yaml
-> css:
->   framework: daisyui
-> ```
-> Supported frameworks: `daisyui`"
-
-Stop here.
-
-**If matched:** Read and execute the corresponding skill's `SKILL.md`.
+The skill handles:
+1. Token file verification
+2. Regeneration check (timestamp optimization)
+3. Framework-specific delegation (e.g. DaisyUI)
+4. JSONata transformation execution
+5. CSS import management in `app.src.css`
+6. Output verification

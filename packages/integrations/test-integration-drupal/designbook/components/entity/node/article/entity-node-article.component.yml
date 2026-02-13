@@ -1,0 +1,14 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: entity_node_article
+status: experimental
+description: "Entity: Node — Article. Single content slot for composed UI components."
+provider: designbook_design
+designbook:
+  entity:
+    type: node
+    bundle: article
+    record: 0
+slots:
+  content:
+    title: "Content"
+    description: "All article content composed from UI components"

@@ -1,0 +1,9 @@
+name: Preview
+props:
+  title: "Drupal & KI – Ihr Weg zu einer smarten Website"
+  preheadline: "Künstliche Intelligenz"
+  image_src: "https://placehold.co/400x250/494FE5/FFFFFF?text=Drupal+%26+KI"
+  image_alt: "Drupal und KI"
+  url: "/blog/drupal-ki"
+  button_text: "Lesen"
+  button_color: "ocean"

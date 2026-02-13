@@ -1,0 +1,3 @@
+name: Preview
+props:
+  content: "<h2>Warum auf Drupal 11 aktualisieren?</h2><p>Der offizielle Support für Drupal 9 wurde im November 2023 eingestellt. Das bedeutet, dass es keine Sicherheitsupdates, Bugfixes oder Unterstützung durch die Community mehr gibt.</p><h2>4 Gründe, jetzt auf Drupal 11 zu wechseln</h2><ol><li><strong>Sicherheit</strong> — Drupal 11 bietet essenzielle Sicherheitsupdates.</li><li><strong>Funktionalität</strong> — Neue Features und ein verbesserter Layout Builder.</li><li><strong>Unterstützung</strong> — Langfristige Wartung und Community-Support.</li><li><strong>Kompatibilität</strong> — Aktuelle Webstandards und moderne Frameworks.</li></ol>"

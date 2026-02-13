@@ -1,0 +1,93 @@
+name: Full View
+slots:
+  content:
+    - type: component
+      component: 'daisy_cms_daisyui:figure'
+      props:
+        src:
+          type: ref
+          field: field_media.url
+        alt:
+          type: ref
+          field: field_media.alt
+        full_width: true
+    - type: component
+      component: 'daisy_cms_daisyui:heading'
+      props:
+        text:
+          type: ref
+          field: title
+        level: h1
+        preheadline:
+          type: ref
+          field: field_teaser_preheadline
+    - type: component
+      component: 'daisy_cms_daisyui:text-block'
+      props:
+        content:
+          type: ref
+          field: body
+    - type: component
+      component: 'daisy_cms_daisyui:contact-card'
+      props:
+        name:
+          type: ref
+          path: block_content.contact_person.0.field_name
+        title:
+          type: ref
+          path: block_content.contact_person.0.field_title
+        email:
+          type: ref
+          path: block_content.contact_person.0.field_email
+        phone:
+          type: ref
+          path: block_content.contact_person.0.field_phone
+        image_src:
+          type: ref
+          path: block_content.contact_person.0.field_media.url
+        variant: author
+    - type: component
+      component: 'daisy_cms_daisyui:cta-banner'
+      props:
+        headline: "Sie benötigen Unterstützung?"
+        text: "Kontaktieren Sie uns und starten wir Ihr Projekt."
+        button_label: "Kontakt aufnehmen"
+        button_url: "/kontakt"
+        variant: ocean
+    - type: component
+      component: 'daisy_cms_daisyui:heading'
+      props:
+        text: "Das könnte Sie auch interessieren"
+        level: h2
+    - type: component
+      component: 'daisy_cms_daisyui:article-teaser'
+      props:
+        title:
+          type: ref
+          path: node.article.1.title
+        preheadline:
+          type: ref
+          path: node.article.1.field_teaser_preheadline
+        image_src:
+          type: ref
+          path: node.article.1.field_media.url
+        image_alt:
+          type: ref
+          path: node.article.1.field_media.alt
+        url: "/blog/drupal-ki"
+    - type: component
+      component: 'daisy_cms_daisyui:article-teaser'
+      props:
+        title:
+          type: ref
+          path: node.article.2.title
+        preheadline:
+          type: ref
+          path: node.article.2.field_teaser_preheadline
+        image_src:
+          type: ref
+          path: node.article.2.field_media.url
+        image_alt:
+          type: ref
+          path: node.article.2.field_media.alt
+        url: "/blog/barrierefreiheit"

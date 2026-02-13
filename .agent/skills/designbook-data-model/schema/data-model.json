@@ -1,0 +1,140 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://raw.githubusercontent.com/pen-drop/designbook/1.x/schemas/data-model.json",
+    "title": "Pendrop Content Schema",
+    "description": "JSON Schema for Pendrop content and configuration structure data",
+    "type": "object",
+    "properties": {
+        "content": {
+            "type": "object",
+            "title": "Content",
+            "description": "Content structure: content -> entity_type -> bundle -> field",
+            "additionalProperties": {
+                "$ref": "#/definitions/entity_type"
+            }
+        },
+        "config": {
+            "type": "object",
+            "title": "Configuration",
+            "description": "Configuration structure: config -> config_type -> config_item",
+            "properties": {
+                "views": {
+                    "type": "object",
+                    "title": "Views",
+                    "description": "Drupal Views configurations",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/view"
+                    }
+                }
+            },
+            "additionalProperties": {
+                "type": "object",
+                "description": "Additional configuration types can be added here"
+            }
+        }
+    },
+    "required": [
+        "content"
+    ],
+    "definitions": {
+        "entity_type": {
+            "type": "object",
+            "title": "Entity Type",
+            "description": "Entity type definition (e.g., node, block_content, media, taxonomy)",
+            "additionalProperties": {
+                "$ref": "#/definitions/bundle"
+            }
+        },
+        "bundle": {
+            "type": "object",
+            "title": "Bundle",
+            "description": "Bundle definition with its fields",
+            "properties": {
+                "fields": {
+                    "type": "object",
+                    "title": "Fields",
+                    "description": "Field definitions for this bundle",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/field"
+                    }
+                }
+            },
+            "additionalProperties": true
+        },
+        "field": {
+            "type": "object",
+            "title": "Field",
+            "description": "Field definition",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "description": "Field type (string, text, integer, boolean, reference, link, component, layout, etc.)"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Field title"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Field description"
+                },
+                "required": {
+                    "type": "boolean",
+                    "description": "Whether this field is required"
+                },
+                "multiple": {
+                    "type": "boolean",
+                    "description": "Whether this field can have multiple values"
+                },
+                "default": {
+                    "description": "Default value for this field"
+                },
+                "settings": {
+                    "type": "object",
+                    "description": "Field-specific settings",
+                    "additionalProperties": true
+                }
+            },
+            "required": [
+                "type"
+            ],
+            "additionalProperties": true
+        },
+        "view": {
+            "type": "object",
+            "title": "View",
+            "description": "View configuration",
+            "properties": {
+                "base_entity": {
+                    "type": "string",
+                    "description": "Base entity type"
+                },
+                "bundle": {
+                    "type": "string",
+                    "description": "Content type bundle"
+                },
+                "sorting": {
+                    "type": "string",
+                    "description": "Default sorting field"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Items per page"
+                },
+                "hasPager": {
+                    "type": "boolean",
+                    "description": "Enable pager"
+                },
+                "hint": {
+                    "type": "string",
+                    "description": "View configuration hint"
+                }
+            },
+            "required": [
+                "base_entity",
+                "bundle"
+            ],
+            "additionalProperties": true
+        }
+    }
+}

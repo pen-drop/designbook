@@ -1,0 +1,15 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: section_blog_blog_detail
+status: experimental
+description: "Screen: Blog — Blog Detail. Composes shell header + article entity + shell footer."
+provider: designbook_design
+slots:
+  header:
+    title: "Header"
+    description: "Shell header component"
+  content:
+    title: "Content"
+    description: "Main content area — article entity component"
+  footer:
+    title: "Footer"
+    description: "Shell footer component"

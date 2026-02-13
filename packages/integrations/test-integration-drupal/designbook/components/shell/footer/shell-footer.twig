@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Template for shell-footer component.
+ *
+ * Available variables:
+ * - footer_nav: Footer navigation links component
+ * - copyright: Copyright text component
+ */
+#}
+{% set classes = [
+  'component',
+  'shell-footer',
+] %}
+
+<footer{{ attributes.addClass(classes) }}>
+  {% if footer_nav %}
+    <div class="shell-footer__nav">
+      {{ footer_nav }}
+    </div>
+  {% endif %}
+  {% if copyright %}
+    <div class="shell-footer__copyright">
+      {{ copyright }}
+    </div>
+  {% endif %}
+</footer>

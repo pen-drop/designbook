@@ -1,0 +1,45 @@
+{#
+/**
+ * @file
+ * Template for contact-card component.
+ *
+ * Available variables:
+ * - name: Person's full name
+ * - title: Job title or role
+ * - email: Email address
+ * - phone: Phone number
+ * - image_src: URL to the person's photo
+ * - variant: Display variant (default, author, compact)
+ */
+#}
+{% set classes = [
+  'component',
+  'contact-card',
+  variant ? 'contact-card--' ~ variant : 'contact-card--default',
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  {% if image_src %}
+    <div class="contact-card__image">
+      <img src="{{ image_src }}" alt="{{ name }}" loading="lazy" />
+    </div>
+  {% endif %}
+  <div class="contact-card__info">
+    {% if name %}
+      <p class="contact-card__name">{{ name }}</p>
+    {% endif %}
+    {% if title %}
+      <p class="contact-card__title">{{ title }}</p>
+    {% endif %}
+    {% if email %}
+      <p class="contact-card__email">
+        <a href="mailto:{{ email }}">{{ email }}</a>
+      </p>
+    {% endif %}
+    {% if phone %}
+      <p class="contact-card__phone">
+        <a href="tel:{{ phone }}">{{ phone }}</a>
+      </p>
+    {% endif %}
+  </div>
+</div>

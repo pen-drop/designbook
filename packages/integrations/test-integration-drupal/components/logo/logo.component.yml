@@ -1,0 +1,18 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: logo
+status: experimental
+description: "Site branding logo component"
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    name:
+      type: string
+      title: "Site Name"
+      description: "The name of the site"
+      default: "keytec"
+    url:
+      type: string
+      title: "Link URL"
+      description: "URL the logo links to"
+      default: "/"

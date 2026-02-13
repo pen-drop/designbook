@@ -63,8 +63,9 @@ export const stories = async (entry: string[] = [], options: any) => {
   }
 
   const sectionsGlob = resolve(projectRoot, distDir, 'sections/*.section.yml');
+  const designGlob = resolve(projectRoot, distDir, 'design/**/*.component.yml');
 
-  return [...entry, onboardingGlob, sectionsGlob];
+  return [...entry, onboardingGlob, sectionsGlob, designGlob];
 };
 
 /**
@@ -112,3 +113,4 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
 
   return [...existingIndexers, sectionsIndexer];
 };
+

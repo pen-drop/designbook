@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Template for logo component.
+ *
+ * Available variables:
+ * - name: The site name
+ * - url: The link URL
+ */
+#}
+{% set classes = [
+  'component',
+  'logo',
+] %}
+
+<a href="{{ url|default('/') }}"{{ attributes.addClass(classes) }}>
+  <span class="logo__text">{{ name|default('keytec') }}</span>
+</a>

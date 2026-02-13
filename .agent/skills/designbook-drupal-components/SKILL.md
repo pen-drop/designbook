@@ -15,6 +15,25 @@ This skill generates Drupal Single Directory Component (SDC) files from a struct
 
 > ⛔ **CRITICAL RULE**: Stories must **NEVER** be placed inside `.component.yml`. Stories are **always** a separate `.story.yml` file.
 
+> ⛔ **NAMING CONVENTION**: All files in a component directory **must share the same base name** as the directory. The base name is always **kebab-case**. No exceptions.
+>
+> ```
+> components/nav-main/
+> ├── nav-main.component.yml   ✅ correct
+> ├── nav-main.story.yml       ✅ correct
+> ├── nav-main.twig            ✅ correct
+> ├── nav-main.css             ✅ correct (optional)
+> └── nav-main.js              ✅ correct (optional)
+> ```
+>
+> **Never** mix names:
+> ```
+> components/nav-main/
+> ├── navigation.component.yml ❌ WRONG — must be nav-main.component.yml
+> ├── main-nav.story.yml       ❌ WRONG — must be nav-main.story.yml
+> └── NavMain.twig             ❌ WRONG — must be nav-main.twig
+> ```
+
 ## Prerequisites
 
 1. This skill is **technology-specific** and should only be used when `DESIGNBOOK_TECHNOLOGY` is set to `drupal` in `designbook.config.yml`.
@@ -82,16 +101,34 @@ Expected as JSON object:
 - `props` (array, defaults to empty)
 - `slots` (array, defaults to empty)
 - `stories` (array, defaults to empty)
+- `outputDir` (string, defaults to `$DESIGNBOOK_DRUPAL_THEME/components/[component-name]`). When provided, files are written to this directory instead of the default. Used by design skills (`designbook-shell`, `designbook-entity`, `designbook-screen`) to write to `$DESIGNBOOK_DIST/design/`.
 
 ## Output Structure
+
+All files use the **same base name** as the directory (kebab-case):
 
 ```
 $DESIGNBOOK_DRUPAL_THEME/components/
 └── [component-name]/
-    ├── [component-name].component.yml  # SDC metadata
-    ├── [component-name].story.yml      # SDC Storybook stories
-    └── [component-name].twig           # Twig template
+    ├── [component-name].component.yml  # SDC metadata (required)
+    ├── [component-name].story.yml      # SDC Storybook stories (required)
+    ├── [component-name].twig           # Twig template (required)
+    ├── [component-name].css            # Component styles (optional)
+    └── [component-name].js             # Component behavior (optional)
 ```
+
+When `outputDir` is provided, output goes to the specified directory instead:
+
+```
+[outputDir]/
+├── [component-name].component.yml
+├── [component-name].story.yml
+├── [component-name].twig
+├── [component-name].css               # optional
+└── [component-name].js                # optional
+```
+
+> **Rule:** Directory name = file base name. Always. `button/button.*`, `nav-main/nav-main.*`, `hero-section/hero-section.*`.
 
 ## Execution Steps
 
@@ -125,16 +162,25 @@ Store as `componentNameKebab`.
 
 Store as `componentNameSnake`.
 
-### Step 3: Check for Existing Component
+### Step 3: Determine Output Directory
 
-Check if the component directory already exists:
+Resolve the output directory:
+
+```
+if outputDir is provided:
+  targetDir = outputDir
+else:
+  targetDir = $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]
+```
+
+Check if the target directory already has files:
 
 ```bash
-ls $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/
+ls [targetDir]/
 ```
 
 **If exists:**
-> "⚠️  Component `[name]` already exists at `$DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/`
+> "⚠️  Component `[name]` already exists at `[targetDir]/`
 >
 > Do you want to **overwrite** it? (y/n)"
 
@@ -143,7 +189,7 @@ Wait for confirmation. If "n", stop execution.
 ### Step 4: Create Component Directory
 
 ```bash
-mkdir -p $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]
+mkdir -p [targetDir]
 ```
 
 ### Step 5: Generate .component.yml
@@ -163,21 +209,23 @@ mkdir -p $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]
 Check that all three files were created successfully:
 
 ```bash
-ls -la $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/
+ls -la [targetDir]/
 ```
 
-Expected files:
-- `[componentNameKebab].component.yml`
-- `[componentNameKebab].story.yml`
-- `[componentNameKebab].twig`
+Expected files (all sharing the same base name as the directory):
+- `[componentNameKebab].component.yml` (required)
+- `[componentNameKebab].story.yml` (required)
+- `[componentNameKebab].twig` (required)
+- `[componentNameKebab].css` (optional, if component has custom styles)
+- `[componentNameKebab].js` (optional, if component has behavior)
 
 **If successful:**
 > "✅ **Component created successfully!**
 >
 > **Files:**
-> - `$DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].component.yml`
-> - `$DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].story.yml`
-> - `$DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].twig`
+> - `[targetDir]/[componentNameKebab].component.yml`
+> - `[targetDir]/[componentNameKebab].story.yml`
+> - `[targetDir]/[componentNameKebab].twig`
 >
 > **Component details:**
 > - Name: [name]
@@ -201,8 +249,9 @@ Expected files:
 
 ## Design Principles
 
-1. **Three files, three concerns**: Metadata, stories, and template are always separate
-2. **Idempotent**: Running multiple times with same input produces same result
-3. **Validated**: Component YAML is validated against the Drupal SDC schema
-4. **Safe**: Asks for confirmation before overwriting existing components
-5. **Standard**: Follows Drupal SDC and SDC Storybook conventions
+1. **Consistent naming**: Directory name = file base name. Always kebab-case. `button/button.*`, `nav-main/nav-main.*`
+2. **Three files minimum, one concern each**: Metadata (`.component.yml`), stories (`.story.yml`), and template (`.twig`) are always separate. Optional `.css` and `.js` follow the same naming pattern
+3. **Idempotent**: Running multiple times with same input produces same result
+4. **Validated**: Component YAML is validated against the Drupal SDC schema
+5. **Safe**: Asks for confirmation before overwriting existing components
+6. **Standard**: Follows Drupal SDC and SDC Storybook conventions

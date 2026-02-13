@@ -1,0 +1,33 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: cta_banner
+status: experimental
+description: "Call-to-action banner with headline, text and button"
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    headline:
+      type: string
+      title: "Headline"
+      description: "Banner headline text"
+    text:
+      type: string
+      title: "Text"
+      description: "Supporting text below the headline"
+    button_label:
+      type: string
+      title: "Button Label"
+      description: "CTA button text"
+    button_url:
+      type: string
+      title: "Button URL"
+      description: "CTA button link"
+    variant:
+      type: string
+      title: "Variant"
+      description: "Color variant"
+      enum:
+        - ocean
+        - swimsuit
+        - sun
+      default: ocean

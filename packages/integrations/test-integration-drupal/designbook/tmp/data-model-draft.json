@@ -3,69 +3,557 @@
         "node": {
             "article": {
                 "title": "Article",
-                "description": "A news article or blog post.",
+                "description": "Blog-Artikel und Fachbeiträge zu Drupal-Themen.",
                 "fields": {
-                    "field_title": {
+                    "title": {
                         "type": "string",
-                        "label": "Title"
+                        "title": "Title",
+                        "required": true
                     },
-                    "field_body": {
+                    "body": {
                         "type": "text",
-                        "label": "Body"
+                        "title": "Body"
                     },
-                    "field_existing_prefix": {
-                        "type": "text",
-                        "label": "Existing Prefix"
-                    },
-                    "field_category": {
-                        "type": "entity_reference",
-                        "label": "Category",
+                    "field_media": {
+                        "type": "reference",
+                        "title": "Hero Image",
                         "settings": {
-                            "target_type": "taxonomy_term",
-                            "handler": "default:taxonomy_term",
-                            "handler_settings": {
-                                "target_bundles": {
-                                    "category": "category"
-                                }
-                            }
+                            "target_type": "media"
                         }
+                    },
+                    "field_teaser_preheadline": {
+                        "type": "string",
+                        "title": "Teaser Preheadline"
+                    },
+                    "field_teaser_description": {
+                        "type": "string",
+                        "title": "Teaser Description"
+                    },
+                    "field_teaser_button_color": {
+                        "type": "string",
+                        "title": "Teaser Button Color"
+                    },
+                    "field_button_text": {
+                        "type": "string",
+                        "title": "Button Text"
+                    },
+                    "field_related": {
+                        "type": "reference",
+                        "title": "Related Content",
+                        "multiple": true,
+                        "settings": {
+                            "target_type": "node"
+                        }
+                    },
+                    "field_seo_title": {
+                        "type": "string",
+                        "title": "SEO Title"
+                    },
+                    "field_og_image": {
+                        "type": "image",
+                        "title": "OG Image"
+                    },
+                    "field_meta_tag": {
+                        "type": "string",
+                        "title": "Meta Tags"
+                    },
+                    "layout_builder__layout": {
+                        "type": "layout",
+                        "title": "Layout"
+                    }
+                }
+            },
+            "landing_page": {
+                "title": "Landing Page",
+                "description": "Freie Layoutseiten mit Layout Builder (z.B. Startseite, Leistungen).",
+                "fields": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title",
+                        "required": true
+                    },
+                    "body": {
+                        "type": "text",
+                        "title": "Body"
+                    },
+                    "field_media": {
+                        "type": "reference",
+                        "title": "Hero Image",
+                        "settings": {
+                            "target_type": "media"
+                        }
+                    },
+                    "field_show_breadcrumb": {
+                        "type": "boolean",
+                        "title": "Show Breadcrumb"
+                    },
+                    "field_seo_title": {
+                        "type": "string",
+                        "title": "SEO Title"
+                    },
+                    "field_og_image": {
+                        "type": "image",
+                        "title": "OG Image"
+                    },
+                    "field_meta_tags": {
+                        "type": "string",
+                        "title": "Meta Tags"
+                    },
+                    "layout_builder__layout": {
+                        "type": "layout",
+                        "title": "Layout"
                     }
                 }
             },
             "page": {
-                "title": "Basic Page",
-                "description": "Use for static content.",
+                "title": "Page",
+                "description": "Einfache statische Seiten (z.B. Impressum, Datenschutz).",
                 "fields": {
-                    "field_body": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title",
+                        "required": true
+                    },
+                    "body": {
                         "type": "text",
-                        "label": "Body"
+                        "title": "Body"
+                    },
+                    "field_seo_title": {
+                        "type": "string",
+                        "title": "SEO Title"
+                    },
+                    "field_meta_tags": {
+                        "type": "string",
+                        "title": "Meta Tags"
                     }
                 }
             },
-            "product": {
-                "title": "Product",
-                "description": "A product available for purchase.",
+            "projects": {
+                "title": "Projects",
+                "description": "Projekt-Showcases mit Referenzen und Case Studies.",
                 "fields": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title",
+                        "required": true
+                    },
+                    "body": {
+                        "type": "text",
+                        "title": "Body"
+                    },
+                    "field_media": {
+                        "type": "reference",
+                        "title": "Hero Image",
+                        "settings": {
+                            "target_type": "media"
+                        }
+                    },
+                    "field_teaser_preheadline": {
+                        "type": "string",
+                        "title": "Teaser Preheadline"
+                    },
+                    "field_teaser_description": {
+                        "type": "string",
+                        "title": "Teaser Description"
+                    },
+                    "field_teaser_button_color": {
+                        "type": "string",
+                        "title": "Teaser Button Color"
+                    },
+                    "field_button_text": {
+                        "type": "string",
+                        "title": "Button Text"
+                    },
+                    "field_related": {
+                        "type": "reference",
+                        "title": "Related Content",
+                        "multiple": true,
+                        "settings": {
+                            "target_type": "node"
+                        }
+                    },
+                    "field_seo_title": {
+                        "type": "string",
+                        "title": "SEO Title"
+                    },
+                    "field_og_image": {
+                        "type": "image",
+                        "title": "OG Image"
+                    },
+                    "field_meta_tags": {
+                        "type": "string",
+                        "title": "Meta Tags"
+                    },
+                    "layout_builder__layout": {
+                        "type": "layout",
+                        "title": "Layout"
+                    }
+                }
+            }
+        },
+        "block_content": {
+            "text": {
+                "title": "Text",
+                "description": "Rich-Text-Block mit optionalem Bild.",
+                "fields": {
+                    "field_rich_text_relaxed": {
+                        "type": "text",
+                        "title": "Rich Text"
+                    },
+                    "field_only_desktop": {
+                        "type": "boolean",
+                        "title": "Only Desktop"
+                    },
+                    "field_only_mobile": {
+                        "type": "boolean",
+                        "title": "Only Mobile"
+                    }
+                }
+            },
+            "card": {
+                "title": "Card",
+                "description": "Teaser-Karte mit Bild, Headline, Text und Link.",
+                "fields": {
+                    "field_headline": {
+                        "type": "string",
+                        "title": "Headline"
+                    },
+                    "field_preheadline": {
+                        "type": "string",
+                        "title": "Preheadline"
+                    },
+                    "field_text": {
+                        "type": "text",
+                        "title": "Text"
+                    },
+                    "field_text_size": {
+                        "type": "string",
+                        "title": "Text Size"
+                    },
+                    "field_card_image": {
+                        "type": "reference",
+                        "title": "Card Image",
+                        "settings": {
+                            "target_type": "media"
+                        }
+                    },
+                    "field_image_background_color": {
+                        "type": "string",
+                        "title": "Image Background Color"
+                    },
+                    "field_link": {
+                        "type": "link",
+                        "title": "Link"
+                    },
+                    "field_button_color": {
+                        "type": "string",
+                        "title": "Button Color"
+                    },
+                    "field_target": {
+                        "type": "string",
+                        "title": "Target"
+                    },
+                    "field_dingbats": {
+                        "type": "string",
+                        "title": "Icon"
+                    },
+                    "field_dingbats_color": {
+                        "type": "string",
+                        "title": "Icon Color"
+                    },
+                    "field_dingbats_size": {
+                        "type": "string",
+                        "title": "Icon Size"
+                    },
+                    "field_upcoming": {
+                        "type": "boolean",
+                        "title": "Upcoming"
+                    }
+                }
+            },
+            "buttons": {
+                "title": "Buttons",
+                "description": "Button-Gruppe mit mehreren Links.",
+                "fields": {
+                    "field_buttons": {
+                        "type": "link",
+                        "title": "Buttons",
+                        "multiple": true
+                    },
+                    "field_buttons_align": {
+                        "type": "string",
+                        "title": "Alignment"
+                    }
+                }
+            },
+            "quote": {
+                "title": "Quote",
+                "description": "Kundenzitat mit Autor, Bild und Link.",
+                "fields": {
+                    "field_quote": {
+                        "type": "string",
+                        "title": "Quote"
+                    },
+                    "field_author": {
+                        "type": "string",
+                        "title": "Author"
+                    },
+                    "field_media": {
+                        "type": "reference",
+                        "title": "Image",
+                        "settings": {
+                            "target_type": "media"
+                        }
+                    },
+                    "field_link": {
+                        "type": "link",
+                        "title": "Link"
+                    }
+                }
+            },
+            "contact_person": {
+                "title": "Contact Person",
+                "description": "Kontakt-Karte mit Name, E-Mail, Telefon und Bild.",
+                "fields": {
+                    "field_name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
                     "field_title": {
                         "type": "string",
-                        "label": "Title"
+                        "title": "Title"
                     },
-                    "field_body": {
-                        "type": "text",
-                        "label": "Description"
+                    "field_email": {
+                        "type": "string",
+                        "title": "Email"
                     },
-                    "field_image": {
-                        "type": "entity_reference",
-                        "label": "Product Image",
+                    "field_phone": {
+                        "type": "string",
+                        "title": "Phone"
+                    },
+                    "field_media": {
+                        "type": "reference",
+                        "title": "Image",
                         "settings": {
-                            "target_type": "media",
-                            "handler": "default:media",
-                            "handler_settings": {
-                                "target_bundles": {
-                                    "image": "image"
-                                }
-                            }
+                            "target_type": "media"
                         }
+                    },
+                    "field_variant": {
+                        "type": "string",
+                        "title": "Variant"
+                    },
+                    "field_dark": {
+                        "type": "boolean",
+                        "title": "Dark Mode"
+                    }
+                }
+            },
+            "contact_box": {
+                "title": "Contact Box",
+                "description": "Kontakt-Box mit Vor-/Nachname, Position, Bild, E-Mail und Telefon.",
+                "fields": {
+                    "field_first_name": {
+                        "type": "string",
+                        "title": "First Name"
+                    },
+                    "field_last_name": {
+                        "type": "string",
+                        "title": "Last Name"
+                    },
+                    "field_position": {
+                        "type": "string",
+                        "title": "Position"
+                    },
+                    "field_email": {
+                        "type": "string",
+                        "title": "Email"
+                    },
+                    "field_phone": {
+                        "type": "string",
+                        "title": "Phone"
+                    },
+                    "field_contact_image": {
+                        "type": "reference",
+                        "title": "Image",
+                        "settings": {
+                            "target_type": "media"
+                        }
+                    }
+                }
+            },
+            "facts": {
+                "title": "Facts",
+                "description": "Zahlen und Fakten mit Icons und Beschreibung.",
+                "fields": {
+                    "field_headline": {
+                        "type": "string",
+                        "title": "Headline"
+                    },
+                    "field_description": {
+                        "type": "text",
+                        "title": "Description"
+                    },
+                    "field_dingbats": {
+                        "type": "string",
+                        "title": "Icon"
+                    },
+                    "field_dingbats_color": {
+                        "type": "string",
+                        "title": "Icon Color"
+                    },
+                    "field_dingbats_size": {
+                        "type": "string",
+                        "title": "Icon Size"
+                    },
+                    "field_text_size": {
+                        "type": "string",
+                        "title": "Text Size"
+                    },
+                    "field_remove_padding_left": {
+                        "type": "boolean",
+                        "title": "Remove Padding Left"
+                    }
+                }
+            },
+            "dingbats": {
+                "title": "Dingbats",
+                "description": "Icon-Block mit Headline.",
+                "fields": {
+                    "field_headline": {
+                        "type": "string",
+                        "title": "Headline"
+                    },
+                    "field_dingbats": {
+                        "type": "string",
+                        "title": "Icon"
+                    },
+                    "field_dingbats_color": {
+                        "type": "string",
+                        "title": "Icon Color"
+                    },
+                    "field_dingbats_size": {
+                        "type": "string",
+                        "title": "Icon Size"
+                    },
+                    "field_text_size": {
+                        "type": "string",
+                        "title": "Text Size"
+                    },
+                    "field_bottom_spacing": {
+                        "type": "string",
+                        "title": "Bottom Spacing"
+                    }
+                }
+            },
+            "slider_css": {
+                "title": "Slider",
+                "description": "Bild-Slider mit mehreren Slides.",
+                "fields": {
+                    "field_slides": {
+                        "type": "reference",
+                        "title": "Slides",
+                        "multiple": true,
+                        "settings": {
+                            "target_type": "media"
+                        }
+                    },
+                    "field_slides_bottom": {
+                        "type": "reference",
+                        "title": "Slides Bottom",
+                        "multiple": true,
+                        "settings": {
+                            "target_type": "media"
+                        }
+                    }
+                }
+            },
+            "team_card": {
+                "title": "Team Card",
+                "description": "Team-Mitglieder-Karte mit Bild und Kontaktdaten.",
+                "fields": {
+                    "field_media": {
+                        "type": "reference",
+                        "title": "Image",
+                        "settings": {
+                            "target_type": "media"
+                        }
+                    },
+                    "field_name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "field_title": {
+                        "type": "string",
+                        "title": "Title/Position"
+                    },
+                    "field_email": {
+                        "type": "string",
+                        "title": "Email"
+                    }
+                }
+            },
+            "manual_list": {
+                "title": "Manual List",
+                "description": "Manuell kuratierte Content-Liste.",
+                "fields": {
+                    "field_nodes": {
+                        "type": "reference",
+                        "title": "Nodes",
+                        "multiple": true,
+                        "settings": {
+                            "target_type": "node"
+                        }
+                    }
+                }
+            },
+            "list": {
+                "title": "List",
+                "description": "Views-basierte automatische Content-Liste.",
+                "fields": {
+                    "field_list_reference": {
+                        "type": "reference",
+                        "title": "View Reference"
+                    }
+                }
+            },
+            "form": {
+                "title": "Form",
+                "description": "Webformular-Block mit optionalem Bild.",
+                "fields": {
+                    "body": {
+                        "type": "text",
+                        "title": "Body"
+                    },
+                    "field_media": {
+                        "type": "reference",
+                        "title": "Image",
+                        "settings": {
+                            "target_type": "media"
+                        }
+                    },
+                    "field_webform": {
+                        "type": "reference",
+                        "title": "Webform"
+                    }
+                }
+            },
+            "google_map": {
+                "title": "Google Map",
+                "description": "Karten-Block mit Standort.",
+                "fields": {
+                    "field_map_location": {
+                        "type": "string",
+                        "title": "Map Location"
+                    }
+                }
+            },
+            "trisected_box": {
+                "title": "Trisected Box",
+                "description": "Drei-Spalten-Box für Layout-Variationen.",
+                "fields": {
+                    "field_library": {
+                        "type": "reference",
+                        "title": "Library"
                     }
                 }
             }
@@ -73,28 +561,141 @@
         "media": {
             "image": {
                 "title": "Image",
+                "description": "Bild-Asset.",
                 "fields": {
-                    "field_caption": {
+                    "field_media_image": {
+                        "type": "image",
+                        "title": "Image"
+                    },
+                    "field_link": {
+                        "type": "link",
+                        "title": "Link"
+                    },
+                    "field_media_in_library": {
+                        "type": "boolean",
+                        "title": "In Library"
+                    }
+                }
+            },
+            "icon": {
+                "title": "Icon",
+                "description": "SVG-Icon.",
+                "fields": {
+                    "field_media_svg": {
                         "type": "string",
-                        "label": "Caption"
+                        "title": "SVG File"
+                    },
+                    "field_sprite_map_icon": {
+                        "type": "string",
+                        "title": "Sprite Map Icon"
+                    }
+                }
+            },
+            "collage": {
+                "title": "Collage",
+                "description": "Multi-Layer-Bild-Collage mit SVG-Overlays.",
+                "fields": {
+                    "field_media_image_1": {
+                        "type": "image",
+                        "title": "Base Image"
+                    },
+                    "field_image_layer1": {
+                        "type": "image",
+                        "title": "Image Layer 1"
+                    },
+                    "field_image_layer2": {
+                        "type": "image",
+                        "title": "Image Layer 2"
+                    },
+                    "field_image_layer3": {
+                        "type": "image",
+                        "title": "Image Layer 3"
+                    },
+                    "field_svg_layer1": {
+                        "type": "string",
+                        "title": "SVG Layer 1"
+                    },
+                    "field_svg_layer2": {
+                        "type": "string",
+                        "title": "SVG Layer 2"
+                    },
+                    "field_svg_layer3": {
+                        "type": "string",
+                        "title": "SVG Layer 3"
+                    },
+                    "field_preload": {
+                        "type": "boolean",
+                        "title": "Preload"
+                    }
+                }
+            },
+            "document": {
+                "title": "Document",
+                "description": "Dokument-Upload (PDF, etc.).",
+                "fields": {
+                    "field_media_document": {
+                        "type": "string",
+                        "title": "Document File"
+                    },
+                    "field_media_in_library": {
+                        "type": "boolean",
+                        "title": "In Library"
+                    }
+                }
+            },
+            "video": {
+                "title": "Video",
+                "description": "Video-Upload.",
+                "fields": {
+                    "field_media_video_file": {
+                        "type": "string",
+                        "title": "Video File"
+                    },
+                    "field_media_in_library": {
+                        "type": "boolean",
+                        "title": "In Library"
+                    }
+                }
+            },
+            "remote_video": {
+                "title": "Remote Video",
+                "description": "Eingebettetes Video (YouTube, Vimeo).",
+                "fields": {
+                    "field_media_oembed_video": {
+                        "type": "string",
+                        "title": "Video URL"
+                    },
+                    "field_media_in_library": {
+                        "type": "boolean",
+                        "title": "In Library"
+                    }
+                }
+            },
+            "audio": {
+                "title": "Audio",
+                "description": "Audio-Upload.",
+                "fields": {
+                    "field_media_audio_file": {
+                        "type": "string",
+                        "title": "Audio File"
+                    },
+                    "field_media_in_library": {
+                        "type": "boolean",
+                        "title": "In Library"
                     }
                 }
             }
-        },
-        "taxonomy_term": {
-            "category": {
-                "title": "Category",
-                "description": "Categories for content grouping.",
-                "fields": {
-                    "name": {
-                        "type": "string",
-                        "label": "Name"
-                    },
-                    "description": {
-                        "type": "text_long",
-                        "label": "Description"
-                    }
-                }
+        }
+    },
+    "config": {
+        "views": {
+            "related_content": {
+                "base_entity": "node",
+                "bundle": "article",
+                "sorting": "created",
+                "limit": 3,
+                "hasPager": false,
+                "hint": "Shows related articles/projects"
             }
         }
     }

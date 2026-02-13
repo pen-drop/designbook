@@ -1,0 +1,25 @@
+name: Preview
+slots:
+  logo:
+    - type: component
+      component: 'daisy_cms_daisyui:logo'
+      props:
+        name: "keytec"
+        url: "/"
+  navigation:
+    - type: component
+      component: 'daisy_cms_daisyui:nav-main'
+      props:
+        items:
+          - label: "Startseite"
+            url: "/startseite"
+          - label: "Leistungen"
+            url: "/leistungen"
+          - label: "Projekte"
+            url: "/projekte"
+          - label: "Über uns"
+            url: "/ueber-uns"
+          - label: "Blog"
+            url: "/blog"
+          - label: "Kontakt"
+            url: "/kontakt"

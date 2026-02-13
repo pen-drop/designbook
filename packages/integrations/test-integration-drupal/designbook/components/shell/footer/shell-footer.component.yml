@@ -1,0 +1,12 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: shell_footer
+status: experimental
+description: "Site footer with navigation and copyright"
+provider: designbook_design
+slots:
+  footer_nav:
+    title: "Footer Navigation"
+    description: "Footer navigation links component"
+  copyright:
+    title: "Copyright"
+    description: "Copyright text component"

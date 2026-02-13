@@ -1,6 +1,7 @@
 # Part 3: Generate .twig Template
 
-## Build Twig Template
+> ⛔ **NAMING RULE**: The filename must match the directory name. Component in `components/nav-main/` → file is `nav-main.twig`. Always kebab-case.
+
 
 Create a Twig template with helpful structure:
 

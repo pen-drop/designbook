@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Template for nav-main component.
+ *
+ * Available variables:
+ * - items: Array of navigation items with label and url
+ */
+#}
+{% set classes = [
+  'component',
+  'nav-main',
+] %}
+
+<nav{{ attributes.addClass(classes) }}>
+  {% if items %}
+    <ul class="nav-main__list">
+      {% for item in items %}
+        <li class="nav-main__item">
+          <a href="{{ item.url }}" class="nav-main__link">{{ item.label }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</nav>
