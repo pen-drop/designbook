@@ -1,12 +1,12 @@
 # Part 1: Generate .component.yml
 
-> ⛔ **CRITICAL RULE**: Stories must **NEVER** be placed inside `.component.yml` (no `thirdPartySettings.sdcStorybook`). Stories are **always** a separate `.story.yml` file.
+> ⛔ **CRITICAL RULE**: Stories must **NEVER** be placed inside `.component.yml`. Stories are **always** a separate `.story.yml` file. However, `thirdPartySettings.sdcStorybook.disableBasicStory: true` **must always** be included to prevent auto-generated basic stories.
 
 > ⛔ **NAMING RULE**: The filename must match the directory name. Component in `components/nav-main/` → file is `nav-main.component.yml`. Always kebab-case.
 
 ## Build Component YAML
 
-Build the YAML structure with component metadata only — no stories, no thirdPartySettings:
+Build the YAML structure with component metadata — no inline stories, but always include `thirdPartySettings`:
 
 **Base structure:**
 ```yaml
@@ -15,7 +15,12 @@ name: [componentNameSnake]
 status: [status]
 description: [description]
 provider: [provider]
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
 ```
+
+> ⚠️ The `thirdPartySettings.sdcStorybook.disableBasicStory: true` entry is **mandatory** for every component. It disables the auto-generated basic story since we always provide an explicit `.story.yml` file.
 
 **Add variants** (if provided):
 ```yaml

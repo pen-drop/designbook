@@ -11,3 +11,8 @@ props:
       title: "Copyright Text"
       description: "The copyright notice text"
       default: "© 2026 keytec. All rights reserved."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags: 
+      - !autodocs

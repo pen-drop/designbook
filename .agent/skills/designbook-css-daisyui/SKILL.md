@@ -1,13 +1,15 @@
 ---
 name: designbook-css-daisyui
-description: DaisyUI framework rules — Tailwind-only styling and CSS token generation from W3C Design Tokens. Use when DESIGNBOOK_CSS_FRAMEWORK is daisyui.
+description: DaisyUI framework rules — Tailwind-only styling, token naming conventions, and CSS token generation from W3C Design Tokens. Use when DESIGNBOOK_CSS_FRAMEWORK is daisyui.
 ---
 
 # Designbook CSS DaisyUI
 
-DaisyUI-specific rules for styling and CSS token generation. This skill defines the styling constraints for the DaisyUI framework and generates `.jsonata` expression files that produce DaisyUI-compatible CSS.
+DaisyUI-specific rules for styling, token naming, and CSS token generation. This skill defines the styling constraints for the DaisyUI framework, the naming conventions for design tokens, and generates `.jsonata` expression files that produce DaisyUI-compatible CSS.
 
-> **This skill is NOT called directly** — it is invoked by `designbook-css-generate` as the framework-specific delegate.
+> **This skill is invoked in two contexts:**
+> 1. By `debo-design-tokens` workflow — for token naming conventions (§ Token Naming Conventions)
+> 2. By `designbook-css-generate` — for CSS generation (§ Generate Expression Files)
 
 ## ⚠️ Styling Rules — Tailwind Classes Only
 
@@ -42,6 +44,127 @@ The complete DaisyUI 5 documentation for components, colors, themes, and config 
 - **Upstream**: [daisyui.com/llms.txt](https://daisyui.com/llms.txt)
 
 Read this file when you need to understand DaisyUI class names, theme format (`@plugin "daisyui/theme"`), color naming conventions, or component syntax.
+
+---
+
+## 🎨 Token Naming Conventions
+
+When `DESIGNBOOK_CSS_FRAMEWORK` is `daisyui`, design tokens **MUST** use DaisyUI/Tailwind semantic names. This ensures tokens map directly to DaisyUI theme variables and Tailwind utility classes without additional translation.
+
+> **Who uses this section?** The `debo-design-tokens` workflow reads this section to guide the user through naming their tokens correctly.
+
+### Color Token Names (Required)
+
+These are the **required** DaisyUI semantic color names. Every project must define at least the core colors:
+
+| Token Name | DaisyUI Variable | Tailwind Class | Purpose |
+|---|---|---|---|
+| `primary` | `--color-primary` | `bg-primary`, `text-primary` | Main brand color — buttons, links, key actions |
+| `primary-content` | `--color-primary-content` | `text-primary-content` | Foreground on primary |
+| `secondary` | `--color-secondary` | `bg-secondary`, `text-secondary` | Secondary brand color — tags, highlights |
+| `secondary-content` | `--color-secondary-content` | `text-secondary-content` | Foreground on secondary |
+| `accent` | `--color-accent` | `bg-accent`, `text-accent` | Accent brand color — decorative, emphasis |
+| `accent-content` | `--color-accent-content` | `text-accent-content` | Foreground on accent |
+| `neutral` | `--color-neutral` | `bg-neutral`, `text-neutral` | Non-saturated UI parts — cards, sections |
+| `neutral-content` | `--color-neutral-content` | `text-neutral-content` | Foreground on neutral |
+| `base-100` | `--color-base-100` | `bg-base-100` | Page background |
+| `base-200` | `--color-base-200` | `bg-base-200` | Slightly darker — card surfaces, elevations |
+| `base-300` | `--color-base-300` | `bg-base-300` | Even darker — borders, dividers |
+| `base-content` | `--color-base-content` | `text-base-content` | Main text color on base backgrounds |
+
+### Color Token Names (Optional — Status Colors)
+
+These are used for alerts, badges, and status indicators:
+
+| Token Name | DaisyUI Variable | Tailwind Class | Purpose |
+|---|---|---|---|
+| `info` | `--color-info` | `bg-info`, `text-info` | Informative messages |
+| `info-content` | `--color-info-content` | `text-info-content` | Foreground on info |
+| `success` | `--color-success` | `bg-success`, `text-success` | Success/safe messages |
+| `success-content` | `--color-success-content` | `text-success-content` | Foreground on success |
+| `warning` | `--color-warning` | `bg-warning`, `text-warning` | Warning/caution messages |
+| `warning-content` | `--color-warning-content` | `text-warning-content` | Foreground on warning |
+| `error` | `--color-error` | `bg-error`, `text-error` | Error/danger messages |
+| `error-content` | `--color-error-content` | `text-error-content` | Foreground on error |
+
+### Typography Token Names
+
+Font tokens should use Tailwind's `font-*` naming convention:
+
+| Token Name | Tailwind Class | Purpose |
+|---|---|---|
+| `heading` | `font-heading` | Headings (h1–h6) |
+| `body` | `font-body` | Body text, UI elements |
+| `mono` | `font-mono` | Code blocks, monospace |
+
+### Spacing Token Names
+
+If spacing tokens are defined, use Tailwind's spacing scale:
+
+| Token Name | Tailwind Class | Purpose |
+|---|---|---|
+| `xs` | `p-xs`, `m-xs`, `gap-xs` | Extra small spacing |
+| `sm` | `p-sm`, `m-sm`, `gap-sm` | Small spacing |
+| `md` | `p-md`, `m-md`, `gap-md` | Medium spacing |
+| `lg` | `p-lg`, `m-lg`, `gap-lg` | Large spacing |
+| `xl` | `p-xl`, `m-xl`, `gap-xl` | Extra large spacing |
+
+### Radius Token Names
+
+Border radius tokens should use DaisyUI theme variables:
+
+| Token Name | DaisyUI Variable | Purpose |
+|---|---|---|
+| `selector` | `--radius-selector` | Checkboxes, toggles, badges |
+| `field` | `--radius-field` | Buttons, inputs, selects, tabs |
+| `box` | `--radius-box` | Cards, modals, alerts |
+
+### Example Token JSON (DaisyUI)
+
+```json
+{
+  "color": {
+    "primary": { "$value": "#494FE5", "$type": "color", "description": "Main brand color" },
+    "primary-content": { "$value": "#FFFFFF", "$type": "color", "description": "Text on primary" },
+    "secondary": { "$value": "#FFC024", "$type": "color", "description": "Secondary accent" },
+    "secondary-content": { "$value": "#000000", "$type": "color", "description": "Text on secondary" },
+    "accent": { "$value": "#FF4E42", "$type": "color", "description": "Accent for emphasis" },
+    "accent-content": { "$value": "#FFFFFF", "$type": "color", "description": "Text on accent" },
+    "neutral": { "$value": "#3D4451", "$type": "color", "description": "Neutral UI" },
+    "neutral-content": { "$value": "#FFFFFF", "$type": "color", "description": "Text on neutral" },
+    "base-100": { "$value": "#FFFFFF", "$type": "color", "description": "Page background" },
+    "base-200": { "$value": "#F2F2F2", "$type": "color", "description": "Card surfaces" },
+    "base-300": { "$value": "#E5E6E6", "$type": "color", "description": "Borders" },
+    "base-content": { "$value": "#1F2937", "$type": "color", "description": "Main text" }
+  },
+  "typography": {
+    "heading": { "$value": "Satoshi", "$type": "fontFamily" },
+    "body": { "$value": "Satoshi", "$type": "fontFamily" },
+    "mono": { "$value": "JetBrains Mono", "$type": "fontFamily" }
+  }
+}
+```
+
+### Mapping User Intent → DaisyUI Token Names
+
+When the user describes their colors during the `debo-design-tokens` workflow, map as follows:
+
+| User says... | Maps to DaisyUI token |
+|---|---|
+| "primary color", "main brand color", "button color" | `primary` |
+| "secondary color", "complementary color" | `secondary` |
+| "accent", "highlight", "emphasis" | `accent` |
+| "background", "page background" | `base-100` |
+| "card background", "surface" | `base-200` |
+| "border color", "divider" | `base-300` |
+| "text color", "body text" | `base-content` |
+| "dark", "neutral", "gray" | `neutral` |
+
+For each chosen color, **automatically derive the `-content` counterpart** by calculating contrast:
+- Dark colors → `#FFFFFF` (or light tint) as content
+- Light colors → `#000000` (or dark shade) as content
+
+---
 
 ## Prerequisites
 
@@ -91,20 +214,18 @@ Each file returns a **CSS string** that jsonata-w writes directly to the output 
  */
 (
   $entries := $each([group], function($v, $k) {
-    "  --[group]-" & $k & ": " & $v."$value" & ";"
+    "  --color-" & $k & ": " & $v."$value" & ";"
   });
-  ":root {\n" & $join($entries, "\n") & "\n}\n"
+  "@plugin \"daisyui/theme\" {\n  name: \"mytheme\";\n  default: true;\n  color-scheme: light;\n\n" & $join($entries, "\n") & "\n}\n"
 )
 ```
 
 **Rules for generating expressions:**
 - Extract tokens from the top-level key
-- Transform each token into a CSS custom property: `--[group]-[name]: [value];`
-- Wrap in `:root { }` block
-- Return as a **string** (jsonata-w 1.0.1+ writes strings directly as raw text)
-- For **color** tokens: generate DaisyUI-compatible color variables
+- For **color** tokens: generate DaisyUI theme plugin format using `--color-[name]` variables
 - For **typography** tokens: generate `--font-*` variables
 - Group-to-file mapping: `color` → `color.src.css`, `typography` → `font.src.css`, etc.
+- Return as a **string** (jsonata-w 1.0.1+ writes strings directly as raw text)
 
 ### Step 4: Generate dark theme (if applicable)
 
@@ -120,10 +241,10 @@ With output `../../css/themes/dark.src.css` using DaisyUI's `@plugin "daisyui/th
 
 | Token Group | Output File | Notes |
 |-------------|-------------|-------|
-| `color` | `tokens/color.src.css` | Primitives + light theme |
+| `color` | `tokens/color.src.css` | DaisyUI theme with `--color-*` variables |
 | `typography` | `tokens/font.src.css` | Font families, sizes, weights |
 | `spacing` | `tokens/spacing.src.css` | With responsive media queries |
-| `radius` | `tokens/radius.src.css` | Border radius values |
+| `radius` | `tokens/radius.src.css` | DaisyUI `--radius-*` variables |
 | `opacity` | `tokens/opacity.src.css` | Opacity values |
 | _(color modes)_ | `themes/dark.src.css` | DaisyUI plugin format |
 | _(other)_ | `tokens/[group].src.css` | Auto-generated for new groups |
@@ -159,7 +280,8 @@ $DESIGNBOOK_DRUPAL_THEME/css/
 ```
 
 ## Technical Notes
-- Color tokens combine primitives and light theme in a single file
-- Dark theme uses DaisyUI's `@plugin "daisyui/theme"` format
+- Color tokens use DaisyUI's `@plugin "daisyui/theme"` format with `--color-*` variable names
+- Dark theme uses DaisyUI's `@plugin "daisyui/theme"` format with `prefersdark: true`
 - Spacing tokens should include responsive media queries if breakpoint tokens are present
+- Radius tokens map to DaisyUI's `--radius-selector`, `--radius-field`, `--radius-box`
 - Use `npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.json --summary` to explore token structure
