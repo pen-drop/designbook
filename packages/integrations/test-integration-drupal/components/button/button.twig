@@ -1,23 +1,24 @@
 {#
 /**
  * @file
- * Template for Button component.
+ * Template for button component.
  *
  * Available variables:
- * - variant: Choose button style (default, outline)
- * - text: The clickable label
+ * - text: The button label.
+ * - href: URL the button links to.
+ * - variant: Visual variant of the button.
  */
 #}
+{% set variant_class = variant ? 'btn-' ~ variant : '' %}
 {% set classes = [
   'component',
   'button',
-  variant ? 'button--' ~ variant : 'button--default',
+  'btn',
+  variant_class,
 ] %}
 
-<button{{ attributes.addClass(classes) }}>
-  {% if text %}
-    <span class="button__text">
-      {{ text }}
-    </span>
-  {% endif %}
-</button>
+{% if href %}
+  <a{{ attributes.addClass(classes) }} href="{{ href }}">{{ text }}</a>
+{% else %}
+  <button{{ attributes.addClass(classes) }}>{{ text }}</button>
+{% endif %}

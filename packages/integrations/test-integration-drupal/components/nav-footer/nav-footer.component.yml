@@ -1,12 +1,12 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: nav_footer
 status: experimental
-description: "Footer navigation links component"
+description: Footer navigation links.
 provider: daisy_cms_daisyui
-props:
-  type: object
-  properties:
-    items:
-      type: array
-      title: "Footer Links"
-      description: "List of footer navigation items with label and url"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  items:
+    title: Menu items
+    description: Footer navigation items.

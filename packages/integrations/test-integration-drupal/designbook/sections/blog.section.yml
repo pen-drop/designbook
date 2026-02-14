@@ -1,6 +1,5 @@
 id: blog
 title: Blog
-description: Fachartikel zu Drupal-Themen, Barrierefreiheit, Updates und Best Practices
+description: Technical articles, agency news, and Drupal ecosystem updates.
 status: planned
-order: 5
-store: sections/blog/data.json
+order: 3

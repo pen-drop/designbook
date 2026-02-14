@@ -8,6 +8,12 @@ importers:
 
   .:
     devDependencies:
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
+      js-yaml:
+        specifier: ^4.1.1
+        version: 4.1.1
       npm-run-all2:
         specifier: ^8.0.4
         version: 8.0.4

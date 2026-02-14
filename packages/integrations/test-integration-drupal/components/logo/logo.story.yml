@@ -1,4 +1,5 @@
 name: Preview
 props:
-  name: "keytec"
-  url: "/"
+  src: https://placehold.co/160x40?text=KEYTEC
+  alt: keytec.de Logo
+  href: /

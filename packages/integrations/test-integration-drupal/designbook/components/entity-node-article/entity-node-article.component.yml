@@ -1,18 +1,16 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: entity_node_article
 status: experimental
-description: "Article entity. Structural design component — composes UI components for blog article fields."
-group: Designbook/Entity
+description: Blog article entity component for keytec.de.
 provider: designbook_design
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
 designbook:
   entity:
     type: node
     bundle: article
-thirdPartySettings:
-  sdcStorybook:
-    disableBasicStory: true
 slots:
   content:
-    title: "Content"
-    description: "All article content composed from UI components"
-
+    title: Content
+    description: Article content composed from UI components.

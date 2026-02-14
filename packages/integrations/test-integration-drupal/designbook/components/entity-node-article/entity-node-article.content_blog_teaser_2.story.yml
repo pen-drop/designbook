@@ -1,0 +1,38 @@
+name: content_blog_teaser_2
+slots:
+  content:
+    - type: component
+      component: daisy_cms_daisyui:article-card
+      props:
+        href: '#'
+      slots:
+        media:
+          - type: component
+            component: daisy_cms_daisyui:figure
+            props:
+              src: media.image.3
+              alt: >-
+                Barrierefreie Drupal-Anwendungen – So wird Ihre Website
+                BFSG-konform
+        content:
+          - type: component
+            component: daisy_cms_daisyui:badge
+            props:
+              text: Barrierefreiheit
+              variant: primary
+          - type: component
+            component: daisy_cms_daisyui:heading
+            props:
+              text: >-
+                Barrierefreie Drupal-Anwendungen – So wird Ihre Website
+                BFSG-konform
+              html_tag: h3
+              variant: default
+          - type: component
+            component: daisy_cms_daisyui:text-block
+            slots:
+              content:
+                - type: element
+                  value: >-
+                    Ab Juni 2025 wird Barrierefreiheit gesetzlich verpflichtend.
+                    So machen Sie Ihre Drupal-Website BFSG-konform.

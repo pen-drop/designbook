@@ -1,19 +1,18 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: shell_header
 status: experimental
-description: "Shell header — composes logo, navigation, and user menu."
-group: Designbook/Shell
+description: Site header shell composing logo, navigation, and user menu.
 provider: designbook_design
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
 slots:
   logo:
-    title: "Logo"
-    description: "Site branding / logo"
+    title: Logo
+    description: Site logo component.
   navigation:
-    title: "Navigation"
-    description: "Primary navigation menu"
+    title: Navigation
+    description: Primary navigation component.
   user_menu:
-    title: "User Menu"
-    description: "User account / language switcher"
+    title: User menu
+    description: Utility navigation or CTA area.

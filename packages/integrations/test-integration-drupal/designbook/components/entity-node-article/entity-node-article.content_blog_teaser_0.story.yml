@@ -1,0 +1,39 @@
+name: content_blog_teaser_0
+slots:
+  content:
+    - type: component
+      component: daisy_cms_daisyui:article-card
+      props:
+        href: '#'
+      slots:
+        media:
+          - type: component
+            component: daisy_cms_daisyui:figure
+            props:
+              src: media.image.1
+              alt: >-
+                Upgrade auf Drupal 11 – Verbesserte Leistung, Sicherheit und
+                Funktionalität
+        content:
+          - type: component
+            component: daisy_cms_daisyui:badge
+            props:
+              text: Drupal Update
+              variant: primary
+          - type: component
+            component: daisy_cms_daisyui:heading
+            props:
+              text: >-
+                Upgrade auf Drupal 11 – Verbesserte Leistung, Sicherheit und
+                Funktionalität
+              html_tag: h3
+              variant: default
+          - type: component
+            component: daisy_cms_daisyui:text-block
+            slots:
+              content:
+                - type: element
+                  value: >-
+                    Der offizielle Support für Drupal 9 wurde eingestellt.
+                    Erfahren Sie, warum jetzt der ideale Zeitpunkt für ein
+                    Upgrade auf Drupal 11 ist.

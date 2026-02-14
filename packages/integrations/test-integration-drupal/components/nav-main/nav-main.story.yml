@@ -1,15 +1,15 @@
 name: Preview
-props:
+slots:
   items:
-    - label: "Startseite"
-      url: "/startseite"
-    - label: "Leistungen"
-      url: "/leistungen"
-    - label: "Projekte"
-      url: "/projekte"
-    - label: "Über uns"
-      url: "/ueber-uns"
-    - label: "Blog"
-      url: "/blog"
-    - label: "Kontakt"
-      url: "/kontakt"
+    - type: element
+      tag: li
+      value: '<a href="/leistungen">Leistungen</a>'
+    - type: element
+      tag: li
+      value: '<a href="/projekte">Projekte</a>'
+    - type: element
+      tag: li
+      value: '<a href="/blog" class="active">Blog</a>'
+    - type: element
+      tag: li
+      value: '<a href="/agentur">Agentur</a>'

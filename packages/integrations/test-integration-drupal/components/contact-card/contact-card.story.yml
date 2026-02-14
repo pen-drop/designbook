@@ -1,8 +1,0 @@
-name: Preview
-props:
-  name: "Christian Wiedemann"
-  title: "Geschäftsführer & Drupal-Experte"
-  email: "christian.wiedemann@keytec.de"
-  phone: "+49 (0) 89 5419 89 81"
-  image_src: "https://placehold.co/120x120/F7F7F4/000000?text=CW"
-  variant: "author"

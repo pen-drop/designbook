@@ -1,0 +1,12 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: user_menu
+status: experimental
+description: Utility navigation or call-to-action area.
+provider: daisy_cms_daisyui
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  items:
+    title: Menu items
+    description: Utility menu items or CTA buttons.

@@ -1,9 +1,12 @@
 name: Preview
-props:
+slots:
   items:
-    - label: "Datenschutz"
-      url: "/datenschutz"
-    - label: "Impressum"
-      url: "/impressum"
-    - label: "AGB"
-      url: "/agb"
+    - type: element
+      tag: li
+      value: '<a href="/impressum">Impressum</a>'
+    - type: element
+      tag: li
+      value: '<a href="/datenschutz">Datenschutz</a>'
+    - type: element
+      tag: li
+      value: '<a href="/kontakt">Kontakt</a>'

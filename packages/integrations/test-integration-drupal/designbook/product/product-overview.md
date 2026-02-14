@@ -1,24 +1,20 @@
-# keytec.de
+# Product Vision: keytec.de Relaunch
 
-## Description
-Die neue Website der Drupal-Agentur keytec aus München — ein frischer, moderner Auftritt, der die Drupal-Expertise und den Certified-Partner-Status überzeugend kommuniziert und gezielt mehr Kundenanfragen generiert.
+## Core Value Proposition
+keytec is a specialized Drupal Agency based in Munich, offering high-end digital solutions. The website serves as the primary marketing channel to demonstrate expertise, showcase successful projects, and attract potential clients and talent.
 
-## Problems & Solutions
+## Target Audience
+- **Enterprise Clients**: Seeking robust, scalable Drupal solutions.
+- **Marketing Managers**: Looking for design-driven, performant web experiences.
+- **Developers/Talent**: Interested in modern Drupal workflows and agency culture.
 
-### Problem 1: Veraltetes Design wirkt nicht mehr zeitgemäß
-Ein frisches, modernes Design mit Premium-Ästhetik, das keytecs Position als führende Drupal-Agentur visuell unterstreicht.
+## Key Goals
+1.  **Demonstrate Expertise**: Highlight "Drupal Certified Partner" status and technical depth.
+2.  **Showcase Work**: Visual, compelling case studies of client projects.
+3.  **Lead Generation**: Clear calls-to-action for consulting and contact.
+4.  **Knowledge Sharing**: Integrating a rich blog with technical and strategic insights.
 
-### Problem 2: Zu wenig Leads und Kundenanfragen
-Strategisch platzierte Call-to-Actions, Kontaktmöglichkeiten und überzeugende Social Proof-Elemente (Awards, Referenzen, Kundenstimmen) auf jeder Seite.
-
-### Problem 3: Expertise wird nicht optimal kommuniziert
-Klare Darstellung der Leistungen, ausgezeichneten Projekte (Splash Award) und des Certified-Partner-Status, um Vertrauen und Kompetenz sofort sichtbar zu machen.
-
-## Key Features
-- Modernes, frisches Webdesign mit starker visueller Identität
-- Lead-optimierte Seitenstruktur mit prominenten CTAs
-- Projekt-Showcases mit Kundenstimmen und Ergebnissen
-- Blog mit Drupal-Fachwissen (SEO & Thought Leadership)
-- Open Source-Bereich zur Community-Positionierung
-- Zweisprachig (DE/EN)
-- Kontaktseite mit niedrigschwelligen Anfragemöglichkeiten
+## Design Aesthetic
+- **Professional & Modern**: Clean lines, abundant whitespace.
+- **Tech-Forward**: Emphasizing "Mit Drupal auf Zielkurs".
+- **Responsive**: Seamless experience across devices.

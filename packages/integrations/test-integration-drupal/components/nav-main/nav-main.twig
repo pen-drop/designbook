@@ -4,7 +4,7 @@
  * Template for nav-main component.
  *
  * Available variables:
- * - items: Array of navigation items with label and url
+ * - items: Navigation menu items.
  */
 #}
 {% set classes = [
@@ -13,13 +13,7 @@
 ] %}
 
 <nav{{ attributes.addClass(classes) }}>
-  {% if items %}
-    <ul class="nav-main__list">
-      {% for item in items %}
-        <li class="nav-main__item">
-          <a href="{{ item.url }}" class="nav-main__link">{{ item.label }}</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+  <ul class="nav-main__list menu menu-horizontal">
+    {{ items }}
+  </ul>
 </nav>

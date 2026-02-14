@@ -4,7 +4,7 @@
  * Template for nav-footer component.
  *
  * Available variables:
- * - items: Array of footer link items with label and url
+ * - items: Footer navigation items.
  */
 #}
 {% set classes = [
@@ -13,13 +13,7 @@
 ] %}
 
 <nav{{ attributes.addClass(classes) }}>
-  {% if items %}
-    <ul class="nav-footer__list">
-      {% for item in items %}
-        <li class="nav-footer__item">
-          <a href="{{ item.url }}" class="nav-footer__link">{{ item.label }}</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+  <ul class="nav-footer__list menu menu-horizontal">
+    {{ items }}
+  </ul>
 </nav>

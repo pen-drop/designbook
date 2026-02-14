@@ -4,16 +4,15 @@
  * Template for text-block component.
  *
  * Available variables:
- * - content: HTML/rich text content
+ * - content: Rich text content.
  */
 #}
 {% set classes = [
   'component',
   'text-block',
+  'prose',
 ] %}
 
 <div{{ attributes.addClass(classes) }}>
-  <div class="text-block__content prose">
-    {{ content|raw }}
-  </div>
+  {{ content }}
 </div>

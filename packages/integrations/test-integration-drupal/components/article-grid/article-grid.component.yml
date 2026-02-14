@@ -1,0 +1,12 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: article_grid
+status: experimental
+description: Responsive grid layout for article teaser cards.
+provider: daisy_cms_daisyui
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  items:
+    title: Grid items
+    description: Article card components to display in the grid.

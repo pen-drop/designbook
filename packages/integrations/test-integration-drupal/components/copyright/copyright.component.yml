@@ -1,18 +1,16 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: copyright
 status: experimental
-description: "Copyright text display component"
+description: Copyright notice text.
 provider: daisy_cms_daisyui
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
 props:
   type: object
   properties:
     text:
       type: string
-      title: "Copyright Text"
-      description: "The copyright notice text"
-      default: "© 2026 keytec. All rights reserved."
-thirdPartySettings:
-  sdcStorybook:
-    disableBasicStory: true
-    tags: 
-      - "!autodocs"
+      title: Copyright text
+      description: The copyright notice to display.
+      default: "© 2026 keytec GmbH"

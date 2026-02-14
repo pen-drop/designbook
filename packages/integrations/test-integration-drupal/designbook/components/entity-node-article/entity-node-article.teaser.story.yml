@@ -1,0 +1,47 @@
+name: teaser
+designbook:
+  entity:
+    type: node
+    bundle: article
+    view_mode: teaser
+slots:
+  content:
+    - type: component
+      component: 'daisy_cms_daisyui:article-card'
+      props:
+        href: '#'
+      slots:
+        media:
+          - type: component
+            component: 'daisy_cms_daisyui:figure'
+            props:
+              src:
+                type: ref
+                field: field_media
+              alt:
+                type: ref
+                field: title
+        content:
+          - type: component
+            component: 'daisy_cms_daisyui:badge'
+            props:
+              text:
+                type: ref
+                field: field_teaser_preheadline
+              variant: primary
+          - type: component
+            component: 'daisy_cms_daisyui:heading'
+            props:
+              text:
+                type: ref
+                field: title
+              html_tag: h3
+              variant: default
+          - type: component
+            component: 'daisy_cms_daisyui:text-block'
+            slots:
+              content:
+                - type: element
+                  value:
+                    type: ref
+                    field: field_teaser_description

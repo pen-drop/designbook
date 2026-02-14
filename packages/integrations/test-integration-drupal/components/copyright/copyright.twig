@@ -4,7 +4,7 @@
  * Template for copyright component.
  *
  * Available variables:
- * - text: The copyright notice text
+ * - text: The copyright notice to display.
  */
 #}
 {% set classes = [
@@ -12,6 +12,4 @@
   'copyright',
 ] %}
 
-<div{{ attributes.addClass(classes) }}>
-  <p class="copyright__text">{{ text|default('© 2026 keytec. All rights reserved.') }}</p>
-</div>
+<p{{ attributes.addClass(classes) }}>{{ text }}</p>

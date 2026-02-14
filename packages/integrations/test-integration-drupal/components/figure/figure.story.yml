@@ -1,5 +1,5 @@
 name: Preview
 props:
-  src: "https://placehold.co/1200x600/494FE5/FFFFFF?text=Drupal+11+Upgrade"
-  alt: "Drupal 11 Upgrade – Moderne Webentwicklung"
-  full_width: true
+  src: https://placehold.co/800x450?text=Blog+Image
+  alt: Blog article hero image
+  caption: A sample blog image caption

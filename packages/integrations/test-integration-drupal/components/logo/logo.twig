@@ -4,8 +4,9 @@
  * Template for logo component.
  *
  * Available variables:
- * - name: The site name
- * - url: The link URL
+ * - src: URL of the logo image.
+ * - alt: Alternative text for the logo.
+ * - href: URL the logo links to.
  */
 #}
 {% set classes = [
@@ -13,6 +14,6 @@
   'logo',
 ] %}
 
-<a href="{{ url|default('/') }}"{{ attributes.addClass(classes) }}>
-  <span class="logo__text">{{ name|default('keytec') }}</span>
+<a{{ attributes.addClass(classes) }} href="{{ href }}">
+  <img src="{{ src }}" alt="{{ alt }}" class="logo__image" />
 </a>

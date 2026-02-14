@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Template for badge component.
+ *
+ * Available variables:
+ * - text: The text content of the badge.
+ * - variant: Visual variant of the badge.
+ */
+#}
+{% set variant_class = variant ? 'badge-' ~ variant : '' %}
+{% set classes = [
+  'component',
+  'badge',
+  'badge',
+  variant_class,
+] %}
+
+<span{{ attributes.addClass(classes) }}>{{ text }}</span>

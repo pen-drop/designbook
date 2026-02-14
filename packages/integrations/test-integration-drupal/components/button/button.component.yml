@@ -1,27 +1,32 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: button
 status: experimental
-description: "Simple button component with filled default and outline variant"
+description: CTA button or link styled as button.
 provider: daisy_cms_daisyui
-variants:
-  default:
-    title: Default
-    description: "Filled/solid button"
-  outline:
-    title: Outline
-    description: "Button with border only"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
 props:
   type: object
   properties:
+    text:
+      type: string
+      title: Button text
+      description: The button label.
+    href:
+      type: string
+      title: Link URL
+      description: URL the button links to.
     variant:
       type: string
-      title: "Visual Variant"
-      description: "Choose button style"
+      title: Variant
+      description: Visual variant of the button.
+      default: default
       enum:
         - default
-        - outline
-      default: default
-slots:
-  text:
-    title: "Button Text"
-    description: "The clickable label"
+        - primary
+        - secondary
+        - accent
+        - ghost
+  required:
+    - text

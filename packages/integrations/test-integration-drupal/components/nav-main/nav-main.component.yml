@@ -1,12 +1,12 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: nav_main
 status: experimental
-description: "Primary navigation menu component"
+description: Primary horizontal navigation menu.
 provider: daisy_cms_daisyui
-props:
-  type: object
-  properties:
-    items:
-      type: array
-      title: "Navigation Items"
-      description: "List of navigation items with label and url"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  items:
+    title: Menu items
+    description: Navigation menu items.

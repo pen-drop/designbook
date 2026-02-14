@@ -1,5 +1,5 @@
 name: Preview
 props:
-  text: "Upgrade auf Drupal 11"
-  level: "h1"
-  preheadline: "Drupal Update"
+  text: Drupal Migration Best Practices
+  html_tag: h2
+  variant: default

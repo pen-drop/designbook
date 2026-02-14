@@ -1,0 +1,12 @@
+name: Preview
+slots:
+  header:
+    - type: component
+      component: 'designbook_design:shell-header'
+  content:
+    - type: component
+      component: 'designbook_design:entity-node-article'
+      story: content_blog_full_0
+  footer:
+    - type: component
+      component: 'designbook_design:shell-footer'

@@ -1,0 +1,9 @@
+name: Preview
+slots:
+  items:
+    - type: element
+      tag: a
+      value: Kontakt
+      attributes:
+        href: /kontakt
+        class: btn btn-primary btn-sm

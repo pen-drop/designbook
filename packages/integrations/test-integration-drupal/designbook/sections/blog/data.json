@@ -1,71 +1,74 @@
 {
+    "_meta": {
+        "models": {
+            "node.article": "Blog posts and technical articles",
+            "media.image": "Hero images for articles"
+        },
+        "relationships": [
+            "node.article references media.image via field_media",
+            "node.article references node.article via field_related"
+        ]
+    },
     "node": {
         "article": [
             {
+                "id": "1",
                 "title": "Upgrade auf Drupal 11 – Verbesserte Leistung, Sicherheit und Funktionalität",
                 "field_teaser_preheadline": "Drupal Update",
                 "field_teaser_description": "Der offizielle Support für Drupal 9 wurde eingestellt. Erfahren Sie, warum jetzt der ideale Zeitpunkt für ein Upgrade auf Drupal 11 ist.",
                 "field_button_text": "Lesen",
                 "field_teaser_button_color": "swimsuit",
-                "field_media": {
-                    "type": "image",
-                    "alt": "Drupal 11 Upgrade – Moderne Webentwicklung",
-                    "url": "/images/sample/drupal-11-upgrade.jpg"
-                },
+                "field_media": "media.image.1",
                 "body": "<h2>Warum auf Drupal 11 aktualisieren?</h2><p>Der offizielle Support für Drupal 9 wurde im November 2023 eingestellt. Das bedeutet, dass es keine Sicherheitsupdates, Bugfixes oder Unterstützung durch die Community mehr gibt.</p><h2>4 Gründe, jetzt auf Drupal 11 zu wechseln</h2><ol><li><strong>Sicherheit</strong> — Drupal 11 bietet essenzielle Sicherheitsupdates und unterstützt PHP 8.3.</li><li><strong>Funktionalität</strong> — Neue Features und ein verbesserter Layout Builder.</li><li><strong>Unterstützung</strong> — Langfristige Wartung und Community-Support.</li><li><strong>Kompatibilität</strong> — Aktuelle Webstandards und moderne Frameworks.</li></ol><h2>Fazit</h2><p>Ein Upgrade auf Drupal 11 sichert Ihre Website für die Zukunft — mit besserer Leistung, Sicherheit und Funktionalität.</p>",
                 "field_seo_title": "Upgrade auf Drupal 11 | keytec Drupal Agentur München",
                 "field_meta_tag": "Drupal 11, Upgrade, Sicherheit, Performance, keytec",
                 "field_related": [
-                    "article:1",
-                    "article:2"
+                    "node.article.2",
+                    "node.article.3"
                 ]
             },
             {
-                "title": "Drupal & KI – Ihr Weg zu einer smarten Website",
-                "field_teaser_preheadline": "Künstliche Intelligenz",
-                "field_teaser_description": "Wie KI-Tools und Drupal AI die Content-Erstellung und Website-Verwaltung revolutionieren.",
+                "id": "2",
+                "title": "Drupal & KI: Zukunft gestalten",
+                "field_teaser_preheadline": "Automatisierung & Effizienz",
+                "field_teaser_description": "Erfahren Sie, wie Keytec Drupal mit Künstlicher Intelligenz verbindet, um Prozesse zu automatisieren und personalisierte Nutzererlebnisse zu schaffen.",
                 "field_button_text": "Lesen",
                 "field_teaser_button_color": "ocean",
-                "field_media": {
-                    "type": "image",
-                    "alt": "Drupal und KI – Smarte Websites",
-                    "url": "/images/sample/drupal-ki.jpg"
-                },
-                "body": "<h2>KI in Drupal</h2><p>Künstliche Intelligenz verändert die Art, wie wir Websites erstellen und verwalten. Drupal bietet mit dem AI-Modul leistungsstarke Möglichkeiten.</p>",
-                "field_seo_title": "Drupal & KI – Smarte Websites | keytec",
-                "field_meta_tag": "Drupal, KI, AI, Content-Erstellung, keytec"
+                "field_media": "media.image.2",
+                "body": "<h2>Künstliche Intelligenz in Drupal</h2><p>Die Integration von KI in Drupal eröffnet völlig neue Möglichkeiten für Redakteure und Entwickler. Von der automatischen Verschlagwortung bis zur Generierung von Inhalten – die Zukunft ist da.</p><h2>Vorteile der Integration</h2><ul><li><strong>Automatisierung:</strong> Reduzieren Sie manuelle Aufgaben durch intelligente Workflows.</li><li><strong>Personalisierung:</strong> Bieten Sie Ihren Nutzern maßgeschneiderte Inhalte in Echtzeit.</li><li><strong>Effizienz:</strong> Beschleunigen Sie Content-Prohsesse durch KI-gestützte Tools.</li></ul><p>Starten Sie jetzt mit Keytec in die Zukunft der digitalen Experience.</p>",
+                "field_seo_title": "Drupal & KI: Zukunft gestalten | keytec",
+                "field_meta_tag": "Drupal, KI, AI, Automation, keytec"
             },
             {
+                "id": "3",
                 "title": "Barrierefreie Drupal-Anwendungen – So wird Ihre Website BFSG-konform",
                 "field_teaser_preheadline": "Barrierefreiheit",
                 "field_teaser_description": "Ab Juni 2025 wird Barrierefreiheit gesetzlich verpflichtend. So machen Sie Ihre Drupal-Website BFSG-konform.",
                 "field_button_text": "Lesen",
                 "field_teaser_button_color": "sun",
-                "field_media": {
-                    "type": "image",
-                    "alt": "Barrierefreie Websites mit Drupal",
-                    "url": "/images/sample/barrierefreiheit.jpg"
-                },
+                "field_media": "media.image.3",
                 "body": "<h2>BFSG – Was bedeutet das für Ihre Website?</h2><p>Das Barrierefreiheitsstärkungsgesetz verpflichtet Unternehmen, ihre digitalen Angebote barrierefrei zu gestalten.</p>",
                 "field_seo_title": "Barrierefreie Drupal-Anwendungen | keytec",
                 "field_meta_tag": "Barrierefreiheit, BFSG, Drupal, Accessibility, keytec"
             }
         ]
     },
-    "block_content": {
-        "contact_person": [
+    "media": {
+        "image": [
             {
-                "field_name": "Christian Wiedemann",
-                "field_title": "Geschäftsführer & Drupal-Experte",
-                "field_email": "christian.wiedemann@keytec.de",
-                "field_phone": "+49 (0) 89 5419 89 81",
-                "field_media": {
-                    "type": "image",
-                    "alt": "Christian Wiedemann",
-                    "url": "/images/sample/christian-wiedemann.jpg"
-                },
-                "field_variant": "author",
-                "field_dark": false
+                "id": "1",
+                "field_media_image": "/images/sample/drupal-11-upgrade.jpg",
+                "name": "Drupal 11 Upgrade"
+            },
+            {
+                "id": "2",
+                "field_media_image": "/images/sample/drupal-ki.jpg",
+                "name": "Drupal AI"
+            },
+            {
+                "id": "3",
+                "field_media_image": "/images/sample/barrierefreiheit.jpg",
+                "name": "Barrierefreiheit"
             }
         ]
     }

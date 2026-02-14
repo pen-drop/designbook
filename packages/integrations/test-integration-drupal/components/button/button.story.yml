@@ -1,17 +1,5 @@
-stories:
-  preview:
-    title: Preview
-    props:
-      variant: default
-    slots:
-      text:
-        - type: element
-          value: 'Click me'
-  outline:
-    title: Outline
-    props:
-      variant: outline
-    slots:
-      text:
-        - type: element
-          value: 'Click me'
+name: Preview
+props:
+  text: Weiterlesen
+  href: /blog/article-1
+  variant: primary

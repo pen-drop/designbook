@@ -1,0 +1,18 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: section_blog_listing
+status: experimental
+description: Blog listing screen composing shell header/footer with article grid.
+provider: designbook_design
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  header:
+    title: Header
+    description: Shell header component.
+  content:
+    title: Content
+    description: Main content area with article grid.
+  footer:
+    title: Footer
+    description: Shell footer component.

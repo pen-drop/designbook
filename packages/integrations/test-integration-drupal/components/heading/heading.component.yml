@@ -1,26 +1,38 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: heading
 status: experimental
-description: "Heading component for titles with configurable level"
+description: Heading component with configurable HTML tag and variant.
 provider: daisy_cms_daisyui
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
 props:
   type: object
   properties:
     text:
       type: string
-      title: "Heading Text"
-      description: "The heading text content"
-    level:
+      title: Heading text
+      description: The heading text content.
+    html_tag:
       type: string
-      title: "Heading Level"
-      description: "HTML heading level"
+      title: HTML tag
+      description: The HTML heading level.
+      default: h2
       enum:
         - h1
         - h2
         - h3
         - h4
-      default: h2
-    preheadline:
+        - h5
+        - h6
+    variant:
       type: string
-      title: "Preheadline"
-      description: "Optional small text above the heading"
+      title: Variant
+      description: Visual variant of the heading.
+      default: default
+      enum:
+        - default
+        - hero
+        - section
+  required:
+    - text

@@ -1,0 +1,28 @@
+name: Preview
+props:
+  href: /blog/drupal-migration
+slots:
+  media:
+    - type: component
+      component: 'daisy_cms_daisyui:figure'
+      props:
+        src: https://placehold.co/400x250?text=Blog+Teaser
+        alt: Blog teaser image
+  content:
+    - type: component
+      component: 'daisy_cms_daisyui:badge'
+      props:
+        text: Drupal
+        variant: primary
+    - type: component
+      component: 'daisy_cms_daisyui:heading'
+      props:
+        text: Drupal Migration Best Practices
+        html_tag: h3
+        variant: default
+    - type: component
+      component: 'daisy_cms_daisyui:text-block'
+      slots:
+        content:
+          - type: element
+            value: A comprehensive guide to migrating your CMS to Drupal.

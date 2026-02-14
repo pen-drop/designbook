@@ -1,0 +1,22 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: article_card
+status: experimental
+description: Blog article teaser card with media and content.
+provider: daisy_cms_daisyui
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    href:
+      type: string
+      title: Link URL
+      description: URL to the full article.
+slots:
+  media:
+    title: Media
+    description: Card media area (image or figure).
+  content:
+    title: Content
+    description: Card text content area.

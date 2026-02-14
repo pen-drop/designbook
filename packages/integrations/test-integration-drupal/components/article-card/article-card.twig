@@ -1,0 +1,30 @@
+{#
+/**
+ * @file
+ * Template for article-card component.
+ *
+ * Available variables:
+ * - href: URL to the full article.
+ * - media: Card media area (image or figure).
+ * - content: Card text content area.
+ */
+#}
+{% set classes = [
+  'component',
+  'article-card',
+  'card',
+  'card-compact',
+  'bg-base-100',
+  'shadow-xl',
+] %}
+
+<div{{ attributes.addClass(classes) }}>
+  {% if media %}
+    <figure class="article-card__media">
+      {{ media }}
+    </figure>
+  {% endif %}
+  <div class="article-card__content card-body">
+    {{ content }}
+  </div>
+</div>
