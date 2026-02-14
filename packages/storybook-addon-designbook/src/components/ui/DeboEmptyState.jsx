@@ -8,14 +8,14 @@
  */
 export function DeboEmptyState({ message, command, filePath }) {
   return (
-    <div className="debo:font-sans debo:card debo:bg-base-200 debo:border debo:border-base-300">
+    <div className="debo:font-sans debo:card debo:bg-base-200 debo:card-bordered">
       <div className="debo:card-body debo:items-center debo:text-center">
         <h3 className="debo:card-title debo:text-base-content/70">{message}</h3>
         <p className="debo:text-base-content/50 debo:mt-2">
           Run the AI command in your editor:
         </p>
-        <div className="debo:mt-4 debo:px-4 debo:py-2 debo:bg-base-300 debo:rounded-lg debo:font-mono debo:text-sm debo:text-base-content">
-          {command}
+        <div className="debo:mt-4">
+          <kbd className="debo:kbd debo:kbd-lg">{command}</kbd>
         </div>
         {filePath && (
           <p className="debo:text-base-content/40 debo:text-xs debo:mt-3">

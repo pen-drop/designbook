@@ -28,7 +28,7 @@ AI Command (input) → designbook/*.md (storage) → Storybook MDX (display)
 
 - **Barrel exports**: `packages/storybook-addon-designbook/src/components/index.js` — always check here for existing components before creating new ones
 - **Shared base components** use the `Debo` prefix (e.g., `DeboCard`, `DeboSection`)
-- **Workflow-specific components** also use the `Debo` prefix (e.g., `DeboProductOverviewCard`) and compose from `Debo*` base components
+- **Display components** use the `Debo` prefix (e.g., `DeboProductOverview`) and compose from `Debo*` UI components
 - **Hooks**: `packages/storybook-addon-designbook/src/hooks/` — reusable React hooks (e.g., `useDesignbookData`)
 
 ## Global Component Rules
@@ -47,10 +47,35 @@ All Tailwind classes **MUST** use the `debo:` prefix. No exceptions.
 <div className="flex gap-4 p-6 bg-base-100">
 ```
 
-- CSS entry point: `packages/storybook-addon-designbook/src/index.css` → `@import "tailwindcss" prefix(debo);`
+- CSS entry point: `packages/storybook-addon-designbook/src/index.css`
+- Build pipeline: Tailwind v4 CSS-first configuration with DaisyUI v5 plugin
+- DaisyUI themes: `light` (default), `dark` (prefers-color-scheme)
+- DaisyUI classes also use the `debo:` prefix (e.g., `debo:card`, `debo:btn`, `debo:alert`)
 - Dark mode variant: `debo:dark:` (e.g., `debo:dark:bg-gray-800`)
-- DaisyUI classes also use the `debo:` prefix (e.g., `debo:card`, `debo:btn`)
 - Responsive variants: `debo:md:`, `debo:lg:`, etc.
+
+```css
+/* packages/storybook-addon-designbook/src/index.css */
+@import "tailwindcss" prefix(debo);
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+}
+```
+
+#### DaisyUI Component Mapping
+
+| UI Pattern | DaisyUI Component | Classes |
+|---|---|---|
+| Cards | card | `debo:card debo:card-bordered debo:bg-base-100` |
+| Collapse/Expand | collapse | `debo:collapse debo:collapse-arrow` |
+| Buttons | btn | `debo:btn debo:btn-ghost debo:btn-xs` |
+| Status dots | badge | `debo:badge debo:badge-xs debo:badge-success` |
+| Spinners | loading | `debo:loading debo:loading-spinner` |
+| Errors | alert | `debo:alert debo:alert-error` |
+| Checkboxes | checkbox | `debo:checkbox debo:checkbox-sm` |
+| Keyboard hints | kbd | `debo:kbd debo:kbd-xs` |
+| Code blocks | mockup-code | `debo:mockup-code` |
+| Lists | menu | `debo:menu debo:menu-lg` |
 
 ### 2. Display-Only — No Write Operations
 
@@ -71,7 +96,7 @@ All Tailwind classes **MUST** use the `debo:` prefix. No exceptions.
 | Type | Pattern | Example |
 |------|---------|---------|
 | Shared base component | `Debo<Name>.jsx` | `DeboCard.jsx`, `DeboSection.jsx` |
-| Workflow-specific component | `Debo<Name>.jsx` | `DeboProductOverviewCard.jsx` |
+| Display component | `Debo<Name>.jsx` | `DeboProductOverview.jsx` |
 | Hook | `use<Name>.js` | `useDesignbookData.js` |
 | Parser | Exported function in component or separate file | `parseProductOverview()` |
 
@@ -111,7 +136,7 @@ export { MyWorkflowCard } from './MyWorkflowCard.jsx';
 ```
 packages/storybook-addon-designbook/
 ├── src/
-│   ├── index.css                           # CSS entry: @import "tailwindcss" prefix(debo)
+│   ├── index.css                           # CSS entry: Tailwind v4 + DaisyUI v5 with prefix(debo)
 │   ├── vite.config.js                      # Independent Vite config for React components
 │   ├── vite-plugin.ts                      # Vite middleware for file load/save
 │   ├── components/
@@ -122,6 +147,19 @@ packages/storybook-addon-designbook/
 │       └── useDesignbookData.js            # Data loading hook
 ├── onboarding/
 │   └── *.mdx                              # MDX pages using components
+```
+
+### Development & Build
+
+```bash
+# Start Storybook dev server
+pnpm run dev
+
+# Build CSS only (Tailwind + DaisyUI)
+pnpm run build:css
+
+# Full build
+pnpm run build
 ```
 
 ## Creating a New Component

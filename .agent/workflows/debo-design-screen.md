@@ -118,11 +118,11 @@ If the user says **yes**, proceed to Step 7.
 
 Run the three design skills in sequence. Each skill is defined in `.agent/skills/`:
 
-**7.1 — Generate Shell Components**
+**7.1 — Generate Shell UI Components**
 
-Load and execute the `designbook-shell` skill (`.agent/skills/designbook-shell/SKILL.md`).
+Load and execute the `designbook-drupal-components-ui` skill (`.agent/skills/designbook-drupal-components-ui/SKILL.md`) using the **Shell Components** section.
 
-This generates `$DESIGNBOOK_DIST/design/shell/header/` and `$DESIGNBOOK_DIST/design/shell/footer/` with structural header/footer components. Navigation is auto-derived from `sections/*.section.yml` files.
+This generates `$DESIGNBOOK_DRUPAL_THEME/components/header/` and `$DESIGNBOOK_DRUPAL_THEME/components/footer/` with shell UI components. Navigation is auto-derived from `sections/*.section.yml` files.
 
 **7.2 — Generate Entity Components**
 
@@ -142,10 +142,10 @@ This reads `screen-designs.md`, checks for section-level UI components (filter b
 >
 > | Layer | Component | Location |
 > |-------|-----------|----------|
-> | Shell | `shell_header` | `design/shell/header/` |
-> | Shell | `shell_footer` | `design/shell/footer/` |
-> | Entity | `entity_node_[bundle]` | `design/entity/node/[bundle]/` |
-> | Screen | `section_[id]_[page]` | `design/sections/[id]/[page]/` |
+> | Shell | `header` | `$DESIGNBOOK_DRUPAL_THEME/components/header/` |
+> | Shell | `footer` | `$DESIGNBOOK_DRUPAL_THEME/components/footer/` |
+> | Entity | `entity_node_[bundle]` | `$DESIGNBOOK_DIST/components/entity-node-[bundle]/` |
+> | Screen | `section_[id]_[page]` | `$DESIGNBOOK_DIST/components/section-[id]-[page]/` |
 >
 > Open Storybook to see the full page compositions under **Design/** and **Sections/** in the sidebar.
 >
@@ -161,6 +161,6 @@ This reads `screen-designs.md`, checks for section-level UI components (filter b
 - Consider responsive behavior for all views
 - Focus on what the user sees and does, not implementation details
 - Component generation (Step 7) is optional — the screen designs in markdown are the primary artifact
-- The 3 skills must run in order: shell → entity → screen (each depends on the previous)
+- The 3 steps must run in order: shell (UI) → entity → screen (each depends on the previous)
 - Each skill delegates to `designbook-drupal-components` for file creation
 

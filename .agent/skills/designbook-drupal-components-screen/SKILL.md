@@ -5,14 +5,13 @@ description: Generates screen design components that compose shell + entity into
 
 # Designbook Screen
 
-> **Component Type: Screen** — This skill generates **screen components**: structural wrappers with **no HTML markup** that compose shell (header/footer) + entity components into full page views. Files use the `section-` prefix (e.g. `section-news-article-list`).
+> **Component Type: Screen** — This skill generates **screen components**: structural wrappers with **no HTML markup** that compose UI (header/footer) + entity components into full page views. Files use the `section-` prefix (e.g. `section-news-article-list`).
 
 ### Component Type Overview
 
 | Type | Skill | Has Markup? | Location | Prefix | Provider |
-|------|-------|-------------|----------|--------|----------|
+|------|-------|-------------|----------|--------|---------|
 | UI | `designbook-drupal-components-ui` | ✅ Yes — real HTML + CSS | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `daisy_cms_daisyui`) |
-| Shell | `designbook-drupal-components-shell` | ❌ No — slots only | `$DESIGNBOOK_DIST/components/shell-*/` | `shell-` | `designbook_design` |
 | Entity | `designbook-drupal-components-entity` | ❌ Minimal — `<article>` wrapper only | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
 | **Screen** ← this skill | `designbook-drupal-components-screen` | ❌ No — slots only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
 
@@ -20,7 +19,7 @@ description: Generates screen design components that compose shell + entity into
 
 ---
 
-This skill generates **screen design components** that compose shell (header/footer) and entity components into full page views. Each screen represents one page within a product section.
+This skill generates **screen design components** that compose shell UI components (header/footer) and entity components into full page views. Each screen represents one page within a product section.
 
 Screen components are the **top-level composition layer** — they are structural wrappers with three slots: header, content, footer. The content slot references an entity design component in a specific view mode. Because entity and shell components already reference **real UI components** in their stories, the composed screen renders as a **complete visual design** in Storybook.
 
@@ -44,9 +43,9 @@ Screen components are the **top-level composition layer** — they are structura
 
 1. This skill is **technology-specific** and should only be used when `DESIGNBOOK_TECHNOLOGY` is set to `drupal` in `designbook.config.yml`.
 2. Load the configuration using the `designbook-configuration` skill to get `DESIGNBOOK_DIST`.
-3. Shell components must exist (run `designbook-shell` first):
-   - `$DESIGNBOOK_DIST/components/shell-header/shell-header.component.yml`
-   - `$DESIGNBOOK_DIST/components/shell-footer/shell-footer.component.yml`
+3. Shell UI components must exist (run `designbook-drupal-components-ui` with shell category first):
+   - `$DESIGNBOOK_DRUPAL_THEME/components/header/header.component.yml`
+   - `$DESIGNBOOK_DRUPAL_THEME/components/footer/footer.component.yml`
 4. Entity components must exist for referenced entities (run `designbook-entity` first).
 5. Screen designs must exist: `$DESIGNBOOK_DIST/sections/[section-id]/screen-designs.md`
 
@@ -84,15 +83,15 @@ $DESIGNBOOK_DIST/
 
 ### Step 1: Check Prerequisites
 
-Verify shell components exist:
+Verify shell UI components exist:
 
 ```bash
-ls $DESIGNBOOK_DIST/components/shell-header/shell-header.component.yml 2>/dev/null
-ls $DESIGNBOOK_DIST/components/shell-footer/shell-footer.component.yml 2>/dev/null
+ls $DESIGNBOOK_DRUPAL_THEME/components/header/header.component.yml 2>/dev/null
+ls $DESIGNBOOK_DRUPAL_THEME/components/footer/footer.component.yml 2>/dev/null
 ```
 
 **If missing:**
-> "❌ Shell components not found. Run `designbook-shell` first."
+> "❌ Shell UI components not found. Run `designbook-drupal-components-ui` with shell category first."
 
 Stop here.
 
@@ -198,7 +197,7 @@ name: default
 slots:
   header:
     - type: component
-      component: 'designbook_design:shell-header'
+      component: '[ui_provider]:header'
       story: default
   content:
     - type: component
@@ -206,7 +205,7 @@ slots:
       story: content_blog_full_0   # ← generated story for record 0, full view
   footer:
     - type: component
-      component: 'designbook_design:shell-footer'
+      component: '[ui_provider]:footer'
       story: default
 ```
 
@@ -217,7 +216,7 @@ name: default
 slots:
   header:
     - type: component
-      component: 'designbook_design:shell-header'
+      component: '[ui_provider]:header'
       story: default
   content:
     - type: component
@@ -237,7 +236,7 @@ slots:
             story: content_blog_teaser_2   # ← generated story for record 2
   footer:
     - type: component
-      component: 'designbook_design:shell-footer'
+      component: '[ui_provider]:footer'
       story: default
 ```
 
@@ -266,7 +265,7 @@ find $DESIGNBOOK_DIST/components/section-* -name "*.component.yml" | sort
 
 ## Error Handling
 
-- **Missing shell components**: Report error, suggest running `designbook-shell`
+- **Missing shell components**: Report error, suggest running `designbook-drupal-components-ui` with shell category
 - **Missing entity components**: Report error, list which entities are missing, suggest running `designbook-entity`
 - **Missing screen-designs.md**: Report error, suggest running `/debo-design-screen`
 - **Unparseable screen design**: Warn, skip that page, continue with others

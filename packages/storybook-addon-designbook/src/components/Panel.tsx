@@ -46,16 +46,16 @@ export const Panel: React.FC<PanelProps> = memo(function DesignbookPanel(props: 
         <Title style={{ marginTop: '1rem' }}>Available Commands</Title>
         <List>
           <Item>
-            <Command>/product-vision</Command> - Define product vision
+            <Command>/debo-product-vision</Command> - Define product vision
           </Item>
           <Item>
-            <Command>/product-roadmap</Command> - Create roadmap
+            <Command>/debo-product-roadmap</Command> - Create roadmap
           </Item>
           <Item>
-            <Command>/data-model</Command> - Define data model
+            <Command>/debo-data-model</Command> - Define data model
           </Item>
           <Item>
-            <Command>/design-tokens</Command> - Design-Tokens document
+            <Command>/debo-design-tokens</Command> - Design-Tokens document
           </Item>
         </List>
       </Container>

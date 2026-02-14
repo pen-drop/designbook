@@ -12,7 +12,6 @@ description: Generates entity design components (node, block, media) from data m
 | Type | Skill | Has Markup? | Location | Prefix | Provider |
 |------|-------|-------------|----------|--------|----------|
 | UI | `designbook-drupal-components-ui` | ✅ Yes — real HTML + CSS | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `daisy_cms_daisyui`) |
-| Shell | `designbook-drupal-components-shell` | ❌ No — slots only | `$DESIGNBOOK_DIST/components/shell-*/` | `shell-` | `designbook_design` |
 | **Entity** ← this skill | `designbook-drupal-components-entity` | ❌ Minimal — `<article>` wrapper only | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
 | Screen | `designbook-drupal-components-screen` | ❌ No — slots only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
 

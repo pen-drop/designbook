@@ -1,8 +1,8 @@
 import { Meta } from '@storybook/addon-docs/blocks';
-import { DeboSection, DeboDataModelCard } from '../components/index.js';
+import { DeboSection, DeboDataModel } from '../components/index.js';
 import '../index.css';
 
-<Meta title="Data Model" />
+<Meta title="Designbook/Data Model" />
 
 # Data Model
 
@@ -10,9 +10,10 @@ Define the core entities and relationships in your product. The data model estab
 Use the AI command to define or update your data model — the result is displayed here automatically.
 
 <DeboSection
+  title="Data Model"
   dataPath="data-model.json"
   parser={(content) => JSON.parse(content)}
   command="/debo-data-model"
   emptyMessage="No data model defined yet"
-  renderContent={(data) => <DeboDataModelCard data={data} />}
+  renderContent={(data) => <DeboDataModel data={data} />}
 />

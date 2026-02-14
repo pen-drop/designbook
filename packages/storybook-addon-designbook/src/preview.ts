@@ -1,13 +1,3 @@
-/**
- * A decorator is a way to wrap a story in extra “rendering” functionality. Many addons define decorators
- * in order to augment stories:
- * - with extra rendering
- * - gather details about how a story is rendered
- *
- * When writing stories, decorators are typically used to wrap stories with extra markup or context mocking.
- *
- * https://storybook.js.org/docs/react/writing-stories/decorators
- */
 import type { ProjectAnnotations, Renderer } from 'storybook/internal/types';
 
 import { KEY } from './constants';
@@ -20,11 +10,18 @@ import './index.css';
  * and update the entry prop in tsup.config.ts to use "src/preview.tsx",
  */
 
+export const decorators = [withGlobals, withRoundTrip];
+
+export const initialGlobals = {
+  [KEY]: false,
+};
+
+export const parameters = {};
+
 const preview: ProjectAnnotations<Renderer> = {
-  decorators: [withGlobals, withRoundTrip],
-  initialGlobals: {
-    [KEY]: false,
-  },
+  decorators,
+  initialGlobals,
+  parameters,
 };
 
 export default preview;

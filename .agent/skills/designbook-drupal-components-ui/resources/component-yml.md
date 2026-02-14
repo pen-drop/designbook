@@ -13,6 +13,7 @@ Build the YAML structure with component metadata — no inline stories, but alwa
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: [componentNameSnake]
 status: [status]
+group: [group]
 description: [description]
 provider: [provider]
 thirdPartySettings:

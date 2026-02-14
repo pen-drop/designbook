@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
+import { loadDesignbookFile } from '../components/designbookApi.js';
 
 /**
  * useDesignbookData — Custom hook for loading and parsing data from designbook/ files.
  *
- * Fetches a file via the Vite middleware endpoint `/__designbook/load`,
- * parses the response with the provided parser function, and provides
- * a reload function for manual refetching.
+ * Fetches a file via the designbook middleware and parses the response
+ * with the provided parser function. Provides a reload function for manual refetching.
  *
  * @param {string} path — Relative path within designbook/ (e.g., "product/product-overview.md")
- * @param {(markdown: string) => any} parser — Function to parse the Markdown text into structured data. Return null if parsing fails.
+ * @param {(content: string) => any} parser — Function to parse the raw content into structured data. Return null if parsing fails.
  * @returns {{ data: any, loading: boolean, error: string|null, reload: () => void }}
  */
 export function useDesignbookData(path, parser) {
@@ -20,29 +20,11 @@ export function useDesignbookData(path, parser) {
     setLoading(true);
     setError(null);
     try {
-      // eslint-disable-next-line no-undef
-      const res = await fetch(`/__designbook/load?path=${encodeURIComponent(path)}`);
-      if (res.status === 404) {
+      const content = await loadDesignbookFile(path);
+      if (content == null) {
         setData(null);
-      } else if (!res.ok) {
-        throw new Error(`Failed to load: ${res.statusText}`);
       } else {
-        const text = await res.text();
-        // The middleware may return JSON-wrapped content or plain text
-        let content = text;
-        try {
-          const json = JSON.parse(text);
-          if (json.content != null) content = json.content;
-          else if (json.exists === false) {
-            setData(null);
-            setLoading(false);
-            return;
-          }
-        } catch {
-          // Not JSON — use raw text (plain text response)
-        }
-        const parsed = parser(content);
-        setData(parsed);
+        setData(parser(content));
       }
     } catch (err) {
       setError(err.message);
