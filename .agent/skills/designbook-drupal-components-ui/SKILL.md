@@ -56,8 +56,8 @@ This skill generates Drupal Single Directory Component (SDC) files from a struct
 >
 > ```
 > components/nav-main/
-> ├── nav-main.component.yml   ✅ correct
-> ├── nav-main.story.yml       ✅ correct
+> ├── nav-main.component.yml         ✅ correct
+> ├── nav-main.default.story.yml     ✅ correct
 > ├── nav-main.twig            ✅ correct
 
 > └── nav-main.js              ✅ correct (optional)
@@ -66,8 +66,8 @@ This skill generates Drupal Single Directory Component (SDC) files from a struct
 > **Never** mix names:
 > ```
 > components/nav-main/
-> ├── navigation.component.yml ❌ WRONG — must be nav-main.component.yml
-> ├── main-nav.story.yml       ❌ WRONG — must be nav-main.story.yml
+> ├── navigation.component.yml       ❌ WRONG — must be nav-main.component.yml
+> ├── main-nav.story.yml             ❌ WRONG — must be nav-main.default.story.yml
 > └── NavMain.twig             ❌ WRONG — must be nav-main.twig
 > ```
 
@@ -143,9 +143,9 @@ All files use the **same base name** as the directory (kebab-case):
 ```
 $DESIGNBOOK_DRUPAL_THEME/components/
 └── [component-name]/
-    ├── [component-name].component.yml  # SDC metadata (required)
-    ├── [component-name].story.yml      # SDC Storybook stories (required)
-    └── [component-name].twig           # Twig template (required)
+    ├── [component-name].component.yml         # SDC metadata (required)
+    ├── [component-name].default.story.yml      # SDC Storybook story (required, use "default" name)
+    └── [component-name].twig                   # Twig template (required)
 ```
 
 **Designbook Components (via `outputDir`):**
@@ -153,7 +153,7 @@ $DESIGNBOOK_DRUPAL_THEME/components/
 $DESIGNBOOK_DIST/components/
 └── [component-name]/
     ├── [component-name].component.yml
-    ├── [component-name].story.yml
+    ├── [component-name].default.story.yml
     └── [component-name].twig
 ```
 
@@ -162,7 +162,7 @@ When `outputDir` is provided, output goes to the specified directory instead:
 ```
 [outputDir]/
 ├── [component-name].component.yml
-├── [component-name].story.yml
+├── [component-name].default.story.yml
 └── [component-name].twig
 ```
 
@@ -253,7 +253,7 @@ ls -la [targetDir]/
 
 Expected files (all sharing the same base name as the directory):
 - `[componentNameKebab].component.yml` (required)
-- `[componentNameKebab].story.yml` (required)
+- `[componentNameKebab].[storyName].story.yml` (required — use `default` for single stories)
 - `[componentNameKebab].twig` (required)
 
 **If successful:**
@@ -261,7 +261,7 @@ Expected files (all sharing the same base name as the directory):
 >
 > **Files:**
 > - `[targetDir]/[componentNameKebab].component.yml`
-> - `[targetDir]/[componentNameKebab].story.yml`
+> - `[targetDir]/[componentNameKebab].[storyName].story.yml`
 > - `[targetDir]/[componentNameKebab].twig`
 >
 > **Component details:**
@@ -301,12 +301,18 @@ When the layout between variants is significantly different, use a **Twig includ
 ```
 components/card/
 ├── card.component.yml       # Single component definition with variants
-├── card.story.yml           # Stories for each variant
+├── card.vertical.story.yml  # Story for vertical variant
+├── card.horizontal.story.yml # Story for horizontal variant
 ├── card.twig                # Main template — dispatches to includes
 ├── card--vertical.twig      # Layout for vertical variant
 ├── card--horizontal.twig    # Layout for horizontal variant
 
 ```
+
+> [!WARNING]
+> **SDC addon twig import rule**: The `storybook-addon-sdc` imports ALL `.twig` files in a component directory as `import COMPONENT from '...'`. When multiple `.twig` files exist (variant includes), this causes a `SyntaxError: Identifier 'COMPONENT' has already been declared`. The `sdc-dedup-component-import` Vite plugin in `.storybook/main.js` fixes this by keeping only the **first** `COMPONENT` import and converting duplicates to side-effect imports.
+>
+> **Rule**: The **main** `.twig` file (the one the SDC addon imports as `COMPONENT`) must match the directory name: `card/card.twig`. Variant includes (e.g., `card--vertical.twig`) are loaded as side-effect imports for HMR only.
 
 **Main template (`card.twig`) — variant dispatcher:**
 ```twig
@@ -392,27 +398,30 @@ components/card/
 
 ### Stories for Variant Components
 
-Each variant should have its own story in the `.story.yml` file so it appears separately in Storybook:
+Each variant gets its **own story file** — one file per story:
 
 ```yaml
-# card.story.yml
-stories:
-  - name: vertical
-    props:
-      variant: vertical
-      title: 'Example Title'
-      description: 'Example description text.'
-    slots:
-      media:
-        - type: component
-          component: 'provider:figure'
-          props:
-            src: 'https://picsum.photos/400/300'
-  - name: horizontal
-    props:
-      variant: horizontal
-      title: 'Example Title'
-      description: 'Example description text.'
+# card.vertical.story.yml
+name: vertical
+props:
+  variant: vertical
+  title: 'Example Title'
+  description: 'Example description text.'
+slots:
+  media:
+    - type: component
+      component: 'provider:figure'
+      props:
+        src: 'https://picsum.photos/400/300'
+```
+
+```yaml
+# card.horizontal.story.yml
+name: horizontal
+props:
+  variant: horizontal
+  title: 'Example Title'
+  description: 'Example description text.'
     slots:
       media:
         - type: component
@@ -437,6 +446,9 @@ Shell components (header, footer, page) are UI components in the `Shell` categor
 > **MUST READ** [`resources/layout-reference.md`](resources/layout-reference.md) before generating any layout or grid component.
 
 Layout components (`layout`, `layout_columns`) provide the grid system. **Never create domain-specific layout components** (e.g. `article-grid`, `blog-grid`, `card-grid`) — always use the generic `layout` component with appropriate grid classes like `grid-3` for a 3-column layout.
+
+> [!IMPORTANT]
+> **Use `layout` everywhere you need max-width and horizontal padding (padding-x).** The `layout` component (with `container-md` or similar container classes) is the **single source** for constraining content width and adding horizontal padding to keep content away from the browser edges. No other component should set its own `max-width` or horizontal browser padding — always wrap in a `layout` instead.
 
 → Full component definitions, Twig templates, and story examples in [`resources/layout-reference.md`](resources/layout-reference.md)
 

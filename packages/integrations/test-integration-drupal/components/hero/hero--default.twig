@@ -1,0 +1,15 @@
+{# hero--default.twig #}
+<section{{ attributes.addClass(['hero', 'hero--default']) }}>
+  <div class="hero__content">
+    <h1 class="hero__title">{{ title }}</h1>
+    {% if subtitle %}
+      <p class="hero__subtitle">{{ subtitle }}</p>
+    {% endif %}
+    {% if actions %}
+      <div class="hero__actions">{{ actions }}</div>
+    {% endif %}
+  </div>
+  {% if media %}
+    <div class="hero__media">{{ media }}</div>
+  {% endif %}
+</section>

@@ -1,0 +1,14 @@
+{# cta-banner--default.twig #}
+<section{{ attributes.addClass(['cta-banner', 'cta-banner--default']) }}{% if background_color %} style="background-color: {{ background_color }}"{% endif %}>
+  <div class="cta-banner__inner">
+    {% if title %}
+      <h2 class="cta-banner__title">{{ title }}</h2>
+    {% endif %}
+    {% if content %}
+      <div class="cta-banner__content">{{ content }}</div>
+    {% endif %}
+    {% if actions %}
+      <div class="cta-banner__actions">{{ actions }}</div>
+    {% endif %}
+  </div>
+</section>

@@ -1,0 +1,23 @@
+name: contact
+props:
+  variant: contact
+  title: Jetzt Beratung anfordern
+  background_color: '#8B1A1A'
+slots:
+  content:
+    - type: element
+      value: '<p><strong>Thomas Mfinanga</strong><br>Projektmanager<br><a href="mailto:thomas.mfinanga@keytec.de">thomas.mfinanga@keytec.de</a><br><a href="tel:+498954198981">+49 (0) 89 5419 89 81</a></p>'
+  media:
+    - type: element
+      value: '<img src="https://placehold.co/150x150/333/fff?text=TM" alt="Thomas Mfinanga" />'
+  actions:
+    - type: component
+      component: 'daisy_cms_daisyui:button'
+      props:
+        variant: primary
+        color: sun
+        url: '/kontakt'
+      slots:
+        text:
+          - type: element
+            value: Beratung Anfordern

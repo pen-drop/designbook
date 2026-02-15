@@ -1,0 +1,16 @@
+name: default
+props:
+  variant: default
+  title: Interesse an unseren Leistungen?
+  background_color: '#333'
+slots:
+  actions:
+    - type: component
+      component: 'daisy_cms_daisyui:button'
+      props:
+        variant: primary
+        url: '/kontakt'
+      slots:
+        text:
+          - type: element
+            value: Kontakt aufnehmen

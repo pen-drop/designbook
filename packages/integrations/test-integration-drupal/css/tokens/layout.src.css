@@ -1,0 +1,10 @@
+@theme inline {
+  --layout-container-default: 1224px;
+  --layout-container-narrow: 1136px;
+  --layout-container-small: 744px;
+  --layout-gap-default: 40px;
+  --layout-gap-small: 25px;
+  --layout-section-padding-sm: 60px;
+  --layout-section-padding-default: 100px;
+  --layout-section-padding-lg: 200px;
+}

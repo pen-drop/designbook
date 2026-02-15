@@ -29,7 +29,9 @@ Entity components are **structural** — they define a single `content` slot int
 
 > **How `type: ref` works**: The `refRenderer` registered in `.storybook/main.js` handles `{type: ref, field: X}` nodes. It reads the entity context (`type`, `bundle`, `record`) from `designbook.entity` metadata in `component.yml`, looks up the field value in the global data store, and passes the resolved value to the Twig template. For cross-entity references, use `{type: ref, path: 'entity_type.bundle.index.field'}` which bypasses context and resolves against the full store.
 
-> ⛔ **CRITICAL RULE — No Inline Markup**: Entity stories must contain **only `type: component`** references. Never use `type: element` with HTML tags, attributes, or CSS classes. Every field must be rendered by a reusable UI component. If a required UI component doesn't exist, **create it first**.
+> ⛔ **CRITICAL RULE — Single Content Slot ONLY**: Entity components must have **EXACTLY ONE slot named `content`**. They must **NOT have any props** (no `view_mode`, no `variant`, etc.). All variation (teaser vs full) is handled by the **story** composing different UI components into the `content` slot.
+>
+> ⛔ **CRITICAL RULE — No Inline Markup**: Entity stories must contain **only `type: component`** references. Never use `type: element` with HTML tags, attributes, or CSS classes. Every field must be rendered by a reusable UI component.
 
 ## Prerequisites
 
@@ -96,7 +98,7 @@ cat $DESIGNBOOK_DIST/data-model.json
 ```
 
 **If file doesn't exist:**
-> "❌ Data model not found. Run `/data-model` first to define your entities."
+> "❌ Data model not found. Run `/debo-data-model` first to define your entities."
 
 Stop here.
 
@@ -185,19 +187,19 @@ For each required UI component that doesn't exist yet, **create it** using the `
 $DESIGNBOOK_DRUPAL_THEME/components/
 ├── heading/
 │   ├── heading.component.yml
-│   ├── heading.story.yml
+│   ├── heading.default.story.yml
 │   └── heading.twig
 ├── text-block/
 │   ├── text-block.component.yml
-│   ├── text-block.story.yml
+│   ├── text-block.default.story.yml
 │   └── text-block.twig
 ├── badge/
 │   ├── badge.component.yml
-│   ├── badge.story.yml
+│   ├── badge.default.story.yml
 │   └── badge.twig
 ├── figure/
 │   ├── figure.component.yml
-│   ├── figure.story.yml
+│   ├── figure.default.story.yml
 │   └── figure.twig
 └── ...
 ```
@@ -238,7 +240,7 @@ For each entity type/bundle in the data model:
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: entity_node_article
 description: "Article entity. Structural design component — composes UI components for entity fields."
-group: Designbook/Entity
+group: Entity
 status: experimental
 provider: designbook_design
 designbook:
@@ -251,6 +253,10 @@ thirdPartySettings:
     disableBasicStory: true
     tags: 
       - "!autodocs"
+
+props:
+  type: object
+  properties: {}
 
 slots:
   content:

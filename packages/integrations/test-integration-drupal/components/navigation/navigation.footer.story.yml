@@ -1,0 +1,10 @@
+name: footer
+props:
+  variant: footer
+  items:
+    - label: Datenschutz
+      url: /datenschutz
+    - label: AGB
+      url: /agb
+    - label: Impressum
+      url: /impressum

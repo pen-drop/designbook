@@ -2,6 +2,10 @@
 
 Layout components provide the grid system and structural containers. They are **included in this skill** and should be generated from the reference definitions below.
 
+> [!IMPORTANT]
+> **Use `layout` everywhere you need max-width and horizontal padding.**
+> The `layout` component (with `container-md` or similar container classes) is the **single source** for constraining content width and adding horizontal padding (`padding-inline` / `padding-x`) to keep content away from the browser edges. **No other component should apply its own max-width or horizontal browser padding.** Always wrap content in a `layout` component instead.
+
 > ⛔ **RULE**: Never create `article-teaser-grid`, `blog-grid`, or similar domain-specific layout components. Always use the generic `layout` component with appropriate grid classes.
 
 **Reference source:** `daisy-cms/web/themes/custom/daisy_cms_daisyui/components/layout/`
@@ -132,15 +136,9 @@ thirdPartySettings:
 {% set grid %}
     {% if items is sequence %}
     <div{{ create_attribute().addClass('grid').addClass(grid_classes).addClass(gap_classes) }}>
-        {% block grid_items %}
-            {% for item in items %}
-                {% block grid_item %}
-                    <div{{ create_attribute().addClass('grid-item') }}>
-                        {{ item }}
-                    </div>
-                {% endblock %}
-            {%- endfor -%}
-        {% endblock %}
+        {% for item in items %}
+            {{ item }}
+        {% endfor %}
     </div>
     {% else %}
         {{- items -}}

@@ -1,0 +1,21 @@
+name: default
+props:
+  variant: default
+  preheadline: AI Translation
+  title: KI Übersetzung in Drupal
+  description: Der Artikel zeigt praxisnahe Beispiele, wie KI-gestützte Übersetzungslösungen in Drupal den Übersetzungsprozess optimieren.
+  button_color: sun
+slots:
+  media:
+    - type: element
+      value: '<img src="https://placehold.co/800x450/F5D042/333?text=KI+Übersetzung" alt="KI Übersetzung" />'
+  actions:
+    - type: component
+      component: 'daisy_cms_daisyui:button'
+      props:
+        variant: default
+        color: sun
+      slots:
+        text:
+          - type: element
+            value: Mehr

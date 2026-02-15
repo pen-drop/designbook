@@ -4,6 +4,7 @@
 1.  **Browse Articles**: User views a list of latest blog posts (Teaser format).
 2.  **Read Article**: User clicks a teaser to view the full article (Full format).
 3.  **Explore Related**: User navigates to related articles from the detail page.
+4.  **AI Landing Page**: User views the Drupal & KI Integration landing page with hero, body sections, related articles, and contact CTA.
 
 ## UI Requirements
 -   **List View**: Grid of article teasers (Image, Preheadline, Title, Description, Button).

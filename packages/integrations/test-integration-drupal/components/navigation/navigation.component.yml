@@ -1,0 +1,29 @@
+name: navigation
+label: Navigation
+status: experimental
+group: Shell
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+props:
+  type: object
+  properties:
+    variant:
+      type: string
+      title: Variant
+      enum:
+        - primary
+        - footer
+      default: primary
+    items:
+      type: array
+      title: Navigation items
+      items:
+        type: object
+        properties:
+          label:
+            type: string
+          url:
+            type: string

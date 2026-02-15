@@ -117,5 +117,47 @@
       "$type": "fontFamily",
       "description": "Used for code blocks"
     }
+  },
+  "layout": {
+    "container-default": {
+      "$value": "1224px",
+      "$type": "dimension",
+      "description": "Default content container max-width"
+    },
+    "container-narrow": {
+      "$value": "1136px",
+      "$type": "dimension",
+      "description": "Narrow content container"
+    },
+    "container-small": {
+      "$value": "744px",
+      "$type": "dimension",
+      "description": "Small content container (body text, forms)"
+    },
+    "gap-default": {
+      "$value": "40px",
+      "$type": "dimension",
+      "description": "Default grid gap between items"
+    },
+    "gap-small": {
+      "$value": "25px",
+      "$type": "dimension",
+      "description": "Small grid gap"
+    },
+    "section-padding-sm": {
+      "$value": "60px",
+      "$type": "dimension",
+      "description": "Small vertical section padding"
+    },
+    "section-padding-default": {
+      "$value": "100px",
+      "$type": "dimension",
+      "description": "Default vertical section padding"
+    },
+    "section-padding-lg": {
+      "$value": "200px",
+      "$type": "dimension",
+      "description": "Large vertical section padding"
+    }
   }
 }

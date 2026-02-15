@@ -1,0 +1,19 @@
+name: header
+label: Header
+status: experimental
+group: Shell
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+slots:
+  logo:
+    title: Logo
+    description: Branding logo
+  navigation:
+    title: Navigation
+    description: Main navigation
+  actions:
+    title: Actions
+    description: CTA buttons or action items

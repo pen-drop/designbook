@@ -1,0 +1,12 @@
+/** @config
+ {
+   "input": "../design-tokens.json",
+   "output": "../../css/tokens/color.src.css"
+ }
+ */
+(
+  $entries := $each(color, function($v, $k) {
+    "  --color-" & $k & ": " & $v."$value" & ";"
+  });
+  "@plugin \"daisyui/theme\" {\n  name: \"keytec\";\n  default: true;\n  color-scheme: light;\n\n" & $join($entries, "\n") & "\n}\n"
+)

@@ -1,0 +1,16 @@
+name: footer
+label: Footer
+status: experimental
+group: Shell
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+slots:
+  navigation:
+    title: Navigation
+    description: Footer navigation links
+  copyright:
+    title: Copyright
+    description: Copyright text

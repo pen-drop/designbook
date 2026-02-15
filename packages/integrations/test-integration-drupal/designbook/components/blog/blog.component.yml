@@ -1,0 +1,19 @@
+name: blog
+label: Blog
+status: experimental
+group: Screen
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+slots:
+  header:
+    title: Header
+    description: Page header
+  content:
+    title: Content
+    description: Page content
+  footer:
+    title: Footer
+    description: Page footer

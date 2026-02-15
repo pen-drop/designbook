@@ -1,0 +1,10 @@
+{# navigation--footer.twig #}
+<nav{{ attributes.addClass(['nav', 'nav--footer']) }}>
+  <ul class="nav__list">
+    {% for item in items %}
+      <li class="nav__item">
+        <a href="{{ item.url }}" class="nav__link">{{ item.label }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+</nav>

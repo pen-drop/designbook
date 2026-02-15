@@ -1,0 +1,12 @@
+name: primary
+props:
+  variant: primary
+  items:
+    - label: Leistungen
+      url: /leistungen
+    - label: Projekte
+      url: /projekte
+    - label: Blog
+      url: /blog
+    - label: Agentur
+      url: /agentur

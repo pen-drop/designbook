@@ -1,0 +1,22 @@
+name: breadcrumb
+label: Breadcrumb
+status: experimental
+group: Navigation
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+props:
+  type: object
+  properties:
+    items:
+      type: array
+      title: Breadcrumb items
+      items:
+        type: object
+        properties:
+          label:
+            type: string
+          url:
+            type: string

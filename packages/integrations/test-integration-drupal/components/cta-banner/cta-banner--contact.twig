@@ -1,0 +1,19 @@
+{# cta-banner--contact.twig #}
+<section{{ attributes.addClass(['cta-banner', 'cta-banner--contact']) }}{% if background_color %} style="background-color: {{ background_color }}"{% endif %}>
+  <div class="cta-banner__inner">
+    {% if media %}
+      <div class="cta-banner__media">{{ media }}</div>
+    {% endif %}
+    <div class="cta-banner__body">
+      {% if title %}
+        <h2 class="cta-banner__title">{{ title }}</h2>
+      {% endif %}
+      {% if content %}
+        <div class="cta-banner__content">{{ content }}</div>
+      {% endif %}
+      {% if actions %}
+        <div class="cta-banner__actions">{{ actions }}</div>
+      {% endif %}
+    </div>
+  </div>
+</section>

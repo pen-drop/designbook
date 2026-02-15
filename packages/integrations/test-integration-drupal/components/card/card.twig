@@ -1,0 +1,18 @@
+{# card.twig #}
+<article{{ attributes.addClass(['card', 'card--' ~ variant]) }}>
+  {% if media %}
+    <div class="card__media">{{ media }}</div>
+  {% endif %}
+  <div class="card__body">
+    {% if preheadline %}
+      <span class="card__preheadline">{{ preheadline }}</span>
+    {% endif %}
+    <h3 class="card__title">{{ title }}</h3>
+    {% if description %}
+      <p class="card__description">{{ description }}</p>
+    {% endif %}
+    {% if actions %}
+      <div class="card__actions">{{ actions }}</div>
+    {% endif %}
+  </div>
+</article>

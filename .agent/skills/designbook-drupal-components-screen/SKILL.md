@@ -217,6 +217,9 @@ Add any extra slot variables as needed.
 
 For each page in the section, create `section-[sectionid].[pagename].story.yml`.
 
+> [!CAUTION]
+> **Story key derivation**: The `story:` key value is derived from the **filename**, not the `name:` field inside the YAML. For `header.default.story.yml`, the key is `default` (middle segment of `basename.KEY.story.yml`). For `entity-node-article.content_blog_full_0.story.yml`, the key is `content_blog_full_0`. Using the `name:` field (e.g., `Preview`) will cause `TypeError: Cannot read properties of undefined (reading 'args')` because the export doesn't exist.
+
 > ⛔ **CRITICAL: The `story:` key is MANDATORY** when referencing entity components. It must point to a **generated sample data story** (e.g., `content_blog_full_0`), not a template story name (e.g., `full`).
 
 **Example — Detail page story (`section-blog.detail.story.yml`):**
@@ -227,7 +230,7 @@ slots:
   header:
     - type: component
       component: '[ui_provider]:header'
-      story: default
+      story: default    # ← derived from header.default.story.yml (basename.KEY.story.yml)
   content:
     - type: component
       component: 'designbook_design:entity-node-article'
@@ -235,7 +238,7 @@ slots:
   footer:
     - type: component
       component: '[ui_provider]:footer'
-      story: default
+      story: default    # ← derived from footer.default.story.yml
 ```
 
 **Example — Listing page story (`section-blog.listing.story.yml`):**
@@ -304,7 +307,7 @@ find $DESIGNBOOK_DIST/components/section-* -name "*.component.yml" -o -name "*.s
 ## Design Principles
 
 1. **One component per section**: Each section → one component (`section-blog`). Pages are stories, not components.
-2. **Consistent naming**: Directory name = file base name = `section-[sectionid]`. Stories = `section-[sectionid].[pagename].story.yml`. Group key: `Section/[SECTION_ID]`
+2. **Consistent naming**: Directory name = file base name = `section-[sectionid]`. Stories = `section-[sectionid].[pagename].story.yml`. Group key: `Sections/[SECTION_ID]`
 3. **Structural templates, composed design**: Screen Twig templates contain `{{ header }}{{ content }}{{ footer }}` — nothing else. But the composed story renders a **complete visual page** because shell and entity stories already reference real UI components
 4. **No inline markup**: Screen stories use **only `type: component`** references — composing shell and entity design components
 5. **Composition**: Screens compose existing shell + entity components, never duplicate their logic
