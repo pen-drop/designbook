@@ -15,6 +15,10 @@ description: Generates entity design components (node, block, media) from data m
 | **Entity** ← this skill | `designbook-drupal-components-entity` | ❌ Minimal — `<article>` wrapper only | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
 | Screen | `designbook-drupal-components-screen` | ❌ No — slots only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
 
+> [!CAUTION]
+> **MANDATORY**: Before generating ANY entity components, you MUST read this entire SKILL.md AND the companion script:
+> - [`generate-stories.js`](generate-stories.js) — Script that materializes sample data stories from template stories + `data.json`.
+
 ---
 
 This skill generates **entity design components** from `data-model.json`. Each entity type/bundle in the data model gets its own design component with a single `content` slot that composes UI components.

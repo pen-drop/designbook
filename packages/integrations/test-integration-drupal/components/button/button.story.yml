@@ -1,5 +1,0 @@
-name: Preview
-props:
-  text: Weiterlesen
-  href: /blog/article-1
-  variant: primary

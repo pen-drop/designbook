@@ -5,7 +5,7 @@ description: Generates screen design components that compose shell + entity into
 
 # Designbook Screen
 
-> **Component Type: Screen** — This skill generates **screen components**: structural wrappers with **no HTML markup** that compose UI (header/footer) + entity components into full page views. Files use the `section-` prefix (e.g. `section-news-article-list`).
+> **Component Type: Screen** — This skill generates **screen components**: structural wrappers with **no HTML markup** that compose UI (header/footer) + entity components into full page views. Each section produces exactly **one** component; each page is a **story**.
 
 ### Component Type Overview
 
@@ -15,11 +15,22 @@ description: Generates screen design components that compose shell + entity into
 | Entity | `designbook-drupal-components-entity` | ❌ Minimal — `<article>` wrapper only | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
 | **Screen** ← this skill | `designbook-drupal-components-screen` | ❌ No — slots only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
 
-> **Naming**: The skill is called "screen" but component files use the `section-` prefix because each screen belongs to a product section. Format: `section-[sectionid]-[pagename]`.
+> [!CAUTION]
+> **MANDATORY**: Before generating ANY screen components, you MUST read this entire SKILL.md. It contains critical rules about entity story references, slot composition, and the `story:` key requirement.
+
+> [!IMPORTANT]
+> **ONE component per section — pages are stories.**
+> Each section produces exactly **one** screen component named after the section (e.g. `section-blog`).
+> Each page within that section (listing, detail, etc.) is a **separate story** on that component — never a separate component.
+>
+> | Section | Component | Story files |
+> |---------|-----------|-------------|
+> | blog | `section-blog` | `section-blog.listing.story.yml`, `section-blog.detail.story.yml` |
+> | news | `section-news` | `section-news.listing.story.yml`, `section-news.detail.story.yml` |
 
 ---
 
-This skill generates **screen design components** that compose shell UI components (header/footer) and entity components into full page views. Each screen represents one page within a product section.
+This skill generates **screen design components** that compose shell UI components (header/footer) and entity components into full page views. Each screen component represents one product section; each page within that section is a story.
 
 Screen components are the **top-level composition layer** — they are structural wrappers with three slots: header, content, footer. The content slot references an entity design component in a specific view mode. Because entity and shell components already reference **real UI components** in their stories, the composed screen renders as a **complete visual design** in Storybook.
 
@@ -36,8 +47,6 @@ Screen components are the **top-level composition layer** — they are structura
 > The entity skill generates **two tiers** of stories: template stories (with `type: ref`) and **generated sample data stories** (with materialized values). Screen components reference the **generated** stories — never the templates.
 >
 > **Story name format:** `content_[section]_[viewmode]_[index]` — e.g., `content_blog_full_0`, `content_blog_teaser_1`
->
-> > ⛔ **NAMING CONVENTION**: All files follow **kebab-case** and the directory name = file base name. Example: `dashboard-overview/section-news-dashboard-overview.component.yml`.
 
 ## Prerequisites
 
@@ -55,7 +64,7 @@ Expected as JSON object:
 
 ```json
 {
-  "section-id": "news"
+  "section-id": "blog"
 }
 ```
 
@@ -64,20 +73,27 @@ Expected as JSON object:
 
 ## Output Structure
 
+Each section produces **one component directory** with one `.component.yml`, one `.twig`, and **one story file per page**:
+
 ```
 $DESIGNBOOK_DIST/
 └── components/
-    ├── section-news-article-list/
-    │   ├── section-news-article-list.component.yml
-    │   ├── section-news-article-list.story.yml
-    │   └── section-news-article-list.twig
-    └── section-news-article-detail/
-        ├── section-news-article-detail.component.yml
-        ├── section-news-article-detail.story.yml
-        └── section-news-article-detail.twig
+    ├── section-blog/
+    │   ├── section-blog.component.yml
+    │   ├── section-blog.listing.story.yml    ← listing page
+    │   ├── section-blog.detail.story.yml     ← detail page
+    │   └── section-blog.twig
+    └── section-news/
+        ├── section-news.component.yml
+        ├── section-news.listing.story.yml
+        ├── section-news.detail.story.yml
+        └── section-news.twig
 ```
 
-> **Naming rule:** Directory name = file base name = `section-[sectionid]-[pagename]` (kebab-case). All files in the directory share the same base name.
+> **Naming rules:**
+> - Directory name = component base name = `section-[sectionid]` (kebab-case)
+> - Story files = `section-[sectionid].[pagename].story.yml`
+> - The `[pagename]` comes from the page name in `screen-designs.md` (e.g. `listing`, `detail`)
 
 ## Execution Steps
 
@@ -111,18 +127,18 @@ Stop here.
 ### Step 3: Parse Screen Designs
 
 For each section's `screen-designs.md`, extract page definitions. Each page should specify:
-- **Page name** — kebab-case identifier (e.g., "article-list", "article-detail")
-- **Entity reference** — which entity type/bundle is shown (e.g., "node/article")
-- **View mode** — which view mode to use (e.g., "full", "teaser")
+- **Page name** — kebab-case identifier (e.g., `listing`, `detail`)
+- **Entity reference** — which entity type/bundle is shown (e.g., `node/article`)
+- **View mode** — which view mode to use (e.g., `full`, `teaser`)
 
 The **view mode** determines which entity template story was used to generate the sample data stories. Generated story names follow the pattern `content_[section]_[viewmode]_[index]`. The screen story references the entity using `story: content_[section]_[viewmode]_[index]`.
 
 View modes can also be derived from the **data model** (`data-model.json`) if the entity defines `view_modes`. Common view modes:
 
-| View Mode | Screen Type | Generated Story Name (example) |
-|-----------|------------|-------------------|
+| View Mode | Page Type | Generated Story Name (example) |
+|-----------|-----------|-------------------------------|
 | `full` | Detail page | `content_blog_full_0` |
-| `teaser` | List page / card | `content_blog_teaser_0` |
+| `teaser` | Listing page / card | `content_blog_teaser_0` |
 | `search_result` | Search results | `content_blog_search_result_0` |
 
 > **Parsing strategy:** Look for structured headings or sections in screen-designs.md that define individual pages. The markdown format should have clear page boundaries.
@@ -168,7 +184,7 @@ Review the `screen-designs.md` to identify any section-level UI elements that ar
 
 Present findings to the user:
 
-> "The **[page-name]** screen design includes elements beyond the entity and shell:
+> "The **[page-name]** page includes elements beyond the entity and shell:
 >
 > | Element | UI Component | Status |
 > |---------|-------------|--------|
@@ -177,23 +193,36 @@ Present findings to the user:
 >
 > I'll add these as extra slots in the screen component. Shall I proceed?"
 
-### Step 5: Create Screen Components (Manual)
+### Step 5: Create Screen Component & Stories
 
-Create screen components in `components/` named `section-[section]-[page]`.
+For each section, create **one** screen component in `components/section-[sectionid]/`.
 
-For each screen component:
-1.  Create `[component].component.yml` defining slots for header, content, footer, and any extra slots.
-2.  Create `[component].[storyname].story.yml` defining the default story.
-    *   Set `name: default`.
-    *   Reference entity components using `story: content_[section]_[viewmode]_[index]` to select a generated sample data story.
-3.  Create `[component].twig` with the layout.
+#### 5a. Create `section-[sectionid].component.yml`
+
+Define slots for header, content, footer, and any extra slots identified in Step 4b.
+
+#### 5b. Create `section-[sectionid].twig`
+
+Minimal structural template:
+
+```twig
+{{ header }}
+{{ content }}
+{{ footer }}
+```
+
+Add any extra slot variables as needed.
+
+#### 5c. Create one story file per page
+
+For each page in the section, create `section-[sectionid].[pagename].story.yml`.
 
 > ⛔ **CRITICAL: The `story:` key is MANDATORY** when referencing entity components. It must point to a **generated sample data story** (e.g., `content_blog_full_0`), not a template story name (e.g., `full`).
 
-**Example — Detail page story (`section-blog-detail.default.story.yml`):**
+**Example — Detail page story (`section-blog.detail.story.yml`):**
 
 ```yaml
-name: default
+name: detail
 slots:
   header:
     - type: component
@@ -209,10 +238,10 @@ slots:
       story: default
 ```
 
-**Example — Listing page story (`section-blog-listing.default.story.yml`):**
+**Example — Listing page story (`section-blog.listing.story.yml`):**
 
 ```yaml
-name: default
+name: listing
 slots:
   header:
     - type: component
@@ -245,19 +274,19 @@ slots:
 
 ### Step 6: Verify Output
 
-Check that screen components were created for each section/page:
+Check that the screen component was created for each section with the expected stories:
 
 ```bash
-find $DESIGNBOOK_DIST/components/section-* -name "*.component.yml" | sort
+find $DESIGNBOOK_DIST/components/section-* -name "*.component.yml" -o -name "*.story.yml" | sort
 ```
 
 **If successful:**
 > "✅ **Screen components created!**
 >
-> | Section | Page | Component | Entity |
-> |---------|------|-----------|--------|
-> | News | Article List | `section-news-article-list` | node/article (teaser) |
-> | News | Article Detail | `section-news-article-detail` | node/article (full) |
+> | Section | Component | Pages (Stories) |
+> |---------|-----------|-----------------|
+> | blog | `section-blog` | `listing`, `detail` |
+> | news | `section-news` | `listing`, `detail` |
 >
 > Open Storybook to see the full page compositions under Sections/* in the sidebar.
 >
@@ -274,13 +303,12 @@ find $DESIGNBOOK_DIST/components/section-* -name "*.component.yml" | sort
 
 ## Design Principles
 
-1. **Consistent naming**: Directory name = file base name. Always kebab-case. `section-news-article-list/section-news-article-list.*`. Group key: `Designbook/Screen/[SECTION_ID]`
-2. **Structural templates, composed design**: Screen Twig templates contain `{{ header }}{{ content }}{{ footer }}` — nothing else. But the composed story renders a **complete visual page** because shell and entity stories already reference real UI components
-3. **No inline markup**: Screen stories use **only `type: component`** references — composing shell and entity design components
-4. **Composition**: Screens compose existing shell + entity components, never duplicate their logic
-5. **Visual completeness**: The goal is that opening a screen story in Storybook shows a **recognizable page design**, not just raw text. If the visual result looks empty or unstyled, entity and shell stories need richer UI component references
-6. **Section-level UI**: Screens may introduce additional slots for section-specific UI components (filter bars, sidebars, pagination) that don't belong to entity or shell layers
-7. **Prerequisite-driven**: Checks for shell and entity components before generating, guides user to run them
-8. **Multi-page**: One section can have multiple pages, each with its own screen component
-9. **Delegated**: Actual file creation is handled by `designbook-drupal-components-ui`
-10. **Provider**: Uses `designbook_design` as SDC provider
+1. **One component per section**: Each section → one component (`section-blog`). Pages are stories, not components.
+2. **Consistent naming**: Directory name = file base name = `section-[sectionid]`. Stories = `section-[sectionid].[pagename].story.yml`. Group key: `Section/[SECTION_ID]`
+3. **Structural templates, composed design**: Screen Twig templates contain `{{ header }}{{ content }}{{ footer }}` — nothing else. But the composed story renders a **complete visual page** because shell and entity stories already reference real UI components
+4. **No inline markup**: Screen stories use **only `type: component`** references — composing shell and entity design components
+5. **Composition**: Screens compose existing shell + entity components, never duplicate their logic
+6. **Visual completeness**: The goal is that opening a screen story in Storybook shows a **recognizable page design**, not just raw text. If the visual result looks empty or unstyled, entity and shell stories need richer UI component references
+7. **Section-level UI**: Screens may introduce additional slots for section-specific UI components (filter bars, sidebars, pagination) that don't belong to entity or shell layers
+8. **Prerequisite-driven**: Checks for shell and entity components before generating, guides user to run them
+9. **Provider**: Uses `designbook_design` as SDC provider

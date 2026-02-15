@@ -1,5 +1,0 @@
-name: Preview
-props:
-  src: https://placehold.co/160x40?text=KEYTEC
-  alt: keytec.de Logo
-  href: /

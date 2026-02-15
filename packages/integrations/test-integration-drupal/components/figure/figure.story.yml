@@ -1,5 +1,0 @@
-name: Preview
-props:
-  src: https://placehold.co/800x450?text=Blog+Image
-  alt: Blog article hero image
-  caption: A sample blog image caption

@@ -57,17 +57,17 @@
         "image": [
             {
                 "id": "1",
-                "field_media_image": "/images/sample/drupal-11-upgrade.jpg",
+                "field_media_image": "<img src='https://placehold.co/800x450?text=Drupal+11+Upgrade' alt='Drupal 11 Upgrade' />",
                 "name": "Drupal 11 Upgrade"
             },
             {
                 "id": "2",
-                "field_media_image": "/images/sample/drupal-ki.jpg",
+                "field_media_image": "<img src='https://placehold.co/800x450?text=Drupal+AI' alt='Drupal AI' />",
                 "name": "Drupal AI"
             },
             {
                 "id": "3",
-                "field_media_image": "/images/sample/barrierefreiheit.jpg",
+                "field_media_image": "<img src='https://placehold.co/800x450?text=Barrierefreiheit' alt='Barrierefreiheit' />",
                 "name": "Barrierefreiheit"
             }
         ]

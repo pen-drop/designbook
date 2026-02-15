@@ -5,15 +5,24 @@ description: Creates Drupal SDC component files (.component.yml, .story.yml, and
 
 # Designbook Drupal Components — UI
 
-> **Component Type: UI** — This skill generates **UI components**: the only component type that contains real HTML markup and visual styling (e.g. DaisyUI classes). UI components are the building blocks referenced by all other component types.
+> **Component Type: UI** — This skill generates **UI components**: the only component type that contains real HTML markup. UI components are the building blocks referenced by all other component types. CSS styling is handled separately by the CSS generation skill based on `designbook.config.yml`.
 
 ### Component Type Overview
 
 | Type | Skill | Has Markup? | Location | Prefix | Provider |
 |------|-------|-------------|----------|--------|----------|
-| **UI** ← this skill | `designbook-drupal-components-ui` | ✅ Yes — real HTML + CSS | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `daisy_cms_daisyui`) |
+| **UI** ← this skill | `designbook-drupal-components-ui` | ✅ Yes — real HTML | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `daisy_cms_daisyui`) |
 | Entity | `designbook-drupal-components-entity` | ❌ No — structural wrapper | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
 | Screen | `designbook-drupal-components-screen` | ❌ No — slots only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
+
+> [!CAUTION]
+> **MANDATORY**: Before generating ANY components, you MUST read ALL resource files in `resources/`. Each contains critical rules that prevent common mistakes:
+> - [`resources/layout-reference.md`](resources/layout-reference.md) — Layout component definitions. **Never create domain-specific grids.**
+> - [`resources/shell-generation.md`](resources/shell-generation.md) — Shell generation workflow.
+> - [`resources/component-yml.md`](resources/component-yml.md) — Component YAML structure.
+> - [`resources/story-yml.md`](resources/story-yml.md) — Story YAML structure.
+> - [`resources/twig.md`](resources/twig.md) — Twig template rules.
+> - [`resources/rules.md`](resources/rules.md) — General conventions and error handling.
 
 ---
 
@@ -25,11 +34,11 @@ All UI components use a `group:` key in `.component.yml` to organize them into c
 |----------|---------------|-------------------|
 | **Action** | `Action` | button, link |
 | **Data Display** | `Data Display` | card, heading, text-block, figure, badge |
-| **Navigation** | `Navigation` | nav-main, nav-footer, breadcrumb |
-| **Layout** | `Layout` | grid |
+| **Navigation** | `Navigation` | navigation (variants: primary, footer), breadcrumb |
+| **Layout** | `Layout` | layout, layout-columns (from daisy-cms reference) |
 | **Shell** | `Shell` | header, footer, page |
 
-> **Shell components** (header, footer, page) are regular UI components with real HTML+CSS markup. They live in `$DESIGNBOOK_DRUPAL_THEME/components/header/` alongside all other UI components and use the theme provider. They compose other UI components via slots (logo, navigation, user menu, etc.). See [Shell Components](#shell-components) for generation details.
+> **Shell components** (header, footer, page) are regular UI components with real HTML markup. They live in `$DESIGNBOOK_DRUPAL_THEME/components/header/` alongside all other UI components and use the theme provider. They compose other UI components via slots (logo, navigation, user menu, etc.). See [Shell Components](#shell-components) for generation details.
 
 ---
 
@@ -50,7 +59,7 @@ This skill generates Drupal Single Directory Component (SDC) files from a struct
 > ├── nav-main.component.yml   ✅ correct
 > ├── nav-main.story.yml       ✅ correct
 > ├── nav-main.twig            ✅ correct
-> ├── nav-main.css             ✅ correct (optional)
+
 > └── nav-main.js              ✅ correct (optional)
 > ```
 >
@@ -136,9 +145,7 @@ $DESIGNBOOK_DRUPAL_THEME/components/
 └── [component-name]/
     ├── [component-name].component.yml  # SDC metadata (required)
     ├── [component-name].story.yml      # SDC Storybook stories (required)
-    ├── [component-name].twig           # Twig template (required)
-    ├── [component-name].css            # Component styles (optional)
-    └── [component-name].js             # Component behavior (optional)
+    └── [component-name].twig           # Twig template (required)
 ```
 
 **Designbook Components (via `outputDir`):**
@@ -156,9 +163,7 @@ When `outputDir` is provided, output goes to the specified directory instead:
 [outputDir]/
 ├── [component-name].component.yml
 ├── [component-name].story.yml
-├── [component-name].twig
-├── [component-name].css               # optional
-└── [component-name].js                # optional
+└── [component-name].twig
 ```
 
 > **Rule:** Directory name = file base name. Always. `button/button.*`, `nav-main/nav-main.*`, `hero-section/hero-section.*`.
@@ -250,8 +255,6 @@ Expected files (all sharing the same base name as the directory):
 - `[componentNameKebab].component.yml` (required)
 - `[componentNameKebab].story.yml` (required)
 - `[componentNameKebab].twig` (required)
-- `[componentNameKebab].css` (optional, if component has custom styles)
-- `[componentNameKebab].js` (optional, if component has behavior)
 
 **If successful:**
 > "✅ **Component created successfully!**
@@ -285,7 +288,7 @@ Expected files (all sharing the same base name as the directory):
 |----------|----------|
 | Same props + same slots, different layout | ✅ **Single component with variants** |
 | Different props or different slots | ❌ Separate components |
-| Same structure, minor styling difference (e.g. color) | ✅ Variant with CSS modifier class |
+| Same structure, minor styling difference (e.g. color) | ✅ Variant with modifier class |
 | Same structure, fundamentally different HTML | ✅ Variant with separate Twig include |
 
 **Example**: A `card` component may appear as a vertical card and a horizontal card. Both accept the same props (`title`, `description`) and the same slots (`media`, `actions`). → This is **one `card` component** with variants `vertical` and `horizontal`.
@@ -302,7 +305,7 @@ components/card/
 ├── card.twig                # Main template — dispatches to includes
 ├── card--vertical.twig      # Layout for vertical variant
 ├── card--horizontal.twig    # Layout for horizontal variant
-└── card.css                 # Optional shared styles
+
 ```
 
 **Main template (`card.twig`) — variant dispatcher:**
@@ -422,309 +425,26 @@ stories:
 
 ## Shell Components
 
-Shell components (header, footer, page) are UI components in the `Shell` category. They contain **real HTML+CSS markup** and compose other UI components via slots. Unlike other UI components which are generic building blocks, shell components have a **generation workflow** that auto-derives navigation from section definitions.
+Shell components (header, footer, page) are UI components in the `Shell` category with a special generation workflow.
 
-> ⛔ **CRITICAL RULE — No Inline Markup in Stories**: Shell stories must contain **only `type: component`** references. Never use `type: element` with HTML tags or attributes. Every visual piece must be a reusable UI component. If a required UI component doesn't exist, **create it first**.
-
-> **Stories**: Shell components have exactly **one story** (`default`) per component — there is only one meaningful visual configuration for header/footer.
-
-| Component | `group:` | Slots |
-|-----------|---------|-------|
-| `header` | `Shell` | `logo`, `navigation`, `user_menu` |
-| `footer` | `Shell` | `footer_nav`, `copyright` |
-
-All shell components are regular UI components: they live in `$DESIGNBOOK_DRUPAL_THEME/components/header/` (or `footer/`), use the theme provider, and have real HTML+CSS in their Twig templates.
-
-### Shell Generation Steps
-
-When generating shell components, follow this workflow:
-
-#### Shell Step 1: Check If Shell Already Exists
-
-Check for existing shell components:
-
-```bash
-ls $DESIGNBOOK_DRUPAL_THEME/components/header/header.component.yml 2>/dev/null
-ls $DESIGNBOOK_DRUPAL_THEME/components/footer/footer.component.yml 2>/dev/null
-```
-
-**If both exist and `force` is `false`:**
-> "✅ Shell components already exist. Use `force: true` to regenerate."
-
-Stop here.
-
-#### Shell Step 2: Read Section Navigation
-
-Scan all section definition files:
-
-```bash
-ls $DESIGNBOOK_DIST/sections/*.section.yml
-```
-
-Parse each file to extract `id` and `title`. Build a navigation items list:
-
-```yaml
-# For each section.yml:
-- label: [title]           # e.g. "Secure Blue Vault"
-  url: /[id]               # e.g. "/secure-blue-vault"
-```
-
-Sort by `order` field if present, otherwise alphabetically by title.
-
-**If no section files found:**
-> "⚠️ No section.yml files found. Navigation will be empty. Run `/product-sections` first to define sections."
-
-Continue with empty navigation.
-
-#### Shell Step 3: Identify Required UI Components
-
-Before generating shell components, identify which **UI components** are needed. Every slot in the shell must be filled by a component reference — no inline markup.
-
-**Required UI components for the header:**
-
-| Slot | UI Component | Description |
-|------|-------------|-------------|
-| `logo` | `logo` | Site branding / logo display |
-| `navigation` | `nav-main` | Primary navigation menu, accepts items as props |
-| `user_menu` | `user-menu` | User account dropdown / login link |
-
-**Required UI components for the footer:**
-
-| Slot | UI Component | Description |
-|------|-------------|-------------|
-| `footer_nav` | `nav-footer` | Footer navigation links, accepts items as props |
-| `copyright` | `copyright` | Copyright text display |
-
-**3.1 — Audit existing UI components:**
-
-```bash
-find $DESIGNBOOK_DRUPAL_THEME/components/ -name "*.component.yml" 2>/dev/null | sort
-```
-
-**3.2 — Create missing UI components:**
-
-For each required UI component that doesn't exist, create it using this skill. Place them in the **project's UI component library**:
-
-```
-$DESIGNBOOK_DRUPAL_THEME/components/
-├── logo/
-│   ├── logo.component.yml
-│   ├── logo.story.yml
-│   └── logo.twig
-├── nav-main/
-│   ├── nav-main.component.yml
-│   ├── nav-main.story.yml
-│   └── nav-main.twig
-├── nav-footer/
-│   ├── nav-footer.component.yml
-│   ├── nav-footer.story.yml
-│   └── nav-footer.twig
-├── user-menu/
-│   ├── user-menu.component.yml
-│   ├── user-menu.story.yml
-│   └── user-menu.twig
-└── copyright/
-    ├── copyright.component.yml
-    ├── copyright.story.yml
-    └── copyright.twig
-```
-
-Each UI component should:
-- Have appropriate **props** (e.g., `nav-main` has an `items` prop) 
-- Have a **story** that renders realistic content
-- Have a **Twig template** with CSS framework classes (e.g., DaisyUI) for visual styling
-- Use the correct **provider** from the theme config (e.g., `daisy_cms_daisyui`)
-
-Present the plan to the user and ask for confirmation:
-
-> "For the shell I need these UI components:
->
-> | Component | Status | Description |
-> |-----------|--------|-------------|
-> | `logo` | 🆕 NEW | Site branding |
-> | `nav-main` | 🆕 NEW | Primary navigation (4 items from sections) |
-> | `user-menu` | 🆕 NEW | User account dropdown |
-> | `nav-footer` | 🆕 NEW | Footer navigation links |
-> | `copyright` | 🆕 NEW | Copyright text |
-> | `button` | ✅ EXISTS | Already in component library |
->
-> Shall I create the missing components?"
-
-#### Shell Step 4: Generate Header Component
-
-Build the header component definition:
-
-```yaml
-# header.component.yml
-name: header
-label: Header
-status: experimental
-group: Shell
-thirdPartySettings:
-  sdcStorybook:
-    disableBasicStory: true
-    tags: 
-      - "!autodocs"
-slots:
-  logo:
-    title: Logo
-    description: Branding logo
-  navigation:
-    title: Navigation
-    description: Main navigation
-  user_menu:
-    title: User Menu
-    description: User menu
-```
-
-Build the header story. The story must use **only component references**:
-
-```yaml
-# header.default.story.yml
-name: default
-slots:
-  logo:
-    - type: component
-      component: '[ui_provider]:logo'
-      props:
-        name: '[PRODUCT_NAME]'
-  navigation:
-    - type: component
-      component: '[ui_provider]:nav-main'
-      props:
-        items:
-          - label: '[Section 1 Title]'
-            url: '/[section-1-id]'
-          - label: '[Section 2 Title]'
-            url: '/[section-2-id]'
-  user_menu:
-    - type: component
-      component: '[ui_provider]:user-menu'
-      props:
-        name: 'User'
-```
-
-Replace `[ui_provider]` with the project's SDC UI provider from config.
-Replace `[PRODUCT_NAME]` with the product name from `product-overview.md`.
-Replace navigation items with those built in Shell Step 2.
-
-The Twig template for the header contains **real HTML markup with CSS framework classes**:
-
-```twig
-{# header.twig — real markup, shell is a UI component #}
-<header{{ attributes.addClass(['header']) }}>
-  <div class="header__logo">{{ logo }}</div>
-  <nav class="header__navigation">{{ navigation }}</nav>
-  <div class="header__user-menu">{{ user_menu }}</div>
-</header>
-```
-
-#### Shell Step 5: Generate Footer Component
-
-Build the footer component definition:
-
-```yaml
-# footer.component.yml
-name: footer
-label: Footer
-status: experimental
-group: Shell
-thirdPartySettings:
-  sdcStorybook:
-    disableBasicStory: true
-    tags: 
-      - "!autodocs"
-slots:
-  footer_nav:
-    title: Footer Navigation
-    description: Footer navigation links
-  copyright:
-    title: Copyright
-    description: Copyright text
-```
-
-The story must use **only component references**:
-
-```yaml
-# footer.default.story.yml
-name: default
-slots:
-  footer_nav:
-    - type: component
-      component: '[ui_provider]:nav-footer'
-      props:
-        items:
-          - label: 'Privacy'
-            url: '/privacy'
-          - label: 'Terms'
-            url: '/terms'
-          - label: 'Imprint'
-            url: '/imprint'
-  copyright:
-    - type: component
-      component: '[ui_provider]:copyright'
-      props:
-        text: '© 2026 [PRODUCT_NAME]. All rights reserved.'
-```
-
-The Twig template for the footer contains **real HTML markup with CSS framework classes**:
-
-```twig
-{# footer.twig — real markup, shell is a UI component #}
-<footer{{ attributes.addClass(['footer']) }}>
-  <nav class="footer__nav">{{ footer_nav }}</nav>
-  <div class="footer__copyright">{{ copyright }}</div>
-</footer>
-```
-
-#### Shell Step 6: Verify Output
-
-Check that all files were created:
-
-```bash
-find $DESIGNBOOK_DRUPAL_THEME/components/header -type f | sort
-find $DESIGNBOOK_DRUPAL_THEME/components/footer -type f | sort
-```
-
-**If successful:**
-> "✅ **Shell components created!**
->
-> **UI Components created:**
-> | Component | Path |
-> |-----------|------|
-> | `logo` | `components/logo/` |
-> | `nav-main` | `components/nav-main/` |
-> | `nav-footer` | `components/nav-footer/` |
-> | `user-menu` | `components/user-menu/` |
-> | `copyright` | `components/copyright/` |
->
-> **Shell Components:**
-> - `header` — references `logo`, `nav-main`, `user-menu`
-> - `footer` — references `nav-footer`, `copyright`
->
-> Next: Run `designbook-entity` to generate entity design components."
+→ Follow the complete shell generation workflow in [`resources/shell-generation.md`](resources/shell-generation.md)
 
 ---
 
-## Error Handling
+## Layout Components
 
-- **Missing required parameter**: Report which parameter is missing
-- **Invalid status value**: List valid options (`stable`, `experimental`, `deprecated`)
-- **Invalid group value**: List valid options (`Action`, `Data Display`, `Navigation`, `Layout`, `Shell`)
-- **Component already exists**: Ask for confirmation before overwriting
-- **Directory creation fails**: Report filesystem error
-- **File write fails**: Report which file failed and why
-- **Schema validation fails**: Show errors and fix before continuing
-- **No section files (shell)**: Warn but continue with empty navigation
+> [!CAUTION]
+> **MUST READ** [`resources/layout-reference.md`](resources/layout-reference.md) before generating any layout or grid component.
 
-## Design Principles
+Layout components (`layout`, `layout_columns`) provide the grid system. **Never create domain-specific layout components** (e.g. `article-grid`, `blog-grid`, `card-grid`) — always use the generic `layout` component with appropriate grid classes like `grid-3` for a 3-column layout.
 
-1. **Consistent naming**: Directory name = file base name. Always kebab-case. `button/button.*`, `nav-main/nav-main.*`
-2. **Variants over duplication**: When components share the same props and slots, use a single component with variants and per-variant Twig includes (`[name]--[variant].twig`) instead of creating separate components
-3. **Three files minimum, one concern each**: Metadata (`.component.yml`), stories (`.story.yml`), and template (`.twig`) are always separate. Optional `.css` and `.js` follow the same naming pattern
-4. **Categorized**: Every component has a `group:` key (`Action`, `Data Display`, `Navigation`, `Layout`, `Shell`) for Storybook sidebar organization
-5. **Idempotent**: Running multiple times with same input produces same result
-6. **Validated**: Component YAML is validated against the Drupal SDC schema
-7. **Safe**: Asks for confirmation before overwriting existing components
-8. **Standard**: Follows Drupal SDC and SDC Storybook conventions
-9. **Shell = UI**: Shell components (header, footer, page) are full UI components with real HTML+CSS, not structural slot-only wrappers. They compose other UI components via slots
+→ Full component definitions, Twig templates, and story examples in [`resources/layout-reference.md`](resources/layout-reference.md)
+
+---
+
+## Rules, Principles, and Error Handling
+
+→ See [`resources/rules.md`](resources/rules.md) for all conventions.
+
+Key principles: kebab-case naming, variants over duplication, three files per component, generic naming (no business logic), placeholder images (`https://placehold.co/`) only, `group:` key on every component.
+

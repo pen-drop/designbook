@@ -1,5 +1,0 @@
-name: Preview
-props:
-  text: Drupal Migration Best Practices
-  html_tag: h2
-  variant: default
