@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
 import { baseTheme } from '../.daisy_ui.js';
+import { refStoryNodeRenderer } from './refRenderer.js';
 const { uiPatternsDefs } = require(`./defs.js`);
 
 console.log(baseTheme);
@@ -15,7 +16,8 @@ const config = {
     "../components/**/*.component.yml",
     join(baseTheme, "components/**/*.component.yml"),
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-    "../designbook/sections/*.section.yml"
+    "../designbook/sections/*.section.yml",
+    "../designbook/components/**/*.component.yml"
   ],
   addons: [
     '@storybook/addon-themes',
@@ -27,10 +29,12 @@ const config = {
         sdcStorybookOptions: {
           twigLib: 'twing',
           customDefs: uiPatternsDefs,
-          namespace: 'daisy_cms_daisyui3',
+          namespace: 'daisy_cms_daisyui',
           namespaces: {
-            'ui_suite_daisyui': baseTheme
-          }
+            'ui_suite_daisyui': baseTheme,
+            'designbook_design': join(cwd(), 'designbook')
+          },
+          storyNodesRenderer: refStoryNodeRenderer
         },
         vitePluginTwingDrupalOptions: {
           hooks: join(cwd(), '.storybook/twing-hooks.js'),
@@ -68,6 +72,29 @@ const config = {
       plugins: [
         react({ include: /\.storybook\/source\/.*\.[jt]sx?$/ }),
         tailwindcss(),
+        {
+          // Fix SDC addon bug: generateImports imports ALL .twig files as
+          // `import COMPONENT from '...'`, causing redeclaration when a
+          // component dir has variant .twig files (e.g. card--horizontal.twig).
+          // This transform keeps only the first COMPONENT import and converts
+          // subsequent ones to side-effect imports.
+          name: 'sdc-dedup-component-import',
+          enforce: 'post',
+          transform(code, id) {
+            if (!id.endsWith('.component.yml')) return;
+            let found = false;
+            return code.replace(
+              /import COMPONENT from '([^']+)';/g,
+              (match, path) => {
+                if (!found) {
+                  found = true;
+                  return match; // keep first
+                }
+                return `import '${path}';`; // side-effect only
+              }
+            );
+          },
+        },
       ],
       build: {
         // Use esbuild for CSS minification instead of lightningcss

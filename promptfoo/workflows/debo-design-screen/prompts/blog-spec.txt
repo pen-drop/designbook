@@ -1,0 +1,18 @@
+Please write a detailed plan stored at /promptfoo/reports/promptfoo-blog-test-[CURRENT_MODEL_ID]. 
+and dont execute anything.
+
+Your task: 
+
+execute workflow /debo-design-screen blog  
+
+Design a blog page 1:1 from https://keytec.de/de/drupal-ai-integration
+
+Read a related skill and mention 
+* components 
+* steps 
+* scripts 
+
+in your plan. Don't execute anything
+
+Please also describe which skills including resources you haved readed.
+

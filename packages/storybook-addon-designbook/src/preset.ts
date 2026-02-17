@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 
 const __filename = fileURLToPath(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const __dirname = dirname(__filename);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,7 +47,7 @@ export const webpack = async (config: any) => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const stories = async (entry: string[] = [], options: any) => {
-  const onboardingGlob = require.resolve('../package.json').replace('package.json', 'dist/onboarding/*.mdx');
+  const onboardingGlob = resolve(__dirname, 'onboarding/*.mdx');
 
   // Add the sections glob so Storybook finds the files
   let projectRoot = process.cwd();
@@ -63,8 +63,9 @@ export const stories = async (entry: string[] = [], options: any) => {
   }
 
   const sectionsGlob = resolve(projectRoot, distDir, 'sections/*.section.yml');
+  const designGlob = resolve(projectRoot, distDir, 'design/**/*.component.yml');
 
-  return [...entry, onboardingGlob, sectionsGlob];
+  return [...entry, onboardingGlob, sectionsGlob, designGlob];
 };
 
 /**
@@ -96,11 +97,11 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
 
         return [
           {
-            type: 'story' as const,
+            type: 'docs' as const,
             importPath: relativePath,
             exportName: exportName,
-            title: `Sections/${title}`,
-            tags: ['!autodocs'],
+            title: `Designbook/Sections/${title}`,
+            tags: ['!dev'],
           },
         ];
       } catch (err) {
@@ -112,3 +113,5 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
 
   return [...existingIndexers, sectionsIndexer];
 };
+
+export const indexers = experimental_indexers;

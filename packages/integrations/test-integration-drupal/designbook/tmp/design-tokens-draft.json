@@ -1,0 +1,56 @@
+{
+    "color": {
+        "volcano": {
+            "$value": "#000000",
+            "$type": "color",
+            "description": "Primary text and borders (Black)"
+        },
+        "cloud": {
+            "$value": "#FFFFFF",
+            "$type": "color",
+            "description": "Light text and backgrounds (White)"
+        },
+        "shell": {
+            "$value": "#F7F7F4",
+            "$type": "color",
+            "description": "Page background (Warm White)"
+        },
+        "sun": {
+            "$value": "#FFC024",
+            "$type": "color",
+            "description": "Accent color for highlights and list bullets (Gold)"
+        },
+        "swimsuit": {
+            "$value": "#FF4E42",
+            "$type": "color",
+            "description": "Primary accent for links and CTAs (Red)"
+        },
+        "ocean": {
+            "$value": "#494FE5",
+            "$type": "color",
+            "description": "Focus states, hover effects and blockquotes (Indigo)"
+        },
+        "wine": {
+            "$value": "#832626",
+            "$type": "color",
+            "description": "Secondary accent (Dark Red)"
+        }
+    },
+    "typography": {
+        "heading": {
+            "$value": "Satoshi",
+            "$type": "fontFamily",
+            "description": "Used for all headings (h1-h4)"
+        },
+        "body": {
+            "$value": "Satoshi",
+            "$type": "fontFamily",
+            "description": "Used for body text and UI elements"
+        },
+        "mono": {
+            "$value": "JetBrains Mono",
+            "$type": "fontFamily",
+            "description": "Used for code blocks"
+        }
+    }
+}

@@ -1,0 +1,196 @@
+{
+    "_meta": {
+        "models": {
+            "node.article": "Blog posts and technical articles",
+            "media.image": "Hero images for articles",
+            "media.collage": "Multi-layer collage illustrations",
+            "block_content.text": "Rich text blocks",
+            "block_content.contact_box": "Contact person cards",
+            "block_content.manual_list": "Curated content lists",
+            "block_content.card": "Teaser cards"
+        },
+        "relationships": [
+            "node.article references media.image via field_media",
+            "node.article references media.collage via field_media",
+            "node.article references node.article via field_related",
+            "block_content.manual_list references node.article via field_nodes",
+            "block_content.contact_box references media.image via field_contact_image"
+        ]
+    },
+    "node": {
+        "article": [
+            {
+                "id": "1",
+                "title": "Upgrade auf Drupal 11 – Verbesserte Leistung, Sicherheit und Funktionalität",
+                "field_teaser_preheadline": "Drupal Update",
+                "field_teaser_description": "Der offizielle Support für Drupal 9 wurde eingestellt. Erfahren Sie, warum jetzt der ideale Zeitpunkt für ein Upgrade auf Drupal 11 ist.",
+                "field_button_text": "Lesen",
+                "field_teaser_button_color": "swimsuit",
+                "field_media": "media.image.1",
+                "body": "<h2>Warum auf Drupal 11 aktualisieren?</h2><p>Der offizielle Support für Drupal 9 wurde im November 2023 eingestellt. Das bedeutet, dass es keine Sicherheitsupdates, Bugfixes oder Unterstützung durch die Community mehr gibt.</p><h2>4 Gründe, jetzt auf Drupal 11 zu wechseln</h2><ol><li><strong>Sicherheit</strong> — Drupal 11 bietet essenzielle Sicherheitsupdates und unterstützt PHP 8.3.</li><li><strong>Funktionalität</strong> — Neue Features und ein verbesserter Layout Builder.</li><li><strong>Unterstützung</strong> — Langfristige Wartung und Community-Support.</li><li><strong>Kompatibilität</strong> — Aktuelle Webstandards und moderne Frameworks.</li></ol><h2>Fazit</h2><p>Ein Upgrade auf Drupal 11 sichert Ihre Website für die Zukunft — mit besserer Leistung, Sicherheit und Funktionalität.</p>",
+                "field_seo_title": "Upgrade auf Drupal 11 | keytec Drupal Agentur München",
+                "field_meta_tag": "Drupal 11, Upgrade, Sicherheit, Performance, keytec",
+                "field_related": [
+                    "node.article.2",
+                    "node.article.3"
+                ]
+            },
+            {
+                "id": "2",
+                "title": "Drupal & KI: Zukunft gestalten",
+                "field_teaser_preheadline": "Automatisierung & Effizienz",
+                "field_teaser_description": "Erfahren Sie, wie Keytec Drupal mit Künstlicher Intelligenz verbindet, um Prozesse zu automatisieren und personalisierte Nutzererlebnisse zu schaffen.",
+                "field_button_text": "Lesen",
+                "field_teaser_button_color": "ocean",
+                "field_media": "media.image.2",
+                "body": "<h2>Künstliche Intelligenz in Drupal</h2><p>Die Integration von KI in Drupal eröffnet völlig neue Möglichkeiten für Redakteure und Entwickler. Von der automatischen Verschlagwortung bis zur Generierung von Inhalten – die Zukunft ist da.</p><h2>Vorteile der Integration</h2><ul><li><strong>Automatisierung:</strong> Reduzieren Sie manuelle Aufgaben durch intelligente Workflows.</li><li><strong>Personalisierung:</strong> Bieten Sie Ihren Nutzern maßgeschneiderte Inhalte in Echtzeit.</li><li><strong>Effizienz:</strong> Beschleunigen Sie Content-Prohsesse durch KI-gestützte Tools.</li></ul><p>Starten Sie jetzt mit Keytec in die Zukunft der digitalen Experience.</p>",
+                "field_seo_title": "Drupal & KI: Zukunft gestalten | keytec",
+                "field_meta_tag": "Drupal, KI, AI, Automation, keytec"
+            },
+            {
+                "id": "3",
+                "title": "Barrierefreie Drupal-Anwendungen – So wird Ihre Website BFSG-konform",
+                "field_teaser_preheadline": "Barrierefreiheit",
+                "field_teaser_description": "Ab Juni 2025 wird Barrierefreiheit gesetzlich verpflichtend. So machen Sie Ihre Drupal-Website BFSG-konform.",
+                "field_button_text": "Lesen",
+                "field_teaser_button_color": "sun",
+                "field_media": "media.image.3",
+                "body": "<h2>BFSG – Was bedeutet das für Ihre Website?</h2><p>Das Barrierefreiheitsstärkungsgesetz verpflichtet Unternehmen, ihre digitalen Angebote barrierefrei zu gestalten.</p>",
+                "field_seo_title": "Barrierefreie Drupal-Anwendungen | keytec",
+                "field_meta_tag": "Barrierefreiheit, BFSG, Drupal, Accessibility, keytec"
+            },
+            {
+                "id": "4",
+                "title": "AI und Drupal",
+                "field_teaser_preheadline": "AI Integration",
+                "field_teaser_description": "Der Schlüssel zu effizienteren Websites und smarteren Prozessen",
+                "field_button_text": "Beratung Anfordern",
+                "field_teaser_button_color": "sun",
+                "field_media": "media.collage.1",
+                "body": "<p>Künstliche Intelligenz hält in immer mehr Bereiche Einzug – von der Automatisierung im Kundenservice bis hin zur intelligenten Datenanalyse. Auch in der Drupal-Welt eröffnen sich durch AI völlig neue Möglichkeiten, um Websites leistungsfähiger, effizienter und nutzerfreundlicher zu gestalten.</p><h2>Warum Drupal &amp; AI?</h2><p>Mit den neuesten Entwicklungen im Bereich der Künstlichen Intelligenz lassen sich Drupal-Websites auf völlig neue Weise verbessern. Ob automatisierte Übersetzungen, SEO-optimierte Inhalte oder personalisierte Nutzererlebnisse – Eine Drupal-AI-Integration bietet zahlreiche Möglichkeiten, Zeit zu sparen, Prozesse zu optimieren und die Qualität von Webprojekten zu steigern.</p><h3>Flexibel und modular</h3><p>Das <a href=\"https://www.drupal.org/project/ai\">Drupal AI Modul</a> bietet eine flexible und modulare KI-Integration für Drupal. Dank zahlreicher <a href=\"https://www.drupal.org/project/artificial_intelligence_initiative/issues/3429343\">Submodule</a> lassen sich spezifische AI-Funktionen gezielt aktivieren – von automatisierter Texterstellung bis hin zu Übersetzungen oder Backend Chatbots. Zudem unterstützt es verschiedene KI-Provider wie OpenAI, was eine nahtlose Anpassung an individuelle Anforderungen ermöglicht.</p><p>Die AI-Integration ist Anbieterunabhängig, was sie äußerst flexibel macht. Für jede einzelne Aufgabe kann somit der passende KI-Provider/Experte ausgewählt werden. So lassen sich je nach Anwendungsfall unterschiedliche Dienste optimal nutzen, um präzise und effiziente Ergebnisse zu erzielen.</p><p>Die tiefe Drupal-Integration sorgt dafür, dass AI direkt im CMS nutzbar ist – ob in CKEditor, beim Übersetzen oder in Workflows.</p><h2>Was erwartet Sie hier?</h2><p>In dieser Artikelreihe zeigen wir Ihnen, welche AI-gestützten Lösungen es für Drupal gibt und wie sie ihr digitales Business voranbringen können. Von AI-gestützter Texterstellung und Übersetzung bis hin zur AI Assistenten für zahlreiche Anwendungszwecke – wir stellen Ihnen praxisnahe Möglichkeiten vor und erklären, wie Sie diese für Ihre Drupal-Website nutzen können.</p><p>Sie möchten die Vorteile von <strong>Drupal AI</strong> für Ihr Unternehmen nutzen? Dann lassen Sie uns darüber sprechen! <a href=\"/kontakt\">Kontaktieren Sie uns jetzt</a> und entdecken Sie, wie wir AI in Ihr Drupal-Projekte integrieren können.</p>",
+                "field_seo_title": "Drupal & KI: Zukunft gestalten | keytec - Agentur spezialisiert auf Drupal",
+                "field_meta_tag": "Drupal, KI, AI, Integration, keytec, Automatisierung",
+                "field_related": [
+                    "node.article.5",
+                    "node.article.6",
+                    "node.article.7"
+                ]
+            },
+            {
+                "id": "5",
+                "title": "KI Übersetzung in Drupal",
+                "field_teaser_preheadline": "AI Translation",
+                "field_teaser_description": "Der Artikel zeigt praxisnahe Beispiele, wie KI-gestützte Übersetzungslösungen in Drupal den Übersetzungsprozess optimieren und sprachliche Barrieren überwinden.",
+                "field_button_text": "Mehr",
+                "field_teaser_button_color": "sun",
+                "field_media": "media.image.5",
+                "body": "<p>KI-gestützte Übersetzungslösungen in Drupal.</p>",
+                "field_seo_title": "KI Übersetzung in Drupal | keytec",
+                "field_meta_tag": "KI, Übersetzung, Drupal, Translation, keytec"
+            },
+            {
+                "id": "6",
+                "title": "Content Erstellung mit Drupal AI",
+                "field_teaser_preheadline": "AI Content",
+                "field_teaser_description": "Optimieren Sie Ihre Content-Erstellung mit Drupal AI! Von automatischer Texterstellung über Rechtschreibprüfung bis zur SEO-Optimierung — KI sorgt für effizientere und hochwertigere Inhalte.",
+                "field_button_text": "Mehr",
+                "field_teaser_button_color": "ocean",
+                "field_media": "media.image.6",
+                "body": "<p>Content-Erstellung mit Drupal AI.</p>",
+                "field_seo_title": "Content Erstellung mit Drupal AI | keytec",
+                "field_meta_tag": "Content, AI, Drupal, CKEditor, SEO, keytec"
+            },
+            {
+                "id": "7",
+                "title": "Coming up next: AI Assistance",
+                "field_teaser_preheadline": "AI Chatbot",
+                "field_teaser_description": "Erleben Sie die Zukunft mit AI Assistance in Drupal! Integrieren Sie smarte Chatbots, die Ihre Nutzer in Echtzeit unterstützen und Ihre Website interaktiver und effizienter machen.",
+                "field_button_text": "Mehr",
+                "field_teaser_button_color": "swimsuit",
+                "field_media": "media.image.7",
+                "body": "<p>AI Assistance in Drupal — Coming soon.</p>",
+                "field_seo_title": "AI Assistance in Drupal | keytec",
+                "field_meta_tag": "AI, Assistance, Chatbot, Drupal, keytec"
+            }
+        ]
+    },
+    "media": {
+        "image": [
+            {
+                "id": "1",
+                "field_media_image": "<img src='https://placehold.co/800x450?text=Drupal+11+Upgrade' alt='Drupal 11 Upgrade' />",
+                "name": "Drupal 11 Upgrade"
+            },
+            {
+                "id": "2",
+                "field_media_image": "<img src='https://placehold.co/800x450?text=Drupal+AI' alt='Drupal AI' />",
+                "name": "Drupal AI"
+            },
+            {
+                "id": "3",
+                "field_media_image": "<img src='https://placehold.co/800x450?text=Barrierefreiheit' alt='Barrierefreiheit' />",
+                "name": "Barrierefreiheit"
+            },
+            {
+                "id": "4",
+                "field_media_image": "<img src='https://placehold.co/150x150/333/fff?text=TM' alt='Thomas Mfinanga' />",
+                "name": "Thomas Mfinanga Portrait"
+            },
+            {
+                "id": "5",
+                "field_media_image": "<img src='https://placehold.co/800x450/F5D042/333?text=KI+Übersetzung' alt='KI Übersetzung in Drupal' />",
+                "name": "KI Übersetzung"
+            },
+            {
+                "id": "6",
+                "field_media_image": "<img src='https://placehold.co/800x450/4A90D9/fff?text=Content+Erstellung' alt='Content Erstellung mit Drupal AI' />",
+                "name": "Content Erstellung"
+            },
+            {
+                "id": "7",
+                "field_media_image": "<img src='https://placehold.co/800x450/E8D5B7/333?text=AI+Assistance' alt='Coming up next: AI Assistance' />",
+                "name": "AI Assistance"
+            }
+        ],
+        "collage": [
+            {
+                "id": "1",
+                "field_media_image_1": "<img src='https://placehold.co/600x400/C82828/fff?text=Drupal+AI+Collage' alt='Drupal AI Integration Collage' />",
+                "field_image_layer1": "<img src='https://placehold.co/200x150/fff/333?text=Code+Window' alt='Code snippet window' />",
+                "field_image_layer2": "<img src='https://placehold.co/150x100/6C9BD2/fff?text=AI+Brain' alt='AI brain illustration' />",
+                "field_svg_layer1": "<svg viewBox='0 0 100 100'><circle cx='50' cy='50' r='30' fill='#1A73E8' opacity='0.3'/></svg>",
+                "field_preload": true,
+                "name": "AI Integration Hero Collage"
+            }
+        ]
+    },
+    "block_content": {
+        "text": [
+            {
+                "id": "1",
+                "field_rich_text_relaxed": "<p>Künstliche Intelligenz hält in immer mehr Bereiche Einzug – von der Automatisierung im Kundenservice bis hin zur intelligenten Datenanalyse. Auch in der Drupal-Welt eröffnen sich durch AI völlig neue Möglichkeiten, um Websites leistungsfähiger, effizienter und nutzerfreundlicher zu gestalten.</p><h2>Warum Drupal &amp; AI?</h2><p>Mit den neuesten Entwicklungen im Bereich der Künstlichen Intelligenz lassen sich Drupal-Websites auf völlig neue Weise verbessern. Ob automatisierte Übersetzungen, SEO-optimierte Inhalte oder personalisierte Nutzererlebnisse – Eine Drupal-AI-Integration bietet zahlreiche Möglichkeiten, Zeit zu sparen, Prozesse zu optimieren und die Qualität von Webprojekten zu steigern.</p><h3>Flexibel und modular</h3><p>Das <a href=\"https://www.drupal.org/project/ai\">Drupal AI Modul</a> bietet eine flexible und modulare KI-Integration für Drupal. Dank zahlreicher Submodule lassen sich spezifische AI-Funktionen gezielt aktivieren – von automatisierter Texterstellung bis hin zu Übersetzungen oder Backend Chatbots.</p><p>Die AI-Integration ist Anbieterunabhängig, was sie äußerst flexibel macht. Für jede einzelne Aufgabe kann somit der passende KI-Provider/Experte ausgewählt werden.</p><p>Die tiefe Drupal-Integration sorgt dafür, dass AI direkt im CMS nutzbar ist – ob in CKEditor, beim Übersetzen oder in Workflows.</p><h2>Was erwartet Sie hier?</h2><p>In dieser Artikelreihe zeigen wir Ihnen, welche AI-gestützten Lösungen es für Drupal gibt und wie sie ihr digitales Business voranbringen können.</p><p>Sie möchten die Vorteile von <strong>Drupal AI</strong> für Ihr Unternehmen nutzen? Dann lassen Sie uns darüber sprechen! <a href=\"/kontakt\">Kontaktieren Sie uns jetzt</a> und entdecken Sie, wie wir AI in Ihr Drupal-Projekte integrieren können.</p>"
+            }
+        ],
+        "contact_box": [
+            {
+                "id": "1",
+                "field_first_name": "Thomas",
+                "field_last_name": "Mfinanga",
+                "field_position": "Projektmanager",
+                "field_email": "thomas.mfinanga@keytec.de",
+                "field_phone": "+49 (0) 89 5419 89 81",
+                "field_contact_image": "media.image.4"
+            }
+        ],
+        "manual_list": [
+            {
+                "id": "1",
+                "field_nodes": [
+                    "node.article.5",
+                    "node.article.6",
+                    "node.article.7"
+                ]
+            }
+        ]
+    }
+}

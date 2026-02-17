@@ -1,5 +1,5 @@
-:root {
-  --font-heading: Outfit;
-  --font-body: Inter;
-  --font-mono: JetBrains Mono;
+@theme inline {
+  --font-heading: "Satoshi";
+  --font-body: "Satoshi";
+  --font-mono: "JetBrains Mono";
 }

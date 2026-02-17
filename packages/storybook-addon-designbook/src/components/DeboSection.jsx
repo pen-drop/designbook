@@ -1,5 +1,9 @@
 import { useDesignbookData } from '../hooks/useDesignbookData.js';
-import { DeboEmptyState } from './DeboEmptyState.jsx';
+import { DeboEmptyState } from './ui/DeboEmptyState.jsx';
+import { DeboLoading } from './ui/DeboLoading.jsx';
+import { DeboPageLayout } from './ui/DeboPageLayout.jsx';
+import { DeboSourceFooter } from './ui/DeboSourceFooter.jsx';
+import { DeboAlert } from './ui/DeboAlert.jsx';
 
 /**
  * DeboSection — Page section that combines data loading, empty state,
@@ -11,60 +15,65 @@ import { DeboEmptyState } from './DeboEmptyState.jsx';
  * @param {string} props.command — AI command name (e.g., "/product-roadmap")
  * @param {string} props.emptyMessage — Displayed when no data exists
  * @param {(data: any) => React.ReactNode} props.renderContent — How to render the loaded data
+ * @param {string} [props.title] — Section heading displayed above the content
  * @param {string} [props.filePath] — Full file path for display in empty state
+ * @param {boolean} [props.bare=false] — If true, renders content/loading/error/empty
+ *   without DeboPageLayout, DeboSourceFooter, or command hint. Use when composing
+ *   inside an outer layout (e.g., DeboStepIndicator or DeboPageLayout).
  */
-export function DeboSection({ dataPath, parser, command, emptyMessage, renderContent, filePath }) {
+export function DeboSection({ dataPath, parser, command, emptyMessage, renderContent, title, filePath, bare = false }) {
   const { data, loading, error, reload } = useDesignbookData(dataPath, parser);
 
   const displayPath = filePath || `designbook/${dataPath}`;
 
-  if (loading) {
-    return (
-      <div className="debo:font-sans debo:flex debo:justify-center debo:py-12">
-        <span className="debo:loading debo:loading-spinner debo:loading-md" />
-      </div>
-    );
-  }
+  const heading = title ? (
+    <h2 className="debo:text-lg debo:font-semibold debo:text-base-content debo:pb-2 debo:mb-4 debo:border-b debo:border-base-300">
+      {title}
+    </h2>
+  ) : null;
+
+  if (loading) return <>{heading}<DeboLoading /></>;
 
   if (error) {
     return (
-      <div className="debo:font-sans debo:alert debo:alert-error debo:my-4">
-        <span>Failed to load data: {error}</span>
-      </div>
+      <>
+        {heading}
+        <DeboAlert type="error" className="debo:font-sans debo:my-4">
+          <svg xmlns="http://www.w3.org/2000/svg" className="debo:h-5 debo:w-5 debo:shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Failed to load data: {error}</span>
+        </DeboAlert>
+      </>
     );
   }
 
   if (!data) {
-    return (
-      <div className="debo:font-sans debo:max-w-2xl debo:mx-auto debo:py-8">
+    const empty = (
+      <>
+        {heading}
         <DeboEmptyState
           message={emptyMessage}
           command={command}
           filePath={displayPath}
         />
-      </div>
+      </>
     );
+    return bare ? empty : <DeboPageLayout gap="8">{empty}</DeboPageLayout>;
+  }
+
+  if (bare) {
+    return <>{heading}{renderContent(data)}</>;
   }
 
   return (
-    <div className="debo:font-sans debo:max-w-2xl debo:mx-auto debo:py-6 debo:space-y-4">
+    <DeboPageLayout>
+      {heading}
       {renderContent(data)}
-      <div className="debo:flex debo:items-center debo:justify-between debo:px-1">
-        <p className="debo:text-base-content/40 debo:text-xs">
-          Source: <code className="debo:text-base-content/50">{displayPath}</code>
-        </p>
-        <div className="debo:flex debo:gap-2 debo:items-center">
-          <button
-            onClick={reload}
-            className="debo:btn debo:btn-ghost debo:btn-xs"
-          >
-            ↻ Reload
-          </button>
-          <span className="debo:text-base-content/30 debo:text-xs debo:leading-loose">
-            Update with <code className="debo:text-base-content/40">{command}</code>
-          </span>
-        </div>
-      </div>
-    </div>
+      <DeboSourceFooter path={displayPath} onReload={reload} />
+      <span className="debo:text-base-content/30 debo:text-xs debo:leading-loose">
+        Update with <code className="debo:text-base-content/40">{command}</code>
+      </span>
+    </DeboPageLayout>
   );
 }

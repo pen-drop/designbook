@@ -37,7 +37,7 @@
     "clean": "node -e \"fs.rmSync('./dist', { recursive: true, force: true })\"",
     "prebuild": "pnpm run clean",
     "build:css": "tailwindcss -i ./src/index.css -o ./dist/index.css",
-    "build": "pnpm run build:css && tsup && mkdir -p ./dist/onboarding && cp ./src/onboarding/section.story.tpl ./dist/onboarding/section.story.tpl",
+    "build": "pnpm run build:css && tsup",
     "build:watch": "run-p build:css:watch build:tsup:watch",
     "build:css:watch": "tailwindcss -i ./src/index.css -o ./dist/index.css --watch",
     "build:tsup:watch": "tsup --watch",
@@ -58,6 +58,7 @@
     "@storybook/react-vite": "next",
     "@storybook/types": "^8.6.14",
     "@tailwindcss/cli": "^4.1.18",
+    "@types/glob": "^9.0.0",
     "@types/node": "^20",
     "@types/react": "^18.2.65",
     "@types/react-dom": "^18.2.21",
@@ -70,6 +71,7 @@
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-storybook": "next",
+    "glob": "^11.0.1",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.6.2",
     "prompts": "^2.4.2",
@@ -111,6 +113,7 @@
     "icon": "https://user-images.githubusercontent.com/321738/63501763-88dbf600-c4cc-11e9-96cd-94adadc2fd72.png"
   },
   "dependencies": {
+    "marked": "^17.0.2",
     "yaml": "^2.8.2"
   }
 }

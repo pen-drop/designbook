@@ -1,30 +1,163 @@
 {
   "color": {
     "primary": {
-      "$value": "Indigo",
-      "$type": "color"
+      "$value": "#FF4E42",
+      "$type": "color",
+      "description": "Primary accent for links and CTAs (Red)"
+    },
+    "primary-content": {
+      "$value": "#FFFFFF",
+      "$type": "color",
+      "description": "Text on primary"
     },
     "secondary": {
-      "$value": "Emerald",
-      "$type": "color"
+      "$value": "#494FE5",
+      "$type": "color",
+      "description": "Focus states, hover effects and blockquotes (Indigo)"
+    },
+    "secondary-content": {
+      "$value": "#FFFFFF",
+      "$type": "color",
+      "description": "Text on secondary"
+    },
+    "accent": {
+      "$value": "#FFC024",
+      "$type": "color",
+      "description": "Accent color for highlights and list bullets (Gold)"
+    },
+    "accent-content": {
+      "$value": "#000000",
+      "$type": "color",
+      "description": "Text on accent"
     },
     "neutral": {
-      "$value": "Slate",
-      "$type": "color"
+      "$value": "#000000",
+      "$type": "color",
+      "description": "Primary text and borders (Black)"
+    },
+    "neutral-content": {
+      "$value": "#FFFFFF",
+      "$type": "color",
+      "description": "Text on neutral"
+    },
+    "base-100": {
+      "$value": "#F7F7F4",
+      "$type": "color",
+      "description": "Page background (Warm White)"
+    },
+    "base-200": {
+      "$value": "#FFFFFF",
+      "$type": "color",
+      "description": "Card surfaces and elevated areas (White)"
+    },
+    "base-300": {
+      "$value": "#E5E5E0",
+      "$type": "color",
+      "description": "Borders and dividers"
+    },
+    "base-content": {
+      "$value": "#000000",
+      "$type": "color",
+      "description": "Main text color"
+    },
+    "info": {
+      "$value": "#3ABFF8",
+      "$type": "color",
+      "description": "Info messages"
+    },
+    "info-content": {
+      "$value": "#002B3D",
+      "$type": "color",
+      "description": "Text on info"
+    },
+    "success": {
+      "$value": "#36D399",
+      "$type": "color",
+      "description": "Success messages"
+    },
+    "success-content": {
+      "$value": "#003320",
+      "$type": "color",
+      "description": "Text on success"
+    },
+    "warning": {
+      "$value": "#FBBD23",
+      "$type": "color",
+      "description": "Warning messages"
+    },
+    "warning-content": {
+      "$value": "#382800",
+      "$type": "color",
+      "description": "Text on warning"
+    },
+    "error": {
+      "$value": "#832626",
+      "$type": "color",
+      "description": "Error/danger messages (Wine Red)"
+    },
+    "error-content": {
+      "$value": "#FFFFFF",
+      "$type": "color",
+      "description": "Text on error"
     }
   },
   "typography": {
     "heading": {
-      "$value": "Outfit",
-      "$type": "fontFamily"
+      "$value": "Satoshi",
+      "$type": "fontFamily",
+      "description": "Used for all headings (h1-h4)"
     },
     "body": {
-      "$value": "Inter",
-      "$type": "fontFamily"
+      "$value": "Satoshi",
+      "$type": "fontFamily",
+      "description": "Used for body text and UI elements"
     },
     "mono": {
       "$value": "JetBrains Mono",
-      "$type": "fontFamily"
+      "$type": "fontFamily",
+      "description": "Used for code blocks"
+    }
+  },
+  "layout": {
+    "container-default": {
+      "$value": "1224px",
+      "$type": "dimension",
+      "description": "Default content container max-width"
+    },
+    "container-narrow": {
+      "$value": "1136px",
+      "$type": "dimension",
+      "description": "Narrow content container"
+    },
+    "container-small": {
+      "$value": "744px",
+      "$type": "dimension",
+      "description": "Small content container (body text, forms)"
+    },
+    "gap-default": {
+      "$value": "40px",
+      "$type": "dimension",
+      "description": "Default grid gap between items"
+    },
+    "gap-small": {
+      "$value": "25px",
+      "$type": "dimension",
+      "description": "Small grid gap"
+    },
+    "section-padding-sm": {
+      "$value": "60px",
+      "$type": "dimension",
+      "description": "Small vertical section padding"
+    },
+    "section-padding-default": {
+      "$value": "100px",
+      "$type": "dimension",
+      "description": "Default vertical section padding"
+    },
+    "section-padding-lg": {
+      "$value": "200px",
+      "$type": "dimension",
+      "description": "Large vertical section padding"
     }
   }
 }

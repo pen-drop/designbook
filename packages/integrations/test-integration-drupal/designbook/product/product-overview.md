@@ -1,19 +1,20 @@
-# Keytec
+# Product Vision: keytec.de Relaunch
 
-## Description
-Keytec is a modern wealth-building platform that empowers users to track, manage, and grow their assets with confidence. By consolidating investments, savings, and digital assets into a single "blue" interface, it clarifies the path to financial freedom.
+## Core Value Proposition
+keytec is a specialized Drupal Agency based in Munich, offering high-end digital solutions. The website serves as the primary marketing channel to demonstrate expertise, showcase successful projects, and attract potential clients and talent.
 
-## Problems & Solutions
+## Target Audience
+- **Enterprise Clients**: Seeking robust, scalable Drupal solutions.
+- **Marketing Managers**: Looking for design-driven, performant web experiences.
+- **Developers/Talent**: Interested in modern Drupal workflows and agency culture.
 
-### Problem 1: Fragmented Finances
-Users have money scattered across banks, crypto wallets, and brokerages, making it hard to see the full picture.
-**Solution**: Keytec aggregates all financial data into one secure dashboard for real-time net worth tracking.
+## Key Goals
+1.  **Demonstrate Expertise**: Highlight "Drupal Certified Partner" status and technical depth.
+2.  **Showcase Work**: Visual, compelling case studies of client projects.
+3.  **Lead Generation**: Clear calls-to-action for consulting and contact.
+4.  **Knowledge Sharing**: Integrating a rich blog with technical and strategic insights.
 
-### Problem 2: Lack of Direction
-Many people want to "get rich" but lack a structured plan or clear milestones.
-**Solution**: Keytec provides personalized growth roadmaps and actionable insights to optimize asset allocation.
-
-## Key Features
-- **Unified Dashboard**: View all assets (fiat, crypto, stocks) in one place.
-- **Growth Projections**: AI-driven tools to forecast wealth based on current habits.
-- **Secure Blue Vault**: Top-tier security for sensitive financial data.
+## Design Aesthetic
+- **Professional & Modern**: Clean lines, abundant whitespace.
+- **Tech-Forward**: Emphasizing "Mit Drupal auf Zielkurs".
+- **Responsive**: Seamless experience across devices.

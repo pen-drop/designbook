@@ -1,0 +1,375 @@
+{
+  "evalId": "eval-CM9-2026-02-16T22:56:20",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-02-16T22:56:20.775Z",
+    "prompts": [
+      {
+        "id": "5aca64319869fe89d7513e08ce439cbb72163d7ce59500f11a09b6d606f03548",
+        "raw": "Say hello and tell me which model you are in one sentence and what your current directory.",
+        "label": "Say hello and tell me which model you are in one sentence and what your current directory.",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 1,
+          "testPassCount": 1,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 1,
+          "assertFailCount": 0,
+          "totalLatencyMs": 5644,
+          "tokenUsage": {
+            "prompt": 11827,
+            "completion": 37,
+            "cached": 0,
+            "total": 11864,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 882,
+              "prompt": 640,
+              "completion": 242,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "5aca64319869fe89d7513e08ce439cbb72163d7ce59500f11a09b6d606f03548",
+        "raw": "Say hello and tell me which model you are in one sentence and what your current directory.",
+        "label": "Say hello and tell me which model you are in one sentence and what your current directory.",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 1,
+          "totalLatencyMs": 1501,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 4854,
+              "prompt": 4599,
+              "completion": 255,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "error": "The output is empty and contains neither a greeting nor any mention of which AI model is responding.",
+        "gradingResult": {
+          "pass": false,
+          "score": 0,
+          "reason": "The output is empty and contains neither a greeting nor any mention of which AI model is responding.",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 4854,
+            "prompt": 4599,
+            "completion": 255,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "The response contains a greeting and mentions which AI model is responding."
+              },
+              "pass": false,
+              "score": 0,
+              "reason": "The output is empty and contains neither a greeting nor any mention of which AI model is responding.",
+              "tokensUsed": {
+                "total": 4854,
+                "prompt": 4599,
+                "completion": 255,
+                "cached": 0,
+                "numRequests": 0,
+                "completionDetails": {
+                  "reasoning": 0,
+                  "acceptedPrediction": 0,
+                  "rejectedPrediction": 0
+                }
+              },
+              "metadata": {
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\n\\n</Output>\\n<Rubric>\\nThe response contains a greeting and mentions which AI model is responding.\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "255ca1c1-4b8c-4151-aec4-53a0baea606f",
+        "latencyMs": 1501,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Say hello and tell me which model you are in one sentence and what your current directory.",
+          "label": "Say hello and tell me which model you are in one sentence and what your current directory.",
+          "config": {
+            "provider": "opencode:google/antigravity-gemini-3-pro"
+          }
+        },
+        "promptId": "5aca64319869fe89d7513e08ce439cbb72163d7ce59500f11a09b6d606f03548",
+        "promptIdx": 1,
+        "provider": {
+          "id": "opencode:sdk",
+          "label": "claude-opus-4-6"
+        },
+        "response": {
+          "output": "",
+          "cost": 0,
+          "raw": "{\"data\":{},\"request\":{\"timeout\":false},\"response\":{}}",
+          "sessionId": "ses_39754b537ffegH86nKbxuhc5tm"
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Model identifies itself",
+          "assert": [
+            {
+              "type": "llm-rubric",
+              "value": "The response contains a greeting and mentions which AI model is responding."
+            }
+          ],
+          "vars": {},
+          "options": {
+            "provider": "opencode:google/antigravity-gemini-3-pro"
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "vars": {},
+        "metadata": {
+          "_promptfooFileMetadata": {},
+          "sessionId": "ses_39754b537ffegH86nKbxuhc5tm"
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "gradingResult": {
+          "pass": true,
+          "score": 1,
+          "reason": "All assertions passed",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 882,
+            "prompt": 640,
+            "completion": 242,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "assertion": {
+                "type": "llm-rubric",
+                "value": "The response contains a greeting and mentions which AI model is responding."
+              },
+              "pass": true,
+              "score": 1,
+              "reason": "The output contains the greeting 'Hello' and explicitly mentions the AI model 'antigravity-gemini-3-pro'",
+              "tokensUsed": {
+                "total": 882,
+                "prompt": 640,
+                "completion": 242,
+                "cached": 0,
+                "numRequests": 0,
+                "completionDetails": {
+                  "reasoning": 0,
+                  "acceptedPrediction": 0,
+                  "rejectedPrediction": 0
+                }
+              },
+              "metadata": {
+                "renderedGradingPrompt": "[{\"role\":\"system\",\"content\":\"You are grading output according to a user-specified rubric. If the statement in the rubric is true, then the output passes the test. You respond with a JSON object with this structure: {reason: string, pass: boolean, score: number}\\n\\nExamples:\\n\\n<Output>Hello world</Output>\\n<Rubric>Content contains a greeting</Rubric>\\n{\\\"reason\\\": \\\"the content contains the word 'Hello'\\\", \\\"pass\\\": true, \\\"score\\\": 1.0}\\n\\n<Output>Avast ye swabs, repel the invaders!</Output>\\n<Rubric>Does not speak like a pirate</Rubric>\\n{\\\"reason\\\": \\\"'avast ye' is a common pirate term\\\", \\\"pass\\\": false, \\\"score\\\": 0.0}\"},{\"role\":\"user\",\"content\":\"<Output>\\nHello, I am antigravity-gemini-3-pro and my current directory is `/home/cw/projects/designbook/promptfoo/skills/test-chat`.\\n</Output>\\n<Rubric>\\nThe response contains a greeting and mentions which AI model is responding.\\n</Rubric>\"}]"
+              }
+            }
+          ]
+        },
+        "id": "27204edb-b506-4b52-b905-a55429a938b3",
+        "latencyMs": 5644,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Say hello and tell me which model you are in one sentence and what your current directory.",
+          "label": "Say hello and tell me which model you are in one sentence and what your current directory.",
+          "config": {
+            "provider": "opencode:google/antigravity-gemini-3-pro"
+          }
+        },
+        "promptId": "5aca64319869fe89d7513e08ce439cbb72163d7ce59500f11a09b6d606f03548",
+        "promptIdx": 0,
+        "provider": {
+          "id": "opencode:sdk",
+          "label": "gemini-3-pro"
+        },
+        "response": {
+          "output": "Hello, I am antigravity-gemini-3-pro and my current directory is `/home/cw/projects/designbook/promptfoo/skills/test-chat`.",
+          "tokenUsage": {
+            "prompt": 11827,
+            "completion": 37,
+            "total": 11864
+          },
+          "cost": 0,
+          "raw": "{\"data\":{\"info\":{\"role\":\"assistant\",\"time\":{\"created\":1771282582286,\"completed\":1771282586430},\"parentID\":\"msg_c68ab4ae30019ODWtWLpbFt5ek\",\"modelID\":\"antigravity-gemini-3-pro\",\"providerID\":\"google\",\"mode\":\"build\",\"agent\":\"build\",\"path\":{\"cwd\":\"/home/cw/projects/designbook/promptfoo/skills/test-chat\",\"root\":\"/home/cw/projects/designbook\"},\"cost\":0,\"tokens\":{\"total\":11960,\"input\":11827,\"output\":37,\"reasoning\":96,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"stop\",\"id\":\"msg_c68ab4b0e0015XLBAuL7uL2daR\",\"sessionID\":\"ses_39754b537ffewF3GY1Bd1khfNs\"},\"parts\":[{\"type\":\"step-start\",\"snapshot\":\"76ca8168d2e438ff62993c88b48cf8144f9afbe0\",\"id\":\"prt_c68ab5ab2001I29KtWsm4pHAdJ\",\"sessionID\":\"ses_39754b537ffewF3GY1Bd1khfNs\",\"messageID\":\"msg_c68ab4b0e0015XLBAuL7uL2daR\"},{\"type\":\"text\",\"text\":\"Hello, I am antigravity-gemini-3-pro and my current directory is `/home/cw/projects/designbook/promptfoo/skills/test-chat`.\",\"time\":{\"start\":1771282586412,\"end\":1771282586412},\"id\":\"prt_c68ab5ab3001lx4DE9IR3eWfWI\",\"sessionID\":\"ses_39754b537ffewF3GY1Bd1khfNs\",\"messageID\":\"msg_c68ab4b0e0015XLBAuL7uL2daR\"},{\"type\":\"step-finish\",\"reason\":\"stop\",\"snapshot\":\"76ca8168d2e438ff62993c88b48cf8144f9afbe0\",\"cost\":0,\"tokens\":{\"total\":11960,\"input\":11827,\"output\":37,\"reasoning\":96,\"cache\":{\"read\":0,\"write\":0}},\"id\":\"prt_c68ab5b2f001y18pIx7w4IQBB5\",\"sessionID\":\"ses_39754b537ffewF3GY1Bd1khfNs\",\"messageID\":\"msg_c68ab4b0e0015XLBAuL7uL2daR\"}]},\"request\":{\"timeout\":false},\"response\":{}}",
+          "sessionId": "ses_39754b537ffewF3GY1Bd1khfNs"
+        },
+        "score": 1,
+        "success": true,
+        "testCase": {
+          "description": "Model identifies itself",
+          "assert": [
+            {
+              "type": "llm-rubric",
+              "value": "The response contains a greeting and mentions which AI model is responding."
+            }
+          ],
+          "vars": {},
+          "options": {
+            "provider": "opencode:google/antigravity-gemini-3-pro"
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "vars": {},
+        "metadata": {
+          "_promptfooFileMetadata": {},
+          "sessionId": "ses_39754b537ffewF3GY1Bd1khfNs"
+        },
+        "failureReason": 0
+      }
+    ],
+    "stats": {
+      "successes": 1,
+      "failures": 1,
+      "errors": 0,
+      "tokenUsage": {
+        "prompt": 11827,
+        "completion": 37,
+        "cached": 0,
+        "total": 11864,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0
+        },
+        "assertions": {
+          "total": 5736,
+          "prompt": 5239,
+          "completion": 497,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0
+          }
+        }
+      },
+      "durationMs": 12042
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "Quick smoke test — verify opencode SDK provider works",
+    "prompts": [
+      "Say hello and tell me which model you are in one sentence and what your current directory."
+    ],
+    "providers": [
+      {
+        "id": "opencode:sdk",
+        "label": "gemini-3-pro",
+        "config": {
+          "provider_id": "google",
+          "model": "antigravity-gemini-3-pro",
+          "timeout": 120000,
+          "tools": {
+            "read": true,
+            "skill": true
+          }
+        }
+      },
+      {
+        "id": "opencode:sdk",
+        "label": "claude-opus-4-6",
+        "config": {
+          "model": "google/antigravity-claude-opus-4-6-thinking",
+          "timeout": 120000,
+          "tools": {
+            "read": true,
+            "skill": true
+          }
+        }
+      }
+    ],
+    "tests": [
+      {
+        "description": "Model identifies itself",
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The response contains a greeting and mentions which AI model is responding."
+          }
+        ]
+      }
+    ],
+    "scenarios": [],
+    "env": {},
+    "defaultTest": {
+      "options": {
+        "provider": "opencode:google/antigravity-gemini-3-pro"
+      },
+      "vars": {},
+      "assert": [],
+      "metadata": {}
+    },
+    "outputPath": [
+      "reports/test-chat.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {}
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.120.24",
+    "nodeVersion": "v22.20.0",
+    "platform": "linux",
+    "arch": "x64",
+    "exportedAt": "2026-02-16T22:56:32.857Z",
+    "evaluationCreatedAt": "2026-02-16T22:56:20.775Z"
+  }
+}

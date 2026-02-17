@@ -7,3 +7,5 @@ const config = defineMain({
 });
 
 export default config;
+// Trigger restart
+// Trigger restart 2

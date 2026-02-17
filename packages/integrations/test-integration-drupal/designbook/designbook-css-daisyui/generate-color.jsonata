@@ -8,5 +8,5 @@
   $entries := $each(color, function($v, $k) {
     "  --color-" & $k & ": " & $v."$value" & ";"
   });
-  ":root {\n" & $join($entries, "\n") & "\n}\n"
+  "@plugin \"daisyui/theme\" {\n  name: \"keytec\";\n  default: true;\n  color-scheme: light;\n\n" & $join($entries, "\n") & "\n}\n"
 )

@@ -6,7 +6,7 @@
  */
 (
   $entries := $each(typography, function($v, $k) {
-    "  --font-" & $k & ": " & $v."$value" & ";"
+    "  --font-" & $k & ": \"" & $v."$value" & "\";"
   });
-  ":root {\n" & $join($entries, "\n") & "\n}\n"
+  "@theme inline {\n" & $join($entries, "\n") & "\n}\n"
 )

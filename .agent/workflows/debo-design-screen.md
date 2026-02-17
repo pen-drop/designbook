@@ -42,7 +42,46 @@ Parse the roadmap and identify sections that have both spec and data. Present th
 
 Wait for their response.
 
-## Step 3: Analyze and Propose Views
+## Step 3: Read All Design Skills & Resources
+
+> ⛔ **MANDATORY**: Before proposing views or generating any components, you **MUST** read **every** skill and resource file listed below. This ensures you understand all component conventions, CSS rules, and layout patterns.
+
+**Component Skills (`designbook-$DESIGNBOOK_TECHNOLOGY-components-*`):**
+
+1. `.agent/skills/designbook-drupal-components-ui/SKILL.md` **and ALL resources:**
+   - `resources/component-yml.md`
+   - `resources/layout-reference.md` ← **critical for layout decisions**
+   - `resources/rules.md`
+   - `resources/shell-generation.md`
+   - `resources/story-yml.md`
+   - `resources/twig.md`
+2. `.agent/skills/designbook-drupal-components-entity/SKILL.md` **and:**
+   - `generate-stories.js`
+3. `.agent/skills/designbook-drupal-components-screen/SKILL.md`
+
+**CSS Skills (`designbook-css-*`):**
+
+4. `.agent/skills/designbook-css-daisyui/SKILL.md` **and:**
+   - `resources/daisyui-llms.txt`
+5. `.agent/skills/designbook-css-generate/SKILL.md` **and ALL steps:**
+   - `steps/verify-input.md`
+   - `steps/delegate-framework.md`
+   - `steps/execute-transforms.md`
+   - `steps/ensure-imports.md`
+   - `steps/check-regeneration.md`
+   - `steps/verify-output.md`
+
+**Web Reference Skill (conditional — read if the user wants to replicate an existing website):**
+
+6. `.agent/skills/designbook-web-reference/SKILL.md` **and ALL resources:**
+   - `resources/html-extraction.md`
+   - `resources/screenshot-capture.md`
+   - `resources/token-extension.md`
+
+> [!IMPORTANT]
+> The **layout-reference.md** is especially critical — it defines which layout components exist (e.g., `layout-columns`). **Never create domain-specific layout components** when a generic layout component already exists.
+
+## Step 4: Analyze and Propose Views
 
 Based on the section spec and sample data, identify the needed screen designs:
 
@@ -60,7 +99,7 @@ Based on the section spec and sample data, identify the needed screen designs:
 
 Wait for their response.
 
-## Step 4: Design the Screen
+## Step 5: Design the Screen
 
 For each view, discuss the design:
 
@@ -81,7 +120,7 @@ Present a design summary:
 >
 > Shall I document this?"
 
-## Step 5: Save Screen Designs Document
+## Step 6: Save Screen Designs Document
 
 Once approved, create or update `designbook/sections/[section-id]/screen-designs.md`:
 
@@ -97,7 +136,7 @@ Once approved, create or update `designbook/sections/[section-id]/screen-designs
 
 Create the directory if needed.
 
-## Step 6: Confirm Completion
+## Step 7: Confirm Completion
 
 > "I've saved the screen designs to `designbook/sections/[section-id]/screen-designs.md`.
 >
@@ -105,7 +144,51 @@ Create the directory if needed.
 > - [N] views documented
 > - [List view names]
 >
-> Open Storybook to see the screen designs on the section page. You can run `/design-screen` again to add more views, or proceed to `/screenshot-design` for capturing screenshots."
+> Open Storybook to see the screen designs on the section page. You can run `/debo-design-screen` again to add more views.
+>
+> **Would you like to generate design components from these screen designs?**
+> This will create structural components for Shell, Entity, and Screen."
+
+If the user says **no**, stop here.
+
+If the user says **yes**, proceed to Step 8.
+
+## Step 8: Generate Design Components
+
+Run the three design skills in sequence. Each skill was already read in Step 3; now **execute** them:
+
+**8.1 — Generate Shell UI Components**
+
+Load and execute the `designbook-drupal-components-ui` skill (`.agent/skills/designbook-drupal-components-ui/SKILL.md`) using the **Shell Components** section.
+
+This generates `$DESIGNBOOK_DRUPAL_THEME/components/header/` and `$DESIGNBOOK_DRUPAL_THEME/components/footer/` with shell UI components. Navigation is auto-derived from `sections/*.section.yml` files.
+
+**8.2 — Generate Entity Components**
+
+Load and execute the `designbook-entity` skill (`.agent/skills/designbook-entity/SKILL.md`) with `section-id` parameter.
+
+This reads `data-model.json`, identifies which UI components are needed for each field, checks the existing component library for reusable components, creates missing UI components, and generates entity design components that reference real UI components in their stories.
+
+**8.3 — Generate Screen Components**
+
+Load and execute the `designbook-screen` skill (`.agent/skills/designbook-screen/SKILL.md`) with `section-id` parameter.
+
+This reads `screen-designs.md`, checks for section-level UI components (filter bars, sidebars, etc.), composes shell + entity components into full screen views, and generates one screen component per page. The result is a **complete visual page design** viewable in Storybook.
+
+## Step 9: Confirm Generation
+
+> "✅ **Design components generated!**
+>
+> | Layer | Component | Location |
+> |-------|-----------|----------|
+> | Shell | `header` | `$DESIGNBOOK_DRUPAL_THEME/components/header/` |
+> | Shell | `footer` | `$DESIGNBOOK_DRUPAL_THEME/components/footer/` |
+> | Entity | `entity_node_[bundle]` | `$DESIGNBOOK_DIST/components/entity-node-[bundle]/` |
+> | Screen | `section_[id]_[page]` | `$DESIGNBOOK_DIST/components/section-[id]-[page]/` |
+>
+> Open Storybook to see the full page compositions under **Design/** and **Sections/** in the sidebar.
+>
+> You can run `/debo-screenshot-design` to capture screenshots for documentation."
 
 **Guardrails**
 - Reference the section spec for required user flows and UI requirements
@@ -116,3 +199,7 @@ Create the directory if needed.
 - Descriptions should be specific enough to guide implementation
 - Consider responsive behavior for all views
 - Focus on what the user sees and does, not implementation details
+- Component generation (Step 7) is optional — the screen designs in markdown are the primary artifact
+- The 3 steps must run in order: shell (UI) → entity → screen (each depends on the previous)
+- Each skill delegates to `designbook-drupal-components-ui` for file creation
+

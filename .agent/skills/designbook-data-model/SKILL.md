@@ -5,15 +5,51 @@ description: Validates and stores data model configuration in JSON format.
 
 # Designbook Data Model Skill
 
-This skill is the central authority for validating and saving the data model to the project. It accepts a JSON object (passed as a string or file path) representing the data model, validates it against `schema/data-model.json`, and persists it to `designbook/data-model.json`.
+This skill is the central authority for validating and saving the data model to the project. It validates the data model JSON against the bundled JSON Schema using `ajv-cli` and persists it to `designbook/data-model.json`.
 
-## Usage
+## Schema
+
+The JSON Schema is bundled with this skill at `schema/data-model.json`. This is the single source of truth for validation.
+
+### Schema structure
+
+```
+content (required)
+  └── {entity_type}          # e.g. node, block_content, media, taxonomy
+        └── {bundle}          # e.g. article, page
+              └── fields
+                    └── {field_name}
+                          ├── type (required)  # string, text, integer, boolean, reference, ...
+                          ├── title
+                          ├── description
+                          ├── required
+                          ├── multiple
+                          ├── default
+                          └── settings
+
+config (optional)
+  └── views
+        └── {view_name}
+              ├── base_entity (required)
+              ├── bundle (required)
+              ├── sorting
+              ├── limit
+              ├── hasPager
+              └── hint
+```
+
+## Dependencies
+
+- **ajv-cli** — used via `npx ajv-cli`
+
+## Validation
+
+Validate a data model file against the schema:
 
 ```bash
-# From another skill or workflow
-/skill/designbook-data-model/steps/process-data-model --data-model-json='{ ... }'
-# Or directly via script
-node .agent/skills/designbook-data-model/scripts/validate-and-save.cjs ...
+npx ajv-cli validate \
+  -s .agent/skills/designbook-data-model/schema/data-model.json \
+  -d <path-to-data-model.json>
 ```
 
 ## Steps

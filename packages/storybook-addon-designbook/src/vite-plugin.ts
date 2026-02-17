@@ -1,12 +1,8 @@
-import type { Plugin, ViteDevServer } from 'vite';
+import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
 import type { IncomingMessage } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string } = {}): Plugin {
   // Use config fsRoot if available, otherwise default to 'designbook'
@@ -21,35 +17,33 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
     name: 'vite-plugin-designbook-load',
     enforce: 'pre',
 
-    load(id: string) {
+    async load(id: string) {
       // Transform .section.yml files into CSF story modules
-      // Same pattern as the SDC addon's .component.yml handling
-      if (!id.endsWith('.section.yml')) return;
-
-      try {
-        const content = readFileSync(id, 'utf-8');
-        const section = parseYaml(content);
-        const sectionId = section.id;
-        const title = section.title || 'Untitled';
-
-        // Load the CSF template and replace placeholders
-        const templatePath = resolve(__dirname, 'onboarding', 'section.story.tpl');
-        let template = readFileSync(templatePath, 'utf-8');
-        template = template.replace(/__SECTION_ID__/g, sectionId.replace(/'/g, "\\'"));
-        template = template.replace(/__SECTION_TITLE__/g, title.replace(/'/g, "\\'"));
-
-        // Generate the export name to match what the indexer declares
-        const exportName = sectionId
-          .split('-')
-          .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-          .join('');
-        template = template.replace(/__EXPORT_NAME__/g, exportName);
-
-        return template;
-      } catch (e) {
-        console.error('[Designbook] Error loading section:', id, e);
-        return null;
+      if (id.endsWith('.section.yml')) {
+        return loadSectionYml(id);
       }
+
+      // Design components (.component.yml in /design/ or /components/) — delegate to SDC addon
+      if (id.endsWith('.component.yml') && (id.includes('/design/') || id.includes('/components/'))) {
+        // For entity components, set context for $ref resolution
+        if (id.includes('/entity/')) {
+          try {
+            const content = readFileSync(id, 'utf-8');
+            const component = parseYaml(content);
+            if (component?.designbook?.entity) {
+              const { type, bundle, record } = component.designbook.entity;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (globalThis as any).__designbook_entity_context = { type, bundle, record: record ?? 0 };
+            }
+          } catch {
+            // Ignore parse errors, SDC addon will handle
+          }
+        }
+        // Return undefined — let the SDC addon handle Twig rendering
+        return undefined;
+      }
+
+      return undefined;
     },
 
     configureServer(server: ViteDevServer) {
@@ -111,6 +105,26 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
             return;
           }
 
+          // Detect binary/image files and serve them with proper content type
+          const ext = filePath.split('.').pop()?.toLowerCase();
+          const mimeTypes: Record<string, string> = {
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            gif: 'image/gif',
+            webp: 'image/webp',
+            svg: 'image/svg+xml',
+            ico: 'image/x-icon',
+          };
+
+          if (ext && mimeTypes[ext]) {
+            const binaryContent = readFileSync(fullPath);
+            res.setHeader('Content-Type', mimeTypes[ext]);
+            res.statusCode = 200;
+            res.end(binaryContent);
+            return;
+          }
+
           const content = readFileSync(fullPath, 'utf-8');
           res.setHeader('Content-Type', 'application/json');
           res.statusCode = 200;
@@ -123,4 +137,59 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
       });
     },
   };
+}
+
+/**
+ * Load a .section.yml file and transform it into a CSF story module.
+ */
+async function loadSectionYml(id: string): Promise<string | null> {
+  try {
+    const content = readFileSync(id, 'utf-8');
+    const section = parseYaml(content);
+    const sectionId = section.id;
+    const title = section.title || 'Untitled';
+
+    // Generate the export name to match what the indexer declares
+    const exportName = sectionId
+      .split('-')
+      .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join('');
+
+    const code = `
+import React from 'react';
+import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionDetailPage.jsx';
+
+const SectionPage = () => (
+  <>
+    <h1>${title.replace(/'/g, "\\'")}</h1>
+    <DeboSectionDetailPage
+      sectionId="${sectionId.replace(/'/g, "\\'")}"
+    />
+  </>
+);
+
+export default {
+  title: 'Designbook/Sections/${title.replace(/'/g, "\\'")}',
+  tags: ['!dev'],
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      page: SectionPage,
+    },
+  },
+};
+
+export const ${exportName} = {
+  render: () => {},
+};
+`;
+    // Transform JSX to JS using esbuild
+    const result = await transformWithEsbuild(code, id + '.tsx', {
+      loader: 'tsx',
+    });
+    return result.code;
+  } catch (e) {
+    console.error('[Designbook] Error loading section:', id, e);
+    return null;
+  }
 }

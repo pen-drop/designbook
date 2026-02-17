@@ -18,6 +18,7 @@
 @import "./tokens/font.src.css";
 @import "./tokens/radius.src.css";
 @import "./tokens/opacity.src.css";
+@import "./tokens/layout.src.css";
 
 /**
  * Include DaisyUI themes
@@ -44,4 +45,3 @@
 @source "../../../contrib/ui_suite_daisyui/src/css/safelist.txt";
 @source "../../../contrib/ui_suite_daisyui/*.ui_styles.yml";
 @source "../../../contrib/ui_suite_daisyui/**/*.{twig,js,yml}";
-
