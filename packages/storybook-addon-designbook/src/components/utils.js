@@ -9,11 +9,11 @@ import { designbookFileExists } from './designbookApi.js';
  * @returns {string}
  */
 export function toSectionId(title) {
-    return title
-        .toLowerCase()
-        .replace(/&/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+  return title
+    .toLowerCase()
+    .replace(/&/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 /**

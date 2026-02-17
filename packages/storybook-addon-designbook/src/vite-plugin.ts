@@ -1,12 +1,8 @@
 import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
 import type { IncomingMessage } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string } = {}): Plugin {
   // Use config fsRoot if available, otherwise default to 'designbook'

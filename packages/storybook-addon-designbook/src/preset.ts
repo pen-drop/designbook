@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
 
 const __filename = fileURLToPath(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const __dirname = dirname(__filename);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,5 +115,3 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
 };
 
 export const indexers = experimental_indexers;
-
-
