@@ -1,0 +1,68 @@
+description: "debo-design-screen workflow evaluation"
+
+outputPath: reports/debo-design-screen.json
+
+prompts:
+  - file://prompts/blog-spec.txt
+
+providers:
+  - id: opencode:sdk
+    label: gemini-3-pro
+    config:
+      provider_id: google
+      model: antigravity-gemini-3-pro
+      timeout: 120000
+      tools:
+        read: true
+        grep: true
+        glob: true
+        list: true
+        write: true
+        edit: true
+        bash: true
+        webfetch: true
+        skill: true
+      permission:
+        bash: allow
+        edit: allow
+        external_directory: allow
+
+  - id: opencode:sdk
+    label: claude-opus-4-6
+    config:
+      provider_id: google
+      model: antigravity-claude-opus-4-6-thinking
+      timeout: 120000
+      tools:
+        read: true
+        grep: true
+        glob: true
+        list: true
+        write: true
+        edit: true
+        bash: true
+        webfetch: true
+        skill: true
+      permission:
+        bash: allow
+        edit: allow
+        external_directory: allow
+
+evaluateOptions:
+  maxConcurrency: 2
+
+defaultTest:
+  options:
+    provider: opencode:google/antigravity-gemini-3-pro
+
+tests:
+  - description: "Blog section design"
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent was asked to design a blog section using the debo-design-screen workflow.
+          Verify the following from the output:
+          1. The output mentions creating component files (.component.yml and/or .twig)
+          2. The FILES section lists at least 2 files under components/
+          3. The output references entity-node-article or similar entity components
+          4. The output describes a layout structure for the blog page

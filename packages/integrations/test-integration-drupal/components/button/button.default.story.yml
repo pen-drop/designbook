@@ -1,8 +1,0 @@
-name: default
-props:
-  variant: default
-  url: '#'
-slots:
-  text:
-    - type: element
-      value: Kontakt

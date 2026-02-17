@@ -1,9 +1,0 @@
-{# button.twig #}
-{% set tag = url ? 'a' : 'button' %}
-{% set classes = ['btn', 'btn--' ~ variant] %}
-{% if color %}
-  {% set classes = classes|merge(['btn--' ~ color]) %}
-{% endif %}
-<{{ tag }}{{ attributes.addClass(classes) }}{% if url %} href="{{ url }}"{% endif %}>
-  {{ text }}
-</{{ tag }}>
