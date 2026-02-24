@@ -44,7 +44,7 @@ Wait for their response.
 
 ## Step 3: Read All Design Skills & Resources
 
-> ⛔ **MANDATORY**: Before proposing views or generating any components, you **MUST** read **every** skill and resource file listed below. This ensures you understand all component conventions, CSS rules, and layout patterns.
+> ⛔ **MANDATORY**: Before generating a plan, you **MUST** read **every** skill and resource file listed below. This ensures the plan accounts for all component conventions, CSS rules, and layout patterns.
 
 **Component Skills (`designbook-$DESIGNBOOK_TECHNOLOGY-components-*`):**
 
@@ -81,101 +81,109 @@ Wait for their response.
 > [!IMPORTANT]
 > The **layout-reference.md** is especially critical — it defines which layout components exist (e.g., `layout-columns`). **Never create domain-specific layout components** when a generic layout component already exists.
 
-## Step 4: Analyze and Propose Views
+## Step 4: Generate Plan
 
-Based on the section spec and sample data, identify the needed screen designs:
+Based on **everything read so far** (section spec, sample data, design tokens, shell spec, skills, and resources), generate a comprehensive plan. The plan MUST include:
 
-> "Based on the **[Section Title]** specification and data, I suggest these screen designs:
->
-> 1. **[ViewName]** — [Description of what this view shows]
->    - Displays: [which data entities]
->    - Key patterns: [list/grid/detail/form]
->
-> 2. **[ViewName2]** — [Description]
->    - Displays: [entities]
->    - Key patterns: [patterns]
->
-> Which view shall we start with? Or would you like to add/modify the list?"
+### 4.1 — Screen Design Analysis
 
-Wait for their response.
+- Which screen designs (views/pages) are needed based on the section spec
+- Layout patterns for each screen (grid, list, cards, split view)
+- Data entities displayed on each screen
+- User interactions and flows
+- Responsive behavior
 
-## Step 5: Design the Screen
+### 4.2 — Component Inventory
 
-For each view, discuss the design:
+- **Existing components** that can be reused (check `$DESIGNBOOK_DRUPAL_THEME/components/`)
+- **New UI components** that need to be created
+- **Entity components** needed (based on data model)
+- **Screen components** that compose everything together
+- **Shell components** (header/footer) — note if they already exist or need creation
 
-- "What layout pattern works best? (Grid, list, cards, split view)"
-- "What actions should users be able to take? (View, filter, sort, click-through)"
-- "What information is most important to show first?"
-- "How should it look on mobile?"
+### 4.3 — Task List
 
-Present a design summary:
-
-> "**[ViewName] Design:**
->
-> **Layout:** [description]
-> **Primary content:** [what's displayed prominently]
-> **Secondary content:** [supporting information]
-> **Actions:** [user interactions]
-> **Mobile:** [how it adapts]
->
-> Shall I document this?"
-
-## Step 6: Save Screen Designs Document
-
-Once approved, create or update `designbook/sections/[section-id]/screen-designs.md`:
+Generate a numbered, actionable task list covering the full execution. Group tasks by phase:
 
 ```markdown
-# Screen Designs
+## Plan: [Section Title] Screen Design
 
-### [ViewName]
-[Description of the view, its purpose, layout pattern, key UI elements, data displayed, and user interactions. Include mobile behavior.]
+### Phase 1: Screen Designs Document
+- [ ] Create `screen-designs.md` with [N] views
+- [ ] Document [ViewName1]: [brief description]
+- [ ] Document [ViewName2]: [brief description]
 
-### [ViewName2]
-[Description]
+### Phase 2: Shell UI Components
+- [ ] Generate/verify header component
+- [ ] Generate/verify footer component
+- [ ] [Any additional shell components]
+
+### Phase 3: UI Components
+- [ ] Create [component-name]: [purpose]
+- [ ] Create [component-name]: [purpose]
+- [ ] Reuse existing: [component-name] (no changes needed)
+
+### Phase 4: Entity Components
+- [ ] Generate entity-node-[bundle] with [N] stories
+- [ ] [Additional entity components]
+
+### Phase 5: Screen Components
+- [ ] Generate screen-[section]-[page1]
+- [ ] Generate screen-[section]-[page2]
+
+### Phase 6: CSS Token Generation
+- [ ] Run CSS generation pipeline for new components
+
+### Phase 7: Verification
+- [ ] Verify all components render in Storybook
+- [ ] Capture screenshots if requested
 ```
 
-Create the directory if needed.
+### 4.4 — Present plan to the user
 
-## Step 7: Confirm Completion
+Present the full plan and ask:
 
-> "I've saved the screen designs to `designbook/sections/[section-id]/screen-designs.md`.
+> "Here is the plan for **[Section Title]** screen design.
 >
-> **[Section Title] screen designs:**
-> - [N] views documented
-> - [List view names]
+> [Plan summary with task list]
 >
-> Open Storybook to see the screen designs on the section page. You can run `/debo-design-screen` again to add more views.
+> **[N] tasks across [M] phases.**
 >
-> **Would you like to generate design components from these screen designs?**
-> This will create structural components for Shell, Entity, and Screen."
+> Shall I proceed? You can also ask me to modify the plan first."
 
-If the user says **no**, stop here.
+**Wait for user approval.** Do NOT proceed without explicit confirmation.
 
-If the user says **yes**, proceed to Step 8.
+## Step 5: Execute Plan
 
-## Step 8: Generate Design Components
+Once the user approves, execute the tasks in order:
 
-Run the three design skills in sequence. Each skill was already read in Step 3; now **execute** them:
+**5.1 — Save Screen Designs Document**
 
-**8.1 — Generate Shell UI Components**
+Create or update `designbook/sections/[section-id]/screen-designs.md` with the documented views.
 
-Load and execute the `designbook-drupal-components-ui` skill (`.agent/skills/designbook-drupal-components-ui/SKILL.md`) using the **Shell Components** section.
+**5.2 — Generate Shell UI Components**
 
-This generates `$DESIGNBOOK_DRUPAL_THEME/components/header/` and `$DESIGNBOOK_DRUPAL_THEME/components/footer/` with shell UI components. Navigation is auto-derived from `sections/*.section.yml` files.
+Execute the `designbook-drupal-components-ui` skill using the **Shell Components** section. This generates header/footer components.
 
-**8.2 — Generate Entity Components**
+**5.3 — Generate UI Components**
 
-Load and execute the `designbook-entity` skill (`.agent/skills/designbook-entity/SKILL.md`) with `section-id` parameter.
+Create any new UI components identified in the plan using the `designbook-drupal-components-ui` skill.
 
-This reads `data-model.json`, identifies which UI components are needed for each field, checks the existing component library for reusable components, creates missing UI components, and generates entity design components that reference real UI components in their stories.
+**5.4 — Generate Entity Components**
 
-**8.3 — Generate Screen Components**
+Execute the `designbook-entity` skill with `section-id` parameter. This reads `data-model.json`, identifies UI components for each field, and generates entity design components.
 
-Load and execute the `designbook-screen` skill (`.agent/skills/designbook-screen/SKILL.md`) with `section-id` parameter.
+**5.5 — Generate Screen Components**
 
-This reads `screen-designs.md`, checks for section-level UI components (filter bars, sidebars, etc.), composes shell + entity components into full screen views, and generates one screen component per page. The result is a **complete visual page design** viewable in Storybook.
+Execute the `designbook-screen` skill with `section-id` parameter. This reads `screen-designs.md`, composes shell + entity into full screen views.
 
-## Step 9: Confirm Generation
+**5.6 — Run CSS Generation**
+
+Execute the `designbook-css-generate` skill to generate CSS tokens for all new components.
+
+**5.7 — Mark tasks complete** as each phase finishes. Report progress to the user.
+
+## Step 6: Confirm Completion
 
 > "✅ **Design components generated!**
 >
@@ -199,7 +207,6 @@ This reads `screen-designs.md`, checks for section-level UI components (filter b
 - Descriptions should be specific enough to guide implementation
 - Consider responsive behavior for all views
 - Focus on what the user sees and does, not implementation details
-- Component generation (Step 7) is optional — the screen designs in markdown are the primary artifact
-- The 3 steps must run in order: shell (UI) → entity → screen (each depends on the previous)
+- The plan MUST be approved by the user before any execution begins
+- The 3 generation steps must run in order: shell (UI) → entity → screen (each depends on the previous)
 - Each skill delegates to `designbook-drupal-components-ui` for file creation
-

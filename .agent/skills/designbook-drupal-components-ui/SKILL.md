@@ -276,6 +276,23 @@ Expected files (all sharing the same base name as the directory):
 **If failed:**
 > "❌ Failed to create component files. Check the error above."
 
+### Step 9: Validate Component
+
+Automatically validate the component in Storybook.
+
+Invocation:
+```json
+{
+  "skill": "designbook-component-validate",
+  "args": {
+    "component_name": "[componentNameKebab]",
+    "group": "[group]",
+    "component_path": "[targetDir]",
+    "stories": [List of story names from input or ["default"]]
+  }
+}
+```
+
 ---
 
 ## Variants Instead of Duplicate Components
