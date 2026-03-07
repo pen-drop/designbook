@@ -20,7 +20,7 @@ description: Generates screen design files that compose UI components + entity d
 1. **Data model** with view mode mappings: `$DESIGNBOOK_DIST/data-model.yml`
 2. **Sample data** per section: `$DESIGNBOOK_DIST/sections/{section}/data.yml`
 3. **UI components** must exist (heading, figure, text-block, etc.)
-4. **Screen designs** (optional): `$DESIGNBOOK_DIST/sections/{section}/screen-designs.md`
+4. **Screen designs** (optional): `$DESIGNBOOK_DIST/sections/{section}/overview.section.yml` (under `screen` key)
 
 ## Output Structure
 
@@ -29,7 +29,7 @@ $DESIGNBOOK_DIST/
 └── sections/
     └── blog/
         ├── data.yml
-        ├── screen-designs.md
+        ├── overview.section.yml  # includes screen key
         └── screens/
             ├── section-blog.detail.screen.yml
             └── section-blog.listing.screen.yml
@@ -42,7 +42,7 @@ $DESIGNBOOK_DIST/
 ```yaml
 name: Detail — Blog Article (Full View Mode)
 section: blog
-group: Sections/blog
+group: Designbook/Sections/Blog
 
 layout:
   header:
@@ -67,7 +67,7 @@ layout:
 |-------|----------|-------------|
 | `name` | ✅ | Display name in Storybook sidebar |
 | `section` | ❌ | Section ID — locates `sections/{section}/data.yml` |
-| `group` | ❌ | Storybook sidebar group. Default: `Sections/{section}` |
+| `group` | ❌ | Storybook sidebar group. Default: `Designbook/Sections/{section}` |
 | `layout` | ✅ | Map of slot names → arrays of entries |
 
 ### Component Entry
@@ -117,7 +117,7 @@ Verify entity type has view mode mappings in `data-model.yml`:
 
 ### Step 2: Parse Screen Designs
 
-Read `screen-designs.md` (if it exists) and extract for each page:
+Read the `screen` key from `overview.section.yml` (if it exists) and extract for each page:
 - **Page name** (kebab-case: `listing`, `detail`)
 - **Entity type/bundle** (e.g. `node.article`)
 - **View mode** (`full`, `teaser`)
@@ -142,7 +142,7 @@ Create `sections/{section}/screens/section-{section}.{page}.screen.yml` for each
 ```yaml
 name: Detail — Blog Article (Full View Mode)
 section: blog
-group: Sections/blog
+group: Designbook/Sections/Blog
 
 layout:
   header:
@@ -166,7 +166,7 @@ layout:
 ```yaml
 name: Listing — Articles (Teaser View Mode)
 section: blog
-group: Sections/blog
+group: Designbook/Sections/Blog
 
 layout:
   header:
@@ -200,7 +200,7 @@ Component names are prefixed with the `provider` from config at render time:
 | Error | Fix |
 |-------|-----|
 | Component not found | Create the UI component first |
-| Entity not in data model | Add entity to `data-model.json` |
+| Entity not in data model | Add entity to `data-model.yml` |
 | View mode not defined | Add view mode mapping to data model |
-| Record not found | Add more records to `data.json` |
-| No data.json | Create sample data for this section |
+| Record not found | Add more records to `data.yml` |
+| No data.yml | Create sample data for this section |

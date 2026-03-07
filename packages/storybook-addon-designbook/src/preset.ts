@@ -68,11 +68,10 @@ export const stories = async (entry: string[] = [], options: any) => {
     distDir = options.designbook.fsRoot;
   }
 
-  const sectionsGlob = resolve(projectRoot, distDir, 'sections/*.section.yml');
-  const designGlob = resolve(projectRoot, distDir, 'design/**/*.component.yml');
+  const sectionsGlob = resolve(projectRoot, distDir, 'sections/*/overview.section.yml');
   const screenGlob = resolve(projectRoot, distDir, 'sections/*/screens/*.screen.yml');
 
-  return [...entry, onboardingGlob, sectionsGlob, designGlob, screenGlob];
+  return [...entry, onboardingGlob, sectionsGlob, screenGlob];
 };
 
 /**
@@ -107,6 +106,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
             type: 'docs' as const,
             importPath: relativePath,
             exportName: exportName,
+            name: 'Overview',
             title: `Designbook/Sections/${title}`,
             tags: ['!dev'],
           },
@@ -141,7 +141,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
           .join('');
 
         // Group under Sections/sectionId or use group from YAML
-        const group = screen.group || `Sections/${screen.section || sectionPart}`;
+        const group = screen.group || `Designbook/Sections/${screen.section || sectionPart}`;
 
         const relativePath = './' + relative(process.cwd(), fileName);
 
@@ -153,7 +153,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
             importPath: relativePath,
             exportName,
             title: `${group}/${name}`,
-            tags: ['screen'],
+            tags: ['screen', '!autodocs'],
           },
         ];
       } catch (err) {

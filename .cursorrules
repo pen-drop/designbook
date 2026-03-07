@@ -1,0 +1,6 @@
+# Designbook Agent Rules
+
+## Dev Server Termination
+Never use `send_command_input` with `Terminate: true` to stop dev servers (Storybook, Vite, Webpack).
+They trap SIGTERM for graceful shutdown and will hang indefinitely.
+Instead, kill via port: `lsof -ti:<PORT> | xargs kill -9 2>/dev/null`

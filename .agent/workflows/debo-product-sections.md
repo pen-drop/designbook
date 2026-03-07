@@ -5,7 +5,7 @@ category: Designbook
 description: Define your product sections based on the product vision
 ---
 
-Help the user create or update their product sections for Designbook. The sections break the product vision into 3–5 development areas. The result is saved to `${DESIGNBOOK_DIST}/sections/[id].section.yml`.
+Help the user create or update their product sections for Designbook. The sections break the product vision into 3–5 development areas. The result is saved to `${DESIGNBOOK_DIST}/sections/[id]/overview.section.yml`.
 
 **Steps**
 
@@ -13,7 +13,7 @@ Help the user create or update their product sections for Designbook. The sectio
 
 First, check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/product-overview.md` — the product vision
-- `${DESIGNBOOK_DIST}/sections/*.section.yml` — existing sections
+- `${DESIGNBOOK_DIST}/sections/*/overview.section.yml` — existing sections
 
 **If no product vision exists**, tell the user:
 
@@ -68,9 +68,9 @@ Keep iterating until the user approves the sections.
 
 ## Step 4: Save the Files
 
-Once the user approves, create individual YAML files for each section in the `${DESIGNBOOK_DIST}/sections/` directory.
+Once the user approves, create individual YAML files for each section under `${DESIGNBOOK_DIST}/sections/[id]/`.
 
-For each section, create a file named `${DESIGNBOOK_DIST}/sections/[id].section.yml` with this format:
+For each section, create a file named `${DESIGNBOOK_DIST}/sections/[id]/overview.section.yml` with this format:
 
 ```yaml
 id: section-id-kebab-case
@@ -82,12 +82,12 @@ order: 1
 
 **Important:**
 - `id` must be kebab-case and unique
-- The filename must match the `id` (e.g., `unified-dashboard.section.yml`)
+- The directory name must match the `id` (e.g., `sections/unified-dashboard/overview.section.yml`)
 - `status` defaults to "planned"
 - `order` should reflect the sequence (1, 2, 3...)
 
-Create the directory `${DESIGNBOOK_DIST}/sections/` if it doesn't exist.
-Remove any legacy `${DESIGNBOOK_DIST}/sections.json` file if it exists.
+Create the directory `${DESIGNBOOK_DIST}/sections/[id]/` for each section if it doesn't exist.
+Remove any legacy `${DESIGNBOOK_DIST}/sections.json` or flat `*.section.yml` files if they exist.
 
 ## Step 5: Confirm Completion
 
@@ -103,7 +103,6 @@ Let the user know:
 > **Next step:** You can now use these sections to plan your design and development work."
 
 **Guardrails**
-- always read `schema/sections.json` before saving to ensure the output is valid
 - Always read the product vision first — the sections must align with it
 - If no product vision exists, redirect to `/product-vision` and stop
 - Be conversational and help the user think through the breakdown

@@ -16,7 +16,7 @@ const config = {
     "../components/**/*.component.yml",
     join(baseTheme, "components/**/*.component.yml"),
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-    "../designbook/sections/*.section.yml",
+    "../designbook/sections/*/overview.section.yml",
     "../designbook/components/**/*.component.yml",
     "../designbook/sections/*/screens/*.screen.yml"
   ],

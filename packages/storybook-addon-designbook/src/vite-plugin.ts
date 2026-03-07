@@ -75,18 +75,21 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
             return;
           }
 
-          // Special case: Aggregate sections.json from *.section.yml files
+          // Special case: Aggregate sections.json from sections/*/overview.section.yml files
           if (filePath === 'sections.json') {
             const sectionsDir = resolve(designbookDir, 'sections');
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let sections: any[] = [];
 
             if (existsSync(sectionsDir)) {
-              const files = readdirSync(sectionsDir).filter((f) => f.endsWith('.section.yml'));
-              sections = files
-                .map((file) => {
+              const subdirs = readdirSync(sectionsDir).filter((d) => {
+                const overviewPath = join(sectionsDir, d, 'overview.section.yml');
+                return existsSync(overviewPath);
+              });
+              sections = subdirs
+                .map((dir) => {
                   try {
-                    return parseYaml(readFileSync(join(sectionsDir, file), 'utf-8'));
+                    return parseYaml(readFileSync(join(sectionsDir, dir, 'overview.section.yml'), 'utf-8'));
                   } catch {
                     return null;
                   }
@@ -372,34 +375,27 @@ async function loadSectionYml(id: string): Promise<string | null> {
       .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
       .join('');
 
-    const code = `
-import React from 'react';
-import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionDetailPage.jsx';
-
-const SectionPage = () => (
-  <>
-    <h1>${title.replace(/'/g, "\\'")}</h1>
-    <DeboSectionDetailPage
-      sectionId="${sectionId.replace(/'/g, "\\'")}"
-    />
-  </>
-);
-
-export default {
-  title: 'Designbook/Sections/${title.replace(/'/g, "\\'")}',
-  tags: ['!dev'],
-  parameters: {
-    layout: 'fullscreen',
-    docs: {
-      page: SectionPage,
-    },
-  },
-};
-
-export const ${exportName} = {
-  render: () => {},
-};
-`;
+    const escapedTitle = title.replace(/'/g, "\\'");
+    const escapedId = sectionId.replace(/'/g, "\\'");
+    const code = [
+      "import React from 'react';",
+      "import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionDetailPage.jsx';",
+      "",
+      "const SectionPage = () => (<><h1>" + escapedTitle + "</h1><DeboSectionDetailPage sectionId=\"" + escapedId + "\" /></>);",
+      "",
+      "export default {",
+      "  title: 'Designbook/Sections/" + escapedTitle + "',",
+      "  tags: ['!dev'],",
+      "  parameters: {",
+      "    layout: 'fullscreen',",
+      "    docs: { page: SectionPage },",
+      "  },",
+      "};",
+      "",
+      "export const " + exportName + " = {",
+      "  render: () => {},",
+      "};",
+    ].join('\n');
     // Transform JSX to JS using esbuild
     const result = await transformWithEsbuild(code, id + '.tsx', {
       loader: 'tsx',

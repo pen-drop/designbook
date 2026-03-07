@@ -94,7 +94,7 @@ export function DeboExportPage() {
                     const results = await Promise.all(
                         sections.map(async (s) => {
                             const id = toSectionId(s.title);
-                            return designbookFileExists(`sections/${id}/screen-designs.md`);
+                            return designbookFileExists(`sections/${id}/screenshots.md`);
                         })
                     );
                     designCount = results.filter(Boolean).length;

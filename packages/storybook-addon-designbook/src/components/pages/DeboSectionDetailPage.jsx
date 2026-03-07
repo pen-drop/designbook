@@ -61,30 +61,12 @@ export function DeboSectionDetailPage({ sectionId, title }) {
             {/* Step 2: Sample Data */}
             <DeboSection
                 title="Sample Data"
-                dataPath={`sections/${sectionId}/data.json`}
+                dataPath={`sections/${sectionId}/data.yml`}
                 parser={jsonParser}
                 command={`/debo-sample-data ${sectionId}`}
                 emptyMessage="No sample data defined yet"
-                filePath={`designbook/sections/${sectionId}/data.json`}
+                filePath={`designbook/sections/${sectionId}/data.yml`}
                 renderContent={(data) => <DeboSampleData data={data} />}
-            />
-
-            {/* Step 3: Screen Designs */}
-            <DeboSection
-                title="Screen Designs"
-                dataPath={`sections/${sectionId}/screen-designs.md`}
-                parser={parseMarkdown}
-                command={`/debo-design-screen ${sectionId}`}
-                emptyMessage="No screen designs yet"
-                filePath={`designbook/sections/${sectionId}/screen-designs.md`}
-                renderContent={(html) => (
-                    <DeboMockupWindow>
-                        <div
-                            className="debo-markdown debo:prose debo:prose-sm debo:max-w-none debo:prose-headings:font-normal debo:prose-a:text-primary"
-                            dangerouslySetInnerHTML={{ __html: html }}
-                        />
-                    </DeboMockupWindow>
-                )}
             />
 
             {/* Step 4: Screenshots */}
