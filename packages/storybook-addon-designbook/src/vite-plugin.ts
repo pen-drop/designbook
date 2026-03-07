@@ -16,6 +16,15 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
   // If absolute, use as is
   const designbookDir = resolve(baseDir, distDir);
 
+  // Track data file → screen module dependencies for HMR
+  const dataFileToScreens = new Map<string, Set<string>>();
+  const trackDependency = (screenId: string, dataFile: string) => {
+    if (!dataFileToScreens.has(dataFile)) {
+      dataFileToScreens.set(dataFile, new Set());
+    }
+    dataFileToScreens.get(dataFile)!.add(screenId);
+  };
+
   return {
     name: 'vite-plugin-designbook-load',
     enforce: 'pre',
@@ -23,7 +32,7 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
     async load(id: string) {
       // Transform .screen.yml files into CSF story modules
       if (id.endsWith('.screen.yml')) {
-        return loadScreenYml(id, designbookDir, options.provider);
+        return loadScreenYml(id, designbookDir, options.provider, trackDependency);
       }
 
       // Transform .section.yml files into CSF story modules
@@ -52,6 +61,19 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
       }
 
       return undefined;
+    },
+
+    handleHotUpdate({ file, server }) {
+      const screenIds = dataFileToScreens.get(file);
+      if (screenIds) {
+        const modules = [...screenIds]
+          .map((id) => server.moduleGraph.getModuleById(id))
+          .filter(Boolean);
+        if (modules.length) {
+          console.log(`[Designbook] Data file changed: ${file}, reloading ${modules.length} screen(s)`);
+          return modules as import('vite').ModuleNode[];
+        }
+      }
     },
 
     configureServer(server: ViteDevServer) {
@@ -160,6 +182,7 @@ async function loadScreenYml(
   id: string,
   designbookDir: string,
   provider?: string,
+  trackDependency?: (screenId: string, dataFile: string) => void,
 ): Promise<string | null> {
   try {
     const content = readFileSync(id, 'utf-8');
@@ -168,8 +191,10 @@ async function loadScreenYml(
 
     // Load data model
     let dataModel: DataModel;
+    const dataModelPath = join(designbookDir, 'data-model.yml');
     try {
-      dataModel = parseYaml(readFileSync(join(designbookDir, 'data-model.yml'), 'utf-8')) as DataModel;
+      dataModel = parseYaml(readFileSync(dataModelPath, 'utf-8')) as DataModel;
+      trackDependency?.(id, dataModelPath);
     } catch {
       console.warn('[Designbook] No data-model.yml found, screen entities will not resolve');
       dataModel = { content: {} };
@@ -178,14 +203,16 @@ async function loadScreenYml(
     // Load sample data from sections
     let sampleData: SampleData = {};
     if (screen.section) {
+      const sectionDataPath = join(designbookDir, 'sections', screen.section, 'data.yml');
+      const globalDataPath = join(designbookDir, 'data.yml');
       try {
-        sampleData = parseYaml(
-          readFileSync(join(designbookDir, 'sections', screen.section, 'data.yml'), 'utf-8')
-        ) as SampleData;
+        sampleData = parseYaml(readFileSync(sectionDataPath, 'utf-8')) as SampleData;
+        trackDependency?.(id, sectionDataPath);
       } catch {
         // Try global data.yml
         try {
-          sampleData = parseYaml(readFileSync(join(designbookDir, 'data.yml'), 'utf-8')) as SampleData;
+          sampleData = parseYaml(readFileSync(globalDataPath, 'utf-8')) as SampleData;
+          trackDependency?.(id, globalDataPath);
         } catch {
           console.warn(`[Designbook] No data.yml found for screen "${screen.name}"`);
         }
