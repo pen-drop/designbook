@@ -5,7 +5,7 @@ category: Designbook
 description: Create sample data and type definitions for a section
 ---
 
-Help the user create realistic sample data for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/data.json`.
+Help the user create realistic sample data for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`.
 
 **Steps**
 
@@ -14,7 +14,7 @@ Help the user create realistic sample data for one of their roadmap sections. Th
 Check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
 - `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
-- `${DESIGNBOOK_DIST}/data-model.json` — data model (required for understanding entities)
+- `${DESIGNBOOK_DIST}/data-model.yml` — data model (required for understanding entities)
 
 **If product vision, roadmap, or data model are missing**, tell the user:
 
@@ -34,7 +34,7 @@ If the spec doesn't exist, warn:
 
 ## Step 2: Select Section
 
-Parse the roadmap to extract sections. Check which sections already have data by looking for existing files at `${DESIGNBOOK_DIST}/sections/[section-id]/data.json`.
+Parse the roadmap to extract sections. Check which sections already have data by looking for existing files at `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`.
 
 **Section ID conversion:** Convert the section title to kebab-case by lowercasing, removing `&`, replacing non-alphanumeric characters with `-`, and trimming leading/trailing dashes.
 
@@ -96,7 +96,7 @@ Iterate until the user is satisfied.
 
 ## Step 5: Save the File
 
-Once approved, create the file at `${DESIGNBOOK_DIST}/sections/[section-id]/data.json` with this format:
+Once approved, create the file at `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml` with this format:
 
 ```json
 {
@@ -131,7 +131,7 @@ Create the directory `${DESIGNBOOK_DIST}/sections/[section-id]/` if it doesn't e
 
 ## Step 6: Confirm Completion
 
-> "I've saved the sample data to `${DESIGNBOOK_DIST}/sections/[section-id]/data.json`.
+> "I've saved the sample data to `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`.
 >
 > **[Section Title] sample data:**
 > - [N] models defined

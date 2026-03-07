@@ -118,7 +118,7 @@ I discovered these layout values from the reference site:
 
 ## W3C Token Format
 
-If the user approves, merge tokens into `$DESIGNBOOK_DIST/design-tokens.json` under a `layout` group:
+If the user approves, merge tokens into `$DESIGNBOOK_DIST/design-tokens.yml` under a `layout` group:
 
 ```json
 {

@@ -190,7 +190,7 @@ mkdir -p $DESIGNBOOK_DIST/designbook-css-daisyui
 Discover the top-level groups in the token file:
 
 ```bash
-npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.json --summary
+npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.yml --summary
 ```
 
 Each top-level group becomes **one `.jsonata` file** and **one `.src.css` output file**.
@@ -208,7 +208,7 @@ Each file returns a **CSS string** that jsonata-w writes directly to the output 
 ```jsonata
 /** @config
  {
-   "input": "../design-tokens.json",
+   "input": "../design-tokens.yml",
    "output": "../../css/tokens/[group].src.css"
  }
  */
@@ -284,4 +284,4 @@ $DESIGNBOOK_DRUPAL_THEME/css/
 - Dark theme uses DaisyUI's `@plugin "daisyui/theme"` format with `prefersdark: true`
 - Spacing tokens should include responsive media queries if breakpoint tokens are present
 - Radius tokens map to DaisyUI's `--radius-selector`, `--radius-field`, `--radius-box`
-- Use `npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.json --summary` to explore token structure
+- Use `npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.yml --summary` to explore token structure

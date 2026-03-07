@@ -154,8 +154,8 @@ After completing the markup analysis, **ask the user** if they want to extend th
 **Agent behavior:**
 
 1. Present the discovered layout values in a clear table
-2. Ask: *"Soll ich diese Layout-Werte als Design Tokens in `design-tokens.json` aufnehmen?"*
-3. If **yes** → merge new tokens into `$DESIGNBOOK_DIST/design-tokens.json` under a `layout` group using W3C format
+2. Ask: *"Soll ich diese Layout-Werte als Design Tokens in `design-tokens.yml` aufnehmen?"*
+3. If **yes** → merge new tokens into `$DESIGNBOOK_DIST/design-tokens.yml` under a `layout` group using W3C format
 4. If **no** → skip, values remain documented in `markup-analysis.md` only
 
 ## Error Handling

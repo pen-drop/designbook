@@ -5,12 +5,13 @@ import { DeboSourceFooter } from '../ui/DeboSourceFooter.jsx';
 import { DeboMockupWindow } from '../ui/DeboMockupWindow.jsx';
 import { DeboSampleData } from '../display/DeboSampleData.jsx';
 import { parseMarkdown, parseScreenshots } from '../parsers.js';
+import { parse as parseYaml } from 'yaml';
 
 /**
- * JSON parser for sample data files.
+ * YAML parser for sample data files.
  */
-const jsonParser = (text) => {
-    try { return JSON.parse(text); } catch { return null; }
+const yamlParser = (text) => {
+    try { return parseYaml(text); } catch { return null; }
 };
 
 /**
@@ -43,11 +44,11 @@ export function DeboSectionDetailPage({ sectionId, title }) {
             {/* Step 1: Section Specification */}
             <DeboSection
                 title="Shape Section"
-                dataPath={`sections/${sectionId}/spec.md`}
+                dataPath={`sections/${sectionId}/overview.section.yml`}
                 parser={parseMarkdown}
                 command={`/debo-shape-section ${sectionId}`}
                 emptyMessage={`No specification for ${title} yet`}
-                filePath={`designbook/sections/${sectionId}/spec.md`}
+                filePath={`designbook/sections/${sectionId}/overview.section.yml`}
                 renderContent={(html) => (
                     <DeboMockupWindow>
                         <div
@@ -62,7 +63,7 @@ export function DeboSectionDetailPage({ sectionId, title }) {
             <DeboSection
                 title="Sample Data"
                 dataPath={`sections/${sectionId}/data.yml`}
-                parser={jsonParser}
+                parser={yamlParser}
                 command={`/debo-sample-data ${sectionId}`}
                 emptyMessage="No sample data defined yet"
                 filePath={`designbook/sections/${sectionId}/data.yml`}

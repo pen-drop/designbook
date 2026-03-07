@@ -14,7 +14,7 @@ Package all Designbook artifacts into a self-contained export directory that can
 Check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
 - `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
-- `${DESIGNBOOK_DIST}/data-model.json` — data model (recommended)
+- `${DESIGNBOOK_DIST}/data-model.yml` — data model (recommended)
 - `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (recommended)
 - `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` — application shell (recommended)
 
@@ -105,9 +105,9 @@ Generate these from `${DESIGNBOOK_DIST}/design-system/design-tokens.md`.
 Create `${DESIGNBOOK_DIST}/export/product-plan/data-model/`:
 - `README.md` — Entity descriptions and relationships
 - `types.ts` — TypeScript interfaces for all entities
-- `sample-data.json` — Combined sample data from all sections
+- `sample-data.yml` — Combined sample data from all sections
 
-Generate from `${DESIGNBOOK_DIST}/data-model.json` and section `data.json` files.
+Generate from `${DESIGNBOOK_DIST}/data-model.yml` and section `data.yml` files.
 
 ## Step 7: Copy Shell
 
@@ -121,7 +121,7 @@ Copy from `${DESIGNBOOK_DIST}/design-shell/shell-spec.md`.
 For each section, create `${DESIGNBOOK_DIST}/export/product-plan/sections/[section-id]/`:
 - `README.md` — Section specification
 - `tests.md` — Test instructions based on user flows
-- `sample-data.json` — Section sample data (if exists)
+- `sample-data.yml` — Section sample data (if exists)
 - `overview.section.yml` — Section overview with screen designs (under `screen` key)
 
 Generate test instructions from section specs:

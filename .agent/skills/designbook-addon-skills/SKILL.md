@@ -78,9 +78,9 @@ fs.writeFileSync('/tmp/validate.json', JSON.stringify(parsed, null, 2));
 "
 ```
 
-## JSON Transformation (Preferred)
+## Data Transformation (Preferred)
 
-When a skill needs to **transform JSON into another format** (CSS, YAML, config files, etc.), use [`jsonata-w`](https://github.com/pen-drop/jsonata-w) — a CLI optimized for AI-agent workflows.
+When a skill needs to **transform YAML/JSON into another format** (CSS, YAML, config files, etc.), use [`jsonata-w`](https://github.com/christianwiedemann/jsonata-w) — a CLI optimized for AI-agent workflows with full YAML support.
 
 ### Usage
 
@@ -90,15 +90,15 @@ npx jsonata-w transform <expression-file.jsonata>
 
 ### JSONata File Structure
 
-Each `.jsonata` file is self-contained with an embedded config block:
+Each `.jsonata` file is self-contained with an embedded config block. All paths support both JSON and YAML (auto-detected from extension):
 
 ```jsonata
 /**
  * @config {
- *   "input": "./path/to/input.json",
+ *   "input": "./path/to/input.yml",
  *   "output": "./path/to/output.css",
- *   "schema": "./optional/schema.json",
- *   "examples": "./path/to/expected-output.json"
+ *   "schema": "./optional/schema.yml",
+ *   "examples": "./path/to/expected-output.yml"
  * }
  */
 (
@@ -107,24 +107,25 @@ Each `.jsonata` file is self-contained with an embedded config block:
 )
 ```
 
-- **input**: Path to the source JSON file (relative to the `.jsonata` file)
-- **output**: Path where the transformed result will be saved
-- **schema**: (Optional) JSON schema for validation of the output
-- **examples**: (Optional) Expected output subset for validation
+- **input**: Path to the source file — supports `.json`, `.yml`, `.yaml` (relative to the `.jsonata` file)
+- **output**: Path where the result will be saved — format auto-detected from extension (`.yml`/`.yaml` → YAML, `.json` → JSON, other → raw string)
+- **schema**: (Optional) JSON or YAML schema for validation of the output
+- **examples**: (Optional) JSON or YAML file with expected output subset for validation
 
 ### Features
 
+- **Full YAML Support** — Input, output, schema, and example files all support YAML format (auto-detected from `.yml`/`.yaml` extension)
 - **Embedded Config** — No CLI arguments needed for input/output paths
 - **Auto-Unflattening** — Dot-notation keys (`{"a.b": 1}`) are automatically expanded into nested objects (`{"a": {"b": 1}}`)
-- **Inspect mode** — Use `npx jsonata-w inspect <file> --summary` to explore input structure before writing expressions
+- **Inspect mode** — Use `npx jsonata-w inspect <file> --summary` to explore structure of JSON or YAML files
 
 ### When to Use
 
 | Scenario | Tool |
 |----------|------|
-| Transform JSON → CSS, YAML, or other formats | `npx jsonata-w transform` ✅ |
+| Transform YAML/JSON → CSS, YAML, or other formats | `npx jsonata-w transform` ✅ |
+| Inspect YAML/JSON structure | `npx jsonata-w inspect --summary` ✅ |
 | Validate JSON against a schema | `npx ajv-cli validate` |
-| Convert YAML → JSON for validation | `node -e` inline script |
 
 ### Skill Convention
 

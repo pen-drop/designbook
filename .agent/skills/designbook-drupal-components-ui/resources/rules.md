@@ -31,7 +31,7 @@ Story files must use **placeholder service URLs** for images, never local file p
   uri: /images/sample/photo.jpg
 ```
 
-In `data.json` sample data, image fields should contain **dummy `<img>` tags**:
+In `data.yml` sample data, image fields should contain **dummy `<img>` tags**:
 ```json
 {
   "field_media_image": "<img src='https://placehold.co/600x400' alt='Sample image' />"

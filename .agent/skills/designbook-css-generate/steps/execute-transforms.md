@@ -45,4 +45,4 @@ Each transformation directly produces its `.src.css` file — no intermediate fi
 ## Technical Notes
 - jsonata-w 1.0.1+ writes string results directly as raw text (no JSON wrapping)
 - Each `.jsonata` file is self-contained with embedded `@config` for input/output paths
-- Use `npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.json --summary` to debug token structure
+- Use `npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.yml --summary` to debug token structure
