@@ -5,7 +5,7 @@ category: Designbook
 description: Create screen design components for a section
 ---
 
-Help the user create screen design components for one of their roadmap sections. Screen designs are documented in `designbook/sections/[section-id]/screen-designs.md`.
+Help the user create screen design components for one of their roadmap sections. Screen designs are stored as the `screen` key in `designbook/sections/[section-id]/overview.section.yml`.
 
 **Steps**
 
@@ -13,7 +13,7 @@ Help the user create screen design components for one of their roadmap sections.
 
 Check if the following files exist for the target section:
 - `designbook/sections/[section-id]/spec.md` — section spec (required)
-- `designbook/sections/[section-id]/data.json` — sample data (required)
+- `designbook/sections/[section-id]/data.yml` — sample data (required)
 - `designbook/design-system/design-tokens.md` — design tokens (optional)
 - `designbook/design-shell/shell-spec.md` — application shell (optional)
 
@@ -57,7 +57,7 @@ Wait for their response.
    - `resources/twig.md`
 2. `.agent/skills/designbook-drupal-components-entity/SKILL.md` **and:**
    - `generate-stories.js`
-3. `.agent/skills/designbook-drupal-components-screen/SKILL.md`
+3. `.agent/skills/designbook-screen/SKILL.md`
 
 **CSS Skills (`designbook-css-*`):**
 
@@ -108,8 +108,8 @@ Generate a numbered, actionable task list covering the full execution. Group tas
 ```markdown
 ## Plan: [Section Title] Screen Design
 
-### Phase 1: Screen Designs Document
-- [ ] Create `screen-designs.md` with [N] views
+### Phase 1: Screen Designs in overview.section.yml
+- [ ] Add `screen` key to `overview.section.yml` with [N] views
 - [ ] Document [ViewName1]: [brief description]
 - [ ] Document [ViewName2]: [brief description]
 
@@ -157,9 +157,9 @@ Present the full plan and ask:
 
 Once the user approves, execute the tasks in order:
 
-**5.1 — Save Screen Designs Document**
+**5.1 — Save Screen Designs to overview.section.yml**
 
-Create or update `designbook/sections/[section-id]/screen-designs.md` with the documented views.
+Add or update the `screen` key in `designbook/sections/[section-id]/overview.section.yml` with the documented views.
 
 **5.2 — Generate Shell UI Components**
 
@@ -171,11 +171,11 @@ Create any new UI components identified in the plan using the `designbook-drupal
 
 **5.4 — Generate Entity Components**
 
-Execute the `designbook-entity` skill with `section-id` parameter. This reads `data-model.json`, identifies UI components for each field, and generates entity design components.
+Execute the `designbook-entity` skill with `section-id` parameter. This reads `data-model.yml`, identifies UI components for each field, and generates entity design components.
 
 **5.5 — Generate Screen Components**
 
-Execute the `designbook-screen` skill with `section-id` parameter. This reads `screen-designs.md`, composes shell + entity into full screen views.
+Execute the `designbook-screen` skill with `section-id` parameter. This reads the `screen` key from `overview.section.yml`, composes shell + entity into full screen views.
 
 **5.6 — Run CSS Generation**
 

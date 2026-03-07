@@ -1,5 +1,6 @@
 import { Meta } from '@storybook/addon-docs/blocks';
 import { DeboSection, DeboDataModel } from '../components/index.js';
+import { parse as parseYaml } from 'yaml';
 import '../index.css';
 
 <Meta title="Designbook/Data Model" />
@@ -11,9 +12,9 @@ Use the AI command to define or update your data model — the result is display
 
 <DeboSection
   title="Data Model"
-  dataPath="data-model.json"
-  parser={(content) => JSON.parse(content)}
+  dataPath="data-model.yml"
+  parser={(content) => parseYaml(content)}
   command="/debo-data-model"
-  emptyMessage="No data model defined yet"
+  emptyMessage="No data model defined yet"  
   renderContent={(data) => <DeboDataModel data={data} />}
 />

@@ -5,7 +5,7 @@ category: Designbook
 description: Define your data model through a guided conversation
 ---
 
-Help the user define the core data model for their product. This establishes the "nouns" of the system — the entities and their relationships. The result is saved to `${DESIGNBOOK_DIST}/data-model.json` using the `designbook-data-model` skill.
+Help the user define the core data model for their product. This establishes the "nouns" of the system — the entities and their relationships. The result is saved to `${DESIGNBOOK_DIST}/data-model.yml` using the `designbook-data-model` skill.
 
 **Steps**
 
@@ -15,7 +15,7 @@ Read the following files to understand the product:
 - `${DESIGNBOOK_DIST}/product/product-overview.md`
 - `${DESIGNBOOK_DIST}/product/product-roadmap.md`
 
-Check if `${DESIGNBOOK_DIST}/data-model.json` exists. If so, read it to understand the current model.
+Check if `${DESIGNBOOK_DIST}/data-model.yml` exists. If so, read it to understand the current model.
 
 Check the `DESIGNBOOK_TECHNOLOGY` environment variable. 
 - If it is `drupal`, **READ** `.agent/skills/designbook-data-model-drupal/SKILL.md` to understand Drupal-specific entity and field naming conventions. Be sure to apply these conventions in the next steps.
@@ -32,7 +32,7 @@ Engage with the user to define these. Ask clarifying questions.
 
 ## Step 3: Define JSON Structure
 
-Construct a JSON object matching the `schema/data-model.json` structure (Content -> Entity Type -> Bundle -> Fields).
+Construct a JSON object matching the `schema/data-model.yml` structure (Content -> Entity Type -> Bundle -> Fields).
 
 Example structure:
 ```json

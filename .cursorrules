@@ -1,0 +1,63 @@
+# Designbook Agent Rules
+
+## Dev Server Termination
+Never use `send_command_input` with `Terminate: true` to stop dev servers (Storybook, Vite, Webpack).
+They trap SIGTERM for graceful shutdown and will hang indefinitely.
+Instead, kill via port: `lsof -ti:<PORT> | xargs kill -9 2>/dev/null`
+
+## Commands
+
+### Linting
+```bash
+# Lint TypeScript (addon) — MUST pass before committing
+npm run lint
+# Auto-fix formatting
+cd packages/storybook-addon-designbook && npx eslint --cache --fix .
+# Lint CSS (integration)
+npm run lint:css
+npm run lint:css:fix
+```
+
+### Testing
+```bash
+# Run all tests (vitest) — MUST pass before committing
+npm run test
+# Run addon tests only
+cd packages/storybook-addon-designbook && npx vitest run
+```
+
+### Development
+```bash
+npm run dev:integration:drupal   # Start Storybook (Drupal integration)
+npm run dev:addon                # Build addon in watch mode
+```
+
+### Build
+```bash
+npm run build
+```
+
+## Code Style
+
+- **Formatting**: Prettier via ESLint (`prettier/prettier`), 2-space indent, single quotes
+- **TypeScript**: Strict, avoid `any` — use `Record<string, unknown>` or proper types
+- **Imports**: ESM only (`import`/`export`), no `require()`
+
+## Architecture
+
+### Renderer (`src/renderer/`)
+All rendering goes through `ScreenNodeRenderService`:
+- `sdc-renderer.ts` — component nodes → SDC/Twig code
+- `entity-renderer.ts` — entity nodes → JSONata resolution
+- `presets/sdc.ts` — Pre-configured renderer set for Drupal/SDC
+
+### Vite Plugin (`src/vite-plugin.ts`)
+Transforms `.screen.yml` / `.section.yml` → CSF story modules via `ScreenNodeRenderService`.
+
+### View Modes
+`.jsonata` files in `designbook/view-modes/` — pattern: `{entity_type}.{bundle}.{view_mode}.jsonata`
+
+## Before Committing
+```bash
+npm run lint && npm run test
+```

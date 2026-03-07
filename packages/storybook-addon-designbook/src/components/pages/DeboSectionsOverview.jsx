@@ -30,13 +30,12 @@ export function DeboSectionsOverview() {
             await Promise.all(
                 sections.map(async (section) => {
                     const id = section.id || toSectionId(section.title);
-                    const [hasSpec, hasData, hasDesigns, hasScreenshots] = await Promise.all([
+                    const [hasSpec, hasData, hasScreenshots] = await Promise.all([
                         designbookFileExists(`sections/${id}/spec.md`),
-                        designbookFileExists(`sections/${id}/data.json`),
-                        designbookFileExists(`sections/${id}/screen-designs.md`),
+                        designbookFileExists(`sections/${id}/data.yml`),
                         designbookFileExists(`sections/${id}/screenshots.md`),
                     ]);
-                    statuses[id] = { spec: hasSpec, data: hasData, designs: hasDesigns, screenshots: hasScreenshots };
+                    statuses[id] = { spec: hasSpec, data: hasData, screenshots: hasScreenshots };
                 })
             );
             setSectionStatus(statuses);
@@ -78,7 +77,6 @@ export function DeboSectionsOverview() {
         const badges = [
             { label: 'Spec', done: status.spec },
             { label: 'Data', done: status.data },
-            { label: 'Screen Designs', done: status.designs },
             { label: 'Screenshots', done: status.screenshots },
         ];
 

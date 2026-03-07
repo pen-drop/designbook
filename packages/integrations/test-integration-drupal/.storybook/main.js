@@ -16,13 +16,21 @@ const config = {
     "../components/**/*.component.yml",
     join(baseTheme, "components/**/*.component.yml"),
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-    "../designbook/sections/*.section.yml",
-    "../designbook/components/**/*.component.yml"
+    "../designbook/sections/*/overview.section.yml",
+    "../designbook/components/**/*.component.yml",
+    "../designbook/sections/*/screens/*.screen.yml"
   ],
   addons: [
     '@storybook/addon-themes',
     '@storybook/addon-docs',
-    'storybook-addon-designbook',
+    {
+      name: 'storybook-addon-designbook',
+      options: {
+        designbook: {
+          provider: 'daisy_cms_daisyui',
+        },
+      },
+    },
     {
       name: 'storybook-addon-sdc', // 3. Configure addon.
       options: {
@@ -34,7 +42,9 @@ const config = {
             'ui_suite_daisyui': baseTheme,
             'designbook_design': join(cwd(), 'designbook')
           },
-          storyNodesRenderer: refStoryNodeRenderer
+          storyNodesRenderer: [
+            ...refStoryNodeRenderer,
+          ]
         },
         vitePluginTwingDrupalOptions: {
           hooks: join(cwd(), '.storybook/twing-hooks.js'),

@@ -6,7 +6,7 @@
 
 @plugin "daisyui/theme" {
   name: "dark";
-  
+
   base-100: var(--color-neutral-900);
   base-200: var(--color-neutral-200);
   base-300: var(--color-neutral-300);

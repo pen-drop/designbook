@@ -5,12 +5,12 @@ The system SHALL provide an MDX documentation page at `.storybook/onboarding/dat
 
 #### Scenario: User accesses data model page with no data
 - **WHEN** user navigates to the Data Model page in Storybook
-- **AND** no data model exists at `designbook/data-model.json`
+- **AND** no data model exists at `designbook/data-model.yml`
 - **THEN** the page displays an empty state via `DeboSection` with a reference to the `/data-model` AI command
 
 #### Scenario: User accesses data model page with existing data
 - **WHEN** user navigates to the Data Model page in Storybook
-- **AND** data model data exists at `designbook/data-model.json`
+- **AND** data model data exists at `designbook/data-model.yml`
 - **THEN** the page loads and displays entities and relationships using `DeboSection`
 - **AND** the data is rendered using the `DeboDataModelCard` React component via `renderContent` prop
 - **AND** a reload button allows refreshing the data without page navigation
@@ -22,7 +22,7 @@ The system SHALL provide an MDX documentation page at `.storybook/onboarding/dat
 - **AND** after the AI command completes, the user clicks reload to see updated data
 
 ### Requirement: AI Command for Data Model Input
-The system SHALL provide a Cursor AI command at `.agent/workflows/debo-data-model.md` with `id: debo-data-model`. This command handles the conversational data model workflow, reads the existing product vision and roadmap for context, and uses the `designbook-data-model` skill to save results to `designbook/data-model.json`.
+The system SHALL provide a Cursor AI command at `.agent/workflows/debo-data-model.md` with `id: debo-data-model`. This command handles the conversational data model workflow, reads the existing product vision and roadmap for context, and uses the `designbook-data-model` skill to save results to `designbook/data-model.yml`.
 
 #### Scenario: AI command reads product vision and roadmap
 - **WHEN** user runs the `/data-model` AI command
@@ -50,4 +50,4 @@ The system SHALL provide a Cursor AI command at `.agent/workflows/debo-data-mode
 #### Scenario: File output via skill
 - **WHEN** the user approves the final data model
 - **THEN** the AI command invokes the `designbook-data-model` skill with the structured data
-- **AND** the skill saves the result to `designbook/data-model.json` validating against `schema/data-model.json`
+- **AND** the skill saves the result to `designbook/data-model.yml` validating against `schema/data-model.yml`

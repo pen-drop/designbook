@@ -3,11 +3,11 @@ import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboBulletList } from '../ui/DeboBulletList.jsx';
 
 /**
- * DeboSampleData — Displays sample data from a section's data.json.
+ * DeboSampleData — Displays sample data from a section's data.yml.
  * Shows model descriptions, relationships, and a collapsible raw JSON view.
  *
  * @param {Object} props
- * @param {Object} props.data - The parsed data.json content
+ * @param {Object} props.data - The parsed data.yml content
  */
 export function DeboSampleData({ data }) {
     if (!data) return null;
@@ -16,13 +16,24 @@ export function DeboSampleData({ data }) {
     const models = meta.models || {};
     const relationships = meta.relationships || [];
 
-    // Count records (top-level arrays, excluding _meta)
-    const recordEntries = Object.entries(data).filter(
-        ([key, value]) => key !== '_meta' && Array.isArray(value)
-    );
+    // Collect records — support both flat arrays and nested entity structure (node.article: [...])
+    const recordEntries = [];
+    for (const [key, value] of Object.entries(data)) {
+        if (key === '_meta') continue;
+        if (Array.isArray(value)) {
+            recordEntries.push([key, value]);
+        } else if (value && typeof value === 'object') {
+            // Nested: { node: { article: [...] } } → "node/article"
+            for (const [subKey, subValue] of Object.entries(value)) {
+                if (Array.isArray(subValue)) {
+                    recordEntries.push([`${key}/${subKey}`, subValue]);
+                }
+            }
+        }
+    }
     const totalRecords = recordEntries.reduce((sum, [, arr]) => sum + arr.length, 0);
 
-    // Data without _meta for JSON view
+    // Flatten all data for raw view (excluding _meta)
     const dataWithoutMeta = Object.fromEntries(
         Object.entries(data).filter(([key]) => key !== '_meta')
     );

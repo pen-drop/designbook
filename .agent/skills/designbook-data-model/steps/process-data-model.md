@@ -1,15 +1,15 @@
 ---
-description: Validate data model against schema and save to designbook/data-model.json
+description: Validate data model against schema and save to designbook/data-model.yml
 ---
 
 # Process Data Model
 
-Validates data model input against the bundled JSON Schema using `ajv-cli` and saves it.
+Validates data model input against the bundled schema using `ajv-cli` and saves it.
 
 ## Input
 
-- A file path to a JSON file containing the data model, OR
-- A JSON string (will be written to a temp file first)
+- A file path to a YAML file containing the data model, OR
+- A YAML string (will be written to a temp file first)
 
 ## Steps
 
@@ -17,7 +17,7 @@ Validates data model input against the bundled JSON Schema using `ajv-cli` and s
 
 ```bash
 npx ajv-cli validate \
-  -s .agent/skills/designbook-data-model/schema/data-model.json \
+  -s .agent/skills/designbook-data-model/schema/data-model.schema.yml \
   -d <input-file>
 ```
 
@@ -26,7 +26,7 @@ npx ajv-cli validate \
 ```bash
 DIST="${DESIGNBOOK_DIST:-designbook}"
 mkdir -p "$DIST"
-cp <input-file> "$DIST/data-model.json"
+cp <input-file> "$DIST/data-model.yml"
 ```
 
 ## Exit Codes
