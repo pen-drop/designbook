@@ -57,3 +57,75 @@ All other custom fields **MUST** be prefixed with `field_`.
   }
 }
 ```
+
+## View Mode Display Mappings
+
+Bundles can define `view_modes` to map entity fields to UI components. Each view mode contains an ordered `mapping[]` array. The `entityRenderer` (a `storyNodesRenderer`) resolves these at Storybook runtime.
+
+### Format
+
+```json
+{
+  "content": {
+    "node": {
+      "article": {
+        "fields": { ... },
+        "view_modes": {
+          "full": {
+            "mapping": [
+              {
+                "component": "figure",
+                "props": {
+                  "src": "$field_media.url",
+                  "alt": "$field_media.alt",
+                  "full_width": true
+                }
+              },
+              {
+                "component": "heading",
+                "props": { "level": "h1" },
+                "slots": { "text": "$title" }
+              },
+              {
+                "component": "text-block",
+                "slots": { "content": "$field_body" }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Drupal Mapping Rules
+
+1. **Base fields** use their name directly: `$title`, `$status`, `$created`
+2. **Custom fields** use the `field_` prefix: `$field_body`, `$field_media.url`
+3. **Nested values** use dot notation: `$field_media.url`, `$field_category.name`
+4. **Static values** have no `$` prefix: `true`, `"h1"`, `42`
+5. **Slots** are for rendered content, **props** are for data/configuration
+6. **Slots can contain nested components** as arrays
+
+### Cross-Entity Includes
+
+To render data from related entity types (e.g., a contact block on an article page):
+
+```json
+{
+  "includes": [
+    {
+      "component": "contact-card",
+      "entity": "block_content.contact_person",
+      "record": 0,
+      "props": {
+        "name": "$field_name",
+        "email": "$field_email"
+      }
+    }
+  ]
+}
+```
+
+`$field_name` refs in `includes` resolve against the **referenced** entity record, not the current entity.

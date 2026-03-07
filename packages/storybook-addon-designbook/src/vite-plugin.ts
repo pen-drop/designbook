@@ -3,8 +3,11 @@ import type { IncomingMessage } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { parseScreen } from './screen/parser';
+import { resolveScreen } from './screen/resolver';
+import type { DataModel, SampleData, ComponentNode } from './entity/types';
 
-export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string } = {}): Plugin {
+export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string; provider?: string } = {}): Plugin {
   // Use config fsRoot if available, otherwise default to 'designbook'
   const distDir = options.fsRoot || 'designbook';
 
@@ -18,6 +21,11 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
     enforce: 'pre',
 
     async load(id: string) {
+      // Transform .screen.yml files into CSF story modules
+      if (id.endsWith('.screen.yml')) {
+        return loadScreenYml(id, designbookDir, options.provider);
+      }
+
       // Transform .section.yml files into CSF story modules
       if (id.endsWith('.section.yml')) {
         return loadSectionYml(id);
@@ -137,6 +145,215 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
       });
     },
   };
+}
+
+/**
+ * Load a .screen.yml file and transform it into a CSF story module.
+ *
+ * Resolves entity entries using data-model.yml and section data.yml,
+ * then generates SDC Twig rendering code with proper component imports.
+ */
+async function loadScreenYml(
+  id: string,
+  designbookDir: string,
+  provider?: string,
+): Promise<string | null> {
+  try {
+    const content = readFileSync(id, 'utf-8');
+    const raw = parseYaml(content);
+    const screen = parseScreen(raw);
+
+    // Load data model
+    let dataModel: DataModel;
+    try {
+      dataModel = parseYaml(readFileSync(join(designbookDir, 'data-model.yml'), 'utf-8')) as DataModel;
+    } catch {
+      console.warn('[Designbook] No data-model.yml found, screen entities will not resolve');
+      dataModel = { content: {} };
+    }
+
+    // Load sample data from sections
+    let sampleData: SampleData = {};
+    if (screen.section) {
+      try {
+        sampleData = parseYaml(
+          readFileSync(join(designbookDir, 'sections', screen.section, 'data.yml'), 'utf-8')
+        ) as SampleData;
+      } catch {
+        // Try global data.yml
+        try {
+          sampleData = parseYaml(readFileSync(join(designbookDir, 'data.yml'), 'utf-8')) as SampleData;
+        } catch {
+          console.warn(`[Designbook] No data.yml found for screen "${screen.name}"`);
+        }
+      }
+    }
+
+    // Resolve the screen
+    const resolved = resolveScreen(screen, { dataModel, sampleData, provider });
+
+    // Derive title from filename
+    const baseName = id.split('/').pop() || '';
+    const parts = baseName.replace('.screen.yml', '').split('.');
+    const pageName = (parts.length > 1 ? parts[parts.length - 1] : parts[0]) || 'default';
+    const sectionPart = parts.length > 1 ? parts.slice(0, -1).join('.') : parts[0];
+    const group = screen.group || `Sections/${screen.section || sectionPart}`;
+
+    const exportName = pageName
+      .split('-')
+      .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join('');
+
+    // Collect all unique component names referenced in the resolved screen
+    const componentNames = new Set<string>();
+    const collectComponents = (value: unknown): void => {
+      if (Array.isArray(value)) {
+        value.forEach(collectComponents);
+        return;
+      }
+      if (value && typeof value === 'object') {
+        const obj = value as Record<string, unknown>;
+        if (obj.type === 'component' && typeof obj.component === 'string') {
+          componentNames.add(obj.component);
+        }
+        // Check slots/props for nested component arrays
+        if (obj.slots) {
+          Object.values(obj.slots as Record<string, unknown>).forEach(collectComponents);
+        }
+        if (obj.props) {
+          Object.values(obj.props as Record<string, unknown>).forEach(collectComponents);
+        }
+      }
+    };
+    Object.values(resolved.slots).forEach(collectComponents);
+
+    // Generate imports for each component's .component.yml
+    // SDC pattern: import * as kebabName from 'path/to/component.yml'
+    const imports: string[] = [];
+    const kebabMap: Record<string, string> = {};
+
+    for (const componentId of componentNames) {
+      // Component IDs may be namespaced: "daisy_cms_daisyui:heading" → "heading"
+      const [, componentName] = componentId.includes(':')
+        ? componentId.split(':')
+        : ['', componentId];
+
+      // Safe JS variable name: daisy_cms_daisyui:heading → daisy_cms_daisyuiheading
+      const kebabName = componentId.replace(/[-:]/g, '');
+      kebabMap[componentId] = kebabName;
+
+      // Find the component.yml file
+      const componentDir = resolve(designbookDir, '..', 'components', componentName || '');
+      const componentYml = join(componentDir, `${componentName}.component.yml`);
+
+      if (existsSync(componentYml)) {
+        imports.push(`import * as ${kebabName} from '${componentYml}';`);
+      } else {
+        console.warn(`[Designbook] Component not found: ${componentId} (searched ${componentYml})`);
+        // Generate a fallback import that shows component name
+        imports.push(`const ${kebabName} = { default: { component: (args) => '<div class="designbook-missing">[missing: ${componentId}]</div>' } };`);
+      }
+    }
+
+    // Generate render expressions for a ComponentNode
+    const renderNode = (node: ComponentNode): string => {
+      const kebabName = kebabMap[node.component] || node.component.replace(/[-:]/g, '');
+
+      // Build the args object: merge props + slots
+      const args: Record<string, unknown> = {};
+      if (node.props) {
+        Object.assign(args, node.props);
+      }
+      if (node.slots) {
+        // Process slot values — nested component arrays need to be rendered
+        for (const [slotKey, slotValue] of Object.entries(node.slots)) {
+          if (Array.isArray(slotValue)) {
+            // Array of ComponentNodes → render each and join
+            const renderedParts = (slotValue as ComponentNode[]).map(renderNode);
+            args[slotKey] = `__RENDER_ARRAY__[${renderedParts.join(', ')}]`;
+          } else {
+            args[slotKey] = slotValue;
+          }
+        }
+      }
+
+      // Build args string
+      const argParts: string[] = [];
+      for (const [key, value] of Object.entries(args)) {
+        if (typeof value === 'string' && value.startsWith('__RENDER_ARRAY__')) {
+          // Inline rendered array
+          const arrayContent = value.replace('__RENDER_ARRAY__', '');
+          argParts.push(`${key}: ${arrayContent}`);
+        } else {
+          argParts.push(`${key}: ${JSON.stringify(value)}`);
+        }
+      }
+
+      // Check for .story reference — load story args if available
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const storyRef = (node as any).story;
+      const storyArgs = storyRef
+        ? `...${kebabName}.${storyRef.charAt(0).toUpperCase() + storyRef.slice(1)}?.args ?? {}`
+        : '';
+
+      const baseArgs = `...${kebabName}?.Basic?.baseArgs ?? {}`;
+
+      return `${kebabName}.default.component({${baseArgs}, ${storyArgs ? storyArgs + ', ' : ''}${argParts.join(', ')}})`;
+    };
+
+    // Generate the render function code
+    const slotRenderCode: string[] = [];
+    for (const [slotName, nodes] of Object.entries(resolved.slots)) {
+      const nodeRenders = (nodes as ComponentNode[]).map(renderNode);
+      slotRenderCode.push(`
+    // Slot: ${slotName}
+    ${nodeRenders.map(r => `html += ${r};`).join('\n    ')}`);
+    }
+
+    const code = `
+${imports.join('\n')}
+
+class TwigSafeArray extends Array {
+  toString() {
+    return this.join('');
+  }
+}
+
+export default {
+  title: '${group}/${screen.name.replace(/'/g, "\\'")}',
+  tags: ['screen'],
+  parameters: {
+    layout: 'fullscreen',
+    screen: {
+      resolved: true,
+      source: '${baseName.replace(/'/g, "\\'")}',
+    },
+  },
+};
+
+export const ${exportName} = {
+  render: () => {
+    let html = '';
+    ${slotRenderCode.join('\n')}
+    return html;
+  },
+  play: async ({ canvasElement }) => {
+    if (typeof Drupal !== 'undefined') {
+      Drupal.attachBehaviors(canvasElement, window.drupalSettings);
+    }
+  },
+};
+`;
+
+    // Transform to JS
+    const result = await transformWithEsbuild(code, id + '.js', {
+      loader: 'js',
+    });
+    return result.code;
+  } catch (e) {
+    console.error('[Designbook] Error loading screen:', id, e);
+    return null;
+  }
 }
 
 /**

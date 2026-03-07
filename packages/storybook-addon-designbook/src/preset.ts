@@ -33,7 +33,13 @@ export const viteFinal = async (config: any, options: any) => {
     fsRoot = options.designbook.fsRoot;
   }
 
-  plugins.push(designbookLoadPlugin(process.cwd(), { fsRoot }));
+  // Read provider from designbook config or options
+  let provider: string | undefined;
+  if (options?.designbook?.provider) {
+    provider = options.designbook.provider;
+  }
+
+  plugins.push(designbookLoadPlugin(process.cwd(), { fsRoot, provider }));
   return {
     ...config,
     plugins,
@@ -64,8 +70,9 @@ export const stories = async (entry: string[] = [], options: any) => {
 
   const sectionsGlob = resolve(projectRoot, distDir, 'sections/*.section.yml');
   const designGlob = resolve(projectRoot, distDir, 'design/**/*.component.yml');
+  const screenGlob = resolve(projectRoot, distDir, 'sections/*/screens/*.screen.yml');
 
-  return [...entry, onboardingGlob, sectionsGlob, designGlob];
+  return [...entry, onboardingGlob, sectionsGlob, designGlob, screenGlob];
 };
 
 /**
@@ -111,7 +118,52 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
     },
   };
 
-  return [...existingIndexers, sectionsIndexer];
+  const screenIndexer = {
+    test: /\.screen\.yml$/,
+    createIndex: async (fileName: string) => {
+      try {
+        const content = readFileSync(fileName, 'utf-8');
+        const screen = parseYaml(content);
+
+        const name = screen.name || 'Untitled';
+
+        // Derive story ID from filename: section-blog.detail.screen.yml → detail
+        const baseName = fileName.split('/').pop() || '';
+        // Pattern: section-name.page.screen.yml
+        const parts = baseName.replace('.screen.yml', '').split('.');
+        const pageName = (parts.length > 1 ? parts[parts.length - 1] : parts[0]) || 'default';
+        const sectionPart = parts.length > 1 ? parts.slice(0, -1).join('.') : parts[0];
+
+        // Convert to valid JS export: detail → Detail, listing → Listing
+        const exportName = pageName
+          .split('-')
+          .map((p: string) => p.charAt(0).toUpperCase() + p.slice(1))
+          .join('');
+
+        // Group under Sections/sectionId or use group from YAML
+        const group = screen.group || `Sections/${screen.section || sectionPart}`;
+
+        const relativePath = './' + relative(process.cwd(), fileName);
+
+        console.log('[Designbook] Indexing screen:', { fileName, exportName, name, group });
+
+        return [
+          {
+            type: 'story' as const,
+            importPath: relativePath,
+            exportName,
+            title: `${group}/${name}`,
+            tags: ['screen'],
+          },
+        ];
+      } catch (err) {
+        console.error('[Designbook] Error indexing screen file:', fileName, err);
+        return [];
+      }
+    },
+  };
+
+  return [...existingIndexers, sectionsIndexer, screenIndexer];
 };
 
 export const indexers = experimental_indexers;

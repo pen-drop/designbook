@@ -13,7 +13,7 @@ description: Creates Drupal SDC component files (.component.yml, .story.yml, and
 |------|-------|-------------|----------|--------|----------|
 | **UI** ← this skill | `designbook-drupal-components-ui` | ✅ Yes — real HTML | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `daisy_cms_daisyui`) |
 | Entity | `designbook-drupal-components-entity` | ❌ No — structural wrapper | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
-| Screen | `designbook-drupal-components-screen` | ❌ No — slots only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
+| Screen | `designbook-screen` | ❌ No — `*.screen.yml` only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
 
 > [!CAUTION]
 > **MANDATORY**: Before generating ANY components, you MUST read ALL resource files in `resources/`. Each contains critical rules that prevent common mistakes:

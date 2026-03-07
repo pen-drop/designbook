@@ -57,7 +57,7 @@ Wait for their response.
    - `resources/twig.md`
 2. `.agent/skills/designbook-drupal-components-entity/SKILL.md` **and:**
    - `generate-stories.js`
-3. `.agent/skills/designbook-drupal-components-screen/SKILL.md`
+3. `.agent/skills/designbook-screen/SKILL.md`
 
 **CSS Skills (`designbook-css-*`):**
 
