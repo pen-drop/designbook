@@ -6,20 +6,20 @@
 
 // Core types
 export type {
-    ScreenNode,
-    ComponentScreenNode,
-    EntityScreenNode,
-    RenderContext,
-    ScreenNodeRenderer,
-    DataModel,
-    SampleData,
-    BundleDef,
-    DataModelContent,
-    ScreenDef,
-    ResolvedScreen,
-    ScreenComponentEntry,
-    ScreenEntityEntry,
-    ScreenLayoutEntry,
+  ScreenNode,
+  ComponentScreenNode,
+  EntityScreenNode,
+  RenderContext,
+  ScreenNodeRenderer,
+  DataModel,
+  SampleData,
+  BundleDef,
+  DataModelContent,
+  ScreenDef,
+  ResolvedScreen,
+  ScreenComponentEntry,
+  ScreenEntityEntry,
+  ScreenLayoutEntry,
 } from './types';
 
 export { isScreenEntityEntry, isScreenComponentEntry } from './types';
