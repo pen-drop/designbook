@@ -39,7 +39,10 @@ export const viteFinal = async (config: any, options: any) => {
     provider = options.designbook.provider;
   }
 
-  plugins.push(designbookLoadPlugin(process.cwd(), { fsRoot, provider }));
+  // Read renderers from options (integration passes preset + custom renderers)
+  const renderers = options?.designbook?.renderers;
+
+  plugins.push(designbookLoadPlugin(process.cwd(), { fsRoot, provider, renderers }));
   return {
     ...config,
     plugins,

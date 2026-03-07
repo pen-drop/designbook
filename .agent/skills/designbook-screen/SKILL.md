@@ -17,10 +17,11 @@ description: Generates screen design files that compose UI components + entity d
 
 ## Prerequisites
 
-1. **Data model** with view mode mappings: `$DESIGNBOOK_DIST/data-model.yml`
-2. **Sample data** per section: `$DESIGNBOOK_DIST/sections/{section}/data.yml`
-3. **UI components** must exist (heading, figure, text-block, etc.)
-4. **Screen designs** (optional): `$DESIGNBOOK_DIST/sections/{section}/overview.section.yml` (under `screen` key)
+1. **Data model** (schema only): `$DESIGNBOOK_DIST/data-model.yml`
+2. **View mode expressions**: `$DESIGNBOOK_DIST/view-modes/{entity_type}.{bundle}.{view_mode}.jsonata` — see `designbook-view-modes` skill
+3. **Sample data** per section: `$DESIGNBOOK_DIST/sections/{section}/data.yml`
+4. **UI components** must exist (heading, figure, text-block, etc.)
+5. **Screen designs** (optional): `$DESIGNBOOK_DIST/sections/{section}/overview.section.yml` (under `screen` key)
 
 ## Output Structure
 

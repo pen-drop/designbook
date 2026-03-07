@@ -44,48 +44,8 @@ definitions:
         description: Field definitions for this bundle
         additionalProperties:
           $ref: "#/definitions/field"
-      view_modes:
-        type: object
-        title: View Modes
-        description: Display configuration per view mode. Each view mode maps entity fields to UI components for rendering.
-        additionalProperties:
-          $ref: "#/definitions/view_mode"
     additionalProperties: true
-  view_mode:
-    type: object
-    title: View Mode
-    description: "A named display configuration (e.g., full, teaser) defining how entity fields map to UI components"
-    properties:
-      mapping:
-        type: array
-        title: Component Mapping
-        description: Ordered list of component entries. Each entry maps entity fields to a UI component via props and slots. Render order follows array order.
-        items:
-          $ref: "#/definitions/mapping_entry"
-    required:
-      - mapping
-    additionalProperties: false
-  mapping_entry:
-    type: object
-    title: Mapping Entry
-    description: "Maps entity field(s) to a UI component. String values starting with $ are resolved as field references (e.g., $title, $field_media.url). Other values are static."
-    properties:
-      component:
-        type: string
-        description: Component name (without provider prefix). Provider is added at render time.
-      props:
-        type: object
-        title: Props
-        description: Data/configuration values passed to the component. Values prefixed with $ are resolved from entity fields.
-        additionalProperties: true
-      slots:
-        type: object
-        title: Slots
-        description: "Rendered content slots. Simple $field_name strings, nested component arrays, or {type: entity} refs for cross-entity rendering."
-        additionalProperties: true
-    required:
-      - component
-    additionalProperties: false
+
   field:
     type: object
     title: Field

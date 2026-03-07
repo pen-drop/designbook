@@ -126,6 +126,9 @@ importers:
 
   packages/storybook-addon-designbook:
     dependencies:
+      jsonata:
+        specifier: ^2.1.0
+        version: 2.1.0
       marked:
         specifier: ^17.0.2
         version: 17.0.2
@@ -5365,6 +5368,10 @@ packages:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
     hasBin: true
+
+  jsonata@2.1.0:
+    resolution: {integrity: sha512-OCzaRMK8HobtX8fp37uIVmL8CY1IGc/a6gLsDqz3quExFR09/U78HUzWYr7T31UEB6+Eu0/8dkVD5fFDOl9a8w==}
+    engines: {node: '>= 8'}
 
   jsonfile@6.2.0:
     resolution: {integrity: sha512-FGuPw30AdOIUTRMC2OMRtQV+jkVj2cfPqSeWXv1NEAJ1qZ5zb1X6z1mFhbfOB/iy3ssJCD+3KuZ8r8C3uVFlAg==}
@@ -14384,6 +14391,8 @@ snapshots:
     optional: true
 
   json5@2.2.3: {}
+
+  jsonata@2.1.0: {}
 
   jsonfile@6.2.0:
     dependencies:

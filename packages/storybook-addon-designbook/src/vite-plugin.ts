@@ -3,11 +3,25 @@ import type { IncomingMessage } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
-import { parseScreen } from './screen/parser';
-import { resolveScreen } from './screen/resolver';
-import type { DataModel, SampleData, ComponentNode } from './entity/types';
+import jsonata from 'jsonata';
+import { parseScreen } from './renderer/parser';
+import type {
+  DataModel,
+  SampleData,
+  ComponentScreenNode,
+  ScreenNodeRenderer,
+  ScreenNode,
+  EntityScreenNode,
+  RenderContext,
+} from './renderer/types';
+import { isScreenEntityEntry, isScreenComponentEntry } from './renderer/types';
+import { ScreenNodeRenderService } from './renderer/render-service';
+import { sdcRenderers } from './renderer/presets/sdc';
 
-export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string; provider?: string } = {}): Plugin {
+export function designbookLoadPlugin(
+  baseDir: string,
+  options: { fsRoot?: string; provider?: string; renderers?: ScreenNodeRenderer[] } = {},
+): Plugin {
   // Use config fsRoot if available, otherwise default to 'designbook'
   const distDir = options.fsRoot || 'designbook';
 
@@ -32,7 +46,7 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
     async load(id: string) {
       // Transform .screen.yml files into CSF story modules
       if (id.endsWith('.screen.yml')) {
-        return loadScreenYml(id, designbookDir, options.provider, trackDependency);
+        return loadScreenYml(id, designbookDir, options.provider, options.renderers, trackDependency);
       }
 
       // Transform .section.yml files into CSF story modules
@@ -66,9 +80,7 @@ export function designbookLoadPlugin(baseDir: string, options: { fsRoot?: string
     handleHotUpdate({ file, server }) {
       const screenIds = dataFileToScreens.get(file);
       if (screenIds) {
-        const modules = [...screenIds]
-          .map((id) => server.moduleGraph.getModuleById(id))
-          .filter(Boolean);
+        const modules = [...screenIds].map((id) => server.moduleGraph.getModuleById(id)).filter(Boolean);
         if (modules.length) {
           console.log(`[Designbook] Data file changed: ${file}, reloading ${modules.length} screen(s)`);
           return modules as import('vite').ModuleNode[];
@@ -182,6 +194,7 @@ async function loadScreenYml(
   id: string,
   designbookDir: string,
   provider?: string,
+  renderers?: ScreenNodeRenderer[],
   trackDependency?: (screenId: string, dataFile: string) => void,
 ): Promise<string | null> {
   try {
@@ -219,8 +232,32 @@ async function loadScreenYml(
       }
     }
 
-    // Resolve the screen
-    const resolved = resolveScreen(screen, { dataModel, sampleData, provider });
+    // Convert screen layout entries → ScreenNode[]
+    const screenNodes: Record<string, ScreenNode[]> = {};
+    for (const [slotName, entries] of Object.entries(screen.layout)) {
+      const nodes: ScreenNode[] = [];
+      for (const entry of entries) {
+        if (isScreenEntityEntry(entry)) {
+          const [entity_type, bundle] = entry.entity.split('.');
+          nodes.push({
+            type: 'entity',
+            entity_type,
+            bundle,
+            view_mode: entry.view_mode,
+            record: entry.record ?? 0,
+          } as EntityScreenNode);
+        } else if (isScreenComponentEntry(entry)) {
+          nodes.push({
+            type: 'component',
+            component: entry.component,
+            props: entry.props,
+            slots: entry.slots,
+            story: entry.story,
+          } as ComponentScreenNode);
+        }
+      }
+      screenNodes[slotName] = nodes;
+    }
 
     // Derive title from filename
     const baseName = id.split('/').pop() || '';
@@ -234,39 +271,23 @@ async function loadScreenYml(
       .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
       .join('');
 
-    // Collect all unique component names referenced in the resolved screen
-    const componentNames = new Set<string>();
-    const collectComponents = (value: unknown): void => {
-      if (Array.isArray(value)) {
-        value.forEach(collectComponents);
-        return;
-      }
-      if (value && typeof value === 'object') {
-        const obj = value as Record<string, unknown>;
-        if (obj.type === 'component' && typeof obj.component === 'string') {
-          componentNames.add(obj.component);
-        }
-        // Check slots/props for nested component arrays
-        if (obj.slots) {
-          Object.values(obj.slots as Record<string, unknown>).forEach(collectComponents);
-        }
-        if (obj.props) {
-          Object.values(obj.props as Record<string, unknown>).forEach(collectComponents);
-        }
-      }
-    };
-    Object.values(resolved.slots).forEach(collectComponents);
+    // Set up ScreenNodeRenderService
+    const renderService = new ScreenNodeRenderService();
+    renderService.register(sdcRenderers);
+    // Register any integration-provided renderers (passed via addon options)
+    if (renderers && renderers.length > 0) {
+      renderService.register(renderers);
+    }
 
-    // Generate imports for each component's .component.yml
-    // SDC pattern: import * as kebabName from 'path/to/component.yml'
+    // Import tracking for the generated CSF module
     const imports: string[] = [];
     const kebabMap: Record<string, string> = {};
 
-    for (const componentId of componentNames) {
+    const trackImport = (componentId: string): string => {
+      if (kebabMap[componentId]) return kebabMap[componentId];
+
       // Component IDs may be namespaced: "daisy_cms_daisyui:heading" → "heading"
-      const [, componentName] = componentId.includes(':')
-        ? componentId.split(':')
-        : ['', componentId];
+      const [, componentName] = componentId.includes(':') ? componentId.split(':') : ['', componentId];
 
       // Safe JS variable name: daisy_cms_daisyui:heading → daisy_cms_daisyuiheading
       const kebabName = componentId.replace(/[-:]/g, '');
@@ -280,64 +301,76 @@ async function loadScreenYml(
         imports.push(`import * as ${kebabName} from '${componentYml}';`);
       } else {
         console.warn(`[Designbook] Component not found: ${componentId} (searched ${componentYml})`);
-        // Generate a fallback import that shows component name
-        imports.push(`const ${kebabName} = { default: { component: (args) => '<div class="designbook-missing">[missing: ${componentId}]</div>' } };`);
-      }
-    }
-
-    // Generate render expressions for a ComponentNode
-    const renderNode = (node: ComponentNode): string => {
-      const kebabName = kebabMap[node.component] || node.component.replace(/[-:]/g, '');
-
-      // Build the args object: merge props + slots
-      const args: Record<string, unknown> = {};
-      if (node.props) {
-        Object.assign(args, node.props);
-      }
-      if (node.slots) {
-        // Process slot values — nested component arrays need to be rendered
-        for (const [slotKey, slotValue] of Object.entries(node.slots)) {
-          if (Array.isArray(slotValue)) {
-            // Array of ComponentNodes → render each and join
-            const renderedParts = (slotValue as ComponentNode[]).map(renderNode);
-            args[slotKey] = `__RENDER_ARRAY__[${renderedParts.join(', ')}]`;
-          } else {
-            args[slotKey] = slotValue;
-          }
-        }
+        imports.push(
+          `const ${kebabName} = { default: { component: (args) => '<div class="designbook-missing">[missing: ${componentId}]</div>' } };`,
+        );
       }
 
-      // Build args string
-      const argParts: string[] = [];
-      for (const [key, value] of Object.entries(args)) {
-        if (typeof value === 'string' && value.startsWith('__RENDER_ARRAY__')) {
-          // Inline rendered array
-          const arrayContent = value.replace('__RENDER_ARRAY__', '');
-          argParts.push(`${key}: ${arrayContent}`);
-        } else {
-          argParts.push(`${key}: ${JSON.stringify(value)}`);
-        }
-      }
-
-      // Check for .story reference — load story args if available
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const storyRef = (node as any).story;
-      const storyArgs = storyRef
-        ? `...${kebabName}.${storyRef.charAt(0).toUpperCase() + storyRef.slice(1)}?.args ?? {}`
-        : '';
-
-      const baseArgs = `...${kebabName}?.Basic?.baseArgs ?? {}`;
-
-      return `${kebabName}.default.component({${baseArgs}, ${storyArgs ? storyArgs + ', ' : ''}${argParts.join(', ')}})`;
+      return kebabName;
     };
 
-    // Generate the render function code
+    // Build RenderContext
+    const renderContext: RenderContext = {
+      provider,
+      dataModel,
+      sampleData,
+      designbookDir,
+      renderNode: (node: ScreenNode) => renderService.render(node, renderContext),
+      trackImport,
+      evaluateExpression: async (expressionPath: string, data: Record<string, unknown>) => {
+        const expr = jsonata(readFileSync(expressionPath, 'utf-8'));
+        return expr.evaluate(data);
+      },
+    };
+
+    // Render all nodes through the service
     const slotRenderCode: string[] = [];
-    for (const [slotName, nodes] of Object.entries(resolved.slots)) {
-      const nodeRenders = (nodes as ComponentNode[]).map(renderNode);
+    for (const [slotName, nodes] of Object.entries(screenNodes)) {
+      const nodeRenders: string[] = [];
+      for (const node of nodes) {
+        let rendered = renderService.render(node, renderContext);
+
+        // Resolve __ENTITY_EXPR__ markers asynchronously
+        const markerRegex = /__ENTITY_EXPR__(.*?)__END_ENTITY_EXPR__/g;
+        let match;
+        while ((match = markerRegex.exec(rendered)) !== null) {
+          try {
+            const meta = JSON.parse(match[1]);
+            const { jsonataPath, entityType, bundle, record = 0 } = meta;
+            const entityData = sampleData?.[entityType]?.[bundle];
+            if (entityData && entityData[record]) {
+              const expr = jsonata(readFileSync(jsonataPath, 'utf-8'));
+              const result = await expr.evaluate(entityData[record]);
+              if (result && Array.isArray(result)) {
+                // Render each resulting component node
+                const childRenders = result.map((childNode: Record<string, unknown>) => {
+                  const compNode: ScreenNode = {
+                    type: 'component',
+                    component: childNode.component as string,
+                    props: childNode.props as Record<string, unknown>,
+                    slots: childNode.slots as Record<string, unknown>,
+                    story: childNode.story as string,
+                  };
+                  return renderService.render(compNode, renderContext);
+                });
+                rendered = rendered.replace(match[0], `[${childRenders.join(', ')}].join('')`);
+              } else {
+                rendered = rendered.replace(match[0], `'<!-- empty: ${entityType}.${bundle} -->'`);
+              }
+            } else {
+              rendered = rendered.replace(match[0], `'<!-- no data: ${entityType}.${bundle}[${record}] -->'`);
+            }
+          } catch (err) {
+            console.error('[Designbook] Entity expression error:', err);
+            rendered = rendered.replace(match[0], `'<!-- error -->'`);
+          }
+        }
+
+        nodeRenders.push(rendered);
+      }
       slotRenderCode.push(`
     // Slot: ${slotName}
-    ${nodeRenders.map(r => `html += ${r};`).join('\n    ')}`);
+    ${nodeRenders.map((r) => `html += ${r};`).join('\n    ')}`);
     }
 
     const code = `
@@ -407,21 +440,25 @@ async function loadSectionYml(id: string): Promise<string | null> {
     const code = [
       "import React from 'react';",
       "import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionDetailPage.jsx';",
-      "",
-      "const SectionPage = () => (<><h1>" + escapedTitle + "</h1><DeboSectionDetailPage sectionId=\"" + escapedId + "\" /></>);",
-      "",
-      "export default {",
+      '',
+      'const SectionPage = () => (<><h1>' +
+        escapedTitle +
+        '</h1><DeboSectionDetailPage sectionId="' +
+        escapedId +
+        '" /></>);',
+      '',
+      'export default {',
       "  title: 'Designbook/Sections/" + escapedTitle + "',",
       "  tags: ['!dev'],",
-      "  parameters: {",
+      '  parameters: {',
       "    layout: 'fullscreen',",
-      "    docs: { page: SectionPage },",
-      "  },",
-      "};",
-      "",
-      "export const " + exportName + " = {",
-      "  render: () => {},",
-      "};",
+      '    docs: { page: SectionPage },',
+      '  },',
+      '};',
+      '',
+      'export const ' + exportName + ' = {',
+      '  render: () => {},',
+      '};',
     ].join('\n');
     // Transform JSX to JS using esbuild
     const result = await transformWithEsbuild(code, id + '.tsx', {

@@ -1,0 +1,27 @@
+[
+  {
+    "type": "component",
+    "component": "figure",
+    "props": {
+      "src": field_media.url,
+      "alt": field_media.alt,
+      "full_width": true
+    }
+  },
+  {
+    "type": "component",
+    "component": "heading",
+    "props": { "level": "h1" },
+    "slots": { "text": title }
+  },
+  field_category ? {
+    "type": "component",
+    "component": "badge",
+    "slots": { "label": field_category.name }
+  },
+  {
+    "type": "component",
+    "component": "text-block",
+    "slots": { "content": field_body }
+  }
+]

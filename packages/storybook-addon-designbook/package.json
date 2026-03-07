@@ -114,6 +114,7 @@
     "icon": "https://user-images.githubusercontent.com/321738/63501763-88dbf600-c4cc-11e9-96cd-94adadc2fd72.png"
   },
   "dependencies": {
+    "jsonata": "^2.1.0",
     "marked": "^17.0.2",
     "yaml": "^2.8.2"
   }
