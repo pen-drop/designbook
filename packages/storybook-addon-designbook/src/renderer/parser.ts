@@ -1,35 +1,39 @@
 /**
- * Screen Parser — parses *.screen.yml files.
+ * Scene Parser — parses *.scenes.yml files.
  *
  * Reads the YAML, validates structure, and expands shorthand
  * (e.g. records: [0, 1, 2] → 3 separate entity entries).
  */
 
-import type { ScreenDef, ScreenLayoutEntry, ScreenEntityEntry } from './types';
+import type { SceneDef, SceneLayoutEntry, SceneEntityEntry } from './types';
 
 /**
- * Parse raw YAML object into a validated ScreenDef.
+ * Parse raw YAML object into a validated SceneDef.
+ *
+ * Supports both the new scenes[] format and legacy single-scene format.
  *
  * @throws Error if required fields are missing
  */
-export function parseScreen(raw: unknown): ScreenDef {
+export function parseScene(raw: unknown): SceneDef {
   if (!raw || typeof raw !== 'object') {
-    throw new Error('Screen file must contain a YAML object');
+    throw new Error('Scene file must contain a YAML object');
   }
 
   const obj = raw as Record<string, unknown>;
 
   if (!obj.name || typeof obj.name !== 'string') {
-    throw new Error('Screen file must have a "name" field');
+    throw new Error('Scene file must have a "name" field');
   }
 
-  if (!obj.layout || typeof obj.layout !== 'object') {
-    throw new Error('Screen file must have a "layout" object');
+  // Support both 'page' (new) and 'layout' (legacy) keys
+  const layoutObj = obj.layout || obj.page;
+  if (!layoutObj || typeof layoutObj !== 'object') {
+    throw new Error('Scene file must have a "layout" object');
   }
 
-  const layout: Record<string, ScreenLayoutEntry[]> = {};
+  const layout: Record<string, SceneLayoutEntry[]> = {};
 
-  for (const [slotName, entries] of Object.entries(obj.layout as Record<string, unknown>)) {
+  for (const [slotName, entries] of Object.entries(layoutObj as Record<string, unknown>)) {
     if (!Array.isArray(entries)) {
       throw new Error(`Layout slot "${slotName}" must be an array`);
     }
@@ -39,6 +43,7 @@ export function parseScreen(raw: unknown): ScreenDef {
 
   return {
     name: obj.name as string,
+    docs: typeof obj.docs === 'string' ? obj.docs : undefined,
     section: typeof obj.section === 'string' ? obj.section : undefined,
     group: typeof obj.group === 'string' ? obj.group : undefined,
     layout,
@@ -50,8 +55,8 @@ export function parseScreen(raw: unknown): ScreenDef {
  * - Entity entries with `records: [0, 1, 2]` become 3 separate entries
  * - Component entries pass through as-is
  */
-function expandEntries(entries: unknown[]): ScreenLayoutEntry[] {
-  const result: ScreenLayoutEntry[] = [];
+function expandEntries(entries: unknown[]): SceneLayoutEntry[] {
+  const result: SceneLayoutEntry[] = [];
 
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object') {
@@ -62,7 +67,7 @@ function expandEntries(entries: unknown[]): ScreenLayoutEntry[] {
 
     // Entity entry
     if ('entity' in obj && typeof obj.entity === 'string') {
-      const entityEntry = obj as unknown as ScreenEntityEntry;
+      const entityEntry = obj as unknown as SceneEntityEntry;
 
       // Expand records shorthand
       if (entityEntry.records && Array.isArray(entityEntry.records)) {
@@ -84,7 +89,7 @@ function expandEntries(entries: unknown[]): ScreenLayoutEntry[] {
     }
     // Component entry
     else if ('component' in obj && typeof obj.component === 'string') {
-      result.push(obj as unknown as ScreenLayoutEntry);
+      result.push(obj as unknown as SceneLayoutEntry);
     }
   }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { sdcComponentRenderer } from '../sdc-renderer';
-import type { RenderContext, ComponentScreenNode } from '../types';
+import type { RenderContext, ComponentSceneNode } from '../types';
 
 function createMockContext(overrides: Partial<RenderContext> = {}): RenderContext {
   return {
@@ -24,7 +24,7 @@ describe('sdcComponentRenderer', () => {
 
   it('renders a simple component with props', () => {
     const ctx = createMockContext();
-    const node: ComponentScreenNode = {
+    const node: ComponentSceneNode = {
       type: 'component',
       component: 'heading',
       props: { level: 'h1' },
@@ -39,7 +39,7 @@ describe('sdcComponentRenderer', () => {
     const trackSpy = vi.fn((id: string) => id.replace(/[-:]/g, ''));
     const ctx = createMockContext({ trackImport: trackSpy });
 
-    const node: ComponentScreenNode = {
+    const node: ComponentSceneNode = {
       type: 'component',
       component: 'heading',
     };
@@ -52,7 +52,7 @@ describe('sdcComponentRenderer', () => {
     const trackSpy = vi.fn((id: string) => id.replace(/[-:]/g, ''));
     const ctx = createMockContext({ provider: undefined, trackImport: trackSpy });
 
-    const node: ComponentScreenNode = {
+    const node: ComponentSceneNode = {
       type: 'component',
       component: 'heading',
     };
@@ -63,7 +63,7 @@ describe('sdcComponentRenderer', () => {
 
   it('renders slots with string values', () => {
     const ctx = createMockContext();
-    const node: ComponentScreenNode = {
+    const node: ComponentSceneNode = {
       type: 'component',
       component: 'text-block',
       slots: { content: '<p>Hello</p>' },
@@ -78,7 +78,7 @@ describe('sdcComponentRenderer', () => {
     const renderNodeSpy = vi.fn(() => 'child_rendered()');
     const ctx = createMockContext({ renderNode: renderNodeSpy });
 
-    const node: ComponentScreenNode = {
+    const node: ComponentSceneNode = {
       type: 'component',
       component: 'card',
       slots: {
@@ -96,7 +96,7 @@ describe('sdcComponentRenderer', () => {
 
   it('renders story reference args', () => {
     const ctx = createMockContext();
-    const node: ComponentScreenNode = {
+    const node: ComponentSceneNode = {
       type: 'component',
       component: 'card',
       story: 'featured',

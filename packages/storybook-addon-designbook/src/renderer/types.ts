@@ -3,7 +3,7 @@
  *
  * Consolidated types for the entire rendering pipeline:
  * - Data model types (formerly entity/types.ts)
- * - Screen types (formerly screen/types.ts)
+ * - Scene types (formerly screen/types.ts)
  * - Renderer registry interfaces
  */
 
@@ -35,16 +35,16 @@ export interface SampleData {
   };
 }
 
-// ─── Screen Node Types ───────────────────────────────────────────────
+// ─── Scene Node Types ───────────────────────────────────────────────
 
-/** A screen node to be rendered — either component, entity, or custom. */
-export interface ScreenNode {
+/** A scene node to be rendered — either component, entity, or custom. */
+export interface SceneNode {
   type: string;
   [key: string]: unknown;
 }
 
-/** A component screen node. */
-export interface ComponentScreenNode extends ScreenNode {
+/** A component scene node. */
+export interface ComponentSceneNode extends SceneNode {
   type: 'component';
   component: string;
   props?: Record<string, unknown>;
@@ -52,8 +52,8 @@ export interface ComponentScreenNode extends ScreenNode {
   story?: string;
 }
 
-/** An entity screen node. */
-export interface EntityScreenNode extends ScreenNode {
+/** An entity scene node. */
+export interface EntitySceneNode extends SceneNode {
   type: 'entity';
   entity_type: string;
   bundle: string;
@@ -61,51 +61,58 @@ export interface EntityScreenNode extends ScreenNode {
   record?: number;
 }
 
-// ─── Screen Definition Types ─────────────────────────────────────────
+// ─── Scene Definition Types ─────────────────────────────────────────
 
-/** A component entry in a screen layout slot. */
-export interface ScreenComponentEntry {
+/** A component entry in a scene layout slot. */
+export interface SceneComponentEntry {
   component: string;
   props?: Record<string, unknown>;
   slots?: Record<string, unknown>;
   story?: string;
 }
 
-/** An entity entry in a screen layout slot. */
-export interface ScreenEntityEntry {
+/** An entity entry in a scene layout slot. */
+export interface SceneEntityEntry {
   entity: string; // "node.article"
   view_mode: string;
   record?: number; // single record
   records?: number[]; // multiple records shorthand
 }
 
-/** Union type for entries in a screen slot. */
-export type ScreenLayoutEntry = ScreenComponentEntry | ScreenEntityEntry;
+/** Union type for entries in a scene slot. */
+export type SceneLayoutEntry = SceneComponentEntry | SceneEntityEntry;
 
-/** The parsed structure of a *.screen.yml file. */
-export interface ScreenDef {
+/** A single scene definition within a *.scenes.yml file. */
+export interface SceneDef {
   name: string;
+  docs?: string;
   section?: string;
   group?: string;
-  layout: Record<string, ScreenLayoutEntry[]>;
+  layout: Record<string, SceneLayoutEntry[]>;
 }
 
-/** Resolved screen: all slots expanded to ComponentNode arrays. */
-export interface ResolvedScreen {
+/** The root structure of a *.scenes.yml file. */
+export interface ScenesFile {
+  layout?: string;
+  scenes: SceneDef[];
+}
+
+/** Resolved scene: all slots expanded to ComponentNode arrays. */
+export interface ResolvedScene {
   name: string;
   section?: string;
   group?: string;
-  slots: Record<string, ComponentScreenNode[]>;
+  slots: Record<string, ComponentSceneNode[]>;
 }
 
 /** Check if a layout entry is an entity entry. */
-export function isScreenEntityEntry(entry: ScreenLayoutEntry): entry is ScreenEntityEntry {
-  return 'entity' in entry && typeof (entry as ScreenEntityEntry).entity === 'string';
+export function isSceneEntityEntry(entry: SceneLayoutEntry): entry is SceneEntityEntry {
+  return 'entity' in entry && typeof (entry as SceneEntityEntry).entity === 'string';
 }
 
 /** Check if a layout entry is a component entry. */
-export function isScreenComponentEntry(entry: ScreenLayoutEntry): entry is ScreenComponentEntry {
-  return 'component' in entry && typeof (entry as ScreenComponentEntry).component === 'string';
+export function isSceneComponentEntry(entry: SceneLayoutEntry): entry is SceneComponentEntry {
+  return 'component' in entry && typeof (entry as SceneComponentEntry).component === 'string';
 }
 
 // ─── Renderer Registry Types ─────────────────────────────────────────
@@ -128,7 +135,7 @@ export interface RenderContext {
   designbookDir: string;
 
   /** Render a child node recursively (dispatches back to registry). */
-  renderNode: (node: ScreenNode) => string;
+  renderNode: (node: SceneNode) => string;
 
   /** Track an import for the generated CSF module. */
   trackImport: (componentName: string) => string;
@@ -138,10 +145,10 @@ export interface RenderContext {
 }
 
 /**
- * A pluggable renderer for screen nodes.
+ * A pluggable renderer for scene nodes.
  * Integrations register these via addon options.
  */
-export interface ScreenNodeRenderer {
+export interface SceneNodeRenderer {
   /** Unique renderer name (for debugging). */
   name: string;
 
@@ -151,10 +158,10 @@ export interface ScreenNodeRenderer {
   /**
    * Return true if this renderer handles the given node.
    */
-  appliesTo: (node: ScreenNode) => boolean;
+  appliesTo: (node: SceneNode) => boolean;
 
   /**
    * Render the node to a code string (for CSF module generation).
    */
-  render: (node: ScreenNode, ctx: RenderContext) => string;
+  render: (node: SceneNode, ctx: RenderContext) => string;
 }

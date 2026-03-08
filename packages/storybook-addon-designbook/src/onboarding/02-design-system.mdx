@@ -21,24 +21,3 @@ Use the AI command to select colors and fonts — the result is displayed here a
   emptyMessage="No design tokens defined yet"
   renderContent={(data) => <DeboDesignTokens tokens={data} />}
 />
-
-## Application Shell
-
-Design the persistent navigation and layout that wraps all sections of your application.
-
-<DeboSection
-  title="Application Shell"
-  dataPath="design-shell/shell-spec.md"
-  parser={parseMarkdown}
-  command="/design-shell"
-  emptyMessage="No shell specification defined yet"
-  renderContent={(html) => (
-      <DeboMockupWindow>
-          <div 
-              className="debo-markdown debo:prose debo:prose-sm debo:max-w-none debo:prose-headings:font-normal debo:prose-a:text-primary"
-              dangerouslySetInnerHTML={{ __html: html }} 
-          />
-      </DeboMockupWindow>
-  )}
-/>
-

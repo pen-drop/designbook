@@ -5,7 +5,7 @@ category: Designbook
 description: Create a new Drupal component by gathering requirements interactively
 ---
 
-Help the user design and create a new Drupal Single Directory Component (SDC). This workflow gathers all necessary information through conversational questions and then creates the component files using the `designbook-drupal-components` skill.
+Help the user design and create a new Drupal Single Directory Component (SDC). This workflow gathers all necessary information through conversational questions and then creates the component files using the `designbook-components-sdc` skill.
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
@@ -338,10 +338,10 @@ Wait for response.
 
 ## Step 8: Create Component
 
-Execute the `designbook-drupal-components` skill with the collected data:
+Execute the `designbook-components-sdc` skill with the collected data:
 
 ```
-Read and execute: .agent/skills/designbook-drupal-components/SKILL.md
+Read and execute: .agent/skills/designbook-components-sdc/SKILL.md
 
 Pass parameters as JSON:
 {

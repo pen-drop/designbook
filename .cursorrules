@@ -57,6 +57,11 @@ Transforms `.screen.yml` / `.section.yml` → CSF story modules via `ScreenNodeR
 ### View Modes
 `.jsonata` files in `designbook/view-modes/` — pattern: `{entity_type}.{bundle}.{view_mode}.jsonata`
 
+## Git Rules — CRITICAL
+
+1. **No automatic commits.** Never run `git commit` or `git push` unless the user explicitly asks to commit.
+2. **Respect `.gitignore`.** Never use `git add -f` to force-add ignored files. If a file is gitignored, it stays untracked.
+
 ## Before Committing — MANDATORY
 
 **ALWAYS run these checks before every `git commit`. Do NOT skip.**

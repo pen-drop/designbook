@@ -4,23 +4,23 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import jsonata from 'jsonata';
-import { parseScreen } from './renderer/parser';
+import { parseScene } from './renderer/parser';
 import type {
   DataModel,
   SampleData,
-  ComponentScreenNode,
-  ScreenNodeRenderer,
-  ScreenNode,
-  EntityScreenNode,
+  ComponentSceneNode,
+  SceneNodeRenderer,
+  SceneNode,
+  EntitySceneNode,
   RenderContext,
 } from './renderer/types';
-import { isScreenEntityEntry, isScreenComponentEntry } from './renderer/types';
-import { ScreenNodeRenderService } from './renderer/render-service';
+import { isSceneEntityEntry, isSceneComponentEntry } from './renderer/types';
+import { SceneNodeRenderService } from './renderer/render-service';
 import { sdcRenderers } from './renderer/presets/sdc';
 
 export function designbookLoadPlugin(
   baseDir: string,
-  options: { fsRoot?: string; provider?: string; renderers?: ScreenNodeRenderer[] } = {},
+  options: { fsRoot?: string; provider?: string; renderers?: SceneNodeRenderer[] } = {},
 ): Plugin {
   // Use config fsRoot if available, otherwise default to 'designbook'
   const distDir = options.fsRoot || 'designbook';
@@ -30,13 +30,13 @@ export function designbookLoadPlugin(
   // If absolute, use as is
   const designbookDir = resolve(baseDir, distDir);
 
-  // Track data file → screen module dependencies for HMR
-  const dataFileToScreens = new Map<string, Set<string>>();
-  const trackDependency = (screenId: string, dataFile: string) => {
-    if (!dataFileToScreens.has(dataFile)) {
-      dataFileToScreens.set(dataFile, new Set());
+  // Track data file → scene module dependencies for HMR
+  const dataFileToScenes = new Map<string, Set<string>>();
+  const trackDependency = (sceneId: string, dataFile: string) => {
+    if (!dataFileToScenes.has(dataFile)) {
+      dataFileToScenes.set(dataFile, new Set());
     }
-    dataFileToScreens.get(dataFile)!.add(screenId);
+    dataFileToScenes.get(dataFile)!.add(sceneId);
   };
 
   return {
@@ -44,9 +44,9 @@ export function designbookLoadPlugin(
     enforce: 'pre',
 
     async load(id: string) {
-      // Transform .screen.yml files into CSF story modules
-      if (id.endsWith('.screen.yml')) {
-        return loadScreenYml(id, designbookDir, options.provider, options.renderers, trackDependency);
+      // Transform .scenes.yml files into CSF story modules
+      if (id.endsWith('.scenes.yml')) {
+        return loadScenesYml(id, designbookDir, options.provider, options.renderers, trackDependency);
       }
 
       // Transform .section.yml files into CSF story modules
@@ -78,11 +78,11 @@ export function designbookLoadPlugin(
     },
 
     handleHotUpdate({ file, server }) {
-      const screenIds = dataFileToScreens.get(file);
-      if (screenIds) {
-        const modules = [...screenIds].map((id) => server.moduleGraph.getModuleById(id)).filter(Boolean);
+      const sceneIds = dataFileToScenes.get(file);
+      if (sceneIds) {
+        const modules = [...sceneIds].map((id) => server.moduleGraph.getModuleById(id)).filter(Boolean);
         if (modules.length) {
-          console.log(`[Designbook] Data file changed: ${file}, reloading ${modules.length} screen(s)`);
+          console.log(`[Designbook] Data file changed: ${file}, reloading ${modules.length} scene(s)`);
           return modules as import('vite').ModuleNode[];
         }
       }
@@ -185,118 +185,80 @@ export function designbookLoadPlugin(
 }
 
 /**
- * Load a .screen.yml file and transform it into a CSF story module.
+ * Load a .scenes.yml file and transform it into a CSF story module.
  *
  * Resolves entity entries using data-model.yml and section data.yml,
  * then generates SDC Twig rendering code with proper component imports.
  */
-async function loadScreenYml(
+async function loadScenesYml(
   id: string,
   designbookDir: string,
   provider?: string,
-  renderers?: ScreenNodeRenderer[],
-  trackDependency?: (screenId: string, dataFile: string) => void,
+  renderers?: SceneNodeRenderer[],
+  trackDependency?: (sceneId: string, dataFile: string) => void,
 ): Promise<string | null> {
   try {
     const content = readFileSync(id, 'utf-8');
     const raw = parseYaml(content);
-    const screen = parseScreen(raw);
 
-    // Load data model
+    // Support both new scenes[] format and legacy flat format
+    const scenesArray: unknown[] = Array.isArray(raw.scenes) ? raw.scenes : [raw]; // Legacy: treat entire file as single scene
+
+    const parsedScenes = scenesArray.map((s: unknown) => parseScene(s));
+
+    // Load data model (shared across all scenes)
     let dataModel: DataModel;
     const dataModelPath = join(designbookDir, 'data-model.yml');
     try {
       dataModel = parseYaml(readFileSync(dataModelPath, 'utf-8')) as DataModel;
       trackDependency?.(id, dataModelPath);
     } catch {
-      console.warn('[Designbook] No data-model.yml found, screen entities will not resolve');
+      console.warn('[Designbook] No data-model.yml found, scene entities will not resolve');
       dataModel = { content: {} };
     }
 
-    // Load sample data from sections
+    // Load sample data
     let sampleData: SampleData = {};
-    if (screen.section) {
-      const sectionDataPath = join(designbookDir, 'sections', screen.section, 'data.yml');
+    const firstScene = parsedScenes[0];
+    if (firstScene?.section) {
+      const sectionDataPath = join(designbookDir, 'sections', firstScene.section, 'data.yml');
       const globalDataPath = join(designbookDir, 'data.yml');
       try {
         sampleData = parseYaml(readFileSync(sectionDataPath, 'utf-8')) as SampleData;
         trackDependency?.(id, sectionDataPath);
       } catch {
-        // Try global data.yml
         try {
           sampleData = parseYaml(readFileSync(globalDataPath, 'utf-8')) as SampleData;
           trackDependency?.(id, globalDataPath);
         } catch {
-          console.warn(`[Designbook] No data.yml found for screen "${screen.name}"`);
+          console.warn(`[Designbook] No data.yml found for scene "${firstScene.name}"`);
         }
       }
     }
 
-    // Convert screen layout entries → ScreenNode[]
-    const screenNodes: Record<string, ScreenNode[]> = {};
-    for (const [slotName, entries] of Object.entries(screen.layout)) {
-      const nodes: ScreenNode[] = [];
-      for (const entry of entries) {
-        if (isScreenEntityEntry(entry)) {
-          const [entity_type, bundle] = entry.entity.split('.');
-          nodes.push({
-            type: 'entity',
-            entity_type,
-            bundle,
-            view_mode: entry.view_mode,
-            record: entry.record ?? 0,
-          } as EntityScreenNode);
-        } else if (isScreenComponentEntry(entry)) {
-          nodes.push({
-            type: 'component',
-            component: entry.component,
-            props: entry.props,
-            slots: entry.slots,
-            story: entry.story,
-          } as ComponentScreenNode);
-        }
-      }
-      screenNodes[slotName] = nodes;
-    }
-
-    // Derive title from filename
+    // Title comes from the scenes file — no automatic grouping
     const baseName = id.split('/').pop() || '';
-    const parts = baseName.replace('.screen.yml', '').split('.');
-    const pageName = (parts.length > 1 ? parts[parts.length - 1] : parts[0]) || 'default';
-    const sectionPart = parts.length > 1 ? parts.slice(0, -1).join('.') : parts[0];
-    const group = screen.group || `Sections/${screen.section || sectionPart}`;
+    const fileBase = baseName.replace('.scenes.yml', '');
+    const group = (raw.name as string) || fileBase;
 
-    const exportName = pageName
-      .split('-')
-      .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join('');
-
-    // Set up ScreenNodeRenderService
-    const renderService = new ScreenNodeRenderService();
+    // Set up SceneNodeRenderService
+    const renderService = new SceneNodeRenderService();
     renderService.register(sdcRenderers);
-    // Register any integration-provided renderers (passed via addon options)
     if (renderers && renderers.length > 0) {
       renderService.register(renderers);
     }
 
-    // Import tracking for the generated CSF module
+    // Import tracking (shared across all scenes)
     const imports: string[] = [];
     const kebabMap: Record<string, string> = {};
 
     const trackImport = (componentId: string): string => {
       if (kebabMap[componentId]) return kebabMap[componentId];
-
-      // Component IDs may be namespaced: "daisy_cms_daisyui:heading" → "heading"
       const [, componentName] = componentId.includes(':') ? componentId.split(':') : ['', componentId];
-
-      // Safe JS variable name: daisy_cms_daisyui:heading → daisy_cms_daisyuiheading
       const kebabName = componentId.replace(/[-:]/g, '');
       kebabMap[componentId] = kebabName;
-
-      // Find the component.yml file
       const componentDir = resolve(designbookDir, '..', 'components', componentName || '');
       const componentYml = join(componentDir, `${componentName}.component.yml`);
-
       if (existsSync(componentYml)) {
         imports.push(`import * as ${kebabName} from '${componentYml}';`);
       } else {
@@ -305,7 +267,6 @@ async function loadScreenYml(
           `const ${kebabName} = { default: { component: (args) => '<div class="designbook-missing">[missing: ${componentId}]</div>' } };`,
         );
       }
-
       return kebabName;
     };
 
@@ -315,62 +276,113 @@ async function loadScreenYml(
       dataModel,
       sampleData,
       designbookDir,
-      renderNode: (node: ScreenNode) => renderService.render(node, renderContext),
+      renderNode: (node: SceneNode) => renderService.render(node, renderContext),
       trackImport,
-      evaluateExpression: async (expressionPath: string, data: Record<string, unknown>) => {
-        const expr = jsonata(readFileSync(expressionPath, 'utf-8'));
+      evaluateExpression: async (exprPath: string, data: Record<string, unknown>) => {
+        const expr = jsonata(readFileSync(exprPath, 'utf-8'));
         return expr.evaluate(data);
       },
     };
 
-    // Render all nodes through the service
-    const slotRenderCode: string[] = [];
-    for (const [slotName, nodes] of Object.entries(screenNodes)) {
-      const nodeRenders: string[] = [];
-      for (const node of nodes) {
-        let rendered = renderService.render(node, renderContext);
+    // Generate one export per scene
+    const storyExports: string[] = [];
 
-        // Resolve __ENTITY_EXPR__ markers asynchronously
-        const markerRegex = /__ENTITY_EXPR__(.*?)__END_ENTITY_EXPR__/g;
-        let match;
-        while ((match = markerRegex.exec(rendered)) !== null) {
-          try {
-            const meta = JSON.parse(match[1]);
-            const { jsonataPath, entityType, bundle, record = 0 } = meta;
-            const entityData = sampleData?.[entityType]?.[bundle];
-            if (entityData && entityData[record]) {
-              const expr = jsonata(readFileSync(jsonataPath, 'utf-8'));
-              const result = await expr.evaluate(entityData[record]);
-              if (result && Array.isArray(result)) {
-                // Render each resulting component node
-                const childRenders = result.map((childNode: Record<string, unknown>) => {
-                  const compNode: ScreenNode = {
-                    type: 'component',
-                    component: childNode.component as string,
-                    props: childNode.props as Record<string, unknown>,
-                    slots: childNode.slots as Record<string, unknown>,
-                    story: childNode.story as string,
-                  };
-                  return renderService.render(compNode, renderContext);
-                });
-                rendered = rendered.replace(match[0], `[${childRenders.join(', ')}].join('')`);
-              } else {
-                rendered = rendered.replace(match[0], `'<!-- empty: ${entityType}.${bundle} -->'`);
-              }
-            } else {
-              rendered = rendered.replace(match[0], `'<!-- no data: ${entityType}.${bundle}[${record}] -->'`);
-            }
-          } catch (err) {
-            console.error('[Designbook] Entity expression error:', err);
-            rendered = rendered.replace(match[0], `'<!-- error -->'`);
+    for (const scene of parsedScenes) {
+      // Convert scene layout entries → SceneNode[]
+      const sceneNodes: Record<string, SceneNode[]> = {};
+      for (const [slotName, entries] of Object.entries(scene.layout)) {
+        const nodes: SceneNode[] = [];
+        for (const entry of entries) {
+          if (isSceneEntityEntry(entry)) {
+            const [entity_type, bundle] = entry.entity.split('.');
+            nodes.push({
+              type: 'entity',
+              entity_type,
+              bundle,
+              view_mode: entry.view_mode,
+              record: entry.record ?? 0,
+            } as EntitySceneNode);
+          } else if (isSceneComponentEntry(entry)) {
+            nodes.push({
+              type: 'component',
+              component: entry.component,
+              props: entry.props,
+              slots: entry.slots,
+              story: entry.story,
+            } as ComponentSceneNode);
           }
         }
-
-        nodeRenders.push(rendered);
+        sceneNodes[slotName] = nodes;
       }
-      slotRenderCode.push(`
+
+      // Render all nodes through the service
+      const slotRenderCode: string[] = [];
+      for (const [slotName, nodes] of Object.entries(sceneNodes)) {
+        const nodeRenders: string[] = [];
+        for (const node of nodes) {
+          let rendered = renderService.render(node, renderContext);
+
+          // Resolve __ENTITY_EXPR__ markers asynchronously
+          const markerRegex = /__ENTITY_EXPR__(.*?)__END_ENTITY_EXPR__/g;
+          let match;
+          while ((match = markerRegex.exec(rendered)) !== null) {
+            try {
+              const meta = JSON.parse(match[1] ?? '{}');
+              const { jsonataPath, entityType, bundle, record = 0 } = meta;
+              const entityData = sampleData?.[entityType]?.[bundle];
+              if (entityData && entityData[record]) {
+                const expr = jsonata(readFileSync(jsonataPath, 'utf-8'));
+                const result = await expr.evaluate(entityData[record]);
+                if (result && Array.isArray(result)) {
+                  const childRenders = result.map((childNode: Record<string, unknown>) => {
+                    const compNode: SceneNode = {
+                      type: 'component',
+                      component: childNode.component as string,
+                      props: childNode.props as Record<string, unknown>,
+                      slots: childNode.slots as Record<string, unknown>,
+                      story: childNode.story as string,
+                    };
+                    return renderService.render(compNode, renderContext);
+                  });
+                  rendered = rendered.replace(match[0], `[${childRenders.join(', ')}].join('')`);
+                } else {
+                  rendered = rendered.replace(match[0], `'<!-- empty: ${entityType}.${bundle} -->'`);
+                }
+              } else {
+                rendered = rendered.replace(match[0], `'<!-- no data: ${entityType}.${bundle}[${record}] -->'`);
+              }
+            } catch (err) {
+              console.error('[Designbook] Entity expression error:', err);
+              rendered = rendered.replace(match[0], `'<!-- error -->'`);
+            }
+          }
+
+          nodeRenders.push(rendered);
+        }
+        slotRenderCode.push(`
     // Slot: ${slotName}
     ${nodeRenders.map((r) => `html += ${r};`).join('\n    ')}`);
+      }
+
+      // Convert scene name to valid JS export: "Blog Detail" → "BlogDetail"
+      const exportName = scene.name
+        .split(/[\s-]+/)
+        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join('');
+
+      storyExports.push(`
+export const ${exportName} = {
+  render: () => {
+    let html = '';
+    ${slotRenderCode.join('\n')}
+    return html;
+  },
+  play: async ({ canvasElement }) => {
+    if (typeof Drupal !== 'undefined') {
+      Drupal.attachBehaviors(canvasElement, window.drupalSettings);
+    }
+  },
+};`);
     }
 
     const code = `
@@ -383,29 +395,18 @@ class TwigSafeArray extends Array {
 }
 
 export default {
-  title: '${group}/${screen.name.replace(/'/g, "\\'")}',
-  tags: ['screen'],
+  title: '${group.replace(/'/g, "\\'")}',
+  tags: ['scene'],
   parameters: {
     layout: 'fullscreen',
-    screen: {
+    scene: {
       resolved: true,
       source: '${baseName.replace(/'/g, "\\'")}',
     },
   },
 };
 
-export const ${exportName} = {
-  render: () => {
-    let html = '';
-    ${slotRenderCode.join('\n')}
-    return html;
-  },
-  play: async ({ canvasElement }) => {
-    if (typeof Drupal !== 'undefined') {
-      Drupal.attachBehaviors(canvasElement, window.drupalSettings);
-    }
-  },
-};
+${storyExports.join('\n')}
 `;
 
     // Transform to JS
@@ -415,7 +416,7 @@ export const ${exportName} = {
     return result.code;
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
-    console.error('[Designbook] Error loading screen:', id, e);
+    console.error('[Designbook] Error loading scene:', id, e);
     // Return an error story module instead of null to prevent Vite from
     // serving raw YAML as JavaScript (which causes SyntaxError)
     const safeMsg = errorMsg.replace(/'/g, "\\'").replace(/\n/g, '\\n');
@@ -423,11 +424,11 @@ export const ${exportName} = {
     return `
 export default {
   title: 'Errors/${baseName.replace(/'/g, "\\\\'")}',
-  tags: ['screen', '!autodocs'],
+  tags: ['scene', '!autodocs'],
   parameters: { layout: 'centered' },
 };
 export const LoadError = {
-  render: () => '<div style="padding:2rem;color:#ef4444;font-family:monospace"><h3>Screen Load Error</h3><pre>${safeMsg}</pre><p>File: ${baseName}</p></div>',
+  render: () => '<div style="padding:2rem;color:#ef4444;font-family:monospace"><h3>Scene Load Error</h3><pre>${safeMsg}</pre><p>File: ${baseName}</p></div>',
 };
 `;
   }

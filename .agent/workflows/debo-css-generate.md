@@ -2,7 +2,7 @@
 name: /debo-css-generate
 id: debo-css-generate
 category: Designbook
-description: Generate CSS token files from design tokens. Automatically selects the correct skill based on DESIGNBOOK_CSS_FRAMEWORK.
+description: Generate CSS token files from design tokens. Automatically selects the correct skill based on DESIGNBOOK_FRAMEWORK_CSS.
 ---
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
@@ -16,7 +16,7 @@ This workflow generates CSS token files from W3C Design Tokens. It loads the con
 source .agent/skills/designbook-configuration/scripts/set-env.sh
 ```
 
-Read `DESIGNBOOK_CSS_FRAMEWORK` from the environment.
+Read `DESIGNBOOK_FRAMEWORK_CSS` from the environment.
 
 ## Step 2: Execute CSS Generation Skill
 

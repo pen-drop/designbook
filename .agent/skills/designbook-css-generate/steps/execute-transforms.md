@@ -25,7 +25,7 @@ mkdir -p $DESIGNBOOK_DRUPAL_THEME/css/themes
 ### 2. Execute all transformations
 
 ```bash
-for f in $DESIGNBOOK_DIST/designbook-css-$DESIGNBOOK_CSS_FRAMEWORK/generate-*.jsonata; do
+for f in $DESIGNBOOK_DIST/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-*.jsonata; do
   npx jsonata-w transform "$f"
 done
 ```

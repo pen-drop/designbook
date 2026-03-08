@@ -18,7 +18,7 @@ Read the following files to understand the product:
 
 Check if `${DESIGNBOOK_DIST}/data-model.yml` exists. If so, read it to understand the current model.
 
-Check the `DESIGNBOOK_TECHNOLOGY` environment variable. 
+Check the `DESIGNBOOK_BACKEND` environment variable. 
 - If it is `drupal`, **READ** `.agent/skills/designbook-data-model-drupal/SKILL.md` to understand Drupal-specific entity and field naming conventions. Be sure to apply these conventions in the next steps.
 
 ## Step 2: Gather Requirements

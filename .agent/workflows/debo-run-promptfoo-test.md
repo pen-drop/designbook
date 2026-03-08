@@ -156,7 +156,7 @@ Write the report to `promptfoo/reports/eval-report.md` with this structure:
 ## Suggested Improvements
 
 ### Skills
-- `designbook-screen` SKILL.md: [specific suggestion]
+- `designbook-scenes` SKILL.md: [specific suggestion]
 
 ### Workflows
 - `debo-design-tokens.md`: [specific suggestion]

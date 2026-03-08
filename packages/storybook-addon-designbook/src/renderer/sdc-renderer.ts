@@ -5,22 +5,22 @@
  * and TwigSafeArray wrapping from the monolithic renderNode() in vite-plugin.ts.
  */
 
-import type { ScreenNodeRenderer, RenderContext, ComponentScreenNode, ScreenNode } from './types';
+import type { SceneNodeRenderer, RenderContext, ComponentSceneNode, SceneNode } from './types';
 
 /**
  * Create the SDC component renderer.
  * This is a built-in renderer that handles `type: 'component'` nodes.
  */
-export const sdcComponentRenderer: ScreenNodeRenderer = {
+export const sdcComponentRenderer: SceneNodeRenderer = {
   name: 'sdc-component',
   priority: -10,
 
-  appliesTo(node: ScreenNode): boolean {
+  appliesTo(node: SceneNode): boolean {
     return node.type === 'component';
   },
 
-  render(node: ScreenNode, ctx: RenderContext): string {
-    const componentNode = node as ComponentScreenNode;
+  render(node: SceneNode, ctx: RenderContext): string {
+    const componentNode = node as ComponentSceneNode;
     const componentId = ctx.provider ? `${ctx.provider}:${componentNode.component}` : componentNode.component;
 
     // Track the import and get the JS variable name
@@ -39,7 +39,7 @@ export const sdcComponentRenderer: ScreenNodeRenderer = {
       for (const [slotKey, slotValue] of Object.entries(componentNode.slots)) {
         if (Array.isArray(slotValue)) {
           // Array of nested nodes → render each recursively
-          const renderedParts = slotValue.map((child: ScreenNode) => ctx.renderNode(child));
+          const renderedParts = slotValue.map((child: SceneNode) => ctx.renderNode(child));
           argParts.push(`${slotKey}: [${renderedParts.join(', ')}]`);
         } else {
           argParts.push(`${slotKey}: ${JSON.stringify(slotValue)}`);

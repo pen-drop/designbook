@@ -1,3 +1,6 @@
 dist: ./designbook
-technology: drupal
+backend: drupal
+frameworks:
+  component: sdc
+  css: daisyui
 css_framework: daisyui

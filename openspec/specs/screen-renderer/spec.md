@@ -1,6 +1,6 @@
-# Screen Renderer
+# Scene Renderer
 
-> Introduces `*.screen.yml` as a standalone file format with its own Storybook indexer and adapter-based rendering, replacing the destructive entity preprocessor approach.
+> Introduces `*.scenes.yml` as a standalone file format with its own Storybook indexer and adapter-based rendering, replacing the destructive entity preprocessor approach.
 
 > [!IMPORTANT]
 > **Supersedes** the `entity-type-renderer` spec (Phase 2). The core resolver (`resolver.ts`) remains; the preprocessor and `type: entity` in `.story.yml` files are removed.
@@ -11,7 +11,7 @@ The current entity rendering pipeline has a fundamental flaw: it **overwrites st
 
 The root cause: SDC uses `readFileSync` and cannot be intercepted via Vite's module system.
 
-**Solution:** Don't go through SDC's pipeline at all. Introduce `*.screen.yml` as a new file format with its own indexer and rendering adapter.
+**Solution:** Don't go through SDC's pipeline at all. Introduce `*.scenes.yml` as a new file format with its own indexer and rendering adapter.
 
 ---
 
@@ -21,7 +21,7 @@ The root cause: SDC uses `readFileSync` and cannot be intercepted via Vite's mod
 *.story.yml   ──→ SDC Indexer     ──→ SDC Renderer (Twig)
 (UI components)   (unchanged)
 
-*.screen.yml  ──→ Designbook      ──→ Adapter
+*.scenes.yml  ──→ Designbook      ──→ Adapter
 (screens)         Indexer              ├── SDC Adapter (Twig)
                   ├── resolver.ts      ├── React Adapter (JSX)
                   ├── data-model.yml  └── Vue Adapter (SFC)
@@ -30,7 +30,7 @@ The root cause: SDC uses `readFileSync` and cannot be intercepted via Vite's mod
 
 ---
 
-## Requirement: Screen File Format (`*.screen.yml`)
+## Requirement: Screen File Format (`*.scenes.yml`)
 
 A new YAML format for screen definitions. Framework-agnostic — describes WHAT is rendered, not HOW.
 
@@ -72,16 +72,16 @@ layout:
 
 ## Requirement: Storybook Indexer
 
-The `storybook-addon-designbook` SHALL register a Storybook indexer that discovers `*.screen.yml` files and generates CSF story entries.
+The `storybook-addon-designbook` SHALL register a Storybook indexer that discovers `*.scenes.yml` files and generates CSF story entries.
 
 ### Scenario: File discovery
-- **GIVEN** a project with `section-blog.listing.screen.yml` and `section-blog.detail.screen.yml`
+- **GIVEN** a project with `section-blog.listing.scenes.yml` and `section-blog.detail.scenes.yml`
 - **THEN** the indexer creates two story entries under the section's group
 - **AND** story IDs are derived from filename: `section-blog--listing`, `section-blog--detail`
 
 ### Scenario: No collision with SDC
-- **GIVEN** both `*.story.yml` and `*.screen.yml` files in the same directory
-- **THEN** SDC indexes only `.story.yml`, Designbook indexes only `.screen.yml`
+- **GIVEN** both `*.story.yml` and `*.scenes.yml` files in the same directory
+- **THEN** SDC indexes only `.story.yml`, Designbook indexes only `.scenes.yml`
 - **AND** they coexist without conflict
 
 ---
@@ -137,7 +137,7 @@ addons: [
 | `entity/resolver.ts` | **Kept** — used by indexer, not preprocessor |
 | `entity/types.ts` | **Kept** — shared types |
 | Vite `buildStart` hook | **Removed** — indexer replaces it |
-| `*.story.yml` with `type: entity` | **Replaced** by `*.screen.yml` |
+| `*.story.yml` with `type: entity` | **Replaced** by `*.scenes.yml` |
 | `.component.yml` for screens | **Replaced** — screens don't need SDC component defs |
 | Screen `.twig` templates | **Replaced** — adapter handles rendering |
 
@@ -147,7 +147,7 @@ addons: [
 
 | Before | After |
 |--------|-------|
-| `section-blog.detail.story.yml` | `section-blog.detail.screen.yml` |
+| `section-blog.detail.story.yml` | `section-blog.detail.scenes.yml` |
 | `section-blog.component.yml` | _(removed)_ |
 | `section-blog.twig` | _(removed)_ |
 | `type: entity` in story YAML | `entity: node.article` in screen YAML |

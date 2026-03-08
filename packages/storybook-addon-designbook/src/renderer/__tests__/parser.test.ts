@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { parseScreen } from '../parser';
+import { parseScene } from '../parser';
 
-describe('parseScreen', () => {
+describe('parseScene', () => {
   it('parses a valid screen definition', () => {
     const raw = {
       name: 'Blog Detail',
@@ -13,7 +13,7 @@ describe('parseScreen', () => {
       },
     };
 
-    const screen = parseScreen(raw);
+    const screen = parseScene(raw);
 
     expect(screen.name).toBe('Blog Detail');
     expect(screen.section).toBe('blog');
@@ -31,7 +31,7 @@ describe('parseScreen', () => {
       },
     };
 
-    const screen = parseScreen(raw);
+    const screen = parseScene(raw);
 
     expect(screen.layout.content).toHaveLength(3);
     expect(screen.layout.content[0]).toEqual({
@@ -59,7 +59,7 @@ describe('parseScreen', () => {
       },
     };
 
-    const screen = parseScreen(raw);
+    const screen = parseScene(raw);
 
     expect(screen.layout.content[0]).toEqual({
       entity: 'node.article',
@@ -76,7 +76,7 @@ describe('parseScreen', () => {
       },
     };
 
-    const screen = parseScreen(raw);
+    const screen = parseScene(raw);
     const entry = screen.layout.header[0];
 
     expect('component' in entry).toBe(true);
@@ -86,21 +86,21 @@ describe('parseScreen', () => {
   });
 
   it('throws on missing name', () => {
-    expect(() => parseScreen({ layout: { content: [] } })).toThrow('must have a "name" field');
+    expect(() => parseScene({ layout: { content: [] } })).toThrow('must have a "name" field');
   });
 
   it('throws on missing layout', () => {
-    expect(() => parseScreen({ name: 'Test' })).toThrow('must have a "layout" object');
+    expect(() => parseScene({ name: 'Test' })).toThrow('must have a "layout" object');
   });
 
   it('throws on non-object input', () => {
-    expect(() => parseScreen(null)).toThrow('must contain a YAML object');
-    expect(() => parseScreen('string')).toThrow('must contain a YAML object');
+    expect(() => parseScene(null)).toThrow('must contain a YAML object');
+    expect(() => parseScene('string')).toThrow('must contain a YAML object');
   });
 
   it('throws on non-array slot values', () => {
     expect(() =>
-      parseScreen({
+      parseScene({
         name: 'Test',
         layout: { header: 'not-an-array' },
       }),
@@ -119,7 +119,7 @@ describe('parseScreen', () => {
       },
     };
 
-    const screen = parseScreen(raw);
+    const screen = parseScene(raw);
 
     // 1 component + 2 expanded entities + 1 component = 4
     expect(screen.layout.content).toHaveLength(4);
@@ -132,7 +132,7 @@ describe('parseScreen', () => {
       layout: { content: [] },
     };
 
-    const screen = parseScreen(raw);
+    const screen = parseScene(raw);
     expect(screen.group).toBe('Custom/Path');
   });
 });
