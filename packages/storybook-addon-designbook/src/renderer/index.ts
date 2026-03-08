@@ -6,30 +6,30 @@
 
 // Core types
 export type {
-  ScreenNode,
-  ComponentScreenNode,
-  EntityScreenNode,
+  SceneNode,
+  ComponentSceneNode,
+  EntitySceneNode,
   RenderContext,
-  ScreenNodeRenderer,
+  SceneNodeRenderer,
   DataModel,
   SampleData,
   BundleDef,
   DataModelContent,
-  ScreenDef,
-  ResolvedScreen,
-  ScreenComponentEntry,
-  ScreenEntityEntry,
-  ScreenLayoutEntry,
+  SceneDef,
+  ResolvedScene,
+  SceneComponentEntry,
+  SceneEntityEntry,
+  SceneLayoutEntry,
 } from './types';
 
-export { isScreenEntityEntry, isScreenComponentEntry } from './types';
+export { isSceneEntityEntry, isSceneComponentEntry } from './types';
 
 // Services
-export { ScreenNodeRenderService } from './render-service';
+export { SceneNodeRenderService } from './render-service';
 export { ExpressionCache } from './expression-cache';
 
 // Parser
-export { parseScreen } from './parser';
+export { parseScene } from './parser';
 
 // Built-in renderers
 export { sdcComponentRenderer } from './sdc-renderer';

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ScreenNodeRenderService } from '../render-service';
-import type { ScreenNode, ScreenNodeRenderer, RenderContext } from '../types';
+import { SceneNodeRenderService } from '../render-service';
+import type { SceneNode, SceneNodeRenderer, RenderContext } from '../types';
 
 // Minimal mock context for testing
 const mockContext: RenderContext = {
@@ -12,10 +12,10 @@ const mockContext: RenderContext = {
   evaluateExpression: async () => null,
 };
 
-describe('ScreenNodeRenderService', () => {
+describe('SceneNodeRenderService', () => {
   it('dispatches to matching renderer', () => {
-    const service = new ScreenNodeRenderService();
-    const renderer: ScreenNodeRenderer = {
+    const service = new SceneNodeRenderService();
+    const renderer: SceneNodeRenderer = {
       name: 'test',
       appliesTo: (n) => n.type === 'test',
       render: () => '<test/>',
@@ -27,7 +27,7 @@ describe('ScreenNodeRenderService', () => {
   });
 
   it('respects priority ordering (higher priority wins)', () => {
-    const service = new ScreenNodeRenderService();
+    const service = new SceneNodeRenderService();
     service.register([
       {
         name: 'low',
@@ -48,7 +48,7 @@ describe('ScreenNodeRenderService', () => {
   });
 
   it('falls back for unknown node types', () => {
-    const service = new ScreenNodeRenderService();
+    const service = new SceneNodeRenderService();
     service.register([
       {
         name: 'component-only',
@@ -63,7 +63,7 @@ describe('ScreenNodeRenderService', () => {
   });
 
   it('merges built-in and integration renderers', () => {
-    const service = new ScreenNodeRenderService();
+    const service = new SceneNodeRenderService();
 
     // Register built-in first
     service.register([
@@ -92,7 +92,7 @@ describe('ScreenNodeRenderService', () => {
   });
 
   it('integration renderer overrides built-in with same appliesTo', () => {
-    const service = new ScreenNodeRenderService();
+    const service = new SceneNodeRenderService();
 
     service.register([
       {
@@ -114,7 +114,7 @@ describe('ScreenNodeRenderService', () => {
   });
 
   it('passes node and context to renderer', () => {
-    const service = new ScreenNodeRenderService();
+    const service = new SceneNodeRenderService();
     const renderSpy = vi.fn(() => 'rendered');
 
     service.register([
@@ -125,14 +125,14 @@ describe('ScreenNodeRenderService', () => {
       },
     ]);
 
-    const node: ScreenNode = { type: 'component', component: 'heading' };
+    const node: SceneNode = { type: 'component', component: 'heading' };
     service.render(node, mockContext);
 
     expect(renderSpy).toHaveBeenCalledWith(node, mockContext);
   });
 
   it('uses default priority 0 when not specified', () => {
-    const service = new ScreenNodeRenderService();
+    const service = new SceneNodeRenderService();
 
     service.register([
       {
@@ -156,7 +156,7 @@ describe('ScreenNodeRenderService', () => {
   it('logs to console in debug mode', () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    const service = new ScreenNodeRenderService({ debug: true });
+    const service = new SceneNodeRenderService({ debug: true });
     service.register([
       {
         name: 'test-renderer',
@@ -176,7 +176,7 @@ describe('ScreenNodeRenderService', () => {
   it('warns in debug mode when no renderer matches', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const service = new ScreenNodeRenderService({ debug: true });
+    const service = new SceneNodeRenderService({ debug: true });
     service.render({ type: 'mystery' }, mockContext);
 
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('mystery'));

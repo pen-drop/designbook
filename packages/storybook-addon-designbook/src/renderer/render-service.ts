@@ -1,15 +1,15 @@
 /**
- * ScreenNodeRenderService — priority-based renderer registry.
+ * SceneNodeRenderService — priority-based renderer registry.
  *
- * Dispatches screen nodes to the first matching renderer,
+ * Dispatches scene nodes to the first matching renderer,
  * ordered by priority (highest first). Falls back to a
  * placeholder comment for unhandled nodes.
  */
 
-import type { ScreenNode, ScreenNodeRenderer, RenderContext } from './types';
+import type { SceneNode, SceneNodeRenderer, RenderContext } from './types';
 
-export class ScreenNodeRenderService {
-  private renderers: ScreenNodeRenderer[] = [];
+export class SceneNodeRenderService {
+  private renderers: SceneNodeRenderer[] = [];
   private debug: boolean;
 
   constructor(options?: { debug?: boolean }) {
@@ -19,16 +19,16 @@ export class ScreenNodeRenderService {
   /**
    * Register one or more renderers. Re-sorts by priority after each call.
    */
-  register(renderers: ScreenNodeRenderer[]): void {
+  register(renderers: SceneNodeRenderer[]): void {
     this.renderers.push(...renderers);
     // Sort descending by priority (higher = first)
     this.renderers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   }
 
   /**
-   * Render a screen node by dispatching to the first matching renderer.
+   * Render a scene node by dispatching to the first matching renderer.
    */
-  render(node: ScreenNode, ctx: RenderContext): string {
+  render(node: SceneNode, ctx: RenderContext): string {
     for (const renderer of this.renderers) {
       if (renderer.appliesTo(node)) {
         if (this.debug) {
@@ -48,7 +48,7 @@ export class ScreenNodeRenderService {
   /**
    * Get the list of registered renderers (for debugging/testing).
    */
-  getRenderers(): readonly ScreenNodeRenderer[] {
+  getRenderers(): readonly SceneNodeRenderer[] {
     return this.renderers;
   }
 }

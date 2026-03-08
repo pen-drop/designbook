@@ -58,9 +58,9 @@ export const stories = async (entry: string[] = [], options: any) => {
   }
 
   const sectionsGlob = resolve(distDir, 'sections/*/spec.section.yml');
-  const screenGlob = resolve(distDir, 'sections/*/screens/*.screen.yml');
+  const scenesGlob = resolve(distDir, 'sections/*/*.scenes.yml');
 
-  return [...entry, onboardingGlob, sectionsGlob, screenGlob];
+  return [...entry, onboardingGlob, sectionsGlob, scenesGlob];
 };
 
 /**
@@ -107,52 +107,52 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
     },
   };
 
-  const screenIndexer = {
-    test: /\.screen\.yml$/,
+  const scenesIndexer = {
+    test: /\.scenes\.yml$/,
     createIndex: async (fileName: string) => {
       try {
         const content = readFileSync(fileName, 'utf-8');
-        const screen = parseYaml(content);
+        const parsed = parseYaml(content);
 
-        const name = screen.name || 'Untitled';
-
-        // Derive story ID from filename: section-blog.detail.screen.yml → detail
+        // Title comes from the scenes file — no automatic grouping
         const baseName = fileName.split('/').pop() || '';
-        // Pattern: section-name.page.screen.yml
-        const parts = baseName.replace('.screen.yml', '').split('.');
-        const pageName = (parts.length > 1 ? parts[parts.length - 1] : parts[0]) || 'default';
-        const sectionPart = parts.length > 1 ? parts.slice(0, -1).join('.') : parts[0];
-
-        // Convert to valid JS export: detail → Detail, listing → Listing
-        const exportName = pageName
-          .split('-')
-          .map((p: string) => p.charAt(0).toUpperCase() + p.slice(1))
-          .join('');
-
-        // Group under Sections/sectionId or use group from YAML
-        const group = screen.group || `Designbook/Sections/${screen.section || sectionPart}`;
-
+        const fileBase = baseName.replace('.scenes.yml', '');
+        const group = (parsed.name as string) || fileBase;
         const relativePath = './' + relative(process.cwd(), fileName);
 
-        console.log('[Designbook] Indexing screen:', { fileName, exportName, name, group });
+        // Support both new scenes[] format and legacy flat format
+        const scenes = Array.isArray(parsed.scenes)
+          ? parsed.scenes
+          : [parsed];
 
-        return [
-          {
+        const entries = scenes.map((scene: Record<string, unknown>, idx: number) => {
+          const name = (scene.name as string) || `Scene ${idx + 1}`;
+
+          const exportName = name
+            .split(/[\s-]+/)
+            .map((p: string) => p.charAt(0).toUpperCase() + p.slice(1))
+            .join('');
+
+          console.log('[Designbook] Indexing scene:', { fileName, exportName, name, group });
+
+          return {
             type: 'story' as const,
             importPath: relativePath,
             exportName,
-            title: `${group}/${name}`,
-            tags: ['screen', '!autodocs'],
-          },
-        ];
+            title: group,
+            tags: ['scene', '!autodocs'],
+          };
+        });
+
+        return entries;
       } catch (err) {
-        console.error('[Designbook] Error indexing screen file:', fileName, err);
+        console.error('[Designbook] Error indexing scene file:', fileName, err);
         return [];
       }
     },
   };
 
-  return [...existingIndexers, sectionsIndexer, screenIndexer];
+  return [...existingIndexers, sectionsIndexer, scenesIndexer];
 };
 
 export const indexers = experimental_indexers;

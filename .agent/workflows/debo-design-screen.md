@@ -5,7 +5,7 @@ category: Designbook
 description: Create screen design components for a section
 ---
 
-Help the user create screen design components for one of their roadmap sections. Screen designs are stored as the `screen` key in `designbook/sections/[section-id]/spec.section.yml`.
+Help the user create screen design components for one of their roadmap sections. Each section gets a single `{section}.scenes.yml` file containing all scenes (pages/views) for that section.
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
@@ -16,7 +16,7 @@ Check if the following files exist for the target section:
 - `designbook/sections/[section-id]/spec.section.yml` — section spec (required)
 - `designbook/sections/[section-id]/data.yml` — sample data (required)
 - `designbook/design-system/design-tokens.md` — design tokens (optional)
-- `designbook/shell/shell.screen.yml` — application shell (optional)
+- `designbook/shell/shell.scenes.yml` — application shell (optional)
 
 **If spec or data are missing**, tell the user:
 
@@ -36,7 +36,7 @@ Parse the roadmap and identify sections that have both spec and data. Present th
 
 > "Sections ready for screen design:
 >
-> 1. **[Section 1]** — ✓ Spec, ✓ Data [, ✓ Screen Designs already exist]
+> 1. **[Section 1]** — ✓ Spec, ✓ Data [, ✓ Scenes already exist]
 > 2. **[Section 2]** — ✓ Spec, ✓ Data
 >
 > Which section would you like to design?"
@@ -58,7 +58,7 @@ Wait for their response.
    - `resources/twig.md`
 2. `.agent/skills/designbook-components-entity-sdc/SKILL.md` **and:**
    - `generate-stories.js`
-3. `.agent/skills/designbook-screen/SKILL.md`
+3. `.agent/skills/designbook-scenes/SKILL.md`
 
 **CSS Skills (`designbook-css-*`):**
 
@@ -86,11 +86,11 @@ Wait for their response.
 
 Based on **everything read so far** (section spec, sample data, design tokens, shell spec, skills, and resources), generate a comprehensive plan. The plan MUST include:
 
-### 4.1 — Screen Design Analysis
+### 4.1 — Scene Analysis
 
-- Which screen designs (views/pages) are needed based on the section spec
-- Layout patterns for each screen (grid, list, cards, split view)
-- Data entities displayed on each screen
+- Which scenes (pages/views) are needed based on the section spec
+- Layout patterns for each scene (grid, list, cards, split view)
+- Data entities displayed on each scene
 - User interactions and flows
 - Responsive behavior
 
@@ -99,7 +99,6 @@ Based on **everything read so far** (section spec, sample data, design tokens, s
 - **Existing components** that can be reused (check `$DESIGNBOOK_DRUPAL_THEME/components/`)
 - **New UI components** that need to be created
 - **Entity components** needed (based on data model)
-- **Screen components** that compose everything together
 - **Shell components** (header/footer) — note if they already exist or need creation
 
 ### 4.3 — Task List
@@ -109,10 +108,10 @@ Generate a numbered, actionable task list covering the full execution. Group tas
 ```markdown
 ## Plan: [Section Title] Screen Design
 
-### Phase 1: Screen Designs in spec.section.yml
-- [ ] Add `screen` key to `spec.section.yml` with [N] views
-- [ ] Document [ViewName1]: [brief description]
-- [ ] Document [ViewName2]: [brief description]
+### Phase 1: Scene Definitions
+- [ ] Create `{section}.scenes.yml` with [N] scenes
+- [ ] Scene: [SceneName1] — [brief description]
+- [ ] Scene: [SceneName2] — [brief description]
 
 ### Phase 2: Shell UI Components
 - [ ] Generate/verify header component
@@ -128,9 +127,8 @@ Generate a numbered, actionable task list covering the full execution. Group tas
 - [ ] Generate entity-node-[bundle] with [N] stories
 - [ ] [Additional entity components]
 
-### Phase 5: Screen Components
-- [ ] Generate screen-[section]-[page1]
-- [ ] Generate screen-[section]-[page2]
+### Phase 5: Scenes File
+- [ ] Generate `{section}.scenes.yml` with all scenes
 
 ### Phase 6: CSS Token Generation
 - [ ] Run CSS generation pipeline for new components
@@ -156,7 +154,7 @@ Generate a numbered, actionable task list covering the full execution. Group tas
 
 Once the user approves, execute the tasks in order:
 
-**5.1 — Save Screen Designs to spec.section.yml**
+**5.1 — Save Scene Definitions to spec.section.yml**
 
 Add or update the `screen` key in `designbook/sections/[section-id]/spec.section.yml` with the documented views.
 
@@ -172,9 +170,30 @@ Create any new UI components identified in the plan using the `designbook-compon
 
 Execute the `designbook-view-modes` skill to check if there are any existing view modes for the entity types in the data model. If not, generate new view modes for the entity types in the data model.
 
-**5.5 — Generate Screen Components**
+**5.5 — Generate Scenes File**
 
-Execute the `designbook-screen` skill with `section-id` parameter. This reads the `screen` key from `spec.section.yml`, composes shell + entity into full screen views.
+Execute the `designbook-scenes` skill. Create a single `{section}.scenes.yml` file at `$DESIGNBOOK_DIST/sections/{section}/{section}.scenes.yml` with all scenes for the section.
+
+The file uses layout inheritance from the shell and contains all scenes as entries in the `scenes[]` array:
+
+```yaml
+name: "Designbook/Sections/{Section Title}"
+layout: "shell"
+
+scenes:
+  - name: listing
+    layout:
+      content:
+        - entity: node.article
+          view_mode: teaser
+          records: [0, 1, 2]
+
+  - name: detail
+    layout:
+      content:
+        - entity: node.article
+          view_mode: full
+```
 
 **5.6 — Run CSS Generation**
 
@@ -191,9 +210,9 @@ Execute the `designbook-css-generate` skill to generate CSS tokens for all new c
 > | Shell | `header` | `$DESIGNBOOK_DRUPAL_THEME/components/header/` |
 > | Shell | `footer` | `$DESIGNBOOK_DRUPAL_THEME/components/footer/` |
 > | Entity | `entity_node_[bundle]` | `$DESIGNBOOK_DIST/components/entity-node-[bundle]/` |
-> | Screen | `section_[id]_[page]` | `$DESIGNBOOK_DIST/components/section-[id]-[page]/` |
+> | Scenes | `{section}.scenes.yml` | `$DESIGNBOOK_DIST/sections/{section}/` |
 >
-> Open Storybook to see the full page compositions under **Design/** and **Sections/** in the sidebar.
+> Open Storybook to see the full page compositions under **Designbook/Sections/** in the sidebar.
 >
 > You can run `/debo-screenshot-design` to capture screenshots for documentation."
 
@@ -202,10 +221,12 @@ Execute the `designbook-css-generate` skill to generate CSS tokens for all new c
 - Reference the sample data for what content is available to display
 - Reference design tokens for colors and typography
 - Reference the shell spec for navigation context
-- Each view should address specific user flows from the section spec
+- Each scene should address specific user flows from the section spec
 - Descriptions should be specific enough to guide implementation
-- Consider responsive behavior for all views
+- Consider responsive behavior for all scenes
 - Focus on what the user sees and does, not implementation details
 - The plan MUST be approved by the user before any execution begins
-- The 3 generation steps must run in order: shell (UI) → entity → screen (each depends on the previous)
+- The 3 generation steps must run in order: shell (UI) → entity → scenes (each depends on the previous)
 - Each skill delegates to `designbook-components-sdc` for file creation
+- **One `.scenes.yml` file per section** — all scenes for a section live in one file
+- The `name` field in `.scenes.yml` is the full Storybook sidebar path (e.g. `Designbook/Sections/Blog`)

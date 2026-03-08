@@ -8,6 +8,6 @@
 
 import { sdcComponentRenderer } from '../sdc-renderer';
 import { entityJsonataRenderer } from '../entity-renderer';
-import type { ScreenNodeRenderer } from '../types';
+import type { SceneNodeRenderer } from '../types';
 
-export const sdcRenderers: ScreenNodeRenderer[] = [entityJsonataRenderer, sdcComponentRenderer];
+export const sdcRenderers: SceneNodeRenderer[] = [entityJsonataRenderer, sdcComponentRenderer];

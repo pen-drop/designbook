@@ -212,6 +212,24 @@ When a skill generates multiple file types, split the detailed rules into `resou
 
 Each resource file is self-contained with its own rules, examples, and validation steps.
 
+### Referencing Skill Resources from Workflows
+
+Use the **`@skillname/`** shorthand to reference files inside a skill directory:
+
+```
+@designbook-components-sdc/resources/shell-generation.md
+```
+
+Resolves to:
+
+```
+.agent/skills/designbook-components-sdc/resources/shell-generation.md
+```
+
+**Convention:** `@skillname/path` → `.agent/skills/skillname/path`
+
+This keeps workflow files readable and decouples them from the physical skill directory structure. Use this notation in workflow `.md` files when referencing skill resources that must be read before executing a step.
+
 ## Configuration Integration
 
 Skills that need project configuration should use the `designbook-configuration` skill:

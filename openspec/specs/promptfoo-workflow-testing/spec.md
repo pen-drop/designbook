@@ -1,9 +1,4 @@
-# promptfoo-workflow-testing Specification
-
-## Purpose
-Comprehensive workflow-level testing for all core Designbook debo-workflows using promptfoo. Ensures fixture-based isolation, deterministic prompts, and LLM-rubric assertions for regression detection.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Per-workflow fixture directories
 Each tested workflow SHALL have its own fixture directory at `promptfoo/fixtures/<workflow-name>/` containing exactly the prerequisite files that workflow needs to execute.
@@ -82,6 +77,34 @@ The test suite SHALL cover the following core debo-workflows: `product-vision`, 
 - **WHEN** the test suite is complete
 - **THEN** the unified `promptfoo/workflows/promptfooconfig.yaml` SHALL contain a test entry for each listed workflow
 - **AND** each workflow SHALL have a corresponding prompt file in `promptfoo/workflows/prompts/`
+
+## MODIFIED Requirements
+
+### Requirement: Categorized directory layout
+All promptfoo configuration files SHALL reside under a top-level `promptfoo/` directory. Workflow tests SHALL use a **single unified** `promptfoo/workflows/promptfooconfig.yaml` with all workflow test cases as `tests:` entries. Prompt files SHALL be in `promptfoo/workflows/prompts/`. Skill tests SHALL be in `promptfoo/skills/`. Additionally, the `promptfoo/` directory SHALL contain `fixtures/` (per-workflow input files), `workspaces/` (test execution output, gitignored), and `scripts/` (utility scripts).
+
+#### Scenario: Directory structure exists
+- **WHEN** the restructuring is complete
+- **THEN** `promptfoo/workflows/promptfooconfig.yaml` SHALL exist as the single unified workflow test config
+- **AND** `promptfoo/workflows/prompts/` SHALL contain one prompt file per workflow
+- **AND** the directory `promptfoo/skills/` SHALL exist for skill-level tests
+- **AND** the directory `promptfoo/fixtures/` SHALL exist with per-workflow fixture directories
+- **AND** the directory `promptfoo/scripts/` SHALL exist with `clean.sh`
+
+#### Scenario: No promptfoo files in root
+- **WHEN** the restructuring is complete
+- **THEN** `promptfooconfig.yaml`, `promptfoo-test-blog.yaml`, `blog_prompt.txt`, `verify_blog_spec.py`, and `README_promptfoo.md` SHALL NOT exist in the project root
+
+### Requirement: Centralized report output
+The unified config SHALL write eval results to `promptfoo/reports/` via the `outputPath` config key.
+
+#### Scenario: Report output location
+- **WHEN** `promptfoo eval -c promptfoo/workflows/promptfooconfig.yaml` is run
+- **THEN** the eval results SHALL be written to `promptfoo/reports/workflows.json`
+
+#### Scenario: Filtered execution
+- **WHEN** a single workflow test is run via `npx promptfoo eval --filter-description "debo-product-vision"`
+- **THEN** only the matching test SHALL execute
 
 ### Requirement: Per-workflow assertion specifics
 Each workflow's `llm-rubric` assertion SHALL validate the specific files and structural output that workflow produces, as defined by the workflow's SKILL.md and delegated skills.

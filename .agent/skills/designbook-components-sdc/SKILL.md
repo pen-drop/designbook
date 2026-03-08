@@ -13,7 +13,7 @@ description: Creates Drupal SDC component files (.component.yml, .story.yml, and
 |------|-------|-------------|----------|--------|----------|
 | **UI** ← this skill | `designbook-components-sdc` | ✅ Yes — real HTML | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `daisy_cms_daisyui`) |
 | Entity | `designbook-components-entity-sdc` | ❌ No — structural wrapper | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
-| Screen | `designbook-screen` | ❌ No — `*.screen.yml` only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
+| Scenes | `designbook-scenes` | ❌ No — `*.scenes.yml` only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
 
 > [!CAUTION]
 > **MANDATORY**: Before generating ANY components, you MUST read ALL resource files in `resources/`. Each contains critical rules that prevent common mistakes:
@@ -133,7 +133,7 @@ Expected as JSON object:
 - `props` (array, defaults to empty)
 - `slots` (array, defaults to empty)
 - `stories` (array, defaults to empty)
-- `outputDir` (string, defaults to `$DESIGNBOOK_DRUPAL_THEME/components/[component-name]`). When provided, files are written to this directory instead of the default. Used by design skills (`designbook-entity`, `designbook-screen`) to write designbook components to `$DESIGNBOOK_DIST/components/`.
+- `outputDir` (string, defaults to `$DESIGNBOOK_DRUPAL_THEME/components/[component-name]`). When provided, files are written to this directory instead of the default. Used by design skills (`designbook-entity`, `designbook-scenes`) to write designbook components to `$DESIGNBOOK_DIST/components/`.
 
 ## Output Structure
 

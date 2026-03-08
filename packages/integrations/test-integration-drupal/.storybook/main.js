@@ -18,8 +18,8 @@ const config = {
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
     "../designbook/sections/*/overview.section.yml",
     "../designbook/components/**/*.component.yml",
-    "../designbook/sections/*/screens/*.screen.yml",
-    "../designbook/shell/*.screen.yml"
+    "../designbook/sections/*/*.scenes.yml",
+    "../designbook/shell/*.scenes.yml"
   ],
   addons: [
     '@storybook/addon-themes',

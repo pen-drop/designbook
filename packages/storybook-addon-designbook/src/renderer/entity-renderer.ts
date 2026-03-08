@@ -6,28 +6,28 @@
  * resulting ComponentNode[] recursively via the context.
  *
  * The evaluation is async (JSONata returns Promises), so this renderer
- * produces a placeholder that loadScreenYml() resolves in its async pipeline.
+ * produces a placeholder that loadScenesYml() resolves in its async pipeline.
  */
 
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { ScreenNodeRenderer, RenderContext, EntityScreenNode, ScreenNode } from './types';
+import type { SceneNodeRenderer, RenderContext, EntitySceneNode, SceneNode } from './types';
 
 /**
  * Built-in renderer for `type: 'entity'` nodes.
  * Evaluates JSONata expressions against sample data and renders
  * the resulting ComponentNode[] via ctx.renderNode().
  */
-export const entityJsonataRenderer: ScreenNodeRenderer = {
+export const entityJsonataRenderer: SceneNodeRenderer = {
   name: 'entity-jsonata',
   priority: -10,
 
-  appliesTo(node: ScreenNode): boolean {
+  appliesTo(node: SceneNode): boolean {
     return node.type === 'entity';
   },
 
-  render(node: ScreenNode, ctx: RenderContext): string {
-    const entityNode = node as EntityScreenNode;
+  render(node: SceneNode, ctx: RenderContext): string {
+    const entityNode = node as EntitySceneNode;
     const { entity_type, bundle, view_mode, record = 0 } = entityNode;
 
     // 1. Locate the .jsonata expression file
@@ -45,8 +45,8 @@ export const entityJsonataRenderer: ScreenNodeRenderer = {
       return `/* [Designbook] no sample data: ${entity_type}.${bundle}[${record}] */`;
     }
 
-    // 3. Encode entity info for async resolution in loadScreenYml()
-    //    loadScreenYml() will:
+    // 3. Encode entity info for async resolution in loadScenesYml()
+    //    loadScenesYml() will:
     //    a) Read the .jsonata file
     //    b) Compile via ExpressionCache
     //    c) Evaluate against recordData
