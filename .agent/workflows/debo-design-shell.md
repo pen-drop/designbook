@@ -15,24 +15,16 @@ Help the user design the application shell — a `page` component with `header`,
 
 Check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
-- Section directories under `${DESIGNBOOK_DIST}/sections/` (required — at least one section must exist)
 - `${DESIGNBOOK_DIST}/design-system/design-tokens.yml` — design tokens (optional)
+- Section directories under `${DESIGNBOOK_DIST}/sections/` (optional — used for navigation suggestions)
 
 **If product vision is missing**, tell the user:
 
-> "Before designing the shell, you need to define your product. Please run:
-> 1. `/debo-product-vision` — Define your product
-> 2. `/debo-product-sections` — Define your sections"
+> "Before designing the shell, you need to define your product. Please run `/debo-product-vision` first."
 
 Stop here.
 
-**If no sections exist**, tell the user:
-
-> "You need at least one section defined. Please run `/debo-product-sections` first."
-
-Stop here.
-
-Read all available files to understand the product context and list the sections.
+Read all available files to understand the product context. If sections exist, use them for navigation suggestions.
 
 ## Step 2: Analyze and Propose Layout
 
