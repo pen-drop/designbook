@@ -94,6 +94,16 @@ There are 3 core story node types:
     content: 'Custom content'
 ```
 
+> [!IMPORTANT]
+> **Provider is mandatory.** Every component reference in a story **must** include the provider prefix. The provider is the SDC namespace that maps to the directory where the component lives. Look up the correct provider from the component's own `.component.yml` → `provider:` field.
+>
+> | Component Location | Provider | Example Reference |
+> |---|---|---|
+> | `$DESIGNBOOK_DRUPAL_THEME/components/` | From `.component.yml` (e.g. `daisy_cms_daisyui`) | `'daisy_cms_daisyui:header'` |
+> | `$DESIGNBOOK_DIST/components/` | `designbook_design` | `'designbook_design:entity-article'` |
+>
+> The provider maps to a Twig namespace configured in `.storybook/main.js` → `sdcStorybookOptions.namespaces`. Without it, the SDC addon cannot resolve the component path.
+
 **`image`** — Embed images:
 ```yaml
 - type: image

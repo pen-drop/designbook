@@ -2,10 +2,10 @@ name: default
 slots:
   header:
     - type: component
-      component: header
+      component: 'daisy_cms_daisyui:header'
   content:
     - type: component
-      component: hero
+      component: 'daisy_cms_daisyui:hero'
   footer:
     - type: component
-      component: footer
+      component: 'daisy_cms_daisyui:footer'
