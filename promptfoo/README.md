@@ -1,47 +1,67 @@
-# Promptfoo — AI Workflow Evaluations
+# Promptfoo Test Suite
 
-Evaluates Designbook AI skills and workflows using [promptfoo](https://promptfoo.dev/) with `llm-rubric` (LLM-as-Judge) assertions.
+Designbook workflow evaluation using [promptfoo](https://promptfoo.dev).
 
 ## Structure
 
 ```
 promptfoo/
-├── reports/                              # Eval results (gitignored)
-├── skills/                               # Skill-level tests (single skill)
-│   └── <skill-name>/
-│       ├── promptfooconfig.yaml
-│       └── prompts/
-└── workflows/                            # Workflow-level tests (multi-skill)
-    └── debo-design-screen/
-        ├── promptfooconfig.yaml
-        └── prompts/
-            └── blog-spec.txt
+├── workflows/
+│   └── promptfooconfig.yaml    # All workflow + addon tests (single file)
+├── skills/
+│   └── test-chat/              # Skill-level tests
+├── fixtures/
+│   ├── _shared/                # Shared PetMatch content
+│   └── debo-<workflow>/        # Per-workflow fixture subset
+├── workspaces/                 # Test output (gitignored)
+├── reports/                    # Eval results
+├── scripts/
+│   └── clean.sh                # Remove workspaces
+└── README.md
 ```
 
-## Skills vs Workflows
-
-| | **Skills** | **Workflows** |
-|---|---|---|
-| Scope | Single skill execution | Multi-skill orchestration |
-| Example | `drupal-components-ui` | `debo-design-screen` |
-| Speed | Fast | Slow |
-| Rubric | File format, schema | End-to-end result |
-
-## Usage
+## Quick Start
 
 ```bash
-# Workflow test
-promptfoo eval -c promptfoo/workflows/debo-design-screen/promptfooconfig.yaml
+# Run all workflow tests
+npx promptfoo eval -c promptfoo/promptfooconfig.yaml
 
-# All skill tests
-promptfoo eval -c promptfoo/skills/*/promptfooconfig.yaml
+# Run single workflow
+npx promptfoo eval -c promptfoo/promptfooconfig.yaml \
+  --filter-pattern "product-vision"
 
-# Everything
-promptfoo eval -c promptfoo/**/promptfooconfig.yaml
+# Clean workspaces before re-run
+./promptfoo/scripts/clean.sh
+
+# View results
+npx promptfoo view
 ```
 
-## Adding a Test Case
+## Test Product
 
-1. Add a prompt file: `promptfoo/<type>/<name>/prompts/<case>.txt`
-2. Add a `tests:` entry in the config's `promptfooconfig.yaml`
-3. Use `llm-rubric` assertion with natural language criteria
+All tests use **PetMatch** — a fictional pet adoption platform. Fixtures in `fixtures/_shared/` contain the complete PetMatch dataset.
+
+## Providers
+
+Each test runs against two providers:
+- `gemini-3-pro` (Google Antigravity)
+- `claude-opus-4-6` (Claude via Antigravity)
+
+## Assertions
+
+All assertions use `llm-rubric` — no custom scripts. Each workflow test verifies:
+1. Expected files were created
+2. File structure matches the workflow's SKILL.md contract
+3. Content is semantically valid
+
+## Multi-Integration Support
+
+Currently tests run against the **Drupal** integration (`test-integration-drupal`). When a React integration is added:
+
+```yaml
+# Parameterize via vars
+tests:
+  - vars:
+      integration: react
+      storybook_port: 6010
+```

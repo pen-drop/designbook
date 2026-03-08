@@ -1,0 +1,13 @@
+<div class="pet-card pet-card--{{ status|default('available') }}">
+  {% if image_url %}
+    <img src="{{ image_url }}" alt="{{ name }}" class="pet-card__image" />
+  {% endif %}
+  <div class="pet-card__content">
+    <h3 class="pet-card__name">{{ name }}</h3>
+    <p class="pet-card__breed">{{ breed }}</p>
+    <p class="pet-card__age">{{ age }}</p>
+    {% block cta %}
+      <button class="pet-card__cta">Adopt Me</button>
+    {% endblock %}
+  </div>
+</div>

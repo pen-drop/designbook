@@ -1,0 +1,95 @@
+content:
+  node:
+    pet:
+      title: Pet
+      description: Animal available for adoption
+      fields:
+        title:
+          type: string
+          title: Name
+          required: true
+        field_breed:
+          type: string
+          title: Breed
+        field_age:
+          type: string
+          title: Age
+        field_description:
+          type: text
+          title: Description
+        field_media:
+          type: reference
+          title: Photo
+          settings:
+            target_type: media
+            target_bundle: image
+        field_status:
+          type: string
+          title: Adoption Status
+        field_shelter:
+          type: reference
+          title: Shelter
+          settings:
+            target_type: node
+            target_bundle: shelter
+        field_category:
+          type: reference
+          title: Category
+          settings:
+            target_type: taxonomy_term
+            target_bundle: pet_category
+    shelter:
+      title: Shelter
+      description: Animal shelter or rescue organization
+      fields:
+        title:
+          type: string
+          title: Name
+          required: true
+        field_location:
+          type: string
+          title: Location
+        field_contact_email:
+          type: string
+          title: Contact Email
+        field_contact_phone:
+          type: string
+          title: Contact Phone
+        field_description:
+          type: text
+          title: About
+    adoption_application:
+      title: Adoption Application
+      description: Application from a potential adopter
+      fields:
+        title:
+          type: string
+          title: Applicant Name
+          required: true
+        field_email:
+          type: string
+          title: Email
+        field_pet:
+          type: reference
+          title: Pet
+          settings:
+            target_type: node
+            target_bundle: pet
+        field_status:
+          type: string
+          title: Application Status
+        field_message:
+          type: text
+          title: Message
+  taxonomy_term:
+    pet_category:
+      title: Pet Category
+      description: Categories for pet types
+      fields:
+        name:
+          type: string
+          title: Name
+          required: true
+        description:
+          type: text
+          title: Description

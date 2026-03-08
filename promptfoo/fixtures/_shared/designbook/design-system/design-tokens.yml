@@ -1,0 +1,71 @@
+color:
+  primary:
+    $value: "#4F46E5"
+    $type: color
+    description: Indigo — trust and reliability
+  primary-content:
+    $value: "#FFFFFF"
+    $type: color
+    description: Text on primary
+  secondary:
+    $value: "#10B981"
+    $type: color
+    description: Emerald — nature, growth, pet wellness
+  secondary-content:
+    $value: "#FFFFFF"
+    $type: color
+    description: Text on secondary
+  accent:
+    $value: "#F59E0B"
+    $type: color
+    description: Amber — warmth, energy, call-to-action
+  accent-content:
+    $value: "#000000"
+    $type: color
+    description: Text on accent
+  neutral:
+    $value: "#1F2937"
+    $type: color
+    description: Dark gray — headers, footer
+  neutral-content:
+    $value: "#F1F5F9"
+    $type: color
+    description: Text on neutral
+  base-100:
+    $value: "#F9FAFB"
+    $type: color
+    description: Page background
+  base-200:
+    $value: "#F3F4F6"
+    $type: color
+    description: Card surfaces
+  base-300:
+    $value: "#E5E7EB"
+    $type: color
+    description: Borders, dividers
+  base-content:
+    $value: "#1F2937"
+    $type: color
+    description: Main text color
+  success:
+    $value: "#22C55E"
+    $type: color
+    description: Adoption approved
+  error:
+    $value: "#EF4444"
+    $type: color
+    description: Error states
+
+typography:
+  heading:
+    $value: Inter
+    $type: fontFamily
+    description: Clean, modern headings
+  body:
+    $value: Inter
+    $type: fontFamily
+    description: Readable body text
+  mono:
+    $value: JetBrains Mono
+    $type: fontFamily
+    description: Code and reference IDs

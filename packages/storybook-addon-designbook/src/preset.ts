@@ -1,6 +1,7 @@
 import { designbookLoadPlugin } from './vite-plugin';
+import { loadConfig } from './config';
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
@@ -13,23 +14,12 @@ const __dirname = dirname(__filename);
 export const viteFinal = async (config: any, options: any) => {
   const { plugins = [] } = config;
 
-  // Try to find the dist directory from designbook.config.yml as a default
-  let fsRoot = 'designbook';
+  // Use shared config resolver (walks up directory tree to find designbook.config.yml)
+  const designbookConfig = loadConfig();
+  let fsRoot = designbookConfig.dist;
 
-  const configPath = resolve(process.cwd(), 'designbook.config.yml');
-  if (existsSync(configPath)) {
-    try {
-      const configContent = readFileSync(configPath, 'utf-8');
-      const distMatch = configContent.match(/^dist:\s*(.+)$/m);
-      if (distMatch && distMatch[1]) {
-        fsRoot = distMatch[1].trim();
-      }
-    } catch {
-      // Ignore
-    }
-  }
-
-  if (options && options.designbook && options.designbook.fsRoot) {
+  // Allow options override
+  if (options?.designbook?.fsRoot) {
     fsRoot = options.designbook.fsRoot;
   }
 
@@ -58,21 +48,17 @@ export const webpack = async (config: any) => {
 export const stories = async (entry: string[] = [], options: any) => {
   const onboardingGlob = resolve(__dirname, 'onboarding/*.mdx');
 
-  // Add the sections glob so Storybook finds the files
-  let projectRoot = process.cwd();
-  if (options?.configDir) {
-    projectRoot = resolve(options.configDir, '..');
-  }
+  // Use shared config resolver for dist directory
+  const designbookConfig = loadConfig();
+  let distDir = designbookConfig.dist;
 
-  // Try to find the dist directory from designbook.config.yml as a default
-  let distDir = 'designbook';
-  // (We could read config here, but for now assuming default or option)
+  // Allow options override
   if (options?.designbook?.fsRoot) {
     distDir = options.designbook.fsRoot;
   }
 
-  const sectionsGlob = resolve(projectRoot, distDir, 'sections/*/overview.section.yml');
-  const screenGlob = resolve(projectRoot, distDir, 'sections/*/screens/*.screen.yml');
+  const sectionsGlob = resolve(distDir, 'sections/*/overview.section.yml');
+  const screenGlob = resolve(distDir, 'sections/*/screens/*.screen.yml');
 
   return [...entry, onboardingGlob, sectionsGlob, screenGlob];
 };

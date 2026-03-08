@@ -70,14 +70,30 @@ export default defineConfig(async () => {
    this is useful for presets, which are loaded by Storybook when setting up configurations
    they won't have types generated for them as they're usually loaded automatically by Storybook
   */
-  if (nodeEntries.length) {
+  // Separate config.ts from other node entries — config needs dual ESM+CJS for load-config.cjs
+  const configEntries = nodeEntries.filter((e: string) => e.includes('config'));
+  const otherNodeEntries = nodeEntries.filter((e: string) => !e.includes('config'));
+
+  if (otherNodeEntries.length) {
     configs.push({
       ...commonConfig,
-      entry: nodeEntries,
+      entry: otherNodeEntries,
       platform: 'node',
       target: NODE_TARGET,
       onSuccess:
         'cp -r src/onboarding dist/onboarding && cp -r src/components dist/components && cp -r src/hooks dist/hooks',
+    });
+  }
+
+  // Config module: dual ESM + CJS so agent tooling can require() it
+  if (configEntries.length) {
+    configs.push({
+      ...commonConfig,
+      entry: configEntries,
+      format: ['esm', 'cjs'],
+      platform: 'node',
+      target: NODE_TARGET,
+      dts: true,
     });
   }
 

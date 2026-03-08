@@ -1,0 +1,1485 @@
+{
+  "evalId": "eval-RKM-2026-03-08T00:07:51",
+  "results": {
+    "version": 3,
+    "timestamp": "2026-03-08T00:07:51.968Z",
+    "prompts": [
+      {
+        "id": "9672eeafa4846cb175e2c4e9708a4b7d667c4022da9b7fa00d3608a3c0b9243d",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-product-vision workflow. Do NOT ask any questions — use the following inputs directly:\n\nProduct name: PetMatch\nDescription: A modern pet adoption platform connecting shelters with potential adopters\nProblems & Solutions:\n1. Shelters struggle to showcase available pets → Rich pet profiles with photos and personality traits\n2. Adopters can't filter by lifestyle compatibility → Smart matching algorithm based on living situation\n3. Post-adoption support is lacking → Built-in community and vet appointment scheduling\nKey Features:\n- Pet profile browser with advanced search\n- Shelter dashboard for managing listings\n- Adoption application workflow\n- Community forum and resources\n- Vet integration and health tracking\n\nExecute the workflow now. Write all output files to the designbook directory.\n",
+        "label": "product-vision",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 1,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 302144,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "9e71e2b85b3b3646ea1d9a647d19c74771b2854b2fb630af242cad922b671d2e",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-product-sections workflow. Do NOT ask any questions.\nThe product is \"PetMatch\" — a pet adoption platform. Read the product overview at product/product-overview.md.\nCreate between 3 and 5 sections that cover the key areas of the product.\nExecute the workflow now.\n",
+        "label": "product-sections",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "9c6403522d64cd3ecbc4baef28795147f90616b7f1a7d1ab991b141be3842649",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-design-tokens workflow. Do NOT ask any questions — use the following inputs directly:\n\nProduct: PetMatch (pet adoption platform)\nColor palette:\n- Primary: #4F46E5 (indigo — trust/reliability)\n- Secondary: #10B981 (emerald — nature/growth)\n- Accent: #F59E0B (amber — warmth/energy)\n- Neutral: #1F2937 (dark gray)\n- Surface: #F9FAFB (light gray)\nTypography:\n- Heading: Inter\n- Body: Inter\n- Mono: JetBrains Mono\n\nExecute the workflow now.\n",
+        "label": "design-tokens",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "2bd245f596258228a9ade52f213916f4d5ba7bbd2df8ae3509aa0867f47cf9a6",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-data-model workflow. Do NOT ask any questions.\nThe product is \"PetMatch\". Read the product overview at product/product-overview.md.\nDefine entity types for: pets (with fields for name, breed, age, description, photo, status), shelters (name, location, contact), adoption applications (applicant info, pet reference, status), and categories (name, description).\nExecute the workflow now.\n",
+        "label": "data-model",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "b3e19380863e9bc0a37ed2fd301ef8c536695cf78a8b939f54d8a30e1aad8940",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-css-generate workflow. Do NOT ask any questions.\nRead the designbook.config.yml for configuration. Generate CSS token files from the existing design-tokens.yml.\nExecute the workflow now.\n",
+        "label": "css-generate",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "a1a4622a021abd41e656201143327b3540d700892385e33bd2957eed1315e434",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //shape-section workflow for the \"homepage\" section. Do NOT ask any questions.\nThe product is \"PetMatch\". Read sections/homepage/overview.section.yml for context.\nDefine user flows for: browsing featured pets, searching/filtering pets, and initiating an adoption application.\nExecute the workflow now.\n",
+        "label": "shape-section",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "1903a1adc077254a60416bb818fd49cdcb537da19addeea3b08f1759416f1c91",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-design-component workflow. Do NOT ask any questions.\nCreate a \"pet-card\" component for PetMatch that displays: pet photo, name, breed, age, and an \"Adopt Me\" button.\nThe component should have variants: default and featured (with a highlight border).\nExecute the workflow now.\n",
+        "label": "design-component",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "c45df724cba87ac84892bf3eeb910393d69d163e9ad96cac2e2074487eaa907b",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //sample-data workflow for the \"homepage\" section. Do NOT ask any questions.\nThe product is \"PetMatch\". Read data-model.yml for the entity schema.\nGenerate realistic sample data with at least 5 pet records, 2 shelter records, and 3 category records.\nUse real pet names, breeds, and descriptions — no placeholder text.\nExecute the workflow now.\n",
+        "label": "sample-data",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "5a2ec14df3fce6b801aad2e40bca7dcce7e3d61ee43a35b693e72856fbe14259",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-design-screen workflow for the \"homepage\" section. Do NOT ask any questions.\nThe product is \"PetMatch\". Read sections/homepage/overview.section.yml for context.\nThe homepage should include: a hero section, featured pets grid, search/filter area, and a call-to-action for shelters.\nExecute the workflow now.\n",
+        "label": "design-screen",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "41dd9eab06ca53ce3c01323927e521eaac6565b8b5e2e466ed2bbdacd666e5e6",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //design-shell workflow. Do NOT ask any questions.\nThe product is \"PetMatch\". Read the product overview and section definitions for navigation planning.\nThe shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.\nExecute the workflow now.\n",
+        "label": "design-shell",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "37b93af0147d9d4808c81e3881d534589c744520fa633d3b05a4226e7aebb31e",
+        "raw": "Open Storybook at http://localhost:6009.\nNavigate to the \"Designbook/Data Model\" page.\nVerify that the page renders correctly — it should display entity types, bundles, and field definitions from the PetMatch data model.\nReport any rendering errors, blank sections, or missing content.\n",
+        "label": "addon-data-model",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "0076acf9112d1a367e65483276e5a605dbc8d02fc86598ce6dbf79abdafec96c",
+        "raw": "Open Storybook at http://localhost:6009.\nNavigate to the \"Designbook/Design System\" page.\nVerify that color tokens are displayed with their hex values and typography tokens show font family names.\nReport any rendering errors, blank sections, or missing content.\n",
+        "label": "addon-design-tokens",
+        "provider": "gemini-3-pro",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "9672eeafa4846cb175e2c4e9708a4b7d667c4022da9b7fa00d3608a3c0b9243d",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-product-vision workflow. Do NOT ask any questions — use the following inputs directly:\n\nProduct name: PetMatch\nDescription: A modern pet adoption platform connecting shelters with potential adopters\nProblems & Solutions:\n1. Shelters struggle to showcase available pets → Rich pet profiles with photos and personality traits\n2. Adopters can't filter by lifestyle compatibility → Smart matching algorithm based on living situation\n3. Post-adoption support is lacking → Built-in community and vet appointment scheduling\nKey Features:\n- Pet profile browser with advanced search\n- Shelter dashboard for managing listings\n- Adoption application workflow\n- Community forum and resources\n- Vet integration and health tracking\n\nExecute the workflow now. Write all output files to the designbook directory.\n",
+        "label": "product-vision",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 1,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 1,
+          "totalLatencyMs": 208059,
+          "tokenUsage": {
+            "prompt": 13306,
+            "completion": 265,
+            "cached": 0,
+            "total": 13571,
+            "numRequests": 1,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "9e71e2b85b3b3646ea1d9a647d19c74771b2854b2fb630af242cad922b671d2e",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-product-sections workflow. Do NOT ask any questions.\nThe product is \"PetMatch\" — a pet adoption platform. Read the product overview at product/product-overview.md.\nCreate between 3 and 5 sections that cover the key areas of the product.\nExecute the workflow now.\n",
+        "label": "product-sections",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "9c6403522d64cd3ecbc4baef28795147f90616b7f1a7d1ab991b141be3842649",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-design-tokens workflow. Do NOT ask any questions — use the following inputs directly:\n\nProduct: PetMatch (pet adoption platform)\nColor palette:\n- Primary: #4F46E5 (indigo — trust/reliability)\n- Secondary: #10B981 (emerald — nature/growth)\n- Accent: #F59E0B (amber — warmth/energy)\n- Neutral: #1F2937 (dark gray)\n- Surface: #F9FAFB (light gray)\nTypography:\n- Heading: Inter\n- Body: Inter\n- Mono: JetBrains Mono\n\nExecute the workflow now.\n",
+        "label": "design-tokens",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "2bd245f596258228a9ade52f213916f4d5ba7bbd2df8ae3509aa0867f47cf9a6",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-data-model workflow. Do NOT ask any questions.\nThe product is \"PetMatch\". Read the product overview at product/product-overview.md.\nDefine entity types for: pets (with fields for name, breed, age, description, photo, status), shelters (name, location, contact), adoption applications (applicant info, pet reference, status), and categories (name, description).\nExecute the workflow now.\n",
+        "label": "data-model",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "b3e19380863e9bc0a37ed2fd301ef8c536695cf78a8b939f54d8a30e1aad8940",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-css-generate workflow. Do NOT ask any questions.\nRead the designbook.config.yml for configuration. Generate CSS token files from the existing design-tokens.yml.\nExecute the workflow now.\n",
+        "label": "css-generate",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "a1a4622a021abd41e656201143327b3540d700892385e33bd2957eed1315e434",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //shape-section workflow for the \"homepage\" section. Do NOT ask any questions.\nThe product is \"PetMatch\". Read sections/homepage/overview.section.yml for context.\nDefine user flows for: browsing featured pets, searching/filtering pets, and initiating an adoption application.\nExecute the workflow now.\n",
+        "label": "shape-section",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "1903a1adc077254a60416bb818fd49cdcb537da19addeea3b08f1759416f1c91",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-design-component workflow. Do NOT ask any questions.\nCreate a \"pet-card\" component for PetMatch that displays: pet photo, name, breed, age, and an \"Adopt Me\" button.\nThe component should have variants: default and featured (with a highlight border).\nExecute the workflow now.\n",
+        "label": "design-component",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "c45df724cba87ac84892bf3eeb910393d69d163e9ad96cac2e2074487eaa907b",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //sample-data workflow for the \"homepage\" section. Do NOT ask any questions.\nThe product is \"PetMatch\". Read data-model.yml for the entity schema.\nGenerate realistic sample data with at least 5 pet records, 2 shelter records, and 3 category records.\nUse real pet names, breeds, and descriptions — no placeholder text.\nExecute the workflow now.\n",
+        "label": "sample-data",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "5a2ec14df3fce6b801aad2e40bca7dcce7e3d61ee43a35b693e72856fbe14259",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-design-screen workflow for the \"homepage\" section. Do NOT ask any questions.\nThe product is \"PetMatch\". Read sections/homepage/overview.section.yml for context.\nThe homepage should include: a hero section, featured pets grid, search/filter area, and a call-to-action for shelters.\nExecute the workflow now.\n",
+        "label": "design-screen",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "41dd9eab06ca53ce3c01323927e521eaac6565b8b5e2e466ed2bbdacd666e5e6",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //design-shell workflow. Do NOT ask any questions.\nThe product is \"PetMatch\". Read the product overview and section definitions for navigation planning.\nThe shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.\nExecute the workflow now.\n",
+        "label": "design-shell",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "37b93af0147d9d4808c81e3881d534589c744520fa633d3b05a4226e7aebb31e",
+        "raw": "Open Storybook at http://localhost:6009.\nNavigate to the \"Designbook/Data Model\" page.\nVerify that the page renders correctly — it should display entity types, bundles, and field definitions from the PetMatch data model.\nReport any rendering errors, blank sections, or missing content.\n",
+        "label": "addon-data-model",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      },
+      {
+        "id": "0076acf9112d1a367e65483276e5a605dbc8d02fc86598ce6dbf79abdafec96c",
+        "raw": "Open Storybook at http://localhost:6009.\nNavigate to the \"Designbook/Design System\" page.\nVerify that color tokens are displayed with their hex values and typography tokens show font family names.\nReport any rendering errors, blank sections, or missing content.\n",
+        "label": "addon-design-tokens",
+        "provider": "claude-opus-4-6",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 0,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "error": "No output",
+        "gradingResult": {
+          "pass": false,
+          "score": 0,
+          "reason": "No output",
+          "namedScores": {},
+          "tokensUsed": {
+            "total": 0,
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "numRequests": 0
+          },
+          "componentResults": [
+            {
+              "pass": false,
+              "reason": "No output",
+              "score": 0,
+              "tokensUsed": {
+                "total": 0,
+                "prompt": 0,
+                "completion": 0,
+                "cached": 0,
+                "numRequests": 0
+              }
+            }
+          ]
+        },
+        "id": "bb77a738-8d81-4102-8348-9ec1a032a0ab",
+        "latencyMs": 208059,
+        "namedScores": {},
+        "prompt": {
+          "raw": "You are working in the directory .\nRun the //debo-product-vision workflow. Do NOT ask any questions — use the following inputs directly:\n\nProduct name: PetMatch\nDescription: A modern pet adoption platform connecting shelters with potential adopters\nProblems & Solutions:\n1. Shelters struggle to showcase available pets → Rich pet profiles with photos and personality traits\n2. Adopters can't filter by lifestyle compatibility → Smart matching algorithm based on living situation\n3. Post-adoption support is lacking → Built-in community and vet appointment scheduling\nKey Features:\n- Pet profile browser with advanced search\n- Shelter dashboard for managing listings\n- Adoption application workflow\n- Community forum and resources\n- Vet integration and health tracking\n\nExecute the workflow now. Write all output files to the designbook directory.\n",
+          "label": "product-vision",
+          "config": {
+            "provider": "opencode:google/antigravity-gemini-3-pro"
+          }
+        },
+        "promptId": "9672eeafa4846cb175e2c4e9708a4b7d667c4022da9b7fa00d3608a3c0b9243d",
+        "promptIdx": 12,
+        "provider": {
+          "id": "opencode:sdk",
+          "label": "claude-opus-4-6"
+        },
+        "response": {
+          "output": "The `debo-product-vision` workflow has been completed. Here's a summary:\n\n**Product vision saved to:** `packages/integrations/test-integration-drupal/designbook/product/product-overview.md`\n\n**What was captured for PetMatch:**\n\n- **Description:** A modern pet adoption platform connecting shelters with potential adopters, streamlining the journey from discovery to long-term care.\n- **3 Problems & Solutions:**\n  1. Shelters struggle to showcase pets → Rich profiles with photos and personality traits\n  2. Adopters can't filter by lifestyle → Smart matching algorithm based on living situation\n  3. Post-adoption support is lacking → Community forum and vet appointment scheduling\n- **5 Key Features:** Pet profile browser, shelter dashboard, adoption application workflow, community forum, and vet integration with health tracking\n\nOpen Storybook to see **PetMatch** displayed on the Product Vision page. You can run `/debo-product-sections` next to break this down into development sections.",
+          "tokenUsage": {
+            "prompt": 13306,
+            "completion": 265,
+            "total": 13571
+          },
+          "cost": 0,
+          "raw": "{\"data\":{\"info\":{\"role\":\"assistant\",\"time\":{\"created\":1772928673599,\"completed\":1772928679950},\"parentID\":\"msg_ccac59b09001ZAFHxGU4b9mLxw\",\"modelID\":\"antigravity-claude-opus-4-6-thinking\",\"providerID\":\"google\",\"mode\":\"build\",\"agent\":\"build\",\"path\":{\"cwd\":\"/home/cw/projects/designbook\",\"root\":\"/home/cw/projects/designbook\"},\"cost\":0,\"tokens\":{\"total\":29354,\"input\":13306,\"output\":265,\"reasoning\":0,\"cache\":{\"read\":15783,\"write\":0}},\"finish\":\"stop\",\"id\":\"msg_ccac8a73f001vYhYQA7dVPI74l\",\"sessionID\":\"ses_3353a6522ffesPw4MGVjfZ4ibV\"},\"parts\":[{\"type\":\"step-start\",\"snapshot\":\"aa6575cc9d37ab675407a2b723e5b1043f66f654\",\"id\":\"prt_ccac8ac5b0019nfEKPIB6GSpPT\",\"sessionID\":\"ses_3353a6522ffesPw4MGVjfZ4ibV\",\"messageID\":\"msg_ccac8a73f001vYhYQA7dVPI74l\"},{\"type\":\"reasoning\",\"text\":\"The user said \\\"[Continue]\\\" - let me verify the file was written correctly and confirm completion as per the workflow's Step 5.\",\"time\":{\"start\":1772928674907,\"end\":1772928675615},\"id\":\"prt_ccac8ac5b002mh9Xq95K8ASURb\",\"sessionID\":\"ses_3353a6522ffesPw4MGVjfZ4ibV\",\"messageID\":\"msg_ccac8a73f001vYhYQA7dVPI74l\"},{\"type\":\"text\",\"text\":\"The `debo-product-vision` workflow has been completed. Here's a summary:\\n\\n**Product vision saved to:** `packages/integrations/test-integration-drupal/designbook/product/product-overview.md`\\n\\n**What was captured for PetMatch:**\\n\\n- **Description:** A modern pet adoption platform connecting shelters with potential adopters, streamlining the journey from discovery to long-term care.\\n- **3 Problems & Solutions:**\\n  1. Shelters struggle to showcase pets → Rich profiles with photos and personality traits\\n  2. Adopters can't filter by lifestyle → Smart matching algorithm based on living situation\\n  3. Post-adoption support is lacking → Community forum and vet appointment scheduling\\n- **5 Key Features:** Pet profile browser, shelter dashboard, adoption application workflow, community forum, and vet integration with health tracking\\n\\nOpen Storybook to see **PetMatch** displayed on the Product Vision page. You can run `/debo-product-sections` next to break this down into development sections.\",\"time\":{\"start\":1772928679924,\"end\":1772928679924},\"id\":\"prt_ccac8af20001x7rtLNadqDkDOR\",\"sessionID\":\"ses_3353a6522ffesPw4MGVjfZ4ibV\",\"messageID\":\"msg_ccac8a73f001vYhYQA7dVPI74l\"},{\"type\":\"step-finish\",\"reason\":\"stop\",\"snapshot\":\"aa6575cc9d37ab675407a2b723e5b1043f66f654\",\"cost\":0,\"tokens\":{\"total\":29354,\"input\":13306,\"output\":265,\"reasoning\":0,\"cache\":{\"read\":15783,\"write\":0}},\"id\":\"prt_ccac8bff5001ixenxTWlXMZwYB\",\"sessionID\":\"ses_3353a6522ffesPw4MGVjfZ4ibV\",\"messageID\":\"msg_ccac8a73f001vYhYQA7dVPI74l\"}]},\"request\":{\"timeout\":false},\"response\":{}}",
+          "sessionId": "ses_3353a6522ffesPw4MGVjfZ4ibV"
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "debo-product-vision: PetMatch",
+          "prompts": [
+            "product-vision"
+          ],
+          "assert": [
+            {
+              "type": "llm-rubric",
+              "value": "The agent executed the //debo-product-vision workflow for \"PetMatch\".\nVerify from the conversation output:\n1. A file was created at product/product-overview.md inside the workspace\n2. The file starts with a level-1 heading containing \"PetMatch\"\n3. The file contains a \"## Description\" section with 1-3 sentences\n4. The file contains a \"## Problems & Solutions\" section with at least 2 problem/solution pairs\n5. The file contains a \"## Key Features\" section with at least 3 features\n6. The agent confirmed completion and mentioned Storybook\n"
+            }
+          ],
+          "vars": {
+            "sessionId": "ses_3353a6522ffesPw4MGVjfZ4ibV"
+          },
+          "options": {
+            "provider": "opencode:google/antigravity-gemini-3-pro"
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "vars": {
+          "sessionId": "ses_3353a6522ffesPw4MGVjfZ4ibV"
+        },
+        "metadata": {
+          "_promptfooFileMetadata": {},
+          "sessionId": "ses_3353a6522ffesPw4MGVjfZ4ibV"
+        },
+        "failureReason": 1
+      },
+      {
+        "cost": 0,
+        "error": "Error calling OpenCode SDK: fetch failed",
+        "gradingResult": null,
+        "id": "b2e53a31-b4d1-4b5f-8411-276e91c65c50",
+        "latencyMs": 302144,
+        "namedScores": {},
+        "prompt": {
+          "raw": "You are working in the directory .\nRun the //debo-product-vision workflow. Do NOT ask any questions — use the following inputs directly:\n\nProduct name: PetMatch\nDescription: A modern pet adoption platform connecting shelters with potential adopters\nProblems & Solutions:\n1. Shelters struggle to showcase available pets → Rich pet profiles with photos and personality traits\n2. Adopters can't filter by lifestyle compatibility → Smart matching algorithm based on living situation\n3. Post-adoption support is lacking → Built-in community and vet appointment scheduling\nKey Features:\n- Pet profile browser with advanced search\n- Shelter dashboard for managing listings\n- Adoption application workflow\n- Community forum and resources\n- Vet integration and health tracking\n\nExecute the workflow now. Write all output files to the designbook directory.\n",
+          "label": "product-vision",
+          "config": {
+            "provider": "opencode:google/antigravity-gemini-3-pro"
+          }
+        },
+        "promptId": "9672eeafa4846cb175e2c4e9708a4b7d667c4022da9b7fa00d3608a3c0b9243d",
+        "promptIdx": 0,
+        "provider": {
+          "id": "opencode:sdk",
+          "label": "gemini-3-pro"
+        },
+        "response": {
+          "error": "Error calling OpenCode SDK: fetch failed"
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "debo-product-vision: PetMatch",
+          "prompts": [
+            "product-vision"
+          ],
+          "assert": [
+            {
+              "type": "llm-rubric",
+              "value": "The agent executed the //debo-product-vision workflow for \"PetMatch\".\nVerify from the conversation output:\n1. A file was created at product/product-overview.md inside the workspace\n2. The file starts with a level-1 heading containing \"PetMatch\"\n3. The file contains a \"## Description\" section with 1-3 sentences\n4. The file contains a \"## Problems & Solutions\" section with at least 2 problem/solution pairs\n5. The file contains a \"## Key Features\" section with at least 3 features\n6. The agent confirmed completion and mentioned Storybook\n"
+            }
+          ],
+          "vars": {},
+          "options": {
+            "provider": "opencode:google/antigravity-gemini-3-pro"
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "vars": {},
+        "metadata": {
+          "_promptfooFileMetadata": {}
+        },
+        "failureReason": 2
+      }
+    ],
+    "stats": {
+      "successes": 0,
+      "failures": 1,
+      "errors": 1,
+      "tokenUsage": {
+        "prompt": 13306,
+        "completion": 265,
+        "cached": 0,
+        "total": 13571,
+        "numRequests": 2,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0
+          }
+        }
+      },
+      "durationMs": 302159
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "Designbook workflow evaluation suite",
+    "prompts": [
+      {
+        "id": "debo-product-vision",
+        "label": "product-vision",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-product-vision workflow. Do NOT ask any questions — use the following inputs directly:\n\nProduct name: PetMatch\nDescription: A modern pet adoption platform connecting shelters with potential adopters\nProblems & Solutions:\n1. Shelters struggle to showcase available pets → Rich pet profiles with photos and personality traits\n2. Adopters can't filter by lifestyle compatibility → Smart matching algorithm based on living situation\n3. Post-adoption support is lacking → Built-in community and vet appointment scheduling\nKey Features:\n- Pet profile browser with advanced search\n- Shelter dashboard for managing listings\n- Adoption application workflow\n- Community forum and resources\n- Vet integration and health tracking\n\nExecute the workflow now. Write all output files to the designbook directory.\n"
+      },
+      {
+        "id": "debo-product-sections",
+        "label": "product-sections",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-product-sections workflow. Do NOT ask any questions.\nThe product is \"PetMatch\" — a pet adoption platform. Read the product overview at product/product-overview.md.\nCreate between 3 and 5 sections that cover the key areas of the product.\nExecute the workflow now.\n"
+      },
+      {
+        "id": "debo-design-tokens",
+        "label": "design-tokens",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-design-tokens workflow. Do NOT ask any questions — use the following inputs directly:\n\nProduct: PetMatch (pet adoption platform)\nColor palette:\n- Primary: #4F46E5 (indigo — trust/reliability)\n- Secondary: #10B981 (emerald — nature/growth)\n- Accent: #F59E0B (amber — warmth/energy)\n- Neutral: #1F2937 (dark gray)\n- Surface: #F9FAFB (light gray)\nTypography:\n- Heading: Inter\n- Body: Inter\n- Mono: JetBrains Mono\n\nExecute the workflow now.\n"
+      },
+      {
+        "id": "debo-data-model",
+        "label": "data-model",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-data-model workflow. Do NOT ask any questions.\nThe product is \"PetMatch\". Read the product overview at product/product-overview.md.\nDefine entity types for: pets (with fields for name, breed, age, description, photo, status), shelters (name, location, contact), adoption applications (applicant info, pet reference, status), and categories (name, description).\nExecute the workflow now.\n"
+      },
+      {
+        "id": "debo-css-generate",
+        "label": "css-generate",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-css-generate workflow. Do NOT ask any questions.\nRead the designbook.config.yml for configuration. Generate CSS token files from the existing design-tokens.yml.\nExecute the workflow now.\n"
+      },
+      {
+        "id": "debo-shape-section",
+        "label": "shape-section",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //shape-section workflow for the \"homepage\" section. Do NOT ask any questions.\nThe product is \"PetMatch\". Read sections/homepage/overview.section.yml for context.\nDefine user flows for: browsing featured pets, searching/filtering pets, and initiating an adoption application.\nExecute the workflow now.\n"
+      },
+      {
+        "id": "debo-design-component",
+        "label": "design-component",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-design-component workflow. Do NOT ask any questions.\nCreate a \"pet-card\" component for PetMatch that displays: pet photo, name, breed, age, and an \"Adopt Me\" button.\nThe component should have variants: default and featured (with a highlight border).\nExecute the workflow now.\n"
+      },
+      {
+        "id": "debo-sample-data",
+        "label": "sample-data",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //sample-data workflow for the \"homepage\" section. Do NOT ask any questions.\nThe product is \"PetMatch\". Read data-model.yml for the entity schema.\nGenerate realistic sample data with at least 5 pet records, 2 shelter records, and 3 category records.\nUse real pet names, breeds, and descriptions — no placeholder text.\nExecute the workflow now.\n"
+      },
+      {
+        "id": "debo-design-screen",
+        "label": "design-screen",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //debo-design-screen workflow for the \"homepage\" section. Do NOT ask any questions.\nThe product is \"PetMatch\". Read sections/homepage/overview.section.yml for context.\nThe homepage should include: a hero section, featured pets grid, search/filter area, and a call-to-action for shelters.\nExecute the workflow now.\n"
+      },
+      {
+        "id": "debo-design-shell",
+        "label": "design-shell",
+        "raw": "You are working in the directory {{workspace}}.\nRun the //design-shell workflow. Do NOT ask any questions.\nThe product is \"PetMatch\". Read the product overview and section definitions for navigation planning.\nThe shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.\nExecute the workflow now.\n"
+      },
+      {
+        "id": "addon-verify-data-model",
+        "label": "addon-data-model",
+        "raw": "Open Storybook at http://localhost:6009.\nNavigate to the \"Designbook/Data Model\" page.\nVerify that the page renders correctly — it should display entity types, bundles, and field definitions from the PetMatch data model.\nReport any rendering errors, blank sections, or missing content.\n"
+      },
+      {
+        "id": "addon-verify-design-tokens",
+        "label": "addon-design-tokens",
+        "raw": "Open Storybook at http://localhost:6009.\nNavigate to the \"Designbook/Design System\" page.\nVerify that color tokens are displayed with their hex values and typography tokens show font family names.\nReport any rendering errors, blank sections, or missing content.\n"
+      }
+    ],
+    "providers": [
+      {
+        "id": "opencode:sdk",
+        "label": "gemini-3-pro",
+        "config": {
+          "provider_id": "google",
+          "model": "antigravity-gemini-3-pro",
+          "timeout": 120000,
+          "tools": {
+            "read": true,
+            "grep": true,
+            "glob": true,
+            "list": true,
+            "write": true,
+            "edit": true,
+            "bash": true,
+            "webfetch": true,
+            "skill": true
+          },
+          "permission": {
+            "bash": "allow",
+            "edit": "allow",
+            "external_directory": "allow"
+          }
+        }
+      },
+      {
+        "id": "opencode:sdk",
+        "label": "claude-opus-4-6",
+        "config": {
+          "provider_id": "google",
+          "model": "antigravity-claude-opus-4-6-thinking",
+          "timeout": 120000,
+          "tools": {
+            "read": true,
+            "grep": true,
+            "glob": true,
+            "list": true,
+            "write": true,
+            "edit": true,
+            "bash": true,
+            "webfetch": true,
+            "skill": true
+          },
+          "permission": {
+            "bash": "allow",
+            "edit": "allow",
+            "external_directory": "allow"
+          }
+        }
+      }
+    ],
+    "tests": [
+      {
+        "description": "debo-product-vision: PetMatch",
+        "prompts": [
+          "product-vision"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //debo-product-vision workflow for \"PetMatch\".\nVerify from the conversation output:\n1. A file was created at product/product-overview.md inside the workspace\n2. The file starts with a level-1 heading containing \"PetMatch\"\n3. The file contains a \"## Description\" section with 1-3 sentences\n4. The file contains a \"## Problems & Solutions\" section with at least 2 problem/solution pairs\n5. The file contains a \"## Key Features\" section with at least 3 features\n6. The agent confirmed completion and mentioned Storybook\n"
+          }
+        ]
+      },
+      {
+        "description": "debo-product-sections: PetMatch",
+        "prompts": [
+          "product-sections"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //debo-product-sections workflow for \"PetMatch\".\nVerify from the conversation output:\n1. Between 3 and 5 section directories were created under sections/\n2. Each section has an overview.section.yml file\n3. Each YAML file contains id, title, description, status, and order fields\n4. The id values are kebab-case\n5. The directory name matches the id for each section\n6. The status field is \"planned\" for all sections\n7. The order values are sequential (1, 2, 3, ...)\n"
+          }
+        ]
+      },
+      {
+        "description": "debo-design-tokens: PetMatch",
+        "prompts": [
+          "design-tokens"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //debo-design-tokens workflow for \"PetMatch\".\nVerify from the conversation output:\n1. A file was created at design-system/design-tokens.yml (or .md)\n2. The token file contains a \"color\" group with at least primary, secondary, and accent tokens\n3. Each color token has $value (hex format like #XXXXXX) and $type: color\n4. The file contains a \"typography\" group with heading, body, and mono tokens\n5. Each typography token has $value (Google Font name) and $type: fontFamily\n6. The agent mentioned Storybook and/or the Design System page\n"
+          }
+        ]
+      },
+      {
+        "description": "debo-data-model: PetMatch",
+        "prompts": [
+          "data-model"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //debo-data-model workflow for \"PetMatch\".\nVerify from the conversation output:\n1. A file was created at data-model.yml inside the workspace\n2. The file has a top-level \"content\" key\n3. Under content, at least one entity_type (e.g., node) exists\n4. Each entity_type contains at least one bundle\n5. Each bundle has a \"fields\" object with field definitions containing \"type\" and \"label\"\n6. The data model was validated (ajv-cli or skill validation ran successfully)\n"
+          }
+        ]
+      },
+      {
+        "description": "debo-css-generate: PetMatch",
+        "prompts": [
+          "css-generate"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //debo-css-generate workflow.\nVerify from the conversation output:\n1. The agent loaded configuration (sourced set-env.sh or read designbook.config.yml)\n2. The agent read/verified design-tokens.yml exists\n3. CSS files were generated under css/tokens/ and/or css/themes/ directories\n4. The generated files have .src.css extension\n5. The agent verified the output (files exist and are non-empty)\n6. The app.src.css was updated with @import lines (or already contained them)\n"
+          }
+        ]
+      },
+      {
+        "description": "debo-shape-section: PetMatch homepage",
+        "prompts": [
+          "shape-section"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //shape-section workflow for a PetMatch section.\nVerify from the conversation output:\n1. A spec.md file was created inside a section directory (e.g. sections/homepage/spec.md)\n2. The file contains a level-1 heading with the section title and \"Specification\"\n3. The file contains an \"## Overview\" section with 2-3 sentences\n4. The file contains a \"## User Flows\" section with at least 2 user flows\n5. The file contains a \"## UI Requirements\" section with at least 2 requirements\n6. The file contains a \"## Configuration\" section with a \"shell:\" setting (true/false)\n"
+          }
+        ]
+      },
+      {
+        "description": "debo-design-component: PetMatch card",
+        "prompts": [
+          "design-component"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //debo-design-component workflow for a PetMatch component.\nVerify from the conversation output:\n1. A component directory was created under components/\n2. The directory contains a .component.yml file with name, status, and group fields\n3. The directory contains a .twig template file\n4. The directory contains at least one .story.yml file\n5. All files share the same kebab-case base name matching the directory\n6. The .component.yml has a provider field set\n7. The agent confirmed component creation was successful\n"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "OPTIONAL Storybook verification (non-blocking):\nCheck if the agent validated the component in Storybook:\n1. Used designbook-component-validate skill, OR\n2. Opened a Storybook URL (http://localhost:6009/iframe.html?id=...)\nIf Storybook was not running, this is acceptable — do not fail.\n"
+          }
+        ]
+      },
+      {
+        "description": "debo-sample-data: PetMatch homepage",
+        "prompts": [
+          "sample-data"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //sample-data workflow for a PetMatch section.\nVerify from the conversation output:\n1. A data.yml file was created inside a section directory\n2. The file contains a \"_meta\" key with \"models\" and \"relationships\" subkeys\n3. At least one entity type array exists with sample records\n4. Each record has an \"id\" field\n5. At least 5 records total exist across all entity types\n6. The content uses realistic data, not placeholder/lorem ipsum text\n7. Relationships between entities use foreign key patterns (e.g., entityId references)\n"
+          }
+        ]
+      },
+      {
+        "description": "debo-design-screen: PetMatch homepage",
+        "prompts": [
+          "design-screen"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //debo-design-screen workflow for a PetMatch section.\nVerify from the conversation output:\n1. The agent generated a multi-phase plan before executing\n2. Screen YAML files were created under sections/[id]/screens/ directory\n3. Each screen file has name, section, and layout keys\n4. The layout key contains structured entries with either \"component\" or \"entity\" references\n5. Entity entries reference entity_type.bundle format (e.g., node.article)\n6. Component entries reference existing UI components by name\n7. At least 2 component files (.component.yml, .twig, .story.yml) were created or verified\n8. CSS generation was run for the new components\n"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "OPTIONAL Storybook verification (non-blocking):\nCheck if the agent validated screen components in Storybook:\n1. Used designbook-component-validate skill, OR\n2. Opened Storybook URLs to verify rendering\nIf Storybook was not running, this is acceptable — do not fail.\n"
+          }
+        ]
+      },
+      {
+        "description": "debo-design-shell: PetMatch",
+        "prompts": [
+          "design-shell"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent executed the //design-shell workflow for \"PetMatch\".\nVerify from the conversation output:\n1. A file was created at design-shell/shell-spec.md\n2. The file contains \"# Application Shell\" heading\n3. The file contains \"## Navigation Structure\" with navigation items\n4. The file contains \"## Layout Pattern\" describing the chosen layout\n5. The file contains \"## Responsive Behavior\" with desktop, tablet, and mobile sections\n6. Navigation items map to the product's roadmap sections\n7. The agent confirmed completion and mentioned Storybook\n"
+          }
+        ]
+      },
+      {
+        "description": "addon-integration: PetMatch data model renders in Storybook",
+        "prompts": [
+          "addon-data-model"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent was asked to verify the Designbook addon renders correctly.\nVerify from the conversation output:\n1. Storybook was opened at localhost:6009\n2. The \"Designbook/Data Model\" page was navigated to\n3. The page displays data model content (entity types, bundles, fields)\n4. No rendering errors or blank sections appear\n5. The DeboDataModel component rendered structured output\n"
+          }
+        ]
+      },
+      {
+        "description": "addon-integration: PetMatch design tokens render in Storybook",
+        "prompts": [
+          "addon-design-tokens"
+        ],
+        "assert": [
+          {
+            "type": "llm-rubric",
+            "value": "The agent verified the Designbook Design System page in Storybook.\nVerify from the conversation output:\n1. The \"Designbook/Design System\" page was navigated to\n2. Color tokens are displayed with hex values\n3. Typography tokens are displayed with font names\n4. No rendering errors or empty sections\n"
+          }
+        ]
+      }
+    ],
+    "scenarios": [],
+    "env": {},
+    "defaultTest": {
+      "options": {
+        "provider": "opencode:google/antigravity-gemini-3-pro"
+      },
+      "vars": {},
+      "assert": [],
+      "metadata": {}
+    },
+    "outputPath": [
+      "reports/workflows.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {
+      "maxConcurrency": 2
+    }
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.120.24",
+    "nodeVersion": "v22.20.0",
+    "platform": "linux",
+    "arch": "x64",
+    "exportedAt": "2026-03-08T00:12:54.239Z",
+    "evaluationCreatedAt": "2026-03-08T00:07:51.968Z"
+  }
+}
