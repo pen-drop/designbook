@@ -16,7 +16,7 @@ Check if the following files exist for the target section:
 - `designbook/sections/[section-id]/spec.section.yml` — section spec (required)
 - `designbook/sections/[section-id]/data.yml` — sample data (required)
 - `designbook/design-system/design-tokens.md` — design tokens (optional)
-- `designbook/design-shell/shell-spec.md` — application shell (optional)
+- `designbook/shell/shell.screen.yml` — application shell (optional)
 
 **If spec or data are missing**, tell the user:
 
