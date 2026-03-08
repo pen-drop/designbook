@@ -28,10 +28,31 @@ Every skill lives under `.agent/skills/[skill-name]/` and follows this structure
 
 | Scope | Convention | Example |
 |-------|-----------|---------|
-| Skill directory | `designbook-[concern]` | `designbook-drupal-components` |
+| Component skills | `designbook-[concern]-[component-framework]` | `designbook-components-sdc` |
+| CSS skills | `designbook-css-[css-framework]` | `designbook-css-daisyui` |
+| Backend skills | `designbook-[concern]-[backend]` | `designbook-data-model-drupal` |
+| Figma pipeline | `designbook-figma-[concern]-[component-framework]` | `designbook-figma-components-sdc` |
 | Addon skills | `designbook-addon-[concern]` | `designbook-addon-components` |
-| Technology skills | `designbook-[technology]-[concern]` | `designbook-drupal-components` |
 | Workflow files | `debo-[action]` | `debo-design-component` |
+
+> [!IMPORTANT]
+> **Concern-first, framework-last.** The framework/backend identifier always comes last in the skill name. This enables convention-based skill selection — swap the suffix to switch implementations:
+>
+> | `frameworks.component` | Component Skill | Figma Skill |
+> |---|---|---|
+> | `sdc` | `designbook-components-sdc` | `designbook-figma-components-sdc` |
+> | `react` | `designbook-components-react` | `designbook-figma-components-react` |
+>
+> | `frameworks.css` | CSS Skill |
+> |---|---|
+> | `daisyui` | `designbook-css-daisyui` |
+> | `tailwind` | `designbook-css-tailwind` |
+>
+> | `backend` | Backend Skill |
+> |---|---|
+> | `drupal` | `designbook-data-model-drupal` |
+>
+> Skills are loaded based on `DESIGNBOOK_FRAMEWORK_COMPONENT`, `DESIGNBOOK_FRAMEWORK_CSS`, and `DESIGNBOOK_BACKEND`.
 
 ## Schema Validation
 
@@ -50,7 +71,7 @@ npm install ajv-cli@3 ajv@6
 Schemas must be **bundled within the skill directory**, not downloaded at runtime:
 
 ```
-.agent/skills/designbook-drupal-components/
+.agent/skills/designbook-components-sdc/
 ├── SKILL.md
 ├── metadata.schema.json    # ✅ Bundled schema
 └── resources/
@@ -197,12 +218,12 @@ Skills that need project configuration should use the `designbook-configuration`
 
 ```bash
 source .agent/skills/designbook-configuration/scripts/set-env.sh
-echo $DESIGNBOOK_TECHNOLOGY
+echo $DESIGNBOOK_BACKEND
 echo $DESIGNBOOK_DRUPAL_THEME
 ```
 
 All config keys from `designbook.config.yml` are automatically exported as `DESIGNBOOK_*` environment variables. Nested keys use underscores:
-- `technology` → `DESIGNBOOK_TECHNOLOGY`
+- `backend` → `DESIGNBOOK_BACKEND`
 - `drupal.theme` → `DESIGNBOOK_DRUPAL_THEME`
 
 ## Workflow Integration
@@ -210,7 +231,7 @@ All config keys from `designbook.config.yml` are automatically exported as `DESI
 Skills are the **implementation**. Workflows are the **user-facing interface**.
 
 ```
-Workflow (debo-design-component)     →  Skill (designbook-drupal-components)
+Workflow (debo-design-component)     →  Skill (designbook-components-sdc)
   ↳ Gathers input conversationally       ↳ Generates files, validates, verifies
 ```
 

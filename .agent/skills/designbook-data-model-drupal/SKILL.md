@@ -1,13 +1,13 @@
 ---
 name: designbook-data-model-drupal
-description: Guidelines for creating Drupal-compatible data models. Load this skill when DESIGNBOOK_TECHNOLOGY is drupal.
+description: Guidelines for creating Drupal-compatible data models. Load this skill when DESIGNBOOK_BACKEND is drupal.
 ---
 
 # Drupal Data Model Best Practices
 
 This skill provides guidelines for creating data models compatible with Drupal. It **SHOULD** be loaded and referenced when:
 1.  You are creating or modifying a data model.
-2.  The `DESIGNBOOK_TECHNOLOGY` is set to `drupal`.
+2.  The `DESIGNBOOK_BACKEND` is set to `drupal`.
 
 It describes the expected entity types (`node`, `media`) and field naming conventions (`field_` prefix) that the author (Agent or User) must apply manually.
 

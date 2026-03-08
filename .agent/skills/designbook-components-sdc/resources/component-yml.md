@@ -64,7 +64,7 @@ Validate the generated YAML file against the Drupal SDC metadata JSON schema usi
 
 > ⚠️ The Drupal SDC schema uses **JSON Schema Draft-04**. Use `ajv-cli@3` + `ajv@6` (see `designbook-skills` for details).
 
-The schema is bundled at `.agent/skills/designbook-drupal-components/metadata.schema.json`.
+The schema is bundled at `.agent/skills/designbook-components-sdc/metadata.schema.json`.
 
 **Convert YAML to JSON for validation:**
 ```bash
@@ -79,7 +79,7 @@ fs.writeFileSync('/tmp/component-validate.json', JSON.stringify(parsed, null, 2)
 
 **Run validation:**
 ```bash
-npx ajv-cli validate -s .agent/skills/designbook-drupal-components/metadata.schema.json -d /tmp/component-validate.json
+npx ajv-cli validate -s .agent/skills/designbook-components-sdc/metadata.schema.json -d /tmp/component-validate.json
 ```
 
 **If validation fails:**

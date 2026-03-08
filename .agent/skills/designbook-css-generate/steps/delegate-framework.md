@@ -5,11 +5,11 @@ description: Selects and invokes the framework-specific CSS skill to generate .j
 
 # Delegate to Framework Skill
 
-This step selects the correct framework-specific skill based on `DESIGNBOOK_CSS_FRAMEWORK` and invokes it to generate `.jsonata` expression files.
+This step selects the correct framework-specific skill based on `DESIGNBOOK_FRAMEWORK_CSS` and invokes it to generate `.jsonata` expression files.
 
 ## Prerequisites
 - Step 1–2 completed
-- `DESIGNBOOK_CSS_FRAMEWORK` environment variable is set
+- `DESIGNBOOK_FRAMEWORK_CSS` environment variable is set
 
 ## Framework Skill Registry
 
@@ -20,9 +20,9 @@ This step selects the correct framework-specific skill based on `DESIGNBOOK_CSS_
 ## Process
 
 1. **Check framework is configured**
-   - Read `DESIGNBOOK_CSS_FRAMEWORK`
+   - Read `DESIGNBOOK_FRAMEWORK_CSS`
    - If not set or empty:
-     > "❌ No CSS framework configured. Add `css.framework` to `designbook.config.yml`:
+     > "❌ No CSS framework configured. Add `frameworks.css` to `designbook.config.yml`:
      > ```yaml
      > css:
      >   framework: daisyui
@@ -31,9 +31,9 @@ This step selects the correct framework-specific skill based on `DESIGNBOOK_CSS_
    - Stop here.
 
 2. **Match to framework skill**
-   - Look up `DESIGNBOOK_CSS_FRAMEWORK` in the registry table above
+   - Look up `DESIGNBOOK_FRAMEWORK_CSS` in the registry table above
    - If no match:
-     > "❌ Unknown CSS framework `$DESIGNBOOK_CSS_FRAMEWORK`. Supported frameworks: `daisyui`"
+     > "❌ Unknown CSS framework `$DESIGNBOOK_FRAMEWORK_CSS`. Supported frameworks: `daisyui`"
    - Stop here.
 
 3. **Invoke framework skill**

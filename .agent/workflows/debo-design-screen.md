@@ -47,16 +47,16 @@ Wait for their response.
 
 > ⛔ **MANDATORY**: Before generating a plan, you **MUST** read **every** skill and resource file listed below. This ensures the plan accounts for all component conventions, CSS rules, and layout patterns.
 
-**Component Skills (`designbook-$DESIGNBOOK_TECHNOLOGY-components-*`):**
+**Component Skills (`designbook-$DESIGNBOOK_FRAMEWORK_COMPONENT-components-*`):**
 
-1. `.agent/skills/designbook-drupal-components-ui/SKILL.md` **and ALL resources:**
+1. `.agent/skills/designbook-components-sdc/SKILL.md` **and ALL resources:**
    - `resources/component-yml.md`
    - `resources/layout-reference.md` ← **critical for layout decisions**
    - `resources/rules.md`
    - `resources/shell-generation.md`
    - `resources/story-yml.md`
    - `resources/twig.md`
-2. `.agent/skills/designbook-drupal-components-entity/SKILL.md` **and:**
+2. `.agent/skills/designbook-components-entity-sdc/SKILL.md` **and:**
    - `generate-stories.js`
 3. `.agent/skills/designbook-screen/SKILL.md`
 
@@ -162,11 +162,11 @@ Add or update the `screen` key in `designbook/sections/[section-id]/spec.section
 
 **5.2 — Generate Shell UI Components**
 
-Execute the `designbook-drupal-components-ui` skill using the **Shell Components** section. This generates header/footer components.
+Execute the `designbook-components-sdc` skill using the **Shell Components** section. This generates header/footer components.
 
 **5.3 — Generate UI Components**
 
-Create any new UI components identified in the plan using the `designbook-drupal-components-ui` skill.
+Create any new UI components identified in the plan using the `designbook-components-sdc` skill.
 
 **5.4 — Generate Entity View modes**
 
@@ -208,4 +208,4 @@ Execute the `designbook-css-generate` skill to generate CSS tokens for all new c
 - Focus on what the user sees and does, not implementation details
 - The plan MUST be approved by the user before any execution begins
 - The 3 generation steps must run in order: shell (UI) → entity → screen (each depends on the previous)
-- Each skill delegates to `designbook-drupal-components-ui` for file creation
+- Each skill delegates to `designbook-components-sdc` for file creation

@@ -9,7 +9,7 @@ Generic CSS generation pipeline that transforms W3C Design Tokens into CSS files
 
 ## Prerequisites
 
-1. `DESIGNBOOK_CSS_FRAMEWORK` must be set (via `css.framework` in `designbook.config.yml`)
+1. `DESIGNBOOK_FRAMEWORK_CSS` must be set (via `frameworks.css` in `designbook.config.yml`)
 2. `DESIGNBOOK_DRUPAL_THEME` must be set (via `drupal.theme` in `designbook.config.yml`)
 3. `DESIGNBOOK_DIST` must be set
 4. Load configuration:
@@ -34,7 +34,7 @@ Generic CSS generation pipeline that transforms W3C Design Tokens into CSS files
    - Allows force regeneration
 
 3. **Delegate to Framework Skill** (`./steps/delegate-framework.md`)
-   - Selects the framework-specific skill based on `DESIGNBOOK_CSS_FRAMEWORK`
+   - Selects the framework-specific skill based on `DESIGNBOOK_FRAMEWORK_CSS`
    - The framework skill generates `.jsonata` expression files
    - Each expression file is self-contained with input/output paths
 

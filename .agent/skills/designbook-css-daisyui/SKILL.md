@@ -1,6 +1,6 @@
 ---
 name: designbook-css-daisyui
-description: DaisyUI framework rules — Tailwind-only styling, token naming conventions, and CSS token generation from W3C Design Tokens. Use when DESIGNBOOK_CSS_FRAMEWORK is daisyui.
+description: DaisyUI framework rules — Tailwind-only styling, token naming conventions, and CSS token generation from W3C Design Tokens. Use when DESIGNBOOK_FRAMEWORK_CSS is daisyui.
 ---
 
 # Designbook CSS DaisyUI
@@ -13,7 +13,7 @@ DaisyUI-specific rules for styling, token naming, and CSS token generation. This
 
 ## ⚠️ Styling Rules — Tailwind Classes Only
 
-When `DESIGNBOOK_CSS_FRAMEWORK` is `daisyui`, **all styling MUST use Tailwind CSS utility classes and DaisyUI component classes exclusively**. No custom CSS is allowed.
+When `DESIGNBOOK_FRAMEWORK_CSS` is `daisyui`, **all styling MUST use Tailwind CSS utility classes and DaisyUI component classes exclusively**. No custom CSS is allowed.
 
 ### ✅ Allowed
 - **Tailwind utility classes**: `text-lg`, `p-4`, `flex`, `gap-2`, `rounded-lg`, `bg-base-200`, etc.
@@ -49,7 +49,7 @@ Read this file when you need to understand DaisyUI class names, theme format (`@
 
 ## 🎨 Token Naming Conventions
 
-When `DESIGNBOOK_CSS_FRAMEWORK` is `daisyui`, design tokens **MUST** use DaisyUI/Tailwind semantic names. This ensures tokens map directly to DaisyUI theme variables and Tailwind utility classes without additional translation.
+When `DESIGNBOOK_FRAMEWORK_CSS` is `daisyui`, design tokens **MUST** use DaisyUI/Tailwind semantic names. This ensures tokens map directly to DaisyUI theme variables and Tailwind utility classes without additional translation.
 
 > **Who uses this section?** The `debo-design-tokens` workflow reads this section to guide the user through naming their tokens correctly.
 

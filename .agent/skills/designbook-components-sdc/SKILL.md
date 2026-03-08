@@ -1,6 +1,6 @@
 ---
 name: Designbook Drupal Components
-description: Creates Drupal SDC component files (.component.yml, .story.yml, and .twig) from structured component definition. Load this skill when DESIGNBOOK_TECHNOLOGY is drupal. Used when building UI components.
+description: Creates Drupal SDC component files (.component.yml, .story.yml, and .twig) from structured component definition. Load this skill when DESIGNBOOK_FRAMEWORK_COMPONENT is sdc. Used when building UI components.
 ---
 
 # Designbook Drupal Components — UI
@@ -11,8 +11,8 @@ description: Creates Drupal SDC component files (.component.yml, .story.yml, and
 
 | Type | Skill | Has Markup? | Location | Prefix | Provider |
 |------|-------|-------------|----------|--------|----------|
-| **UI** ← this skill | `designbook-drupal-components-ui` | ✅ Yes — real HTML | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `daisy_cms_daisyui`) |
-| Entity | `designbook-drupal-components-entity` | ❌ No — structural wrapper | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
+| **UI** ← this skill | `designbook-components-sdc` | ✅ Yes — real HTML | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `daisy_cms_daisyui`) |
+| Entity | `designbook-components-entity-sdc` | ❌ No — structural wrapper | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
 | Screen | `designbook-screen` | ❌ No — `*.screen.yml` only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
 
 > [!CAUTION]
@@ -73,7 +73,7 @@ This skill generates Drupal Single Directory Component (SDC) files from a struct
 
 ## Prerequisites
 
-1. This skill is **technology-specific** and should only be used when `DESIGNBOOK_TECHNOLOGY` is set to `drupal` in `designbook.config.yml`.
+1. This skill is **component-framework-specific** and should only be used when `DESIGNBOOK_FRAMEWORK_COMPONENT` is set to `sdc` in `designbook.config.yml`.
 2. Load the configuration using the `designbook-configuration` skill to check the technology value before invoking this skill.
 3. `DESIGNBOOK_DRUPAL_THEME` must be set (via `drupal.theme` in `designbook.config.yml`). UI component files are written to `$DESIGNBOOK_DRUPAL_THEME/components/[component-name]/` by default.
 

@@ -94,9 +94,9 @@ Check if the following components exist under `$DESIGNBOOK_DRUPAL_THEME/componen
 2. **`header`** — Logo, navigation, CTA
 3. **`footer`** — Footer links, copyright, social
 
-For each missing component, create it using the `designbook-drupal-components` skill:
+For each missing component, create it using the `designbook-components-sdc` skill:
 
-Read and execute: `.agent/skills/designbook-drupal-components-ui/SKILL.md`
+Read and execute: `.agent/skills/designbook-components-sdc/SKILL.md`
 
 ### page component
 ```yaml
@@ -237,7 +237,7 @@ Populate all values from the user's approved design in Step 4.
 - Be conversational — help the user think through layout decisions
 - Navigation items should map to the product's sections
 - Consider the product type when suggesting layout patterns
-- Components use the `designbook-drupal-components` skill for creation
+- Components use the `designbook-components-sdc` skill for creation
 - If `shell/shell.screen.yml` already exists, read it first and ask: "You already have a shell design. Would you like to update it or start fresh?"
 - If page/header/footer components already exist, reuse them — only create if missing
 - The `docs` field in the screen replaces the old `shell-spec.md` — no separate Markdown file needed

@@ -8,19 +8,31 @@ LOAD_CONFIG_SCRIPT="$SCRIPT_DIR/load-config.cjs"
 CONFIG_JSON=$(node "$LOAD_CONFIG_SCRIPT")
 
 # Dynamically export all config keys as DESIGNBOOK_* environment variables.
-# Nested YAML keys (e.g. drupal.theme) are flattened with underscores and uppercased.
+# Nested YAML keys (e.g. drupal.theme, frameworks.component) are flattened
+# with underscores and uppercased.
 # Example: drupal.theme → DESIGNBOOK_DRUPAL_THEME
+#          frameworks.component → DESIGNBOOK_FRAMEWORK_COMPONENT
 eval "$(echo "$CONFIG_JSON" | node -e "
 const config = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
-for (const [key, value] of Object.entries(config)) {
-  const envName = 'DESIGNBOOK_' + key.replace(/\./g, '_').toUpperCase();
-  // Escape single quotes in values for safe shell export
-  const escaped = String(value).replace(/'/g, \"'\\\\''\");
-  console.log('export ' + envName + \"='\" + escaped + \"'\");
+
+function flatten(obj, prefix) {
+  for (const [key, value] of Object.entries(obj)) {
+    // Special case: 'frameworks' key uses singular 'FRAMEWORK' prefix
+    const part = key === 'frameworks' ? 'FRAMEWORK' : key.toUpperCase();
+    const envName = prefix + '_' + part;
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      flatten(value, envName);
+    } else {
+      const escaped = String(value).replace(/'/g, \"'\\\\''\" );
+      console.log('export ' + envName + \"='\" + escaped + \"'\");
+    }
+  }
 }
+
+flatten(config, 'DESIGNBOOK');
 ")"
 
 # Fallbacks if config was empty or parsing failed
 if [ -z "$DESIGNBOOK_DIST" ]; then export DESIGNBOOK_DIST="designbook"; fi
 if [ -z "$DESIGNBOOK_TMP" ]; then export DESIGNBOOK_TMP="tmp"; fi
-if [ -z "$DESIGNBOOK_TECHNOLOGY" ]; then export DESIGNBOOK_TECHNOLOGY="html"; fi
+if [ -z "$DESIGNBOOK_BACKEND" ]; then export DESIGNBOOK_BACKEND="drupal"; fi
