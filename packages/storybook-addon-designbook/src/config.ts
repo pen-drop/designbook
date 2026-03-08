@@ -15,20 +15,20 @@ import { parse as parseYaml } from 'yaml';
 const CONFIG_FILENAMES = ['designbook.config.yml', 'designbook.config.yaml'];
 
 export interface DesignbookConfig {
-    /** Path to the dist/output directory (resolved to absolute path relative to config location). */
-    dist: string;
-    /** Technology used (e.g. 'html', 'drupal'). */
-    technology: string;
-    /** Temporary directory. */
-    tmp: string;
-    /** Any additional keys from the config file. */
-    [key: string]: unknown;
+  /** Path to the dist/output directory (resolved to absolute path relative to config location). */
+  dist: string;
+  /** Technology used (e.g. 'html', 'drupal'). */
+  technology: string;
+  /** Temporary directory. */
+  tmp: string;
+  /** Any additional keys from the config file. */
+  [key: string]: unknown;
 }
 
 const DEFAULTS: DesignbookConfig = {
-    dist: 'designbook',
-    technology: 'html',
-    tmp: 'tmp',
+  dist: 'designbook',
+  technology: 'html',
+  tmp: 'tmp',
 };
 
 /**
@@ -42,25 +42,25 @@ const DEFAULTS: DesignbookConfig = {
  * @returns Absolute path to the config file, or `null` if not found
  */
 export function findConfig(startDir: string = process.cwd()): string | null {
-    let currentDir = resolve(startDir);
-    const root = parsePath(currentDir).root;
+  let currentDir = resolve(startDir);
+  const root = parsePath(currentDir).root;
 
-    while (true) {
-        for (const filename of CONFIG_FILENAMES) {
-            const configPath = resolve(currentDir, filename);
-            if (existsSync(configPath)) {
-                return configPath;
-            }
-        }
-
-        if (currentDir === root) {
-            break;
-        }
-
-        currentDir = dirname(currentDir);
+  while (true) {
+    for (const filename of CONFIG_FILENAMES) {
+      const configPath = resolve(currentDir, filename);
+      if (existsSync(configPath)) {
+        return configPath;
+      }
     }
 
-    return null;
+    if (currentDir === root) {
+      break;
+    }
+
+    currentDir = dirname(currentDir);
+  }
+
+  return null;
 }
 
 /**
@@ -74,37 +74,37 @@ export function findConfig(startDir: string = process.cwd()): string | null {
  * @returns Parsed config with defaults applied
  */
 export function loadConfig(startDir?: string): DesignbookConfig {
-    const configPath = findConfig(startDir);
+  const configPath = findConfig(startDir);
 
-    if (!configPath) {
-        return { ...DEFAULTS, dist: resolve(process.cwd(), DEFAULTS.dist) };
-    }
+  if (!configPath) {
+    return { ...DEFAULTS, dist: resolve(process.cwd(), DEFAULTS.dist) };
+  }
 
-    try {
-        const content = readFileSync(configPath, 'utf-8');
-        const parsed = parseYaml(content) || {};
-        const configDir = dirname(configPath);
+  try {
+    const content = readFileSync(configPath, 'utf-8');
+    const parsed = parseYaml(content) || {};
+    const configDir = dirname(configPath);
 
-        // Flatten nested keys (e.g. css.framework → css.framework) for compatibility
-        // with the existing environment variable pattern
-        const flat: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(parsed)) {
-            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                for (const [subKey, subValue] of Object.entries(value as Record<string, unknown>)) {
-                    flat[`${key}.${subKey}`] = subValue;
-                }
-            } else {
-                flat[key] = value;
-            }
+    // Flatten nested keys (e.g. css.framework → css.framework) for compatibility
+    // with the existing environment variable pattern
+    const flat: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        for (const [subKey, subValue] of Object.entries(value as Record<string, unknown>)) {
+          flat[`${key}.${subKey}`] = subValue;
         }
-
-        const config = { ...DEFAULTS, ...flat } as DesignbookConfig;
-
-        // Resolve dist path relative to config file location, not cwd
-        config.dist = resolve(configDir, config.dist);
-
-        return config;
-    } catch {
-        return { ...DEFAULTS, dist: resolve(process.cwd(), DEFAULTS.dist) };
+      } else {
+        flat[key] = value;
+      }
     }
+
+    const config = { ...DEFAULTS, ...flat } as DesignbookConfig;
+
+    // Resolve dist path relative to config file location, not cwd
+    config.dist = resolve(configDir, config.dist);
+
+    return config;
+  } catch {
+    return { ...DEFAULTS, dist: resolve(process.cwd(), DEFAULTS.dist) };
+  }
 }

@@ -456,10 +456,10 @@ async function loadSectionYml(id: string): Promise<string | null> {
       "import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionDetailPage.jsx';",
       '',
       'const SectionPage = () => (<><h1>' +
-      escapedTitle +
-      '</h1><DeboSectionDetailPage sectionId="' +
-      escapedId +
-      '" /></>);',
+        escapedTitle +
+        '</h1><DeboSectionDetailPage sectionId="' +
+        escapedId +
+        '" /></>);',
       '',
       'export default {',
       "  title: 'Designbook/Sections/" + escapedTitle + "',",
