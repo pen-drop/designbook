@@ -1,6 +1,6 @@
 ---
-name: /design-shell
-id: design-shell
+name: /debo-design-shell
+id: debo-design-shell
 category: Designbook
 description: Design the application shell — page component with header, content, and footer slots
 ---

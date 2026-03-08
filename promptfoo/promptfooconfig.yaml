@@ -111,9 +111,10 @@ prompts:
     label: design-shell
     raw: |
       You are working in the directory {{workspace}}.
-      Run the //design-shell workflow. Do NOT ask any questions.
+      Run the //debo-design-shell workflow. Do NOT ask any questions.
       The product is "PetMatch". Read the product overview and section definitions for navigation planning.
       The shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.
+      The result should be a shell.screen.yml file and page/header/footer components.
       Execute the workflow now.
 
 providers:
@@ -329,12 +330,12 @@ tests:
     assert:
       - type: llm-rubric
         value: |
-          The agent executed the //design-shell workflow for "PetMatch".
+          The agent executed the //debo-design-shell workflow for "PetMatch".
           Verify from the conversation output:
-          1. A file was created at design-shell/shell-spec.md
-          2. The file contains "# Application Shell" heading
-          3. The file contains "## Navigation Structure" with navigation items
-          4. The file contains "## Layout Pattern" describing the chosen layout
-          5. The file contains "## Responsive Behavior" with desktop, tablet, and mobile sections
-          6. Navigation items map to the product's roadmap sections
-          7. The agent confirmed completion and mentioned Storybook
+          1. A shell.screen.yml file was created under shell/
+          2. The screen composes a page component with header, content, and footer slots
+          3. A page component was created or confirmed existing (with header/content/footer slots)
+          4. A header component was created or confirmed existing (with logo and nav_items)
+          5. A footer component was created or confirmed existing (with links and copyright)
+          6. Navigation items map to the product's sections
+          7. The agent confirmed completion
