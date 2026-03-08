@@ -121,9 +121,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
         const relativePath = './' + relative(process.cwd(), fileName);
 
         // Support both new scenes[] format and legacy flat format
-        const scenes = Array.isArray(parsed.scenes)
-          ? parsed.scenes
-          : [parsed];
+        const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [parsed];
 
         const entries = scenes.map((scene: Record<string, unknown>, idx: number) => {
           const name = (scene.name as string) || `Scene ${idx + 1}`;

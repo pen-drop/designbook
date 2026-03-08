@@ -202,9 +202,7 @@ async function loadScenesYml(
     const raw = parseYaml(content);
 
     // Support both new scenes[] format and legacy flat format
-    const scenesArray: unknown[] = Array.isArray(raw.scenes)
-      ? raw.scenes
-      : [raw]; // Legacy: treat entire file as single scene
+    const scenesArray: unknown[] = Array.isArray(raw.scenes) ? raw.scenes : [raw]; // Legacy: treat entire file as single scene
 
     const parsedScenes = scenesArray.map((s: unknown) => parseScene(s));
 
@@ -459,10 +457,10 @@ async function loadSectionYml(id: string): Promise<string | null> {
       "import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionDetailPage.jsx';",
       '',
       'const SectionPage = () => (<><h1>' +
-      escapedTitle +
-      '</h1><DeboSectionDetailPage sectionId="' +
-      escapedId +
-      '" /></>);',
+        escapedTitle +
+        '</h1><DeboSectionDetailPage sectionId="' +
+        escapedId +
+        '" /></>);',
       '',
       'export default {',
       "  title: 'Designbook/Sections/" + escapedTitle + "',",
