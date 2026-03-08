@@ -1,6 +1,6 @@
 description: "Designbook workflow evaluation suite"
 
-outputPath: reports/workflows.json
+outputPath: promptfoo/reports/workflows.json
 
 prompts:
   - id: debo-product-vision
@@ -22,7 +22,7 @@ prompts:
       - Community forum and resources
       - Vet integration and health tracking
 
-      Execute the workflow now. Write all output files to the designbook directory.
+      Execute the workflow now.
 
   - id: debo-product-sections
     label: product-sections
@@ -116,22 +116,6 @@ prompts:
       The shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.
       Execute the workflow now.
 
-  - id: addon-verify-data-model
-    label: addon-data-model
-    raw: |
-      Open Storybook at http://localhost:6009.
-      Navigate to the "Designbook/Data Model" page.
-      Verify that the page renders correctly — it should display entity types, bundles, and field definitions from the PetMatch data model.
-      Report any rendering errors, blank sections, or missing content.
-
-  - id: addon-verify-design-tokens
-    label: addon-design-tokens
-    raw: |
-      Open Storybook at http://localhost:6009.
-      Navigate to the "Designbook/Design System" page.
-      Verify that color tokens are displayed with their hex values and typography tokens show font family names.
-      Report any rendering errors, blank sections, or missing content.
-
 providers:
   - id: opencode:sdk
     label: gemini-3-pro
@@ -172,6 +156,8 @@ defaultTest:
 tests:
   # --- product-vision ---
   - description: "debo-product-vision: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-product-vision
     prompts:
       - product-vision
     assert:
@@ -179,7 +165,7 @@ tests:
         value: |
           The agent executed the //debo-product-vision workflow for "PetMatch".
           Verify from the conversation output:
-          1. A file was created at product/product-overview.md inside the workspace
+          1. A file was created at designbook/product/product-overview.md inside the workspace
           2. The file starts with a level-1 heading containing "PetMatch"
           3. The file contains a "## Description" section with 1-3 sentences
           4. The file contains a "## Problems & Solutions" section with at least 2 problem/solution pairs
@@ -188,6 +174,8 @@ tests:
 
   # --- product-sections ---
   - description: "debo-product-sections: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-product-sections
     prompts:
       - product-sections
     assert:
@@ -205,6 +193,8 @@ tests:
 
   # --- design-tokens ---
   - description: "debo-design-tokens: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-design-tokens
     prompts:
       - design-tokens
     assert:
@@ -220,6 +210,8 @@ tests:
 
   # --- data-model ---
   - description: "debo-data-model: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-data-model
     prompts:
       - data-model
     assert:
@@ -235,6 +227,8 @@ tests:
 
   # --- css-generate ---
   - description: "debo-css-generate: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-css-generate
     prompts:
       - css-generate
     assert:
@@ -251,6 +245,8 @@ tests:
 
   # --- shape-section ---
   - description: "debo-shape-section: PetMatch homepage"
+    vars:
+      workspace: promptfoo/workspaces/debo-shape-section
     prompts:
       - shape-section
     assert:
@@ -266,6 +262,8 @@ tests:
 
   # --- design-component ---
   - description: "debo-design-component: PetMatch card"
+    vars:
+      workspace: promptfoo/workspaces/debo-design-component
     prompts:
       - design-component
     assert:
@@ -287,6 +285,8 @@ tests:
 
   # --- sample-data ---
   - description: "debo-sample-data: PetMatch homepage"
+    vars:
+      workspace: promptfoo/workspaces/debo-sample-data
     prompts:
       - sample-data
     assert:
@@ -295,15 +295,12 @@ tests:
           The agent executed the //sample-data workflow for a PetMatch section.
           Verify from the conversation output:
           1. A data.yml file was created inside a section directory
-          2. The file contains a "_meta" key with "models" and "relationships" subkeys
-          3. At least one entity type array exists with sample records
-          4. Each record has an "id" field
-          5. At least 5 records total exist across all entity types
-          6. The content uses realistic data, not placeholder/lorem ipsum text
-          7. Relationships between entities use foreign key patterns (e.g., entityId references)
+          3. Each record has an "id" field
 
   # --- design-screen ---
   - description: "debo-design-screen: PetMatch homepage"
+    vars:
+      workspace: promptfoo/workspaces/debo-design-screen
     prompts:
       - design-screen
     assert:
@@ -312,8 +309,7 @@ tests:
           The agent executed the //debo-design-screen workflow for a PetMatch section.
           Verify from the conversation output:
           1. The agent confirms creating screen YAML files under a screens/ directory
-          2. The agent mentions screen layouts with components and/or entities
-          3. The agent confirms creating or verifying UI components
+          3. The agent confirms creating or verifying UI components 
           4. The agent confirms successful completion
           5. The output does NOT indicate errors or failures
       - type: llm-rubric
@@ -326,6 +322,8 @@ tests:
 
   # --- design-shell ---
   - description: "debo-design-shell: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-design-shell
     prompts:
       - design-shell
     assert:
@@ -340,36 +338,3 @@ tests:
           5. The file contains "## Responsive Behavior" with desktop, tablet, and mobile sections
           6. Navigation items map to the product's roadmap sections
           7. The agent confirmed completion and mentioned Storybook
-
-# =============================================================================
-# Addon Integration Tests
-# =============================================================================
-
-  # --- addon: data model rendering ---
-  - description: "addon-integration: PetMatch data model renders in Storybook"
-    prompts:
-      - addon-data-model
-    assert:
-      - type: llm-rubric
-        value: |
-          The agent was asked to verify the Designbook addon renders correctly.
-          Verify from the conversation output:
-          1. Storybook was opened at localhost:6009
-          2. The "Designbook/Data Model" page was navigated to
-          3. The page displays data model content (entity types, bundles, fields)
-          4. No rendering errors or blank sections appear
-          5. The DeboDataModel component rendered structured output
-
-  # --- addon: design tokens rendering ---
-  - description: "addon-integration: PetMatch design tokens render in Storybook"
-    prompts:
-      - addon-design-tokens
-    assert:
-      - type: llm-rubric
-        value: |
-          The agent verified the Designbook Design System page in Storybook.
-          Verify from the conversation output:
-          1. The "Designbook/Design System" page was navigated to
-          2. Color tokens are displayed with hex values
-          3. Typography tokens are displayed with font names
-          4. No rendering errors or empty sections

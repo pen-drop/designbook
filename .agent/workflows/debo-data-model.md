@@ -7,6 +7,7 @@ description: Define your data model through a guided conversation
 
 Help the user define the core data model for their product. This establishes the "nouns" of the system — the entities and their relationships. The result is saved to `${DESIGNBOOK_DIST}/data-model.yml` using the `designbook-data-model` skill.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Context & Prerequisites

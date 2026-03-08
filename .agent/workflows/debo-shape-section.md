@@ -7,13 +7,13 @@ description: Define a section specification — user flows, UI requirements, and
 
 Help the user define a section specification for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/spec.section.yml`.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Check Prerequisites
 
 Check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
-- `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
 - `${DESIGNBOOK_DIST}/data-model.yml` — data model (optional, helpful)
 - `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (optional)
 - `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` — application shell (optional)
@@ -22,7 +22,7 @@ Check if the following files exist:
 
 > "Before shaping sections, you need to define your product and roadmap. Please run:
 > 1. `/debo-product-vision` — Define your product
-> 2. `/debo-product-roadmap` — Define your sections"
+> 2. `/debo-product-sections` — Define your sections"
 
 Stop here.
 

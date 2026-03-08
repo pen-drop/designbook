@@ -7,6 +7,7 @@ description: Create sample data and type definitions for a section
 
 Help the user create realistic sample data for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Check Prerequisites
