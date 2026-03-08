@@ -21,7 +21,9 @@ description: Generates screen design files that compose UI components + entity d
 2. **View mode expressions**: `$DESIGNBOOK_DIST/view-modes/{entity_type}.{bundle}.{view_mode}.jsonata` — see `designbook-view-modes` skill
 3. **Sample data** per section: `$DESIGNBOOK_DIST/sections/{section}/data.yml`
 4. **UI components** must exist (heading, figure, text-block, etc.)
-5. **Screen designs** (optional): `$DESIGNBOOK_DIST/sections/{section}/spec.section.yml` (under `screen` key)
+5. **Page component** must exist with `header`, `content`, `footer` slots — see `debo-design-shell` workflow
+6. **Header/Footer components** must exist — see `debo-design-shell` workflow
+7. **Screen designs** (optional): `$DESIGNBOOK_DIST/sections/{section}/spec.section.yml` (under `screen` key)
 
 ## Output Structure
 
@@ -40,27 +42,36 @@ $DESIGNBOOK_DIST/
 
 ## The `*.screen.yml` Format
 
+Every screen uses the `page` component as the root container — slotting in `header`, `content`, and `footer`:
+
 ```yaml
 name: Detail — Blog Article (Full View Mode)
 section: blog
 group: Designbook/Sections/Blog
 
 layout:
-  header:
-    - component: heading
-      props:
-        level: h1
+  page:
+    - component: page
       slots:
-        text: Blog
-  content:
-    - entity: node.article
-      view_mode: full
-      record: 0
-  footer:
-    - component: text-block
-      slots:
-        content: '© 2026'
+        header:
+          - component: header
+            props:
+              logo: "PetMatch"
+              nav_items:
+                - { label: "Home", href: "/" }
+                - { label: "Blog", href: "/blog" }
+        content:
+          - entity: node.article
+            view_mode: full
+            record: 0
+        footer:
+          - component: footer
+            props:
+              copyright: "© 2026 PetMatch"
 ```
+
+> [!IMPORTANT]
+> **Always wrap in `page` component.** The `page` component provides the application shell (header, content area, footer). Every section screen should use it so that the full-page layout is visible in Storybook.
 
 ### Top-level Fields
 
@@ -116,6 +127,8 @@ ls $DESIGNBOOK_DIST/sections/$SECTION_ID/data.yml 2>/dev/null
 Verify entity type has view mode mappings in `data-model.yml`:
 - `content.[entity_type].[bundle].view_modes.[mode].mapping` must exist
 
+Check that `page`, `header`, and `footer` components exist. If not, tell the user to run `/debo-design-shell` first.
+
 ### Step 2: Parse Screen Designs
 
 Read the `screen` key from `spec.section.yml` (if it exists) and extract for each page:
@@ -132,13 +145,13 @@ Review screen designs for elements beyond entity + shell:
 |---------|---------|--------|
 | Filter bar | Listing page filter | Create UI component first |
 | Pagination | Multi-page listing | Create UI component first |
-| Sidebar | Related content | Add as extra layout slot |
+| Sidebar | Related content | Add as extra slot in content |
 
 ### Step 4: Create Screen Files
 
 Create `sections/{section}/screens/section-{section}.{page}.screen.yml` for each page.
 
-**Detail page** — single entity with full view mode:
+**Detail page** — single entity wrapped in page component:
 
 ```yaml
 name: Detail — Blog Article (Full View Mode)
@@ -146,23 +159,27 @@ section: blog
 group: Designbook/Sections/Blog
 
 layout:
-  header:
-    - component: heading
-      props:
-        level: h1
+  page:
+    - component: page
       slots:
-        text: Blog
-  content:
-    - entity: node.article
-      view_mode: full
-      record: 0
-  footer:
-    - component: text-block
-      slots:
-        content: '© 2026'
+        header:
+          - component: header
+            props:
+              logo: "PetMatch"
+              nav_items:
+                - { label: "Home", href: "/" }
+                - { label: "Blog", href: "/blog" }
+        content:
+          - entity: node.article
+            view_mode: full
+            record: 0
+        footer:
+          - component: footer
+            props:
+              copyright: "© 2026 PetMatch"
 ```
 
-**Listing page** — multiple entities with teaser view mode:
+**Listing page** — multiple entities wrapped in page component:
 
 ```yaml
 name: Listing — Articles (Teaser View Mode)
@@ -170,25 +187,37 @@ section: blog
 group: Designbook/Sections/Blog
 
 layout:
-  header:
-    - component: heading
-      props:
-        level: h1
+  page:
+    - component: page
       slots:
-        text: Alle Artikel
-  content:
-    - entity: node.article
-      view_mode: teaser
-      records: [0, 1, 2]
-  footer:
-    - component: text-block
-      slots:
-        content: '© 2026'
+        header:
+          - component: header
+            props:
+              logo: "PetMatch"
+              nav_items:
+                - { label: "Home", href: "/" }
+                - { label: "Blog", href: "/blog" }
+        content:
+          - component: heading
+            props:
+              level: h1
+            slots:
+              text: Alle Artikel
+          - entity: node.article
+            view_mode: teaser
+            records: [0, 1, 2]
+        footer:
+          - component: footer
+            props:
+              copyright: "© 2026 PetMatch"
 ```
+
+> [!TIP]
+> **Reuse shell values.** Read the shell screen at `$DESIGNBOOK_DIST/shell/shell.screen.yml` to get the header/footer props (logo, nav_items, copyright, links). Use the same values in section screens for consistency.
 
 ### Step 5: Verify in Storybook
 
-Open Storybook — screens appear under their `group` in the sidebar. Each should render actual styled HTML via Twig, not raw JSON.
+Open Storybook — screens appear under their `group` in the sidebar. Each should render the full page layout (header + content + footer) with actual styled HTML via Twig.
 
 ## Provider Prefix
 
@@ -201,6 +230,7 @@ Component names are prefixed with the `provider` from config at render time:
 | Error | Fix |
 |-------|-----|
 | Component not found | Create the UI component first |
+| Page component missing | Run `/debo-design-shell` to create page/header/footer |
 | Entity not in data model | Add entity to `data-model.yml` |
 | View mode not defined | Add view mode mapping to data model |
 | Record not found | Add more records to `data.yml` |
