@@ -44,11 +44,11 @@ export function DeboSectionDetailPage({ sectionId, title }) {
             {/* Step 1: Section Specification */}
             <DeboSection
                 title="Shape Section"
-                dataPath={`sections/${sectionId}/overview.section.yml`}
+                dataPath={`sections/${sectionId}/spec.section.yml`}
                 parser={parseMarkdown}
                 command={`/debo-shape-section ${sectionId}`}
                 emptyMessage={`No specification for ${title} yet`}
-                filePath={`designbook/sections/${sectionId}/overview.section.yml`}
+                filePath={`designbook/sections/${sectionId}/spec.section.yml`}
                 renderContent={(html) => (
                     <DeboMockupWindow>
                         <div

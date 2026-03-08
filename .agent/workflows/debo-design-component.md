@@ -7,6 +7,7 @@ description: Create a new Drupal component by gathering requirements interactive
 
 Help the user design and create a new Drupal Single Directory Component (SDC). This workflow gathers all necessary information through conversational questions and then creates the component files using the `designbook-drupal-components` skill.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Choose Input Mode

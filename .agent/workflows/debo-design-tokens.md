@@ -7,6 +7,7 @@ description: Choose colors and typography for your product
 
 Help the user choose colors and typography for their product. These design tokens define the visual identity. The result is saved to `designbook/design-system/design-tokens.md`.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Check Prerequisites

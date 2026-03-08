@@ -22,6 +22,11 @@
       "default": "./dist/preview.js"
     },
     "./preset": "./dist/preset.js",
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "require": "./dist/config.cjs",
+      "default": "./dist/config.js"
+    },
     "./manager": "./dist/manager.js",
     "./manager-helpers": "./dist/manager-helpers.js",
     "./dist/*": "./dist/*",
@@ -103,7 +108,8 @@
       "src/index.ts"
     ],
     "nodeEntries": [
-      "src/preset.ts"
+      "src/preset.ts",
+      "src/config.ts"
     ]
   },
   "storybook": {

@@ -109,7 +109,7 @@ export function designbookLoadPlugin(
             return;
           }
 
-          // Special case: Aggregate sections.json from sections/*/overview.section.yml files
+          // Special case: Aggregate sections.json from sections/*/spec.section.yml files
           if (filePath === 'sections.json') {
             const sectionsDir = resolve(designbookDir, 'sections');
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,13 +117,13 @@ export function designbookLoadPlugin(
 
             if (existsSync(sectionsDir)) {
               const subdirs = readdirSync(sectionsDir).filter((d) => {
-                const overviewPath = join(sectionsDir, d, 'overview.section.yml');
+                const overviewPath = join(sectionsDir, d, 'spec.section.yml');
                 return existsSync(overviewPath);
               });
               sections = subdirs
                 .map((dir) => {
                   try {
-                    return parseYaml(readFileSync(join(sectionsDir, dir, 'overview.section.yml'), 'utf-8'));
+                    return parseYaml(readFileSync(join(sectionsDir, dir, 'spec.section.yml'), 'utf-8'));
                   } catch {
                     return null;
                   }
@@ -413,9 +413,23 @@ export const ${exportName} = {
       loader: 'js',
     });
     return result.code;
-  } catch (e) {
+  } catch (e: unknown) {
+    const errorMsg = e instanceof Error ? e.message : String(e);
     console.error('[Designbook] Error loading screen:', id, e);
-    return null;
+    // Return an error story module instead of null to prevent Vite from
+    // serving raw YAML as JavaScript (which causes SyntaxError)
+    const safeMsg = errorMsg.replace(/'/g, "\\'").replace(/\n/g, '\\n');
+    const baseName = id.split('/').pop() || 'unknown';
+    return `
+export default {
+  title: 'Errors/${baseName.replace(/'/g, "\\\\'")}',
+  tags: ['screen', '!autodocs'],
+  parameters: { layout: 'centered' },
+};
+export const LoadError = {
+  render: () => '<div style="padding:2rem;color:#ef4444;font-family:monospace"><h3>Screen Load Error</h3><pre>${safeMsg}</pre><p>File: ${baseName}</p></div>',
+};
+`;
   }
 }
 

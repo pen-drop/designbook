@@ -7,6 +7,7 @@ description: Define your product vision through a guided conversation
 
 Help the user define their product vision for Designbook. This is a conversational, multi-step process. The result is saved to `${DESIGNBOOK_DIST}/product/product-overview.md`.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Gather Initial Input

@@ -57,7 +57,17 @@ Transforms `.screen.yml` / `.section.yml` → CSF story modules via `ScreenNodeR
 ### View Modes
 `.jsonata` files in `designbook/view-modes/` — pattern: `{entity_type}.{bundle}.{view_mode}.jsonata`
 
-## Before Committing
+## Before Committing — MANDATORY
+
+**ALWAYS run these checks before every `git commit`. Do NOT skip.**
+
 ```bash
-npm run lint && npm run test
+# 1. Lint (auto-fix first, then verify)
+cd packages/storybook-addon-designbook && npx eslint --cache --fix . && cd ../..
+npm run lint
+
+# 2. Tests
+cd packages/storybook-addon-designbook && npx vitest run && cd ../..
 ```
+
+If either command fails, fix the issues before committing. Never commit with lint errors or failing tests.

@@ -7,6 +7,7 @@ description: Design the application shell — navigation and layout
 
 Help the user design the application shell — the persistent navigation and layout that wraps all sections. The result is saved to `${DESIGNBOOK_DIST}/design-shell/shell-spec.md`.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Check Prerequisites

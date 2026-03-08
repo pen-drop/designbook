@@ -1,0 +1,9 @@
+# Workspace output from test runs
+workspaces/
+
+# Test reports (keep error-log.md)
+reports/*.json
+
+# Stray test artifacts from old runs (before workspace isolation)
+screenshot.png
+test-render.js

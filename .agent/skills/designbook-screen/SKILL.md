@@ -21,7 +21,7 @@ description: Generates screen design files that compose UI components + entity d
 2. **View mode expressions**: `$DESIGNBOOK_DIST/view-modes/{entity_type}.{bundle}.{view_mode}.jsonata` — see `designbook-view-modes` skill
 3. **Sample data** per section: `$DESIGNBOOK_DIST/sections/{section}/data.yml`
 4. **UI components** must exist (heading, figure, text-block, etc.)
-5. **Screen designs** (optional): `$DESIGNBOOK_DIST/sections/{section}/overview.section.yml` (under `screen` key)
+5. **Screen designs** (optional): `$DESIGNBOOK_DIST/sections/{section}/spec.section.yml` (under `screen` key)
 
 ## Output Structure
 
@@ -30,7 +30,7 @@ $DESIGNBOOK_DIST/
 └── sections/
     └── blog/
         ├── data.yml
-        ├── overview.section.yml  # includes screen key
+        ├── spec.section.yml  # includes screen key
         └── screens/
             ├── section-blog.detail.screen.yml
             └── section-blog.listing.screen.yml
@@ -118,7 +118,7 @@ Verify entity type has view mode mappings in `data-model.yml`:
 
 ### Step 2: Parse Screen Designs
 
-Read the `screen` key from `overview.section.yml` (if it exists) and extract for each page:
+Read the `screen` key from `spec.section.yml` (if it exists) and extract for each page:
 - **Page name** (kebab-case: `listing`, `detail`)
 - **Entity type/bundle** (e.g. `node.article`)
 - **View mode** (`full`, `teaser`)

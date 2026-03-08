@@ -5,14 +5,15 @@ category: Designbook
 description: Create screen design components for a section
 ---
 
-Help the user create screen design components for one of their roadmap sections. Screen designs are stored as the `screen` key in `designbook/sections/[section-id]/overview.section.yml`.
+Help the user create screen design components for one of their roadmap sections. Screen designs are stored as the `screen` key in `designbook/sections/[section-id]/spec.section.yml`.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Check Prerequisites
 
 Check if the following files exist for the target section:
-- `designbook/sections/[section-id]/spec.md` — section spec (required)
+- `designbook/sections/[section-id]/spec.section.yml` — section spec (required)
 - `designbook/sections/[section-id]/data.yml` — sample data (required)
 - `designbook/design-system/design-tokens.md` — design tokens (optional)
 - `designbook/design-shell/shell-spec.md` — application shell (optional)
@@ -108,8 +109,8 @@ Generate a numbered, actionable task list covering the full execution. Group tas
 ```markdown
 ## Plan: [Section Title] Screen Design
 
-### Phase 1: Screen Designs in overview.section.yml
-- [ ] Add `screen` key to `overview.section.yml` with [N] views
+### Phase 1: Screen Designs in spec.section.yml
+- [ ] Add `screen` key to `spec.section.yml` with [N] views
 - [ ] Document [ViewName1]: [brief description]
 - [ ] Document [ViewName2]: [brief description]
 
@@ -141,25 +142,23 @@ Generate a numbered, actionable task list covering the full execution. Group tas
 
 ### 4.4 — Present plan to the user
 
-Present the full plan and ask:
+**If `--spec` mode:** Present the full plan and ask for approval before proceeding. Wait for user confirmation.
+
+**Otherwise (normal mode):** Show the plan briefly, then proceed to execution immediately without waiting for approval.
 
 > "Here is the plan for **[Section Title]** screen design.
 >
 > [Plan summary with task list]
 >
-> **[N] tasks across [M] phases.**
->
-> Shall I proceed? You can also ask me to modify the plan first."
-
-**Wait for user approval.** Do NOT proceed without explicit confirmation.
+> **[N] tasks across [M] phases.**"
 
 ## Step 5: Execute Plan
 
 Once the user approves, execute the tasks in order:
 
-**5.1 — Save Screen Designs to overview.section.yml**
+**5.1 — Save Screen Designs to spec.section.yml**
 
-Add or update the `screen` key in `designbook/sections/[section-id]/overview.section.yml` with the documented views.
+Add or update the `screen` key in `designbook/sections/[section-id]/spec.section.yml` with the documented views.
 
 **5.2 — Generate Shell UI Components**
 
@@ -169,13 +168,13 @@ Execute the `designbook-drupal-components-ui` skill using the **Shell Components
 
 Create any new UI components identified in the plan using the `designbook-drupal-components-ui` skill.
 
-**5.4 — Generate Entity Components**
+**5.4 — Generate Entity View modes**
 
-Execute the `designbook-entity` skill with `section-id` parameter. This reads `data-model.yml`, identifies UI components for each field, and generates entity design components.
+Execute the `designbook-view-modes` skill to check if there are any existing view modes for the entity types in the data model. If not, generate new view modes for the entity types in the data model.
 
 **5.5 — Generate Screen Components**
 
-Execute the `designbook-screen` skill with `section-id` parameter. This reads the `screen` key from `overview.section.yml`, composes shell + entity into full screen views.
+Execute the `designbook-screen` skill with `section-id` parameter. This reads the `screen` key from `spec.section.yml`, composes shell + entity into full screen views.
 
 **5.6 — Run CSS Generation**
 

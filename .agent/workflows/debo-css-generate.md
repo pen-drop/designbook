@@ -5,6 +5,7 @@ category: Designbook
 description: Generate CSS token files from design tokens. Automatically selects the correct skill based on DESIGNBOOK_CSS_FRAMEWORK.
 ---
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 # Generate CSS
 
 This workflow generates CSS token files from W3C Design Tokens. It loads the configuration and delegates to the `designbook-css-generate` skill, which handles the full pipeline including framework-specific delegation.
