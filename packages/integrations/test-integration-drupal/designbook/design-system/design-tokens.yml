@@ -1,0 +1,93 @@
+color:
+  primary:
+    $value: "#E86C3A"
+    $type: color
+    description: Warm coral-orange — inviting, energetic, approachable. Main brand color.
+  primary-content:
+    $value: "#FFFFFF"
+    $type: color
+    description: White text on primary surfaces
+  secondary:
+    $value: "#2AB5A0"
+    $type: color
+    description: Teal green — trust, nature, health. Used for shelter badges and status.
+  secondary-content:
+    $value: "#FFFFFF"
+    $type: color
+    description: White text on secondary surfaces
+  accent:
+    $value: "#F5A623"
+    $type: color
+    description: Warm amber — highlights, CTAs, adoption badges, star ratings.
+  accent-content:
+    $value: "#1A1A2E"
+    $type: color
+    description: Dark text on accent surfaces
+  neutral:
+    $value: "#1A1A2E"
+    $type: color
+    description: Deep navy — footer, dark sections, strong contrast.
+  neutral-content:
+    $value: "#F0EDE8"
+    $type: color
+    description: Warm off-white text on neutral surfaces
+  base-100:
+    $value: "#FDFBF7"
+    $type: color
+    description: Warm cream white — page background, feels cozy.
+  base-200:
+    $value: "#F5F0E8"
+    $type: color
+    description: Soft warm beige — card surfaces, pet profile backgrounds.
+  base-300:
+    $value: "#E8E0D4"
+    $type: color
+    description: Muted sand — borders, dividers, subtle separators.
+  base-content:
+    $value: "#2D2A26"
+    $type: color
+    description: Warm dark brown — main body text, readable and soft.
+  info:
+    $value: "#3B82F6"
+    $type: color
+    description: Blue — informational badges, pet details.
+  success:
+    $value: "#22C55E"
+    $type: color
+    description: Green — adopted success, available status, health indicators.
+  warning:
+    $value: "#EAB308"
+    $type: color
+    description: Yellow — pending status, attention needed.
+  error:
+    $value: "#EF4444"
+    $type: color
+    description: Red — errors, urgent alerts, missing info.
+
+typography:
+  heading:
+    $value: Outfit
+    $type: fontFamily
+    description: Rounded geometric sans-serif — friendly yet modern, perfect for pet names and section titles.
+  body:
+    $value: Inter
+    $type: fontFamily
+    description: Clean UI workhorse — excellent readability for descriptions and forms.
+  mono:
+    $value: JetBrains Mono
+    $type: fontFamily
+    description: Monospace for IDs, reference codes, and shelter metadata.
+
+border-radius:
+  card:
+    $value: 1rem
+    $type: dimension
+    description: Generous rounding for pet cards — feels soft and approachable.
+  button:
+    $value: 0.75rem
+    $type: dimension
+    description: Rounded buttons matching the friendly aesthetic.
+  badge:
+    $value: 9999px
+    $type: dimension
+    description: Fully rounded badges for species tags and trait pills.
