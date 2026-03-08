@@ -18,7 +18,7 @@ Each tested workflow SHALL have its own fixture directory at `promptfoo/fixtures
 
 #### Scenario: design-screen has full fixture
 - **WHEN** the `debo-design-screen` test runs
-- **THEN** its fixture directory SHALL contain `designbook.config.yml`, `product/product-overview.md`, `sections/*/overview.section.yml`, `design-system/design-tokens.md`, `data-model.yml`, `components/*/`, and `sections/*/data.yml`
+- **THEN** its fixture directory SHALL contain `designbook.config.yml`, `product/product-overview.md`, `sections/*/spec.section.yml`, `design-system/design-tokens.md`, `data-model.yml`, `components/*/`, and `sections/*/data.yml`
 
 ### Requirement: Workspace isolation
 Each test execution SHALL write output to an isolated workspace directory at `promptfoo/workspaces/<workflow>--<provider>/designbook/`. No two tests SHALL share a workspace directory.
@@ -92,7 +92,7 @@ Each workflow's `llm-rubric` assertion SHALL validate the specific files and str
 
 #### Scenario: product-sections assertion
 - **WHEN** `debo-product-sections` completes
-- **THEN** the rubric SHALL verify 3-5 `sections/[id]/overview.section.yml` files were created, each containing `id` (kebab-case), `title`, `description`, `status: planned`, and sequential `order` values
+- **THEN** the rubric SHALL verify 3-5 `sections/[id]/spec.section.yml` files were created, each containing `id` (kebab-case), `title`, `description`, `status: planned`, and sequential `order` values
 
 #### Scenario: design-tokens assertion
 - **WHEN** `debo-design-tokens` completes

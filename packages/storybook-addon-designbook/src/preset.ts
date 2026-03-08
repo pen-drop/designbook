@@ -57,7 +57,7 @@ export const stories = async (entry: string[] = [], options: any) => {
     distDir = options.designbook.fsRoot;
   }
 
-  const sectionsGlob = resolve(distDir, 'sections/*/overview.section.yml');
+  const sectionsGlob = resolve(distDir, 'sections/*/spec.section.yml');
   const screenGlob = resolve(distDir, 'sections/*/screens/*.screen.yml');
 
   return [...entry, onboardingGlob, sectionsGlob, screenGlob];

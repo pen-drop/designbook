@@ -31,7 +31,7 @@ export function DeboSectionsOverview() {
                 sections.map(async (section) => {
                     const id = section.id || toSectionId(section.title);
                     const [hasSpec, hasData, hasScreenshots] = await Promise.all([
-                        designbookFileExists(`sections/${id}/spec.md`),
+                        designbookFileExists(`sections/${id}/spec.section.yml`),
                         designbookFileExists(`sections/${id}/data.yml`),
                         designbookFileExists(`sections/${id}/screenshots.md`),
                     ]);

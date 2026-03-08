@@ -1,6 +1,6 @@
 ---
-name: /sample-data
-id: sample-data
+name: /debo-sample-data
+id: debo-sample-data
 category: Designbook
 description: Create sample data and type definitions for a section
 ---
@@ -19,14 +19,14 @@ Check if the following files exist:
 **If product vision, roadmap, or data model are missing**, tell the user:
 
 > "Before creating sample data, you need:
-> 1. `/product-vision` — Define your product
-> 2. `/product-roadmap` — Define your sections
-> 3. `/data-model` — Define your data model"
+> 1. `/debo-product-vision` — Define your product
+> 2. `/debo-product-roadmap` — Define your sections
+> 3. `/debo-data-model` — Define your data model"
 
 Stop here.
 
 Read all available files. Also check for an existing section specification:
-- `${DESIGNBOOK_DIST}/sections/[section-id]/spec.md` — section spec (strongly recommended)
+- `${DESIGNBOOK_DIST}/sections/[section-id]/spec.section.yml` — section spec (strongly recommended)
 
 If the spec doesn't exist, warn:
 

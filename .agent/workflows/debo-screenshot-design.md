@@ -12,7 +12,7 @@ Help the user capture and document screenshots for a section's screen designs. S
 ## Step 1: Check Prerequisites
 
 Check if the following files exist for the target section:
-- `designbook/sections/[section-id]/spec.md` — section spec (required)
+- `designbook/sections/[section-id]/spec.section.yml` — section spec (required)
 - `designbook/sections/[section-id]/overview.section.yml` — overview with screen designs (required)
 
 **If screen designs are missing**, tell the user:
