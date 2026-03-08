@@ -1,0 +1,11 @@
+name: default
+slots:
+  header:
+    - type: component
+      component: header
+  content:
+    - type: component
+      component: hero
+  footer:
+    - type: component
+      component: footer
