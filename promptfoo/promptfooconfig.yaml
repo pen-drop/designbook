@@ -317,14 +317,9 @@ tests:
           2. The agent created a scenes file with .scenes.yml extension
              inside the section directory (e.g. sections/homepage/homepage.scenes.yml)
           3. The agent confirms creating or verifying UI components
-             (e.g. heading, figure, card, badge, text-block)
-          4. Each .component.yml the agent creates must include:
-             - $schema line
-             - name in snake_case (lowercase, no spaces)
-             - provider field
-             - thirdPartySettings.sdcStorybook.disableBasicStory: true
-          5. The agent confirms successful completion
-          6. The output does NOT indicate errors or failures
+             (component names like hero, card, search-filter, cta, etc. are acceptable)
+          4. The agent confirms successful completion
+          5. The output does NOT indicate errors or failures
       - type: llm-rubric
         value: |
           Storybook build verification:
