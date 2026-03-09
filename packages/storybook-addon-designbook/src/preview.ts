@@ -4,7 +4,10 @@ import { KEY } from './constants';
 import { withRoundTrip } from './withRoundTrip';
 import './index.css';
 
-if (typeof document !== 'undefined' && !document.querySelector('link[href*="fonts.googleapis.com/css2?family=Inter"]')) {
+if (
+  typeof document !== 'undefined' &&
+  !document.querySelector('link[href*="fonts.googleapis.com/css2?family=Inter"]')
+) {
   const link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap';

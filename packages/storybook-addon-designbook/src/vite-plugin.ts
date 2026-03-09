@@ -88,7 +88,9 @@ export function designbookLoadPlugin(
                 const sectionDir = join(sectionsDir, d);
                 try {
                   return readdirSync(sectionDir).some((f) => f.endsWith('.section.scenes.yml'));
-                } catch { return false; }
+                } catch {
+                  return false;
+                }
               });
               sections = subdirs
                 .map((dir) => {
@@ -189,10 +191,7 @@ function capitalize(s: string): string {
  * Convention-based docs page code generator.
  * Maps filename type → Debo[Type]Page component with serialized props.
  */
-function buildDocsPage(
-  pageType: string,
-  props: Record<string, string>,
-): DocsPageCode {
+function buildDocsPage(pageType: string, props: Record<string, string>): DocsPageCode {
   const componentName = `Debo${capitalize(pageType)}Page`;
   const propsStr = Object.entries(props)
     .map(([k, v]) => `${k}: '${v}'`)
@@ -217,7 +216,10 @@ function injectDocsPage(sceneCode: string, docs: DocsPageCode): string {
 
 function buildDocsOnlyModule(docs: DocsPageCode, group: string, exportName: string): string {
   return [
-    docs.imports, '', docs.component, '',
+    docs.imports,
+    '',
+    docs.component,
+    '',
     'export default {',
     `  title: '${group.replace(/'/g, "\\'")}',`,
     "  tags: ['!dev'],",
@@ -225,7 +227,8 @@ function buildDocsOnlyModule(docs: DocsPageCode, group: string, exportName: stri
     "    layout: 'fullscreen',",
     '    docs: { page: DocsPage },',
     '  },',
-    '};', '',
+    '};',
+    '',
     `export const ${exportName} = {`,
     '  render: () => {},',
     '};',
@@ -237,9 +240,7 @@ function buildDocsOnlyModule(docs: DocsPageCode, group: string, exportName: stri
 // ---------------------------------------------------------------------------
 
 function buildErrorModule(id: string, error: unknown): string {
-  const msg = (error instanceof Error ? error.message : String(error))
-    .replace(/'/g, "\\'")
-    .replace(/\n/g, '\\n');
+  const msg = (error instanceof Error ? error.message : String(error)).replace(/'/g, "\\'").replace(/\n/g, '\\n');
   const name = (id.split('/').pop() || 'unknown').replace(/'/g, "\\'");
   return [
     `export default { title: 'Errors/${name}', tags: ['scene', '!autodocs'], parameters: { layout: 'centered' } };`,
@@ -259,10 +260,21 @@ async function buildStories(
   trackDependency?: (sceneId: string, dataFile: string) => void,
 ): Promise<string> {
   return options.moduleBuilder
-    ? buildSceneModule(id, parsed, designbookDir, options.moduleBuilder,
-      { provider: options.provider, renderers: options.renderers }, trackDependency)
-    : buildSdcModule(id, parsed, designbookDir,
-      { provider: options.provider, renderers: options.renderers }, trackDependency);
+    ? buildSceneModule(
+        id,
+        parsed,
+        designbookDir,
+        options.moduleBuilder,
+        { provider: options.provider, renderers: options.renderers },
+        trackDependency,
+      )
+    : buildSdcModule(
+        id,
+        parsed,
+        designbookDir,
+        { provider: options.provider, renderers: options.renderers },
+        trackDependency,
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -297,9 +309,7 @@ async function loadSceneModule(
     const hasScenes = Array.isArray(scenes) && scenes.length > 0;
 
     // Build scene stories (if any)
-    const sceneCode = hasScenes
-      ? await buildStories(id, parsed, designbookDir, options, trackDependency)
-      : '';
+    const sceneCode = hasScenes ? await buildStories(id, parsed, designbookDir, options, trackDependency) : '';
 
     // Plain scenes (no overview) — return story code directly
     if (!hasOverview) {
@@ -323,9 +333,7 @@ async function loadSceneModule(
       title: title.replace(/'/g, "\\'"),
     });
 
-    const code = sceneCode
-      ? injectDocsPage(sceneCode, docs)
-      : buildDocsOnlyModule(docs, group, exportName);
+    const code = sceneCode ? injectDocsPage(sceneCode, docs) : buildDocsOnlyModule(docs, group, exportName);
 
     const result = await transformWithEsbuild(code, id + '.js', { loader: 'js' });
     return result.code;

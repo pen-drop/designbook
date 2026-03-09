@@ -10,7 +10,7 @@
  * Falls back to the file base name if no `name` property exists.
  */
 export function extractGroup(parsed: Record<string, unknown>, fileBase: string): string {
-    return (parsed?.name as string) || fileBase;
+  return (parsed?.name as string) || fileBase;
 }
 
 /**
@@ -19,10 +19,10 @@ export function extractGroup(parsed: Record<string, unknown>, fileBase: string):
  * "pet-discovery-listing" → "PetDiscoveryListing"
  */
 export function buildExportName(sceneName: string): string {
-    return sceneName
-        .split(/[\s-]+/)
-        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
+  return sceneName
+    .split(/[\s-]+/)
+    .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
 }
 
 /**
@@ -30,11 +30,11 @@ export function buildExportName(sceneName: string): string {
  * Supports both the new `scenes[]` format and legacy flat format.
  */
 export function extractScenes(parsed: Record<string, unknown>): Record<string, unknown>[] {
-    if (Array.isArray(parsed?.scenes)) {
-        return parsed.scenes as Record<string, unknown>[];
-    }
-    // Legacy: treat entire file as single scene
-    return [parsed];
+  if (Array.isArray(parsed?.scenes)) {
+    return parsed.scenes as Record<string, unknown>[];
+  }
+  // Legacy: treat entire file as single scene
+  return [parsed];
 }
 
 /**
@@ -42,6 +42,6 @@ export function extractScenes(parsed: Record<string, unknown>): Record<string, u
  * "/path/to/ratgeber.scenes.yml" → "ratgeber"
  */
 export function fileBaseName(fileName: string): string {
-    const baseName = fileName.split('/').pop() || '';
-    return baseName.replace('.scenes.yml', '');
+  const baseName = fileName.split('/').pop() || '';
+  return baseName.replace('.scenes.yml', '');
 }

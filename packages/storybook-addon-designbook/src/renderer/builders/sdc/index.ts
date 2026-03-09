@@ -14,7 +14,4 @@ import { entityJsonataRenderer } from '../../entity-renderer';
 /**
  * Default renderer stack for SDC/Twig-based projects.
  */
-export const sdcRenderers: import('../../types').SceneNodeRenderer[] = [
-    sdcComponentRenderer,
-    entityJsonataRenderer,
-];
+export const sdcRenderers: import('../../types').SceneNodeRenderer[] = [sdcComponentRenderer, entityJsonataRenderer];
