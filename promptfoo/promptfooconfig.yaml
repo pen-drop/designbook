@@ -105,6 +105,8 @@ prompts:
       Run the //debo-design-screen workflow for the "homepage" section. Do NOT ask any questions.
       The product is "PetMatch". Read sections/homepage/spec.section.yml for context.
       The homepage should include: a hero section, featured pets grid, search/filter area, and a call-to-action for shelters.
+      Generate UI components, view-modes (JSONata files), and a scenes file.
+      After generating all files, run `pnpm build-storybook` to verify everything renders.
       Execute the workflow now.
 
   - id: debo-design-shell
@@ -114,7 +116,8 @@ prompts:
       Run the //debo-design-shell workflow. Do NOT ask any questions.
       The product is "PetMatch". Read the product overview and section definitions for navigation planning.
       The shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.
-      The result should be a shell.screen.yml file and page/header/footer components.
+      The result should be a shell.scenes.yml file under shell/ and page/header/footer components.
+      After generating all files, run `pnpm build-storybook` to verify everything renders.
       Execute the workflow now.
 
 providers:
@@ -309,17 +312,27 @@ tests:
         value: |
           The agent executed the //debo-design-screen workflow for a PetMatch section.
           Verify from the conversation output:
-          1. The agent confirms creating screen YAML files under a screens/ directory
-          3. The agent confirms creating or verifying UI components 
-          4. The agent confirms successful completion
-          5. The output does NOT indicate errors or failures
+          1. The agent created at least one view-mode file under view-modes/ with .jsonata extension
+             (e.g. view-modes/node.pet.teaser.jsonata or view-modes/node.pet.full.jsonata)
+          2. The agent created a scenes file with .scenes.yml extension
+             inside the section directory (e.g. sections/homepage/homepage.scenes.yml)
+          3. The agent confirms creating or verifying UI components
+             (e.g. heading, figure, card, badge, text-block)
+          4. Each .component.yml the agent creates must include:
+             - $schema line
+             - name in snake_case (lowercase, no spaces)
+             - provider field
+             - thirdPartySettings.sdcStorybook.disableBasicStory: true
+          5. The agent confirms successful completion
+          6. The output does NOT indicate errors or failures
       - type: llm-rubric
         value: |
-          OPTIONAL Storybook verification (non-blocking):
-          Check if the agent validated screen components in Storybook:
-          1. Used designbook-component-validate skill, OR
-          2. Opened Storybook URLs to verify rendering
-          If Storybook was not running, this is acceptable — do not fail.
+          Storybook build verification:
+          After generating all files, the agent MUST run `pnpm build-storybook` (or `npx storybook build`)
+          in the workspace directory to verify that all components and scenes render without errors.
+          1. The build command was executed
+          2. The build completed successfully (exit code 0, no "ERROR" in output)
+          3. If the build failed, the agent attempted to fix the errors and re-run
 
   # --- design-shell ---
   - description: "debo-design-shell: PetMatch"
@@ -332,10 +345,28 @@ tests:
         value: |
           The agent executed the //debo-design-shell workflow for "PetMatch".
           Verify from the conversation output:
-          1. A shell.screen.yml file was created under shell/
-          2. The screen composes a page component with header, content, and footer slots
-          3. A page component was created or confirmed existing (with header/content/footer slots)
-          4. A header component was created or confirmed existing (with logo and nav_items)
-          5. A footer component was created or confirmed existing (with links and copyright)
+          1. The agent created a shell scenes file at shell/shell.scenes.yml
+             (NOT shell.screen.yml — the correct extension is .scenes.yml)
+          2. The scenes file composes a page component with header, content, and footer slots
+          3. Shell components were created under components/:
+             - components/page/ (page container with header, content, footer slots)
+             - components/header/ (header with logo and navigation)
+             - components/footer/ (footer with links and copyright)
+          4. Each component directory contains .component.yml, .story.yml, and .twig files
+          5. Each .component.yml the agent creates must include:
+             - $schema line
+             - name in snake_case (lowercase, no spaces)
+             - provider field
+             - thirdPartySettings.sdcStorybook.disableBasicStory: true
           6. Navigation items map to the product's sections
           7. The agent confirmed completion
+          8. The output does NOT indicate errors or failures
+      - type: llm-rubric
+        value: |
+          Storybook build verification:
+          After generating all shell files, the agent MUST run `pnpm build-storybook`
+          (or `npx storybook build`) in the workspace directory to verify that all
+          shell components and scenes render without errors.
+          1. The build command was executed
+          2. The build completed successfully (exit code 0, no "ERROR" in output)
+          3. If the build failed, the agent attempted to fix the errors and re-run

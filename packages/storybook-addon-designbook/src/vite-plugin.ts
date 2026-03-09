@@ -220,8 +220,15 @@ async function loadScenesYml(
     // Load sample data
     let sampleData: SampleData = {};
     const firstScene = parsedScenes[0];
-    if (firstScene?.section) {
-      const sectionDataPath = join(designbookDir, 'sections', firstScene.section, 'data.yml');
+    // Infer section from file path if not explicitly set:
+    //   .../sections/pet-discovery/pet-discovery.scenes.yml → 'pet-discovery'
+    let sectionId = firstScene?.section;
+    if (!sectionId) {
+      const match = id.match(/sections\/([^/]+)\//);
+      if (match) sectionId = match[1];
+    }
+    if (sectionId) {
+      const sectionDataPath = join(designbookDir, 'sections', sectionId, 'data.yml');
       const globalDataPath = join(designbookDir, 'data.yml');
       try {
         sampleData = parseYaml(readFileSync(sectionDataPath, 'utf-8')) as SampleData;
@@ -231,7 +238,7 @@ async function loadScenesYml(
           sampleData = parseYaml(readFileSync(globalDataPath, 'utf-8')) as SampleData;
           trackDependency?.(id, globalDataPath);
         } catch {
-          console.warn(`[Designbook] No data.yml found for scene "${firstScene.name}"`);
+          console.warn(`[Designbook] No data.yml found for scene "${firstScene?.name ?? 'unknown'}"`);
         }
       }
     }
@@ -329,7 +336,7 @@ async function loadScenesYml(
             try {
               const meta = JSON.parse(match[1] ?? '{}');
               const { jsonataPath, entityType, bundle, record = 0 } = meta;
-              const entityData = sampleData?.[entityType]?.[bundle];
+              const entityData = sampleData?.[entityType]?.[bundle] ?? sampleData?.[bundle] as Record<string, unknown>[] | undefined;
               if (entityData && entityData[record]) {
                 const expr = jsonata(readFileSync(jsonataPath, 'utf-8'));
                 const result = await expr.evaluate(entityData[record]);
@@ -457,10 +464,10 @@ async function loadSectionYml(id: string): Promise<string | null> {
       "import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionDetailPage.jsx';",
       '',
       'const SectionPage = () => (<><h1>' +
-        escapedTitle +
-        '</h1><DeboSectionDetailPage sectionId="' +
-        escapedId +
-        '" /></>);',
+      escapedTitle +
+      '</h1><DeboSectionDetailPage sectionId="' +
+      escapedId +
+      '" /></>);',
       '',
       'export default {',
       "  title: 'Designbook/Sections/" + escapedTitle + "',",
