@@ -1,8 +1,0 @@
-name: small
-props:
-  variant: small
-  darkmode: false
-  name: "Christian Wiedemann"
-  position: "Geschäftsführer"
-  image_url: "https://placehold.co/100x100/FFC024/000?text=CW"
-  image_alt: "Christian Wiedemann"

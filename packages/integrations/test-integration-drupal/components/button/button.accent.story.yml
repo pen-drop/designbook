@@ -1,8 +1,0 @@
-name: ocean
-props:
-  variant: ocean
-  url: "/projekte"
-slots:
-  text:
-    - type: element
-      value: "Projekte"

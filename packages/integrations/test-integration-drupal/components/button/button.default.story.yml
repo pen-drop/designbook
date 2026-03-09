@@ -1,8 +1,0 @@
-name: swimsuit
-props:
-  variant: swimsuit
-  url: "/leistungen"
-slots:
-  text:
-    - type: element
-      value: "Leistungen"

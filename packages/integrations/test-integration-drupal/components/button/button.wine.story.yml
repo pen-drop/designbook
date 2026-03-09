@@ -1,8 +1,0 @@
-name: wine
-props:
-  variant: wine
-  url: "/kontakt"
-slots:
-  text:
-    - type: element
-      value: "Kontakt"
