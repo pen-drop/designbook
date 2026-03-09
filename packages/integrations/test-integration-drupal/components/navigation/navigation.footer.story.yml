@@ -1,8 +1,0 @@
-name: footer
-props:
-  variant: footer
-  items:
-    - label: "Datenschutz"
-      url: "/datenschutz"
-    - label: "Impressum"
-      url: "/impressum"

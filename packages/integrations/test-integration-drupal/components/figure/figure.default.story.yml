@@ -1,5 +1,0 @@
-name: default
-props:
-  src: "https://placehold.co/800x450"
-  alt: "Placeholder image"
-  caption: "Example image caption"
