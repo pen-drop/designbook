@@ -336,7 +336,8 @@ async function loadScenesYml(
             try {
               const meta = JSON.parse(match[1] ?? '{}');
               const { jsonataPath, entityType, bundle, record = 0 } = meta;
-              const entityData = sampleData?.[entityType]?.[bundle] ?? sampleData?.[bundle] as Record<string, unknown>[] | undefined;
+              const entityData =
+                sampleData?.[entityType]?.[bundle] ?? (sampleData?.[bundle] as Record<string, unknown>[] | undefined);
               if (entityData && entityData[record]) {
                 const expr = jsonata(readFileSync(jsonataPath, 'utf-8'));
                 const result = await expr.evaluate(entityData[record]);
@@ -464,10 +465,10 @@ async function loadSectionYml(id: string): Promise<string | null> {
       "import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionDetailPage.jsx';",
       '',
       'const SectionPage = () => (<><h1>' +
-      escapedTitle +
-      '</h1><DeboSectionDetailPage sectionId="' +
-      escapedId +
-      '" /></>);',
+        escapedTitle +
+        '</h1><DeboSectionDetailPage sectionId="' +
+        escapedId +
+        '" /></>);',
       '',
       'export default {',
       "  title: 'Designbook/Sections/" + escapedTitle + "',",
