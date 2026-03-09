@@ -22,6 +22,11 @@
       "default": "./dist/preview.js"
     },
     "./preset": "./dist/preset.js",
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "require": "./dist/config.cjs",
+      "default": "./dist/config.js"
+    },
     "./manager": "./dist/manager.js",
     "./manager-helpers": "./dist/manager-helpers.js",
     "./dist/*": "./dist/*",
@@ -49,7 +54,7 @@
     "release": "npm run build && auto shipit",
     "start": "run-p build:watch \"storybook --quiet\"",
     "storybook": "storybook dev -p 6006",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
@@ -84,6 +89,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.44.1",
     "vite": "^7.0.5",
+    "vitest": "^4.0.18",
     "zx": "^8.7.1"
   },
   "peerDependencies": {
@@ -102,7 +108,8 @@
       "src/index.ts"
     ],
     "nodeEntries": [
-      "src/preset.ts"
+      "src/preset.ts",
+      "src/config.ts"
     ]
   },
   "storybook": {
@@ -113,6 +120,7 @@
     "icon": "https://user-images.githubusercontent.com/321738/63501763-88dbf600-c4cc-11e9-96cd-94adadc2fd72.png"
   },
   "dependencies": {
+    "jsonata": "^2.1.0",
     "marked": "^17.0.2",
     "yaml": "^2.8.2"
   }

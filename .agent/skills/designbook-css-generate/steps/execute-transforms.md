@@ -25,7 +25,7 @@ mkdir -p $DESIGNBOOK_DRUPAL_THEME/css/themes
 ### 2. Execute all transformations
 
 ```bash
-for f in $DESIGNBOOK_DIST/designbook-css-$DESIGNBOOK_CSS_FRAMEWORK/generate-*.jsonata; do
+for f in $DESIGNBOOK_DIST/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-*.jsonata; do
   npx jsonata-w transform "$f"
 done
 ```
@@ -45,4 +45,4 @@ Each transformation directly produces its `.src.css` file — no intermediate fi
 ## Technical Notes
 - jsonata-w 1.0.1+ writes string results directly as raw text (no JSON wrapping)
 - Each `.jsonata` file is self-contained with embedded `@config` for input/output paths
-- Use `npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.json --summary` to debug token structure
+- Use `npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.yml --summary` to debug token structure

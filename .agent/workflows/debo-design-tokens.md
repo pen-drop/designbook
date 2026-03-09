@@ -7,6 +7,7 @@ description: Choose colors and typography for your product
 
 Help the user choose colors and typography for their product. These design tokens define the visual identity. The result is saved to `designbook/design-system/design-tokens.md`.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Check Prerequisites
@@ -29,7 +30,7 @@ Load the Designbook configuration:
 source .agent/skills/designbook-configuration/scripts/set-env.sh
 ```
 
-Check `DESIGNBOOK_CSS_FRAMEWORK`:
+Check `DESIGNBOOK_FRAMEWORK_CSS`:
 
 - **If `daisyui`**: Read `.agent/skills/designbook-css-daisyui/SKILL.md` — specifically the section **§ Token Naming Conventions**. Use DaisyUI semantic names for all tokens.
 - **If other/unset**: Use generic names (the user chooses freely).
@@ -66,7 +67,7 @@ Wait for their response.
 
 ### DaisyUI Framework
 
-When `DESIGNBOOK_CSS_FRAMEWORK=daisyui`, guide the user through the DaisyUI color system:
+When `DESIGNBOOK_FRAMEWORK_CSS=daisyui`, guide the user through the DaisyUI color system:
 
 > "For **DaisyUI**, we define colors by their **role**, not by color name. This makes your theme work seamlessly with all DaisyUI components.
 >
@@ -316,8 +317,8 @@ Run the `designbook-tokens` skill to validate and save this JSON:
 - **Neutral:** `slate`, `gray`, `zinc`, `neutral`, `stone`
 
 **Guardrails**
-- When `DESIGNBOOK_CSS_FRAMEWORK=daisyui`: color tokens MUST use DaisyUI semantic names from `designbook-css-daisyui` skill
-- When `DESIGNBOOK_CSS_FRAMEWORK=daisyui`: always generate `-content` counterparts for each color
+- When `DESIGNBOOK_FRAMEWORK_CSS=daisyui`: color tokens MUST use DaisyUI semantic names from `designbook-css-daisyui` skill
+- When `DESIGNBOOK_FRAMEWORK_CSS=daisyui`: always generate `-content` counterparts for each color
 - Colors should be hex codes (e.g. `#494FE5`)
 - Fonts must be exact Google Fonts names
 - Keep suggestions contextual to the product type

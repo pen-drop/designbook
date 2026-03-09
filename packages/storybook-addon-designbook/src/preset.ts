@@ -1,6 +1,7 @@
 import { designbookLoadPlugin } from './vite-plugin';
+import { loadConfig } from './config';
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
@@ -13,27 +14,25 @@ const __dirname = dirname(__filename);
 export const viteFinal = async (config: any, options: any) => {
   const { plugins = [] } = config;
 
-  // Try to find the dist directory from designbook.config.yml as a default
-  let fsRoot = 'designbook';
+  // Use shared config resolver (walks up directory tree to find designbook.config.yml)
+  const designbookConfig = loadConfig();
+  let fsRoot = designbookConfig.dist;
 
-  const configPath = resolve(process.cwd(), 'designbook.config.yml');
-  if (existsSync(configPath)) {
-    try {
-      const configContent = readFileSync(configPath, 'utf-8');
-      const distMatch = configContent.match(/^dist:\s*(.+)$/m);
-      if (distMatch && distMatch[1]) {
-        fsRoot = distMatch[1].trim();
-      }
-    } catch {
-      // Ignore
-    }
-  }
-
-  if (options && options.designbook && options.designbook.fsRoot) {
+  // Allow options override
+  if (options?.designbook?.fsRoot) {
     fsRoot = options.designbook.fsRoot;
   }
 
-  plugins.push(designbookLoadPlugin(process.cwd(), { fsRoot }));
+  // Read provider from designbook config or options
+  let provider: string | undefined;
+  if (options?.designbook?.provider) {
+    provider = options.designbook.provider;
+  }
+
+  // Read renderers from options (integration passes preset + custom renderers)
+  const renderers = options?.designbook?.renderers;
+
+  plugins.push(designbookLoadPlugin(process.cwd(), { fsRoot, provider, renderers }));
   return {
     ...config,
     plugins,
@@ -49,23 +48,19 @@ export const webpack = async (config: any) => {
 export const stories = async (entry: string[] = [], options: any) => {
   const onboardingGlob = resolve(__dirname, 'onboarding/*.mdx');
 
-  // Add the sections glob so Storybook finds the files
-  let projectRoot = process.cwd();
-  if (options?.configDir) {
-    projectRoot = resolve(options.configDir, '..');
-  }
+  // Use shared config resolver for dist directory
+  const designbookConfig = loadConfig();
+  let distDir = designbookConfig.dist;
 
-  // Try to find the dist directory from designbook.config.yml as a default
-  let distDir = 'designbook';
-  // (We could read config here, but for now assuming default or option)
+  // Allow options override
   if (options?.designbook?.fsRoot) {
     distDir = options.designbook.fsRoot;
   }
 
-  const sectionsGlob = resolve(projectRoot, distDir, 'sections/*.section.yml');
-  const designGlob = resolve(projectRoot, distDir, 'design/**/*.component.yml');
+  const sectionsGlob = resolve(distDir, 'sections/*/spec.section.yml');
+  const scenesGlob = resolve(distDir, 'sections/*/*.scenes.yml');
 
-  return [...entry, onboardingGlob, sectionsGlob, designGlob];
+  return [...entry, onboardingGlob, sectionsGlob, scenesGlob];
 };
 
 /**
@@ -100,6 +95,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
             type: 'docs' as const,
             importPath: relativePath,
             exportName: exportName,
+            name: 'Overview',
             title: `Designbook/Sections/${title}`,
             tags: ['!dev'],
           },
@@ -111,7 +107,50 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
     },
   };
 
-  return [...existingIndexers, sectionsIndexer];
+  const scenesIndexer = {
+    test: /\.scenes\.yml$/,
+    createIndex: async (fileName: string) => {
+      try {
+        const content = readFileSync(fileName, 'utf-8');
+        const parsed = parseYaml(content);
+
+        // Title comes from the scenes file — no automatic grouping
+        const baseName = fileName.split('/').pop() || '';
+        const fileBase = baseName.replace('.scenes.yml', '');
+        const group = (parsed.name as string) || fileBase;
+        const relativePath = './' + relative(process.cwd(), fileName);
+
+        // Support both new scenes[] format and legacy flat format
+        const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [parsed];
+
+        const entries = scenes.map((scene: Record<string, unknown>, idx: number) => {
+          const name = (scene.name as string) || `Scene ${idx + 1}`;
+
+          const exportName = name
+            .split(/[\s-]+/)
+            .map((p: string) => p.charAt(0).toUpperCase() + p.slice(1))
+            .join('');
+
+          console.log('[Designbook] Indexing scene:', { fileName, exportName, name, group });
+
+          return {
+            type: 'story' as const,
+            importPath: relativePath,
+            exportName,
+            title: group,
+            tags: ['scene', '!autodocs'],
+          };
+        });
+
+        return entries;
+      } catch (err) {
+        console.error('[Designbook] Error indexing scene file:', fileName, err);
+        return [];
+      }
+    },
+  };
+
+  return [...existingIndexers, sectionsIndexer, scenesIndexer];
 };
 
 export const indexers = experimental_indexers;

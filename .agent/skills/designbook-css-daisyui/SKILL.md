@@ -1,6 +1,6 @@
 ---
 name: designbook-css-daisyui
-description: DaisyUI framework rules — Tailwind-only styling, token naming conventions, and CSS token generation from W3C Design Tokens. Use when DESIGNBOOK_CSS_FRAMEWORK is daisyui.
+description: DaisyUI framework rules — Tailwind-only styling, token naming conventions, and CSS token generation from W3C Design Tokens. Use when DESIGNBOOK_FRAMEWORK_CSS is daisyui.
 ---
 
 # Designbook CSS DaisyUI
@@ -13,7 +13,7 @@ DaisyUI-specific rules for styling, token naming, and CSS token generation. This
 
 ## ⚠️ Styling Rules — Tailwind Classes Only
 
-When `DESIGNBOOK_CSS_FRAMEWORK` is `daisyui`, **all styling MUST use Tailwind CSS utility classes and DaisyUI component classes exclusively**. No custom CSS is allowed.
+When `DESIGNBOOK_FRAMEWORK_CSS` is `daisyui`, **all styling MUST use Tailwind CSS utility classes and DaisyUI component classes exclusively**. No custom CSS is allowed.
 
 ### ✅ Allowed
 - **Tailwind utility classes**: `text-lg`, `p-4`, `flex`, `gap-2`, `rounded-lg`, `bg-base-200`, etc.
@@ -49,7 +49,7 @@ Read this file when you need to understand DaisyUI class names, theme format (`@
 
 ## 🎨 Token Naming Conventions
 
-When `DESIGNBOOK_CSS_FRAMEWORK` is `daisyui`, design tokens **MUST** use DaisyUI/Tailwind semantic names. This ensures tokens map directly to DaisyUI theme variables and Tailwind utility classes without additional translation.
+When `DESIGNBOOK_FRAMEWORK_CSS` is `daisyui`, design tokens **MUST** use DaisyUI/Tailwind semantic names. This ensures tokens map directly to DaisyUI theme variables and Tailwind utility classes without additional translation.
 
 > **Who uses this section?** The `debo-design-tokens` workflow reads this section to guide the user through naming their tokens correctly.
 
@@ -190,7 +190,7 @@ mkdir -p $DESIGNBOOK_DIST/designbook-css-daisyui
 Discover the top-level groups in the token file:
 
 ```bash
-npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.json --summary
+npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.yml --summary
 ```
 
 Each top-level group becomes **one `.jsonata` file** and **one `.src.css` output file**.
@@ -208,7 +208,7 @@ Each file returns a **CSS string** that jsonata-w writes directly to the output 
 ```jsonata
 /** @config
  {
-   "input": "../design-tokens.json",
+   "input": "../design-tokens.yml",
    "output": "../../css/tokens/[group].src.css"
  }
  */
@@ -284,4 +284,4 @@ $DESIGNBOOK_DRUPAL_THEME/css/
 - Dark theme uses DaisyUI's `@plugin "daisyui/theme"` format with `prefersdark: true`
 - Spacing tokens should include responsive media queries if breakpoint tokens are present
 - Radius tokens map to DaisyUI's `--radius-selector`, `--radius-field`, `--radius-box`
-- Use `npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.json --summary` to explore token structure
+- Use `npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.yml --summary` to explore token structure

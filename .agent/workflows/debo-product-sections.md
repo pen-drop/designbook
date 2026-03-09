@@ -2,22 +2,23 @@
 name: /debo-product-sections
 id: debo-product-sections
 category: Designbook
-description: Define your product sections based on the product vision
+description: Define your sections based on the product vision
 ---
 
-Help the user create or update their product sections for Designbook. The sections break the product vision into 3–5 development areas. The result is saved to `${DESIGNBOOK_DIST}/sections/[id].section.yml`.
+Help the user create or update their product sections for Designbook. The sections break the product vision into 3–5 development areas. The result is saved to `${DESIGNBOOK_DIST}/sections/[id]/spec.section.yml`.
 
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Check Current State
 
 First, check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/product-overview.md` — the product vision
-- `${DESIGNBOOK_DIST}/sections/*.section.yml` — existing sections
+- `${DESIGNBOOK_DIST}/sections/*/spec.section.yml` — existing sections
 
 **If no product vision exists**, tell the user:
 
-> "I don't see a product vision yet. The sections build on your product vision — please run `/product-vision` first to define what you're building, then come back to `/sections`."
+> "I don't see a product vision yet. The sections build on your product vision — please run `/debo-product-vision` first to define what you're building, then come back to `/sections`."
 
 Stop here.
 
@@ -68,9 +69,9 @@ Keep iterating until the user approves the sections.
 
 ## Step 4: Save the Files
 
-Once the user approves, create individual YAML files for each section in the `${DESIGNBOOK_DIST}/sections/` directory.
+Once the user approves, create individual YAML files for each section under `${DESIGNBOOK_DIST}/sections/[id]/`.
 
-For each section, create a file named `${DESIGNBOOK_DIST}/sections/[id].section.yml` with this format:
+For each section, create a file named `${DESIGNBOOK_DIST}/sections/[id]/spec.section.yml` with this format:
 
 ```yaml
 id: section-id-kebab-case
@@ -82,12 +83,11 @@ order: 1
 
 **Important:**
 - `id` must be kebab-case and unique
-- The filename must match the `id` (e.g., `unified-dashboard.section.yml`)
+- The directory name must match the `id` (e.g., `sections/unified-dashboard/spec.section.yml`)
 - `status` defaults to "planned"
 - `order` should reflect the sequence (1, 2, 3...)
 
-Create the directory `${DESIGNBOOK_DIST}/sections/` if it doesn't exist.
-Remove any legacy `${DESIGNBOOK_DIST}/sections.json` file if it exists.
+Create the directory `${DESIGNBOOK_DIST}/sections/[id]/` for each section if it doesn't exist.
 
 ## Step 5: Confirm Completion
 
@@ -103,9 +103,8 @@ Let the user know:
 > **Next step:** You can now use these sections to plan your design and development work."
 
 **Guardrails**
-- always read `schema/sections.json` before saving to ensure the output is valid
 - Always read the product vision first — the sections must align with it
-- If no product vision exists, redirect to `/product-vision` and stop
+- If no product vision exists, redirect to `/debo-product-vision` and stop
 - Be conversational and help the user think through the breakdown
 - Keep sections self-contained — each should be designable and buildable independently
 - 3–5 sections is the sweet spot — push back gently if the user wants too many or too few

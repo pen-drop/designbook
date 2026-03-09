@@ -1,0 +1,23 @@
+[
+  {
+    "type": "component",
+    "component": "figure",
+    "props": {
+      "src": field_media.url,
+      "alt": field_media.alt
+    }
+  },
+  {
+    "type": "component",
+    "component": "heading",
+    "props": { "level": "h3" },
+    "slots": { "text": title }
+  },
+  {
+    "type": "component",
+    "component": "text-block",
+    "slots": {
+      "content": field_teaser ? field_teaser : field_body
+    }
+  }
+]

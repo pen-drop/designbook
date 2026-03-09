@@ -7,3 +7,7 @@ components/*/*.js
 package-lock.json
 !.storybook/*js
 .eslintcache
+packages/integrations/test-integration-drupal/designbook
+packages/integrations/test-integration-drupal/components
+tmp
+promptfoo/workspaces/

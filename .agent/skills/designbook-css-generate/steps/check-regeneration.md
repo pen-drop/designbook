@@ -12,7 +12,7 @@ This step determines if CSS files need to be regenerated or if they're already u
 - `DESIGNBOOK_DIST` and `DESIGNBOOK_DRUPAL_THEME` environment variables are set
 
 ## Input
-- Token file: `$DESIGNBOOK_DIST/design-tokens.json`
+- Token file: `$DESIGNBOOK_DIST/design-tokens.yml`
 - CSS output directory: `$DESIGNBOOK_DRUPAL_THEME/css/tokens/`
 
 ## Process

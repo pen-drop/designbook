@@ -1,11 +1,13 @@
 ---
-name: /design-shell
-id: design-shell
+name: /debo-design-shell
+id: debo-design-shell
 category: Designbook
-description: Design the application shell — navigation and layout
+description: Design the application shell — page component with header, content, and footer slots
 ---
 
-Help the user design the application shell — the persistent navigation and layout that wraps all sections. The result is saved to `${DESIGNBOOK_DIST}/design-shell/shell-spec.md`.
+Help the user design the application shell — a `page` component with `header`, `content`, and `footer` slots, composed in a `shell.scenes.yml`. The result is a visual screen preview in Storybook.
+
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 
 **Steps**
 
@@ -13,42 +15,36 @@ Help the user design the application shell — the persistent navigation and lay
 
 Check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
-- `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
-- `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (optional)
+- `${DESIGNBOOK_DIST}/design-system/design-tokens.yml` — design tokens (optional)
+- Section directories under `${DESIGNBOOK_DIST}/sections/` (optional — used for navigation suggestions)
 
-**If product vision or roadmap are missing**, tell the user:
+**If product vision is missing**, tell the user:
 
-> "Before designing the shell, you need to define your product and sections. Please run:
-> 1. `/debo-product-vision` — Define your product
-> 2. `/debo-product-roadmap` — Define your sections"
+> "Before designing the shell, you need to define your product. Please run `/debo-product-vision` first."
 
 Stop here.
 
-**If design tokens are missing**, show a warning but continue:
-
-> "Note: Design tokens haven't been defined yet. I'll proceed with the specification, but you may want to run `/debo-design-tokens` first for consistent design decisions."
-
-Read all available files to understand the product context.
+Read all available files to understand the product context. If sections exist, use them for navigation suggestions.
 
 ## Step 2: Analyze and Propose Layout
 
-Review the roadmap sections and present navigation options:
+Review the product and sections, then present navigation options:
 
-> "I'm designing the shell for **[Product Name]**. Based on your roadmap, you have [N] sections:
+> "I'm designing the shell for **[Product Name]**. Based on your sections:
 >
 > 1. **[Section 1]** — [Description]
 > 2. **[Section 2]** — [Description]
 >
-> Let's decide on the shell layout. Common patterns:
+> Common layouts:
 >
 > **A. Top Navigation** — Horizontal nav at top, content below
 >    Best for: Corporate sites, marketing sites, fewer sections
 >
-> **B. Sidebar Navigation** — Vertical nav on the left, content on the right
+> **B. Sidebar Navigation** — Vertical nav on the left, content right
 >    Best for: Apps with many sections, dashboards, admin panels
 >
 > **C. Minimal Header** — Just logo + nav links in header
->    Best for: Simple sites, portfolio-style, few main pages
+>    Best for: Simple sites, portfolio-style, few pages
 >
 > Based on **[Product Name]**, I'd suggest [suggestion] because [reason].
 >
@@ -60,23 +56,27 @@ Wait for their response.
 
 Ask clarifying questions:
 
-- "What navigation items should appear? (Based on your roadmap, I suggest: [list])"
+- "What navigation items should appear? (Based on your sections, I suggest: [list])"
 - "Where should the user menu / contact info appear? (Top right is common)"
 - "Do you need any additional items? (Search, language switcher, CTA button, etc.)"
 - "How should it adapt on mobile? (Hamburger menu, collapsible sidebar, bottom nav)"
-- "What should the default / home view be when someone visits the site?"
+- "Footer: What links, copyright text, and social icons should appear?"
 
-## Step 4: Present Shell Specification
+## Step 4: Present Shell Design
 
-> "Here's the shell specification for **[Product Name]**:
+> "Here's the shell design for **[Product Name]**:
 >
 > **Layout Pattern:** [chosen pattern]
 >
-> **Navigation:**
-> - [Nav Item 1] → [Section]
-> - [Nav Item 2] → [Section]
+> **Header:**
+> - Logo: [product name]
+> - Navigation: [nav items list]
+> - CTA: [if any]
 >
-> **User Menu:** [description]
+> **Footer:**
+> - Links: [list]
+> - Copyright: [text]
+> - Social: [if any]
 >
 > **Responsive Behavior:**
 > - Desktop: [how it looks]
@@ -86,53 +86,70 @@ Ask clarifying questions:
 
 Iterate until the user is satisfied.
 
-## Step 5: Save the File
+## Step 5: Generate Shell Components
 
-Once approved, create the file at `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` with this exact format:
+> ⛔ **MANDATORY**: Read `@designbook-components-sdc/resources/shell-generation.md` **before generating any shell files**. It defines the complete shell workflow: required sub-components, slot structure, and story format.
 
-```markdown
-# Application Shell
+Follow the Shell Generation Steps from that resource. For each component file:
 
-## Overview
-[Description of the shell design and its purpose for this product]
+- **`.component.yml`** → Follow `@designbook-components-sdc/resources/component-yml.md`
+- **`.story.yml`** → Follow `@designbook-components-sdc/resources/story-yml.md`
+- **`.twig`** → Follow `@designbook-components-sdc/resources/twig.md`
+- **General rules** → Follow `@designbook-components-sdc/resources/rules.md`
 
-## Navigation Structure
-- [Nav Item 1] → [Section or page it leads to]
-- [Nav Item 2] → [Section or page it leads to]
-- [Additional items]
+**Do NOT invent component structures.** The skill resources are the single source of truth.
 
-## User Menu
-[Description of user menu location and contents, or contact info placement]
+## Step 6: Create Shell Scenes
 
-## Layout Pattern
-[Description of the layout — top nav, sidebar, minimal header, etc. and why]
+> ⛔ **MANDATORY**: Read `@designbook-scenes/SKILL.md` for the `*.scenes.yml` format specification before creating the shell scenes file.
 
-## Responsive Behavior
-- Desktop: [How it looks and behaves]
-- Tablet: [How it adapts]
-- Mobile: [How it adapts — hamburger menu, bottom nav, etc.]
+Create the directory `${DESIGNBOOK_DIST}/shell/` if it doesn't exist.
 
-## Design Notes
-[Any additional design decisions, conventions, or notes]
+Create `${DESIGNBOOK_DIST}/shell/shell.scenes.yml` following the format from the scenes skill. The shell scenes file is standalone (no `layout:` — it IS the layout that other scenes inherit from):
+
+```yaml
+name: "Designbook/Shell"
+scenes:
+  - name: default
+    layout:
+      header:
+        - component: header
+          story: default
+      content:
+        - component: hero
+          story: default
+      footer:
+        - component: footer
+          story: default
 ```
 
-Create the directory `${DESIGNBOOK_DIST}/design-shell/` if it doesn't exist.
+Populate slot content based on the components created in Step 5 and the user's approved design from Step 4.
 
-## Step 6: Confirm Completion
+## Step 7: Confirm Completion
 
-> "I've saved the shell specification to `${DESIGNBOOK_DIST}/design-shell/shell-spec.md`.
+> "I've created the shell for **[Product Name]**:
+>
+> **Files created:**
+>
+> | File | Description |
+> |------|-------------|
+> | `shell/shell.scenes.yml` | Shell screen composing page + header + footer |
+> | `components/page/` | Page container with header, content, footer slots |
+> | `components/header/` | Header with logo, navigation, CTA |
+> | `components/footer/` | Footer with links, copyright, social |
 >
 > **Shell design:**
 > - Layout: [pattern]
 > - Navigation: [N] items
 > - Responsive: [mobile approach]
 >
-> Open Storybook to see the specification on the Design Shell page. You can run `/design-shell` again anytime to update it."
+> Open Storybook to see the visual shell preview. You can run `/design-shell` again to update it."
 
 **Guardrails**
 - Be conversational — help the user think through layout decisions
-- Keep the spec focused on design decisions, not implementation details
-- Navigation items should map to roadmap sections where possible
-- Consider the product type when suggesting layout patterns (corporate site vs. app vs. tool)
-- The markdown format must match exactly for Storybook to parse it
-- If `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` already exists, read it first and ask: "You already have a shell specification. Would you like to update it or start fresh?"
+- Navigation items should map to the product's sections
+- Consider the product type when suggesting layout patterns
+- Components use the `designbook-components-sdc` skill for creation
+- If `shell/shell.scenes.yml` already exists, read it first and ask: "You already have a shell design. Would you like to update it or start fresh?"
+- If page/header/footer components already exist, reuse them — only create if missing
+- The `docs` field in the screen replaces the old `shell-spec.md` — no separate Markdown file needed

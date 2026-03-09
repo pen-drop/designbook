@@ -1,0 +1,367 @@
+description: "Designbook workflow evaluation suite"
+
+outputPath: promptfoo/reports/workflows.json
+
+prompts:
+  - id: debo-product-vision
+    label: product-vision
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //debo-product-vision workflow. Do NOT ask any questions — use the following inputs directly:
+
+      Product name: PetMatch
+      Description: A modern pet adoption platform connecting shelters with potential adopters
+      Problems & Solutions:
+      1. Shelters struggle to showcase available pets → Rich pet profiles with photos and personality traits
+      2. Adopters can't filter by lifestyle compatibility → Smart matching algorithm based on living situation
+      3. Post-adoption support is lacking → Built-in community and vet appointment scheduling
+      Key Features:
+      - Pet profile browser with advanced search
+      - Shelter dashboard for managing listings
+      - Adoption application workflow
+      - Community forum and resources
+      - Vet integration and health tracking
+
+      Execute the workflow now.
+
+  - id: debo-product-sections
+    label: product-sections
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //debo-product-sections workflow. Do NOT ask any questions.
+      The product is "PetMatch" — a pet adoption platform. Read the product overview at product/product-overview.md.
+      Create between 3 and 5 sections that cover the key areas of the product.
+      Execute the workflow now.
+
+  - id: debo-design-tokens
+    label: design-tokens
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //debo-design-tokens workflow. Do NOT ask any questions — use the following inputs directly:
+
+      Product: PetMatch (pet adoption platform)
+      Color palette:
+      - Primary: #4F46E5 (indigo — trust/reliability)
+      - Secondary: #10B981 (emerald — nature/growth)
+      - Accent: #F59E0B (amber — warmth/energy)
+      - Neutral: #1F2937 (dark gray)
+      - Surface: #F9FAFB (light gray)
+      Typography:
+      - Heading: Inter
+      - Body: Inter
+      - Mono: JetBrains Mono
+
+      Execute the workflow now.
+
+  - id: debo-data-model
+    label: data-model
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //debo-data-model workflow. Do NOT ask any questions.
+      The product is "PetMatch". Read the product overview at product/product-overview.md.
+      Define entity types for: pets (with fields for name, breed, age, description, photo, status), shelters (name, location, contact), adoption applications (applicant info, pet reference, status), and categories (name, description).
+      Execute the workflow now.
+
+  - id: debo-css-generate
+    label: css-generate
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //debo-css-generate workflow. Do NOT ask any questions.
+      Read the designbook.config.yml for configuration. Generate CSS token files from the existing design-tokens.yml.
+      Execute the workflow now.
+
+  - id: debo-shape-section
+    label: shape-section
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //shape-section workflow for the "homepage" section. Do NOT ask any questions.
+      The product is "PetMatch". Read sections/homepage/spec.section.yml for context.
+      Define user flows for: browsing featured pets, searching/filtering pets, and initiating an adoption application.
+      Execute the workflow now.
+
+  - id: debo-design-component
+    label: design-component
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //debo-design-component workflow. Do NOT ask any questions.
+      Create a "pet-card" component for PetMatch that displays: pet photo, name, breed, age, and an "Adopt Me" button.
+      The component should have variants: default and featured (with a highlight border).
+      Execute the workflow now.
+
+  - id: debo-sample-data
+    label: sample-data
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //sample-data workflow for the "homepage" section. Do NOT ask any questions.
+      The product is "PetMatch". Read data-model.yml for the entity schema.
+      Generate realistic sample data with at least 5 pet records, 2 shelter records, and 3 category records.
+      Use real pet names, breeds, and descriptions — no placeholder text.
+      Execute the workflow now.
+
+  - id: debo-design-screen
+    label: design-screen
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //debo-design-screen workflow for the "homepage" section. Do NOT ask any questions.
+      The product is "PetMatch". Read sections/homepage/spec.section.yml for context.
+      The homepage should include: a hero section, featured pets grid, search/filter area, and a call-to-action for shelters.
+      Generate UI components, view-modes (JSONata files), and a scenes file.
+      After generating all files, run `pnpm build-storybook` to verify everything renders.
+      Execute the workflow now.
+
+  - id: debo-design-shell
+    label: design-shell
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the //debo-design-shell workflow. Do NOT ask any questions.
+      The product is "PetMatch". Read the product overview and section definitions for navigation planning.
+      The shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.
+      The result should be a shell.scenes.yml file under shell/ and page/header/footer components.
+      After generating all files, run `pnpm build-storybook` to verify everything renders.
+      Execute the workflow now.
+
+providers:
+  - id: opencode:sdk
+    label: gemini-3-pro
+    config:
+      provider_id: google
+      model: antigravity-gemini-3.1-pro
+      timeout: 300000
+      tools:
+        read: true
+        grep: true
+        glob: true
+        list: true
+        write: true
+        edit: true
+        bash: true
+        webfetch: true
+        skill: true
+      permission:
+        bash: allow
+        edit: allow
+        external_directory: allow
+
+evaluateOptions:
+  maxConcurrency: 1
+
+defaultTest:
+  options:
+    provider:
+      id: opencode:sdk
+      config:
+        provider_id: google
+        model: antigravity-gemini-3.1-pro
+
+# =============================================================================
+# Core Debo-Workflow Tests
+# =============================================================================
+
+tests:
+  # --- product-vision ---
+  - description: "debo-product-vision: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-product-vision
+    prompts:
+      - product-vision
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //debo-product-vision workflow for "PetMatch".
+          Verify from the conversation output:
+          1. A file was created at designbook/product/product-overview.md inside the workspace
+          2. The file starts with a level-1 heading containing "PetMatch"
+          3. The file contains a "## Description" section with 1-3 sentences
+          4. The file contains a "## Problems & Solutions" section with at least 2 problem/solution pairs
+          5. The file contains a "## Key Features" section with at least 3 features
+          6. The agent confirmed completion and mentioned Storybook
+
+  # --- product-sections ---
+  - description: "debo-product-sections: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-product-sections
+    prompts:
+      - product-sections
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //debo-product-sections workflow for "PetMatch".
+          Verify from the conversation output:
+          1. Between 3 and 5 section directories were created under sections/
+          2. Each section has a spec.section.yml file
+          3. Each YAML file contains id, title, description, status, and order fields
+          4. The id values are kebab-case
+          5. The directory name matches the id for each section
+          6. The status field is "planned" for all sections
+          7. The order values are sequential (1, 2, 3, ...)
+
+  # --- design-tokens ---
+  - description: "debo-design-tokens: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-design-tokens
+    prompts:
+      - design-tokens
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //debo-design-tokens workflow for "PetMatch".
+          Verify from the conversation output:
+          1. The agent confirms creating a design tokens file (design-tokens.yml)
+          2. The agent mentions color tokens (primary, secondary, accent)
+          3. The agent mentions typography tokens (heading, body)
+          4. The agent confirms the file was saved successfully
+          5. The output does NOT indicate errors or failures
+
+  # --- data-model ---
+  - description: "debo-data-model: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-data-model
+    prompts:
+      - data-model
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //debo-data-model workflow for "PetMatch".
+          Verify from the conversation output:
+          1. The agent confirms creating data-model.yml
+          2. The agent mentions entity types relevant to a pet adoption platform (pets, shelters, etc.)
+          3. The agent mentions fields for at least one entity type
+          4. The agent confirms successful validation or saving
+          5. The output does NOT indicate errors or failures
+
+  # --- css-generate ---
+  - description: "debo-css-generate: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-css-generate
+    prompts:
+      - css-generate
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //debo-css-generate workflow.
+          Verify from the conversation output:
+          1. The agent loaded configuration (sourced set-env.sh or read designbook.config.yml)
+          2. The agent read/verified design-tokens.yml exists
+          3. CSS files were generated under css/tokens/ and/or css/themes/ directories
+          4. The generated files have .src.css extension
+          5. The agent verified the output (files exist and are non-empty)
+          6. The app.src.css was updated with @import lines (or already contained them)
+
+  # --- shape-section ---
+  - description: "debo-shape-section: PetMatch homepage"
+    vars:
+      workspace: promptfoo/workspaces/debo-shape-section
+    prompts:
+      - shape-section
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //shape-section workflow for a PetMatch section.
+          Verify from the conversation output:
+          1. A spec.section.yml file was created inside a section directory (e.g. sections/homepage/spec.section.yml)
+          2. The file is valid YAML with keys: id, title, description, status, shell
+          3. The file contains a user_flows list with at least 2 flows (each with title and steps)
+          4. The file contains a ui_requirements list with at least 2 requirements
+          5. The shell key is set to true or false
+
+  # --- design-component ---
+  - description: "debo-design-component: PetMatch card"
+    vars:
+      workspace: promptfoo/workspaces/debo-design-component
+    prompts:
+      - design-component
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //debo-design-component workflow for a PetMatch component.
+          Verify from the conversation output:
+          1. The agent confirms creating a component directory under components/
+          2. The agent mentions creating .component.yml, .twig, and .story.yml files
+          3. The agent confirms the component was created successfully
+          4. The output does NOT indicate errors or failures
+      - type: llm-rubric
+        value: |
+          OPTIONAL Storybook verification (non-blocking):
+          Check if the agent validated the component in Storybook:
+          1. Used designbook-component-validate skill, OR
+          2. Opened a Storybook URL (http://localhost:6009/iframe.html?id=...)
+          If Storybook was not running, this is acceptable — do not fail.
+
+  # --- sample-data ---
+  - description: "debo-sample-data: PetMatch homepage"
+    vars:
+      workspace: promptfoo/workspaces/debo-sample-data
+    prompts:
+      - sample-data
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //sample-data workflow for a PetMatch section.
+          Verify from the conversation output:
+          1. A data.yml file was created inside a section directory
+          3. Each record has an "id" field
+
+  # --- design-screen ---
+  - description: "debo-design-screen: PetMatch homepage"
+    vars:
+      workspace: promptfoo/workspaces/debo-design-screen
+    prompts:
+      - design-screen
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //debo-design-screen workflow for a PetMatch section.
+          Verify from the conversation output:
+          1. The agent created at least one view-mode file under view-modes/ with .jsonata extension
+             (e.g. view-modes/node.pet.teaser.jsonata or view-modes/node.pet.full.jsonata)
+          2. The agent created a scenes file with .scenes.yml extension
+             inside the section directory (e.g. sections/homepage/homepage.scenes.yml)
+          3. The agent confirms creating or verifying UI components
+             (component names like hero, card, search-filter, cta, etc. are acceptable)
+          4. The agent confirms successful completion
+          5. The output does NOT indicate errors or failures
+      - type: llm-rubric
+        value: |
+          Storybook build verification:
+          After generating all files, the agent MUST run `pnpm build-storybook` (or `npx storybook build`)
+          in the workspace directory to verify that all components and scenes render without errors.
+          1. The build command was executed
+          2. The build completed successfully (exit code 0, no "ERROR" in output)
+          3. If the build failed, the agent attempted to fix the errors and re-run
+
+  # --- design-shell ---
+  - description: "debo-design-shell: PetMatch"
+    vars:
+      workspace: promptfoo/workspaces/debo-design-shell
+    prompts:
+      - design-shell
+    assert:
+      - type: llm-rubric
+        value: |
+          The agent executed the //debo-design-shell workflow for "PetMatch".
+          Verify from the conversation output:
+          1. The agent created a shell scenes file at shell/shell.scenes.yml
+             (NOT shell.screen.yml — the correct extension is .scenes.yml)
+          2. The scenes file composes a page component with header, content, and footer slots
+          3. Shell components were created under components/:
+             - components/page/ (page container with header, content, footer slots)
+             - components/header/ (header with logo and navigation)
+             - components/footer/ (footer with links and copyright)
+          4. Each component directory contains .component.yml, .story.yml, and .twig files
+          5. Each .component.yml the agent creates must include:
+             - $schema line
+             - name in snake_case (lowercase, no spaces)
+             - provider field
+             - thirdPartySettings.sdcStorybook.disableBasicStory: true
+          6. Navigation items map to the product's sections
+          7. The agent confirmed completion
+          8. The output does NOT indicate errors or failures
+      - type: llm-rubric
+        value: |
+          Storybook build verification:
+          After generating all shell files, the agent MUST run `pnpm build-storybook`
+          (or `npx storybook build`) in the workspace directory to verify that all
+          shell components and scenes render without errors.
+          1. The build command was executed
+          2. The build completed successfully (exit code 0, no "ERROR" in output)
+          3. If the build failed, the agent attempted to fix the errors and re-run

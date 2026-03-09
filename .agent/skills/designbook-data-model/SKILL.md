@@ -1,15 +1,19 @@
 ---
 name: designbook-data-model
-description: Validates and stores data model configuration in JSON format.
+description: Validates and stores data model configuration in YAML format. Defines entity types, bundles, and field schemas. View mode display mappings are handled separately by the designbook-view-modes skill.
 ---
 
 # Designbook Data Model Skill
 
-This skill is the central authority for validating and saving the data model to the project. It validates the data model JSON against the bundled JSON Schema using `ajv-cli` and persists it to `designbook/data-model.json`.
+This skill is the central authority for validating and saving the data model to the project. It validates the data model YAML against the bundled schema using `ajv-cli` and persists it to `designbook/data-model.yml`.
+
+> [!IMPORTANT]
+> **View mode mappings are no longer part of the data model.**
+> They have been moved to separate `.jsonata` files in `view-modes/`. See the `designbook-view-modes` skill for details.
 
 ## Schema
 
-The JSON Schema is bundled with this skill at `schema/data-model.json`. This is the single source of truth for validation.
+The schema is bundled with this skill at `schema/data-model.schema.yml`. This is the single source of truth for validation.
 
 ### Schema structure
 
@@ -48,8 +52,8 @@ Validate a data model file against the schema:
 
 ```bash
 npx ajv-cli validate \
-  -s .agent/skills/designbook-data-model/schema/data-model.json \
-  -d <path-to-data-model.json>
+  -s .agent/skills/designbook-data-model/schema/data-model.schema.yml \
+  -d <path-to-data-model.yml>
 ```
 
 ## Steps

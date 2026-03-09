@@ -11,16 +11,16 @@ This step checks that the W3C Design Tokens file exists before CSS generation.
 - `DESIGNBOOK_DIST` environment variable is set
 
 ## Input
-- Expected file: `$DESIGNBOOK_DIST/design-tokens.json`
+- Expected file: `$DESIGNBOOK_DIST/design-tokens.yml`
 
 ## Process
 
 1. **Check if token file exists**
-   - Command: `test -f $DESIGNBOOK_DIST/design-tokens.json`
+   - Command: `test -f $DESIGNBOOK_DIST/design-tokens.yml`
 
 2. **Handle missing file**
    - If file is missing:
-     - Display: "❌ Token file missing at `$DESIGNBOOK_DIST/design-tokens.json`"
+     - Display: "❌ Token file missing at `$DESIGNBOOK_DIST/design-tokens.yml`"
      - Suggest: "Run Designbook Tokens skill first to generate the token file"
      - Exit with error
 

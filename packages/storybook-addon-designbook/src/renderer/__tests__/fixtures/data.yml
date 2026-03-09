@@ -1,0 +1,20 @@
+node:
+  article:
+    - title: "Understanding Modern Architecture"
+      field_body: "<p>Architecture has evolved significantly over the past century...</p>"
+      field_media:
+        url: "/images/architecture-hero.jpg"
+        alt: "Modern building with glass facade"
+      field_category:
+        name: "Architecture"
+        id: 1
+      field_teaser: "A deep dive into the evolution of modern architecture and its impact."
+    - title: "The Art of Minimalism"
+      field_body: "<p>Minimalism in design focuses on simplicity...</p>"
+      field_media:
+        url: "/images/minimalism.jpg"
+        alt: "Clean minimal interior"
+      field_category:
+        name: "Design"
+        id: 2
+      field_teaser: "Exploring how less becomes more in contemporary design."

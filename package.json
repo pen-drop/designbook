@@ -7,10 +7,12 @@
   ],
   "type": "module",
   "devDependencies": {
+    "@opencode-ai/sdk": "^1.2.21",
     "glob": "^11.0.1",
     "js-yaml": "^4.1.1",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "promptfoo": "^0.120.24"
   },
   "scripts": {
