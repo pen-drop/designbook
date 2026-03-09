@@ -5,7 +5,7 @@ category: Designbook
 description: Define your sections based on the product vision
 ---
 
-Help the user create or update their product sections for Designbook. The sections break the product vision into 3–5 development areas. The result is saved to `${DESIGNBOOK_DIST}/sections/[id]/spec.section.yml`.
+Help the user create or update their product sections for Designbook. The sections break the product vision into 3–5 development areas. The result is saved to `${DESIGNBOOK_DIST}/sections/[id]/[id].section.scenes.yml`.
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
@@ -14,7 +14,7 @@ Help the user create or update their product sections for Designbook. The sectio
 
 First, check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/product-overview.md` — the product vision
-- `${DESIGNBOOK_DIST}/sections/*/spec.section.yml` — existing sections
+- `${DESIGNBOOK_DIST}/sections/*/*.section.scenes.yml` — existing sections
 
 **If no product vision exists**, tell the user:
 
@@ -71,7 +71,7 @@ Keep iterating until the user approves the sections.
 
 Once the user approves, create individual YAML files for each section under `${DESIGNBOOK_DIST}/sections/[id]/`.
 
-For each section, create a file named `${DESIGNBOOK_DIST}/sections/[id]/spec.section.yml` with this format:
+For each section, create a file named `${DESIGNBOOK_DIST}/sections/[id]/[id].section.scenes.yml` with this format:
 
 ```yaml
 id: section-id-kebab-case
@@ -79,13 +79,21 @@ title: Section Title
 description: One sentence description
 status: planned
 order: 1
+
+name: "Designbook/Sections/Section Title"
+layout: "shell"
+
+scenes: []
 ```
 
 **Important:**
 - `id` must be kebab-case and unique
-- The directory name must match the `id` (e.g., `sections/unified-dashboard/spec.section.yml`)
+- The directory name must match the `id` (e.g., `sections/unified-dashboard/unified-dashboard.section.scenes.yml`)
 - `status` defaults to "planned"
 - `order` should reflect the sequence (1, 2, 3...)
+- `name` follows the `"Designbook/Sections/[Title]"` convention
+- `layout: "shell"` enables layout inheritance from the shell
+- `scenes` starts as empty array — populated later by `/debo-design-screen`
 
 Create the directory `${DESIGNBOOK_DIST}/sections/[id]/` for each section if it doesn't exist.
 

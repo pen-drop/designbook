@@ -17,10 +17,10 @@ Load configuration using the `@designbook-configuration` skill to resolve enviro
 
 Check if the following files exist for the target section:
 
-- `$DESIGNBOOK_DIST/sections/[section-id]/spec.section.yml` — section spec (required)
+- `$DESIGNBOOK_DIST/sections/[section-id]/*.section.scenes.yml` — section scenes file (required)
 - `$DESIGNBOOK_DIST/sections/[section-id]/data.yml` — sample data (required)
 - `$DESIGNBOOK_DIST/data-model.yml` — data model (required)
-- `$DESIGNBOOK_DIST/shell/shell.scenes.yml` — application shell (required)
+- `$DESIGNBOOK_DIST/shell/spec.shell.scenes.yml` — application shell (required)
 - Page, header, footer components in `$DESIGNBOOK_DRUPAL_THEME/components/` (required)
 - `$DESIGNBOOK_DIST/design-system/design-tokens.yml` — design tokens (optional)
 

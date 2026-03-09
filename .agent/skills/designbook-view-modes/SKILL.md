@@ -19,8 +19,16 @@ description: Creates and validates JSONata view-mode mapping files that transfor
 ## Prerequisites
 
 1. **Data model** with field definitions: `$DESIGNBOOK_DIST/data-model.yml`
-2. **Sample data** for testing: `$DESIGNBOOK_DIST/sections/{section}/data.yml`
+2. **Sample data** in nested format: `$DESIGNBOOK_DIST/sections/{section}/data.yml` — see `@designbook-sample-data/SKILL.md` for format rules
 3. **UI components** must exist (the components referenced in the expression)
+
+> **Data lookup**: The renderer resolves `sampleData[entity_type][bundle][record]`. Sample data MUST use the nested `entity_type.bundle` format:
+> ```yaml
+> node:
+>   article:
+>     - id: "1"
+>       title: "..."
+> ```
 
 ## Output Structure
 

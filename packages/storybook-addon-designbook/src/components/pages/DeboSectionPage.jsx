@@ -1,9 +1,12 @@
 import { useState, useCallback } from 'react';
 import { DeboSection } from '../DeboSection.jsx';
 import { DeboPageLayout } from '../ui/DeboPageLayout.jsx';
+import { DeboEmptyState } from '../ui/DeboEmptyState.jsx';
 import { DeboSourceFooter } from '../ui/DeboSourceFooter.jsx';
 import { DeboMockupWindow } from '../ui/DeboMockupWindow.jsx';
 import { DeboSampleData } from '../display/DeboSampleData.jsx';
+
+
 import { parseMarkdown, parseScreenshots } from '../parsers.js';
 import { parse as parseYaml } from 'yaml';
 
@@ -25,7 +28,7 @@ const screenshotsParser = (md) => {
 
 
 /**
- * DeboSectionDetailPage — Individual section page with 4-step progression.
+ * DeboSectionPage — Individual section page with 4-step progression.
  * Steps: Spec → Sample Data → Screen Designs → Screenshots
  *
  * Each step is a bare DeboSection that handles its own loading/empty/content state.
@@ -35,20 +38,21 @@ const screenshotsParser = (md) => {
  * @param {string} props.sectionId — Kebab-case section ID
  * @param {string} props.title — Display title for the section
  */
-export function DeboSectionDetailPage({ sectionId, title }) {
+export function DeboSectionPage({ sectionId, title }) {
     const [reloadKey, setReloadKey] = useState(0);
     const handleReload = useCallback(() => setReloadKey(k => k + 1), []);
 
     return (
         <DeboPageLayout key={reloadKey} gap="8">
+            <h1 className="debo:text-2xl debo:font-semibold">{title}</h1>
             {/* Step 1: Section Specification */}
             <DeboSection
                 title="Shape Section"
-                dataPath={`sections/${sectionId}/spec.section.yml`}
+                dataPath={`sections/${sectionId}/${sectionId}.section.scenes.yml`}
                 parser={parseMarkdown}
                 command={`/debo-shape-section ${sectionId}`}
                 emptyMessage={`No specification for ${title} yet`}
-                filePath={`designbook/sections/${sectionId}/spec.section.yml`}
+                filePath={`designbook/sections/${sectionId}/${sectionId}.section.scenes.yml`}
                 renderContent={(html) => (
                     <DeboMockupWindow>
                         <div
@@ -68,6 +72,14 @@ export function DeboSectionDetailPage({ sectionId, title }) {
                 emptyMessage="No sample data defined yet"
                 filePath={`designbook/sections/${sectionId}/data.yml`}
                 renderContent={(data) => <DeboSampleData data={data} />}
+            />
+
+            <h2 className="debo:text-lg debo:font-semibold debo:text-base-content debo:pb-2 debo:mb-4 debo:border-b debo:border-base-300">
+                Design
+            </h2>
+            <DeboEmptyState
+                message="Design"
+                command={`/debo-design-screen ${sectionId}`}
             />
 
             {/* Step 4: Screenshots */}

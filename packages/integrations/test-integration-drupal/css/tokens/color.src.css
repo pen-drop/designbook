@@ -1,26 +1,35 @@
 @plugin "daisyui/theme" {
-  name: "keytec";
+  name: "light";
   default: true;
   color-scheme: light;
 
-  --color-primary: #4f46e5;
-  --color-primary-content: #ffffff;
-  --color-secondary: #0d9488;
-  --color-secondary-content: #ffffff;
-  --color-accent: #f59e0b;
+  /* ocean blue — primary brand color */
+  --color-primary: #494FE5;
+  --color-primary-content: #FFFFFF;
+  /* swimsuit red — CTA / action color */
+  --color-secondary: #F96459;
+  --color-secondary-content: #000000;
+  /* sun yellow — accent */
+  --color-accent: #FFC024;
   --color-accent-content: #000000;
-  --color-neutral: #1e293b;
-  --color-neutral-content: #f1f5f9;
-  --color-base-100: #fafafa;
-  --color-base-200: #f3f4f6;
-  --color-base-300: #e5e7eb;
-  --color-base-content: #1f2937;
-  --color-info: #3b82f6;
-  --color-info-content: #ffffff;
-  --color-success: #22c55e;
-  --color-success-content: #ffffff;
-  --color-warning: #eab308;
-  --color-warning-content: #000000;
-  --color-error: #ef4444;
-  --color-error-content: #ffffff;
+  /* volcano black */
+  --color-neutral: #000000;
+  --color-neutral-content: #FFFFFF;
+  /* surface — page background (Figma keytec/surface) */
+  --color-base-100: #F7F7F4;
+  /* cloud white — cards, elevated surfaces */
+  --color-base-200: #FFFFFF;
+  --color-base-300: #E5E5E0;
+  /* volcano — text */
+  --color-base-content: #000000;
+  --color-info: #494FE5;
+  --color-info-content: #FFFFFF;
+  --color-success: #36D399;
+  --color-success-content: #003320;
+  /* sun yellow */
+  --color-warning: #FFC024;
+  --color-warning-content: #382800;
+  /* wine red */
+  --color-error: #832626;
+  --color-error-content: #FFFFFF;
 }

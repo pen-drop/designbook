@@ -9,7 +9,9 @@ import '../index.css';
 // UI — Visual primitives
 export {
   DeboAlert,
+  DeboBadge,
   DeboBulletList,
+  DeboCard,
   DeboCollapsible,
   DeboEmptyState,
   DeboLoading,
@@ -25,7 +27,7 @@ export {
 export { DeboDataModel, DeboDesignTokens, DeboProductOverview, DeboSampleData } from './display/index.js';
 
 // Pages — Full page compositions
-export { DeboExportPage, DeboSectionDetailPage, DeboSectionsOverview } from './pages/index.js';
+export { DeboExportPage, DeboSectionPage, DeboSectionsOverview, DeboShellPage } from './pages/index.js';
 
 // Data — Loading containers
 export { DeboSection } from './DeboSection.jsx';

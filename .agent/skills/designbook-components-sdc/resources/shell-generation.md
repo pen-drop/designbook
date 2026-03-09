@@ -106,7 +106,7 @@ $DESIGNBOOK_DRUPAL_THEME/components/
 Each UI component should:
 - Have appropriate **props** (e.g., `navigation` has an `items` prop) 
 - Have a **story** that renders realistic content
-- Have a **Twig template** with semantic HTML markup
+- Have a **Twig template** using classes from `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` (see `resources/twig.md` → CSS Framework Routing)
 - Use the correct **provider** from the theme config (e.g., `daisy_cms_daisyui`)
 
 Present the plan to the user and ask for confirmation:
@@ -187,14 +187,14 @@ Replace `[ui_provider]` with the project's SDC UI provider from config.
 Replace `[PRODUCT_NAME]` with the product name from `product-overview.md`.
 Replace navigation items with those built in Shell Step 2.
 
-The Twig template for the header contains **real HTML markup**:
+The Twig template uses real HTML markup (see `resources/twig.md` for class rules):
 
 ```twig
-{# header.twig — real markup, shell is a UI component #}
-<header{{ attributes.addClass(['header']) }}>
-  <div class="header__logo">{{ logo }}</div>
-  <nav class="header__navigation">{{ navigation }}</nav>
-  <div class="header__actions">{{ actions }}</div>
+{# header.twig #}
+<header{{ attributes.addClass(['[css-framework-classes]']) }}>
+  {{ logo }}
+  {{ navigation }}
+  {{ actions }}
 </header>
 ```
 
@@ -249,13 +249,13 @@ slots:
         text: '© 2026 [PRODUCT_NAME]. All rights reserved.'
 ```
 
-The Twig template for the footer contains **real HTML markup**:
+The Twig template uses real HTML markup (see `resources/twig.md` for class rules):
 
 ```twig
-{# footer.twig — real markup, shell is a UI component #}
-<footer{{ attributes.addClass(['footer']) }}>
-  <nav class="footer__nav">{{ navigation }}</nav>
-  <div class="footer__copyright">{{ copyright }}</div>
+{# footer.twig #}
+<footer{{ attributes.addClass(['[css-framework-classes]']) }}>
+  {{ navigation }}
+  {{ copyright }}
 </footer>
 ```
 

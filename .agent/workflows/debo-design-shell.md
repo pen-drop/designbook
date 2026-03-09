@@ -5,7 +5,7 @@ category: Designbook
 description: Design the application shell — page component with header, content, and footer slots
 ---
 
-Help the user design the application shell — a `page` component with `header`, `content`, and `footer` slots, composed in a `shell.scenes.yml`. The result is a visual screen preview in Storybook.
+Help the user design the application shell — a `page` component with `header`, `content`, and `footer` slots, composed in a `spec.shell.scenes.yml`. The result is a visual screen preview in Storybook.
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 
@@ -105,9 +105,20 @@ Follow the Shell Generation Steps from that resource. For each component file:
 
 Create the directory `${DESIGNBOOK_DIST}/shell/` if it doesn't exist.
 
-Create `${DESIGNBOOK_DIST}/shell/shell.scenes.yml` following the format from the scenes skill. The shell scenes file is standalone (no `layout:` — it IS the layout that other scenes inherit from):
+Create `${DESIGNBOOK_DIST}/shell/spec.shell.scenes.yml` following the format from the scenes skill. The shell scenes file is standalone (no `layout:` — it IS the layout that other scenes inherit from).
+
+**Write the approved design from Step 4 into the metadata keys:**
+- `description` — summarize the shell layout (pattern, key features, responsive behavior)
+- `status` — set to `planned` initially
+- `order` — set to `0` (shell always comes first)
 
 ```yaml
+id: shell
+title: Application Shell
+description: Top-navigation layout with logo, main nav, CTA button, and multi-column footer. Responsive hamburger menu on mobile.
+status: planned
+order: 0
+
 name: "Designbook/Shell"
 scenes:
   - name: default
@@ -133,7 +144,7 @@ Populate slot content based on the components created in Step 5 and the user's a
 >
 > | File | Description |
 > |------|-------------|
-> | `shell/shell.scenes.yml` | Shell screen composing page + header + footer |
+> | `shell/spec.shell.scenes.yml` | Shell screen composing page + header + footer |
 > | `components/page/` | Page container with header, content, footer slots |
 > | `components/header/` | Header with logo, navigation, CTA |
 > | `components/footer/` | Footer with links, copyright, social |
@@ -150,6 +161,6 @@ Populate slot content based on the components created in Step 5 and the user's a
 - Navigation items should map to the product's sections
 - Consider the product type when suggesting layout patterns
 - Components use the `designbook-components-sdc` skill for creation
-- If `shell/shell.scenes.yml` already exists, read it first and ask: "You already have a shell design. Would you like to update it or start fresh?"
+- If `shell/spec.shell.scenes.yml` already exists, read it first and ask: "You already have a shell design. Would you like to update it or start fresh?"
 - If page/header/footer components already exist, reuse them — only create if missing
-- The `docs` field in the screen replaces the old `shell-spec.md` — no separate Markdown file needed
+- The `description` field in the scenes file captures the shell design — no separate Markdown spec file needed

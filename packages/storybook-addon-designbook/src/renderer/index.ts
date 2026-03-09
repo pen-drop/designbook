@@ -32,8 +32,5 @@ export { ExpressionCache } from './expression-cache';
 export { parseScene } from './parser';
 
 // Built-in renderers
-export { sdcComponentRenderer } from './sdc-renderer';
+export { sdcComponentRenderer, sdcRenderers } from './builders/sdc';
 export { entityJsonataRenderer } from './entity-renderer';
-
-// Presets
-export { sdcRenderers } from './presets/sdc';

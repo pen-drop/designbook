@@ -1,33 +1,7 @@
 import { Meta } from '@storybook/addon-docs/blocks';
-import { DeboSection, DeboMockupWindow } from '../components/index.js';
-import { parseMarkdown } from '../components/parsers.js';
-import { parse as parseYaml } from 'yaml';
+import { DeboShellPage } from '../components/index.js';
 import '../index.css';
 
 <Meta title="Designbook/Shell" />
 
-# Application Shell
-
-Design the persistent navigation and layout that wraps all sections of your application.
-Use the AI command to define header, navigation, content area, and footer — the result is displayed here automatically.
-
----
-
-<DeboSection
-  title="Shell Design"
-  dataPath="shell/shell.scenes.yml"
-  parser={(content) => parseYaml(content)}
-  command="/debo-design-shell"
-  emptyMessage="No shell design defined yet"
-  renderContent={(data) => {
-    const docs = data.docs || (data.scenes && data.scenes[0] && data.scenes[0].docs) || '';
-    return (
-      <DeboMockupWindow>
-        <div
-          className="debo-markdown debo:prose debo:prose-sm debo:max-w-none debo:prose-headings:font-normal debo:prose-a:text-primary"
-          dangerouslySetInnerHTML={{ __html: parseMarkdown(docs) }}
-        />
-      </DeboMockupWindow>
-    );
-  }}
-/>
+<DeboShellPage />

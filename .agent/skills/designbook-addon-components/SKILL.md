@@ -100,11 +100,12 @@ All Tailwind classes **MUST** use the `debo:` prefix. No exceptions.
 | Hook | `use<Name>.js` | `useDesignbookData.js` |
 | Parser | Exported function in component or separate file | `parseProductOverview()` |
 
-### 5. File Size & Responsibility
+### 5. File Size & Decomposition
 
 - Each component file should be **< 50 lines** — single responsibility
 - If a component grows, split it into smaller `Debo*` base components
 - Compose complex UIs from small building blocks, don't create monoliths
+- **Always extract sub-components**: When a UI component contains a visually distinct element (badge, tag, label, icon group, metadata row, etc.), extract it as its own `Debo*` component in a separate file. Never inline styled sub-elements that could be reused — every visual primitive gets its own component.
 
 ### 6. Theme Support
 
@@ -168,17 +169,44 @@ pnpm run build
 
 Read `packages/storybook-addon-designbook/src/components/index.js` to see what already exists. Don't duplicate.
 
-### Step 2: Create the Component File
+### Step 2: Identify Sub-Components
 
-Place in `packages/storybook-addon-designbook/src/components/`. Follow naming conventions (see above).
+Before writing code, decompose the design into visual primitives. Each distinct styled element should be its own `Debo*` component:
+
+```
+DeboCard (card container)
+├── DeboBadge (colored label tag) ← separate file
+├── DeboTag (metadata tag)        ← separate file if new pattern
+└── inline layout only            ← stays in parent
+```
+
+**Rule**: If an element has its own background color, border, or typographic style that could appear elsewhere, it must be a separate `Debo*` component. Create sub-components **first**, then compose them in the parent.
+
+### Step 3: Create the Component Files
+
+Place in `packages/storybook-addon-designbook/src/components/ui/`. Follow naming conventions (see above).
 
 ```jsx
-import React from 'react';
-
-export function DeboNewThing({ title, children }) {
+// DeboBadge.jsx — sub-component created first
+export function DeboBadge({ children, color = 'rose', className = '' }) {
+  const colors = { rose: 'debo:bg-rose-100 debo:text-rose-700', /* ... */ };
   return (
-    <div className="debo:p-4 debo:bg-base-100 debo:rounded-lg">
-      {title && <h3 className="debo:text-lg debo:font-semibold debo:text-base-content">{title}</h3>}
+    <span className={`debo:uppercase debo:text-[10px] debo:font-bold debo:px-2 debo:py-0.5 debo:rounded ${colors[color]} ${className}`.trim()}>
+      {children}
+    </span>
+  );
+}
+
+// DeboCard.jsx — parent composes sub-components
+import { DeboBadge } from './DeboBadge.jsx';
+
+export function DeboCard({ title, badge, children }) {
+  return (
+    <div className="debo:bg-white debo:rounded-lg debo:shadow-sm debo:p-5">
+      <div className="debo:flex debo:items-start debo:justify-between">
+        <h3 className="debo:text-lg debo:font-semibold debo:text-slate-800">{title}</h3>
+        {badge && <DeboBadge>{badge}</DeboBadge>}
+      </div>
       {children}
     </div>
   );
@@ -187,17 +215,17 @@ export function DeboNewThing({ title, children }) {
 
 Key checklist:
 - [ ] All classes use `debo:` prefix
+- [ ] Visually distinct elements extracted as separate `Debo*` sub-components
 - [ ] Props-based, no internal data fetching (unless it's a container)
 - [ ] Handles null/empty props gracefully
-- [ ] Works in light and dark themes (semantic DaisyUI colors)
-- [ ] < 50 lines, single responsibility
+- [ ] < 50 lines per file, single responsibility
 - [ ] No forms, editors, or save operations
 
-### Step 3: Register in Barrel Export
+### Step 4: Register in Barrel Export
 
 Add to `packages/storybook-addon-designbook/src/components/index.js`.
 
-### Step 4: Use in MDX
+### Step 5: Use in MDX
 
 ```mdx
 import { DeboNewThing } from '../components/index.js';

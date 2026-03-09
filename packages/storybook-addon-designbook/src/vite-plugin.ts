@@ -1,26 +1,21 @@
 import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
 import type { IncomingMessage } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, basename } from 'node:path';
 import { parse as parseYaml } from 'yaml';
-import jsonata from 'jsonata';
-import { parseScene } from './renderer/parser';
-import type {
-  DataModel,
-  SampleData,
-  ComponentSceneNode,
-  SceneNodeRenderer,
-  SceneNode,
-  EntitySceneNode,
-  RenderContext,
-} from './renderer/types';
-import { isSceneEntityEntry, isSceneComponentEntry } from './renderer/types';
-import { SceneNodeRenderService } from './renderer/render-service';
-import { sdcRenderers } from './renderer/presets/sdc';
+import type { SceneNodeRenderer } from './renderer/types';
+import type { ModuleBuilder } from './renderer/scene-module-builder';
+import { buildSceneModule } from './renderer/scene-module-builder';
+import { buildSdcModule } from './renderer/builders/sdc';
+import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
+
+/** Re-export for integrations that want to provide a custom module builder. */
+export type { ModuleBuilder } from './renderer/scene-module-builder';
+export type { ResolvedScene } from './renderer/scene-module-builder';
 
 export function designbookLoadPlugin(
   baseDir: string,
-  options: { fsRoot?: string; provider?: string; renderers?: SceneNodeRenderer[] } = {},
+  options: { fsRoot?: string; provider?: string; renderers?: SceneNodeRenderer[]; moduleBuilder?: ModuleBuilder } = {},
 ): Plugin {
   // Use config fsRoot if available, otherwise default to 'designbook'
   const distDir = options.fsRoot || 'designbook';
@@ -44,37 +39,9 @@ export function designbookLoadPlugin(
     enforce: 'pre',
 
     async load(id: string) {
-      // Transform .scenes.yml files into CSF story modules
-      if (id.endsWith('.scenes.yml')) {
-        return loadScenesYml(id, designbookDir, options.provider, options.renderers, trackDependency);
-      }
-
-      // Transform .section.yml files into CSF story modules
-      if (id.endsWith('.section.yml')) {
-        return loadSectionYml(id);
-      }
-
-      // Design components (.component.yml in /design/ or /components/) — delegate to SDC addon
-      if (id.endsWith('.component.yml') && (id.includes('/design/') || id.includes('/components/'))) {
-        // For entity components, set context for $ref resolution
-        if (id.includes('/entity/')) {
-          try {
-            const content = readFileSync(id, 'utf-8');
-            const component = parseYaml(content);
-            if (component?.designbook?.entity) {
-              const { type, bundle, record } = component.designbook.entity;
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (globalThis as any).__designbook_entity_context = { type, bundle, record: record ?? 0 };
-            }
-          } catch {
-            // Ignore parse errors, SDC addon will handle
-          }
-        }
-        // Return undefined — let the SDC addon handle Twig rendering
-        return undefined;
-      }
-
-      return undefined;
+      const match = matchHandler(id, defaultHandlers);
+      if (!match) return undefined;
+      return loadSceneModule(id, designbookDir, !!match.hasOverview, options, trackDependency);
     },
 
     handleHotUpdate({ file, server }) {
@@ -109,7 +76,7 @@ export function designbookLoadPlugin(
             return;
           }
 
-          // Special case: Aggregate sections.json from sections/*/spec.section.yml files
+          // Special case: Aggregate sections.json from sections/*/*.section.scenes.yml files
           if (filePath === 'sections.json') {
             const sectionsDir = resolve(designbookDir, 'sections');
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,13 +84,21 @@ export function designbookLoadPlugin(
 
             if (existsSync(sectionsDir)) {
               const subdirs = readdirSync(sectionsDir).filter((d) => {
-                const overviewPath = join(sectionsDir, d, 'spec.section.yml');
-                return existsSync(overviewPath);
+                // Look for *.section.scenes.yml in each section dir
+                const sectionDir = join(sectionsDir, d);
+                try {
+                  return readdirSync(sectionDir).some((f) => f.endsWith('.section.scenes.yml'));
+                } catch {
+                  return false;
+                }
               });
               sections = subdirs
                 .map((dir) => {
                   try {
-                    return parseYaml(readFileSync(join(sectionsDir, dir, 'spec.section.yml'), 'utf-8'));
+                    const sectionDir = join(sectionsDir, dir);
+                    const sectionFile = readdirSync(sectionDir).find((f) => f.endsWith('.section.scenes.yml'));
+                    if (!sectionFile) return null;
+                    return parseYaml(readFileSync(join(sectionDir, sectionFile), 'utf-8'));
                   } catch {
                     return null;
                   }
@@ -184,312 +159,186 @@ export function designbookLoadPlugin(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Docs page code generators
+// ---------------------------------------------------------------------------
+
+interface DocsPageCode {
+  imports: string;
+  component: string;
+}
+
 /**
- * Load a .scenes.yml file and transform it into a CSF story module.
- *
- * Resolves entity entries using data-model.yml and section data.yml,
- * then generates SDC Twig rendering code with proper component imports.
+ * Extract the page type from a scenes filename.
+ * spec.shell.scenes.yml → 'shell'
+ * ratgeber.section.scenes.yml → 'section'
  */
-async function loadScenesYml(
+function extractPageType(fileBase: string): string {
+  // spec.TYPE.scenes.yml
+  const specMatch = fileBase.match(/^spec\.(\w+)\.scenes\.yml$/);
+  if (specMatch) return specMatch[1]!;
+  // NAME.TYPE.scenes.yml
+  const typeMatch = fileBase.match(/\.(\w+)\.scenes\.yml$/);
+  if (typeMatch) return typeMatch[1]!;
+  return 'section';
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Convention-based docs page code generator.
+ * Maps filename type → Debo[Type]Page component with serialized props.
+ */
+function buildDocsPage(pageType: string, props: Record<string, string>): DocsPageCode {
+  const componentName = `Debo${capitalize(pageType)}Page`;
+  const propsStr = Object.entries(props)
+    .map(([k, v]) => `${k}: '${v}'`)
+    .join(', ');
+
+  return {
+    imports: [
+      "import React from 'react';",
+      `import { ${componentName} } from 'storybook-addon-designbook/dist/components/pages/${componentName}.jsx';`,
+    ].join('\n'),
+    component: `const DocsPage = () => React.createElement(${componentName}, { ${propsStr} });`,
+  };
+}
+
+function injectDocsPage(sceneCode: string, docs: DocsPageCode): string {
+  const header = [docs.imports, '', docs.component, ''].join('\n');
+  return (header + sceneCode).replace(
+    /parameters:\s*\{([\s\S]*?)layout:\s*'fullscreen'/,
+    `parameters: {$1layout: 'fullscreen',\n  docs: { page: DocsPage }`,
+  );
+}
+
+function buildDocsOnlyModule(docs: DocsPageCode, group: string, exportName: string): string {
+  return [
+    docs.imports,
+    '',
+    docs.component,
+    '',
+    'export default {',
+    `  title: '${group.replace(/'/g, "\\'")}',`,
+    "  tags: ['!dev'],",
+    '  parameters: {',
+    "    layout: 'fullscreen',",
+    '    docs: { page: DocsPage },',
+    '  },',
+    '};',
+    '',
+    `export const ${exportName} = {`,
+    '  render: () => {},',
+    '};',
+  ].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Error module
+// ---------------------------------------------------------------------------
+
+function buildErrorModule(id: string, error: unknown): string {
+  const msg = (error instanceof Error ? error.message : String(error)).replace(/'/g, "\\'").replace(/\n/g, '\\n');
+  const name = (id.split('/').pop() || 'unknown').replace(/'/g, "\\'");
+  return [
+    `export default { title: 'Errors/${name}', tags: ['scene', '!autodocs'], parameters: { layout: 'centered' } };`,
+    `export const LoadError = { render: () => '<div style="padding:2rem;color:#ef4444;font-family:monospace"><h3>Scene Load Error</h3><pre>${msg}</pre><p>File: ${name}</p></div>' };`,
+  ].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Module builder dispatch
+// ---------------------------------------------------------------------------
+
+async function buildStories(
+  id: string,
+  parsed: Record<string, unknown>,
+  designbookDir: string,
+  options: { provider?: string; renderers?: SceneNodeRenderer[]; moduleBuilder?: ModuleBuilder },
+  trackDependency?: (sceneId: string, dataFile: string) => void,
+): Promise<string> {
+  return options.moduleBuilder
+    ? buildSceneModule(
+        id,
+        parsed,
+        designbookDir,
+        options.moduleBuilder,
+        { provider: options.provider, renderers: options.renderers },
+        trackDependency,
+      )
+    : buildSdcModule(
+        id,
+        parsed,
+        designbookDir,
+        { provider: options.provider, renderers: options.renderers },
+        trackDependency,
+      );
+}
+
+// ---------------------------------------------------------------------------
+// Main scene loader
+// ---------------------------------------------------------------------------
+
+/**
+ * Load a *.scenes.yml file and transform it into a Storybook CSF module.
+ *
+ * - Files with `hasOverview` get a docs page derived from the filename type:
+ *   spec.[type].scenes.yml or *.[type].scenes.yml → Debo[Type]Page
+ * - Plain scene files produce canvas stories only.
+ */
+async function loadSceneModule(
   id: string,
   designbookDir: string,
-  provider?: string,
-  renderers?: SceneNodeRenderer[],
+  hasOverview: boolean,
+  options: { provider?: string; renderers?: SceneNodeRenderer[]; moduleBuilder?: ModuleBuilder },
   trackDependency?: (sceneId: string, dataFile: string) => void,
 ): Promise<string | null> {
   try {
     const content = readFileSync(id, 'utf-8');
     const raw = parseYaml(content);
 
-    // Support both new scenes[] format and legacy flat format
-    const scenesArray: unknown[] = Array.isArray(raw.scenes) ? raw.scenes : [raw]; // Legacy: treat entire file as single scene
-
-    const parsedScenes = scenesArray.map((s: unknown) => parseScene(s));
-
-    // Load data model (shared across all scenes)
-    let dataModel: DataModel;
-    const dataModelPath = join(designbookDir, 'data-model.yml');
-    try {
-      dataModel = parseYaml(readFileSync(dataModelPath, 'utf-8')) as DataModel;
-      trackDependency?.(id, dataModelPath);
-    } catch {
-      console.warn('[Designbook] No data-model.yml found, scene entities will not resolve');
-      dataModel = { content: {} };
+    if (!raw || typeof raw !== 'object') {
+      console.warn('[Designbook] Scene file parsed as null/empty:', id);
+      return null;
     }
 
-    // Load sample data
-    let sampleData: SampleData = {};
-    const firstScene = parsedScenes[0];
-    // Infer section from file path if not explicitly set:
-    //   .../sections/pet-discovery/pet-discovery.scenes.yml → 'pet-discovery'
-    let sectionId = firstScene?.section;
-    if (!sectionId) {
-      const match = id.match(/sections\/([^/]+)\//);
-      if (match) sectionId = match[1];
-    }
-    if (sectionId) {
-      const sectionDataPath = join(designbookDir, 'sections', sectionId, 'data.yml');
-      const globalDataPath = join(designbookDir, 'data.yml');
-      try {
-        sampleData = parseYaml(readFileSync(sectionDataPath, 'utf-8')) as SampleData;
-        trackDependency?.(id, sectionDataPath);
-      } catch {
-        try {
-          sampleData = parseYaml(readFileSync(globalDataPath, 'utf-8')) as SampleData;
-          trackDependency?.(id, globalDataPath);
-        } catch {
-          console.warn(`[Designbook] No data.yml found for scene "${firstScene?.name ?? 'unknown'}"`);
-        }
-      }
+    const parsed = raw as Record<string, unknown>;
+    const scenes = parsed.scenes as unknown[] | undefined;
+    const hasScenes = Array.isArray(scenes) && scenes.length > 0;
+
+    // Build scene stories (if any)
+    const sceneCode = hasScenes ? await buildStories(id, parsed, designbookDir, options, trackDependency) : '';
+
+    // Plain scenes (no overview) — return story code directly
+    if (!hasOverview) {
+      const result = await transformWithEsbuild(sceneCode || '', id + '.js', { loader: 'js' });
+      return result.code;
     }
 
-    // Title comes from the scenes file — no automatic grouping
-    const baseName = id.split('/').pop() || '';
-    const fileBase = baseName.replace('.scenes.yml', '');
-    const group = (raw.name as string) || fileBase;
-
-    // Set up SceneNodeRenderService
-    const renderService = new SceneNodeRenderService();
-    renderService.register(sdcRenderers);
-    if (renderers && renderers.length > 0) {
-      renderService.register(renderers);
-    }
-
-    // Import tracking (shared across all scenes)
-    const imports: string[] = [];
-    const kebabMap: Record<string, string> = {};
-
-    const trackImport = (componentId: string): string => {
-      if (kebabMap[componentId]) return kebabMap[componentId];
-      const [, componentName] = componentId.includes(':') ? componentId.split(':') : ['', componentId];
-      const kebabName = componentId.replace(/[-:]/g, '');
-      kebabMap[componentId] = kebabName;
-      const componentDir = resolve(designbookDir, '..', 'components', componentName || '');
-      const componentYml = join(componentDir, `${componentName}.component.yml`);
-      if (existsSync(componentYml)) {
-        imports.push(`import * as ${kebabName} from '${componentYml}';`);
-      } else {
-        console.warn(`[Designbook] Component not found: ${componentId} (searched ${componentYml})`);
-        imports.push(
-          `const ${kebabName} = { default: { component: (args) => '<div class="designbook-missing">[missing: ${componentId}]</div>' } };`,
-        );
-      }
-      return kebabName;
-    };
-
-    // Build RenderContext
-    const renderContext: RenderContext = {
-      provider,
-      dataModel,
-      sampleData,
-      designbookDir,
-      renderNode: (node: SceneNode) => renderService.render(node, renderContext),
-      trackImport,
-      evaluateExpression: async (exprPath: string, data: Record<string, unknown>) => {
-        const expr = jsonata(readFileSync(exprPath, 'utf-8'));
-        return expr.evaluate(data);
-      },
-    };
-
-    // Generate one export per scene
-    const storyExports: string[] = [];
-
-    for (const scene of parsedScenes) {
-      // Convert scene layout entries → SceneNode[]
-      const sceneNodes: Record<string, SceneNode[]> = {};
-      for (const [slotName, entries] of Object.entries(scene.layout)) {
-        const nodes: SceneNode[] = [];
-        for (const entry of entries) {
-          if (isSceneEntityEntry(entry)) {
-            const [entity_type, bundle] = entry.entity.split('.');
-            nodes.push({
-              type: 'entity',
-              entity_type,
-              bundle,
-              view_mode: entry.view_mode,
-              record: entry.record ?? 0,
-            } as EntitySceneNode);
-          } else if (isSceneComponentEntry(entry)) {
-            nodes.push({
-              type: 'component',
-              component: entry.component,
-              props: entry.props,
-              slots: entry.slots,
-              story: entry.story,
-            } as ComponentSceneNode);
-          }
-        }
-        sceneNodes[slotName] = nodes;
-      }
-
-      // Render all nodes through the service
-      const slotRenderCode: string[] = [];
-      for (const [slotName, nodes] of Object.entries(sceneNodes)) {
-        const nodeRenders: string[] = [];
-        for (const node of nodes) {
-          let rendered = renderService.render(node, renderContext);
-
-          // Resolve __ENTITY_EXPR__ markers asynchronously
-          const markerRegex = /__ENTITY_EXPR__(.*?)__END_ENTITY_EXPR__/g;
-          let match;
-          while ((match = markerRegex.exec(rendered)) !== null) {
-            try {
-              const meta = JSON.parse(match[1] ?? '{}');
-              const { jsonataPath, entityType, bundle, record = 0 } = meta;
-              const entityData =
-                sampleData?.[entityType]?.[bundle] ?? (sampleData?.[bundle] as Record<string, unknown>[] | undefined);
-              if (entityData && entityData[record]) {
-                const expr = jsonata(readFileSync(jsonataPath, 'utf-8'));
-                const result = await expr.evaluate(entityData[record]);
-                if (result && Array.isArray(result)) {
-                  const childRenders = result.map((childNode: Record<string, unknown>) => {
-                    const compNode: SceneNode = {
-                      type: 'component',
-                      component: childNode.component as string,
-                      props: childNode.props as Record<string, unknown>,
-                      slots: childNode.slots as Record<string, unknown>,
-                      story: childNode.story as string,
-                    };
-                    return renderService.render(compNode, renderContext);
-                  });
-                  rendered = rendered.replace(match[0], `[${childRenders.join(', ')}].join('')`);
-                } else {
-                  rendered = rendered.replace(match[0], `'<!-- empty: ${entityType}.${bundle} -->'`);
-                }
-              } else {
-                rendered = rendered.replace(match[0], `'<!-- no data: ${entityType}.${bundle}[${record}] -->'`);
-              }
-            } catch (err) {
-              console.error('[Designbook] Entity expression error:', err);
-              rendered = rendered.replace(match[0], `'<!-- error -->'`);
-            }
-          }
-
-          nodeRenders.push(rendered);
-        }
-        slotRenderCode.push(`
-    // Slot: ${slotName}
-    ${nodeRenders.map((r) => `html += ${r};`).join('\n    ')}`);
-      }
-
-      // Convert scene name to valid JS export: "Blog Detail" → "BlogDetail"
-      const exportName = scene.name
-        .split(/[\s-]+/)
-        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
-
-      storyExports.push(`
-export const ${exportName} = {
-  render: () => {
-    let html = '';
-    ${slotRenderCode.join('\n')}
-    return html;
-  },
-  play: async ({ canvasElement }) => {
-    if (typeof Drupal !== 'undefined') {
-      Drupal.attachBehaviors(canvasElement, window.drupalSettings);
-    }
-  },
-};`);
-    }
-
-    const code = `
-${imports.join('\n')}
-
-class TwigSafeArray extends Array {
-  toString() {
-    return this.join('');
-  }
-}
-
-export default {
-  title: '${group.replace(/'/g, "\\'")}',
-  tags: ['scene'],
-  parameters: {
-    layout: 'fullscreen',
-    scene: {
-      resolved: true,
-      source: '${baseName.replace(/'/g, "\\'")}',
-    },
-  },
-};
-
-${storyExports.join('\n')}
-`;
-
-    // Transform to JS
-    const result = await transformWithEsbuild(code, id + '.js', {
-      loader: 'js',
-    });
-    return result.code;
-  } catch (e: unknown) {
-    const errorMsg = e instanceof Error ? e.message : String(e);
-    console.error('[Designbook] Error loading scene:', id, e);
-    // Return an error story module instead of null to prevent Vite from
-    // serving raw YAML as JavaScript (which causes SyntaxError)
-    const safeMsg = errorMsg.replace(/'/g, "\\'").replace(/\n/g, '\\n');
-    const baseName = id.split('/').pop() || 'unknown';
-    return `
-export default {
-  title: 'Errors/${baseName.replace(/'/g, "\\\\'")}',
-  tags: ['scene', '!autodocs'],
-  parameters: { layout: 'centered' },
-};
-export const LoadError = {
-  render: () => '<div style="padding:2rem;color:#ef4444;font-family:monospace"><h3>Scene Load Error</h3><pre>${safeMsg}</pre><p>File: ${baseName}</p></div>',
-};
-`;
-  }
-}
-
-/**
- * Load a .section.yml file and transform it into a CSF story module.
- */
-async function loadSectionYml(id: string): Promise<string | null> {
-  try {
-    const content = readFileSync(id, 'utf-8');
-    const section = parseYaml(content);
-    const sectionId = section.id;
-    const title = section.title || 'Untitled';
-
-    // Generate the export name to match what the indexer declares
+    // Overview files — extract metadata and build docs page by convention
+    const fileBase = basename(id);
+    const pageType = extractPageType(fileBase);
+    const sectionId = (parsed.id as string) || fileBase.replace(/\.(\w+\.)?scenes\.yml$/, '');
+    const title = (parsed.title as string) || 'Untitled';
+    const group = (parsed.name as string) || `Designbook/Sections/${title}`;
     const exportName = sectionId
       .split('-')
       .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
       .join('');
 
-    const escapedTitle = title.replace(/'/g, "\\'");
-    const escapedId = sectionId.replace(/'/g, "\\'");
-    const code = [
-      "import React from 'react';",
-      "import { DeboSectionDetailPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionDetailPage.jsx';",
-      '',
-      'const SectionPage = () => (<><h1>' +
-        escapedTitle +
-        '</h1><DeboSectionDetailPage sectionId="' +
-        escapedId +
-        '" /></>);',
-      '',
-      'export default {',
-      "  title: 'Designbook/Sections/" + escapedTitle + "',",
-      "  tags: ['!dev'],",
-      '  parameters: {',
-      "    layout: 'fullscreen',",
-      '    docs: { page: SectionPage },',
-      '  },',
-      '};',
-      '',
-      'export const ' + exportName + ' = {',
-      '  render: () => {},',
-      '};',
-    ].join('\n');
-    // Transform JSX to JS using esbuild
-    const result = await transformWithEsbuild(code, id + '.tsx', {
-      loader: 'tsx',
+    const docs = buildDocsPage(pageType, {
+      sectionId: sectionId.replace(/'/g, "\\'"),
+      title: title.replace(/'/g, "\\'"),
     });
+
+    const code = sceneCode ? injectDocsPage(sceneCode, docs) : buildDocsOnlyModule(docs, group, exportName);
+
+    const result = await transformWithEsbuild(code, id + '.js', { loader: 'js' });
     return result.code;
-  } catch (e) {
-    console.error('[Designbook] Error loading section:', id, e);
-    return null;
+  } catch (e: unknown) {
+    console.error('[Designbook] Error loading scene module:', id, e);
+    return buildErrorModule(id, e);
   }
 }

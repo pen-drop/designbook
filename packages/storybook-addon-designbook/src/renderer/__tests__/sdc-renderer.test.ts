@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { sdcComponentRenderer } from '../sdc-renderer';
+import { sdcComponentRenderer } from '../builders/sdc/renderer';
 import type { RenderContext, ComponentSceneNode } from '../types';
 
 function createMockContext(overrides: Partial<RenderContext> = {}): RenderContext {

@@ -1,5 +1,7 @@
 import { designbookLoadPlugin } from './vite-plugin';
 import { loadConfig } from './config';
+import { extractGroup, buildExportName, extractScenes, fileBaseName } from './renderer/scene-metadata';
+import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 
 import { readFileSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
@@ -36,6 +38,12 @@ export const viteFinal = async (config: any, options: any) => {
   return {
     ...config,
     plugins,
+    // Ensure JSX files from the addon (e.g. DeboSectionPage.jsx, DeboShellPage.jsx) are
+    // transpiled without needing @vitejs/plugin-react.
+    esbuild: {
+      ...config.esbuild,
+      jsx: 'automatic',
+    },
   };
 };
 
@@ -57,56 +65,19 @@ export const stories = async (entry: string[] = [], options: any) => {
     distDir = options.designbook.fsRoot;
   }
 
-  const sectionsGlob = resolve(distDir, 'sections/*/spec.section.yml');
-  const scenesGlob = resolve(distDir, 'sections/*/*.scenes.yml');
+  // Single glob — matches all *.scenes.yml at any depth under dist
+  const scenesGlob = resolve(distDir, '**/*.scenes.yml');
 
-  return [...entry, onboardingGlob, sectionsGlob, scenesGlob];
+  return [...entry, onboardingGlob, scenesGlob];
 };
 
 /**
- * Custom indexer for section files (*.section.yml).
- * Reads the YAML file and creates one story index entry per section file.
- * Follows the same pattern as the SDC addon: importPath = fileName.
+ * Unified indexer for all *.scenes.yml files.
+ * Handles both plain scenes (canvas stories) and overview files
+ * (*.section.scenes.yml, spec.*.scenes.yml) which also get a docs entry.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const experimental_indexers = async (existingIndexers: any[]) => {
-  const sectionsIndexer = {
-    test: /\.section\.yml$/,
-    createIndex: async (fileName: string) => {
-      try {
-        const content = readFileSync(fileName, 'utf-8');
-        const section = parseYaml(content);
-
-        const id = section.id;
-        const title = section.title || 'Untitled';
-
-        // Convert section ID to a valid JS export name
-        const exportName = id
-          .split('-')
-          .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-          .join('');
-
-        const relativePath = './' + relative(process.cwd(), fileName);
-
-        console.log('[Designbook] Indexing section:', { fileName, exportName, title, relativePath });
-
-        return [
-          {
-            type: 'docs' as const,
-            importPath: relativePath,
-            exportName: exportName,
-            name: 'Overview',
-            title: `Designbook/Sections/${title}`,
-            tags: ['!dev'],
-          },
-        ];
-      } catch (err) {
-        console.error('[Designbook] Error indexing section file:', fileName, err);
-        return [];
-      }
-    },
-  };
-
   const scenesIndexer = {
     test: /\.scenes\.yml$/,
     createIndex: async (fileName: string) => {
@@ -114,33 +85,59 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
         const content = readFileSync(fileName, 'utf-8');
         const parsed = parseYaml(content);
 
-        // Title comes from the scenes file — no automatic grouping
-        const baseName = fileName.split('/').pop() || '';
-        const fileBase = baseName.replace('.scenes.yml', '');
-        const group = (parsed.name as string) || fileBase;
+        if (!parsed || typeof parsed !== 'object') {
+          console.warn('[Designbook] Scene file parsed as null/empty:', fileName);
+          return [];
+        }
+
+        const fileBase = fileBaseName(fileName);
+        const group = extractGroup(parsed as Record<string, unknown>, fileBase);
         const relativePath = './' + relative(process.cwd(), fileName);
+        const match = matchHandler(fileName, defaultHandlers);
 
-        // Support both new scenes[] format and legacy flat format
-        const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [parsed];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const entries: any[] = [];
 
-        const entries = scenes.map((scene: Record<string, unknown>, idx: number) => {
-          const name = (scene.name as string) || `Scene ${idx + 1}`;
-
-          const exportName = name
-            .split(/[\s-]+/)
-            .map((p: string) => p.charAt(0).toUpperCase() + p.slice(1))
+        // If this is an overview file (section or shell), add a docs entry
+        if (match?.hasOverview) {
+          const typedParsed = parsed as Record<string, unknown>;
+          const sectionId = (typedParsed.id as string) || fileBase;
+          const title = (typedParsed.title as string) || 'Untitled';
+          const exportName = sectionId
+            .split('-')
+            .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
             .join('');
+
+          console.log('[Designbook] Indexing overview:', { fileName, exportName, title });
+
+          entries.push({
+            type: 'docs' as const,
+            importPath: relativePath,
+            exportName,
+            name: 'Overview',
+            title: group,
+            tags: ['!dev'],
+          });
+        }
+
+        // Add scene story entries
+        const scenes = extractScenes(parsed as Record<string, unknown>);
+        for (let idx = 0; idx < scenes.length; idx++) {
+          const scene = scenes[idx];
+          if (!scene) continue;
+          const name = (scene.name as string) || `Scene ${idx + 1}`;
+          const exportName = buildExportName(name);
 
           console.log('[Designbook] Indexing scene:', { fileName, exportName, name, group });
 
-          return {
+          entries.push({
             type: 'story' as const,
             importPath: relativePath,
             exportName,
             title: group,
             tags: ['scene', '!autodocs'],
-          };
-        });
+          });
+        }
 
         return entries;
       } catch (err) {
@@ -150,7 +147,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
     },
   };
 
-  return [...existingIndexers, sectionsIndexer, scenesIndexer];
+  return [...existingIndexers, scenesIndexer];
 };
 
 export const indexers = experimental_indexers;
