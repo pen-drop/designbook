@@ -1,7 +1,6 @@
 import { join } from 'node:path' // 1. Add dependencies.
 import { cwd } from 'node:process'
 import tailwindcss from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react'
 
 import { baseTheme } from '../.daisy_ui.js';
 import { refStoryNodeRenderer } from './refRenderer.js';
@@ -16,7 +15,6 @@ const config = {
     "../components/**/*.component.yml",
     join(baseTheme, "components/**/*.component.yml"),
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-    "../designbook/components/**/*.component.yml",
   ],
   addons: [
     '@storybook/addon-themes',
@@ -37,7 +35,6 @@ const config = {
           customDefs: uiPatternsDefs,
           namespace: 'daisy_cms_daisyui',
           namespaces: {
-            'ui_suite_daisyui': baseTheme,
             'designbook_design': join(cwd(), 'designbook')
           },
           storyNodesRenderer: [
@@ -78,7 +75,6 @@ const config = {
 
     return mergeConfig(config, {
       plugins: [
-        react({ include: /\.storybook\/source\/.*\.[jt]sx?$/ }),
         tailwindcss(),
         {
           // Fix SDC addon bug: generateImports imports ALL .twig files as

@@ -5,149 +5,78 @@ category: Designbook
 description: Create sample data and type definitions for a section
 ---
 
-Help the user create realistic sample data for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`.
+Create realistic sample data for a section. Output: `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`.
 
-> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
+> ⛔ **MANDATORY**: Read `@designbook-sample-data/SKILL.md` before generating any data. It defines the nested format, validation rules, and content guidelines.
+
+> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries.
+
 **Steps**
 
 ## Step 1: Check Prerequisites
 
-Check if the following files exist:
-- `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
-- `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
-- `${DESIGNBOOK_DIST}/data-model.yml` — data model (required for understanding entities)
+Check if these files exist:
+- `${DESIGNBOOK_DIST}/data-model.yml` — data model (required)
+- At least one `${DESIGNBOOK_DIST}/sections/*/*.section.scenes.yml` — sections (required)
 
-**If product vision, roadmap, or data model are missing**, tell the user:
-
-> "Before creating sample data, you need:
-> 1. `/debo-product-vision` — Define your product
-> 2. `/debo-product-roadmap` — Define your sections
-> 3. `/debo-data-model` — Define your data model"
-
-Stop here.
-
-Read all available files. Also check for an existing section specification:
-- `${DESIGNBOOK_DIST}/sections/[section-id]/spec.section.yml` — section spec (strongly recommended)
-
-If the spec doesn't exist, warn:
-
-> "Note: No specification found for this section. I recommend running `/shape-section` first to define the section's user flows and requirements. Proceed anyway?"
+**If missing**, tell the user which prerequisite workflows to run (`/debo-data-model`, `/debo-product-sections`) and stop.
 
 ## Step 2: Select Section
 
-Parse the roadmap to extract sections. Check which sections already have data by looking for existing files at `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`.
+If the user provided a section name as argument, use it directly.
 
-**Section ID conversion:** Convert the section title to kebab-case by lowercasing, removing `&`, replacing non-alphanumeric characters with `-`, and trimming leading/trailing dashes.
+Otherwise, scan `${DESIGNBOOK_DIST}/sections/*/*.section.scenes.yml` to discover available sections. For each section, check if `data.yml` already exists.
 
-Present the sections:
+Present sections with status indicators:
 
-> "Here are your roadmap sections:
->
-> 1. **[Section 1]** — ✓ Spec / ✓ Data / ○ No data yet
-> 2. **[Section 2]** — ○ No spec / ○ No data yet
->
-> Which section would you like to create sample data for?"
+> 1. **[Section 1]** — ✓ Spec / ✓ Data
+> 2. **[Section 2]** — ✓ Spec / ○ No data
 
-If the section already has data, ask: "This section already has sample data. Would you like to update it or start fresh?"
+If data already exists, ask: update or start fresh?
 
-Wait for their response.
+Wait for response.
 
 ## Step 3: Analyze Data Needs
 
-Based on the section spec and data model, analyze what data the section needs:
+Read the section's `*.section.scenes.yml` and `data-model.yml`. Identify which `entity_type.bundle` entries from the data model are relevant for this section.
 
-> "Based on the **[Section Title]** specification and your data model, this section needs:
+Present the analysis:
+
+> **Entities needed for [Section Title]:**
+> - `node.article` — [why needed, based on section spec]
+> - `taxonomy_term.author` — [why needed]
 >
-> **Models needed:**
-> - [Entity 1] — [why it's needed for this section]
-> - [Entity 2] — [why it's needed]
+> **Proposed records:**
+> - `node.article`: [N] records
+> - `taxonomy_term.author`: [N] records
 >
-> **Proposed data structure:**
-> - [Entity 1]: [N] sample records with [key fields]
-> - [Entity 2]: [N] sample records with [key fields]
+> ⛔ Any entities not yet in data-model.yml? → Run `/debo-data-model` first.
+
+Wait for response.
+
+## Step 4: Generate and Present Data
+
+Generate sample data following the rules from `@designbook-sample-data/SKILL.md`. Present a summary:
+
+> **[Entity 1]** ([N] records): [brief record summaries]
+> **[Entity 2]** ([N] records): [brief record summaries]
 >
-> **Relationships:**
-> - [How entities connect in this section's context]
+> Shall I save this?
+
+Iterate until the user approves.
+
+## Step 5: Validate and Save
+
+Before writing the file:
+
+1. Run validation checks from `@designbook-sample-data/SKILL.md` (entity_type.bundle existence, field matching)
+2. Report any warnings
+3. Write to `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`
+
+## Step 6: Confirm
+
+> Saved `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`.
 >
-> Does this look right? Any entities to add or remove?"
-
-Wait for their response.
-
-## Step 4: Present Sample Data
-
-Create and present the sample data:
-
-> "Here's the sample data for **[Section Title]**:
+> - [N] entity types, [N] total records
 >
-> **[Entity 1]** ([N] records):
-> - [Brief summary of first record]
-> - [Brief summary of second record]
->
-> **[Entity 2]** ([N] records):
-> - [Brief summary]
->
-> The data includes:
-> - Realistic content (names, descriptions, dates)
-> - Varied data (different lengths, categories, statuses)
-> - Edge cases (empty optional fields, long text)
->
-> Shall I save this?"
-
-Iterate until the user is satisfied.
-
-## Step 5: Save the File
-
-Once approved, create the file at `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml` with this format:
-
-```json
-{
-  "_meta": {
-    "models": {
-      "entityName": "Description of what this entity represents in this section",
-      "anotherEntity": "Description"
-    },
-    "relationships": [
-      "Entity A has many Entity B",
-      "Entity B belongs to Entity A"
-    ]
-  },
-  "entityName": [
-    {
-      "id": "1",
-      "field1": "value",
-      "field2": "value"
-    }
-  ],
-  "anotherEntity": [
-    {
-      "id": "1",
-      "field1": "value",
-      "entityNameId": "1"
-    }
-  ]
-}
-```
-
-Create the directory `${DESIGNBOOK_DIST}/sections/[section-id]/` if it doesn't exist.
-
-## Step 6: Confirm Completion
-
-> "I've saved the sample data to `${DESIGNBOOK_DIST}/sections/[section-id]/data.yml`.
->
-> **[Section Title] sample data:**
-> - [N] models defined
-> - [N] total records
-> - Relationships documented
->
-> Open Storybook to see the data on the section page. You can run `/sample-data` again to update it, or proceed to `/design-screen` for screen designs."
-
-**Guardrails**
-- Create 5–10 records per entity (enough to demonstrate UI patterns like lists, pagination, empty states)
-- Use realistic, varied content — not placeholder text like "Lorem ipsum"
-- Include edge cases: long names, empty optional fields, different statuses
-- Model IDs should be simple strings ("1", "2", etc.)
-- Relationships should use foreign key patterns (e.g., `"serviceId": "1"`)
-- The `_meta` section is required — it documents what each model represents and how they relate
-- The JSON format must be valid and parseable
-- Reference the data model for entity structure and relationships
-- Reference the section spec for what data the UI needs to display
+> Next: `/debo-design-screen [section-id]` for screen designs.

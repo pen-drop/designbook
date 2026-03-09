@@ -11,9 +11,9 @@ description: Generates scene files that compose UI components + entity data into
 > **Multiple scenes per file.** Group related pages together. Each scene becomes its own Storybook story.
 >
 > | File | Scenes |
-> |------|--------|
-> | `shell/shell.scenes.yml` | `default`, `minimal` |
-> | `sections/blog/blog.scenes.yml` | `Blog Detail`, `Blog Listing` |
+> |------|---------|
+> | `shell/spec.shell.scenes.yml` | `default`, `minimal` |
+> | `sections/blog/blog.section.scenes.yml` | `Blog Detail`, `Blog Listing` |
 
 ## Prerequisites
 
@@ -29,23 +29,28 @@ description: Generates scene files that compose UI components + entity data into
 ```
 $DESIGNBOOK_DIST/
 ├── shell/
-│   └── shell.scenes.yml          # Shell layout (base for inheritance)
+│   └── spec.shell.scenes.yml          # Shell layout (base for inheritance)
 └── sections/
     └── blog/
         ├── data.yml
-        ├── spec.section.yml
-        └── blog.scenes.yml       # All blog scenes in one file
+        └── blog.section.scenes.yml    # Section metadata + all blog scenes
 ```
 
 ## The `*.scenes.yml` Format
 
 ### Standalone Scene File (no layout inheritance)
 
-Used for the shell itself — defines all layout slots:
+Used for the shell itself — defines all layout slots. Shell files use `spec.shell.scenes.yml`:
 
 ```yaml
-# shell/shell.scenes.yml
-name: "Application Shell"
+# shell/spec.shell.scenes.yml
+id: shell
+title: Application Shell
+description: Top-navigation layout with logo, main nav, and footer.
+status: planned
+order: 0
+
+name: "Designbook/Shell"
 scenes:
   - name: default
     layout:
@@ -67,12 +72,19 @@ scenes:
       content: []
 ```
 
-### Scene File with Layout Inheritance
+### Section Scene File with Layout Inheritance
 
-Used for section scenes — inherits shell and overrides only the `content` slot:
+Used for section scenes — inherits shell and overrides only the `content` slot.
+Section files use `{section}.section.scenes.yml` and include section metadata:
 
 ```yaml
-# sections/blog/blog.scenes.yml
+# sections/blog/blog.section.scenes.yml
+id: blog
+title: Blog
+description: Artikel und News rund ums Thema.
+status: planned
+order: 2
+
 name: "Designbook/Sections/Blog"
 layout: "shell"
 
@@ -96,14 +108,19 @@ scenes:
 ```
 
 > [!IMPORTANT]
+> **Section metadata is part of the scenes file.** The `id`, `title`, `description`, `status`, and `order` fields replace the old separate `spec.section.yml`. There is NO separate section spec file.
+
+> [!IMPORTANT]
 > **Layout inheritance merges slots.** The inherited scene provides all layout slots (`header`, `content`, `footer`). The section scene overrides only the slots it defines. Undefined slots remain from the layout.
 
 ### Layout Reference Syntax
 
+The resolver scans **all** `*.scenes.yml` files in the referenced directory, collects all scenes, and finds the target:
+
 ```
-layout: "shell"            → shell/shell.scenes.yml → first scene (scenes[0])
-layout: "shell:default"    → shell/shell.scenes.yml → scene named "default"
-layout: "shell:minimal"    → shell/shell.scenes.yml → scene named "minimal"
+layout: "shell"            → shell/*.scenes.yml → first scene (scenes[0])
+layout: "shell:default"    → shell/*.scenes.yml → scene named "default"
+layout: "shell:minimal"    → shell/*.scenes.yml → scene named "minimal"
 ```
 
 Same `source:name` convention used for component references (`provider:component`).
@@ -112,9 +129,14 @@ Same `source:name` convention used for component references (`provider:component
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | ✅ | Display name for the Storybook group (e.g. `"Application Shell"`, `"Blog"`) |
-| `layout` | ❌ | Layout scene to inherit from (`"file"` or `"file:scene"`) |
+| `name` | ✅ | Display name for the Storybook group (e.g. `"Designbook/Shell"`, `"Designbook/Sections/Blog"`) |
+| `layout` | ❌ | Layout scene to inherit from (`"source"` or `"source:scene"`) |
 | `scenes` | ✅ | Array of scene definitions |
+| `id` | ❌ | Section/shell identifier (for metadata) |
+| `title` | ❌ | Human-readable title (for overview page) |
+| `description` | ❌ | Section description (for overview page) |
+| `status` | ❌ | Section status: `planned`, `in-progress`, `done` |
+| `order` | ❌ | Display order in Storybook sidebar |
 
 ### Scene Fields
 
@@ -167,9 +189,10 @@ ls $DESIGNBOOK_DIST/sections/$SECTION_ID/data.yml 2>/dev/null
 
 Check that `page`, `header`, and `footer` components exist. If not, tell the user to run `/debo-design-shell` first.
 
-### Step 2: Parse Section Spec
+### Step 2: Parse Section Metadata
 
-Read the `screen` key from `spec.section.yml` (if it exists) and extract for each page:
+Read the section's `{section}.section.scenes.yml` (if it exists) and extract section metadata and existing scenes.
+Identify for each scene page:
 - **Page name** (kebab-case: `listing`, `detail`)
 - **Entity type/bundle** (e.g. `node.article`)
 - **View mode** (`full`, `teaser`)
@@ -187,9 +210,15 @@ Review scene designs for elements beyond entity + shell:
 
 ### Step 4: Create Scenes File
 
-Create `sections/{section}/{section}.scenes.yml` with all section pages as scenes.
+Create `sections/{section}/{section}.section.scenes.yml` with section metadata and all pages as scenes.
 
 ```yaml
+id: blog
+title: Blog
+description: Artikel und News rund ums Thema.
+status: planned
+order: 2
+
 name: "Designbook/Sections/Blog"
 layout: "shell"
 

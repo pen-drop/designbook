@@ -5,7 +5,7 @@ category: Designbook
 description: Define a section specification — user flows, UI requirements, and scope
 ---
 
-Help the user define a section specification for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/spec.section.yml`.
+Help the user define a section specification for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/[section-id].section.scenes.yml`.
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
@@ -30,7 +30,7 @@ Read all available files to understand the product context.
 
 ## Step 2: Select Section
 
-Parse the roadmap to extract the sections. Check which sections already have specs by looking for existing files at `${DESIGNBOOK_DIST}/sections/[section-id]/spec.section.yml`.
+Parse the roadmap to extract the sections. Check which sections already have specs by looking for existing files at `${DESIGNBOOK_DIST}/sections/[section-id]/*.section.scenes.yml`.
 
 **Section ID conversion:** Convert the section title to kebab-case by lowercasing, removing `&`, replacing non-alphanumeric characters with `-`, and trimming leading/trailing dashes. Examples:
 - "Homepage" → "homepage"
@@ -95,14 +95,17 @@ Iterate until the user is satisfied.
 
 ## Step 5: Save the File
 
-Once approved, create the file at `${DESIGNBOOK_DIST}/sections/[section-id]/spec.section.yml` with this exact format:
+Once approved, create the file at `${DESIGNBOOK_DIST}/sections/[section-id]/[section-id].section.scenes.yml` with this exact format:
 
 ```yaml
 id: section-id-kebab-case
 title: Section Title
 description: 2-3 sentence description of the section's purpose and scope
 status: planned
-shell: true
+order: 1
+
+name: "Designbook/Sections/Section Title"
+layout: "shell"
 
 user_flows:
   - title: Flow 1 title
@@ -113,13 +116,15 @@ user_flows:
 ui_requirements:
   - Requirement 1: specific UI element or pattern needed
   - Requirement 2
+
+scenes: []
 ```
 
 Create the directory `${DESIGNBOOK_DIST}/sections/[section-id]/` if it doesn't exist.
 
 ## Step 6: Confirm Completion
 
-> "I've saved the section specification to `${DESIGNBOOK_DIST}/sections/[section-id]/spec.section.yml`.
+> "I've saved the section specification to `${DESIGNBOOK_DIST}/sections/[section-id]/[section-id].section.scenes.yml`.
 >
 > **[Section Title]:**
 > - User Flows: [N] defined

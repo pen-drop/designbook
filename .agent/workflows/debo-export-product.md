@@ -19,7 +19,7 @@ Check if the following files exist:
 - `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` — application shell (recommended)
 
 Also check for section artifacts:
-- For each section in the roadmap, check for: `spec.section.yml` (with optional `screen` key), `data.yml`, `screenshots.md`
+- For each section in the roadmap, check for: `*.section.scenes.yml` (with optional `screen` key), `data.yml`, `screenshots.md`
 
 **If product vision or roadmap are missing**, tell the user:
 
@@ -122,7 +122,7 @@ For each section, create `${DESIGNBOOK_DIST}/export/product-plan/sections/[secti
 - `README.md` — Section specification
 - `tests.md` — Test instructions based on user flows
 - `sample-data.yml` — Section sample data (if exists)
-- `spec.section.yml` — Section overview with screen designs (under `screen` key)
+- `*.section.scenes.yml` — Section overview with screen designs (under `screen` key)
 
 Generate test instructions from section specs:
 - One test per user flow

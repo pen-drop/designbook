@@ -5,7 +5,7 @@
  * and TwigSafeArray wrapping from the monolithic renderNode() in vite-plugin.ts.
  */
 
-import type { SceneNodeRenderer, RenderContext, ComponentSceneNode, SceneNode } from './types';
+import type { SceneNodeRenderer, RenderContext, ComponentSceneNode, SceneNode } from '../../types';
 
 /**
  * Create the SDC component renderer.
