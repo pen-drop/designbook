@@ -58,9 +58,10 @@ export const stories = async (entry: string[] = [], options: any) => {
   }
 
   const sectionsGlob = resolve(distDir, 'sections/*/spec.section.yml');
-  const scenesGlob = resolve(distDir, 'sections/*/*.scenes.yml');
+  const sectionScenesGlob = resolve(distDir, 'sections/*/*.scenes.yml');
+  const shellScenesGlob = resolve(distDir, 'shell/*.scenes.yml');
 
-  return [...entry, onboardingGlob, sectionsGlob, scenesGlob];
+  return [...entry, onboardingGlob, sectionsGlob, sectionScenesGlob, shellScenesGlob];
 };
 
 /**

@@ -16,10 +16,7 @@ const config = {
     "../components/**/*.component.yml",
     join(baseTheme, "components/**/*.component.yml"),
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-    "../designbook/sections/*/overview.section.yml",
     "../designbook/components/**/*.component.yml",
-    "../designbook/sections/*/*.scenes.yml",
-    "../designbook/shell/*.scenes.yml"
   ],
   addons: [
     '@storybook/addon-themes',

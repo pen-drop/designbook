@@ -2,10 +2,20 @@
 
 > ⛔ **NAMING RULE**: The filename must match the directory name. Component in `components/nav-main/` → file is `nav-main.twig`. Always kebab-case.
 
+## CSS Framework Routing — Read First
 
-Create a Twig template with helpful structure:
+> ⛔ **MANDATORY**: You **MUST** read the CSS framework skill before writing any Twig template:
+>
+> `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md`
+>
+> For example, when `DESIGNBOOK_FRAMEWORK_CSS=daisyui`, read `@designbook-css-daisyui/SKILL.md`.
 
-**Template content:**
+The CSS framework skill is the **single source of truth** for which classes to use. It defines allowed and forbidden class patterns. Do not invent your own class naming — always follow the CSS framework skill's rules.
+
+## Template Structure
+
+Create a Twig template with the following structure. Use classes from the CSS framework skill — the example below shows placeholder classes that must be replaced:
+
 ```twig
 {#
 /**
@@ -19,18 +29,11 @@ Create a Twig template with helpful structure:
  * - [slot.name]: [slot.description]
  */
 #}
-{% set classes = [
-  'component',
-  '[componentNameKebab]',
-  variant ? '[componentNameKebab]--' ~ variant : '[componentNameKebab]--default',
-] %}
 
-<div{{ attributes.addClass(classes) }}>
+<div{{ attributes.addClass(['[css-framework-classes]']) }}>
 [For each slot:]
   {% if [slot.name] %}
-    <div class="[componentNameKebab]__[slot.name]">
-      {{ [slot.name] }}
-    </div>
+    {{ [slot.name] }}
   {% endif %}
 [End for]
 </div>
@@ -43,23 +46,12 @@ $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].tw
 
 ## Rules
 
-### Class Structure
-Always include base BEM-style classes:
-```twig
-{% set classes = [
-  'component',
-  '[component-name]',
-  variant ? '[component-name]--' ~ variant : '[component-name]--default',
-] %}
-```
-
 ### Slot Rendering
-For each slot, create a conditional wrapper:
+
+For each slot, render it conditionally. Wrapping elements and their classes come from the CSS framework skill:
 ```twig
 {% if slot_name %}
-  <div class="[component-name]__[slot-name]">
-    {{ slot_name }}
-  </div>
+  {{ slot_name }}
 {% endif %}
 ```
 
@@ -93,13 +85,7 @@ When a component has **variants with different layouts** (but the same props/slo
 
 **Variant include — `[component-name]--[variant].twig`:**
 ```twig
-{% set classes = [
-  'component',
-  '[component-name]',
-  '[component-name]--[variant]',
-] %}
-
-<div{{ attributes.addClass(classes) }}>
+<div{{ attributes.addClass(['[css-framework-classes]']) }}>
   {# variant-specific HTML layout #}
 </div>
 ```
