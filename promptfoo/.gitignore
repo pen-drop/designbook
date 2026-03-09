@@ -7,3 +7,4 @@ reports/*.json
 # Stray test artifacts from old runs (before workspace isolation)
 screenshot.png
 test-render.js
+fixtures/_shared/node_modules
