@@ -1,0 +1,35 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: header
+status: experimental
+group: Shell
+description: "Application header with logo and primary navigation. Supports default and scroll states."
+provider: daisy_cms_daisyui
+variants:
+  default:
+    title: Default
+    description: "Standard header without bottom border."
+  scroll:
+    title: Scroll
+    description: "Scrolled header with 2px bottom border."
+props:
+  type: object
+  properties:
+    variant:
+      type: string
+      title: Variant
+      enum:
+        - default
+        - scroll
+      default: default
+slots:
+  logo:
+    title: Logo
+    description: "Branding logo."
+  navigation:
+    title: Navigation
+    description: "Primary navigation items."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"

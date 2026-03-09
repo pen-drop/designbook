@@ -1,0 +1,64 @@
+{#
+/**
+ * @file
+ * Quote block — responsive layout.
+ * Mobile: vertical stack, logo on top, content below.
+ * Desktop: horizontal, logo left, content right.
+ * Decorative quote mark absolutely positioned:
+ *   Mobile: top-right of content area (62x46).
+ *   Desktop: top-right of container (96x71).
+ */
+#}
+{% set classes = [
+  'component',
+  'quote-block',
+  'relative',
+  'bg-base-100',
+  'flex',
+  'flex-col',
+  'lg:flex-row',
+  'items-center',
+  'gap-[40px]',
+  'lg:gap-[60px]',
+  'px-5',
+  'lg:px-[120px]',
+  'py-[50px]',
+  'lg:py-[100px]',
+] %}
+
+<blockquote{{ attributes.addClass(classes) }}>
+  <div class="quote-block__mark--desktop hidden lg:block absolute top-[80px] right-[140px] text-primary" aria-hidden="true">
+    <svg width="96" height="71" viewBox="0 0 96 71" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 71V47.2667C0 38.5111 1.77778 30.5778 5.33333 23.4667C9.06667 16.1778 14.3111 9.95556 21.0667 4.8L36.2667 15.7333C31.4667 19.1111 27.7333 23.1111 25.0667 27.7333C22.4 32.1778 21.0667 37.1556 21.0667 42.6667H37.3333V71H0ZM58.6667 71V47.2667C58.6667 38.5111 60.4444 30.5778 64 23.4667C67.7333 16.1778 72.9778 9.95556 79.7333 4.8L94.9333 15.7333C90.1333 19.1111 86.4 23.1111 83.7333 27.7333C81.0667 32.1778 79.7333 37.1556 79.7333 42.6667H96V71H58.6667Z" fill="currentColor"/>
+    </svg>
+  </div>
+
+  {% if media %}
+    <div class="quote-block__media flex-none w-[270px] lg:w-[250px] lg:h-[250px] flex items-center justify-center">
+      {{ media }}
+    </div>
+  {% endif %}
+
+  <div class="quote-block__content relative flex-1 flex flex-col gap-[10px] lg:gap-[20px] items-start">
+    <div class="quote-block__mark--mobile lg:hidden absolute right-0 -top-[10px] text-primary" aria-hidden="true">
+      <svg width="62" height="46" viewBox="0 0 96 71" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 71V47.2667C0 38.5111 1.77778 30.5778 5.33333 23.4667C9.06667 16.1778 14.3111 9.95556 21.0667 4.8L36.2667 15.7333C31.4667 19.1111 27.7333 23.1111 25.0667 27.7333C22.4 32.1778 21.0667 37.1556 21.0667 42.6667H37.3333V71H0ZM58.6667 71V47.2667C58.6667 38.5111 60.4444 30.5778 64 23.4667C67.7333 16.1778 72.9778 9.95556 79.7333 4.8L94.9333 15.7333C90.1333 19.1111 86.4 23.1111 83.7333 27.7333C81.0667 32.1778 79.7333 37.1556 79.7333 42.6667H96V71H58.6667Z" fill="currentColor"/>
+      </svg>
+    </div>
+
+    {% if author %}
+      <cite class="text-quote-author not-italic">{{ author }}</cite>
+    {% endif %}
+
+    {% if quote %}
+      <p class="text-quote-body m-0">{{ quote }}</p>
+    {% endif %}
+
+    {% if link_url %}
+      <a href="{{ link_url }}" class="quote-block__link inline-flex items-baseline gap-2 pt-3 pb-3 lg:pt-[18px] lg:pb-[18px]">
+        <span class="text-primary text-[20px] leading-[20px]" aria-hidden="true">&#9654;</span>
+        <span class="text-quote-link">{{ link_label|default('PROJEKT ANSEHEN') }}</span>
+      </a>
+    {% endif %}
+  </div>
+</blockquote>

@@ -1,0 +1,21 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: logo
+status: experimental
+group: Data Display
+description: "Site branding logo display."
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    name:
+      type: string
+      title: Site Name
+      description: "The site name to display."
+    url:
+      type: string
+      title: URL
+      description: "Link target for the logo."
+      default: "/"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

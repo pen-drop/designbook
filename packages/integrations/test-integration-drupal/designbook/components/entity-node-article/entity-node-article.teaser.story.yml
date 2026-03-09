@@ -1,0 +1,23 @@
+name: teaser
+slots:
+  content:
+    - type: component
+      component: "daisy_cms_daisyui:card"
+      props:
+        variant: vertical
+        title: "Drupal 7 EOL"
+        preheadline: "End of Life"
+        description: "Was das Auslaufen von Drupal 7 für Ihr Projekt bedeutet"
+      slots:
+        media:
+          - type: image
+            uri: "https://placehold.co/600x400/C82828/fff?text=Drupal+7+EOL"
+        actions:
+          - type: component
+            component: "daisy_cms_daisyui:button"
+            props:
+              variant: ghost
+            slots:
+              text:
+                - type: element
+                  value: "Lesen"

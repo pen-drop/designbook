@@ -1,0 +1,30 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: navigation
+status: experimental
+group: Navigation
+description: "Navigation menu with primary and footer variants."
+provider: daisy_cms_daisyui
+variants:
+  primary:
+    title: Primary
+    description: "Horizontal main navigation."
+  footer:
+    title: Footer
+    description: "Footer navigation links."
+props:
+  type: object
+  properties:
+    variant:
+      type: string
+      title: Variant
+      enum:
+        - primary
+        - footer
+      default: primary
+    items:
+      type: array
+      title: Navigation Items
+      description: "Array of {label, url} objects."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

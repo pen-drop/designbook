@@ -1,0 +1,17 @@
+name: default
+slots:
+  navigation:
+    - type: component
+      component: "daisy_cms_daisyui:navigation"
+      props:
+        variant: footer
+        items:
+          - label: "Datenschutz"
+            url: "/datenschutz"
+          - label: "Impressum"
+            url: "/impressum"
+  copyright:
+    - type: component
+      component: "daisy_cms_daisyui:copyright"
+      props:
+        text: "© 2026 keytec GmbH & Co. KG. Alle Rechte vorbehalten."

@@ -1,0 +1,14 @@
+{#
+/**
+ * @file
+ * Template for copyright component.
+ */
+#}
+{% set classes = [
+  'component',
+  'copyright',
+] %}
+
+<p{{ attributes.addClass(classes) }}>
+  <small class="text-base-content/50 text-sm">{{ text }}</small>
+</p>

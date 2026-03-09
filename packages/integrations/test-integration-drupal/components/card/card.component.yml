@@ -1,0 +1,33 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: card
+status: experimental
+group: Data Display
+description: "Card component with image, title, text, and actions."
+provider: daisy_cms_daisyui
+variants:
+  vertical:
+    title: Vertical
+    description: "Stacked image-on-top layout."
+  horizontal:
+    title: Horizontal
+    description: "Side-by-side image and text."
+props:
+  type: object
+  properties:
+    variant:
+      type: string
+      title: Visual Variant
+      enum:
+        - vertical
+        - horizontal
+      default: vertical
+    title:
+      type: string
+      title: Title
+    description:
+      type: string
+      title: Description
+slots: {}
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

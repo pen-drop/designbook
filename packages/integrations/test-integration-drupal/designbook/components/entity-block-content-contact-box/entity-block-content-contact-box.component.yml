@@ -1,0 +1,19 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: entity_block_content_contact_box
+description: "Contact box block entity. Structural design component."
+group: Entity
+status: experimental
+provider: designbook_design
+designbook:
+  entity:
+    type: block_content
+    bundle: contact_box
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+slots:
+  content:
+    title: Content
+    description: "Contact box content composed from UI components."

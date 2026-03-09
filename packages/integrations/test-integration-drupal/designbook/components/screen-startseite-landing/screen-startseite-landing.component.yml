@@ -1,0 +1,19 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: screen_startseite_landing
+description: "Startseite landing page screen. Full page composition of shell + entity."
+group: Screen
+status: experimental
+provider: designbook_design
+designbook:
+  screen:
+    section: startseite
+    view: landing
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+slots:
+  content:
+    title: Content
+    description: "Full page content."
