@@ -1,68 +1,59 @@
 # Promptfoo Evaluation Report
 
-**Date:** 2026-03-08 19:40
-**Run:** #6 — Normal mode, per-test workspace isolation
-**Tests:** 10 total, 7 passed, 3 failed (70%)
-**Provider:** gemini-3-pro
-**Duration:** 23m 16s
-**Total Tokens:** 121,972 (35k eval, 87k grading)
-**Workspace:** `promptfoo/workspaces/debo-*/` (10 isolated workspaces)
-
-## Progress Across Runs
-
-| Run | Tests | Passed | Rate | Duration | Changes |
-|-----|-------|--------|------|----------|---------|
-| 1 | 12 | 6 | 50% | 23m | --spec mode |
-| 2 | 12 | 7 | 58% | 22m | Normal mode |
-| 3 | 10 | 7 | 70% | 41s | Removed addon tests |
-| 4 | 10 | 7 | 70% | — | Deep analysis |
-| 5 | 10 | 8 | 80% | 1m29s | Fixed product-vision prompt |
-| 6 | 10 | 7 | 70% | 23m | **Per-test workspace isolation** |
+**Date:** 2026-03-09 02:25
+**Tests:** 1 total, 1 passed, 0 failed
+**Provider:** gemini-3-pro (vertex)
+**Duration:** ~3m (eval) + 13s (re-grade)
+**Total Tokens:** 18.3k (3.6k eval, 14.7k grading)
+**Workspace:** `promptfoo/workspaces/debo-design-screen`
 
 ## Summary
 
-| # | Test | Status | Score | Category |
-|---|------|--------|-------|----------|
-| 1 | product-vision | ❌ fail | 0 | assertion-too-strict |
-| 2 | product-sections | ✅ pass | 1.0 | — |
-| 3 | design-tokens | ✅ pass | 1.0 | — |
-| 4 | data-model | ❌ fail | 0 | assertion-too-strict |
-| 5 | css-generate | ✅ pass | 1.0 | — |
-| 6 | shape-section | ✅ pass | 1.0 | — |
-| 7 | design-component | ✅ pass | 1.0 | — |
-| 8 | sample-data | ❌ fail | 0 | assertion-too-strict |
-| 9 | design-screen | ✅ pass | 1.0 | — |
-| 10 | design-shell | ✅ pass | 1.0 | — |
+| Test | Status | Score | Category |
+|------|--------|-------|----------|
+| debo-design-screen: PetMatch homepage | ✅ pass | 1.0 | — |
 
-## Key Observation
+## Run History
 
-With workspace isolation, agents now **actually create files** (23min runtime vs 1.5min). This exposed that rubrics which check for file-internal details (headings, entity names, id fields) fail — because the agent doesn't echo file contents in conversation output.
+### Run 1 — ❌ Failed (score: 0.5)
 
-**design-screen now passes** because the agent properly mentions screen definitions.
+| Assertion | Status | Issue |
+|-----------|--------|-------|
+| Workflow rubric | ❌ | Rubric required `.component.yml` contents visible in output |
+| Storybook build | ✅ | `pnpm build-storybook` succeeded |
 
-## Failures
+**Root cause:** `assertion-too-strict` — Rubric point 4 required verifying `$schema`, `provider`, `thirdPartySettings` from conversation output, but the agent creates files without dumping their full contents. Also flagged `kebab-case` component names as wrong (`snake_case` required), but kebab-case is correct for SDC filenames.
 
-### product-vision (assertion-too-strict)
-**Rubric:** Checks for ## Description, ## Problems, ## Key Features headings
-**Agent:** "I've saved your product vision to designbook/product/product-overview.md"
-**Root cause:** Rubric checks file content details not visible in conversation
-**Fix:** → see [fix-proposals.md](file:///home/cw/projects/designbook/promptfoo/reports/fix-proposals.md)
+**Fix applied:** Removed point 4 from rubric. The storybook build assertion already validates component structure (build fails on invalid `.component.yml`).
 
-### data-model (assertion-too-strict)
-**Rubric:** Checks for entity type names (pets, shelters) and fields
-**Agent:** "I've updated the data model based on PetMatch requirements"
-**Root cause:** Same — rubric checks details the agent summarizes rather than echoes
-**Fix:** → see fix-proposals.md
+### Run 2 — ✅ Passed (score: 1.0)
 
-### sample-data (assertion-too-strict)
-**Rubric:** Checks for "each record has an id field"
-**Agent:** "5 Pet records, 2 Shelter records, 3 Category records"
-**Root cause:** Same — id fields exist in the file but aren't mentioned in conversation
-**Fix:** → see fix-proposals.md
+Both assertions pass after rubric fix.
 
 ## Lessons Learned
 
-1. **Workspace isolation works correctly.** All 10 tests created files in their isolated workspaces.
-2. **llm-rubric can only verify conversation output, not file contents.** All 3 failures are rubrics checking file-internal structure.
-3. **Rubrics must match what agents actually say.** Agents confirm completion summarily; they don't echo full file contents.
-4. **Duration is a proxy for realism.** 23min = agents actually running. 1.5min = agents only responding from memory.
+- **Pattern:** Don't assert file contents from conversation output — the agent writes files but doesn't always echo them. Use storybook build or file system checks instead.
+- **Pattern:** The storybook build assertion is the strongest validator — it catches esbuild transform errors, missing view-modes, invalid YAML, and broken components.
+- **Pattern:** Component naming convention: filenames are `kebab-case`, the `name:` field inside `.component.yml` is `snake_case`. Rubrics should not conflate these.
+
+## Changes Made This Session
+
+### Promptfoo Config
+- Updated design-screen prompt to mention view-modes, scenes, and storybook build
+- Simplified assertion 1 (workflow rubric) to only check verifiable output
+- Added assertion 2 (storybook build) — validates files actually render
+
+### Fixture Setup
+- Added `_shared/.storybook/main.js` — discovers components, section scenes, shell scenes
+- Added `_shared/package.json` — Storybook + addon dependencies
+- Added `pnpm-workspace.yaml` entries for `promptfoo/fixtures/*` and `promptfoo/workspaces/*`
+
+### Workflow/Skill Improvements
+- `debo-design-screen.md` Step 3.1 — now interactive (propose → confirm → create)
+- `debo-design-component.md` — slimmed from 472 → 143 lines (orchestration only)
+- `designbook-components-sdc/resources/component-patterns.md` — new resource with NLP parsing heuristics
+- `designbook-components-sdc/SKILL.md` — added component-patterns.md to mandatory reading list
+
+### Bug Fixes Applied Earlier
+- `entity-renderer.ts` — flat data key fallback + valid JS fallback
+- `vite-plugin.ts` — section inference from file path

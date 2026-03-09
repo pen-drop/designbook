@@ -128,10 +128,12 @@ Build the header component definition:
 
 ```yaml
 # header.component.yml
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: header
-label: Header
 status: experimental
 group: Shell
+description: Application header with logo, navigation, and action buttons.
+provider: daisy_cms_daisyui
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
@@ -202,10 +204,12 @@ Build the footer component definition:
 
 ```yaml
 # footer.component.yml
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
 name: footer
-label: Footer
 status: experimental
 group: Shell
+description: Application footer with navigation links and copyright.
+provider: daisy_cms_daisyui
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true

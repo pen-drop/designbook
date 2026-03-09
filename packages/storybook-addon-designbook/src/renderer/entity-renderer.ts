@@ -35,14 +35,17 @@ export const entityJsonataRenderer: SceneNodeRenderer = {
 
     if (!existsSync(jsonataPath)) {
       console.warn(`[Designbook] JSONata expression not found: ${jsonataPath}`);
-      return `/* [Designbook] missing expression: ${entity_type}.${bundle}.${view_mode}.jsonata */`;
+      return `'<!-- [Designbook] missing expression: ${entity_type}.${bundle}.${view_mode}.jsonata -->'`;
     }
 
     // 2. Get sample data record
-    const entityData = ctx.sampleData?.[entity_type]?.[bundle];
+    //    Support both nested (sampleData.node.pet) and flat (sampleData.pet) keys
+    const entityData = (ctx.sampleData?.[entity_type]?.[bundle] ?? ctx.sampleData?.[bundle]) as
+      | Record<string, unknown>[]
+      | undefined;
     if (!entityData || !entityData[record]) {
       console.warn(`[Designbook] No sample data for ${entity_type}.${bundle}[${record}]`);
-      return `/* [Designbook] no sample data: ${entity_type}.${bundle}[${record}] */`;
+      return `'<!-- [Designbook] no sample data: ${entity_type}.${bundle}[${record}] -->'`;
     }
 
     // 3. Encode entity info for async resolution in loadScenesYml()

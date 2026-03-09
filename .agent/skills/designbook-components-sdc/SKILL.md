@@ -23,6 +23,7 @@ description: Creates Drupal SDC component files (.component.yml, .story.yml, and
 > - [`resources/story-yml.md`](resources/story-yml.md) — Story YAML structure.
 > - [`resources/twig.md`](resources/twig.md) — Twig template rules.
 > - [`resources/rules.md`](resources/rules.md) — General conventions and error handling.
+> - [`resources/component-patterns.md`](resources/component-patterns.md) — Slot/variant/prop detection heuristics and parsing examples.
 
 ---
 
