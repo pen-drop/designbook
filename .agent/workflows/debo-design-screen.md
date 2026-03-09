@@ -16,6 +16,7 @@ Help the user create screen design components for one of their roadmap sections.
 Load configuration using the `@designbook-configuration` skill to resolve environment variables (`$DESIGNBOOK_FRAMEWORK_COMPONENT`, `$DESIGNBOOK_FRAMEWORK_CSS`, `$DESIGNBOOK_DIST`, `$DESIGNBOOK_DRUPAL_THEME`).
 
 Check if the following files exist for the target section:
+
 - `$DESIGNBOOK_DIST/sections/[section-id]/spec.section.yml` — section spec (required)
 - `$DESIGNBOOK_DIST/sections/[section-id]/data.yml` — sample data (required)
 - `$DESIGNBOOK_DIST/data-model.yml` — data model (required)
@@ -32,6 +33,7 @@ Stop here.
 **If section spec or data are missing**, tell the user:
 
 > "Before creating screen designs for this section, you need:
+>
 > 1. `/debo-shape-section` — Define the section specification
 > 2. `/debo-sample-data` — Create sample data
 >
@@ -72,11 +74,11 @@ Present proposals to the user:
 
 > "For **[Section Title]**, I suggest these UI components:
 >
-> | # | Component | Slots | Purpose |
-> |---|-----------|-------|---------|
-> | 1 | **search-filter** | query, filters | Search bar with filter controls |
-> | 2 | **pet-card** | image, title, badges, action | Pet listing card |
-> | ✓ | ~~heading~~ | _(exists)_ | Reuse existing |
+> | #   | Component         | Slots                        | Purpose                         |
+> | --- | ----------------- | ---------------------------- | ------------------------------- |
+> | 1   | **search-filter** | query, filters               | Search bar with filter controls |
+> | 2   | **pet-card**      | image, title, badges, action | Pet listing card                |
+> | ✓   | ~~heading~~       | _(exists)_                   | Reuse existing                  |
 >
 > Want to adjust, add, or remove any? Or proceed with these?"
 
@@ -97,6 +99,7 @@ For each new component, present component-specific details for user confirmation
 Wait for confirmation. Allow the user to refine slots, add variants, or adjust props.
 
 The following fields are **auto-set from context** (do NOT ask the user):
+
 - `status` → `experimental`
 - `provider` → from `$DESIGNBOOK_DRUPAL_THEME` name or designbook.config.yml
 - `description` → auto-generated from section context
@@ -112,6 +115,7 @@ If no new UI components are needed, skip this sub-step.
 > ⛔ **Read skill now:** `@designbook-view-modes/SKILL.md`
 
 Check `$DESIGNBOOK_DIST/view-modes/` for existing view mode files. For each entity type/bundle/view mode combination needed by the section's scenes:
+
 - If the `.jsonata` file already exists, reuse it
 - If not, create it following the view-modes skill
 
@@ -152,18 +156,19 @@ Mark tasks complete as each sub-step finishes. Report progress to the user.
 
 > "✅ **Screen design generated for [Section Title]!**
 >
-> | Layer | Item | Location |
-> |-------|------|----------|
-> | UI Components | [list or "none needed"] | `$DESIGNBOOK_DRUPAL_THEME/components/` |
-> | View Modes | [list of .jsonata files] | `$DESIGNBOOK_DIST/view-modes/` |
-> | Scenes | `{section}.scenes.yml` | `$DESIGNBOOK_DIST/sections/{section}/` |
-> | CSS | Generated via `//debo-css-generate` | `$DESIGNBOOK_DRUPAL_THEME/css/` |
+> | Layer         | Item                                | Location                               |
+> | ------------- | ----------------------------------- | -------------------------------------- |
+> | UI Components | [list or "none needed"]             | `$DESIGNBOOK_DRUPAL_THEME/components/` |
+> | View Modes    | [list of .jsonata files]            | `$DESIGNBOOK_DIST/view-modes/`         |
+> | Scenes        | `{section}.scenes.yml`              | `$DESIGNBOOK_DIST/sections/{section}/` |
+> | CSS           | Generated via `//debo-css-generate` | `$DESIGNBOOK_DRUPAL_THEME/css/`        |
 >
 > Open Storybook to see the full page compositions under **Designbook/Sections/** in the sidebar.
 >
 > You can run `/debo-screenshot-design` to capture screenshots for documentation."
 
 **Guardrails**
+
 - Reference the section spec for required user flows and UI requirements
 - Reference the sample data for what content is available to display
 - Reference design tokens for colors and typography

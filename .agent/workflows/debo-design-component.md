@@ -14,6 +14,7 @@ Help the user design and create a new UI component. This workflow gathers requir
 ## Step 0: Load Configuration
 
 Load configuration using the `@designbook-configuration` skill to resolve:
+
 - `$DESIGNBOOK_FRAMEWORK_COMPONENT` — component framework (e.g. `sdc`)
 - `$DESIGNBOOK_FRAMEWORK_CSS` — CSS framework (e.g. `daisyui`)
 - `$DESIGNBOOK_DRUPAL_THEME` — theme directory for component output
@@ -68,30 +69,36 @@ Wait for response. Iterate until confirmed, then go to Step 4.
 Ask these questions in order, waiting for each response:
 
 **3.1 — Name:**
+
 > "What is the component name? (e.g. `Button`, `Card`, `Hero`)"
 
 Normalize to kebab-case for files.
 
 **3.2 — Description:**
+
 > "Brief description of the component? (1-2 sentences)"
 
 **3.3 — Status:**
+
 > "Development status? (`stable` / `experimental` / `deprecated`)
 > Default: `experimental`"
 
 **3.4 — Variants:**
+
 > "Does this component have visual variants? (y/n)
 > _Examples: default/outline/ghost, info/warning/error_"
 
 If yes, ask for variant names and details.
 
 **3.5 — Props:**
+
 > "Does it need configurable properties (props)? (y/n)
 > _Examples: variant, size, disabled, href_"
 
 If yes, ask for each prop: name, type, title, enum values, default, required.
 
 **3.6 — Slots:**
+
 > "Does it have content slots? (y/n)
 > _Examples: title, body, footer, icon_"
 
@@ -130,10 +137,12 @@ Execute the skill with the collected data as JSON input (name, description, stat
 > "✅ **Component created!**
 >
 > **Files:**
+>
 > - `components/[name]/[name].component.yml`
 > - `components/[name]/[name].twig`
 >
 > **Next steps:**
+>
 > 1. Edit `.twig` to add HTML structure
 > 2. Create a `.story.yml` to preview in Storybook
 >
