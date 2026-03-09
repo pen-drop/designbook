@@ -1,0 +1,12 @@
+name: default
+slots:
+  content:
+    - type: component
+      component: "daisy_cms_daisyui:quote-block"
+      props:
+        quote: "Mit keytec haben wir dank der tiefgehenden Drupal-Expertise und der Erfahrung des Teams den richtigen Partner für unsere globalen Kommunikations- und Servicebedürfnisse gefunden."
+        author: "Domenique Hopfgartner, Corporate Digital Marketing"
+      slots:
+        media:
+          - type: image
+            uri: "https://placehold.co/200x80/fff/333?text=Schär"

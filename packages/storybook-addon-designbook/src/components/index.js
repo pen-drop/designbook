@@ -9,7 +9,9 @@ import '../index.css';
 // UI — Visual primitives
 export {
   DeboAlert,
+  DeboBadge,
   DeboBulletList,
+  DeboCard,
   DeboCollapsible,
   DeboEmptyState,
   DeboLoading,

@@ -1,0 +1,46 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: button
+status: experimental
+group: Action
+description: "A clickable button with neo-brutalist offset shadow on hover and focus ring."
+provider: daisy_cms_daisyui
+variants:
+  swimsuit:
+    title: Swimsuit
+    description: "Coral red button (#F96459) with black text."
+  ocean:
+    title: Ocean
+    description: "Blue button (#494FE5) with white text."
+  sun:
+    title: Sun
+    description: "Yellow button (#FFC024) with black text."
+  wine:
+    title: Wine
+    description: "Dark wine-red button (#832626) with white text."
+  link:
+    title: Link
+    description: "Text link with arrow indicator."
+props:
+  type: object
+  properties:
+    variant:
+      type: string
+      title: Visual Variant
+      enum:
+        - swimsuit
+        - ocean
+        - sun
+        - wine
+        - link
+      default: swimsuit
+    url:
+      type: string
+      title: URL
+      description: "Link target."
+slots:
+  text:
+    title: Button Text
+    description: "The clickable label."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

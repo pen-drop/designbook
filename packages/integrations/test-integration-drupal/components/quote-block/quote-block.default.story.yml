@@ -1,0 +1,10 @@
+name: default
+props:
+  quote: "Mit keytec haben wir dank der tiefgehenden Drupal-Expertise und der Erfahrung des Teams den richtigen Partner für unsere globalen Kommunikations- und Servicebedürfnisse gefunden."
+  author: "Domenique Hopfgartner, Corporate Digital Marketing"
+  link_url: "/projekte/schaer"
+  link_label: "PROJEKT ANSEHEN"
+slots:
+  media:
+    - type: image
+      uri: "https://placehold.co/250x250/c41230/fff?text=Schär"

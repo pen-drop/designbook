@@ -1,0 +1,16 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: text_block
+status: experimental
+group: Data Display
+description: "Rich text content block."
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    content:
+      type: string
+      title: Content
+      description: "Rich text HTML content."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

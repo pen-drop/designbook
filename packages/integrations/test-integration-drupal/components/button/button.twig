@@ -1,0 +1,30 @@
+{% set variant = variant|default('swimsuit') %}
+
+{% if variant == 'link' %}
+  <a href="{{ url|default('#') }}"{{ attributes.addClass(['component', 'button', 'button--link', 'group', 'inline-flex', 'items-center', 'gap-2']) }}>
+    <span class="text-secondary -rotate-90 text-base" aria-hidden="true">&#x25BC;</span>
+    <span class="font-[800] uppercase text-xs tracking-[2px] lg:text-[18px] lg:leading-[24px] lg:tracking-[2px] group-hover:text-secondary transition-colors duration-200">{{ text }}</span>
+  </a>
+{% else %}
+  {% set bg_class = {
+    'swimsuit': 'bg-secondary text-secondary-content',
+    'ocean': 'bg-primary text-primary-content',
+    'sun': 'bg-accent text-accent-content',
+    'wine': 'bg-error text-error-content',
+  } %}
+
+  <a href="{{ url|default('#') }}"{{ attributes.addClass([
+    'component', 'button', 'button--' ~ variant,
+    'inline-flex', 'items-center', 'justify-center',
+    'px-5', 'py-[18px]',
+    'font-[800]', 'uppercase',
+    'text-[14px]', 'leading-[18px]', 'tracking-[1px]',
+    'lg:text-[18px]', 'lg:leading-[24px]', 'lg:tracking-[2px]',
+    'shadow-none', 'transition-shadow', 'duration-300',
+    'md:hover:shadow-[6px_6px_0_0_#000]',
+    'focus-visible:shadow-[0_0_0_4px_#fafaed,0_0_0_8px_#4bb9ae]',
+    'focus-visible:outline-none',
+  ]).addClass(bg_class[variant]|default('bg-secondary text-secondary-content')) }}>
+    {{ text }}
+  </a>
+{% endif %}

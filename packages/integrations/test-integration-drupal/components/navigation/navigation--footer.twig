@@ -1,0 +1,13 @@
+{% set classes = [
+  'component',
+  'navigation',
+  'navigation--footer',
+] %}
+
+<nav{{ attributes.addClass(classes) }}>
+  <ul class="menu menu-horizontal gap-4">
+    {% for item in items %}
+      <li><a href="{{ item.url }}" class="link link-hover text-sm text-inherit opacity-70 hover:opacity-100">{{ item.label }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>

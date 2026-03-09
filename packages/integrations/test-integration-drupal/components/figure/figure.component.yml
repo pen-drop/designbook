@@ -1,0 +1,25 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: figure
+status: experimental
+group: Data Display
+description: "Image display with optional caption."
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    src:
+      type: string
+      title: Image Source
+      description: "URL of the image."
+    alt:
+      type: string
+      title: Alt Text
+      description: "Alternative text for the image."
+    full_width:
+      type: boolean
+      title: Full Width
+      description: "Whether the image spans full width."
+      default: false
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

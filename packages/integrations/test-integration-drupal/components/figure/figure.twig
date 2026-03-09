@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Template for figure component.
+ */
+#}
+{% set classes = [
+  'component',
+  'figure',
+  full_width ? 'w-full' : '',
+] %}
+
+<figure{{ attributes.addClass(classes) }}>
+  {% if src %}
+    <img src="{{ src }}" alt="{{ alt|default('') }}" class="rounded-lg{% if full_width %} w-full object-cover{% endif %}" />
+  {% endif %}
+  {% if caption %}
+    <figcaption class="text-sm text-base-content/50 mt-2">{{ caption }}</figcaption>
+  {% endif %}
+</figure>

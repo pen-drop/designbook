@@ -1,0 +1,18 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: footer
+status: experimental
+group: Shell
+description: "Application footer with navigation and copyright."
+provider: daisy_cms_daisyui
+slots:
+  navigation:
+    title: Navigation
+    description: "Footer navigation links."
+  copyright:
+    title: Copyright
+    description: "Copyright text."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"

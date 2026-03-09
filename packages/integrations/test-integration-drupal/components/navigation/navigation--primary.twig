@@ -1,0 +1,13 @@
+{% set classes = [
+  'component',
+  'navigation',
+  'navigation--primary',
+] %}
+
+<nav{{ attributes.addClass(classes) }}>
+  <ul class="flex items-center gap-[30px] list-none m-0 p-0">
+    {% for item in items %}
+      <li><a href="{{ item.url }}" class="text-nav text-base-content no-underline hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#4BB9AE]">{{ item.label }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>

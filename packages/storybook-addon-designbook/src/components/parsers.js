@@ -36,6 +36,31 @@ export function parseRoadmapData(md) {
   return sections;
 }
 
+/**
+ * Splits product overview markdown into sections by H2 headings.
+ * Returns an array of { title, html } objects.
+ */
+export function parseProductSections(md) {
+  if (!md) return null;
+  const tokens = marked.lexer(md);
+  const sections = [];
+  let current = null;
+
+  for (const token of tokens) {
+    if (token.type === 'heading' && token.depth === 2) {
+      if (current) sections.push(current);
+      current = { title: token.text, tokens: [] };
+    } else if (current) {
+      current.tokens.push(token);
+    }
+  }
+  if (current) sections.push(current);
+
+  return sections.length > 0
+    ? sections.map(s => ({ title: s.title, html: marked.parser(s.tokens) }))
+    : null;
+}
+
 export function parseScreenshots(md) {
   if (!md) return [];
   const tokens = marked.lexer(md);

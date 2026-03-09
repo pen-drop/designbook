@@ -1,26 +1,35 @@
 @plugin "daisyui/theme" {
-  name: "keytec";
+  name: "light";
   default: true;
   color-scheme: light;
 
-  --color-primary: #FF4E42;
+  /* ocean blue — primary brand color */
+  --color-primary: #494FE5;
   --color-primary-content: #FFFFFF;
-  --color-secondary: #494FE5;
-  --color-secondary-content: #FFFFFF;
+  /* swimsuit red — CTA / action color */
+  --color-secondary: #F96459;
+  --color-secondary-content: #000000;
+  /* sun yellow — accent */
   --color-accent: #FFC024;
   --color-accent-content: #000000;
+  /* volcano black */
   --color-neutral: #000000;
   --color-neutral-content: #FFFFFF;
+  /* surface — page background (Figma keytec/surface) */
   --color-base-100: #F7F7F4;
+  /* cloud white — cards, elevated surfaces */
   --color-base-200: #FFFFFF;
   --color-base-300: #E5E5E0;
+  /* volcano — text */
   --color-base-content: #000000;
-  --color-info: #3ABFF8;
-  --color-info-content: #002B3D;
+  --color-info: #494FE5;
+  --color-info-content: #FFFFFF;
   --color-success: #36D399;
   --color-success-content: #003320;
-  --color-warning: #FBBD23;
+  /* sun yellow */
+  --color-warning: #FFC024;
   --color-warning-content: #382800;
+  /* wine red */
   --color-error: #832626;
   --color-error-content: #FFFFFF;
 }

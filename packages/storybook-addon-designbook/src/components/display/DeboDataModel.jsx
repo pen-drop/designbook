@@ -1,38 +1,34 @@
 
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboAlert } from '../ui/DeboAlert.jsx';
+import { DeboCard } from '../ui/DeboCard.jsx';
 
-function BundleSummary({ name, bundle }) {
-    const fieldCount = bundle.fields ? Object.keys(bundle.fields).length : 0;
-    return (
-        <div className="debo:mb-2 debo:last:mb-0">
-            <div className="debo:flex debo:justify-between debo:text-sm">
-                <span className="debo:font-medium debo:text-base-content">{name}</span>
-                <span className="debo:badge debo:badge-ghost debo:badge-sm">{fieldCount} fields</span>
-            </div>
-            {bundle.description && (
-                <p className="debo:text-xs debo:text-base-content/40 debo:mt-0.5">{bundle.description}</p>
-            )}
-        </div>
-    );
-}
+const ENTITY_BADGE_COLORS = {
+    node: 'red',
+    block_content: 'green',
+    media: 'purple',
+};
 
 function EntityGroup({ type, bundles }) {
     const bundleEntries = Object.entries(bundles || {});
 
     if (bundleEntries.length === 0) return null;
 
-    const content = (
-        <div className="debo:pl-2 debo:space-y-2">
-            {bundleEntries.map(([key, def]) => (
-                <BundleSummary key={key} name={def.title || key} bundle={def} />
-            ))}
-        </div>
-    );
-
     return (
-        <DeboCollapsible title={type} count={bundleEntries.length} defaultOpen={true}>
-            {content}
+        <DeboCollapsible title={type.charAt(0).toUpperCase() + type.slice(1)} count={bundleEntries.length} defaultOpen={true}>
+            <div className="debo:grid debo:grid-cols-1 debo:md:grid-cols-2 debo:gap-4">
+                {bundleEntries.map(([key, def]) => (
+                    <DeboCard
+                        key={key}
+                        title={def.title || key}
+                        badge={type}
+                        badgeColor={ENTITY_BADGE_COLORS[type] || 'red'}
+                        description={def.description}
+                        entityPath={`${type}.${key}`}
+                        fieldCount={def.fields ? Object.keys(def.fields).length : 0}
+                    />
+                ))}
+            </div>
         </DeboCollapsible>
     );
 }
@@ -57,7 +53,7 @@ export function DeboDataModel({ data }) {
                 </svg>
                 <span className="debo:text-sm"><strong>Read Only:</strong> Run <kbd className="debo:kbd debo:kbd-sm">/debo-data-model</kbd> to make changes.</span>
             </DeboAlert>
-            <div className="debo:space-y-2">
+            <div className="debo:flex debo:flex-col debo:gap-6">
                 {entityTypes.map(([type, bundles]) => (
                     <EntityGroup key={type} type={type} bundles={bundles} />
                 ))}

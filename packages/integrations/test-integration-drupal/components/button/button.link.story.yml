@@ -1,0 +1,8 @@
+name: link
+props:
+  variant: link
+  url: "/leistungen"
+slots:
+  text:
+    - type: element
+      value: "Mehr erfahren"

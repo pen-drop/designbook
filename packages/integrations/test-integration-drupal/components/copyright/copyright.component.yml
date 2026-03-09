@@ -1,0 +1,16 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: copyright
+status: experimental
+group: Data Display
+description: "Copyright text display."
+provider: daisy_cms_daisyui
+props:
+  type: object
+  properties:
+    text:
+      type: string
+      title: Copyright Text
+      description: "The copyright text to display."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
