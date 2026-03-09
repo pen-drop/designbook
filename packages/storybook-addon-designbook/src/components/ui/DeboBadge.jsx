@@ -8,8 +8,8 @@
  */
 export function DeboBadge({ children, color = 'green', className = '' }) {
     const colors = {
-        green: 'debo:bg-[#dcfce7] debo:text-[#008236]',
-        red: 'debo:bg-[#ffe2e2] debo:text-[#c10007]',
+        green: 'debo:bg-[#D0FAE5] debo:text-[#007A55]',
+        red: 'debo:bg-[#FFE4E6] debo:text-[#C70036]',
         purple: 'debo:bg-[#f3e8ff] debo:text-[#8200db]',
     };
     return (

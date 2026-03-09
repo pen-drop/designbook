@@ -16,7 +16,7 @@ export function DeboProductOverview() {
             command="/debo-product-vision"
             emptyMessage="No product vision defined yet"
             renderContent={(sections) => (
-                <div className="debo:flex debo:flex-col debo:gap-6">
+                <div className="debo:flex debo:flex-col debo:gap-6 debo:pt-6">
                     {sections.map((section, i) => (
                         <DeboCollapsible key={section.title} title={section.title} defaultOpen={i === 0}>
                             <div

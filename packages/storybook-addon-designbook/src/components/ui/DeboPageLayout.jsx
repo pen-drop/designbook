@@ -7,7 +7,7 @@
  */
 export function DeboPageLayout({ gap = '4', children }) {
     return (
-        <div data-theme="light" className={`debo:font-sans debo:mx-auto debo:py-6 debo:space-y-${gap}`}>
+        <div data-theme="light" className={`debo:font-sans debo:mx-auto debo:pt-2 debo:space-y-${gap}`}>
             {children}
         </div>
     );

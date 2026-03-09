@@ -19,8 +19,8 @@ export function DeboCollapsible({ title, count, defaultOpen = false, children })
           </span>
         )}
       </div>
-      <div className="debo:collapse-content debo:border-t debo:border-slate-100">
-        <div className="debo:pt-4">{children}</div>
+      <div className="debo:collapse-content debo:border-t debo:border-[#F1F5F9]">
+        <div className="debo:pt-5">{children}</div>
       </div>
     </div>
   );

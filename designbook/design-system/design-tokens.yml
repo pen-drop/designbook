@@ -1,0 +1,94 @@
+color:
+  primary:
+    $value: '#E8650A'
+    $type: color
+    description: Main brand color — warm orange for buttons, links, key actions
+  primary-content:
+    $value: '#FFFFFF'
+    $type: color
+    description: Text on primary
+  secondary:
+    $value: '#2EC4B6'
+    $type: color
+    description: Teal — fresh, healthy feel for tags, highlights
+  secondary-content:
+    $value: '#FFFFFF'
+    $type: color
+    description: Text on secondary
+  accent:
+    $value: '#FFD166'
+    $type: color
+    description: Golden yellow — playful emphasis, decorations
+  accent-content:
+    $value: '#1A202C'
+    $type: color
+    description: Text on accent
+  neutral:
+    $value: '#2D3748'
+    $type: color
+    description: Dark slate — footers, dark sections
+  neutral-content:
+    $value: '#FFFFFF'
+    $type: color
+    description: Text on neutral
+  base-100:
+    $value: '#FFFFFF'
+    $type: color
+    description: Page background
+  base-200:
+    $value: '#F7F5F2'
+    $type: color
+    description: Warm light gray — card surfaces, elevated areas
+  base-300:
+    $value: '#EAE6E1'
+    $type: color
+    description: Warm gray — borders, dividers
+  base-content:
+    $value: '#1A202C'
+    $type: color
+    description: Main text color
+  info:
+    $value: '#3ABFF8'
+    $type: color
+    description: Info messages
+  info-content:
+    $value: '#002B3D'
+    $type: color
+    description: Text on info
+  success:
+    $value: '#36D399'
+    $type: color
+    description: Success messages
+  success-content:
+    $value: '#003320'
+    $type: color
+    description: Text on success
+  warning:
+    $value: '#FBBD23'
+    $type: color
+    description: Warning messages
+  warning-content:
+    $value: '#382800'
+    $type: color
+    description: Text on warning
+  error:
+    $value: '#F87272'
+    $type: color
+    description: Error messages
+  error-content:
+    $value: '#470000'
+    $type: color
+    description: Text on error
+typography:
+  heading:
+    $value: Nunito Sans
+    $type: fontFamily
+    description: Friendly, rounded headings
+  body:
+    $value: Nunito Sans
+    $type: fontFamily
+    description: Warm, readable body text
+  mono:
+    $value: JetBrains Mono
+    $type: fontFamily
+    description: Code and technical content
