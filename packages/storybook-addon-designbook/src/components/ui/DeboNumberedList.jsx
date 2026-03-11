@@ -1,4 +1,4 @@
-/**
+bitte/**
  * Navigate to a Storybook page via the top-level window.
  * Storybook renders docs in an iframe, so we need window.top to navigate the shell.
  */

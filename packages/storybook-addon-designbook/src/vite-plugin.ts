@@ -65,30 +65,9 @@ export function designbookLoadPlugin(
       return result;
     },
 
-    handleHotUpdate({ file, server }) {
-      const sceneIds = dataFileToScenes.get(file);
-      if (sceneIds) {
-        const modules = [...sceneIds].map((id) => server.moduleGraph.getModuleById(id)).filter(Boolean);
-        if (modules.length) {
-          console.log(`[Designbook] Data file changed: ${file}, reloading ${modules.length} scene(s)`);
-          return modules as import('vite').ModuleNode[];
-        }
-      }
-    },
-
     configureServer(server: ViteDevServer) {
       // Watch the designbook directory for file changes.
-      server.watcher.add(designbookDir);
 
-      // Storybook's builder-vite only handles .stories.(t|j)sx? and .mdx in its
-      // 'add' watcher. Emit a 'change' event for new .scenes.yml files so
-      // Storybook's codeGeneratorPlugin invalidates the virtual stories module.
-      server.watcher.on('add', (path: string) => {
-        if (path.endsWith('.scenes.yml')) {
-          console.log('[Designbook] New scene file detected:', path);
-          server.watcher.emit('change', path);
-        }
-      });
       // Middleware for loading designbook assets
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       server.middlewares.use('/__designbook/load', (req: IncomingMessage, res: any) => {
