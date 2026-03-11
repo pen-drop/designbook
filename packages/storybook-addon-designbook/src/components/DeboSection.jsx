@@ -27,7 +27,7 @@ export function DeboSection({ dataPath, parser, command, emptyMessage, renderCon
   const displayPath = filePath || `designbook/${dataPath}`;
 
   const heading = title ? (
-    <h2 className="debo:text-lg debo:font-semibold debo:text-base-content debo:pb-2 debo:mb-4 debo:border-b debo:border-base-300">
+    <h2 className="debo:text-lg debo:font-semibold debo:text-base-content debo:pt-1 debo:pb-4 debo:mb-4 debo:border-b debo:border-base-300">
       {title}
     </h2>
   ) : null;
@@ -70,10 +70,7 @@ export function DeboSection({ dataPath, parser, command, emptyMessage, renderCon
     <DeboPageLayout>
       {heading}
       {renderContent(data)}
-      <DeboSourceFooter path={displayPath} onReload={reload} />
-      <span className="debo:text-base-content/30 debo:text-xs debo:leading-loose">
-        Update with <code className="debo:text-base-content/40">{command}</code>
-      </span>
+      <DeboSourceFooter path={displayPath} command={command} onReload={reload} />
     </DeboPageLayout>
   );
 }
