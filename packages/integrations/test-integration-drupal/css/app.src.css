@@ -17,6 +17,8 @@
 @import "./tokens/radius.src.css";
 @import "./tokens/opacity.src.css";
 @import "./tokens/layout.src.css";
+@import "./tokens/container.src.css";
+@import "./tokens/section-spacing.src.css";
 
 /**
  * Include DaisyUI themes
