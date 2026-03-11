@@ -27,7 +27,7 @@ Stop here.
 Load the Designbook configuration:
 
 ```bash
-source .agent/skills/designbook-configuration/scripts/set-env.sh
+eval "$(node packages/storybook-addon-designbook/dist/cli.js config)"
 ```
 
 Check `DESIGNBOOK_FRAMEWORK_CSS`:

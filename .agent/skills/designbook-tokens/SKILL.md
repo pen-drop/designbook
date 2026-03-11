@@ -9,7 +9,7 @@ description: Validates and stores design tokens in W3C YAML format.
 
 ## Prerequisites
 
-1. **Configuration**: Source `designbook-configuration` (`set-env.sh`) to resolve `$DESIGNBOOK_DIST` and `$DESIGNBOOK_FRAMEWORK_CSS`
+1. **Configuration**: Run `eval "$(node packages/storybook-addon-designbook/dist/cli.js config)"` to resolve `$DESIGNBOOK_DIST` and `$DESIGNBOOK_FRAMEWORK_CSS`
 2. **CSS framework skill** (conditional):
    - If `DESIGNBOOK_FRAMEWORK_CSS` is set: Read `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` § Token Naming Conventions — token names MUST follow the framework's naming rules
    - If unset: token names are free-form

@@ -68,10 +68,17 @@ export const stories = async (entry: string[] = [], options: any) => {
   // Ensure standard directories exist so the glob can discover files added later
   mkdirSync(resolve(distDir, 'sections'), { recursive: true });
 
-  // Single glob — matches all *.scenes.yml at any depth under dist
+  // Storybook resolves story globs relative to configDir (.storybook/).
+  // The storybookTest() vitest plugin also uses configDir as base.
+  // So all paths from presets must be relative to configDir.
+  const configDir = options?.configDir || resolve(designbookConfig['drupal.theme'] || process.cwd(), '.storybook');
   const scenesGlob = resolve(distDir, '**/*.scenes.yml');
 
-  return [...entry, onboardingGlob, scenesGlob];
+  return [
+    ...entry,
+    relative(configDir, onboardingGlob),
+    relative(configDir, scenesGlob),
+  ];
 };
 
 /**

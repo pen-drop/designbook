@@ -14,7 +14,7 @@ Generic CSS generation pipeline that transforms W3C Design Tokens into CSS files
 3. `DESIGNBOOK_DIST` must be set
 4. Load configuration:
    ```bash
-   source .agent/skills/designbook-configuration/scripts/set-env.sh
+   eval "$(node packages/storybook-addon-designbook/dist/cli.js config)"
    ```
 
 ## Capability
