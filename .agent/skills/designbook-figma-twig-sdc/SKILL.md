@@ -1,16 +1,17 @@
 ---
 name: Pendrop Twig from Story
-description: Generates Twig templates from Figma story screenshots using AI-assisted visual analysis through orchestrated sub-skills.
+description: "Internal skill — generates Twig templates from Figma story screenshots using AI-assisted visual analysis. Invoked by debo-figma-drupal-twig workflow only."
 ---
 
 # Pendrop Twig from Story
 
 This skill orchestrates the generation of Twig templates from Figma story screenshots by executing a series of specialized sub-skills with iterative refinement.
 
+> **Internal skill** — Do not invoke directly. Use the `debo-figma-drupal-twig` workflow instead.
+
 ## Capability
 
 ### Generate Twig from Story
-**Trigger**: When asked to "generate Twig from story", "create Twig for [Story]", or "generate template for [Story]".
 
 **Action**: Execute the following sub-skills in order:
 
@@ -65,7 +66,7 @@ This skill orchestrates the generation of Twig templates from Figma story screen
   - `.pendrop/input/pendrop.data.components.json` - Figma data
   - Story YAML files in component directories
   - Screenshots captured from Figma
-- **Output**: `web/themes/custom/daisy_cms_daisyui/components/{component}/{component}.twig`
+- **Output**: `web/themes/custom/test_integration_drupal/components/{component}/{component}.twig`
 
 ## Critical Requirements
 
@@ -124,7 +125,7 @@ Iterations: 2
 Status: All validation checks passed
 
 Generated File:
-  web/themes/custom/daisy_cms_daisyui/components/button/button.twig
+  web/themes/custom/test_integration_drupal/components/button/button.twig
 
 Validation Results:
   ✓ Structural: All props referenced

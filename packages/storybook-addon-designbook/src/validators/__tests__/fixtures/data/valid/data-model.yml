@@ -1,0 +1,33 @@
+content:
+  node:
+    article:
+      fields:
+        title:
+          type: string
+          required: true
+        field_body:
+          type: text
+        field_media:
+          type: reference
+          settings:
+            target_type: media
+            target_bundle: image
+        field_category:
+          type: reference
+          settings:
+            target_type: taxonomy_term
+            target_bundle: category
+  media:
+    image:
+      fields:
+        url:
+          type: string
+          required: true
+        alt:
+          type: string
+  taxonomy_term:
+    category:
+      fields:
+        name:
+          type: string
+          required: true

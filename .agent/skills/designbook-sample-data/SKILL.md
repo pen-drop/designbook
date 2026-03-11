@@ -52,12 +52,12 @@ node:
 - Reference fields store the target entity's `id` value
 
 
-## Validation Script
+## Validation
 
-Run the Node.js validator to check a section's data.yml:
+Run the CLI validator to check a section's data.yml:
 
 ```bash
-node .agent/skills/designbook-sample-data/scripts/validate-sample-data.cjs <designbook-dir> <section-id>
+npx storybook-addon-designbook validate data <section-id>
 ```
 
 ## Validation Rules

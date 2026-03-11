@@ -1,5 +1,5 @@
 {
-  "name": "daisy_cms_daisyui",
+  "name": "test_integration_drupal",
   "private": true,
   "workspaces": [
     "packages/*",

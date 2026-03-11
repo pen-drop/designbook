@@ -48,7 +48,7 @@ Provides completion status and cleans up temporary resources.
    - Suggest manual review
 
 3. **Show file location**
-   - Display full path: `web/themes/custom/daisy_cms_daisyui/components/{component}/{component}.twig`
+   - Display full path: `web/themes/custom/test_integration_drupal/components/{component}/{component}.twig`
    - Show file size
 
 4. **List validation results**
@@ -86,7 +86,7 @@ Iterations: 2
 Status: All validation checks passed
 
 Generated File:
-  web/themes/custom/daisy_cms_daisyui/components/button/button.twig
+  web/themes/custom/test_integration_drupal/components/button/button.twig
 
 Validation Results:
   ✓ Structural: All props referenced
@@ -113,7 +113,7 @@ Iterations: 3 (max reached)
 Status: Manual review recommended
 
 Generated File:
-  web/themes/custom/daisy_cms_daisyui/components/card/card.twig
+  web/themes/custom/test_integration_drupal/components/card/card.twig
 
 Validation Results:
   ✓ Structural: All props referenced

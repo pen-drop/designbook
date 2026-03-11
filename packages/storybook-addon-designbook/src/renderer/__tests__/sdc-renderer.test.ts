@@ -26,7 +26,7 @@ describe('sdcComponentRenderer', () => {
     const ctx = createMockContext();
     const node: ComponentSceneNode = {
       type: 'component',
-      component: 'heading',
+      component: 'test_provider:heading',
       props: { level: 'h1' },
     };
 
@@ -35,37 +35,46 @@ describe('sdcComponentRenderer', () => {
     expect(result).toContain('"h1"');
   });
 
-  it('applies provider prefix via trackImport', () => {
+  it('passes component ID directly to trackImport', () => {
     const trackSpy = vi.fn((id: string) => id.replace(/[-:]/g, ''));
     const ctx = createMockContext({ trackImport: trackSpy });
 
     const node: ComponentSceneNode = {
       type: 'component',
-      component: 'heading',
+      component: 'test_provider:heading',
     };
 
     sdcComponentRenderer.render(node, ctx);
     expect(trackSpy).toHaveBeenCalledWith('test_provider:heading');
   });
 
-  it('renders component without provider when none set', () => {
-    const trackSpy = vi.fn((id: string) => id.replace(/[-:]/g, ''));
-    const ctx = createMockContext({ provider: undefined, trackImport: trackSpy });
+  it('throws when component has no provider prefix', () => {
+    const ctx = createMockContext();
 
     const node: ComponentSceneNode = {
       type: 'component',
       component: 'heading',
     };
 
-    sdcComponentRenderer.render(node, ctx);
-    expect(trackSpy).toHaveBeenCalledWith('heading');
+    expect(() => sdcComponentRenderer.render(node, ctx)).toThrow('Invalid SDC component reference');
+  });
+
+  it('throws when component has too many colons', () => {
+    const ctx = createMockContext();
+
+    const node: ComponentSceneNode = {
+      type: 'component',
+      component: 'a:b:c',
+    };
+
+    expect(() => sdcComponentRenderer.render(node, ctx)).toThrow('Invalid SDC component reference');
   });
 
   it('renders slots with string values', () => {
     const ctx = createMockContext();
     const node: ComponentSceneNode = {
       type: 'component',
-      component: 'text-block',
+      component: 'test_provider:text-block',
       slots: { content: '<p>Hello</p>' },
     };
 
@@ -80,11 +89,11 @@ describe('sdcComponentRenderer', () => {
 
     const node: ComponentSceneNode = {
       type: 'component',
-      component: 'card',
+      component: 'test_provider:card',
       slots: {
         children: [
-          { type: 'component', component: 'heading' },
-          { type: 'component', component: 'text-block' },
+          { type: 'component', component: 'test_provider:heading' },
+          { type: 'component', component: 'test_provider:text-block' },
         ],
       },
     };
@@ -98,7 +107,7 @@ describe('sdcComponentRenderer', () => {
     const ctx = createMockContext();
     const node: ComponentSceneNode = {
       type: 'component',
-      component: 'card',
+      component: 'test_provider:card',
       story: 'featured',
     };
 

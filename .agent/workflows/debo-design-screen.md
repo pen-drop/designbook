@@ -146,7 +146,20 @@ scenes:
           view_mode: full
 ```
 
-### 3.4 — Run CSS Generation
+### 3.4 — Validate Stories
+
+Render the section's stories headlessly to verify they produce valid HTML:
+
+```bash
+node packages/storybook-addon-designbook/dist/cli.js validate story {section-id}
+```
+
+If errors are found, fix them before proceeding. Common issues:
+- Twig syntax errors in templates
+- Missing component references
+- Broken slot composition
+
+### 3.5 — Run CSS Generation
 
 Delegate to the `//debo-css-generate` workflow to generate CSS tokens for all new components.
 

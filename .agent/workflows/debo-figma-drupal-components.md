@@ -9,5 +9,5 @@ This workflow generates Drupal components from Figma data.
 ## Step 1: Execute Skill
 
 <skill>
-name: designbook-figma-drupal-components
+name: designbook-figma-components-sdc
 </skill>

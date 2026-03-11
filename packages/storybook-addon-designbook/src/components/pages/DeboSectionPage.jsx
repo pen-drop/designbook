@@ -77,10 +77,6 @@ export function DeboSectionPage({ sectionId, title }) {
             <h2 className="debo:text-lg debo:font-semibold debo:text-base-content debo:pb-2 debo:mb-4 debo:border-b debo:border-base-300">
                 Design
             </h2>
-            <DeboEmptyState
-                message="Design"
-                command={`/debo-design-screen ${sectionId}`}
-            />
 
             {/* Step 4: Screenshots */}
             <DeboSection

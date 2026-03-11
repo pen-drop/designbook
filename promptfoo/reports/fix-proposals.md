@@ -12,7 +12,7 @@
 **Blame:** rubric
 
 **What went wrong:**
-The rubric checks for file content details (h1 with "PetMatch", ## Description, ## Problems & Solutions, ## Key Features) — but the agent only says: "I've saved your product vision to designbook/product/product-overview.md. Open Storybook..." The file IS correct, but the conversation output doesn't echo its contents.
+The rubric checks for file content details (h1 with "PetMatch", ## Description, ## Problems & Solutions, ## Key Features) — but the agent only says: "I've saved your product vision to designbook/product/vision.md. Open Storybook..." The file IS correct, but the conversation output doesn't echo its contents.
 
 **Proposed fix:**
 - **File:** `promptfoo/promptfooconfig.yaml` (lines 163-171)
@@ -23,7 +23,7 @@ The rubric checks for file content details (h1 with "PetMatch", ## Description, 
         value: |
           The agent executed the //debo-product-vision workflow for "PetMatch".
           Verify from the conversation output:
-          1. The agent confirms creating a product-overview.md file
+          1. The agent confirms creating a vision.md file
           2. The agent mentions PetMatch by name
           3. The agent confirms successful completion
           4. The agent mentions Storybook or next steps

@@ -55,7 +55,7 @@ All workflows run in the editor as `/debo-*` slash commands:
 
 | Phase | Workflow | Output |
 |-------|----------|--------|
-| **1. Vision** | `/debo-product-vision` | `product-overview.md` |
+| **1. Vision** | `/debo-product-vision` | `vision.md` |
 | **2. Sections** | `/debo-product-sections` | `sections/*/spec.section.yml` |
 | **3. Design System** | `/debo-design-tokens` | `design-tokens.yml` |
 | **4. Data Model** | `/debo-data-model` | `data-model.yml` |

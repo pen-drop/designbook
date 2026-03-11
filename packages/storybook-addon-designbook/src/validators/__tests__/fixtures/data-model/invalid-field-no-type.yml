@@ -1,0 +1,6 @@
+content:
+  node:
+    article:
+      fields:
+        title:
+          required: true

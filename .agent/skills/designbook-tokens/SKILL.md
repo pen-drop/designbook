@@ -5,23 +5,44 @@ description: Validates and stores design tokens in W3C YAML format.
 
 # Designbook Tokens Skill
 
-This skill is the central authority for validating and saving design tokens to the project. It accepts a W3C-formatted YAML or JSON input (passed as a string or file path), validates basic structure, and persists it to `${DESIGNBOOK_DIST}/design-system/design-tokens.yml`.
+> Validates and saves design tokens to `$DESIGNBOOK_DIST/design-system/design-tokens.yml`. Uses a bundled JSON Schema for structural validation via `ajv-cli`.
 
-## Usage
+## Prerequisites
 
-The agent writes design tokens directly to `${DESIGNBOOK_DIST}/design-system/design-tokens.yml` in W3C YAML format. The script can be used for validation:
+1. **Configuration**: Source `designbook-configuration` (`set-env.sh`) to resolve `$DESIGNBOOK_DIST` and `$DESIGNBOOK_FRAMEWORK_CSS`
+2. **CSS framework skill** (conditional):
+   - If `DESIGNBOOK_FRAMEWORK_CSS` is set: Read `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` § Token Naming Conventions — token names MUST follow the framework's naming rules
+   - If unset: token names are free-form
 
-```bash
-# Validate and save from a YAML/JSON file
-node .agent/skills/designbook-tokens/scripts/validate-and-save.cjs tokens.yml
+## Schema
 
-# Validate and save from a JSON string
-node .agent/skills/designbook-tokens/scripts/validate-and-save.cjs '{ "color": { ... } }'
+The schema is bundled in the addon package. Token structure:
+
+```
+{top-level group}         # e.g. color, typography, spacing
+  └── {token name}        # e.g. primary, heading
+        ├── $value (required)   # The token value
+        ├── $type (required)    # color, fontFamily, dimension, number, ...
+        └── description         # Human-readable description
 ```
 
-## Token Format
+## Validation
 
-Tokens are stored as W3C Design Tokens in YAML format:
+Validate design tokens against the schema:
+
+```bash
+npx storybook-addon-designbook validate tokens
+```
+
+## Output
+
+```
+$DESIGNBOOK_DIST/design-system/design-tokens.yml
+```
+
+## Token Format (W3C Design Tokens)
+
+Tokens are stored as W3C Design Tokens in YAML format. Each token leaf has `$value` and `$type`:
 
 ```yaml
 color:
@@ -41,6 +62,16 @@ typography:
     description: Headings font
 ```
 
-## Steps
+## Validation Rules
 
-- [process-tokens](./steps/process-tokens.md): Validates and saves tokens.
+### ⛔ Hard Errors (schema-enforced)
+
+1. **Not a valid object**: Token input must be a YAML object with at least one top-level group
+2. **Missing `$value`**: Every token leaf MUST have a `$value` key
+3. **Missing `$type`**: Every token leaf MUST have a `$type` key
+4. **Invalid `$type`**: Token `$type` must be one of: `color`, `fontFamily`, `dimension`, `number`, `fontWeight`, `duration`, `cubicBezier`, `shadow`, `gradient`, `transition`, `border`, `strokeStyle`, `typography`
+
+### ⚠️ Warnings (agent-checked)
+
+5. **CSS framework naming mismatch** (only when `DESIGNBOOK_FRAMEWORK_CSS` is set): Color token names should match the naming conventions defined in the loaded CSS framework skill's § Token Naming Conventions
+6. **Missing content counterpart** (only when the CSS framework skill requires it): Each color token should have a matching `-content` token if the framework convention demands it

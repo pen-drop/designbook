@@ -3,7 +3,7 @@ import { loadConfig } from './config';
 import { extractGroup, buildExportName, extractScenes, fileBaseName } from './renderer/scene-metadata';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
@@ -65,6 +65,9 @@ export const stories = async (entry: string[] = [], options: any) => {
     distDir = options.designbook.fsRoot;
   }
 
+  // Ensure standard directories exist so the glob can discover files added later
+  mkdirSync(resolve(distDir, 'sections'), { recursive: true });
+
   // Single glob — matches all *.scenes.yml at any depth under dist
   const scenesGlob = resolve(distDir, '**/*.scenes.yml');
 
@@ -122,6 +125,24 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
 
         // Add scene story entries
         const scenes = extractScenes(parsed as Record<string, unknown>);
+        if (scenes.length === 0 && match?.hasOverview) {
+          // Docs-only overviews need at least one story entry so Storybook
+          // creates an importer for the importPath (otherwise importFn fails).
+          const typedParsed = parsed as Record<string, unknown>;
+          const sectionId = (typedParsed.id as string) || fileBase;
+          const overviewExportName = sectionId
+            .split('-')
+            .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join('');
+
+          entries.push({
+            type: 'story' as const,
+            importPath: relativePath,
+            exportName: overviewExportName,
+            title: group,
+            tags: ['!dev'],
+          });
+        }
         for (let idx = 0; idx < scenes.length; idx++) {
           const scene = scenes[idx];
           if (!scene) continue;

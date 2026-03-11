@@ -27,7 +27,7 @@ The system SHALL provide a Cursor AI command at `.cursor/commands/product-roadma
 
 #### Scenario: AI command reads product vision
 - **WHEN** user runs the `/product-roadmap` AI command
-- **AND** product vision data exists at `designbook/product/product-overview.md`
+- **AND** product vision data exists at `designbook/product/vision.md`
 - **THEN** the AI reads the product vision first
 - **AND** uses it to inform roadmap section proposals
 

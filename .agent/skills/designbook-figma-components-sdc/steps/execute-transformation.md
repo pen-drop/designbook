@@ -71,7 +71,7 @@ Transforms Figma data into a component manifest using JSONata.
       "name": "Button",
       "status": "stable",
       "description": "Button component",
-      "provider": "daisy_cms_daisyui",
+      "provider": "test_integration_drupal",
       "variants": { ... },
       "props": { ... },
       "slots": { ... }

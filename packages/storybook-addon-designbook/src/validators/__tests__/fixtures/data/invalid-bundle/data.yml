@@ -1,0 +1,4 @@
+node:
+  nonexistent:
+    - id: "1"
+      title: "Bad Bundle"

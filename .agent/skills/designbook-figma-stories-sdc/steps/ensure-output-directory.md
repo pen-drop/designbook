@@ -18,12 +18,12 @@ Prepares the file system structure for story YAML output.
 - Step 5: Verify Transformation Logic (completed)
 
 ## Input
-- Base output path: `web/themes/custom/daisy_cms_daisyui/components`
+- Base output path: `web/themes/custom/test_integration_drupal/components`
 
 ## Process
 
 1. **Create components directory**
-   - Command: `mkdir -p web/themes/custom/daisy_cms_daisyui/components`
+   - Command: `mkdir -p web/themes/custom/test_integration_drupal/components`
    - Creates directory if it doesn't exist
    - `-p` flag creates parent directories as needed
 
@@ -36,7 +36,7 @@ Prepares the file system structure for story YAML output.
    - Show directory path
 
 ## Output
-- Created directory: `web/themes/custom/daisy_cms_daisyui/components`
+- Created directory: `web/themes/custom/test_integration_drupal/components`
 
 ## Error Handling
 - Permission denied: Show permissions error
@@ -44,7 +44,7 @@ Prepares the file system structure for story YAML output.
 - Invalid path: Show path error
 
 ## Success Criteria
-- Directory `web/themes/custom/daisy_cms_daisyui/components` exists
+- Directory `web/themes/custom/test_integration_drupal/components` exists
 - Directory is writable
 - Directory can contain subdirectories for individual components
 

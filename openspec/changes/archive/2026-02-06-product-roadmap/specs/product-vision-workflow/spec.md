@@ -5,13 +5,13 @@ The system SHALL provide an MDX documentation page at `.storybook/onboarding/pro
 
 #### Scenario: User accesses product vision page with no data
 - **WHEN** user navigates to the product vision page in Storybook
-- **AND** no product vision data exists at `designbook/product/product-overview.md`
+- **AND** no product vision data exists at `designbook/product/vision.md`
 - **THEN** the page displays an empty state via `DeboSection` with a reference to the `/product-vision` AI command
 - **AND** instructions explain how to run the AI command in the editor
 
 #### Scenario: User accesses product vision page with existing data
 - **WHEN** user navigates to the product vision page in Storybook
-- **AND** product vision data exists at `designbook/product/product-overview.md`
+- **AND** product vision data exists at `designbook/product/vision.md`
 - **THEN** the page loads and displays the saved product vision data using `DeboSection`
 - **AND** the data is rendered using the `ProductOverviewCard` React component via `renderContent` prop
 - **AND** a reload button allows refreshing the data without page navigation

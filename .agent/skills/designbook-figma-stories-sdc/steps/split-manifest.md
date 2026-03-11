@@ -38,14 +38,14 @@ Generates the final story YAML files from the manifest.
 3. **Verify file generation**
    - Check that component folder exists
    - Confirm YAML files exist in folder
-   - Example: `web/themes/custom/daisy_cms_daisyui/components/button/button.enabled.story.yml`
+   - Example: `web/themes/custom/test_integration_drupal/components/button/button.enabled.story.yml`
 
 4. **Optional: Display output paths**
    - Show generated file paths
    - Display message: "Story YAMLs generated successfully"
 
 ## Output
-- Component folder: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/`
+- Component folder: `web/themes/custom/test_integration_drupal/components/[component-name]/`
 - Story YAML files: `[component-name].[variant].story.yml`
 
 ## Error Handling
@@ -55,7 +55,7 @@ Generates the final story YAML files from the manifest.
 - Invalid manifest format: Show parsing error
 
 ## Success Criteria
-- Component folder exists: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/`
+- Component folder exists: `web/themes/custom/test_integration_drupal/components/[component-name]/`
 - YAML files exist for each story variant
 - YAML files are valid (proper syntax)
 - YAML files contain story metadata, variant, props, and slots

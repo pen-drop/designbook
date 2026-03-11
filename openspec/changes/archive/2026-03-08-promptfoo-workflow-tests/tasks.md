@@ -6,7 +6,7 @@
 
 ## 2. PetMatch Fixture Content
 
-- [x] 2.1 Create shared PetMatch `product-overview.md` for fixtures
+- [x] 2.1 Create shared PetMatch `vision.md` for fixtures
 - [x] 2.2 Create shared PetMatch `data-model.yml` for fixtures
 - [x] 2.3 Create shared PetMatch `design-tokens.yml` for fixtures
 - [x] 2.4 Create shared PetMatch `sections/homepage/overview.section.yml` for fixtures

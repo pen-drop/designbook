@@ -38,6 +38,12 @@ $DESIGNBOOK_DIST/
 
 ## The `*.scenes.yml` Format
 
+> [!CAUTION]
+> **`component:` values MUST always use `provider:component` format.**
+> Write `test_integration_drupal:header`, NEVER just `header`.
+> The renderer will throw `Invalid SDC component reference` if the provider prefix is missing.
+> Resolve `$DESIGNBOOK_SDC_PROVIDER` from `@designbook-configuration` at generation time.
+
 ### Standalone Scene File (no layout inheritance)
 
 Used for the shell itself — defines all layout slots. Shell files use `spec.shell.scenes.yml`:
@@ -55,19 +61,19 @@ scenes:
   - name: default
     layout:
       header:
-        - component: header
+        - component: test_integration_drupal:header
           story: default
       content:
-        - component: hero
+        - component: test_integration_drupal:hero
           story: default
       footer:
-        - component: footer
+        - component: test_integration_drupal:footer
           story: default
 
   - name: minimal
     layout:
       header:
-        - component: header
+        - component: test_integration_drupal:header
           story: default
       content: []
 ```
@@ -99,7 +105,7 @@ scenes:
   - name: "Blog Listing"
     layout:
       content:
-        - component: heading
+        - component: test_integration_drupal:heading
           props: { level: h1 }
           slots: { text: "Alle Artikel" }
         - entity: node.article
@@ -150,7 +156,7 @@ Same `source:name` convention used for component references (`provider:component
 Reference a UI component directly with props and slot content:
 
 ```yaml
-- component: heading
+- component: test_integration_drupal:heading
   props:
     level: h1
   slots:
@@ -233,7 +239,7 @@ scenes:
   - name: "Blog Listing"
     layout:
       content:
-        - component: heading
+        - component: test_integration_drupal:heading
           props: { level: h1 }
           slots: { text: "Alle Artikel" }
         - entity: node.article
@@ -248,16 +254,20 @@ scenes:
 
 Open Storybook — each scene appears as its own story in the sidebar. Each should render the full page layout (header + content + footer) via layout inheritance.
 
-## Provider Prefix
+## Component Reference Format
 
-Component names are prefixed with the `provider` from config at render time:
+> [!IMPORTANT]
+> **Every component reference must use `provider:component` format.**
+> Example: `test_integration_drupal:heading`, not just `heading`.
+> The renderer validates this format and throws an error if it's wrong.
 
-- `heading` → `daisy_cms_daisyui:heading` (resolves to SDC component)
+The provider is the SDC namespace from the component's `.component.yml` → `provider:` field.
 
 ## Error Handling
 
 | Error | Fix |
 |-------|-----|
+| `Invalid SDC component reference` | Use `provider:component` format (e.g. `test_integration_drupal:heading`) |
 | Component not found | Create the UI component first |
 | Page component missing | Run `/debo-design-shell` to create page/header/footer |
 | Entity not in data model | Add entity to `data-model.yml` |

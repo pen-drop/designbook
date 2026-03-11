@@ -27,7 +27,7 @@ Each workflow gets its own fixture directory containing exactly the prerequisite
 
 **Alternative rejected**: Shared "level" directories (level-0 through level-4) — adds indirection, harder to understand per-test prerequisites.
 
-**Trade-off**: Some file duplication across fixtures (e.g., `product-overview.md` appears in many). Acceptable because fixtures are small and explicit isolation outweighs DRY concerns.
+**Trade-off**: Some file duplication across fixtures (e.g., `vision.md` appears in many). Acceptable because fixtures are small and explicit isolation outweighs DRY concerns.
 
 ### 2. Workspace directories for isolation
 

@@ -39,10 +39,7 @@ export function DeboShellPage({ title = 'Shell', shellFile = 'shell/spec.shell.s
                     );
                 }}
             />
-            <DeboEmptyState
-                message="Design"
-                command="/debo-shell-design"
-            />
+
         </DeboPageLayout>
     );
 }

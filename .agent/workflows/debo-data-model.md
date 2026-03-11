@@ -13,7 +13,7 @@ Help the user define the core data model for their product. This establishes the
 ## Step 1: Context & Prerequisites
 
 Read the following files to understand the product:
-- `${DESIGNBOOK_DIST}/product/product-overview.md`
+- `${DESIGNBOOK_DIST}/product/vision.md`
 - `${DESIGNBOOK_DIST}/product/product-roadmap.md`
 
 Check if `${DESIGNBOOK_DIST}/data-model.yml` exists. If so, read it to understand the current model.

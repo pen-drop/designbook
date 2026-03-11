@@ -11,7 +11,7 @@ description: Creates Drupal SDC component files (.component.yml, .story.yml, and
 
 | Type | Skill | Has Markup? | Location | Prefix | Provider |
 |------|-------|-------------|----------|--------|----------|
-| **UI** ← this skill | `designbook-components-sdc` | ✅ Yes — real HTML | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `daisy_cms_daisyui`) |
+| **UI** ← this skill | `designbook-components-sdc` | ✅ Yes — real HTML | `$DESIGNBOOK_DRUPAL_THEME/components/` | _(none)_ | Theme provider (e.g. `test_integration_drupal`) |
 | Entity | `designbook-components-entity-sdc` | ❌ No — structural wrapper | `$DESIGNBOOK_DIST/components/entity-*/` | `entity-` | `designbook_design` |
 | Scenes | `designbook-scenes` | ❌ No — `*.scenes.yml` only | `$DESIGNBOOK_DIST/components/section-*/` | `section-` | `designbook_design` |
 
@@ -36,7 +36,7 @@ All UI components use a `group:` key in `.component.yml` to organize them into c
 | **Action** | `Action` | button, link |
 | **Data Display** | `Data Display` | card, heading, text-block, figure, badge |
 | **Navigation** | `Navigation` | navigation (variants: primary, footer), breadcrumb |
-| **Layout** | `Layout` | layout, layout-columns (from daisy-cms reference) |
+| **Layout** | `Layout` | container, grid, section |
 | **Shell** | `Shell` | header, footer, page |
 
 > **Shell components** (header, footer, page) are regular UI components with real HTML markup. They live in `$DESIGNBOOK_DRUPAL_THEME/components/header/` alongside all other UI components and use the theme provider. They compose other UI components via slots (logo, navigation, user menu, etc.). See [Shell Components](#shell-components) for generation details.
@@ -88,7 +88,7 @@ Expected as JSON object:
   "description": "A clickable button component",
   "group": "Action",
   "status": "stable|experimental|deprecated",
-  "provider": "daisy_cms_daisyui",
+  "provider": "test_integration_drupal",
   "variants": [
     {
       "id": "default",
@@ -127,7 +127,7 @@ Expected as JSON object:
 - `description` (string)
 - `group` (string) — category for Storybook sidebar grouping (e.g., `Action`, `Data Display`, `Navigation`, `Layout`, `Shell`)
 - `status` (string)
-- `provider` (string, typically "daisy_cms_daisyui")
+- `provider` (string, typically "test_integration_drupal")
 
 **Optional fields:**
 - `variants` (array, defaults to empty)
@@ -279,9 +279,26 @@ Expected files (all sharing the same base name as the directory):
 
 ### Step 9: Validate Component
 
-Automatically validate the component in Storybook.
+Run the CLI validator to check the generated `.component.yml` is valid:
 
-Invocation:
+```bash
+node packages/storybook-addon-designbook/dist/cli.js validate component [componentNameKebab]
+```
+
+If errors are found, fix them before proceeding.
+
+### Step 10: Validate Story
+
+Render the component's stories headlessly to verify they produce valid HTML:
+
+```bash
+node packages/storybook-addon-designbook/dist/cli.js validate story [componentNameKebab]
+```
+
+If errors are found, fix the Twig template or story definitions before proceeding.
+
+Then validate the component visually in Storybook:
+
 ```json
 {
   "skill": "designbook-component-validate",
@@ -461,12 +478,18 @@ Shell components (header, footer, page) are UI components in the `Shell` categor
 ## Layout Components
 
 > [!CAUTION]
-> **MUST READ** [`resources/layout-reference.md`](resources/layout-reference.md) before generating any layout or grid component.
-
-Layout components (`layout`, `layout_columns`) provide the grid system. **Never create domain-specific layout components** (e.g. `article-grid`, `blog-grid`, `card-grid`) — always use the generic `layout` component with appropriate grid classes like `grid-3` for a 3-column layout.
+> **MUST READ** [`resources/layout-reference.md`](resources/layout-reference.md) before generating any layout component.
 
 > [!IMPORTANT]
-> **Use `layout` everywhere you need max-width and horizontal padding (padding-x).** The `layout` component (with `container-md` or similar container classes) is the **single source** for constraining content width and adding horizontal padding to keep content away from the browser edges. No other component should set its own `max-width` or horizontal browser padding — always wrap in a `layout` instead.
+> **Build layout components FIRST.** Layout components (`container`, `grid`, `section`) are foundational — all other UI components reference and reuse them. Always generate layout components before any other component category.
+
+Layout components (`container`, `grid`, `section`) provide structural framing and grid arrangement. **Never create domain-specific layout components** (e.g. `article-grid`, `blog-grid`, `card-grid`) — always use the generic `grid` component with appropriate column settings.
+
+> [!IMPORTANT]
+> **Use `container` everywhere you need max-width and horizontal padding (padding-inline / px).** The `container` component is the **single source** for constraining content width and adding horizontal padding to keep content away from the browser edges. No other component should set its own `max-width` or horizontal browser padding — always wrap in a `container` instead.
+
+> [!IMPORTANT]
+> **Resolve `$DESIGNBOOK_SDC_PROVIDER` at generation time.** When generating Twig templates or story YAML files, resolve the SDC provider from `@designbook-configuration` (`basename(drupal.theme)` with `-` → `_`) and use the actual value (e.g., `test_integration_drupal`) in all `include()` calls and `component:` references. Never leave `$DESIGNBOOK_SDC_PROVIDER` as a literal string in generated files.
 
 → Full component definitions, Twig templates, and story examples in [`resources/layout-reference.md`](resources/layout-reference.md)
 

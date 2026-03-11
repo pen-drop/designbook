@@ -1,0 +1,4 @@
+node:
+  article:
+    - id: "1"
+      field_body: "Missing required title"

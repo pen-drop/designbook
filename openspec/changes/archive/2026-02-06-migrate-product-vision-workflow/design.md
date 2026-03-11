@@ -130,7 +130,7 @@ This prefixes all Tailwind utility classes with `debo:` (e.g., `debo:bg-blue-500
 **Data Flow:**
 1. User opens Storybook → sees reference to AI command
 2. User runs `/product-vision` in editor → conversational AI workflow
-3. AI saves result to `designbook/product/product-overview.md`
+3. AI saves result to `designbook/product/vision.md`
 4. User reloads in Storybook → data loaded via `GET /__designbook/load` middleware → displayed in `ProductOverviewCard`
 
 **Rationale:**
@@ -214,6 +214,6 @@ This prefixes all Tailwind utility classes with `debo:` (e.g., `debo:bg-blue-500
 
 ## Open Questions
 
-- ~~Should product vision data be persisted anywhere?~~ **Resolved:** Data is saved to `designbook/product/product-overview.md` via AI commands and displayed in Storybook.
+- ~~Should product vision data be persisted anywhere?~~ **Resolved:** Data is saved to `designbook/product/vision.md` via AI commands and displayed in Storybook.
 - Will future workflows (roadmap, data model) use the same AI command → file → Storybook display pattern? (Assumption: Yes, establishing patterns now)
 - Do we need component unit tests, or is Agent Browser validation sufficient? (To be determined during implementation)

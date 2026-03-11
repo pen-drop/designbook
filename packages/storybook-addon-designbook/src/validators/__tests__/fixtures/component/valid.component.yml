@@ -1,0 +1,21 @@
+name: button
+status: stable
+props:
+  type: object
+  properties:
+    label:
+      type: string
+      title: Label
+    variant:
+      type: string
+      title: Variant
+      enum:
+        - default
+        - outline
+        - ghost
+  required:
+    - label
+slots:
+  content:
+    title: Content
+    description: Button content

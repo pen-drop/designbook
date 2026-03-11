@@ -45,7 +45,7 @@
   {% endfor %}
 </div>
   {% endset %}
-  {{ include('daisy_cms_daisyui:layout', {
+  {{ include('test_integration_drupal:layout', {
     content: highlighted,
     attributes: create_attribute().addClass('pb-sm container-md')
   }, with_context: false)

@@ -8,7 +8,7 @@ Additionally, the existing components (`ProductOverviewCard`) contain repeated p
 
 - **Shared component library**: Extract reusable base components from existing code into `.storybook/source/components/` — `DeboCard`, `DeboCollapsible`, `DeboSection`, `DeboEmptyState`, `DeboNumberedList`, and a `useDesignbookData` hook for the common load/reload pattern
 - **Refactor existing components**: Rewrite `ProductOverviewCard` and the MDX inline code to use the new base components
-- **New AI command**: Create `/product-roadmap` command in `.cursor/commands/` that reads the existing product vision from `designbook/product/product-overview.md`, proposes 3-5 sections, and saves the result to `designbook/product/product-roadmap.md`
+- **New AI command**: Create `/product-roadmap` command in `.cursor/commands/` that reads the existing product vision from `designbook/product/vision.md`, proposes 3-5 sections, and saves the result to `designbook/product/product-roadmap.md`
 - **Extend existing MDX page**: Add a "Product Roadmap" section below the product vision display on `.storybook/onboarding/product-vision.mdx` — using shared components, following the same read-only pattern (AI command reference + data display)
 - **Reuse existing infrastructure**: Same Vite plugin middleware (`/__designbook/load`), same `debo:` CSS prefix, same architectural pattern (AI writes, Storybook reads)
 

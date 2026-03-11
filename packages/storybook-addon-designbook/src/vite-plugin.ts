@@ -34,14 +34,32 @@ export function designbookLoadPlugin(
     dataFileToScenes.get(dataFile)!.add(sceneId);
   };
 
+  const VIRTUAL_SECTIONS = 'virtual:designbook-sections';
+  const RESOLVED_VIRTUAL_SECTIONS = '\0' + VIRTUAL_SECTIONS;
+
   return {
     name: 'vite-plugin-designbook-load',
     enforce: 'pre',
 
+    resolveId(id: string) {
+      if (id === VIRTUAL_SECTIONS) return RESOLVED_VIRTUAL_SECTIONS;
+    },
+
     async load(id: string) {
+      // Virtual module: scan sections/*/[id].section.scenes.yml and export metadata
+      if (id === RESOLVED_VIRTUAL_SECTIONS) {
+        return buildSectionsModule(designbookDir);
+      }
+
       const match = matchHandler(id, defaultHandlers);
       if (!match) return undefined;
-      return loadSceneModule(id, designbookDir, !!match.hasOverview, options, trackDependency);
+      const result = await loadSceneModule(id, designbookDir, !!match.hasOverview, options, trackDependency);
+      if (id.includes('.scenes.yml')) {
+        console.log('[Designbook] load() id:', id);
+        console.log('[Designbook] load() hasOverview:', !!match.hasOverview);
+        console.log('[Designbook] load() result (first 500 chars):', typeof result === 'string' ? result.substring(0, 500) : result);
+      }
+      return result;
     },
 
     handleHotUpdate({ file, server }) {
@@ -56,6 +74,18 @@ export function designbookLoadPlugin(
     },
 
     configureServer(server: ViteDevServer) {
+      // Watch the designbook directory for file changes.
+      server.watcher.add(designbookDir);
+
+      // Storybook's builder-vite only handles .stories.(t|j)sx? and .mdx in its
+      // 'add' watcher. Emit a 'change' event for new .scenes.yml files so
+      // Storybook's codeGeneratorPlugin invalidates the virtual stories module.
+      server.watcher.on('add', (path: string) => {
+        if (path.endsWith('.scenes.yml')) {
+          console.log('[Designbook] New scene file detected:', path);
+          server.watcher.emit('change', path);
+        }
+      });
       // Middleware for loading designbook assets
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       server.middlewares.use('/__designbook/load', (req: IncomingMessage, res: any) => {
@@ -73,46 +103,6 @@ export function designbookLoadPlugin(
           if (!filePath || filePath.includes('..')) {
             res.statusCode = 400;
             res.end(JSON.stringify({ error: 'Invalid path' }));
-            return;
-          }
-
-          // Special case: Aggregate sections.json from sections/*/*.section.scenes.yml files
-          if (filePath === 'sections.json') {
-            const sectionsDir = resolve(designbookDir, 'sections');
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let sections: any[] = [];
-
-            if (existsSync(sectionsDir)) {
-              const subdirs = readdirSync(sectionsDir).filter((d) => {
-                // Look for *.section.scenes.yml in each section dir
-                const sectionDir = join(sectionsDir, d);
-                try {
-                  return readdirSync(sectionDir).some((f) => f.endsWith('.section.scenes.yml'));
-                } catch {
-                  return false;
-                }
-              });
-              sections = subdirs
-                .map((dir) => {
-                  try {
-                    const sectionDir = join(sectionsDir, dir);
-                    const sectionFile = readdirSync(sectionDir).find((f) => f.endsWith('.section.scenes.yml'));
-                    if (!sectionFile) return null;
-                    return parseYaml(readFileSync(join(sectionDir, sectionFile), 'utf-8'));
-                  } catch {
-                    return null;
-                  }
-                })
-                .filter(Boolean);
-
-              // Sort by order if possible
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              sections.sort((a: any, b: any) => (a.order || 999) - (b.order || 999));
-            }
-
-            res.setHeader('Content-Type', 'application/json');
-            res.statusCode = 200;
-            res.end(JSON.stringify({ exists: true, content: JSON.stringify(sections, null, 2) }));
             return;
           }
 
@@ -174,10 +164,6 @@ interface DocsPageCode {
  * ratgeber.section.scenes.yml → 'section'
  */
 function extractPageType(fileBase: string): string {
-  // spec.TYPE.scenes.yml
-  const specMatch = fileBase.match(/^spec\.(\w+)\.scenes\.yml$/);
-  if (specMatch) return specMatch[1]!;
-  // NAME.TYPE.scenes.yml
   const typeMatch = fileBase.match(/\.(\w+)\.scenes\.yml$/);
   if (typeMatch) return typeMatch[1]!;
   return 'section';
@@ -288,6 +274,32 @@ async function buildStories(
  *   spec.[type].scenes.yml or *.[type].scenes.yml → Debo[Type]Page
  * - Plain scene files produce canvas stories only.
  */
+/** Scan sections subdirectories for .section.scenes.yml files and return a JS module. */
+function buildSectionsModule(designbookDir: string): string {
+  const sectionsDir = resolve(designbookDir, 'sections');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sections: any[] = [];
+
+  if (existsSync(sectionsDir)) {
+    for (const dir of readdirSync(sectionsDir)) {
+      const sectionDir = join(sectionsDir, dir);
+      try {
+        const file = readdirSync(sectionDir).find((f) => f.endsWith('.section.scenes.yml'));
+        if (!file) continue;
+        const parsed = parseYaml(readFileSync(join(sectionDir, file), 'utf-8'));
+        if (parsed && typeof parsed === 'object') {
+          sections.push(parsed);
+        }
+      } catch {
+        // skip unreadable dirs
+      }
+    }
+    sections.sort((a, b) => (a.order || 999) - (b.order || 999));
+  }
+
+  return `export default ${JSON.stringify(sections)};`;
+}
+
 async function loadSceneModule(
   id: string,
   designbookDir: string,

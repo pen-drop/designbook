@@ -4,16 +4,16 @@ import { parseProductSections } from '../parsers.js';
 
 /**
  * DeboProductOverview — Displays a summary of the defined product vision.
- * Connects to `product/product-overview.md` via DeboSection and renders
+ * Connects to `product/vision.md` via DeboSection and renders
  * each H2 section inside a DeboCollapsible.
  */
 export function DeboProductOverview() {
     return (
         <DeboSection
             title="Product Overview"
-            dataPath="product/product-overview.md"
+            dataPath="product/vision.md"
             parser={parseProductSections}
-            command="/debo-product-vision"
+            command="/debo-vision"
             emptyMessage="No product vision defined yet"
             renderContent={(sections) => (
                 <div className="debo:flex debo:flex-col debo:gap-6 debo:pt-6">

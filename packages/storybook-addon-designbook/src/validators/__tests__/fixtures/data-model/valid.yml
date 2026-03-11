@@ -1,0 +1,9 @@
+content:
+  node:
+    article:
+      fields:
+        title:
+          type: string
+          required: true
+        field_body:
+          type: text

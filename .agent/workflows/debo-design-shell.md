@@ -14,7 +14,7 @@ Help the user design the application shell — a `page` component with `header`,
 ## Step 1: Check Prerequisites
 
 Check if the following files exist:
-- `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
+- `${DESIGNBOOK_DIST}/product/vision.md` — product vision (required)
 - `${DESIGNBOOK_DIST}/design-system/design-tokens.yml` — design tokens (optional)
 - Section directories under `${DESIGNBOOK_DIST}/sections/` (optional — used for navigation suggestions)
 
@@ -136,7 +136,20 @@ scenes:
 
 Populate slot content based on the components created in Step 5 and the user's approved design from Step 4.
 
-## Step 7: Confirm Completion
+## Step 7: Validate Stories
+
+Render all shell stories headlessly to verify they produce valid HTML:
+
+```bash
+node packages/storybook-addon-designbook/dist/cli.js validate story shell
+```
+
+If errors are found, fix them before proceeding. Common issues:
+- Twig syntax errors in templates
+- Missing component references
+- Broken slot composition
+
+## Step 8: Confirm Completion
 
 > "I've created the shell for **[Product Name]**:
 >

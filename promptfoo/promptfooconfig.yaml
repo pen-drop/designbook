@@ -29,7 +29,7 @@ prompts:
     raw: |
       You are working in the directory {{workspace}}.
       Run the //debo-product-sections workflow. Do NOT ask any questions.
-      The product is "PetMatch" — a pet adoption platform. Read the product overview at product/product-overview.md.
+      The product is "PetMatch" — a pet adoption platform. Read the product overview at product/vision.md.
       Create between 3 and 5 sections that cover the key areas of the product.
       Execute the workflow now.
 
@@ -58,7 +58,7 @@ prompts:
     raw: |
       You are working in the directory {{workspace}}.
       Run the //debo-data-model workflow. Do NOT ask any questions.
-      The product is "PetMatch". Read the product overview at product/product-overview.md.
+      The product is "PetMatch". Read the product overview at product/vision.md.
       Define entity types for: pets (with fields for name, breed, age, description, photo, status), shelters (name, location, contact), adoption applications (applicant info, pet reference, status), and categories (name, description).
       Execute the workflow now.
 
@@ -169,7 +169,7 @@ tests:
         value: |
           The agent executed the //debo-product-vision workflow for "PetMatch".
           Verify from the conversation output:
-          1. A file was created at designbook/product/product-overview.md inside the workspace
+          1. A file was created at designbook/product/vision.md inside the workspace
           2. The file starts with a level-1 heading containing "PetMatch"
           3. The file contains a "## Description" section with 1-3 sentences
           4. The file contains a "## Problems & Solutions" section with at least 2 problem/solution pairs

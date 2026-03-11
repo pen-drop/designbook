@@ -19,7 +19,7 @@ Check if these files exist:
 - `${DESIGNBOOK_DIST}/data-model.yml` — data model (required)
 - At least one `${DESIGNBOOK_DIST}/sections/*/*.section.scenes.yml` — sections (required)
 
-**If missing**, tell the user which prerequisite workflows to run (`/debo-data-model`, `/debo-product-sections`) and stop.
+**If missing**, tell the user which prerequisite workflows to run (`/debo-data-model`, `/debo-sections`) and stop.
 
 ## Step 2: Select Section
 

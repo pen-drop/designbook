@@ -1,30 +1,10 @@
 #!/bin/bash
 
-# Get the directory of this script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOAD_CONFIG_SCRIPT="$SCRIPT_DIR/load-config.cjs"
+# Load Designbook configuration as environment variables via the addon CLI.
+# Usage: eval "$(npx storybook-addon-designbook config)"
+#   or:  source .agent/skills/designbook-configuration/scripts/set-env.sh
 
-# Load config using the JS script
-CONFIG_JSON=$(node "$LOAD_CONFIG_SCRIPT")
-
-# Dynamically export all config keys as DESIGNBOOK_* environment variables.
-# The loadConfig() function returns flat dot-notation keys (e.g. "frameworks.component").
-# We convert these to uppercase underscore-separated env variable names.
-# Special case: "frameworks" prefix becomes "FRAMEWORK" (singular).
-# Example: frameworks.component → DESIGNBOOK_FRAMEWORK_COMPONENT
-#          drupal.theme → DESIGNBOOK_DRUPAL_THEME
-eval "$(echo "$CONFIG_JSON" | node -e "
-const config = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
-
-for (const [key, value] of Object.entries(config)) {
-  if (typeof value === 'object' && value !== null) continue; // skip objects
-  const parts = key.split('.');
-  const envParts = parts.map(p => p === 'frameworks' ? 'FRAMEWORK' : p.toUpperCase());
-  const envName = 'DESIGNBOOK_' + envParts.join('_');
-  const escaped = String(value).replace(/'/g, \"'\\\\''\" );
-  console.log('export ' + envName + \"='\" + escaped + \"'\");
-}
-")"
+eval "$(npx storybook-addon-designbook config)"
 
 # Fallbacks if config was empty or parsing failed
 if [ -z "$DESIGNBOOK_DIST" ]; then export DESIGNBOOK_DIST="designbook"; fi

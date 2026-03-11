@@ -7,9 +7,13 @@ description: DaisyUI framework rules — Tailwind-only styling, token naming con
 
 DaisyUI-specific rules for styling, token naming, and CSS token generation. This skill defines the styling constraints for the DaisyUI framework, the naming conventions for design tokens, and generates `.jsonata` expression files that produce DaisyUI-compatible CSS.
 
-> **This skill is invoked in two contexts:**
+> **This skill is loaded:**
 > 1. By `debo-design-tokens` workflow — for token naming conventions (§ Token Naming Conventions)
-> 2. By `designbook-css-generate` — for CSS generation (§ Generate Expression Files)
+> 2. By `designbook-css-generate` workflow — for CSS generation rules (§ Generate Expression Files)
+
+## Prerequisites
+
+> ⛔ **MANDATORY**: Load `@designbook-css-tailwind` FIRST. The Tailwind v4 skill provides structural token conventions (container, section-spacing) and the `@theme` generation rules that DaisyUI builds on.
 
 ## ⚠️ Styling Rules — Tailwind Classes Only
 
@@ -96,18 +100,6 @@ Font tokens should use Tailwind's `font-*` naming convention:
 | `heading` | `font-heading` | Headings (h1–h6) |
 | `body` | `font-body` | Body text, UI elements |
 | `mono` | `font-mono` | Code blocks, monospace |
-
-### Spacing Token Names
-
-If spacing tokens are defined, use Tailwind's spacing scale:
-
-| Token Name | Tailwind Class | Purpose |
-|---|---|---|
-| `xs` | `p-xs`, `m-xs`, `gap-xs` | Extra small spacing |
-| `sm` | `p-sm`, `m-sm`, `gap-sm` | Small spacing |
-| `md` | `p-md`, `m-md`, `gap-md` | Medium spacing |
-| `lg` | `p-lg`, `m-lg`, `gap-lg` | Large spacing |
-| `xl` | `p-xl`, `m-xl`, `gap-xl` | Extra large spacing |
 
 ### Radius Token Names
 
@@ -225,6 +217,7 @@ Each file returns a **CSS string** that jsonata-w writes directly to the output 
 - For **color** tokens: generate DaisyUI theme plugin format using `--color-[name]` variables
 - For **typography** tokens: generate `--font-*` variables
 - Group-to-file mapping: `color` → `color.src.css`, `typography` → `font.src.css`, etc.
+- **Spacing CSS generation** is handled by `@designbook-css-tailwind` — do NOT generate spacing `.jsonata` files here
 - Return as a **string** (jsonata-w 1.0.1+ writes strings directly as raw text)
 
 ### Step 4: Generate dark theme (if applicable)
@@ -243,7 +236,7 @@ With output `../../css/themes/dark.src.css` using DaisyUI's `@plugin "daisyui/th
 |-------------|-------------|-------|
 | `color` | `tokens/color.src.css` | DaisyUI theme with `--color-*` variables |
 | `typography` | `tokens/font.src.css` | Font families, sizes, weights |
-| `spacing` | `tokens/spacing.src.css` | With responsive media queries |
+| `spacing` | _(handled by tailwind skill)_ | See `@designbook-css-tailwind` |
 | `radius` | `tokens/radius.src.css` | DaisyUI `--radius-*` variables |
 | `opacity` | `tokens/opacity.src.css` | Opacity values |
 | _(color modes)_ | `themes/dark.src.css` | DaisyUI plugin format |
@@ -259,7 +252,6 @@ After expression generation, the following `.jsonata` files should exist:
 $DESIGNBOOK_DIST/designbook-css-daisyui/
 ├── generate-color.jsonata
 ├── generate-font.jsonata
-├── generate-spacing.jsonata
 ├── generate-radius.jsonata
 ├── generate-opacity.jsonata
 └── generate-dark-theme.jsonata   (if color modes exist)

@@ -4,7 +4,7 @@ Designbook has ~15 core debo-workflows that define the product design pipeline (
 
 ## What Changes
 
-- Create **fixture directories** per workflow containing the prerequisite files each workflow needs (e.g., `debo-product-sections` fixture includes a fixed `product-overview.md`)
+- Create **fixture directories** per workflow containing the prerequisite files each workflow needs (e.g., `debo-product-sections` fixture includes a fixed `vision.md`)
 - Create **deterministic, all-in-one prompts** for each workflow that bypass multi-turn conversation by specifying all inputs upfront
 - Create **promptfooconfig.yaml** per workflow with `llm-rubric` assertions validating output structure and content
 - Add a **clean script** (`promptfoo/scripts/clean.sh`) that wipes the workspace directory before each test run

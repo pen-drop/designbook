@@ -9,5 +9,5 @@ This workflow generates Twig templates for Drupal components.
 ## Step 1: Execute Skill
 
 <skill>
-name: designbook-figma-drupal-twig
+name: designbook-figma-twig-sdc
 </skill>

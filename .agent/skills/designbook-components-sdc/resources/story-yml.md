@@ -59,7 +59,7 @@ slots:                    # optional, define slot content
     - type: element
       value: [text or HTML]
     - type: component
-      component: '[provider]:[componentName]'
+      component: '$DESIGNBOOK_SDC_PROVIDER:[componentName]'
     - type: image
       uri: [url]
 ```
@@ -99,7 +99,7 @@ There are 3 core story node types:
 >
 > | Component Location | Provider | Example Reference |
 > |---|---|---|
-> | `$DESIGNBOOK_DRUPAL_THEME/components/` | From `.component.yml` (e.g. `daisy_cms_daisyui`) | `'daisy_cms_daisyui:header'` |
+> | `$DESIGNBOOK_DRUPAL_THEME/components/` | From `.component.yml` (e.g. `test_integration_drupal`) | `'test_integration_drupal:header'` |
 > | `$DESIGNBOOK_DIST/components/` | `designbook_design` | `'designbook_design:entity-article'` |
 >
 > The provider maps to a Twig namespace configured in `.storybook/main.js` → `sdcStorybookOptions.namespaces`. Without it, the SDC addon cannot resolve the component path.

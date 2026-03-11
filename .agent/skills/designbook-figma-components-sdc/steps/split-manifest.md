@@ -38,14 +38,14 @@ Generates the final component YAML file from the manifest.
 3. **Verify file generation**
    - Check that component folder was created
    - Confirm YAML file exists in folder
-   - Example: `web/themes/custom/daisy_cms_daisyui/components/button/button.component.yml`
+   - Example: `web/themes/custom/test_integration_drupal/components/button/button.component.yml`
 
 4. **Optional: Display output path**
    - Show generated file path
    - Display message: "Component YAML generated successfully"
 
 ## Output
-- Component folder: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/`
+- Component folder: `web/themes/custom/test_integration_drupal/components/[component-name]/`
 - Component YAML: `[component-name].component.yml`
 
 ## Error Handling
@@ -55,7 +55,7 @@ Generates the final component YAML file from the manifest.
 - Invalid manifest format: Show parsing error
 
 ## Success Criteria
-- Component folder exists: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/`
+- Component folder exists: `web/themes/custom/test_integration_drupal/components/[component-name]/`
 - YAML file exists: `[component-name].component.yml`
 - YAML file is valid (proper syntax)
 - YAML file contains component metadata, variants, props, and slots
@@ -66,7 +66,7 @@ $schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schema
 name: Button
 status: stable
 description: Button component
-provider: daisy_cms_daisyui
+provider: test_integration_drupal
 
 variants:
   default:

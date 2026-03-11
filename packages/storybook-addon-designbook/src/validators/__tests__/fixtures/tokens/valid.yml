@@ -1,0 +1,12 @@
+color:
+  primary:
+    $value: "#3b82f6"
+    $type: color
+  secondary:
+    $value: "#8b5cf6"
+    $type: color
+typography:
+  font-family:
+    sans:
+      $value: "Inter, sans-serif"
+      $type: fontFamily

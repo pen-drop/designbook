@@ -15,7 +15,7 @@ name: [componentNameSnake]
 status: [status]
 group: [group]
 description: [description]
-provider: [provider]
+provider: $DESIGNBOOK_SDC_PROVIDER
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
@@ -60,26 +60,10 @@ $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].co
 
 ## Validate Against Schema
 
-Validate the generated YAML file against the Drupal SDC metadata JSON schema using `ajv-cli`.
+Validate the generated YAML file against the Drupal SDC metadata schema:
 
-> ⚠️ The Drupal SDC schema uses **JSON Schema Draft-04**. Use `ajv-cli@3` + `ajv@6` (see `designbook-skills` for details).
-
-The schema is bundled at `.agent/skills/designbook-components-sdc/metadata.schema.json`.
-
-**Convert YAML to JSON for validation:**
 ```bash
-node -e "
-const fs = require('fs');
-const yaml = require('yaml');
-const content = fs.readFileSync('$DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].component.yml', 'utf8');
-const parsed = yaml.parse(content);
-fs.writeFileSync('/tmp/component-validate.json', JSON.stringify(parsed, null, 2));
-"
-```
-
-**Run validation:**
-```bash
-npx ajv-cli validate -s .agent/skills/designbook-components-sdc/metadata.schema.json -d /tmp/component-validate.json
+npx storybook-addon-designbook validate component [componentNameKebab]
 ```
 
 **If validation fails:**

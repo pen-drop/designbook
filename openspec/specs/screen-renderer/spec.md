@@ -141,7 +141,7 @@ The adapter and data paths are configured in `.storybook/main.js`:
 ```js
 addons: [
   ['storybook-addon-designbook', {
-    provider: 'daisy_cms_daisyui',
+    provider: 'test_integration_drupal',
     adapter: 'sdc',           // or 'react', 'vue'
     dataModelPath: 'designbook/data-model.yml',
     sectionsPath: 'designbook/sections',

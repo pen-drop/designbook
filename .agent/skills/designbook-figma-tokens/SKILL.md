@@ -1,16 +1,17 @@
 ---
 name: Pendrop Tokens
-description: Generates W3C Design Tokens from Figma variables through orchestrated sub-skills.
+description: "Internal skill — generates W3C Design Tokens from Figma variables. Invoked by debo-figma-tokens workflow only."
 ---
 
 # Pendrop Tokens
 
 This skill orchestrates the generation of W3C-compliant Design Tokens from Figma variable data by executing a series of specialized sub-skills in sequence.
 
+> **Internal skill** — Do not invoke directly. Use the `debo-figma-tokens` workflow instead.
+
 ## Capability
 
 ### Generate Tokens
-**Trigger**: When asked to "generate tokens", "update tokens", "sync tokens", or "transform tokens" from Figma.
 
 **Action**: Execute the following sub-skills in order:
 

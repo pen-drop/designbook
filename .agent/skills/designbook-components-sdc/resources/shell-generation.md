@@ -107,7 +107,7 @@ Each UI component should:
 - Have appropriate **props** (e.g., `navigation` has an `items` prop) 
 - Have a **story** that renders realistic content
 - Have a **Twig template** using classes from `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` (see `resources/twig.md` → CSS Framework Routing)
-- Use the correct **provider** from the theme config (e.g., `daisy_cms_daisyui`)
+- Use the correct **provider** from the theme config (e.g., `test_integration_drupal`)
 
 Present the plan to the user and ask for confirmation:
 
@@ -133,7 +133,7 @@ name: header
 status: experimental
 group: Shell
 description: Application header with logo, navigation, and action buttons.
-provider: daisy_cms_daisyui
+provider: test_integration_drupal
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
@@ -184,7 +184,7 @@ slots:
 ```
 
 Replace `[ui_provider]` with the project's SDC UI provider from config.
-Replace `[PRODUCT_NAME]` with the product name from `product-overview.md`.
+Replace `[PRODUCT_NAME]` with the product name from `vision.md`.
 Replace navigation items with those built in Shell Step 2.
 
 The Twig template uses real HTML markup (see `resources/twig.md` for class rules):
@@ -209,7 +209,7 @@ name: footer
 status: experimental
 group: Shell
 description: Application footer with navigation links and copyright.
-provider: daisy_cms_daisyui
+provider: test_integration_drupal
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true

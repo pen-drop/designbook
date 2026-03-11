@@ -38,7 +38,7 @@
 
 ## 8. AI Command for Product Roadmap
 
-- [x] 8.1 Create `/product-roadmap` AI command at `.cursor/commands/product-roadmap.md` — reads `designbook/product/product-overview.md` for context
+- [x] 8.1 Create `/product-roadmap` AI command at `.cursor/commands/product-roadmap.md` — reads `designbook/product/vision.md` for context
 - [x] 8.2 AI command proposes 3-5 sections based on product vision, iterates with user, saves to `designbook/product/product-roadmap.md`
 - [x] 8.3 AI command handles missing product vision (suggests running `/product-vision` first)
 
