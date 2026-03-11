@@ -74,11 +74,7 @@ export const stories = async (entry: string[] = [], options: any) => {
   const configDir = options?.configDir || resolve(designbookConfig['drupal.theme'] || process.cwd(), '.storybook');
   const scenesGlob = resolve(distDir, '**/*.scenes.yml');
 
-  return [
-    ...entry,
-    relative(configDir, onboardingGlob),
-    relative(configDir, scenesGlob),
-  ];
+  return [...entry, relative(configDir, onboardingGlob), relative(configDir, scenesGlob)];
 };
 
 /**

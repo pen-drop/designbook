@@ -26,16 +26,13 @@ export function sdcDedupPlugin(): Plugin {
       if (!cleanId.endsWith('.component.yml')) return;
       if (!code.includes('import COMPONENT')) return;
       let found = false;
-      return code.replace(
-        /import COMPONENT from '([^']+)';/g,
-        (match: string, importPath: string) => {
-          if (!found) {
-            found = true;
-            return match;
-          }
-          return `import '${importPath}';`;
-        },
-      );
+      return code.replace(/import COMPONENT from '([^']+)';/g, (match: string, importPath: string) => {
+        if (!found) {
+          found = true;
+          return match;
+        }
+        return `import '${importPath}';`;
+      });
     },
   };
 }

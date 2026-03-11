@@ -57,7 +57,10 @@ export function designbookLoadPlugin(
       if (id.includes('.scenes.yml')) {
         console.log('[Designbook] load() id:', id);
         console.log('[Designbook] load() hasOverview:', !!match.hasOverview);
-        console.log('[Designbook] load() result (first 500 chars):', typeof result === 'string' ? result.substring(0, 500) : result);
+        console.log(
+          '[Designbook] load() result (first 500 chars):',
+          typeof result === 'string' ? result.substring(0, 500) : result,
+        );
       }
       return result;
     },

@@ -56,9 +56,7 @@ export function parseProductSections(md) {
   }
   if (current) sections.push(current);
 
-  return sections.length > 0
-    ? sections.map((s) => ({ title: s.title, html: marked.parser(s.tokens) }))
-    : null;
+  return sections.length > 0 ? sections.map((s) => ({ title: s.title, html: marked.parser(s.tokens) })) : null;
 }
 
 export function parseScreenshots(md) {

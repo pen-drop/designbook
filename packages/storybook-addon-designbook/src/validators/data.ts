@@ -19,10 +19,7 @@ interface DataModel {
   content?: Record<string, Record<string, BundleDef>>;
 }
 
-export function validateData(
-  dataModelPath: string,
-  dataPath: string,
-): ValidationResult {
+export function validateData(dataModelPath: string, dataPath: string): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -64,9 +61,7 @@ export function validateData(
           if (field === 'id') continue;
 
           if (!(field in dmFields)) {
-            warnings.push(
-              `Field "${field}" on ${entityType}.${bundle} id=${rid} not in data-model`,
-            );
+            warnings.push(`Field "${field}" on ${entityType}.${bundle} id=${rid} not in data-model`);
             continue;
           }
 
@@ -75,16 +70,9 @@ export function validateData(
             const { target_type: targetType, target_bundle: targetBundle } = fieldDef.settings;
             const refValue = (rec as Record<string, unknown>)[field];
 
-            if (
-              targetType &&
-              targetBundle &&
-              refValue &&
-              sampleData[targetType]?.[targetBundle]
-            ) {
+            if (targetType && targetBundle && refValue && sampleData[targetType]?.[targetBundle]) {
               const targetRecords = sampleData[targetType][targetBundle];
-              const found = targetRecords.some(
-                (r) => (r as Record<string, unknown>).id === String(refValue),
-              );
+              const found = targetRecords.some((r) => (r as Record<string, unknown>).id === String(refValue));
               if (!found) {
                 warnings.push(
                   `Broken ref: ${entityType}.${bundle} id=${rid} field "${field}" → ${targetType}.${targetBundle} id=${refValue} not found`,
@@ -96,9 +84,7 @@ export function validateData(
 
         for (const [fieldName, fieldDef] of Object.entries(dmFields)) {
           if (fieldDef?.required && !(fieldName in (rec as Record<string, unknown>))) {
-            warnings.push(
-              `Required field "${fieldName}" missing on ${entityType}.${bundle} id=${rid}`,
-            );
+            warnings.push(`Required field "${fieldName}" missing on ${entityType}.${bundle} id=${rid}`);
           }
         }
       }

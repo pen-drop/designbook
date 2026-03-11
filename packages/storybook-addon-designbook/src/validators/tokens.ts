@@ -21,9 +21,7 @@ export function validateTokens(tokensPath: string): ValidationResult {
   const valid = validate(data);
 
   if (!valid && validate.errors) {
-    const errors = validate.errors.map(
-      (e) => `${e.instancePath || '/'} ${e.message}`,
-    );
+    const errors = validate.errors.map((e) => `${e.instancePath || '/'} ${e.message}`);
     return { valid: false, errors, warnings: [] };
   }
 

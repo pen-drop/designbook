@@ -28,8 +28,7 @@ const sdcModuleBuilder: ModuleBuilder = {
       const parts = componentId.split(':');
       if (parts.length !== 2 || !parts[0] || !parts[1]) {
         throw new Error(
-          `[Designbook] Invalid SDC component ID "${componentId}". ` +
-          `Expected format "provider:component".`,
+          `[Designbook] Invalid SDC component ID "${componentId}". ` + `Expected format "provider:component".`,
         );
       }
       const componentName = parts[1];

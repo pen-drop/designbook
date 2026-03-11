@@ -32,8 +32,6 @@ describe('validateTokens', () => {
   it('reports error for missing file', () => {
     const result = validateTokens('/nonexistent/tokens.yml');
     expect(result.valid).toBe(false);
-    expect(result.errors).toEqual([
-      expect.stringContaining('not found'),
-    ]);
+    expect(result.errors).toEqual([expect.stringContaining('not found')]);
   });
 });

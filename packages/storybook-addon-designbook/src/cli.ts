@@ -25,9 +25,7 @@ function printResult(label: string, result: ValidationResult): void {
 
 const program = new Command();
 
-program
-  .name('storybook-addon-designbook')
-  .description('Designbook CLI utilities');
+program.name('storybook-addon-designbook').description('Designbook CLI utilities');
 
 program
   .command('config')
@@ -39,9 +37,7 @@ program
       if (typeof value === 'object' && value !== null) continue;
 
       const parts = key.split('.');
-      const envParts = parts.map((p) =>
-        p === 'frameworks' ? 'FRAMEWORK' : p.toUpperCase(),
-      );
+      const envParts = parts.map((p) => (p === 'frameworks' ? 'FRAMEWORK' : p.toUpperCase()));
       const envName = 'DESIGNBOOK_' + envParts.join('_');
       const escaped = String(value).replace(/'/g, "'\\''");
       console.log(`export ${envName}='${escaped}'`);
@@ -55,9 +51,7 @@ program
     }
   });
 
-const validate = program
-  .command('validate')
-  .description('Validate Designbook artifacts against schemas');
+const validate = program.command('validate').description('Validate Designbook artifacts against schemas');
 
 validate
   .command('data <section-id>')
@@ -143,7 +137,7 @@ validate
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         console.error(
           'Error: vitest is not installed.\n' +
-          'Install it with: pnpm add -D vitest @storybook/addon-vitest @vitest/browser-playwright',
+            'Install it with: pnpm add -D vitest @storybook/addon-vitest @vitest/browser-playwright',
         );
       } else {
         console.error(`Error: ${err.message}`);

@@ -27,7 +27,7 @@ export const sdcComponentRenderer: SceneNodeRenderer = {
     if (parts.length !== 2 || !parts[0] || !parts[1]) {
       throw new Error(
         `[Designbook] Invalid SDC component reference "${componentId}". ` +
-        `Expected "provider:component" format (e.g. "my_theme:heading").`,
+          `Expected "provider:component" format (e.g. "my_theme:heading").`,
       );
     }
 
