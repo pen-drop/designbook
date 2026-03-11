@@ -26,5 +26,10 @@
     "lint:css": "pnpm --filter test-integration-drupal run lint:css",
     "lint:css:fix": "pnpm --filter test-integration-drupal run lint:css:fix"
   },
-  "packageManager": "pnpm@9.1.0"
+  "packageManager": "pnpm@9.1.0",
+  "pnpm": {
+    "overrides": {
+      "json-schema-faker": "0.5.9"
+    }
+  }
 }

@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 
 import { refStoryNodeRenderer } from './refRenderer.js';
-const { uiPatternsDefs } = require(`./defs.js`);
+import { uiPatternsDefs } from './defs.js';
 
 
 /** @type { import('@storybook/html-vite').StorybookConfig } */
