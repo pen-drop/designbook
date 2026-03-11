@@ -232,17 +232,19 @@ Wait for confirmation. If "n", stop execution.
 mkdir -p [targetDir]
 ```
 
-### Step 5: Generate .component.yml
+### Step 5: Generate .twig
 
-→ Follow instructions in [`resources/component-yml.md`](resources/component-yml.md)
+→ Follow instructions in [`resources/twig.md`](resources/twig.md)
 
 ### Step 6: Generate .story.yml
 
 → Follow instructions in [`resources/story-yml.md`](resources/story-yml.md)
 
-### Step 7: Generate .twig
+### Step 7: Generate .component.yml
 
-→ Follow instructions in [`resources/twig.md`](resources/twig.md)
+→ Follow instructions in [`resources/component-yml.md`](resources/component-yml.md)
+
+> **Why this order?** The `.component.yml` is generated last so it can be validated against the already-created template and story files. Twig comes first because it defines the actual markup structure, stories second because they reference the template, and the metadata file last as the final validation gate.
 
 ### Step 8: Verify Output
 

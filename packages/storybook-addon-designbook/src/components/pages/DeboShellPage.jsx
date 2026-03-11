@@ -3,8 +3,16 @@ import { DeboSection } from '../DeboSection.jsx';
 import { DeboPageLayout } from '../ui/DeboPageLayout.jsx';
 import { DeboEmptyState } from '../ui/DeboEmptyState.jsx';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
+import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
 import { parseMarkdown } from '../parsers.js';
 import { parse as parseYaml } from 'yaml';
+
+const scenesParser = (text) => {
+    try {
+        const data = parseYaml(text);
+        return data?.scenes?.length ? data : null;
+    } catch { return null; }
+};
 
 /**
  * DeboShellPage — Application Shell docs page.
@@ -38,6 +46,16 @@ export function DeboShellPage({ title = 'Shell', shellFile = 'shell/spec.shell.s
                         </DeboCollapsible>
                     );
                 }}
+            />
+
+            <DeboSection
+                title="Design"
+                dataPath={shellFile}
+                parser={scenesParser}
+                command="/debo-design-shell"
+                emptyMessage="No designs yet"
+                filePath={`designbook/${shellFile}`}
+                renderContent={(data) => <DeboSceneGrid data={data} />}
             />
 
         </DeboPageLayout>

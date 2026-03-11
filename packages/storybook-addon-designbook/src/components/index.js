@@ -20,11 +20,18 @@ export {
   DeboPageLayout,
   DeboSourceFooter,
   DeboStepIndicator,
+  DeboSceneCard,
   DeboStepIndicatorGroup,
 } from './ui/index.js';
 
 // Display — Domain data renderers
-export { DeboDataModel, DeboDesignTokens, DeboProductOverview, DeboSampleData } from './display/index.js';
+export {
+  DeboDataModel,
+  DeboDesignTokens,
+  DeboProductOverview,
+  DeboSampleData,
+  DeboSceneGrid,
+} from './display/index.js';
 
 // Pages — Full page compositions
 export { DeboExportPage, DeboSectionPage, DeboSectionsOverview, DeboShellPage } from './pages/index.js';

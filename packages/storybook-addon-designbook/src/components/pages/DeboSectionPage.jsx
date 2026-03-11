@@ -5,6 +5,7 @@ import { DeboEmptyState } from '../ui/DeboEmptyState.jsx';
 import { DeboSourceFooter } from '../ui/DeboSourceFooter.jsx';
 import { DeboMockupWindow } from '../ui/DeboMockupWindow.jsx';
 import { DeboSampleData } from '../display/DeboSampleData.jsx';
+import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
 
 
 import { parseMarkdown, parseScreenshots } from '../parsers.js';
@@ -20,6 +21,16 @@ const yamlParser = (text) => {
 /**
  * Wraps parseScreenshots to return null on empty (so DeboSection shows empty state).
  */
+/**
+ * YAML parser for scenes — returns null if no scenes children exist.
+ */
+const scenesParser = (text) => {
+    try {
+        const data = parseYaml(text);
+        return data?.scenes?.length ? data : null;
+    } catch { return null; }
+};
+
 const screenshotsParser = (md) => {
     const items = parseScreenshots(md);
     return items.length > 0 ? items : null;
@@ -74,9 +85,16 @@ export function DeboSectionPage({ sectionId, title }) {
                 renderContent={(data) => <DeboSampleData data={data} />}
             />
 
-            <h2 className="debo:text-lg debo:font-semibold debo:text-base-content debo:pb-2 debo:mb-4 debo:border-b debo:border-base-300">
-                Design
-            </h2>
+            {/* Step 3: Design Scenes */}
+            <DeboSection
+                title="Design"
+                dataPath={`sections/${sectionId}/${sectionId}.section.scenes.yml`}
+                parser={scenesParser}
+                command={`/debo-design-screen ${sectionId}`}
+                emptyMessage="No designs yet"
+                filePath={`designbook/sections/${sectionId}/${sectionId}.section.scenes.yml`}
+                renderContent={(data) => <DeboSceneGrid data={data} />}
+            />
 
             {/* Step 4: Screenshots */}
             <DeboSection
