@@ -2,28 +2,29 @@ import { join } from 'node:path' // 1. Add dependencies.
 import { cwd } from 'node:process'
 import tailwindcss from '@tailwindcss/vite'
 
-import { baseTheme } from '../.daisy_ui.js';
+
 import { refStoryNodeRenderer } from './refRenderer.js';
 const { uiPatternsDefs } = require(`./defs.js`);
 
-console.log(baseTheme);
+
 /** @type { import('@storybook/html-vite').StorybookConfig } */
 const config = {
   "stories": [
 
     "../foundations/**/*.mdx",
     "../components/**/*.component.yml",
-    join(baseTheme, "components/**/*.component.yml"),
+
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
   ],
   addons: [
+    '@storybook/addon-vitest',
     '@storybook/addon-themes',
     '@storybook/addon-docs',
     {
       name: 'storybook-addon-designbook',
       options: {
         designbook: {
-          provider: 'daisy_cms_daisyui',
+          provider: 'test_integration_drupal',
         },
       },
     },
@@ -33,7 +34,7 @@ const config = {
         sdcStorybookOptions: {
           twigLib: 'twing',
           customDefs: uiPatternsDefs,
-          namespace: 'daisy_cms_daisyui',
+          namespace: 'test_integration_drupal',
           namespaces: {
             'designbook_design': join(cwd(), 'designbook')
           },

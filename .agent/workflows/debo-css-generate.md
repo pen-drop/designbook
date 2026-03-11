@@ -13,7 +13,7 @@ This workflow generates CSS token files from W3C Design Tokens. It loads the con
 ## Step 1: Load Configuration
 
 ```bash
-source .agent/skills/designbook-configuration/scripts/set-env.sh
+eval "$(node packages/storybook-addon-designbook/dist/cli.js config)"
 ```
 
 Read `DESIGNBOOK_FRAMEWORK_CSS` from the environment.

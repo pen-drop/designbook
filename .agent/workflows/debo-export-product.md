@@ -12,7 +12,7 @@ Package all Designbook artifacts into a self-contained export directory that can
 ## Step 1: Check Prerequisites
 
 Check if the following files exist:
-- `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
+- `${DESIGNBOOK_DIST}/product/vision.md` — product vision (required)
 - `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
 - `${DESIGNBOOK_DIST}/data-model.yml` — data model (recommended)
 - `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (recommended)
@@ -52,7 +52,7 @@ Wait for confirmation.
 
 ## Step 2: Generate Product Overview Document
 
-Create `${DESIGNBOOK_DIST}/export/product-plan/product-overview.md`:
+Create `${DESIGNBOOK_DIST}/export/product-plan/vision.md`:
 - Include the product name, description, problems/solutions, and key features from the product vision
 - Include the roadmap sections list
 - Include the data model summary
@@ -155,7 +155,7 @@ Create `${DESIGNBOOK_DIST}/export/product-plan/README.md`:
 > ```
 > product-plan/
 > ├── README.md
-> ├── product-overview.md
+> ├── vision.md
 > ├── prompts/
 > ├── instructions/
 > ├── design-system/

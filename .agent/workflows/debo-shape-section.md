@@ -13,7 +13,7 @@ Help the user define a section specification for one of their roadmap sections. 
 ## Step 1: Check Prerequisites
 
 Check if the following files exist:
-- `${DESIGNBOOK_DIST}/product/product-overview.md` — product vision (required)
+- `${DESIGNBOOK_DIST}/product/vision.md` — product vision (required)
 - `${DESIGNBOOK_DIST}/data-model.yml` — data model (optional, helpful)
 - `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (optional)
 - `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` — application shell (optional)

@@ -13,7 +13,7 @@ This skill is the central authority for validating and saving the data model to 
 
 ## Schema
 
-The schema is bundled with this skill at `schema/data-model.schema.yml`. This is the single source of truth for validation.
+The schema is bundled in the addon package.
 
 ### Schema structure
 
@@ -42,18 +42,12 @@ config (optional)
               └── hint
 ```
 
-## Dependencies
-
-- **ajv-cli** — used via `npx ajv-cli`
-
 ## Validation
 
 Validate a data model file against the schema:
 
 ```bash
-npx ajv-cli validate \
-  -s .agent/skills/designbook-data-model/schema/data-model.schema.yml \
-  -d <path-to-data-model.yml>
+npx storybook-addon-designbook validate data-model
 ```
 
 ## Steps

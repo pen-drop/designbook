@@ -1,16 +1,17 @@
 ---
 name: Pendrop Figma Fetch
-description: Fetches design data from Figma using MCP Framelink through orchestrated sub-skills.
+description: "Internal skill — fetches design data from Figma using MCP Framelink. Invoked by debo-figma-fetch workflow only."
 ---
 
 # Pendrop Figma Fetch
 
 This skill orchestrates the extraction of design data from Figma by executing a series of specialized sub-skills in sequence.
 
+> **Internal skill** — Do not invoke directly. Use the `debo-figma-fetch` workflow instead.
+
 ## Capability
 
 ### Fetch Data from Figma
-**Trigger**: When asked to "fetch figma", "download designs", "update input data", "sync from figma", or "get figma data".
 
 **Action**: Execute the following sub-skills in order:
 

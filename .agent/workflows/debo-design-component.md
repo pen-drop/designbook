@@ -132,7 +132,27 @@ Wait for response. If no, go back to relevant step.
 
 Execute the skill with the collected data as JSON input (name, description, status, provider, variants, props, slots). The `provider` value comes from `$DESIGNBOOK_DRUPAL_THEME` or `designbook.config.yml`.
 
-## Step 6: Confirm Completion
+## Step 6: Validate Component
+
+Run the component validator to check the generated `.component.yml` is valid:
+
+```bash
+node packages/storybook-addon-designbook/dist/cli.js validate component [componentNameKebab]
+```
+
+If errors are found, fix them before proceeding.
+
+## Step 7: Validate Story
+
+Render the component's stories headlessly to verify they produce valid HTML:
+
+```bash
+node packages/storybook-addon-designbook/dist/cli.js validate story [componentNameKebab]
+```
+
+If errors are found, fix the Twig template or story definitions before proceeding.
+
+## Step 8: Confirm Completion
 
 > "✅ **Component created!**
 >

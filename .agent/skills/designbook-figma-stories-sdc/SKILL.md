@@ -1,16 +1,17 @@
 ---
 name: Pendrop Stories
-description: Generates Drupal SDC story YAML files from Figma story definitions through orchestrated sub-skills.
+description: "Internal skill — generates Drupal SDC story YAML files from Figma data. Invoked by debo-figma-drupal-stories workflow only."
 ---
 
 # Pendrop Stories
 
 This skill orchestrates the generation of Drupal Single Directory Component (SDC) story YAML files from Figma story data by executing a series of specialized sub-skills in sequence.
 
+> **Internal skill** — Do not invoke directly. Use the `debo-figma-drupal-stories` workflow instead.
+
 ## Capability
 
 ### Generate Stories
-**Trigger**: When asked to "generate stories", "sync stories", "generate stories for [component]", or "update stories" from Figma.
 
 **Action**: Execute the following sub-skills in order:
 
@@ -62,7 +63,7 @@ This skill orchestrates the generation of Drupal Single Directory Component (SDC
 ## Context
 - **Input**: `.pendrop/input/pendrop.data.components.json` (Figma component data with `[Story]` nodes)
 - **Logic**: `.pendrop/story.pendrop.jsonata` (Transformation)
-- **Output**: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/[component-name].[variant].story.yml`
+- **Output**: `web/themes/custom/test_integration_drupal/components/[component-name]/[component-name].[variant].story.yml`
 
 ## Data Sources (Figma Structure)
 - **`[Story]` elements** → Story definitions with variants
@@ -88,7 +89,7 @@ Execute this skill with componentName="Card"
 ## Output Structure
 Generates Drupal SDC-compliant story YAML files:
 ```
-web/themes/custom/daisy_cms_daisyui/components/button/
+web/themes/custom/test_integration_drupal/components/button/
 ├── button.enabled.story.yml
 └── button.disabled.story.yml
 ```

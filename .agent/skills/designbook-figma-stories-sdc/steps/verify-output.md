@@ -23,13 +23,13 @@ Confirms the generated story files exist and have the correct structure.
 
 ## Input
 - Component name from Step 1: `validatedComponentName`
-- Expected output path: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/`
+- Expected output path: `web/themes/custom/test_integration_drupal/components/[component-name]/`
 
 ## Process
 
 1. **Check component folder exists**
-   - Verify directory: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/`
-   - Example: For "Button", check `web/themes/custom/daisy_cms_daisyui/components/button/`
+   - Verify directory: `web/themes/custom/test_integration_drupal/components/[component-name]/`
+   - Example: For "Button", check `web/themes/custom/test_integration_drupal/components/button/`
 
 2. **Check story YAML files exist**
    - List all `.story.yml` files in the component folder
@@ -71,7 +71,7 @@ Confirms the generated story files exist and have the correct structure.
 ✓ Stories generated successfully
 
 Component: Button
-Folder: web/themes/custom/daisy_cms_daisyui/components/button/
+Folder: web/themes/custom/test_integration_drupal/components/button/
 
 Generated stories:
   - button.enabled.story.yml (variant: default, state: enabled)

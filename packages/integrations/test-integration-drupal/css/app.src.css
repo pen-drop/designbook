@@ -17,6 +17,8 @@
 @import "./tokens/radius.src.css";
 @import "./tokens/opacity.src.css";
 @import "./tokens/layout.src.css";
+@import "./tokens/container.src.css";
+@import "./tokens/section-spacing.src.css";
 
 /**
  * Include DaisyUI themes
@@ -28,55 +30,6 @@
  */
 @import "./plugins/_daisyui.config.src.css";
 @import "./plugins/_tailwindcss.typography.config.src.css";
-
-/**
- * Custom utilities for Figma typography specs
- */
-@utility text-nav {
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 24px;
-  letter-spacing: 0.18px;
-  font-feature-settings: 'liga' off, 'clig' off;
-}
-
-@utility text-quote-author {
-  font-family: var(--font-heading);
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 22px;
-  letter-spacing: 0;
-  @media (width >= 1024px) {
-    font-size: 20px;
-    line-height: 27px;
-    letter-spacing: 0.5px;
-  }
-}
-
-@utility text-quote-body {
-  font-family: var(--font-heading);
-  font-size: 23px;
-  font-weight: 500;
-  line-height: 32px;
-  @media (width >= 1024px) {
-    font-size: 36px;
-    line-height: 48.6px;
-  }
-}
-
-@utility text-quote-link {
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 18px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  @media (width >= 1024px) {
-    font-size: 18px;
-    line-height: 24px;
-  }
-}
 
 /**
  * Declare all source files to take into account all utility classes used in the theme for the build process.

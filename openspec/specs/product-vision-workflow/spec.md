@@ -5,13 +5,13 @@ The system SHALL provide an MDX documentation page at `.storybook/onboarding/pro
 
 #### Scenario: User accesses product vision page with no data
 - **WHEN** user navigates to the product vision page in Storybook
-- **AND** no product vision data exists at `designbook/product/product-overview.md`
+- **AND** no product vision data exists at `designbook/product/vision.md`
 - **THEN** the page displays an empty state via `DeboSection` with a reference to the `/product-vision` AI command
 - **AND** instructions explain how to run the AI command in the editor
 
 #### Scenario: User accesses product vision page with existing data
 - **WHEN** user navigates to the product vision page in Storybook
-- **AND** product vision data exists at `designbook/product/product-overview.md`
+- **AND** product vision data exists at `designbook/product/vision.md`
 - **THEN** the page loads and displays the saved product vision data using `DeboSection`
 - **AND** the data is rendered using the `ProductOverviewCard` React component via `renderContent` prop
 - **AND** a reload button allows refreshing the data without page navigation
@@ -35,7 +35,7 @@ The system SHALL provide an MDX documentation page at `.storybook/onboarding/pro
 - **AND** the page code is significantly shorter than the inline implementation
 
 ### Requirement: AI Command for Product Vision Input
-The system SHALL provide a Cursor AI command at `.cursor/commands/product-vision.md` that handles the conversational product vision workflow and saves results to `designbook/product/product-overview.md`.
+The system SHALL provide a Cursor AI command at `.cursor/commands/product-vision.md` that handles the conversational product vision workflow and saves results to `designbook/product/vision.md`.
 
 #### Scenario: Conversational data gathering
 - **WHEN** user runs the `/product-vision` AI command in the editor
@@ -49,15 +49,15 @@ The system SHALL provide a Cursor AI command at `.cursor/commands/product-vision
 
 #### Scenario: File output
 - **WHEN** the user approves the final product vision draft
-- **THEN** the AI command saves the result to `designbook/product/product-overview.md`
+- **THEN** the AI command saves the result to `designbook/product/vision.md`
 - **AND** the file follows a structured Markdown format (heading, description, problems/solutions, key features)
 
 ### Requirement: Data Loading via Vite Plugin Middleware
 The system SHALL provide a Vite plugin at `.storybook/source/vite-plugin-designbook-save.js` that serves as middleware for loading files from the `designbook/` directory.
 
 #### Scenario: Load existing product vision data
-- **WHEN** the MDX page requests data via `GET /__designbook/load?path=product/product-overview.md`
-- **THEN** the Vite middleware reads the file from `designbook/product/product-overview.md`
+- **WHEN** the MDX page requests data via `GET /__designbook/load?path=product/vision.md`
+- **THEN** the Vite middleware reads the file from `designbook/product/vision.md`
 - **AND** returns the file content as plain text
 
 #### Scenario: File not found

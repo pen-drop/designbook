@@ -17,7 +17,7 @@
 ## 4. AI Command for Data Model
 
 - [x] 4.1 Create `/data-model` AI command at `.cursor/commands/data-model.md`
-- [x] 4.2 AI command reads `designbook/product/product-overview.md` and `designbook/product/product-roadmap.md` for context
+- [x] 4.2 AI command reads `designbook/product/vision.md` and `designbook/product/product-roadmap.md` for context
 - [x] 4.3 AI command proposes entities and relationships based on product context, iterates with user
 - [x] 4.4 AI command saves to `designbook/data-model/data-model.md` in the Design OS markdown format
 - [x] 4.5 AI command handles missing product vision (suggests running `/product-vision` first)

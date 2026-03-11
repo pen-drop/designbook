@@ -103,9 +103,9 @@ The system SHALL provide an `entityRenderer.js` file in the integration's `.stor
 - **THEN** it returns an array of resolved `{type: component, component: ..., props: ..., slots: ...}` nodes
 
 #### Scenario: Component provider prefix
-- **GIVEN** the renderer is configured with a `provider` option (e.g., `daisy_cms_daisyui`)
+- **GIVEN** the renderer is configured with a `provider` option (e.g., `test_integration_drupal`)
 - **WHEN** it generates component nodes
-- **THEN** each `component` value is prefixed with the provider: `daisy_cms_daisyui:heading`
+- **THEN** each `component` value is prefixed with the provider: `test_integration_drupal:heading`
 
 #### Scenario: Missing data.json
 - **GIVEN** a `type: entity` node referencing an entity with no sample data
@@ -125,7 +125,7 @@ name: detail
 slots:
   header:
     - type: component
-      component: 'daisy_cms_daisyui:header'
+      component: 'test_integration_drupal:header'
       story: default
   content:
     - type: entity
@@ -135,7 +135,7 @@ slots:
       record: 0
   footer:
     - type: component
-      component: 'daisy_cms_daisyui:footer'
+      component: 'test_integration_drupal:footer'
       story: default
 ```
 
@@ -157,7 +157,7 @@ sdcStorybookOptions: {
     ...entityRenderer({
       dataModelPath: 'designbook/data-model.json',
       sectionsPath: 'designbook/sections',
-      provider: 'daisy_cms_daisyui',
+      provider: 'test_integration_drupal',
     }),
     // ... other renderers (icon, etc.)
   ]

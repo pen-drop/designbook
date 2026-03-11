@@ -1,0 +1,5 @@
+node:
+  article:
+    - id: "1"
+      title: "Has Extra Field"
+      field_extra: "not in data model"

@@ -1,13 +1,5 @@
-@font-face {
-  font-family: "Satoshi";
-  font-style: normal;
-  font-display: swap;
-  font-weight: 300 900;
-  src: url("https://cdn.jsdelivr.net/fontsource/fonts/satoshi:vf@latest/latin-wght-normal.woff2") format("woff2-variations");
-}
-
-@theme inline {
-  --font-heading: "Satoshi", sans-serif;
-  --font-body: "Satoshi", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+@theme {
+  --font-heading: Fredoka;
+  --font-body: Nunito Sans;
+  --font-mono: Fira Code;
 }

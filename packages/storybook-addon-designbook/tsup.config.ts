@@ -31,7 +31,7 @@ export default defineConfig(async () => {
      The following packages are provided by Storybook and should always be externalized
      Meaning they shouldn't be bundled with the addon, and they shouldn't be regular dependencies either
     */
-    external: ['react', 'react-dom', '@storybook/icons', 'vite', /\.css$/],
+    external: ['react', 'react-dom', '@storybook/icons', 'vite', /\.css$/, /^virtual:/],
   };
 
   const configs: Options[] = [];
@@ -96,6 +96,25 @@ export default defineConfig(async () => {
       dts: true,
     });
   }
+
+  // Vitest plugin for SDC story testing
+  configs.push({
+    ...commonConfig,
+    entry: ['src/vitest-plugin-sdc.ts'],
+    platform: 'node',
+    target: NODE_TARGET,
+    dts: true,
+  });
+
+  // CLI entry point
+  configs.push({
+    ...commonConfig,
+    entry: ['src/cli.ts'],
+    platform: 'node',
+    target: NODE_TARGET,
+    banner: { js: '#!/usr/bin/env node' },
+    onSuccess: 'cp -r src/validators/schemas dist/schemas',
+  });
 
   return configs;
 });

@@ -23,7 +23,7 @@ Extracts component props and slots from story YAML for Twig generation.
 
 1. **Determine story file path**
    - Extract variant from story name
-   - Construct path: `web/themes/custom/daisy_cms_daisyui/components/{component}/{component}.{variant}.story.yml`
+   - Construct path: `web/themes/custom/test_integration_drupal/components/{component}/{component}.{variant}.story.yml`
    - Example: For "Button [Story] state=enabled" → `button/button.enabled.story.yml`
 
 2. **Load story YAML**

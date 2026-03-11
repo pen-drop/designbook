@@ -50,7 +50,7 @@
   }, with_context: false) }}
 {% endset %}
 
-{{ include('daisy_cms_daisyui:layout', {
+{{ include('test_integration_drupal:layout', {
   content: navbar,
   attributes: create_attribute().addClass('pb-sm pt-sm container-md')
 }, with_context: false)
@@ -67,7 +67,7 @@
   </main>
 
   {% if page.footer %}
-    {{ include('daisy_cms_daisyui:layout', {
+    {{ include('test_integration_drupal:layout', {
       content: page.footer,
       attributes: create_attribute().addClass('pt-sm container-md')
     }, with_context: false)

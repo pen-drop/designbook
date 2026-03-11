@@ -129,7 +129,7 @@ The Pendrop Components skill uses a modular, pipeline-based architecture where e
 └─────────────────────────────────────────────────────────────────┘
                                │
                                ▼
-              web/themes/custom/daisy_cms_daisyui/
+              web/themes/custom/test_integration_drupal/
                     components/[component-name]/
                     [component-name].component.yml
                     (Drupal SDC YAML)
@@ -298,7 +298,7 @@ Check: Does .pendrop/component.pendrop.jsonata exist?
 ### Outputs to External Systems
 - **Drupal SDC**: Component YAML files
   - Produced by: Step 9 (Split Manifest)
-  - Location: `web/themes/custom/daisy_cms_daisyui/components/`
+  - Location: `web/themes/custom/test_integration_drupal/components/`
 
 ### Integration with Other Skills
 - **Pendrop Orchestrator**: Calls this skill for batch processing

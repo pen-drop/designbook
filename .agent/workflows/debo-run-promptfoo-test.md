@@ -136,7 +136,7 @@ Write the report to `promptfoo/reports/eval-report.md` with this structure:
 
 | Test | Status | Score | Category |
 |------|--------|-------|----------|
-| debo-product-vision | ✅ pass | 1.0 | — |
+| debo-vision | ✅ pass | 1.0 | — |
 | debo-design-tokens | ❌ fail | 0.3 | assertion-too-strict |
 | ... | ... | ... | ... |
 

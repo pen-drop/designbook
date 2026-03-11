@@ -1,1 +1,1 @@
-export const baseTheme = 'daisy_cms_daisyui';
+export const baseTheme = null;

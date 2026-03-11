@@ -9,5 +9,5 @@ This workflow generates Storybook stories for Drupal components.
 ## Step 1: Execute Skill
 
 <skill>
-name: designbook-figma-drupal-stories
+name: designbook-figma-stories-sdc
 </skill>

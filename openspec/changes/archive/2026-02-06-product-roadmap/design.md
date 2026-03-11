@@ -44,7 +44,7 @@ The product roadmap in Design OS (`source/design-os/.claude/commands/design-os/p
 
 ```jsx
 const { data, loading, error, reload } = useDesignbookData(
-  'product/product-overview.md',
+  'product/vision.md',
   parseProductOverview
 );
 ```
@@ -146,7 +146,7 @@ const { data, loading, error, reload } = useDesignbookData(
 
 ### Decision 7: AI Command Reads Product Vision Before Proposing Roadmap
 
-**Choice:** The `/product-roadmap` AI command first reads `designbook/product/product-overview.md` (if it exists) and uses it to inform section proposals. If no product vision exists, it prompts the user to define one first.
+**Choice:** The `/product-roadmap` AI command first reads `designbook/product/vision.md` (if it exists) and uses it to inform section proposals. If no product vision exists, it prompts the user to define one first.
 
 **Rationale:**
 - Design OS follows the same pattern: roadmap builds on the product overview

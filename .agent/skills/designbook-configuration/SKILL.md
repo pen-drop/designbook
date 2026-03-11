@@ -12,7 +12,7 @@ This skill provides utilities to load the `designbook.config.yml` configuration 
 ### In Node.js Scripts
 
 ```javascript
-const { loadConfig } = require('../../designbook-configuration/scripts/load-config.js');
+const { loadConfig } = require('storybook-addon-designbook/config');
 const config = loadConfig();
 console.log(config.dist); // e.g., "packages/integrations/test-integration-drupal/designbook"
 ```
@@ -20,7 +20,7 @@ console.log(config.dist); // e.g., "packages/integrations/test-integration-drupa
 ### In Bash Scripts
 
 ```bash
-source .agent/skills/designbook-configuration/scripts/set-env.sh
+eval "$(npx storybook-addon-designbook config)"
 
 echo $DESIGNBOOK_DIST
 echo $DESIGNBOOK_BACKEND
@@ -28,6 +28,7 @@ echo $DESIGNBOOK_FRAMEWORK_COMPONENT
 echo $DESIGNBOOK_FRAMEWORK_CSS
 echo $DESIGNBOOK_TMP
 echo $DESIGNBOOK_DRUPAL_THEME
+echo $DESIGNBOOK_SDC_PROVIDER
 ```
 
 ## Environment Variable Mapping
@@ -40,6 +41,9 @@ echo $DESIGNBOOK_DRUPAL_THEME
 | `dist` | `DESIGNBOOK_DIST` | `packages/.../designbook` |
 | `tmp` | `DESIGNBOOK_TMP` | `packages/.../designbook/tmp` |
 | `drupal.theme` | `DESIGNBOOK_DRUPAL_THEME` | `packages/.../test-integration-drupal` |
+| _(derived)_ | `DESIGNBOOK_SDC_PROVIDER` | `test_integration_drupal` |
+
+> `DESIGNBOOK_SDC_PROVIDER` is auto-derived: `basename(DESIGNBOOK_DRUPAL_THEME)` with `-` → `_`.
 
 ## Configuration File
 

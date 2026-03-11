@@ -23,13 +23,13 @@ Confirms the generated component file exists and has the correct structure.
 
 ## Input
 - Component name from Step 1: `validatedComponentName`
-- Expected output path: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/`
+- Expected output path: `web/themes/custom/test_integration_drupal/components/[component-name]/`
 
 ## Process
 
 1. **Check component folder exists**
-   - Verify directory: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/`
-   - Example: For "Button", check `web/themes/custom/daisy_cms_daisyui/components/button/`
+   - Verify directory: `web/themes/custom/test_integration_drupal/components/[component-name]/`
+   - Example: For "Button", check `web/themes/custom/test_integration_drupal/components/button/`
 
 2. **Check component YAML file exists**
    - Verify file: `[component-name].component.yml`
@@ -77,7 +77,7 @@ Confirms the generated component file exists and has the correct structure.
 ✓ Component generated successfully
 
 Component: Button
-File: web/themes/custom/daisy_cms_daisyui/components/button/button.component.yml
+File: web/themes/custom/test_integration_drupal/components/button/button.component.yml
 
 Generated sections:
   - Schema validation

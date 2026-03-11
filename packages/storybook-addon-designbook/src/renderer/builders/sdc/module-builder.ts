@@ -25,7 +25,13 @@ const sdcModuleBuilder: ModuleBuilder = {
 
     const trackImport = (componentId: string): string => {
       if (kebabMap[componentId]) return kebabMap[componentId];
-      const [, componentName] = componentId.includes(':') ? componentId.split(':') : ['', componentId];
+      const parts = componentId.split(':');
+      if (parts.length !== 2 || !parts[0] || !parts[1]) {
+        throw new Error(
+          `[Designbook] Invalid SDC component ID "${componentId}". ` + `Expected format "provider:component".`,
+        );
+      }
+      const componentName = parts[1];
       const kebabName = componentId.replace(/[-:]/g, '');
       kebabMap[componentId] = kebabName;
       const componentDir = resolve(designbookDir, '..', 'components', componentName || '');

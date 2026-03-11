@@ -69,7 +69,7 @@ Description text
 
 ### Decision 5: AI Command Reads Vision + Roadmap for Context
 
-**Choice:** The `/data-model` command reads both `designbook/product/product-overview.md` and `designbook/product/product-roadmap.md` before proposing entities. If neither exists, it redirects to `/product-vision`.
+**Choice:** The `/data-model` command reads both `designbook/product/vision.md` and `designbook/product/product-roadmap.md` before proposing entities. If neither exists, it redirects to `/product-vision`.
 
 **Rationale:**
 - Mirrors Design OS behavior (checks prerequisites)

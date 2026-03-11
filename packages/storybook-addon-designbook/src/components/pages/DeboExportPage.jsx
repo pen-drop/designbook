@@ -74,7 +74,7 @@ export function DeboExportPage() {
 
         // Check all top-level artifacts
         const [overview, roadmap, dataModel, tokens, shell] = await Promise.all([
-            designbookFileExists('product/product-overview.md'),
+            designbookFileExists('product/vision.md'),
             designbookFileExists('product/product-roadmap.md'),
             designbookFileExists('data-model/data-model.md'),
             designbookFileExists('design-system/design-tokens.md'),

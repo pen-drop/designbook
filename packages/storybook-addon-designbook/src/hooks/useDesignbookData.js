@@ -7,7 +7,7 @@ import { loadDesignbookFile } from '../components/designbookApi.js';
  * Fetches a file via the designbook middleware and parses the response
  * with the provided parser function. Provides a reload function for manual refetching.
  *
- * @param {string} path — Relative path within designbook/ (e.g., "product/product-overview.md")
+ * @param {string} path — Relative path within designbook/ (e.g., "product/vision.md")
  * @param {(content: string) => any} parser — Function to parse the raw content into structured data. Return null if parsing fails.
  * @returns {{ data: any, loading: boolean, error: string|null, reload: () => void }}
  */

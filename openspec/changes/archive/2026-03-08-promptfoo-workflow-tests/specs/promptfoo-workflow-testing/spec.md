@@ -9,11 +9,11 @@ Each tested workflow SHALL have its own fixture directory at `promptfoo/fixtures
 
 #### Scenario: product-sections has product vision fixture
 - **WHEN** the `debo-product-sections` test runs
-- **THEN** its fixture directory SHALL contain `designbook.config.yml` and `product/product-overview.md`
+- **THEN** its fixture directory SHALL contain `designbook.config.yml` and `product/vision.md`
 
 #### Scenario: design-screen has full fixture
 - **WHEN** the `debo-design-screen` test runs
-- **THEN** its fixture directory SHALL contain `designbook.config.yml`, `product/product-overview.md`, `sections/*/spec.section.yml`, `design-system/design-tokens.md`, `data-model.yml`, `components/*/`, and `sections/*/data.yml`
+- **THEN** its fixture directory SHALL contain `designbook.config.yml`, `product/vision.md`, `sections/*/spec.section.yml`, `design-system/design-tokens.md`, `data-model.yml`, `components/*/`, and `sections/*/data.yml`
 
 ### Requirement: Workspace isolation
 Each test execution SHALL write output to an isolated workspace directory at `promptfoo/workspaces/<workflow>--<provider>/designbook/`. No two tests SHALL share a workspace directory.
@@ -51,7 +51,7 @@ Each workflow test SHALL use a single prompt that provides all required inputs, 
 All workflow tests SHALL use the same fictional product ("PetMatch" — a pet adoption platform) to ensure cross-workflow consistency.
 
 #### Scenario: Fixture data references PetMatch
-- **WHEN** a fixture includes `product/product-overview.md`
+- **WHEN** a fixture includes `product/vision.md`
 - **THEN** the product name SHALL be "PetMatch"
 - **AND** the content SHALL describe a pet adoption platform
 
@@ -111,7 +111,7 @@ Each workflow's `llm-rubric` assertion SHALL validate the specific files and str
 
 #### Scenario: product-vision assertion
 - **WHEN** `debo-product-vision` completes
-- **THEN** the rubric SHALL verify `product/product-overview.md` was created with: level-1 heading containing "PetMatch", `## Description` (1-3 sentences), `## Problems & Solutions` (≥2 pairs), and `## Key Features` (≥3 items)
+- **THEN** the rubric SHALL verify `product/vision.md` was created with: level-1 heading containing "PetMatch", `## Description` (1-3 sentences), `## Problems & Solutions` (≥2 pairs), and `## Key Features` (≥3 items)
 
 #### Scenario: product-sections assertion
 - **WHEN** `debo-product-sections` completes

@@ -1,0 +1,23 @@
+node:
+  article:
+    - id: "1"
+      title: "First Article"
+      field_body: "<p>Content here</p>"
+      field_media: "img-1"
+      field_category: "cat-1"
+    - id: "2"
+      title: "Second Article"
+      field_body: "<p>More content</p>"
+      field_media: "img-1"
+      field_category: "cat-2"
+media:
+  image:
+    - id: "img-1"
+      url: "/images/hero.jpg"
+      alt: "Hero image"
+taxonomy_term:
+  category:
+    - id: "cat-1"
+      name: "Technology"
+    - id: "cat-2"
+      name: "Design"

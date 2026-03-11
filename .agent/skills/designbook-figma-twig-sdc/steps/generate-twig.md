@@ -64,7 +64,7 @@ Creates a Twig template that matches the visual design and component structure.
    - Add helpful comments
 
 5. **Save Twig file**
-   - Path: `web/themes/custom/daisy_cms_daisyui/components/{component}/{component}.twig`
+   - Path: `web/themes/custom/test_integration_drupal/components/{component}/{component}.twig`
    - Create component directory if needed
    - Overwrite existing file with warning
 

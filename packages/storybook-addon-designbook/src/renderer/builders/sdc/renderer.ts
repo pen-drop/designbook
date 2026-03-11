@@ -21,7 +21,15 @@ export const sdcComponentRenderer: SceneNodeRenderer = {
 
   render(node: SceneNode, ctx: RenderContext): string {
     const componentNode = node as ComponentSceneNode;
-    const componentId = ctx.provider ? `${ctx.provider}:${componentNode.component}` : componentNode.component;
+    // SDC requires exactly "provider:component" format in the scene YAML.
+    const componentId = componentNode.component;
+    const parts = componentId.split(':');
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      throw new Error(
+        `[Designbook] Invalid SDC component reference "${componentId}". ` +
+          `Expected "provider:component" format (e.g. "my_theme:heading").`,
+      );
+    }
 
     // Track the import and get the JS variable name
     const varName = ctx.trackImport(componentId);

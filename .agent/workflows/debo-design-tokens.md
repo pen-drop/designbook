@@ -5,14 +5,14 @@ category: Designbook
 description: Choose colors and typography for your product
 ---
 
-Help the user choose colors and typography for their product. These design tokens define the visual identity. The result is saved to `designbook/design-system/design-tokens.md`.
+Help the user choose colors and typography for their product. These design tokens define the visual identity. The result is saved to `designbook/design-system/design-tokens.yml`.
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
 
 ## Step 1: Check Prerequisites
 
-Check if the product vision exists at `designbook/product/product-overview.md`.
+Check if the product vision exists at `designbook/product/vision.md`.
 
 **If no product vision exists**, tell the user:
 
@@ -27,7 +27,7 @@ Stop here.
 Load the Designbook configuration:
 
 ```bash
-source .agent/skills/designbook-configuration/scripts/set-env.sh
+eval "$(node packages/storybook-addon-designbook/dist/cli.js config)"
 ```
 
 Check `DESIGNBOOK_FRAMEWORK_CSS`:
@@ -210,74 +210,155 @@ Ask clarifying questions if they're unsure:
 
 Iterate until the user is satisfied.
 
+## Step 6a: Choose Container Widths
+
+Ask the user about their container (max-width) preferences:
+
+> "Now let's set your container widths — these control how wide your content area can be.
+>
+> The standard Tailwind sizes are:
+> - `sm`: 640px (mobile-optimized)
+> - `md`: 768px (default, good for blogs)
+> - `lg`: 1024px (wider, good for dashboards)
+> - `xl`: 1280px (full-width, good for landing pages)
+>
+> Want to use these defaults, or customize them?"
+
+If the user has specific page width requirements, adjust the values.
+
+## Step 6b: Choose Section Spacing
+
+Ask about vertical rhythm between page sections:
+
+> "Section spacing controls the vertical breathing room between page sections.
+>
+> Standard scale:
+> - `sm`: 2rem (tight, compact sections)
+> - `md`: 4rem (default, balanced rhythm)
+> - `lg`: 6rem (spacious, hero-style sections)
+>
+> These map to layout classes like `py-section-sm`, `py-section-md`, `py-section-lg`.
+>
+> Want to use these defaults, or adjust them?"
+
 ## Step 7: Save the Tokens
 
-Construct a W3C Design Tokens JSON object based on the user's choices.
+Construct a W3C Design Tokens YAML object based on the user's choices.
+
+> ⛔ **MANDATORY**: Read `@designbook-tokens/SKILL.md` for the validation rules before writing. Validate all tokens inline — do NOT use any external script.
+
+Write the tokens to `$DESIGNBOOK_DIST/design-system/design-tokens.yml` in W3C YAML format. Validate per the `@designbook-tokens` skill rules (check `$value`/`$type` on every leaf, DaisyUI naming if applicable).
 
 ### DaisyUI Token Structure
 
-```json
-{
-  "color": {
-    "primary": { "$value": "#494FE5", "$type": "color", "description": "Main brand color" },
-    "primary-content": { "$value": "#FFFFFF", "$type": "color", "description": "Text on primary" },
-    "secondary": { "$value": "#FFC024", "$type": "color", "description": "Secondary accent" },
-    "secondary-content": { "$value": "#000000", "$type": "color", "description": "Text on secondary" },
-    "accent": { "$value": "#FF4E42", "$type": "color", "description": "Accent for emphasis" },
-    "accent-content": { "$value": "#FFFFFF", "$type": "color", "description": "Text on accent" },
-    "neutral": { "$value": "#3D4451", "$type": "color", "description": "Neutral UI" },
-    "neutral-content": { "$value": "#FFFFFF", "$type": "color", "description": "Text on neutral" },
-    "base-100": { "$value": "#FFFFFF", "$type": "color", "description": "Page background" },
-    "base-200": { "$value": "#F2F2F2", "$type": "color", "description": "Card surfaces" },
-    "base-300": { "$value": "#E5E6E6", "$type": "color", "description": "Borders" },
-    "base-content": { "$value": "#1F2937", "$type": "color", "description": "Main text" },
-    "info": { "$value": "#3ABFF8", "$type": "color", "description": "Info messages" },
-    "info-content": { "$value": "#002B3D", "$type": "color", "description": "Text on info" },
-    "success": { "$value": "#36D399", "$type": "color", "description": "Success messages" },
-    "success-content": { "$value": "#003320", "$type": "color", "description": "Text on success" },
-    "warning": { "$value": "#FBBD23", "$type": "color", "description": "Warning messages" },
-    "warning-content": { "$value": "#382800", "$type": "color", "description": "Text on warning" },
-    "error": { "$value": "#F87272", "$type": "color", "description": "Error messages" },
-    "error-content": { "$value": "#470000", "$type": "color", "description": "Text on error" }
-  },
-  "typography": {
-    "heading": { "$value": "[Heading Font]", "$type": "fontFamily" },
-    "body": { "$value": "[Body Font]", "$type": "fontFamily" },
-    "mono": { "$value": "[Mono Font]", "$type": "fontFamily" }
-  }
-}
+```yaml
+color:
+  primary:
+    $value: "#494FE5"
+    $type: color
+    description: Main brand color
+  primary-content:
+    $value: "#FFFFFF"
+    $type: color
+    description: Text on primary
+  # ... all DaisyUI semantic colors
+
+typography:
+  heading:
+    $value: "[Heading Font]"
+    $type: fontFamily
+  body:
+    $value: "[Body Font]"
+    $type: fontFamily
+  mono:
+    $value: "[Mono Font]"
+    $type: fontFamily
+
+container:
+  sm:
+    $value: "640px"
+    $type: dimension
+  md:
+    $value: "768px"
+    $type: dimension
+  lg:
+    $value: "1024px"
+    $type: dimension
+  xl:
+    $value: "1280px"
+    $type: dimension
+
+section-spacing:
+  sm:
+    $value: "2rem"
+    $type: dimension
+    description: Tight sections
+  md:
+    $value: "4rem"
+    $type: dimension
+    description: Default section padding
+  lg:
+    $value: "6rem"
+    $type: dimension
+    description: Hero/spacious sections
 ```
 
 ### Generic Token Structure
 
-```json
-{
-  "color": {
-    "primary": { "$value": "{colors.[primary].500}", "$type": "color" },
-    "secondary": { "$value": "{colors.[secondary].500}", "$type": "color" },
-    "neutral": { "$value": "{colors.[neutral].500}", "$type": "color" }
-  },
-  "typography": {
-    "heading": { "$value": "[Heading Font]", "$type": "fontFamily" },
-    "body": { "$value": "[Body Font]", "$type": "fontFamily" },
-    "mono": { "$value": "[Mono Font]", "$type": "fontFamily" }
-  }
-}
-```
+```yaml
+color:
+  primary:
+    $value: "#4F46E5"
+    $type: color
+  secondary:
+    $value: "#7C3AED"
+    $type: color
+  neutral:
+    $value: "#6B7280"
+    $type: color
 
-**Command:**
-Run the `designbook-tokens` skill to validate and save this JSON:
+typography:
+  heading:
+    $value: "[Heading Font]"
+    $type: fontFamily
+  body:
+    $value: "[Body Font]"
+    $type: fontFamily
+  mono:
+    $value: "[Mono Font]"
+    $type: fontFamily
 
-```bash
-/skill/designbook-tokens/steps/process-tokens --tokens-json='{...}'
+container:
+  sm:
+    $value: "640px"
+    $type: dimension
+  md:
+    $value: "768px"
+    $type: dimension
+  lg:
+    $value: "1024px"
+    $type: dimension
+  xl:
+    $value: "1280px"
+    $type: dimension
+
+section-spacing:
+  sm:
+    $value: "2rem"
+    $type: dimension
+  md:
+    $value: "4rem"
+    $type: dimension
+  lg:
+    $value: "6rem"
+    $type: dimension
 ```
-(Minify the JSON for the command line)
 
 ## Step 8: Confirm Completion
 
 ### DaisyUI Framework
 
-> "I've saved your DaisyUI design tokens to `designbook/design-system/design-tokens.md`.
+> "I've saved your DaisyUI design tokens to `designbook/design-system/design-tokens.yml`.
 >
 > **Your DaisyUI theme:**
 > - 🎨 Primary: `[hex]` → `btn-primary`, `bg-primary`, `text-primary`
@@ -291,22 +372,27 @@ Run the `designbook-tokens` skill to validate and save this JSON:
 > - [Body Font] → `font-body`
 > - [Mono Font] → `font-mono`
 >
+> **Your layout tokens:**
+> - 📐 Containers: `container-sm` (640px), `container-md` (768px), `container-lg` (1024px), `container-xl` (1280px)
+> - 📏 Section spacing: `py-section-sm` (2rem), `py-section-md` (4rem), `py-section-lg` (6rem)
+>
 > To generate CSS from these tokens, run `//debo-css-generate`.
 > Open Storybook to see the design tokens on the Design System page."
 
 ### Generic (No Framework)
 
-> "I've saved your design tokens to `designbook/design-system/design-tokens.md`.
+> "I've saved your design tokens to `designbook/design-system/design-tokens.yml`.
 >
 > **Your palette:**
 > - Primary: `[color]` — for buttons, links, key actions
 > - Secondary: `[color]` — for tags, highlights, secondary elements
-> - Neutral: `[color]` — for backgrounds, text, borders
+> - Neutral: `[color]` — for borders, subtle backgrounds
 >
-> **Your fonts:**
-> - [Heading Font] for headings
-> - [Body Font] for body text
-> - [Mono Font] for code
+> **Your fonts:** [Heading Font], [Body Font], [Mono Font]
+>
+> **Your layout tokens:**
+> - 📐 Containers: sm/md/lg/xl
+> - 📏 Section spacing: sm/md/lg
 >
 > Open Storybook to see the design tokens on the Design System page."
 
@@ -323,4 +409,4 @@ Run the `designbook-tokens` skill to validate and save this JSON:
 - Fonts must be exact Google Fonts names
 - Keep suggestions contextual to the product type
 - Be conversational — help the user think through their visual identity
-- If `designbook/design-system/design-tokens.md` already exists, read it first and ask: "You already have design tokens defined. Would you like to update them or start fresh?"
+- If `designbook/design-system/design-tokens.yml` already exists, read it first and ask: "You already have design tokens defined. Would you like to update them or start fresh?"

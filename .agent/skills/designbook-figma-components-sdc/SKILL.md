@@ -1,16 +1,17 @@
 ---
 name: Pendrop Components
-description: Generates Drupal SDC component YAML files from Figma component definitions through orchestrated sub-skills.
+description: "Internal skill — generates Drupal SDC component YAML files from Figma data. Invoked by debo-figma-drupal-components workflow only."
 ---
 
 # Pendrop Components
 
 This skill orchestrates the generation of Drupal Single Directory Component (SDC) YAML files from Figma component data by executing a series of specialized sub-skills in sequence.
 
+> **Internal skill** — Do not invoke directly. Use the `debo-figma-drupal-components` workflow instead.
+
 ## Capability
 
 ### Generate Components
-**Trigger**: When asked to "generate components", "sync components", or "update components" from Figma.
 
 **Action**: Execute the following sub-skills in order:
 
@@ -62,7 +63,7 @@ This skill orchestrates the generation of Drupal Single Directory Component (SDC
 ## Context
 - **Input**: `.pendrop/input/pendrop.data.components.json` (Figma component data)
 - **Logic**: `.pendrop/component.pendrop.jsonata` (Transformation)
-- **Output**: `web/themes/custom/daisy_cms_daisyui/components/[component-name]/[component-name].component.yml`
+- **Output**: `web/themes/custom/test_integration_drupal/components/[component-name]/[component-name].component.yml`
 
 ## Data Sources (Figma Structure)
 - **`[Component]` elements** → Variants information
@@ -87,6 +88,6 @@ Execute this skill with componentName="Card"
 ## Output Structure
 Generates Drupal SDC-compliant YAML files:
 ```
-web/themes/custom/daisy_cms_daisyui/components/button/
+web/themes/custom/test_integration_drupal/components/button/
 └── button.component.yml
 ```

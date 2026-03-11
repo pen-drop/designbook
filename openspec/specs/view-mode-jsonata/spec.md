@@ -229,7 +229,7 @@ interface RenderContext {
   getVar: (componentId: string) => string;
 
   // --- Metadata ---
-  /** Provider prefix (e.g. 'daisy_cms_daisyui') — from addon options */
+  /** Provider prefix (e.g. 'test_integration_drupal') — from addon options */
   provider?: string;
   /** Data model schema (fields, entity types) — from data-model.yml */
   dataModel: DataModel;
@@ -328,7 +328,7 @@ export default {
       name: 'storybook-addon-designbook',
       options: {
         designbook: {
-          provider: 'daisy_cms_daisyui',
+          provider: 'test_integration_drupal',
           renderers: [
             ...sdcRenderers,             // ← Built-in SDC preset (entity + sdc-component)
             createImageRenderer(),        // ← Integration-specific extras (priority: 0)
@@ -391,8 +391,8 @@ const sdcComponentRenderer: ScreenNodeRenderer = {
 ```
 
 #### Scenario: Provider prefix applied
-- **GIVEN** `ctx.provider = 'daisy_cms_daisyui'` and `node.component = 'heading'`
-- **THEN** the full component ID is `'daisy_cms_daisyui:heading'`
+- **GIVEN** `ctx.provider = 'test_integration_drupal'` and `node.component = 'heading'`
+- **THEN** the full component ID is `'test_integration_drupal:heading'`
 - **AND** the import resolves the component by searching `components/heading/heading.component.yml`
 
 #### Scenario: Slot values with nested components
@@ -528,7 +528,7 @@ export function createFieldDebugRenderer() {
 - **THEN** it can read any entity record: `ctx.sampleData[entity_type][bundle][recordIndex]`
 
 ### Scenario: Custom renderer uses provider
-- **GIVEN** `ctx.provider = 'daisy_cms_daisyui'`
+- **GIVEN** `ctx.provider = 'test_integration_drupal'`
 - **THEN** integration renderers can use it to resolve component paths or apply namespace prefixes
 
 ---
@@ -670,7 +670,7 @@ src/renderer/__tests__/fixtures/
 | Missing `.jsonata` file | Returns placeholder, no crash |
 | Missing sample data record | Returns placeholder, no crash |
 | Nested entity in expression output | Recursive rendering via `ctx.renderNode()` |
-| Provider prefix applied to components | `heading` → `daisy_cms_daisyui:heading` |
+| Provider prefix applied to components | `heading` → `test_integration_drupal:heading` |
 
 ### Test Layer 3: JSONata Expression Tests
 

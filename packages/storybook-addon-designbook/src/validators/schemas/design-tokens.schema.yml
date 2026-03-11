@@ -1,0 +1,50 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: W3C Design Tokens
+description: Schema for validating W3C Design Token files used by Designbook.
+type: object
+minProperties: 1
+additionalProperties:
+  $ref: "#/$defs/tokenGroup"
+
+$defs:
+  tokenGroup:
+    description: A group of tokens or nested groups.
+    type: object
+    additionalProperties:
+      oneOf:
+        - $ref: "#/$defs/tokenLeaf"
+        - $ref: "#/$defs/tokenGroup"
+
+  tokenLeaf:
+    description: A single design token with $value and $type.
+    type: object
+    required:
+      - $value
+      - $type
+    properties:
+      $value:
+        description: The token value.
+      $type:
+        type: string
+        description: The token type.
+        enum:
+          - color
+          - fontFamily
+          - dimension
+          - number
+          - fontWeight
+          - duration
+          - cubicBezier
+          - shadow
+          - gradient
+          - transition
+          - border
+          - strokeStyle
+          - typography
+      description:
+        type: string
+        description: Human-readable description of the token.
+      $extensions:
+        type: object
+        description: W3C extension data.
+    additionalProperties: false

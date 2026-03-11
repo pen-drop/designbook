@@ -32,7 +32,7 @@
 
 - [x] 5.1 Create AI command at `.cursor/commands/product-vision.md`
 - [x] 5.2 Implement conversational workflow: gather input → ask questions → present draft → confirm
-- [x] 5.3 Save result to `designbook/product/product-overview.md` in structured Markdown format
+- [x] 5.3 Save result to `designbook/product/vision.md` in structured Markdown format
 - [x] 5.4 Support both new creation and updates of existing product vision
 
 ## 6. MDX Display Page (Read-Only)

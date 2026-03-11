@@ -122,7 +122,7 @@ export function isSceneComponentEntry(entry: SceneLayoutEntry): entry is SceneCo
  * Carries metadata, utilities, and recursion support.
  */
 export interface RenderContext {
-  /** SDC provider prefix (e.g., 'daisy_cms_daisyui'). */
+  /** SDC provider prefix (e.g., 'test_integration_drupal'). */
   provider?: string;
 
   /** Data model from data-model.yml. */

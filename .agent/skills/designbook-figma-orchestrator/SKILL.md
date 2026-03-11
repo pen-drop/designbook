@@ -1,16 +1,17 @@
 ---
 name: Pendrop Orchestrator
-description: Orchestrates the complete end-to-end component generation pipeline, chaining Figma fetch, component generation, story generation, and Twig creation.
+description: "Internal skill — orchestrates the complete end-to-end Figma component generation pipeline. Invoked by debo-figma-orchestrator workflow only."
 ---
 
 # Pendrop Orchestrator
 
 This skill orchestrates the complete Pendrop component generation pipeline. It automatically chains together multiple workflows to provide end-to-end component setup from Figma designs to fully functioning Drupal components with stories and templates.
 
+> **Internal skill** — Do not invoke directly. Use the `debo-figma-orchestrator` workflow instead.
+
 ## Capability
 
 ### Orchestrate Full Component Generation
-**Trigger**: When asked to "generate complete component", "orchestrate component", "set up all components", "process all components", "full component setup", or "end-to-end generation".
 
 **Action**:
 1. Determine if single component or batch mode:
@@ -50,15 +51,15 @@ The orchestrator executes these stages in order:
 
 2. **Components** (via Pendrop Components skill)
    - Generates component YAML files
-   - Output: `web/themes/custom/daisy_cms_daisyui/components/[name]/[name].component.yml`
+   - Output: `web/themes/custom/test_integration_drupal/components/[name]/[name].component.yml`
 
 3. **Stories** (via `/pendrop-generate-stories`)
    - Generates story YAML files for variants
-   - Output: `web/themes/custom/daisy_cms_daisyui/components/[name]/[name].[variant].story.yml`
+   - Output: `web/themes/custom/test_integration_drupal/components/[name]/[name].[variant].story.yml`
 
 4. **Twig** (via `/pendrop-generate-twig-from-story`)
    - Optionally generates Twig templates
-   - Output: `web/themes/custom/daisy_cms_daisyui/components/[name]/[name].twig`
+   - Output: `web/themes/custom/test_integration_drupal/components/[name]/[name].twig`
 
 ## Context
 - **Workflow**: `.agent/workflows/pendrop-orchestrate-full-component.md`
