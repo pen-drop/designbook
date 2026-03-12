@@ -73,3 +73,19 @@ Create or update `designbook/sections/[section-id]/screenshots.md`:
 - Name files descriptively: `[view-name]-[variant].png`
 - Include both desktop and mobile variants when relevant
 - Screenshots document the current state of the design
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow screenshot-design --title "Capture Screenshots" --task "capture-screenshots:Capture design screenshots:validation")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME capture-screenshots --status done
+```

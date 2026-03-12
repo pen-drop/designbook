@@ -143,3 +143,19 @@ Create the directory `${DESIGNBOOK_DIST}/sections/[section-id]/` if it doesn't e
 - UI requirements should be specific enough to guide design but not prescribe exact implementations
 - The markdown format must match exactly for Storybook to parse it
 - Section IDs must match the kebab-case conversion consistently
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow shape-section --title "Shape Section" --task "shape-section:Create section specification:scene")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME shape-section --status done
+```

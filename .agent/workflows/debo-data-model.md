@@ -70,3 +70,19 @@ Once approved, follow these instructions to save the data:
 
 Confirm to the user that the data model has been updated and is visible in Storybook.
 > "I've updated the data model. You can view it in the Storybook Data Model tab."
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-data-model --title "Define Data Model" --task "create-data-model:Create data model:data")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME create-data-model --status done
+```

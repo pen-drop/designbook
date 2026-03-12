@@ -1,10 +1,15 @@
 import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
 import type { IncomingMessage } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join, basename } from 'node:path';
+import { resolve, join, basename, dirname } from 'node:path';
+import { createRequire } from 'node:module';
 import { parse as parseYaml } from 'yaml';
+
+// Resolve React from the addon's own dependencies (works in pnpm strict mode)
+const addonRequire = createRequire(import.meta.url);
 import type { SceneNodeRenderer } from './renderer/types';
 import type { ModuleBuilder } from './renderer/scene-module-builder';
+import { scanAllWorkflows, parseTaskFile } from './workflow-utils';
 import { buildSceneModule } from './renderer/scene-module-builder';
 import { buildSdcModule } from './renderer/builders/sdc';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
@@ -37,9 +42,42 @@ export function designbookLoadPlugin(
   const VIRTUAL_SECTIONS = 'virtual:designbook-sections';
   const RESOLVED_VIRTUAL_SECTIONS = '\0' + VIRTUAL_SECTIONS;
 
+  // Resolve React package directories from the addon's own deps so that
+  // generated docs-page code works in any integration under pnpm strict mode.
+  // We resolve the directory (not the entry file) so Vite handles CJS→ESM interop.
+  let reactDir: string | undefined;
+  let reactDomDir: string | undefined;
+  try {
+    reactDir = dirname(addonRequire.resolve('react/package.json'));
+    reactDomDir = dirname(addonRequire.resolve('react-dom/package.json'));
+  } catch {
+    // React not available — docs pages will fail but scenes still work
+  }
+
   return {
     name: 'vite-plugin-designbook-load',
     enforce: 'pre',
+
+    config() {
+      return {
+        resolve: reactDir
+          ? {
+              alias: [
+                { find: /^react-dom$/, replacement: reactDomDir! },
+                { find: /^react-dom\/(.*)/, replacement: reactDomDir + '/$1' },
+                { find: /^react$/, replacement: reactDir! },
+              ],
+            }
+          : undefined,
+        optimizeDeps: {
+          include: [
+            'vite-plugin-node-polyfills/shims/buffer',
+            'vite-plugin-node-polyfills/shims/global',
+            'vite-plugin-node-polyfills/shims/process',
+          ],
+        },
+      };
+    },
 
     resolveId(id: string) {
       if (id === VIRTUAL_SECTIONS) return RESOLVED_VIRTUAL_SECTIONS;
@@ -65,8 +103,102 @@ export function designbookLoadPlugin(
       return result;
     },
 
+    handleHotUpdate({ file, server }) {
+      // HMR for data file dependencies (existing behavior)
+      const sceneIds = dataFileToScenes.get(file);
+      if (sceneIds) {
+        const modules = [...sceneIds].map((id) => server.moduleGraph.getModuleById(id)).filter(Boolean);
+        if (modules.length) {
+          console.log(`[Designbook] Data file changed: ${file}, reloading ${modules.length} scene(s)`);
+          return modules as import('vite').ModuleNode[];
+        }
+      }
+    },
+
     configureServer(server: ViteDevServer) {
-      // Watch the designbook directory for file changes.
+      const workflowsDir = resolve(designbookDir, 'workflows');
+      const changesDir = resolve(workflowsDir, 'changes');
+      const archiveDir = resolve(workflowsDir, 'archive');
+
+      // Watch both changes/ and archive/ directories
+      server.watcher.add(changesDir);
+      server.watcher.add(archiveDir);
+
+      server.watcher.on('add', (path: string) => {
+        if (!path.endsWith('tasks.yml')) return;
+
+        if (path.includes('workflows/changes')) {
+          // New workflow started
+          try {
+            const data = parseTaskFile(path);
+            console.log('[Designbook] Workflow started:', data.title);
+            server.ws.send({
+              type: 'custom',
+              event: 'designbook:workflow-event',
+              data: { type: 'started', title: data.title, workflow: data.workflow },
+            });
+          } catch {
+            // Skip parse errors
+          }
+        }
+
+        if (path.includes('workflows/archive')) {
+          // Workflow archived (completed)
+          try {
+            const data = parseTaskFile(path);
+            console.log('[Designbook] Workflow done:', data.title);
+            server.ws.send({
+              type: 'custom',
+              event: 'designbook:workflow-event',
+              data: { type: 'done', title: data.title, workflow: data.workflow },
+            });
+          } catch {
+            // Skip parse errors
+          }
+        }
+      });
+
+      server.watcher.on('change', (path: string) => {
+        if (path.endsWith('tasks.yml') && path.includes('workflows/changes')) {
+          try {
+            const data = parseTaskFile(path);
+            // Find the task that just changed to in-progress or done
+            const activeTask = data.tasks.find((t) => t.status === 'in-progress');
+            const lastDone = data.tasks
+              .filter((t) => t.status === 'done')
+              .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
+              [0];
+
+            server.ws.send({
+              type: 'custom',
+              event: 'designbook:workflow-progress',
+              data: {
+                title: data.title,
+                workflow: data.workflow,
+                tasks: data.tasks,
+                activeTask: activeTask?.title,
+                lastDoneTask: lastDone?.title,
+              },
+            });
+          } catch {
+            // Skip parse errors during write
+          }
+        }
+      });
+
+      // HTTP endpoint: serve all workflows (active + recent archived)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/workflows', (_req: IncomingMessage, res: any) => {
+        try {
+          const workflows = scanAllWorkflows(workflowsDir, 10);
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify(workflows));
+        } catch (err: unknown) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
 
       // Middleware for loading designbook assets
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -183,6 +315,8 @@ function injectDocsPage(sceneCode: string, docs: DocsPageCode): string {
 }
 
 function buildDocsOnlyModule(docs: DocsPageCode, group: string, exportName: string): string {
+  const title = group.split('/').pop() || exportName;
+  const message = `<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;font-family:system-ui,sans-serif;color:#6b7280;text-align:center"><div><p style="font-size:1.25rem;margin:0 0 0.5rem">${title} has no scenes yet.</p><p style="margin:0;font-size:0.875rem">Define scenes in the <code>.section.scenes.yml</code> file to see a preview here.</p></div></div>`;
   return [
     docs.imports,
     '',
@@ -198,7 +332,7 @@ function buildDocsOnlyModule(docs: DocsPageCode, group: string, exportName: stri
     '};',
     '',
     `export const ${exportName} = {`,
-    '  render: () => {},',
+    `  render: () => '${message.replace(/'/g, "\\'")}',`,
     '};',
   ].join('\n');
 }

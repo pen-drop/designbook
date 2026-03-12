@@ -177,3 +177,19 @@ Create `${DESIGNBOOK_DIST}/export/product-plan/README.md`:
 - Clearly mark missing items in the README
 - Each milestone should be self-contained and independently implementable
 - The export directory should be git-friendly (no binary files except screenshots)
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow export-product --title "Export Product Plan" --task "create-export:Package product plan:data")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME create-export --status done
+```

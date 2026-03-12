@@ -177,3 +177,19 @@ If errors are found, fix them before proceeding. Common issues:
 - If `shell/spec.shell.scenes.yml` already exists, read it first and ask: "You already have a shell design. Would you like to update it or start fresh?"
 - If page/header/footer components already exist, reuse them — only create if missing
 - The `description` field in the scenes file captures the shell design — no separate Markdown spec file needed
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-design-shell --title "Design Shell" --task "create-spec:Create shell spec:scene" --task "create-component:Create shell components:component" --task "create-scene:Create shell scene:scene")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME <task-id> --status done
+```

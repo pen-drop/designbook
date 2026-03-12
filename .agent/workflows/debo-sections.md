@@ -116,3 +116,19 @@ Let the user know:
 - Be conversational and help the user think through the breakdown
 - Keep sections self-contained — each should be designable and buildable independently
 - 3–5 sections is the sweet spot — push back gently if the user wants too many or too few
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-sections --title "Define Sections" --task "create-sections:Create section files:data")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME create-sections --status done
+```

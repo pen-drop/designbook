@@ -410,3 +410,19 @@ section-spacing:
 - Keep suggestions contextual to the product type
 - Be conversational — help the user think through their visual identity
 - If `designbook/design-system/design-tokens.yml` already exists, read it first and ask: "You already have design tokens defined. Would you like to update them or start fresh?"
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-design-tokens --title "Design Tokens" --task "create-tokens:Create design tokens:tokens")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME create-tokens --status done
+```

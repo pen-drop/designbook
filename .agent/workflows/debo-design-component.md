@@ -176,3 +176,19 @@ If errors are found, fix the Twig template or story definitions before proceedin
 - Be conversational and helpful — suggest examples when user is unsure
 - Component skills are loaded by convention: `designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT`
 - For parsing heuristics, defer to `resources/component-patterns.md`
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-design-component --title "Design Component" --task "create-component:Create component definition:component" --task "create-twig:Create Twig template:component" --task "create-story:Create story:component")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME <task-id> --status done
+```
