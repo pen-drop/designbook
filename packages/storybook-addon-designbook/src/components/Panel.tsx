@@ -41,7 +41,7 @@ const LogEntry = styled.div<{ isActive: boolean }>(({ theme, isActive }) => ({
   padding: '8px 10px',
   borderRadius: '4px',
   borderLeft: `3px solid ${isActive ? theme.color.secondary || '#1ea7fd' : theme.color.positive || '#10b981'}`,
-  background: isActive ? (theme.background.hoverable || '#f5f5f5') : 'transparent',
+  background: isActive ? theme.background.hoverable || '#f5f5f5' : 'transparent',
   marginBottom: '4px',
   '& + &': {
     marginTop: '2px',
@@ -146,6 +146,7 @@ function progressText(tasks: WorkflowTask[]): string {
   return `${done}/${tasks.length}`;
 }
 
+// eslint-disable-next-line react/prop-types
 export const Panel: React.FC<PanelProps> = memo(function DesignbookPanel({ active }) {
   const [workflows, setWorkflows] = useState<WorkflowData[]>([]);
 

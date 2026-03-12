@@ -200,11 +200,15 @@ workflow
         console.log(`  Summary:   ${data.summary}`);
       } else {
         console.log(`Task ${taskId} → ${opts.status}`);
-        console.log(`  Updated: ${data.tasks.find((t) => t.id === taskId)?.started_at || data.tasks.find((t) => t.id === taskId)?.completed_at}`);
+        console.log(
+          `  Updated: ${data.tasks.find((t) => t.id === taskId)?.started_at || data.tasks.find((t) => t.id === taskId)?.completed_at}`,
+        );
         const done = data.tasks.filter((t) => t.status === 'done').length;
         const inProgress = data.tasks.filter((t) => t.status === 'in-progress').length;
         const pending = data.tasks.filter((t) => t.status === 'pending').length;
-        console.log(`  Progress: ${done}/${data.tasks.length} done${inProgress ? `, ${inProgress} in-progress` : ''}${pending ? `, ${pending} pending` : ''}`);
+        console.log(
+          `  Progress: ${done}/${data.tasks.length} done${inProgress ? `, ${inProgress} in-progress` : ''}${pending ? `, ${pending} pending` : ''}`,
+        );
         for (const t of data.tasks) {
           const icon = t.status === 'done' ? '\u2713' : t.status === 'in-progress' ? '\u25CB' : '\u00B7';
           console.log(`    ${icon} ${t.title} (${t.type}) — ${t.status}`);

@@ -166,8 +166,7 @@ export function designbookLoadPlugin(
             const activeTask = data.tasks.find((t) => t.status === 'in-progress');
             const lastDone = data.tasks
               .filter((t) => t.status === 'done')
-              .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
-              [0];
+              .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))[0];
 
             server.ws.send({
               type: 'custom',
