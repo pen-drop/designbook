@@ -4,7 +4,7 @@ Designbook's Vite plugin (`vite-plugin.ts`) currently handles `.scenes.yml` load
 
 The addon registers a panel (`Panel.tsx`) that currently displays a static list of available AI commands. The channel system (`EVENTS.REQUEST`/`EVENTS.RESULT`) exists for preview↔manager communication. Storybook provides `api.addNotification()` for toast notifications.
 
-Existing UI components follow the `Debo*` pattern with `debo:` prefixed Tailwind classes. `DeboStepIndicator` is the closest analog to the new `DeboTaskItem`.
+Existing UI components follow the `Debo*` pattern with `debo:` prefixed Tailwind classes. `DeboStepIndicator` is the closest analog to the new `DeboActionList`.
 
 ## Goals / Non-Goals
 
@@ -43,9 +43,9 @@ Existing UI components follow the `Debo*` pattern with `debo:` prefixed Tailwind
 
 **Why over channel events:** Channel events require preview↔manager round-trip through the iframe. The panel runs in manager context and can fetch HTTP directly. Polling is simpler than maintaining WebSocket state for file-system-driven updates. 3s polling is adequate for human-visible progress.
 
-### 4. DeboTaskItem as UI primitive
+### 4. DeboActionList as UI primitive
 
-**Decision:** New `DeboTaskItem` component in `src/components/ui/` following `DeboStepIndicator` patterns. Renders status icon, title, type badge, and relative timestamps.
+**Decision:** New `DeboActionList` component in `src/components/ui/` following `DeboStepIndicator` patterns. Renders status icon, title, type badge, and relative timestamps.
 
 **Why a separate component from DeboStepIndicator:** Step indicators show linear sequence with numbered steps. Task items show parallel work with types and timestamps — different data shape and visual layout.
 

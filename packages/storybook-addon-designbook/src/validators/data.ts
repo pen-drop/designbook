@@ -72,11 +72,14 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
 
             if (targetType && targetBundle && refValue && sampleData[targetType]?.[targetBundle]) {
               const targetRecords = sampleData[targetType][targetBundle];
-              const found = targetRecords.some((r) => (r as Record<string, unknown>).id === String(refValue));
-              if (!found) {
-                warnings.push(
-                  `Broken ref: ${entityType}.${bundle} id=${rid} field "${field}" → ${targetType}.${targetBundle} id=${refValue} not found`,
-                );
+              const refValues = Array.isArray(refValue) ? refValue : [refValue];
+              for (const rv of refValues) {
+                const found = targetRecords.some((r) => (r as Record<string, unknown>).id === String(rv));
+                if (!found) {
+                  warnings.push(
+                    `Broken ref: ${entityType}.${bundle} id=${rid} field "${field}" → ${targetType}.${targetBundle} id=${rv} not found`,
+                  );
+                }
               }
             }
           }

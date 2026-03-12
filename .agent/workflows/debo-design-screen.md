@@ -193,3 +193,19 @@ Mark tasks complete as each sub-step finishes. Report progress to the user.
 - The `name` field in `.scenes.yml` is the full Storybook sidebar path (e.g. `Designbook/Sections/Blog`)
 - Component skills are loaded by convention: `designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT` — never hardcode a specific framework
 - CSS generation is delegated to `//debo-css-generate` — never load CSS skills directly in this workflow
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-design-screen --title "Design Screen" --task "create-components:Create UI components:component" --task "create-view-modes:Create view mode mappings:view-mode" --task "create-scene:Create section scene:scene")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME <task-id> --status done
+```

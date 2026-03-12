@@ -10,10 +10,7 @@ import { uiPatternsDefs } from './defs.js';
 /** @type { import('@storybook/html-vite').StorybookConfig } */
 const config = {
   "stories": [
-
-    "../foundations/**/*.mdx",
     "../components/**/*.component.yml",
-
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
   ],
   addons: [

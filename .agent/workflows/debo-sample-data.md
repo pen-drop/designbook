@@ -80,3 +80,19 @@ Before writing the file:
 > - [N] entity types, [N] total records
 >
 > Next: `/debo-design-screen [section-id]` for screen designs.
+
+## Workflow Tracking
+
+Load `@designbook-workflow/SKILL.md`.
+
+At workflow start, create the tracking file:
+```
+WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-sample-data --title "Create Sample Data" --task "create-sample-data:Create sample data:data")
+```
+
+If `--spec`: output the plan and stop here.
+
+After completing each step, update:
+```
+node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME create-sample-data --status done
+```
