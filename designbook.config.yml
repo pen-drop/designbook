@@ -1,4 +1,6 @@
 backend: drupal
+extensions:
+  - layout_builder
 frameworks:
   component: sdc
   css: daisyui

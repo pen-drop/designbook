@@ -1,0 +1,31 @@
+content:
+  node:
+    article:
+      fields:
+        title:
+          type: string
+          required: true
+        field_body:
+          type: text
+    event:
+      fields:
+        title:
+          type: string
+config:
+  list:
+    recent_articles:
+      sources:
+        - entity_type: node
+          bundle: article
+          view_mode: teaser
+      limit: 10
+      sorting: created
+    search:
+      sources:
+        - entity_type: node
+          bundle: article
+          view_mode: search_result
+        - entity_type: node
+          bundle: event
+          view_mode: search_result
+      limit: 20

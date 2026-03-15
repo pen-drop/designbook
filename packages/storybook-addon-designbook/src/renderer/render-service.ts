@@ -42,7 +42,7 @@ export class SceneNodeRenderService {
     if (this.debug) {
       console.warn(`[Designbook] No renderer found for node type '${node.type}'`);
     }
-    return `/* [Designbook] no renderer for node type '${node.type}' */`;
+    return `'' /* [Designbook] no renderer for node type '${node.type}' */`;
   }
 
   /**

@@ -5,12 +5,12 @@ The system SHALL provide an MDX documentation page at `.storybook/onboarding/des
 
 #### Scenario: User accesses shell page with no data
 - **WHEN** user navigates to the Design Shell page in Storybook
-- **AND** no shell spec exists at `designbook/design-shell/shell-spec.md`
+- **AND** no shell spec exists at `designbook/design-system/design-system.scenes.yml`
 - **THEN** the page displays an empty state via `DeboSection` with a reference to the `/design-shell` AI command
 
 #### Scenario: User accesses shell page with existing data
 - **WHEN** user navigates to the Design Shell page in Storybook
-- **AND** shell spec exists at `designbook/design-shell/shell-spec.md`
+- **AND** shell spec exists at `designbook/design-system/design-system.scenes.yml`
 - **THEN** the page loads and displays the shell specification using `ShellSpecCard`
 
 #### Scenario: User updates shell spec
@@ -38,7 +38,7 @@ The system SHALL provide a Cursor AI command at `.cursor/commands/design-shell.m
 
 #### Scenario: File output
 - **WHEN** the user approves the shell specification
-- **THEN** the AI saves to `designbook/design-shell/shell-spec.md`
+- **THEN** the AI saves to `designbook/design-system/design-system.scenes.yml`
 - **AND** the file follows the structured Markdown format with Overview, Navigation Structure, User Menu, Layout Pattern, Responsive Behavior, and Design Notes sections
 
 ### Requirement: Shell Spec Markdown File Format

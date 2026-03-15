@@ -35,7 +35,14 @@ program
     const config = loadConfig();
 
     for (const [key, value] of Object.entries(config)) {
-      if (typeof value === 'object' && value !== null) continue;
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) continue;
+
+      if (Array.isArray(value)) {
+        const envName = 'DESIGNBOOK_' + key.toUpperCase();
+        const escaped = value.join(',').replace(/'/g, "'\\''");
+        console.log(`export ${envName}='${escaped}'`);
+        continue;
+      }
 
       const parts = key.split('.');
       const envParts = parts.map((p) => (p === 'frameworks' ? 'FRAMEWORK' : p.toUpperCase()));

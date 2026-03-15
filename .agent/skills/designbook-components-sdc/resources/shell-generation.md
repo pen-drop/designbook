@@ -4,6 +4,8 @@ Shell components (header, footer, page) are UI components in the `Shell` categor
 
 > ⛔ **CRITICAL RULE — No Inline Markup in Stories**: Shell stories must contain **only `type: component`** references. Never use `type: element` with HTML tags or attributes. Every visual piece must be a reusable UI component. If a required UI component doesn't exist, **create it first**.
 
+> ⛔ **CRITICAL RULE — Phase-Based Generation with Per-Component Validation**: Generate in three phases: **Phase 1: ALL Twig → Phase 2: ALL Stories → Phase 3: Each Component YAML + Validate**. Read the corresponding skill resource once at the start of each phase. In Phase 3, validate each component immediately after writing its `.component.yml`.
+
 > **Stories**: Shell components have exactly **one story** (`default`) per component — there is only one meaningful visual configuration for header/footer.
 
 | Component | `group:` | Slots |
@@ -81,33 +83,9 @@ find $DESIGNBOOK_DRUPAL_THEME/components/ -name "*.component.yml" 2>/dev/null | 
 
 **3.2 — Create missing UI components:**
 
-For each required UI component that doesn't exist, create it using this skill. Place them in the **project's UI component library**:
-
-```
-$DESIGNBOOK_DRUPAL_THEME/components/
-├── logo/
-│   ├── logo.component.yml
-│   ├── logo.story.yml
-│   └── logo.twig
-├── navigation/
-│   ├── navigation.component.yml
-│   ├── navigation.story.yml
-│   ├── navigation.twig
-│   ├── navigation--primary.twig
-│   └── navigation--footer.twig
-└── copyright/
-    ├── copyright.component.yml
-    ├── copyright.story.yml
-    └── copyright.twig
-```
+For each required UI component that doesn't exist, create it following the phased approach below.
 
 > **Navigation** is a **single component with variants** (`primary`, `footer`). Both variants accept the same `items` prop (array of `{label, url}`) but differ in visual layout. See [Variants Instead of Duplicate Components](../SKILL.md#variants-instead-of-duplicate-components).
-
-Each UI component should:
-- Have appropriate **props** (e.g., `navigation` has an `items` prop) 
-- Have a **story** that renders realistic content
-- Have a **Twig template** using classes from `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` (see `resources/twig.md` → CSS Framework Routing)
-- Use the correct **provider** from the theme config (e.g., `test_integration_drupal`)
 
 Present the plan to the user and ask for confirmation:
 
@@ -122,39 +100,53 @@ Present the plan to the user and ask for confirmation:
 >
 > Shall I create the missing components?"
 
-### Shell Step 4: Generate Header Component
+### Shell Step 4: Phase 1 — Generate ALL Twig Templates
 
-Build the header component definition:
+> ⛔ **Read these resources NOW** before writing any Twig file:
+> 1. `resources/twig.md` — template structure and rules
+> 2. `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` — CSS classes to use (e.g. DaisyUI/Tailwind classes)
 
-```yaml
-# header.component.yml
-$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
-name: header
-status: experimental
-group: Shell
-description: Application header with logo, navigation, and action buttons.
-provider: test_integration_drupal
-thirdPartySettings:
-  sdcStorybook:
-    disableBasicStory: true
-    tags: 
-      - "!autodocs"
-slots:
-  logo:
-    title: Logo
-    description: Branding logo
-  navigation:
-    title: Navigation
-    description: Main navigation
-  actions:
-    title: Actions
-    description: CTA buttons or action items
+Generate Twig templates for ALL components (UI + shell) in this phase. No `.story.yml` or `.component.yml` files yet.
+
+**Generation order** (dependencies first):
+1. `logo` — no dependencies
+2. `navigation` — no dependencies (variants: primary, footer)
+3. `copyright` — no dependencies
+4. `button` — no dependencies (skip if already exists)
+5. `header` — depends on logo, navigation, button
+6. `footer` — depends on navigation, copyright
+
+**Header Twig** (`header.twig`):
+```twig
+{# header.twig #}
+<header{{ attributes.addClass(['[css-framework-classes]']) }}>
+  {{ logo }}
+  {{ navigation }}
+  {{ actions }}
+</header>
 ```
 
-Build the header story. The story must use **only component references**:
+**Footer Twig** (`footer.twig`):
+```twig
+{# footer.twig #}
+<footer{{ attributes.addClass(['[css-framework-classes]']) }}>
+  {{ navigation }}
+  {{ copyright }}
+</footer>
+```
 
+Replace `[css-framework-classes]` with actual classes from `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md`.
+
+Also generate Twig templates for all UI components identified in Step 3 (logo, navigation, copyright, button, etc.).
+
+### Shell Step 5: Phase 2 — Generate ALL Stories
+
+> ⛔ **Read `resources/story-yml.md` NOW** before writing any story file.
+
+Generate story files for ALL components. Stories must use **only `type: component` references** for shell components.
+
+**Header story** (`header.default.story.yml`):
 ```yaml
-# header.default.story.yml
 name: default
 slots:
   logo:
@@ -183,51 +175,8 @@ slots:
             value: 'Contact'
 ```
 
-Replace `[ui_provider]` with the project's SDC UI provider from config.
-Replace `[PRODUCT_NAME]` with the product name from `vision.md`.
-Replace navigation items with those built in Shell Step 2.
-
-The Twig template uses real HTML markup (see `resources/twig.md` for class rules):
-
-```twig
-{# header.twig #}
-<header{{ attributes.addClass(['[css-framework-classes]']) }}>
-  {{ logo }}
-  {{ navigation }}
-  {{ actions }}
-</header>
-```
-
-### Shell Step 5: Generate Footer Component
-
-Build the footer component definition:
-
+**Footer story** (`footer.default.story.yml`):
 ```yaml
-# footer.component.yml
-$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
-name: footer
-status: experimental
-group: Shell
-description: Application footer with navigation links and copyright.
-provider: test_integration_drupal
-thirdPartySettings:
-  sdcStorybook:
-    disableBasicStory: true
-    tags: 
-      - "!autodocs"
-slots:
-  navigation:
-    title: Navigation
-    description: Footer navigation links
-  copyright:
-    title: Copyright
-    description: Copyright text
-```
-
-The story must use **only component references**:
-
-```yaml
-# footer.default.story.yml
 name: default
 slots:
   navigation:
@@ -249,37 +198,91 @@ slots:
         text: '© 2026 [PRODUCT_NAME]. All rights reserved.'
 ```
 
-The Twig template uses real HTML markup (see `resources/twig.md` for class rules):
+Also generate stories for all UI components (logo, navigation, copyright, button, etc.).
 
-```twig
-{# footer.twig #}
-<footer{{ attributes.addClass(['[css-framework-classes]']) }}>
-  {{ navigation }}
-  {{ copyright }}
-</footer>
-```
+Replace `[ui_provider]` with the project's SDC UI provider from config.
+Replace `[PRODUCT_NAME]` with the product name from `vision.md`.
+Replace navigation items with those built in Shell Step 2.
 
-### Shell Step 6: Verify Output
+### Shell Step 6: Phase 3 — Generate Component YAMLs + Validate Per Component
 
-Check that all files were created:
+> ⛔ **Read `resources/component-yml.md` NOW** before writing any component YAML.
+
+For each component: write `.component.yml`, then immediately validate before proceeding to the next.
 
 ```bash
-find $DESIGNBOOK_DRUPAL_THEME/components/header -type f | sort
-find $DESIGNBOOK_DRUPAL_THEME/components/footer -type f | sort
+# After writing each component's .component.yml:
+node packages/storybook-addon-designbook/dist/cli.js validate component [name]
+node packages/storybook-addon-designbook/dist/cli.js validate story [name]
+# Fix any errors before proceeding to the next component.
 ```
 
-**If successful:**
+**Header** (`header.component.yml`):
+```yaml
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: header
+status: experimental
+group: Shell
+description: Application header with logo, navigation, and action buttons.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+slots:
+  logo:
+    title: Logo
+    description: Branding logo
+  navigation:
+    title: Navigation
+    description: Main navigation
+  actions:
+    title: Actions
+    description: CTA buttons or action items
+```
+
+**Footer** (`footer.component.yml`):
+```yaml
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: footer
+status: experimental
+group: Shell
+description: Application footer with navigation links and copyright.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+slots:
+  navigation:
+    title: Navigation
+    description: Footer navigation links
+  copyright:
+    title: Copyright
+    description: Copyright text
+```
+
+Also generate `.component.yml` for all UI components, validating each one after creation.
+
+### Shell Step 7: Final Summary
+
+After all components are generated and validated:
+
 > "✅ **Shell components created!**
 >
 > **UI Components created:**
-> | Component | Path |
-> |-----------|------|
-> | `logo` | `components/logo/` |
-> | `navigation` | `components/navigation/` (variants: primary, footer) |
-> | `copyright` | `components/copyright/` |
+> | Component | Path | Validated |
+> |-----------|------|-----------|
+> | `logo` | `components/logo/` | ✅ |
+> | `navigation` | `components/navigation/` (variants: primary, footer) | ✅ |
+> | `copyright` | `components/copyright/` | ✅ |
 >
 > **Shell Components:**
-> - `header` — references `logo`, `navigation` (primary), `button`
-> - `footer` — references `navigation` (footer), `copyright`
+> | Component | Path | Validated |
+> |-----------|------|-----------|
+> | `header` | `components/header/` — references logo, navigation, button | ✅ |
+> | `footer` | `components/footer/` — references navigation, copyright | ✅ |
 >
 > Next: Run `designbook-entity` to generate entity design components."

@@ -1,11 +1,3 @@
-/**
- * Designbook Component Library
- *
- * React components for interactive workflow UIs in Storybook MDX files.
- * All components use `debo:` prefixed Tailwind classes for CSS isolation.
- */
-import '../index.css';
-
 // UI — Visual primitives
 export {
   DeboAlert,
@@ -15,13 +7,13 @@ export {
   DeboCollapsible,
   DeboEmptyState,
   DeboLoading,
-  DeboMockupWindow,
   DeboNumberedList,
   DeboPageLayout,
   DeboSourceFooter,
   DeboStepIndicator,
   DeboSceneCard,
   DeboStepIndicatorGroup,
+  DeboOnboardingGuide,
 } from './ui/index.js';
 
 // Display — Domain data renderers
@@ -34,7 +26,7 @@ export {
 } from './display/index.js';
 
 // Pages — Full page compositions
-export { DeboExportPage, DeboSectionPage, DeboSectionsOverview, DeboShellPage } from './pages/index.js';
+export { DeboDesignSystemPage, DeboFoundationPage, DeboSectionPage, DeboSectionsOverview } from './pages/index.js';
 
 // Data — Loading containers
 export { DeboSection } from './DeboSection.jsx';

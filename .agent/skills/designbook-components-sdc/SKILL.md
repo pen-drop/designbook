@@ -53,6 +53,8 @@ This skill generates Drupal Single Directory Component (SDC) files from a struct
 
 > ⛔ **CRITICAL RULE**: Stories must **NEVER** be placed inside `.component.yml`. Stories are **always** a separate `.story.yml` file.
 
+> ⛔ **FILE GENERATION ORDER — Phase-Based with Per-Component Validation**: When generating multiple components, use three phases: **Phase 1: ALL Twig → Phase 2: ALL Stories → Phase 3: Each Component YAML + Validate**. Read the relevant resource once at the start of each phase. CSS skill (`@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md`) is only needed in Phase 1 (Twig). In Phase 3, validate each component immediately after writing its `.component.yml` before proceeding to the next.
+
 > ⛔ **NAMING CONVENTION**: All files in a component directory **must share the same base name** as the directory. The base name is always **kebab-case**. No exceptions.
 >
 > ```
@@ -232,19 +234,38 @@ Wait for confirmation. If "n", stop execution.
 mkdir -p [targetDir]
 ```
 
-### Step 5: Generate .twig
+### Step 5: Phase 1 — Generate ALL .twig files
+
+> ⛔ **Read these resources NOW** (once, before any Twig file):
+> 1. [`resources/twig.md`](resources/twig.md) — template structure and rules
+> 2. `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` — CSS classes to use (only needed in this phase)
+
+Generate `.twig` for ALL components. No `.story.yml` or `.component.yml` files yet.
 
 → Follow instructions in [`resources/twig.md`](resources/twig.md)
 
-### Step 6: Generate .story.yml
+### Step 6: Phase 2 — Generate ALL .story.yml files
+
+> ⛔ **Read [`resources/story-yml.md`](resources/story-yml.md) NOW** (once, before any story file).
+
+Generate `.story.yml` for ALL components. No `.component.yml` files yet.
 
 → Follow instructions in [`resources/story-yml.md`](resources/story-yml.md)
 
-### Step 7: Generate .component.yml
+### Step 7: Phase 3 — Generate .component.yml + Validate (per component)
+
+> ⛔ **Read [`resources/component-yml.md`](resources/component-yml.md) NOW** (once, before any component YAML).
+
+For each component: write `.component.yml`, then immediately validate before proceeding to the next:
+
+```bash
+node packages/storybook-addon-designbook/dist/cli.js validate component [name]
+node packages/storybook-addon-designbook/dist/cli.js validate story [name]
+```
+
+Fix errors before proceeding to the next component.
 
 → Follow instructions in [`resources/component-yml.md`](resources/component-yml.md)
-
-> **Why this order?** The `.component.yml` is generated last so it can be validated against the already-created template and story files. Twig comes first because it defines the actual markup structure, stories second because they reference the template, and the metadata file last as the final validation gate.
 
 ### Step 8: Verify Output
 
@@ -326,13 +347,15 @@ Then validate the component visually in Storybook:
 | Same props + same slots, different layout | ✅ **Single component with variants** |
 | Different props or different slots | ❌ Separate components |
 | Same structure, minor styling difference (e.g. color) | ✅ Variant with modifier class |
-| Same structure, fundamentally different HTML | ✅ Variant with separate Twig include |
+| Same structure, fundamentally different HTML | ✅ Variant with inline if/elseif blocks |
 
 **Example**: A `card` component may appear as a vertical card and a horizontal card. Both accept the same props (`title`, `description`) and the same slots (`media`, `actions`). → This is **one `card` component** with variants `vertical` and `horizontal`.
 
-### Implementation Pattern: Twig Includes per Variant
+### Implementation Pattern: Inline Variants
 
-When the layout between variants is significantly different, use a **Twig include for each variant**. The main template dispatches to the correct include based on the `variant` prop.
+> ⛔ **NO PARTIAL TWIG FILES**: Never create separate `[name]--[variant].twig` files. All variant markup **must be inlined** in the single main `.twig` template using `{% if variant == '...' %}` blocks. This avoids import conflicts with `storybook-addon-sdc` which imports ALL `.twig` files in a directory.
+
+Each component directory contains **exactly one `.twig` file**. Variant-specific markup is handled with `{% if %}`/`{% elseif %}` blocks inside that single file.
 
 **Directory structure:**
 ```
@@ -340,98 +363,65 @@ components/card/
 ├── card.component.yml       # Single component definition with variants
 ├── card.vertical.story.yml  # Story for vertical variant
 ├── card.horizontal.story.yml # Story for horizontal variant
-├── card.twig                # Main template — dispatches to includes
-├── card--vertical.twig      # Layout for vertical variant
-├── card--horizontal.twig    # Layout for horizontal variant
-
+└── card.twig                # Single template — all variants inline
 ```
 
-> [!WARNING]
-> **SDC addon twig import rule**: The `storybook-addon-sdc` imports ALL `.twig` files in a component directory as `import COMPONENT from '...'`. When multiple `.twig` files exist (variant includes), this causes a `SyntaxError: Identifier 'COMPONENT' has already been declared`. The `sdc-dedup-component-import` Vite plugin in `.storybook/main.js` fixes this by keeping only the **first** `COMPONENT` import and converting duplicates to side-effect imports.
->
-> **Rule**: The **main** `.twig` file (the one the SDC addon imports as `COMPONENT`) must match the directory name: `card/card.twig`. Variant includes (e.g., `card--vertical.twig`) are loaded as side-effect imports for HMR only.
-
-**Main template (`card.twig`) — variant dispatcher:**
+**Single template with inline variants (`card.twig`):**
 ```twig
 {#
 /**
  * @file
  * Template for card component.
  *
- * Dispatches to variant-specific includes via static if/elseif.
- * (Dynamic includes are NOT used because they don't work in Storybook.)
+ * Available variables:
+ * - variant: Card layout variant (vertical, horizontal).
+ * - title: Card title.
+ * - description: Card description text.
+ * - media: Media slot (image, video, etc.).
+ * - actions: Action buttons slot.
  */
 #}
 {% set variant = variant|default('vertical') %}
 
 {% if variant == 'horizontal' %}
-  {% include 'card--horizontal.twig' with {
-    attributes: attributes,
-    title: title,
-    description: description,
-    media: media,
-    actions: actions,
-  } only %}
-{% else %}
-  {% include 'card--vertical.twig' with {
-    attributes: attributes,
-    title: title,
-    description: description,
-    media: media,
-    actions: actions,
-  } only %}
-{% endif %}
-```
-
-> ⚠️ **No dynamic includes**: Always use `{% if variant == '...' %}{% include '...' %}{% endif %}` with **static string paths**. Dynamic expressions like `{% include name ~ '.twig' %}` are **not supported** in Storybook's SDC addon.
-
-**Variant include (`card--vertical.twig`):**
-```twig
-{% set classes = [
-  'component',
-  'card',
-  'card--vertical',
-] %}
-
-<div{{ attributes.addClass(classes) }}>
-  {% if media %}
-    <div class="card__media">{{ media }}</div>
-  {% endif %}
-  <div class="card__body">
-    {% if title %}<h3 class="card__title">{{ title }}</h3>{% endif %}
-    {% if description %}<p class="card__description">{{ description }}</p>{% endif %}
-  </div>
-  {% if actions %}
-    <div class="card__actions">{{ actions }}</div>
-  {% endif %}
-</div>
-```
-
-**Variant include (`card--horizontal.twig`):**
-```twig
-{% set classes = [
-  'component',
-  'card',
-  'card--horizontal',
-] %}
-
-<div{{ attributes.addClass(classes) }}>
-  <div class="card__row">
+  <div{{ attributes.addClass(['card', 'card-side', 'bg-base-100', 'shadow-sm']) }}>
     {% if media %}
-      <div class="card__media">{{ media }}</div>
+      <figure>{{ media }}</figure>
     {% endif %}
-    <div class="card__content">
-      {% if title %}<h3 class="card__title">{{ title }}</h3>{% endif %}
-      {% if description %}<p class="card__description">{{ description }}</p>{% endif %}
+    <div class="card-body">
+      {% if title %}<h3 class="card-title">{{ title }}</h3>{% endif %}
+      {% if description %}<p>{{ description }}</p>{% endif %}
       {% if actions %}
-        <div class="card__actions">{{ actions }}</div>
+        <div class="card-actions justify-end">{{ actions }}</div>
       {% endif %}
     </div>
   </div>
-</div>
+{% else %}
+  <div{{ attributes.addClass(['card', 'bg-base-100', 'shadow-sm']) }}>
+    {% if media %}
+      <figure>{{ media }}</figure>
+    {% endif %}
+    <div class="card-body">
+      {% if title %}<h3 class="card-title">{{ title }}</h3>{% endif %}
+      {% if description %}<p>{{ description }}</p>{% endif %}
+      {% if actions %}
+        <div class="card-actions justify-end">{{ actions }}</div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
 ```
 
-> **Naming convention for variant includes**: Always use `[component-name]--[variant-id].twig`. These files live in the same component directory and are **not** standalone SDC components — they are internal Twig partials.
+> **Tip**: When variant markup is nearly identical and only differs in a few CSS classes, use a single block with conditional class assignment instead of duplicating the entire template:
+>
+> ```twig
+> {% set variant = variant|default('vertical') %}
+> {% set card_classes = variant == 'horizontal' ? ['card', 'card-side'] : ['card'] %}
+>
+> <div{{ attributes.addClass(card_classes) }}>
+>   {# shared markup #}
+> </div>
+> ```
 
 ### Stories for Variant Components
 
@@ -459,12 +449,12 @@ props:
   variant: horizontal
   title: 'Example Title'
   description: 'Example description text.'
-    slots:
-      media:
-        - type: component
-          component: 'provider:figure'
-          props:
-            src: 'https://picsum.photos/300/200'
+slots:
+  media:
+    - type: component
+      component: 'provider:figure'
+      props:
+        src: 'https://picsum.photos/300/200'
 ```
 
 ---

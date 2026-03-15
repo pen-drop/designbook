@@ -1,27 +1,58 @@
-/**
- * DeboCollapsible — Expandable/collapsible section using DaisyUI collapse.
- *
- * @param {Object} props
- * @param {string} props.title — Section heading
- * @param {number} [props.count] — Optional badge showing item count
- * @param {boolean} [props.defaultOpen=false] — Initial open state
- * @param {React.ReactNode} props.children — Collapsible content
- */
+import React from 'react';
+import { Collapsible } from 'storybook/internal/components';
+import { styled } from 'storybook/theming';
+
+const CollapsibleWrapper = styled.div(({ theme }) => ({
+  background: theme.background.content,
+  border: `1px solid ${theme.appBorderColor}`,
+  borderRadius: 16,
+  boxShadow: '0px 2px 12px -6px rgba(0,0,0,0.05)',
+  overflow: 'hidden',
+}));
+
+const SummaryContent = styled.div(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  fontFamily: theme.typography.fonts.base,
+  fontSize: theme.typography.size.l1,
+  fontWeight: theme.typography.weight.bold,
+  lineHeight: '28px',
+  letterSpacing: '-0.44px',
+  color: theme.color.defaultText,
+}));
+
+const CountBadge = styled.span(({ theme }) => ({
+  fontFamily: theme.typography.fonts.base,
+  background: theme.background.hoverable || 'rgba(148,163,184,0.2)',
+  color: theme.color.mediumdark,
+  fontSize: theme.typography.size.s1,
+  fontWeight: 600,
+  lineHeight: '16px',
+  borderRadius: 9999,
+  padding: '2px 8px',
+  marginLeft: 12,
+  display: 'inline-flex',
+  alignItems: 'center',
+}));
+
+const ContentInner = styled.div(({ theme }) => ({
+  borderTop: `1px solid ${theme.appBorderColor}`,
+  padding: 20,
+}));
+
 export function DeboCollapsible({ title, count, defaultOpen = false, children }) {
+  const summary = (
+    <SummaryContent>
+      {title}
+      {count != null && <CountBadge>{count}</CountBadge>}
+    </SummaryContent>
+  );
+
   return (
-    <div className="debo:collapse debo:collapse-arrow debo:bg-white debo:border debo:border-slate-200/75 debo:rounded-[16px] debo:shadow-[0px_2px_12px_-6px_rgba(0,0,0,0.05)] debo:overflow-clip">
-      <input type="checkbox" defaultChecked={defaultOpen} />
-      <div className="debo:collapse-title debo:!font-sans debo:text-lg debo:font-semibold debo:leading-7 debo:tracking-[-0.44px] debo:text-slate-900 debo:bg-slate-50/50 debo:px-5 debo:py-5">
-        {title}
-        {count != null && (
-          <span className="debo:!font-sans debo:bg-slate-200/80 debo:text-slate-700 debo:text-xs debo:font-semibold debo:leading-4 debo:rounded-full debo:px-2 debo:py-0.5 debo:ml-3 debo:inline-flex debo:items-center">
-            {count}
-          </span>
-        )}
-      </div>
-      <div className="debo:collapse-content debo:border-t debo:border-[#F1F5F9]">
-        <div className="debo:pt-5">{children}</div>
-      </div>
-    </div>
+    <CollapsibleWrapper>
+      <Collapsible summary={summary} initialCollapsed={!defaultOpen}>
+        <ContentInner>{children}</ContentInner>
+      </Collapsible>
+    </CollapsibleWrapper>
   );
 }

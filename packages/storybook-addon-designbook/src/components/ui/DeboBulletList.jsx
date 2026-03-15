@@ -1,21 +1,46 @@
-/**
- * DeboBulletList — A list with DaisyUI badge dots and text items.
- *
- * @param {Object} props
- * @param {Array<string|React.ReactNode>} props.items - List items to render
- * @param {'ghost'|'primary'} [props.variant='ghost'] - Badge dot color variant
- */
-export function DeboBulletList({ items, variant = 'ghost' }) {
-    if (!items || items.length === 0) return null;
+import React from 'react';
+import { styled } from 'storybook/theming';
 
-    return (
-        <ul className="debo:space-y-2">
-            {items.map((item, index) => (
-                <li key={index} className="debo:flex debo:items-start debo:gap-3">
-                    <span className={`debo:badge debo:badge-xs debo:badge-${variant} debo:mt-2 debo:shrink-0`} />
-                    <span className="debo:text-base-content/70">{item}</span>
-                </li>
-            ))}
-        </ul>
-    );
+const List = styled.ul({
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+});
+
+const ListItem = styled.li({
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 12,
+});
+
+const Dot = styled.span(({ theme }) => ({
+  width: 6,
+  height: 6,
+  borderRadius: '50%',
+  background: theme.color.mediumdark,
+  flexShrink: 0,
+  marginTop: 7,
+  opacity: 0.5,
+}));
+
+const ItemText = styled.span(({ theme }) => ({
+  color: theme.color.defaultText,
+  opacity: 0.7,
+}));
+
+export function DeboBulletList({ items }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <List>
+      {items.map((item, index) => (
+        <ListItem key={index}>
+          <Dot />
+          <ItemText>{item}</ItemText>
+        </ListItem>
+      ))}
+    </List>
+  );
 }

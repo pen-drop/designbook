@@ -81,7 +81,7 @@ status: planned
 order: 1
 
 name: "Designbook/Sections/Section Title"
-layout: "shell"
+layout: "design-system:shell"
 
 scenes: []
 ```
@@ -92,7 +92,7 @@ scenes: []
 - `status` defaults to "planned"
 - `order` should reflect the sequence (1, 2, 3...)
 - `name` follows the `"Designbook/Sections/[Title]"` convention
-- `layout: "shell"` enables layout inheritance from the shell
+- `layout: "design-system:shell"` enables layout inheritance from the design-system shell
 - `scenes` starts as empty array — populated later by `/debo-design-screen`
 
 Create the directory `${DESIGNBOOK_DIST}/sections/[id]/` for each section if it doesn't exist.

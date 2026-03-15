@@ -1,0 +1,15 @@
+[
+  {
+    "type": "component",
+    "component": "heading",
+    "props": { "level": "h1" },
+    "slots": { "text": title }
+  },
+  {
+    "type": "entity",
+    "entity_type": "user",
+    "bundle": "user",
+    "view_mode": "compact",
+    "record": 0
+  }
+]

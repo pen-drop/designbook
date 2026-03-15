@@ -74,29 +74,6 @@ const config = {
     return mergeConfig(config, {
       plugins: [
         tailwindcss(),
-        {
-          // Fix SDC addon bug: generateImports imports ALL .twig files as
-          // `import COMPONENT from '...'`, causing redeclaration when a
-          // component dir has variant .twig files (e.g. card--horizontal.twig).
-          // This transform keeps only the first COMPONENT import and converts
-          // subsequent ones to side-effect imports.
-          name: 'sdc-dedup-component-import',
-          enforce: 'post',
-          transform(code, id) {
-            if (!id.endsWith('.component.yml')) return;
-            let found = false;
-            return code.replace(
-              /import COMPONENT from '([^']+)';/g,
-              (match, path) => {
-                if (!found) {
-                  found = true;
-                  return match; // keep first
-                }
-                return `import '${path}';`; // side-effect only
-              }
-            );
-          },
-        },
       ],
       build: {
         // Use esbuild for CSS minification instead of lightningcss

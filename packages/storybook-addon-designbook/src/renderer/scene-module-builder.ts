@@ -30,7 +30,8 @@ import type {
   SceneNodeRenderer,
   RenderContext,
 } from './types';
-import { isSceneEntityEntry, isSceneComponentEntry } from './types';
+import { isSceneEntityEntry, isSceneComponentEntry, isSceneConfigEntry } from './types';
+import type { ConfigSceneNode } from './types';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -82,14 +83,14 @@ export interface SceneModuleOptions {
 // ── Layout reference resolution ────────────────────────────────────
 
 /**
- * Resolve a layout reference like "shell" or "shell:minimal".
+ * Resolve a layout reference like "design-system:shell" or "design-system".
  *
  * Scans ALL *.scenes.yml files in {designbookDir}/{source}/ and collects
  * their scenes. Returns the layout slots of the matched scene.
  *
  * Reference syntax:
- *   "shell"          → all scenes in shell/ → first scene (scenes[0])
- *   "shell:minimal"  → all scenes in shell/ → scene named "minimal"
+ *   "design-system"        → all scenes in design-system/ → first scene (scenes[0])
+ *   "design-system:shell"  → all scenes in design-system/ → scene named "shell"
  */
 function resolveLayoutReference(
   ref: string,
@@ -267,6 +268,14 @@ export async function buildSceneModule(
             view_mode: entry.view_mode,
             record: entry.record ?? 0,
           } as EntitySceneNode);
+        } else if (isSceneConfigEntry(entry)) {
+          const [config_type, ...nameParts] = entry.config.split('.');
+          nodes.push({
+            type: 'config',
+            config_type,
+            config_name: nameParts.join('.'),
+            view_mode: entry.view_mode ?? 'default',
+          } as ConfigSceneNode);
         } else if (isSceneComponentEntry(entry)) {
           nodes.push({
             type: 'component',

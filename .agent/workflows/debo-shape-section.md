@@ -16,7 +16,7 @@ Check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/vision.md` — product vision (required)
 - `${DESIGNBOOK_DIST}/data-model.yml` — data model (optional, helpful)
 - `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (optional)
-- `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` — application shell (optional)
+- `${DESIGNBOOK_DIST}/design-system/design-system.scenes.yml` — application shell (optional)
 
 **If product vision or roadmap are missing**, tell the user:
 
@@ -105,7 +105,7 @@ status: planned
 order: 1
 
 name: "Designbook/Sections/Section Title"
-layout: "shell"
+layout: "design-system:shell"
 
 user_flows:
   - title: Flow 1 title

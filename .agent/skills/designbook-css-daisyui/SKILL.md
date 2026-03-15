@@ -13,7 +13,7 @@ DaisyUI-specific rules for styling, token naming, and CSS token generation. This
 
 ## Prerequisites
 
-> ⛔ **MANDATORY**: Load `@designbook-css-tailwind` FIRST. The Tailwind v4 skill provides structural token conventions (container, section-spacing) and the `@theme` generation rules that DaisyUI builds on.
+> ⛔ **MANDATORY**: Load `@designbook-css-tailwind` FIRST. The Tailwind v4 skill provides structural token conventions (layout-width, layout-spacing, grid) and the `@theme` generation rules that DaisyUI builds on.
 
 ## ⚠️ Styling Rules — Tailwind Classes Only
 
@@ -217,7 +217,7 @@ Each file returns a **CSS string** that jsonata-w writes directly to the output 
 - For **color** tokens: generate DaisyUI theme plugin format using `--color-[name]` variables
 - For **typography** tokens: generate `--font-*` variables
 - Group-to-file mapping: `color` → `color.src.css`, `typography` → `font.src.css`, etc.
-- **Spacing CSS generation** is handled by `@designbook-css-tailwind` — do NOT generate spacing `.jsonata` files here
+- **Layout and grid CSS generation** is handled by `@designbook-css-tailwind` — do NOT generate layout-width, layout-spacing, or grid `.jsonata` files here
 - Return as a **string** (jsonata-w 1.0.1+ writes strings directly as raw text)
 
 ### Step 4: Generate dark theme (if applicable)

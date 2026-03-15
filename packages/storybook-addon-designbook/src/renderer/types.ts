@@ -23,9 +23,26 @@ export interface DataModelContent {
   };
 }
 
+/** A list source in the data model config. */
+export interface ListSource {
+  entity_type: string;
+  bundle: string;
+  view_mode: string;
+}
+
+/** A list config entry. */
+export interface ListConfig {
+  sources: ListSource[];
+  limit?: number;
+  sorting?: string;
+}
+
 /** Top-level data model. */
 export interface DataModel {
   content: DataModelContent;
+  config?: {
+    list?: Record<string, ListConfig>;
+  };
 }
 
 /** Sample data structure from data.yml. */
@@ -61,6 +78,14 @@ export interface EntitySceneNode extends SceneNode {
   record?: number;
 }
 
+/** A config scene node (e.g., list). */
+export interface ConfigSceneNode extends SceneNode {
+  type: 'config';
+  config_type: string;
+  config_name: string;
+  view_mode: string;
+}
+
 // ─── Scene Definition Types ─────────────────────────────────────────
 
 /** A component entry in a scene layout slot. */
@@ -79,8 +104,14 @@ export interface SceneEntityEntry {
   records?: number[]; // multiple records shorthand
 }
 
+/** A config entry in a scene layout slot (e.g., list). */
+export interface SceneConfigEntry {
+  config: string; // "list.recent_articles"
+  view_mode?: string; // defaults to "default"
+}
+
 /** Union type for entries in a scene slot. */
-export type SceneLayoutEntry = SceneComponentEntry | SceneEntityEntry;
+export type SceneLayoutEntry = SceneComponentEntry | SceneEntityEntry | SceneConfigEntry;
 
 /** A single scene definition within a *.scenes.yml file. */
 export interface SceneDef {
@@ -113,6 +144,11 @@ export function isSceneEntityEntry(entry: SceneLayoutEntry): entry is SceneEntit
 /** Check if a layout entry is a component entry. */
 export function isSceneComponentEntry(entry: SceneLayoutEntry): entry is SceneComponentEntry {
   return 'component' in entry && typeof (entry as SceneComponentEntry).component === 'string';
+}
+
+/** Check if a layout entry is a config entry. */
+export function isSceneConfigEntry(entry: SceneLayoutEntry): entry is SceneConfigEntry {
+  return 'config' in entry && typeof (entry as SceneConfigEntry).config === 'string';
 }
 
 // ─── Renderer Registry Types ─────────────────────────────────────────

@@ -10,8 +10,13 @@ export type { SdcModuleBuilderOptions } from './module-builder';
 
 import { sdcComponentRenderer } from './renderer';
 import { entityJsonataRenderer } from '../../entity-renderer';
+import { configRenderer } from '../../config-renderer';
 
 /**
  * Default renderer stack for SDC/Twig-based projects.
  */
-export const sdcRenderers: import('../../types').SceneNodeRenderer[] = [sdcComponentRenderer, entityJsonataRenderer];
+export const sdcRenderers: import('../../types').SceneNodeRenderer[] = [
+  sdcComponentRenderer,
+  entityJsonataRenderer,
+  configRenderer,
+];

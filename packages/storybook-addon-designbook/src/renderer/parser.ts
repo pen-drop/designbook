@@ -5,7 +5,7 @@
  * (e.g. records: [0, 1, 2] → 3 separate entity entries).
  */
 
-import type { SceneDef, SceneLayoutEntry, SceneEntityEntry } from './types';
+import type { SceneDef, SceneLayoutEntry, SceneEntityEntry, SceneConfigEntry } from './types';
 
 /**
  * Parse raw YAML object into a validated SceneDef.
@@ -86,6 +86,13 @@ function expandEntries(entries: unknown[]): SceneLayoutEntry[] {
           record: entityEntry.record ?? 0,
         });
       }
+    }
+    // Config entry (e.g., list)
+    else if ('config' in obj && typeof obj.config === 'string') {
+      result.push({
+        config: obj.config,
+        view_mode: typeof obj.view_mode === 'string' ? obj.view_mode : undefined,
+      } as SceneConfigEntry);
     }
     // Component entry
     else if ('component' in obj && typeof obj.component === 'string') {

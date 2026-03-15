@@ -18,7 +18,7 @@ import { SceneNodeRenderService } from '../../render-service';
 
 // ── SDC ModuleBuilder adapter ──────────────────────────────────────
 
-const sdcModuleBuilder: ModuleBuilder = {
+export const sdcModuleBuilder: ModuleBuilder = {
   createImportTracker(designbookDir: string) {
     const imports: string[] = [];
     const kebabMap: Record<string, string> = {};
@@ -56,40 +56,146 @@ const sdcModuleBuilder: ModuleBuilder = {
     renderService: SceneNodeRenderService,
     renderContext: RenderContext,
   ): Promise<string> {
-    const markerRegex = /__ENTITY_EXPR__(.*?)__END_ENTITY_EXPR__/g;
-    let match;
-    while ((match = markerRegex.exec(rendered)) !== null) {
+    // Resolve list markers FIRST — they contain JSON-encoded entity markers in their
+    // payload that would corrupt the entity regex if processed in the wrong order.
+    const listRegex = /__LIST_EXPR__(.*?)__END_LIST_EXPR__/g;
+    let listMatch;
+    while ((listMatch = listRegex.exec(rendered)) !== null) {
       try {
-        const meta = JSON.parse(match[1] ?? '{}');
-        const { jsonataPath, entityType, bundle, record = 0 } = meta;
-        const entityData =
-          sampleData?.[entityType]?.[bundle] ?? (sampleData?.[bundle] as Record<string, unknown>[] | undefined);
-        if (entityData && entityData[record]) {
-          const expr = jsonata(readFileSync(jsonataPath, 'utf-8'));
-          const result = await expr.evaluate(entityData[record]);
-          if (result && Array.isArray(result)) {
-            const childRenders = result.map((childNode: Record<string, unknown>) => {
-              const compNode: SceneNode = {
-                type: 'component',
-                component: childNode.component as string,
-                props: childNode.props as Record<string, unknown>,
-                slots: childNode.slots as Record<string, unknown>,
-                story: childNode.story as string,
-              };
-              return renderService.render(compNode, renderContext);
-            });
-            rendered = rendered.replace(match[0], `[${childRenders.join(', ')}].join('')`);
-          } else {
-            rendered = rendered.replace(match[0], `'<!-- empty: ${entityType}.${bundle} -->'`);
+        const meta = JSON.parse(listMatch[1] ?? '{}');
+        const { jsonataPath, count, limit } = meta;
+        let { rows } = meta as { rows: string[] };
+
+        // Resolve entity markers inside each row first
+        const resolvedRows: string[] = [];
+        for (const row of rows) {
+          const resolved = await this.resolveMarkers(row, sampleData, renderService, renderContext);
+          resolvedRows.push(resolved);
+        }
+        rows = resolvedRows;
+
+        const expr = jsonata(readFileSync(jsonataPath, 'utf-8'));
+        const result = await expr.evaluate(
+          {},
+          {
+            rows,
+            count,
+            limit,
+          },
+        );
+        if (result && typeof result === 'object') {
+          const resultNode = result as Record<string, unknown>;
+          const component = resultNode.component as string | undefined;
+
+          if (!component) {
+            rendered = rendered.replace(listMatch[0], `'<!-- list: no component in result -->'`);
+            continue;
           }
+
+          // Build the component call manually — $rows are already-rendered JS
+          // expressions that must be emitted as raw code, not JSON-serialized.
+          const varName = renderContext.trackImport(component);
+          const baseArgs = `...${varName}?.Basic?.baseArgs ?? {}`;
+          const argParts: string[] = [baseArgs];
+
+          const serializeValue = (value: unknown): string => {
+            if (Array.isArray(value)) {
+              const parts = value.map((v) => serializeValue(v));
+              return `new TwigSafeArray(${parts.join(', ')})`;
+            }
+            if (typeof value === 'string' && rows.includes(value)) {
+              return value; // Raw JS expression — don't JSON-serialize
+            }
+            return JSON.stringify(value);
+          };
+
+          if (resultNode.props && typeof resultNode.props === 'object') {
+            for (const [key, val] of Object.entries(resultNode.props as Record<string, unknown>)) {
+              argParts.push(`${key}: ${serializeValue(val)}`);
+            }
+          }
+          if (resultNode.slots && typeof resultNode.slots === 'object') {
+            for (const [key, val] of Object.entries(resultNode.slots as Record<string, unknown>)) {
+              argParts.push(`${key}: ${serializeValue(val)}`);
+            }
+          }
+
+          let childRendered = `${varName}.default.component({${argParts.join(', ')}})`;
+          // Recursively resolve any entity markers produced by the wrapper
+          childRendered = await this.resolveMarkers(childRendered, sampleData, renderService, renderContext);
+          rendered = rendered.replace(listMatch[0], childRendered);
         } else {
-          rendered = rendered.replace(match[0], `'<!-- no data: ${entityType}.${bundle}[${record}] -->'`);
+          rendered = rendered.replace(listMatch[0], `'<!-- empty list: ${meta.configName} -->'`);
         }
       } catch (err) {
-        console.error('[Designbook] Entity expression error:', err);
-        rendered = rendered.replace(match[0], `'<!-- error -->'`);
+        console.error('[Designbook] List expression error:', err);
+        rendered = rendered.replace(listMatch[0], `'<!-- list error -->'`);
       }
     }
+
+    // Now resolve entity markers
+    const MAX_RESOLVE_PASSES = 5;
+
+    for (let pass = 0; pass < MAX_RESOLVE_PASSES; pass++) {
+      const markerRegex = /__ENTITY_EXPR__(.*?)__END_ENTITY_EXPR__/g;
+      let match;
+      let hadMarkers = false;
+
+      while ((match = markerRegex.exec(rendered)) !== null) {
+        hadMarkers = true;
+        try {
+          const meta = JSON.parse(match[1] ?? '{}');
+          const { jsonataPath, entityType, bundle, record = 0 } = meta;
+          const entityData =
+            sampleData?.[entityType]?.[bundle] ?? (sampleData?.[bundle] as Record<string, unknown>[] | undefined);
+          if (entityData && entityData[record]) {
+            const expr = jsonata(readFileSync(jsonataPath, 'utf-8'));
+            const result = await expr.evaluate(entityData[record]);
+            if (result && Array.isArray(result)) {
+              const childRenders = result.map((childNode: Record<string, unknown>) => {
+                const nodeType = childNode.type as string;
+                const sceneNode: SceneNode = {
+                  type: nodeType,
+                  ...(nodeType === 'entity'
+                    ? {
+                        entity_type: childNode.entity_type as string,
+                        bundle: childNode.bundle as string,
+                        view_mode: childNode.view_mode as string,
+                        record: (childNode.record as number) ?? 0,
+                      }
+                    : {
+                        component: childNode.component as string,
+                        props: childNode.props as Record<string, unknown>,
+                        slots: childNode.slots as Record<string, unknown>,
+                        story: childNode.story as string,
+                      }),
+                };
+                return renderService.render(sceneNode, renderContext);
+              });
+              rendered = rendered.replace(match[0], `[${childRenders.join(', ')}].join('')`);
+            } else {
+              rendered = rendered.replace(match[0], `'<!-- empty: ${entityType}.${bundle} -->'`);
+            }
+          } else {
+            rendered = rendered.replace(match[0], `'<!-- no data: ${entityType}.${bundle}[${record}] -->'`);
+          }
+        } catch (err) {
+          console.error('[Designbook] Entity expression error:', err);
+          rendered = rendered.replace(match[0], `'<!-- error -->'`);
+        }
+      }
+
+      // If no markers were found, no need for more passes
+      if (!hadMarkers) break;
+
+      // Check if new markers were produced (from nested entity resolution)
+      if (!rendered.includes('__ENTITY_EXPR__')) break;
+    }
+
+    if (rendered.includes('__ENTITY_EXPR__')) {
+      console.warn('[Designbook] Entity resolution exceeded max depth (5 passes). Some entities remain unresolved.');
+    }
+
     return rendered;
   },
 

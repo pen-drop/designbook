@@ -15,12 +15,12 @@ properties:
     title: Configuration
     description: "Configuration structure: config -> config_type -> config_item"
     properties:
-      views:
+      list:
         type: object
-        title: Views
-        description: Drupal Views configurations
+        title: Lists
+        description: List configurations — collections of content from one or more sources
         additionalProperties:
-          $ref: "#/definitions/view"
+          $ref: "#/definitions/list"
     additionalProperties:
       type: object
       description: Additional configuration types can be added here
@@ -38,6 +38,15 @@ definitions:
     title: Bundle
     description: Bundle definition with its fields and optional view mode display mappings
     properties:
+      composition:
+        type: string
+        title: Composition
+        description: >
+          Content composition strategy. "structured" (default): entity has fields,
+          some referencing other entities. "unstructured": entity has a layout or
+          component tree for view_mode full; all other view modes are always structured.
+        enum: [structured, unstructured]
+        default: structured
       fields:
         type: object
         title: Fields
@@ -75,30 +84,42 @@ definitions:
     required:
       - type
     additionalProperties: true
-  view:
+  list:
     type: object
-    title: View
-    description: View configuration
+    title: List
+    description: List configuration — a collection of content from one or more sources
     properties:
-      base_entity:
-        type: string
-        description: Base entity type
-      bundle:
-        type: string
-        description: Content type bundle
-      sorting:
-        type: string
-        description: Default sorting field
+      sources:
+        type: array
+        description: Content sources for this list
+        items:
+          $ref: "#/definitions/list_source"
+        minItems: 1
       limit:
         type: integer
-        description: Items per page
-      hasPager:
-        type: boolean
-        description: Enable pager
-      hint:
+        description: Maximum number of items to display
+      sorting:
         type: string
-        description: View configuration hint
+        description: Sorting hint (declarative, used for documentation/export)
     required:
-      - base_entity
-      - bundle
+      - sources
     additionalProperties: true
+  list_source:
+    type: object
+    title: List Source
+    description: A content source within a list
+    properties:
+      entity_type:
+        type: string
+        description: Entity type (e.g., node, media)
+      bundle:
+        type: string
+        description: Content bundle (e.g., article, event)
+      view_mode:
+        type: string
+        description: View mode for rendering each item (e.g., teaser, search_result)
+    required:
+      - entity_type
+      - bundle
+      - view_mode
+    additionalProperties: false

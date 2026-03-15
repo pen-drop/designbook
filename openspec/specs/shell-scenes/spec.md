@@ -22,23 +22,24 @@ The shell scenes provides the application-wide layout container. It composes a `
 
 ### Screen File
 
-- Located at `designbook/shell/shell.scenes.yml`
-- Contains `docs` field with layout pattern, responsive behavior, design notes
+- Located at `designbook/design-system/design-system.scenes.yml`
+- Contains a scene named `shell` with the layout pattern, responsive behavior, design notes
 - Storybook renders the screen on Canvas tab, docs on Docs tab
 
 ### Storybook Integration
 
-- Vite plugin discovers `shell/*.scenes.yml` (new glob path alongside existing `sections/*/screens/`)
-- Screen title maps to `Designbook/Shell/{name}`
+- Vite plugin discovers `design-system/*.scenes.yml` (new glob path alongside existing `sections/*/screens/`)
+- Screen title maps to `Designbook/Design System/{name}`
 - The `docs` field is passed to CSF `parameters.docs.description.story`
 - `03-design-system.mdx` removes the Application Shell DeboSection, replaces with a story link
-- `DeboExportPage.jsx` checks `shell/shell.scenes.yml` for completion instead of `design-shell/shell-spec.md`
+- `DeboDesignSystemPage` checks `design-system/design-system.scenes.yml` for completion
 
 ### Workflow
 
-- `debo-design-shell.md` workflow produces `shell.scenes.yml` + ensures page/header/footer components exist
+- `debo-design-shell.md` workflow produces `design-system.scenes.yml` + ensures page/header/footer components exist
 - If components don't exist, the workflow creates them using `designbook-drupal-components` skill conventions
 - The workflow asks the same design questions (layout pattern, navigation, responsive) but writes a screen + components instead of a Markdown file
+- Section scenes reference the shell layout via `layout: "design-system:shell"`
 
 ### Backward Compatibility
 

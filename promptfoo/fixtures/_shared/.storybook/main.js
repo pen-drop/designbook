@@ -7,8 +7,8 @@ const config = {
     "../components/**/*.component.yml",
     // Section scenes
     "../designbook/sections/*/*.scenes.yml",
-    // Shell scenes
-    "../designbook/shell/*.scenes.yml",
+    // Design system scenes (shell)
+    "../designbook/design-system/*.scenes.yml",
   ],
   addons: [
     "@storybook/addon-docs",

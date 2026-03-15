@@ -12,7 +12,7 @@ description: Generates scene files that compose UI components + entity data into
 >
 > | File | Scenes |
 > |------|---------|
-> | `shell/spec.shell.scenes.yml` | `default`, `minimal` |
+> | `design-system/design-system.scenes.yml` | `shell`, `minimal` |
 > | `sections/blog/blog.section.scenes.yml` | `Blog Detail`, `Blog Listing` |
 
 ## Prerequisites
@@ -28,8 +28,9 @@ description: Generates scene files that compose UI components + entity data into
 
 ```
 $DESIGNBOOK_DIST/
-├── shell/
-│   └── spec.shell.scenes.yml          # Shell layout (base for inheritance)
+├── design-system/
+│   ├── design-tokens.yml              # Design tokens
+│   └── design-system.scenes.yml       # Shell layout (base for inheritance)
 └── sections/
     └── blog/
         ├── data.yml
@@ -46,19 +47,19 @@ $DESIGNBOOK_DIST/
 
 ### Standalone Scene File (no layout inheritance)
 
-Used for the shell itself — defines all layout slots. Shell files use `spec.shell.scenes.yml`:
+Used for the design system shell — defines all layout slots. Lives in `design-system/design-system.scenes.yml`:
 
 ```yaml
-# shell/spec.shell.scenes.yml
-id: shell
-title: Application Shell
+# design-system/design-system.scenes.yml
+id: design-system
+title: Design System
 description: Top-navigation layout with logo, main nav, and footer.
 status: planned
 order: 0
 
-name: "Designbook/Shell"
+name: "Designbook/Design System"
 scenes:
-  - name: default
+  - name: shell
     layout:
       header:
         - component: test_integration_drupal:header
@@ -92,7 +93,7 @@ status: planned
 order: 2
 
 name: "Designbook/Sections/Blog"
-layout: "shell"
+layout: "design-system:shell"
 
 scenes:
   - name: "Blog Detail"
@@ -124,9 +125,9 @@ scenes:
 The resolver scans **all** `*.scenes.yml` files in the referenced directory, collects all scenes, and finds the target:
 
 ```
-layout: "shell"            → shell/*.scenes.yml → first scene (scenes[0])
-layout: "shell:default"    → shell/*.scenes.yml → scene named "default"
-layout: "shell:minimal"    → shell/*.scenes.yml → scene named "minimal"
+layout: "design-system"        → design-system/*.scenes.yml → first scene (scenes[0])
+layout: "design-system:shell"  → design-system/*.scenes.yml → scene named "shell"
+layout: "design-system:minimal"→ design-system/*.scenes.yml → scene named "minimal"
 ```
 
 Same `source:name` convention used for component references (`provider:component`).
@@ -135,7 +136,7 @@ Same `source:name` convention used for component references (`provider:component
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | ✅ | Display name for the Storybook group (e.g. `"Designbook/Shell"`, `"Designbook/Sections/Blog"`) |
+| `name` | ✅ | Display name for the Storybook group (e.g. `"Designbook/Design System"`, `"Designbook/Sections/Blog"`) |
 | `layout` | ❌ | Layout scene to inherit from (`"source"` or `"source:scene"`) |
 | `scenes` | ✅ | Array of scene definitions |
 | `id` | ❌ | Section/shell identifier (for metadata) |
@@ -173,6 +174,19 @@ Reference an entity from the data model. Resolved at build time:
   view_mode: full            # Which view_modes.mapping[] to use
   record: 0                  # Sample data record index (default: 0)
 ```
+
+### Config Entry
+
+Reference a list config from `data-model.yml`. The renderer loads the list config, renders all source records through their entity view modes, and evaluates the list-level JSONata:
+
+```yaml
+- config: list.recent_articles        # "<config_type>.<config_name>"
+  view_mode: default                   # Optional, defaults to "default"
+```
+
+This evaluates `view-modes/list.recent_articles.default.jsonata` with pre-rendered `$rows`.
+
+Config entries can be used standalone or embedded in component slots (e.g., inside a Layout Builder section).
 
 ### Records Shorthand
 
@@ -226,7 +240,7 @@ status: planned
 order: 2
 
 name: "Designbook/Sections/Blog"
-layout: "shell"
+layout: "design-system:shell"
 
 scenes:
   - name: "Blog Detail"
@@ -248,7 +262,7 @@ scenes:
 ```
 
 > [!TIP]
-> **No need to repeat header/footer.** With `layout: "shell"`, the header and footer are inherited automatically. Only define the `content` slot.
+> **No need to repeat header/footer.** With `layout: "design-system:shell"`, the header and footer are inherited from the shell scene. Only define the `content` slot.
 
 ### Step 5: Verify in Storybook
 
@@ -262,6 +276,10 @@ Open Storybook — each scene appears as its own story in the sidebar. Each shou
 > The renderer validates this format and throws an error if it's wrong.
 
 The provider is the SDC namespace from the component's `.component.yml` → `provider:` field.
+
+## Composition Note
+
+Scenes work the same regardless of a bundle's `composition` setting (`structured` or `unstructured`). The scene always uses `entity` or `component` entries. The differences in how content is composed (Layout Builder sections, Canvas component trees, structured fields) are handled by the JSONata view-mode expressions, not by the scene format.
 
 ## Error Handling
 

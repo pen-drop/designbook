@@ -1,15 +1,7 @@
 import React, { memo, useState, useEffect } from 'react';
-import { AddonPanel } from 'storybook/internal/components';
+import { AddonPanel, TabsView } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
-
-interface WorkflowTask {
-  id: string;
-  title: string;
-  type: string;
-  status: 'pending' | 'in-progress' | 'done';
-  started_at: string | null;
-  completed_at: string | null;
-}
+import { timeRange, ManagerBadge } from './manager-utils.tsx';
 
 interface WorkflowData {
   changeName: string;
@@ -17,8 +9,16 @@ interface WorkflowData {
   workflow: string;
   started_at: string | null;
   completed_at: string | null;
-  tasks: WorkflowTask[];
+  tasks: unknown[];
   source: 'active' | 'archived';
+}
+
+interface StatusData {
+  vision: { exists: boolean };
+  designSystem: { tokens: boolean };
+  dataModel: { exists: boolean };
+  shell: { exists: boolean };
+  sections: Array<{ id: string; title: string; hasScenes: boolean }>;
 }
 
 interface PanelProps {
@@ -34,76 +34,39 @@ const Container = styled.div(({ theme }) => ({
   fontSize: theme.typography.size.s2,
 }));
 
-const LogEntry = styled.div<{ isActive: boolean }>(({ theme, isActive }) => ({
+const Row = styled.div<{ isDone: boolean }>(({ theme, isDone }) => ({
   display: 'flex',
-  alignItems: 'flex-start',
+  alignItems: 'center',
   gap: '8px',
-  padding: '8px 10px',
-  borderRadius: '4px',
-  borderLeft: `3px solid ${isActive ? theme.color.secondary || '#1ea7fd' : theme.color.positive || '#10b981'}`,
-  background: isActive ? theme.background.hoverable || '#f5f5f5' : 'transparent',
-  marginBottom: '4px',
-  '& + &': {
-    marginTop: '2px',
-  },
+  padding: '6px 8px',
+  borderRadius: '6px',
+  '&:hover': { background: theme.background.hoverable || '#f5f5f5' },
+  opacity: isDone ? 0.7 : 1,
 }));
 
-const LogIcon = styled.span({
+const Icon = styled.span({
   flexShrink: 0,
   width: '18px',
   textAlign: 'center' as const,
   lineHeight: '20px',
 });
 
-const LogContent = styled.div({
+const Title = styled.span(({ theme }) => ({
   flex: 1,
-  minWidth: 0,
-});
-
-const LogTitle = styled.div(({ theme }) => ({
   fontWeight: theme.typography.weight.bold,
   fontSize: theme.typography.size.s2,
   lineHeight: '20px',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap' as const,
 }));
 
-const LogDetail = styled.div(({ theme }) => ({
-  fontSize: theme.typography.size.s1,
-  color: theme.color.mediumdark,
-  marginTop: '2px',
-}));
-
-const LogTime = styled.span(({ theme }) => ({
+const Time = styled.span(({ theme }) => ({
   fontSize: '10px',
   color: theme.color.mediumdark,
   opacity: 0.6,
   flexShrink: 0,
   lineHeight: '20px',
-}));
-
-const TaskList = styled.div({
-  marginTop: '4px',
-  display: 'flex',
-  flexWrap: 'wrap' as const,
-  gap: '4px',
-});
-
-const TaskPill = styled.span<{ status: string }>(({ theme, status }) => ({
-  fontSize: '10px',
-  padding: '1px 6px',
-  borderRadius: '9999px',
-  background:
-    status === 'done'
-      ? (theme.color.positive || '#10b981') + '20'
-      : status === 'in-progress'
-        ? (theme.color.secondary || '#1ea7fd') + '20'
-        : theme.background.hoverable || '#f0f0f0',
-  color:
-    status === 'done'
-      ? theme.color.positive || '#10b981'
-      : status === 'in-progress'
-        ? theme.color.secondary || '#1ea7fd'
-        : theme.color.mediumdark,
-  fontWeight: status === 'in-progress' ? 600 : 400,
 }));
 
 const EmptyState = styled.div(({ theme }) => ({
@@ -112,43 +75,78 @@ const EmptyState = styled.div(({ theme }) => ({
   color: theme.color.mediumdark,
 }));
 
-function relativeTime(iso: string | null): string {
-  if (!iso) return '';
-  const diff = Date.now() - new Date(iso).getTime();
-  const seconds = Math.floor(diff / 1000);
-  if (seconds < 5) return 'just now';
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
+const BadgeRow = styled.div({
+  display: 'flex',
+  flexWrap: 'wrap' as const,
+  gap: 6,
+  padding: '8px 0',
+});
 
-function timeRange(started: string | null, ended: string | null): string {
-  if (!started) return '';
-  const startDate = new Date(started);
-  const startDay = startDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const startTime = startDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  if (ended) {
-    const endDate = new Date(ended);
-    const endDay = endDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const endTime = endDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    const endPart = startDay === endDay ? endTime : `${endDay} ${endTime}`;
-    return `${startDay} ${startTime} – ${endPart} (${relativeTime(ended)})`;
+const SectionLabel = styled.div(({ theme }) => ({
+  fontSize: 10,
+  fontWeight: 600,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.5px',
+  color: theme.color.mediumdark,
+  marginTop: 12,
+  marginBottom: 6,
+}));
+
+function WorkflowsTab({ workflows }: { workflows: WorkflowData[] }) {
+  if (workflows.length === 0) {
+    return <EmptyState>No workflow activity yet. Run a /debo-* command to see progress here.</EmptyState>;
   }
-  return `${startDay} ${startTime} (${relativeTime(started)})`;
+
+  return (
+    <Container>
+      {workflows.map((wf) => {
+        const isDone = wf.source === 'archived';
+        return (
+          <Row key={wf.changeName} isDone={isDone}>
+            <Icon>{isDone ? '\u2705' : '\u26A1'}</Icon>
+            <Title>{wf.title}</Title>
+            <Time>{timeRange(wf.started_at, wf.completed_at)}</Time>
+          </Row>
+        );
+      })}
+    </Container>
+  );
 }
 
-function progressText(tasks: WorkflowTask[]): string {
-  const done = tasks.filter((t) => t.status === 'done').length;
-  return `${done}/${tasks.length}`;
+function StatusTab({ status }: { status: StatusData | null }) {
+  if (!status) {
+    return <EmptyState>Loading status...</EmptyState>;
+  }
+
+  return (
+    <Container>
+      <BadgeRow>
+        <ManagerBadge variant={status.vision.exists ? 'green' : 'gray'}>vision</ManagerBadge>
+        <ManagerBadge variant={status.designSystem.tokens ? 'green' : 'gray'}>tokens</ManagerBadge>
+        <ManagerBadge variant={status.dataModel.exists ? 'green' : 'gray'}>data-model</ManagerBadge>
+        <ManagerBadge variant={status.shell.exists ? 'green' : 'gray'}>shell</ManagerBadge>
+      </BadgeRow>
+
+      {status.sections && status.sections.length > 0 && (
+        <>
+          <SectionLabel>Sections</SectionLabel>
+          <BadgeRow>
+            {status.sections.map((section) => (
+              <ManagerBadge key={section.id} variant={section.hasScenes ? 'green' : 'gray'}>
+                {section.title}
+              </ManagerBadge>
+            ))}
+          </BadgeRow>
+        </>
+      )}
+    </Container>
+  );
 }
 
 // eslint-disable-next-line react/prop-types
 export const Panel: React.FC<PanelProps> = memo(function DesignbookPanel({ active }) {
   const [workflows, setWorkflows] = useState<WorkflowData[]>([]);
+  const [status, setStatus] = useState<StatusData | null>(null);
 
   useEffect(() => {
     if (!active) return;
@@ -157,10 +155,15 @@ export const Panel: React.FC<PanelProps> = memo(function DesignbookPanel({ activ
 
     const poll = async () => {
       try {
-        const res = await fetch('/__designbook/workflows');
-        if (!res.ok || !mounted) return;
-        const data: WorkflowData[] = await res.json();
-        if (mounted) setWorkflows(data.slice(0, MAX_LOG_ENTRIES));
+        const [wfRes, statusRes] = await Promise.all([fetch('/__designbook/workflows'), fetch('/__designbook/status')]);
+        if (!mounted) return;
+        if (wfRes.ok) {
+          const data: WorkflowData[] = await wfRes.json();
+          setWorkflows(data.slice(0, MAX_LOG_ENTRIES));
+        }
+        if (statusRes.ok) {
+          setStatus(await statusRes.json());
+        }
       } catch {
         // Network error, skip
       }
@@ -176,40 +179,21 @@ export const Panel: React.FC<PanelProps> = memo(function DesignbookPanel({ activ
 
   return (
     <AddonPanel active={active ?? false}>
-      <Container>
-        {workflows.length === 0 ? (
-          <EmptyState>No workflow activity yet. Run a /debo-* command to see progress here.</EmptyState>
-        ) : (
-          workflows.map((wf) => {
-            const isActive = wf.source === 'active';
-            const isDone = wf.source === 'archived';
-
-            return (
-              <LogEntry key={wf.changeName} isActive={isActive}>
-                <LogIcon>{isDone ? '\u2705' : '\u26A1'}</LogIcon>
-                <LogContent>
-                  <LogTitle>
-                    {wf.title}
-                    {isActive && ` (${progressText(wf.tasks)})`}
-                  </LogTitle>
-                  <LogDetail>{wf.workflow}</LogDetail>
-                  {isActive && (
-                    <TaskList>
-                      {wf.tasks.map((task) => (
-                        <TaskPill key={task.id} status={task.status}>
-                          {task.status === 'done' ? '\u2713' : task.status === 'in-progress' ? '\u25CB' : '\u00B7'}{' '}
-                          {task.title}
-                        </TaskPill>
-                      ))}
-                    </TaskList>
-                  )}
-                </LogContent>
-                <LogTime>{timeRange(wf.started_at, wf.completed_at)}</LogTime>
-              </LogEntry>
-            );
-          })
-        )}
-      </Container>
+      <TabsView
+        defaultSelected="workflows"
+        tabs={[
+          {
+            id: 'workflows',
+            title: 'Workflows',
+            children: () => <WorkflowsTab workflows={workflows} />,
+          },
+          {
+            id: 'status',
+            title: 'Status',
+            children: () => <StatusTab status={status} />,
+          },
+        ]}
+      />
     </AddonPanel>
   );
 });

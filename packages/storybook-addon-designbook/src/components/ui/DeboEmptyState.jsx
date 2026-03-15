@@ -1,30 +1,38 @@
-/**
- * DeboEmptyState — Empty state display with AI command reference.
- *
- * @param {Object} props
- * @param {string} props.message — Main empty state heading
- * @param {string} props.command — AI command to reference (e.g., "/product-vision")
- * @param {string} [props.filePath] — Where the data will be saved
- */
+import React from 'react';
+import { Placeholder } from 'storybook/internal/components';
+import { styled } from 'storybook/theming';
+
+const Kbd = styled.kbd(({ theme }) => ({
+  display: 'inline-block',
+  fontFamily: theme.typography.fonts.mono,
+  fontSize: theme.typography.size.s2,
+  background: theme.background.hoverable || '#F1F5F9',
+  border: `1px solid ${theme.appBorderColor}`,
+  borderRadius: 6,
+  padding: '6px 12px',
+}));
+
+const Hint = styled.p(({ theme }) => ({
+  fontSize: theme.typography.size.s1,
+  color: theme.color.mediumdark,
+  marginTop: 8,
+}));
+
 export function DeboEmptyState({ message, command, filePath }) {
   return (
-    <div className="debo:font-sans debo:card debo:bg-base-200 debo:card-bordered">
-      <div className="debo:card-body debo:items-center debo:text-center">
-        <h3 className="debo:card-title debo:text-base-content/70">{message}</h3>
-        <p className="debo:text-base-content/50 debo:mt-2">
-          Run the AI command in your editor:
-        </p>
-        <div className="debo:mt-4">
-          <kbd className="debo:kbd debo:kbd-lg">{command}</kbd>
+    <Placeholder>
+      <div style={{ textAlign: 'center' }}>
+        <p>{message}</p>
+        <p style={{ marginTop: 8, opacity: 0.7 }}>Run the AI command in your editor:</p>
+        <div style={{ marginTop: 16 }}>
+          <Kbd>{command}</Kbd>
         </div>
         {filePath && (
-          <p className="debo:text-base-content/40 debo:text-xs debo:mt-3">
-            The result will be saved to{' '}
-            <code className="debo:text-base-content/50">{filePath}</code> and
-            displayed here.
-          </p>
+          <Hint>
+            The result will be saved to <code>{filePath}</code> and displayed here.
+          </Hint>
         )}
       </div>
-    </div>
+    </Placeholder>
   );
 }

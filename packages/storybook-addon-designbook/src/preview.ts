@@ -2,8 +2,6 @@ import type { ProjectAnnotations, Renderer } from 'storybook/internal/types';
 
 import { KEY } from './constants';
 import { withRoundTrip } from './withRoundTrip';
-import './index.css';
-
 if (
   typeof document !== 'undefined' &&
   !document.querySelector('link[href*="fonts.googleapis.com/css2?family=Inter"]')

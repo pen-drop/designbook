@@ -142,32 +142,13 @@ All shared `Debo*` components SHALL use `debo:` prefixed Tailwind CSS classes ex
 - **THEN** all `Debo*` components use `debo:dark:` variant classes where needed
 - **AND** all UI elements remain readable in both light and dark themes
 
-### Requirement: Shared Components Exported via Index
-All shared `Debo*` components, workflow-specific display components, and the `useDesignbookData` hook SHALL be exported from `.storybook/source/components/index.js` for clean imports in MDX files.
+### Requirement: Shared component library exports
+The shared component library SHALL export all UI primitives and display components via barrel exports. UI components are exported from `components/ui/index.js`, display components from `components/display/index.js`, and all are re-exported from `components/index.js`.
 
-#### Scenario: Barrel export includes all shared components
-- **WHEN** an MDX file imports from `.storybook/source/components/index.js`
-- **THEN** `DeboCard`, `DeboCollapsible`, `DeboSection`, `DeboEmptyState`, and `DeboNumberedList` are available
-- **AND** `useDesignbookData` is available
+#### Scenario: DeboSceneCard is importable
+- **WHEN** a consumer imports `DeboSceneCard` from the components barrel
+- **THEN** the component is available and renders correctly
 
-#### Scenario: Barrel export includes DeboDataModelCard
-- **WHEN** an MDX file imports from `.storybook/source/components/index.js`
-- **THEN** `DeboDataModelCard` is available alongside existing exports
-- **AND** all previously exported components remain available
-
-#### Scenario: Barrel export includes DesignTokensCard
-- **WHEN** an MDX file imports from `.storybook/source/components/index.js`
-- **THEN** `DesignTokensCard` is available alongside existing exports
-
-#### Scenario: Barrel export includes ShellSpecCard
-- **WHEN** an MDX file imports from `.storybook/source/components/index.js`
-- **THEN** `ShellSpecCard` is available alongside existing exports
-
-#### Scenario: Barrel export includes SectionSpecCard and SectionsOverview
-- **WHEN** an MDX file imports from `.storybook/source/components/index.js`
-- **THEN** `SectionSpecCard` and `SectionsOverview` are available alongside existing exports
-
-#### Scenario: Existing components remain exported
-- **WHEN** the index file is updated with new exports
-- **THEN** existing exports (`ProductOverviewCard`, `StepIndicator`, `ProductForm`) remain available
-- **AND** no import paths are broken
+#### Scenario: DeboSceneGrid is importable
+- **WHEN** a consumer imports `DeboSceneGrid` from the components barrel
+- **THEN** the component is available and renders correctly

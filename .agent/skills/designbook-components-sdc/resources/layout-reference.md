@@ -13,9 +13,9 @@ Layout components provide structural framing and grid arrangement. They are **in
 
 > [!NOTE]
 > **Token-backed values**: Layout props resolve from design tokens defined in `@designbook-css-tailwind`:
-> - `max_width: md` → `max-w-md` via `--container-md` (standard Tailwind namespace)
-> - `padding_top/padding_bottom: md` → `py-[var(--section-spacing-md)]` (non-standard namespace → requires `var()`)
-> - `gap: md` → Tailwind's built-in `--spacing-*` scale (no custom tokens)
+> - `max_width: md` → `max-w-md` via `--container-md` (standard Tailwind namespace, token group: `layout-width`)
+> - `padding_top/padding_bottom: md` → `py-[var(--layout-spacing-md)]` (non-standard namespace → requires `var()`, token group: `layout-spacing`)
+> - `gap: md` → `gap-[var(--grid-gap-md)]` (non-standard namespace → requires `var()`, token group: `grid`)
 
 ---
 
@@ -140,10 +140,10 @@ thirdPartySettings:
 
 {# Padding top/bottom via section-spacing tokens #}
 {% if padding_top != 'none' %}
-  {% set wrapper_attributes = wrapper_attributes.addClass('pt-[var(--section-spacing-' ~ padding_top ~ ')]') %}
+  {% set wrapper_attributes = wrapper_attributes.addClass('pt-[var(--layout-spacing-' ~ padding_top ~ ')]') %}
 {% endif %}
 {% if padding_bottom != 'none' %}
-  {% set wrapper_attributes = wrapper_attributes.addClass('pb-[var(--section-spacing-' ~ padding_bottom ~ ')]') %}
+  {% set wrapper_attributes = wrapper_attributes.addClass('pb-[var(--layout-spacing-' ~ padding_bottom ~ ')]') %}
 {% endif %}
 
 {# Theme #}
@@ -314,12 +314,12 @@ thirdPartySettings:
   4: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
 } %}
 
-{# Gap mapping to Tailwind spacing #}
+{# Gap mapping to grid tokens #}
 {% set gap_classes = {
   'none': 'gap-0',
-  'sm': 'gap-2',
-  'md': 'gap-4',
-  'lg': 'gap-8',
+  'sm': 'gap-[var(--grid-gap-sm)]',
+  'md': 'gap-[var(--grid-gap-md)]',
+  'lg': 'gap-[var(--grid-gap-lg)]',
 } %}
 
 {% set grid_class = column_classes[columns]|default('grid-cols-1') %}
@@ -350,9 +350,9 @@ thirdPartySettings:
 | `gap` | Tailwind Class |
 |-------|---------------|
 | `none` | `gap-0` |
-| `sm` | `gap-2` |
-| `md` | `gap-4` |
-| `lg` | `gap-8` |
+| `sm` | `gap-[var(--grid-gap-sm)]` |
+| `md` | `gap-[var(--grid-gap-md)]` |
+| `lg` | `gap-[var(--grid-gap-lg)]` |
 
 ### Story Examples
 
@@ -405,6 +405,8 @@ A Layout Builder adapter that combines container + grid with 8 fixed named colum
 **Use for:** Drupal Layout Builder, Layout Paragraphs, or any page builder that requires fixed, named column slots.
 
 > For manual Twig usage, prefer composing `container` and `grid` directly.
+
+> **Layout Builder integration:** When a bundle has `composition: unstructured` and the project uses `extensions: [layout_builder]`, the `full` view mode JSONata outputs `section` components with `type: "entity"` refs in column slots. The renderer recursively resolves each block entity through its own JSONata expression.
 
 ### component.yml
 
