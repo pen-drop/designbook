@@ -1,6 +1,5 @@
 import type { ProjectAnnotations, Renderer, StoryContext } from 'storybook/internal/types';
 
-
 import { useGlobals } from 'storybook/preview-api';
 import { themes, ensure } from 'storybook/theming';
 
