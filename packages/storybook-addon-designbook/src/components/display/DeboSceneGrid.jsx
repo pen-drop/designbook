@@ -6,6 +6,8 @@ function toStoryId(group, sceneName) {
   const titlePart = group.replace(/\//g, '-').replace(/\s+/g, '-').toLowerCase();
   const namePart = sceneName.replace(/\s+/g, '-').toLowerCase();
   return `${titlePart}--${namePart}`;
+
+  // /story/designbook-design-system-scenes--shell
 }
 
 const Grid = styled.div({
@@ -16,12 +18,12 @@ const Grid = styled.div({
 
 export function DeboSceneGrid({ data }) {
   const scenes = data?.scenes ?? [];
-  const group = data?.name || '';
+  const group = data?.group || data?.name || '';
 
   return (
     <Grid>
       {scenes.map((scene, i) => {
-        const storyId = group && scene.name ? toStoryId(group, scene.name) : null;
+        const storyId = group && scene.name ? toStoryId(group + '/Scenes', scene.name) : null;
         return (
           <DeboSceneCard
             key={scene.name || i}

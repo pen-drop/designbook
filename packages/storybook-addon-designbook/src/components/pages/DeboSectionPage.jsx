@@ -1,12 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { styled } from 'storybook/theming';
+import { TabsView } from 'storybook/internal/components';
 import { DeboSection } from '../DeboSection.jsx';
-import { DeboPageLayout } from '../ui/DeboPageLayout.jsx';
-import { DeboSourceFooter } from '../ui/DeboSourceFooter.jsx';
+
+import { DeboProse } from '../ui/DeboTypography.jsx';
 import { DeboSampleData } from '../display/DeboSampleData.jsx';
 import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
-import { parseMarkdown, parseScreenshots } from '../parsers.js';
+import { parseScreenshots } from '../parsers.js';
 import { parse as parseYaml } from 'yaml';
+import { DeboCollapsible, DeboSectionList } from '../ui/index.js';
 
 const yamlParser = (text) => {
   try { return parseYaml(text); } catch { return null; }
@@ -24,13 +26,6 @@ const screenshotsParser = (md) => {
   return items.length > 0 ? items : null;
 };
 
-const PageTitle = styled.h1(({ theme }) => ({
-  fontSize: 24,
-  fontWeight: 600,
-  color: theme.color.defaultText,
-  margin: 0,
-}));
-
 const ContentCard = styled.div(({ theme }) => ({
   background: theme.background?.content || '#ffffff',
   border: `1px solid ${theme.appBorderColor}`,
@@ -41,17 +36,6 @@ const ContentCard = styled.div(({ theme }) => ({
 const CardContent = styled.div({
   padding: '32px 16px',
 });
-
-const Prose = styled.div(({ theme }) => ({
-  fontFamily: theme.typography.fonts.base,
-  fontSize: theme.typography.size.s2,
-  lineHeight: 1.6,
-  color: theme.color.defaultText,
-  '& h1, & h2, & h3, & h4': { fontWeight: 400, marginTop: '1em', marginBottom: '0.5em' },
-  '& p': { marginTop: '0.5em', marginBottom: '0.5em' },
-  '& ul, & ol': { paddingLeft: '1.5em' },
-  '& a': { color: '#3B82F6', textDecoration: 'underline' },
-}));
 
 const ScreenshotGrid = styled.div({
   display: 'grid',
@@ -80,73 +64,120 @@ const ScreenshotCaption = styled.p(({ theme }) => ({
   margin: 0,
 }));
 
+const TabContent = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 16,
+  padding: '16px 0',
+});
+
 export function DeboSectionPage({ sectionId, title }) {
   const [reloadKey, setReloadKey] = useState(0);
-  const handleReload = useCallback(() => setReloadKey(k => k + 1), []);
+
 
   return (
-    <DeboPageLayout key={reloadKey} gap="8">
-      <PageTitle>{title}</PageTitle>
-
-      <DeboSection
-        title="Shape Section"
-        dataPath={`sections/${sectionId}/${sectionId}.section.scenes.yml`}
-        parser={parseMarkdown}
-        command={`/debo-shape-section ${sectionId}`}
-        emptyMessage={`No specification for ${title} yet`}
-        filePath={`designbook/sections/${sectionId}/${sectionId}.section.scenes.yml`}
-        renderContent={(html) => (
-          <ContentCard>
-            <CardContent>
-              <Prose dangerouslySetInnerHTML={{ __html: html }} />
-            </CardContent>
-          </ContentCard>
-        )}
-      />
-
-      <DeboSection
-        title="Sample Data"
-        dataPath={`sections/${sectionId}/data.yml`}
-        parser={yamlParser}
-        command={`/debo-sample-data ${sectionId}`}
-        emptyMessage="No sample data defined yet"
-        filePath={`designbook/sections/${sectionId}/data.yml`}
-        renderContent={(data) => <DeboSampleData data={data} />}
-      />
-
-      <DeboSection
-        title="Design"
-        dataPath={`sections/${sectionId}/${sectionId}.section.scenes.yml`}
-        parser={scenesParser}
-        command={`/debo-design-screen ${sectionId}`}
-        emptyMessage="No designs yet"
-        filePath={`designbook/sections/${sectionId}/${sectionId}.section.scenes.yml`}
-        renderContent={(data) => <DeboSceneGrid data={data} />}
-      />
-
-      <DeboSection
-        title="Screenshots"
-        dataPath={`sections/${sectionId}/screenshots.md`}
-        parser={screenshotsParser}
-        command={`/debo-screenshot-design ${sectionId}`}
-        emptyMessage="No screenshots captured yet"
-        filePath={`designbook/sections/${sectionId}/`}
-        renderContent={(shots) => (
-          <ScreenshotGrid>
-            {shots.map((shot, index) => (
-              <ScreenshotCard key={index}>
-                <ScreenshotImage
-                  src={`/__designbook/load?path=sections/${sectionId}/${shot.path}`}
-                  alt={shot.alt}
+    <div key={reloadKey}>
+      <TabsView
+        defaultSelected="spec"
+        tabs={[
+          {
+            id: 'spec',
+            title: 'Spec',
+            children: () => (
+              <TabContent>
+                <DeboSection
+                  title="Shape Section"
+                  dataPath={`sections/${sectionId}/${sectionId}.section.scenes.yml`}
+                  parser={yamlParser}
+                  command={`/debo-shape-section ${sectionId}`}
+                  emptyMessage={`No specification for ${title} yet`}
+                  filePath={`designbook/sections/${sectionId}/${sectionId}.section.scenes.yml`}
+                  renderContent={(data) => (
+                    <DeboSectionList>
+                      <DeboCollapsible title={'Description'} defaultOpen={true}>
+                        <DeboProse content={data.description} />
+                      </DeboCollapsible>
+                      {data.user_flows && (
+                        <DeboCollapsible title={'User Flows'}>
+                          <DeboProse content={data.user_flows} />
+                        </DeboCollapsible>
+                      )}
+                      {data.ui_requirements && (
+                        <DeboCollapsible title={'UI Requirements'}>
+                          <DeboProse content={data.ui_requirements} />
+                        </DeboCollapsible>
+                      )}
+                    </DeboSectionList>
+                  )}
                 />
-                <ScreenshotCaption>{shot.alt}</ScreenshotCaption>
-              </ScreenshotCard>
-            ))}
-          </ScreenshotGrid>
-        )}
+              </TabContent>
+            ),
+          },
+          {
+            id: 'data',
+            title: 'Sample Data',
+            children: () => (
+              <TabContent>
+                <DeboSection
+                  title="Sample Data"
+                  dataPath={`sections/${sectionId}/data.yml`}
+                  parser={yamlParser}
+                  command={`/debo-sample-data ${sectionId}`}
+                  emptyMessage="No sample data defined yet"
+                  filePath={`designbook/sections/${sectionId}/data.yml`}
+                  renderContent={(data) => <DeboSampleData data={data} />}
+                />
+              </TabContent>
+            ),
+          },
+          {
+            id: 'design',
+            title: 'Design',
+            children: () => (
+              <TabContent>
+                <DeboSection
+                  title="Design"
+                  dataPath={`sections/${sectionId}/${sectionId}.section.scenes.yml`}
+                  parser={scenesParser}
+                  command={`/debo-design-screen ${sectionId}`}
+                  emptyMessage="No designs yet"
+                  filePath={`designbook/sections/${sectionId}/${sectionId}.section.scenes.yml`}
+                  renderContent={(data) => <DeboSceneGrid data={data} />}
+                />
+              </TabContent>
+            ),
+          },
+          {
+            id: 'screenshots',
+            title: 'Screenshots',
+            children: () => (
+              <TabContent>
+                <DeboSection
+                  title="Screenshots"
+                  dataPath={`sections/${sectionId}/screenshots.md`}
+                  parser={screenshotsParser}
+                  command={`/debo-screenshot-design ${sectionId}`}
+                  emptyMessage="No screenshots captured yet"
+                  filePath={`designbook/sections/${sectionId}/`}
+                  renderContent={(shots) => (
+                    <ScreenshotGrid>
+                      {shots.map((shot, index) => (
+                        <ScreenshotCard key={index}>
+                          <ScreenshotImage
+                            src={`/__designbook/load?path=sections/${sectionId}/${shot.path}`}
+                            alt={shot.alt}
+                          />
+                          <ScreenshotCaption>{shot.alt}</ScreenshotCaption>
+                        </ScreenshotCard>
+                      ))}
+                    </ScreenshotGrid>
+                  )}
+                />
+              </TabContent>
+            ),
+          },
+        ]}
       />
-
-      <DeboSourceFooter path={`designbook/sections/${sectionId}/`} onReload={handleReload} />
-    </DeboPageLayout>
+    </div>
   );
 }

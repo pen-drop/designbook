@@ -79,7 +79,7 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
   }
 
   // Build import statements and __imports map
-  const importLines: string[] = ["import { renderComponent } from 'storybook-addon-designbook';"];
+  const importLines: string[] = ["import { renderComponent } from 'storybook-addon-designbook/renderer';"];
   const importsMapEntries: string[] = [];
 
   for (const componentId of allIds) {
@@ -88,15 +88,15 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
 
     if (importPath) {
       importLines.push(`import * as ${alias} from '${importPath}';`);
+      const mapValue = wrapImport ? wrapImport(alias) : alias;
+      importsMapEntries.push(`  '${componentId}': ${mapValue},`);
     } else {
       console.warn(`[Designbook] Cannot resolve import path for component: ${componentId}`);
-      importLines.push(
-        `const ${alias} = { render: (_props, _slots) => { console.warn('[Designbook] Missing component: ${componentId}'); return null; } };`,
+      // Stub goes directly into __imports without wrapImport — avoids alias.default crash
+      importsMapEntries.push(
+        `  '${componentId}': { render: (_props, _slots) => { console.warn('[Designbook] Missing component: ${componentId}'); return ''; } },`,
       );
     }
-
-    const mapValue = wrapImport ? wrapImport(alias) : alias;
-    importsMapEntries.push(`  '${componentId}': ${mapValue},`);
   }
 
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;

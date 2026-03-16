@@ -20,7 +20,9 @@ export function extractGroup(parsed: Record<string, unknown>, fileBase: string):
  */
 export function buildExportName(sceneName: string): string {
   return sceneName
-    .split(/[\s-]+/)
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
     .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('');
 }

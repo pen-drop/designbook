@@ -1,23 +1,10 @@
 import React from 'react';
 import { TabsView } from 'storybook/internal/components';
-import { styled } from 'storybook/theming';
 import { DeboSection } from '../DeboSection.jsx';
 import { DeboDesignTokens } from '../display/DeboDesignTokens.jsx';
-import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
+import { DeboProse } from '../ui/DeboTypography.jsx';
 import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
-import { parseMarkdown } from '../parsers.js';
 import { parse as parseYaml } from 'yaml';
-
-const Prose = styled.div(({ theme }) => ({
-  fontFamily: theme.typography.fonts.base,
-  fontSize: theme.typography.size.s2,
-  lineHeight: 1.6,
-  color: theme.color.defaultText,
-  '& h1, & h2, & h3, & h4': { fontWeight: 400, marginTop: '1em', marginBottom: '0.5em' },
-  '& p': { marginTop: '0.5em', marginBottom: '0.5em' },
-  '& ul, & ol': { paddingLeft: '1.5em' },
-  '& a': { color: '#3B82F6', textDecoration: 'underline' },
-}));
 
 const scenesParser = (text) => {
   try {
@@ -44,7 +31,7 @@ function ShellTab() {
     <DeboSection
       title="Shell Design"
       dataPath="design-system/design-system.scenes.yml"
-      parser={(content) => parseYaml(content)}
+      parser={(content) => scenesParser(content)}
       command="/debo-design-shell"
       emptyMessage="No shell design defined yet"
       filePath="designbook/design-system/design-system.scenes.yml"
@@ -52,20 +39,8 @@ function ShellTab() {
         const description = data.description || '';
         return (
           <>
-            {description && (
-              <DeboCollapsible title="Description" defaultOpen={true}>
-                <Prose dangerouslySetInnerHTML={{ __html: parseMarkdown(description) }} />
-              </DeboCollapsible>
-            )}
-            <DeboSection
-              title="Scenes"
-              dataPath="design-system/design-system.scenes.yml"
-              parser={scenesParser}
-              command="/debo-design-shell"
-              emptyMessage="No scenes yet"
-              filePath="designbook/design-system/design-system.scenes.yml"
-              renderContent={(scenesData) => <DeboSceneGrid data={scenesData} />}
-            />
+            <DeboProse content={description} />
+            <DeboSceneGrid data={data} />
           </>
         );
       }}

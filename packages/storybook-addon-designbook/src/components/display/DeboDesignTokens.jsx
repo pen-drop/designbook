@@ -449,7 +449,6 @@ export function DeboDesignTokens({ tokens }) {
 
   return (
     <TokensWrapper>
-      <SectionLabel>Design Tokens</SectionLabel>
       {colorGroup && colorCount > 0 && <DeboColorSection group={colorGroup} />}
       {hasTypography && <DeboTypographySection group={typographyGroup} />}
       {otherGroups.map(([key, group]) => (

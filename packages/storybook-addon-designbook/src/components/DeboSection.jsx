@@ -11,10 +11,9 @@ const SectionHeading = styled.h2(({ theme }) => ({
   fontSize: theme.typography?.size?.l1 ?? '18px',
   fontWeight: theme.typography?.weight?.bold ?? 'bold',
   color: theme.color?.defaultText,
-  paddingTop: 4,
+  paddingTop: 16,
   paddingBottom: 16,
   marginBottom: 16,
-  borderBottom: `1px solid ${theme.appBorderColor}`,
 }));
 
 export function DeboSection({ dataPath, parser, command, emptyMessage, renderContent, title, filePath, bare = false }) {

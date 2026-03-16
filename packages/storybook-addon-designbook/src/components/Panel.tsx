@@ -3,13 +3,22 @@ import { AddonPanel, TabsView } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import { timeRange, ManagerBadge } from './manager-utils.tsx';
 
+interface WorkflowTask {
+  id: string;
+  title: string;
+  type: string;
+  status: 'pending' | 'in-progress' | 'done';
+  started_at: string | null;
+  completed_at: string | null;
+}
+
 interface WorkflowData {
   changeName: string;
   title: string;
   workflow: string;
   started_at: string | null;
   completed_at: string | null;
-  tasks: unknown[];
+  tasks: WorkflowTask[];
   source: 'active' | 'archived';
 }
 
@@ -92,6 +101,32 @@ const SectionLabel = styled.div(({ theme }) => ({
   marginBottom: 6,
 }));
 
+const TaskRow = styled.div<{ status: string }>(({ theme, status }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '3px 8px 3px 28px',
+  borderRadius: '4px',
+  opacity: status === 'done' ? 0.5 : 1,
+  '&:hover': { background: theme.background.hoverable || '#f5f5f5' },
+}));
+
+const TaskTitle = styled.span(({ theme }) => ({
+  flex: 1,
+  fontSize: theme.typography.size.s1,
+  color: theme.color.defaultText,
+  lineHeight: '18px',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap' as const,
+}));
+
+const taskIcon = (status: string) => {
+  if (status === 'done') return '✅';
+  if (status === 'in-progress') return '⚡';
+  return '○';
+};
+
 function WorkflowsTab({ workflows }: { workflows: WorkflowData[] }) {
   if (workflows.length === 0) {
     return <EmptyState>No workflow activity yet. Run a /debo-* command to see progress here.</EmptyState>;
@@ -102,11 +137,20 @@ function WorkflowsTab({ workflows }: { workflows: WorkflowData[] }) {
       {workflows.map((wf) => {
         const isDone = wf.source === 'archived';
         return (
-          <Row key={wf.changeName} isDone={isDone}>
-            <Icon>{isDone ? '\u2705' : '\u26A1'}</Icon>
-            <Title>{wf.title}</Title>
-            <Time>{timeRange(wf.started_at, wf.completed_at)}</Time>
-          </Row>
+          <div key={wf.changeName}>
+            <Row isDone={isDone}>
+              <Icon>{isDone ? '✅' : '⚡'}</Icon>
+              <Title>{wf.title}</Title>
+              <Time>{timeRange(wf.started_at, wf.completed_at)}</Time>
+            </Row>
+            {wf.tasks.map((task) => (
+              <TaskRow key={task.id} status={task.status}>
+                <Icon style={{ width: '14px', fontSize: '10px' }}>{taskIcon(task.status)}</Icon>
+                <TaskTitle>{task.title}</TaskTitle>
+                {task.status === 'in-progress' && <Time>{timeRange(task.started_at, null)}</Time>}
+              </TaskRow>
+            ))}
+          </div>
         );
       })}
     </Container>

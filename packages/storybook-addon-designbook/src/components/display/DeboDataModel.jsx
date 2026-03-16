@@ -2,6 +2,7 @@ import React from 'react';
 import { styled } from 'storybook/theming';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboCard } from '../ui/DeboCard.jsx';
+import { DeboSectionList } from '../ui/DeboPageLayout.jsx';
 
 const ENTITY_BADGE_COLORS = {
   node: 'red',
@@ -15,11 +16,6 @@ const CardGrid = styled.div({
   gap: 16,
 });
 
-const SectionList = styled.div({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 24,
-});
 
 function EntityGroup({ type, bundles }) {
   const bundleEntries = Object.entries(bundles || {});
@@ -51,10 +47,10 @@ export function DeboDataModel({ data }) {
   const entityTypes = Object.entries(data.content);
 
   return (
-    <SectionList>
+    <DeboSectionList>
       {entityTypes.map(([type, bundles]) => (
         <EntityGroup key={type} type={type} bundles={bundles} />
       ))}
-    </SectionList>
+    </DeboSectionList>
   );
 }

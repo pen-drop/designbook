@@ -44,7 +44,7 @@ export function parseScene(raw: unknown): SceneDef {
  * - Entity entries with `records: [0, 1, 2]` become 3 separate entries
  * - Component, config, scene entries pass through as-is
  */
-function expandEntries(entries: unknown[]): SceneNode[] {
+export function expandEntries(entries: unknown[]): SceneNode[] {
   const result: SceneNode[] = [];
 
   for (const entry of entries) {

@@ -24,6 +24,10 @@
       "types": "./dist/preview.d.ts",
       "default": "./dist/preview.js"
     },
+    "./renderer": {
+      "types": "./dist/renderer-browser.d.ts",
+      "default": "./dist/renderer-browser.js"
+    },
     "./preset": "./dist/preset.js",
     "./config": {
       "types": "./dist/config.d.ts",
@@ -115,7 +119,8 @@
     ],
     "previewEntries": [
       "src/preview.ts",
-      "src/index.ts"
+      "src/index.ts",
+      "src/renderer-browser.ts"
     ],
     "nodeEntries": [
       "src/preset.ts",
