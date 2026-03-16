@@ -13,6 +13,7 @@ import { join, resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 
 import { extractGroup, buildExportName, fileBaseName, extractScenes } from './scene-metadata';
+import { expandEntries } from './parser';
 import { BuilderRegistry } from './builder-registry';
 import { entityBuilder } from './builders/entity-builder';
 import { configListBuilder } from './builders/config-list-builder';
@@ -145,7 +146,7 @@ export async function buildSceneModule(
   for (const rawScene of scenesArray) {
     const scene = rawScene as Record<string, unknown>;
     const sceneName = (scene.name as string) || 'Default';
-    const items = (scene.items as SceneNode[] | undefined) ?? [];
+    const items = expandEntries((scene.items as unknown[] | undefined) ?? []);
 
     const nodes: ComponentNode[] = [];
     for (const entry of items) {

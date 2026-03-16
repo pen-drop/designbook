@@ -91,7 +91,7 @@ export function DeboSampleData({ data }) {
       )}
 
       {relationships.length > 0 && (
-        <DeboCollapsible title="Relationships" count={relationships.length}>
+        <DeboCollapsible title="Relationships" count={relationships.length} defaultOpen={true}>
           <DeboBulletList items={relationships} />
         </DeboCollapsible>
       )}

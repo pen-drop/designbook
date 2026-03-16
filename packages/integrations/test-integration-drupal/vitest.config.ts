@@ -8,6 +8,17 @@ import { defineConfig } from 'vitest/config';
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  optimizeDeps: {
+    include: [
+      'drupal-attribute',
+      'twing',
+      '@christianwiedemann/drupal-twig-extensions/twing',
+      'semver',
+      'yaml',
+      'marked',
+    ],
+    exclude: ['storybook'],
+  },
   test: {
     projects: [
       {
@@ -25,14 +36,6 @@ export default defineConfig({
             instances: [{ browser: 'chromium' }],
           },
           setupFiles: ['.storybook/vitest.setup.ts'],
-        },
-        optimizeDeps: {
-          include: [
-            'drupal-attribute',
-            'twing',
-            '@christianwiedemann/drupal-twig-extensions/twing',
-          ],
-          exclude: ['storybook'],
         },
       },
     ],

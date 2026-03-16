@@ -8,6 +8,7 @@ import { parse as parseYaml } from 'yaml';
 import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
+import { scanAllWorkflows, parseTaskFile } from './workflow-utils';
 
 // Resolve React from the addon's own dependencies (works in pnpm strict mode)
 const addonRequire = createRequire(import.meta.url);
@@ -49,6 +50,7 @@ export function designbookLoadPlugin(
                 { find: /^react-dom$/, replacement: reactDomDir! },
                 { find: /^react-dom\/(.*)/, replacement: reactDomDir + '/$1' },
                 { find: /^react$/, replacement: reactDir! },
+                { find: /^react\/(.*)/, replacement: reactDir + '/$1' },
               ],
             }
           : undefined,
@@ -57,6 +59,16 @@ export function designbookLoadPlugin(
             'vite-plugin-node-polyfills/shims/buffer',
             'vite-plugin-node-polyfills/shims/global',
             'vite-plugin-node-polyfills/shims/process',
+            'react',
+            'react/jsx-runtime',
+            'react/jsx-dev-runtime',
+            'react-dom',
+            'react-dom/client',
+            // Pre-bundle CJS modules used by Designbook page components so they
+            // don't trigger a Vite dep-discovery reload during vitest browser runs.
+            'semver',
+            'yaml',
+            'marked',
           ],
         },
       };
@@ -89,6 +101,10 @@ export function designbookLoadPlugin(
     },
 
     configureServer(server: ViteDevServer) {
+      const workflowsDir = resolve(designbookDir, 'workflows');
+      const changesDir = resolve(workflowsDir, 'changes');
+      const archiveDir = resolve(workflowsDir, 'archive');
+
       // File watcher: fire custom events based on filename patterns
       const watchPatterns: { pattern: RegExp; event: string }[] = [
         { pattern: /data-model\.yml$/, event: 'designbook:data-model-change' },
@@ -109,9 +125,127 @@ export function designbookLoadPlugin(
 
       server.watcher.add(designbookDir);
       server.watcher.add(resolve(baseDir, 'components'));
-      server.watcher.on('add', (file) => fireEvent(file, 'add'));
-      server.watcher.on('change', (file) => fireEvent(file, 'change'));
-      server.watcher.on('unlink', (file) => fireEvent(file, 'unlink'));
+      server.watcher.add(changesDir);
+      server.watcher.add(archiveDir);
+
+      server.watcher.on('add', (file: string) => {
+        fireEvent(file, 'add');
+
+        if (!file.endsWith('tasks.yml')) return;
+
+        if (file.includes('workflows/changes')) {
+          try {
+            const data = parseTaskFile(file);
+            server.ws.send({
+              type: 'custom',
+              event: 'designbook:workflow-event',
+              data: { type: 'started', title: data.title, workflow: data.workflow },
+            });
+          } catch {
+            /* skip parse errors */
+          }
+        }
+
+        if (file.includes('workflows/archive')) {
+          try {
+            const data = parseTaskFile(file);
+            server.ws.send({
+              type: 'custom',
+              event: 'designbook:workflow-event',
+              data: { type: 'done', title: data.title, workflow: data.workflow },
+            });
+          } catch {
+            /* skip parse errors */
+          }
+        }
+      });
+
+      server.watcher.on('change', (file: string) => {
+        fireEvent(file, 'change');
+
+        if (file.endsWith('tasks.yml') && file.includes('workflows/changes')) {
+          try {
+            const data = parseTaskFile(file);
+            const activeTask = data.tasks.find((t) => t.status === 'in-progress');
+            const lastDone = data.tasks
+              .filter((t) => t.status === 'done')
+              .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))[0];
+            server.ws.send({
+              type: 'custom',
+              event: 'designbook:workflow-progress',
+              data: {
+                title: data.title,
+                workflow: data.workflow,
+                tasks: data.tasks,
+                activeTask: activeTask?.title,
+                lastDoneTask: lastDone?.title,
+              },
+            });
+          } catch {
+            /* skip parse errors during write */
+          }
+        }
+      });
+
+      server.watcher.on('unlink', (file: string) => fireEvent(file, 'unlink'));
+
+      // HTTP endpoint: serve all workflows (active + recent archived)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/workflows', (_req: IncomingMessage, res: any) => {
+        try {
+          const workflows = scanAllWorkflows(workflowsDir, 10);
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify(workflows));
+        } catch (err: unknown) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
+
+      // HTTP endpoint: project status overview
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/status', (_req: IncomingMessage, res: any) => {
+        try {
+          const sectionsDir = resolve(designbookDir, 'sections');
+          const sections: Array<{ id: string; title: string; hasScenes: boolean }> = [];
+
+          if (existsSync(sectionsDir)) {
+            for (const entry of readdirSync(sectionsDir, { withFileTypes: true })) {
+              if (!entry.isDirectory()) continue;
+              const id = entry.name;
+              const scenesFile = resolve(sectionsDir, id, `${id}.section.scenes.yml`);
+              let title = id;
+              let hasScenes = false;
+              if (existsSync(scenesFile)) {
+                try {
+                  const parsed = parseYaml(readFileSync(scenesFile, 'utf-8')) as Record<string, unknown>;
+                  title = (parsed?.title as string) || id;
+                  hasScenes = Array.isArray(parsed?.scenes) && (parsed.scenes as unknown[]).length > 0;
+                } catch {
+                  /* skip */
+                }
+              }
+              sections.push({ id, title, hasScenes });
+            }
+          }
+
+          const status = {
+            vision: { exists: existsSync(resolve(designbookDir, 'product/vision.md')) },
+            designSystem: { tokens: existsSync(resolve(designbookDir, 'design-system/design-tokens.yml')) },
+            dataModel: { exists: existsSync(resolve(designbookDir, 'data-model.yml')) },
+            shell: { exists: existsSync(resolve(designbookDir, 'design-system/design-system.scenes.yml')) },
+            sections,
+          };
+
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify(status));
+        } catch (err: unknown) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       server.middlewares.use('/__designbook/load', (req: IncomingMessage, res: any) => {
