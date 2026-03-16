@@ -8,6 +8,7 @@
         "lint:css": "stylelint --ignore-path .gitignore '**/*.(src.css)'",
         "lint:css:fix": "stylelint --ignore-path .gitignore '**/*.(src.css)' --fix",
         "storybook": "storybook dev -p 6009 --ci",
+        "storybook:clean": "rm -rf node_modules/.cache/storybook",
         "build-storybook": "storybook build"
     },
     "devDependencies": {

@@ -23,9 +23,26 @@ export interface DataModelContent {
   };
 }
 
+/** A list source in the data model config. */
+export interface ListSource {
+  entity_type: string;
+  bundle: string;
+  view_mode: string;
+}
+
+/** A list config entry. */
+export interface ListConfig {
+  sources: ListSource[];
+  limit?: number;
+  sorting?: string;
+}
+
 /** Top-level data model. */
 export interface DataModel {
   content: DataModelContent;
+  config?: {
+    list?: Record<string, ListConfig>;
+  };
 }
 
 /** Sample data structure from data.yml. */
@@ -37,9 +54,9 @@ export interface SampleData {
 
 // ─── Scene Node Types ───────────────────────────────────────────────
 
-/** A scene node to be rendered — either component, entity, or custom. */
+/** A scene node to be rendered — either component, entity, config, or scene ref. */
 export interface SceneNode {
-  type: string;
+  type?: string;
   [key: string]: unknown;
 }
 
@@ -61,26 +78,23 @@ export interface EntitySceneNode extends SceneNode {
   record?: number;
 }
 
+/** A config scene node (e.g., list). */
+export interface ConfigSceneNode extends SceneNode {
+  type: 'config';
+  config_type: string;
+  config_name: string;
+  view_mode: string;
+}
+
 // ─── Scene Definition Types ─────────────────────────────────────────
 
-/** A component entry in a scene layout slot. */
-export interface SceneComponentEntry {
-  component: string;
-  props?: Record<string, unknown>;
-  slots?: Record<string, unknown>;
-  story?: string;
+/** A scene reference node — references another scene by source:name. */
+export interface SceneSceneNode extends SceneNode {
+  type: 'scene';
+  ref: string; // "source:sceneName"
+  with?: Record<string, unknown>; // fills $variable placeholders in the template
+  slots?: Record<string, unknown>; // deprecated alias for `with`
 }
-
-/** An entity entry in a scene layout slot. */
-export interface SceneEntityEntry {
-  entity: string; // "node.article"
-  view_mode: string;
-  record?: number; // single record
-  records?: number[]; // multiple records shorthand
-}
-
-/** Union type for entries in a scene slot. */
-export type SceneLayoutEntry = SceneComponentEntry | SceneEntityEntry;
 
 /** A single scene definition within a *.scenes.yml file. */
 export interface SceneDef {
@@ -88,43 +102,37 @@ export interface SceneDef {
   docs?: string;
   section?: string;
   group?: string;
-  layout: Record<string, SceneLayoutEntry[]>;
+  items: SceneNode[];
 }
 
 /** The root structure of a *.scenes.yml file. */
 export interface ScenesFile {
-  layout?: string;
+  group?: string;
   scenes: SceneDef[];
 }
 
-/** Resolved scene: all slots expanded to ComponentNode arrays. */
-export interface ResolvedScene {
-  name: string;
-  section?: string;
-  group?: string;
-  slots: Record<string, ComponentSceneNode[]>;
-}
-
-/** Check if a layout entry is an entity entry. */
-export function isSceneEntityEntry(entry: SceneLayoutEntry): entry is SceneEntityEntry {
-  return 'entity' in entry && typeof (entry as SceneEntityEntry).entity === 'string';
-}
-
-/** Check if a layout entry is a component entry. */
-export function isSceneComponentEntry(entry: SceneLayoutEntry): entry is SceneComponentEntry {
-  return 'component' in entry && typeof (entry as SceneComponentEntry).component === 'string';
-}
-
-// ─── Renderer Registry Types ─────────────────────────────────────────
+// ─── Build Time Types ─────────────────────────────────────────────────
 
 /**
- * Context provided to each renderer.
- * Carries metadata, utilities, and recursion support.
+ * A fully-resolved component node — the data contract between build and runtime.
+ * Pure data, no framework specificity.
  */
-export interface RenderContext {
-  /** SDC provider prefix (e.g., 'test_integration_drupal'). */
-  provider?: string;
+export interface ComponentNode {
+  component: string; // component reference key, e.g. 'test_provider:card'
+  props?: Record<string, unknown>;
+  slots?: Record<string, ComponentNode | ComponentNode[] | string>;
+}
 
+/**
+ * Raw output from a builder — may contain SceneNodes (entity/config refs)
+ * that resolveEntityRefs() will resolve into ComponentNodes.
+ */
+export type RawNode = ComponentNode | SceneNode;
+
+/**
+ * Context provided to each builder during the async build phase.
+ */
+export interface BuildContext {
   /** Data model from data-model.yml. */
   dataModel: DataModel;
 
@@ -134,34 +142,36 @@ export interface RenderContext {
   /** Absolute path to the designbook directory. */
   designbookDir: string;
 
-  /** Render a child node recursively (dispatches back to registry). */
-  renderNode: (node: SceneNode) => string;
-
-  /** Track an import for the generated CSF module. */
-  trackImport: (componentName: string) => string;
-
-  /** Evaluate a JSONata expression against data. Returns the result. */
-  evaluateExpression: (expressionPath: string, data: Record<string, unknown>) => Promise<unknown>;
+  /**
+   * Dispatch a node through the registry + resolveEntityRefs.
+   * Always returns clean ComponentNode[].
+   */
+  buildNode: (node: SceneNode) => Promise<ComponentNode[]>;
 }
 
 /**
- * A pluggable renderer for scene nodes.
- * Integrations register these via addon options.
+ * A pluggable async builder for scene nodes.
+ * Registered via addon options; built-ins: EntityBuilder, ConfigListBuilder, SceneBuilder.
  */
-export interface SceneNodeRenderer {
-  /** Unique renderer name (for debugging). */
-  name: string;
-
-  /** Priority — higher runs first. Built-ins: -10, integrations: 0+ */
-  priority?: number;
-
-  /**
-   * Return true if this renderer handles the given node.
-   */
+export interface SceneNodeBuilder {
+  /** Return true if this builder handles the given node. */
   appliesTo: (node: SceneNode) => boolean;
 
   /**
-   * Render the node to a code string (for CSF module generation).
+   * Build the node into raw output — may contain entity/config refs at top level or in slots.
+   * resolveEntityRefs() in the registry will walk the result afterward.
    */
-  render: (node: SceneNode, ctx: RenderContext) => string;
+  build: (node: SceneNode, ctx: BuildContext) => Promise<RawNode[]>;
+}
+
+// ─── Runtime Types ────────────────────────────────────────────────────
+
+/**
+ * Framework-specific leaf renderer — the only framework-specific point.
+ * SDC: mod.default.component({...props, ...slots})
+ * React: React.createElement(Component, {...props, ...slots})
+ * Vue3: h(Component, {...props, ...slots})
+ */
+export interface ComponentModule {
+  render: (props: Record<string, unknown>, slots: Record<string, unknown>) => unknown;
 }

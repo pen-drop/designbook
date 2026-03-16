@@ -58,36 +58,34 @@ For each slot, render it conditionally. Wrapping elements and their classes come
 ### Comments
 Include a Drupal-style file docblock with available variables.
 
-### Variant Includes
+### Inline Variants
 
-When a component has **variants with very differnt markup** (but the same props/slots), use a dispatcher pattern in the main template and separate `[name]--[variant].twig` includes for each layout. See [Variants Instead of Duplicate Components](../SKILL.md#variants-instead-of-duplicate-components) for the full pattern.
+> ⛔ **NO PARTIAL TWIG FILES**: Never create separate `[name]--[variant].twig` files. All variant markup **must be inlined** in the single main `.twig` template. The `storybook-addon-sdc` imports ALL `.twig` files in a component directory, and multiple files cause import conflicts. Each component has **exactly one `.twig` file**.
 
-**Main template — dispatcher (static if/elseif, no dynamic includes):**
+When a component has **variants with different markup** (but the same props/slots), use `{% if %}`/`{% elseif %}` blocks inside the single template file.
+
+**Inline variant pattern:**
 ```twig
 {% set variant = variant|default('default') %}
 
 {% if variant == 'alternate' %}
-  {% include '@[provider]/[component-name]/[component-name]--alternate.twig' with {
-    attributes: attributes,
-    prop1: prop1,
-    slot1: slot1,
-  } only %}
+  <div{{ attributes.addClass(['[alternate-classes]']) }}>
+    {# alternate variant markup #}
+  </div>
 {% else %}
-  {% include '@[provider]/[component-name]/[component-name]--default.twig' with {
-    attributes: attributes,
-    prop1: prop1,
-    slot1: slot1,
-  } only %}
+  <div{{ attributes.addClass(['[default-classes]']) }}>
+    {# default variant markup #}
+  </div>
 {% endif %}
 ```
 
-> ⚠️ Always use **static string paths** in includes. Dynamic expressions like `{% include name ~ '.twig' %}` do **not** work in Storybook.
-
-**Variant include — `@[provider]/[component-name]/[component-name]--[variant].twig`:**
-```twig
-<div{{ attributes.addClass(['[css-framework-classes]']) }}>
-  {# variant-specific HTML layout #}
-</div>
-```
-
-> ⚠️ Variant includes are **not** SDC components — they are internal Twig partials that live in the same component directory but can be included with "@[provider]/[component-name]/[component-name].twig". They do **not** get their own `.component.yml` or `.story.yml`.
+> **Tip**: When variants only differ in a few CSS classes, prefer conditional class assignment over duplicating the entire template:
+>
+> ```twig
+> {% set variant = variant|default('default') %}
+> {% set classes = variant == 'alternate' ? ['card', 'card-side'] : ['card'] %}
+>
+> <div{{ attributes.addClass(classes) }}>
+>   {# shared markup — used by all variants #}
+> </div>
+> ```

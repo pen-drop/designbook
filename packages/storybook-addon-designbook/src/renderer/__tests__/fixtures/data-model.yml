@@ -20,3 +20,18 @@ content:
             target_bundle: category
         field_teaser:
           type: string
+  user:
+    user:
+      fields:
+        name:
+          type: string
+        field_avatar:
+          type: string
+config:
+  list:
+    recent_articles:
+      sources:
+        - entity_type: node
+          bundle: article
+          view_mode: teaser
+      limit: 10

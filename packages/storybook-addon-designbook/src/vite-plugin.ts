@@ -5,46 +5,29 @@ import { resolve, join, basename, dirname } from 'node:path';
 import { createRequire } from 'node:module';
 import { parse as parseYaml } from 'yaml';
 
-// Resolve React from the addon's own dependencies (works in pnpm strict mode)
-const addonRequire = createRequire(import.meta.url);
-import type { SceneNodeRenderer } from './renderer/types';
-import type { ModuleBuilder } from './renderer/scene-module-builder';
-import { scanAllWorkflows, parseTaskFile } from './workflow-utils';
+import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
-import { buildSdcModule } from './renderer/builders/sdc';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 
-/** Re-export for integrations that want to provide a custom module builder. */
-export type { ModuleBuilder } from './renderer/scene-module-builder';
-export type { ResolvedScene } from './renderer/scene-module-builder';
+// Resolve React from the addon's own dependencies (works in pnpm strict mode)
+const addonRequire = createRequire(import.meta.url);
 
 export function designbookLoadPlugin(
   baseDir: string,
-  options: { fsRoot?: string; provider?: string; renderers?: SceneNodeRenderer[]; moduleBuilder?: ModuleBuilder } = {},
+  options: {
+    fsRoot?: string;
+    provider?: string;
+    builders?: SceneNodeBuilder[];
+    resolveImportPath?: (componentId: string, designbookDir: string) => string | null;
+    wrapImport?: (alias: string) => string;
+  },
 ): Plugin {
-  // Use config fsRoot if available, otherwise default to 'designbook'
-  const distDir = options.fsRoot || 'designbook';
-
-  // baseDir is usually process.cwd()
-  // If distDir is relative, resolve it from baseDir
-  // If absolute, use as is
-  const designbookDir = resolve(baseDir, distDir);
-
-  // Track data file → scene module dependencies for HMR
-  const dataFileToScenes = new Map<string, Set<string>>();
-  const trackDependency = (sceneId: string, dataFile: string) => {
-    if (!dataFileToScenes.has(dataFile)) {
-      dataFileToScenes.set(dataFile, new Set());
-    }
-    dataFileToScenes.get(dataFile)!.add(sceneId);
-  };
+  const designbookDir = resolve(baseDir, options.fsRoot || 'designbook');
 
   const VIRTUAL_SECTIONS = 'virtual:designbook-sections';
   const RESOLVED_VIRTUAL_SECTIONS = '\0' + VIRTUAL_SECTIONS;
 
-  // Resolve React package directories from the addon's own deps so that
-  // generated docs-page code works in any integration under pnpm strict mode.
-  // We resolve the directory (not the entry file) so Vite handles CJS→ESM interop.
+  // Resolve React package directories so mount-react.js works in pnpm strict mode
   let reactDir: string | undefined;
   let reactDomDir: string | undefined;
   try {
@@ -79,127 +62,57 @@ export function designbookLoadPlugin(
       };
     },
 
-    resolveId(id: string) {
-      if (id === VIRTUAL_SECTIONS) return RESOLVED_VIRTUAL_SECTIONS;
+    resolveId(id: string, importer: string | undefined) {
+      const cleanId = id.startsWith('./') ? id.slice(2) : id;
+      if (cleanId === VIRTUAL_SECTIONS) return RESOLVED_VIRTUAL_SECTIONS;
+
+      // Resolve *.scenes.yml imports so Vite treats them as modules (not static assets)
+      if (cleanId.endsWith('.scenes.yml')) {
+        if (importer) return resolve(dirname(importer), cleanId);
+        return cleanId;
+      }
     },
 
     async load(id: string) {
-      // Virtual module: scan sections/*/[id].section.scenes.yml and export metadata
       if (id === RESOLVED_VIRTUAL_SECTIONS) {
         return buildSectionsModule(designbookDir);
       }
 
       const match = matchHandler(id, defaultHandlers);
       if (!match) return undefined;
-      const result = await loadSceneModule(id, designbookDir, !!match.hasOverview, options, trackDependency);
-      if (id.includes('.scenes.yml')) {
-        console.log('[Designbook] load() id:', id);
-        console.log('[Designbook] load() hasOverview:', !!match.hasOverview);
-        console.log(
-          '[Designbook] load() result (first 500 chars):',
-          typeof result === 'string' ? result.substring(0, 500) : result,
-        );
-      }
-      return result;
-    },
-
-    handleHotUpdate({ file, server }) {
-      // HMR for data file dependencies (existing behavior)
-      const sceneIds = dataFileToScenes.get(file);
-      if (sceneIds) {
-        const modules = [...sceneIds].map((id) => server.moduleGraph.getModuleById(id)).filter(Boolean);
-        if (modules.length) {
-          console.log(`[Designbook] Data file changed: ${file}, reloading ${modules.length} scene(s)`);
-          return modules as import('vite').ModuleNode[];
-        }
-      }
+      return loadSceneModule(id, designbookDir, {
+        provider: options.provider,
+        builders: options.builders,
+        resolveImportPath: options.resolveImportPath,
+        wrapImport: options.wrapImport,
+      });
     },
 
     configureServer(server: ViteDevServer) {
-      const workflowsDir = resolve(designbookDir, 'workflows');
-      const changesDir = resolve(workflowsDir, 'changes');
-      const archiveDir = resolve(workflowsDir, 'archive');
+      // File watcher: fire custom events based on filename patterns
+      const watchPatterns: { pattern: RegExp; event: string }[] = [
+        { pattern: /data-model\.yml$/, event: 'designbook:data-model-change' },
+        { pattern: /data\.yml$/, event: 'designbook:data-change' },
+        { pattern: /design-tokens\.yml$/, event: 'designbook:tokens-change' },
+        { pattern: /\.jsonata$/, event: 'designbook:view-mode-change' },
+        { pattern: /tasks\.yml$/, event: 'designbook:workflow-change' },
+      ];
 
-      // Watch both changes/ and archive/ directories
-      server.watcher.add(changesDir);
-      server.watcher.add(archiveDir);
-
-      server.watcher.on('add', (path: string) => {
-        if (!path.endsWith('tasks.yml')) return;
-
-        if (path.includes('workflows/changes')) {
-          // New workflow started
-          try {
-            const data = parseTaskFile(path);
-            console.log('[Designbook] Workflow started:', data.title);
-            server.ws.send({
-              type: 'custom',
-              event: 'designbook:workflow-event',
-              data: { type: 'started', title: data.title, workflow: data.workflow },
-            });
-          } catch {
-            // Skip parse errors
+      const fireEvent = (file: string, action: string) => {
+        for (const { pattern, event } of watchPatterns) {
+          if (pattern.test(file)) {
+            server.ws.send({ type: 'custom', event, data: { file, action } });
+            return;
           }
         }
+      };
 
-        if (path.includes('workflows/archive')) {
-          // Workflow archived (completed)
-          try {
-            const data = parseTaskFile(path);
-            console.log('[Designbook] Workflow done:', data.title);
-            server.ws.send({
-              type: 'custom',
-              event: 'designbook:workflow-event',
-              data: { type: 'done', title: data.title, workflow: data.workflow },
-            });
-          } catch {
-            // Skip parse errors
-          }
-        }
-      });
+      server.watcher.add(designbookDir);
+      server.watcher.add(resolve(baseDir, 'components'));
+      server.watcher.on('add', (file) => fireEvent(file, 'add'));
+      server.watcher.on('change', (file) => fireEvent(file, 'change'));
+      server.watcher.on('unlink', (file) => fireEvent(file, 'unlink'));
 
-      server.watcher.on('change', (path: string) => {
-        if (path.endsWith('tasks.yml') && path.includes('workflows/changes')) {
-          try {
-            const data = parseTaskFile(path);
-            // Find the task that just changed to in-progress or done
-            const activeTask = data.tasks.find((t) => t.status === 'in-progress');
-            const lastDone = data.tasks
-              .filter((t) => t.status === 'done')
-              .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))[0];
-
-            server.ws.send({
-              type: 'custom',
-              event: 'designbook:workflow-progress',
-              data: {
-                title: data.title,
-                workflow: data.workflow,
-                tasks: data.tasks,
-                activeTask: activeTask?.title,
-                lastDoneTask: lastDone?.title,
-              },
-            });
-          } catch {
-            // Skip parse errors during write
-          }
-        }
-      });
-
-      // HTTP endpoint: serve all workflows (active + recent archived)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      server.middlewares.use('/__designbook/workflows', (_req: IncomingMessage, res: any) => {
-        try {
-          const workflows = scanAllWorkflows(workflowsDir, 10);
-          res.setHeader('Content-Type', 'application/json');
-          res.statusCode = 200;
-          res.end(JSON.stringify(workflows));
-        } catch (err: unknown) {
-          res.statusCode = 500;
-          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
-        }
-      });
-
-      // Middleware for loading designbook assets
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       server.middlewares.use('/__designbook/load', (req: IncomingMessage, res: any) => {
         if (req.method !== 'GET') {
@@ -209,7 +122,6 @@ export function designbookLoadPlugin(
         }
 
         try {
-          // Use 'http://localhost' as base just to parse the path relative to it
           const url = new URL(req.url || '', 'http://localhost');
           const filePath = url.searchParams.get('path');
 
@@ -228,7 +140,6 @@ export function designbookLoadPlugin(
             return;
           }
 
-          // Detect binary/image files and serve them with proper content type
           const ext = filePath.split('.').pop()?.toLowerCase();
           const mimeTypes: Record<string, string> = {
             png: 'image/png',
@@ -263,77 +174,42 @@ export function designbookLoadPlugin(
 }
 
 // ---------------------------------------------------------------------------
-// Docs page code generators
+// Overview story (canvas replacement for the old docs page)
 // ---------------------------------------------------------------------------
 
-interface DocsPageCode {
-  imports: string;
-  component: string;
-}
+const MOUNT_REACT_IMPORT = "import { mountReact } from 'storybook-addon-designbook/dist/pages/mount-react.js';";
+const SECTION_PAGE_IMPORT =
+  "import { DeboSectionPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionPage.jsx';";
 
-/**
- * Extract the page type from a scenes filename.
- * spec.shell.scenes.yml → 'shell'
- * ratgeber.section.scenes.yml → 'section'
- */
-function extractPageType(fileBase: string): string {
-  const typeMatch = fileBase.match(/\.(\w+)\.scenes\.yml$/);
-  if (typeMatch) return typeMatch[1]!;
-  return 'section';
-}
-
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-/**
- * Convention-based docs page code generator.
- * Maps filename type → Debo[Type]Page component with serialized props.
- */
-function buildDocsPage(pageType: string, props: Record<string, string>): DocsPageCode {
-  const componentName = `Debo${capitalize(pageType)}Page`;
-  const propsStr = Object.entries(props)
-    .map(([k, v]) => `${k}: '${v}'`)
-    .join(', ');
-
-  return {
-    imports: [
-      "import React from 'react';",
-      `import { ${componentName} } from 'storybook-addon-designbook/dist/components/pages/${componentName}.jsx';`,
-    ].join('\n'),
-    component: `const DocsPage = () => React.createElement(${componentName}, { ${propsStr} });`,
-  };
-}
-
-function injectDocsPage(sceneCode: string, docs: DocsPageCode): string {
-  const header = [docs.imports, '', docs.component, ''].join('\n');
-  return (header + sceneCode).replace(
-    /parameters:\s*\{([\s\S]*?)layout:\s*'fullscreen'/,
-    `parameters: {$1layout: 'fullscreen',\n  docs: { page: DocsPage }`,
-  );
-}
-
-function buildDocsOnlyModule(docs: DocsPageCode, group: string, exportName: string): string {
-  const title = group.split('/').pop() || exportName;
-  const message = `<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;font-family:system-ui,sans-serif;color:#6b7280;text-align:center"><div><p style="font-size:1.25rem;margin:0 0 0.5rem">${title} has no scenes yet.</p><p style="margin:0;font-size:0.875rem">Define scenes in the <code>.section.scenes.yml</code> file to see a preview here.</p></div></div>`;
+function buildOverviewStory(sectionId: string, title: string): string {
   return [
-    docs.imports,
+    'export const overview = {',
+    "  tags: ['!autodocs'],",
+    "  parameters: { layout: 'fullscreen', designbook: { order: 3 } },",
+    `  render: () => mountReact(DeboSectionPage, { sectionId: '${sectionId.replace(/'/g, "\\'")}', title: '${title.replace(/'/g, "\\'")}' }),`,
+    '};',
     '',
-    docs.component,
+  ].join('\n');
+}
+
+function buildPlaceholderModule(group: string, sectionId: string, title: string): string {
+  return [
+    MOUNT_REACT_IMPORT,
+    SECTION_PAGE_IMPORT,
     '',
     'export default {',
     `  title: '${group.replace(/'/g, "\\'")}',`,
-    "  tags: ['!dev'],",
-    '  parameters: {',
-    "    layout: 'fullscreen',",
-    '    docs: { page: DocsPage },',
-    '  },',
+    "  tags: ['!autodocs'],",
+    "  parameters: { layout: 'fullscreen' },",
     '};',
     '',
-    `export const ${exportName} = {`,
-    `  render: () => '${message.replace(/'/g, "\\'")}',`,
-    '};',
+    buildOverviewStory(sectionId, title),
   ].join('\n');
+}
+
+function prependOverviewToModule(sceneCode: string, sectionId: string, title: string): string {
+  const header = [MOUNT_REACT_IMPORT, SECTION_PAGE_IMPORT, '', buildOverviewStory(sectionId, title)].join('\n');
+  return header + sceneCode;
 }
 
 // ---------------------------------------------------------------------------
@@ -350,46 +226,9 @@ function buildErrorModule(id: string, error: unknown): string {
 }
 
 // ---------------------------------------------------------------------------
-// Module builder dispatch
+// Sections virtual module
 // ---------------------------------------------------------------------------
 
-async function buildStories(
-  id: string,
-  parsed: Record<string, unknown>,
-  designbookDir: string,
-  options: { provider?: string; renderers?: SceneNodeRenderer[]; moduleBuilder?: ModuleBuilder },
-  trackDependency?: (sceneId: string, dataFile: string) => void,
-): Promise<string> {
-  return options.moduleBuilder
-    ? buildSceneModule(
-        id,
-        parsed,
-        designbookDir,
-        options.moduleBuilder,
-        { provider: options.provider, renderers: options.renderers },
-        trackDependency,
-      )
-    : buildSdcModule(
-        id,
-        parsed,
-        designbookDir,
-        { provider: options.provider, renderers: options.renderers },
-        trackDependency,
-      );
-}
-
-// ---------------------------------------------------------------------------
-// Main scene loader
-// ---------------------------------------------------------------------------
-
-/**
- * Load a *.scenes.yml file and transform it into a Storybook CSF module.
- *
- * - Files with `hasOverview` get a docs page derived from the filename type:
- *   spec.[type].scenes.yml or *.[type].scenes.yml → Debo[Type]Page
- * - Plain scene files produce canvas stories only.
- */
-/** Scan sections subdirectories for .section.scenes.yml files and return a JS module. */
 function buildSectionsModule(designbookDir: string): string {
   const sectionsDir = resolve(designbookDir, 'sections');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -415,12 +254,19 @@ function buildSectionsModule(designbookDir: string): string {
   return `export default ${JSON.stringify(sections)};`;
 }
 
+// ---------------------------------------------------------------------------
+// Main scene loader
+// ---------------------------------------------------------------------------
+
 async function loadSceneModule(
   id: string,
   designbookDir: string,
-  hasOverview: boolean,
-  options: { provider?: string; renderers?: SceneNodeRenderer[]; moduleBuilder?: ModuleBuilder },
-  trackDependency?: (sceneId: string, dataFile: string) => void,
+  options: {
+    provider?: string;
+    builders?: SceneNodeBuilder[];
+    resolveImportPath?: (componentId: string, designbookDir: string) => string | null;
+    wrapImport?: (alias: string) => string;
+  },
 ): Promise<string | null> {
   try {
     const content = readFileSync(id, 'utf-8');
@@ -435,34 +281,23 @@ async function loadSceneModule(
     const scenes = parsed.scenes as unknown[] | undefined;
     const hasScenes = Array.isArray(scenes) && scenes.length > 0;
 
-    // Build scene stories (if any)
-    const sceneCode = hasScenes ? await buildStories(id, parsed, designbookDir, options, trackDependency) : '';
-
-    // Plain scenes (no overview) — return story code directly
-    if (!hasOverview) {
-      const result = await transformWithEsbuild(sceneCode || '', id + '.js', { loader: 'js' });
-      return result.code;
-    }
-
-    // Overview files — extract metadata and build docs page by convention
     const fileBase = basename(id);
-    const pageType = extractPageType(fileBase);
     const sectionId = (parsed.id as string) || fileBase.replace(/\.(\w+\.)?scenes\.yml$/, '');
     const title = (parsed.title as string) || 'Untitled';
     const group = (parsed.name as string) || `Designbook/Sections/${title}`;
-    const exportName = sectionId
-      .split('-')
-      .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join('');
 
-    const docs = buildDocsPage(pageType, {
-      sectionId: sectionId.replace(/'/g, "\\'"),
-      title: title.replace(/'/g, "\\'"),
+    if (!hasScenes) {
+      return buildPlaceholderModule(group, sectionId, title);
+    }
+
+    const sceneCode = await buildSceneModule(id, parsed, designbookDir, {
+      builders: options.builders,
+      resolveImportPath: options.resolveImportPath,
+      wrapImport: options.wrapImport,
     });
 
-    const code = sceneCode ? injectDocsPage(sceneCode, docs) : buildDocsOnlyModule(docs, group, exportName);
-
-    const result = await transformWithEsbuild(code, id + '.js', { loader: 'js' });
+    const codeWithOverview = prependOverviewToModule(sceneCode, sectionId, title);
+    const result = await transformWithEsbuild(codeWithOverview, id + '.js', { loader: 'js' });
     return result.code;
   } catch (e: unknown) {
     console.error('[Designbook] Error loading scene module:', id, e);

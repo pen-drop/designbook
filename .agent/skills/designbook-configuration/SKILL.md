@@ -40,6 +40,7 @@ echo $DESIGNBOOK_SDC_PROVIDER
 | `frameworks.css` | `DESIGNBOOK_FRAMEWORK_CSS` | `daisyui` |
 | `dist` | `DESIGNBOOK_DIST` | `packages/.../designbook` |
 | `tmp` | `DESIGNBOOK_TMP` | `packages/.../designbook/tmp` |
+| `extensions` | `DESIGNBOOK_EXTENSIONS` | `layout_builder` (comma-separated) |
 | `drupal.theme` | `DESIGNBOOK_DRUPAL_THEME` | `packages/.../test-integration-drupal` |
 | _(derived)_ | `DESIGNBOOK_SDC_PROVIDER` | `test_integration_drupal` |
 
@@ -51,6 +52,8 @@ The `designbook.config.yml` file should be placed in the project root.
 
 ```yaml
 backend: "drupal"
+extensions:
+  - layout_builder
 frameworks:
   component: "sdc"
   css: "daisyui"
@@ -59,3 +62,8 @@ tmp: "tmp"
 drupal:
   theme: "packages/integrations/test-integration-drupal"
 ```
+
+> `extensions` declares backend capabilities affecting content composition. Common values:
+> - Drupal: `layout_builder`, `canvas`, `experience_builder`, `paragraphs`
+> - WordPress: `gutenberg`
+> - Empty array = all content is structured (default)

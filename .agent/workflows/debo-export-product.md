@@ -16,7 +16,7 @@ Check if the following files exist:
 - `${DESIGNBOOK_DIST}/product/product-roadmap.md` — roadmap sections (required)
 - `${DESIGNBOOK_DIST}/data-model.yml` — data model (recommended)
 - `${DESIGNBOOK_DIST}/design-system/design-tokens.md` — design tokens (recommended)
-- `${DESIGNBOOK_DIST}/design-shell/shell-spec.md` — application shell (recommended)
+- `${DESIGNBOOK_DIST}/design-system/design-system.scenes.yml` — application shell (recommended)
 
 Also check for section artifacts:
 - For each section in the roadmap, check for: `*.section.scenes.yml` (with optional `screen` key), `data.yml`, `screenshots.md`
@@ -114,7 +114,7 @@ Generate from `${DESIGNBOOK_DIST}/data-model.yml` and section `data.yml` files.
 Create `${DESIGNBOOK_DIST}/export/product-plan/shell/`:
 - `README.md` — Shell specification (layout, navigation, responsive behavior)
 
-Copy from `${DESIGNBOOK_DIST}/design-shell/shell-spec.md`.
+Copy from `${DESIGNBOOK_DIST}/design-system/design-system.scenes.yml`.
 
 ## Step 8: Copy Section Artifacts
 

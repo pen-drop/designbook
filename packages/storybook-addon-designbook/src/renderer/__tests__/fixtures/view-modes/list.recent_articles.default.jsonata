@@ -1,0 +1,18 @@
+{
+  "type": "component",
+  "component": "view",
+  "slots": {
+    "title": "Recent Articles",
+    "content": {
+      "type": "component",
+      "component": "grid",
+      "props": { "columns": 3 },
+      "slots": { "items": $rows }
+    },
+    "pager": {
+      "type": "component",
+      "component": "pager",
+      "props": { "total": $count, "limit": $limit }
+    }
+  }
+}

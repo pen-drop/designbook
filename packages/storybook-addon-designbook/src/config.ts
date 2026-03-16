@@ -21,6 +21,8 @@ export interface DesignbookConfig {
   technology: string;
   /** Temporary directory. */
   tmp: string;
+  /** Backend extensions affecting content composition (e.g. layout_builder, canvas). */
+  extensions: string[];
   /** Any additional keys from the config file. */
   [key: string]: unknown;
 }
@@ -29,6 +31,7 @@ const DEFAULTS: DesignbookConfig = {
   dist: 'designbook',
   technology: 'html',
   tmp: 'tmp',
+  extensions: [],
 };
 
 /**
@@ -86,10 +89,13 @@ export function loadConfig(startDir?: string): DesignbookConfig {
     const configDir = dirname(configPath);
 
     // Flatten nested keys (e.g. css.framework → css.framework) for compatibility
-    // with the existing environment variable pattern
+    // with the existing environment variable pattern.
+    // Arrays (like extensions) are preserved as-is at their original key.
     const flat: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(parsed)) {
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (Array.isArray(value)) {
+        flat[key] = value;
+      } else if (typeof value === 'object' && value !== null) {
         for (const [subKey, subValue] of Object.entries(value as Record<string, unknown>)) {
           flat[`${key}.${subKey}`] = subValue;
         }

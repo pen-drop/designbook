@@ -1,0 +1,12 @@
+group: Test/Shell
+
+scenes:
+  - name: shell
+    items:
+      - component: test_provider:page
+        slots:
+          header:
+            - component: test_provider:nav
+          content: $content
+          footer:
+            - component: test_provider:footer

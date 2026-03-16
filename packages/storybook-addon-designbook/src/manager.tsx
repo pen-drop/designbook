@@ -1,6 +1,7 @@
 import React from 'react';
 import { addons, types } from 'storybook/manager-api';
 
+import { DeboOnboardingGuide } from './components/ui/DeboOnboardingGuide';
 import { Panel } from './components/Panel';
 import { Tool } from './components/Tool';
 import { ADDON_ID, PANEL_ID, TOOL_ID } from './constants';
@@ -19,7 +20,15 @@ addons.register(ADDON_ID, (api) => {
     render: () => <Tool api={api} />,
   });
 
-  // Register a panel
+  // Onboarding guide — always visible in toolbar
+  addons.add(`${ADDON_ID}/onboarding`, {
+    type: types.TOOLEXTRA,
+    title: 'Designbook Onboarding',
+    match: () => true,
+    render: () => <DeboOnboardingGuide />,
+  });
+
+  // Register a panel (Scene Inspector — placeholder for future use)
   addons.add(PANEL_ID, {
     type: types.PANEL,
     title: 'Designbook',

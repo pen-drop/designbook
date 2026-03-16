@@ -1,20 +1,33 @@
-/**
- * DeboBadge — Pill-shaped colored label tag.
- *
- * @param {Object} props
- * @param {string} props.children - Badge text
- * @param {'green'|'red'|'purple'} [props.color='green'] - Color variant
- * @param {string} [props.className] - Additional classes
- */
-export function DeboBadge({ children, color = 'green', className = '' }) {
-    const colors = {
-        green: 'debo:bg-[#D0FAE5] debo:text-[#007A55]',
-        red: 'debo:bg-[#FFE4E6] debo:text-[#C70036]',
-        purple: 'debo:bg-[#f3e8ff] debo:text-[#8200db]',
-    };
-    return (
-        <span className={`debo:uppercase debo:!font-sans debo:!text-[10px] debo:font-bold debo:leading-[15px] debo:!tracking-[0.5px] debo:px-2.5 debo:py-1 debo:rounded-full debo:shrink-0 debo:whitespace-nowrap ${colors[color] || colors.green} ${className}`.trim()}>
-            {children}
-        </span>
-    );
+import React from 'react';
+import { styled } from 'storybook/theming';
+
+const colorMap = {
+  green: { background: '#D0FAE5', color: '#007A55' },
+  yellow: { background: '#FEF3C7', color: '#92400E' },
+  red: { background: '#FFE4E6', color: '#C70036' },
+  purple: { background: '#f3e8ff', color: '#8200db' },
+  gray: { background: '#F1F5F9', color: '#94A3B8' },
+};
+
+const StyledBadge = styled.span(({ theme }) => ({
+  display: 'inline-block',
+  fontFamily: theme.typography.fonts.base,
+  fontSize: 10,
+  fontWeight: theme.typography.weight.bold,
+  lineHeight: '15px',
+  letterSpacing: '0.5px',
+  textTransform: 'uppercase',
+  padding: '2px 8px',
+  borderRadius: 9999,
+  flexShrink: 0,
+  whiteSpace: 'nowrap',
+}));
+
+export function DeboBadge({ children, color = 'green' }) {
+  const c = colorMap[color] || colorMap.green;
+  return (
+    <StyledBadge style={{ background: c.background, color: c.color }}>
+      {children}
+    </StyledBadge>
+  );
 }

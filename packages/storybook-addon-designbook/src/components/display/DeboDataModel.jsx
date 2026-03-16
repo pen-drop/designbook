@@ -1,54 +1,60 @@
-
+import React from 'react';
+import { styled } from 'storybook/theming';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboCard } from '../ui/DeboCard.jsx';
 
 const ENTITY_BADGE_COLORS = {
-    node: 'red',
-    block_content: 'green',
-    media: 'purple',
+  node: 'red',
+  block_content: 'green',
+  media: 'purple',
 };
 
+const CardGrid = styled.div({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+  gap: 16,
+});
+
+const SectionList = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 24,
+});
+
 function EntityGroup({ type, bundles }) {
-    const bundleEntries = Object.entries(bundles || {});
+  const bundleEntries = Object.entries(bundles || {});
+  if (bundleEntries.length === 0) return null;
 
-    if (bundleEntries.length === 0) return null;
+  const title = type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-    return (
-        <DeboCollapsible title={type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} count={bundleEntries.length} defaultOpen={true}>
-            <div className="debo:grid debo:grid-cols-1 debo:md:grid-cols-2 debo:lg:grid-cols-3 debo:gap-4">
-                {bundleEntries.map(([key, def]) => (
-                    <DeboCard
-                        key={key}
-                        title={def.title || key}
-                        badge={type}
-                        badgeColor={ENTITY_BADGE_COLORS[type] || 'red'}
-                        description={def.description}
-                        entityPath={`${type}.${key}`}
-                        fieldCount={def.fields ? Object.keys(def.fields).length : 0}
-                    />
-                ))}
-            </div>
-        </DeboCollapsible>
-    );
+  return (
+    <DeboCollapsible title={title} count={bundleEntries.length} defaultOpen={true}>
+      <CardGrid>
+        {bundleEntries.map(([key, def]) => (
+          <DeboCard
+            key={key}
+            title={def.title || key}
+            badge={type}
+            badgeColor={ENTITY_BADGE_COLORS[type] || 'red'}
+            description={def.description}
+            entityPath={`${type}.${key}`}
+            fieldCount={def.fields ? Object.keys(def.fields).length : 0}
+          />
+        ))}
+      </CardGrid>
+    </DeboCollapsible>
+  );
 }
 
-/**
- * DeboDataModel — Displays the data model definition with entity groups.
- *
- * @param {Object} props
- * @param {Object} props.data - Data model data with content property
- */
 export function DeboDataModel({ data }) {
-    if (!data || !data.content) return null;
+  if (!data || !data.content) return null;
+  const entityTypes = Object.entries(data.content);
 
-    const content = data.content;
-    const entityTypes = Object.entries(content);
-
-    return (
-        <div className="debo:flex debo:flex-col debo:gap-6">
-            {entityTypes.map(([type, bundles]) => (
-                <EntityGroup key={type} type={type} bundles={bundles} />
-            ))}
-        </div>
-    );
+  return (
+    <SectionList>
+      {entityTypes.map(([type, bundles]) => (
+        <EntityGroup key={type} type={type} bundles={bundles} />
+      ))}
+    </SectionList>
+  );
 }

@@ -1,11 +1,11 @@
 ---
 name: designbook-css-tailwind
-description: Tailwind CSS v4 framework rules — structural token naming conventions (container, section-spacing) and CSS token generation via @theme. Use when DESIGNBOOK_FRAMEWORK_CSS includes tailwind (directly or via daisyui).
+description: Tailwind CSS v4 framework rules — structural token naming conventions (layout-width, layout-spacing, grid) and CSS token generation via @theme. Use when DESIGNBOOK_FRAMEWORK_CSS includes tailwind (directly or via daisyui).
 ---
 
 # Designbook CSS Tailwind Skill
 
-Tailwind v4-specific rules for structural design tokens and CSS generation. This skill defines naming conventions for layout-related tokens (container widths, section-spacing) and generates `@theme` blocks using Tailwind v4's CSS-first configuration.
+Tailwind v4-specific rules for structural design tokens and CSS generation. This skill defines naming conventions for layout-related tokens (layout-width, layout-spacing, grid) and generates `@theme` blocks using Tailwind v4's CSS-first configuration.
 
 > This skill is loaded:
 > 1. By `debo-design-tokens` workflow — for token naming conventions
@@ -19,9 +19,10 @@ Tailwind v4-specific rules for structural design tokens and CSS generation. This
 ## ⛔ Styling Rules (Tailwind v4)
 
 - **Use Tailwind's built-in spacing scale** (`p-4`, `gap-8`, `m-2`). No custom spacing tokens needed.
-- **Container widths** use the standard `--container-*` namespace → auto-generates utilities
-- **Section-spacing** is a non-standard namespace → must be used via `var()`
-- **No hand-written CSS** for containers or section spacing
+- **Layout widths** (`layout-width` tokens) use the standard `--container-*` namespace → auto-generates utilities
+- **Layout spacing** (`layout-spacing` tokens) is a non-standard namespace → must be used via `var()`
+- **Grid** tokens define gap sizes
+- **No hand-written CSS** for containers, section spacing, or grid gaps
 
 ---
 
@@ -65,11 +66,11 @@ Variables **outside** the standard namespaces do NOT auto-generate utilities. Th
 
 ## 🎨 Token Naming Conventions
 
-> **Standard Tailwind spacing** (`p-4`, `m-8`, `gap-2`, etc.) uses the built-in `--spacing-*` scale — no tokens needed. Only **container** and **section-spacing** are project-specific tokens.
+> **Standard Tailwind spacing** (`p-4`, `m-8`, `gap-2`, etc.) uses the built-in `--spacing-*` scale — no tokens needed. Only **layout-width**, **layout-spacing**, and **grid** are project-specific tokens.
 
-### Container Token Names (standard namespace)
+### Layout-Width Token Names (standard namespace)
 
-Container tokens use the `--container-*` namespace which **auto-generates** Tailwind utilities:
+Layout-width tokens map to the `--container-*` namespace which **auto-generates** Tailwind utilities:
 
 | Token Name | CSS Variable | Tailwind Utility | Purpose |
 |---|---|---|---|
@@ -80,24 +81,36 @@ Container tokens use the `--container-*` namespace which **auto-generates** Tail
 
 > These are standard Tailwind v4 namespace variables — utility classes are generated automatically.
 
-### Section-Spacing Token Names (non-standard namespace)
+### Layout-Spacing Token Names (non-standard namespace)
 
-Section-spacing tokens use a **non-standard** namespace. Utility classes are NOT auto-generated — use `var()`:
+Layout-spacing tokens use a **non-standard** namespace. Utility classes are NOT auto-generated — use `var()`:
 
 | Token Name | CSS Variable | Usage | Purpose |
 |---|---|---|---|
-| `sm` | `--section-spacing-sm` | `py-[var(--section-spacing-sm)]` | Tight sections (2rem) |
-| `md` | `--section-spacing-md` | `py-[var(--section-spacing-md)]` | Default section padding (4rem) |
-| `lg` | `--section-spacing-lg` | `py-[var(--section-spacing-lg)]` | Hero/spacious sections (6rem) |
+| `sm` | `--layout-spacing-sm` | `py-[var(--layout-spacing-sm)]` | Tight sections (2rem) |
+| `md` | `--layout-spacing-md` | `py-[var(--layout-spacing-md)]` | Default section padding (4rem) |
+| `lg` | `--layout-spacing-lg` | `py-[var(--layout-spacing-lg)]` | Hero/spacious sections (6rem) |
 
-> ⚠️ Since `section-spacing` is NOT a standard Tailwind namespace, you MUST use arbitrary value syntax: `py-[var(--section-spacing-md)]`
+> ⚠️ Since `layout-spacing` is NOT a standard Tailwind namespace, you MUST use arbitrary value syntax: `py-[var(--layout-spacing-md)]`
+
+### Grid Token Names (non-standard namespace)
+
+Grid tokens define gap sizes for grid layouts:
+
+| Token Name | CSS Variable | Usage | Purpose |
+|---|---|---|---|
+| `gap-sm` | `--grid-gap-sm` | `gap-[var(--grid-gap-sm)]` | Small grid gap (0.5rem) |
+| `gap-md` | `--grid-gap-md` | `gap-[var(--grid-gap-md)]` | Default grid gap (1rem) |
+| `gap-lg` | `--grid-gap-lg` | `gap-[var(--grid-gap-lg)]` | Large grid gap (2rem) |
+
+> ⚠️ Since `grid` is NOT a standard Tailwind namespace, you MUST use arbitrary value syntax: `gap-[var(--grid-gap-md)]`
 
 ### Example Token Structures
 
-#### Container tokens
+#### Layout-width tokens
 
 ```yaml
-container:
+layout-width:
   sm:
     $value: "640px"
     $type: dimension
@@ -116,10 +129,10 @@ container:
     description: Extra large container max-width
 ```
 
-#### Section-spacing tokens
+#### Layout-spacing tokens
 
 ```yaml
-section-spacing:
+layout-spacing:
   sm:
     $value: "2rem"
     $type: dimension
@@ -132,6 +145,24 @@ section-spacing:
     $value: "6rem"
     $type: dimension
     description: Hero/spacious sections
+```
+
+#### Grid tokens
+
+```yaml
+grid:
+  gap-sm:
+    $value: "0.5rem"
+    $type: dimension
+    description: Small grid gap
+  gap-md:
+    $value: "1rem"
+    $type: dimension
+    description: Default grid gap
+  gap-lg:
+    $value: "2rem"
+    $type: dimension
+    description: Large grid gap
 ```
 
 ---
@@ -163,7 +194,7 @@ npx jsonata-w inspect $DESIGNBOOK_DIST/design-tokens.yml --summary
 
 ### Step 3: Generate `.jsonata` expression files
 
-For each structural group (`container`, `section-spacing`), create:
+For each structural group (`layout-width`, `layout-spacing`, `grid`), create:
 
 ```
 $DESIGNBOOK_DIST/designbook-css-tailwind/generate-[group].jsonata
@@ -190,15 +221,17 @@ Each file returns a CSS string using Tailwind v4 `@theme`:
 
 | Token Group | CSS Variable Prefix | Standard Namespace? | Example Output |
 |---|---|---|---|
-| `container` | `--container-` | ✅ Yes | `--container-md: 768px;` |
-| `section-spacing` | `--section-spacing-` | ❌ No | `--section-spacing-md: 4rem;` |
+| `layout-width` | `--container-` | ✅ Yes | `--container-md: 768px;` |
+| `layout-spacing` | `--layout-spacing-` | ❌ No | `--layout-spacing-md: 4rem;` |
+| `grid` | `--grid-` | ❌ No | `--grid-gap-md: 1rem;` |
 
 ## Group-to-File Mapping
 
 | Token Group | Output File | Notes |
 |---|---|---|
-| `container` | `tokens/container.src.css` | Container max-widths via `@theme` |
-| `section-spacing` | `tokens/section-spacing.src.css` | Section vertical rhythm via `@theme` (use with `var()`) |
+| `layout-width` | `tokens/layout-width.src.css` | Container max-widths via `@theme` (maps to `--container-*`) |
+| `layout-spacing` | `tokens/layout-spacing.src.css` | Section vertical rhythm via `@theme` (use with `var()`) |
+| `grid` | `tokens/grid.src.css` | Grid gap sizes via `@theme` (use with `var()`) |
 | _(other)_ | `tokens/[group].src.css` | Auto-generated for unknown groups |
 
 ## CSS Output Structure
@@ -206,8 +239,9 @@ Each file returns a CSS string using Tailwind v4 `@theme`:
 ```
 $DESIGNBOOK_DRUPAL_THEME/css/
 └── tokens/
-    ├── container.src.css
-    └── section-spacing.src.css
+    ├── layout-width.src.css
+    ├── layout-spacing.src.css
+    └── grid.src.css
 ```
 
 ## Tailwind v4 Quick Reference

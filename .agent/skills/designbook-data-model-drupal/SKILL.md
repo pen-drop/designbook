@@ -11,6 +11,25 @@ This skill provides guidelines for creating data models compatible with Drupal. 
 
 It describes the expected entity types (`node`, `media`) and field naming conventions (`field_` prefix) that the author (Agent or User) must apply manually.
 
+## Composition per Bundle
+
+Set `composition` on each bundle based on how Drupal manages its content:
+
+| Bundle type | composition | Example |
+|-------------|-------------|---------|
+| Content types with fields | `structured` (default) | `node.article`, `node.event` |
+| Landing pages with Layout Builder | `unstructured` | `node.landing_page` |
+| Landing pages with Canvas/Experience Builder | `unstructured` | `node.campaign` |
+| Block content (for Layout Builder) | `structured` | `block_content.hero`, `block_content.card` |
+| Media entities | `structured` | `media.image`, `media.video` |
+| Taxonomy terms | `structured` | `taxonomy_term.tags` |
+
+> `unstructured` only affects view_mode `full`. Unstructured bundles still need fields for teaser/card view modes.
+
+The project's `extensions` config determines what `unstructured` means:
+- `layout_builder`: full view mode renders sections with block entity slots
+- `canvas` / `experience_builder`: full view mode renders a component tree directly
+
 ## Entity Mapping
 
 Drupal uses specific entity types for different kinds of data. Map generic concepts as follows:

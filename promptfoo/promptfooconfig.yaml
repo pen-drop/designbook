@@ -121,26 +121,12 @@ prompts:
       Execute the workflow now.
 
 providers:
-  - id: opencode:sdk
-    label: gemini-3-pro
+  - id: claudecode
+    label: claude-opus-4-6
     config:
-      provider_id: google
-      model: antigravity-gemini-3.1-pro
+      model: claude-opus-4-6
       timeout: 300000
-      tools:
-        read: true
-        grep: true
-        glob: true
-        list: true
-        write: true
-        edit: true
-        bash: true
-        webfetch: true
-        skill: true
-      permission:
-        bash: allow
-        edit: allow
-        external_directory: allow
+      dangerouslyAllowBashAccess: true
 
 evaluateOptions:
   maxConcurrency: 1
@@ -148,10 +134,10 @@ evaluateOptions:
 defaultTest:
   options:
     provider:
-      id: opencode:sdk
+      id: claudecode
       config:
-        provider_id: google
-        model: antigravity-gemini-3.1-pro
+        model: claude-opus-4-6
+        dangerouslyAllowBashAccess: true
 
 # =============================================================================
 # Core Debo-Workflow Tests

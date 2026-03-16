@@ -60,6 +60,52 @@ typography:
     $value: Space Grotesk
     $type: fontFamily
     description: Headings font
+
+layout-width:
+  sm:
+    $value: "640px"
+    $type: dimension
+    description: Mobile-optimized max-width
+  md:
+    $value: "768px"
+    $type: dimension
+    description: Content max-width
+  lg:
+    $value: "1024px"
+    $type: dimension
+    description: Dashboard max-width
+  xl:
+    $value: "1280px"
+    $type: dimension
+    description: Full-width max-width
+
+layout-spacing:
+  sm:
+    $value: "2rem"
+    $type: dimension
+    description: Tight vertical spacing
+  md:
+    $value: "4rem"
+    $type: dimension
+    description: Default vertical spacing
+  lg:
+    $value: "6rem"
+    $type: dimension
+    description: Hero/spacious vertical spacing
+
+grid:
+  gap-sm:
+    $value: "0.5rem"
+    $type: dimension
+    description: Small grid gap
+  gap-md:
+    $value: "1rem"
+    $type: dimension
+    description: Default grid gap
+  gap-lg:
+    $value: "2rem"
+    $type: dimension
+    description: Large grid gap
 ```
 
 ## Validation Rules

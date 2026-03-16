@@ -1,7 +1,6 @@
-/**
- * Navigate to a Storybook page via the top-level window.
- * Storybook renders docs in an iframe, so we need window.top to navigate the shell.
- */
+import React from 'react';
+import { styled } from 'storybook/theming';
+
 function navigateStorybook(storyPath) {
   try {
     const url = new URL(window.top.location.href);
@@ -12,74 +11,102 @@ function navigateStorybook(storyPath) {
   }
 }
 
-/**
- * DeboNumberedList — Ordered list of items with numbered indicators, titles, and descriptions.
- * Optionally linkable: each item can specify its own `linkTo`, or a single `linkTo`
- * prop can be passed to make all items navigate to the same page.
- *
- * @param {Object} props
- * @param {Array<{title: string, description: string|React.ReactNode, linkTo?: string}>} props.items
- * @param {string} [props.linkTo] — Shared Storybook path (overridden by per-item linkTo)
- */
+const List = styled.ul(({ theme }) => ({
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+  background: theme.background?.content || '#ffffff',
+  borderRadius: 12,
+}));
+
+const ItemRow = styled.li(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 16,
+  padding: '10px 12px',
+  borderRadius: 8,
+  '&:hover': {
+    background: theme.background?.hoverable || '#F8FAFC',
+  },
+}));
+
+const NumberBadge = styled.span(({ theme }) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 24,
+  height: 24,
+  borderRadius: 6,
+  fontSize: theme.typography.size.s1,
+  fontWeight: 500,
+  background: theme.background?.hoverable || '#F1F5F9',
+  color: theme.color.mediumdark,
+  flexShrink: 0,
+}));
+
+const ItemContent = styled.div({
+  minWidth: 0,
+  flex: 1,
+});
+
+const ItemTitle = styled.span(({ theme }) => ({
+  fontWeight: 500,
+  color: theme.color.defaultText,
+}));
+
+const ItemDescription = styled.p(({ theme }) => ({
+  fontSize: theme.typography.size.s1,
+  color: theme.color.mediumdark,
+  marginTop: 2,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+}));
+
+const ArrowIcon = styled.svg(({ theme }) => ({
+  width: 16,
+  height: 16,
+  color: theme.color.mediumdark,
+  opacity: 0.3,
+  flexShrink: 0,
+}));
+
+const ClickableRow = styled(ItemRow)({
+  cursor: 'pointer',
+});
+
 export function DeboNumberedList({ items, linkTo }) {
   if (!items || items.length === 0) return null;
 
   return (
-    <ul className="debo:menu debo:menu-lg debo:bg-base-100 debo:rounded-box debo:p-0">
+    <List>
       {items.map((item, index) => {
         const itemLink = item.linkTo || linkTo;
+        const Wrapper = itemLink ? ClickableRow : ItemRow;
 
-        const content = (
-          <>
-            <span className="debo:badge debo:badge-ghost debo:badge-sm debo:font-medium debo:shrink-0">
-              {index + 1}
-            </span>
-            <div className="debo:min-w-0 debo:flex-1">
-              <span className="debo:font-medium debo:text-base-content">
-                {item.title}
-              </span>
+        return (
+          <Wrapper
+            key={index}
+            as={itemLink ? 'li' : undefined}
+            onClick={itemLink ? () => navigateStorybook(itemLink) : undefined}
+          >
+            <NumberBadge>{index + 1}</NumberBadge>
+            <ItemContent>
+              <ItemTitle>{item.title}</ItemTitle>
               {item.description && typeof item.description === 'string' ? (
-                <p className="debo:text-base-content/50 debo:text-sm debo:mt-0.5 debo:line-clamp-1">
-                  {item.description}
-                </p>
+                <ItemDescription>{item.description}</ItemDescription>
               ) : (
                 item.description
               )}
-            </div>
-          </>
-        );
-
-        if (itemLink) {
-          return (
-            <li key={index}>
-              <button
-                type="button"
-                onClick={() => navigateStorybook(itemLink)}
-                className="debo:flex debo:items-center debo:gap-4"
-              >
-                {content}
-                <svg
-                  className="debo:w-4 debo:h-4 debo:text-base-content/30 debo:shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                </svg>
-              </button>
-            </li>
-          );
-        }
-
-        return (
-          <li key={index}>
-            <div className="debo:flex debo:items-center debo:gap-4">
-              {content}
-            </div>
-          </li>
+            </ItemContent>
+            {itemLink && (
+              <ArrowIcon fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </ArrowIcon>
+            )}
+          </Wrapper>
         );
       })}
-    </ul>
+    </List>
   );
 }

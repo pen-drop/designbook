@@ -20,7 +20,7 @@ Check if the following files exist for the target section:
 - `$DESIGNBOOK_DIST/sections/[section-id]/*.section.scenes.yml` — section scenes file (required)
 - `$DESIGNBOOK_DIST/sections/[section-id]/data.yml` — sample data (required)
 - `$DESIGNBOOK_DIST/data-model.yml` — data model (required)
-- `$DESIGNBOOK_DIST/shell/spec.shell.scenes.yml` — application shell (required)
+- `$DESIGNBOOK_DIST/design-system/design-system.scenes.yml` — application shell (required)
 - Page, header, footer components in `$DESIGNBOOK_DRUPAL_THEME/components/` (required)
 - `$DESIGNBOOK_DIST/design-system/design-tokens.yml` — design tokens (optional)
 
@@ -129,7 +129,7 @@ The file uses layout inheritance from the shell and contains all scenes as entri
 
 ```yaml
 name: "Designbook/Sections/{Section Title}"
-layout: "shell"
+layout: "design-system:shell"
 
 scenes:
   - name: listing

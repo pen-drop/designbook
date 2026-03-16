@@ -1,0 +1,10 @@
+content:
+  node:
+    article:
+      fields:
+        title:
+          type: string
+config:
+  list:
+    broken_list:
+      sources: []

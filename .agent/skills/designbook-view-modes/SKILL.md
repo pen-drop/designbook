@@ -159,7 +159,39 @@ For cross-entity rendering (e.g., embedding a contact card from `block_content`)
 ]
 ```
 
-The addon resolves `type: entity` nodes recursively by loading and evaluating the referenced `.jsonata` file.
+The addon resolves `type: entity` nodes recursively by loading and evaluating the referenced `.jsonata` file. Recursion depth is limited to 5 levels.
+
+### Composition-aware patterns
+
+The `composition` field in `data-model.yml` determines what a view mode expression should output:
+
+**`structured` bundles** (default): All view modes map fields to components. May include `type: "entity"` for reference fields.
+
+**`unstructured` bundles**: Only `full` view mode is affected — it outputs the layout/component tree based on the project's `extensions` config:
+- `layout_builder`: Output `section` components with entity refs in column slots
+- `canvas` / `experience_builder`: Output components directly
+
+All non-full view modes (teaser, card, etc.) are always structured regardless of bundle composition.
+
+```jsonata
+/* Unstructured + layout_builder: node.landing_page.full.jsonata */
+[
+  { "type": "component",
+    "component": "section",
+    "props": { "max_width": "lg", "columns": 2 },
+    "slots": {
+      "column_1": [
+        { "type": "entity", "entity_type": "block_content",
+          "bundle": "hero", "view_mode": "full", "record": 0 }
+      ],
+      "column_2": [
+        { "type": "entity", "entity_type": "block_content",
+          "bundle": "card", "view_mode": "full", "record": 0 }
+      ]
+    }
+  }
+]
+```
 
 ## Field-to-Component Mapping Guide
 
@@ -196,6 +228,54 @@ const expr = readFileSync('view-modes/node.article.teaser.jsonata', 'utf-8');
 const record = { title: 'Test', field_media: { url: '/img.jpg' } };
 const result = await jsonata(expr).evaluate(record);
 // result = ComponentNode[]
+```
+
+## List View Modes
+
+Lists also use JSONata files, following the same pattern but with different naming and input:
+
+> **Naming**: `list.{list_name}.{view_mode}.jsonata`
+
+| List | View Mode | File |
+|------|-----------|------|
+| recent_articles | default | `view-modes/list.recent_articles.default.jsonata` |
+| search | default | `view-modes/list.search.default.jsonata` |
+| recent_articles | compact | `view-modes/list.recent_articles.compact.jsonata` |
+
+### Input Variables
+
+List expressions receive pre-rendered rows (NOT raw entity records) as bound variables:
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `$rows` | array | Pre-rendered items — each record already processed through its entity view-mode JSONata |
+| `$count` | number | Total number of records across all sources |
+| `$limit` | number | Limit from list config (or total count if no limit) |
+
+### Expression Format
+
+A list expression returns a single `SceneNode` (typically a wrapper component):
+
+```jsonata
+/* view-modes/list.recent_articles.default.jsonata */
+{
+  "type": "component",
+  "component": "view",
+  "slots": {
+    "title": "Recent Articles",
+    "content": {
+      "type": "component",
+      "component": "grid",
+      "props": { "columns": 3 },
+      "slots": { "items": $rows }
+    },
+    "pager": {
+      "type": "component",
+      "component": "pager",
+      "props": { "total": $count, "limit": $limit }
+    }
+  }
+}
 ```
 
 ## No `@config` Block

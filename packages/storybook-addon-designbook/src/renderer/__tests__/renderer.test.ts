@@ -1,0 +1,128 @@
+import { describe, it, expect, vi } from 'vitest';
+import { renderComponent } from '../renderer';
+import type { ComponentNode, ComponentModule } from '../types';
+
+function makeModule(render: ComponentModule['render']): ComponentModule {
+  return { render };
+}
+
+describe('renderComponent', () => {
+  it('renders a single ComponentNode', () => {
+    const imports = {
+      'test:heading': makeModule((props) => `<h${props.level}>`),
+    };
+    const node: ComponentNode = { component: 'test:heading', props: { level: '1' } };
+
+    const result = renderComponent(node, imports);
+    expect(result).toBe('<h1>');
+  });
+
+  it('renders an array of ComponentNodes — joins strings', () => {
+    const imports = {
+      'test:a': makeModule(() => 'A'),
+      'test:b': makeModule(() => 'B'),
+    };
+
+    const result = renderComponent([{ component: 'test:a' }, { component: 'test:b' }], imports);
+
+    // Multiple string results are concatenated (html framework compatibility)
+    expect(result).toBe('AB');
+  });
+
+  it('resolves slots recursively — array slot of strings is joined', () => {
+    const childSpy = vi.fn().mockReturnValue('CHILD');
+    const parentSpy = vi.fn().mockImplementation((_props, slots) => `PARENT:${JSON.stringify(slots)}`);
+
+    const imports = {
+      'test:parent': makeModule(parentSpy),
+      'test:child': makeModule(childSpy),
+    };
+
+    const node: ComponentNode = {
+      component: 'test:parent',
+      slots: {
+        items: [{ component: 'test:child' }],
+      },
+    };
+
+    renderComponent(node, imports);
+
+    expect(childSpy).toHaveBeenCalledOnce();
+    const [, resolvedSlots] = parentSpy.mock.calls[0]!;
+    // Array slot of strings is joined into a single string
+    expect((resolvedSlots as Record<string, unknown>).items).toBe('CHILD');
+  });
+
+  it('resolves single ComponentNode slot', () => {
+    const childRender = vi.fn().mockReturnValue('badge');
+    const parentRender = vi.fn().mockImplementation((_p, slots) => slots.author);
+
+    const imports = {
+      'test:card': makeModule(parentRender),
+      'test:badge': makeModule(childRender),
+    };
+
+    const node: ComponentNode = {
+      component: 'test:card',
+      slots: {
+        author: { component: 'test:badge' },
+      },
+    };
+
+    const result = renderComponent(node, imports);
+    expect(result).toBe('badge');
+  });
+
+  it('passes string slots through unchanged', () => {
+    const render = vi.fn().mockImplementation((_p, slots) => slots.text);
+    const imports = { 'test:heading': makeModule(render) };
+
+    const node: ComponentNode = {
+      component: 'test:heading',
+      slots: { text: 'Hello World' },
+    };
+
+    const result = renderComponent(node, imports);
+    expect(result).toBe('Hello World');
+  });
+
+  it('passes props as first argument and slots as second — no cross-contamination', () => {
+    const renderSpy = vi.fn().mockReturnValue('output');
+    const imports = { 'test:heading': makeModule(renderSpy) };
+
+    const node: ComponentNode = {
+      component: 'test:heading',
+      props: { level: 'h1', weight: 'bold' },
+      slots: { text: 'Hello' },
+    };
+
+    renderComponent(node, imports);
+
+    expect(renderSpy).toHaveBeenCalledOnce();
+    const [calledProps, calledSlots] = renderSpy.mock.calls[0]!;
+    expect(calledProps).toEqual({ level: 'h1', weight: 'bold' });
+    expect(calledSlots).toEqual({ text: 'Hello' });
+    // Props must not bleed into slots and vice versa
+    expect(calledProps).not.toHaveProperty('text');
+    expect(calledSlots).not.toHaveProperty('level');
+    expect(calledSlots).not.toHaveProperty('weight');
+  });
+
+  it('passes empty object as props when no props declared', () => {
+    const renderSpy = vi.fn().mockReturnValue('output');
+    const imports = { 'test:label': makeModule(renderSpy) };
+
+    renderComponent({ component: 'test:label', slots: { text: 'Hi' } }, imports);
+
+    const [calledProps] = renderSpy.mock.calls[0]!;
+    expect(calledProps).toEqual({});
+  });
+
+  it('warns and returns null for missing import', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = renderComponent({ component: 'test:missing' }, {});
+    expect(result).toBeNull();
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('test:missing'));
+    warnSpy.mockRestore();
+  });
+});

@@ -1,85 +1,110 @@
-
+import React from 'react';
+import { styled } from 'storybook/theming';
+import { SyntaxHighlighter } from 'storybook/internal/components';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboBulletList } from '../ui/DeboBulletList.jsx';
 
-/**
- * DeboSampleData — Displays sample data from a section's data.yml.
- * Shows model descriptions, relationships, and a collapsible raw JSON view.
- *
- * @param {Object} props
- * @param {Object} props.data - The parsed data.yml content
- */
+const MetaBadges = styled.p(({ theme }) => ({
+  fontSize: theme.typography.size.s1,
+  color: theme.color.mediumdark,
+  marginTop: 4,
+}));
+
+const BadgePill = styled.span(({ theme }) => ({
+  display: 'inline-block',
+  fontSize: theme.typography.size.s1,
+  background: theme.background?.hoverable || '#F1F5F9',
+  borderRadius: 6,
+  padding: '2px 8px',
+  marginRight: 8,
+}));
+
+const ModelGrid = styled.div({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+  gap: 12,
+});
+
+const ModelCard = styled.div(({ theme }) => ({
+  background: theme.background?.content || '#ffffff',
+  border: `1px solid ${theme.appBorderColor}`,
+  borderRadius: 8,
+  padding: 12,
+}));
+
+const ModelName = styled.span(({ theme }) => ({
+  fontWeight: 500,
+  fontSize: theme.typography.size.s2,
+  color: theme.color.defaultText,
+}));
+
+const ModelDesc = styled.p(({ theme }) => ({
+  fontSize: theme.typography.size.s1,
+  color: theme.color.mediumdark,
+  marginTop: 4,
+}));
+
 export function DeboSampleData({ data }) {
-    if (!data) return null;
+  if (!data) return null;
 
-    const meta = data._meta || {};
-    const models = meta.models || {};
-    const relationships = meta.relationships || [];
+  const meta = data._meta || {};
+  const models = meta.models || {};
+  const relationships = meta.relationships || [];
 
-    // Collect records — support both flat arrays and nested entity structure (node.article: [...])
-    const recordEntries = [];
-    for (const [key, value] of Object.entries(data)) {
-        if (key === '_meta') continue;
-        if (Array.isArray(value)) {
-            recordEntries.push([key, value]);
-        } else if (value && typeof value === 'object') {
-            // Nested: { node: { article: [...] } } → "node/article"
-            for (const [subKey, subValue] of Object.entries(value)) {
-                if (Array.isArray(subValue)) {
-                    recordEntries.push([`${key}/${subKey}`, subValue]);
-                }
-            }
+  const recordEntries = [];
+  for (const [key, value] of Object.entries(data)) {
+    if (key === '_meta') continue;
+    if (Array.isArray(value)) {
+      recordEntries.push([key, value]);
+    } else if (value && typeof value === 'object') {
+      for (const [subKey, subValue] of Object.entries(value)) {
+        if (Array.isArray(subValue)) {
+          recordEntries.push([`${key}/${subKey}`, subValue]);
         }
+      }
     }
-    const totalRecords = recordEntries.reduce((sum, [, arr]) => sum + arr.length, 0);
+  }
+  const totalRecords = recordEntries.reduce((sum, [, arr]) => sum + arr.length, 0);
 
-    // Flatten all data for raw view (excluding _meta)
-    const dataWithoutMeta = Object.fromEntries(
-        Object.entries(data).filter(([key]) => key !== '_meta')
-    );
+  const dataWithoutMeta = Object.fromEntries(
+    Object.entries(data).filter(([key]) => key !== '_meta')
+  );
 
-    return (
-        <div>
-            <p className="debo:text-base-content/60 debo:text-sm debo:mt-1">
-                <span className="debo:badge debo:badge-ghost debo:badge-sm debo:mr-2">{recordEntries.length} model{recordEntries.length !== 1 ? 's' : ''}</span>
-                <span className="debo:badge debo:badge-ghost debo:badge-sm">{totalRecords} record{totalRecords !== 1 ? 's' : ''}</span>
-            </p>
+  return (
+    <div>
+      <MetaBadges>
+        <BadgePill>{recordEntries.length} model{recordEntries.length !== 1 ? 's' : ''}</BadgePill>
+        <BadgePill>{totalRecords} record{totalRecords !== 1 ? 's' : ''}</BadgePill>
+      </MetaBadges>
 
-            {Object.keys(models).length > 0 && (
-                <DeboCollapsible title="Data Models" count={Object.keys(models).length} defaultOpen>
-                    <div className="debo:grid debo:grid-cols-1 sm:debo:grid-cols-2 debo:gap-3">
-                        {Object.entries(models).map(([name, description]) => (
-                            <div
-                                key={name}
-                                className="debo:card debo:card-compact debo:card-bordered debo:bg-base-100"
-                            >
-                                <div className="debo:card-body">
-                                    <span className="debo:font-medium debo:text-sm debo:text-base-content">
-                                        {name}
-                                    </span>
-                                    <p className="debo:text-xs debo:text-base-content/50">
-                                        {description}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </DeboCollapsible>
-            )}
+      {Object.keys(models).length > 0 && (
+        <DeboCollapsible title="Data Models" count={Object.keys(models).length} defaultOpen>
+          <ModelGrid>
+            {Object.entries(models).map(([name, description]) => (
+              <ModelCard key={name}>
+                <ModelName>{name}</ModelName>
+                <ModelDesc>{description}</ModelDesc>
+              </ModelCard>
+            ))}
+          </ModelGrid>
+        </DeboCollapsible>
+      )}
 
-            {relationships.length > 0 && (
-                <DeboCollapsible title="Relationships" count={relationships.length}>
-                    <DeboBulletList items={relationships} />
-                </DeboCollapsible>
-            )}
+      {relationships.length > 0 && (
+        <DeboCollapsible title="Relationships" count={relationships.length}>
+          <DeboBulletList items={relationships} />
+        </DeboCollapsible>
+      )}
 
-            {Object.keys(dataWithoutMeta).length > 0 && (
-                <DeboCollapsible title="Raw Data">
-                    <div className="debo:mockup-code debo:text-xs debo:max-h-96 debo:overflow-y-auto">
-                        <pre><code>{JSON.stringify(dataWithoutMeta, null, 2)}</code></pre>
-                    </div>
-                </DeboCollapsible>
-            )}
-        </div>
-    );
+      {Object.keys(dataWithoutMeta).length > 0 && (
+        <DeboCollapsible title="Raw Data">
+          <div style={{ maxHeight: 384, overflow: 'auto' }}>
+            <SyntaxHighlighter language="json" copyable={false}>
+              {JSON.stringify(dataWithoutMeta, null, 2)}
+            </SyntaxHighlighter>
+          </div>
+        </DeboCollapsible>
+      )}
+    </div>
+  );
 }

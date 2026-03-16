@@ -1,0 +1,67 @@
+group: Test/Scenes
+
+scenes:
+  - name: Flat
+    items:
+      - entity: node.article
+        view_mode: teaser
+        record: 0
+
+  - name: EntityInEntity
+    items:
+      - entity: node.article
+        view_mode: with-author
+        record: 0
+
+  - name: EntityInComponentSlot
+    items:
+      - entity: node.article
+        view_mode: card
+        record: 0
+
+  - name: ConfigList
+    items:
+      - config: list.recent_articles
+        view_mode: default
+
+  - name: ComponentDirect
+    items:
+      - component: test_provider:heading
+        props:
+          level: h1
+        slots:
+          text: Hello World
+
+  - name: ComponentMultipleProps
+    items:
+      - component: test_provider:button
+        props:
+          variant: outline
+          size: lg
+          disabled: true
+        slots:
+          text: Click me
+
+  - name: ComponentPropsOnly
+    items:
+      - component: test_provider:icon
+        props:
+          name: arrow-right
+          color: blue
+
+  - name: ComponentSlotsOnly
+    items:
+      - component: test_provider:card
+        slots:
+          title: My Card
+          body: Some content here
+
+  - name: WithShell
+    items:
+      - type: scene
+        ref: shell:shell
+        slots:
+          content:
+            - entity: node.article
+              view_mode: teaser
+              record: 0

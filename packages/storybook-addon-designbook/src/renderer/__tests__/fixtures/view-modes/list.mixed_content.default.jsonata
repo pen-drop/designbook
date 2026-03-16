@@ -1,0 +1,11 @@
+{
+  "type": "component",
+  "component": "view",
+  "slots": {
+    "content": {
+      "type": "component",
+      "component": "stack",
+      "slots": { "items": $rows }
+    }
+  }
+}

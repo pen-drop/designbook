@@ -18,3 +18,7 @@ node:
         name: "Design"
         id: 2
       field_teaser: "Exploring how less becomes more in contemporary design."
+user:
+  user:
+    - name: "Jane Doe"
+      field_avatar: "/images/jane.jpg"

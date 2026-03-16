@@ -1,10 +1,17 @@
-/**
- * DeboLoading — Centered loading spinner.
- */
+import React from 'react';
+import { Loader } from 'storybook/internal/components';
+import { styled } from 'storybook/theming';
+
+const LoadingWrapper = styled.div({
+  display: 'flex',
+  justifyContent: 'center',
+  padding: '48px 0',
+});
+
 export function DeboLoading() {
-    return (
-        <div data-theme="light" className="debo:font-sans debo:flex debo:justify-center debo:py-12">
-            <span className="debo:loading debo:loading-spinner debo:loading-md" />
-        </div>
-    );
+  return (
+    <LoadingWrapper>
+      <Loader />
+    </LoadingWrapper>
+  );
 }

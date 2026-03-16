@@ -1,49 +1,31 @@
-[17:47:14.976] [INFO] storybook v10.2.17
-[17:47:16.717] [INFO] Loading main config failed as the file does not seem to be valid ESM. Trying a temporary fix, please ensure the main config is valid ESM.
-[17:47:17.204] [DEBUG] Getting package.json info for /home/cw/projects/designbook/packages/integrations/test-integration-drupal/package.json...
-[17:47:17.214] [ERROR] [38;2;241;97;97mSB_CORE-SERVER_0002 (CriticalPresetLoadError): Storybook failed to load the following preset: ./.storybook/main.js.
-
-Please check whether your setup is correct, the Storybook dependencies (and their peer dependencies) are installed correctly and there are no package version clashes.
-
-If you believe this is a bug, please open an issue on Github.
-
-ReferenceError: require is not defined in ES module scope, you can use import instead
-This file is being treated as an ES module because it has a '.js' file extension and './package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.
-    at file://./.storybook/main.js:7:28
-    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async importModule (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-5BFW6O7C.js:737:11)
-    at async loadMainConfig (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-LZBZZS4H.js:11678:12)
-    at async buildDevStandalone (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:7647:16)
+[11:02:15.644] [INFO] storybook v10.2.17
+[11:02:16.261] [DEBUG] Getting package.json info for /home/cw/projects/designbook/packages/integrations/test-integration-drupal/package.json...
+[11:02:16.868] [INFO] Starting...
+[11:02:16.885] [WARN] No story files found for the specified pattern: [34mstories/**/*.stories.@(js|jsx|mjs|ts|tsx)[39m
+[11:02:17.028] [DEBUG] Starting preview..
+[11:02:17.369] [WARN] 🚨 Unable to index ./designbook/design-system/design-system.scenes.yml,../../storybook-addon-designbook/dist/pages/design-system.stories.jsx:
+  Error: Duplicate stories with id: designbook-design-system--design-system
+    at _StoryIndexGenerator.chooseDuplicate (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:6033:13)
+    at file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:6092:52
+    at Array.forEach (<anonymous>)
+    at _StoryIndexGenerator.getIndexAndStats (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:6089:23)
+    at async _StoryIndexGenerator.getIndex (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:6076:13)
+    at async getOptimizeDeps (file:///home/cw/projects/designbook/node_modules/.pnpm/@storybook+builder-vite@10.2.17_esbuild@0.27.3_rollup@4.57.1_storybook@10.2.17_@testing-libra_hi7o2uelmtjrff5mcpfim3mewm/node_modules/@storybook/builder-vite/dist/index.js:1857:15)
+    at async createViteServer (file:///home/cw/projects/designbook/node_modules/.pnpm/@storybook+builder-vite@10.2.17_esbuild@0.27.3_rollup@4.57.1_storybook@10.2.17_@testing-libra_hi7o2uelmtjrff5mcpfim3mewm/node_modules/@storybook/builder-vite/dist/index.js:1884:19)
+    at async Module.start (file:///home/cw/projects/designbook/node_modules/.pnpm/@storybook+builder-vite@10.2.17_esbuild@0.27.3_rollup@4.57.1_storybook@10.2.17_@testing-libra_hi7o2uelmtjrff5mcpfim3mewm/node_modules/@storybook/builder-vite/dist/index.js:1912:17)
+    at async storybookDevServer (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:7295:83)
+    at async buildOrThrow (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:4506:12)
+[11:02:17.376] [ERROR] Failed to build the preview
+[11:02:17.377] [ERROR] Error: Unable to index ./designbook/design-system/design-system.scenes.yml,../../storybook-addon-designbook/dist/pages/design-system.stories.jsx
+    at _StoryIndexGenerator.getIndexAndStats (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:6097:15)
+    at async _StoryIndexGenerator.getIndex (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:6076:13)
+    at async getOptimizeDeps (file:///home/cw/projects/designbook/node_modules/.pnpm/@storybook+builder-vite@10.2.17_esbuild@0.27.3_rollup@4.57.1_storybook@10.2.17_@testing-libra_hi7o2uelmtjrff5mcpfim3mewm/node_modules/@storybook/builder-vite/dist/index.js:1857:15)
+    at async createViteServer (file:///home/cw/projects/designbook/node_modules/.pnpm/@storybook+builder-vite@10.2.17_esbuild@0.27.3_rollup@4.57.1_storybook@10.2.17_@testing-libra_hi7o2uelmtjrff5mcpfim3mewm/node_modules/@storybook/builder-vite/dist/index.js:1884:19)
+    at async Module.start (file:///home/cw/projects/designbook/node_modules/.pnpm/@storybook+builder-vite@10.2.17_esbuild@0.27.3_rollup@4.57.1_storybook@10.2.17_@testing-libra_hi7o2uelmtjrff5mcpfim3mewm/node_modules/@storybook/builder-vite/dist/index.js:1912:17)
+    at async storybookDevServer (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:7295:83)
+    at async buildOrThrow (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:4506:12)
+    at async buildDevStandalone (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:7710:41)
     at async withTelemetry (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-FTTIUZEI.js:218:12)
     at async dev (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/bin/core.js:2734:3)
-    at async _Command.<anonymous> (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/bin/core.js:2804:92)
-
-More info: 
-[39m
-    at loadPreset (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-LZBZZS4H.js:10081:13)
-    at async Promise.all (index 1)
-    at async loadPresets (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-LZBZZS4H.js:10090:73)
-    at async getPresets (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-LZBZZS4H.js:10121:23)
-    at async buildDevStandalone (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:7661:17)
-    at async withTelemetry (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-FTTIUZEI.js:218:12)
-    at async dev (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/bin/core.js:2734:3)
-    at async _Command.<anonymous> (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/bin/core.js:2804:92)
-[17:47:17.231] [WARN] Broken build, fix the error above.
+[11:02:17.381] [WARN] Broken build, fix the error above.
 You may need to refresh the browser.
-[17:47:17.237] [WARN]   Failed to load preset: "/home/cw/projects/designbook/packages/integrations/test-integration-drupal/.storybook/main.js"
-[17:47:17.237] [ERROR] [38;2;241;97;97mReferenceError: require is not defined in ES module scope, you can use import instead
-This file is being treated as an ES module because it has a '.js' file extension and './package.json' contains "type": "module". To treat it as a CommonJS script, rename it to use the '.cjs' file extension.[39m
-    at file://./.storybook/main.js:7:28
-    at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
-    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
-    at async importModule (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-5BFW6O7C.js:737:11)
-    at async loadMainConfig (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-LZBZZS4H.js:11678:12)
-    at async buildDevStandalone (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/core-server/index.js:7647:16)
-    at async withTelemetry (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/_node-chunks/chunk-FTTIUZEI.js:218:12)
-    at async dev (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/bin/core.js:2734:3)
-    at async _Command.<anonymous> (file:///home/cw/projects/designbook/node_modules/.pnpm/storybook@10.2.17_@testing-library+dom@10.4.1_prettier@3.8.1_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/storybook/dist/bin/core.js:2804:92)
-[17:47:17.249] [INFO] Storybook collects completely anonymous usage telemetry. We use it to shape Storybook's roadmap and prioritize features. You can learn more, including how to opt out, at https://storybook.js.org/telemetry
-[17:47:17.255] [INFO] Loading main config failed as the file does not seem to be valid ESM. Trying a temporary fix, please ensure the main config is valid ESM.
-[17:47:17.794] [INFO] Loading main config failed as the file does not seem to be valid ESM. Trying a temporary fix, please ensure the main config is valid ESM.
-[17:47:17.813] [INFO] Loading main config failed as the file does not seem to be valid ESM. Trying a temporary fix, please ensure the main config is valid ESM.

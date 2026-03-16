@@ -1,14 +1,19 @@
-/**
- * DeboPageLayout — Standard page wrapper with font, max-width, and centering.
- *
- * @param {Object} props
- * @param {'4'|'6'|'8'} [props.gap='4'] - Vertical spacing between children
- * @param {React.ReactNode} props.children
- */
+import React from 'react';
+import { styled } from 'storybook/theming';
+
+const gapMap = { '4': 16, '6': 24, '8': 32 };
+
+const Layout = styled.div(({ theme }) => ({
+  fontFamily: theme.typography?.fonts?.base,
+  margin: '0 auto',
+  paddingTop: 8,
+}));
+
 export function DeboPageLayout({ gap = '4', children }) {
-    return (
-        <div data-theme="light" className={`debo:font-sans debo:mx-auto debo:pt-2 debo:space-y-${gap}`}>
-            {children}
-        </div>
-    );
+  const spacing = gapMap[gap] || 16;
+  return (
+    <Layout style={{ display: 'flex', flexDirection: 'column', gap: spacing }}>
+      {children}
+    </Layout>
+  );
 }
