@@ -1,0 +1,31 @@
+group: Test/Section
+
+scenes:
+  - name: with-content
+    items:
+      - type: scene
+        ref: shell:shell
+        with:
+          content:
+            - component: test_provider:heading
+              props:
+                level: h1
+              slots:
+                text: Hello
+
+  - name: no-with
+    items:
+      - type: scene
+        ref: shell:shell
+
+  - name: deprecated-slots
+    items:
+      - type: scene
+        ref: shell:shell
+        slots:
+          content:
+            - component: test_provider:heading
+              props:
+                level: h2
+              slots:
+                text: Deprecated

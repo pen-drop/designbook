@@ -88,16 +88,13 @@ Iterate until the user is satisfied.
 
 ## Step 5: Generate Shell Components
 
-> ⛔ **MANDATORY**: Read `@designbook-components-sdc/resources/shell-generation.md` **before generating any shell files**. It defines the complete shell workflow: required sub-components, slot structure, and story format.
+Load configuration using the `@designbook-configuration` skill to resolve `$DESIGNBOOK_FRAMEWORK_COMPONENT`, `$DESIGNBOOK_DIST`, and `$DESIGNBOOK_DRUPAL_THEME`.
 
-Follow the Shell Generation Steps from that resource. For each component file:
+> ⛔ **Read skill now:** `@designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT/SKILL.md` and its resources.
 
-- **`.component.yml`** → Follow `@designbook-components-sdc/resources/component-yml.md`
-- **`.story.yml`** → Follow `@designbook-components-sdc/resources/story-yml.md`
-- **`.twig`** → Follow `@designbook-components-sdc/resources/twig.md`
-- **General rules** → Follow `@designbook-components-sdc/resources/rules.md`
+Follow the skill's shell generation guidance. For SDC this includes `resources/shell-generation.md`, `resources/component-yml.md`, `resources/story-yml.md`, and `resources/twig.md`.
 
-**Do NOT invent component structures.** The skill resources are the single source of truth.
+**Do NOT invent component structures.** The loaded skill resources are the single source of truth.
 
 ## Step 6: Create Shell Scenes
 
@@ -113,25 +110,25 @@ Create `${DESIGNBOOK_DIST}/design-system/design-system.scenes.yml` following the
 - `order` — set to `0` (shell always comes first)
 
 ```yaml
-id: design-system
+id: debo-design-system
 title: Design System
 description: Top-navigation layout with logo, main nav, CTA button, and multi-column footer. Responsive hamburger menu on mobile.
 status: planned
 order: 0
 
-name: "Designbook/Design System"
+group: "Designbook/Design System"
 scenes:
   - name: shell
-    layout:
-      header:
-        - component: header
-          story: default
-      content:
-        - component: hero
-          story: default
-      footer:
-        - component: footer
-          story: default
+    items:
+      - component: $PROVIDER:page
+        slots:
+          header:
+            - component: $PROVIDER:header
+              story: default
+          content: $content        # injection point — filled by section scenes via with:
+          footer:
+            - component: $PROVIDER:footer
+              story: default
 ```
 
 Populate slot content based on the components created in Step 5 and the user's approved design from Step 4.
@@ -162,7 +159,7 @@ Populate slot content based on the components created in Step 5 and the user's a
 - Be conversational — help the user think through layout decisions
 - Navigation items should map to the product's sections
 - Consider the product type when suggesting layout patterns
-- Components use the `designbook-components-sdc` skill for creation
+- Component skills are loaded by convention: `designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT` — never hardcode a specific framework
 - If `design-system/design-system.scenes.yml` already exists, read it first and ask: "You already have a shell design. Would you like to update it or start fresh?"
 - If page/header/footer components already exist, reuse them — only create if missing
 - The `description` field in the scenes file captures the shell design — no separate Markdown spec file needed

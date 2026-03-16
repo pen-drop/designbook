@@ -8,9 +8,9 @@ import { DeboSourceFooter } from './ui/DeboSourceFooter.jsx';
 import { DeboAlert } from './ui/DeboAlert.jsx';
 
 const SectionHeading = styled.h2(({ theme }) => ({
-  fontSize: theme.typography.size.l1,
-  fontWeight: theme.typography.weight.bold,
-  color: theme.color.defaultText,
+  fontSize: theme.typography?.size?.l1 ?? '18px',
+  fontWeight: theme.typography?.weight?.bold ?? 'bold',
+  color: theme.color?.defaultText,
   paddingTop: 4,
   paddingBottom: 16,
   marginBottom: 16,

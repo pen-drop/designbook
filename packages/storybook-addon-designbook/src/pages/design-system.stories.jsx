@@ -1,18 +1,15 @@
-import React from 'react';
 import { DeboDesignSystemPage } from 'storybook-addon-designbook/dist/components/pages/DeboDesignSystemPage.jsx';
-
-const DocsPage = () => React.createElement(DeboDesignSystemPage);
+import { mountReact } from './mount-react.js';
 
 export default {
   title: 'Designbook/Design System',
-  tags: ['!dev'],
+  tags: ['!autodocs'],
   parameters: {
     layout: 'fullscreen',
-    docs: { page: DocsPage },
     designbook: { order: 1 },
   },
 };
 
 export const DesignSystem = {
-  render: () => '',
+  render: () => mountReact(DeboDesignSystemPage),
 };

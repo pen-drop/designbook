@@ -4,7 +4,7 @@ import { styled } from 'storybook/theming';
 const gapMap = { '4': 16, '6': 24, '8': 32 };
 
 const Layout = styled.div(({ theme }) => ({
-  fontFamily: theme.typography.fonts.base,
+  fontFamily: theme.typography?.fonts?.base,
   margin: '0 auto',
   paddingTop: 8,
 }));

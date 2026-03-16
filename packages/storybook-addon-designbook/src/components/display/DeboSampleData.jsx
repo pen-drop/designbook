@@ -13,7 +13,7 @@ const MetaBadges = styled.p(({ theme }) => ({
 const BadgePill = styled.span(({ theme }) => ({
   display: 'inline-block',
   fontSize: theme.typography.size.s1,
-  background: theme.background.hoverable || '#F1F5F9',
+  background: theme.background?.hoverable || '#F1F5F9',
   borderRadius: 6,
   padding: '2px 8px',
   marginRight: 8,
@@ -26,7 +26,7 @@ const ModelGrid = styled.div({
 });
 
 const ModelCard = styled.div(({ theme }) => ({
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 8,
   padding: 12,

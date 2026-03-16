@@ -29,7 +29,7 @@ function navigateStorybook(storyPath) {
 }
 
 const CardWrapper = styled.div(({ theme }) => ({
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 14,
   boxShadow: '0px 2px 8px -4px rgba(0,0,0,0.05)',

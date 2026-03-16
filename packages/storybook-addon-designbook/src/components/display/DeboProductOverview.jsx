@@ -35,7 +35,7 @@ const Prose = styled.div(({ theme }) => ({
   '& code': {
     fontFamily: theme.typography.fonts.mono,
     fontSize: '0.9em',
-    background: theme.background.hoverable || '#F1F5F9',
+    background: theme.background?.hoverable || '#F1F5F9',
     padding: '2px 4px',
     borderRadius: 3,
   },

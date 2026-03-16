@@ -15,7 +15,7 @@ const List = styled.ul(({ theme }) => ({
   listStyle: 'none',
   padding: 0,
   margin: 0,
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   borderRadius: 12,
 }));
 
@@ -26,7 +26,7 @@ const ItemRow = styled.li(({ theme }) => ({
   padding: '10px 12px',
   borderRadius: 8,
   '&:hover': {
-    background: theme.background.hoverable || '#F8FAFC',
+    background: theme.background?.hoverable || '#F8FAFC',
   },
 }));
 
@@ -39,7 +39,7 @@ const NumberBadge = styled.span(({ theme }) => ({
   borderRadius: 6,
   fontSize: theme.typography.size.s1,
   fontWeight: 500,
-  background: theme.background.hoverable || '#F1F5F9',
+  background: theme.background?.hoverable || '#F1F5F9',
   color: theme.color.mediumdark,
   flexShrink: 0,
 }));

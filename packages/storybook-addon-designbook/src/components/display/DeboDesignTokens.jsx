@@ -162,7 +162,7 @@ function isMono(tokenKey, value) {
 const FontCardWrapper = styled.div(({ theme }) => ({
   flex: 1,
   minWidth: 0,
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 16,
   boxShadow: '0px 1px 2px -1px rgba(0,0,0,0.1), 0px 1px 3px 0px rgba(0,0,0,0.1)',
@@ -247,7 +247,7 @@ function DeboFontCard({ tokenKey, value }) {
 }
 
 const TypeScaleWrapper = styled.div(({ theme }) => ({
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 16,
   boxShadow: '0px 1px 2px -1px rgba(0,0,0,0.1), 0px 1px 3px 0px rgba(0,0,0,0.1)',
@@ -257,7 +257,7 @@ const TypeScaleWrapper = styled.div(({ theme }) => ({
 const TypeScaleHeader = styled.div(({ theme }) => ({
   display: 'grid',
   gridTemplateColumns: '104px 1fr 130px',
-  background: theme.background.hoverable || '#F8FAFC',
+  background: theme.background?.hoverable || '#F8FAFC',
   borderBottom: `1px solid ${theme.appBorderColor}`,
   padding: '12px 24px',
 }));

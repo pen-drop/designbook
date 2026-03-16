@@ -14,7 +14,7 @@ const AlertBox = styled.div(({ theme }) => ({
   fontSize: theme.typography.size.s2,
   fontFamily: theme.typography.fonts.base,
   border: `1px solid ${theme.appBorderColor}`,
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   color: theme.color.defaultText,
 }));
 

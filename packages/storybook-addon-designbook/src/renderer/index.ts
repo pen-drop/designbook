@@ -9,28 +9,35 @@ export type {
   SceneNode,
   ComponentSceneNode,
   EntitySceneNode,
-  RenderContext,
-  SceneNodeRenderer,
+  ConfigSceneNode,
+  SceneSceneNode,
   DataModel,
   SampleData,
   BundleDef,
   DataModelContent,
   SceneDef,
-  ResolvedScene,
-  SceneComponentEntry,
-  SceneEntityEntry,
-  SceneLayoutEntry,
+  ComponentNode,
+  RawNode,
+  BuildContext,
+  SceneNodeBuilder,
+  ComponentModule,
 } from './types';
 
-export { isSceneEntityEntry, isSceneComponentEntry } from './types';
-
-// Services
-export { SceneNodeRenderService } from './render-service';
+// Expression cache
 export { ExpressionCache } from './expression-cache';
 
-// Parser
-export { parseScene } from './parser';
+// Runtime renderer (browser-side)
+export { renderComponent } from './renderer';
 
-// Built-in renderers
-export { sdcComponentRenderer, sdcRenderers } from './builders/sdc';
-export { entityJsonataRenderer } from './entity-renderer';
+// Builder registry
+export { BuilderRegistry, resolveEntityRefs } from './builder-registry';
+
+// Built-in builders
+export { componentBuilder } from './builders/component-builder';
+export { entityBuilder } from './builders/entity-builder';
+export { configListBuilder } from './builders/config-list-builder';
+export { sceneBuilder } from './builders/scene-builder';
+
+// CSF prep
+export { buildCsfModule } from './csf-prep';
+export type { CsfPrepOptions, CsfPrepScene } from './csf-prep';

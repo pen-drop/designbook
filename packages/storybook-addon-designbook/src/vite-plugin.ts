@@ -5,14 +5,9 @@ import { resolve, join, basename, dirname } from 'node:path';
 import { createRequire } from 'node:module';
 import { parse as parseYaml } from 'yaml';
 
-import type { SceneNodeRenderer } from './renderer/types';
-import type { ModuleBuilder } from './renderer/scene-module-builder';
+import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
-
-/** Re-export for integrations that want to provide a custom module builder. */
-export type { ModuleBuilder } from './renderer/scene-module-builder';
-export type { ResolvedScene } from './renderer/scene-module-builder';
 
 // Resolve React from the addon's own dependencies (works in pnpm strict mode)
 const addonRequire = createRequire(import.meta.url);
@@ -22,9 +17,9 @@ export function designbookLoadPlugin(
   options: {
     fsRoot?: string;
     provider?: string;
-    renderers?: SceneNodeRenderer[];
-    builtinRenderers?: SceneNodeRenderer[];
-    moduleBuilder: ModuleBuilder;
+    builders?: SceneNodeBuilder[];
+    resolveImportPath?: (componentId: string, designbookDir: string) => string | null;
+    wrapImport?: (alias: string) => string;
   },
 ): Plugin {
   const designbookDir = resolve(baseDir, options.fsRoot || 'designbook');
@@ -32,7 +27,7 @@ export function designbookLoadPlugin(
   const VIRTUAL_SECTIONS = 'virtual:designbook-sections';
   const RESOLVED_VIRTUAL_SECTIONS = '\0' + VIRTUAL_SECTIONS;
 
-  // Resolve React package directories so generated docs-page code works in pnpm strict mode
+  // Resolve React package directories so mount-react.js works in pnpm strict mode
   let reactDir: string | undefined;
   let reactDomDir: string | undefined;
   try {
@@ -85,7 +80,12 @@ export function designbookLoadPlugin(
 
       const match = matchHandler(id, defaultHandlers);
       if (!match) return undefined;
-      return loadSceneModule(id, designbookDir, options);
+      return loadSceneModule(id, designbookDir, {
+        provider: options.provider,
+        builders: options.builders,
+        resolveImportPath: options.resolveImportPath,
+        wrapImport: options.wrapImport,
+      });
     },
 
     configureServer(server: ViteDevServer) {
@@ -174,68 +174,42 @@ export function designbookLoadPlugin(
 }
 
 // ---------------------------------------------------------------------------
-// Docs page code generators
+// Overview story (canvas replacement for the old docs page)
 // ---------------------------------------------------------------------------
 
-interface DocsPageCode {
-  imports: string;
-  component: string;
-}
+const MOUNT_REACT_IMPORT = "import { mountReact } from 'storybook-addon-designbook/dist/pages/mount-react.js';";
+const SECTION_PAGE_IMPORT =
+  "import { DeboSectionPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionPage.jsx';";
 
-function extractPageType(fileBase: string): string {
-  const typeMatch = fileBase.match(/\.(\w+)\.scenes\.yml$/);
-  if (typeMatch) return typeMatch[1]!;
-  return 'section';
-}
-
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-function buildDocsPage(pageType: string, props: Record<string, string>): DocsPageCode {
-  const componentName = `Debo${capitalize(pageType)}Page`;
-  const propsStr = Object.entries(props)
-    .map(([k, v]) => `${k}: '${v}'`)
-    .join(', ');
-
-  return {
-    imports: [
-      "import React from 'react';",
-      `import { ${componentName} } from 'storybook-addon-designbook/dist/components/pages/${componentName}.jsx';`,
-    ].join('\n'),
-    component: `const DocsPage = () => React.createElement(${componentName}, { ${propsStr} });`,
-  };
-}
-
-function injectDocsPage(sceneCode: string, docs: DocsPageCode): string {
-  const header = [docs.imports, '', docs.component, ''].join('\n');
-  return (header + sceneCode).replace(
-    /parameters:\s*\{([\s\S]*?)layout:\s*'fullscreen'/,
-    `parameters: {$1layout: 'fullscreen',\n  docs: { page: DocsPage }`,
-  );
-}
-
-function buildDocsOnlyModule(docs: DocsPageCode, group: string, exportName: string): string {
-  const title = group.split('/').pop() || exportName;
-  const message = `<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;font-family:system-ui,sans-serif;color:#6b7280;text-align:center"><div><p style="font-size:1.25rem;margin:0 0 0.5rem">${title} has no scenes yet.</p><p style="margin:0;font-size:0.875rem">Define scenes in the <code>.section.scenes.yml</code> file to see a preview here.</p></div></div>`;
+function buildOverviewStory(sectionId: string, title: string): string {
   return [
-    docs.imports,
+    'export const overview = {',
+    "  tags: ['!autodocs'],",
+    "  parameters: { layout: 'fullscreen', designbook: { order: 3 } },",
+    `  render: () => mountReact(DeboSectionPage, { sectionId: '${sectionId.replace(/'/g, "\\'")}', title: '${title.replace(/'/g, "\\'")}' }),`,
+    '};',
     '',
-    docs.component,
+  ].join('\n');
+}
+
+function buildPlaceholderModule(group: string, sectionId: string, title: string): string {
+  return [
+    MOUNT_REACT_IMPORT,
+    SECTION_PAGE_IMPORT,
     '',
     'export default {',
     `  title: '${group.replace(/'/g, "\\'")}',`,
-    "  tags: ['!dev'],",
-    '  parameters: {',
-    "    layout: 'fullscreen',",
-    '    docs: { page: DocsPage },',
-    '  },',
+    "  tags: ['!autodocs'],",
+    "  parameters: { layout: 'fullscreen' },",
     '};',
     '',
-    `export const ${exportName} = {`,
-    `  render: () => '${message.replace(/'/g, "\\'")}',`,
-    '};',
+    buildOverviewStory(sectionId, title),
   ].join('\n');
+}
+
+function prependOverviewToModule(sceneCode: string, sectionId: string, title: string): string {
+  const header = [MOUNT_REACT_IMPORT, SECTION_PAGE_IMPORT, '', buildOverviewStory(sectionId, title)].join('\n');
+  return header + sceneCode;
 }
 
 // ---------------------------------------------------------------------------
@@ -289,9 +263,9 @@ async function loadSceneModule(
   designbookDir: string,
   options: {
     provider?: string;
-    renderers?: SceneNodeRenderer[];
-    builtinRenderers?: SceneNodeRenderer[];
-    moduleBuilder: ModuleBuilder;
+    builders?: SceneNodeBuilder[];
+    resolveImportPath?: (componentId: string, designbookDir: string) => string | null;
+    wrapImport?: (alias: string) => string;
   },
 ): Promise<string | null> {
   try {
@@ -307,33 +281,23 @@ async function loadSceneModule(
     const scenes = parsed.scenes as unknown[] | undefined;
     const hasScenes = Array.isArray(scenes) && scenes.length > 0;
 
-    const sceneCode = hasScenes
-      ? await buildSceneModule(id, parsed, designbookDir, options.moduleBuilder, {
-          provider: options.provider,
-          renderers: options.renderers,
-          builtinRenderers: options.builtinRenderers,
-        })
-      : '';
-
-    // Extract metadata and build docs page
     const fileBase = basename(id);
-    const pageType = extractPageType(fileBase);
     const sectionId = (parsed.id as string) || fileBase.replace(/\.(\w+\.)?scenes\.yml$/, '');
     const title = (parsed.title as string) || 'Untitled';
     const group = (parsed.name as string) || `Designbook/Sections/${title}`;
-    const exportName = sectionId
-      .split('-')
-      .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join('');
 
-    const docs = buildDocsPage(pageType, {
-      sectionId: sectionId.replace(/'/g, "\\'"),
-      title: title.replace(/'/g, "\\'"),
+    if (!hasScenes) {
+      return buildPlaceholderModule(group, sectionId, title);
+    }
+
+    const sceneCode = await buildSceneModule(id, parsed, designbookDir, {
+      builders: options.builders,
+      resolveImportPath: options.resolveImportPath,
+      wrapImport: options.wrapImport,
     });
 
-    const code = sceneCode ? injectDocsPage(sceneCode, docs) : buildDocsOnlyModule(docs, group, exportName);
-
-    const result = await transformWithEsbuild(code, id + '.js', { loader: 'js' });
+    const codeWithOverview = prependOverviewToModule(sceneCode, sectionId, title);
+    const result = await transformWithEsbuild(codeWithOverview, id + '.js', { loader: 'js' });
     return result.code;
   } catch (e: unknown) {
     console.error('[Designbook] Error loading scene module:', id, e);

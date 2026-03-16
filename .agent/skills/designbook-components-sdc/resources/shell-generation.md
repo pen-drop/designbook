@@ -10,6 +10,7 @@ Shell components (header, footer, page) are UI components in the `Shell` categor
 
 | Component | `group:` | Slots |
 |-----------|---------|-------|
+| `page` | `Shell` | `header`, `content`, `footer` |
 | `header` | `Shell` | `logo`, `navigation`, `actions` |
 | `footer` | `Shell` | `navigation`, `copyright` |
 
@@ -59,6 +60,14 @@ Continue with empty navigation.
 ### Shell Step 3: Identify Required UI Components
 
 Before generating shell components, identify which **UI components** are needed. Every slot in the shell must be filled by a component reference — no inline markup.
+
+**Required shell components (`page`, `header`, `footer`):**
+
+| Component | Slots | Description |
+|-----------|-------|-------------|
+| `page` | `header`, `content`, `footer` | Full-page layout wrapper — the root component in the shell scene |
+| `header` | `logo`, `navigation`, `actions` | Site header |
+| `footer` | `navigation`, `copyright` | Site footer |
 
 **Required UI components for the header:**
 
@@ -217,6 +226,31 @@ node packages/storybook-addon-designbook/dist/cli.js validate story [name]
 # Fix any errors before proceeding to the next component.
 ```
 
+**Page** (`page.component.yml`):
+```yaml
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: page
+status: experimental
+group: Shell
+description: Full-page layout wrapper with header, main content area, and footer slots.
+provider: [DESIGNBOOK_SDC_PROVIDER]
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+    tags:
+      - "!autodocs"
+slots:
+  header:
+    title: Header
+    description: Site header content
+  content:
+    title: Content
+    description: Main page content area
+  footer:
+    title: Footer
+    description: Site footer content
+```
+
 **Header** (`header.component.yml`):
 ```yaml
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
@@ -224,7 +258,7 @@ name: header
 status: experimental
 group: Shell
 description: Application header with logo, navigation, and action buttons.
-provider: test_integration_drupal
+provider: [DESIGNBOOK_SDC_PROVIDER]
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
@@ -249,7 +283,7 @@ name: footer
 status: experimental
 group: Shell
 description: Application footer with navigation links and copyright.
-provider: test_integration_drupal
+provider: [DESIGNBOOK_SDC_PROVIDER]
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
@@ -266,7 +300,60 @@ slots:
 
 Also generate `.component.yml` for all UI components, validating each one after creation.
 
-### Shell Step 7: Final Summary
+### Shell Step 7: Create Shell Scene File
+
+> ⛔ **Read `@designbook-scenes/SKILL.md` NOW** for the scenes format.
+
+Create `${DESIGNBOOK_DIST}/design-system/design-system.scenes.yml`. The shell scene uses the `page` component with header, content, and footer slots assigned inline:
+
+```yaml
+id: design-system
+title: Design System
+description: [Shell layout description]
+status: planned
+order: 0
+
+group: "Designbook/Design System"
+scenes:
+  - name: shell
+    items:
+      - component: [DESIGNBOOK_SDC_PROVIDER]:page
+        slots:
+          header:
+            - component: [DESIGNBOOK_SDC_PROVIDER]:header
+              story: default
+          content: []
+          footer:
+            - component: [DESIGNBOOK_SDC_PROVIDER]:footer
+              story: default
+
+  - name: minimal
+    items:
+      - component: [DESIGNBOOK_SDC_PROVIDER]:page
+        slots:
+          header:
+            - component: [DESIGNBOOK_SDC_PROVIDER]:header
+              story: default
+          content: []
+```
+
+Section scenes inherit this shell via `type: scene` in their `items`:
+
+```yaml
+# sections/blog/blog.section.scenes.yml
+scenes:
+  - name: "Blog Detail"
+    items:
+      - type: scene
+        ref: design-system:shell
+        slots:
+          content:
+            - entity: node.article
+              view_mode: full
+              record: 0
+```
+
+### Shell Step 8: Final Summary
 
 After all components are generated and validated:
 
@@ -282,7 +369,10 @@ After all components are generated and validated:
 > **Shell Components:**
 > | Component | Path | Validated |
 > |-----------|------|-----------|
+> | `page` | `components/page/` — header, content, footer slots | ✅ |
 > | `header` | `components/header/` — references logo, navigation, button | ✅ |
 > | `footer` | `components/footer/` — references navigation, copyright | ✅ |
+>
+> **Scene file:** `design-system/design-system.scenes.yml` — shell + minimal scenes
 >
 > Next: Run `designbook-entity` to generate entity design components."

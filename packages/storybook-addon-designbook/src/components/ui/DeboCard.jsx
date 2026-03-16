@@ -3,7 +3,7 @@ import { styled } from 'storybook/theming';
 import { DeboBadge } from './DeboBadge.jsx';
 
 const CardWrapper = styled.div(({ theme }) => ({
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 14,
   boxShadow: '0px 2px 8px -4px rgba(0,0,0,0.05)',
@@ -51,7 +51,7 @@ const CardMeta = styled.div({
 });
 
 const MetaTag = styled.span(({ theme }) => ({
-  background: theme.background.hoverable || '#F8FAFC',
+  background: theme.background?.hoverable || '#F8FAFC',
   border: `1px solid ${theme.appBorderColor}`,
   color: theme.color.mediumdark,
   fontSize: 11,

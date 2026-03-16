@@ -1,6 +1,7 @@
 export interface SceneHandler {
   /** File extension suffix to match (e.g., '.scenes.yml') */
   pattern: string;
+  hasOverview: boolean;
 }
 
 export interface HandlerMatch {
@@ -11,7 +12,10 @@ export interface HandlerMatch {
  * Default handler registry.
  * Every *.scenes.yml file gets both canvas stories and a docs overview page.
  */
-export const defaultHandlers: SceneHandler[] = [{ pattern: '.scenes.yml' }];
+export const defaultHandlers: SceneHandler[] = [
+  { pattern: 'section.scenes.yml', hasOverview: true },
+  { pattern: 'design-system.scenes.yml', hasOverview: false },
+];
 
 /**
  * Match a file ID against the handler registry.

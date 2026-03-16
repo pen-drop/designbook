@@ -1,0 +1,21 @@
+[
+  {
+    "type": "component",
+    "component": "test_provider:card",
+    "props": { "title": title },
+    "slots": {
+      "media": {
+        "type": "component",
+        "component": "test_provider:figure",
+        "props": { "src": field_media.url, "alt": field_media.alt }
+      },
+      "author": {
+        "type": "entity",
+        "entity_type": "user",
+        "bundle": "user",
+        "view_mode": "compact",
+        "record": 0
+      }
+    }
+  }
+]

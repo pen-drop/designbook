@@ -3,7 +3,7 @@ import { Collapsible } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 
 const CollapsibleWrapper = styled.div(({ theme }) => ({
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 16,
   boxShadow: '0px 2px 12px -6px rgba(0,0,0,0.05)',
@@ -23,7 +23,7 @@ const SummaryContent = styled.div(({ theme }) => ({
 
 const CountBadge = styled.span(({ theme }) => ({
   fontFamily: theme.typography.fonts.base,
-  background: theme.background.hoverable || 'rgba(148,163,184,0.2)',
+  background: theme.background?.hoverable || 'rgba(148,163,184,0.2)',
   color: theme.color.mediumdark,
   fontSize: theme.typography.size.s1,
   fontWeight: 600,

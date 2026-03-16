@@ -3,14 +3,14 @@
  *
  * Reads the YAML, validates structure, and expands shorthand
  * (e.g. records: [0, 1, 2] → 3 separate entity entries).
+ *
+ * Items are passed through as SceneNode[] (duck-typed YAML objects).
  */
 
-import type { SceneDef, SceneLayoutEntry, SceneEntityEntry, SceneConfigEntry } from './types';
+import type { SceneDef, SceneNode } from './types';
 
 /**
  * Parse raw YAML object into a validated SceneDef.
- *
- * Supports both the new scenes[] format and legacy single-scene format.
  *
  * @throws Error if required fields are missing
  */
@@ -25,20 +25,9 @@ export function parseScene(raw: unknown): SceneDef {
     throw new Error('Scene file must have a "name" field');
   }
 
-  // Support both 'page' (new) and 'layout' (legacy) keys
-  const layoutObj = obj.layout || obj.page;
-  if (!layoutObj || typeof layoutObj !== 'object') {
-    throw new Error('Scene file must have a "layout" object');
-  }
-
-  const layout: Record<string, SceneLayoutEntry[]> = {};
-
-  for (const [slotName, entries] of Object.entries(layoutObj as Record<string, unknown>)) {
-    if (!Array.isArray(entries)) {
-      throw new Error(`Layout slot "${slotName}" must be an array`);
-    }
-
-    layout[slotName] = expandEntries(entries);
+  const rawItems = obj.items;
+  if (!Array.isArray(rawItems)) {
+    throw new Error('Scene must have an "items" array');
   }
 
   return {
@@ -46,17 +35,17 @@ export function parseScene(raw: unknown): SceneDef {
     docs: typeof obj.docs === 'string' ? obj.docs : undefined,
     section: typeof obj.section === 'string' ? obj.section : undefined,
     group: typeof obj.group === 'string' ? obj.group : undefined,
-    layout,
+    items: expandEntries(rawItems),
   };
 }
 
 /**
- * Expand entries in a layout slot.
+ * Expand entries in a scene items array.
  * - Entity entries with `records: [0, 1, 2]` become 3 separate entries
- * - Component entries pass through as-is
+ * - Component, config, scene entries pass through as-is
  */
-function expandEntries(entries: unknown[]): SceneLayoutEntry[] {
-  const result: SceneLayoutEntry[] = [];
+function expandEntries(entries: unknown[]): SceneNode[] {
+  const result: SceneNode[] = [];
 
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object') {
@@ -65,38 +54,26 @@ function expandEntries(entries: unknown[]): SceneLayoutEntry[] {
 
     const obj = entry as Record<string, unknown>;
 
-    // Entity entry
-    if ('entity' in obj && typeof obj.entity === 'string') {
-      const entityEntry = obj as unknown as SceneEntityEntry;
-
-      // Expand records shorthand
-      if (entityEntry.records && Array.isArray(entityEntry.records)) {
-        for (const recordIdx of entityEntry.records) {
-          result.push({
-            entity: entityEntry.entity,
-            view_mode: entityEntry.view_mode,
-            record: recordIdx,
-          });
-        }
-      } else {
-        // Single record (default 0)
+    // Entity entry with records shorthand — expand into individual entries
+    if ('entity' in obj && typeof obj.entity === 'string' && Array.isArray(obj.records)) {
+      for (const recordIdx of obj.records as number[]) {
         result.push({
-          entity: entityEntry.entity,
-          view_mode: entityEntry.view_mode,
-          record: entityEntry.record ?? 0,
-        });
+          entity: obj.entity,
+          view_mode: obj.view_mode,
+          record: recordIdx,
+        } as SceneNode);
       }
     }
-    // Config entry (e.g., list)
-    else if ('config' in obj && typeof obj.config === 'string') {
+    // Single entity entry — default record to 0
+    else if ('entity' in obj && typeof obj.entity === 'string') {
       result.push({
-        config: obj.config,
-        view_mode: typeof obj.view_mode === 'string' ? obj.view_mode : undefined,
-      } as SceneConfigEntry);
+        ...obj,
+        record: obj.record ?? 0,
+      } as SceneNode);
     }
-    // Component entry
-    else if ('component' in obj && typeof obj.component === 'string') {
-      result.push(obj as unknown as SceneLayoutEntry);
+    // Component, config, scene entries — pass through as-is
+    else {
+      result.push(obj as SceneNode);
     }
   }
 

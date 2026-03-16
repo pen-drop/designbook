@@ -32,7 +32,7 @@ const HintText = styled.span(({ theme }) => ({
 }));
 
 const CodeTag = styled.code(({ theme }) => ({
-  background: theme.background.hoverable || '#F8FAFC',
+  background: theme.background?.hoverable || '#F8FAFC',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 4,
   padding: '2px 6px',
@@ -51,7 +51,7 @@ const RefreshButton = styled.button(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: 8,
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   border: `1px solid ${theme.appBorderColor}`,
   boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
   borderRadius: 10,
@@ -63,7 +63,7 @@ const RefreshButton = styled.button(({ theme }) => ({
   flexShrink: 0,
   cursor: 'pointer',
   '&:hover': {
-    background: theme.background.hoverable || '#F8FAFC',
+    background: theme.background?.hoverable || '#F8FAFC',
   },
 }));
 

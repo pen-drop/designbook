@@ -6,30 +6,17 @@ prompts:
   - "Say hello and tell me which model you are in one sentence and what your current directory."
 
 providers:
-  - id: opencode:sdk
-    label: gemini-3-pro
-    config:
-      provider_id: google
-      model: antigravity-gemini-3-pro
-      timeout: 120000
-      tools:
-        read: true
-        skill: true
-
-  - id: opencode:sdk
+  - id: claudecode
     label: claude-opus-4-6
     config:
-      provider_id: google
-      model: antigravity-claude-opus-4-6-thinking
+      model: claude-opus-4-6
       timeout: 120000
-      tools:
-        read: true
-        skill: true
+      dangerouslyAllowBashAccess: true
 
 
 defaultTest:
   options:
-    provider: opencode:google/antigravity-gemini-3-pro
+    provider: claudecode
 
 tests:
   - description: "Model identifies itself"

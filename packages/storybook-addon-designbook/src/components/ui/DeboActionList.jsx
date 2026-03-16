@@ -31,7 +31,7 @@ const ItemRow = styled.div(({ theme }) => ({
   borderRadius: 4,
   transition: 'background 0.15s',
   '&:hover': {
-    background: theme.background.hoverable || '#F8FAFC',
+    background: theme.background?.hoverable || '#F8FAFC',
   },
 }));
 

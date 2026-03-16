@@ -32,7 +32,7 @@ const PageTitle = styled.h1(({ theme }) => ({
 }));
 
 const ContentCard = styled.div(({ theme }) => ({
-  background: theme.background.content,
+  background: theme.background?.content || '#ffffff',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 12,
   overflow: 'hidden',

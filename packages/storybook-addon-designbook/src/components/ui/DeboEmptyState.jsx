@@ -6,7 +6,7 @@ const Kbd = styled.kbd(({ theme }) => ({
   display: 'inline-block',
   fontFamily: theme.typography.fonts.mono,
   fontSize: theme.typography.size.s2,
-  background: theme.background.hoverable || '#F1F5F9',
+  background: theme.background?.hoverable || '#F1F5F9',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 6,
   padding: '6px 12px',

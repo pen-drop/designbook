@@ -10,7 +10,7 @@
  * Falls back to the file base name if no `name` property exists.
  */
 export function extractGroup(parsed: Record<string, unknown>, fileBase: string): string {
-  return (parsed?.name as string) || fileBase;
+  return (parsed?.group as string) || (parsed?.name as string) || fileBase;
 }
 
 /**

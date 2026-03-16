@@ -1,6 +1,6 @@
 ---
 name: Designbook Scenes
-description: Generates scene files that compose UI components + entity data into full page views. Uses *.scenes.yml format with layout inheritance and multi-scene support.
+description: Generates scene files that compose UI components + entity data into full page views. Uses *.scenes.yml format with items arrays and scene references.
 ---
 
 # Designbook Scenes
@@ -45,44 +45,68 @@ $DESIGNBOOK_DIST/
 > The renderer will throw `Invalid SDC component reference` if the provider prefix is missing.
 > Resolve `$DESIGNBOOK_SDC_PROVIDER` from `@designbook-configuration` at generation time.
 
-### Standalone Scene File (no layout inheritance)
+### File-level fields
 
-Used for the design system shell — defines all layout slots. Lives in `design-system/design-system.scenes.yml`:
+| Field | Required | Description |
+|-------|----------|-------------|
+| `group` | ✅ | Storybook story group (e.g. `"Designbook/Design System"`). Falls back to `name` if missing. |
+| `scenes` | ✅ | Array of scene definitions |
+| `id` | ❌ | Section/shell identifier (for Designbook overview pages) |
+| `title` | ❌ | Human-readable title (for overview page) |
+| `description` | ❌ | Section description (for overview page) |
+| `status` | ❌ | Section status: `planned`, `in-progress`, `done` |
+| `order` | ❌ | Display order in Storybook sidebar |
+
+> **`group` vs `name`**: Use `group` as the canonical field. `name` works as a fallback but `group` is preferred.
+
+### Scene-level fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | ✅ | Display name in Storybook sidebar |
+| `items` | ✅ | Flat array of scene entries (`SceneNode[]`) |
+| `section` | ❌ | Section ID for data loading |
+| `docs` | ❌ | Documentation string |
+
+### Shell Scene File (no inheritance)
+
+The design system shell wraps everything in a `page` component. Slots that section scenes fill in are declared as `$variable` placeholders. Unresolved variables render as a visible grey placeholder box in Storybook.
 
 ```yaml
 # design-system/design-system.scenes.yml
-id: design-system
+id: debo-design-system
 title: Design System
 description: Top-navigation layout with logo, main nav, and footer.
 status: planned
 order: 0
 
-name: "Designbook/Design System"
+group: "Designbook/Design System"
 scenes:
   - name: shell
-    layout:
-      header:
-        - component: test_integration_drupal:header
-          story: default
-      content:
-        - component: test_integration_drupal:hero
-          story: default
-      footer:
-        - component: test_integration_drupal:footer
-          story: default
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header:
+            - component: test_integration_drupal:header
+              story: default
+          content: $content        # injection point — filled by section scenes
+          footer:
+            - component: test_integration_drupal:footer
+              story: default
 
   - name: minimal
-    layout:
-      header:
-        - component: test_integration_drupal:header
-          story: default
-      content: []
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header:
+            - component: test_integration_drupal:header
+              story: default
+          content: $content
 ```
 
-### Section Scene File with Layout Inheritance
+### Section Scene File with Shell Inheritance
 
-Used for section scenes — inherits shell and overrides only the `content` slot.
-Section files use `{section}.section.scenes.yml` and include section metadata:
+Section scenes inherit the shell by referencing it as a `type: scene` entry in `items`. The `with:` key fills the shell's `$variable` injection points.
 
 ```yaml
 # sections/blog/blog.section.scenes.yml
@@ -92,65 +116,57 @@ description: Artikel und News rund ums Thema.
 status: planned
 order: 2
 
-name: "Designbook/Sections/Blog"
-layout: "design-system:shell"
-
+group: "Designbook/Sections/Blog"
 scenes:
   - name: "Blog Detail"
-    layout:
+    items:
+      - type: scene
+        ref: design-system:shell
+        with:
+          content:
+            - entity: node.article
+              view_mode: full
+              record: 0
+
+  - name: "Blog Listing"
+    items:
+      - type: scene
+        ref: design-system:shell
+        with:
+          content:
+            - component: test_integration_drupal:heading
+              props: { level: h1 }
+              slots: { text: "Alle Artikel" }
+            - entity: node.article
+              view_mode: teaser
+              records: [0, 1, 2]
+```
+
+> [!IMPORTANT]
+> **Section metadata is part of the scenes file.** The `id`, `title`, `description`, `status`, and `order` fields are for Designbook overview/navigation. There is NO separate section spec file.
+
+> [!IMPORTANT]
+> **Scene composition via `type: scene` + `with:`.** The `with:` values are substituted into `$variable` placeholders in the referenced scene's template before building. Only slots declared as `$variable` in the shell can be filled. Unresolved variables render as a visible grey placeholder box in Storybook.
+
+### Scene Reference Syntax
+
+```yaml
+items:
+  - type: scene
+    ref: "design-system:shell"      # <source>:<sceneName>
+    with:                            # fills $variable placeholders in the template
       content:
         - entity: node.article
           view_mode: full
-          record: 0
-
-  - name: "Blog Listing"
-    layout:
-      content:
-        - component: test_integration_drupal:heading
-          props: { level: h1 }
-          slots: { text: "Alle Artikel" }
-        - entity: node.article
-          view_mode: teaser
-          records: [0, 1, 2]
 ```
 
-> [!IMPORTANT]
-> **Section metadata is part of the scenes file.** The `id`, `title`, `description`, `status`, and `order` fields replace the old separate `spec.section.yml`. There is NO separate section spec file.
-
-> [!IMPORTANT]
-> **Layout inheritance merges slots.** The inherited scene provides all layout slots (`header`, `content`, `footer`). The section scene overrides only the slots it defines. Undefined slots remain from the layout.
-
-### Layout Reference Syntax
-
-The resolver scans **all** `*.scenes.yml` files in the referenced directory, collects all scenes, and finds the target:
+The resolver scans `*.scenes.yml` files in the referenced directory:
 
 ```
-layout: "design-system"        → design-system/*.scenes.yml → first scene (scenes[0])
-layout: "design-system:shell"  → design-system/*.scenes.yml → scene named "shell"
-layout: "design-system:minimal"→ design-system/*.scenes.yml → scene named "minimal"
+ref: "design-system"        → design-system/*.scenes.yml → first scene (scenes[0])
+ref: "design-system:shell"  → design-system/*.scenes.yml → scene named "shell"
+ref: "design-system:minimal"→ design-system/*.scenes.yml → scene named "minimal"
 ```
-
-Same `source:name` convention used for component references (`provider:component`).
-
-### Top-level Fields
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | ✅ | Display name for the Storybook group (e.g. `"Designbook/Design System"`, `"Designbook/Sections/Blog"`) |
-| `layout` | ❌ | Layout scene to inherit from (`"source"` or `"source:scene"`) |
-| `scenes` | ✅ | Array of scene definitions |
-| `id` | ❌ | Section/shell identifier (for metadata) |
-| `title` | ❌ | Human-readable title (for overview page) |
-| `description` | ❌ | Section description (for overview page) |
-| `status` | ❌ | Section status: `planned`, `in-progress`, `done` |
-| `order` | ❌ | Display order in Storybook sidebar |
-
-### Scene Fields
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | ✅ | Display name in Storybook sidebar |
-| `layout` | ✅ | Map of layout slot names → arrays of entries |
 
 ### Component Entry
 
@@ -171,22 +187,9 @@ Reference an entity from the data model. Resolved at build time:
 
 ```yaml
 - entity: node.article      # "<entity_type>.<bundle>"
-  view_mode: full            # Which view_modes.mapping[] to use
+  view_mode: full            # Which view mode to use
   record: 0                  # Sample data record index (default: 0)
 ```
-
-### Config Entry
-
-Reference a list config from `data-model.yml`. The renderer loads the list config, renders all source records through their entity view modes, and evaluates the list-level JSONata:
-
-```yaml
-- config: list.recent_articles        # "<config_type>.<config_name>"
-  view_mode: default                   # Optional, defaults to "default"
-```
-
-This evaluates `view-modes/list.recent_articles.default.jsonata` with pre-rendered `$rows`.
-
-Config entries can be used standalone or embedded in component slots (e.g., inside a Layout Builder section).
 
 ### Records Shorthand
 
@@ -196,6 +199,15 @@ For listing pages with multiple items, use `records` instead of repeating entrie
 - entity: node.article
   view_mode: teaser
   records: [0, 1, 2]         # Expands to 3 separate entries
+```
+
+### Config Entry
+
+Reference a list config from `data-model.yml`:
+
+```yaml
+- config: list.recent_articles        # "<config_type>.<config_name>"
+  view_mode: default                   # Optional, defaults to "default"
 ```
 
 ## Execution Steps
@@ -239,34 +251,38 @@ description: Artikel und News rund ums Thema.
 status: planned
 order: 2
 
-name: "Designbook/Sections/Blog"
-layout: "design-system:shell"
-
+group: "Designbook/Sections/Blog"
 scenes:
   - name: "Blog Detail"
-    layout:
-      content:
-        - entity: node.article
-          view_mode: full
-          record: 0
+    items:
+      - type: scene
+        ref: design-system:shell
+        with:
+          content:
+            - entity: node.article
+              view_mode: full
+              record: 0
 
   - name: "Blog Listing"
-    layout:
-      content:
-        - component: test_integration_drupal:heading
-          props: { level: h1 }
-          slots: { text: "Alle Artikel" }
-        - entity: node.article
-          view_mode: teaser
-          records: [0, 1, 2]
+    items:
+      - type: scene
+        ref: design-system:shell
+        with:
+          content:
+            - component: test_integration_drupal:heading
+              props: { level: h1 }
+              slots: { text: "Alle Artikel" }
+            - entity: node.article
+              view_mode: teaser
+              records: [0, 1, 2]
 ```
 
 > [!TIP]
-> **No need to repeat header/footer.** With `layout: "design-system:shell"`, the header and footer are inherited from the shell scene. Only define the `content` slot.
+> **No need to repeat header/footer.** With `type: scene, ref: design-system:shell`, the header and footer are inherited from the shell scene. Only define what goes in the `$content` slot via `with:`.
 
 ### Step 5: Verify in Storybook
 
-Open Storybook — each scene appears as its own story in the sidebar. Each should render the full page layout (header + content + footer) via layout inheritance.
+Open Storybook — each scene appears as its own story in the sidebar. Each should render the full page layout (header + content + footer) via the page component.
 
 ## Component Reference Format
 
@@ -276,10 +292,6 @@ Open Storybook — each scene appears as its own story in the sidebar. Each shou
 > The renderer validates this format and throws an error if it's wrong.
 
 The provider is the SDC namespace from the component's `.component.yml` → `provider:` field.
-
-## Composition Note
-
-Scenes work the same regardless of a bundle's `composition` setting (`structured` or `unstructured`). The scene always uses `entity` or `component` entries. The differences in how content is composed (Layout Builder sections, Canvas component trees, structured fields) are handled by the JSONata view-mode expressions, not by the scene format.
 
 ## Error Handling
 
@@ -292,4 +304,4 @@ Scenes work the same regardless of a bundle's `composition` setting (`structured
 | View mode not defined | Add view mode mapping to data model |
 | Record not found | Add more records to `data.yml` |
 | No data.yml | Create sample data for this section |
-| Layout scene not found | Check layout reference (`"file:scene"` syntax) |
+| Scene not found | Check `ref` format (`"source:sceneName"`) |
