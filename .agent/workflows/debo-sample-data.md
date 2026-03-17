@@ -83,16 +83,14 @@ Before writing the file:
 
 ## Workflow Tracking
 
-Load `@designbook-workflow/SKILL.md`.
-
-At workflow start, create the tracking file:
-```
-WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-sample-data --title "Create Sample Data" --task "create-sample-data:Create sample data:data")
-```
+Load `@designbook-workflow/steps/create.md`:
+- `--workflow debo-sample-data` / `--title "Create Sample Data"` / `--task "create-sample-data:Create sample data:data"`
 
 If `--spec`: output the plan and stop here.
 
-After completing each step, update:
-```
-node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME create-sample-data --status done
-```
+For task `create-sample-data`:
+1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
+2. Do the work
+3. Load `@designbook-workflow/steps/add-files.md` → `--files data.yml`
+4. Load `@designbook-workflow/steps/validate.md` → fix loop until exit 0
+5. Load `@designbook-workflow/steps/update.md` → mark **done**

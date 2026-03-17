@@ -5,11 +5,11 @@ description: Validates and stores design tokens in W3C YAML format.
 
 # Designbook Tokens Skill
 
-> Validates and saves design tokens to `$DESIGNBOOK_DIST/design-system/design-tokens.yml`. Uses a bundled JSON Schema for structural validation via `ajv-cli`.
+> Validates and saves design tokens to `$DESIGNBOOK_DIST/design-system/design-tokens.yml`. Uses a bundled JSON Schema for structural validation.
 
 ## Prerequisites
 
-1. **Configuration**: Run `eval "$(node packages/storybook-addon-designbook/dist/cli.js config)"` to resolve `$DESIGNBOOK_DIST` and `$DESIGNBOOK_FRAMEWORK_CSS`
+1. **Configuration**: Load `@designbook-configuration/SKILL.md` to resolve `$DESIGNBOOK_DIST` and `$DESIGNBOOK_FRAMEWORK_CSS`
 2. **CSS framework skill** (conditional):
    - If `DESIGNBOOK_FRAMEWORK_CSS` is set: Read `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` § Token Naming Conventions — token names MUST follow the framework's naming rules
    - If unset: token names are free-form
@@ -26,13 +26,9 @@ The schema is bundled in the addon package. Token structure:
         └── description         # Human-readable description
 ```
 
-## Validation
+## Steps
 
-Validate design tokens against the schema:
-
-```bash
-npx storybook-addon-designbook validate tokens
-```
+- [validate](./steps/validate.md): Validates `design-tokens.yml` against the schema; fix loop until exit 0.
 
 ## Output
 
@@ -121,3 +117,9 @@ grid:
 
 5. **CSS framework naming mismatch** (only when `DESIGNBOOK_FRAMEWORK_CSS` is set): Color token names should match the naming conventions defined in the loaded CSS framework skill's § Token Naming Conventions
 6. **Missing content counterpart** (only when the CSS framework skill requires it): Each color token should have a matching `-content` token if the framework convention demands it
+
+## Workflow Tracking
+
+> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
+
+Produced file for `--files`: `design-system/design-tokens.yml`

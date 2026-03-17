@@ -219,12 +219,7 @@ Replace navigation items with those built in Shell Step 2.
 
 For each component: write `.component.yml`, then immediately validate before proceeding to the next.
 
-```bash
-# After writing each component's .component.yml:
-node packages/storybook-addon-designbook/dist/cli.js validate component [name]
-node packages/storybook-addon-designbook/dist/cli.js validate story [name]
-# Fix any errors before proceeding to the next component.
-```
+Load `@designbook-components-sdc/steps/validate.md` — fix loop until exit 0 before proceeding to the next component.
 
 **Page** (`page.component.yml`):
 ```yaml

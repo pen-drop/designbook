@@ -1,7 +1,7 @@
 import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join, basename, dirname } from 'node:path';
+import { resolve, join, basename, dirname, relative } from 'node:path';
 import { createRequire } from 'node:module';
 import { parse as parseYaml } from 'yaml';
 
@@ -71,10 +71,22 @@ export function designbookLoadPlugin(
             'marked',
           ],
         },
+        // Force Vite to process twing through its own module pipeline in SSR context.
+        // When externalized, Node.js ESM loads twing/index.mjs which imports locutus
+        // subpaths without .js extensions — not allowed in Node.js ESM strict mode.
+        // With noExternal, Vite resolves these imports via its own resolver (see resolveId).
+        ssr: {
+          noExternal: ['twing'],
+        },
       };
     },
 
-    resolveId(id: string, importer: string | undefined) {
+    resolveId(id: string, importer: string | undefined, options?: { ssr?: boolean }) {
+      // When twing is noExternal, Vite calls resolveId for its locutus imports.
+      // locutus files exist as rtrim.js etc. — append .js so Vite finds them.
+      if (options?.ssr && id.startsWith('locutus/') && !id.endsWith('.js') && !id.endsWith('/')) {
+        return id + '.js';
+      }
       const cleanId = id.startsWith('./') ? id.slice(2) : id;
       if (cleanId === VIRTUAL_SECTIONS) return RESOLVED_VIRTUAL_SECTIONS;
 
@@ -105,21 +117,12 @@ export function designbookLoadPlugin(
       const changesDir = resolve(workflowsDir, 'changes');
       const archiveDir = resolve(workflowsDir, 'archive');
 
-      // File watcher: fire custom events based on filename patterns
-      const watchPatterns: { pattern: RegExp; event: string }[] = [
-        { pattern: /data-model\.yml$/, event: 'designbook:data-model-change' },
-        { pattern: /data\.yml$/, event: 'designbook:data-change' },
-        { pattern: /design-tokens\.yml$/, event: 'designbook:tokens-change' },
-        { pattern: /\.jsonata$/, event: 'designbook:view-mode-change' },
-        { pattern: /tasks\.yml$/, event: 'designbook:workflow-change' },
-      ];
+      // SSE client registry — notify all connected clients on any file change
+      const sseClients = new Set<ServerResponse>();
 
-      const fireEvent = (file: string, action: string) => {
-        for (const { pattern, event } of watchPatterns) {
-          if (pattern.test(file)) {
-            server.ws.send({ type: 'custom', event, data: { file, action } });
-            return;
-          }
+      const notifySseClients = () => {
+        for (const res of sseClients) {
+          res.write('data: {}\n\n');
         }
       };
 
@@ -129,7 +132,7 @@ export function designbookLoadPlugin(
       server.watcher.add(archiveDir);
 
       server.watcher.on('add', (file: string) => {
-        fireEvent(file, 'add');
+        notifySseClients();
 
         if (!file.endsWith('tasks.yml')) return;
 
@@ -161,7 +164,7 @@ export function designbookLoadPlugin(
       });
 
       server.watcher.on('change', (file: string) => {
-        fireEvent(file, 'change');
+        notifySseClients();
 
         if (file.endsWith('tasks.yml') && file.includes('workflows/changes')) {
           try {
@@ -187,7 +190,17 @@ export function designbookLoadPlugin(
         }
       });
 
-      server.watcher.on('unlink', (file: string) => fireEvent(file, 'unlink'));
+      server.watcher.on('unlink', () => notifySseClients());
+
+      // SSE endpoint: push a ping to all consumers on any designbook file change
+      server.middlewares.use('/__designbook/events', (_req: IncomingMessage, res: ServerResponse) => {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
+        sseClients.add(res);
+        _req.on('close', () => sseClients.delete(res));
+      });
 
       // HTTP endpoint: serve all workflows (active + recent archived)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -303,6 +316,57 @@ export function designbookLoadPlugin(
           res.end(JSON.stringify({ error: err.message }));
         }
       });
+
+      // HTTP endpoint: validate a scenes/story file.
+      // Kept for backwards compatibility — validation logic has moved to validateViaStorybookHttp
+      // which reads /index.json directly. This endpoint now just proxies the index check.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__validate', async (req: IncomingMessage, res: any) => {
+        if (req.method !== 'GET') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          return;
+        }
+
+        const url = new URL(req.url || '', 'http://localhost');
+        const filePath = url.searchParams.get('file');
+
+        if (!filePath) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: 'Missing ?file= query param' }));
+          return;
+        }
+
+        try {
+          const port = server.config.server?.port ?? 6006;
+          const indexRes = await fetch(`http://localhost:${port}/index.json`, {
+            signal: AbortSignal.timeout(3000),
+          });
+
+          if (indexRes.ok) {
+            type IndexEntry = { importPath: string; name: string };
+            const index = (await indexRes.json()) as { entries?: Record<string, IndexEntry> };
+            const entries = Object.values(index.entries ?? {});
+            const importPath = './' + relative(server.config.root, filePath).replace(/\\/g, '/');
+            const matching = entries.filter((e) => e.importPath === importPath);
+
+            res.setHeader('Content-Type', 'application/json');
+            res.statusCode = 200;
+            if (matching.length > 0) {
+              res.end(JSON.stringify(matching.map((e) => ({ valid: true, label: e.name }))));
+            } else {
+              res.end(JSON.stringify([{ valid: false, label: filePath, error: 'File not found in Storybook index' }]));
+            }
+            return;
+          }
+        } catch {
+          /* fall through */
+        }
+
+        res.setHeader('Content-Type', 'application/json');
+        res.statusCode = 200;
+        res.end(JSON.stringify([{ valid: true, label: filePath }]));
+      });
     },
   };
 }
@@ -316,11 +380,13 @@ const SECTION_PAGE_IMPORT =
   "import { DeboSectionPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionPage.jsx';";
 
 function buildOverviewStory(sectionId: string, title: string): string {
+  const sid = sectionId.replace(/'/g, "\\'");
+  const ttl = title.replace(/'/g, "\\'");
   return [
     'export const overview = {',
     "  tags: ['!autodocs'],",
     "  parameters: { layout: 'fullscreen', designbook: { order: 3 } },",
-    `  render: () => mountReact(DeboSectionPage, { sectionId: '${sectionId.replace(/'/g, "\\'")}', title: '${title.replace(/'/g, "\\'")}' }),`,
+    `  render: () => mountReact(DeboSectionPage, { sectionId: '${sid}', title: '${ttl}' }),`,
     '};',
     '',
   ].join('\n');

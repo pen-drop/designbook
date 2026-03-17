@@ -7,37 +7,28 @@ description: Manages workflow task tracking via CLI commands. Creates and update
 
 > Tracks AI workflow progress via CLI commands. Storybook's panel polls these files and shows notifications on task completion.
 
-## Prerequisites
+## Steps
 
-- Designbook CLI must be built (`node packages/storybook-addon-designbook/dist/cli.js`)
-- During development, replace `npx storybook-addon-designbook` with `node packages/storybook-addon-designbook/dist/cli.js`
+- [create](./steps/create.md): Create a workflow tracking file and capture `$WORKFLOW_NAME`
+- [update](./steps/update.md): Update a task's status (`in-progress` / `done`)
+- [add-files](./steps/add-files.md): Register produced files with a task for validation
+- [validate](./steps/validate.md): Validate all registered files; run fix loop until exit 0
 
-## CLI Commands
+## Integration Pattern
 
-### Create Workflow
+Every `debo-*` workflow brackets its work with tracking. Load the relevant steps:
 
-```bash
-WORKFLOW_NAME=$(designbook workflow create \
-  --workflow <workflow-id> \
-  --title "<Human-readable title>" \
-  --task "<id>:<title>:<type>" \
-  [--task "<id>:<title>:<type>" ...])
 ```
-
-- Generates unique name: `<workflow-id>-<YYYY-MM-DD>-<4-char-hex>`
-- Creates `$DESIGNBOOK_DIST/workflows/changes/<name>/tasks.yml`
-- All tasks start as `pending`
-- Prints the generated name to stdout — capture it for subsequent `update` calls
-
-### Update Task
-
-```bash
-designbook workflow update <name> <task-id> --status <in-progress|done>
+1. Load @designbook-workflow/steps/create.md → capture $WORKFLOW_NAME
+2. If --spec: output plan and stop
+3. For each task:
+   a. Load @designbook-workflow/steps/update.md  → mark in-progress
+   b. Do the work
+   c. Load @designbook-workflow/steps/add-files.md → register produced files
+   d. Load @designbook-workflow/steps/validate.md  → fix loop until exit 0
+   e. Load @designbook-workflow/steps/update.md  → mark done
+4. Last task done → auto-archives
 ```
-
-- Sets task status and timestamps (`started_at` for in-progress, `completed_at` for done)
-- When all tasks are `done`: sets top-level `completed_at` and moves to `workflows/archive/`
-- Validates task exists and status transition is valid
 
 ## Task Types
 
@@ -50,20 +41,6 @@ designbook workflow update <name> <task-id> --status <in-progress|done>
 | `view-mode` | Creating/updating view mode mappings |
 | `css` | Generating CSS token files |
 | `validation` | Running validation commands |
-
-## Integration Pattern
-
-Every `debo-*` workflow brackets its work with tracking:
-
-```
-1. Create workflow → capture $WORKFLOW_NAME
-2. If --spec: output plan and stop
-3. For each step:
-   a. designbook workflow update $WORKFLOW_NAME <task-id> --status in-progress
-   b. Do the work
-   c. designbook workflow update $WORKFLOW_NAME <task-id> --status done
-4. Last task done → auto-archives
-```
 
 ## Directory Structure
 

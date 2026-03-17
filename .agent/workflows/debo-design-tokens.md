@@ -413,16 +413,14 @@ section-spacing:
 
 ## Workflow Tracking
 
-Load `@designbook-workflow/SKILL.md`.
-
-At workflow start, create the tracking file:
-```
-WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-design-tokens --title "Design Tokens" --task "create-tokens:Create design tokens:tokens")
-```
+Load `@designbook-workflow/steps/create.md`:
+- `--workflow debo-design-tokens` / `--title "Design Tokens"` / `--task "create-tokens:Create design tokens:tokens"`
 
 If `--spec`: output the plan and stop here.
 
-After completing each step, update:
-```
-node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME create-tokens --status done
-```
+For task `create-tokens`:
+1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
+2. Do the work
+3. Load `@designbook-workflow/steps/add-files.md` → `--files design-system/design-tokens.yml`
+4. Load `@designbook-workflow/steps/validate.md` → fix loop until exit 0
+5. Load `@designbook-workflow/steps/update.md` → mark **done**

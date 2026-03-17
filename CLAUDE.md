@@ -1,9 +1,15 @@
 # Development Rules
 
-## CLI Alias
+## CLI — Development Override
 
-During development, `npx storybook-addon-designbook` is not available because the addon is not published.
-Always replace `npx storybook-addon-designbook` with `node packages/storybook-addon-designbook/dist/cli.js` when executing commands.
+Skills and workflows always use `npx storybook-addon-designbook` as the canonical CLI form.
+**During development** the addon is not published, so you MUST replace every occurrence with the local build:
+
+| In skills / workflows | Execute as |
+|---|---|
+| `npx storybook-addon-designbook <cmd>` | `node packages/storybook-addon-designbook/dist/cli.js <cmd>` |
+
+This substitution applies to ALL commands: `workflow create`, `workflow update`, `workflow validate`, `validate data-model`, `validate tokens`, `validate component`, `validate data`, `config`, etc.
 
 ## Generated Files — Not in Git
 

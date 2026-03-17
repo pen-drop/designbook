@@ -256,14 +256,9 @@ Generate `.story.yml` for ALL components. No `.component.yml` files yet.
 
 > ⛔ **Read [`resources/component-yml.md`](resources/component-yml.md) NOW** (once, before any component YAML).
 
-For each component: write `.component.yml`, then immediately validate before proceeding to the next:
+For each component: write `.component.yml`, then immediately validate before proceeding to the next.
 
-```bash
-node packages/storybook-addon-designbook/dist/cli.js validate component [name]
-node packages/storybook-addon-designbook/dist/cli.js validate story [name]
-```
-
-Fix errors before proceeding to the next component.
+Load `@designbook-components-sdc/steps/validate.md` → fix loop until exit 0 before proceeding to the next component.
 
 → Follow instructions in [`resources/component-yml.md`](resources/component-yml.md)
 
@@ -300,39 +295,13 @@ Expected files (all sharing the same base name as the directory):
 **If failed:**
 > "❌ Failed to create component files. Check the error above."
 
-### Step 9: Validate Component
+### Step 9: Update workflow + validate
 
-Run the CLI validator to check the generated `.component.yml` is valid:
+> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
 
-```bash
-node packages/storybook-addon-designbook/dist/cli.js validate component [componentNameKebab]
-```
-
-If errors are found, fix them before proceeding.
-
-### Step 10: Validate Story
-
-Render the component's stories headlessly to verify they produce valid HTML:
-
-```bash
-node packages/storybook-addon-designbook/dist/cli.js validate story [componentNameKebab]
-```
-
-If errors are found, fix the Twig template or story definitions before proceeding.
-
-Then validate the component visually in Storybook:
-
-```json
-{
-  "skill": "designbook-component-validate",
-  "args": {
-    "component_name": "[componentNameKebab]",
-    "group": "[group]",
-    "component_path": "[targetDir]",
-    "stories": [List of story names from input or ["default"]]
-  }
-}
-```
+Produced files for `--files`:
+- `../components/[componentNameKebab]/[componentNameKebab].component.yml`
+- `../components/[componentNameKebab]/[componentNameKebab].default.story.yml`
 
 ---
 

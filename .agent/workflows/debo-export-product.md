@@ -180,16 +180,12 @@ Create `${DESIGNBOOK_DIST}/export/product-plan/README.md`:
 
 ## Workflow Tracking
 
-Load `@designbook-workflow/SKILL.md`.
-
-At workflow start, create the tracking file:
-```
-WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow export-product --title "Export Product Plan" --task "create-export:Package product plan:data")
-```
+Load `@designbook-workflow/steps/create.md`:
+- `--workflow export-product` / `--title "Export Product Plan"` / `--task "create-export:Package product plan:data"`
 
 If `--spec`: output the plan and stop here.
 
-After completing each step, update:
-```
-node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME create-export --status done
-```
+For task `create-export`:
+1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
+2. Do the work
+3. Load `@designbook-workflow/steps/update.md` → mark **done**

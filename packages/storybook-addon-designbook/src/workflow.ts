@@ -1,14 +1,23 @@
 /**
  * Workflow tracking CLI logic.
  *
- * Provides `create` and `update` commands for managing workflow task files
+ * Provides `create`, `update`, and `validate` commands for managing workflow task files
  * under $DESIGNBOOK_DIST/workflows/changes/ and /archive/.
  */
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve, relative, isAbsolute, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml';
+import type { ValidationFileResult } from './workflow-types.js';
+
+export type { ValidationFileResult };
+
+export interface TaskFile {
+  path: string;
+  requires_validation?: boolean;
+  validation_result?: ValidationFileResult;
+}
 
 export interface WorkflowTask {
   id: string;
@@ -17,6 +26,7 @@ export interface WorkflowTask {
   status: 'pending' | 'in-progress' | 'done';
   started_at?: string;
   completed_at?: string;
+  files?: TaskFile[];
 }
 
 export interface WorkflowFile {
@@ -72,6 +82,7 @@ export function workflowCreate(
 
 /**
  * Update a task's status in an existing workflow.
+ * Optionally attach produced files and mark the task as requiring validation.
  *
  * Auto-archives when all tasks are done.
  *
@@ -82,6 +93,7 @@ export function workflowUpdate(
   name: string,
   taskId: string,
   status: 'in-progress' | 'done',
+  files?: string[],
 ): { archived: boolean; data: WorkflowFile } {
   const changesDir = resolve(dist, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -101,6 +113,25 @@ export function workflowUpdate(
     throw new Error(`Task '${taskId}' is already done`);
   }
 
+  if (status === 'done') {
+    const unvalidated = (task.files ?? []).filter((f) => f.requires_validation);
+    if (unvalidated.length > 0) {
+      throw new Error(
+        `Cannot mark '${taskId}' as done — ${unvalidated.length} file(s) not yet validated:\n` +
+          unvalidated.map((f) => `  · ${f.path}`).join('\n') +
+          '\nRun: designbook workflow validate ' +
+          name,
+      );
+    }
+    const failed = (task.files ?? []).filter((f) => f.validation_result?.valid === false);
+    if (failed.length > 0) {
+      throw new Error(
+        `Cannot mark '${taskId}' as done — ${failed.length} file(s) failed validation:\n` +
+          failed.map((f) => `  · ${f.path}: ${f.validation_result?.error ?? 'invalid'}`).join('\n'),
+      );
+    }
+  }
+
   task.status = status;
   if (status === 'in-progress' && !task.started_at) {
     task.started_at = timestamp();
@@ -110,6 +141,18 @@ export function workflowUpdate(
       task.started_at = timestamp();
     }
     task.completed_at = timestamp();
+  }
+
+  if (files && files.length > 0) {
+    // Normalize paths: absolute paths are made relative to dist; relative paths kept as-is
+    const normalizedFiles = files.map((p) => (isAbsolute(p) ? relative(dist, p) : p));
+    // Merge with existing files (preserve validation_result for unchanged paths)
+    const existingByPath = new Map((task.files ?? []).map((f) => [f.path, f]));
+    task.files = normalizedFiles.map((path) => ({
+      ...existingByPath.get(path),
+      path,
+      requires_validation: true,
+    }));
   }
 
   // Atomic write: write to temp then rename
@@ -131,4 +174,49 @@ export function workflowUpdate(
   }
 
   return { archived: false, data };
+}
+
+export interface WorkflowValidateResult extends ValidationFileResult {
+  task: string;
+}
+
+/**
+ * Validate all files across all tasks in a workflow.
+ * Writes results back to tasks.yml and clears requires_validation.
+ *
+ * @returns Array of per-file results, each annotated with the task id
+ */
+export async function workflowValidate(
+  dist: string,
+  name: string,
+  validateFn: (file: string) => Promise<ValidationFileResult>,
+): Promise<WorkflowValidateResult[]> {
+  const changesDir = resolve(dist, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+
+  if (!existsSync(filePath)) {
+    throw new Error(`Workflow not found: ${name}`);
+  }
+
+  const data = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
+  const allResults: WorkflowValidateResult[] = [];
+
+  for (const task of data.tasks) {
+    if (!task.files || task.files.length === 0) continue;
+
+    for (const taskFile of task.files) {
+      const absoluteFile = resolve(dist, taskFile.path);
+      const result = await validateFn(absoluteFile);
+      // Store result on the file, keeping path relative
+      taskFile.validation_result = { ...result, file: taskFile.path };
+      taskFile.requires_validation = false;
+      allResults.push({ ...result, file: taskFile.path, task: task.id });
+    }
+  }
+
+  const tmpPath = filePath + '.tmp';
+  writeFileSync(tmpPath, stringifyYaml(data));
+  renameSync(tmpPath, filePath);
+
+  return allResults;
 }

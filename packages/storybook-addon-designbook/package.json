@@ -97,17 +97,7 @@
     "zx": "^8.7.1"
   },
   "peerDependencies": {
-    "storybook": "*",
-    "@storybook/addon-vitest": "*",
-    "vitest": "*"
-  },
-  "peerDependenciesMeta": {
-    "@storybook/addon-vitest": {
-      "optional": true
-    },
-    "vitest": {
-      "optional": true
-    }
+    "storybook": "*"
   },
   "publishConfig": {
     "access": "public"
@@ -140,6 +130,7 @@
     "commander": "^14.0.3",
     "jsonata": "^2.1.0",
     "marked": "^17.0.2",
+    "minimatch": "^10.2.4",
     "yaml": "^2.8.2"
   }
 }

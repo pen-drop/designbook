@@ -1,27 +1,20 @@
-import { basename, dirname, resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { Command } from 'commander';
-import { findConfig, loadConfig } from './config.js';
+import { loadConfig } from './config.js';
 import { validateData } from './validators/data.js';
 import { validateTokens } from './validators/tokens.js';
 import { validateComponent } from './validators/component.js';
 import { validateDataModel } from './validators/data-model.js';
-import { workflowCreate, workflowUpdate } from './workflow.js';
-import type { ValidationResult } from './validators/types.js';
+import { validateViewMode } from './validators/view-mode.js';
+import { workflowCreate, workflowUpdate, workflowValidate } from './workflow.js';
+import { defaultRegistry, applyConfigExtensions, validateViaStorybookHttp } from './validation-registry.js';
 
-function printResult(label: string, result: ValidationResult): void {
-  for (const e of result.errors) {
-    console.error(`Error: ${e}`);
-  }
-  for (const w of result.warnings) {
-    console.warn(`Warning: ${w}`);
-  }
-
-  if (result.valid && result.warnings.length === 0) {
-    console.log(`${label} valid`);
-  }
-
-  console.log(`\n${result.errors.length} errors, ${result.warnings.length} warnings`);
-  process.exitCode = result.valid ? 0 : 1;
+function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
+  const out: Record<string, unknown> = { valid, label };
+  if (errors?.length) out.errors = errors;
+  if (warnings?.length) out.warnings = warnings;
+  console.log(JSON.stringify(out));
+  process.exitCode = valid ? 0 : 1;
 }
 
 const program = new Command();
@@ -69,7 +62,8 @@ validate
     const dist = config.dist;
     const dataModelPath = resolve(dist, 'data-model.yml');
     const dataPath = resolve(dist, 'sections', sectionId, 'data.yml');
-    printResult('All entities, bundles, and fields', validateData(dataModelPath, dataPath));
+    const result = validateData(dataModelPath, dataPath);
+    printJson(sectionId, result.valid, result.errors, result.warnings);
   });
 
 validate
@@ -78,7 +72,8 @@ validate
   .action(() => {
     const config = loadConfig();
     const tokensPath = resolve(config.dist, 'design-system', 'design-tokens.yml');
-    printResult('Design tokens', validateTokens(tokensPath));
+    const result = validateTokens(tokensPath);
+    printJson('design-tokens', result.valid, result.errors, result.warnings);
   });
 
 validate
@@ -93,7 +88,8 @@ validate
       return;
     }
     const componentPath = resolve(themePath, 'components', name, `${name}.component.yml`);
-    printResult(`Component ${name}`, validateComponent(componentPath));
+    const result = validateComponent(componentPath);
+    printJson(name, result.valid, result.errors, result.warnings);
   });
 
 validate
@@ -102,56 +98,33 @@ validate
   .action(() => {
     const config = loadConfig();
     const dataModelPath = resolve(config.dist, 'data-model.yml');
-    printResult('Data model', validateDataModel(dataModelPath));
+    const result = validateDataModel(dataModelPath);
+    printJson('data-model', result.valid, result.errors, result.warnings);
   });
 
 validate
-  .command('story [name]')
-  .description('Validate stories by rendering them headlessly via Vitest + Storybook')
-  .action(async (name?: string) => {
-    // Check vitest is available
+  .command('story <file>')
+  .description('Validate a story or scenes file via the running Storybook /index.json')
+  .action(async (file: string) => {
     const config = loadConfig();
-    const themePath = config['drupal.theme'] as string;
-
-    if (!themePath) {
-      console.error('Error: drupal.theme not configured in designbook.config.yml');
-      process.exitCode = 1;
-      return;
+    const result = await validateViaStorybookHttp(resolve(file), config);
+    if (result.skipped) {
+      console.log(JSON.stringify({ valid: null, skipped: true, reason: 'Storybook not running' }));
+      process.exitCode = 0;
+    } else {
+      console.log(JSON.stringify({ valid: result.valid, label: file, error: result.error, html: result.html }));
+      process.exitCode = result.valid ? 0 : 1;
     }
+  });
 
-    // Resolve drupal.theme relative to config file location
-    const configFile = findConfig();
-    const configDir = configFile ? dirname(configFile) : process.cwd();
-    const root = resolve(configDir, themePath);
-
-    // Build vitest CLI args — name is used as a file path filter
-    const args = ['vitest', 'run', '--project=storybook'];
-    if (name) {
-      args.push(name);
-    }
-
-    const { spawn } = await import('node:child_process');
-    const child = spawn('npx', args, {
-      cwd: root,
-      stdio: 'inherit',
-      shell: true,
-    });
-
-    child.on('close', (code) => {
-      process.exitCode = code ?? 1;
-    });
-
-    child.on('error', (err) => {
-      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-        console.error(
-          'Error: vitest is not installed.\n' +
-            'Install it with: pnpm add -D vitest @storybook/addon-vitest @vitest/browser-playwright',
-        );
-      } else {
-        console.error(`Error: ${err.message}`);
-      }
-      process.exitCode = 1;
-    });
+validate
+  .command('view-mode <name>')
+  .description('Validate a .jsonata view-mode mapping file against sample data')
+  .action(async (name: string) => {
+    const config = loadConfig();
+    const file = resolve(config.dist, 'view-modes', `${name}.jsonata`);
+    const result = await validateViewMode(file, config);
+    printJson(name, result.valid, result.errors, result.warnings);
   });
 
 const workflow = program.command('workflow').description('Manage workflow tracking');
@@ -189,7 +162,8 @@ workflow
   .command('update <name> <task-id>')
   .description('Update a task status in a workflow')
   .requiredOption('--status <status>', 'New status: in-progress or done')
-  .action((name: string, taskId: string, opts: { status: string }) => {
+  .option('--files <paths...>', 'Files produced by this task (absolute or relative to designbook dir)')
+  .action((name: string, taskId: string, opts: { status: string; files?: string[] }) => {
     if (opts.status !== 'in-progress' && opts.status !== 'done') {
       console.error(`Error: Invalid status "${opts.status}". Must be "in-progress" or "done"`);
       process.exitCode = 1;
@@ -198,7 +172,7 @@ workflow
 
     const config = loadConfig();
     try {
-      const result = workflowUpdate(config.dist, name, taskId, opts.status);
+      const result = workflowUpdate(config.dist, name, taskId, opts.status, opts.files);
       const { data } = result;
 
       if (result.archived) {
@@ -210,6 +184,12 @@ workflow
         console.log(
           `  Updated: ${data.tasks.find((t) => t.id === taskId)?.started_at || data.tasks.find((t) => t.id === taskId)?.completed_at}`,
         );
+        if (opts.files?.length) {
+          console.log(`  Files (requires validation):`);
+          for (const f of opts.files) {
+            console.log(`    · ${f}`);
+          }
+        }
         const done = data.tasks.filter((t) => t.status === 'done').length;
         const inProgress = data.tasks.filter((t) => t.status === 'in-progress').length;
         const pending = data.tasks.filter((t) => t.status === 'pending').length;
@@ -221,6 +201,38 @@ workflow
           console.log(`    ${icon} ${t.title} (${t.type}) — ${t.status}`);
         }
       }
+    } catch (err) {
+      console.error(`Error: ${(err as Error).message}`);
+      process.exitCode = 1;
+    }
+  });
+
+workflow
+  .command('validate <name>')
+  .description('Validate all files registered across all tasks in a workflow')
+  .action(async (name: string) => {
+    const config = loadConfig();
+    applyConfigExtensions(config, defaultRegistry);
+
+    try {
+      const results = await workflowValidate(config.dist, name, (file) => defaultRegistry.validate(file, config));
+
+      let hasFailure = false;
+      for (const r of results) {
+        const line: Record<string, unknown> = {
+          task: r.task,
+          file: r.file,
+          type: r.type,
+          valid: r.valid,
+        };
+        if (r.error) line.error = r.error;
+        if (r.html) line.html = r.html;
+        if (r.skipped) line.skipped = r.skipped;
+        console.log(JSON.stringify(line));
+        if (r.valid === false) hasFailure = true;
+      }
+
+      process.exitCode = hasFailure ? 1 : 0;
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;

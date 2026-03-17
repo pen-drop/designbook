@@ -60,19 +60,7 @@ $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].co
 
 ## Validate Against Schema
 
-Validate the generated YAML file against the Drupal SDC metadata schema:
-
-```bash
-npx storybook-addon-designbook validate component [componentNameKebab]
-```
-
-**If validation fails:**
-> "❌ Schema validation failed. Fix the errors above and re-run."
-
-Review the validation errors, fix the generated `.component.yml`, and re-validate before continuing.
-
-**If validation passes:**
-> "✅ Component YAML validated against Drupal SDC schema."
+Load `@designbook-components-sdc/steps/validate.md` — fix loop until exit 0 before continuing.
 
 ## Rules
 

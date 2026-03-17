@@ -132,27 +132,7 @@ Wait for response. If no, go back to relevant step.
 
 Execute the skill with the collected data as JSON input (name, description, status, provider, variants, props, slots). The `provider` value comes from `$DESIGNBOOK_DRUPAL_THEME` or `designbook.config.yml`.
 
-## Step 6: Validate Component
-
-Run the component validator to check the generated `.component.yml` is valid:
-
-```bash
-node packages/storybook-addon-designbook/dist/cli.js validate component [componentNameKebab]
-```
-
-If errors are found, fix them before proceeding.
-
-## Step 7: Validate Story
-
-Render the component's stories headlessly to verify they produce valid HTML:
-
-```bash
-node packages/storybook-addon-designbook/dist/cli.js validate story [componentNameKebab]
-```
-
-If errors are found, fix the Twig template or story definitions before proceeding.
-
-## Step 8: Confirm Completion
+## Step 6: Confirm Completion
 
 > "✅ **Component created!**
 >
@@ -179,16 +159,17 @@ If errors are found, fix the Twig template or story definitions before proceedin
 
 ## Workflow Tracking
 
-Load `@designbook-workflow/SKILL.md`.
-
-At workflow start, create the tracking file:
-```
-WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-design-component --title "Design Component" --task "create-component:Create component definition:component" --task "create-twig:Create Twig template:component" --task "create-story:Create story:component")
-```
+Load `@designbook-workflow/steps/create.md`:
+- `--workflow debo-design-component` / `--title "Design Component"`
+- `--task "create-component:Create component definition:component"`
+- `--task "create-twig:Create Twig template:component"`
+- `--task "create-story:Create story:component"`
 
 If `--spec`: output the plan and stop here.
 
-After completing each step, update:
-```
-node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME <task-id> --status done
-```
+For each task (`create-component`, `create-twig`, `create-story`):
+1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
+2. Do the work
+3. Load `@designbook-workflow/steps/add-files.md` → `--files [produced relative paths]`
+4. Load `@designbook-workflow/steps/validate.md` → fix loop until exit 0
+5. Load `@designbook-workflow/steps/update.md` → mark **done**

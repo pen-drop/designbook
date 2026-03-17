@@ -99,3 +99,9 @@ web/themes/custom/test_integration_drupal/components/button/
 - **Missing Components**: Stories are generated after components. Generate components first.
 - **Transformation Error**: Check JSONata syntax in `.pendrop/story.pendrop.jsonata`.
 - **Validation Error**: Verify output matches story YAML format in `.pendrop/validate/stories/`.
+
+## Workflow Tracking
+
+> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
+
+Produced file for `--files`: `../components/<component-name>/<component-name>.default.story.yml`

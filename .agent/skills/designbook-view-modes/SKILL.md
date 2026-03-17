@@ -299,3 +299,9 @@ Unlike `jsonata-w` CLI usage for CSS generation, view-mode expressions do NOT us
 | JSONata syntax error | Check expression syntax — use `npx jsonata-w inspect` to debug |
 | Field resolves to null | Add fallback: `field_x ? field_x : "default"` |
 | Nested entity .jsonata missing | Create the referenced view-mode file |
+
+## Workflow Tracking
+
+> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
+
+Produced file for `--files`: `view-modes/<entity_type>.<bundle>.<view_mode>.jsonata`

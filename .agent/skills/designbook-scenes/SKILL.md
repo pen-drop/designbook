@@ -305,3 +305,9 @@ The provider is the SDC namespace from the component's `.component.yml` → `pro
 | Record not found | Add more records to `data.yml` |
 | No data.yml | Create sample data for this section |
 | Scene not found | Check `ref` format (`"source:sceneName"`) |
+
+## Workflow Tracking
+
+> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
+
+Produced file for `--files`: `sections/<section-id>/<scene-id>.scenes.yml`

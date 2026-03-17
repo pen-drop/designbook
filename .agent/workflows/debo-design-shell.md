@@ -166,16 +166,17 @@ Populate slot content based on the components created in Step 5 and the user's a
 
 ## Workflow Tracking
 
-Load `@designbook-workflow/SKILL.md`.
-
-At workflow start, create the tracking file:
-```
-WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-design-shell --title "Design Shell" --task "create-spec:Create shell spec:scene" --task "create-component:Create shell components:component" --task "create-scene:Create shell scene:scene")
-```
+Load `@designbook-workflow/steps/create.md`:
+- `--workflow debo-design-shell` / `--title "Design Shell"`
+- `--task "create-spec:Create shell spec:scene"`
+- `--task "create-component:Create shell components:component"`
+- `--task "create-scene:Create shell scene:scene"`
 
 If `--spec`: output the plan and stop here.
 
-After completing each step, update:
-```
-node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME <task-id> --status done
-```
+For each task (`create-spec`, `create-component`, `create-scene`):
+1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
+2. Do the work
+3. Load `@designbook-workflow/steps/add-files.md` → `--files [produced .component.yml, .story.yml paths relative to designbook dir]`
+4. Load `@designbook-workflow/steps/validate.md` → fix loop until exit 0
+5. Load `@designbook-workflow/steps/update.md` → mark **done**

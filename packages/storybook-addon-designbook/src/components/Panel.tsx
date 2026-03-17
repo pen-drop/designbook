@@ -3,6 +3,23 @@ import { AddonPanel, TabsView } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 import { timeRange, ManagerBadge } from './manager-utils.tsx';
 
+interface ValidationFileResult {
+  file: string;
+  type: string;
+  valid: boolean;
+  error?: string;
+  skipped?: boolean;
+  last_validated?: string;
+  last_passed?: string;
+  last_failed?: string;
+}
+
+interface TaskFile {
+  path: string;
+  requires_validation?: boolean;
+  validation_result?: ValidationFileResult;
+}
+
 interface WorkflowTask {
   id: string;
   title: string;
@@ -10,6 +27,7 @@ interface WorkflowTask {
   status: 'pending' | 'in-progress' | 'done';
   started_at: string | null;
   completed_at: string | null;
+  files?: TaskFile[];
 }
 
 interface WorkflowData {
@@ -34,7 +52,6 @@ interface PanelProps {
   active?: boolean;
 }
 
-const POLL_INTERVAL = 3000;
 const MAX_LOG_ENTRIES = 10;
 
 const Container = styled.div(({ theme }) => ({
@@ -121,10 +138,43 @@ const TaskTitle = styled.span(({ theme }) => ({
   whiteSpace: 'nowrap' as const,
 }));
 
+const FileRow = styled.div({
+  padding: '1px 8px 1px 42px',
+  display: 'flex',
+  flexDirection: 'column' as const,
+  gap: '1px',
+});
+
+const FilePath = styled.div(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  fontSize: '10px',
+  color: theme.color.mediumdark,
+  lineHeight: '16px',
+}));
+
+const FileError = styled.div(({ theme }) => ({
+  fontSize: '10px',
+  color: theme.color.negative || '#d43b26',
+  paddingLeft: '16px',
+  lineHeight: '14px',
+  opacity: 0.9,
+}));
+
 const taskIcon = (status: string) => {
   if (status === 'done') return '✅';
   if (status === 'in-progress') return '⚡';
   return '○';
+};
+
+const validationBadge = (f: TaskFile): string => {
+  if (f.requires_validation && !f.validation_result) return '⏳';
+  if (!f.validation_result) return '';
+  const r = f.validation_result;
+  if (r.skipped && f.requires_validation) return '⏭';
+  if (r.valid) return '✅';
+  return '❌';
 };
 
 function WorkflowsTab({ workflows }: { workflows: WorkflowData[] }) {
@@ -144,11 +194,22 @@ function WorkflowsTab({ workflows }: { workflows: WorkflowData[] }) {
               <Time>{timeRange(wf.started_at, wf.completed_at)}</Time>
             </Row>
             {wf.tasks.map((task) => (
-              <TaskRow key={task.id} status={task.status}>
-                <Icon style={{ width: '14px', fontSize: '10px' }}>{taskIcon(task.status)}</Icon>
-                <TaskTitle>{task.title}</TaskTitle>
-                {task.status === 'in-progress' && <Time>{timeRange(task.started_at, null)}</Time>}
-              </TaskRow>
+              <React.Fragment key={task.id}>
+                <TaskRow status={task.status}>
+                  <Icon style={{ width: '14px', fontSize: '10px' }}>{taskIcon(task.status)}</Icon>
+                  <TaskTitle>{task.title}</TaskTitle>
+                  {task.status === 'in-progress' && <Time>{timeRange(task.started_at, null)}</Time>}
+                </TaskRow>
+                {task.files?.map((f) => (
+                  <FileRow key={f.path}>
+                    <FilePath>
+                      <span>{validationBadge(f)}</span>
+                      <span>{f.path}</span>
+                    </FilePath>
+                    {f.validation_result?.error && <FileError>{f.validation_result.error}</FileError>}
+                  </FileRow>
+                ))}
+              </React.Fragment>
             ))}
           </div>
         );
@@ -214,10 +275,16 @@ export const Panel: React.FC<PanelProps> = memo(function DesignbookPanel({ activ
     };
 
     poll();
-    const interval = setInterval(poll, POLL_INTERVAL);
+    const es = new EventSource('/__designbook/events');
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    es.onmessage = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => poll(), 150);
+    };
     return () => {
       mounted = false;
-      clearInterval(interval);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      es.close();
     };
   }, [active]);
 

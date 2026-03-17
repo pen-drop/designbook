@@ -146,15 +146,12 @@ scenes:
           view_mode: full
 ```
 
-### 3.4 — Validate Stories
+### 3.4 — Register files + validate
 
-Render the section's stories headlessly to verify they produce valid HTML:
+Load `@designbook-workflow/steps/add-files.md` → register produced `.component.yml` and `.story.yml` paths.
+Load `@designbook-workflow/steps/validate.md` → fix loop until exit 0.
 
-```bash
-node packages/storybook-addon-designbook/dist/cli.js validate story {section-id}
-```
-
-If errors are found, fix them before proceeding. Common issues:
+Common issues when `"valid": false`:
 - Twig syntax errors in templates
 - Missing component references
 - Broken slot composition
@@ -196,16 +193,17 @@ Mark tasks complete as each sub-step finishes. Report progress to the user.
 
 ## Workflow Tracking
 
-Load `@designbook-workflow/SKILL.md`.
-
-At workflow start, create the tracking file:
-```
-WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-design-screen --title "Design Screen" --task "create-components:Create UI components:component" --task "create-view-modes:Create view mode mappings:view-mode" --task "create-scene:Create section scene:scene")
-```
+Load `@designbook-workflow/steps/create.md`:
+- `--workflow debo-design-screen` / `--title "Design Screen"`
+- `--task "create-components:Create UI components:component"`
+- `--task "create-view-modes:Create view mode mappings:view-mode"`
+- `--task "create-scene:Create section scene:scene"`
 
 If `--spec`: output the plan and stop here.
 
-After completing each step, update:
-```
-node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME <task-id> --status done
-```
+For each task (`create-components`, `create-view-modes`, `create-scene`):
+1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
+2. Do the work
+3. Load `@designbook-workflow/steps/add-files.md` → `--files [produced relative paths]`
+4. Load `@designbook-workflow/steps/validate.md` → fix loop until exit 0
+5. Load `@designbook-workflow/steps/update.md` → mark **done**

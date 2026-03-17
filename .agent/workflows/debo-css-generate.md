@@ -32,16 +32,12 @@ The skill handles:
 
 ## Workflow Tracking
 
-Load `@designbook-workflow/SKILL.md`.
-
-At workflow start, create the tracking file:
-```
-WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow debo-css-generate --title "Generate CSS" --task "generate-css:Generate CSS token files:css")
-```
+Load `@designbook-workflow/steps/create.md`:
+- `--workflow debo-css-generate` / `--title "Generate CSS"` / `--task "generate-css:Generate CSS token files:css"`
 
 If `--spec`: output the plan and stop here.
 
-After completing each step, update:
-```
-node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME generate-css --status done
-```
+For task `generate-css`:
+1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
+2. Do the work
+3. Load `@designbook-workflow/steps/update.md` → mark **done**

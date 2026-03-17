@@ -235,7 +235,7 @@ This keeps workflow files readable and decouples them from the physical skill di
 Skills that need project configuration should use the `designbook-configuration` skill:
 
 ```bash
-eval "$(node packages/storybook-addon-designbook/dist/cli.js config)"
+eval "$(npx storybook-addon-designbook config)"
 echo $DESIGNBOOK_BACKEND
 echo $DESIGNBOOK_DRUPAL_THEME
 ```

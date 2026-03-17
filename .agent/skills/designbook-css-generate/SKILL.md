@@ -12,10 +12,7 @@ Generic CSS generation pipeline that transforms W3C Design Tokens into CSS files
 1. `DESIGNBOOK_FRAMEWORK_CSS` must be set (via `frameworks.css` in `designbook.config.yml`)
 2. `DESIGNBOOK_DRUPAL_THEME` must be set (via `drupal.theme` in `designbook.config.yml`)
 3. `DESIGNBOOK_DIST` must be set
-4. Load configuration:
-   ```bash
-   eval "$(node packages/storybook-addon-designbook/dist/cli.js config)"
-   ```
+4. Load configuration: Load `@designbook-configuration/SKILL.md` to resolve all `DESIGNBOOK_*` environment variables
 
 ## Capability
 

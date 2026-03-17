@@ -91,3 +91,9 @@ Generates Drupal SDC-compliant YAML files:
 web/themes/custom/test_integration_drupal/components/button/
 └── button.component.yml
 ```
+
+## Workflow Tracking
+
+> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
+
+Produced file for `--files`: `../components/<component-name>/<component-name>.component.yml`

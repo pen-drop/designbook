@@ -76,16 +76,12 @@ Create or update `designbook/sections/[section-id]/screenshots.md`:
 
 ## Workflow Tracking
 
-Load `@designbook-workflow/SKILL.md`.
-
-At workflow start, create the tracking file:
-```
-WORKFLOW_NAME=$(node packages/storybook-addon-designbook/dist/cli.js workflow create --workflow screenshot-design --title "Capture Screenshots" --task "capture-screenshots:Capture design screenshots:validation")
-```
+Load `@designbook-workflow/steps/create.md`:
+- `--workflow screenshot-design` / `--title "Capture Screenshots"` / `--task "capture-screenshots:Capture design screenshots:validation"`
 
 If `--spec`: output the plan and stop here.
 
-After completing each step, update:
-```
-node packages/storybook-addon-designbook/dist/cli.js workflow update $WORKFLOW_NAME capture-screenshots --status done
-```
+For task `capture-screenshots`:
+1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
+2. Do the work
+3. Load `@designbook-workflow/steps/update.md` → mark **done**

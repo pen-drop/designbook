@@ -52,13 +52,9 @@ node:
 - Reference fields store the target entity's `id` value
 
 
-## Validation
+## Steps
 
-Run the CLI validator to check a section's data.yml:
-
-```bash
-npx storybook-addon-designbook validate data <section-id>
-```
+- [validate](./steps/validate.md): Validates `data.yml` against `data-model.yml`; fix loop until exit 0.
 
 ## Validation Rules
 
@@ -94,3 +90,9 @@ Only validate entities and references **within the current data.yml file**. Cros
 - Include edge cases: long names, empty optional fields, different statuses
 - Vary content across records (different lengths, categories, authors)
 - Reference fields should form a realistic web of relationships
+
+## Workflow Tracking
+
+> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
+
+Produced file for `--files`: `sections/<section-id>/data.yml`

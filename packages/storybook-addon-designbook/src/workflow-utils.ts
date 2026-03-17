@@ -49,6 +49,7 @@ function scanDir(dir: string, source: 'active' | 'archived'): WorkflowTaskFileWi
     if (existsSync(taskPath)) {
       try {
         const data = parseTaskFile(taskPath);
+        if (!Array.isArray(data?.tasks)) continue;
         results.push({ ...data, changeName: entry, source });
       } catch {
         // Skip invalid files

@@ -5,7 +5,7 @@ description: Validates and stores data model configuration in YAML format. Defin
 
 # Designbook Data Model Skill
 
-This skill is the central authority for validating and saving the data model to the project. It validates the data model YAML against the bundled schema using `ajv-cli` and persists it to `designbook/data-model.yml`.
+This skill is the central authority for validating and saving the data model to the project. It validates the data model YAML against the bundled schema and persists it to `designbook/data-model.yml`.
 
 > [!IMPORTANT]
 > **View mode mappings are no longer part of the data model.**
@@ -82,14 +82,13 @@ config:
 
 The list wrapper layout (which components to use for the view container, grid, pager, etc.) is defined in a separate JSONata file — see the `designbook-view-modes` skill.
 
-## Validation
-
-Validate a data model file against the schema:
-
-```bash
-npx storybook-addon-designbook validate data-model
-```
-
 ## Steps
 
 - [process-data-model](./steps/process-data-model.md): Validates and saves data model configuration.
+- [validate](./steps/validate.md): Validates `data-model.yml` against the schema; fix loop until exit 0.
+
+## Workflow Tracking
+
+> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
+
+Produced file for `--files`: `data-model.yml`

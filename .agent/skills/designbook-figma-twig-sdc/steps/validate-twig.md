@@ -138,3 +138,11 @@ Twig Validation Report
 
 Result: REFINEMENT NEEDED (2 issues)
 ```
+
+## Workflow Tracking
+
+> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
+
+Produced files for `--files`:
+- `../components/<component-name>/<component-name>.html.twig`
+- `../components/<component-name>/<component-name>.default.story.yml`
