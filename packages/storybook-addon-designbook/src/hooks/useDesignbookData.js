@@ -1,3 +1,4 @@
+/* global EventSource */
 import { useState, useEffect, useCallback } from 'react';
 import { loadDesignbookFile } from '../components/designbookApi.js';
 
@@ -36,6 +37,9 @@ export function useDesignbookData(path, parser) {
 
   useEffect(() => {
     load();
+    const es = new EventSource('/__designbook/events');
+    es.onmessage = () => load();
+    return () => es.close();
   }, [load]);
 
   return { data, loading, error, reload: load };

@@ -109,6 +109,11 @@ export function loadConfig(startDir?: string): DesignbookConfig {
     // Resolve dist path relative to config file location, not cwd
     config.dist = resolve(configDir, config.dist);
 
+    // Resolve drupal.theme to absolute path (same convention as dist)
+    if (typeof config['drupal.theme'] === 'string') {
+      config['drupal.theme'] = resolve(configDir, config['drupal.theme'] as string);
+    }
+
     return config;
   } catch {
     return { ...DEFAULTS, dist: resolve(process.cwd(), DEFAULTS.dist) };
