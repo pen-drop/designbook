@@ -1,3 +1,4 @@
+/* global EventSource */
 import { useState, useEffect, useCallback } from 'react';
 import { loadDesignbookFile } from '../components/designbookApi.js';
 
