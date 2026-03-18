@@ -34,12 +34,20 @@ The `dialog` stage is the workflow body itself (interviews the user). All other 
 ## CLI Commands
 
 ```bash
-# Plan (one call)
+# Early creation (dialog phase — no tasks yet)
+${DESIGNBOOK_CMD} workflow create --workflow <id> --title "<title>" [--parent <name>]
+# → returns $WORKFLOW_NAME; creates planning-status tasks.yml with empty tasks
+
+# Plan (after dialog — adds tasks to existing planning workflow)
+${DESIGNBOOK_CMD} workflow plan --workflow $WORKFLOW_NAME --stages '<json>' --tasks '<json>'
+
+# Full creation in one call (skip dialog status)
 ${DESIGNBOOK_CMD} workflow create --workflow <id> --title "<title>" --stages '<json>' --tasks '<json>'
 ${DESIGNBOOK_CMD} workflow create --workflow <id> --title "<title>" --tasks-file <path>
 
-# List unarchived workflows for an id
+# List workflows for an id
 ${DESIGNBOOK_CMD} workflow list --workflow <id>
+${DESIGNBOOK_CMD} workflow list --workflow <id> --include-archived
 
 # Execution (2 calls per task)
 ${DESIGNBOOK_CMD} workflow validate --workflow <name> --task <id>
@@ -154,7 +162,8 @@ $DESIGNBOOK_DIST/
 ```yaml
 title: Design Shell
 workflow: debo-design-shell
-status: running                    # planning | running | completed
+status: running                    # planning | running | completed | incomplete
+parent: debo-design-tokens-2026-03-18-a3f7   # optional — set when triggered via a hook
 stages:
   - dialog
   - create-component
@@ -166,7 +175,7 @@ tasks:
     title: Create page component
     type: component
     stage: create-component
-    status: pending                # pending | in-progress | done
+    status: pending                # pending | in-progress | done | incomplete
     started_at:
     completed_at:
     files:
@@ -188,15 +197,25 @@ tasks:
 These rules are **binding** when executing any workflow.
 
 ### Rule 0: Resume Check
-**BEFORE** the plan step:
+**BEFORE** the dialog step:
 → Run: `workflow list --workflow <id>`
 → **IF** output is non-empty: ask the user "There is an unfinished workflow: `<name>`. Continue it, or start fresh?"
-  - **Continue**: set `$WORKFLOW_NAME=<name>`, skip Rule 1, jump to first pending task
-  - **Start fresh**: proceed to Rule 1
+  - **Continue**: set `$WORKFLOW_NAME=<name>`, skip Rule 1, jump to first pending task (if tasks exist) or continue from dialog
+  - **Start fresh**: run `workflow abandon --workflow <name>` to archive the old workflow as incomplete, then proceed to Rule 1
 
-### Rule 1: Workflow Plan (Stage Discovery)
+> A planning-status workflow with empty tasks means dialog was started but not completed — treat it as resumable (continue from dialog).
 
-**WHEN** the dialog stage is complete (user has answered all questions):
+### Rule 1: Workflow Plan (Two-Phase)
+
+Workflows are created in two phases to make the dialog visible in Storybook immediately.
+
+**Phase 1 — At dialog start** (before asking the user any questions):
+```bash
+WORKFLOW_NAME=$(workflow create --workflow <id> --title "<title>"  [--parent <parent-name>])
+```
+This creates a `planning`-status entry with empty tasks. The workflow appears in the Storybook panel immediately.
+
+**Phase 2 — After dialog** (user has answered all questions):
 
 1. Read `stages:` from the workflow frontmatter. Skip `dialog` — it has no task files.
 
@@ -210,19 +229,47 @@ These rules are **binding** when executing any workflow.
 
 3. **Build the full tasks JSON** array with `id`, `title`, `type`, `stage`, `files[]` per task.
 
-4. **Create the workflow**:
+4. **Process before hooks** (see Rule: Before Hooks).
+
+5. **Finalize the workflow plan**:
    ```bash
-   workflow create \
-     --workflow <id> \
-     --title "<title>" \
+   workflow plan \
+     --workflow $WORKFLOW_NAME \
      --stages '<stages_json>' \
      --tasks '<tasks_json>'
    ```
-   Capture the output line as `$WORKFLOW_NAME`.
 
-> ⛔ **All tasks AND their files must be declared in a single `workflow create` call. No files are created before this.**
+> ⛔ **All tasks AND their files must be declared in the `workflow plan` call. No files are created before this.**
 
 **For files not known at plan time:** use `workflow add-file` after the fact (escape hatch).
+
+### Rule: Before Hooks
+
+**AFTER** the dialog and **BEFORE** `workflow plan`, process each `before` entry in the workflow frontmatter (if any).
+
+For each `before` entry:
+
+1. **Check reads gate**: look up the referenced workflow's `reads:` entries. If any required (non-optional) read file is missing → **skip silently**.
+
+2. **Apply execution policy**:
+   - `execute: always` → run the referenced workflow (pass `--parent $WORKFLOW_NAME`)
+   - `execute: if-never-run` → run `workflow list --workflow <id> --include-archived`:
+     - Empty output → run the referenced workflow (pass `--parent $WORKFLOW_NAME`)
+     - Non-empty → skip silently
+   - `execute: ask` → prompt the user: "Run `/<workflow-id>` first? (y/n)"
+     - Accepted → run the referenced workflow (pass `--parent $WORKFLOW_NAME`)
+     - Declined → skip
+
+When running a referenced workflow via a before hook, complete it fully before continuing with the current workflow's plan.
+
+### Rule: After Hooks
+
+**AFTER** the last `workflow done` call (when the workflow auto-archives), process each `after` entry in the workflow frontmatter (if any).
+
+For each `after` entry:
+- Prompt the user: "Run `/<workflow-id>` next? (y/n)"
+- If accepted: start the referenced workflow, passing `--parent $WORKFLOW_NAME` to its `workflow create` call
+- If declined: skip and continue to next entry
 
 ### Rule 2a: Reads Check (Required Before Every Stage)
 
@@ -260,16 +307,41 @@ When the last `workflow done` call completes, the workflow auto-archives. No exp
 
 ### Rule 4: Rule Auto-Loading
 
-Rule files are loaded automatically in Rule 2. They must NOT be loaded by the AI manually. The AI should:
+Rule files are loaded automatically. They must NOT be loaded by the AI manually. The AI should:
 - Scan `.agents/skills/*/rules/*.md` at the start of each stage
 - Apply all rules that pass `when` conditions
 - Treat rule content as hard constraints (not suggestions)
 
+**Dialog stage**: At the start of the dialog (before asking the user any questions), also scan for rules where `when.stages` contains `<workflow-id>:dialog` (e.g. `debo-data-model:dialog`). Apply matching rules as constraints throughout the entire dialog conversation.
+
+## Workflow Frontmatter: `before` and `after` Hooks
+
+Declare hooks in the YAML frontmatter of any `debo-*.md` workflow:
+
+```yaml
+before:
+  - workflow: /debo-css-generate
+    execute: if-never-run    # always | if-never-run | ask
+
+after:
+  - workflow: /debo-css-generate
+    # no execute field — after hooks always ask
+```
+
+- **`before`**: runs after the current workflow's dialog, before `workflow plan`. Requires an `execute` policy.
+  - `always` — run unconditionally (if reads are satisfied)
+  - `if-never-run` — run only if `workflow list --include-archived` returns empty
+  - `ask` — prompt the user
+- **`after`**: suggests a follow-up workflow after the last `workflow done`. Always prompts the user.
+- Both: if the referenced workflow's required `reads:` are unsatisfied, skip silently regardless of policy.
+- Both: pass `--parent $WORKFLOW_NAME` when triggering the hook workflow.
+
 ### Status Transitions (Automatic)
 The CLI automatically handles:
-- `planning` → set by `wdie orkflow create`
+- `planning` → set by `workflow create` (with or without tasks)
 - `planning` → `running`: on first `workflow validate` call
 - `running` → `completed`: when all tasks are done (workflow auto-archives)
+- `running` → `incomplete`: when user declines to resume (`workflow abandon` → archives to `archive/`)
 
 ### Rule 5: Skill Loading (Required)
 

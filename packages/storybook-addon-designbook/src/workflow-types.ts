@@ -1,4 +1,4 @@
-export type TaskStatus = 'pending' | 'in-progress' | 'done';
+export type TaskStatus = 'pending' | 'in-progress' | 'done' | 'incomplete';
 
 export type TaskType = 'component' | 'scene' | 'data' | 'tokens' | 'view-mode' | 'css' | 'validation';
 
@@ -34,7 +34,8 @@ export interface WorkflowTask {
 export interface WorkflowTaskFile {
   title: string;
   workflow: string;
-  status?: 'planning' | 'running' | 'completed';
+  status?: 'planning' | 'running' | 'completed' | 'incomplete';
+  parent?: string;
   stages?: string[]; // ordered stage names from workflow frontmatter
   started_at: string | null;
   completed_at: string | null;

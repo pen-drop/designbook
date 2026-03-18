@@ -6,6 +6,9 @@ description: Create screen design components for a section
 workflow:
   title: Design Screen
   stages: [dialog, create-component, create-view-modes, create-scene]
+before:
+  - workflow: /debo-css-generate
+    execute: if-never-run
 reads:
   - path: ${DESIGNBOOK_DIST}/data-model.yml
     workflow: /debo-data-model

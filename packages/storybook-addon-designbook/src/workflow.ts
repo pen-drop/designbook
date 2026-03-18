@@ -24,7 +24,7 @@ export interface WorkflowTask {
   title: string;
   type: string;
   stage?: string; // canonical stage name (e.g. create-component, create-scene)
-  status: 'pending' | 'in-progress' | 'done';
+  status: 'pending' | 'in-progress' | 'done' | 'incomplete';
   started_at?: string;
   completed_at?: string;
   files?: TaskFile[];
@@ -33,7 +33,8 @@ export interface WorkflowTask {
 export interface WorkflowFile {
   title: string;
   workflow: string;
-  status?: 'planning' | 'running' | 'completed';
+  status?: 'planning' | 'running' | 'completed' | 'incomplete';
+  parent?: string;
   stages?: string[]; // ordered stage names from workflow frontmatter
   started_at: string;
   completed_at?: string;
@@ -77,6 +78,27 @@ function archiveWorkflow(dist: string, name: string, data: WorkflowFile): void {
   renameSync(changesDir, archiveDir);
 }
 
+/**
+ * Archive a workflow as incomplete (user declined to resume).
+ */
+export function workflowAbandon(dist: string, name: string): WorkflowFile {
+  const changesDir = resolve(dist, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+  const data = readWorkflow(filePath);
+
+  data.status = 'incomplete';
+  data.completed_at = timestamp();
+  data.summary = data.tasks.map((t) => `${t.title} (${t.type})`).join(', ');
+
+  writeFileSync(filePath, stringifyYaml(data));
+
+  const archiveDir = resolve(dist, 'workflows', 'archive', name);
+  mkdirSync(dirname(archiveDir), { recursive: true });
+  renameSync(changesDir, archiveDir);
+
+  return data;
+}
+
 function normalizeFilePath(dist: string, p: string): string {
   if (isAbsolute(p)) return relative(dist, p);
   if (existsSync(resolve(dist, p))) return p;
@@ -86,17 +108,25 @@ function normalizeFilePath(dist: string, p: string): string {
 }
 
 /**
- * List all unarchived workflows matching a workflow id prefix.
+ * List workflows matching a workflow id prefix.
  * Returns names newest-first.
+ * When includeArchived is true, also scans workflows/archive/.
  */
-export function workflowList(dist: string, workflowId: string): string[] {
+export function workflowList(dist: string, workflowId: string, includeArchived?: boolean): string[] {
   const changesDir = resolve(dist, 'workflows', 'changes');
-  if (!existsSync(changesDir)) return [];
+  const active = existsSync(changesDir)
+    ? readdirSync(changesDir).filter((name) => name.startsWith(`${workflowId}-`))
+    : [];
 
-  return readdirSync(changesDir)
-    .filter((name) => name.startsWith(`${workflowId}-`))
-    .sort()
-    .reverse();
+  const archived: string[] = [];
+  if (includeArchived) {
+    const archiveDir = resolve(dist, 'workflows', 'archive');
+    if (existsSync(archiveDir)) {
+      archived.push(...readdirSync(archiveDir).filter((name) => name.startsWith(`${workflowId}-`)));
+    }
+  }
+
+  return [...active, ...archived].sort().reverse();
 }
 
 /**
@@ -111,6 +141,7 @@ export function workflowCreate(
   title: string,
   tasks: Array<{ id: string; title: string; type: string; stage?: string; files?: string[] }>,
   stages?: string[],
+  parent?: string,
 ): string {
   const date = new Date().toISOString().slice(0, 10);
   const name = `${workflowId}-${date}-${shortId()}`;
@@ -119,6 +150,7 @@ export function workflowCreate(
     title,
     workflow: workflowId,
     status: 'planning',
+    ...(parent ? { parent } : {}),
     ...(stages && stages.length > 0 ? { stages } : {}),
     started_at: timestamp(),
     completed_at: undefined,
@@ -140,6 +172,41 @@ export function workflowCreate(
   writeFileSync(resolve(dir, 'tasks.yml'), stringifyYaml(data));
 
   return name;
+}
+
+/**
+ * Add stages and tasks to a planning workflow.
+ * Errors with exit code 1 if the workflow is not in planning status.
+ */
+export function workflowPlan(
+  dist: string,
+  name: string,
+  tasks: Array<{ id: string; title: string; type: string; stage?: string; files?: string[] }>,
+  stages?: string[],
+): WorkflowFile {
+  const changesDir = resolve(dist, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+  const data = readWorkflow(filePath);
+
+  if (data.status === 'running' || data.status === 'completed' || data.status === 'incomplete') {
+    process.stderr.write(`Error: workflow "${name}" cannot be planned (current status: ${data.status})\n`);
+    process.exit(1);
+  }
+  if (stages && stages.length > 0) data.stages = stages;
+  data.tasks = tasks.map((t) => ({
+    id: t.id,
+    title: t.title,
+    type: t.type,
+    ...(t.stage ? { stage: t.stage } : {}),
+    status: 'pending' as const,
+    files: (t.files ?? []).map((p) => ({
+      path: normalizeFilePath(dist, p),
+      requires_validation: true,
+    })),
+  }));
+
+  writeWorkflowAtomic(filePath, data);
+  return data;
 }
 
 /**

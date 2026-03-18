@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
   workflowCreate,
+  workflowPlan,
   workflowList,
   workflowAddFile,
   workflowDone,
@@ -75,6 +76,25 @@ describe('workflowCreate', () => {
     const data = readWorkflowFile(dist, name);
     expect(data.tasks.map((t) => t.id)).toEqual(['alpha', 'beta']);
   });
+
+  it('writes parent field when provided', () => {
+    const name = workflowCreate(dist, 'debo-tokens', 'Tokens', [], undefined, 'debo-design-component-2026-03-18-a3f7');
+    const data = readWorkflowFile(dist, name);
+    expect(data.parent).toBe('debo-design-component-2026-03-18-a3f7');
+  });
+
+  it('does not write parent field when omitted', () => {
+    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
+    const data = readWorkflowFile(dist, name);
+    expect(data.parent).toBeUndefined();
+  });
+
+  it('creates planning workflow with empty tasks', () => {
+    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
+    const data = readWorkflowFile(dist, name);
+    expect(data.status).toBe('planning');
+    expect(data.tasks).toHaveLength(0);
+  });
 });
 
 // ── workflowList ─────────────────────────────────────────────────────────────
@@ -115,6 +135,84 @@ describe('workflowList', () => {
     const results = workflowList(dist, 'debo-vision');
     expect(results[0]).toBe(newer);
     expect(results[1]).toBe(older);
+  });
+});
+
+// ── workflowList --include-archived ──────────────────────────────────────────
+
+describe('workflowList with includeArchived', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-list-archived-'));
+  });
+
+  it('returns only active when includeArchived is false', () => {
+    workflowCreate(dist, 'debo-vision', 'Vision', []);
+    const archiveDir = resolve(dist, 'workflows', 'archive', 'debo-vision-2025-01-01-aaaa');
+    mkdirSync(archiveDir, { recursive: true });
+    writeFileSync(resolve(archiveDir, 'tasks.yml'), 'title: t\nworkflow: debo-vision\nstarted_at: ""\ntasks: []');
+
+    const results = workflowList(dist, 'debo-vision', false);
+    expect(results).toHaveLength(1);
+    expect(results[0]).not.toBe('debo-vision-2025-01-01-aaaa');
+  });
+
+  it('returns active + archived when includeArchived is true', () => {
+    workflowCreate(dist, 'debo-vision', 'Vision', []);
+    const archiveDir = resolve(dist, 'workflows', 'archive', 'debo-vision-2025-01-01-aaaa');
+    mkdirSync(archiveDir, { recursive: true });
+    writeFileSync(resolve(archiveDir, 'tasks.yml'), 'title: t\nworkflow: debo-vision\nstarted_at: ""\ntasks: []');
+
+    const results = workflowList(dist, 'debo-vision', true);
+    expect(results).toHaveLength(2);
+    expect(results.some((n) => n === 'debo-vision-2025-01-01-aaaa')).toBe(true);
+  });
+
+  it('returns empty when workflow never run and includeArchived is true', () => {
+    expect(workflowList(dist, 'debo-never', true)).toEqual([]);
+  });
+
+  it('does not include archived by default', () => {
+    const archiveDir = resolve(dist, 'workflows', 'archive', 'debo-vision-2025-01-01-aaaa');
+    mkdirSync(archiveDir, { recursive: true });
+    writeFileSync(resolve(archiveDir, 'tasks.yml'), 'title: t\nworkflow: debo-vision\nstarted_at: ""\ntasks: []');
+
+    const results = workflowList(dist, 'debo-vision');
+    expect(results).toHaveLength(0);
+  });
+});
+
+// ── workflowPlan ──────────────────────────────────────────────────────────────
+
+describe('workflowPlan', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-plan-'));
+  });
+
+  it('adds tasks to a planning-status workflow with empty tasks', () => {
+    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
+    workflowPlan(dist, name, [{ id: 'task1', title: 'Task 1', type: 'data' }]);
+    const data = readWorkflowFile(dist, name);
+    expect(data.tasks).toHaveLength(1);
+    expect(data.tasks[0].id).toBe('task1');
+    expect(data.tasks[0].status).toBe('pending');
+  });
+
+  it('sets stages when provided', () => {
+    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
+    workflowPlan(dist, name, [], ['dialog', 'create-tokens']);
+    const data = readWorkflowFile(dist, name);
+    expect(data.stages).toEqual(['dialog', 'create-tokens']);
+  });
+
+  it('keeps status as planning', () => {
+    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
+    workflowPlan(dist, name, [{ id: 'task1', title: 'T1', type: 'data' }]);
+    const data = readWorkflowFile(dist, name);
+    expect(data.status).toBe('planning');
   });
 });
 

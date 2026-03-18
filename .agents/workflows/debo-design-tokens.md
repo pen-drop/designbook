@@ -10,6 +10,8 @@ reads:
   - path: ${DESIGNBOOK_DIST}/product/vision.md
     workflow: /debo-vision
   - path: ${DESIGNBOOK_DIST}/design-system/design-tokens.yml
+after:
+  - workflow: /debo-css-generate
     optional: true
 ---
 

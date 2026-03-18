@@ -6,6 +6,9 @@ description: Design the application shell — page component with header, conten
 workflow:
   title: Design Shell
   stages: [dialog, create-component, create-shell-scene]
+before:
+  - workflow: /debo-css-generate
+    execute: if-never-run
 reads:
   - path: ${DESIGNBOOK_DIST}/product/vision.md
     workflow: /debo-vision
