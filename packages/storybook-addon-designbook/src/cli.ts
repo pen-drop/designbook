@@ -159,50 +159,59 @@ workflow
   .option('--tasks-file <path>', 'Path to JSON file containing tasks array')
   .option('--stages <json>', 'JSON array of ordered stage names (e.g. ["create-component","create-scene"])')
   .option('--parent <name>', 'Triggering workflow name when started via a hook')
-  .action((opts: { workflow: string; title: string; tasks?: string; tasksFile?: string; stages?: string; parent?: string }) => {
-    const config = loadConfig();
+  .action(
+    (opts: {
+      workflow: string;
+      title: string;
+      tasks?: string;
+      tasksFile?: string;
+      stages?: string;
+      parent?: string;
+    }) => {
+      const config = loadConfig();
 
-    let tasks: Array<{ id: string; title: string; type: string; stage?: string; files?: string[] }> = [];
+      let tasks: Array<{ id: string; title: string; type: string; stage?: string; files?: string[] }> = [];
 
-    if (opts.tasksFile) {
-      try {
-        tasks = JSON.parse(readFileSync(opts.tasksFile, 'utf-8'));
-      } catch (err) {
-        console.error(`Error reading tasks file: ${(err as Error).message}`);
+      if (opts.tasksFile) {
+        try {
+          tasks = JSON.parse(readFileSync(opts.tasksFile, 'utf-8'));
+        } catch (err) {
+          console.error(`Error reading tasks file: ${(err as Error).message}`);
+          process.exitCode = 1;
+          return;
+        }
+      } else if (opts.tasks) {
+        try {
+          tasks = JSON.parse(opts.tasks);
+        } catch (err) {
+          console.error(`Error parsing --tasks JSON: ${(err as Error).message}`);
+          process.exitCode = 1;
+          return;
+        }
+      }
+
+      if (!Array.isArray(tasks)) {
+        console.error('Error: tasks must be a JSON array');
         process.exitCode = 1;
         return;
       }
-    } else if (opts.tasks) {
-      try {
-        tasks = JSON.parse(opts.tasks);
-      } catch (err) {
-        console.error(`Error parsing --tasks JSON: ${(err as Error).message}`);
-        process.exitCode = 1;
-        return;
+
+      let stages: string[] | undefined;
+      if (opts.stages) {
+        try {
+          stages = JSON.parse(opts.stages);
+          if (!Array.isArray(stages)) throw new Error('stages must be an array');
+        } catch (err) {
+          console.error(`Error parsing --stages JSON: ${(err as Error).message}`);
+          process.exitCode = 1;
+          return;
+        }
       }
-    }
 
-    if (!Array.isArray(tasks)) {
-      console.error('Error: tasks must be a JSON array');
-      process.exitCode = 1;
-      return;
-    }
-
-    let stages: string[] | undefined;
-    if (opts.stages) {
-      try {
-        stages = JSON.parse(opts.stages);
-        if (!Array.isArray(stages)) throw new Error('stages must be an array');
-      } catch (err) {
-        console.error(`Error parsing --stages JSON: ${(err as Error).message}`);
-        process.exitCode = 1;
-        return;
-      }
-    }
-
-    const name = workflowCreate(config.dist, opts.workflow, opts.title, tasks, stages, opts.parent);
-    console.log(name);
-  });
+      const name = workflowCreate(config.dist, opts.workflow, opts.title, tasks, stages, opts.parent);
+      console.log(name);
+    },
+  );
 
 workflow
   .command('plan')
