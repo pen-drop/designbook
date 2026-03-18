@@ -1,14 +1,33 @@
 ---
-name: /shape-section
-id: shape-section
+name: /debo-shape-section
+id: debo-shape-section
 category: Designbook
 description: Define a section specification — user flows, UI requirements, and scope
+workflow:
+  title: Shape Section
+  stages: [dialog, create-section]
+reads:
+  - path: ${DESIGNBOOK_DIST}/product/vision.md
+    workflow: /debo-vision
+  - path: ${DESIGNBOOK_DIST}/data-model.yml
+    optional: true
+    workflow: /debo-data-model
+  - path: ${DESIGNBOOK_DIST}/design-system/design-tokens.yml
+    optional: true
+    workflow: /debo-design-tokens
+  - path: ${DESIGNBOOK_DIST}/design-system/design-system.scenes.yml
+    optional: true
+    workflow: /debo-design-shell
 ---
 
 Help the user define a section specification for one of their roadmap sections. The result is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/[section-id].section.scenes.yml`.
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
+
+## Step 0: Load Workflow Tracking
+
+Load the `designbook-workflow` skill via the Skill tool.
 
 ## Step 1: Check Prerequisites
 
@@ -25,8 +44,6 @@ Check if the following files exist:
 > 2. `/debo-product-sections` — Define your sections"
 
 Stop here.
-
-Read all available files to understand the product context.
 
 ## Step 2: Select Section
 
@@ -91,47 +108,7 @@ Wait for their response.
 >
 > Does this capture what you had in mind? Any changes?"
 
-Iterate until the user is satisfied.
-
-## Step 5: Save the File
-
-Once approved, create the file at `${DESIGNBOOK_DIST}/sections/[section-id]/[section-id].section.scenes.yml` with this exact format:
-
-```yaml
-id: section-id-kebab-case
-title: Section Title
-description: 2-3 sentence description of the section's purpose and scope
-status: planned
-order: 1
-
-name: "Designbook/Sections/Section Title"
-layout: "design-system:shell"
-
-user_flows:
-  - title: Flow 1 title
-    steps: Browse listings → Select item → View detail → Take action
-  - title: Flow 2 title
-    steps: Description of another user flow
-
-ui_requirements:
-  - Requirement 1: specific UI element or pattern needed
-  - Requirement 2
-
-scenes: []
-```
-
-Create the directory `${DESIGNBOOK_DIST}/sections/[section-id]/` if it doesn't exist.
-
-## Step 6: Confirm Completion
-
-> "I've saved the section specification to `${DESIGNBOOK_DIST}/sections/[section-id]/[section-id].section.scenes.yml`.
->
-> **[Section Title]:**
-> - User Flows: [N] defined
-> - UI Requirements: [N] defined
-> - Shell: [Inside shell / Standalone]
->
-> Open Storybook to see the specification on the Sections page. You can run `/debo-shape-section` again to shape the next section or update this one."
+Iterate until the user is satisfied. Once confirmed, the `create-section` stage runs automatically.
 
 **Guardrails**
 - Be conversational — help the user think through requirements
@@ -141,17 +118,4 @@ Create the directory `${DESIGNBOOK_DIST}/sections/[section-id]/` if it doesn't e
 - Reference design tokens when discussing visual design decisions
 - Each user flow should describe a complete path (start → action → result)
 - UI requirements should be specific enough to guide design but not prescribe exact implementations
-- The markdown format must match exactly for Storybook to parse it
 - Section IDs must match the kebab-case conversion consistently
-
-## Workflow Tracking
-
-Load `@designbook-workflow/steps/create.md`:
-- `--workflow shape-section` / `--title "Shape Section"` / `--task "shape-section:Create section specification:scene"`
-
-If `--spec`: output the plan and stop here.
-
-For task `shape-section`:
-1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
-2. Do the work
-3. Load `@designbook-workflow/steps/update.md` → mark **done**

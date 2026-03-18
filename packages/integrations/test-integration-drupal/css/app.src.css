@@ -9,7 +9,7 @@
 @import "tailwindcss" source(none);
 
 /**
- * Include design tokens from Figma
+ * Include design tokens
  */
 @import "./tokens/color.src.css";
 @import "./tokens/spacing.src.css";
@@ -19,16 +19,13 @@
 @import "./tokens/layout.src.css";
 @import "./tokens/container.src.css";
 @import "./tokens/section-spacing.src.css";
-
-/**
- * Include DaisyUI themes
- */
-@import "./themes/dark.src.css";
+@import "./tokens/layout-width.src.css";
+@import "./tokens/layout-spacing.src.css";
+@import "./tokens/grid.src.css";
 
 /**
  * Include additional plugins here
  */
-@import "./plugins/_daisyui.config.src.css";
 @import "./plugins/_tailwindcss.typography.config.src.css";
 
 /**
@@ -39,8 +36,3 @@
 @source "../*.ui_styles.yml";
 @source "../ui_examples/*.yml";
 @source "./safelist.txt";
-@source "../../../contrib/ui_suite_daisyui/templates/**/*.{twig,js}";
-@source "../../../contrib/ui_suite_daisyui/components/**/*.{twig,js,yml}";
-@source "../../../contrib/ui_suite_daisyui/src/css/safelist.txt";
-@source "../../../contrib/ui_suite_daisyui/*.ui_styles.yml";
-@source "../../../contrib/ui_suite_daisyui/**/*.{twig,js,yml}";

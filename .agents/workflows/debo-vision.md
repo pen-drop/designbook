@@ -3,12 +3,19 @@ name: /debo-vision
 id: debo-vision
 category: Designbook
 description: Define your product vision through a guided conversation
+workflow:
+  title: Define Product Vision
+  stages: [dialog, create-vision]
 ---
 
 Help the user define their product vision for Designbook. This is a conversational, multi-step process. The result is saved to `${DESIGNBOOK_DIST}/product/vision.md`.
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
+
+## Step 0: Load Workflow Tracking
+
+Load the `designbook-workflow` skill via the Skill tool.
 
 ## Step 1: Gather Initial Input
 
@@ -59,63 +66,10 @@ Once you have enough information, present a draft summary:
 >
 > Does this capture your vision? Would you like to adjust anything?"
 
-Iterate until the user is satisfied.
+Iterate until the user is satisfied. Once approved, the `create-vision` stage runs automatically.
 
-## Step 4: Save the File
-
-Once the user approves, create the file at `${DESIGNBOOK_DIST}/product/vision.md` with this exact format:
-
-```markdown
-# [Product Name]
-
-## Description
-[The finalized 1-3 sentence description]
-
-## Problems & Solutions
-
-### Problem 1: [Problem Title]
-[How the product solves it in 1-2 sentences]
-
-### Problem 2: [Problem Title]
-[How the product solves it in 1-2 sentences]
-
-[Add more as needed, up to 5]
-
-## Key Features
-- [Feature 1]
-- [Feature 2]
-- [Feature 3]
-[Add more as needed]
-```
-
-**Important:** The `# [Product Name]` heading at the top is required — this is what the Storybook display parses as the product title.
-
-Create the directory `${DESIGNBOOK_DIST}/product/` if it doesn't exist.
-
-## Step 5: Confirm Completion
-
-Let the user know:
-
-> "I've saved your product vision to `${DESIGNBOOK_DIST}/product/vision.md`. Open Storybook to see **[Product Name]** displayed on the Product Vision page. You can run `/product-roadmap` next to break this down into development sections."
-
-**Guardrails**
+**Dialog Constraints**
 - Be conversational and helpful, not robotic
 - Ask follow-up questions when answers are vague
 - Help the user think through their product, don't just transcribe
-- Keep the final output concise and clear
-- The markdown format must match exactly for Storybook to parse it
-- **Always ensure the product has a name** — if user didn't provide one, ask for it
-- If `${DESIGNBOOK_DIST}/product/vision.md` already exists, read it first and tell the user: "You already have a product vision defined. Would you like to update it or start fresh?"
-
-## Workflow Tracking
-
-Load `@designbook-workflow/steps/create.md`:
-- `--workflow debo-vision` / `--title "Define Product Vision"` / `--task "create-vision:Create product vision:data"`
-
-If `--spec`: output the plan and stop here.
-
-For task `create-vision`:
-1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
-2. Do the work
-3. Load `@designbook-workflow/steps/add-files.md` → register `product/vision.md`
-4. Load `@designbook-workflow/steps/update.md` → mark **done**
+- Always ensure the product has a name before moving on

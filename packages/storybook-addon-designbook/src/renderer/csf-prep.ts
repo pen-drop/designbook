@@ -52,7 +52,7 @@ function toAlias(componentId: string): string {
 /** Walk a ComponentNode tree and collect all unique component IDs. */
 function collectComponentIds(nodes: ComponentNode[], seen = new Set<string>()): Set<string> {
   for (const node of nodes) {
-    seen.add(node.component);
+    if (node.component) seen.add(node.component);
     if (node.slots) {
       for (const slotValue of Object.values(node.slots)) {
         if (typeof slotValue === 'string') continue;

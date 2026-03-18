@@ -4,6 +4,8 @@ Shell components (header, footer, page) are UI components in the `Shell` categor
 
 > ⛔ **CRITICAL RULE — No Inline Markup in Stories**: Shell stories must contain **only `type: component`** references. Never use `type: element` with HTML tags or attributes. Every visual piece must be a reusable UI component. If a required UI component doesn't exist, **create it first**.
 
+> ⛔ **CRITICAL RULE — No `type: element` in Scenes**: In `*.scenes.yml` files, **never use `type: element`** nodes inside slots. Use plain string values for text content (e.g. `text: 'Contact'` instead of `- type: element\n  value: 'Contact'`). `type: element` is only valid in component `*.story.yml` files. In scenes, the scene builder does not resolve element nodes — they crash the CSF module build.
+
 > ⛔ **CRITICAL RULE — Phase-Based Generation with Per-Component Validation**: Generate in three phases: **Phase 1: ALL Twig → Phase 2: ALL Stories → Phase 3: Each Component YAML + Validate**. Read the corresponding skill resource once at the start of each phase. In Phase 3, validate each component immediately after writing its `.component.yml`.
 
 > **Stories**: Shell components have exactly **one story** (`default`) per component — there is only one meaningful visual configuration for header/footer.
@@ -94,7 +96,7 @@ find $DESIGNBOOK_DRUPAL_THEME/components/ -name "*.component.yml" 2>/dev/null | 
 
 For each required UI component that doesn't exist, create it following the phased approach below.
 
-> **Navigation** is a **single component with variants** (`primary`, `footer`). Both variants accept the same `items` prop (array of `{label, url}`) but differ in visual layout. See [Variants Instead of Duplicate Components](../SKILL.md#variants-instead-of-duplicate-components).
+> **Navigation** is a **single component with variants** (`primary`, `footer`). Both variants accept the same `items` prop (array of `{label, url}`) but differ in visual layout. See `rules/sdc-conventions.md` — "Variants Instead of Duplicate Components".
 
 Present the plan to the user and ask for confirmation:
 
@@ -179,9 +181,7 @@ slots:
       props:
         variant: default
       slots:
-        text:
-          - type: element
-            value: 'Contact'
+        text: 'Contact'
 ```
 
 **Footer story** (`footer.default.story.yml`):
@@ -299,7 +299,9 @@ Also generate `.component.yml` for all UI components, validating each one after 
 
 > ⛔ **Read `@designbook-scenes/SKILL.md` NOW** for the scenes format.
 
-Create `${DESIGNBOOK_DIST}/design-system/design-system.scenes.yml`. The shell scene uses the `page` component with header, content, and footer slots assigned inline:
+> ⛔ **CRITICAL RULE — Explicit slots, no bare `story: default`**: The shell scene MUST inline ALL slots for `header` and `footer` — including `logo`, `navigation` (with `items` prop populated from Shell Step 2), and `actions`/`copyright`. Never use `story: default` alone in a scene; the scene must be self-contained so every slot renders correctly.
+
+Create `${DESIGNBOOK_DIST}/design-system/design-system.scenes.yml`. The shell scene uses the `page` component with header, content, and footer slots fully specified inline:
 
 ```yaml
 id: design-system
@@ -316,21 +318,48 @@ scenes:
         slots:
           header:
             - component: [DESIGNBOOK_SDC_PROVIDER]:header
-              story: default
-          content: []
+              slots:
+                logo:
+                  - component: [DESIGNBOOK_SDC_PROVIDER]:logo
+                    props:
+                      name: '[PRODUCT_NAME]'
+                navigation:
+                  - component: [DESIGNBOOK_SDC_PROVIDER]:navigation
+                    props:
+                      variant: primary
+                      items:
+                        - label: '[Section 1 Title]'
+                          url: '/[section-1-id]'
+                        - label: '[Section 2 Title]'
+                          url: '/[section-2-id]'
+                        # Add all sections from Shell Step 2 here
+                actions:
+                  - component: [DESIGNBOOK_SDC_PROVIDER]:button
+                    props:
+                      variant: default
+                    slots:
+                      text: 'Contact'
+          content: $content        # injection point — filled by section scenes via with:
           footer:
             - component: [DESIGNBOOK_SDC_PROVIDER]:footer
-              story: default
+              slots:
+                navigation:
+                  - component: [DESIGNBOOK_SDC_PROVIDER]:navigation
+                    props:
+                      variant: footer
+                      items:
+                        - { label: 'Privacy', url: '/privacy' }
+                        - { label: 'Terms', url: '/terms' }
+                        - { label: 'Imprint', url: '/imprint' }
+                copyright:
+                  - component: [DESIGNBOOK_SDC_PROVIDER]:copyright
+                    props:
+                      text: '© 2026 [PRODUCT_NAME]. All rights reserved.'
 
-  - name: minimal
-    items:
-      - component: [DESIGNBOOK_SDC_PROVIDER]:page
-        slots:
-          header:
-            - component: [DESIGNBOOK_SDC_PROVIDER]:header
-              story: default
-          content: []
 ```
+
+Replace `[PRODUCT_NAME]` with the product name from `vision.md`.
+Replace navigation items with the full list built in Shell Step 2 (sorted by `order` field).
 
 Section scenes inherit this shell via `type: scene` in their `items`:
 
@@ -341,7 +370,7 @@ scenes:
     items:
       - type: scene
         ref: design-system:shell
-        slots:
+        with:
           content:
             - entity: node.article
               view_mode: full
@@ -370,4 +399,3 @@ After all components are generated and validated:
 >
 > **Scene file:** `design-system/design-system.scenes.yml` — shell + minimal scenes
 >
-> Next: Run `designbook-entity` to generate entity design components."

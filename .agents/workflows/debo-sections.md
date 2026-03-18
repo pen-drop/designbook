@@ -3,12 +3,24 @@ name: /debo-sections
 id: debo-sections
 category: Designbook
 description: Define your sections based on the product vision
+workflow:
+  title: Define Sections
+  stages: [dialog, create-sections]
+reads:
+  - path: ${DESIGNBOOK_DIST}/product/vision.md
+    workflow: /debo-vision
+  - path: ${DESIGNBOOK_DIST}/sections/*/*.section.scenes.yml
+    optional: true
 ---
 
 Help the user create or update their product sections for Designbook. The sections break the product vision into 3–5 development areas. The result is saved to `${DESIGNBOOK_DIST}/sections/[id]/[id].section.scenes.yml`.
 
 > **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
 **Steps**
+
+## Step 0: Load Workflow Tracking
+
+Load the `designbook-workflow` skill via the Skill tool.
 
 ## Step 1: Check Current State
 
@@ -39,7 +51,7 @@ Then proceed to Step 2 or re-enter the full flow based on their choice.
 
 ## Step 2: Analyze and Propose Sections
 
-Read `${DESIGNBOOK_DIST}/product/vision.md` and analyze:
+Analyze the product vision:
 - The product name and core description
 - The problems being solved
 - The key features listed
@@ -65,47 +77,7 @@ Present the proposal:
 
 Iterate on the sections based on user feedback. Ask clarifying questions as needed.
 
-Keep iterating until the user approves the sections.
-
-## Step 4: Save the Files
-
-Once the user approves, create individual YAML files for each section under `${DESIGNBOOK_DIST}/sections/[id]/`.
-
-For each section, create a file named `${DESIGNBOOK_DIST}/sections/[id]/[id].section.scenes.yml` with this format:
-
-```yaml
-id: section-id-kebab-case
-title: Section Title
-description: One sentence description
-status: planned
-order: 1
-
-group: "Designbook/Sections/Section Title"
-scenes: []
-```
-
-**Important:**
-- `id` must be kebab-case and unique
-- The directory name must match the `id` (e.g., `sections/unified-dashboard/unified-dashboard.section.scenes.yml`)
-- `status` defaults to "planned"
-- `order` should reflect the sequence (1, 2, 3...)
-- `group` follows the `"Designbook/Sections/[Title]"` convention
-- `scenes` starts as empty array — populated later by `/debo-design-screen`
-
-Create the directory `${DESIGNBOOK_DIST}/sections/[id]/` for each section if it doesn't exist.
-
-## Step 5: Confirm Completion
-
-Let the user know:
-
-> "I've saved your product sections to `${DESIGNBOOK_DIST}/sections/`. Open Storybook to see the [N] development sections displayed below your product vision on the Product page.
->
-> Your sections:
-> 1. **[Section 1]** — [Description]
-> 2. **[Section 2]** — [Description]
-> 3. **[Section 3]** — [Description]
->
-> **Next step:** You can now use these sections to plan your design and development work."
+Keep iterating until the user approves the sections. Once confirmed, the `create-sections` stage runs automatically.
 
 **Guardrails**
 - Always read the product vision first — the sections must align with it
@@ -113,15 +85,3 @@ Let the user know:
 - Be conversational and help the user think through the breakdown
 - Keep sections self-contained — each should be designable and buildable independently
 - 3–5 sections is the sweet spot — push back gently if the user wants too many or too few
-
-## Workflow Tracking
-
-Load `@designbook-workflow/steps/create.md`:
-- `--workflow debo-sections` / `--title "Define Sections"` / `--task "create-sections:Create section files:data"`
-
-If `--spec`: output the plan and stop here.
-
-For task `create-sections`:
-1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
-2. Do the work
-3. Load `@designbook-workflow/steps/update.md` → mark **done**

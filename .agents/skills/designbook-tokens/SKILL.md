@@ -1,125 +1,30 @@
 ---
 name: designbook-tokens
-description: Validates and stores design tokens in W3C YAML format.
+description: Generates design tokens in W3C YAML format.
 ---
 
 # Designbook Tokens Skill
 
-> Validates and saves design tokens to `$DESIGNBOOK_DIST/design-system/design-tokens.yml`. Uses a bundled JSON Schema for structural validation.
+Validates and saves design tokens to `$DESIGNBOOK_DIST/design-system/design-tokens.yml` in W3C Design Token format.
 
-## Prerequisites
+## Task Files
 
-1. **Configuration**: Load `@designbook-configuration/SKILL.md` to resolve `$DESIGNBOOK_DIST` and `$DESIGNBOOK_FRAMEWORK_CSS`
-2. **CSS framework skill** (conditional):
-   - If `DESIGNBOOK_FRAMEWORK_CSS` is set: Read `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` § Token Naming Conventions — token names MUST follow the framework's naming rules
-   - If unset: token names are free-form
+- [create-tokens.md](tasks/create-tokens.md) — Generate design-tokens.yml from dialog results
 
-## Schema
+---
 
-The schema is bundled in the addon package. Token structure:
+## Reference
+
+### Token Structure
 
 ```
 {top-level group}         # e.g. color, typography, spacing
   └── {token name}        # e.g. primary, heading
-        ├── $value (required)   # The token value
-        ├── $type (required)    # color, fontFamily, dimension, number, ...
-        └── description         # Human-readable description
+        ├── $value (required)
+        ├── $type (required)
+        └── description
 ```
 
-## Steps
+### Valid `$type` Values
 
-- [validate](./steps/validate.md): Validates `design-tokens.yml` against the schema; fix loop until exit 0.
-
-## Output
-
-```
-$DESIGNBOOK_DIST/design-system/design-tokens.yml
-```
-
-## Token Format (W3C Design Tokens)
-
-Tokens are stored as W3C Design Tokens in YAML format. Each token leaf has `$value` and `$type`:
-
-```yaml
-color:
-  primary:
-    $value: "#4F46E5"
-    $type: color
-    description: Main brand color
-  primary-content:
-    $value: "#FFFFFF"
-    $type: color
-    description: Text on primary
-
-typography:
-  heading:
-    $value: Space Grotesk
-    $type: fontFamily
-    description: Headings font
-
-layout-width:
-  sm:
-    $value: "640px"
-    $type: dimension
-    description: Mobile-optimized max-width
-  md:
-    $value: "768px"
-    $type: dimension
-    description: Content max-width
-  lg:
-    $value: "1024px"
-    $type: dimension
-    description: Dashboard max-width
-  xl:
-    $value: "1280px"
-    $type: dimension
-    description: Full-width max-width
-
-layout-spacing:
-  sm:
-    $value: "2rem"
-    $type: dimension
-    description: Tight vertical spacing
-  md:
-    $value: "4rem"
-    $type: dimension
-    description: Default vertical spacing
-  lg:
-    $value: "6rem"
-    $type: dimension
-    description: Hero/spacious vertical spacing
-
-grid:
-  gap-sm:
-    $value: "0.5rem"
-    $type: dimension
-    description: Small grid gap
-  gap-md:
-    $value: "1rem"
-    $type: dimension
-    description: Default grid gap
-  gap-lg:
-    $value: "2rem"
-    $type: dimension
-    description: Large grid gap
-```
-
-## Validation Rules
-
-### ⛔ Hard Errors (schema-enforced)
-
-1. **Not a valid object**: Token input must be a YAML object with at least one top-level group
-2. **Missing `$value`**: Every token leaf MUST have a `$value` key
-3. **Missing `$type`**: Every token leaf MUST have a `$type` key
-4. **Invalid `$type`**: Token `$type` must be one of: `color`, `fontFamily`, `dimension`, `number`, `fontWeight`, `duration`, `cubicBezier`, `shadow`, `gradient`, `transition`, `border`, `strokeStyle`, `typography`
-
-### ⚠️ Warnings (agent-checked)
-
-5. **CSS framework naming mismatch** (only when `DESIGNBOOK_FRAMEWORK_CSS` is set): Color token names should match the naming conventions defined in the loaded CSS framework skill's § Token Naming Conventions
-6. **Missing content counterpart** (only when the CSS framework skill requires it): Each color token should have a matching `-content` token if the framework convention demands it
-
-## Workflow Tracking
-
-> ⛔ **Use `@designbook-workflow/steps/`** for tracking: load `create` → `update` (in-progress) → `add-files` → `validate` → `update` (done).
-
-Produced file for `--files`: `design-system/design-tokens.yml`
+`color`, `fontFamily`, `dimension`, `number`, `fontWeight`, `duration`, `cubicBezier`, `shadow`, `gradient`, `transition`, `border`, `strokeStyle`, `typography`

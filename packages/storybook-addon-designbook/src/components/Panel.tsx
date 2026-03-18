@@ -24,6 +24,7 @@ interface WorkflowTask {
   id: string;
   title: string;
   type: string;
+  stage?: string;
   status: 'pending' | 'in-progress' | 'done';
   started_at: string | null;
   completed_at: string | null;
@@ -34,6 +35,8 @@ interface WorkflowData {
   changeName: string;
   title: string;
   workflow: string;
+  status?: 'planning' | 'running' | 'completed';
+  stages?: string[];
   started_at: string | null;
   completed_at: string | null;
   tasks: WorkflowTask[];
@@ -118,6 +121,17 @@ const SectionLabel = styled.div(({ theme }) => ({
   marginBottom: 6,
 }));
 
+const StageLabel = styled.div(({ theme }) => ({
+  fontSize: 10,
+  fontWeight: 600,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.5px',
+  color: theme.color.mediumdark,
+  marginTop: 8,
+  marginBottom: 2,
+  paddingLeft: 28,
+}));
+
 const TaskRow = styled.div<{ status: string }>(({ theme, status }) => ({
   display: 'flex',
   alignItems: 'center',
@@ -168,6 +182,13 @@ const taskIcon = (status: string) => {
   return '○';
 };
 
+const workflowStatusIcon = (status?: string) => {
+  if (status === 'planning') return '📋';
+  if (status === 'running') return '⚡';
+  if (status === 'completed') return '✅';
+  return '⚡'; // default to running for backward compatibility
+};
+
 const validationBadge = (f: TaskFile): string => {
   if (f.requires_validation && !f.validation_result) return '⏳';
   if (!f.validation_result) return '';
@@ -176,6 +197,59 @@ const validationBadge = (f: TaskFile): string => {
   if (r.valid) return '✅';
   return '❌';
 };
+
+function renderTask(task: WorkflowTask) {
+  return (
+    <React.Fragment key={task.id}>
+      <TaskRow status={task.status}>
+        <Icon style={{ width: '14px', fontSize: '10px' }}>{taskIcon(task.status)}</Icon>
+        <TaskTitle>{task.title}</TaskTitle>
+        {task.status === 'in-progress' && <Time>{timeRange(task.started_at, null)}</Time>}
+      </TaskRow>
+      {task.files?.map((f) => (
+        <FileRow key={f.path}>
+          <FilePath>
+            <span>{validationBadge(f)}</span>
+            <span>{f.path}</span>
+          </FilePath>
+          {f.validation_result?.error && <FileError>{f.validation_result.error}</FileError>}
+        </FileRow>
+      ))}
+    </React.Fragment>
+  );
+}
+
+function renderTasksGrouped(wf: WorkflowData) {
+  const hasStagedTasks = wf.tasks.some((t) => t.stage);
+  if (!hasStagedTasks) {
+    return wf.tasks.map(renderTask);
+  }
+
+  // Build ordered stage list: use wf.stages if available, otherwise derive from task order
+  const stageOrder = wf.stages ?? [...new Set(wf.tasks.map((t) => t.stage).filter(Boolean) as string[])];
+  const byStage = new Map<string, WorkflowTask[]>();
+  const unstaged: WorkflowTask[] = [];
+
+  for (const task of wf.tasks) {
+    if (task.stage) {
+      const group = byStage.get(task.stage) ?? [];
+      group.push(task);
+      byStage.set(task.stage, group);
+    } else {
+      unstaged.push(task);
+    }
+  }
+
+  const elements: React.ReactNode[] = [];
+  for (const stage of stageOrder) {
+    const group = byStage.get(stage);
+    if (!group || group.length === 0) continue;
+    elements.push(<StageLabel key={`stage-${stage}`}>{stage}</StageLabel>);
+    group.forEach((t) => elements.push(renderTask(t)));
+  }
+  unstaged.forEach((t) => elements.push(renderTask(t)));
+  return elements;
+}
 
 function WorkflowsTab({ workflows }: { workflows: WorkflowData[] }) {
   if (workflows.length === 0) {
@@ -186,31 +260,16 @@ function WorkflowsTab({ workflows }: { workflows: WorkflowData[] }) {
     <Container>
       {workflows.map((wf) => {
         const isDone = wf.source === 'archived';
+        const statusIcon = workflowStatusIcon(wf.status);
+        const isPlanning = wf.status === 'planning';
         return (
           <div key={wf.changeName}>
-            <Row isDone={isDone}>
-              <Icon>{isDone ? '✅' : '⚡'}</Icon>
+            <Row isDone={isDone || isPlanning}>
+              <Icon>{statusIcon}</Icon>
               <Title>{wf.title}</Title>
               <Time>{timeRange(wf.started_at, wf.completed_at)}</Time>
             </Row>
-            {wf.tasks.map((task) => (
-              <React.Fragment key={task.id}>
-                <TaskRow status={task.status}>
-                  <Icon style={{ width: '14px', fontSize: '10px' }}>{taskIcon(task.status)}</Icon>
-                  <TaskTitle>{task.title}</TaskTitle>
-                  {task.status === 'in-progress' && <Time>{timeRange(task.started_at, null)}</Time>}
-                </TaskRow>
-                {task.files?.map((f) => (
-                  <FileRow key={f.path}>
-                    <FilePath>
-                      <span>{validationBadge(f)}</span>
-                      <span>{f.path}</span>
-                    </FilePath>
-                    {f.validation_result?.error && <FileError>{f.validation_result.error}</FileError>}
-                  </FileRow>
-                ))}
-              </React.Fragment>
-            ))}
+            {renderTasksGrouped(wf)}
           </div>
         );
       })}
