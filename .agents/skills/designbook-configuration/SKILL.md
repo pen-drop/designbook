@@ -74,3 +74,27 @@ drupal:
 > - Drupal: `layout_builder`, `canvas`, `experience_builder`, `paragraphs`
 > - WordPress: `gutenberg`
 > - Empty array = all content is structured (default)
+
+## Workflow Rules and Tasks
+
+The config MAY include a `workflow` key with per-stage rules and task instructions. These are loaded by the AI during workflow execution — no CLI support needed.
+
+```yaml
+workflow:
+  rules:
+    create-component:
+      - "All interactive elements require ARIA labels"
+    debo-design-component:dialog:
+      - "Always ask for the client's Figma link"
+
+  tasks:
+    create-component:
+      - "After creation, verify the component renders in Storybook"
+```
+
+| Config Key | Type | Purpose |
+|---|---|---|
+| `workflow.rules.<stage>` | `string[]` | Additional constraints applied silently during the stage, additive to skill rule files |
+| `workflow.tasks.<stage>` | `string[]` | Additional instructions appended to task file content for the stage |
+
+Stage keys match canonical stage names (e.g. `create-component`) or workflow-scoped dialog stages (e.g. `debo-design-component:dialog`).

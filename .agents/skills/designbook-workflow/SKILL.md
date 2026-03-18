@@ -291,15 +291,17 @@ For each `after` entry:
    - all other `when` conditions pass (config values)
    - Apply all loaded rules as constraints throughout this stage's execution
 
-3. **For each task** in this stage (in order from the plan):
-   - Create all files declared for this task following the task file instructions + rule constraints
+3. **Load config task instructions**: read `designbook.config.yml` → `workflow.tasks.<stage>`. Append each string as additional instructions to the task file content. If the key is absent, skip silently.
+
+4. **For each task** in this stage (in order from the plan):
+   - Create all files declared for this task following the task file instructions + config task instructions + rule constraints
    - If a file wasn't in the plan: run `workflow add-file --workflow $WORKFLOW_NAME --task <id> --file <path>`
    - Run: `workflow validate --workflow $WORKFLOW_NAME --task <id>`
    - **IF** exit code != 0: read errors, fix the specific file(s), re-run validate — **REPEAT until exit 0**
    - Run: `workflow done --workflow $WORKFLOW_NAME --task <id>`
 
 > ⛔ **`validate` MUST exit 0 before `done` is called. Never skip validation.**
-> ⛔ **Rules from rule files are constraints — they must be applied silently, not mentioned to the user.**
+> ⛔ **Rules from rule files and config are constraints — they must be applied silently, not mentioned to the user.**
 
 ### Rule 3: Completion
 
@@ -310,9 +312,10 @@ When the last `workflow done` call completes, the workflow auto-archives. No exp
 Rule files are loaded automatically. They must NOT be loaded by the AI manually. The AI should:
 - Scan `.agents/skills/*/rules/*.md` at the start of each stage
 - Apply all rules that pass `when` conditions
-- Treat rule content as hard constraints (not suggestions)
+- Read `designbook.config.yml` → `workflow.rules.<stage>` and apply each string as an additional constraint alongside skill rule files. If the key is absent, skip silently.
+- Treat all rule content (from files and config) as hard constraints (not suggestions)
 
-**Dialog stage**: At the start of the dialog (before asking the user any questions), also scan for rules where `when.stages` contains `<workflow-id>:dialog` (e.g. `debo-data-model:dialog`). Apply matching rules as constraints throughout the entire dialog conversation.
+**Dialog stage**: At the start of the dialog (before asking the user any questions), also scan for rules where `when.stages` contains `<workflow-id>:dialog` (e.g. `debo-data-model:dialog`). Also read `workflow.rules["<workflow-id>:dialog"]` from config. Apply all matching rules as constraints throughout the entire dialog conversation.
 
 ## Workflow Frontmatter: `before` and `after` Hooks
 
