@@ -8,11 +8,13 @@ import { validateDataModel } from './validators/data-model.js';
 import { validateViewMode } from './validators/view-mode.js';
 import {
   workflowCreate,
+  workflowPlan,
   workflowUpdate,
   workflowValidate,
   workflowList,
   workflowAddFile,
   workflowDone,
+  workflowAbandon,
 } from './workflow.js';
 import { readFileSync } from 'node:fs';
 import { defaultRegistry, applyConfigExtensions, validateViaStorybookHttp } from './validation-registry.js';
@@ -139,11 +141,12 @@ const workflow = program.command('workflow').description('Manage workflow tracki
 
 workflow
   .command('list')
-  .description('List unarchived workflows for a given workflow id')
+  .description('List workflows for a given workflow id')
   .requiredOption('--workflow <id>', 'Workflow identifier (e.g., debo-design-shell)')
-  .action((opts: { workflow: string }) => {
+  .option('--include-archived', 'Also include archived workflows')
+  .action((opts: { workflow: string; includeArchived?: boolean }) => {
     const config = loadConfig();
-    const names = workflowList(config.dist, opts.workflow);
+    const names = workflowList(config.dist, opts.workflow, opts.includeArchived);
     for (const n of names) console.log(n);
   });
 
@@ -154,8 +157,9 @@ workflow
   .requiredOption('--title <title>', 'Human-readable workflow title')
   .option('--tasks <json>', 'JSON array of tasks with id, title, type, stage?, files[]')
   .option('--tasks-file <path>', 'Path to JSON file containing tasks array')
-  .option('--stages <json>', 'JSON array of ordered stage names (e.g. ["dialog","create-component"])')
-  .action((opts: { workflow: string; title: string; tasks?: string; tasksFile?: string; stages?: string }) => {
+  .option('--stages <json>', 'JSON array of ordered stage names (e.g. ["create-component","create-scene"])')
+  .option('--parent <name>', 'Triggering workflow name when started via a hook')
+  .action((opts: { workflow: string; title: string; tasks?: string; tasksFile?: string; stages?: string; parent?: string }) => {
     const config = loadConfig();
 
     let tasks: Array<{ id: string; title: string; type: string; stage?: string; files?: string[] }> = [];
@@ -196,8 +200,48 @@ workflow
       }
     }
 
-    const name = workflowCreate(config.dist, opts.workflow, opts.title, tasks, stages);
+    const name = workflowCreate(config.dist, opts.workflow, opts.title, tasks, stages, opts.parent);
     console.log(name);
+  });
+
+workflow
+  .command('plan')
+  .description('Add stages + tasks to a planning workflow')
+  .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+  .requiredOption('--tasks <json>', 'JSON array of tasks with id, title, type, stage?, files[]')
+  .option('--stages <json>', 'JSON array of ordered stage names')
+  .action((opts: { workflow: string; tasks: string; stages?: string }) => {
+    const config = loadConfig();
+
+    let tasks: Array<{ id: string; title: string; type: string; stage?: string; files?: string[] }>;
+    try {
+      tasks = JSON.parse(opts.tasks);
+      if (!Array.isArray(tasks)) throw new Error('tasks must be an array');
+    } catch (err) {
+      console.error(`Error parsing --tasks JSON: ${(err as Error).message}`);
+      process.exitCode = 1;
+      return;
+    }
+
+    let stages: string[] | undefined;
+    if (opts.stages) {
+      try {
+        stages = JSON.parse(opts.stages);
+        if (!Array.isArray(stages)) throw new Error('stages must be an array');
+      } catch (err) {
+        console.error(`Error parsing --stages JSON: ${(err as Error).message}`);
+        process.exitCode = 1;
+        return;
+      }
+    }
+
+    try {
+      workflowPlan(config.dist, opts.workflow, tasks, stages);
+      console.log(`Workflow ${opts.workflow} updated to planning (${tasks.length} tasks)`);
+    } catch (err) {
+      console.error(`Error: ${(err as Error).message}`);
+      process.exitCode = 1;
+    }
   });
 
 workflow
@@ -240,6 +284,22 @@ workflow
           console.log(`  ${icon} ${t.title} — ${t.status}`);
         }
       }
+    } catch (err) {
+      console.error(`Error: ${(err as Error).message}`);
+      process.exitCode = 1;
+    }
+  });
+
+workflow
+  .command('abandon')
+  .description('Archive a workflow as incomplete (user declined to resume).')
+  .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+  .action((opts: { workflow: string }) => {
+    const config = loadConfig();
+    try {
+      const data = workflowAbandon(config.dist, opts.workflow);
+      console.log(`Workflow ${opts.workflow} archived as incomplete`);
+      console.log(`  Summary: ${data.summary}`);
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;

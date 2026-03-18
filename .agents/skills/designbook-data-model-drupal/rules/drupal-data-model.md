@@ -1,7 +1,7 @@
 ---
 when:
   backend: drupal
-  stages: [create-data-model]
+  stages: [debo-data-model:dialog, create-data-model]
 ---
 
 # Drupal Data Model Rules

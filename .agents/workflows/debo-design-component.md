@@ -6,6 +6,9 @@ description: Create a new UI component by gathering requirements interactively
 workflow:
   title: Design Component
   stages: [dialog, create-component]
+before:
+  - workflow: /debo-css-generate
+    execute: if-never-run
 ---
 
 Help the user design and create a new UI component. This workflow gathers requirements through conversational questions, then delegates file creation to the framework-specific component skill (`@designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT`).

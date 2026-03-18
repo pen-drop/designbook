@@ -36,6 +36,7 @@ interface WorkflowData {
   title: string;
   workflow: string;
   status?: 'planning' | 'running' | 'completed';
+  parent?: string;
   stages?: string[];
   started_at: string | null;
   completed_at: string | null;
@@ -251,6 +252,15 @@ function renderTasksGrouped(wf: WorkflowData) {
   return elements;
 }
 
+const ParentRef = styled.div(({ theme }) => ({
+  fontSize: '10px',
+  color: theme.color.mediumdark,
+  paddingLeft: 28,
+  paddingBottom: 2,
+  opacity: 0.7,
+  fontFamily: 'monospace',
+}));
+
 function WorkflowsTab({ workflows }: { workflows: WorkflowData[] }) {
   if (workflows.length === 0) {
     return <EmptyState>No workflow activity yet. Run a /debo-* command to see progress here.</EmptyState>;
@@ -262,14 +272,16 @@ function WorkflowsTab({ workflows }: { workflows: WorkflowData[] }) {
         const isDone = wf.source === 'archived';
         const statusIcon = workflowStatusIcon(wf.status);
         const isPlanning = wf.status === 'planning';
+        const hasNoTasks = wf.tasks.length === 0;
         return (
-          <div key={wf.changeName}>
+          <div key={wf.changeName} style={isPlanning && hasNoTasks ? { opacity: 0.6 } : undefined}>
             <Row isDone={isDone || isPlanning}>
               <Icon>{statusIcon}</Icon>
               <Title>{wf.title}</Title>
               <Time>{timeRange(wf.started_at, wf.completed_at)}</Time>
             </Row>
-            {renderTasksGrouped(wf)}
+            {wf.parent && <ParentRef>↳ {wf.parent}</ParentRef>}
+            {!hasNoTasks && renderTasksGrouped(wf)}
           </div>
         );
       })}
