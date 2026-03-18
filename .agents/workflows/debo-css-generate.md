@@ -3,41 +3,26 @@ name: /debo-css-generate
 id: debo-css-generate
 category: Designbook
 description: Generate CSS token files from design tokens. Automatically selects the correct skill based on DESIGNBOOK_FRAMEWORK_CSS.
+workflow:
+  title: Generate CSS
+  stages: [generate-jsonata, generate-css]
+reads:
+  - path: ${DESIGNBOOK_DIST}/design-system/design-tokens.yml
+    workflow: /debo-design-tokens
 ---
 
-> **Spec Mode (`--spec`):** If the user passes `--spec`, do NOT create or modify any files. Instead, output a structured YAML plan showing what WOULD be created — file paths and content summaries. This enables testing without side effects.
-# Generate CSS
+Generate CSS token files from W3C Design Tokens. Framework-specific `.jsonata` expression files are generated first, then executed to produce CSS output.
 
-This workflow generates CSS token files from W3C Design Tokens. It loads the configuration and delegates to the `designbook-css-generate` skill, which handles the full pipeline including framework-specific delegation.
+## Step 0: Load Workflow Tracking
 
-## Step 1: Load Configuration
+Load the `designbook-workflow` skill via the Skill tool.
 
-```bash
-eval "$(node packages/storybook-addon-designbook/dist/cli.js config)"
-```
+## Step 1: Check Regeneration
 
-Read `DESIGNBOOK_FRAMEWORK_CSS` from the environment.
+Check if CSS files in `$DESIGNBOOK_DRUPAL_THEME/css/tokens/` are newer than the token file. If up to date, ask the user if they want to force regeneration. Skip workflow creation if not needed (unless forced).
 
-## Step 2: Execute CSS Generation Skill
+## Step 4: Run Workflow
 
-Read and execute `.agent/skills/designbook-css-generate/SKILL.md`.
+Follow the `designbook-workflow` skill rules to plan and execute the two stages.
 
-The skill handles:
-1. Token file verification
-2. Regeneration check (timestamp optimization)
-3. Framework-specific delegation (e.g. DaisyUI)
-4. JSONata transformation execution
-5. CSS import management in `app.src.css`
-6. Output verification
-
-## Workflow Tracking
-
-Load `@designbook-workflow/steps/create.md`:
-- `--workflow debo-css-generate` / `--title "Generate CSS"` / `--task "generate-css:Generate CSS token files:css"`
-
-If `--spec`: output the plan and stop here.
-
-For task `generate-css`:
-1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
-2. Do the work
-3. Load `@designbook-workflow/steps/update.md` → mark **done**
+> CSS framework naming and expression format is determined automatically via task files discovered for each stage.

@@ -1,7 +1,7 @@
 import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join, basename, dirname, relative } from 'node:path';
+import { resolve, join, basename, dirname } from 'node:path';
 import { createRequire } from 'node:module';
 import { parse as parseYaml } from 'yaml';
 
@@ -114,24 +114,28 @@ export function designbookLoadPlugin(
 
     configureServer(server: ViteDevServer) {
       const workflowsDir = resolve(designbookDir, 'workflows');
-      const changesDir = resolve(workflowsDir, 'changes');
-      const archiveDir = resolve(workflowsDir, 'archive');
 
       // SSE client registry — notify all connected clients on any file change
       const sseClients = new Set<ServerResponse>();
 
+      const componentsDir = resolve(baseDir, 'components');
+
       const notifySseClients = () => {
         for (const res of sseClients) {
-          res.write('data: {}\n\n');
+          try {
+            res.write('data: {}\n\n');
+          } catch {
+            sseClients.delete(res);
+          }
         }
       };
 
       server.watcher.add(designbookDir);
-      server.watcher.add(resolve(baseDir, 'components'));
-      server.watcher.add(changesDir);
-      server.watcher.add(archiveDir);
+
+      const isDesignbookFile = (file: string) => file.startsWith(designbookDir) || file.startsWith(componentsDir);
 
       server.watcher.on('add', (file: string) => {
+        if (!isDesignbookFile(file)) return;
         notifySseClients();
 
         if (!file.endsWith('tasks.yml')) return;
@@ -164,6 +168,7 @@ export function designbookLoadPlugin(
       });
 
       server.watcher.on('change', (file: string) => {
+        if (!isDesignbookFile(file)) return;
         notifySseClients();
 
         if (file.endsWith('tasks.yml') && file.includes('workflows/changes')) {
@@ -190,7 +195,10 @@ export function designbookLoadPlugin(
         }
       });
 
-      server.watcher.on('unlink', () => notifySseClients());
+      server.watcher.on('unlink', (file: string) => {
+        if (!isDesignbookFile(file)) return;
+        notifySseClients();
+      });
 
       // SSE endpoint: push a ping to all consumers on any designbook file change
       server.middlewares.use('/__designbook/events', (_req: IncomingMessage, res: ServerResponse) => {
@@ -315,57 +323,6 @@ export function designbookLoadPlugin(
           res.statusCode = 500;
           res.end(JSON.stringify({ error: err.message }));
         }
-      });
-
-      // HTTP endpoint: validate a scenes/story file.
-      // Kept for backwards compatibility — validation logic has moved to validateViaStorybookHttp
-      // which reads /index.json directly. This endpoint now just proxies the index check.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      server.middlewares.use('/__validate', async (req: IncomingMessage, res: any) => {
-        if (req.method !== 'GET') {
-          res.statusCode = 405;
-          res.end(JSON.stringify({ error: 'Method not allowed' }));
-          return;
-        }
-
-        const url = new URL(req.url || '', 'http://localhost');
-        const filePath = url.searchParams.get('file');
-
-        if (!filePath) {
-          res.statusCode = 400;
-          res.end(JSON.stringify({ error: 'Missing ?file= query param' }));
-          return;
-        }
-
-        try {
-          const port = server.config.server?.port ?? 6006;
-          const indexRes = await fetch(`http://localhost:${port}/index.json`, {
-            signal: AbortSignal.timeout(3000),
-          });
-
-          if (indexRes.ok) {
-            type IndexEntry = { importPath: string; name: string };
-            const index = (await indexRes.json()) as { entries?: Record<string, IndexEntry> };
-            const entries = Object.values(index.entries ?? {});
-            const importPath = './' + relative(server.config.root, filePath).replace(/\\/g, '/');
-            const matching = entries.filter((e) => e.importPath === importPath);
-
-            res.setHeader('Content-Type', 'application/json');
-            res.statusCode = 200;
-            if (matching.length > 0) {
-              res.end(JSON.stringify(matching.map((e) => ({ valid: true, label: e.name }))));
-            } else {
-              res.end(JSON.stringify([{ valid: false, label: filePath, error: 'File not found in Storybook index' }]));
-            }
-            return;
-          }
-        } catch {
-          /* fall through */
-        }
-
-        res.setHeader('Content-Type', 'application/json');
-        res.statusCode = 200;
-        res.end(JSON.stringify([{ valid: true, label: filePath }]));
       });
     },
   };

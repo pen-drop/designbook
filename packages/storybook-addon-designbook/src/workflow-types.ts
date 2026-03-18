@@ -24,6 +24,7 @@ export interface WorkflowTask {
   id: string;
   title: string;
   type: TaskType;
+  stage?: string; // canonical stage name (e.g. create-component, create-scene)
   status: TaskStatus;
   started_at: string | null;
   completed_at: string | null;
@@ -33,6 +34,8 @@ export interface WorkflowTask {
 export interface WorkflowTaskFile {
   title: string;
   workflow: string;
+  status?: 'planning' | 'running' | 'completed';
+  stages?: string[]; // ordered stage names from workflow frontmatter
   started_at: string | null;
   completed_at: string | null;
   summary?: string;

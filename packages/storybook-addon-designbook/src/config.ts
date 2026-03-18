@@ -114,6 +114,11 @@ export function loadConfig(startDir?: string): DesignbookConfig {
       config['drupal.theme'] = resolve(configDir, config['drupal.theme'] as string);
     }
 
+    // Resolve css.app to absolute path
+    if (typeof config['css.app'] === 'string') {
+      config['css.app'] = resolve(configDir, config['css.app'] as string);
+    }
+
     return config;
   } catch {
     return { ...DEFAULTS, dist: resolve(process.cwd(), DEFAULTS.dist) };

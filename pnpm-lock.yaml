@@ -70,9 +70,6 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.0.12
         version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
-      daisyui:
-        specifier: ^5.0
-        version: 5.5.18
       drupal-attribute:
         specifier: ^1.2.1
         version: 1.2.1
@@ -3840,9 +3837,6 @@ packages:
 
   csv-stringify@6.6.0:
     resolution: {integrity: sha512-YW32lKOmIBgbxtu3g5SaiqWNwa/9ISQt2EcgOq0+RAIFufFp9is6tqNnKahqE5kuKvrnYAzs28r+s6pXJR8Vcw==}
-
-  daisyui@5.5.18:
-    resolution: {integrity: sha512-VVzjpOitMGB6DWIBeRSapbjdOevFqyzpk9u5Um6a4tyId3JFrU5pbtF0vgjXDth76mJZbueN/j9Ok03SPrh/og==}
 
   data-uri-to-buffer@4.0.1:
     resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
@@ -12845,8 +12839,6 @@ snapshots:
   csv-parse@6.1.0: {}
 
   csv-stringify@6.6.0: {}
-
-  daisyui@5.5.18: {}
 
   data-uri-to-buffer@4.0.1: {}
 

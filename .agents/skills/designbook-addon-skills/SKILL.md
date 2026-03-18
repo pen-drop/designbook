@@ -1,28 +1,112 @@
 ---
 name: designbook-skills
-description: Meta-skill for creating and maintaining Designbook skills. Defines conventions for skill structure, schema validation, and dependencies.
+description: Meta-skill for creating and maintaining Designbook skills. Defines conventions for skill structure, tasks, rules, schema validation, and workflow integration.
 ---
 
 # Designbook Skills
 
-This meta-skill documents the conventions and standards for creating Designbook skills. Use it when building new skills or updating existing ones.
+This meta-skill documents the conventions for creating Designbook skills. Use it when building new skills or updating existing ones.
+
+## Architecture
+
+```
+Workflow (debo-*)          →  Skill (designbook-*)
+  ↳ Interview only             ↳ tasks/<stage>.md  — what to create
+  ↳ Gather user input          ↳ rules/<name>.md   — constraints (conditional)
+  ↳ stages: [dialog, ...]
+```
+
+**Workflows** are thin — they gather input conversationally, then let the AI discover task files:
+```yaml
+workflow:
+  title: Design Shell
+  stages: [dialog, create-component, create-scene]
+```
+
+After dialog, the AI:
+1. Reads `stages` from frontmatter
+2. For each non-dialog stage, scans `.agents/skills/*/tasks/<stage>.md` — filters by `when`
+3. Builds task JSON with `stage` field per task + `files[]`
+4. Calls `workflow create --tasks '<json>'` once
+5. Executes stage by stage: load task file + matching rules → create files → validate → done
+
+**Skills** define task and rule files. No direct instruction in workflow body needed.
 
 ## Skill Directory Structure
 
-Every skill lives under `.agent/skills/[skill-name]/` and follows this structure:
-
 ```
-.agent/skills/[skill-name]/
-├── SKILL.md              # Main skill instruction file (required)
+.agents/skills/[skill-name]/
+├── SKILL.md              # Index only (required)
+├── tasks/                # One file per creation task
+│   └── [task-name].md    # e.g. create-component.md
+├── rules/                # Constraints loaded conditionally
+│   └── [rule-name].md    # frontmatter: when: { backend: drupal }
 ├── resources/            # Reference documentation, split by concern
-│   ├── [topic-a].md
-│   └── [topic-b].md
-├── scripts/              # Helper scripts and utilities
-│   └── [script].sh
-├── examples/             # Reference implementations
-│   └── [example].yml
+│   └── [topic].md
 └── *.schema.json         # JSON Schemas for validation (if applicable)
 ```
+
+### `tasks/` — Execution Units
+
+**Filename = stage name.** `tasks/create-component.md` applies to stage `create-component`. No declaration needed — the AI discovers task files by scanning all skill directories for `tasks/<stage>.md`.
+
+Task file frontmatter:
+
+```markdown
+---
+when:
+  frameworks.component: sdc   # optional — filter by config value
+params:
+  component: ~               # required param (~ = no default)
+  slots: []                  # param with default
+reads:
+  - path: $DESIGNBOOK_DIST/data-model.yml
+    workflow: debo-data-model
+files:
+  - $DESIGNBOOK_DIST/components/{{ component }}/{{ component }}.component.yml
+---
+```
+
+- `when` — config conditions that must match; **never contains `stage:`** (stage = filename)
+- `params` — AI fills from dialog; `~` means required
+- `reads` — files required before this stage; missing → stop + tell user which workflow to run
+- `files` — output paths; **must** use `$DESIGNBOOK_DIST/` or `$DESIGNBOOK_DRUPAL_THEME/` prefix
+
+Validation is **never** part of a task file — it runs automatically via `workflow validate --task`.
+
+### `rules/` — Conditional Constraints
+
+Rule files apply only when their `when` conditions match. Unlike task files, rules must explicitly declare `when.stages`:
+
+```markdown
+---
+when:
+  backend: drupal
+  stages: [create-data-model]
+---
+```
+
+| | Stage assignment | `when: stages:` required? |
+|---|---|---|
+| Task File | Filename (`create-vision.md` → stage `create-vision`) | No |
+| Rule File | Must be declared explicitly | Yes (if stage-specific) |
+
+- Without `when.stages`: rule applies to all stages
+- Rules are loaded automatically — no explicit "read this file" needed in workflows
+
+## Canonical Stage Names
+
+| Stage | Used for |
+|-------|----------|
+| `dialog` | Conversational interview (no task file) |
+| `create-component` | Creating UI components (component.yml, twig, story.yml) |
+| `create-shell-scene` | Creating the design system shell scene |
+| `create-scene` | Creating section scene files |
+| `create-data-model` | Creating data-model.yml |
+| `create-tokens` | Creating design-tokens.yml |
+| `create-css` | Generating CSS token files |
+| `create-sample-data` | Creating section data.yml |
+| `create-view-modes` | Creating view mode JSONata files |
 
 ## Naming Conventions
 
@@ -30,242 +114,32 @@ Every skill lives under `.agent/skills/[skill-name]/` and follows this structure
 |-------|-----------|---------|
 | Component skills | `designbook-[concern]-[component-framework]` | `designbook-components-sdc` |
 | CSS skills | `designbook-css-[css-framework]` | `designbook-css-daisyui` |
-| Backend skills | `designbook-[concern]-[backend]` | `designbook-data-model-drupal` |
-| Figma pipeline | `designbook-figma-[concern]-[component-framework]` | `designbook-figma-components-sdc` |
+| Backend rules | `designbook-[concern]-[backend]` | `designbook-data-model-drupal` |
 | Addon skills | `designbook-addon-[concern]` | `designbook-addon-components` |
 | Workflow files | `debo-[action]` | `debo-design-component` |
 
-> [!IMPORTANT]
-> **Concern-first, framework-last.** The framework/backend identifier always comes last in the skill name. This enables convention-based skill selection — swap the suffix to switch implementations:
->
-> | `frameworks.component` | Component Skill | Figma Skill |
-> |---|---|---|
-> | `sdc` | `designbook-components-sdc` | `designbook-figma-components-sdc` |
-> | `react` | `designbook-components-react` | `designbook-figma-components-react` |
->
-> | `frameworks.css` | CSS Skill |
-> |---|---|
-> | `daisyui` | `designbook-css-daisyui` |
-> | `tailwind` | `designbook-css-tailwind` |
->
-> | `backend` | Backend Skill |
-> |---|---|
-> | `drupal` | `designbook-data-model-drupal` |
->
-> Skills are loaded based on `DESIGNBOOK_FRAMEWORK_COMPONENT`, `DESIGNBOOK_FRAMEWORK_CSS`, and `DESIGNBOOK_BACKEND`.
+**Concern-first, framework-last.** The framework/backend identifier always comes last.
 
-## Schema Validation
+## AI Rules
 
-### Dependencies
+### Reads Check (Required Before Every Stage)
 
-For JSON Schema validation, use **ajv v6** (supports Draft-04) with **ajv-cli v3**:
+Before executing any task stage, check all `reads:` entries in the task file frontmatter:
 
-```bash
-npm install ajv-cli@3 ajv@6
-```
+- For each entry, verify the file exists at the declared `path`
+- If **any** file is missing → **stop immediately** and tell the user:
+  > ❌ `<filename>` not found. Run `/<workflow>` first.
+- Do **not** proceed until all `reads:` files are present
 
-> ⚠️ **Do NOT use `npx -y ajv-cli`** — the latest version (v5+) uses ajv v8 which does not support JSON Schema Draft-04. Many Drupal schemas use Draft-04.
+## Resources
 
-### Schema Location
-
-Schemas must be **bundled within the skill directory**, not downloaded at runtime:
-
-```
-.agent/skills/designbook-components-sdc/
-├── SKILL.md
-├── metadata.schema.json    # ✅ Bundled schema
-└── resources/
-```
-
-> ⛔ **NEVER** download schemas at runtime via `curl` or similar. All schemas must be committed to the repository as part of the skill.
-
-### Validation Command
-
-```bash
-npx ajv-cli validate -s .agent/skills/[skill-name]/[schema].json -d /tmp/[data].json
-```
-
-### YAML-to-JSON Conversion
-
-Since ajv only validates JSON, convert YAML before validation:
-
-```bash
-node -e "
-const fs = require('fs');
-const yaml = require('yaml');
-const content = fs.readFileSync('[path-to-yaml]', 'utf8');
-const parsed = yaml.parse(content);
-fs.writeFileSync('/tmp/validate.json', JSON.stringify(parsed, null, 2));
-"
-```
-
-## Data Transformation (Preferred)
-
-When a skill needs to **transform YAML/JSON into another format** (CSS, YAML, config files, etc.), use [`jsonata-w`](https://github.com/christianwiedemann/jsonata-w) — a CLI optimized for AI-agent workflows with full YAML support.
-
-### Usage
-
-```bash
-npx jsonata-w transform <expression-file.jsonata>
-```
-
-### JSONata File Structure
-
-Each `.jsonata` file is self-contained with an embedded config block. All paths support both JSON and YAML (auto-detected from extension):
-
-```jsonata
-/**
- * @config {
- *   "input": "./path/to/input.yml",
- *   "output": "./path/to/output.css",
- *   "schema": "./optional/schema.yml",
- *   "examples": "./path/to/expected-output.yml"
- * }
- */
-(
-  /* Your JSONata expression here */
-  $
-)
-```
-
-- **input**: Path to the source file — supports `.json`, `.yml`, `.yaml` (relative to the `.jsonata` file)
-- **output**: Path where the result will be saved — format auto-detected from extension (`.yml`/`.yaml` → YAML, `.json` → JSON, other → raw string)
-- **schema**: (Optional) JSON or YAML schema for validation of the output
-- **examples**: (Optional) JSON or YAML file with expected output subset for validation
-
-### Features
-
-- **Full YAML Support** — Input, output, schema, and example files all support YAML format (auto-detected from `.yml`/`.yaml` extension)
-- **Embedded Config** — No CLI arguments needed for input/output paths
-- **Auto-Unflattening** — Dot-notation keys (`{"a.b": 1}`) are automatically expanded into nested objects (`{"a": {"b": 1}}`)
-- **Inspect mode** — Use `npx jsonata-w inspect <file> --summary` to explore structure of JSON or YAML files
-
-### When to Use
-
-| Scenario | Tool |
-|----------|------|
-| Transform YAML/JSON → CSS, YAML, or other formats | `npx jsonata-w transform` ✅ |
-| Inspect YAML/JSON structure | `npx jsonata-w inspect --summary` ✅ |
-| Validate JSON against a schema | `npx ajv-cli validate` |
-
-### Skill Convention
-
-Place `.jsonata` expression files under `$DESIGNBOOK_DIST/[skill-name]/`:
-
-```
-$DESIGNBOOK_DIST/
-└── designbook-css-daisyui/
-    ├── generate-colors.jsonata
-    └── generate-spacing.jsonata
-```
-
-> Skills define the **instructions** (in `.agent/skills/`), while `.jsonata` transformation files live in `$DESIGNBOOK_DIST` alongside other generated/runtime artifacts.
-
-## SKILL.md Structure
-
-Every `SKILL.md` must follow this template:
-
-```markdown
----
-name: [skill-name]
-description: [one-line description]
----
-
-# [Skill Title]
-
-[Brief overview of what this skill does.]
-
-## Prerequisites
-
-[What must be configured before using this skill.]
-
-## Input Parameters
-
-[Expected input as JSON with required/optional fields.]
-
-## Output Structure
-
-[Directory/file structure this skill generates.]
-
-## Execution Steps
-
-[Numbered steps the agent follows.]
-
-## Error Handling
-
-[How errors are reported and recovered from.]
-
-## Design Principles
-
-[Key design decisions and conventions.]
-```
-
-### Splitting Large Skills
-
-When a skill generates multiple file types, split the detailed rules into `resources/`:
-
-```markdown
-### Step 5: Generate .component.yml
-
-→ Follow instructions in [`resources/component-yml.md`](resources/component-yml.md)
-```
-
-Each resource file is self-contained with its own rules, examples, and validation steps.
-
-### Referencing Skill Resources from Workflows
-
-Use the **`@skillname/`** shorthand to reference files inside a skill directory:
-
-```
-@designbook-components-sdc/resources/shell-generation.md
-```
-
-Resolves to:
-
-```
-.agent/skills/designbook-components-sdc/resources/shell-generation.md
-```
-
-**Convention:** `@skillname/path` → `.agent/skills/skillname/path`
-
-This keeps workflow files readable and decouples them from the physical skill directory structure. Use this notation in workflow `.md` files when referencing skill resources that must be read before executing a step.
-
-## Configuration Integration
-
-Skills that need project configuration should use the `designbook-configuration` skill:
-
-```bash
-eval "$(npx storybook-addon-designbook config)"
-echo $DESIGNBOOK_BACKEND
-echo $DESIGNBOOK_DRUPAL_THEME
-```
-
-All config keys from `designbook.config.yml` are automatically exported as `DESIGNBOOK_*` environment variables. Nested keys use underscores:
-- `backend` → `DESIGNBOOK_BACKEND`
-- `drupal.theme` → `DESIGNBOOK_DRUPAL_THEME`
-
-## Workflow Integration
-
-Skills are the **implementation**. Workflows are the **user-facing interface**.
-
-```
-Workflow (debo-design-component)     →  Skill (designbook-components-sdc)
-  ↳ Gathers input conversationally       ↳ Generates files, validates, verifies
-```
-
-Workflows should be thin wrappers that:
-1. Gather user input
-2. Call the skill with structured parameters
-3. Report results
+- [skill-authoring.md](resources/skill-authoring.md) — SKILL.md template, schema validation (ajv), JSONata transforms, @-references, config vars
 
 ## Checklist for New Skills
 
-- [ ] `SKILL.md` with correct frontmatter (name, description)
-- [ ] Input parameters documented with JSON example
-- [ ] Output structure documented
-- [ ] Numbered execution steps
-- [ ] Error handling defined
+- [ ] `SKILL.md` with correct frontmatter (name, description) — index only
+- [ ] Task files in `tasks/<stage-name>.md` with `when`, `params`, `reads`, `files` frontmatter
+- [ ] Rule files in `rules/<name>.md` with `when.stages` if stage-specific
 - [ ] Schemas bundled in skill directory (not downloaded)
-- [ ] `ajv-cli@3` + `ajv@6` used for JSON Schema Draft-04 validation
-- [ ] Configuration loaded via `designbook-configuration` skill
-- [ ] Corresponding workflow created in `.agent/workflows/` if user-facing
+- [ ] Reference docs in `resources/` for format specs and examples
+- [ ] Corresponding workflow in `.agents/workflows/` if user-facing

@@ -1,6 +1,5 @@
 import { withThemeByDataAttribute } from '@storybook/addon-themes';
 import '../css/app.src.css';
-import '../css/themes/dark.src.css';
 
 /** @type { import('@storybook/html-vite').Preview } */
 const preview = {
@@ -16,7 +15,6 @@ const preview = {
     }),
   ],
   parameters: {
-
     controls: {
       matchers: {
        color: /(background|color)$/i,

@@ -3,6 +3,9 @@ name: /debo-design-component
 id: debo-design-component
 category: Designbook
 description: Create a new UI component by gathering requirements interactively
+workflow:
+  title: Design Component
+  stages: [dialog, create-component]
 ---
 
 Help the user design and create a new UI component. This workflow gathers requirements through conversational questions, then delegates file creation to the framework-specific component skill (`@designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT`).
@@ -11,13 +14,9 @@ Help the user design and create a new UI component. This workflow gathers requir
 
 **Steps**
 
-## Step 0: Load Configuration
+## Step 0: Load Workflow Tracking & Configuration
 
-Load configuration using the `@designbook-configuration` skill to resolve:
-
-- `$DESIGNBOOK_FRAMEWORK_COMPONENT` — component framework (e.g. `sdc`)
-- `$DESIGNBOOK_FRAMEWORK_CSS` — CSS framework (e.g. `daisyui`)
-- `$DESIGNBOOK_DRUPAL_THEME` — theme directory for component output
+Load the `designbook-workflow` skill via the Skill tool.
 
 ## Step 1: Choose Input Mode
 
@@ -122,31 +121,7 @@ Go to Step 4.
 >
 > Ready to create? (y/n)"
 
-Wait for response. If no, go back to relevant step.
-
-## Step 5: Create Component
-
-> ⛔ **Read skill now:** `@designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT/SKILL.md` and its resources.
->
-> For SDC framework (`$DESIGNBOOK_FRAMEWORK_COMPONENT=sdc`), this resolves to `@designbook-components-sdc/SKILL.md`.
-
-Execute the skill with the collected data as JSON input (name, description, status, provider, variants, props, slots). The `provider` value comes from `$DESIGNBOOK_DRUPAL_THEME` or `designbook.config.yml`.
-
-## Step 6: Confirm Completion
-
-> "✅ **Component created!**
->
-> **Files:**
->
-> - `components/[name]/[name].component.yml`
-> - `components/[name]/[name].twig`
->
-> **Next steps:**
->
-> 1. Edit `.twig` to add HTML structure
-> 2. Create a `.story.yml` to preview in Storybook
->
-> Open the component folder to get started!"
+Wait for response. If no, go back to relevant step. Once confirmed, the `create-component` stage runs automatically.
 
 **Guardrails**
 
@@ -156,20 +131,3 @@ Execute the skill with the collected data as JSON input (name, description, stat
 - Be conversational and helpful — suggest examples when user is unsure
 - Component skills are loaded by convention: `designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT`
 - For parsing heuristics, defer to `resources/component-patterns.md`
-
-## Workflow Tracking
-
-Load `@designbook-workflow/steps/create.md`:
-- `--workflow debo-design-component` / `--title "Design Component"`
-- `--task "create-component:Create component definition:component"`
-- `--task "create-twig:Create Twig template:component"`
-- `--task "create-story:Create story:component"`
-
-If `--spec`: output the plan and stop here.
-
-For each task (`create-component`, `create-twig`, `create-story`):
-1. Load `@designbook-workflow/steps/update.md` → mark **in-progress**
-2. Do the work
-3. Load `@designbook-workflow/steps/add-files.md` → `--files [produced relative paths]`
-4. Load `@designbook-workflow/steps/validate.md` → fix loop until exit 0
-5. Load `@designbook-workflow/steps/update.md` → mark **done**

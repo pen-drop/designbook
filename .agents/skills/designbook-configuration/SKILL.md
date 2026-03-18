@@ -7,6 +7,8 @@ description: Utilities for loading Designbook configuration (designbook.config.y
 
 This skill provides utilities to load the `designbook.config.yml` configuration file and expose its values to other skills and workflows.
 
+!IMPORTANT!
+Check for designbook.config.yml and check the cmd key. Fallback: npx storybook-addon-designbook. Use this as $DESIGNBOOK_CMD environment variable
 ## Usage
 
 ### In Node.js Scripts
@@ -20,13 +22,15 @@ console.log(config.dist); // e.g., "packages/integrations/test-integration-drupa
 ### In Bash Scripts
 
 ```bash
-eval "$(npx storybook-addon-designbook config)"
+eval "$(${DESIGNBOOK_CMD} config)"
 
+echo $DESIGNBOOK_CMD
 echo $DESIGNBOOK_DIST
 echo $DESIGNBOOK_BACKEND
 echo $DESIGNBOOK_FRAMEWORK_COMPONENT
 echo $DESIGNBOOK_FRAMEWORK_CSS
 echo $DESIGNBOOK_TMP
+echo $DESIGNBOOK_CSS_APP
 echo $DESIGNBOOK_DRUPAL_THEME
 echo $DESIGNBOOK_SDC_PROVIDER
 ```
@@ -41,6 +45,7 @@ echo $DESIGNBOOK_SDC_PROVIDER
 | `dist` | `DESIGNBOOK_DIST` | `packages/.../designbook` |
 | `tmp` | `DESIGNBOOK_TMP` | `packages/.../designbook/tmp` |
 | `extensions` | `DESIGNBOOK_EXTENSIONS` | `layout_builder` (comma-separated) |
+| `css.app` | `DESIGNBOOK_CSS_APP` | `packages/.../css/app.src.css` |
 | `drupal.theme` | `DESIGNBOOK_DRUPAL_THEME` | `packages/.../test-integration-drupal` |
 | _(derived)_ | `DESIGNBOOK_SDC_PROVIDER` | `test_integration_drupal` |
 
@@ -59,6 +64,8 @@ frameworks:
   css: "daisyui"
 dist: "packages/integrations/test-integration-drupal/designbook"
 tmp: "tmp"
+css:
+  app: "packages/integrations/test-integration-drupal/css/app.src.css"
 drupal:
   theme: "packages/integrations/test-integration-drupal"
 ```

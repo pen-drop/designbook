@@ -1,34 +1,128 @@
+
 ---
 name: designbook-workflow
-description: Manages workflow task tracking via CLI commands. Creates and updates tasks.yml files for Storybook panel progress display and notifications.
+description: Manages workflow task tracking via CLI commands. Stage-based: reads stages from workflow frontmatter, discovers task files per stage, executes with validate + done per task.
 ---
 
 # Designbook Workflow Tracking
 
 > Tracks AI workflow progress via CLI commands. Storybook's panel polls these files and shows notifications on task completion.
 
-## Steps
+## Stage-Based Architecture
 
-- [create](./steps/create.md): Create a workflow tracking file and capture `$WORKFLOW_NAME`
-- [update](./steps/update.md): Update a task's status (`in-progress` / `done`)
-- [add-files](./steps/add-files.md): Register produced files with a task for validation
-- [validate](./steps/validate.md): Validate all registered files; run fix loop until exit 0
+Workflows declare a `stages:` array in their frontmatter. Each non-dialog stage maps to task files discovered in `.agents/skills/*/tasks/<stage>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints.
+
+```yaml
+# workflow frontmatter
+workflow:
+  title: Design Shell
+  stages: [dialog, create-component, create-shell-scene]
+```
+
+The `dialog` stage is the workflow body itself (interviews the user). All other stages are executed via skill task files.
+
+**Named dialog stages**: use `workflow-id:dialog` (e.g. `debo-design-tokens:dialog`) when you need rules to apply specifically to one workflow's dialog without affecting other workflows. A rule scoped to `debo-design-tokens:dialog` will only fire during that workflow's conversation stage.
 
 ## Integration Pattern
 
-Every `debo-*` workflow brackets its work with tracking. Load the relevant steps:
+```
+1. Run dialog (workflow body) → collect params
+2. Rule 1: scan skills for task files per stage → build JSON → workflow create --stages --tasks
+3. Rule 2: per task → load task file + rules → create files → validate --task → done --task
+```
 
+## CLI Commands
+
+```bash
+# Plan (one call)
+${DESIGNBOOK_CMD} workflow create --workflow <id> --title "<title>" --stages '<json>' --tasks '<json>'
+${DESIGNBOOK_CMD} workflow create --workflow <id> --title "<title>" --tasks-file <path>
+
+# List unarchived workflows for an id
+${DESIGNBOOK_CMD} workflow list --workflow <id>
+
+# Execution (2 calls per task)
+${DESIGNBOOK_CMD} workflow validate --workflow <name> --task <id>
+${DESIGNBOOK_CMD} workflow done     --workflow <name> --task <id>
+
+# Escape hatch: add file not known at plan time
+${DESIGNBOOK_CMD} workflow add-file --workflow <name> --task <id> --file <path>
 ```
-1. Load @designbook-workflow/steps/create.md → capture $WORKFLOW_NAME
-2. If --spec: output plan and stop
-3. For each task:
-   a. Load @designbook-workflow/steps/update.md  → mark in-progress
-   b. Do the work
-   c. Load @designbook-workflow/steps/add-files.md → register produced files
-   d. Load @designbook-workflow/steps/validate.md  → fix loop until exit 0
-   e. Load @designbook-workflow/steps/update.md  → mark done
-4. Last task done → auto-archives
+
+## Task JSON Format
+
+Each task entry includes the `stage` field (canonical stage name) and may have a `type` and `files[]`:
+
+```json
+[
+  {
+    "id": "create-page",
+    "title": "Create page component",
+    "type": "component",
+    "stage": "create-component",
+    "files": [
+      "components/page/page.component.yml",
+      "components/page/page.twig",
+      "components/page/page.story.yml"
+    ]
+  },
+  {
+    "id": "create-scene",
+    "title": "Create design system scene",
+    "type": "scene",
+    "stage": "create-shell-scene",
+    "files": ["design-system/design-system.scenes.yml"]
+  }
+]
 ```
+
+File paths are absolute (resolved env vars). The CLI normalizes them to paths relative to `$DESIGNBOOK_DIST` internally.
+
+## Task File Format (skills)
+
+Task files live at `.agents/skills/<skill-name>/tasks/<stage-name>.md`. The filename is the canonical stage name:
+
+```markdown
+---
+when:
+  frameworks.component: sdc   # optional — filter condition
+params:
+  component: ~               # ~ means required (from dialog)
+  slots: []
+files:
+  - ${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.component.yml
+  - ${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.twig
+---
+# Task instructions go here
+```
+
+**`files` paths are always absolute** — using env vars like `${DESIGNBOOK_DRUPAL_THEME}` or `${DESIGNBOOK_DIST}`. No relative paths.
+
+**`when` conditions** filter which task file applies. Keys map to config values:
+- `frameworks.component` → `$DESIGNBOOK_FRAMEWORK_COMPONENT`
+- `backend` → `$DESIGNBOOK_BACKEND`
+- `frameworks.css` → `$DESIGNBOOK_FRAMEWORK_CSS`
+
+A task file with no `when` block applies universally.
+
+**`files`** are paths relative to `$DESIGNBOOK_DIST` with `{{ param }}` substitution done by the AI at plan time.
+
+## Rule File Format (skills)
+
+Rule files live at `.agents/skills/<skill-name>/rules/<name>.md`. They define constraints scoped to one or more stages:
+
+```markdown
+---
+when:
+  stages: [create-component, create-shell-scene]   # one or more canonical stages
+  frameworks.component: sdc                         # optional additional condition
+---
+# Rule constraints go here (prose — never execution steps)
+```
+
+`stages:` accepts a single value or an array.
+
+**Named dialog stages**: use `workflow-id:dialog` to scope a rule to a specific workflow's dialog — e.g. `stages: [debo-design-tokens:dialog, create-tokens]`. This prevents the rule from firing in other workflows that also have a `dialog` stage.
 
 ## Task Types
 
@@ -55,26 +149,145 @@ $DESIGNBOOK_DIST/
             └── tasks.yml
 ```
 
-## Task File Format
+## tasks.yml Format
 
 ```yaml
 title: Design Shell
 workflow: debo-design-shell
+status: running                    # planning | running | completed
+stages:
+  - dialog
+  - create-component
+  - create-shell-scene
 started_at: 2026-03-12T18:30:00
-completed_at:                      # Set when all tasks are done
+completed_at:
 tasks:
-  - id: create-spec
-    title: Create shell spec
-    type: scene
+  - id: create-page
+    title: Create page component
+    type: component
+    stage: create-component
     status: pending                # pending | in-progress | done
     started_at:
     completed_at:
+    files:
+      - path: components/page/page.component.yml
+        requires_validation: true
 ```
 
 ## Storybook Integration
 
 - Vite plugin watches `workflows/changes/` for file changes
-- New `tasks.yml` → full Storybook reload
-- All tasks done → full Storybook reload + archive
-- Panel polls `/__designbook/workflows` every 3s for progress display
-- `api.addNotification()` fires on each task completion
+- New `tasks.yml` → Storybook panel update
+- Tasks in same stage appear grouped under a stage label in the Panel
+- All tasks done → panel update + archive notification
+- Panel polls `/__designbook/workflows` for progress display
+- Storybook is **display only** — all validation logic runs in the CLI
+
+## AI Rules
+
+These rules are **binding** when executing any workflow.
+
+### Rule 0: Resume Check
+**BEFORE** the plan step:
+→ Run: `workflow list --workflow <id>`
+→ **IF** output is non-empty: ask the user "There is an unfinished workflow: `<name>`. Continue it, or start fresh?"
+  - **Continue**: set `$WORKFLOW_NAME=<name>`, skip Rule 1, jump to first pending task
+  - **Start fresh**: proceed to Rule 1
+
+### Rule 1: Workflow Plan (Stage Discovery)
+
+**WHEN** the dialog stage is complete (user has answered all questions):
+
+1. Read `stages:` from the workflow frontmatter. Skip `dialog` — it has no task files.
+
+2. **For each remaining stage** (e.g. `create-component`, `create-tokens`):
+   - Scan `.agents/skills/*/tasks/<stage>.md` for matching task files
+   - Filter by `when` conditions: check each condition key against config (`$DESIGNBOOK_FRAMEWORK_COMPONENT`, `$DESIGNBOOK_BACKEND`, etc.)
+   - **Precedence**: if multiple task files match the same stage, pick the **most specific** one — the one with the most `when` conditions that all pass. A task file with no `when` block is the generic fallback and loses to any file with a matching `when` condition. Example: `designbook-css-daisyui/tasks/create-tokens.md` (`when: frameworks.css: daisyui`) takes precedence over `designbook-tokens/tasks/create-tokens.md` (no `when`) when `DESIGNBOOK_FRAMEWORK_CSS=daisyui`.
+   - **Read the `files:` list from the matched task file's frontmatter.** Paths are always absolute — using env vars like `${DESIGNBOOK_DRUPAL_THEME}` or `${DESIGNBOOK_DIST}`.
+   - **Expand env vars and `{{ param }}`** in each path using the current task's params from the dialog — this substitution is done by the AI, no runtime engine.
+   - Build one or more task entries. **For loops** (e.g. one component per task): each iteration produces its own task entry with a unique `id` and its own fully-expanded `files[]` using that iteration's specific param values.
+
+3. **Build the full tasks JSON** array with `id`, `title`, `type`, `stage`, `files[]` per task.
+
+4. **Create the workflow**:
+   ```bash
+   workflow create \
+     --workflow <id> \
+     --title "<title>" \
+     --stages '<stages_json>' \
+     --tasks '<tasks_json>'
+   ```
+   Capture the output line as `$WORKFLOW_NAME`.
+
+> ⛔ **All tasks AND their files must be declared in a single `workflow create` call. No files are created before this.**
+
+**For files not known at plan time:** use `workflow add-file` after the fact (escape hatch).
+
+### Rule 2a: Reads Check (Required Before Every Stage)
+
+**BEFORE** executing any task stage, read the task file frontmatter and check all `reads:` entries:
+
+- For each entry, verify the file exists at the declared `path` (resolve env vars first)
+- If **any** file is missing → **stop immediately** and tell the user:
+  > ❌ `<filename>` not found. Run `/<workflow>` first.
+- Do **not** proceed with the stage until all `reads:` files are present
+
+### Rule 2: Task Execution (Stage Processing)
+
+**Process stages in order** (skip `dialog`). For each stage:
+
+1. **Load the task file** for this stage from `.agents/skills/*/tasks/<stage>.md` (same file identified in Rule 1).
+
+2. **Load matching rule files**: scan `.agents/skills/*/rules/*.md`, filter to rules where:
+   - `when.stages` includes the current stage name (or no `when.stages` — applies to all stages)
+   - all other `when` conditions pass (config values)
+   - Apply all loaded rules as constraints throughout this stage's execution
+
+3. **For each task** in this stage (in order from the plan):
+   - Create all files declared for this task following the task file instructions + rule constraints
+   - If a file wasn't in the plan: run `workflow add-file --workflow $WORKFLOW_NAME --task <id> --file <path>`
+   - Run: `workflow validate --workflow $WORKFLOW_NAME --task <id>`
+   - **IF** exit code != 0: read errors, fix the specific file(s), re-run validate — **REPEAT until exit 0**
+   - Run: `workflow done --workflow $WORKFLOW_NAME --task <id>`
+
+> ⛔ **`validate` MUST exit 0 before `done` is called. Never skip validation.**
+> ⛔ **Rules from rule files are constraints — they must be applied silently, not mentioned to the user.**
+
+### Rule 3: Completion
+
+When the last `workflow done` call completes, the workflow auto-archives. No explicit action needed.
+
+### Rule 4: Rule Auto-Loading
+
+Rule files are loaded automatically in Rule 2. They must NOT be loaded by the AI manually. The AI should:
+- Scan `.agents/skills/*/rules/*.md` at the start of each stage
+- Apply all rules that pass `when` conditions
+- Treat rule content as hard constraints (not suggestions)
+
+### Status Transitions (Automatic)
+The CLI automatically handles:
+- `planning` → set by `wdie orkflow create`
+- `planning` → `running`: on first `workflow validate` call
+- `running` → `completed`: when all tasks are done (workflow auto-archives)
+
+### Rule 5: Skill Loading (Required)
+
+> ⛔ **This skill MUST be loaded via the Skill tool before executing any `debo-*` workflow.**
+> Do not proceed with workflow plan creation or task execution until this skill is active in the conversation.
+
+Each `debo-*` workflow declares Step 0 for this purpose. If a workflow is missing Step 0, load this skill immediately upon recognizing a `workflow:` frontmatter block.
+
+### Rule 6: File Paths (Required)
+
+> ⛔ **All file paths used in task definitions and file creation MUST be absolute.**
+> Never hardcode paths. Always resolve using variables from `designbook-configuration`:
+
+| Variable | Resolves to |
+|---|---|
+| `$DESIGNBOOK_DIST` | Base output directory (e.g. `packages/integrations/test-integration-drupal/designbook`) |
+| `$DESIGNBOOK_DRUPAL_THEME` | Drupal theme directory (e.g. `packages/integrations/test-integration-drupal`) |
+| `$DESIGNBOOK_FRAMEWORK_COMPONENT` | Component framework identifier |
+| `$DESIGNBOOK_FRAMEWORK_CSS` | CSS framework identifier |
+
+Load `designbook-configuration` before resolving any paths if values are not already known.

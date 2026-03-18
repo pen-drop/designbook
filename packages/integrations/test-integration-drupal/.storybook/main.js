@@ -19,34 +19,27 @@ const config = {
     '@storybook/addon-docs',
     {
       name: 'storybook-addon-designbook',
-      options: {
-        designbook: {
-          provider: 'test_integration_drupal',
-        },
-      },
     },
     {
       name: 'storybook-addon-sdc', // 3. Configure addon.
       options: {
         sdcStorybookOptions: {
+          useBasicArgsForStories: false,
           twigLib: 'twing',
           customDefs: uiPatternsDefs,
           namespace: 'test_integration_drupal',
-          namespaces: {
-            'designbook_design': join(cwd(), 'designbook')
-          },
+
           storyNodesRenderer: [
             ...refStoryNodeRenderer,
           ]
         },
         vitePluginTwingDrupalOptions: {
           hooks: join(cwd(), '.storybook/twing-hooks.js'),
-        },
-        jsonSchemaFakerOptions: {
-          requiredOnly: true,
-          useExamplesValue: true,
-          useDefaults: true,
-        }, // json-schema-faker options.
+          namespaces: {
+            test_integration_drupal: ['../components'],
+          }
+
+        }
       },
     },
   ],
@@ -76,16 +69,7 @@ const config = {
         tailwindcss(),
       ],
       build: {
-        // Use esbuild for CSS minification instead of lightningcss
-        // to avoid false @property warnings that cause CI failures
         cssMinify: 'esbuild',
-        rollupOptions: {
-          onwarn(warning, warn) {
-            // Suppress CSS @property warnings (DaisyUI radial progress)
-            if (warning.message?.includes('Unknown at rule: @property')) return;
-            warn(warning);
-          },
-        },
       },
     });
   },

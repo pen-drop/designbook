@@ -3,8 +3,11 @@ extensions:
   - layout_builder
 frameworks:
   component: sdc
-  css: daisyui
+  css: tailwind
 dist: packages/integrations/test-integration-drupal/designbook
 tmp: packages/integrations/test-integration-drupal/designbook/tmp
+css:
+  app: packages/integrations/test-integration-drupal/css/app.src.css
 drupal:
   theme: packages/integrations/test-integration-drupal
+cmd: 'node packages/storybook-addon-designbook/dist/cli.js'

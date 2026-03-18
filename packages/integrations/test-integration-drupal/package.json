@@ -22,7 +22,6 @@
         "@tailwindcss/cli": "^4.0",
         "@tailwindcss/typography": "^0.5.16",
         "@tailwindcss/vite": "^4.0.12",
-        "daisyui": "^5.0",
         "drupal-attribute": "^1.2.1",
         "glob": "^11.0.1",
         "locutus": "^2.0.39",

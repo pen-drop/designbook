@@ -1,26 +1,10 @@
-@plugin "daisyui/theme" {
-  name: "eternia";
-  default: true;
-  color-scheme: light;
-
-  --color-primary: #FF6B6B;
-  --color-primary-content: #FFFFFF;
-  --color-secondary: #4ECDC4;
-  --color-secondary-content: #FFFFFF;
-  --color-accent: #FFE66D;
-  --color-accent-content: #2D3436;
-  --color-neutral: #2D3436;
-  --color-neutral-content: #FFFFFF;
-  --color-base-100: #FFFFFF;
-  --color-base-200: #F7F7F9;
-  --color-base-300: #E2E2E8;
-  --color-base-content: #2D3436;
-  --color-info: #74B9FF;
-  --color-info-content: #FFFFFF;
-  --color-success: #55EFC4;
-  --color-success-content: #2D3436;
-  --color-warning: #FFEAA7;
-  --color-warning-content: #2D3436;
-  --color-error: #FF7675;
-  --color-error-content: #FFFFFF;
+@theme {
+  --color-primary: #D97706;
+  --color-primary-dark: #92400E;
+  --color-secondary: #0F766E;
+  --color-secondary-dark: #134E4A;
+  --color-neutral: #78716C;
+  --color-neutral-light: #E7E5E4;
+  --color-base: #FFFBF5;
+  --color-surface: #FEF3C7;
 }

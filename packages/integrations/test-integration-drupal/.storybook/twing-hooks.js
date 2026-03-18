@@ -18,5 +18,6 @@ export function initEnvironment(twingEnvironment, config = {}) {
     { name: 'pack_id', defaultValue: '' },
     { name: 'settings', defaultValue: {} },
   ]));
+  console.log(twingEnvironment);
 
 }

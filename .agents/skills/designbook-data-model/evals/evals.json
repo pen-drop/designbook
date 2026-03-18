@@ -1,0 +1,23 @@
+{
+  "skill_name": "designbook-data-model",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "The user has approved the following data model for a news portal (Drupal backend). Write the data-model.yml file to the DESIGNBOOK_DIST directory.\n\nApproved parameters:\n\ncontent:\n  node:\n    article:\n      title: Article\n      description: News article with author and tags\n      fields:\n        title: string (base field, required)\n        body: text (custom field, required)\n        tags: reference (custom field, multiple)\n        image: reference (custom field, optional)\n        author: string (custom field)\n    page:\n      title: Page\n      description: Static content page\n      fields:\n        title: string (base field, required)\n        body: text (custom field, required)\n  media:\n    image:\n      title: Image\n      fields:\n        title: string (base field)\n        url: string (custom field, required)\n\nconfig:\n  lists:\n    latest_articles: sources node.article.teaser, limit 10, sorting created\n\nDESIGNBOOK_DIST: /tmp/eval-news-portal\nDESIGNBOOK_BACKEND: drupal",
+      "expected_output": "A valid data-model.yml at /tmp/eval-news-portal/data-model.yml with correct field_ prefixes for custom fields, base fields without prefix, and a list config.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "The user has approved the following data model for an e-commerce shop (Drupal backend). Write the data-model.yml file to the DESIGNBOOK_DIST directory.\n\nApproved parameters:\n\ncontent:\n  node:\n    product:\n      title: Product\n      description: A shop product with price and category\n      fields:\n        title: string (base field, required)\n        description: text (custom field)\n        price: integer (custom field, required) — price in cents\n        sku: string (custom field, required)\n        category: reference (custom field)\n        images: reference (custom field, multiple)\n    order:\n      title: Order\n      description: A customer order\n      fields:\n        title: string (base field)\n        status: string (base field)\n        total: integer (custom field) — total in cents\n        items: reference (custom field, multiple)\n  taxonomy_term:\n    category:\n      title: Category\n      description: Product category\n      fields:\n        title: string (base field, required)\n        description: text (custom field)\n\nconfig:\n  lists:\n    featured_products: sources node.product.teaser, limit 6, sorting created\n    all_products: sources node.product.teaser, limit 24\n\nDESIGNBOOK_DIST: /tmp/eval-ecommerce\nDESIGNBOOK_BACKEND: drupal",
+      "expected_output": "A valid data-model.yml at /tmp/eval-ecommerce/data-model.yml with taxonomy_term entity type, correct field_ prefixes, status as base field (no prefix), and two list configs.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "The user has approved the following data model for a marketing/landing page site (Drupal with Layout Builder). Write the data-model.yml file to the DESIGNBOOK_DIST directory.\n\nApproved parameters:\n\ncontent:\n  node:\n    landing_page:\n      title: Landing Page\n      description: Flexible marketing page built with Layout Builder\n      composition: unstructured\n      fields:\n        title: string (base field, required)\n        subtitle: string (custom field)\n        meta_description: text (custom field)\n  block_content:\n    hero:\n      title: Hero Block\n      description: Full-width hero section\n      fields:\n        title: string (base field, required)\n        headline: string (custom field, required)\n        subline: text (custom field)\n        cta_label: string (custom field)\n        cta_url: string (custom field)\n        background_image: reference (custom field)\n    cta_banner:\n      title: CTA Banner\n      description: Call-to-action banner block\n      fields:\n        title: string (base field, required)\n        text: text (custom field)\n        button_label: string (custom field)\n        button_url: string (custom field)\n\nDESIGNBOOK_DIST: /tmp/eval-marketing\nDESIGNBOOK_BACKEND: drupal",
+      "expected_output": "A valid data-model.yml at /tmp/eval-marketing/data-model.yml with composition: unstructured on landing_page, block_content entity type, correct field_ prefixes, and no list config.",
+      "files": []
+    }
+  ]
+}

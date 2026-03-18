@@ -11,6 +11,7 @@ import { validateComponent } from './validators/component.js';
 import { validateDataModel } from './validators/data-model.js';
 import { validateTokens } from './validators/tokens.js';
 import { validateData } from './validators/data.js';
+import { validateStory } from './validators/story.js';
 
 export type ValidatorFn = (file: string, config: DesignbookConfig) => Promise<ValidationFileResult>;
 
@@ -46,18 +47,15 @@ export class ValidationRegistry {
   }
 }
 
-// ── Built-in validator adapters ──────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function nowIso(): string {
-  return new Date().toISOString();
-}
+type ValidatorResult = { valid: boolean; errors: string[]; warnings?: string[] };
 
-async function validateComponentFile(file: string): Promise<ValidationFileResult> {
-  const result = validateComponent(file);
-  const ts = nowIso();
+function toFileResult(result: ValidatorResult, file: string, type: string): ValidationFileResult {
+  const ts = new Date().toISOString();
   return {
     file,
-    type: 'component',
+    type,
     valid: result.valid,
     error: result.valid ? undefined : result.errors.join('; '),
     last_validated: ts,
@@ -66,129 +64,8 @@ async function validateComponentFile(file: string): Promise<ValidationFileResult
   };
 }
 
-async function validateDataModelFile(file: string): Promise<ValidationFileResult> {
-  const result = validateDataModel(file);
-  const ts = nowIso();
-  return {
-    file,
-    type: 'data-model',
-    valid: result.valid,
-    error: result.valid ? undefined : result.errors.join('; '),
-    last_validated: ts,
-    last_passed: result.valid ? ts : undefined,
-    last_failed: result.valid ? undefined : ts,
-  };
-}
-
-async function validateTokensFile(file: string): Promise<ValidationFileResult> {
-  const result = validateTokens(file);
-  const ts = nowIso();
-  return {
-    file,
-    type: 'tokens',
-    valid: result.valid,
-    error: result.valid ? undefined : result.errors.join('; '),
-    last_validated: ts,
-    last_passed: result.valid ? ts : undefined,
-    last_failed: result.valid ? undefined : ts,
-  };
-}
-
-async function validateDataFile(file: string, config: DesignbookConfig): Promise<ValidationFileResult> {
-  const dataModelPath = resolve(config.dist, 'data-model.yml');
-  const result = validateData(dataModelPath, file);
-  const ts = nowIso();
-  return {
-    file,
-    type: 'data',
-    valid: result.valid,
-    error: result.valid ? undefined : result.errors.join('; '),
-    last_validated: ts,
-    last_passed: result.valid ? ts : undefined,
-    last_failed: result.valid ? undefined : ts,
-  };
-}
-
-async function validateViewModeFile(file: string, config: DesignbookConfig): Promise<ValidationFileResult> {
-  const { validateViewMode } = await import('./validators/view-mode.js');
-  const result = await validateViewMode(file, config);
-  const ts = nowIso();
-  return {
-    file,
-    type: 'view-mode',
-    valid: result.valid,
-    error: result.valid ? undefined : result.errors.join('; '),
-    last_validated: ts,
-    last_passed: result.valid ? ts : undefined,
-    last_failed: result.valid ? undefined : ts,
-  };
-}
-
-/**
- * Validate a story or scenes file by checking Storybook's /index.json.
- * - If normal story entries are found for the file → valid.
- * - If only error entries (LoadError from buildErrorModule) → tries to fetch the module
- *   source to extract the error message.
- * - If no entries found → invalid.
- * - Returns skipped:true if Storybook is not reachable.
- */
-export async function validateViaStorybookHttp(file: string, config: DesignbookConfig): Promise<ValidationFileResult> {
-  const port = (config['storybook.port'] as number | undefined) ?? 6009;
-  const ts = nowIso();
-
-  type IndexEntry = { id: string; importPath: string; name: string; exportName?: string };
-  let entries: IndexEntry[];
-  try {
-    const indexRes = await fetch(`http://localhost:${port}/index.json`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!indexRes.ok) {
-      return { file, type: 'story', valid: true, skipped: true, last_validated: ts };
-    }
-    const indexJson = (await indexRes.json()) as { entries?: Record<string, IndexEntry> };
-    entries = Object.values(indexJson.entries ?? {});
-  } catch {
-    return { file, type: 'story', valid: true, skipped: true, last_validated: ts };
-  }
-
-  // Compute absolute path for importPath suffix matching
-  const absPath = resolve(config.dist, file).replace(/\\/g, '/');
-  const matching = entries.filter((e) => {
-    const clean = e.importPath.replace(/^\.\//, '');
-    return absPath.endsWith('/' + clean) || absPath === clean;
-  });
-
-  // Normal entries: anything that isn't a LoadError placeholder from buildErrorModule
-  const normalEntries = matching.filter((e) => e.exportName !== 'LoadError');
-  const errorEntries = matching.filter((e) => e.exportName === 'LoadError');
-
-  if (normalEntries.length > 0) {
-    return { file, type: 'story', valid: true, last_validated: ts, last_passed: ts };
-  }
-
-  // No normal entries — try to extract the error message
-  let errorMsg = 'File not found in Storybook index — story may not have compiled';
-
-  if (errorEntries.length > 0) {
-    // buildErrorModule was used — fetch the module source to read the embedded error
-    const importPath = errorEntries[0].importPath;
-    const moduleUrl = `http://localhost:${port}${importPath.slice(1)}`; // strip leading '.'
-    try {
-      const modRes = await fetch(moduleUrl, { signal: AbortSignal.timeout(5000) });
-      if (modRes.ok) {
-        const js = await modRes.text();
-        const m = js.match(/<pre>([\s\S]*?)<\/pre>/);
-        if (m) {
-          errorMsg = m[1].replace(/\\'/g, "'").replace(/\\n/g, '\n');
-        }
-      }
-    } catch {
-      /* fall through to generic message */
-    }
-  }
-
-  return { file, type: 'story', valid: false, error: errorMsg, last_validated: ts, last_failed: ts };
-}
+/** @deprecated Use validateStory from ./validators/story.js directly. */
+export const validateViaStorybookHttp = validateStory;
 
 // ── Config-based extension ───────────────────────────────────────────────────
 
@@ -234,9 +111,32 @@ export function applyConfigExtensions(config: DesignbookConfig, registry: Valida
 
 export const defaultRegistry = new ValidationRegistry();
 
-defaultRegistry.register('**/*.component.yml', validateComponentFile);
-defaultRegistry.register('**/data-model.yml', validateDataModelFile);
-defaultRegistry.register('**/design-tokens.yml', validateTokensFile);
-defaultRegistry.register('**/data.yml', validateDataFile);
-defaultRegistry.register('**/*.jsonata', validateViewModeFile);
-defaultRegistry.register(['**/*.story.yml', '**/*.scenes.yml'], validateViaStorybookHttp);
+defaultRegistry.register('**/*.component.yml', async (file, config) => {
+  const schema = toFileResult(validateComponent(file), file, 'component');
+  if (!schema.valid) return schema;
+  return validateStory(file, config);
+});
+defaultRegistry.register('**/data-model.yml', (file) =>
+  Promise.resolve(toFileResult(validateDataModel(file), file, 'data-model')),
+);
+defaultRegistry.register('**/design-tokens.yml', (file) =>
+  Promise.resolve(toFileResult(validateTokens(file), file, 'tokens')),
+);
+defaultRegistry.register('**/data.yml', (file, config) =>
+  Promise.resolve(toFileResult(validateData(resolve(config.dist, 'data-model.yml'), file), file, 'data')),
+);
+defaultRegistry.register('**/*.jsonata', async (file, config) => {
+  const { validateViewMode } = await import('./validators/view-mode.js');
+  return toFileResult(await validateViewMode(file, config), file, 'view-mode');
+});
+// CSS generation expression files are build artifacts, not view-mode mappings — skip validation
+defaultRegistry.register('**/designbook-css-*/generate-*.jsonata', (file) =>
+  Promise.resolve({
+    file,
+    type: 'css-expression',
+    valid: true,
+    skipped: true,
+    last_validated: new Date().toISOString(),
+  }),
+);
+defaultRegistry.register('**/*.scenes.yml', validateStory);
