@@ -126,10 +126,10 @@ defaultRegistry.register('**/data.yml', (file, config) =>
   Promise.resolve(toFileResult(validateData(resolve(config.dist, 'data-model.yml'), file), file, 'data')),
 );
 defaultRegistry.register('**/*.jsonata', async (file, config) => {
-  const { validateViewMode } = await import('./validators/view-mode.js');
-  return toFileResult(await validateViewMode(file, config), file, 'view-mode');
+  const { validateEntityMapping } = await import('./validators/entity-mapping.js');
+  return toFileResult(await validateEntityMapping(file, config), file, 'entity-mapping');
 });
-// CSS generation expression files are build artifacts, not view-mode mappings — skip validation
+// CSS generation expression files are build artifacts, not entity mappings — skip validation
 defaultRegistry.register('**/designbook-css-*/generate-*.jsonata', (file) =>
   Promise.resolve({
     file,

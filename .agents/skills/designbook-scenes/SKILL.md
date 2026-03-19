@@ -56,7 +56,7 @@ Every entity node in a scene routes to one of two stages:
 - [create-shell-scene.md](tasks/create-shell-scene.md) — Create `design-system/design-system.scenes.yml`
 - [create-scene.md](tasks/create-scene.md) — Create `sections/{id}/{id}.section.scenes.yml`
 - [collect-entities.md](tasks/collect-entities.md) — Build the full (entity, view_mode) work list with routing decisions before any files are written
-- [map-entity.md](tasks/map-entity.md) — Create `view-modes/{entity_type}.{bundle}.{view_mode}.jsonata` for structured entity mapping
+- [map-entity.md](tasks/map-entity.md) — Create `entity-mapping/{entity_type}.{bundle}.{view_mode}.jsonata` for structured entity mapping
 - [compose-entity.md](tasks/compose-entity.md) — Compose component tree for unstructured full view modes and view entities
 
 ## Resources
@@ -79,10 +79,10 @@ Test view-mode expressions against sample data using `jsonata-w`:
 
 ```bash
 # Inspect — see the output structure
-npx jsonata-w inspect view-modes/node.article.teaser.jsonata \
+npx jsonata-w inspect entity-mapping/node.article.teaser.jsonata \
   --input sections/blog/data.yml
 
 # Transform — full transform with output
-npx jsonata-w transform view-modes/node.article.teaser.jsonata \
+npx jsonata-w transform entity-mapping/node.article.teaser.jsonata \
   --input sections/blog/data.yml
 ```

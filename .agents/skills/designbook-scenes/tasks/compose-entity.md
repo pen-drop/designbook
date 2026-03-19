@@ -8,7 +8,7 @@ reads:
   - path: $DESIGNBOOK_DIST/data-model.yml
     workflow: debo-data-model
 files:
-  - $DESIGNBOOK_DIST/view-modes/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
+  - $DESIGNBOOK_DIST/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
 ---
 
 # Compose Entity
@@ -39,7 +39,7 @@ Output granularity differs by case — composition is **not** always one file pe
 
 | Case | Granularity | Output |
 |------|-------------|--------|
-| View entity | 1 file per `(view_name, view_mode)` | `view-modes/view.{{ bundle }}.{{ view_mode }}.jsonata` |
+| View entity | 1 file per `(view_name, view_mode)` | `entity-mapping/view.{{ bundle }}.{{ view_mode }}.jsonata` |
 | Unstructured content (`composition: unstructured`) | **1 per record** — instance-specific | inline `components:` on the entity node in `scenes.yml` |
 
 Unstructured content entities (Layout Builder, Canvas) have a unique component tree per entity instance — there is no shared template. Each record from `data.yml` gets its own `components:` array directly inside the scene.

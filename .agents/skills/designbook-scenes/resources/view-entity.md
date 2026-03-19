@@ -13,7 +13,7 @@ No `record:` field — view entities have no sample data instances.
 
 ## JSONata File
 
-Located at `view-modes/view.<name>.<view_mode>.jsonata`. Receives `{}` as input (no record). Declares entity refs inline — `resolveEntityRefs` resolves them:
+Located at `entity-mapping/view.<name>.<view_mode>.jsonata`. Receives `{}` as input (no record). Declares entity refs inline — `resolveEntityRefs` resolves them:
 
 ```jsonata
 {

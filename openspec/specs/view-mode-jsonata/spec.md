@@ -36,12 +36,12 @@ content:
 
 ## Requirement: Separate View-Mode Expression Files
 
-View-mode mappings SHALL be stored as `.jsonata` files in a `view-modes/` directory under `$DESIGNBOOK_DIST`:
+View-mode mappings SHALL be stored as `.jsonata` files in a `entity-mapping/` directory under `$DESIGNBOOK_DIST`:
 
 ```
 designbook/
 ├── data-model.yml                        # Pure data schema (fields only)
-├── view-modes/                           # NEW: mapping expressions
+├── entity-mapping/                           # NEW: mapping expressions
 │   ├── node.article.full.jsonata
 │   ├── node.article.teaser.jsonata
 │   └── block_content.contact_person.avatar.jsonata
@@ -57,7 +57,7 @@ Files follow `<entity_type>.<bundle>.<view_mode>.jsonata`:
 - `block_content.contact_person.avatar.jsonata`
 
 ### Scenario: Expression file returns ComponentNode[]
-- **GIVEN** `view-modes/node.article.teaser.jsonata` containing a JSONata expression
+- **GIVEN** `entity-mapping/node.article.teaser.jsonata` containing a JSONata expression
 - **AND** the expression input is a single entity record from `data.yml`
 - **WHEN** evaluated
 - **THEN** it returns an array of `ComponentNode` objects: `[{ type, component, props, slots }]`
@@ -86,7 +86,7 @@ Files follow `<entity_type>.<bundle>.<view_mode>.jsonata`:
 Each `.jsonata` file is a pure JSONata expression that receives a single entity record as input and returns `ComponentNode[]`.
 
 ```jsonata
-/* view-modes/node.article.teaser.jsonata
+/* entity-mapping/node.article.teaser.jsonata
  * Input: single record from data.yml → node.article[n]
  * Output: ComponentNode[]
  */
@@ -158,7 +158,7 @@ content:
 - **GIVEN** a `data-model.yml` that previously contained `view_modes` with `mapping` arrays
 - **WHEN** migrated to the new format
 - **THEN** the `view_modes` property is removed
-- **AND** equivalent `.jsonata` files are created in `view-modes/`
+- **AND** equivalent `.jsonata` files are created in `entity-mapping/`
 
 ---
 
@@ -169,7 +169,7 @@ The `entity/resolver.ts` SHALL use the `jsonata` library to evaluate view-mode e
 ### Scenario: Vite plugin loads expression at screen resolve time
 - **GIVEN** a `screen.yml` referencing `entity: node.article, view_mode: teaser`
 - **WHEN** the Vite plugin resolves this screen
-- **THEN** it reads `view-modes/node.article.teaser.jsonata` from disk
+- **THEN** it reads `entity-mapping/node.article.teaser.jsonata` from disk
 - **AND** reads the entity record from `data.yml`
 - **AND** evaluates `jsonata(expression).evaluate(record)`
 - **AND** uses the resulting `ComponentNode[]` for rendering
@@ -421,7 +421,7 @@ const entityRenderer: ScreenNodeRenderer = {
     const entityRecord = records[record as number];
 
     // 2. Load + evaluate the JSONata expression
-    const exprPath = `view-modes/${entity_type}.${bundle}.${view_mode}.jsonata`;
+    const exprPath = `entity-mapping/${entity_type}.${bundle}.${view_mode}.jsonata`;
     const componentNodes = ctx.evaluateExpression(
       resolve(ctx.designbookDir, exprPath),
       entityRecord
@@ -573,7 +573,7 @@ class ScreenNodeRenderService {
 ## Requirement: HMR Support
 
 ### Scenario: Expression file change triggers reload
-- **GIVEN** `view-modes/node.article.teaser.jsonata` is modified
+- **GIVEN** `entity-mapping/node.article.teaser.jsonata` is modified
 - **WHEN** the Vite dev server detects the change
 - **THEN** all screens that reference `entity: node.article, view_mode: teaser` are reloaded
 
@@ -589,7 +589,7 @@ class ScreenNodeRenderService {
 
 | Before | After |
 |--------|-------|
-| `data-model.yml` with `view_modes.mapping` | `data-model.yml` (schema only) + `view-modes/*.jsonata` |
+| `data-model.yml` with `view_modes.mapping` | `data-model.yml` (schema only) + `entity-mapping/*.jsonata` |
 | `$field_name` custom syntax | JSONata path syntax (`field_name`) |
 | `resolveValue()` custom interpreter | `jsonata(expr).evaluate(record)` |
 | Hardcoded `renderNode()` in vite-plugin | Pluggable `ScreenNodeRenderer[]` registry |
@@ -658,7 +658,7 @@ Tests that the entity renderer loads `.jsonata` files, evaluates against records
 ```
 src/renderer/__tests__/entity-renderer.test.ts
 src/renderer/__tests__/fixtures/
-  ├── view-modes/node.article.teaser.jsonata
+  ├── entity-mapping/node.article.teaser.jsonata
   ├── data-model.yml
   └── data.yml
 ```
@@ -678,11 +678,11 @@ src/renderer/__tests__/fixtures/
 
 ```bash
 # Inspect expression output against sample data
-npx jsonata-w inspect view-modes/node.article.teaser.jsonata \
+npx jsonata-w inspect entity-mapping/node.article.teaser.jsonata \
   --input sections/blog/data.yml
 
 # Full transform with validation
-npx jsonata-w transform view-modes/node.article.teaser.jsonata \
+npx jsonata-w transform entity-mapping/node.article.teaser.jsonata \
   --input sections/blog/data.yml
 ```
 
@@ -697,7 +697,7 @@ import jsonata from 'jsonata';
 import { readFileSync } from 'fs';
 
 it('teaser expression produces correct ComponentNode[]', async () => {
-  const expr = readFileSync('fixtures/view-modes/node.article.teaser.jsonata', 'utf-8');
+  const expr = readFileSync('fixtures/entity-mapping/node.article.teaser.jsonata', 'utf-8');
   const record = { title: 'Hello', field_media: { url: '/img.jpg', alt: 'Photo' } };
   const result = await jsonata(expr).evaluate(record);
 
@@ -741,7 +741,7 @@ The existing `resolver.test.ts` tests MUST be migrated:
 
 | File | Impact | Required Changes |
 |------|--------|-----------------|
-| [SKILL.md](file:///home/cw/projects/designbook/.agent/skills/designbook-data-model/SKILL.md) | **Heavy** | Remove "View Mode Mappings" section (L44–98): `$field_name` syntax, mapping entry structure, nested entity refs, field-to-component mapping guide. Replace with reference to `view-modes/*.jsonata` files and the `designbook-screen` skill |
+| [SKILL.md](file:///home/cw/projects/designbook/.agent/skills/designbook-data-model/SKILL.md) | **Heavy** | Remove "View Mode Mappings" section (L44–98): `$field_name` syntax, mapping entry structure, nested entity refs, field-to-component mapping guide. Replace with reference to `entity-mapping/*.jsonata` files and the `designbook-screen` skill |
 | [data-model.schema.yml](file:///home/cw/projects/designbook/.agent/skills/designbook-data-model/schema/data-model.schema.yml) | **Heavy** | Remove `view_modes` property from `bundle` definition (L47–52), remove `view_mode` definition (L54–67), remove `mapping_entry` definition (L68–88). Schema becomes fields-only |
 | [process-data-model.md](file:///home/cw/projects/designbook/.agent/skills/designbook-data-model/steps/process-data-model.md) | **Minor** | No changes needed — validation step works the same, just schema validates less |
 | Description (frontmatter) | **Minor** | Remove "Includes entity display mappings (view_modes) with $field_name resolution and nested entity refs" |
@@ -750,9 +750,9 @@ The existing `resolver.test.ts` tests MUST be migrated:
 
 | File | Impact | Required Changes |
 |------|--------|-----------------|
-| [SKILL.md](file:///home/cw/projects/designbook/.agent/skills/designbook-screen/SKILL.md) L20 | **Minor** | Prerequisites: Change "Data model with view mode mappings" → "Data model + view-mode JSONata files in `view-modes/`" |
-| [SKILL.md](file:///home/cw/projects/designbook/.agent/skills/designbook-screen/SKILL.md) L115-116 | **Moderate** | Step 2: Change `content.[entity_type].[bundle].view_modes.[mode].mapping` → Check for `view-modes/{entity_type}.{bundle}.{mode}.jsonata` file |
-| [SKILL.md](file:///home/cw/projects/designbook/.agent/skills/designbook-screen/SKILL.md) L204 | **Minor** | Error Handling: Change "View mode not defined → Add view mode mapping to data model" → "View mode not defined → Create `view-modes/{entity_type}.{bundle}.{mode}.jsonata`" |
+| [SKILL.md](file:///home/cw/projects/designbook/.agent/skills/designbook-screen/SKILL.md) L20 | **Minor** | Prerequisites: Change "Data model with view mode mappings" → "Data model + view-mode JSONata files in `entity-mapping/`" |
+| [SKILL.md](file:///home/cw/projects/designbook/.agent/skills/designbook-screen/SKILL.md) L115-116 | **Moderate** | Step 2: Change `content.[entity_type].[bundle].view_modes.[mode].mapping` → Check for `entity-mapping/{entity_type}.{bundle}.{mode}.jsonata` file |
+| [SKILL.md](file:///home/cw/projects/designbook/.agent/skills/designbook-screen/SKILL.md) L204 | **Minor** | Error Handling: Change "View mode not defined → Add view mode mapping to data model" → "View mode not defined → Create `entity-mapping/{entity_type}.{bundle}.{mode}.jsonata`" |
 | Description (frontmatter) | **Minor** | Change "build-time entity resolution" → "build-time entity resolution via JSONata" |
 
 ### NEW: `designbook-view-modes` — Potential new skill
@@ -762,7 +762,7 @@ A new skill MAY be needed for authoring view-mode `.jsonata` files:
 | Responsibility | Description |
 |---------------|-------------|
 | Input | Entity type, bundle, view mode name, available fields from data-model |
-| Output | `view-modes/{entity_type}.{bundle}.{mode}.jsonata` file |
+| Output | `entity-mapping/{entity_type}.{bundle}.{mode}.jsonata` file |
 | Validation | `jsonata-w inspect` against sample data |
 | Guide | Field-to-component mapping guide (currently in data-model skill L89–98) |
 
@@ -773,7 +773,7 @@ This skill would move the "field-to-component mapping guide" from `designbook-da
 The view-modes directory SHALL support list-level JSONata files alongside entity-level files. List JSONata files follow the naming convention `list.<name>.<view_mode>.jsonata`.
 
 ```
-view-modes/
+entity-mapping/
 ├── node.article.teaser.jsonata            # entity view mode (existing)
 ├── list.recent_articles.default.jsonata   # list view mode (new)
 └── list.search.default.jsonata            # list view mode (new)
@@ -782,7 +782,7 @@ view-modes/
 #### Scenario: List JSONata file naming
 
 - **WHEN** a list named `recent_articles` has a `default` view mode
-- **THEN** the expression file SHALL be located at `view-modes/list.recent_articles.default.jsonata`
+- **THEN** the expression file SHALL be located at `entity-mapping/list.recent_articles.default.jsonata`
 
 #### Scenario: Multiple list view modes
 
