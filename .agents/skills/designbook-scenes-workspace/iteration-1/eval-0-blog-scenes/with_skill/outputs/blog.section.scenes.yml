@@ -1,0 +1,31 @@
+id: blog
+title: Blog
+description: Blog articles and news.
+status: planned
+order: 1
+
+group: "Designbook/Sections/Blog"
+scenes:
+  - name: "Blog Detail"
+    items:
+      - type: scene
+        ref: design-system:shell
+        with:
+          content:
+            - entity: node.article
+              view_mode: full
+              record: 0
+
+  - name: "Blog Listing"
+    items:
+      - type: scene
+        ref: design-system:shell
+        with:
+          content:
+            - component: my_drupal_theme:heading
+              props:
+                level: h1
+              slots:
+                text: "Blog"
+            - entity: view.recent_articles
+              view_mode: default

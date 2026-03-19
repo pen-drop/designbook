@@ -1,0 +1,23 @@
+{
+  "eval_id": 1,
+  "eval_name": "map-entity-teaser",
+  "prompt": "Create the JSONata view mode mapping for node.article.teaser. Provider: my_drupal_theme. Fields from the data model: title (string), field_body (text), field_image (reference to media.image, has .url and .alt), field_category (reference to taxonomy_term.category, has .name). Output the JSONata expression.",
+  "assertions": [
+    {
+      "text": "jsonata-is-array-expression",
+      "description": "The expression returns an array (starts with '[' or wraps in array)"
+    },
+    {
+      "text": "title-maps-to-heading",
+      "description": "title field is mapped to a heading component"
+    },
+    {
+      "text": "nested-field-dot-notation",
+      "description": "Nested fields use dot notation: field_image.url, field_image.alt"
+    },
+    {
+      "text": "conditional-for-optional-fields",
+      "description": "Optional reference fields use conditional: field ? {...} pattern"
+    }
+  ]
+}

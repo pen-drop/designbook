@@ -54,26 +54,23 @@ export const entityBuilder: SceneNodeBuilder = {
       return missingPlaceholder(`missing expression: ${entity_type}.${bundle}.${view_mode}.jsonata`);
     }
 
-    // 2. Get sample data record
+    // 2. Get sample data record — view entities (e.g. view.*) have no data.yml entry, use {}
     const entityData = ctx.sampleData?.[entity_type]?.[bundle] as Record<string, unknown>[] | undefined;
-
-    if (!entityData || !entityData[record]) {
-      console.warn(`[Designbook] No sample data for ${entity_type}.${bundle}[${record}]`);
-      return missingPlaceholder(`no sample data: ${entity_type}.${bundle}[${record}]`);
-    }
+    const recordData: Record<string, unknown> = entityData?.[record] ?? {};
 
     // 3. Compile and evaluate the JSONata expression
     const source = readFileSync(jsonataPath, 'utf-8');
     const expr = jsonata(source);
-    const result = await expr.evaluate(entityData[record]);
+    const result = await expr.evaluate(recordData);
 
-    if (!Array.isArray(result)) {
-      console.warn(`[Designbook] JSONata expression did not return an array: ${jsonataPath}`);
-      return missingPlaceholder(`expression did not return array: ${entity_type}.${bundle}.${view_mode}.jsonata`);
+    if (!result) {
+      console.warn(`[Designbook] JSONata expression returned empty: ${jsonataPath}`);
+      return missingPlaceholder(`expression returned empty: ${entity_type}.${bundle}.${view_mode}.jsonata`);
     }
 
     // 4. Return raw result — may contain type:'component' and type:'entity' entries.
     //    resolveEntityRefs() in the registry will recursively resolve type:'entity' entries.
-    return result as RawNode[];
+    //    Wrap single objects (e.g. view entity JSONata) in an array.
+    return (Array.isArray(result) ? result : [result]) as RawNode[];
   },
 };

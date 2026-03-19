@@ -85,12 +85,11 @@ describe('buildSceneModule integration', () => {
     expect(module).toContain('badge');
   });
 
-  it('exports ConfigList scene with view/grid wrapping articles', async () => {
+  it('exports ViewEntity scene with view component wrapping articles', async () => {
     const module = await buildFixtureModule('test.scenes.yml');
 
-    expect(module).toContain('export const ConfigList');
+    expect(module).toContain('export const ViewEntity');
     expect(module).toContain('view');
-    expect(module).toContain('grid');
   });
 
   it('exports ComponentDirect scene — props and slots in correct structural position', async () => {

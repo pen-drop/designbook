@@ -22,37 +22,10 @@ Help the user create or update their product sections for Designbook. The sectio
 
 Load the `designbook-workflow` skill via the Skill tool.
 
-## Step 1: Check Current State
+## Step 1: Analyze and Propose Sections
 
-First, check if the following files exist:
-- `${DESIGNBOOK_DIST}/product/vision.md` — the product vision
-- `${DESIGNBOOK_DIST}/sections/*/*.section.scenes.yml` — existing sections
-
-**If no product vision exists**, tell the user:
-
-> "I don't see a product vision yet. The sections build on your product vision — please run `/debo-vision` first to define what you're building, then come back to `/sections`."
-
-Stop here.
-
-**If sections already exist**, read both files and present the current state:
-
-> "I see you already have [N] sections:
->
-> 1. **[Section 1]** — [Description]
-> 2. **[Section 2]** — [Description]
->
-> Would you like to:
-> - **Update** — Add, remove, or reorder sections
-> - **Start fresh** — Regenerate based on the current product vision"
-
-Then proceed to Step 2 or re-enter the full flow based on their choice.
-
-**If only product vision exists**, read it and proceed to Step 2.
-
-## Step 2: Analyze and Propose Sections
-
-Analyze the product vision:
-- The product name and core description
+Analyze the vision:
+- The name and core description
 - The problems being solved
 - The key features listed
 
@@ -63,7 +36,7 @@ Based on this analysis, propose 3–5 sections that represent:
 
 Present the proposal:
 
-> "Based on your product vision for **[Product Name]**, I'd suggest breaking this into these development sections:
+> "Based on your product vision for **[Vision Name]**, I'd suggest breaking this into these development sections:
 >
 > 1. **[Section Title]** — [One sentence description]
 > 2. **[Section Title]** — [One sentence description]
@@ -73,7 +46,7 @@ Present the proposal:
 >
 > Does this breakdown make sense? Would you like to adjust any sections or their order?"
 
-## Step 3: Refine with User
+## Step 2: Refine with User
 
 Iterate on the sections based on user feedback. Ask clarifying questions as needed.
 

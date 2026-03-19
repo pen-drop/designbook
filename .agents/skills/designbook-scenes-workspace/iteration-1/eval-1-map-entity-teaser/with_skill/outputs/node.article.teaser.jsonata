@@ -1,0 +1,32 @@
+/* view-modes/node.article.teaser.jsonata
+ * Entity: node.article, View mode: teaser
+ * Provider: my_drupal_theme
+ * Input: single record from data.yml → node.article[n]
+ * Output: ComponentNode[]
+ */
+[
+  field_image ? {
+    "type": "component",
+    "component": "my_drupal_theme:figure",
+    "props": {
+      "src": field_image.url,
+      "alt": field_image.alt ? field_image.alt : title
+    }
+  },
+  field_category ? {
+    "type": "component",
+    "component": "my_drupal_theme:badge",
+    "slots": { "label": field_category.name }
+  },
+  {
+    "type": "component",
+    "component": "my_drupal_theme:heading",
+    "props": { "level": "h3" },
+    "slots": { "text": title }
+  },
+  field_body ? {
+    "type": "component",
+    "component": "my_drupal_theme:text-block",
+    "slots": { "content": field_body }
+  }
+]

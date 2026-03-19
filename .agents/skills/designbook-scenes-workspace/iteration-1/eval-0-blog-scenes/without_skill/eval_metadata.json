@@ -1,0 +1,27 @@
+{
+  "eval_id": 0,
+  "eval_name": "blog-scenes",
+  "prompt": "Create the scenes file for a Blog section. Provider is `my_drupal_theme`. The data model has node.article (composition: structured) with fields: title (string), field_body (text), field_image (reference to media.image). I need two scenes: one Blog Detail page showing a single article in full view mode, and one Blog Listing page showing multiple articles. Output as YAML to sections/blog/blog.section.scenes.yml",
+  "assertions": [
+    {
+      "text": "listing-uses-view-entity",
+      "description": "The Listing scene uses 'entity: view.*' not 'records: []'"
+    },
+    {
+      "text": "no-records-shorthand-for-listing",
+      "description": "No 'records:' key appears in a listing scene context"
+    },
+    {
+      "text": "provider-prefix-correct",
+      "description": "All component: values use 'my_drupal_theme:...' format"
+    },
+    {
+      "text": "shell-ref-present",
+      "description": "Both scenes use 'type: scene' and 'ref: design-system:shell'"
+    },
+    {
+      "text": "no-type-element",
+      "description": "No 'type: element' nodes appear in the output"
+    }
+  ]
+}

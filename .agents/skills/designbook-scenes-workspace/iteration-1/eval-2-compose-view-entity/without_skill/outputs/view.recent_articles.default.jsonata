@@ -1,0 +1,11 @@
+{
+  "type": "component",
+  "component": "my_drupal_theme:article-list",
+  "slots": {
+    "items": [
+      { "entity": "node.article", "view_mode": "teaser", "record": 0 },
+      { "entity": "node.article", "view_mode": "teaser", "record": 1 },
+      { "entity": "node.article", "view_mode": "teaser", "record": 2 }
+    ]
+  }
+}

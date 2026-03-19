@@ -1,0 +1,9 @@
+{
+  "type": "component",
+  "component": "view",
+  "slots": {
+    "items": [
+      { "entity": "node.article", "view_mode": "teaser", "record": 0 }
+    ]
+  }
+}

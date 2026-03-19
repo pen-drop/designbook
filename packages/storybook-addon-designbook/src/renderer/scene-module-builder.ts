@@ -16,7 +16,6 @@ import { extractGroup, buildExportName, fileBaseName, extractScenes } from './sc
 import { expandEntries } from './parser';
 import { BuilderRegistry } from './builder-registry';
 import { entityBuilder } from './builders/entity-builder';
-import { configListBuilder } from './builders/config-list-builder';
 import { sceneBuilder } from './builders/scene-builder';
 import { componentBuilder } from './builders/component-builder';
 import { buildCsfModule } from './csf-prep';
@@ -127,7 +126,6 @@ export async function buildSceneModule(
   // Built-ins registered first (lowest priority — custom builders override)
   registry.register(componentBuilder);
   registry.register(entityBuilder);
-  registry.register(configListBuilder);
   registry.register(sceneBuilder);
   // Custom builders registered last (highest priority)
   for (const builder of options.builders ?? []) {

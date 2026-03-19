@@ -1,0 +1,23 @@
+{
+  "eval_id": 2,
+  "eval_name": "compose-view-entity",
+  "prompt": "Create the compose mapping for view.recent_articles (a view entity). It should show a listing of articles in teaser view mode using a wrapper component 'my_drupal_theme:article-list' with an 'items' slot containing 3 article entity refs. Output the JSONata file for view-modes/view.recent_articles.default.jsonata",
+  "assertions": [
+    {
+      "text": "single-object-not-array",
+      "description": "The expression returns a single object (wrapper component), not an array"
+    },
+    {
+      "text": "entity-refs-in-slots",
+      "description": "The items slot contains type:entity nodes for node.article"
+    },
+    {
+      "text": "correct-view-mode-on-refs",
+      "description": "Entity refs specify view_mode: teaser"
+    },
+    {
+      "text": "no-field-access",
+      "description": "No field variable access ($ is not used) since input is {}"
+    }
+  ]
+}

@@ -9,6 +9,29 @@ This skill provides utilities to load the `designbook.config.yml` configuration 
 
 !IMPORTANT!
 Check for designbook.config.yml and check the cmd key. Fallback: npx storybook-addon-designbook. Use this as $DESIGNBOOK_CMD environment variable
+## Locating the Config File
+
+Before loading the configuration, find `designbook.config.yml` by traversing up from the current directory:
+
+```bash
+# First check current directory, then walk up
+if [ -e "$PWD/designbook.config.yml" ]; then
+  DESIGNBOOK_CONFIG="$PWD/designbook.config.yml"
+else
+  dir=$(dirname "$PWD")
+  while [ "$dir" != "/" ]; do
+    [ -e "$dir/designbook.config.yml" ] && DESIGNBOOK_CONFIG="$dir/designbook.config.yml" && break
+    dir=$(dirname "$dir")
+  done
+fi
+```
+
+**If the file is not found:** Stop and ask the user:
+- Whether a `designbook.config.yml` should be created
+- Or where the config file is located
+
+Do not proceed without a config file.
+
 ## Usage
 
 ### In Node.js Scripts

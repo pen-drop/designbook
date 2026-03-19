@@ -1,7 +1,6 @@
 ---
 params:
   content: {}
-  config: {}
 files:
   - $DESIGNBOOK_DIST/data-model.yml
 ---
@@ -19,6 +18,11 @@ $DESIGNBOOK_DIST/data-model.yml
 ## Format
 
 ```yaml
+config:                   # optional — configuration entities (views, singletons)
+  {entity_type}:          # e.g. view, block_content
+    {bundle}:             # e.g. recent_articles, sidebar
+      composition: unstructured   # usually unstructured; same options as content
+
 content:
   {entity_type}:        # e.g. node, media, taxonomy_term
     {bundle}:           # e.g. article, landing_page
@@ -33,15 +37,6 @@ content:
           required: false
           multiple: false
 
-config:                  # optional
-  list:
-    {list_name}:
-      sources:           # required, min 1 item
-        - entity_type: ~
-          bundle: ~
-          view_mode: ~
-      limit: ~
-      sorting: ~
 ```
 
 ## `composition` Values

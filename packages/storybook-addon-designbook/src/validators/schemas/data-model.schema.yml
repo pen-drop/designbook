@@ -12,18 +12,10 @@ properties:
       $ref: "#/definitions/entity_type"
   config:
     type: object
-    title: Configuration
-    description: "Configuration structure: config -> config_type -> config_item"
-    properties:
-      list:
-        type: object
-        title: Lists
-        description: List configurations — collections of content from one or more sources
-        additionalProperties:
-          $ref: "#/definitions/list"
+    title: Config
+    description: "Configuration entities (views, singletons): config -> entity_type -> bundle. Same schema as content."
     additionalProperties:
-      type: object
-      description: Additional configuration types can be added here
+      $ref: "#/definitions/entity_type"
 required:
   - content
 definitions:
@@ -84,42 +76,3 @@ definitions:
     required:
       - type
     additionalProperties: true
-  list:
-    type: object
-    title: List
-    description: List configuration — a collection of content from one or more sources
-    properties:
-      sources:
-        type: array
-        description: Content sources for this list
-        items:
-          $ref: "#/definitions/list_source"
-        minItems: 1
-      limit:
-        type: integer
-        description: Maximum number of items to display
-      sorting:
-        type: string
-        description: Sorting hint (declarative, used for documentation/export)
-    required:
-      - sources
-    additionalProperties: true
-  list_source:
-    type: object
-    title: List Source
-    description: A content source within a list
-    properties:
-      entity_type:
-        type: string
-        description: Entity type (e.g., node, media)
-      bundle:
-        type: string
-        description: Content bundle (e.g., article, event)
-      view_mode:
-        type: string
-        description: View mode for rendering each item (e.g., teaser, search_result)
-    required:
-      - entity_type
-      - bundle
-      - view_mode
-    additionalProperties: false
