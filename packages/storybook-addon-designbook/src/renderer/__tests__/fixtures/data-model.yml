@@ -1,3 +1,10 @@
+config:
+  view:
+    recent_articles:
+      composition: unstructured
+    mixed_content:
+      composition: unstructured
+
 content:
   node:
     article:
@@ -27,11 +34,3 @@ content:
           type: string
         field_avatar:
           type: string
-config:
-  list:
-    recent_articles:
-      sources:
-        - entity_type: node
-          bundle: article
-          view_mode: teaser
-      limit: 10

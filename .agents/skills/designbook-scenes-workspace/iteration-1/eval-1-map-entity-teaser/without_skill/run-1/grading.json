@@ -1,0 +1,31 @@
+{
+  "assertions": [
+    {
+      "text": "jsonata-is-array-expression",
+      "passed": true,
+      "evidence": "Expression starts with '[': True"
+    },
+    {
+      "text": "title-maps-to-heading",
+      "passed": true,
+      "evidence": "title maps to heading: True"
+    },
+    {
+      "text": "nested-field-dot-notation",
+      "passed": true,
+      "evidence": "Uses field_image.url and field_image.alt: True"
+    },
+    {
+      "text": "conditional-for-optional-fields",
+      "passed": true,
+      "evidence": "Uses 'field ? ...' conditional pattern: True"
+    }
+  ],
+  "pass_rate": 1.0,
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 4,
+    "failed": 0,
+    "total": 4
+  }
+}

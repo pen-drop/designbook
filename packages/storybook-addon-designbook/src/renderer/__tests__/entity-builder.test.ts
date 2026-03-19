@@ -6,18 +6,20 @@ import type { BuildContext, ComponentNode } from '../types';
 const FIXTURES_DIR = resolve(__dirname, 'fixtures');
 
 const sampleData = {
-  node: {
-    article: [
-      {
-        title: 'Understanding Modern Architecture',
-        field_body: '<p>Architecture...</p>',
-        field_media: { url: '/images/arch.jpg', alt: 'Building' },
-        field_teaser: 'A deep dive.',
-      },
-    ],
-  },
-  user: {
-    user: [{ name: 'Jane Doe', field_avatar: '/images/jane.jpg' }],
+  content: {
+    node: {
+      article: [
+        {
+          title: 'Understanding Modern Architecture',
+          field_body: '<p>Architecture...</p>',
+          field_media: { url: '/images/arch.jpg', alt: 'Building' },
+          field_teaser: 'A deep dive.',
+        },
+      ],
+    },
+    user: {
+      user: [{ name: 'Jane Doe', field_avatar: '/images/jane.jpg' }],
+    },
   },
 };
 
@@ -97,7 +99,7 @@ describe('entityBuilder', () => {
     expect((result[0] as ComponentNode).component).toBe('designbook:placeholder');
   });
 
-  it('build() returns placeholder for missing sample data', async () => {
+  it('build() evaluates with {} when record is missing (view entity pattern)', async () => {
     const node = {
       type: 'entity',
       entity_type: 'node',
@@ -109,7 +111,24 @@ describe('entityBuilder', () => {
     const ctx = makeCtx();
     const result = await entityBuilder.build(node, ctx);
 
+    // No placeholder — evaluates JSONata with {} input, returns components with empty fields
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
+    expect((result[0] as ComponentNode).component).not.toBe('designbook:placeholder');
+  });
+
+  it('build() resolves view entity without data.yml entry', async () => {
+    // view.recent_articles has no entry in sampleData — uses {} input
+    const node = {
+      entity: 'view.recent_articles',
+      view_mode: 'default',
+    };
+
+    const ctx = makeCtx();
+    const result = await entityBuilder.build(node, ctx);
+
+    expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBe(1);
-    expect((result[0] as ComponentNode).component).toBe('designbook:placeholder');
+    expect((result[0] as ComponentNode).component).toBe('view');
   });
 });

@@ -6,7 +6,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
-import { resolve, relative, isAbsolute, dirname } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml';
 import type { ValidationFileResult } from './workflow-types.js';
@@ -99,12 +99,8 @@ export function workflowAbandon(dist: string, name: string): WorkflowFile {
   return data;
 }
 
-function normalizeFilePath(dist: string, p: string): string {
-  if (isAbsolute(p)) return relative(dist, p);
-  if (existsSync(resolve(dist, p))) return p;
-  const cwdResolved = resolve(process.cwd(), p);
-  if (existsSync(cwdResolved)) return relative(dist, cwdResolved);
-  return p;
+function normalizeFilePath(_dist: string, p: string): string {
+  return p; // Paths must always be absolute — stored as-is
 }
 
 /**
@@ -320,12 +316,19 @@ export async function workflowValidate(
     if (!task.files || task.files.length === 0) continue;
 
     for (const taskFile of task.files) {
-      let absoluteFile: string;
-      if (isAbsolute(taskFile.path)) {
-        absoluteFile = taskFile.path;
-      } else {
-        const relToDist = resolve(dist, taskFile.path);
-        absoluteFile = existsSync(relToDist) ? relToDist : resolve(process.cwd(), taskFile.path);
+      const absoluteFile = taskFile.path;
+      if (!existsSync(absoluteFile)) {
+        const result: ValidationFileResult = {
+          file: taskFile.path,
+          type: 'unknown',
+          valid: false,
+          error: `File not found: ${absoluteFile}`,
+          last_validated: new Date().toISOString(),
+        };
+        taskFile.validation_result = result;
+        taskFile.requires_validation = false;
+        allResults.push({ ...result, task: task.id });
+        continue;
       }
       const result = await validateFn(absoluteFile);
       taskFile.validation_result = { ...result, file: taskFile.path };

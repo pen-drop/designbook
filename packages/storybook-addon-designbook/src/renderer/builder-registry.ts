@@ -46,7 +46,7 @@ async function resolveSlots(
       resolved[key] = value;
     } else if (Array.isArray(value)) {
       const items = await Promise.all(
-        (value as RawNode[]).map(async (item): Promise<ComponentNode[]> => {
+        (value as RawNode[]).map(async (item): Promise<ComponentNode[] | string> => {
           if (needsBuilding(item)) {
             return ctx.buildNode(item);
           }
@@ -54,7 +54,10 @@ async function resolveSlots(
           return [{ ...cn, slots: cn.slots ? await resolveSlots(cn.slots, ctx) : undefined }];
         }),
       );
-      resolved[key] = items.flat();
+      // All strings → join into a single string slot value (e.g. text: ['Hello'])
+      // Otherwise keep as ComponentNode[]
+      const allStrings = items.every((i) => typeof i === 'string');
+      resolved[key] = allStrings ? (items as string[]).join('') : (items as ComponentNode[][]).flat();
     } else {
       // Single node — may be a SceneNode ref or a ComponentNode
       if (needsBuilding(value as RawNode)) {

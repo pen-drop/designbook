@@ -1,0 +1,3 @@
+config:
+  unknown_config_type:
+    some_bundle: []

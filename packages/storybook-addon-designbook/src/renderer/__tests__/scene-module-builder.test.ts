@@ -85,12 +85,33 @@ describe('buildSceneModule integration', () => {
     expect(module).toContain('badge');
   });
 
-  it('exports ConfigList scene with view/grid wrapping articles', async () => {
+  it('exports ViewEntity scene — view component with resolved article components in items slot', async () => {
     const module = await buildFixtureModule('test.scenes.yml');
 
-    expect(module).toContain('export const ConfigList');
-    expect(module).toContain('view');
-    expect(module).toContain('grid');
+    expect(module).toContain('export const ViewEntity');
+
+    const nodes = extractSceneNodes(module, 'ViewEntity');
+    expect(nodes).toHaveLength(1);
+
+    const viewNode = nodes[0]!;
+    expect(viewNode.component).toBe('view');
+
+    // items slot must contain resolved ComponentNodes — NOT unresolved entity refs
+    const items = viewNode.slots?.['items'];
+    expect(Array.isArray(items)).toBe(true);
+    const itemsArray = items as ComponentNode[];
+    expect(itemsArray.length).toBeGreaterThan(0);
+
+    // Each item must be a ComponentNode (has component property), not a raw entity ref
+    for (const item of itemsArray) {
+      expect(typeof item.component).toBe('string');
+    }
+
+    // Article teaser resolves to figure, heading, text-block
+    const componentNames = itemsArray.map((n) => n.component);
+    expect(componentNames).toContain('figure');
+    expect(componentNames).toContain('heading');
+    expect(componentNames).toContain('text-block');
   });
 
   it('exports ComponentDirect scene — props and slots in correct structural position', async () => {

@@ -1,0 +1,8 @@
+group: Test/Scenes
+scenes:
+  - name: Element without value
+    items:
+      - component: test:heading
+        slots:
+          text:
+            - type: element

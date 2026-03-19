@@ -95,6 +95,22 @@ describe('resolveEntityRefs', () => {
     expect(result[0].slots?.author).toEqual(badge);
   });
 
+  it('passes type:element through as-is (no special handling — scene validator rejects it)', async () => {
+    const ctx = makeCtx();
+
+    const node: RawNode = {
+      component: 'test:button',
+      slots: {
+        text: [{ type: 'element', value: 'Get Started' } as unknown as ComponentNode],
+      },
+    } as ComponentNode;
+
+    const result = await resolveEntityRefs([node], ctx);
+
+    // type:element is not handled — it passes through as a raw object in the slot array
+    expect(Array.isArray(result[0].slots?.text)).toBe(true);
+  });
+
   it('resolves entity refs in array slots', async () => {
     const badge: ComponentNode = { component: 'test:badge' };
     const ctx = makeCtx({ buildNode: vi.fn().mockResolvedValue([badge]) });

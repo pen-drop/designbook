@@ -11,4 +11,6 @@ export function managerEntries(entry = []) {
   return [...entry, fileURLToPath(import.meta.resolve('../dist/manager.js'))];
 }
 
-export * from '../dist/preset.js';
+// Re-export everything from the built preset except stories —
+// in dev mode, main.ts already picks up src/pages directly.
+export { viteFinal, webpack, experimental_indexers, indexers } from '../dist/preset.js';

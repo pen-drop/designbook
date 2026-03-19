@@ -7,6 +7,7 @@ reads:
 files:
   - $DESIGNBOOK_DIST/designbook-css-daisyui/generate-color.jsonata
   - $DESIGNBOOK_DIST/designbook-css-daisyui/generate-font.jsonata
+  - $DESIGNBOOK_DIST/designbook-css-daisyui/generate-google-fonts.jsonata
   - $DESIGNBOOK_DIST/designbook-css-tailwind/generate-layout-width.jsonata
   - $DESIGNBOOK_DIST/designbook-css-tailwind/generate-layout-spacing.jsonata
 ---
@@ -21,7 +22,8 @@ Generates `.jsonata` expression files for DaisyUI-compatible CSS. DaisyUI extend
 $DESIGNBOOK_DIST/
 ├── designbook-css-daisyui/
 │   ├── generate-color.jsonata
-│   └── generate-font.jsonata
+│   ├── generate-font.jsonata
+│   └── generate-google-fonts.jsonata
 └── designbook-css-tailwind/
     ├── generate-layout-width.jsonata
     └── generate-layout-spacing.jsonata
@@ -77,6 +79,26 @@ npx jsonata-w inspect $DESIGNBOOK_DIST/design-system/design-tokens.yml --summary
     "  --font-" & $k & ": \"" & $v."$value" & "\";"
   });
   "@theme {\n" & $join($entries, "\n") & "\n}\n"
+)
+```
+
+### Google Fonts → `@import url(...)` for all typography fonts
+
+`$DESIGNBOOK_DIST/designbook-css-daisyui/generate-google-fonts.jsonata`:
+
+```jsonata
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/google-fonts.src.css"
+ }
+ */
+(
+  $families := $each(typography, function($v, $k) {
+    "family=" & $replace($v."$value", " ", "+") & ":ital,wght@0,400;0,500;0,600;0,700"
+  });
+  $url := "https://fonts.googleapis.com/css2?" & $join($families, "&") & "&display=swap";
+  "@import url(\"" & $url & "\");\n"
 )
 ```
 

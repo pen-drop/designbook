@@ -1,14 +1,25 @@
 import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
-import type { IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join, basename, dirname } from 'node:path';
+import { resolve, join, basename, dirname, relative } from 'node:path';
 import { createRequire } from 'node:module';
 import { parse as parseYaml } from 'yaml';
 
 import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
-import { scanAllWorkflows, parseTaskFile } from './workflow-utils';
+import { scanAllWorkflows } from './workflow-utils';
+
+/** Minimal glob matcher — supports * (no slash) and **-slash (zero or more dirs). */
+function globMatch(pattern: string, filePath: string): boolean {
+  // Split on **/ first so the * quantifier in (?:[^/]+/)* isn't consumed
+  // by the later single-* replacement.
+  const regexStr = pattern
+    .split('**/')
+    .map((part) => part.replace(/\./g, '\\.').replace(/\*/g, '[^/]*'))
+    .join('(?:[^/]+/)*');
+  return new RegExp('^' + regexStr + '$').test(filePath);
+}
 
 // Resolve React from the addon's own dependencies (works in pnpm strict mode)
 const addonRequire = createRequire(import.meta.url);
@@ -115,100 +126,48 @@ export function designbookLoadPlugin(
     configureServer(server: ViteDevServer) {
       const workflowsDir = resolve(designbookDir, 'workflows');
 
-      // SSE client registry — notify all connected clients on any file change
-      const sseClients = new Set<ServerResponse>();
+      // File type registry — first matching glob wins; no match = no event sent
+      const FILE_TYPES: Record<string, string> = {
+        task: 'workflows/**/*.yml',
+        scene: '**/*.scenes.yml',
+        vision: 'product/vision.md',
+        tokens: 'tokens/**/*.yml',
+        dataModel: 'data-model.yml',
+      };
 
-      const componentsDir = resolve(baseDir, 'components');
-
-      const notifySseClients = () => {
-        for (const res of sseClients) {
-          try {
-            res.write('data: {}\n\n');
-          } catch {
-            sseClients.delete(res);
-          }
+      const resolveFileType = (relPath: string): string | null => {
+        for (const [type, glob] of Object.entries(FILE_TYPES)) {
+          if (globMatch(glob, relPath)) return type;
         }
+        return null;
       };
 
       server.watcher.add(designbookDir);
 
-      const isDesignbookFile = (file: string) => file.startsWith(designbookDir) || file.startsWith(componentsDir);
+      const isDesignbookFile = (file: string) => file.startsWith(designbookDir);
 
-      server.watcher.on('add', (file: string) => {
-        if (!isDesignbookFile(file)) return;
-        notifySseClients();
-
-        if (!file.endsWith('tasks.yml')) return;
-
-        if (file.includes('workflows/changes')) {
-          try {
-            const data = parseTaskFile(file);
-            server.ws.send({
-              type: 'custom',
-              event: 'designbook:workflow-event',
-              data: { type: 'started', title: data.title, workflow: data.workflow },
-            });
-          } catch {
-            /* skip parse errors */
+      for (const [watchEvent, channelEvent] of [
+        ['add', 'designbook:file-add'],
+        ['change', 'designbook:file-update'],
+        ['unlink', 'designbook:file-delete'],
+      ] as const) {
+        server.watcher.on(watchEvent, (file: string) => {
+          if (!isDesignbookFile(file)) return;
+          const relPath = relative(designbookDir, file);
+          const fileType = resolveFileType(relPath);
+          if (!fileType) {
+            console.debug('[Designbook] watcher: no fileType matched for', relPath, '— skipping');
+            return;
           }
-        }
-
-        if (file.includes('workflows/archive')) {
-          try {
-            const data = parseTaskFile(file);
-            server.ws.send({
-              type: 'custom',
-              event: 'designbook:workflow-event',
-              data: { type: 'done', title: data.title, workflow: data.workflow },
-            });
-          } catch {
-            /* skip parse errors */
-          }
-        }
-      });
-
-      server.watcher.on('change', (file: string) => {
-        if (!isDesignbookFile(file)) return;
-        notifySseClients();
-
-        if (file.endsWith('tasks.yml') && file.includes('workflows/changes')) {
-          try {
-            const data = parseTaskFile(file);
-            const activeTask = data.tasks.find((t) => t.status === 'in-progress');
-            const lastDone = data.tasks
-              .filter((t) => t.status === 'done')
-              .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))[0];
-            server.ws.send({
-              type: 'custom',
-              event: 'designbook:workflow-progress',
-              data: {
-                title: data.title,
-                workflow: data.workflow,
-                tasks: data.tasks,
-                activeTask: activeTask?.title,
-                lastDoneTask: lastDone?.title,
-              },
-            });
-          } catch {
-            /* skip parse errors during write */
-          }
-        }
-      });
-
-      server.watcher.on('unlink', (file: string) => {
-        if (!isDesignbookFile(file)) return;
-        notifySseClients();
-      });
-
-      // SSE endpoint: push a ping to all consumers on any designbook file change
-      server.middlewares.use('/__designbook/events', (_req: IncomingMessage, res: ServerResponse) => {
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders();
-        sseClients.add(res);
-        _req.on('close', () => sseClients.delete(res));
-      });
+          const payload = { fileType, path: relPath };
+          console.debug('[Designbook] watcher:', watchEvent, relPath, '→ sending', channelEvent, payload);
+          server.ws.send({
+            type: 'custom',
+            event: channelEvent,
+            data: payload,
+          });
+        });
+      }
 
       // HTTP endpoint: serve all workflows (active + recent archived)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -253,7 +212,10 @@ export function designbookLoadPlugin(
 
           const status = {
             vision: { exists: existsSync(resolve(designbookDir, 'product/vision.md')) },
-            designSystem: { tokens: existsSync(resolve(designbookDir, 'design-system/design-tokens.yml')) },
+            designSystem: {
+              guidelines: existsSync(resolve(designbookDir, 'design-system/guidelines.yml')),
+              tokens: existsSync(resolve(designbookDir, 'design-system/design-tokens.yml')),
+            },
             dataModel: { exists: existsSync(resolve(designbookDir, 'data-model.yml')) },
             shell: { exists: existsSync(resolve(designbookDir, 'design-system/design-system.scenes.yml')) },
             sections,

@@ -9,7 +9,6 @@ export type {
   SceneNode,
   ComponentSceneNode,
   EntitySceneNode,
-  ConfigSceneNode,
   SceneSceneNode,
   DataModel,
   SampleData,
@@ -35,7 +34,6 @@ export { BuilderRegistry, resolveEntityRefs } from './builder-registry';
 // Built-in builders
 export { componentBuilder } from './builders/component-builder';
 export { entityBuilder } from './builders/entity-builder';
-export { configListBuilder } from './builders/config-list-builder';
 export { sceneBuilder } from './builders/scene-builder';
 
 // CSF prep

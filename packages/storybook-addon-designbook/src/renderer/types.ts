@@ -23,33 +23,23 @@ export interface DataModelContent {
   };
 }
 
-/** A list source in the data model config. */
-export interface ListSource {
-  entity_type: string;
-  bundle: string;
-  view_mode: string;
-}
-
-/** A list config entry. */
-export interface ListConfig {
-  sources: ListSource[];
-  limit?: number;
-  sorting?: string;
-}
-
 /** Top-level data model. */
 export interface DataModel {
   content: DataModelContent;
-  config?: {
-    list?: Record<string, ListConfig>;
-  };
+  config?: DataModelContent;
 }
 
-/** Sample data structure from data.yml. */
-export interface SampleData {
+/** Entity bundles map used in SampleData. */
+interface EntityBundles {
   [entityType: string]: {
     [bundle: string]: Record<string, unknown>[];
   };
+}
+
+/** Sample data structure from data.yml — uses content/config namespacing. */
+export interface SampleData {
+  content?: EntityBundles;
+  config?: EntityBundles;
 }
 
 // ─── Scene Node Types ───────────────────────────────────────────────
@@ -76,14 +66,6 @@ export interface EntitySceneNode extends SceneNode {
   bundle: string;
   view_mode: string;
   record?: number;
-}
-
-/** A config scene node (e.g., list). */
-export interface ConfigSceneNode extends SceneNode {
-  type: 'config';
-  config_type: string;
-  config_name: string;
-  view_mode: string;
 }
 
 // ─── Scene Definition Types ─────────────────────────────────────────
@@ -151,7 +133,7 @@ export interface BuildContext {
 
 /**
  * A pluggable async builder for scene nodes.
- * Registered via addon options; built-ins: EntityBuilder, ConfigListBuilder, SceneBuilder.
+ * Registered via addon options; built-ins: EntityBuilder, SceneBuilder.
  */
 export interface SceneNodeBuilder {
   /** Return true if this builder handles the given node. */

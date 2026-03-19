@@ -60,7 +60,7 @@ describe('workflowCreate', () => {
 
   it('records declared files with requires_validation:true', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', [
-      { id: 'task-a', title: 'Task A', type: 'component', files: ['components/button.component.yml'] },
+      { id: 'task-a', title: 'Task A', type: 'component', files: [`${dist}/components/button.component.yml`] },
     ]);
     const data = readWorkflowFile(dist, name);
     const files = data.tasks[0].files ?? [];
@@ -228,21 +228,21 @@ describe('workflowAddFile', () => {
   });
 
   it('adds a file to the task', () => {
-    workflowAddFile(dist, name, 'task1', 'components/button.component.yml');
+    workflowAddFile(dist, name, 'task1', `${dist}/components/button.component.yml`);
     const data = readWorkflowFile(dist, name);
     expect(data.tasks[0].files).toHaveLength(1);
     expect(data.tasks[0].files![0].requires_validation).toBe(true);
   });
 
   it('does not add duplicate files', () => {
-    workflowAddFile(dist, name, 'task1', 'components/button.component.yml');
-    workflowAddFile(dist, name, 'task1', 'components/button.component.yml');
+    workflowAddFile(dist, name, 'task1', `${dist}/components/button.component.yml`);
+    workflowAddFile(dist, name, 'task1', `${dist}/components/button.component.yml`);
     const data = readWorkflowFile(dist, name);
     expect(data.tasks[0].files).toHaveLength(1);
   });
 
   it('transitions status from planning to running', () => {
-    workflowAddFile(dist, name, 'task1', 'components/button.component.yml');
+    workflowAddFile(dist, name, 'task1', `${dist}/components/button.component.yml`);
     const data = readWorkflowFile(dist, name);
     expect(data.status).toBe('running');
   });
@@ -305,7 +305,7 @@ describe('workflowDone', () => {
 
   it('throws when a file still requires_validation', () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
-      { id: 'task1', title: 'T1', type: 'component', files: ['components/button.component.yml'] },
+      { id: 'task1', title: 'T1', type: 'component', files: ['/absolute/path/button.component.yml'] },
     ]);
     expect(() => workflowDone(dist, name, 'task1')).toThrow('not yet validated');
   });
@@ -317,10 +317,10 @@ describe('workflowDone', () => {
     const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
     raw.tasks[0].files = [
       {
-        path: 'components/button.component.yml',
+        path: `${dist}/components/button.component.yml`,
         requires_validation: false,
         validation_result: {
-          file: 'components/button.component.yml',
+          file: `${dist}/components/button.component.yml`,
           type: 'component',
           valid: false,
           error: 'Missing required field',
@@ -338,10 +338,10 @@ describe('workflowDone', () => {
     const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
     raw.tasks[0].files = [
       {
-        path: 'components/button.component.yml',
+        path: `${dist}/components/button.component.yml`,
         requires_validation: false,
         validation_result: {
-          file: 'components/button.component.yml',
+          file: `${dist}/components/button.component.yml`,
           type: 'component',
           valid: true,
           last_validated: new Date().toISOString(),
@@ -381,13 +381,13 @@ describe('workflowValidate', () => {
   });
 
   it('calls validateFn for each declared file and stores results', async () => {
-    // Create a real file so existsSync resolves it
     const fileDir = resolve(dist, 'components');
     mkdirSync(fileDir, { recursive: true });
-    writeFileSync(resolve(fileDir, 'button.component.yml'), 'name: button');
+    const filePath = resolve(fileDir, 'button.component.yml');
+    writeFileSync(filePath, 'name: button');
 
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
-      { id: 'task1', title: 'T1', type: 'component', files: ['components/button.component.yml'] },
+      { id: 'task1', title: 'T1', type: 'component', files: [filePath] },
     ]);
     const results = await workflowValidate(dist, name, makeValidateFn(true));
     expect(results).toHaveLength(1);
@@ -398,10 +398,11 @@ describe('workflowValidate', () => {
   it('clears requires_validation flag after validating', async () => {
     const fileDir = resolve(dist, 'components');
     mkdirSync(fileDir, { recursive: true });
-    writeFileSync(resolve(fileDir, 'button.component.yml'), 'name: button');
+    const filePath = resolve(fileDir, 'button.component.yml');
+    writeFileSync(filePath, 'name: button');
 
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
-      { id: 'task1', title: 'T1', type: 'component', files: ['components/button.component.yml'] },
+      { id: 'task1', title: 'T1', type: 'component', files: [filePath] },
     ]);
     await workflowValidate(dist, name, makeValidateFn(true));
 
@@ -421,13 +422,15 @@ describe('workflowValidate', () => {
   it('scopes to a specific task when taskId provided', async () => {
     const fileDir = resolve(dist, 'components');
     mkdirSync(fileDir, { recursive: true });
-    writeFileSync(resolve(fileDir, 'a.component.yml'), 'name: a');
-    writeFileSync(resolve(fileDir, 'b.component.yml'), 'name: b');
+    const fileA = resolve(fileDir, 'a.component.yml');
+    const fileB = resolve(fileDir, 'b.component.yml');
+    writeFileSync(fileA, 'name: a');
+    writeFileSync(fileB, 'name: b');
 
     const calls: string[] = [];
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
-      { id: 'task1', title: 'T1', type: 'component', files: ['components/a.component.yml'] },
-      { id: 'task2', title: 'T2', type: 'component', files: ['components/b.component.yml'] },
+      { id: 'task1', title: 'T1', type: 'component', files: [fileA] },
+      { id: 'task2', title: 'T2', type: 'component', files: [fileB] },
     ]);
 
     const validateFn = async (file: string) => {
@@ -440,6 +443,26 @@ describe('workflowValidate', () => {
     expect(calls[0]).toContain('a.component.yml');
   });
 
+  it('returns file-not-found error without calling validateFn when file does not exist', async () => {
+    const called: string[] = [];
+    name = workflowCreate(dist, 'debo-vision', 'Vision', [
+      { id: 'task1', title: 'T1', type: 'component', files: ['/nonexistent/path/button.component.yml'] },
+    ]);
+
+    const validateFn = async (file: string) => {
+      called.push(file);
+      return { file, type: 'component', valid: true, last_validated: '' };
+    };
+
+    const results = await workflowValidate(dist, name, validateFn, 'task1');
+    expect(called).toHaveLength(0); // validateFn must NOT be called
+    expect(results[0].valid).toBe(false);
+    expect(results[0].error).toContain('File not found');
+    const data = readWorkflowFile(dist, name);
+    expect(data.tasks[0].files![0].validation_result?.valid).toBe(false);
+    expect(data.tasks[0].files![0].requires_validation).toBe(false);
+  });
+
   it('throws when scoped taskId does not exist', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
     await expect(workflowValidate(dist, name, makeValidateFn(), 'nonexistent')).rejects.toThrow('Task not found');
@@ -448,10 +471,11 @@ describe('workflowValidate', () => {
   it('stores failed validation results', async () => {
     const fileDir = resolve(dist, 'components');
     mkdirSync(fileDir, { recursive: true });
-    writeFileSync(resolve(fileDir, 'bad.component.yml'), 'invalid: yaml: content');
+    const badFile = resolve(fileDir, 'bad.component.yml');
+    writeFileSync(badFile, 'invalid: yaml: content');
 
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
-      { id: 'task1', title: 'T1', type: 'component', files: ['components/bad.component.yml'] },
+      { id: 'task1', title: 'T1', type: 'component', files: [badFile] },
     ]);
 
     const results = await workflowValidate(dist, name, makeValidateFn(false));

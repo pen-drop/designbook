@@ -9,6 +9,29 @@ This skill provides utilities to load the `designbook.config.yml` configuration 
 
 !IMPORTANT!
 Check for designbook.config.yml and check the cmd key. Fallback: npx storybook-addon-designbook. Use this as $DESIGNBOOK_CMD environment variable
+## Locating the Config File
+
+Before loading the configuration, find `designbook.config.yml` by traversing up from the current directory:
+
+```bash
+# First check current directory, then walk up
+if [ -e "$PWD/designbook.config.yml" ]; then
+  DESIGNBOOK_CONFIG="$PWD/designbook.config.yml"
+else
+  dir=$(dirname "$PWD")
+  while [ "$dir" != "/" ]; do
+    [ -e "$dir/designbook.config.yml" ] && DESIGNBOOK_CONFIG="$dir/designbook.config.yml" && break
+    dir=$(dirname "$dir")
+  done
+fi
+```
+
+**If the file is not found:** Stop and ask the user:
+- Whether a `designbook.config.yml` should be created
+- Or where the config file is located
+
+Do not proceed without a config file.
+
 ## Usage
 
 ### In Node.js Scripts
@@ -74,3 +97,27 @@ drupal:
 > - Drupal: `layout_builder`, `canvas`, `experience_builder`, `paragraphs`
 > - WordPress: `gutenberg`
 > - Empty array = all content is structured (default)
+
+## Workflow Rules and Tasks
+
+The config MAY include a `workflow` key with per-stage rules and task instructions. These are loaded by the AI during workflow execution — no CLI support needed.
+
+```yaml
+workflow:
+  rules:
+    create-component:
+      - "All interactive elements require ARIA labels"
+    debo-design-component:dialog:
+      - "Always ask for the client's Figma link"
+
+  tasks:
+    create-component:
+      - "After creation, verify the component renders in Storybook"
+```
+
+| Config Key | Type | Purpose |
+|---|---|---|
+| `workflow.rules.<stage>` | `string[]` | Additional constraints applied silently during the stage, additive to skill rule files |
+| `workflow.tasks.<stage>` | `string[]` | Additional instructions appended to task file content for the stage |
+
+Stage keys match canonical stage names (e.g. `create-component`) or workflow-scoped dialog stages (e.g. `debo-design-component:dialog`).

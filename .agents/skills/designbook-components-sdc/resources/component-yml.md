@@ -58,10 +58,6 @@ slots:
 $DESIGNBOOK_DRUPAL_THEME/components/[componentNameKebab]/[componentNameKebab].component.yml
 ```
 
-## Validate Against Schema
-
-Load `@designbook-components-sdc/steps/validate.md` — fix loop until exit 0 before continuing.
-
 ## Rules
 
 ### Props Type Mapping

@@ -30,22 +30,4 @@ describe('validateDataModel', () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual([expect.stringContaining('not found')]);
   });
-
-  it('accepts valid data model with config.list', () => {
-    const result = validateDataModel(resolve(fixtures, 'valid-with-list.yml'));
-    expect(result.valid).toBe(true);
-    expect(result.errors).toEqual([]);
-  });
-
-  it('rejects list without sources', () => {
-    const result = validateDataModel(resolve(fixtures, 'invalid-list-no-sources.yml'));
-    expect(result.valid).toBe(false);
-    expect(result.errors.length).toBeGreaterThan(0);
-  });
-
-  it('rejects list with empty sources array', () => {
-    const result = validateDataModel(resolve(fixtures, 'invalid-list-empty-sources.yml'));
-    expect(result.valid).toBe(false);
-    expect(result.errors.length).toBeGreaterThan(0);
-  });
 });

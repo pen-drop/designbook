@@ -1,6 +1,7 @@
 import React, { memo, useState, useEffect } from 'react';
 import { AddonPanel, TabsView } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
+import { addons } from 'storybook/manager-api';
 import { timeRange, ManagerBadge } from './manager-utils.tsx';
 
 interface ValidationFileResult {
@@ -46,7 +47,7 @@ interface WorkflowData {
 
 interface StatusData {
   vision: { exists: boolean };
-  designSystem: { tokens: boolean };
+  designSystem: { guidelines: boolean; tokens: boolean };
   dataModel: { exists: boolean };
   shell: { exists: boolean };
   sections: Array<{ id: string; title: string; hasScenes: boolean }>;
@@ -177,6 +178,12 @@ const FileError = styled.div(({ theme }) => ({
   opacity: 0.9,
 }));
 
+/** Show only the last 2 path segments: folder/filename */
+const shortenPath = (p: string): string => {
+  const parts = p.replace(/\\/g, '/').split('/').filter(Boolean);
+  return parts.slice(-2).join('/');
+};
+
 const taskIcon = (status: string) => {
   if (status === 'done') return '✅';
   if (status === 'in-progress') return '⚡';
@@ -211,7 +218,7 @@ function renderTask(task: WorkflowTask) {
         <FileRow key={f.path}>
           <FilePath>
             <span>{validationBadge(f)}</span>
-            <span>{f.path}</span>
+            <span title={f.path}>{shortenPath(f.path)}</span>
           </FilePath>
           {f.validation_result?.error && <FileError>{f.validation_result.error}</FileError>}
         </FileRow>
@@ -298,6 +305,7 @@ function StatusTab({ status }: { status: StatusData | null }) {
     <Container>
       <BadgeRow>
         <ManagerBadge variant={status.vision.exists ? 'green' : 'gray'}>vision</ManagerBadge>
+        <ManagerBadge variant={status.designSystem.guidelines ? 'green' : 'gray'}>guidelines</ManagerBadge>
         <ManagerBadge variant={status.designSystem.tokens ? 'green' : 'gray'}>tokens</ManagerBadge>
         <ManagerBadge variant={status.dataModel.exists ? 'green' : 'gray'}>data-model</ManagerBadge>
         <ManagerBadge variant={status.shell.exists ? 'green' : 'gray'}>shell</ManagerBadge>
@@ -346,16 +354,20 @@ export const Panel: React.FC<PanelProps> = memo(function DesignbookPanel({ activ
     };
 
     poll();
-    const es = new EventSource('/__designbook/events');
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    es.onmessage = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => poll(), 150);
+
+    const channel = addons.getChannel();
+    const onTaskFileChange = (event: { fileType: string }) => {
+      if (event.fileType === 'task') poll();
     };
+    channel.on('designbook:file-add', onTaskFileChange);
+    channel.on('designbook:file-update', onTaskFileChange);
+    channel.on('designbook:file-delete', onTaskFileChange);
+
     return () => {
       mounted = false;
-      if (debounceTimer) clearTimeout(debounceTimer);
-      es.close();
+      channel.off('designbook:file-add', onTaskFileChange);
+      channel.off('designbook:file-update', onTaskFileChange);
+      channel.off('designbook:file-delete', onTaskFileChange);
     };
   }, [active]);
 

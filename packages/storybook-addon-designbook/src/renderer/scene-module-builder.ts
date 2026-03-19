@@ -16,10 +16,10 @@ import { extractGroup, buildExportName, fileBaseName, extractScenes } from './sc
 import { expandEntries } from './parser';
 import { BuilderRegistry } from './builder-registry';
 import { entityBuilder } from './builders/entity-builder';
-import { configListBuilder } from './builders/config-list-builder';
 import { sceneBuilder } from './builders/scene-builder';
 import { componentBuilder } from './builders/component-builder';
 import { buildCsfModule } from './csf-prep';
+import { validateSceneNodes } from './validate-scene-nodes';
 
 import type { DataModel, SampleData, SceneNode, SceneNodeBuilder, ComponentNode } from './types';
 
@@ -127,7 +127,6 @@ export async function buildSceneModule(
   // Built-ins registered first (lowest priority — custom builders override)
   registry.register(componentBuilder);
   registry.register(entityBuilder);
-  registry.register(configListBuilder);
   registry.register(sceneBuilder);
   // Custom builders registered last (highest priority)
   for (const builder of options.builders ?? []) {
@@ -152,6 +151,12 @@ export async function buildSceneModule(
     for (const entry of items) {
       const built = await ctx.buildNode(entry as SceneNode);
       nodes.push(...built);
+    }
+
+    // Validate: built scene must contain only proper ComponentNodes
+    const validationErrors = validateSceneNodes(nodes, `scene:${sceneName}`);
+    for (const err of validationErrors) {
+      console.error(`[Designbook] Invalid node in built scene at ${err.path}: ${err.reason}`, err.node);
     }
 
     resolvedScenes.push({

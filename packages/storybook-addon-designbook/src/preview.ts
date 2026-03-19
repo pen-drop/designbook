@@ -1,6 +1,6 @@
 import type { ProjectAnnotations, Renderer, StoryContext } from 'storybook/internal/types';
 
-import { useGlobals } from 'storybook/preview-api';
+import { useGlobals, addons } from 'storybook/preview-api';
 import { themes, ensure } from 'storybook/theming';
 
 import { KEY } from './constants';
@@ -28,6 +28,25 @@ function withDeboTheme(Story: any, context: StoryContext) {
   const base = ensure(globals?.theme === 'dark' ? themes.dark : themes.light);
   setActiveTheme(base);
   return Story(context);
+}
+
+// Forward Vite HMR custom events to the Storybook channel so the Panel
+// and manager-notifications can react to file-change events.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const metaHot = (import.meta as any).hot as { on: (event: string, cb: (data: unknown) => void) => void } | undefined;
+if (metaHot) {
+  const EVENTS = ['designbook:file-add', 'designbook:file-update', 'designbook:file-delete'] as const;
+  for (const event of EVENTS) {
+    metaHot.on(event, (data: unknown) => {
+      console.debug('[Designbook] HMR event received → forwarding to channel:', event, data);
+      try {
+        addons.getChannel().emit(event, data);
+      } catch (e) {
+        console.warn('[Designbook] Failed to forward HMR event to channel:', event, e);
+      }
+    });
+  }
+  console.debug('[Designbook] HMR event forwarding registered for', EVENTS);
 }
 
 export const decorators = [withDeboTheme, withRoundTrip];

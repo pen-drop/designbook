@@ -19,9 +19,9 @@ scenes:
         view_mode: card
         record: 0
 
-  - name: ConfigList
+  - name: ViewEntity
     items:
-      - config: list.recent_articles
+      - entity: view.recent_articles
         view_mode: default
 
   - name: ComponentDirect

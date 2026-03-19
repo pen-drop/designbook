@@ -66,9 +66,7 @@ function resolveSlots(
         resolved[key] = value;
       }
     } else if (Array.isArray(value)) {
-      const items = value.map((item) => renderNode(item, imports));
-      // Join strings if all items are strings (HTML framework slots)
-      resolved[key] = items.every((i) => typeof i === 'string') ? (items as string[]).join('') : items;
+      resolved[key] = value.map((item) => renderNode(item, imports));
     } else {
       resolved[key] = renderNode(value, imports);
     }

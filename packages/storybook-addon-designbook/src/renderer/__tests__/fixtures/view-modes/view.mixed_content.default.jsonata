@@ -1,0 +1,15 @@
+{
+  "type": "component",
+  "component": "view",
+  "slots": {
+    "content": {
+      "type": "component",
+      "component": "stack",
+      "slots": {
+        "items": [
+          { "entity": "node.article", "view_mode": "teaser", "record": 0 }
+        ]
+      }
+    }
+  }
+}

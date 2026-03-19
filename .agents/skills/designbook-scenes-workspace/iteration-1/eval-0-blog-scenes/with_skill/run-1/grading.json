@@ -1,0 +1,36 @@
+{
+  "assertions": [
+    {
+      "text": "listing-uses-view-entity",
+      "passed": true,
+      "evidence": "Found 'entity: view.*' in listing: True"
+    },
+    {
+      "text": "no-records-shorthand-for-listing",
+      "passed": true,
+      "evidence": "'records:' in listing section: False"
+    },
+    {
+      "text": "provider-prefix-correct",
+      "passed": true,
+      "evidence": "All components use my_drupal_theme: prefix: True"
+    },
+    {
+      "text": "shell-ref-present",
+      "passed": true,
+      "evidence": "type:scene count: 2, ref count: 2"
+    },
+    {
+      "text": "no-type-element",
+      "passed": true,
+      "evidence": "No 'type: element' found: True"
+    }
+  ],
+  "pass_rate": 1.0,
+  "summary": {
+    "pass_rate": 1.0,
+    "passed": 5,
+    "failed": 0,
+    "total": 5
+  }
+}

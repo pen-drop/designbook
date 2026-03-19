@@ -1,4 +1,5 @@
-node:
-  article:
-    - id: "1"
-      field_body: "Missing required title"
+content:
+  node:
+    article:
+      - id: "1"
+        field_body: "Missing required title"

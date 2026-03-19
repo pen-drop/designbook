@@ -50,6 +50,46 @@ Count `--` custom properties per file and report totals.
 
 Display: `✅ CSS token files generated successfully` with file list and sizes.
 
+## Step 5: Download Google Fonts locally
+
+If a `google-fonts.src.css` was generated (i.e. it appears in the list from Step 2), download the font files and convert the CSS to use local paths.
+
+### 5a: Extract the Google Fonts URL
+
+Read `google-fonts.src.css` and extract the URL from the `@import url(...)` line.
+
+### 5b: Fetch the font CSS
+
+Use curl with a modern User-Agent so Google Fonts returns `woff2` format:
+
+```bash
+FONTS_URL="<extracted url>"
+FONTS_DIR="$(dirname $DESIGNBOOK_CSS_APP)/fonts"
+mkdir -p "$FONTS_DIR"
+curl -s -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" "$FONTS_URL" -o /tmp/gfonts.css
+```
+
+If the curl request fails (non-zero exit or empty output), skip font download and leave the remote `@import` in place. Report: `⚠️  Google Fonts download skipped (no network access) — remote @import kept.`
+
+### 5c: Download each font file
+
+Parse `/tmp/gfonts.css` for all `url(...)` references ending in `.woff2`. For each:
+
+```bash
+# example: https://fonts.gstatic.com/s/inter/v21/abc123.woff2
+curl -s "<woff2_url>" -o "$FONTS_DIR/<filename>.woff2"
+```
+
+Derive the local filename from the URL path's last segment (e.g. `inter-v21-latin-regular.woff2`). If multiple files share the same name, append a counter suffix.
+
+### 5d: Rewrite google-fonts.src.css
+
+Replace the `@import url(...)` with the full `@font-face` block from `/tmp/gfonts.css`, updating each `url(https://fonts.gstatic.com/...)` to the relative local path (e.g. `url("./fonts/<filename>.woff2")`).
+
+The relative path must be from the CSS file's location (`css/tokens/`) to the fonts directory (`css/fonts/`), so: `../fonts/<filename>.woff2`.
+
+Report: `✅ Google Fonts downloaded locally — X font files saved to css/fonts/`
+
 ## Error Handling
 
 - Transformation failure: Show `jsonata-w` error and the failing file path

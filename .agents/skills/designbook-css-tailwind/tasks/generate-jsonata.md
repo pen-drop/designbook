@@ -7,6 +7,7 @@ reads:
 files:
   - $DESIGNBOOK_DIST/designbook-css-tailwind/generate-layout-width.jsonata
   - $DESIGNBOOK_DIST/designbook-css-tailwind/generate-layout-spacing.jsonata
+  - $DESIGNBOOK_DIST/designbook-css-tailwind/generate-google-fonts.jsonata  (only if typography tokens exist)
 ---
 
 # Generate JSONata Expressions — Tailwind
@@ -159,6 +160,28 @@ Maps to Tailwind's standard `--shadow-*` namespace → auto-generates `shadow-*`
   "@theme {\n" & $join($entries, "\n") & "\n}\n"
 )
 ```
+
+### Google Fonts → `@import url(...)` (optional, only if `typography` group exists)
+
+`$DESIGNBOOK_DIST/designbook-css-tailwind/generate-google-fonts.jsonata`:
+
+```jsonata
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/google-fonts.src.css"
+ }
+ */
+(
+  $families := $each(typography, function($v, $k) {
+    "family=" & $replace($v."$value", " ", "+") & ":ital,wght@0,400;0,500;0,600;0,700"
+  });
+  $url := "https://fonts.googleapis.com/css2?" & $join($families, "&") & "&display=swap";
+  "@import url(\"" & $url & "\");\n"
+)
+```
+
+Only generate this file if the `typography` group is present in the token inspect output.
 
 ## Step 4: Verify
 

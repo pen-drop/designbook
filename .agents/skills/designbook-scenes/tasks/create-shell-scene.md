@@ -72,6 +72,80 @@ scenes:
                       text: '{{ copyright }}'
 ```
 
+## Full Example
+
+```yaml
+# design-system/design-system.scenes.yml
+id: debo-design-system
+title: Design System
+description: Top-navigation layout with logo, main nav, and footer.
+status: planned
+order: 0
+
+group: "Designbook/Design System"
+scenes:
+  - name: shell
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header:
+            - component: test_integration_drupal:header
+              slots:
+                logo:
+                  - component: test_integration_drupal:logo
+                    props:
+                      name: 'My Product'
+                navigation:
+                  - component: test_integration_drupal:navigation
+                    props:
+                      variant: primary
+                      items:
+                        - { label: 'Blog', url: '/blog' }
+                        - { label: 'About', url: '/about' }
+                actions:
+                  - component: test_integration_drupal:button
+                    props:
+                      variant: default
+                    slots:
+                      text: 'Contact'
+          content: $content        # injection point — filled by section scenes
+          footer:
+            - component: test_integration_drupal:footer
+              slots:
+                navigation:
+                  - component: test_integration_drupal:navigation
+                    props:
+                      variant: footer
+                      items:
+                        - { label: 'Privacy', url: '/privacy' }
+                        - { label: 'Terms', url: '/terms' }
+                        - { label: 'Imprint', url: '/imprint' }
+                copyright:
+                  - component: test_integration_drupal:copyright
+                    props:
+                      text: '© 2026 My Product. All rights reserved.'
+
+  - name: minimal
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header:
+            - component: test_integration_drupal:header
+              slots:
+                logo:
+                  - component: test_integration_drupal:logo
+                    props:
+                      name: 'My Product'
+                navigation:
+                  - component: test_integration_drupal:navigation
+                    props:
+                      variant: primary
+                      items:
+                        - { label: 'Blog', url: '/blog' }
+                        - { label: 'About', url: '/about' }
+          content: $content
+```
+
 ## Key Rules
 
 - **Explicit slots** — all sub-component slots must be fully inlined (logo, nav items, actions, copyright); never write `story: default` alone

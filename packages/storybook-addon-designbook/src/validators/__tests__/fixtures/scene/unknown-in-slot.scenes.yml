@@ -1,0 +1,9 @@
+group: Test/Scenes
+scenes:
+  - name: Unknown node in slot
+    items:
+      - component: test:card
+        slots:
+          body:
+            - type: unknown-thing
+              data: 123
