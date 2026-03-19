@@ -29,7 +29,7 @@ describe('renderComponent', () => {
     expect(result).toBe('AB');
   });
 
-  it('resolves slots recursively — array slot of strings is joined', () => {
+  it('resolves slots recursively — array slot is passed as array', () => {
     const childSpy = vi.fn().mockReturnValue('CHILD');
     const parentSpy = vi.fn().mockImplementation((_props, slots) => `PARENT:${JSON.stringify(slots)}`);
 
@@ -49,8 +49,8 @@ describe('renderComponent', () => {
 
     expect(childSpy).toHaveBeenCalledOnce();
     const [, resolvedSlots] = parentSpy.mock.calls[0]!;
-    // Array slot of strings is joined into a single string
-    expect((resolvedSlots as Record<string, unknown>).items).toBe('CHILD');
+    // Array slot stays as array so Twig templates can iterate with {% for item in items %}
+    expect((resolvedSlots as Record<string, unknown>).items).toEqual(['CHILD']);
   });
 
   it('resolves single ComponentNode slot', () => {

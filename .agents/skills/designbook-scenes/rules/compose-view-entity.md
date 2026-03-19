@@ -33,3 +33,6 @@ A view entity is backed by a JSONata file that receives `{}` as input and return
 - Slots contain inline entity refs — `resolveEntityRefs` resolves them via `map-entity`
 - The wrapper component is a layout/list component from the design system
 - Register the view entity in `data-model.yml` under `config.view.{{ bundle }}` with `composition: unstructured`
+
+> ⛔ **`view` MUST be nested under `config`**, not at the top level of `data-model.yml`.
+> Correct: `config.view.docs_list` — Wrong: top-level `view.docs_list`

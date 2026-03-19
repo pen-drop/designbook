@@ -1,4 +1,5 @@
-node:
-  nonexistent:
-    - id: "1"
-      title: "Bad Bundle"
+content:
+  node:
+    nonexistent:
+      - id: "1"
+        title: "Bad Bundle"

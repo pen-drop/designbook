@@ -1,6 +1,6 @@
 @theme {
   --container-sm: 640px;
-  --container-md: 768px;
-  --container-lg: 1024px;
-  --container-xl: 1280px;
+  --container-md: 800px;
+  --container-lg: 1200px;
+  --container-xl: 1440px;
 }

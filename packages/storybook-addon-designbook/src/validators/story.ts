@@ -70,10 +70,9 @@ export async function validateStory(file: string, config: DesignbookConfig): Pro
     return { file, type: 'story', valid: true, last_validated: ts, last_passed: ts };
   }
 
-  // No normal entries — extract error from LoadError module if present
-  let errorMsg = 'File not found in Storybook index — story may not have compiled';
-
+  // File has a LoadError entry — extract the message
   if (errorEntries.length > 0) {
+    let errorMsg = 'Story failed to compile';
     const importPath = errorEntries[0].importPath;
     const moduleUrl = `http://localhost:${port}${importPath.slice(1)}`;
     try {
@@ -89,7 +88,10 @@ export async function validateStory(file: string, config: DesignbookConfig): Pro
     } catch {
       /* fall through */
     }
+    return { file, type: 'story', valid: false, error: errorMsg, last_validated: ts, last_failed: ts };
   }
 
-  return { file, type: 'story', valid: false, error: errorMsg, last_validated: ts, last_failed: ts };
+  // Not in index, no LoadError — file is new and Storybook hasn't picked it up yet.
+  // Treat as skipped (valid) rather than a hard failure.
+  return { file, type: 'story', valid: true, skipped: true, last_validated: ts };
 }

@@ -1,10 +1,11 @@
-node:
-  article:
-    - id: "1"
-      title: "Broken Ref Article"
-      field_media: "nonexistent-id"
-media:
-  image:
-    - id: "img-1"
-      url: "/images/hero.jpg"
-      alt: "Hero"
+content:
+  node:
+    article:
+      - id: "1"
+        title: "Broken Ref Article"
+        field_media: "nonexistent-id"
+  media:
+    image:
+      - id: "img-1"
+        url: "/images/hero.jpg"
+        alt: "Hero"

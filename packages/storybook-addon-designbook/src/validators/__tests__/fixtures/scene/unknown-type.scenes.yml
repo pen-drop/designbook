@@ -1,0 +1,6 @@
+group: Test/Scenes
+scenes:
+  - name: Unknown type
+    items:
+      - type: foobar
+        value: something

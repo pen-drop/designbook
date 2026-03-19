@@ -139,4 +139,9 @@ defaultRegistry.register('**/designbook-css-*/generate-*.jsonata', (file) =>
     last_validated: new Date().toISOString(),
   }),
 );
-defaultRegistry.register('**/*.scenes.yml', validateStory);
+defaultRegistry.register('**/*.scenes.yml', async (file, config) => {
+  const { validateSceneFile } = await import('./validators/scene.js');
+  const schema = toFileResult(validateSceneFile(file), file, 'scene');
+  if (!schema.valid) return schema;
+  return validateStory(file, config);
+});

@@ -17,6 +17,12 @@ interface BundleDef {
 
 interface DataModel {
   content?: Record<string, Record<string, BundleDef>>;
+  config?: Record<string, Record<string, BundleDef>>;
+}
+
+interface SampleData {
+  content?: Record<string, Record<string, Record<string, unknown>[]>>;
+  config?: Record<string, Record<string, Record<string, unknown>[]>>;
 }
 
 export function validateData(dataModelPath: string, dataPath: string): ValidationResult {
@@ -31,15 +37,18 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
   }
 
   const dataModel: DataModel = parseYaml(readFileSync(dataModelPath, 'utf-8'));
-  const sampleData: Record<string, Record<string, Record<string, unknown>[]>> = parseYaml(
-    readFileSync(dataPath, 'utf-8'),
-  );
-  const content = dataModel.content ?? {};
+  const sampleData: SampleData = parseYaml(readFileSync(dataPath, 'utf-8'));
 
-  for (const [entityType, bundles] of Object.entries(sampleData)) {
+  const contentModel = dataModel.content ?? {};
+  const configModel = dataModel.config ?? {};
+  const contentData = sampleData.content ?? {};
+  const configData = sampleData.config ?? {};
+
+  // ── Validate content entities ──────────────────────────────────────
+  for (const [entityType, bundles] of Object.entries(contentData)) {
     if (typeof bundles !== 'object' || bundles === null) continue;
 
-    if (!(entityType in content)) {
+    if (!(entityType in contentModel)) {
       errors.push(`Entity type "${entityType}" not in data-model`);
       continue;
     }
@@ -47,12 +56,12 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
     for (const [bundle, records] of Object.entries(bundles)) {
       if (!Array.isArray(records)) continue;
 
-      if (!(bundle in content[entityType])) {
+      if (!(bundle in contentModel[entityType])) {
         errors.push(`Bundle "${entityType}.${bundle}" not in data-model`);
         continue;
       }
 
-      const dmFields = content[entityType][bundle].fields ?? {};
+      const dmFields = contentModel[entityType][bundle].fields ?? {};
 
       for (const rec of records) {
         const rid = (rec as Record<string, unknown>).id ?? '?';
@@ -70,8 +79,8 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
             const { target_type: targetType, target_bundle: targetBundle } = fieldDef.settings;
             const refValue = (rec as Record<string, unknown>)[field];
 
-            if (targetType && targetBundle && refValue && sampleData[targetType]?.[targetBundle]) {
-              const targetRecords = sampleData[targetType][targetBundle];
+            if (targetType && targetBundle && refValue && contentData[targetType]?.[targetBundle]) {
+              const targetRecords = contentData[targetType][targetBundle];
               const refValues = Array.isArray(refValue) ? refValue : [refValue];
               for (const rv of refValues) {
                 const found = targetRecords.some((r) => (r as Record<string, unknown>).id === String(rv));
@@ -90,6 +99,22 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
             warnings.push(`Required field "${fieldName}" missing on ${entityType}.${bundle} id=${rid}`);
           }
         }
+      }
+    }
+  }
+
+  // ── Validate config entities (existence only, no field validation) ──
+  for (const [entityType, bundles] of Object.entries(configData)) {
+    if (typeof bundles !== 'object' || bundles === null) continue;
+
+    if (!(entityType in configModel)) {
+      errors.push(`Config entity type "${entityType}" not in data-model config`);
+      continue;
+    }
+
+    for (const [bundle] of Object.entries(bundles)) {
+      if (!(bundle in configModel[entityType])) {
+        errors.push(`Config bundle "${entityType}.${bundle}" not in data-model config`);
       }
     }
   }

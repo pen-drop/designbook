@@ -26,13 +26,20 @@ export interface DataModelContent {
 /** Top-level data model. */
 export interface DataModel {
   content: DataModelContent;
+  config?: DataModelContent;
 }
 
-/** Sample data structure from data.yml. */
-export interface SampleData {
+/** Entity bundles map used in SampleData. */
+interface EntityBundles {
   [entityType: string]: {
     [bundle: string]: Record<string, unknown>[];
   };
+}
+
+/** Sample data structure from data.yml — uses content/config namespacing. */
+export interface SampleData {
+  content?: EntityBundles;
+  config?: EntityBundles;
 }
 
 // ─── Scene Node Types ───────────────────────────────────────────────

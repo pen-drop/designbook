@@ -54,8 +54,9 @@ export const entityBuilder: SceneNodeBuilder = {
       return missingPlaceholder(`missing expression: ${entity_type}.${bundle}.${view_mode}.jsonata`);
     }
 
-    // 2. Get sample data record — view entities (e.g. view.*) have no data.yml entry, use {}
-    const entityData = ctx.sampleData?.[entity_type]?.[bundle] as Record<string, unknown>[] | undefined;
+    // 2. Get sample data record — content entities from content namespace, config entities (e.g. view.*) from config namespace
+    const entityData = (ctx.sampleData?.content?.[entity_type]?.[bundle] ??
+      ctx.sampleData?.config?.[entity_type]?.[bundle]) as Record<string, unknown>[] | undefined;
     const recordData: Record<string, unknown> = entityData?.[record] ?? {};
 
     // 3. Compile and evaluate the JSONata expression

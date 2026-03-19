@@ -44,12 +44,18 @@ export async function validateViewMode(file: string, config: DesignbookConfig): 
     return { valid: false, errors: [`Sample data not found: ${dataPath}`], warnings: [] };
   }
 
-  const rawData = parseYaml(readFileSync(dataPath, 'utf-8')) as Record<string, Record<string, unknown[]>>;
+  const rawData = parseYaml(readFileSync(dataPath, 'utf-8')) as Record<string, unknown>;
+
+  // Support both namespaced format (content.node.docs_page) and flat (node.docs_page)
+  const entityMap: Record<string, Record<string, unknown[]>> = rawData['content'] &&
+  typeof rawData['content'] === 'object'
+    ? (rawData['content'] as Record<string, Record<string, unknown[]>>)
+    : (rawData as Record<string, Record<string, unknown[]>>);
 
   const errors: string[] = [];
   let recordsTested = 0;
 
-  for (const [entityType, bundles] of Object.entries(rawData)) {
+  for (const [entityType, bundles] of Object.entries(entityMap)) {
     if (typeof bundles !== 'object' || bundles === null) continue;
     for (const [bundle, records] of Object.entries(bundles)) {
       if (!Array.isArray(records)) continue;

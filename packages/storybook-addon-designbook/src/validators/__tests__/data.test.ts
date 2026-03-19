@@ -43,6 +43,19 @@ describe('validateData', () => {
     expect(result.warnings).toEqual([expect.stringContaining('Broken ref')]);
   });
 
+  it('accepts valid config entities in data.yml', () => {
+    const dataWithConfig = resolve(fixtures, 'valid', 'data.yml');
+    // Temporarily test with inline valid config — reuse valid data-model which has config.view.recent_articles
+    const result = validateData(validDataModel, dataWithConfig);
+    expect(result.valid).toBe(true);
+  });
+
+  it('reports error for unknown config entity type', () => {
+    const result = validateData(validDataModel, resolve(fixtures, 'invalid-config', 'data.yml'));
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([expect.stringContaining('unknown_config_type')]);
+  });
+
   it('reports error for missing data file', () => {
     const result = validateData(validDataModel, '/nonexistent/data.yml');
     expect(result.valid).toBe(false);

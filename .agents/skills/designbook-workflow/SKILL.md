@@ -69,9 +69,9 @@ Each task entry includes the `stage` field (canonical stage name) and may have a
     "type": "component",
     "stage": "create-component",
     "files": [
-      "components/page/page.component.yml",
-      "components/page/page.twig",
-      "components/page/page.story.yml"
+      "/absolute/path/to/components/page/page.component.yml",
+      "/absolute/path/to/components/page/page.twig",
+      "/absolute/path/to/components/page/page.story.yml"
     ]
   },
   {
@@ -79,12 +79,12 @@ Each task entry includes the `stage` field (canonical stage name) and may have a
     "title": "Create design system scene",
     "type": "scene",
     "stage": "create-shell-scene",
-    "files": ["design-system/design-system.scenes.yml"]
+    "files": ["/absolute/path/to/designbook/design-system/design-system.scenes.yml"]
   }
 ]
 ```
 
-File paths are absolute (resolved env vars). The CLI normalizes them to paths relative to `$DESIGNBOOK_DIST` internally.
+> ⛔ **All `files[]` paths MUST be absolute** (e.g. `/home/user/project/...`). Never use relative paths. Resolve env vars (`$DESIGNBOOK_DIST`, `$DESIGNBOOK_DRUPAL_THEME`) to their full absolute values before writing the task JSON.
 
 ## Task File Format (skills)
 

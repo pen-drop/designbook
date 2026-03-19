@@ -30,5 +30,4 @@ describe('validateDataModel', () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual([expect.stringContaining('not found')]);
   });
-
 });

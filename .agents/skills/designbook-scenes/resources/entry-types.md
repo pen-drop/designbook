@@ -62,7 +62,6 @@ The resolver scans `*.scenes.yml` files in the referenced directory:
 ```
 ref: "design-system"         → design-system/*.scenes.yml → first scene (scenes[0])
 ref: "design-system:shell"   → design-system/*.scenes.yml → scene named "shell"
-ref: "design-system:minimal" → design-system/*.scenes.yml → scene named "minimal"
 ```
 
 Unresolved `$variable` placeholders render as a visible grey placeholder box in Storybook.

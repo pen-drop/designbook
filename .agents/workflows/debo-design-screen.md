@@ -5,7 +5,7 @@ category: Designbook
 description: Create screen design components for a section
 workflow:
   title: Design Screen
-  stages: [dialog, create-component, collect-entities, map-entity, compose-entity, create-section-scene]
+  stages: [dialog, create-component, collect-entities, ensure-sample-data, map-entity, compose-entity, create-section-scene]
 before:
   - workflow: /debo-css-generate
     execute: if-never-run
@@ -20,7 +20,6 @@ reads:
   - path: $DESIGNBOOK_DIST/sections/[section-id]/*.section.scenes.yml
     optional: true
   - path: $DESIGNBOOK_DIST/sections/[section-id]/data.yml
-    optional: true
     
 ---
 
@@ -39,14 +38,20 @@ Read all available prerequisite files to understand the full context.
 
 ## Step 1: Select Section
 
-Parse the sections directory and identify sections that have both spec and data. Present them:
+Parse the sections directory. For each subdirectory check:
+- `*.section.scenes.yml` exists → ✓ Scenes (required)
+- `data.yml` exists → ✓ Data (generated automatically if missing — not a blocker)
+
+Present only sections that have a scenes file. Sections without a scenes file are excluded:
 
 > "Sections ready for screen design:
 >
-> 1. **[Section 1]** — ✓ Spec, ✓ Data [, ✓ Scenes already exist]
-> 2. **[Section 2]** — ✓ Spec, ✓ Data
+> 1. **[Section 1]** — ✓ Scenes, ✓ Data [, ✓ Components already exist]
+> 2. **[Section 2]** — ✓ Scenes, ✗ Data _(will be generated)_
 >
 > Which section would you like to design?"
+
+Sections with `✗ No scenes` are not listed (they cannot be designed yet — run `/debo-shape-section` first). Missing `data.yml` is not a blocker — the `ensure-sample-data` stage generates it automatically.
 
 Wait for their response.
 

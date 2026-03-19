@@ -1,0 +1,34 @@
+group: Test/Scenes
+scenes:
+  - name: Component scene
+    items:
+      - component: test:card
+        props:
+          variant: default
+        slots:
+          title: Hello
+          body:
+            - component: test:text
+              slots:
+                text: World
+
+  - name: Entity scene
+    items:
+      - entity: node.article
+        view_mode: teaser
+        record: 0
+
+  - name: Scene ref with slots
+    items:
+      - type: scene
+        ref: design-system:shell
+        with:
+          content:
+            - component: test:hero
+              slots:
+                title: Welcome
+
+  - name: Config ref
+    items:
+      - config: view.latest_posts
+        view_mode: listing
