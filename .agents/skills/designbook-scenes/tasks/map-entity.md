@@ -8,7 +8,7 @@ reads:
   - path: $DESIGNBOOK_DIST/data-model.yml
     workflow: debo-data-model
 files:
-  - $DESIGNBOOK_DIST/view-modes/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
+  - $DESIGNBOOK_DIST/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
 ---
 
 # Map Entity
@@ -24,7 +24,7 @@ For `view_mode = full` AND `composition: unstructured`, use `compose-entity` ins
 ## Output
 
 ```
-$DESIGNBOOK_DIST/view-modes/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
+$DESIGNBOOK_DIST/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
 ```
 
 ## Format

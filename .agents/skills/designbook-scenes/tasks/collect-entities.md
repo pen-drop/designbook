@@ -43,10 +43,10 @@ Present the work list as a table before proceeding:
 
 | Entity | Record | View Mode | Stage | Output |
 |--------|--------|-----------|-------|--------|
-| `node.article` | — | `full` | `map-entity` | `view-modes/node.article.full.jsonata` |
-| `node.article` | — | `teaser` | `map-entity` | `view-modes/node.article.teaser.jsonata` |
-| `media.image` | — | `default` | `map-entity` | `view-modes/media.image.default.jsonata` |
-| `view.recent_articles` | — | `default` | `compose-entity` | `view-modes/view.recent_articles.default.jsonata` |
+| `node.article` | — | `full` | `map-entity` | `entity-mapping/node.article.full.jsonata` |
+| `node.article` | — | `teaser` | `map-entity` | `entity-mapping/node.article.teaser.jsonata` |
+| `media.image` | — | `default` | `map-entity` | `entity-mapping/media.image.default.jsonata` |
+| `view.recent_articles` | — | `default` | `compose-entity` | `entity-mapping/view.recent_articles.default.jsonata` |
 | `node.landing_page` | 0 | `full` | `compose-entity` | inline `components:` in scenes.yml |
 | `node.landing_page` | 1 | `full` | `compose-entity` | inline `components:` in scenes.yml |
 

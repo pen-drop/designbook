@@ -11,7 +11,7 @@ Applies when composing an entity with `entity_type: view` (e.g. `entity: view.re
 
 A view entity is backed by a JSONata file that receives `{}` as input and returns a component tree with inline entity refs. No sample data record needed.
 
-**File:** `$DESIGNBOOK_DIST/view-modes/view.{{ bundle }}.{{ view_mode }}.jsonata`
+**File:** `$DESIGNBOOK_DIST/entity-mapping/view.{{ bundle }}.{{ view_mode }}.jsonata`
 
 ```jsonata
 {

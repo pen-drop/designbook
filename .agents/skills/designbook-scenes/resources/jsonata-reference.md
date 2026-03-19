@@ -5,7 +5,7 @@
 Each `.jsonata` file is a pure JSONata expression. Input is a single entity record from `data.yml`. Output is `ComponentNode[]`.
 
 ```jsonata
-/* view-modes/node.article.teaser.jsonata
+/* entity-mapping/node.article.teaser.jsonata
  * Input: single record from data.yml → node.article[n]
  * Output: ComponentNode[]
  */

@@ -16,10 +16,10 @@ function isComponentNode(val: unknown): val is ComponentNode {
 }
 
 /**
- * Validate a .jsonata view-mode mapping file by executing it against sample data
+ * Validate a .jsonata entity mapping file by executing it against sample data
  * and verifying the output is a valid ComponentNode[].
  */
-export async function validateViewMode(file: string, config: DesignbookConfig): Promise<ValidationResult> {
+export async function validateEntityMapping(file: string, config: DesignbookConfig): Promise<ValidationResult> {
   if (!existsSync(file)) {
     return { valid: false, errors: [`File not found: ${file}`], warnings: [] };
   }

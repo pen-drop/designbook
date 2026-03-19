@@ -11,7 +11,7 @@ import jsonata from 'jsonata';
 const fixturesDir = resolve(__dirname, 'fixtures');
 
 function loadExpression(name: string): string {
-  return readFileSync(resolve(fixturesDir, 'view-modes', name), 'utf-8');
+  return readFileSync(resolve(fixturesDir, 'entity-mapping', name), 'utf-8');
 }
 
 const sampleRecord = {

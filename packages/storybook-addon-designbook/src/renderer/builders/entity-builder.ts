@@ -1,7 +1,7 @@
 /**
  * Entity Builder — resolves `type: 'entity'` nodes using JSONata expressions.
  *
- * Loads view-mode .jsonata files, evaluates them against sample data records,
+ * Loads entity-mapping .jsonata files, evaluates them against sample data records,
  * and returns raw ComponentNode/SceneNode output.
  * resolveEntityRefs() in the registry handles recursive resolution afterward.
  */
@@ -47,7 +47,7 @@ export const entityBuilder: SceneNodeBuilder = {
     const record = (node['record'] as number) ?? 0;
 
     // 1. Locate the .jsonata expression file
-    const jsonataPath = resolve(ctx.designbookDir, 'view-modes', `${entity_type}.${bundle}.${view_mode}.jsonata`);
+    const jsonataPath = resolve(ctx.designbookDir, 'entity-mapping', `${entity_type}.${bundle}.${view_mode}.jsonata`);
 
     if (!existsSync(jsonataPath)) {
       console.warn(`[Designbook] JSONata expression not found: ${jsonataPath}`);

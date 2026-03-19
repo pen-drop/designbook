@@ -5,7 +5,7 @@ import { validateData } from './validators/data.js';
 import { validateTokens } from './validators/tokens.js';
 import { validateComponent } from './validators/component.js';
 import { validateDataModel } from './validators/data-model.js';
-import { validateViewMode } from './validators/view-mode.js';
+import { validateEntityMapping } from './validators/entity-mapping.js';
 import {
   workflowCreate,
   workflowPlan,
@@ -128,12 +128,12 @@ validate
   });
 
 validate
-  .command('view-mode <name>')
-  .description('Validate a .jsonata view-mode mapping file against sample data')
+  .command('entity-mapping <name>')
+  .description('Validate a .jsonata entity mapping file against sample data')
   .action(async (name: string) => {
     const config = loadConfig();
-    const file = resolve(config.dist, 'view-modes', `${name}.jsonata`);
-    const result = await validateViewMode(file, config);
+    const file = resolve(config.dist, 'entity-mapping', `${name}.jsonata`);
+    const result = await validateEntityMapping(file, config);
     printJson(name, result.valid, result.errors, result.warnings);
   });
 
