@@ -124,14 +124,15 @@ describe('validateViaStorybookHttp', () => {
     expect(result.error).toContain('Twig error');
   });
 
-  it('returns valid:false when file is not in index', async () => {
+  it('returns skipped when file is not in index and no LoadError', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ entries: {} }),
     } as Response);
     const result = await validateViaStorybookHttp('/tmp/test-designbook/path/to/button.story.yml', mockConfig);
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('not found in Storybook index');
+    // Not in index + no LoadError = new file not yet picked up by Storybook → skipped
+    expect(result.valid).toBe(true);
+    expect(result.skipped).toBe(true);
   });
 
   it('returns skipped when index.json is not ok', async () => {

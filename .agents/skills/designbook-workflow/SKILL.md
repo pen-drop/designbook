@@ -339,6 +339,30 @@ after:
 - Both: if the referenced workflow's required `reads:` are unsatisfied, skip silently regardless of policy.
 - Both: pass `--parent $WORKFLOW_NAME` when triggering the hook workflow.
 
+**Dialog stage**: At the start of the dialog (before asking the user any questions), also scan for rules where `when.stages` contains `<workflow-id>:dialog` (e.g. `debo-data-model:dialog`). Apply matching rules as constraints throughout the entire dialog conversation.
+
+## Workflow Frontmatter: `before` and `after` Hooks
+
+Declare hooks in the YAML frontmatter of any `debo-*.md` workflow:
+
+```yaml
+before:
+  - workflow: /debo-css-generate
+    execute: if-never-run    # always | if-never-run | ask
+
+after:
+  - workflow: /debo-css-generate
+    # no execute field — after hooks always ask
+```
+
+- **`before`**: runs after the current workflow's dialog, before `workflow plan`. Requires an `execute` policy.
+  - `always` — run unconditionally (if reads are satisfied)
+  - `if-never-run` — run only if `workflow list --include-archived` returns empty
+  - `ask` — prompt the user
+- **`after`**: suggests a follow-up workflow after the last `workflow done`. Always prompts the user.
+- Both: if the referenced workflow's required `reads:` are unsatisfied, skip silently regardless of policy.
+- Both: pass `--parent $WORKFLOW_NAME` when triggering the hook workflow.
+
 ### Status Transitions (Automatic)
 The CLI automatically handles:
 - `planning` → set by `workflow create` (with or without tasks)
