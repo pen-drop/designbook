@@ -30,6 +30,9 @@ jobs:
       - name: Lint addon
         run: pnpm lint
 
+      - name: Test addon
+        run: pnpm --filter storybook-addon-designbook test
+
       - name: Build addon
         run: pnpm --filter storybook-addon-designbook build
 
