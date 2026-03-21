@@ -21,7 +21,7 @@ export interface TaskFile {
 }
 
 export interface TaskValidationEntry {
-  file: string;      // absolute path
+  file: string; // absolute path
   validator: string; // e.g. 'component', 'scene', 'tokens', 'data', 'twig'
   passed: boolean;
 }

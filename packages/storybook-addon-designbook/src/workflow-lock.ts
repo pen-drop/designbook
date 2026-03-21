@@ -27,9 +27,15 @@ export function acquireLock(filePath: string): string {
         const lockTime = parseInt(content, 10);
         if (Date.now() - lockTime > STALE_LOCK_MS) {
           // Stale lock — remove it
-          try { unlinkSync(lockPath); } catch { /* ignore */ }
+          try {
+            unlinkSync(lockPath);
+          } catch {
+            /* ignore */
+          }
         }
-      } catch { /* ignore read errors */ }
+      } catch {
+        /* ignore read errors */
+      }
     }
 
     try {
@@ -43,13 +49,15 @@ export function acquireLock(filePath: string): string {
       // Lock exists — wait and retry with exponential backoff
       const delay = BASE_DELAY_MS * Math.pow(2, attempt);
       const end = Date.now() + delay;
-      while (Date.now() < end) { /* busy wait — short durations only */ }
+      while (Date.now() < end) {
+        /* busy wait — short durations only */
+      }
     }
   }
 
   throw new Error(
     `Failed to acquire lock on ${filePath} after ${MAX_RETRIES} attempts. ` +
-    `Another process may be writing to this file.`,
+      `Another process may be writing to this file.`,
   );
 }
 

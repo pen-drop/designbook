@@ -203,46 +203,56 @@ workflow
       if (opts.workflowFile) {
         const configPath = findConfig();
         const rawConfig = configPath
-          ? (parseYaml(readFileSync(configPath, 'utf-8')) as Record<string, unknown>) ?? {}
+          ? ((parseYaml(readFileSync(configPath, 'utf-8')) as Record<string, unknown>) ?? {})
           : {};
         const configDir = configPath ? dirname(configPath) : process.cwd();
         const agentsDir = resolve(configDir, '.agents');
 
         try {
-          const resolved = resolveAllStages(
-            resolve(opts.workflowFile),
-            config,
-            rawConfig,
-            agentsDir,
-          );
+          const resolved = resolveAllStages(resolve(opts.workflowFile), config, rawConfig, agentsDir);
 
           const title = opts.title ?? resolved.title;
 
           // Find intake stage (if any) to create an intake task
           const intakeStage = resolved.stages.find((s) => s.endsWith(':intake'));
-          const intakeTask = intakeStage ? [{
-            id: 'intake',
-            title: `Intake: ${title}`,
-            type: 'data' as const,
-            stage: intakeStage,
-            files: [] as string[],
-            task_file: resolved.stage_resolved[intakeStage].task_file,
-            rules: resolved.stage_resolved[intakeStage].rules,
-            config_rules: resolved.stage_resolved[intakeStage].config_rules,
-            config_instructions: resolved.stage_resolved[intakeStage].config_instructions,
-          }] : [];
+          const intakeTask = intakeStage
+            ? [
+                {
+                  id: 'intake',
+                  title: `Intake: ${title}`,
+                  type: 'data' as const,
+                  stage: intakeStage,
+                  files: [] as string[],
+                  task_file: resolved.stage_resolved[intakeStage].task_file,
+                  rules: resolved.stage_resolved[intakeStage].rules,
+                  config_rules: resolved.stage_resolved[intakeStage].config_rules,
+                  config_instructions: resolved.stage_resolved[intakeStage].config_instructions,
+                },
+              ]
+            : [];
 
           const name = workflowCreate(
-            config.dist, opts.workflow, title, intakeTask, resolved.stages, opts.parent,
+            config.dist,
+            opts.workflow,
+            title,
+            intakeTask,
+            resolved.stages,
+            opts.parent,
             resolved.stage_resolved,
           );
 
           // Output JSON with workflow name + all resolved stages
-          console.log(JSON.stringify({
-            name,
-            stages: resolved.stages,
-            stage_resolved: resolved.stage_resolved,
-          }, null, 2));
+          console.log(
+            JSON.stringify(
+              {
+                name,
+                stages: resolved.stages,
+                stage_resolved: resolved.stage_resolved,
+              },
+              null,
+              2,
+            ),
+          );
         } catch (err) {
           console.error(`Error: ${(err as Error).message}`);
           process.exitCode = 1;
@@ -336,9 +346,7 @@ workflow
       const existing = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
       const stageLoaded = existing.stage_loaded as Record<string, ResolvedStage> | undefined;
       if (!stageLoaded) {
-        throw new Error(
-          `No stage_loaded in tasks.yml. Was the workflow created with --workflow-file?`,
-        );
+        throw new Error(`No stage_loaded in tasks.yml. Was the workflow created with --workflow-file?`);
       }
 
       const stages = (existing.stages as string[]) ?? [];
@@ -347,9 +355,7 @@ workflow
       // Validate items against known stages
       for (const item of items) {
         if (!execStages.includes(item.stage)) {
-          throw new Error(
-            `Item stage "${item.stage}" not in workflow stages: [${execStages.join(', ')}]`,
-          );
+          throw new Error(`Item stage "${item.stage}" not in workflow stages: [${execStages.join(', ')}]`);
         }
       }
 
@@ -357,9 +363,17 @@ workflow
 
       // Expand items into tasks using pre-resolved stage data
       const tasks: Array<{
-        id: string; title: string; type: string; stage: string; files: string[];
-        depends_on: string[]; params: Record<string, unknown>;
-        task_file: string; rules: string[]; config_rules: string[]; config_instructions: string[];
+        id: string;
+        title: string;
+        type: string;
+        stage: string;
+        files: string[];
+        depends_on: string[];
+        params: Record<string, unknown>;
+        task_file: string;
+        rules: string[];
+        config_rules: string[];
+        config_instructions: string[];
       }> = [];
       const taskIdsByStage = new Map<string, string[]>();
 
@@ -385,7 +399,11 @@ workflow
           const files = expandFilePaths(fileTemplates, mergedParams, envMap);
 
           tasks.push({
-            id: taskId, title, type, stage, files,
+            id: taskId,
+            title,
+            type,
+            stage,
+            files,
             depends_on: [],
             params: mergedParams,
             task_file: resolved.task_file,
@@ -461,13 +479,19 @@ workflow
     }
 
     const stage = stageLoaded[opts.stage] as Record<string, unknown>;
-    console.log(JSON.stringify({
-      stage: opts.stage,
-      task_file: stage.task_file,
-      rules: stage.rules ?? [],
-      config_rules: stage.config_rules ?? [],
-      config_instructions: stage.config_instructions ?? [],
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          stage: opts.stage,
+          task_file: stage.task_file,
+          rules: stage.rules ?? [],
+          config_rules: stage.config_rules ?? [],
+          config_instructions: stage.config_instructions ?? [],
+        },
+        null,
+        2,
+      ),
+    );
   });
 
 workflow

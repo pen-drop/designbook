@@ -6,7 +6,6 @@ import { randomBytes } from 'node:crypto';
 import {
   resolveTaskFile,
   expandFilePath,
-  expandFilePaths,
   matchRuleFiles,
   resolveConfigForStage,
   computeDependsOn,
@@ -56,10 +55,7 @@ function writeSkillRuleFile(
 
 function writeWorkflowFile(dir: string, name: string, frontmatter: string): string {
   const path = resolve(dir, `${name}.md`);
-  writeFileSync(
-    path,
-    `---\n${frontmatter}\n---\nLoad skill designbook-workflow.`,
-  );
+  writeFileSync(path, `---\n${frontmatter}\n---\nLoad skill designbook-workflow.`);
   return path;
 }
 
@@ -124,9 +120,7 @@ describe('resolveTaskFile', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     mkdirSync(resolve(agentsDir, 'skills'), { recursive: true });
 
-    expect(() => resolveTaskFile('nonexistent-stage', baseConfig, agentsDir)).toThrow(
-      /No task file found/,
-    );
+    expect(() => resolveTaskFile('nonexistent-stage', baseConfig, agentsDir)).toThrow(/No task file found/);
   });
 });
 
@@ -144,11 +138,7 @@ describe('expandFilePath', () => {
   });
 
   it('expands ${VAR} env vars', () => {
-    const result = expandFilePath(
-      '${DESIGNBOOK_DRUPAL_THEME}/components/test.yml',
-      {},
-      envMap,
-    );
+    const result = expandFilePath('${DESIGNBOOK_DRUPAL_THEME}/components/test.yml', {}, envMap);
     expect(result).toBe('/test/theme/components/test.yml');
   });
 
@@ -212,18 +202,14 @@ describe('computeDependsOn', () => {
 // 5.4: Params validation
 describe('validateAndMergeParams', () => {
   it('passes with all required params provided', () => {
-    const result = validateAndMergeParams(
-      { component: 'button' },
-      { component: null, slots: [] },
-      'create-component',
-    );
+    const result = validateAndMergeParams({ component: 'button' }, { component: null, slots: [] }, 'create-component');
     expect(result).toEqual({ component: 'button', slots: [] });
   });
 
   it('throws on missing required param', () => {
-    expect(() =>
-      validateAndMergeParams({}, { component: null }, 'create-component'),
-    ).toThrow(/Missing required param 'component'/);
+    expect(() => validateAndMergeParams({}, { component: null }, 'create-component')).toThrow(
+      /Missing required param 'component'/,
+    );
   });
 
   it('uses default for optional params', () => {
@@ -309,12 +295,7 @@ describe('matchRuleFiles', () => {
 
   it('excludes rule file for non-matching stage', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(
-      agentsDir,
-      'designbook-scenes',
-      'scene-rules',
-      'when:\n  stages: [create-scene]',
-    );
+    writeSkillRuleFile(agentsDir, 'designbook-scenes', 'scene-rules', 'when:\n  stages: [create-scene]');
 
     const result = matchRuleFiles('create-component', baseConfig, agentsDir);
     expect(result).toEqual([]);
@@ -349,12 +330,7 @@ describe('matchRuleFiles', () => {
 
   it('includes rule file with empty when (applies to all)', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const rulePath = writeSkillRuleFile(
-      agentsDir,
-      'designbook-workflow',
-      'global-rule',
-      'when: {}',
-    );
+    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', 'when: {}');
 
     const result = matchRuleFiles('any-stage', baseConfig, agentsDir);
     expect(result).toContain(rulePath);
@@ -438,31 +414,22 @@ describe('resolveWorkflowPlan', () => {
       'workflow:\n  title: Test\n  stages: [create-component]',
     );
 
-    expect(() =>
-      resolveWorkflowPlan(
-        wfPath,
-        {},
-        [{ stage: 'nonexistent' }],
-        baseConfig,
-        {},
-        agentsDir,
-      ),
-    ).toThrow(/not found in workflow stages/);
+    expect(() => resolveWorkflowPlan(wfPath, {}, [{ stage: 'nonexistent' }], baseConfig, {}, agentsDir)).toThrow(
+      /not found in workflow stages/,
+    );
   });
 });
 
 // Task ID generation
 describe('generateTaskId', () => {
   it('generates ID from stage and first string param', () => {
-    expect(generateTaskId('create-component', { component: 'button', slots: [] })).toBe(
-      'create-component-button',
-    );
+    expect(generateTaskId('create-component', { component: 'button', slots: [] })).toBe('create-component-button');
   });
 
   it('strips skill prefix from named stages', () => {
-    expect(
-      generateTaskId('designbook-sections:create-section', { section_id: 'dashboard' }),
-    ).toBe('create-section-dashboard');
+    expect(generateTaskId('designbook-sections:create-section', { section_id: 'dashboard' })).toBe(
+      'create-section-dashboard',
+    );
   });
 
   it('falls back to stage name when no string params', () => {

@@ -2,5 +2,4 @@ dist: ./designbook
 backend: drupal
 frameworks:
   component: sdc
-  css: daisyui
-css_framework: daisyui
+  css: tailwind

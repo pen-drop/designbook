@@ -6,7 +6,7 @@
  */
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { resolve, basename, dirname } from 'node:path';
+import { resolve, basename } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import type { DesignbookConfig } from './config.js';
 
@@ -99,11 +99,7 @@ export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
  * Generic stages scan all skills for matching task files,
  * apply `when` condition filtering, and select the most specific match.
  */
-export function resolveTaskFile(
-  stage: string,
-  config: DesignbookConfig,
-  agentsDir: string,
-): string {
+export function resolveTaskFile(stage: string, config: DesignbookConfig, agentsDir: string): string {
   // Named stage: skill-name:task-name → direct resolution
   if (stage.includes(':')) {
     const [skillName, taskName] = stage.split(':', 2);
@@ -216,11 +212,7 @@ export function expandFilePaths(
 /**
  * Scan all rule files and return paths matching the given stage and config.
  */
-export function matchRuleFiles(
-  stage: string,
-  config: DesignbookConfig,
-  agentsDir: string,
-): string[] {
+export function matchRuleFiles(stage: string, config: DesignbookConfig, agentsDir: string): string[] {
   const skillsDir = resolve(agentsDir, 'skills');
   if (!existsSync(skillsDir)) return [];
 
@@ -303,10 +295,7 @@ export function resolveConfigForStage(
  * Compute depends_on arrays from stage ordering.
  * All tasks in stage N depend on all task IDs in stage N-1.
  */
-export function computeDependsOn(
-  stages: string[],
-  tasksByStage: Map<string, string[]>,
-): Map<string, string[]> {
+export function computeDependsOn(stages: string[], tasksByStage: Map<string, string[]>): Map<string, string[]> {
   const result = new Map<string, string[]>();
 
   for (let i = 0; i < stages.length; i++) {
@@ -504,9 +493,7 @@ export function resolveWorkflowPlan(
   // Validate items: all item stages must be in the workflow's stages list
   for (const item of items) {
     if (!execStages.includes(item.stage)) {
-      throw new Error(
-        `Item stage "${item.stage}" not found in workflow stages: [${execStages.join(', ')}]`,
-      );
+      throw new Error(`Item stage "${item.stage}" not found in workflow stages: [${execStages.join(', ')}]`);
     }
   }
 
