@@ -1,57 +1,91 @@
-## ADDED Requirements
+# story-validation Specification
 
-### Requirement: Headless story rendering via Vitest
+## Purpose
+TBD - created by archiving change addon-vitest-integration. Update Purpose after archive.
 
-The addon SHALL provide a Vitest integration that renders stories to HTML without a running Storybook server. The integration MUST reuse the same Vite plugin pipeline as Storybook (including `storybook-addon-sdc`, `vite-plugin-twing-drupal`, and the designbook Vite plugin).
+## Requirements
+
+### Requirement: Story rendering via Vite SSR
+
+The addon CLI SHALL validate stories by executing them in Node.js using Vite's `ssrLoadModule` API with the project's Storybook Vite plugin chain. No browser or Playwright installation SHALL be required.
+
+The implementation SHALL:
+- Dynamically import `.storybook/main.js` from `storybook.configDir` (resolved via `loadConfig()`, with walk-up fallback from `drupal.theme`)
+- Extract addon configurations and call each addon preset's `viteFinal` to build a Vite server config
+- Create a Vite server and call `ssrLoadModule` for each discovered story file
+- Call `render(args)` on each named story export (skipping `default`)
+- Capture the returned HTML string on success, or capture the thrown error message on failure
 
 #### Scenario: Render a component story to HTML
 
-- **WHEN** Vitest runs against a `.story.yml` file
-- **THEN** the story module is loaded through the Storybook Vite pipeline and the `render()` function produces an HTML string without errors
+- **WHEN** user runs `validate story button` and `button.default.story.yml` exists and renders without error
+- **THEN** the CLI SHALL output `{ "valid": true, "label": "button.default", "html": "<button>…</button>" }` and exit 0
 
 #### Scenario: Render a scene story to HTML
 
-- **WHEN** Vitest runs against a `.scenes.yml` file
-- **THEN** all scenes in the file are rendered through the Storybook Vite pipeline and each produces an HTML string without errors
+- **WHEN** user runs `validate story core-scene-rendering` and `core-scene-rendering.section.scenes.yml` exists and all scenes render without error
+- **THEN** the CLI SHALL output one JSON line per scene, each with `"valid": true` and the rendered HTML
 
-#### Scenario: Catch rendering errors
+#### Scenario: Catch a Twig rendering error
 
-- **WHEN** a story references a component with a broken Twig template (e.g., undefined variable, missing include)
-- **THEN** the Vitest test fails with an error message identifying the broken component and the Twig error
+- **WHEN** a `.story.yml` references a component whose Twig template contains an undefined variable
+- **THEN** the CLI SHALL output `{ "valid": false, "label": "button.default", "error": "button.twig:12: Variable 'label' is not defined" }` and exit 1
 
-### Requirement: CLI validate story command
+#### Scenario: storybook.configDir not configured and not found
 
-The addon CLI SHALL provide a `validate story <name>` command that renders a single story headlessly and reports success or failure. The command MUST use Vitest's programmatic API internally.
+- **WHEN** `storybook.configDir` is not in `designbook.config.yml` and no `.storybook/` directory is found by walk-up
+- **THEN** the CLI SHALL print `{ "valid": false, "error": "Cannot find .storybook/ directory. Set storybook.configDir in designbook.config.yml." }` and exit 1
 
-#### Scenario: Validate a specific component story
+### Requirement: scenes.yml support in validate story
 
-- **WHEN** user runs `storybook-addon-designbook validate story <component-name>`
-- **THEN** the CLI finds all `.story.yml` files for that component, renders each story, and reports success or lists rendering errors
+`validate story [name]` SHALL discover and validate both `.story.yml` and `.scenes.yml` files. There is no separate `validate scene` command.
 
-#### Scenario: Validate all stories
+#### Scenario: Validate all stories and scenes
 
-- **WHEN** user runs `storybook-addon-designbook validate story` without arguments
-- **THEN** the CLI renders all discoverable stories (both `.story.yml` and `.scenes.yml`) and reports a summary of successes and failures
+- **WHEN** user runs `validate story` without a name argument
+- **THEN** the CLI SHALL discover all `.story.yml` and `.scenes.yml` files and output one JSON line per story/scene
 
-#### Scenario: Non-zero exit code on failure
+#### Scenario: Filter by name
 
-- **WHEN** any story fails to render
-- **THEN** the CLI exits with a non-zero exit code for CI integration
+- **WHEN** user runs `validate story button`
+- **THEN** the CLI SHALL only process files matching `button` in their path
+
+### Requirement: buildExportName handles special characters
+
+The `buildExportName` function SHALL strip all non-alphanumeric, non-whitespace characters (including em-dashes, en-dashes, slashes) before converting to PascalCase. The dist SHALL be rebuilt to include this fix.
+
+#### Scenario: Scene name with em-dash
+
+- **WHEN** a `.scenes.yml` contains a scene named `"Article Listing — Single Result"`
+- **THEN** `buildExportName` SHALL return `"ArticleListingSingleResult"` (not `"ArticleListing—SingleResult"`)
+
+#### Scenario: No duplicate export names
+
+- **WHEN** two scenes differ only in punctuation (e.g., `"Category — Tutorial"` and `"Category — Design Systems"`)
+- **THEN** their export names SHALL be distinct: `"CategoryTutorial"` and `"CategoryDesignSystems"`
+
+## REMOVED Requirements
+
+### Requirement: Headless story rendering via Vitest
+
+**Reason**: Replaced by Vite SSR approach. Vitest + Playwright is not required for story rendering because Twig/SDC rendering is server-side (Node.js). The new implementation uses `ssrLoadModule` which is faster, simpler, and requires no browser.
+
+**Migration**: Remove `vitest.config.ts`, `@vitest/browser`, `@vitest/browser-playwright`, and `@storybook/addon-vitest` from integration projects. Run `validate story` via the CLI instead.
+
+### Requirement: CLI validate story command (old)
+
+**Reason**: Replaced by the updated requirement above. The old implementation spawned `npx vitest run --project=storybook` and required `drupal.theme` to be set. New implementation uses Vite SSR and reads `storybook.configDir`.
+
+**Migration**: No change to CLI surface (`validate story [name]`). Internal implementation changes.
 
 ### Requirement: Integration project Vitest configuration
 
-Integration projects SHALL be able to run story validation by adding a Vitest workspace entry that references their Storybook configuration directory.
+**Reason**: No longer required for story validation. `vitest.config.ts` in integration projects was only needed to run story validation via vitest.
 
-#### Scenario: Vitest workspace setup
+**Migration**: Delete `vitest.config.ts` (or keep for CI if desired — it no longer breaks anything). Remove `@vitest/browser-playwright` and browser dependencies from integration project `devDependencies`.
 
-- **WHEN** an integration project creates a `vitest.workspace.ts` with a Storybook project entry pointing to `.storybook/`
-- **THEN** running `vitest --project=storybook` discovers and validates all stories in the project
+### Requirement: Addon dependency management (vitest peer deps)
 
-### Requirement: Addon dependency management
+**Reason**: `@storybook/addon-vitest` and `vitest` are no longer required by the addon for story validation.
 
-The addon SHALL declare `@storybook/addon-vitest` and `vitest` as optional peer dependencies so that story validation is opt-in.
-
-#### Scenario: Addon works without vitest installed
-
-- **WHEN** an integration project does not install `vitest` or `@storybook/addon-vitest`
-- **THEN** the addon functions normally — only the `validate story` CLI command is unavailable and reports a helpful error message
+**Migration**: Remove from `peerDependencies` and `peerDependenciesMeta` in `storybook-addon-designbook/package.json`.

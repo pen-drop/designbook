@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [debo-design-tokens:dialog, debo-design-screen:dialog, debo-design-shell:dialog, create-component, create-section-scene, create-shell-scene, create-tokens]
+  stages: [designbook-vision:intake, designbook-data-model:intake, designbook-guidelines:intake, designbook-tokens:intake, designbook-sections:intake, designbook-design-component:intake, designbook-design-screen:intake, designbook-design-shell:intake, designbook-sample-data:intake, designbook-shape-section:intake, designbook-screenshots:intake, designbook-css-generate:intake, create-component, create-section-scene, create-shell-scene, create-tokens]
 ---
 
 # Design Guidelines Context

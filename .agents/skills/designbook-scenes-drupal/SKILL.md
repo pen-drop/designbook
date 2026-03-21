@@ -1,15 +1,13 @@
 ---
 name: designbook-scenes-drupal
-description: Drupal-specific compose rules for unstructured full view modes. Load this skill when DESIGNBOOK_BACKEND is drupal.
+description: Drupal-specific entity mapping template rules for map-entity stage. Load this skill when DESIGNBOOK_BACKEND is drupal.
 ---
 
 # Designbook Scenes — Drupal
 
-Drupal-specific rules for `compose-entity`. Provides per-extension composition patterns for unstructured full view modes.
+Drupal-specific template rules for the `map-entity` stage. Loaded automatically alongside `designbook-scenes` when `DESIGNBOOK_BACKEND=drupal`.
 
-Loaded automatically when `DESIGNBOOK_BACKEND=drupal` alongside `designbook-scenes`.
+## Template Rules
 
-## Rules
-
-- [compose-layout-builder.md](rules/compose-layout-builder.md) — Layout Builder composition: section components with `block_content` entity refs in column slots (loaded during `compose-entity` when `extensions: [layout_builder]`)
-- [compose-canvas.md](rules/compose-canvas.md) — Canvas composition: flat component tree with direct component nodes (loaded during `compose-entity` when `extensions: [canvas]`)
+- [layout-builder.md](rules/layout-builder.md) — `when: template: layout-builder` — section components with `block_content` entity refs in column slots
+- [canvas.md](rules/canvas.md) — `when: template: canvas` — flat component tree with direct component nodes

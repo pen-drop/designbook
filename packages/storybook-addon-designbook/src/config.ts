@@ -21,8 +21,6 @@ export interface DesignbookConfig {
   technology: string;
   /** Temporary directory. */
   tmp: string;
-  /** Backend extensions affecting content composition (e.g. layout_builder, canvas). */
-  extensions: string[];
   /** Any additional keys from the config file. */
   [key: string]: unknown;
 }
@@ -31,7 +29,6 @@ const DEFAULTS: DesignbookConfig = {
   dist: 'designbook',
   technology: 'html',
   tmp: 'tmp',
-  extensions: [],
 };
 
 /**
@@ -120,7 +117,7 @@ export function loadConfig(startDir?: string): DesignbookConfig {
     }
 
     return config;
-  } catch {
-    return { ...DEFAULTS, dist: resolve(process.cwd(), DEFAULTS.dist) };
+  } catch (err) {
+    throw new Error(`Failed to parse designbook.config.yml: ${(err as Error).message}`);
   }
 }

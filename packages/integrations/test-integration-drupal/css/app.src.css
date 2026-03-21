@@ -22,6 +22,7 @@
 @import "./tokens/layout-width.src.css";
 @import "./tokens/layout-spacing.src.css";
 @import "./tokens/grid.src.css";
+@import "./tokens/google-fonts.src.css";
 
 /**
  * Include additional plugins here

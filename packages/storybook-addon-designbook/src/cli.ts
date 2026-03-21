@@ -275,10 +275,24 @@ workflow
   .description('Mark a task as done. Auto-archives workflow when all tasks are done.')
   .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
   .requiredOption('--task <id>', 'Task id to mark done')
-  .action((opts: { workflow: string; task: string }) => {
+  .option(
+    '--loaded <json>',
+    'JSON payload with stage context (task_file, rules, config_rules, config_instructions) and task validation results',
+  )
+  .action((opts: { workflow: string; task: string; loaded?: string }) => {
     const config = loadConfig();
+    let loaded;
+    if (opts.loaded) {
+      try {
+        loaded = JSON.parse(opts.loaded);
+      } catch {
+        console.error('Error: --loaded must be valid JSON');
+        process.exitCode = 1;
+        return;
+      }
+    }
     try {
-      const result = workflowDone(config.dist, opts.workflow, opts.task);
+      const result = workflowDone(config.dist, opts.workflow, opts.task, loaded);
       const { data } = result;
 
       if (result.archived) {

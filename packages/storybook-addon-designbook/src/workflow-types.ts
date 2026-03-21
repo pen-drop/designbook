@@ -5,7 +5,7 @@ export type TaskType = 'component' | 'scene' | 'data' | 'tokens' | 'view-mode' |
 export interface ValidationFileResult {
   file: string; // relative to designbook dir
   type: string; // 'component' | 'story' | 'tokens' | 'data' | 'data-model' | 'view-mode' | 'unknown'
-  valid: boolean;
+  valid: boolean | null;
   error?: string;
   html?: string; // story only
   skipped?: boolean; // when Storybook not running
@@ -20,6 +20,19 @@ export interface TaskFile {
   validation_result?: ValidationFileResult;
 }
 
+export interface TaskValidationEntry {
+  file: string;      // absolute path
+  validator: string; // e.g. 'component', 'scene', 'tokens', 'data', 'twig'
+  passed: boolean;
+}
+
+export interface StageLoaded {
+  task_file: string;
+  rules: string[];
+  config_rules: string[];
+  config_instructions: string[];
+}
+
 export interface WorkflowTask {
   id: string;
   title: string;
@@ -29,6 +42,7 @@ export interface WorkflowTask {
   started_at: string | null;
   completed_at: string | null;
   files?: TaskFile[]; // produced files, each with its own validation state
+  validation?: TaskValidationEntry[]; // validators run during workflow validate
 }
 
 export interface WorkflowTaskFile {
@@ -37,6 +51,7 @@ export interface WorkflowTaskFile {
   status?: 'planning' | 'running' | 'completed' | 'incomplete';
   parent?: string;
   stages?: string[]; // ordered stage names from workflow frontmatter
+  stage_loaded?: Record<string, StageLoaded>; // keyed by stage name, populated via workflow done --loaded
   started_at: string | null;
   completed_at: string | null;
   summary?: string;

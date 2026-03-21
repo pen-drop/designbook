@@ -19,6 +19,19 @@ export interface TaskFile {
   validation_result?: ValidationFileResult;
 }
 
+export interface TaskValidationEntry {
+  file: string;      // absolute path
+  validator: string; // e.g. 'component', 'scene', 'tokens', 'data', 'twig'
+  passed: boolean;
+}
+
+export interface StageLoaded {
+  task_file: string;        // absolute path to the matched task file
+  rules: string[];          // absolute paths to skill rule files
+  config_rules: string[];   // strings from designbook.config.yml → workflow.rules.<stage>
+  config_instructions: string[]; // strings from designbook.config.yml → workflow.tasks.<stage>
+}
+
 export interface WorkflowTask {
   id: string;
   title: string;
@@ -28,6 +41,7 @@ export interface WorkflowTask {
   started_at?: string;
   completed_at?: string;
   files?: TaskFile[];
+  validation?: TaskValidationEntry[]; // validators run during workflow validate
 }
 
 export interface WorkflowFile {
@@ -36,6 +50,7 @@ export interface WorkflowFile {
   status?: 'planning' | 'running' | 'completed' | 'incomplete';
   parent?: string;
   stages?: string[]; // ordered stage names from workflow frontmatter
+  stage_loaded?: Record<string, StageLoaded>; // keyed by stage name, populated via workflow done --loaded
   started_at: string;
   completed_at?: string;
   summary?: string;
@@ -229,12 +244,26 @@ export function workflowAddFile(dist: string, name: string, taskId: string, file
   writeWorkflowAtomic(taskFilePath, data);
 }
 
+export interface LoadedPayload {
+  task_file?: string;
+  rules?: string[];
+  config_rules?: string[];
+  config_instructions?: string[];
+  validation?: TaskValidationEntry[];
+}
+
 /**
  * Mark a task as done. Auto-archives when all tasks are done.
  *
+ * @param loaded - Optional context recorded for observability (stage-level data deduplicated, task-level validation stored per task)
  * @returns `{ archived, data }` — archived indicates whether the workflow was archived
  */
-export function workflowDone(dist: string, name: string, taskId: string): { archived: boolean; data: WorkflowFile } {
+export function workflowDone(
+  dist: string,
+  name: string,
+  taskId: string,
+  loaded?: LoadedPayload,
+): { archived: boolean; data: WorkflowFile } {
   const changesDir = resolve(dist, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
   const data = readWorkflow(filePath);
@@ -255,6 +284,15 @@ export function workflowDone(dist: string, name: string, taskId: string): { arch
         `\nRun: workflow validate --workflow ${name} --task ${taskId}`,
     );
   }
+  const missing = (task.files ?? []).filter(
+    (f) => f.validation_result?.skipped === true && !existsSync(f.path),
+  );
+  if (missing.length > 0) {
+    throw new Error(
+      `Cannot mark '${taskId}' as done — ${missing.length} file(s) not found:\n` +
+        missing.map((f) => `  · ${f.path}`).join('\n'),
+    );
+  }
   const failed = (task.files ?? []).filter((f) => f.validation_result?.valid === false);
   if (failed.length > 0) {
     throw new Error(
@@ -269,6 +307,27 @@ export function workflowDone(dist: string, name: string, taskId: string): { arch
 
   if (data.status === 'planning' || data.status === 'running') {
     data.status = 'running';
+  }
+
+  if (loaded) {
+    // Write stage-level data — deduplicate: only write if stage not already recorded
+    const stageName = task.stage;
+    if (stageName) {
+      data.stage_loaded = data.stage_loaded ?? {};
+      if (!data.stage_loaded[stageName]) {
+        data.stage_loaded[stageName] = {
+          task_file: loaded.task_file ?? '',
+          rules: loaded.rules ?? [],
+          config_rules: loaded.config_rules ?? [],
+          config_instructions: loaded.config_instructions ?? [],
+        };
+      }
+    }
+
+    // Write task-level validation
+    if (loaded.validation) {
+      task.validation = loaded.validation;
+    }
   }
 
   const allDone = data.tasks.every((t) => t.status === 'done');
@@ -321,8 +380,8 @@ export async function workflowValidate(
         const result: ValidationFileResult = {
           file: taskFile.path,
           type: 'unknown',
-          valid: false,
-          error: `File not found: ${absoluteFile}`,
+          valid: null,
+          skipped: true,
           last_validated: new Date().toISOString(),
         };
         taskFile.validation_result = result;

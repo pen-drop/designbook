@@ -1,6 +1,4 @@
 backend: drupal
-extensions:
-  - layout_builder
 frameworks:
   component: sdc
   css: tailwind
@@ -11,13 +9,17 @@ css:
 drupal:
   theme: packages/integrations/test-integration-drupal
 cmd: 'node packages/storybook-addon-designbook/dist/cli.js'
+entity_mapping:
+  templates:
+    field-map:
+      description: "Structured field mapping — entity fields drive component selection"
 
 workflow:
   rules:
     create-component:
       - "Komponenten-Namen immer auf Englisch, kebab-case"
-    debo-design-component:dialog:
-      - "Immer nach dem Figma-Link fragen bevor die Anforderungen aufgenommen werden"
+    designbook-data-model:intake:
+      - "We use drupal layout builder for landing pages. Layout builder uses layout_builder__layout. Please use sample_template layout for that field. All other fields are only for the teaser view mode. field_teaser and field_media_image"
 
   tasks:
     create-component:

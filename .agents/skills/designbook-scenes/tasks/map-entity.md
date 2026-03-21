@@ -13,13 +13,14 @@ files:
 
 # Map Entity
 
-Creates a JSONata expression file that maps entity fields to a ComponentNode array for rendering in Storybook.
+Creates a JSONata expression file for an entity view mode. The template declared in `data-model.yml` determines what to generate.
 
-**Use this task when:**
-- `view_mode != full` (always structured)
-- `view_mode = full` AND `composition: structured` (or absent)
+## Process
 
-For `view_mode = full` AND `composition: unstructured`, use `compose-entity` instead.
+1. **Read the template** — look up `data-model.yml` → `content.{entity_type}.{bundle}.view_modes.{view_mode}.template`
+2. **Read the settings** (optional) — `view_modes.{view_mode}.settings` — pass as context to the template rule
+3. **Load the matching rule** — scan `skills/*/rules/*.md` for a rule with `when: stages: [map-entity], template: {template}`. If no match found, stop and report: `❌ No rule found for template: {template}`
+4. **Generate the JSONata file** — follow the rule's instructions, using the settings as additional context
 
 ## Output
 
@@ -27,41 +28,8 @@ For `view_mode = full` AND `composition: unstructured`, use `compose-entity` ins
 $DESIGNBOOK_DIST/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
 ```
 
-## Format
-
-Each `.jsonata` file maps entity fields to `ComponentNode[]`. Reference fields that point to other entities emit `type: entity` nodes — these are resolved recursively by calling `map-entity` again for the referenced entity + view_mode.
-
-```jsonata
-(
-  /* JSONata expression that maps entity fields → ComponentNode[] */
-  $fields := $;
-  [
-    {
-      "component": "provider:heading",
-      "props": { "level": "h1" },
-      "slots": { "text": $fields.title }
-    },
-    {
-      "component": "provider:text-block",
-      "slots": { "content": $fields.field_body }
-    },
-    /* Reference field → entity node, resolved recursively */
-    $fields.field_author ? {
-      "type": "entity",
-      "entity_type": "user",
-      "bundle": "user",
-      "view_mode": "avatar",
-      "record": 0
-    }
-  ]
-)
-```
-
 ## Key Rules
 
 - One file per `entity_type.bundle.view_mode` combination
-- Output must be a JSONata array expression returning `ComponentNode[]`
-- Reference fields use dot notation: `$fields.field_media.url`
-- Static values (no `$`): `"h1"`, `true`, `42`
 - Provider prefix must be resolved at generation time (never leave as placeholder)
-- Recursive entity refs: emit `type: entity` node — `map-entity` will be called again for that entity
+- Reference fields that point to other entities emit `type: entity` nodes — `map-entity` is called again for the referenced entity + view_mode

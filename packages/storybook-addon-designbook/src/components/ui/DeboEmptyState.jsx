@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Placeholder } from 'storybook/internal/components';
 import { styled } from 'storybook/theming';
 
@@ -10,6 +10,11 @@ const Kbd = styled.kbd(({ theme }) => ({
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 6,
   padding: '6px 12px',
+  cursor: 'pointer',
+  userSelect: 'none',
+  '&:hover': {
+    background: theme.background?.app || '#E8EDF2',
+  },
 }));
 
 const Hint = styled.p(({ theme }) => ({
@@ -19,13 +24,24 @@ const Hint = styled.p(({ theme }) => ({
 }));
 
 export function DeboEmptyState({ message, command, filePath }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(command).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
     <Placeholder>
       <div style={{ textAlign: 'center' }}>
         <p>{message}</p>
         <p style={{ marginTop: 8, opacity: 0.7 }}>Run the AI command in your editor:</p>
         <div style={{ marginTop: 16 }}>
-          <Kbd>{command}</Kbd>
+          <Kbd onClick={handleCopy} title="Click to copy">
+            {copied ? '✓ Copied!' : command}
+          </Kbd>
         </div>
         {filePath && (
           <Hint>

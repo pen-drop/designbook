@@ -133,6 +133,7 @@ export function designbookLoadPlugin(
         vision: 'product/vision.md',
         tokens: 'tokens/**/*.yml',
         dataModel: 'data-model.yml',
+        guidelines: 'design-system/guidelines.yml',
       };
 
       const resolveFileType = (relPath: string): string | null => {
