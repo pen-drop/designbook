@@ -34,24 +34,50 @@ title: Design Shell
 workflow: debo-design-shell
 status: running                    # planning | running | completed | incomplete
 parent: debo-design-tokens-2026-03-18-a3f7   # optional
+params:                            # global intake params (from --params)
+  section_id: dashboard
 stages:
-  - intake
   - create-component
   - create-shell-scene
 started_at: 2026-03-12T18:30:00
 completed_at:
 tasks:
-  - id: create-page
-    title: Create page component
+  - id: create-component-button
+    title: Create Component: button
     type: component
     stage: create-component
     status: pending                # pending | in-progress | done | incomplete
+    depends_on: []                 # task IDs this task depends on
+    params:                        # per-task params from intake
+      component: button
+      slots: [icon, label]
+    task_file: /abs/path/.agents/skills/designbook-components-sdc/tasks/create-component.md
+    rules:                         # absolute paths to matched rule files
+      - /abs/path/.agents/skills/designbook-css-daisyui/rules/daisyui-naming.md
+    config_rules:                  # strings from designbook.config.yml → workflow.rules.<stage>
+      - "Komponenten-Namen immer auf Englisch, kebab-case"
+    config_instructions:           # strings from designbook.config.yml → workflow.tasks.<stage>
+      - "Nach Erstellung prüfen ob die Komponente im Storybook ohne Fehler rendert"
     started_at:
     completed_at:
     files:
-      - path: components/page/page.component.yml
+      - path: /abs/path/components/button/button.component.yml
         requires_validation: true
 ```
+
+### New Fields (Resolution Mode)
+
+| Field | Level | Source | Description |
+|---|---|---|---|
+| `params` | top-level | `--params` | Global intake params accessible to all subagents |
+| `params` | per-task | `--items[].params` | Task-specific params merged with task file defaults |
+| `depends_on` | per-task | computed | Task IDs this task depends on (from stage ordering) |
+| `task_file` | per-task | resolved | Absolute path to matched skill task file |
+| `rules` | per-task | resolved | Absolute paths to matched skill rule files |
+| `config_rules` | per-task | resolved | Strings from `designbook.config.yml` → `workflow.rules.<stage>` |
+| `config_instructions` | per-task | resolved | Strings from `designbook.config.yml` → `workflow.tasks.<stage>` |
+
+When `workflow plan` is called via the legacy interface (without `--workflow-file`), these fields are absent — existing behavior is unchanged.
 
 ## Directory Structure
 

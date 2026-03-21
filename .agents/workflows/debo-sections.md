@@ -5,7 +5,7 @@ category: Designbook
 description: Define your sections based on the product vision
 workflow:
   title: Define Sections
-  stages: [designbook-sections:intake, create-sections]
+  stages: [designbook-sections:intake, designbook-sections:create-section]
 ---
 
 Load skill `designbook-workflow` and execute the workflow stages defined in the frontmatter above.

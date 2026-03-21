@@ -135,6 +135,70 @@ Concrete task instances SHALL be determined by the AI after the dialog stage —
 
 ---
 
+## Requirement: Extended WorkflowTask data model for resolution mode
+
+Each task in tasks.yml MAY store pre-resolved execution context when `workflow plan` is used in resolution mode:
+
+```yaml
+params:                            # global (from --params)
+  section_id: dashboard
+
+tasks:
+  - id: create-component-button
+    title: Create Button Component
+    type: component
+    status: done
+    stage: create-component
+    depends_on: []
+    params:
+      component: button
+      slots: [icon, label]
+    task_file: /abs/path/.agents/skills/designbook-components-sdc/tasks/create-component.md
+    rules:
+      - /abs/path/.agents/skills/designbook-css-daisyui/rules/daisyui-naming.md
+    config_rules:
+      - "Komponenten-Namen immer auf Englisch, kebab-case"
+    config_instructions:
+      - "Nach Erstellung prüfen ob die Komponente im Storybook ohne Fehler rendert"
+    files:
+      - path: /abs/path/components/button/button.component.yml
+        requires_validation: true
+```
+
+### Scenario: params stored at plan time (global)
+- **WHEN** `workflow plan --params '<json>'` is called
+- **THEN** the top-level `params` object is written to tasks.yml
+
+### Scenario: params stored at plan time (per-task)
+- **WHEN** a task entry is generated from an item with params
+- **THEN** the task has a `params` object with the item's params (merged with task file defaults)
+
+### Scenario: depends_on stored per task
+- **WHEN** the CLI computes dependencies from stage ordering
+- **THEN** each task has `depends_on: [task-id, ...]` (empty array for first-stage tasks)
+
+### Scenario: task_file stored per task
+- **WHEN** the CLI resolves a task file for a stage
+- **THEN** the task has `task_file: /abs/path/to/task-file.md`
+
+### Scenario: rules stored per task
+- **WHEN** the CLI matches rule files for a task's stage
+- **THEN** the task has `rules: [/abs/path/rule1.md, ...]`
+
+### Scenario: config_rules stored per task
+- **WHEN** `designbook.config.yml` contains `workflow.rules.<stage>` entries for the task's stage
+- **THEN** the task has `config_rules: ["string", ...]`
+
+### Scenario: config_instructions stored per task
+- **WHEN** `designbook.config.yml` contains `workflow.tasks.<stage>` entries for the task's stage
+- **THEN** the task has `config_instructions: ["string", ...]`
+
+### Scenario: params and depends_on absent is valid (backwards compat)
+- **WHEN** `workflow plan` is called via the old interface (without `--workflow-file` and `--items`)
+- **THEN** no `params`, `depends_on`, `task_file`, or `rules` are written; existing behavior is unchanged
+
+---
+
 ## Requirement: tasks.yml stores stages array and flat stage field per task
 
 ### Scenario: tasks.yml structure

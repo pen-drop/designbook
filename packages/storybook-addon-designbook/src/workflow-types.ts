@@ -41,6 +41,12 @@ export interface WorkflowTask {
   status: TaskStatus;
   started_at: string | null;
   completed_at: string | null;
+  depends_on?: string[]; // task IDs this task depends on (computed from stage ordering)
+  params?: Record<string, unknown>; // per-task params from intake (e.g. component name, slots)
+  task_file?: string; // absolute path to resolved skill task file
+  rules?: string[]; // absolute paths to matched skill rule files
+  config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<stage>
+  config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<stage>
   files?: TaskFile[]; // produced files, each with its own validation state
   validation?: TaskValidationEntry[]; // validators run during workflow validate
 }
@@ -50,6 +56,7 @@ export interface WorkflowTaskFile {
   workflow: string;
   status?: 'planning' | 'running' | 'completed' | 'incomplete';
   parent?: string;
+  params?: Record<string, unknown>; // global intake params (accessible to all subagents)
   stages?: string[]; // ordered stage names from workflow frontmatter
   stage_loaded?: Record<string, StageLoaded>; // keyed by stage name, populated via workflow done --loaded
   started_at: string | null;

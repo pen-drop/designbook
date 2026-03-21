@@ -35,7 +35,7 @@ scenes:
   - name: "Detail"
     items:
       - type: scene
-        ref: design-system:shell
+        ref: "design-system:shell"
         with:
           content:
             - entity: node.article
@@ -44,10 +44,55 @@ scenes:
 
 ```
 
+## Overview Scenes
+
+When a section includes an overview scene (e.g., listing/landing page):
+
+### With `landing_page` or `layout_builder` entity type
+
+If the data model contains an entity type like `node.landing_page` or `node.layout_builder`, use it directly as the content entity for the overview scene:
+
+```yaml
+  - name: "Blog Overview"
+    items:
+      - type: scene
+        ref: "design-system:shell"
+        with:
+          content:
+            - entity: node.landing_page
+              view_mode: full
+              record: 0
+```
+
+### Without landing page entity type
+
+If no `landing_page` or `layout_builder` entity type exists in the data model, create a `config.view.entity` entry and use it:
+
+1. Register in `data-model.yml` under `config:`:
+
+```yaml
+config:
+  view:
+    {{ section_id }}_overview:
+```
+
+2. Reference in the scene:
+
+```yaml
+  - name: "Blog Overview"
+    items:
+      - type: scene
+        ref: "design-system:shell"
+        with:
+          content:
+            - entity: view.{{ section_id }}_overview
+              view_mode: default
+```
+
 ## Full Example
 
 ```yaml
-# sections/blog/blog.section.scenes.yml
+# sections/blog/blog.section.scenes.yml — with landing_page entity
 id: blog
 title: Blog
 description: Artikel und News rund ums Thema.
@@ -59,22 +104,54 @@ scenes:
   - name: "Blog Detail"
     items:
       - type: scene
-        ref: design-system:shell
+        ref: "design-system:shell"
         with:
           content:
             - entity: node.article
               view_mode: full
               record: 0
 
-  - name: "Blog Listing"
+  - name: "Blog Overview"
     items:
       - type: scene
-        ref: design-system:shell
+        ref: "design-system:shell"
         with:
           content:
-            - entity: node.layout_builder
+            - entity: node.landing_page
               view_mode: full
               record: 0
+```
+
+### Full Example — without landing page entity
+
+```yaml
+# sections/blog/blog.section.scenes.yml — with config.view entity
+id: blog
+title: Blog
+description: Artikel und News rund ums Thema.
+status: planned
+order: 2
+
+group: "Designbook/Sections/Blog"
+scenes:
+  - name: "Blog Detail"
+    items:
+      - type: scene
+        ref: "design-system:shell"
+        with:
+          content:
+            - entity: node.article
+              view_mode: full
+              record: 0
+
+  - name: "Blog Overview"
+    items:
+      - type: scene
+        ref: "design-system:shell"
+        with:
+          content:
+            - entity: view.blog_overview
+              view_mode: default
 ```
 
 ## Critical Rules

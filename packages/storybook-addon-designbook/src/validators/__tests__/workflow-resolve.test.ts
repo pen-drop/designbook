@@ -1,0 +1,553 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { randomBytes } from 'node:crypto';
+import {
+  resolveTaskFile,
+  expandFilePath,
+  expandFilePaths,
+  matchRuleFiles,
+  resolveConfigForStage,
+  computeDependsOn,
+  validateAndMergeParams,
+  generateTaskId,
+  resolveWorkflowPlan,
+  buildEnvMap,
+} from '../../workflow-resolve.js';
+import { acquireLock, releaseLock, withLock } from '../../workflow-lock.js';
+import type { DesignbookConfig } from '../../config.js';
+
+// ── Test helpers ───────────────────────────────────────────────────
+
+function makeTmpDir(): string {
+  const dir = resolve(tmpdir(), `designbook-test-${randomBytes(4).toString('hex')}`);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function writeSkillTaskFile(
+  agentsDir: string,
+  skillName: string,
+  taskName: string,
+  frontmatter: string,
+  body = '',
+): string {
+  const dir = resolve(agentsDir, 'skills', skillName, 'tasks');
+  mkdirSync(dir, { recursive: true });
+  const path = resolve(dir, `${taskName}.md`);
+  writeFileSync(path, `---\n${frontmatter}\n---\n${body}`);
+  return path;
+}
+
+function writeSkillRuleFile(
+  agentsDir: string,
+  skillName: string,
+  ruleName: string,
+  frontmatter: string,
+  body = '',
+): string {
+  const dir = resolve(agentsDir, 'skills', skillName, 'rules');
+  mkdirSync(dir, { recursive: true });
+  const path = resolve(dir, `${ruleName}.md`);
+  writeFileSync(path, `---\n${frontmatter}\n---\n${body}`);
+  return path;
+}
+
+function writeWorkflowFile(dir: string, name: string, frontmatter: string): string {
+  const path = resolve(dir, `${name}.md`);
+  writeFileSync(
+    path,
+    `---\n${frontmatter}\n---\nLoad skill designbook-workflow.`,
+  );
+  return path;
+}
+
+const baseConfig: DesignbookConfig = {
+  dist: '/test/dist',
+  technology: 'drupal',
+  tmp: '/test/tmp',
+  backend: 'drupal',
+  'frameworks.component': 'sdc',
+  'frameworks.css': 'tailwind',
+  'drupal.theme': '/test/theme',
+  'css.app': '/test/css/app.src.css',
+};
+
+// ── Tests ──────────────────────────────────────────────────────────
+
+let tmpDir: string;
+
+beforeEach(() => {
+  tmpDir = makeTmpDir();
+});
+
+afterEach(() => {
+  if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true });
+});
+
+// 5.1: Task file resolution
+describe('resolveTaskFile', () => {
+  it('resolves named stage (skill:task format) directly', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillTaskFile(agentsDir, 'designbook-sections', 'create-section', 'params:\n  section_id: ~');
+
+    const result = resolveTaskFile('designbook-sections:create-section', baseConfig, agentsDir);
+    expect(result).toBe(resolve(agentsDir, 'skills/designbook-sections/tasks/create-section.md'));
+  });
+
+  it('resolves generic stage by scanning skills', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillTaskFile(agentsDir, 'designbook-tokens', 'create-tokens', 'params:\n  colors: {}');
+
+    const result = resolveTaskFile('create-tokens', baseConfig, agentsDir);
+    expect(result).toBe(resolve(agentsDir, 'skills/designbook-tokens/tasks/create-tokens.md'));
+  });
+
+  it('selects most specific match by when conditions', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // Generic fallback (no when)
+    writeSkillTaskFile(agentsDir, 'generic-comp', 'create-component', 'params:\n  component: ~');
+    // Specific match (when frameworks.component: sdc)
+    const specificPath = writeSkillTaskFile(
+      agentsDir,
+      'sdc-comp',
+      'create-component',
+      'when:\n  frameworks.component: sdc\nparams:\n  component: ~',
+    );
+
+    const result = resolveTaskFile('create-component', baseConfig, agentsDir);
+    expect(result).toBe(specificPath);
+  });
+
+  it('throws on no matching task file', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    mkdirSync(resolve(agentsDir, 'skills'), { recursive: true });
+
+    expect(() => resolveTaskFile('nonexistent-stage', baseConfig, agentsDir)).toThrow(
+      /No task file found/,
+    );
+  });
+});
+
+// 5.2: File path expansion
+describe('expandFilePath', () => {
+  const envMap = { DESIGNBOOK_DIST: '/test/dist', DESIGNBOOK_DRUPAL_THEME: '/test/theme' };
+
+  it('expands {{ param }} placeholders', () => {
+    const result = expandFilePath(
+      '$DESIGNBOOK_DIST/components/{{ component }}/{{ component }}.yml',
+      { component: 'button' },
+      envMap,
+    );
+    expect(result).toBe('/test/dist/components/button/button.yml');
+  });
+
+  it('expands ${VAR} env vars', () => {
+    const result = expandFilePath(
+      '${DESIGNBOOK_DRUPAL_THEME}/components/test.yml',
+      {},
+      envMap,
+    );
+    expect(result).toBe('/test/theme/components/test.yml');
+  });
+
+  it('expands $VAR env vars (without braces)', () => {
+    const result = expandFilePath('$DESIGNBOOK_DIST/data.yml', {}, envMap);
+    expect(result).toBe('/test/dist/data.yml');
+  });
+
+  it('throws on unknown env var', () => {
+    expect(() => expandFilePath('$UNKNOWN_VAR/test', {}, envMap)).toThrow(/Unknown environment variable/);
+  });
+
+  it('throws on unknown param', () => {
+    expect(() => expandFilePath('{{ missing }}', {}, envMap)).toThrow(/Unknown param/);
+  });
+});
+
+// 5.3: depends_on computation
+describe('computeDependsOn', () => {
+  it('first stage has empty depends_on', () => {
+    const stages = ['create-component', 'create-scene'];
+    const tasksByStage = new Map([
+      ['create-component', ['create-component-button']],
+      ['create-scene', ['create-scene-dashboard']],
+    ]);
+
+    const deps = computeDependsOn(stages, tasksByStage);
+    expect(deps.get('create-component-button')).toEqual([]);
+    expect(deps.get('create-scene-dashboard')).toEqual(['create-component-button']);
+  });
+
+  it('multiple tasks in same stage get same deps', () => {
+    const stages = ['create-component', 'create-scene'];
+    const tasksByStage = new Map([
+      ['create-component', ['comp-button', 'comp-card']],
+      ['create-scene', ['scene-dash']],
+    ]);
+
+    const deps = computeDependsOn(stages, tasksByStage);
+    expect(deps.get('comp-button')).toEqual([]);
+    expect(deps.get('comp-card')).toEqual([]);
+    expect(deps.get('scene-dash')).toEqual(['comp-button', 'comp-card']);
+  });
+
+  it('three stages chain correctly', () => {
+    const stages = ['a', 'b', 'c'];
+    const tasksByStage = new Map([
+      ['a', ['a1']],
+      ['b', ['b1', 'b2']],
+      ['c', ['c1']],
+    ]);
+
+    const deps = computeDependsOn(stages, tasksByStage);
+    expect(deps.get('a1')).toEqual([]);
+    expect(deps.get('b1')).toEqual(['a1']);
+    expect(deps.get('b2')).toEqual(['a1']);
+    expect(deps.get('c1')).toEqual(['b1', 'b2']);
+  });
+});
+
+// 5.4: Params validation
+describe('validateAndMergeParams', () => {
+  it('passes with all required params provided', () => {
+    const result = validateAndMergeParams(
+      { component: 'button' },
+      { component: null, slots: [] },
+      'create-component',
+    );
+    expect(result).toEqual({ component: 'button', slots: [] });
+  });
+
+  it('throws on missing required param', () => {
+    expect(() =>
+      validateAndMergeParams({}, { component: null }, 'create-component'),
+    ).toThrow(/Missing required param 'component'/);
+  });
+
+  it('uses default for optional params', () => {
+    const result = validateAndMergeParams(
+      { component: 'button' },
+      { component: null, slots: ['default'], count: 0 },
+      'create-component',
+    );
+    expect(result).toEqual({ component: 'button', slots: ['default'], count: 0 });
+  });
+
+  it('item params override defaults', () => {
+    const result = validateAndMergeParams(
+      { component: 'card', slots: ['header'] },
+      { component: null, slots: [] },
+      'create-component',
+    );
+    expect(result).toEqual({ component: 'card', slots: ['header'] });
+  });
+});
+
+// 5.5: Config resolution
+describe('resolveConfigForStage', () => {
+  it('resolves config rules and instructions for a stage', () => {
+    const rawConfig = {
+      workflow: {
+        rules: {
+          'create-component': ['Rule A', 'Rule B'],
+        },
+        tasks: {
+          'create-component': ['Instruction A'],
+        },
+      },
+    };
+
+    const result = resolveConfigForStage('create-component', rawConfig);
+    expect(result.config_rules).toEqual(['Rule A', 'Rule B']);
+    expect(result.config_instructions).toEqual(['Instruction A']);
+  });
+
+  it('returns empty arrays for missing stage', () => {
+    const rawConfig = { workflow: { rules: {}, tasks: {} } };
+    const result = resolveConfigForStage('nonexistent', rawConfig);
+    expect(result.config_rules).toEqual([]);
+    expect(result.config_instructions).toEqual([]);
+  });
+
+  it('handles absent workflow config', () => {
+    const result = resolveConfigForStage('create-component', {});
+    expect(result.config_rules).toEqual([]);
+    expect(result.config_instructions).toEqual([]);
+  });
+
+  it('resolves named intake stage keys', () => {
+    const rawConfig = {
+      workflow: {
+        rules: {
+          'designbook-data-model:intake': ['Drupal intake rule'],
+        },
+        tasks: {},
+      },
+    };
+
+    const result = resolveConfigForStage('designbook-data-model:intake', rawConfig);
+    expect(result.config_rules).toEqual(['Drupal intake rule']);
+  });
+});
+
+// 5.1 continued: Rule file matching
+describe('matchRuleFiles', () => {
+  it('matches rule file by stage', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'scene-rules',
+      'when:\n  stages: [create-scene]',
+    );
+
+    const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
+    expect(result).toContain(rulePath);
+  });
+
+  it('excludes rule file for non-matching stage', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'scene-rules',
+      'when:\n  stages: [create-scene]',
+    );
+
+    const result = matchRuleFiles('create-component', baseConfig, agentsDir);
+    expect(result).toEqual([]);
+  });
+
+  it('matches rule file with config condition', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-css',
+      'tailwind-rules',
+      'when:\n  frameworks.css: tailwind\n  stages: [create-tokens]',
+    );
+
+    const result = matchRuleFiles('create-tokens', baseConfig, agentsDir);
+    expect(result).toContain(rulePath);
+  });
+
+  it('excludes rule file with non-matching config condition', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(
+      agentsDir,
+      'designbook-css',
+      'daisyui-rules',
+      'when:\n  frameworks.css: daisyui\n  stages: [create-tokens]',
+    );
+
+    // Config has tailwind, not daisyui
+    const result = matchRuleFiles('create-tokens', baseConfig, agentsDir);
+    expect(result).toEqual([]);
+  });
+
+  it('includes rule file with empty when (applies to all)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-workflow',
+      'global-rule',
+      'when: {}',
+    );
+
+    const result = matchRuleFiles('any-stage', baseConfig, agentsDir);
+    expect(result).toContain(rulePath);
+  });
+});
+
+// 5.6: End-to-end resolveWorkflowPlan
+describe('resolveWorkflowPlan', () => {
+  it('resolves a complete plan from workflow file and items', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const workflowsDir = resolve(tmpDir, 'workflows');
+    mkdirSync(workflowsDir, { recursive: true });
+
+    // Create task files
+    writeSkillTaskFile(
+      agentsDir,
+      'designbook-components',
+      'create-component',
+      'params:\n  component: ~\n  slots: []\nfiles:\n  - $DESIGNBOOK_DIST/components/{{ component }}/{{ component }}.yml',
+    );
+    writeSkillTaskFile(
+      agentsDir,
+      'designbook-scenes',
+      'create-scene',
+      'params:\n  section_id: ~\nfiles:\n  - $DESIGNBOOK_DIST/scenes/{{ section_id }}.yml',
+    );
+
+    // Create workflow file
+    const wfPath = writeWorkflowFile(
+      workflowsDir,
+      'debo-test',
+      'workflow:\n  title: Test\n  stages: [designbook-components:intake, create-component, create-scene]',
+    );
+
+    const plan = resolveWorkflowPlan(
+      wfPath,
+      { section_id: 'dashboard' },
+      [
+        { stage: 'create-component', params: { component: 'button' } },
+        { stage: 'create-component', params: { component: 'card' } },
+        { stage: 'create-scene', params: { section_id: 'dashboard' } },
+      ],
+      baseConfig,
+      {},
+      agentsDir,
+    );
+
+    // Check stages (intake filtered out)
+    expect(plan.stages).toEqual(['create-component', 'create-scene']);
+
+    // Check tasks
+    expect(plan.tasks).toHaveLength(3);
+
+    // First two tasks: create-component (parallel, no deps)
+    expect(plan.tasks[0].id).toBe('create-component-button');
+    expect(plan.tasks[0].stage).toBe('create-component');
+    expect(plan.tasks[0].depends_on).toEqual([]);
+    expect(plan.tasks[0].params.component).toBe('button');
+    expect(plan.tasks[0].files).toEqual(['/test/dist/components/button/button.yml']);
+
+    expect(plan.tasks[1].id).toBe('create-component-card');
+    expect(plan.tasks[1].depends_on).toEqual([]);
+
+    // Third task: create-scene (depends on both components)
+    expect(plan.tasks[2].id).toBe('create-scene-dashboard');
+    expect(plan.tasks[2].depends_on).toEqual(['create-component-button', 'create-component-card']);
+    expect(plan.tasks[2].files).toEqual(['/test/dist/scenes/dashboard.yml']);
+
+    // Global params
+    expect(plan.params).toEqual({ section_id: 'dashboard' });
+  });
+
+  it('throws on item with stage not in workflow', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const workflowsDir = resolve(tmpDir, 'workflows');
+    mkdirSync(workflowsDir, { recursive: true });
+
+    const wfPath = writeWorkflowFile(
+      workflowsDir,
+      'debo-test',
+      'workflow:\n  title: Test\n  stages: [create-component]',
+    );
+
+    expect(() =>
+      resolveWorkflowPlan(
+        wfPath,
+        {},
+        [{ stage: 'nonexistent' }],
+        baseConfig,
+        {},
+        agentsDir,
+      ),
+    ).toThrow(/not found in workflow stages/);
+  });
+});
+
+// Task ID generation
+describe('generateTaskId', () => {
+  it('generates ID from stage and first string param', () => {
+    expect(generateTaskId('create-component', { component: 'button', slots: [] })).toBe(
+      'create-component-button',
+    );
+  });
+
+  it('strips skill prefix from named stages', () => {
+    expect(
+      generateTaskId('designbook-sections:create-section', { section_id: 'dashboard' }),
+    ).toBe('create-section-dashboard');
+  });
+
+  it('falls back to stage name when no string params', () => {
+    expect(generateTaskId('create-tokens', { colors: {} })).toBe('create-tokens');
+  });
+});
+
+// buildEnvMap
+describe('buildEnvMap', () => {
+  it('builds env map from config', () => {
+    const env = buildEnvMap(baseConfig);
+    expect(env.DESIGNBOOK_DIST).toBe('/test/dist');
+    expect(env.DESIGNBOOK_DRUPAL_THEME).toBe('/test/theme');
+    expect(env.DESIGNBOOK_SDC_PROVIDER).toBe('theme');
+  });
+});
+
+// 5.7: File locking
+describe('file locking', () => {
+  it('acquires and releases lock', () => {
+    const filePath = resolve(tmpDir, 'test.yml');
+    writeFileSync(filePath, 'data: true');
+
+    const lockPath = acquireLock(filePath);
+    expect(existsSync(lockPath)).toBe(true);
+
+    releaseLock(lockPath);
+    expect(existsSync(lockPath)).toBe(false);
+  });
+
+  it('withLock executes function and releases lock', () => {
+    const filePath = resolve(tmpDir, 'test.yml');
+    writeFileSync(filePath, 'data: true');
+
+    const result = withLock(filePath, () => {
+      // Lock should be held during execution
+      expect(existsSync(`${filePath}.lock`)).toBe(true);
+      return 42;
+    });
+
+    expect(result).toBe(42);
+    expect(existsSync(`${filePath}.lock`)).toBe(false);
+  });
+
+  it('withLock releases lock on error', () => {
+    const filePath = resolve(tmpDir, 'test.yml');
+    writeFileSync(filePath, 'data: true');
+
+    expect(() =>
+      withLock(filePath, () => {
+        throw new Error('intentional');
+      }),
+    ).toThrow('intentional');
+
+    expect(existsSync(`${filePath}.lock`)).toBe(false);
+  });
+
+  it('sequential withLock calls serialize writes correctly', () => {
+    const filePath = resolve(tmpDir, 'counter.yml');
+    writeFileSync(filePath, '0');
+
+    // Two sequential withLock calls should both succeed without corruption
+    withLock(filePath, () => {
+      const val = parseInt(readFileSync(filePath, 'utf-8'), 10);
+      writeFileSync(filePath, String(val + 1));
+    });
+
+    withLock(filePath, () => {
+      const val = parseInt(readFileSync(filePath, 'utf-8'), 10);
+      writeFileSync(filePath, String(val + 1));
+    });
+
+    expect(readFileSync(filePath, 'utf-8')).toBe('2');
+  });
+
+  it('detects stale lock and recovers', () => {
+    const filePath = resolve(tmpDir, 'stale.yml');
+    writeFileSync(filePath, 'data');
+
+    // Create a stale lock (timestamp far in the past)
+    const lockPath = `${filePath}.lock`;
+    writeFileSync(lockPath, String(Date.now() - 60_000), { flag: 'w' });
+
+    // Should recover from stale lock
+    const result = withLock(filePath, () => 'recovered');
+    expect(result).toBe('recovered');
+  });
+});

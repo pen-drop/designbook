@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [designbook-vision:intake, designbook-data-model:intake, designbook-guidelines:intake, designbook-tokens:intake, designbook-sections:intake, designbook-design-component:intake, designbook-design-screen:intake, designbook-design-shell:intake, designbook-sample-data:intake, designbook-shape-section:intake, designbook-screenshots:intake, designbook-css-generate:intake, create-component, create-section-scene, create-shell-scene, create-tokens]
+  stages: [designbook-tokens:intake, designbook-design-component:intake, designbook-design-screen:intake, designbook-design-shell:intake, designbook-sample-data:intake, create-component, create-section-scene, create-shell-scene, create-tokens]
 ---
 
 # Design Guidelines Context
@@ -23,6 +23,6 @@ when:
 | `references` | Consult linked design systems or Figma files for visual guidance |
 | `design_file` | Primary source for visual decisions; use `mcp.server` if available |
 | `mcp` | If an MCP server is declared, use it to inspect the design file directly |
-| `skills` | For each skill listed, call the Skill tool to load it before generating output |
+| `skills` | You MUST call the Skill tool for each skill listed BEFORE producing any output or asking the user questions. This is a blocking prerequisite — do not proceed until all skills are loaded. |
 
 All guidelines are hard constraints — apply them silently, do not repeat them to the user.

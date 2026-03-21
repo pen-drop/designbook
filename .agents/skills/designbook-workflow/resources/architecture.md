@@ -18,10 +18,43 @@ The `intake` stage is the workflow body itself (interviews the user). All other 
 ## Integration Pattern
 
 ```
-1. Run intake (workflow body) → collect params
-2. Rule 1: scan skills for task files per stage → build JSON → workflow create --stages --tasks
-3. Rule 2: per task → load task file + rules → create files → validate --task → done --task
+1. Run intake (workflow body) → collect params + build items array
+2. Rule 3: workflow plan --workflow-file --params --items → CLI resolves everything
+3. Rule 5d: DAG orchestration → spawn subagents per wave → each runs validate → done
 ```
+
+## CLI-Side Resolution
+
+The `workflow plan` CLI (resolution mode) replaces AI-side task resolution:
+
+```
+AI builds items array → CLI resolves:
+  ├─ task files (scan + when-filter + precedence)
+  ├─ file path expansion ({{ param }} + ${ENV_VAR})
+  ├─ params validation (required/optional/defaults)
+  ├─ depends_on computation (from stage ordering)
+  ├─ rule file matching (stages + config conditions)
+  └─ config rules/instructions per stage
+→ writes tasks.yml with fully-resolved data
+→ outputs JSON plan to stdout
+```
+
+## DAG Orchestration Pattern
+
+After planning, the main agent becomes a DAG orchestrator:
+
+```
+1. Compute ready tasks (deps all done)
+2. Spawn Agent per ready task (parallel)
+3. Wait for wave to complete
+4. Print "Wave N complete: X/Y tasks done"
+5. Repeat until all done or deadlock
+```
+
+Each subagent executes in isolation:
+- Reads its task from tasks.yml (task_file, params, rules, files)
+- Reads rule files directly (no scanning)
+- Creates files → validate → fix loop → done
 
 ## Task File Format (skills)
 
@@ -42,7 +75,7 @@ files:
 ```
 
 - `when` conditions filter which task file applies
-- `files` paths are always absolute — using env vars with `{{ param }}` substitution by the AI at plan time
+- `files` paths are always absolute — using env vars with `{{ param }}` substitution (resolved by CLI at plan time)
 - A task file with no `when` block applies universally
 
 **`when` condition keys:**

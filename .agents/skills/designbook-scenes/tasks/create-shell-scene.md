@@ -35,30 +35,30 @@ group: "Designbook/Design System"
 scenes:
   - name: shell
     items:
-      - component: {{ provider }}:page
+      - component: "{{ provider }}:page"
         slots:
           header:
-            - component: {{ provider }}:header
+            - component: "{{ provider }}:header"
               slots:
                 logo:
-                  - component: {{ provider }}:logo
+                  - component: "{{ provider }}:logo"
                     props:
                       name: '{{ product_name }}'
                 navigation:
-                  - component: {{ provider }}:navigation
+                  - component: "{{ provider }}:navigation"
                     props:
                       variant: primary
                       items:
                         # All nav_items from dialog
                 actions:
-                  - component: {{ provider }}:button
+                  - component: "{{ provider }}:button"
                     props:
                       variant: default
                     slots:
                       text: '{{ cta_label }}'
           content: $content
           footer:
-            - component: {{ provider }}:footer
+            - component: "{{ provider }}:footer"
               slots:
                 navigation:
                   - component: {{ provider }}:navigation
@@ -86,34 +86,34 @@ group: "Designbook/Design System"
 scenes:
   - name: shell
     items:
-      - component: test_integration_drupal:page
+      - component: "test_integration_drupal:page"
         slots:
           header:
-            - component: test_integration_drupal:header
+            - component: "test_integration_drupal:header"
               slots:
                 logo:
-                  - component: test_integration_drupal:logo
+                  - component: "test_integration_drupal:logo"
                     props:
                       name: 'My Product'
                 navigation:
-                  - component: test_integration_drupal:navigation
+                  - component: "test_integration_drupal:navigation"
                     props:
                       variant: primary
                       items:
                         - { label: 'Blog', url: '/blog' }
                         - { label: 'About', url: '/about' }
                 actions:
-                  - component: test_integration_drupal:button
+                  - component: "test_integration_drupal:button"
                     props:
                       variant: default
                     slots:
                       text: 'Contact'
           content: $content        # injection point — filled by section scenes
           footer:
-            - component: test_integration_drupal:footer
+            - component: "test_integration_drupal:footer"
               slots:
                 navigation:
-                  - component: test_integration_drupal:navigation
+                  - component: "test_integration_drupal:navigation"
                     props:
                       variant: footer
                       items:
@@ -121,29 +121,10 @@ scenes:
                         - { label: 'Terms', url: '/terms' }
                         - { label: 'Imprint', url: '/imprint' }
                 copyright:
-                  - component: test_integration_drupal:copyright
+                  - component: "test_integration_drupal:copyright"
                     props:
                       text: '© 2026 My Product. All rights reserved.'
 
-  - name: minimal
-    items:
-      - component: test_integration_drupal:page
-        slots:
-          header:
-            - component: test_integration_drupal:header
-              slots:
-                logo:
-                  - component: test_integration_drupal:logo
-                    props:
-                      name: 'My Product'
-                navigation:
-                  - component: test_integration_drupal:navigation
-                    props:
-                      variant: primary
-                      items:
-                        - { label: 'Blog', url: '/blog' }
-                        - { label: 'About', url: '/about' }
-          content: $content
 ```
 
 ## Key Rules
