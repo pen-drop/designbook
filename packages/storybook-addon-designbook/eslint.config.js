@@ -1,3 +1,4 @@
+import globals from 'globals';
 import storybook from 'eslint-plugin-storybook';
 import js from '@eslint/js';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
@@ -22,6 +23,7 @@ export default [
       '.vscode',
     ],
   },
+  { languageOptions: { globals: globals.browser } },
   js.configs.recommended,
   reactPlugin.configs.flat.recommended,
   {

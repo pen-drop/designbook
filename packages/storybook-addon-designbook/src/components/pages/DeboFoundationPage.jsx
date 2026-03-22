@@ -1,14 +1,19 @@
 import React from 'react';
-import { TabsView } from 'storybook/internal/components';
 import { DeboProductOverview } from '../display/DeboProductOverview.jsx';
 import { DeboSection } from '../DeboSection.jsx';
 import { DeboDataModel } from '../display/DeboDataModel.jsx';
 import { parse as parseYaml } from 'yaml';
+import { useUrlState } from '../../hooks/useUrlState.js';
+import { DeboTabs } from '../ui/DeboTabs.jsx';
 
 export function DeboFoundationPage() {
+  const [entity, setEntity] = useUrlState('debo-entity', null);
+
   return (
-    <TabsView
-      defaultSelected="vision"
+    <DeboTabs
+      onSelectionChange={(id) => {
+        if (id !== 'data-model') setEntity(null);
+      }}
       tabs={[
         {
           id: 'vision',
@@ -25,7 +30,9 @@ export function DeboFoundationPage() {
               parser={(content) => parseYaml(content)}
               command="/debo-data-model"
               emptyMessage="No data model defined yet"
-              renderContent={(data) => <DeboDataModel data={data} />}
+              renderContent={(data) => (
+                <DeboDataModel data={data} selectedEntity={entity} onSelectEntity={setEntity} />
+              )}
             />
           ),
         },

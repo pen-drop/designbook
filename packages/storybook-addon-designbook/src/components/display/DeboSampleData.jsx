@@ -3,6 +3,7 @@ import { styled } from 'storybook/theming';
 import { SyntaxHighlighter } from 'storybook/internal/components';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboBulletList } from '../ui/DeboBulletList.jsx';
+import { DeboGrid } from '../ui/DeboGrid.jsx';
 
 const MetaBadges = styled.p(({ theme }) => ({
   fontSize: theme.typography.size.s1,
@@ -19,11 +20,6 @@ const BadgePill = styled.span(({ theme }) => ({
   marginRight: 8,
 }));
 
-const ModelGrid = styled.div({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-  gap: 12,
-});
 
 const ModelCard = styled.div(({ theme }) => ({
   background: theme.background?.content || '#ffffff',
@@ -79,14 +75,14 @@ export function DeboSampleData({ data }) {
 
       {Object.keys(models).length > 0 && (
         <DeboCollapsible title="Data Models" count={Object.keys(models).length} defaultOpen>
-          <ModelGrid>
+          <DeboGrid variant="auto" gap="sm" minWidth={240}>
             {Object.entries(models).map(([name, description]) => (
               <ModelCard key={name}>
                 <ModelName>{name}</ModelName>
                 <ModelDesc>{description}</ModelDesc>
               </ModelCard>
             ))}
-          </ModelGrid>
+          </DeboGrid>
         </DeboCollapsible>
       )}
 

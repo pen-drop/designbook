@@ -1,6 +1,6 @@
 import React from 'react';
-import { styled } from 'storybook/theming';
 import { DeboSceneCard } from '../ui/DeboSceneCard.jsx';
+import { DeboGrid } from '../ui/DeboGrid.jsx';
 
 function toStoryId(group, sceneName) {
   const titlePart = group.replace(/\//g, '-').replace(/\s+/g, '-').toLowerCase();
@@ -10,18 +10,12 @@ function toStoryId(group, sceneName) {
   // /story/designbook-design-system-scenes--shell
 }
 
-const Grid = styled.div({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-  gap: 12,
-});
-
 export function DeboSceneGrid({ data }) {
   const scenes = data?.scenes ?? [];
   const group = data?.group || data?.name || '';
 
   return (
-    <Grid>
+    <DeboGrid variant="auto" gap="sm" minWidth={220}>
       {scenes.map((scene, i) => {
         const storyId = group && scene.name ? toStoryId(group + '/Scenes', scene.name) : null;
         return (
@@ -34,6 +28,6 @@ export function DeboSceneGrid({ data }) {
           />
         );
       })}
-    </Grid>
+    </DeboGrid>
   );
 }

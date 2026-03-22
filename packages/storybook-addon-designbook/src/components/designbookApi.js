@@ -16,7 +16,6 @@ const ENDPOINT = '/__designbook/load';
  */
 export async function loadDesignbookFile(path) {
   try {
-    // eslint-disable-next-line no-undef
     const res = await fetch(`${ENDPOINT}?path=${encodeURIComponent(path)}`);
     if (!res.ok) return null;
 

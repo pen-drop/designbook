@@ -22,9 +22,3 @@ export function DeboPageLayout({ gap = '4', children }) {
     </Layout>
   );
 }
-
-export const DeboSectionList = styled.div({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 24,
-});
