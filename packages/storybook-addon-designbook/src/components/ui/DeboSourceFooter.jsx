@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { styled } from 'storybook/theming';
 
 const FooterWrapper = styled.div(({ theme }) => ({
@@ -31,13 +31,20 @@ const HintText = styled.span(({ theme }) => ({
   color: theme.color.mediumdark,
 }));
 
-const CodeTag = styled.code(({ theme }) => ({
+const CodeTag = styled.code(({ theme, $clickable }) => ({
   background: theme.background?.hoverable || '#F8FAFC',
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 4,
   padding: '2px 6px',
   fontFamily: theme.typography.fonts.mono,
   fontSize: 12,
+  ...($clickable && {
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': {
+      background: theme.background?.app || '#E8EDF2',
+    },
+  }),
 }));
 
 const SourceText = styled.p(({ theme }) => ({
@@ -75,13 +82,28 @@ const RefreshIcon = () => (
 );
 
 export function DeboSourceFooter({ path, command, onReload }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(command).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
     <FooterWrapper>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {command && (
           <HintRow>
             <InfoIcon />
-            <HintText>Run <CodeTag>{command}</CodeTag> to update</HintText>
+            <HintText>
+              Run{' '}
+              <CodeTag $clickable onClick={handleCopy} title="Click to copy">
+                {copied ? '✓ Copied!' : command}
+              </CodeTag>{' '}
+              to update
+            </HintText>
           </HintRow>
         )}
         <SourceText>Source: <CodeTag>{path}</CodeTag></SourceText>

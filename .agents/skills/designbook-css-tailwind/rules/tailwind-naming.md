@@ -1,7 +1,7 @@
 ---
 when:
   frameworks.css: tailwind
-  stages: [debo-design-tokens:dialog, create-tokens]
+  stages: [designbook-tokens:intake, create-tokens]
 ---
 
 # Tailwind Token Naming Rules

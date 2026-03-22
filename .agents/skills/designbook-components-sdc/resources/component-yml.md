@@ -1,5 +1,7 @@
 # Part 1: Generate .component.yml
 
+> ⛔ **YAML QUOTING**: Always use double quotes (`"`) in all YAML files. Never use single quotes (`'`) — they cause parser errors in the SDC Storybook addon.
+
 > ⛔ **CRITICAL RULE**: Stories must **NEVER** be placed inside `.component.yml`. Stories are **always** a separate `.story.yml` file. However, `thirdPartySettings.sdcStorybook.disableBasicStory: true` **must always** be included to prevent auto-generated basic stories.
 
 > ⛔ **NAMING RULE**: The filename must match the directory name. Component in `components/nav-main/` → file is `nav-main.component.yml`. Always kebab-case.

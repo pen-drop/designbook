@@ -1,15 +1,18 @@
 ---
 name: designbook-scenes-drupal
-description: Drupal-specific compose rules for unstructured full view modes. Load this skill when DESIGNBOOK_BACKEND is drupal.
+description: Drupal-specific entity mapping template rules for map-entity stage. Load this skill when DESIGNBOOK_BACKEND is drupal.
 ---
 
 # Designbook Scenes — Drupal
 
-Drupal-specific rules for `compose-entity`. Provides per-extension composition patterns for unstructured full view modes.
+Adds Drupal-specific entity mapping rules to the base `designbook-scenes` skill. Loaded automatically when `DESIGNBOOK_BACKEND=drupal`.
 
-Loaded automatically when `DESIGNBOOK_BACKEND=drupal` alongside `designbook-scenes`.
+The base skill defines the scenes concept (Shell, Section, Entity-Mapping). This skill provides the Drupal field access patterns and field-to-component mapping used when generating JSONata expressions in the `map-entity` stage.
 
 ## Rules
 
-- [compose-layout-builder.md](rules/compose-layout-builder.md) — Layout Builder composition: section components with `block_content` entity refs in column slots (loaded during `compose-entity` when `extensions: [layout_builder]`)
-- [compose-canvas.md](rules/compose-canvas.md) — Canvas composition: flat component tree with direct component nodes (loaded during `compose-entity` when `extensions: [canvas]`)
+- [field-map](rules/field-map.md) — Template rule for `template: field-map`. Generates JSONata that maps Drupal fields (`$fields.field_body`, `$fields.field_media.url`) to `ComponentNode[]`
+
+## Resources
+
+- [field-mapping](resources/field-mapping.md) — Drupal field type → component mapping guide (string, text_long, reference, datetime, etc.)

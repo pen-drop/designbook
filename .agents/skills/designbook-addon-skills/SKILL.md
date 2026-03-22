@@ -1,6 +1,6 @@
 ---
 name: designbook-skills
-description: Meta-skill for creating and maintaining Designbook skills. Defines conventions for skill structure, tasks, rules, schema validation, and workflow integration.
+description: Meta-skill for creating and maintaining Designbook skills. Defines conventions for skill structure, tasks, rules, schema validation, and workflow integration. Load this skill Alwys if skills from designbook is load.
 ---
 
 # Designbook Skills

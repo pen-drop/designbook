@@ -6,29 +6,30 @@ Designbook workflow evaluation using [promptfoo](https://promptfoo.dev).
 
 ```
 promptfoo/
-├── promptfooconfig.yaml        # All workflow + addon tests (single file)
+├── promptfooconfig.yaml        # All workflow tests (single file)
 ├── fixtures/
 │   ├── _shared/                # Shared PetMatch content
 │   └── debo-<workflow>/        # Per-workflow fixture subset
 ├── workspaces/                 # Test output (gitignored)
 ├── reports/                    # Eval results
 ├── scripts/
-│   └── clean.sh                # Remove workspaces
+│   ├── clean.sh                # Remove + recreate workspaces from fixtures
+│   └── setup-workspace.sh      # Setup single workspace
 └── README.md
 ```
 
 ## Quick Start
 
 ```bash
+# Clean workspaces and seed from fixtures
+./promptfoo/scripts/clean.sh
+
 # Run all workflow tests
 npx promptfoo eval -c promptfoo/promptfooconfig.yaml
 
 # Run single workflow
 npx promptfoo eval -c promptfoo/promptfooconfig.yaml \
-  --filter-pattern "product-vision"
-
-# Clean workspaces before re-run
-./promptfoo/scripts/clean.sh
+  --filter-pattern "debo-vision"
 
 # View results
 npx promptfoo view
@@ -40,30 +41,18 @@ All tests use **PetMatch** — a fictional pet adoption platform. Fixtures in `f
 
 ## Provider
 
-Tests run against **Gemini 3.1 Pro** (Google Antigravity) only.
+Tests run against **Claude Opus 4.6** via Claude Code provider.
 
 - Timeout: 300s per test
-- Max concurrency: 1
-
-## `--spec` Mode
-
-All workflow prompts use `--spec` mode. When `--spec` is passed, workflows output a structured YAML plan instead of creating files. This enables testing without side effects.
+- Max concurrency: 1 (sequential)
 
 ## Assertions
 
-All assertions use `llm-rubric` — no custom scripts. Each rubric verifies conversation output:
+All assertions use `llm-rubric`. Each rubric verifies conversation output:
 1. The agent confirms file creation
 2. Key content elements are mentioned
 3. No errors or failures are reported
 
-## Multi-Integration Support
+## Config
 
-Currently tests run against the **Drupal** integration (`test-integration-drupal`). When a React integration is added, parameterize via `vars`:
-
-```yaml
-tests:
-  - vars:
-      integration: react
-      storybook_port: 6010
-```
-
+Fixtures use `tailwind` CSS framework with `sdc` components and `drupal` backend.

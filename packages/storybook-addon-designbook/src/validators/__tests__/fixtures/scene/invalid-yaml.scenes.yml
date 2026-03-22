@@ -1,0 +1,8 @@
+group: Test/Invalid
+scenes:
+  - name: Bad
+    items:
+      - component: test:card
+        props:
+          - this is wrong yaml
+        slots: [also wrong

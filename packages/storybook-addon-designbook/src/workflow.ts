@@ -5,11 +5,12 @@
  * under $DESIGNBOOK_DIST/workflows/changes/ and /archive/.
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, utimesSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml';
 import type { ValidationFileResult } from './workflow-types.js';
+import { withLock, withLockAsync } from './workflow-lock.js';
 
 export type { ValidationFileResult };
 
@@ -17,6 +18,19 @@ export interface TaskFile {
   path: string;
   requires_validation?: boolean;
   validation_result?: ValidationFileResult;
+}
+
+export interface TaskValidationEntry {
+  file: string; // absolute path
+  validator: string; // e.g. 'component', 'scene', 'tokens', 'data', 'twig'
+  passed: boolean;
+}
+
+export interface StageLoaded {
+  task_file: string; // absolute path to the matched task file
+  rules: string[]; // absolute paths to skill rule files
+  config_rules: string[]; // strings from designbook.config.yml → workflow.rules.<stage>
+  config_instructions: string[]; // strings from designbook.config.yml → workflow.tasks.<stage>
 }
 
 export interface WorkflowTask {
@@ -27,7 +41,14 @@ export interface WorkflowTask {
   status: 'pending' | 'in-progress' | 'done' | 'incomplete';
   started_at?: string;
   completed_at?: string;
+  depends_on?: string[]; // task IDs this task depends on (computed from stage ordering)
+  params?: Record<string, unknown>; // per-task params from intake
+  task_file?: string; // absolute path to resolved skill task file
+  rules?: string[]; // absolute paths to matched skill rule files
+  config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<stage>
+  config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<stage>
   files?: TaskFile[];
+  validation?: TaskValidationEntry[]; // validators run during workflow validate
 }
 
 export interface WorkflowFile {
@@ -35,7 +56,9 @@ export interface WorkflowFile {
   workflow: string;
   status?: 'planning' | 'running' | 'completed' | 'incomplete';
   parent?: string;
+  params?: Record<string, unknown>; // global intake params (accessible to all subagents)
   stages?: string[]; // ordered stage names from workflow frontmatter
+  stage_loaded?: Record<string, StageLoaded>; // keyed by stage name, populated via workflow done --loaded
   started_at: string;
   completed_at?: string;
   summary?: string;
@@ -43,7 +66,10 @@ export interface WorkflowFile {
 }
 
 function timestamp(): string {
-  return new Date().toISOString().replace(/\.\d{3}Z$/, '');
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off * 60000);
+  return local.toISOString().replace(/\.\d{3}Z$/, '');
 }
 
 function shortId(): string {
@@ -135,9 +161,20 @@ export function workflowCreate(
   dist: string,
   workflowId: string,
   title: string,
-  tasks: Array<{ id: string; title: string; type: string; stage?: string; files?: string[] }>,
+  tasks: Array<{
+    id: string;
+    title: string;
+    type: string;
+    stage?: string;
+    files?: string[];
+    task_file?: string;
+    rules?: string[];
+    config_rules?: string[];
+    config_instructions?: string[];
+  }>,
   stages?: string[],
   parent?: string,
+  stageLoaded?: Record<string, StageLoaded>,
 ): string {
   const date = new Date().toISOString().slice(0, 10);
   const name = `${workflowId}-${date}-${shortId()}`;
@@ -148,6 +185,7 @@ export function workflowCreate(
     status: 'planning',
     ...(parent ? { parent } : {}),
     ...(stages && stages.length > 0 ? { stages } : {}),
+    ...(stageLoaded ? { stage_loaded: stageLoaded } : {}),
     started_at: timestamp(),
     completed_at: undefined,
     tasks: tasks.map((t) => ({
@@ -156,6 +194,12 @@ export function workflowCreate(
       type: t.type,
       ...(t.stage ? { stage: t.stage } : {}),
       status: 'pending' as const,
+      ...(t.task_file ? { task_file: t.task_file } : {}),
+      ...(t.rules && t.rules.length > 0 ? { rules: t.rules } : {}),
+      ...(t.config_rules && t.config_rules.length > 0 ? { config_rules: t.config_rules } : {}),
+      ...(t.config_instructions && t.config_instructions.length > 0
+        ? { config_instructions: t.config_instructions }
+        : {}),
       files: (t.files ?? []).map((p) => ({
         path: normalizeFilePath(dist, p),
         requires_validation: true,
@@ -177,8 +221,21 @@ export function workflowCreate(
 export function workflowPlan(
   dist: string,
   name: string,
-  tasks: Array<{ id: string; title: string; type: string; stage?: string; files?: string[] }>,
+  tasks: Array<{
+    id: string;
+    title: string;
+    type: string;
+    stage?: string;
+    files?: string[];
+    depends_on?: string[];
+    params?: Record<string, unknown>;
+    task_file?: string;
+    rules?: string[];
+    config_rules?: string[];
+    config_instructions?: string[];
+  }>,
   stages?: string[],
+  globalParams?: Record<string, unknown>,
 ): WorkflowFile {
   const changesDir = resolve(dist, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -189,12 +246,21 @@ export function workflowPlan(
     process.exit(1);
   }
   if (stages && stages.length > 0) data.stages = stages;
+  if (globalParams && Object.keys(globalParams).length > 0) data.params = globalParams;
   data.tasks = tasks.map((t) => ({
     id: t.id,
     title: t.title,
     type: t.type,
     ...(t.stage ? { stage: t.stage } : {}),
     status: 'pending' as const,
+    ...(t.depends_on ? { depends_on: t.depends_on } : {}),
+    ...(t.params ? { params: t.params } : {}),
+    ...(t.task_file ? { task_file: t.task_file } : {}),
+    ...(t.rules && t.rules.length > 0 ? { rules: t.rules } : {}),
+    ...(t.config_rules && t.config_rules.length > 0 ? { config_rules: t.config_rules } : {}),
+    ...(t.config_instructions && t.config_instructions.length > 0
+      ? { config_instructions: t.config_instructions }
+      : {}),
     files: (t.files ?? []).map((p) => ({
       path: normalizeFilePath(dist, p),
       requires_validation: true,
@@ -229,14 +295,53 @@ export function workflowAddFile(dist: string, name: string, taskId: string, file
   writeWorkflowAtomic(taskFilePath, data);
 }
 
+export interface LoadedPayload {
+  task_file?: string;
+  rules?: string[];
+  config_rules?: string[];
+  config_instructions?: string[];
+  validation?: TaskValidationEntry[];
+}
+
 /**
  * Mark a task as done. Auto-archives when all tasks are done.
  *
+ * @param loaded - Optional context recorded for observability (stage-level data deduplicated, task-level validation stored per task)
  * @returns `{ archived, data }` — archived indicates whether the workflow was archived
  */
-export function workflowDone(dist: string, name: string, taskId: string): { archived: boolean; data: WorkflowFile } {
+function touchTaskFiles(task: { files?: TaskFile[] }): void {
+  const now = new Date();
+  for (const f of task.files ?? []) {
+    try {
+      if (existsSync(f.path)) {
+        utimesSync(f.path, now, now);
+      }
+    } catch {
+      // Silently skip files that can't be touched
+    }
+  }
+}
+
+export function workflowDone(
+  dist: string,
+  name: string,
+  taskId: string,
+  loaded?: LoadedPayload,
+): { archived: boolean; data: WorkflowFile } {
   const changesDir = resolve(dist, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
+
+  return withLock(filePath, () => _workflowDoneInner(dist, name, taskId, loaded, changesDir, filePath));
+}
+
+function _workflowDoneInner(
+  dist: string,
+  name: string,
+  taskId: string,
+  loaded: LoadedPayload | undefined,
+  changesDir: string,
+  filePath: string,
+): { archived: boolean; data: WorkflowFile } {
   const data = readWorkflow(filePath);
 
   const task = data.tasks.find((t) => t.id === taskId);
@@ -255,6 +360,13 @@ export function workflowDone(dist: string, name: string, taskId: string): { arch
         `\nRun: workflow validate --workflow ${name} --task ${taskId}`,
     );
   }
+  const missing = (task.files ?? []).filter((f) => f.validation_result?.skipped === true && !existsSync(f.path));
+  if (missing.length > 0) {
+    throw new Error(
+      `Cannot mark '${taskId}' as done — ${missing.length} file(s) not found:\n` +
+        missing.map((f) => `  · ${f.path}`).join('\n'),
+    );
+  }
   const failed = (task.files ?? []).filter((f) => f.validation_result?.valid === false);
   if (failed.length > 0) {
     throw new Error(
@@ -266,9 +378,31 @@ export function workflowDone(dist: string, name: string, taskId: string): { arch
   task.status = 'done';
   if (!task.started_at) task.started_at = timestamp();
   task.completed_at = timestamp();
+  touchTaskFiles(task);
 
   if (data.status === 'planning' || data.status === 'running') {
     data.status = 'running';
+  }
+
+  if (loaded) {
+    // Write stage-level data — deduplicate: only write if stage not already recorded
+    const stageName = task.stage;
+    if (stageName) {
+      data.stage_loaded = data.stage_loaded ?? {};
+      if (!data.stage_loaded[stageName]) {
+        data.stage_loaded[stageName] = {
+          task_file: loaded.task_file ?? '',
+          rules: loaded.rules ?? [],
+          config_rules: loaded.config_rules ?? [],
+          config_instructions: loaded.config_instructions ?? [],
+        };
+      }
+    }
+
+    // Write task-level validation
+    if (loaded.validation) {
+      task.validation = loaded.validation;
+    }
   }
 
   const allDone = data.tasks.every((t) => t.status === 'done');
@@ -299,46 +433,49 @@ export async function workflowValidate(
 ): Promise<WorkflowValidateResult[]> {
   const changesDir = resolve(dist, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
-  const data = readWorkflow(filePath);
 
-  const tasksToValidate = taskId ? data.tasks.filter((t) => t.id === taskId) : data.tasks;
+  return withLockAsync(filePath, async () => {
+    const data = readWorkflow(filePath);
 
-  if (taskId && tasksToValidate.length === 0) {
-    throw new Error(`Task not found: ${taskId} (available: ${data.tasks.map((t) => t.id).join(', ')})`);
-  }
+    const tasksToValidate = taskId ? data.tasks.filter((t) => t.id === taskId) : data.tasks;
 
-  // Transition to running on first validate
-  if (data.status === 'planning') data.status = 'running';
-
-  const allResults: WorkflowValidateResult[] = [];
-
-  for (const task of tasksToValidate) {
-    if (!task.files || task.files.length === 0) continue;
-
-    for (const taskFile of task.files) {
-      const absoluteFile = taskFile.path;
-      if (!existsSync(absoluteFile)) {
-        const result: ValidationFileResult = {
-          file: taskFile.path,
-          type: 'unknown',
-          valid: false,
-          error: `File not found: ${absoluteFile}`,
-          last_validated: new Date().toISOString(),
-        };
-        taskFile.validation_result = result;
-        taskFile.requires_validation = false;
-        allResults.push({ ...result, task: task.id });
-        continue;
-      }
-      const result = await validateFn(absoluteFile);
-      taskFile.validation_result = { ...result, file: taskFile.path };
-      taskFile.requires_validation = false;
-      allResults.push({ ...result, file: taskFile.path, task: task.id });
+    if (taskId && tasksToValidate.length === 0) {
+      throw new Error(`Task not found: ${taskId} (available: ${data.tasks.map((t) => t.id).join(', ')})`);
     }
-  }
 
-  writeWorkflowAtomic(filePath, data);
-  return allResults;
+    // Transition to running on first validate
+    if (data.status === 'planning') data.status = 'running';
+
+    const allResults: WorkflowValidateResult[] = [];
+
+    for (const task of tasksToValidate) {
+      if (!task.files || task.files.length === 0) continue;
+
+      for (const taskFile of task.files) {
+        const absoluteFile = taskFile.path;
+        if (!existsSync(absoluteFile)) {
+          const result: ValidationFileResult = {
+            file: taskFile.path,
+            type: 'unknown',
+            valid: null,
+            skipped: true,
+            last_validated: new Date().toISOString(),
+          };
+          taskFile.validation_result = result;
+          taskFile.requires_validation = false;
+          allResults.push({ ...result, task: task.id });
+          continue;
+        }
+        const result = await validateFn(absoluteFile);
+        taskFile.validation_result = { ...result, file: taskFile.path };
+        taskFile.requires_validation = false;
+        allResults.push({ ...result, file: taskFile.path, task: task.id });
+      }
+    }
+
+    writeWorkflowAtomic(filePath, data);
+    return allResults;
+  }); // end withLockAsync
 }
 
 /**

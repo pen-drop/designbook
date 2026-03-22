@@ -16,14 +16,15 @@ import type { SceneNode, SceneNodeBuilder, BuildContext, ComponentNode, RawNode 
  * Detects both normalized (type: 'entity') and YAML duck-typed ({ entity: '...' }) formats.
  */
 function needsBuilding(node: RawNode): node is SceneNode {
+  if (typeof node !== 'object' || node === null) return false;
   const n = node as Record<string, unknown>;
   const t = n.type as string | undefined;
   return (
     t === 'entity' ||
     t === 'config' ||
-    t === 'scene' ||
     ('entity' in n && typeof n.entity === 'string') ||
-    ('config' in n && typeof n.config === 'string')
+    ('config' in n && typeof n.config === 'string') ||
+    ('scene' in n && typeof n.scene === 'string')
   );
 }
 

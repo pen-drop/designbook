@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, utimesSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
@@ -310,6 +310,27 @@ describe('workflowDone', () => {
     expect(() => workflowDone(dist, name, 'task1')).toThrow('not yet validated');
   });
 
+  it('throws when a file was skipped (not found on disk) during validate', () => {
+    name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
+    const filePath = tasksYmlPath(dist, name);
+    const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
+    raw.tasks[0].files = [
+      {
+        path: '/nonexistent/path/button.component.yml',
+        requires_validation: false,
+        validation_result: {
+          file: '/nonexistent/path/button.component.yml',
+          type: 'unknown',
+          valid: null,
+          skipped: true,
+          last_validated: new Date().toISOString(),
+        },
+      },
+    ];
+    writeFileSync(filePath, stringifyYaml(raw));
+    expect(() => workflowDone(dist, name, 'task1')).toThrow('not found');
+  });
+
   it('throws when a file failed validation', () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
     // Manually inject a failed validation_result
@@ -351,6 +372,77 @@ describe('workflowDone', () => {
     writeFileSync(filePath, stringifyYaml(raw));
     const result = workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(true);
+  });
+
+  it('touches task files after marking done', () => {
+    name = workflowCreate(dist, 'debo-vision', 'Vision', [
+      { id: 'task1', title: 'T1', type: 'component' },
+      { id: 'task2', title: 'T2', type: 'data' },
+    ]);
+    // Create a real file and set its mtime to the past
+    const componentDir = resolve(dist, 'components');
+    mkdirSync(componentDir, { recursive: true });
+    const componentFile = resolve(componentDir, 'button.component.yml');
+    writeFileSync(componentFile, 'name: button');
+    const pastDate = new Date('2020-01-01');
+    utimesSync(componentFile, pastDate, pastDate);
+    const mtimeBefore = statSync(componentFile).mtimeMs;
+
+    // Set up validated file in task
+    const filePath = tasksYmlPath(dist, name);
+    const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
+    raw.tasks[0].files = [
+      {
+        path: componentFile,
+        requires_validation: false,
+        validation_result: {
+          file: componentFile,
+          type: 'component',
+          valid: true,
+          last_validated: new Date().toISOString(),
+        },
+      },
+    ];
+    writeFileSync(filePath, stringifyYaml(raw));
+
+    workflowDone(dist, name, 'task1');
+    const mtimeAfter = statSync(componentFile).mtimeMs;
+    expect(mtimeAfter).toBeGreaterThan(mtimeBefore);
+  });
+
+  it('silently skips missing files during touch', () => {
+    name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
+    const filePath = tasksYmlPath(dist, name);
+    const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
+    const missingFile = resolve(dist, 'nonexistent', 'missing.yml');
+    const existingFile = resolve(dist, 'existing.yml');
+    mkdirSync(resolve(dist), { recursive: true });
+    writeFileSync(existingFile, 'test: true');
+    raw.tasks[0].files = [
+      {
+        path: missingFile,
+        requires_validation: false,
+        validation_result: {
+          file: missingFile,
+          type: 'component',
+          valid: true,
+          last_validated: new Date().toISOString(),
+        },
+      },
+      {
+        path: existingFile,
+        requires_validation: false,
+        validation_result: {
+          file: existingFile,
+          type: 'component',
+          valid: true,
+          last_validated: new Date().toISOString(),
+        },
+      },
+    ];
+    writeFileSync(filePath, stringifyYaml(raw));
+    // Should not throw despite missing file
+    expect(() => workflowDone(dist, name, 'task1')).not.toThrow();
   });
 });
 
@@ -443,7 +535,7 @@ describe('workflowValidate', () => {
     expect(calls[0]).toContain('a.component.yml');
   });
 
-  it('returns file-not-found error without calling validateFn when file does not exist', async () => {
+  it('skips missing files without calling validateFn when file does not exist', async () => {
     const called: string[] = [];
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
       { id: 'task1', title: 'T1', type: 'component', files: ['/nonexistent/path/button.component.yml'] },
@@ -456,11 +548,11 @@ describe('workflowValidate', () => {
 
     const results = await workflowValidate(dist, name, validateFn, 'task1');
     expect(called).toHaveLength(0); // validateFn must NOT be called
-    expect(results[0].valid).toBe(false);
-    expect(results[0].error).toContain('File not found');
+    expect(results[0].valid).toBeNull();
+    expect(results[0].skipped).toBe(true);
     const data = readWorkflowFile(dist, name);
-    expect(data.tasks[0].files![0].validation_result?.valid).toBe(false);
-    expect(data.tasks[0].files![0].requires_validation).toBe(false);
+    expect(data.tasks[0].files![0].validation_result?.valid).toBeNull();
+    expect(data.tasks[0].files![0].requires_validation).toBe(false); // cleared — skipped counts as attempted
   });
 
   it('throws when scoped taskId does not exist', async () => {

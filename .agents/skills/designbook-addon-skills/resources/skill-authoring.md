@@ -1,5 +1,33 @@
 # Skill Authoring Reference
 
+## SKILL.md Contract
+
+`SKILL.md` is the **always-loaded entry point** — it loads before the AI knows which stage to execute. Per the [skill-creator progressive disclosure model](https://github.com/anthropics/claude-code), designbook-* skills follow a stricter sub-convention:
+
+**Allowed in SKILL.md:**
+- Frontmatter (`name`, `description`)
+- One-paragraph skill overview
+- Links to `tasks/`, `rules/`, `resources/` files
+- Small reference material: schema diagrams, valid value tables, format specs
+
+**Not allowed in SKILL.md:**
+- Execution instructions (step-by-step procedures, CLI commands to run)
+- AI rules with if/then branching (Rule 0, Rule 1, etc.)
+- "Load X skill" directives
+- Config-loading or env-var setup instructions
+
+**The test:** if removing a section would prevent execution → it belongs in a task or rule file. If it's pure reference → it may stay.
+
+**Target size:** ~40 lines for designbook-* SKILL.md files.
+
+| Content type | Destination |
+|---|---|
+| AI execution rules | `rules/<name>.md` (omit `when.stages` for global rules) |
+| CLI reference, YAML format specs | `resources/<topic>.md` |
+| Output structure, architecture docs | `resources/<topic>.md` |
+| Schema reference | `resources/schema-reference.md` |
+| Config reference | `resources/config-reference.md` |
+
 ## SKILL.md Structure
 
 Every `SKILL.md` follows this template:
@@ -26,8 +54,6 @@ description: [one-line description]
 
 - [topic.md](resources/topic.md) — [what it contains]
 ```
-
-Keep SKILL.md as an index. Detail lives in task/rule files and resource docs.
 
 ## When to Use `tasks/`
 
@@ -96,4 +122,4 @@ Resolves to `.agents/skills/designbook-components-sdc/resources/shell-generation
 
 ## Configuration
 
-Load `designbook-configuration` skill — it resolves all `DESIGNBOOK_*` env vars from `designbook.config.yml`. Must be loaded before any skill that references config values.
+The `designbook-workflow` skill Rule 0 bootstraps `$DESIGNBOOK_CMD` and all `DESIGNBOOK_*` env vars from `designbook.config.yml`. This runs before any workflow command.

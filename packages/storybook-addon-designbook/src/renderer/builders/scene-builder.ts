@@ -77,12 +77,12 @@ function findScene(scenesFilePath: string, sceneName: string): SceneDef | null {
 
 export const sceneBuilder: SceneNodeBuilder = {
   appliesTo(node: SceneNode): boolean {
-    return node.type === 'scene';
+    return 'scene' in node && typeof node.scene === 'string';
   },
 
   async build(node: SceneNode, ctx: BuildContext): Promise<RawNode[]> {
     const sceneNode = node as SceneSceneNode;
-    const { ref } = sceneNode;
+    const ref = sceneNode.scene;
 
     // Read `with:` vars, accepting `slots:` as a deprecated alias
     let withVars: Record<string, unknown> | undefined = sceneNode.with;

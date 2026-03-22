@@ -1,0 +1,5 @@
+@theme {
+  --shadow-sm: 0 0 10px rgba(255, 95, 31, 0.05);
+  --shadow-md: 0 0 20px rgba(255, 181, 156, 0.1);
+  --shadow-lg: 0 0 40px rgba(255, 181, 156, 0.15);
+}

@@ -1,40 +1,22 @@
 ---
 when:
   backend: drupal
-  stages: [debo-data-model:dialog, create-data-model]
+  stages: [designbook-data-model:intake, create-data-model]
 ---
 
 # Drupal Data Model Rules
 
-## Composition per Bundle
-
-Set `composition` on each bundle based on how Drupal manages its content:
-
-| Bundle type | composition | Example |
-|-------------|-------------|---------|
-| Content types with fields | `structured` (default) | `node.article`, `node.event` |
-| Landing pages with Layout Builder | `unstructured` | `node.landing_page` |
-| Landing pages with Canvas/Experience Builder | `unstructured` | `node.campaign` |
-| Block content (for Layout Builder) | `structured` | `block_content.hero`, `block_content.card` |
-| Media entities | `structured` | `media.image`, `media.video` |
-| Taxonomy terms | `structured` | `taxonomy_term.tags` |
-
-> `unstructured` only affects `view_mode: full`. Unstructured bundles still need fields for teaser/card view modes.
-
-The project's `extensions` config determines what `unstructured` means:
-- `layout_builder` — full view mode renders sections with block entity slots
-- `canvas` / `experience_builder` — full view mode renders a component tree directly
 
 ## Entity Mapping
 
 Map generic content concepts to Drupal entity types:
 
-| Content concept | Entity type | Path in data-model.yml |
-|-----------------|-------------|------------------------|
-| Content (articles, pages, products) | `node` | `content.node.[bundle]` |
-| Files, images, videos | `media` | `content.media.[bundle]` |
-| Reusable blocks | `block_content` | `content.block_content.[bundle]` |
-| Categories, tags | `taxonomy_term` | `content.taxonomy_term.[bundle]` |
+| Content concept                           | Entity type | Path in data-model.yml |
+|-------------------------------------------|-------------|------------------------|
+| Content (articles, pages, products)       | `node` | `content.node.[bundle]` |
+| Files, images, videos                     | `media` | `content.media.[bundle]` |
+| Reusable blocks (Only for layout_builder) | `block_content` | `content.block_content.[bundle]` |
+| Categories, tags                          | `taxonomy_term` | `content.taxonomy_term.[bundle]` |
 
 ## Field Naming Conventions
 
@@ -48,13 +30,14 @@ Do **not** prefix standard entity base properties:
 - `created`, `changed`
 - `langcode`
 - `path` — URL alias
+- `body` — The main content node.
 
 ### Custom Fields — Must Use `field_` Prefix
 
 All other fields **must** be prefixed with `field_`:
 
-- `field_body`, `field_tags`, `field_image`, `field_subtitle` ✅
-- `body`, `subtitle`, `tags` ❌
+- `field_tags`, `field_media`, `field_subtitle` ✅
+
 
 ### Example
 
@@ -68,7 +51,7 @@ content:
         title:
           type: string
           title: Title
-        field_body:
+        body:
           type: text
           title: Body
         field_tags:

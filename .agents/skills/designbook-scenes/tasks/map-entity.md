@@ -13,13 +13,12 @@ files:
 
 # Map Entity
 
-Creates a JSONata expression file that maps entity fields to a ComponentNode array for rendering in Storybook.
+Creates a JSONata expression file that maps an entity's data to `ComponentNode[]`.
 
-**Use this task when:**
-- `view_mode != full` (always structured)
-- `view_mode = full` AND `composition: structured` (or absent)
+## Input
 
-For `view_mode = full` AND `composition: unstructured`, use `compose-entity` instead.
+- `data-model.yml` → `content.{entity_type}.{bundle}.view_modes.{view_mode}` for template name and settings
+- Template rule from `skills/*/rules/*.md` matching `when: stages: [map-entity], template: {template}`
 
 ## Output
 
@@ -27,41 +26,11 @@ For `view_mode = full` AND `composition: unstructured`, use `compose-entity` ins
 $DESIGNBOOK_DIST/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
 ```
 
-## Format
+A pure JSONata expression returning `ComponentNode[]`. See [jsonata-reference](../resources/jsonata-reference.md) for output format.
 
-Each `.jsonata` file maps entity fields to `ComponentNode[]`. Reference fields that point to other entities emit `type: entity` nodes — these are resolved recursively by calling `map-entity` again for the referenced entity + view_mode.
-
-```jsonata
-(
-  /* JSONata expression that maps entity fields → ComponentNode[] */
-  $fields := $;
-  [
-    {
-      "component": "provider:heading",
-      "props": { "level": "h1" },
-      "slots": { "text": $fields.title }
-    },
-    {
-      "component": "provider:text-block",
-      "slots": { "content": $fields.field_body }
-    },
-    /* Reference field → entity node, resolved recursively */
-    $fields.field_author ? {
-      "type": "entity",
-      "entity_type": "user",
-      "bundle": "user",
-      "view_mode": "avatar",
-      "record": 0
-    }
-  ]
-)
-```
-
-## Key Rules
+## Constraints
 
 - One file per `entity_type.bundle.view_mode` combination
-- Output must be a JSONata array expression returning `ComponentNode[]`
-- Reference fields use dot notation: `$fields.field_media.url`
-- Static values (no `$`): `"h1"`, `true`, `42`
-- Provider prefix must be resolved at generation time (never leave as placeholder)
-- Recursive entity refs: emit `type: entity` node — `map-entity` will be called again for that entity
+- Provider prefix resolved at generation time (never leave as placeholder)
+- Reference fields emit `{ "type": "entity", ... }` nodes — resolved recursively at build time
+- If no matching template rule found, stop and report the error

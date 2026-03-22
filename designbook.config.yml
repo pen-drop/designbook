@@ -1,6 +1,4 @@
 backend: drupal
-extensions:
-  - layout_builder
 frameworks:
   component: sdc
   css: tailwind
@@ -11,14 +9,5 @@ css:
 drupal:
   theme: packages/integrations/test-integration-drupal
 cmd: 'node packages/storybook-addon-designbook/dist/cli.js'
-
-workflow:
-  rules:
-    create-component:
-      - "Komponenten-Namen immer auf Englisch, kebab-case"
-    debo-design-component:dialog:
-      - "Immer nach dem Figma-Link fragen bevor die Anforderungen aufgenommen werden"
-
-  tasks:
-    create-component:
-      - "Nach Erstellung prüfen ob die Komponente im Storybook ohne Fehler rendert"
+storybook_url: "http://localhost:6009"
+storybook_root: packages/integrations/test-integration-drupal/

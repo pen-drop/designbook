@@ -7,83 +7,55 @@ params:
 reads:
   - path: $DESIGNBOOK_DIST/data-model.yml
     workflow: debo-data-model
+  - path: $DESIGNBOOK_DIST/design-system/design-system.scenes.yml
+    workflow: debo-design-shell
 files:
   - $DESIGNBOOK_DIST/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
 ---
 
 # Create Section Scene
 
-Creates `sections/{{ section_id }}/{{ section_id }}.section.scenes.yml` — defines all page scenes for a section, inheriting the shell layout via `type: scene` + `ref: design-system:shell`.
+Creates `sections/{{ section_id }}/{{ section_id }}.section.scenes.yml` — page scenes for a section, inheriting the shell layout.
+
+## Input
+
+- `data-model.yml` — available entity types and bundles for this section
+- `design-system.scenes.yml` — the shell scene with `$content` placeholder
 
 ## Output
-
-```
-$DESIGNBOOK_DIST/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
-```
-
-## Format
 
 ```yaml
 id: {{ section_id }}
 title: {{ section_title }}
 description: {{ section_description }}
 status: planned
-order: 1
+order: [number]
 
 group: "Designbook/Sections/{{ section_title }}"
 scenes:
-  - name: "Detail"
+  - name: "[Scene Name]"
+    reference:              # optional — write when provided
+      type: "stitch"
+      url: "<resource URL>"
+      title: "<label>"
     items:
-      - type: scene
-        ref: design-system:shell
+      - scene: "design-system:shell"
         with:
           content:
-            - entity: node.article
-              view_mode: full
-              record: 0
-
+            # Entities or components that fill the page
 ```
 
-## Full Example
+## Scene Node Types
 
-```yaml
-# sections/blog/blog.section.scenes.yml
-id: blog
-title: Blog
-description: Artikel und News rund ums Thema.
-status: planned
-order: 2
+Each entry in `items:` uses one of three keys:
 
-group: "Designbook/Sections/Blog"
-scenes:
-  - name: "Blog Detail"
-    items:
-      - type: scene
-        ref: design-system:shell
-        with:
-          content:
-            - entity: node.article
-              view_mode: full
-              record: 0
+- **`scene:`** — embed the shell and fill `$content`
+- **`component:`** — render a UI component directly with props/slots
+- **`entity:`** — render an entity from sample data (`node.article`, `view.recent_articles`)
 
-  - name: "Blog Listing"
-    items:
-      - type: scene
-        ref: design-system:shell
-        with:
-          content:
-            - entity: node.layout_builder
-              view_mode: full
-              record: 0
-```
+## Constraints
 
-## Critical Rules
-
-> ⛔ **`component:` values MUST always use `provider:component` format.**
-> Write `test_integration_drupal:header`, NEVER just `header`.
-> Resolve `$DESIGNBOOK_SDC_PROVIDER` from `@designbook-configuration` at generation time.
-
-> ⛔ **No `type: element` in scenes.** Never use `type: element` nodes inside slots.
-> Use plain string values for text content. `type: element` is only valid in component `*.story.yml` files.
-
-> ⛔ **Shell scenes: inline all slots.** Header and footer MUST inline ALL their sub-component slots — `logo`, `navigation` (with `items` populated), `actions`, `copyright`. Never write `story: default` alone.
+- **Provider prefix** — every `component:` value uses `provider:name`
+- **No `type: element`** — plain strings for text content
+- **`group:`** must be `"Designbook/Sections/{{ section_title }}"`
+- For listings use `entity: view.*` — never `records:` shorthand

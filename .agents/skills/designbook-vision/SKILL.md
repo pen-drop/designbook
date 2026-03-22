@@ -3,6 +3,8 @@ name: designbook-vision
 description: Creates and stores the product vision document. Used during the debo-vision workflow to capture product name, description, problems/solutions, and key features.
 ---
 
+> **Internal skill** — Do not invoke directly. Use the `/debo-vision` workflow instead.
+
 # Designbook Vision
 
 Creates `$DESIGNBOOK_DIST/product/vision.md` from the approved product vision gathered during dialog.

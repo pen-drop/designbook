@@ -20,8 +20,7 @@ scenes:
 
   - name: Scene ref with slots
     items:
-      - type: scene
-        ref: design-system:shell
+      - scene: design-system:shell
         with:
           content:
             - component: test:hero

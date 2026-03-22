@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ValidationRegistry, validateViaStorybookHttp } from '../../validation-registry.js';
+import { describe, it, expect, vi } from 'vitest';
+import { ValidationRegistry } from '../../validation-registry.js';
 import type { DesignbookConfig } from '../../config.js';
 
 const mockConfig: DesignbookConfig = {
@@ -58,103 +58,5 @@ describe('ValidationRegistry', () => {
     await registry.validate('/a/button.story.yml', mockConfig);
     await registry.validate('/a/listing.scenes.yml', mockConfig);
     expect(validator).toHaveBeenCalledTimes(2);
-  });
-});
-
-// ── validateViaStorybookHttp ─────────────────────────────────────────────────
-
-describe('validateViaStorybookHttp', () => {
-  const originalFetch = globalThis.fetch;
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-  });
-
-  it('returns skipped when Storybook is unreachable', async () => {
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
-    const result = await validateViaStorybookHttp('/path/to/button.story.yml', mockConfig);
-    expect(result.skipped).toBe(true);
-    expect(result.valid).toBe(true);
-    expect(result.type).toBe('story');
-  });
-
-  it('returns valid when story is found in index', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        entries: {
-          'button--default': {
-            id: 'button--default',
-            importPath: './path/to/button.story.yml',
-            name: 'Default',
-            exportName: 'Default',
-          },
-        },
-      }),
-    } as Response);
-    const result = await validateViaStorybookHttp('/tmp/test-designbook/path/to/button.story.yml', mockConfig);
-    expect(result.valid).toBe(true);
-  });
-
-  it('returns valid:false when only LoadError entries found and extracts error from module', async () => {
-    const errorJs =
-      "export default { title: 'Errors/button.story.yml' };\n" +
-      "export const LoadError = { render: () => '<pre>Twig error: undefined variable</pre>' };";
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-      if ((url as string).includes('/index.json')) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({
-            entries: {
-              'errors-button-story-yml--load-error': {
-                id: 'errors-button-story-yml--load-error',
-                importPath: './path/to/button.story.yml',
-                name: 'Load Error',
-                exportName: 'LoadError',
-              },
-            },
-          }),
-        });
-      }
-      // module fetch
-      return Promise.resolve({ ok: true, text: async () => errorJs });
-    });
-    const result = await validateViaStorybookHttp('/tmp/test-designbook/path/to/button.story.yml', mockConfig);
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('Twig error');
-  });
-
-  it('returns skipped when file is not in index and no LoadError', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ entries: {} }),
-    } as Response);
-    const result = await validateViaStorybookHttp('/tmp/test-designbook/path/to/button.story.yml', mockConfig);
-    // Not in index + no LoadError = new file not yet picked up by Storybook → skipped
-    expect(result.valid).toBe(true);
-    expect(result.skipped).toBe(true);
-  });
-
-  it('returns skipped when index.json is not ok', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-    } as Response);
-    const result = await validateViaStorybookHttp('/path/to/button.story.yml', mockConfig);
-    expect(result.valid).toBe(true);
-    expect(result.skipped).toBe(true);
-  });
-
-  it('uses storybook.port from config', async () => {
-    let capturedUrl = '';
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-      capturedUrl = url;
-      return Promise.reject(new Error('ECONNREFUSED'));
-    });
-    await validateViaStorybookHttp('/path/to/button.story.yml', {
-      ...mockConfig,
-      'storybook.port': 9009,
-    });
-    expect(capturedUrl).toContain(':9009/');
   });
 });

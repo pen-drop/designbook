@@ -1,9 +1,13 @@
 config:
   view:
     recent_articles:
-      composition: unstructured
+      view_modes:
+        default:
+          template: view-entity
     mixed_content:
-      composition: unstructured
+      view_modes:
+        default:
+          template: view-entity
 
 content:
   node:

@@ -14,7 +14,6 @@ const config = {
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
   ],
   addons: [
-    '@storybook/addon-vitest',
     '@storybook/addon-themes',
     '@storybook/addon-docs',
     {
@@ -70,6 +69,14 @@ const config = {
       ],
       build: {
         cssMinify: 'esbuild',
+      },
+      server: {
+        watch: {
+          awaitWriteFinish: {
+            stabilityThreshold: 500,
+            pollInterval: 100,
+          },
+        },
       },
     });
   },

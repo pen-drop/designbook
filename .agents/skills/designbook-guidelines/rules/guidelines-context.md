@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [debo-design-tokens:dialog, debo-design-screen:dialog, debo-design-shell:dialog, create-component, create-section-scene, create-shell-scene, create-tokens]
+  stages: [designbook-tokens:intake, designbook-design-component:intake, designbook-design-screen:intake, designbook-design-shell:intake, designbook-sample-data:intake, create-component, create-section-scene, create-shell-scene, create-tokens]
 ---
 
 # Design Guidelines Context
@@ -19,10 +19,10 @@ when:
 | `naming.convention` | Use this convention for all component names, variants, and file names (e.g. `kebab-case`) |
 | `naming.examples` | Use these as reference patterns when naming new components |
 | `principles` | Apply these as quality constraints — every output must satisfy them |
-| `component_patterns` | Follow these composition rules when constructing component slots and structure |
+| `component_patterns` | **Binding rules** — read these BEFORE proposing or creating any component. Every pattern is a hard constraint on component structure, naming, and composition. Do not invent components that violate these patterns. If a pattern says "use container for width control", every component that needs width control MUST use container — no alternatives. |
 | `references` | Consult linked design systems or Figma files for visual guidance |
 | `design_file` | Primary source for visual decisions; use `mcp.server` if available |
 | `mcp` | If an MCP server is declared, use it to inspect the design file directly |
-| `skills` | For each skill listed, call the Skill tool to load it before generating output |
+| `skills` | You MUST call the Skill tool for each skill listed BEFORE producing any output or asking the user questions. This is a blocking prerequisite — do not proceed until all skills are loaded. |
 
 All guidelines are hard constraints — apply them silently, do not repeat them to the user.

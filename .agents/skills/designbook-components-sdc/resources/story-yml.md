@@ -2,6 +2,8 @@
 
 Stories are written as **separate `.story.yml`** files using the SDC Storybook format.
 
+> ⛔ **YAML QUOTING**: Always use double quotes (`"`) in all YAML files. Never use single quotes (`'`) — they cause parser errors in the SDC Storybook addon.
+
 > ⛔ **CRITICAL RULE**: Stories must **NEVER** be placed inside `.component.yml`. Always generate separate `.story.yml` files.
 
 > ⛔ **FORMAT RULE**: Each `.story.yml` uses a **flat format** — no `stories:` wrapper. Top-level keys are `name`, `props`, and `slots`.
@@ -59,7 +61,7 @@ slots:                    # optional, define slot content
     - type: element
       value: [text or HTML]
     - type: component
-      component: '$DESIGNBOOK_SDC_PROVIDER:[componentName]'
+      component: "$DESIGNBOOK_SDC_PROVIDER:[componentName]"
     - type: image
       uri: [url]
 ```
