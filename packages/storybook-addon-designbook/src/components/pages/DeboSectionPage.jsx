@@ -1,14 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { styled } from 'storybook/theming';
-import { TabsView } from 'storybook/internal/components';
 import { DeboSection } from '../DeboSection.jsx';
+import { DeboTabs } from '../ui/DeboTabs.jsx';
 
 import { DeboProse } from '../ui/DeboTypography.jsx';
 import { DeboSampleData } from '../display/DeboSampleData.jsx';
 import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
 import { parseScreenshots } from '../parsers.js';
 import { parse as parseYaml } from 'yaml';
-import { DeboCollapsible, DeboSectionList } from '../ui/index.js';
+import { DeboCollapsible, DeboGrid } from '../ui/index.js';
 
 const yamlParser = (text) => {
   try { return parseYaml(text); } catch { return null; }
@@ -37,12 +37,6 @@ const CardContent = styled.div({
   padding: '32px 16px',
 });
 
-const ScreenshotGrid = styled.div({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-  gap: 16,
-  marginTop: 8,
-});
 
 const ScreenshotCard = styled.div(({ theme }) => ({
   borderRadius: 8,
@@ -74,11 +68,9 @@ const TabContent = styled.div({
 export function DeboSectionPage({ sectionId, title }) {
   const [reloadKey, setReloadKey] = useState(0);
 
-
   return (
     <div key={reloadKey}>
-      <TabsView
-        defaultSelected="spec"
+      <DeboTabs
         tabs={[
           {
             id: 'spec',
@@ -93,7 +85,7 @@ export function DeboSectionPage({ sectionId, title }) {
                   emptyMessage={`No specification for ${title} yet`}
                   filePath={`designbook/sections/${sectionId}/${sectionId}.section.scenes.yml`}
                   renderContent={(data) => (
-                    <DeboSectionList>
+                    <DeboGrid gap="lg">
                       <DeboCollapsible title={'Description'} defaultOpen={true}>
                         <DeboProse content={data.description} />
                       </DeboCollapsible>
@@ -107,7 +99,7 @@ export function DeboSectionPage({ sectionId, title }) {
                           <DeboProse content={data.ui_requirements} />
                         </DeboCollapsible>
                       )}
-                    </DeboSectionList>
+                    </DeboGrid>
                   )}
                 />
               </TabContent>
@@ -160,7 +152,7 @@ export function DeboSectionPage({ sectionId, title }) {
                   emptyMessage="No screenshots captured yet"
                   filePath={`designbook/sections/${sectionId}/`}
                   renderContent={(shots) => (
-                    <ScreenshotGrid>
+                    <DeboGrid variant="auto" gap="md" minWidth={300}>
                       {shots.map((shot, index) => (
                         <ScreenshotCard key={index}>
                           <ScreenshotImage
@@ -170,7 +162,7 @@ export function DeboSectionPage({ sectionId, title }) {
                           <ScreenshotCaption>{shot.alt}</ScreenshotCaption>
                         </ScreenshotCard>
                       ))}
-                    </ScreenshotGrid>
+                    </DeboGrid>
                   )}
                 />
               </TabContent>
@@ -179,5 +171,6 @@ export function DeboSectionPage({ sectionId, title }) {
         ]}
       />
     </div>
+
   );
 }

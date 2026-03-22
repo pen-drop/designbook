@@ -1,4 +1,3 @@
-/* global window */
 /**
  * Active theme store — shared via window global so both preview.ts (bundled by tsup)
  * and mount-react.js (copied as-is) see the same value regardless of module deduplication.

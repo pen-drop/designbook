@@ -3,6 +3,7 @@ import { styled } from 'storybook/theming';
 import { SyntaxHighlighter } from 'storybook/internal/components';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboBulletList } from '../ui/DeboBulletList.jsx';
+import { DeboGrid } from '../ui/DeboGrid.jsx';
 
 const MetaBadges = styled.p(({ theme }) => ({
   fontSize: theme.typography.size.s1,
@@ -13,20 +14,15 @@ const MetaBadges = styled.p(({ theme }) => ({
 const BadgePill = styled.span(({ theme }) => ({
   display: 'inline-block',
   fontSize: theme.typography.size.s1,
-  background: theme.background?.hoverable || '#F1F5F9',
+  background: theme.background?.hoverable || theme.background?.app,
   borderRadius: 6,
   padding: '2px 8px',
   marginRight: 8,
 }));
 
-const ModelGrid = styled.div({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-  gap: 12,
-});
 
 const ModelCard = styled.div(({ theme }) => ({
-  background: theme.background?.content || '#ffffff',
+  background: theme.background?.content || theme.background?.app,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 8,
   padding: 12,
@@ -79,14 +75,14 @@ export function DeboSampleData({ data }) {
 
       {Object.keys(models).length > 0 && (
         <DeboCollapsible title="Data Models" count={Object.keys(models).length} defaultOpen>
-          <ModelGrid>
+          <DeboGrid variant="auto" gap="sm" minWidth={240}>
             {Object.entries(models).map(([name, description]) => (
               <ModelCard key={name}>
                 <ModelName>{name}</ModelName>
                 <ModelDesc>{description}</ModelDesc>
               </ModelCard>
             ))}
-          </ModelGrid>
+          </DeboGrid>
         </DeboCollapsible>
       )}
 
