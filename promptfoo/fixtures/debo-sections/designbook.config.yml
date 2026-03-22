@@ -1,0 +1,5 @@
+dist: ./designbook
+backend: drupal
+frameworks:
+  component: sdc
+  css: tailwind

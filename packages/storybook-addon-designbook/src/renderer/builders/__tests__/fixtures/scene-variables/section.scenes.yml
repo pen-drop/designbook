@@ -3,8 +3,7 @@ group: Test/Section
 scenes:
   - name: with-content
     items:
-      - type: scene
-        ref: shell:shell
+      - scene: shell:shell
         with:
           content:
             - component: test_provider:heading
@@ -15,13 +14,11 @@ scenes:
 
   - name: no-with
     items:
-      - type: scene
-        ref: shell:shell
+      - scene: shell:shell
 
   - name: deprecated-slots
     items:
-      - type: scene
-        ref: shell:shell
+      - scene: shell:shell
         slots:
           content:
             - component: test_provider:heading

@@ -58,8 +58,7 @@ scenes:
 
   - name: WithShell
     items:
-      - type: scene
-        ref: shell:shell
+      - scene: shell:shell
         slots:
           content:
             - entity: node.article

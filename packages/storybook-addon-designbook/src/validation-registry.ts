@@ -11,7 +11,6 @@ import { validateComponent } from './validators/component.js';
 import { validateDataModel } from './validators/data-model.js';
 import { validateTokens } from './validators/tokens.js';
 import { validateData } from './validators/data.js';
-import { validateStory } from './validators/story.js';
 
 export type ValidatorFn = (file: string, config: DesignbookConfig) => Promise<ValidationFileResult>;
 
@@ -64,9 +63,6 @@ function toFileResult(result: ValidatorResult, file: string, type: string): Vali
   };
 }
 
-/** @deprecated Use validateStory from ./validators/story.js directly. */
-export const validateViaStorybookHttp = validateStory;
-
 // ── Config-based extension ───────────────────────────────────────────────────
 
 /**
@@ -111,10 +107,8 @@ export function applyConfigExtensions(config: DesignbookConfig, registry: Valida
 
 export const defaultRegistry = new ValidationRegistry();
 
-defaultRegistry.register('**/*.component.yml', async (file, config) => {
-  const schema = toFileResult(validateComponent(file), file, 'component');
-  if (!schema.valid) return schema;
-  return validateStory(file, config);
+defaultRegistry.register('**/*.component.yml', async (file) => {
+  return Promise.resolve(toFileResult(validateComponent(file), file, 'component'));
 });
 defaultRegistry.register('**/data-model.yml', (file) =>
   Promise.resolve(toFileResult(validateDataModel(file), file, 'data-model')),
@@ -140,8 +134,6 @@ defaultRegistry.register('**/designbook-css-*/generate-*.jsonata', (file) =>
   }),
 );
 defaultRegistry.register('**/*.scenes.yml', async (file, config) => {
-  const { validateSceneFile } = await import('./validators/scene.js');
-  const schema = toFileResult(validateSceneFile(file), file, 'scene');
-  if (!schema.valid) return schema;
-  return validateStory(file, config);
+  const { validateSceneBuild } = await import('./validators/scene.js');
+  return validateSceneBuild(file, config);
 });

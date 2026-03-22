@@ -36,7 +36,15 @@ Review the product and sections, then present navigation options:
 
 Wait for their response.
 
-## Step 2: Gather Shell Details
+## Step 2: Plan Components
+
+Follow the component planning process in [plan-components.md](../../designbook-scenes/tasks/plan-components.md):
+1. Read guidelines.yml for component patterns and naming conventions
+2. Scan existing components (location provided by framework rules)
+3. Determine which shell components exist (reuse) vs. need creation (page, header, footer, navigation, etc.)
+4. Present the component plan and get user confirmation before proceeding
+
+## Step 3: Gather Shell Details
 
 Ask clarifying questions:
 
@@ -46,7 +54,7 @@ Ask clarifying questions:
 - "How should it adapt on mobile? (Hamburger menu, collapsible sidebar, bottom nav)"
 - "Footer: What links, copyright text, and social icons should appear?"
 
-## Step 3: Present Shell Design
+## Step 4: Present Shell Design
 
 > "Here's the shell design for **[Product Name]**:
 >
@@ -68,7 +76,26 @@ Ask clarifying questions:
 >
 > Does this match what you had in mind?"
 
-Iterate until the user is satisfied. Once confirmed, the `create-component` and `create-shell-scene` stages run automatically.
+Iterate until the user is satisfied. Once confirmed, proceed to Step 5.
+
+## Step 5: Design Reference (optional)
+
+Check `guidelines.yml` for `design_file` or `mcp` entries. If a design source is configured:
+
+1. Load available screens (e.g. `mcp__stitch__list_screens`)
+2. Ask the user which screen matches the shell:
+
+> "I found these design screens. Which one shows the shell/page layout?
+>
+> 1. **Model - Die Putz-Ziege (Desktop)**
+> 2. **Home - Kinetic Lab**
+> 3. _(skip — no reference)_"
+
+3. Store the selection as a `reference` param for the shell scene.
+
+If no design source is configured, skip silently.
+
+The `create-component` and `create-shell-scene` stages run automatically.
 
 **Guardrails**
 - Be conversational — help the user think through layout decisions

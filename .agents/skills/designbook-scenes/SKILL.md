@@ -5,47 +5,119 @@ description: Generates scene files that compose UI components + entity data into
 
 # Designbook Scenes
 
-Creates `*.scenes.yml` files that compose UI components and entity data into full page views. Each file contains one or more **scenes** — each scene becomes a Storybook story.
+Scenes are complete pages in Storybook. A scene composes UI components with data into a renderable view. All scene nodes resolve to `ComponentNode[]` at build time.
 
-## Output Structure
+## Concepts
+
+### Shell
+
+The shell is the page frame — the layout that stays the same on every page. It composes layout components (header, nav, footer) and defines a `$content` placeholder where page content is injected.
+
+There is exactly one shell per project.
+
+```yaml
+# design-system/design-system.scenes.yml
+group: "Designbook/Design System"
+scenes:
+  - name: shell
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header:
+            - component: test_integration_drupal:header
+              slots:
+                logo:
+                  - component: test_integration_drupal:logo
+                    props:
+                      src: /logo.svg
+                navigation:
+                  - component: test_integration_drupal:navigation
+                    props:
+                      items:
+                        - label: Home
+                          url: /
+                        - label: Blog
+                          url: /blog
+          content: $content
+          footer:
+            - component: test_integration_drupal:footer
+              slots:
+                copyright: "&copy; 2026 Acme Inc."
+```
+
+### Section
+
+A section is a page. It references the shell and fills `$content` with its own content — entities from the data model or direct components.
+
+```yaml
+# sections/blog/blog.section.scenes.yml
+id: blog
+title: Blog
+group: "Designbook/Sections/Blog"
+scenes:
+  - name: Article Detail
+    items:
+      - scene: "design-system:shell"
+        with:
+          content:
+            - entity: node.article
+              view_mode: full
+
+  - name: Article Overview
+    items:
+      - scene: "design-system:shell"
+        with:
+          content:
+            - entity: view.recent_articles
+              view_mode: default
+```
+
+### Entity-Mapping
+
+Entities from the data model are mapped to components via JSONata expressions. Each expression takes a data record as input and returns `ComponentNode[]`.
+
+```
+data.yml record  →  JSONata expression  →  ComponentNode[]
+```
+
+One file per entity-type + bundle + view-mode:
+
+```
+entity-mapping/node.article.full.jsonata
+entity-mapping/node.article.teaser.jsonata
+entity-mapping/media.image.default.jsonata
+```
+
+Backend-specific mapping rules (e.g. Drupal field access patterns) come from `designbook-scenes-drupal`.
+
+## File Structure
 
 ```
 $DESIGNBOOK_DIST/
 ├── design-system/
-│   └── design-system.scenes.yml       # Shell layout (base for inheritance)
-└── sections/
-    └── blog/
-        └── blog.section.scenes.yml    # Section metadata + all blog scenes
+│   └── design-system.scenes.yml          # Shell
+├── sections/
+│   └── {section-id}/
+│       └── {id}.section.scenes.yml       # Section pages
+└── entity-mapping/
+    └── {entity}.{bundle}.{view_mode}.jsonata
 ```
 
-## Task Files
+## Tasks
 
-- [create-shell-scene.md](tasks/create-shell-scene.md) — Create `design-system/design-system.scenes.yml`
-- [create-scene.md](tasks/create-scene.md) — Create `sections/{id}/{id}.section.scenes.yml`
-- [collect-entities.md](tasks/collect-entities.md) — Build the full (entity, view_mode) work list with template lookup before any files are written
-- [map-entity.md](tasks/map-entity.md) — Create `entity-mapping/{entity_type}.{bundle}.{view_mode}.jsonata` via template rule
+- [create-shell-scene](tasks/create-shell-scene.md) — Create the shell scene
+- [create-section-scene](tasks/create-section-scene.md) — Create section scenes
+- [plan-components](tasks/plan-components.md) — Identify required components from requirements
+- [plan-entities](tasks/plan-entities.md) — Build entity-mapping work list
+- [map-entity](tasks/map-entity.md) — Generate JSONata expression for an entity mapping
 
 ## Rules
 
-- [scenes-constraints.md](rules/scenes-constraints.md) — Critical output constraints (provider format, no type:element, shell slot inlining)
+- [scenes-constraints](rules/scenes-constraints.md) — Provider format, no type:element, shell slot inlining
+- [listing-pattern](rules/listing-pattern.md) — Listings use view.* entities
 
 ## Resources
 
-- [field-reference.md](resources/field-reference.md) — File-level and scene-level field tables
-- [entry-types.md](resources/entry-types.md) — All entry types: component, entity, records (demo-only), view entity, scene-ref
-- [view-entity.md](resources/view-entity.md) — View entity convention: `entity: view.*`, JSONata with inline entity refs
-- [jsonata-reference.md](resources/jsonata-reference.md) — JSONata expression format, ComponentNode structure, conditional components, nested entity refs
-- [field-mapping.md](resources/field-mapping.md) — Field type to component mapping guide
-
-## Drupal Template Rules
-
-For Drupal backends (`DESIGNBOOK_BACKEND=drupal`), also load `designbook-scenes-drupal` which provides:
-- `layout-builder` rule (`when: template: layout-builder`) — sections + `block_content` entity refs
-- `canvas` rule (`when: template: canvas`) — flat component tree
-
-## Validation
-
-```bash
-npx jsonata-w inspect entity-mapping/node.article.teaser.jsonata --input sections/blog/data.yml
-npx jsonata-w transform entity-mapping/node.article.teaser.jsonata --input sections/blog/data.yml
-```
+- [scenes-schema](resources/scenes-schema.md) — JSON Schema for `*.scenes.yml` format and ComponentNode output
+- [jsonata-reference](resources/jsonata-reference.md) — JSONata expression format, syntax, and output structure
+- [scenes-constraints](resources/scenes-constraints.md) — Constraint examples with correct/incorrect comparisons

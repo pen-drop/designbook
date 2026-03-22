@@ -31,5 +31,4 @@ Creates Drupal Single Directory Component (SDC) files for UI components. Three f
 | `resources/story-yml.md` | Story YAML structure |
 | `resources/component-yml.md` | Component YAML structure |
 | `resources/component-patterns.md` | Slot/variant/prop detection heuristics |
-| `resources/shell-generation.md` | Shell components — header, footer, page generation workflow |
 | `resources/layout-reference.md` | Layout components — full definitions for container, grid, section |

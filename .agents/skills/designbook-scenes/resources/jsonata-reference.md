@@ -11,7 +11,6 @@ Each `.jsonata` file is a pure JSONata expression. Input is a single entity reco
  */
 [
   {
-    "type": "component",
     "component": "figure",
     "props": {
       "src": field_media.url,
@@ -19,13 +18,11 @@ Each `.jsonata` file is a pure JSONata expression. Input is a single entity reco
     }
   },
   {
-    "type": "component",
     "component": "heading",
     "props": { "level": "h3" },
     "slots": { "text": title }
   },
   {
-    "type": "component",
     "component": "text-block",
     "slots": {
       "content": field_teaser ? field_teaser : $substring(field_body, 0, 200) & "..."
@@ -34,19 +31,26 @@ Each `.jsonata` file is a pure JSONata expression. Input is a single entity reco
 ]
 ```
 
-### ComponentNode Structure
+### ComponentNode Output
 
-Each item in the output array MUST follow this structure:
+Each item in the output array:
 
 | Key | Required | Type | Description |
 |-----|----------|------|-------------|
-| `type` | ✅ | `"component"` or `"entity"` | Node type |
-| `component` | ✅ (for type=component) | string | Component name (without provider prefix — added at render time) |
+| `component` | ✅ | string | Component name (without provider prefix — added at render time) |
 | `props` | ❌ | object | Data/configuration values passed to the component |
 | `slots` | ❌ | object | Rendered content slots (strings, arrays, or nested nodes) |
-| `entity_type` | ✅ (for type=entity) | string | Entity type for nested entity references |
-| `bundle` | ✅ (for type=entity) | string | Bundle name |
-| `view_mode` | ✅ (for type=entity) | string | View mode to apply |
+
+### Nested Entity References
+
+For cross-entity rendering, return an entity node. The addon resolves it recursively by loading the referenced `.jsonata` file:
+
+| Key | Required | Type | Description |
+|-----|----------|------|-------------|
+| `type` | ✅ | `"entity"` | Marks this as a nested entity reference |
+| `entity_type` | ✅ | string | Entity type (e.g. `"block_content"`) |
+| `bundle` | ✅ | string | Bundle name (e.g. `"contact_person"`) |
+| `view_mode` | ✅ | string | View mode to apply |
 | `record` | ❌ | integer | Record index in sample data (default: 0) |
 
 ### JSONata Syntax Quick Reference
@@ -61,22 +65,20 @@ Each item in the output array MUST follow this structure:
 | Uppercase | `$uppercase(str)` | `$uppercase(field_category.name)` |
 | Array access | `arr[index]` | `field_tags[0].name` |
 | Static value | `"literal"` or `123` | `"h1"`, `true`, `42` |
-| Conditional node | Ternary in array | See "Conditional Components" below |
+| Conditional node | Ternary in array | See below |
 
 ### Conditional Components
 
-Use JSONata's ternary to conditionally include components:
+Use JSONata's ternary to conditionally include components. `null` values are automatically filtered from arrays:
 
 ```jsonata
 [
   {
-    "type": "component",
     "component": "heading",
     "props": { "level": "h1" },
     "slots": { "text": title }
   },
   field_media ? {
-    "type": "component",
     "component": "figure",
     "props": {
       "src": field_media.url,
@@ -84,23 +86,19 @@ Use JSONata's ternary to conditionally include components:
     }
   },
   {
-    "type": "component",
     "component": "text-block",
     "slots": { "content": field_body }
   }
 ]
 ```
 
-> JSONata filters `null` from arrays — conditional items that evaluate to `null` are automatically excluded.
+### Nested Entity Example
 
-### Nested Entity References
-
-For cross-entity rendering (e.g., embedding a contact card from `block_content`):
+Embedding a contact card from another entity type:
 
 ```jsonata
 [
   {
-    "type": "component",
     "component": "heading",
     "props": { "level": "h1" },
     "slots": { "text": title }
@@ -111,40 +109,6 @@ For cross-entity rendering (e.g., embedding a contact card from `block_content`)
     "bundle": "contact_person",
     "view_mode": "avatar",
     "record": 0
-  }
-]
-```
-
-The addon resolves `type: entity` nodes recursively by loading and evaluating the referenced `.jsonata` file. Recursion depth is limited to 5 levels.
-
-### Composition-aware patterns
-
-The `composition` field in `data-model.yml` determines what a view mode expression should output:
-
-**`structured` bundles** (default): All view modes map fields to components. May include `type: "entity"` for reference fields.
-
-**`unstructured` bundles**: Only `full` view mode is affected — it outputs the layout/component tree based on the project's `extensions` config:
-- `layout_builder`: Output `section` components with entity refs in column slots
-- `canvas` / `experience_builder`: Output components directly
-
-All non-full view modes (teaser, card, etc.) are always structured regardless of bundle composition.
-
-```jsonata
-/* Unstructured + layout_builder: node.landing_page.full.jsonata */
-[
-  { "type": "component",
-    "component": "section",
-    "props": { "max_width": "lg", "columns": 2 },
-    "slots": {
-      "column_1": [
-        { "type": "entity", "entity_type": "block_content",
-          "bundle": "hero", "view_mode": "full", "record": 0 }
-      ],
-      "column_2": [
-        { "type": "entity", "entity_type": "block_content",
-          "bundle": "card", "view_mode": "full", "record": 0 }
-      ]
-    }
   }
 ]
 ```

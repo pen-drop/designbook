@@ -3,11 +3,12 @@ files: []
 reads:
   - path: $DESIGNBOOK_DIST/data-model.yml
   - path: $DESIGNBOOK_DIST/design-system/design-system.scenes.yml
+  - path: $DESIGNBOOK_DIST/design-system/guidelines.yml
 ---
 
 # Intake: Design Screen
 
-Help the user select a section and define the components needed to design a full screen. The result feeds `create-component`, `collect-entities`, `create-sample-data`, `map-entity`, and `create-section-scene` stages.
+Help the user select a section and define the components needed to design a full screen. The result feeds `create-component`, `plan-entities`, `create-sample-data`, `map-entity`, and `create-section-scene` stages.
 
 ## Step 1: Select Section
 
@@ -28,23 +29,13 @@ Sections without a scenes file are not listed (run `/debo-shape-section` first).
 
 Wait for their response.
 
-## Step 2: Propose and Confirm Components
+## Step 2: Plan Components
 
-Review the section spec, data model, and sample data. Identify UI components needed beyond entities and shell (filter bars, cards, badges, stat displays, empty states, pagination, etc.). Check existing components for reuse.
-
-Present proposals:
-
-> "For **[Section Title]**, I suggest these UI components:
->
-> | # | Component | Slots | Purpose |
-> |---|-----------|-------|---------|
-> | 1 | **search-filter** | query, filters | Search bar with filter controls |
-> | 2 | **pet-card** | image, title, badges, action | Pet listing card |
-> | ✓ | ~~heading~~ | _(exists)_ | Reuse existing |
->
-> Want to adjust, add, or remove any? Or proceed with these?"
-
-Wait for user response. Adjust the list based on feedback.
+Follow the component planning process in [plan-components.md](../../designbook-scenes/tasks/plan-components.md):
+1. Read guidelines.yml for component patterns and naming conventions
+2. Scan existing components (location provided by framework rules)
+3. Based on the section spec, data model, and sample data, identify UI components needed beyond entities and shell (filter bars, cards, badges, stat displays, empty states, pagination, etc.)
+4. Present the component plan (existing vs. new) and get user confirmation
 
 For each new component, present details for confirmation:
 
@@ -61,7 +52,31 @@ The following fields are **auto-set from context** (do NOT ask the user):
 - `provider` → from `$DESIGNBOOK_DRUPAL_THEME` name or designbook.config.yml
 - `description` → auto-generated from section context
 
-Once confirmed, the subsequent stages run automatically.
+Once confirmed, proceed to Step 3.
+
+## Step 3: Design Reference (optional)
+
+Check `guidelines.yml` for `design_file` or `mcp` entries. If a design source is configured:
+
+1. Load available screens from the design source (e.g. `mcp__stitch__list_screens` for Stitch)
+2. For each planned scene, ask the user to select a matching design screen:
+
+> "I found these design screens:
+>
+> 1. **Model - Die Putz-Ziege (Desktop)** (2560x3328)
+> 2. **Configurator - Build Your Own** (780x3796)
+> 3. _(skip — no reference for this scene)_
+>
+> Which screen matches the **[scene-name]** scene?"
+
+3. Store the selection as a `reference` param per scene:
+   ```json
+   { "type": "stitch", "url": "<screen-resource-name>", "title": "<screen-title>" }
+   ```
+
+If no design source is configured in guidelines, skip this step silently.
+
+The subsequent stages run automatically.
 
 **Guardrails**
 

@@ -1,4 +1,5 @@
 import { basename, resolve, dirname } from 'node:path';
+import { screenshot } from './screenshot.js';
 import { Command } from 'commander';
 import { loadConfig, findConfig } from './config.js';
 import { validateData } from './validators/data.js';
@@ -30,7 +31,7 @@ import {
 } from './workflow-resolve.js';
 import { readFileSync, existsSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
-import { defaultRegistry, applyConfigExtensions, validateViaStorybookHttp } from './validation-registry.js';
+import { defaultRegistry, applyConfigExtensions } from './validation-registry.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
   const out: Record<string, unknown> = { valid, label };
@@ -137,21 +138,6 @@ validate
     const dataModelPath = resolve(config.dist, 'data-model.yml');
     const result = validateDataModel(dataModelPath);
     printJson('data-model', result.valid, result.errors, result.warnings);
-  });
-
-validate
-  .command('story <file>')
-  .description('Validate a story or scenes file via the running Storybook /index.json')
-  .action(async (file: string) => {
-    const config = loadConfig();
-    const result = await validateViaStorybookHttp(resolve(file), config);
-    if (result.skipped) {
-      console.log(JSON.stringify({ valid: null, skipped: true, reason: 'Storybook not running' }));
-      process.exitCode = 0;
-    } else {
-      console.log(JSON.stringify({ valid: result.valid, label: file, error: result.error, html: result.html }));
-      process.exitCode = result.valid ? 0 : 1;
-    }
   });
 
 validate
@@ -646,13 +632,32 @@ workflow
           valid: r.valid,
         };
         if (r.error) line.error = r.error;
-        if (r.html) line.html = r.html;
         if (r.skipped) line.skipped = r.skipped;
         console.log(JSON.stringify(line));
         if (r.valid === false) hasFailure = true;
       }
 
       process.exitCode = hasFailure ? 1 : 0;
+    } catch (err) {
+      console.error(`Error: ${(err as Error).message}`);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('screenshot')
+  .description('Screenshot Storybook scenes with optional reference comparison')
+  .requiredOption('--scene <ref>', 'Scene reference (e.g. design-system:shell, galerie:product-detail)')
+  .option('--reference', 'Download design reference image')
+  .option('--diff', 'Generate pixel diff (implies --reference)')
+  .action(async (opts: { scene: string; reference?: boolean; diff?: boolean }) => {
+    const config = loadConfig();
+    try {
+      await screenshot(config, {
+        scene: opts.scene,
+        reference: opts.reference || opts.diff,
+        diff: opts.diff,
+      });
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;

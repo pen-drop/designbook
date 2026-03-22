@@ -31,9 +31,9 @@ function makeRegistry() {
 
 describe('sceneBuilder', () => {
   it('appliesTo scene nodes only', () => {
-    expect(sceneBuilder.appliesTo({ type: 'scene' })).toBe(true);
+    expect(sceneBuilder.appliesTo({ scene: 'shell:shell' })).toBe(true);
     expect(sceneBuilder.appliesTo({ type: 'entity' })).toBe(false);
-    expect(sceneBuilder.appliesTo({ type: 'component' })).toBe(false);
+    expect(sceneBuilder.appliesTo({ component: 'test:card' })).toBe(false);
   });
 
   it('loads shell scene and returns page component with nav and footer slots', async () => {
@@ -44,7 +44,7 @@ describe('sceneBuilder', () => {
       designbookDir: FIXTURES_DIR,
     });
 
-    const node = { type: 'scene', ref: 'shell:shell', slots: {} };
+    const node = { scene: 'shell:shell', slots: {} };
     const result = await sceneBuilder.build(node, ctx);
 
     expect(result.length).toBeGreaterThan(0);
@@ -63,8 +63,7 @@ describe('sceneBuilder', () => {
     });
 
     const node = {
-      type: 'scene',
-      ref: 'shell:shell',
+      scene: 'shell:shell',
       slots: {
         content: [
           {
@@ -98,7 +97,7 @@ describe('sceneBuilder', () => {
     });
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const result = await sceneBuilder.build({ type: 'scene', ref: 'nocolon' }, ctx);
+    const result = await sceneBuilder.build({ scene: 'nocolon' }, ctx);
     warnSpy.mockRestore();
 
     expect(result).toEqual([]);

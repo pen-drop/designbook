@@ -9,18 +9,5 @@ css:
 drupal:
   theme: packages/integrations/test-integration-drupal
 cmd: 'node packages/storybook-addon-designbook/dist/cli.js'
-entity_mapping:
-  templates:
-    field-map:
-      description: "Structured field mapping — entity fields drive component selection"
-
-workflow:
-  rules:
-    create-component:
-      - "Komponenten-Namen immer auf Englisch, kebab-case"
-    designbook-data-model:intake:
-      - "We use drupal layout builder for landing pages. Layout builder uses layout_builder__layout. Please use sample_template layout for that field. All other fields are only for the teaser view mode. field_teaser and field_media_image"
-
-  tasks:
-    create-component:
-      - "Nach Erstellung prüfen ob die Komponente im Storybook ohne Fehler rendert"
+storybook_url: "http://localhost:6009"
+storybook_root: packages/integrations/test-integration-drupal/

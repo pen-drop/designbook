@@ -19,7 +19,7 @@ when:
 | `naming.convention` | Use this convention for all component names, variants, and file names (e.g. `kebab-case`) |
 | `naming.examples` | Use these as reference patterns when naming new components |
 | `principles` | Apply these as quality constraints — every output must satisfy them |
-| `component_patterns` | Follow these composition rules when constructing component slots and structure |
+| `component_patterns` | **Binding rules** — read these BEFORE proposing or creating any component. Every pattern is a hard constraint on component structure, naming, and composition. Do not invent components that violate these patterns. If a pattern says "use container for width control", every component that needs width control MUST use container — no alternatives. |
 | `references` | Consult linked design systems or Figma files for visual guidance |
 | `design_file` | Primary source for visual decisions; use `mcp.server` if available |
 | `mcp` | If an MCP server is declared, use it to inspect the design file directly |

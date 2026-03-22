@@ -5,7 +5,7 @@
  * under $DESIGNBOOK_DIST/workflows/changes/ and /archive/.
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, utimesSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml';
@@ -66,7 +66,10 @@ export interface WorkflowFile {
 }
 
 function timestamp(): string {
-  return new Date().toISOString().replace(/\.\d{3}Z$/, '');
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off * 60000);
+  return local.toISOString().replace(/\.\d{3}Z$/, '');
 }
 
 function shortId(): string {
@@ -306,6 +309,19 @@ export interface LoadedPayload {
  * @param loaded - Optional context recorded for observability (stage-level data deduplicated, task-level validation stored per task)
  * @returns `{ archived, data }` — archived indicates whether the workflow was archived
  */
+function touchTaskFiles(task: { files?: TaskFile[] }): void {
+  const now = new Date();
+  for (const f of task.files ?? []) {
+    try {
+      if (existsSync(f.path)) {
+        utimesSync(f.path, now, now);
+      }
+    } catch {
+      // Silently skip files that can't be touched
+    }
+  }
+}
+
 export function workflowDone(
   dist: string,
   name: string,
@@ -362,6 +378,7 @@ function _workflowDoneInner(
   task.status = 'done';
   if (!task.started_at) task.started_at = timestamp();
   task.completed_at = timestamp();
+  touchTaskFiles(task);
 
   if (data.status === 'planning' || data.status === 'running') {
     data.status = 'running';

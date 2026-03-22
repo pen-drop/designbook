@@ -6,7 +6,7 @@ Reference for understanding and parsing component definitions from natural langu
 
 Look for explicit component types:
 
-- **Common types:** card, button, hero, modal, accordion, alert, badge, chip, stat, figure, pagination, empty-state, search-filter, sidebar
+- **Common types:** card, button, hero, modal, accordion, alert, badge, chip, stat, figure, pagination, empty-state, search-filter, sidebar, navigation
 - **Inference fallback:** derive from structure (e.g., "box with title and text" → `content-box`)
 
 ## Slot Detection Keywords
@@ -42,80 +42,102 @@ Look for explicit component types:
 - **From variants:** "can be info or warning" → `variant` prop with enum
 - **Character limits:** "150 character text" → note in description, don't create prop
 
-## Parsing Examples
+## Navigation Components
 
-### Simple Card
+Navigation components render Drupal menu trees. Two variants exist: `main` (primary site navigation) and `footer` (footer link groups).
 
-**Input:** _"A card with an image on top, preheadline and headline, after the headline comes a 150 character text and below that a button"_
+### Drupal Menu Item Structure
+
+Navigation props use Drupal's `MenuLinkTreeElement` structure. Each item has:
 
 ```yaml
-name: Card
-slots:
-  - { name: image, title: Image, description: "Visual at the top" }
-  - {
-      name: preheadline,
-      title: Preheadline,
-      description: "Small text above headline",
-    }
-  - { name: headline, title: Headline, description: "Main title" }
-  - { name: body, title: Body Text, description: "~150 characters" }
-  - { name: action, title: Action, description: "CTA button" }
-variants: [{ id: default, title: Default }]
-props: []
+items:              # array of menu items
+  - title: string   # link text
+    url: string     # href value
+    in_active_trail: boolean  # true if this item or a child is the current page
+    below:          # nested child items (same structure, recursive)
+      - title: string
+        url: string
+        in_active_trail: boolean
+        below: []
 ```
 
-### Alert with Variants
+> **Key rules:**
+> - Use `items` (not `links`, `menu_items`, or `nav_items`) — matches Drupal's `menu.html.twig`
+> - Use `in_active_trail` (not `active`) — Drupal distinguishes between the active page and its ancestor trail
+> - Use `below` for nested children (not `children` or `submenu`)
+> - `url` is a string (Drupal's `Url::toString()` output), not an object
 
-**Input:** _"An alert box that can be info, warning, or error, with an icon on the left and a message"_
+### Navigation Component Definition
 
 ```yaml
-name: Alert
-slots:
-  - { name: icon, title: Icon }
-  - { name: message, title: Message }
+name: Navigation
+group: Navigation
 variants:
-  - { id: info, title: Info }
-  - { id: warning, title: Warning }
-  - { id: error, title: Error }
+  - { id: main, title: Main Navigation }
+  - { id: footer, title: Footer Navigation }
 props:
-  - { name: variant, type: string, enum: [info, warning, error], default: info }
+  - name: variant
+    type: string
+    enum: [main, footer]
+    default: main
+  - name: items
+    type: array
+    description: "Menu tree — array of Drupal MenuLinkTreeElement items"
 ```
 
-### Hero Section
+### Navigation Story Structure
 
-**Input:** _"A hero section with a full-width background image, large heading, subheading, and two buttons side by side"_
-
+**Main navigation** (`navigation.main.story.yml`):
 ```yaml
-name: Hero
-slots:
-  - { name: background_image, title: Background Image }
-  - { name: heading, title: Heading }
-  - { name: subheading, title: Subheading }
-  - { name: primary_action, title: Primary Action }
-  - { name: secondary_action, title: Secondary Action }
-variants: [{ id: default, title: Default }]
-props: []
-```
-
-### Button with States
-
-**Input:** _"A button that can be default, outline, or ghost style. It should support disabled and loading states"_
-
-```yaml
-name: Button
-slots:
-  - { name: text, title: Button Text }
-variants:
-  - { id: default, title: Default }
-  - { id: outline, title: Outline }
-  - { id: ghost, title: Ghost }
+name: Main
 props:
-  - {
-      name: variant,
-      type: string,
-      enum: [default, outline, ghost],
-      default: default,
-    }
-  - { name: disabled, type: boolean, default: false }
-  - { name: loading, type: boolean, default: false }
+  variant: main
+  items:
+    - title: Gallery
+      url: /gallery
+      in_active_trail: true
+      below: []
+    - title: Config
+      url: /config
+      in_active_trail: false
+      below: []
+    - title: Orders
+      url: /orders
+      in_active_trail: false
+      below: []
 ```
+
+**Footer navigation** (`navigation.footer.story.yml`):
+```yaml
+name: Footer
+props:
+  variant: footer
+  items:
+    - title: System Archive
+      url: /archive
+      in_active_trail: false
+      below: []
+    - title: Lab Reports
+      url: /reports
+      in_active_trail: false
+      below: []
+```
+
+### Twig Pattern
+
+```twig
+{% macro menu_links(items, variant) %}
+  {% for item in items %}
+    <a href="{{ item.url }}"
+       class="{{ item.in_active_trail ? 'active-trail' : '' }}">
+      {{ item.title }}
+    </a>
+    {% if item.below is iterable and item.below|length > 0 %}
+      {{ _self.menu_links(item.below, variant) }}
+    {% endif %}
+  {% endfor %}
+{% endmacro %}
+```
+
+> Navigation components should support recursive `below` nesting but shell stories typically use a flat list (1 level).

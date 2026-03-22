@@ -4,7 +4,7 @@ when: {}
 
 # Workflow Execution Rules
 
-Two phases: the **main agent** runs intake and planning, then executes tasks — either inline (few/simple tasks) or via subagents (many/complex tasks).
+Two phases: the **main agent** runs intake and planning, then executes tasks sequentially.
 
 Every stage starts the same way: call `workflow instructions` to get the files to load.
 
@@ -97,63 +97,13 @@ Display the plan summary, then proceed immediately to Phase 2.
 
 ## Phase 2: Execute
 
-After planning, decide execution mode based on task count and complexity.
-
-### Inline vs. Subagent Decision
-
-| Condition | Mode | Reason |
-|---|---|---|
-| ≤ 3 tasks total | **inline** | Subagent overhead exceeds task work |
-| All tasks are type `data` | **inline** | Simple file writes, no complex skill loading |
-| > 3 tasks with independent stages | **subagent** | Real parallelism benefit |
-| Tasks load different skills/rules | **subagent** | Isolated context needed |
-
-When in doubt, prefer inline — it's faster and easier to debug.
-
-### Inline Execution
-
-The main agent executes tasks sequentially itself. For each task:
+The main agent executes all tasks sequentially. For each task:
 
 1. Load instructions: `workflow instructions --workflow $WORKFLOW_NAME --stage <task-stage>`
 2. Read task data from tasks.yml: `params`, `files` + top-level `params`
 3. Create files following task file instructions + rule constraints
 4. Validate: `workflow validate --workflow $WORKFLOW_NAME --task <id>`
 5. Mark done: `workflow done --workflow $WORKFLOW_NAME --task <id>`
-
-### Subagent Execution (DAG Loop)
-
-The main agent becomes a DAG orchestrator. It does NOT execute tasks itself.
-
-1. Read tasks.yml → compute `ready = tasks where status ≠ done AND all depends_on are done`
-2. If nothing ready but tasks remain → deadlock, stop and report
-3. Spawn one **Agent** per ready task (parallel)
-4. Wait for wave to complete
-5. Print: "Wave N complete: X/Y tasks done"
-6. Repeat until all done
-
-### Subagent Contract
-
-Each subagent receives: `$WORKFLOW_NAME`, task ID, path to tasks.yml.
-
-The subagent:
-1. **Bootstrap**: run Phase 0 (load config + env vars)
-2. **Load instructions**:
-   ```bash
-   $DESIGNBOOK_CMD workflow instructions --workflow $WORKFLOW_NAME --stage <task-stage>
-   ```
-   Load the returned `task_file` and `rules[]` files. Apply `config_rules[]` and `config_instructions[]`.
-3. **Read task data** from tasks.yml: `params`, `files` + top-level `params`
-4. **Reads check**: verify `reads:` entries from task file frontmatter exist
-5. **Create files** following task file instructions + rule constraints
-6. **Validate + fix loop**:
-   ```bash
-   $DESIGNBOOK_CMD workflow validate --workflow $WORKFLOW_NAME --task <id>
-   # IF exit ≠ 0 → fix errors, re-validate, repeat until exit 0
-   ```
-7. **Mark done**:
-   ```bash
-   $DESIGNBOOK_CMD workflow done --workflow $WORKFLOW_NAME --task <id>
-   ```
 
 > Rules are hard constraints — apply silently, never mention to the user.
 > `validate` MUST exit 0 before `done`. Never skip validation.

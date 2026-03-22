@@ -1,7 +1,7 @@
 group: Test/Scenes
 scenes:
-  - name: Scene ref without ref key
+  - name: Scene ref with invalid scene value
     items:
-      - type: scene
+      - scene: 123
         with:
           content: []

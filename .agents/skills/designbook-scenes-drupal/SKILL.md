@@ -5,9 +5,14 @@ description: Drupal-specific entity mapping template rules for map-entity stage.
 
 # Designbook Scenes — Drupal
 
-Drupal-specific template rules for the `map-entity` stage. Loaded automatically alongside `designbook-scenes` when `DESIGNBOOK_BACKEND=drupal`.
+Adds Drupal-specific entity mapping rules to the base `designbook-scenes` skill. Loaded automatically when `DESIGNBOOK_BACKEND=drupal`.
 
-## Template Rules
+The base skill defines the scenes concept (Shell, Section, Entity-Mapping). This skill provides the Drupal field access patterns and field-to-component mapping used when generating JSONata expressions in the `map-entity` stage.
 
-- [layout-builder.md](rules/layout-builder.md) — `when: template: layout-builder` — section components with `block_content` entity refs in column slots
-- [canvas.md](rules/canvas.md) — `when: template: canvas` — flat component tree with direct component nodes
+## Rules
+
+- [field-map](rules/field-map.md) — Template rule for `template: field-map`. Generates JSONata that maps Drupal fields (`$fields.field_body`, `$fields.field_media.url`) to `ComponentNode[]`
+
+## Resources
+
+- [field-mapping](resources/field-mapping.md) — Drupal field type → component mapping guide (string, text_long, reference, datetime, etc.)

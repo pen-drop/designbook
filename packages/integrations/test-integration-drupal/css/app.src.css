@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 @import "./tailwind.config.pcss";
 
 /**
@@ -7,6 +8,7 @@
  * @see https://github.com/tailwindlabs/tailwindcss/issues/15864
  */
 @import "tailwindcss" source(none);
+
 
 /**
  * Include design tokens
@@ -22,7 +24,13 @@
 @import "./tokens/layout-width.src.css";
 @import "./tokens/layout-spacing.src.css";
 @import "./tokens/grid.src.css";
+@import "./tokens/shadow.src.css";
 @import "./tokens/google-fonts.src.css";
+
+/**
+ * Include utilities
+ */
+@import "./utilities.src.css";
 
 /**
  * Include additional plugins here
@@ -37,3 +45,4 @@
 @source "../*.ui_styles.yml";
 @source "../ui_examples/*.yml";
 @source "./safelist.txt";
+/* shell components: page, header, footer, navigation */

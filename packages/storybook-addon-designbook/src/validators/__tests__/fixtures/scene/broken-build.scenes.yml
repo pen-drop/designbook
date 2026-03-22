@@ -1,0 +1,10 @@
+group: Test/Broken
+scenes:
+  - name: BrokenShell
+    items:
+      - component: test:page
+        slots:
+          content:
+            - component: test:header
+            - "$content"
+            - component: test:footer

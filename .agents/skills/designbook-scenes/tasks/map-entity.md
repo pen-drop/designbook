@@ -13,14 +13,12 @@ files:
 
 # Map Entity
 
-Creates a JSONata expression file for an entity view mode. The template declared in `data-model.yml` determines what to generate.
+Creates a JSONata expression file that maps an entity's data to `ComponentNode[]`.
 
-## Process
+## Input
 
-1. **Read the template** — look up `data-model.yml` → `content.{entity_type}.{bundle}.view_modes.{view_mode}.template`
-2. **Read the settings** (optional) — `view_modes.{view_mode}.settings` — pass as context to the template rule
-3. **Load the matching rule** — scan `skills/*/rules/*.md` for a rule with `when: stages: [map-entity], template: {template}`. If no match found, stop and report: `❌ No rule found for template: {template}`
-4. **Generate the JSONata file** — follow the rule's instructions, using the settings as additional context
+- `data-model.yml` → `content.{entity_type}.{bundle}.view_modes.{view_mode}` for template name and settings
+- Template rule from `skills/*/rules/*.md` matching `when: stages: [map-entity], template: {template}`
 
 ## Output
 
@@ -28,8 +26,11 @@ Creates a JSONata expression file for an entity view mode. The template declared
 $DESIGNBOOK_DIST/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
 ```
 
-## Key Rules
+A pure JSONata expression returning `ComponentNode[]`. See [jsonata-reference](../resources/jsonata-reference.md) for output format.
+
+## Constraints
 
 - One file per `entity_type.bundle.view_mode` combination
-- Provider prefix must be resolved at generation time (never leave as placeholder)
-- Reference fields that point to other entities emit `type: entity` nodes — `map-entity` is called again for the referenced entity + view_mode
+- Provider prefix resolved at generation time (never leave as placeholder)
+- Reference fields emit `{ "type": "entity", ... }` nodes — resolved recursively at build time
+- If no matching template rule found, stop and report the error

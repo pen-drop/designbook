@@ -1,7 +1,7 @@
 ---
 params:
   section_id: ~
-  entities: []       # optional: list of {entity_type, bundle, view_mode} from collect-entities
+  entities: []       # optional: list of {entity_type, bundle, view_mode} from plan-entities
   view_configs: []   # optional: list of {bundle, rows_entity_type, rows_bundle, rows_view_mode} for view entities
 reads:
   - path: $DESIGNBOOK_DIST/data-model.yml
@@ -25,7 +25,7 @@ If the file does not exist, treat all counts as 0.
 
 ## Step 2: Determine required record counts
 
-If `entities` is provided (populated by `collect-entities`), use it to determine per-bundle requirements. Otherwise infer from `data-model.yml` based on what the section needs.
+If `entities` is provided (populated by `plan-entities`), use it to determine per-bundle requirements. Otherwise infer from `data-model.yml` based on what the section needs.
 
 For each entity type/bundle:
 

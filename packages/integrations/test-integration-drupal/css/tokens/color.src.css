@@ -1,7 +1,14 @@
 @theme {
-  --color-primary: #E8722A;
-  --color-secondary: #2D6A4F;
-  --color-accent: #F4A261;
-  --color-neutral: #3D3D3D;
-  --color-base-100: #FDF6EE;
+  --color-primary: #FF5F1F;
+  --color-primary-light: #FFB59C;
+  --color-secondary: #1A1A1B;
+  --color-tertiary: #00E5FF;
+  --color-surface: #131314;
+  --color-surface-container: #1F1F20;
+  --color-surface-container-high: #2A2A2B;
+  --color-on-surface: #E5E2E3;
+  --color-on-surface-variant: #E3BFB3;
+  --color-error: #FFB4AB;
+  --color-outline: #AA897F;
+  --color-outline-variant: #5B4138;
 }

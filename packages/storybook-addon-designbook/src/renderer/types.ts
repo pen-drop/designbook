@@ -72,8 +72,7 @@ export interface EntitySceneNode extends SceneNode {
 
 /** A scene reference node — references another scene by source:name. */
 export interface SceneSceneNode extends SceneNode {
-  type: 'scene';
-  ref: string; // "source:sceneName"
+  scene: string; // "source:sceneName"
   with?: Record<string, unknown>; // fills $variable placeholders in the template
   slots?: Record<string, unknown>; // deprecated alias for `with`
 }
