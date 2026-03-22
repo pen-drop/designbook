@@ -113,12 +113,7 @@ function resolveScene(
 /**
  * Fetch the Storybook index and find the story ID for a scenes file.
  */
-async function resolveStoryId(
-  storybookUrl: string,
-  scenesFilePath: string,
-  sceneName: string,
-  configRoot: string,
-): Promise<string> {
+async function resolveStoryId(storybookUrl: string, scenesFilePath: string, sceneName: string): Promise<string> {
   const res = await fetch(`${storybookUrl}/index.json`);
   if (!res.ok) {
     throw new Error(`Storybook index returned ${res.status}. Is Storybook running at ${storybookUrl}?`);
@@ -294,7 +289,6 @@ export async function screenshot(
     throw new Error('storybook_url not configured in designbook.config.yml');
   }
 
-  const configRoot = (config['storybook_root'] as string | undefined) ?? process.cwd();
   const dist = config.dist;
 
   // Resolve scene(s)
@@ -310,7 +304,7 @@ export async function screenshot(
     // 1. Resolve story ID
     let storyId: string;
     try {
-      storyId = await resolveStoryId(storybookUrl, filePath, name, configRoot);
+      storyId = await resolveStoryId(storybookUrl, filePath, name);
     } catch (err) {
       console.error(`Error resolving story ID for "${name}": ${(err as Error).message}`);
       continue;
