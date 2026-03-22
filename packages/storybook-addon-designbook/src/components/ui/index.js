@@ -12,5 +12,6 @@ export { DeboPageLayout } from './DeboPageLayout.jsx';
 export { DeboSourceFooter } from './DeboSourceFooter.jsx';
 export { DeboStepIndicator, DeboStepIndicatorGroup } from './DeboStepIndicator.jsx';
 export { DeboSceneCard } from './DeboSceneCard.jsx';
+export { DeboTable } from './DeboTable.jsx';
 export { DeboOnboardingGuide } from './DeboOnboardingGuide.jsx';
 export { DeboPageTitle, DeboProse } from './DeboTypography.jsx';

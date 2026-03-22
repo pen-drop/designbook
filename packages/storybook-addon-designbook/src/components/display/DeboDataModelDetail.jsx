@@ -4,13 +4,9 @@ import { SyntaxHighlighter } from 'storybook/internal/components';
 import { DeboBadge } from '../ui/DeboBadge.jsx';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboGrid } from '../ui/DeboGrid.jsx';
+import { DeboTable } from '../ui/DeboTable.jsx';
+import { ENTITY_BADGE_COLORS } from './entityColors.js';
 import { loadDesignbookFile } from '../designbookApi.js';
-
-const ENTITY_BADGE_COLORS = {
-  node: 'red',
-  block_content: 'green',
-  media: 'purple',
-};
 
 const BackButton = styled.button(({ theme }) => ({
   background: 'none',
@@ -52,36 +48,6 @@ const EntityPath = styled.code(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
 }));
 
-const Table = styled.table(({ theme }) => ({
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: theme.typography.size.s2,
-  fontFamily: theme.typography.fonts.base,
-}));
-
-const Th = styled.th(({ theme }) => ({
-  textAlign: 'left',
-  padding: '8px 12px',
-  borderBottom: `2px solid ${theme.appBorderColor}`,
-  fontSize: theme.typography.size.s1,
-  fontWeight: 600,
-  color: theme.color.mediumdark,
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-}));
-
-const Td = styled.td(({ theme }) => ({
-  padding: '8px 12px',
-  borderBottom: `1px solid ${theme.appBorderColor}`,
-  color: theme.color.defaultText,
-  verticalAlign: 'top',
-}));
-
-const MonoText = styled.span(({ theme }) => ({
-  fontFamily: theme.typography.fonts.mono,
-  fontSize: theme.typography.size.s1,
-}));
-
 const SubRow = styled.div(({ theme }) => ({
   fontSize: theme.typography.size.s1,
   color: theme.color.mediumdark,
@@ -89,7 +55,7 @@ const SubRow = styled.div(({ theme }) => ({
 }));
 
 const ViewModeCard = styled.div(({ theme }) => ({
-  background: theme.background?.content || '#ffffff',
+  background: theme.background?.content || theme.background?.app,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 8,
   padding: 16,
@@ -114,46 +80,36 @@ function FieldsTable({ fields }) {
   if (entries.length === 0) return null;
 
   return (
-    <Table>
-      <thead>
-        <tr>
-          <Th>Name</Th>
-          <Th>Type</Th>
-          <Th>Title</Th>
-          <Th>Req</Th>
-          <Th>Multi</Th>
-          <Th>Details</Th>
+    <DeboTable
+      columns={['Name', 'Type', 'Title', 'Req', 'Multi', 'Details']}
+      rows={entries}
+      renderRow={([name, def]) => (
+        <tr key={name}>
+          <DeboTable.Td><DeboTable.Mono>{name}</DeboTable.Mono></DeboTable.Td>
+          <DeboTable.Td><DeboTable.Mono>{def.type}</DeboTable.Mono></DeboTable.Td>
+          <DeboTable.Td>{def.title || ''}</DeboTable.Td>
+          <DeboTable.Td>{def.required ? '✓' : ''}</DeboTable.Td>
+          <DeboTable.Td>{def.multiple ? '✓' : ''}</DeboTable.Td>
+          <DeboTable.Td>
+            {def.settings && (
+              <SubRow>
+                <strong>settings:</strong>{' '}
+                <DeboTable.Mono>{JSON.stringify(def.settings)}</DeboTable.Mono>
+              </SubRow>
+            )}
+            {def.sample_template && (
+              <SubRow>
+                <strong>sample_template:</strong>{' '}
+                <DeboTable.Mono>{JSON.stringify(def.sample_template)}</DeboTable.Mono>
+              </SubRow>
+            )}
+            {def.description && (
+              <SubRow>{def.description}</SubRow>
+            )}
+          </DeboTable.Td>
         </tr>
-      </thead>
-      <tbody>
-        {entries.map(([name, def]) => (
-          <tr key={name}>
-            <Td><MonoText>{name}</MonoText></Td>
-            <Td><MonoText>{def.type}</MonoText></Td>
-            <Td>{def.title || ''}</Td>
-            <Td>{def.required ? '✓' : ''}</Td>
-            <Td>{def.multiple ? '✓' : ''}</Td>
-            <Td>
-              {def.settings && (
-                <SubRow>
-                  <strong>settings:</strong>{' '}
-                  <MonoText>{JSON.stringify(def.settings)}</MonoText>
-                </SubRow>
-              )}
-              {def.sample_template && (
-                <SubRow>
-                  <strong>sample_template:</strong>{' '}
-                  <MonoText>{JSON.stringify(def.sample_template)}</MonoText>
-                </SubRow>
-              )}
-              {def.description && (
-                <SubRow>{def.description}</SubRow>
-              )}
-            </Td>
-          </tr>
-        ))}
-      </tbody>
-    </Table>
+      )}
+    />
   );
 }
 

@@ -14,7 +14,7 @@ const MetaBadges = styled.p(({ theme }) => ({
 const BadgePill = styled.span(({ theme }) => ({
   display: 'inline-block',
   fontSize: theme.typography.size.s1,
-  background: theme.background?.hoverable || '#F1F5F9',
+  background: theme.background?.hoverable || theme.background?.app,
   borderRadius: 6,
   padding: '2px 8px',
   marginRight: 8,
@@ -22,7 +22,7 @@ const BadgePill = styled.span(({ theme }) => ({
 
 
 const ModelCard = styled.div(({ theme }) => ({
-  background: theme.background?.content || '#ffffff',
+  background: theme.background?.content || theme.background?.app,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 8,
   padding: 12,

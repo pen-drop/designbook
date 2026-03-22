@@ -4,12 +4,7 @@ import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 import { DeboCard } from '../ui/DeboCard.jsx';
 import { DeboGrid } from '../ui/DeboGrid.jsx';
 import { DeboDataModelDetail } from './DeboDataModelDetail.jsx';
-
-const ENTITY_BADGE_COLORS = {
-  node: 'red',
-  block_content: 'green',
-  media: 'purple',
-};
+import { ENTITY_BADGE_COLORS } from './entityColors.js';
 
 const ClickableCard = styled.div({
   cursor: 'pointer',
