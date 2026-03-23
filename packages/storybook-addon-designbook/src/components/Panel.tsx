@@ -131,9 +131,7 @@ function StatusDot({ status }: { status: string }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
         </svg>
       )}
-      {s.icon === 'dot' && (
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#92400E' }} />
-      )}
+      {s.icon === 'dot' && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#92400E' }} />}
     </span>
   );
 }
@@ -179,23 +177,67 @@ function groupByStage(wf: WorkflowData): { stage: string; tasks: WorkflowTask[] 
 // ---------------------------------------------------------------------------
 
 const S = {
-  container: { padding: '0.75rem', fontFamily: 'inherit', fontSize: 13, display: 'flex', flexDirection: 'column' as const, gap: 4 },
+  container: {
+    padding: '0.75rem',
+    fontFamily: 'inherit',
+    fontSize: 13,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 4,
+  },
   empty: { padding: '2rem 1rem', textAlign: 'center' as const, color: '#7B8794' },
   badgeRow: { display: 'flex', flexWrap: 'wrap' as const, gap: 6, padding: '8px 0' },
-  sectionLabel: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#7B8794', marginTop: 12, marginBottom: 6 },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+    color: '#7B8794',
+    marginTop: 12,
+    marginBottom: 6,
+  },
   summaryRow: { display: 'inline-flex', alignItems: 'center', gap: 6, flex: 1, overflow: 'hidden' as const },
   summaryTitle: { overflow: 'hidden' as const, textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 },
   summaryTime: { fontSize: 10, color: '#94A3B8', flexShrink: 0 },
-  taskRow: { display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', fontSize: 12, color: 'inherit', flexWrap: 'wrap' as const },
-  taskTitle: { flex: 1, minWidth: 0, overflow: 'hidden' as const, textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+  taskRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '3px 0',
+    fontSize: 12,
+    color: 'inherit',
+    flexWrap: 'wrap' as const,
+  },
+  taskTitle: {
+    flex: 1,
+    minWidth: 0,
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
   taskTime: { fontSize: 10, color: '#7B8794', opacity: 0.6, flexShrink: 0 },
   taskFileBadges: { display: 'inline-flex', gap: 4, flexWrap: 'wrap' as const, alignItems: 'center' },
   loadedList: { display: 'flex', flexDirection: 'column' as const, gap: 2 },
   loadedRow: { display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', fontSize: 11, color: 'inherit' },
   loadedLabel: { fontSize: 10, color: '#7B8794', flexShrink: 0, minWidth: 44 },
-  loadedPath: { flex: 1, fontFamily: 'monospace', fontSize: 10, overflow: 'hidden' as const, textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+  loadedPath: {
+    flex: 1,
+    fontFamily: 'monospace',
+    fontSize: 10,
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
   overviewSection: { marginBottom: 8 },
-  overviewLabel: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#7B8794', marginBottom: 6, marginTop: 6 },
+  overviewLabel: {
+    fontSize: 10,
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+    color: '#7B8794',
+    marginBottom: 6,
+    marginTop: 6,
+  },
   overviewRow: { display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', fontSize: 12, color: 'inherit' },
   overviewValue: { color: '#7B8794', fontSize: 11 },
   badgeWrap: { display: 'flex', flexWrap: 'wrap' as const, gap: 4, alignItems: 'center' },
@@ -230,7 +272,9 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
         </div>
         {designbookDir && (
           <div style={S.overviewRow}>
-            <span style={{ ...S.overviewValue, fontFamily: 'monospace', fontSize: 10 }}>{shortenPath(logPath(designbookDir, wf))}</span>
+            <span style={{ ...S.overviewValue, fontFamily: 'monospace', fontSize: 10 }}>
+              {shortenPath(logPath(designbookDir, wf))}
+            </span>
             <ContextAction path={logPath(designbookDir, wf)} />
           </div>
         )}
@@ -252,7 +296,7 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
         <div style={S.overviewSection}>
           <div style={S.overviewLabel}>Skills</div>
           <div style={S.badgeWrap}>
-            {allSkills.map(({ stage, path }) => (
+            {allSkills.map(({ path }) => (
               <span key={path} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
                 <ManagerBadge variant="green">{shortenPath(path)}</ManagerBadge>
                 <ContextAction path={path} />
@@ -281,7 +325,9 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
           <div style={S.overviewLabel}>Config Rules</div>
           <div style={S.badgeWrap}>
             {allConfigRules.map((cr, i) => (
-              <ManagerBadge key={i} variant="gray">{cr}</ManagerBadge>
+              <ManagerBadge key={i} variant="gray">
+                {cr}
+              </ManagerBadge>
             ))}
           </div>
         </div>
@@ -292,7 +338,9 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
           <div style={S.overviewLabel}>Instructions</div>
           <div style={S.badgeWrap}>
             {allConfigInstructions.map((ci, i) => (
-              <ManagerBadge key={i} variant="gray">{ci}</ManagerBadge>
+              <ManagerBadge key={i} variant="gray">
+                {ci}
+              </ManagerBadge>
             ))}
           </div>
         </div>
@@ -350,21 +398,29 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
               const stageIsOpen = tasks.some((t) => t.status === 'in-progress' || t.status === 'pending');
               const loaded = wf.stage_loaded?.[stage];
 
-              const extraLinks = loaded?.rules?.map((rule) => ({
-                id: `rule-${rule}`,
-                title: `📏 ${shortenPath(rule)}`,
-                path: rule,
-              })) ?? [];
+              const extraLinks =
+                loaded?.rules?.map((rule) => ({
+                  id: `rule-${rule}`,
+                  title: `📏 ${shortenPath(rule)}`,
+                  path: rule,
+                })) ?? [];
 
               const stageSummary = (
                 <span style={S.summaryRow}>
                   <span style={S.summaryTitle}>{stage}</span>
                   {loaded?.task_file && <ContextAction path={loaded.task_file} extraLinks={extraLinks} />}
-                  <ManagerBadge variant={stageDone === stageTotal ? 'green' : 'gray'}>{stageDone}/{stageTotal}</ManagerBadge>
+                  <ManagerBadge variant={stageDone === stageTotal ? 'green' : 'gray'}>
+                    {stageDone}/{stageTotal}
+                  </ManagerBadge>
                 </span>
               );
 
-              const hasLoaded = loaded && (loaded.task_file || loaded.rules?.length || loaded.config_rules?.length || loaded.config_instructions?.length);
+              const hasLoaded =
+                loaded &&
+                (loaded.task_file ||
+                  loaded.rules?.length ||
+                  loaded.config_rules?.length ||
+                  loaded.config_instructions?.length);
 
               const taskStatus2collapsible = (s: string): 'done' | 'running' | 'pending' => {
                 if (s === 'done') return 'done';
@@ -379,7 +435,9 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                     const taskSummary = (
                       <span style={S.taskRow}>
                         <StatusDot status={task.status} />
-                        <span style={task.status === 'done' ? { ...S.taskTitle, opacity: 0.5 } : S.taskTitle}>{task.title}</span>
+                        <span style={task.status === 'done' ? { ...S.taskTitle, opacity: 0.5 } : S.taskTitle}>
+                          {task.title}
+                        </span>
                         {task.status === 'in-progress' && task.started_at && (
                           <span style={S.taskTime}>{relativeTime(task.started_at)}</span>
                         )}
@@ -387,7 +445,11 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                     );
 
                     if (!hasFiles) {
-                      return <div key={task.id} style={{ padding: '3px 0' }}>{taskSummary}</div>;
+                      return (
+                        <div key={task.id} style={{ padding: '3px 0' }}>
+                          {taskSummary}
+                        </div>
+                      );
                     }
 
                     return (

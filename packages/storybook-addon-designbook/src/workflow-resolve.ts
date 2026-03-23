@@ -345,14 +345,29 @@ export function validateAndMergeParams(
 
 /**
  * Generate a task ID from stage name and params.
- * Uses the first string-valued param as discriminator.
+ * Uses the task file's key param as discriminator. The key param is determined
+ * from the schema: the first required param (value is null/~) that has a
+ * string value in the merged params, or falls back to the first string param.
  * Example: create-component + {component: "button"} → "create-component-button"
  */
-export function generateTaskId(stage: string, params: Record<string, unknown>): string {
+export function generateTaskId(
+  stage: string,
+  params: Record<string, unknown>,
+  schemaParams?: Record<string, unknown>,
+): string {
   // Use stage base name (remove skill: prefix if present)
   const baseName = stage.includes(':') ? stage.split(':')[1] : stage;
 
-  // Find first string param value as discriminator
+  // If schema is available, use the first required param (value is null) as key
+  if (schemaParams) {
+    for (const [key, defaultValue] of Object.entries(schemaParams)) {
+      if (defaultValue === null && typeof params[key] === 'string' && (params[key] as string).length > 0) {
+        return `${baseName}-${params[key]}`;
+      }
+    }
+  }
+
+  // Fallback: first string param value
   for (const value of Object.values(params)) {
     if (typeof value === 'string' && value.length > 0) {
       return `${baseName}-${value}`;
@@ -449,12 +464,26 @@ export function inferTaskType(stage: string): string {
 
 /**
  * Generate a human-readable task title from stage and params.
+ * Uses schema's first required param as context, falling back to first string param.
  */
-export function generateTaskTitle(stage: string, params: Record<string, unknown>): string {
+export function generateTaskTitle(
+  stage: string,
+  params: Record<string, unknown>,
+  schemaParams?: Record<string, unknown>,
+): string {
   const base = stage.includes(':') ? stage.split(':')[1] : stage;
   const words = base.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // Find first string param for context
+  // If schema is available, use the first required param as context
+  if (schemaParams) {
+    for (const [key, defaultValue] of Object.entries(schemaParams)) {
+      if (defaultValue === null && typeof params[key] === 'string' && (params[key] as string).length > 0) {
+        return `${words}: ${params[key]}`;
+      }
+    }
+  }
+
+  // Fallback: first string param for context
   for (const value of Object.values(params)) {
     if (typeof value === 'string' && value.length > 0) {
       return `${words}: ${value}`;
@@ -532,8 +561,8 @@ export function resolveWorkflowPlan(
 
     for (const item of stageItems) {
       const mergedParams = validateAndMergeParams(item.params ?? {}, schemaParams, stage);
-      const taskId = generateTaskId(stage, mergedParams);
-      const title = generateTaskTitle(stage, mergedParams);
+      const taskId = generateTaskId(stage, mergedParams, schemaParams);
+      const title = generateTaskTitle(stage, mergedParams, schemaParams);
       const type = inferTaskType(stage);
       const files = expandFilePaths(fileTemplates, mergedParams, envMap);
 

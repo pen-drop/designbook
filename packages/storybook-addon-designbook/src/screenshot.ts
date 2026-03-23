@@ -1,15 +1,15 @@
 /**
- * Screenshot module — captures Storybook scene screenshots via Playwright,
- * downloads design references, and generates pixel diffs.
+ * Screenshot module — captures Storybook scene screenshots via Playwright.
  *
  * Supports:
  * - --scene <group>:<name> — resolve scene file, find story_id, screenshot
- * - --reference — download design reference from scene's `reference` field
- * - --diff — pixel-diff between screenshot and reference using odiff
+ *
+ * Design reference comparison is handled by the agent (not the CLI).
+ * The agent fetches references via MCP and compares visually.
  */
 
 import { resolve, dirname, basename } from 'node:path';
-import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { parse as parseYaml } from 'yaml';
 import { glob } from 'glob';
@@ -45,16 +45,6 @@ interface ScreenshotResult {
   scene: string;
   storyId: string;
   screenshotPath: string;
-  referencePath?: string;
-  diffPath?: string;
-  diff?: {
-    mismatch: number;
-    pixels: number;
-    dimensions: {
-      storybook: [number, number];
-      reference: [number, number];
-    };
-  };
 }
 
 /**
@@ -192,96 +182,12 @@ function takeScreenshot(storybookUrl: string, storyId: string, outputPath: strin
 }
 
 /**
- * Download a reference image based on the scene's reference field.
- */
-async function downloadReference(reference: SceneEntry['reference'], outputPath: string): Promise<void> {
-  if (!reference) {
-    throw new Error('Scene has no reference field. Add a reference to the scene in the scenes.yml file.');
-  }
-
-  mkdirSync(dirname(outputPath), { recursive: true });
-
-  if (reference.type === 'image') {
-    // Direct image URL — download with fetch
-    const res = await fetch(reference.url);
-    if (!res.ok) throw new Error(`Failed to download reference image: HTTP ${res.status}`);
-    const buffer = Buffer.from(await res.arrayBuffer());
-    writeFileSync(outputPath, buffer);
-  } else if (reference.type === 'stitch') {
-    // Stitch screen — need to resolve screenshot URL via the resource name
-    // The URL field contains the screen resource name, we need to fetch the screenshot URL
-    // For now, try to fetch it as a direct image URL with =w2560 suffix
-    const screenshotUrl = reference.url.startsWith('http')
-      ? reference.url
-      : `https://lh3.googleusercontent.com/aida/${reference.url}=w2560`;
-
-    const res = await fetch(screenshotUrl);
-    if (!res.ok) {
-      throw new Error(
-        `Failed to download Stitch reference. The reference URL may need MCP resolution.\n` +
-          `URL: ${reference.url}\nHTTP: ${res.status}`,
-      );
-    }
-    const buffer = Buffer.from(await res.arrayBuffer());
-    writeFileSync(outputPath, buffer);
-  } else if (reference.type === 'figma') {
-    throw new Error(`Figma reference type not yet supported. URL: ${reference.url}`);
-  } else {
-    throw new Error(`Unknown reference type: ${reference.type}`);
-  }
-}
-
-/**
- * Run pixel diff between two images using odiff.
- */
-async function runDiff(
-  screenshotPath: string,
-  referencePath: string,
-  diffPath: string,
-): Promise<{ mismatch: number; pixels: number }> {
-  mkdirSync(dirname(diffPath), { recursive: true });
-
-  // Use odiff-bin's Node API
-  const { compare } = await import('odiff-bin');
-  const result = await compare(screenshotPath, referencePath, diffPath);
-
-  if (result.match) {
-    return { mismatch: 0, pixels: 0 };
-  }
-
-  if (result.reason === 'pixel-diff') {
-    return {
-      mismatch: result.diffPercentage ?? 0,
-      pixels: result.diffCount ?? 0,
-    };
-  }
-
-  // layout-diff or other reasons
-  return { mismatch: 100, pixels: 0 };
-}
-
-/**
- * Get image dimensions using identify or file inspection.
- */
-function getImageDimensions(filePath: string): [number, number] {
-  try {
-    const result = execSync(`identify -format "%w %h" "${filePath}"`, { stdio: 'pipe', encoding: 'utf-8' });
-    const [w, h] = result.trim().split(' ').map(Number);
-    return [w, h];
-  } catch {
-    return [0, 0];
-  }
-}
-
-/**
  * Main screenshot command handler.
  */
 export async function screenshot(
   config: DesignbookConfig,
   opts: {
     scene: string;
-    reference?: boolean;
-    diff?: boolean;
   },
 ): Promise<void> {
   const storybookUrl = config.storybook_url as string | undefined;
@@ -318,38 +224,7 @@ export async function screenshot(
       continue;
     }
 
-    const result: ScreenshotResult = { scene: name, storyId, screenshotPath };
-
-    // 3. Download reference (if --reference or --diff)
-    if (opts.reference || opts.diff) {
-      const referencePath = resolve(screenshotsDir, `${name}.reference.png`);
-      try {
-        await downloadReference(scene.reference, referencePath);
-        result.referencePath = referencePath;
-      } catch (err) {
-        console.error(`Error downloading reference for "${name}": ${(err as Error).message}`);
-      }
-    }
-
-    // 4. Run diff (if --diff and reference was downloaded)
-    if (opts.diff && result.referencePath) {
-      const diffPath = resolve(screenshotsDir, `${name}.diff.png`);
-      try {
-        const diffResult = await runDiff(screenshotPath, result.referencePath, diffPath);
-        result.diffPath = diffPath;
-        result.diff = {
-          ...diffResult,
-          dimensions: {
-            storybook: getImageDimensions(screenshotPath),
-            reference: getImageDimensions(result.referencePath),
-          },
-        };
-      } catch (err) {
-        console.error(`Error running diff for "${name}": ${(err as Error).message}`);
-      }
-    }
-
-    results.push(result);
+    results.push({ scene: name, storyId, screenshotPath });
   }
 
   // Output JSON results

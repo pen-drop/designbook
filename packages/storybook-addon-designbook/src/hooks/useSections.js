@@ -14,7 +14,10 @@ export function useSections() {
   const load = useCallback(async () => {
     try {
       const res = await fetch('/__designbook/status');
-      if (!res.ok) { setSections([]); return; }
+      if (!res.ok) {
+        setSections([]);
+        return;
+      }
       const data = await res.json();
       setSections(data.sections || []);
     } catch {

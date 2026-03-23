@@ -45,4 +45,4 @@
 @source "../*.ui_styles.yml";
 @source "../ui_examples/*.yml";
 @source "./safelist.txt";
-/* shell components: page, header, footer, navigation */
+/* shell components: page, header, footer, navigation, container */
