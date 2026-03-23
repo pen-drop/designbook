@@ -42,16 +42,7 @@ Stage resolution happens at `workflow create --workflow-file` time. The `plan` c
 | `--items <json>` | Yes | Array of `{stage, params}` items |
 | `--params <json>` | No | Global params — merged as defaults into each item's params before validation |
 
-**Param merging:** Global `--params` are merged with item-level `params` (item takes precedence). This means params common to all items (e.g. `product_name`) can go in `--params` instead of repeating per item.
-
-**Resolution steps:**
-1. Reads `stage_loaded` from tasks.yml (pre-resolved by `workflow create --workflow-file`)
-2. Merges global params into item params (item wins on conflict)
-3. Validates merged params against task file's `params:` schema
-4. Expands `{{ param }}` and `${ENV_VAR}` in file path templates
-5. Generates task IDs from stage + key param
-6. Computes `depends_on` from stage ordering
-7. Writes tasks.yml and outputs JSON plan to stdout
+**Param merging:** Global `--params` are merged with item-level `params` (item takes precedence). Params common to all items (e.g. `product_name`) go in `--params` instead of repeating per item.
 
 **JSON output format:**
 ```json
@@ -75,5 +66,3 @@ Stage resolution happens at `workflow create --workflow-file` time. The `plan` c
   ]
 }
 ```
-
-> `--loaded` is still accepted for backwards compatibility but no longer needed — `workflow plan` now writes all resolution data (task_file, rules, config_rules, config_instructions) directly to tasks.yml at plan time.
