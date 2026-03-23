@@ -177,7 +177,7 @@ export function designbookLoadPlugin(
           const workflows = scanAllWorkflows(workflowsDir, 10);
           res.setHeader('Content-Type', 'application/json');
           res.statusCode = 200;
-          res.end(JSON.stringify(workflows));
+          res.end(JSON.stringify({ designbookDir, workflows }));
         } catch (err: unknown) {
           res.statusCode = 500;
           res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));

@@ -32,9 +32,9 @@ export function timeRange(started: string | null, ended: string | null): string 
 
 export const ManagerBadge = styled.span<{ variant?: 'green' | 'yellow' | 'gray' }>(({ variant = 'green' }) => {
   const colors = {
-    green: { background: '#D0FAE5', color: '#007A55' },
-    yellow: { background: '#FEF3C7', color: '#92400E' },
-    gray: { background: '#F1F5F9', color: '#94A3B8' },
+    green: { background: 'rgb(102, 191, 60)', color: '#FFFFFF' },
+    yellow: { background: '#FEF3C7', color: '#1E293B' },
+    gray: { background: '#F1F5F9', color: '#1E293B' },
   };
   const c = colors[variant] || colors.green;
   return {
@@ -60,7 +60,7 @@ const ActivityDot = styled.div<{ done: boolean }>(({ done }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  ...(done ? { background: '#D0FAE5' } : { border: '2px solid #94A3B8', background: 'transparent' }),
+  ...(done ? { background: 'rgb(102, 191, 60)' } : { border: '2px solid #94A3B8', background: 'transparent' }),
 }));
 
 const ActivityRow = styled.div({
@@ -72,7 +72,7 @@ const ActivityRow = styled.div({
 
 const ActivityTitle = styled.span<{ done: boolean }>(({ done }) => ({
   fontSize: 12,
-  color: done ? '#007A55' : '#64748B',
+  color: done ? 'rgb(102, 191, 60)' : '#64748B',
   flex: 1,
 }));
 
@@ -96,7 +96,7 @@ export function ManagerActivityItem({
     <ActivityRow>
       <ActivityDot done={isDone}>
         {isDone && (
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#007A55" strokeWidth="3">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgb(102, 191, 60)" strokeWidth="3">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         )}

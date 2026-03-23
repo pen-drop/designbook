@@ -44,8 +44,8 @@ const NoActivity = styled.div({
 const CountBadge = styled.span(({ complete }) => ({
   fontSize: 10,
   fontWeight: 700,
-  background: complete ? '#D0FAE5' : '#F1F5F9',
-  color: complete ? '#007A55' : '#94A3B8',
+  background: complete ? 'rgb(102, 191, 60)' : '#F1F5F9',
+  color: complete ? '#FFFFFF' : '#94A3B8',
   padding: '1px 5px',
   borderRadius: 9999,
   marginLeft: 4,

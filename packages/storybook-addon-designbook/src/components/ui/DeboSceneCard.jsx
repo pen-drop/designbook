@@ -1,5 +1,6 @@
 import React from 'react';
 import { styled } from 'storybook/theming';
+import { DeboLink } from './DeboLink.jsx';
 
 function relativeTime(dateStr) {
   const now = Date.now();
@@ -16,16 +17,6 @@ function relativeTime(dateStr) {
   const months = Math.floor(days / 30);
   if (months < 12) return `${months}mo ago`;
   return `${Math.floor(months / 12)}y ago`;
-}
-
-function navigateStorybook(storyPath) {
-  try {
-    const url = new URL(window.top.location.href);
-    url.searchParams.set('path', storyPath);
-    window.top.location.href = url.toString();
-  } catch {
-    window.location.href = `?path=${storyPath}`;
-  }
 }
 
 const CardWrapper = styled.div(({ theme }) => ({
@@ -81,21 +72,27 @@ const CardDate = styled.div(({ theme }) => ({
   marginTop: 2,
 }));
 
-export function DeboSceneCard({ title, modified, storyPath }) {
+export function DeboSceneCard({ title, modified, storyId, storyTitle, storyName }) {
   const letter = title ? title.charAt(0).toUpperCase() : '?';
   const date = modified ? relativeTime(modified) : null;
-  const Wrapper = storyPath ? ClickableCard : CardWrapper;
+  const hasLink = storyId || storyTitle;
+  const Wrapper = hasLink ? ClickableCard : CardWrapper;
 
-  return (
-    <Wrapper
-      onClick={storyPath ? () => navigateStorybook(storyPath) : undefined}
-      role={storyPath ? 'link' : undefined}
-    >
+  const content = (
+    <Wrapper role={hasLink ? 'link' : undefined}>
       <LetterCircle>{letter}</LetterCircle>
       <CardContent>
         <CardTitle>{title}</CardTitle>
         {date && <CardDate>{date}</CardDate>}
       </CardContent>
     </Wrapper>
+  );
+
+  if (!hasLink) return content;
+
+  return (
+    <DeboLink storyId={storyId} title={storyTitle} name={storyName} style={{ display: 'block' }}>
+      {content}
+    </DeboLink>
   );
 }
