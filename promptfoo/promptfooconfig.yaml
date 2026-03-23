@@ -6,23 +6,10 @@ prompts:
   - id: debo-vision
     label: vision
     raw: |
-      You are working in the directory {{workspace}}.
-      Run the /debo-vision workflow. Do NOT ask any questions — use the following inputs directly:
-
-      Product name: PetMatch
-      Description: A modern pet adoption platform connecting shelters with potential adopters
-      Problems & Solutions:
-      1. Shelters struggle to showcase available pets → Rich pet profiles with photos and personality traits
-      2. Adopters can't filter by lifestyle compatibility → Smart matching algorithm based on living situation
-      3. Post-adoption support is lacking → Built-in community and vet appointment scheduling
-      Key Features:
-      - Pet profile browser with advanced search
-      - Shelter dashboard for managing listings
-      - Adoption application workflow
-      - Community forum and resources
-      - Vet integration and health tracking
-
-      Execute the workflow now.
+      Working directory: {{workspace}}. Run /debo-vision. Do NOT ask questions. Inputs:
+      Name: PetMatch. Description: Modern pet adoption platform connecting shelters with adopters.
+      Problems: 1) Shelters can't showcase pets → Rich profiles with photos 2) No lifestyle filtering → Smart matching 3) No post-adoption support → Community + vet scheduling.
+      Features: Pet browser with search, Shelter dashboard, Adoption workflow, Community forum, Vet integration.
 
   - id: debo-sections
     label: sections
@@ -121,12 +108,12 @@ prompts:
       Execute the workflow now.
 
 providers:
-  - id: anthropic:claude-agent-sdk
+  - id: file://providers/claude-cli.mjs
     label: claude-opus-4-6
     config:
       model: claude-opus-4-6
+      timeout: 300000
       max_turns: 50
-      permission_mode: bypassPermissions
 
 evaluateOptions:
   maxConcurrency: 1
@@ -134,11 +121,11 @@ evaluateOptions:
 defaultTest:
   options:
     provider:
-      id: anthropic:claude-agent-sdk
+      id: file://providers/claude-cli.mjs
       config:
         model: claude-opus-4-6
+        timeout: 300000
         max_turns: 50
-        permission_mode: bypassPermissions
 
 # =============================================================================
 # Core Debo-Workflow Tests
