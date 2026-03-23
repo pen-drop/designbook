@@ -435,6 +435,12 @@ describe('generateTaskId', () => {
   it('falls back to stage name when no string params', () => {
     expect(generateTaskId('create-tokens', { colors: {} })).toBe('create-tokens');
   });
+
+  it('uses first required schema param as key over arbitrary string params', () => {
+    const params = { provider: 'test_integration_drupal', component: 'button', group: 'Shell' };
+    const schema = { component: null, slots: [], props: [], group: null };
+    expect(generateTaskId('create-component', params, schema)).toBe('create-component-button');
+  });
 });
 
 // buildEnvMap

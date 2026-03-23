@@ -4,10 +4,9 @@ import { DeboEmptyState } from '../ui/DeboEmptyState.jsx';
 import { DeboPageLayout } from '../ui/DeboPageLayout.jsx';
 import { DeboSourceFooter } from '../ui/DeboSourceFooter.jsx';
 import { DeboNumberedList } from '../ui/DeboNumberedList.jsx';
+import { DeboLoading } from '../ui/DeboLoading.jsx';
 import { DeboBadge } from '../ui/DeboBadge.jsx';
-import { toSectionId } from '../utils.js';
-// @ts-expect-error virtual module provided by vite-plugin-designbook-load
-import sectionData from 'virtual:designbook-sections';
+import { useSections } from '../../hooks/useSections.js';
 
 const SectionHeading = styled.h3(({ theme }) => ({
   fontSize: theme.typography.size.l1,
@@ -18,22 +17,22 @@ const SectionHeading = styled.h3(({ theme }) => ({
   borderBottom: `1px solid ${theme.appBorderColor}`,
 }));
 
-const DescriptionText = styled.p(({ theme }) => ({
-  fontSize: theme.typography.size.s1,
-  color: theme.color.mediumdark,
-  marginTop: 4,
-}));
-
-const statusBadgeColor = {
-  done: 'green',
-  'in-progress': 'yellow',
-  planned: 'gray',
-};
-
 export function DeboSectionsOverview() {
-  if (!sectionData || sectionData.length === 0) {
+  const { sections, loading } = useSections();
+
+  if (loading) {
     return (
       <DeboPageLayout gap="8">
+        <SectionHeading>Sections</SectionHeading>
+        <DeboLoading />
+      </DeboPageLayout>
+    );
+  }
+
+  if (!sections || sections.length === 0) {
+    return (
+      <DeboPageLayout gap="8">
+        <SectionHeading>Sections</SectionHeading>
         <DeboEmptyState
           message="No sections found"
           command="/debo-sections"
@@ -43,30 +42,23 @@ export function DeboSectionsOverview() {
     );
   }
 
-  const items = sectionData.map((section) => {
-    const sectionId = section.id || toSectionId(section.title);
-    const status = section.status || 'planned';
-
-    const description = (
-      <>
-        {section.description && <DescriptionText>{section.description}</DescriptionText>}
-        <div style={{ marginTop: 8 }}>
-          <DeboBadge color={statusBadgeColor[status] || 'gray'}>{status}</DeboBadge>
-        </div>
-      </>
-    );
-
-    return {
-      title: section.title,
-      description,
-      linkTo: `/docs/designbook-sections-${sectionId}--docs`,
-    };
-  });
+  const items = sections.map((section) => ({
+    title: section.title,
+    description: (
+      <div style={{ marginTop: 4 }}>
+        <DeboBadge color={section.hasScenes ? 'green' : 'gray'}>
+          {section.hasScenes ? 'has scenes' : 'no scenes'}
+        </DeboBadge>
+      </div>
+    ),
+    storyTitle: `Designbook/Sections/${section.title}`,
+    storyName: 'Overview',
+  }));
 
   return (
     <DeboPageLayout>
       <div>
-        <SectionHeading>All Sections</SectionHeading>
+        <SectionHeading>Sections</SectionHeading>
         <DeboNumberedList items={items} />
       </div>
       <DeboSourceFooter path="designbook/sections/" />

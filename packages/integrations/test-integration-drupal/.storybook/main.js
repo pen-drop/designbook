@@ -37,7 +37,6 @@ const config = {
           namespaces: {
             test_integration_drupal: ['../components'],
           }
-
         }
       },
     },

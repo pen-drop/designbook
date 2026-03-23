@@ -26,8 +26,20 @@ Creates three files per component in `$DESIGNBOOK_DRUPAL_THEME/components/{{ com
 $DESIGNBOOK_DRUPAL_THEME/components/{{ component }}/
 ├── {{ component }}.component.yml
 ├── {{ component }}.twig
-└── {{ component }}.default.story.yml    (or .[variant-name].story.yml per variant)
+├── {{ component }}.default.story.yml
+└── {{ component }}.[variant-name].story.yml   (one per variant)
 ```
+
+## Variant Story Files
+
+> ⛔ **Each variant MUST have its own `.story.yml` file.** The `.default.story.yml` is always created (tracked by the workflow). For components with variants, additionally create one `{{ component }}.[variant-id].story.yml` per variant and register each with `workflow add-file --workflow $WORKFLOW_NAME --task <id> --file <path>`.
+>
+> ```
+> # Example: navigation with variants main + footer
+> navigation.default.story.yml   ← tracked by workflow (always)
+> navigation.main.story.yml      ← add via workflow add-file
+> navigation.footer.story.yml    ← add via workflow add-file
+> ```
 
 ## File Generation Order
 

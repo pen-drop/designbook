@@ -1,15 +1,6 @@
 import React from 'react';
 import { styled } from 'storybook/theming';
-
-function navigateStorybook(storyPath) {
-  try {
-    const url = new URL(window.top.location.href);
-    url.searchParams.set('path', storyPath);
-    window.top.location.href = url.toString();
-  } catch {
-    window.location.href = `?path=${storyPath}`;
-  }
-}
+import { DeboLink } from './DeboLink.jsx';
 
 const List = styled.ul(({ theme }) => ({
   listStyle: 'none',
@@ -75,21 +66,17 @@ const ClickableRow = styled(ItemRow)({
   cursor: 'pointer',
 });
 
-export function DeboNumberedList({ items, linkTo }) {
+export function DeboNumberedList({ items }) {
   if (!items || items.length === 0) return null;
 
   return (
     <List>
       {items.map((item, index) => {
-        const itemLink = item.linkTo || linkTo;
-        const Wrapper = itemLink ? ClickableRow : ItemRow;
+        const hasLink = item.storyId || item.storyTitle;
+        const Wrapper = hasLink ? ClickableRow : ItemRow;
 
-        return (
-          <Wrapper
-            key={index}
-            as={itemLink ? 'li' : undefined}
-            onClick={itemLink ? () => navigateStorybook(itemLink) : undefined}
-          >
+        const row = (
+          <Wrapper key={index}>
             <NumberBadge>{index + 1}</NumberBadge>
             <ItemContent>
               <ItemTitle>{item.title}</ItemTitle>
@@ -99,12 +86,20 @@ export function DeboNumberedList({ items, linkTo }) {
                 item.description
               )}
             </ItemContent>
-            {itemLink && (
+            {hasLink && (
               <ArrowIcon fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
               </ArrowIcon>
             )}
           </Wrapper>
+        );
+
+        if (!hasLink) return row;
+
+        return (
+          <DeboLink key={index} storyId={item.storyId} title={item.storyTitle} name={item.storyName} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+            {row}
+          </DeboLink>
         );
       })}
     </List>

@@ -379,8 +379,8 @@ workflow
 
         for (const item of stageItems) {
           const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, stage);
-          const taskId = generateTaskId(stage, mergedParams);
-          const title = generateTaskTitle(stage, mergedParams);
+          const taskId = generateTaskId(stage, mergedParams, schemaParams);
+          const title = generateTaskTitle(stage, mergedParams, schemaParams);
           const type = inferTaskType(stage);
           const files = expandFilePaths(fileTemplates, mergedParams, envMap);
 
@@ -646,18 +646,12 @@ workflow
 
 program
   .command('screenshot')
-  .description('Screenshot Storybook scenes with optional reference comparison')
+  .description('Screenshot Storybook scenes')
   .requiredOption('--scene <ref>', 'Scene reference (e.g. design-system:shell, galerie:product-detail)')
-  .option('--reference', 'Download design reference image')
-  .option('--diff', 'Generate pixel diff (implies --reference)')
-  .action(async (opts: { scene: string; reference?: boolean; diff?: boolean }) => {
+  .action(async (opts: { scene: string }) => {
     const config = loadConfig();
     try {
-      await screenshot(config, {
-        scene: opts.scene,
-        reference: opts.reference || opts.diff,
-        diff: opts.diff,
-      });
+      await screenshot(config, { scene: opts.scene });
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;

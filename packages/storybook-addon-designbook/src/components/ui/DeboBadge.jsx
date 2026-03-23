@@ -2,7 +2,7 @@ import React from 'react';
 import { styled, useTheme } from 'storybook/theming';
 
 const lightColors = {
-  green: { background: '#D0FAE5', color: '#007A55' },
+  green: { background: 'rgb(102, 191, 60)', color: '#FFFFFF' },
   yellow: { background: '#FEF3C7', color: '#92400E' },
   red: { background: '#FFE4E6', color: '#C70036' },
   purple: { background: '#f3e8ff', color: '#8200db' },
