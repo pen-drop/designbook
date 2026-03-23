@@ -78,14 +78,6 @@ $DESIGNBOOK_DIST/
             └── tasks.yml
 ```
 
-## Status Transitions (Automatic)
-
-The CLI handles these automatically:
-- `planning` → set by `workflow create`
-- `planning` → `running`: on first `workflow validate` call
-- `running` → `completed`: when all tasks done (auto-archives)
-- `running` → `incomplete`: when `workflow abandon` is called
-
 ## Before/After Hook Frontmatter
 
 Declare in any `debo-*.md` workflow frontmatter:

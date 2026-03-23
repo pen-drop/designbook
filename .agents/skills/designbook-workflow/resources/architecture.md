@@ -92,11 +92,3 @@ when:
 - Without `when.stages`: rule applies to all stages
 - **Named intake stages**: use `workflow-id:intake` to scope a rule to a specific workflow's intake
 
-## Storybook Integration
-
-- Vite plugin watches `workflows/changes/` for file changes
-- New `tasks.yml` → Storybook panel update
-- Tasks in same stage appear grouped under a stage label in the Panel
-- All tasks done → panel update + archive notification
-- Panel polls `/__designbook/workflows` for progress display
-- Storybook is **display only** — all validation logic runs in the CLI
