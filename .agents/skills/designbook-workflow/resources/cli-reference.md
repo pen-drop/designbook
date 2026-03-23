@@ -3,15 +3,22 @@
 ## Commands
 
 ```bash
-# Create workflow (resolves all stages from frontmatter)
-${DESIGNBOOK_CMD} workflow create --workflow <id> --workflow-file <path> [--parent <name>]
-# → returns $WORKFLOW_NAME
+# Early creation (intake phase — no tasks yet)
+${DESIGNBOOK_CMD} workflow create --workflow <id> --title "<title>" [--parent <name>]
+# → returns $WORKFLOW_NAME; creates planning-status tasks.yml with empty tasks
 
-# Plan — expand items into tasks
+# Plan — expand items into tasks (uses stage_loaded from create)
 ${DESIGNBOOK_CMD} workflow plan --workflow $WORKFLOW_NAME \
   --params '<global_params_json>' \
   --items '<items_json>'
 # → validates params, expands file paths, computes deps; writes tasks.yml; outputs JSON plan
+
+# Plan — legacy mode (AI pre-builds the tasks array)
+${DESIGNBOOK_CMD} workflow plan --workflow $WORKFLOW_NAME --stages '<json>' --tasks '<json>'
+
+# Full creation in one call (skip intake status)
+${DESIGNBOOK_CMD} workflow create --workflow <id> --title "<title>" --stages '<json>' --tasks '<json>'
+${DESIGNBOOK_CMD} workflow create --workflow <id> --title "<title>" --tasks-file <path>
 
 # List workflows for an id
 ${DESIGNBOOK_CMD} workflow list --workflow <id>
