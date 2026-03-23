@@ -10,7 +10,7 @@ files:
 
 # Create Product Vision
 
-Write `product/vision.md` using the params collected during intake. Do not add content beyond what was gathered — transcribe directly.
+Creates `product/vision.md` with the approved product vision from the dialog.
 
 ## File Format
 
@@ -21,14 +21,16 @@ Write `product/vision.md` using the params collected during intake. Do not add c
 {{ description }}
 
 ## Problems & Solutions
-{% for problem in problems %}
-### Problem {{ loop.index }}: {{ problem.title }}
-{{ problem.solution }}
-{% endfor %}
+
+### Problem 1: [Problem Title]
+[How the product solves it in 1-2 sentences]
+
+### Problem 2: [Problem Title]
+[How the product solves it in 1-2 sentences]
 
 ## Key Features
-{% for feature in features %}
-- {{ feature }}
-{% endfor %}
+- [Feature 1]
+- [Feature 2]
+- [Feature 3]
 ```
 
