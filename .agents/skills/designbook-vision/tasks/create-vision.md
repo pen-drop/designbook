@@ -10,9 +10,7 @@ files:
 
 # Create Product Vision
 
-Creates `product/vision.md` with the approved product vision from the dialog.
-
-## File Format
+Write `product/vision.md` using the intake params. Use this exact format:
 
 ```markdown
 # {{ product_name }}
@@ -22,15 +20,10 @@ Creates `product/vision.md` with the approved product vision from the dialog.
 
 ## Problems & Solutions
 
-### Problem 1: [Problem Title]
-[How the product solves it in 1-2 sentences]
-
-### Problem 2: [Problem Title]
-[How the product solves it in 1-2 sentences]
+### Problem N: [Title]
+[Solution in 1-2 sentences]
 
 ## Key Features
-- [Feature 1]
-- [Feature 2]
-- [Feature 3]
+- [Feature]
 ```
 
