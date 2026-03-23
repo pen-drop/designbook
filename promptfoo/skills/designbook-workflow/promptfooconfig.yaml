@@ -11,8 +11,9 @@ prompts:
       Load skill `designbook-workflow` and perform ONLY the following steps — do not run intake or execute tasks:
 
       1. Run Phase 0 bootstrap (find designbook.config.yml, eval the config command)
-      2. Run: workflow create --workflow debo-vision --workflow-file .agents/workflows/debo-vision.md
-      3. Report back: the workflow name returned (from .name), and the list of stage IDs resolved (from .stages[].id or .stage_resolved keys)
+      2. If any debo-vision workflows exist, abandon them: workflow abandon --workflow <each-name>
+      3. Run: workflow create --workflow debo-vision --workflow-file .agents/workflows/debo-vision.md
+      4. Report back: the workflow name returned (from .name), and the list of stage IDs resolved (from .stages[].id or .stage_resolved keys)
 
       Stop after reporting. Do NOT proceed to intake or task execution.
 
