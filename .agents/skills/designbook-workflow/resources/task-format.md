@@ -65,20 +65,6 @@ tasks:
         requires_validation: true
 ```
 
-### New Fields (Resolution Mode)
-
-| Field | Level | Source | Description |
-|---|---|---|---|
-| `params` | top-level | `--params` | Global intake params accessible to all subagents |
-| `params` | per-task | `--items[].params` | Task-specific params merged with task file defaults |
-| `depends_on` | per-task | computed | Task IDs this task depends on (from stage ordering) |
-| `task_file` | per-task | resolved | Absolute path to matched skill task file |
-| `rules` | per-task | resolved | Absolute paths to matched skill rule files |
-| `config_rules` | per-task | resolved | Strings from `designbook.config.yml` → `workflow.rules.<stage>` |
-| `config_instructions` | per-task | resolved | Strings from `designbook.config.yml` → `workflow.tasks.<stage>` |
-
-When `workflow plan` is called via the legacy interface (without `--workflow-file`), these fields are absent — existing behavior is unchanged.
-
 ## Directory Structure
 
 ```
