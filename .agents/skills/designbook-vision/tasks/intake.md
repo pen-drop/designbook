@@ -8,44 +8,18 @@ Help the user define their product vision. The result is saved to `${DESIGNBOOK_
 
 > **Spec Mode (`--spec`):** Output a YAML plan showing what WOULD be created instead of writing files.
 
-## Step 1: Gather Initial Input
+## Fast Path
 
-Ask the user to share their raw notes, ideas, or thoughts about the product they want to build:
+If the user's message already contains a product name, description, problems/solutions, AND features — skip all questions and proceed directly to the `create-vision` stage. Do not ask clarifying questions or present a draft for confirmation when all required information is already provided.
 
-> "I'd love to help you define your product vision. Tell me about the product you're building — share any notes, ideas, or rough thoughts you have. What problem are you trying to solve? Who is it for? Don't worry about structure yet, just share what's on your mind."
+## Interactive Path
 
-Wait for their response before proceeding.
+Only if key information is missing:
 
-## Step 2: Ask Clarifying Questions
-
-After receiving their input, ask 3-5 targeted questions to help shape:
-
-- **The product name** — A clear, concise name for the product
-- **The core product description** (1-3 sentences that capture the essence)
-- **The key problems** the product solves (1-5 specific pain points)
-- **How the product solves each problem** (concrete solutions)
-- **The main features** that make this possible
-
-Ask questions one or two at a time, and engage conversationally.
-
-## Step 3: Present Draft and Refine
-
-Once you have enough information, present a draft summary:
-
-> "Based on our discussion, here's what I'm capturing for **[Product Name]**:
->
-> **Description:** [Draft 1-3 sentence description]
->
-> **Problems & Solutions:**
-> 1. [Problem] → [Solution]
->
-> **Key Features:**
-> - Feature 1
->
-> Does this capture your vision? Would you like to adjust anything?"
-
-Iterate until the user is satisfied. Once approved, the `create-vision` stage runs automatically.
+1. **Gather Input** — Ask what product they're building, what problems it solves, and who it's for
+2. **Clarify Gaps** — Ask only for missing pieces: product name, description, problems, solutions, features. Ask all missing items in a single question batch.
+3. **Confirm** — Present a brief summary and proceed once approved
 
 **Constraints**
-- Be conversational and helpful, not robotic
 - Always ensure the product has a name before moving on
+- Minimize back-and-forth — gather all missing info in one round if possible
