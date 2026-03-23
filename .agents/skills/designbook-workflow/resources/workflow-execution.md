@@ -4,6 +4,10 @@ when: {}
 
 # Workflow Execution Rules
 
+Two phases: the **main agent** runs intake and planning, then executes tasks sequentially.
+
+Every stage starts the same way: call `workflow instructions` to get the files to load.
+
 ## Phase 0: Bootstrap
 
 > Run FIRST — nothing works without it.
@@ -63,14 +67,18 @@ $DESIGNBOOK_CMD workflow instructions --workflow $WORKFLOW_NAME --stage <intake-
 Returns JSON: `{ task_file, rules, config_rules, config_instructions }`.
 Load the `task_file` and all `rules[]` files. Apply `config_rules[]` as constraints.
 
-### 4. Before Hooks
+### 4. Run Intake
+
+Run the workflow body — ask the user questions, collect params.
+
+### 5. Before Hooks
 
 For each `before` entry in workflow frontmatter:
 - Check `reads:` gate on the referenced workflow's intake task file — skip if missing
 - Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
 - Complete the hook workflow fully before continuing
 
-### 5. Plan (expand items into tasks)
+### 6. Plan (expand items into tasks)
 
 Build items array from intake results: `[{ "stage": "<name>", "params": { ... } }, ...]`. Expand loops (3 components → 3 items).
 

@@ -15,6 +15,14 @@ The `intake` stage is the workflow body itself (interviews the user). All other 
 
 **Named intake stages**: use `workflow-id:intake` (e.g. `debo-design-tokens:intake`) when rules should apply specifically to one workflow's intake without affecting other workflows.
 
+## Integration Pattern
+
+```
+1. Run intake (workflow body) → collect params + build items array
+2. Rule 3: workflow plan --workflow-file --params --items → CLI resolves everything
+3. Rule 5d: DAG orchestration → spawn subagents per wave → each runs validate → done
+```
+
 ## CLI-Side Resolution
 
 The `workflow plan` CLI (resolution mode) replaces AI-side task resolution:
