@@ -19,5 +19,3 @@ If any field is missing, ask for the missing fields only — in a single questio
 **Constraints**
 - Always ensure the product has a name before proceeding
 - Minimize conversation rounds — gather all missing info at once
-- Do not read or verify files that don't exist yet — skip unnecessary file checks
-- Do not output verbose status messages — be concise in your responses
