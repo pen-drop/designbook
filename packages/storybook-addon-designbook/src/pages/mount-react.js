@@ -10,11 +10,9 @@ import { getActiveTheme } from './theme-store.js';
  * Returns the container element (what HTML stories expect).
  */
 export function mountReact(Component, props = {}) {
-  const theme = getActiveTheme();
-  console.debug('[Designbook] mountReact called, theme.base =', theme?.base, 'theme.background?.content =', theme?.background?.content);
   const el = document.createElement('div');
   ReactDOM.createRoot(el).render(
-    React.createElement(ThemeProvider, { theme }, React.createElement(Component, props)),
+    React.createElement(ThemeProvider, { theme: getActiveTheme() }, React.createElement(Component, props)),
   );
   return el;
 }

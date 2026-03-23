@@ -25,9 +25,7 @@ if (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function withDeboTheme(Story: any, context: StoryContext) {
   const [globals] = useGlobals();
-  const isDark = globals?.theme === 'dark';
-  console.debug('[Designbook] withDeboTheme called, globals.theme =', globals?.theme, 'isDark =', isDark);
-  const base = ensure(isDark ? themes.dark : themes.light);
+  const base = ensure(globals?.theme === 'dark' ? themes.dark : themes.light);
   setActiveTheme(base);
   return Story(context);
 }

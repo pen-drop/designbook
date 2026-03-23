@@ -148,11 +148,11 @@ function ViewModesSection({ entityType, bundle, viewModes }) {
         <ViewModeCard key={name}>
           <ViewModeTitle>{name}</ViewModeTitle>
           <MetaLine>
-            <strong>template:</strong> <MonoText>{def.template}</MonoText>
+            <strong>template:</strong> <DeboTable.Mono>{def.template}</DeboTable.Mono>
           </MetaLine>
           {def.settings && (
             <MetaLine>
-              <strong>settings:</strong> <MonoText>{JSON.stringify(def.settings)}</MonoText>
+              <strong>settings:</strong> <DeboTable.Mono>{JSON.stringify(def.settings)}</DeboTable.Mono>
             </MetaLine>
           )}
           <DeboCollapsible title="Entity Mapping" defaultOpen={false}>
