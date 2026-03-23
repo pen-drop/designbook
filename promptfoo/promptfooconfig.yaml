@@ -121,12 +121,12 @@ prompts:
       Execute the workflow now.
 
 providers:
-  - id: anthropic:claude-agent-sdk
+  - id: file://providers/claude-cli.mjs
     label: claude-opus-4-6
     config:
       model: claude-opus-4-6
-      max_turns: 50
-      permission_mode: bypassPermissions
+      timeout: 300000
+      max_turns: 25
 
 evaluateOptions:
   maxConcurrency: 1
@@ -134,11 +134,11 @@ evaluateOptions:
 defaultTest:
   options:
     provider:
-      id: anthropic:claude-agent-sdk
+      id: file://providers/claude-cli.mjs
       config:
         model: claude-opus-4-6
-        max_turns: 50
-        permission_mode: bypassPermissions
+        timeout: 300000
+        max_turns: 25
 
 # =============================================================================
 # Core Debo-Workflow Tests
