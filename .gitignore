@@ -12,3 +12,4 @@ packages/integrations/test-integration-drupal/designbook
 packages/integrations/test-integration-drupal/components
 tmp
 promptfoo/workspaces/
+autoresearch-results.tsv
