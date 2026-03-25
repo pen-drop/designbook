@@ -11,7 +11,7 @@
 import { resolve, dirname, basename } from 'node:path';
 import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import { glob } from 'glob';
 import type { DesignbookConfig } from './config.js';
 

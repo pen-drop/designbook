@@ -4,27 +4,38 @@ when: {}
 
 # Workflow Execution Rules
 
+## Scope Boundary
+
+> ⛔ **OpenSpec artifacts are out of scope.** During any `debo-*` workflow, never read, load, or reference OpenSpec specs — change files, delta specs, main specs, or any artifact under `.agents/changes/` or similar OpenSpec paths. Task files and rule files come exclusively from `.agents/skills/*/tasks/` and `.agents/skills/*/rules/`.
+
+---
+
 ## Phase 0: Bootstrap
 
-> Run FIRST — nothing works without it.
+> Run FIRST — nothing works without it. Bundle ALL CLI calls in one Bash block so bootstrap runs only once.
 
 ```bash
-# Find config root
-dir="$PWD"
-while [ "$dir" != "/" ]; do
-  [ -e "$dir/designbook.config.yml" ] && DESIGNBOOK_ROOT="$dir" && break
-  dir=$(dirname "$dir")
-done
-
-# Read cmd from config, fallback to npx
-DESIGNBOOK_CMD=$(grep '^cmd:' "$DESIGNBOOK_ROOT/designbook.config.yml" | sed "s/^cmd: *['\"]\\?//" | sed "s/['\"]\\?$//")
-[ -z "$DESIGNBOOK_CMD" ] && DESIGNBOOK_CMD="npx storybook-addon-designbook"
-
-# Export all env vars + define designbook() shell function
-eval "$(cd "$DESIGNBOOK_ROOT" && $DESIGNBOOK_CMD config)"
+# Inline helper — bootstraps on first call, skips if already done
+_debo() {
+  if [ -z "$DESIGNBOOK_ROOT" ]; then
+    dir="$PWD"
+    while [ "$dir" != "/" ]; do
+      [ -f "$dir/designbook.config.yml" ] && DESIGNBOOK_ROOT="$dir" && break
+      dir=$(dirname "$dir")
+    done
+    [ -z "$DESIGNBOOK_ROOT" ] && echo "ERROR: designbook.config.yml not found" && return 1
+    _DEBO_CMD=$(sed -n 's/^cmd: *//p' "$DESIGNBOOK_ROOT/designbook.config.yml" | sed "s/^['\"]//;s/['\"]$//")
+    [ -z "$_DEBO_CMD" ] && _DEBO_CMD="npx storybook-addon-designbook"
+    # Bake cmd into a wrapper at definition time so "$@" is never re-eval'd.
+    # This avoids zsh glob-expanding JSON args that contain [ or {.
+    eval "_debo_exec() { (cd \"\$DESIGNBOOK_ROOT\" && $_DEBO_CMD \"\$@\"); }"
+    eval "$(_debo_exec config)"
+  fi
+  _debo_exec "$@"
+}
 ```
 
-After eval, `$DESIGNBOOK_CMD` points to the `designbook()` shell function which always `cd`s into the config root before running. All CLI calls work from any directory.
+All subsequent CLI calls use `_debo <command>` — bootstrap is skipped after the first call. Bundle multiple commands in one Bash block to maximise reuse.
 
 If no config found → stop and ask the user.
 
@@ -32,19 +43,31 @@ If no config found → stop and ask the user.
 
 ## Phase 1: Intake & Planning (Main Agent)
 
-### 1. Resume Check
+### 1. Resume Check + Create (one block)
+
+Bundle resume check and create in one Bash block:
 
 ```bash
-$DESIGNBOOK_CMD workflow list --workflow <id>
+EXISTING=$(_debo workflow list --workflow <id>)
+if [ -n "$EXISTING" ]; then
+  # ask user: continue or fresh?
+  # continue → WORKFLOW_NAME=$EXISTING  (skip workflow create — tasks.yml already exists; go straight to Phase 1 Step 3)
+  # fresh    → _debo workflow abandon --workflow $EXISTING; then create a new one below
+  echo "EXISTING:$EXISTING"
+else
+  CREATE_JSON=$(_debo workflow create --workflow <id> --workflow-file <abs-path-to-debo-*.md> [--parent <name>])
+  WORKFLOW_NAME=$(echo "$CREATE_JSON" | jq -r '.name')
+fi
 ```
-If non-empty → ask: "Continue `<name>` or start fresh?"
-- Continue → set `$WORKFLOW_NAME`, skip to first pending task or resume intake
-- Fresh → `workflow abandon --workflow <name>`, proceed below
+
+**Resume path:** when continuing an existing workflow, set `WORKFLOW_NAME=$EXISTING` and skip directly to Step 3 (Load Intake Instructions). Do **not** re-run `workflow create` or `workflow plan` — both have already been executed and tasks.yml is already populated.
+
+Use the **absolute path** for `--workflow-file` (derive from `$DESIGNBOOK_ROOT`).
 
 ### 2. Create Workflow (resolves ALL stages)
 
 ```bash
-CREATE_JSON=$($DESIGNBOOK_CMD workflow create --workflow <id> --workflow-file <path-to-debo-*.md> [--parent <name>])
+CREATE_JSON=$(_debo workflow create --workflow <id> --workflow-file <abs-path-to-debo-*.md> [--parent <name>])
 WORKFLOW_NAME=$(echo "$CREATE_JSON" | jq -r '.name')
 ```
 
@@ -57,7 +80,7 @@ The CLI resolves **every stage** at create time — both intake and execution:
 ### 3. Load Intake Instructions
 
 ```bash
-$DESIGNBOOK_CMD workflow instructions --workflow $WORKFLOW_NAME --stage <intake-stage>
+_debo workflow instructions --workflow $WORKFLOW_NAME --stage <intake-stage>
 ```
 
 Returns JSON: `{ task_file, rules, config_rules, config_instructions }`.
@@ -75,7 +98,7 @@ For each `before` entry in workflow frontmatter:
 Build items array from intake results: `[{ "stage": "<name>", "params": { ... } }, ...]`. Expand loops (3 components → 3 items).
 
 ```bash
-$DESIGNBOOK_CMD workflow plan \
+_debo workflow plan \
   --workflow $WORKFLOW_NAME \
   --params '<global_params_json>' \
   --items '<items_json>'
@@ -91,11 +114,10 @@ Display the plan summary, then proceed immediately to Phase 2.
 
 The main agent executes all tasks sequentially. For each task:
 
-1. Load instructions: `workflow instructions --workflow $WORKFLOW_NAME --stage <task-stage>`
+1. Load instructions: `_debo workflow instructions --workflow $WORKFLOW_NAME --stage <task-stage>`
 2. Read task data from tasks.yml: `params`, `files` + top-level `params`
 3. Create files following task file instructions + rule constraints
-4. Validate: `workflow validate --workflow $WORKFLOW_NAME --task <id>`
-5. Mark done: `workflow done --workflow $WORKFLOW_NAME --task <id>`
+4. Validate + done in one block: `_debo workflow validate --workflow $WORKFLOW_NAME --task <id> && _debo workflow done --workflow $WORKFLOW_NAME --task <id>`
 
 > Rules are hard constraints — apply silently, never mention to the user.
 > `validate` MUST exit 0 before `done`. Never skip validation.

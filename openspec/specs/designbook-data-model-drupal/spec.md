@@ -1,7 +1,7 @@
 # Designbook Data Model Drupal Spec
 
 ## Overview
-This specification defines the `designbook-data-model-drupal` skill, which serves as a best-practice guide for creating Drupal-compatible data models within Designbook.
+This specification defines the `designbook-drupal/data-model/` skill, which serves as a best-practice guide for creating Drupal-compatible data models within Designbook.
 
 ## Goals
 - Provide clear guidelines for mapping generic Designbook data models to Drupal entity structures.
@@ -12,7 +12,7 @@ This specification defines the `designbook-data-model-drupal` skill, which serve
 
 ### Skill Definition
 - **Type**: Documentation / Reference Skill
-- **Name**: `designbook-data-model-drupal`
+- **Name**: `designbook-drupal/data-model/`
 - **Description**: Guidelines for creating Drupal-compatible data models.
 
 ### Content Guidelines
@@ -27,7 +27,7 @@ The skill documentation (`SKILL.md`) must cover:
 ### Workflow Integration
 - The `debo-data-model` workflow must be updated to:
     -   Check for `DESIGNBOOK_TECHNOLOGY=drupal`.
-    -   If true, instruct the agent/user to **READ** the `designbook-data-model-drupal` skill.
+    -   If true, instruct the agent/user to **READ** the `designbook-drupal/data-model/` skill.
     -   Apply the guidelines manually during the data model creation step.
     -   **NO** automated scripts should be executed for this transformation.
 

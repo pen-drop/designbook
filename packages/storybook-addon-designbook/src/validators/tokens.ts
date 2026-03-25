@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import Ajv from 'ajv';
 import type { ValidationResult } from './types.js';
 
@@ -13,7 +13,7 @@ export function validateTokens(tokensPath: string): ValidationResult {
   }
 
   const schemaPath = resolve(__dirname, 'schemas', 'design-tokens.schema.yml');
-  const schema = parseYaml(readFileSync(schemaPath, 'utf-8'));
+  const schema = parseYaml(readFileSync(schemaPath, 'utf-8')) as object;
   const data = parseYaml(readFileSync(tokensPath, 'utf-8'));
 
   const ajv = new Ajv({ allErrors: true });

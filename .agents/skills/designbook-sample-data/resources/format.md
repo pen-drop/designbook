@@ -5,17 +5,17 @@
 Sample data uses a **nested structure** that mirrors `data-model.yml`:
 
 ```yaml
-taxonomy_term:
-  author:
-    - id: "1"
-      title: Dr. Lena Hartmann
-      field_role: Tierärztin
-
-node:
-  article:
-    - id: "1"
-      title: Article Title
-      field_author: "1"
+content:
+    taxonomy_term:
+      author:
+        - id: "1"
+          title: Dr. Lena Hartmann
+          field_role: Tierärztin
+    node:
+      article:
+        - id: "1"
+          title: Article Title
+          field_author: "1"
 ```
 
 ### Structure Rules
@@ -76,7 +76,7 @@ body:
 2. `field_type` rule — no `sample_template` but rule exists `when: field_type: <type>` → auto-applied
 3. Plain string — fallback when no template or rule matches
 
-Backend-specific templates (e.g. `formatted-text`, `link`, `image`) are provided by backend skills such as `designbook-sample-data-drupal`.
+Backend-specific templates (e.g. `formatted-text`, `link`, `image`) are provided by backend skills such as `designbook-drupal/sample-data/`.
 
 ## Content Guidelines
 

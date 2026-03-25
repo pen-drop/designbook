@@ -10,6 +10,10 @@ $defs:
   tokenGroup:
     description: A group of tokens or nested groups.
     type: object
+    properties:
+      $extensions:
+        type: object
+        description: W3C extension data for the group (e.g. designbook renderer hints).
     additionalProperties:
       oneOf:
         - $ref: "#/$defs/tokenLeaf"

@@ -7,7 +7,7 @@ import { DeboProse } from '../ui/DeboTypography.jsx';
 import { DeboSampleData } from '../display/DeboSampleData.jsx';
 import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
 import { parseScreenshots } from '../parsers.js';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import { DeboCollapsible, DeboGrid } from '../ui/index.js';
 
 const yamlParser = (text) => {

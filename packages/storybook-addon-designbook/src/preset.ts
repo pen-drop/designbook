@@ -6,7 +6,7 @@ import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 
 const __filename = fileURLToPath(import.meta.url);
 

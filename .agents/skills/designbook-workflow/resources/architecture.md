@@ -74,6 +74,7 @@ files:
 - `frameworks.component` → `$DESIGNBOOK_FRAMEWORK_COMPONENT`
 - `backend` → `$DESIGNBOOK_BACKEND`
 - `frameworks.css` → `$DESIGNBOOK_FRAMEWORK_CSS`
+- `extensions` → checks if value is present in `$DESIGNBOOK_EXTENSIONS` (comma-separated list). E.g. `when: extensions: canvas` matches when `canvas` is in the active extensions list.
 
 ## Rule File Format (skills)
 

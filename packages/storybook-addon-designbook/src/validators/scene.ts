@@ -8,7 +8,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import type { DesignbookConfig } from '../config.js';
 import type { ValidationFileResult } from '../workflow-types.js';
 import { buildSceneModule } from '../renderer/scene-module-builder.js';

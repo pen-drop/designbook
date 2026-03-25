@@ -62,7 +62,7 @@ When a skill covers multiple stage types, create one task file per stage. Stages
 A skill might have multiple task files for different frameworks (same stage name, differentiated by `when`):
 
 ```
-designbook-components-sdc/tasks/create-component.md    ← when: { frameworks.component: sdc }
+designbook-drupal/components/tasks/create-component.md    ← when: { frameworks.component: sdc }
 designbook-components-react/tasks/create-component.md  ← when: { frameworks.component: react }
 ```
 
@@ -81,8 +81,8 @@ One JSON line per registered file; `"valid": false` means fix and re-run. See `@
 Schemas must be **bundled within the skill directory**, not downloaded at runtime:
 
 ```
-.agents/skills/designbook-components-sdc/
-├── SKILL.md
+.agents/skills/designbook-drupal/components/
+├── SKILL.md (at root: .agents/skills/designbook-drupal/SKILL.md)
 └── metadata.schema.json    # ✅ Bundled
 ```
 
@@ -115,10 +115,10 @@ Place `.jsonata` files under `$DESIGNBOOK_DIST/[skill-name]/` — not in the ski
 Use the **`@skillname/`** shorthand:
 
 ```
-@designbook-components-sdc/resources/shell-generation.md
+@designbook-drupal/components/resources/shell-generation.md
 ```
 
-Resolves to `.agents/skills/designbook-components-sdc/resources/shell-generation.md`.
+Resolves to `.agents/skills/designbook-drupal/components/resources/shell-generation.md`.
 
 ## Configuration
 

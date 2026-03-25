@@ -1,6 +1,9 @@
 # Workspace output from test runs
 workspaces/
 
+# Generated monolith config (assembled from configs/)
+promptfooconfig.yaml
+
 # Test reports (keep error-log.md)
 reports/*.json
 

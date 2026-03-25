@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, basename, join } from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import jsonata from 'jsonata';
 import type { ValidationResult } from './types.js';
 import type { DesignbookConfig } from '../config.js';

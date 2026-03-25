@@ -88,7 +88,7 @@ entity-mapping/node.article.teaser.jsonata
 entity-mapping/media.image.default.jsonata
 ```
 
-Backend-specific mapping rules (e.g. Drupal field access patterns) come from `designbook-scenes-drupal`.
+Backend-specific mapping rules (e.g. Drupal field access patterns) come from `designbook-drupal/scenes/`.
 
 ## File Structure
 

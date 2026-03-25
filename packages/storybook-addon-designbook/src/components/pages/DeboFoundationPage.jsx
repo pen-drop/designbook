@@ -2,7 +2,7 @@ import React from 'react';
 import { DeboProductOverview } from '../display/DeboProductOverview.jsx';
 import { DeboSection } from '../DeboSection.jsx';
 import { DeboDataModel } from '../display/DeboDataModel.jsx';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import { useUrlState } from '../../hooks/useUrlState.js';
 import { DeboTabs } from '../ui/DeboTabs.jsx';
 

@@ -11,7 +11,7 @@ import { resolve } from 'node:path';
 import { buildSceneModule } from '../scene-module-builder';
 import { renderComponent } from '../renderer';
 import { readFileSync } from 'node:fs';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import type { ComponentNode } from '../types';
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures');

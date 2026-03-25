@@ -55,7 +55,7 @@ The `map-entity` stage SHALL load the rule file matching `when: stages: [map-ent
 #### Scenario: Drupal-specific template rule
 
 - **WHEN** `map-entity` runs for a view mode with `template: layout-builder`
-- **THEN** it SHALL load `designbook-scenes-drupal/rules/layout-builder.md`
+- **THEN** it SHALL load `designbook-drupal/scenes/rules/layout-builder.md`
 
 #### Scenario: Settings passed to rule
 

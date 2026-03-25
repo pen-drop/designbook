@@ -14,13 +14,48 @@ A script MUST be provided to load this configuration.
 ### Requirement: Environment Helper
 A shell helper MUST be provided for Bash scripts.
 - **Usage**: `eval "$(npx storybook-addon-designbook config)"`
-- **Effect**: Sets `DESIGNBOOK_BACKEND`, `DESIGNBOOK_FRAMEWORK_COMPONENT`, `DESIGNBOOK_FRAMEWORK_CSS`, `DESIGNBOOK_DIST`, `DESIGNBOOK_TMP`, `DESIGNBOOK_DRUPAL_THEME`, and `DESIGNBOOK_SDC_PROVIDER` environment variables.
+- **Effect**: Sets `DESIGNBOOK_BACKEND`, `DESIGNBOOK_FRAMEWORK_COMPONENT`, `DESIGNBOOK_FRAMEWORK_CSS`, `DESIGNBOOK_DIST`, `DESIGNBOOK_TMP`, `DESIGNBOOK_DRUPAL_THEME`, `DESIGNBOOK_SDC_PROVIDER`, `DESIGNBOOK_EXTENSIONS`, and `DESIGNBOOK_EXTENSION_SKILLS` environment variables.
 
 #### Scenario: Environment variables are set via CLI
 - **WHEN** a bash script runs `eval "$(npx storybook-addon-designbook config)"`
 - **THEN** all `DESIGNBOOK_*` environment variables are available in the shell session
 
 ## ADDED Requirements
+
+### Requirement: Extensions array in config
+
+`designbook.config.yml` MAY declare an `extensions` array at the top level. Each entry is either a plain string (backward-compatible) or an object with `id` (required), `url` (optional), and `skill` (optional).
+
+```yaml
+extensions:
+  - id: canvas
+    url: https://www.drupal.org/project/canvas
+  - id: layout_builder
+    skill: designbook-data-model-layout-builder
+  - id: paragraphs
+    url: https://www.drupal.org/project/paragraphs
+    skill: designbook-data-model-paragraphs
+  # plain string (backward-compatible):
+  - address
+```
+
+- `id` — machine name of the extension; used for `when.extensions` conditions in rule files
+- `url` — optional documentation URL; AI workflows fetch this to understand the extension's field types and entities
+- `skill` — optional Designbook skill ID; automatically injected as a `config_instruction` into every workflow stage, augmenting existing rules
+
+The config command exposes:
+- `DESIGNBOOK_EXTENSIONS` — comma-separated list of extension IDs (e.g. `canvas,paragraphs`)
+- `DESIGNBOOK_EXTENSION_SKILLS` — comma-separated list of skill IDs from extensions that declare `skill`
+
+#### Scenario: Extensions expose env vars
+- **WHEN** `designbook.config.yml` contains `extensions: [{id: canvas, skill: designbook-data-model-canvas}, {id: paragraphs}]`
+- **THEN** `DESIGNBOOK_EXTENSIONS` SHALL be `canvas,paragraphs`
+- **AND** `DESIGNBOOK_EXTENSION_SKILLS` SHALL be `designbook-data-model-canvas`
+
+#### Scenario: Plain string backward-compatible
+- **WHEN** `designbook.config.yml` contains `extensions: [layout_builder]`
+- **THEN** `DESIGNBOOK_EXTENSIONS` SHALL be `layout_builder`
+- **AND** `DESIGNBOOK_EXTENSION_SKILLS` SHALL be empty string
 
 ### Requirement: Workflow Rules in Config
 The `designbook.config.yml` file MAY include a `workflow.rules` map. Each key is a stage name (e.g. `create-component`, `debo-design-component:dialog`). Each value is an array of strings. These strings are treated as additional constraints applied silently during that stage — additive to any skill rule files that also match the stage.

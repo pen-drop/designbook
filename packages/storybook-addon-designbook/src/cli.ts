@@ -1,7 +1,7 @@
 import { basename, resolve, dirname } from 'node:path';
 import { screenshot } from './screenshot.js';
 import { Command } from 'commander';
-import { loadConfig, findConfig } from './config.js';
+import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
 import { validateData } from './validators/data.js';
 import { validateTokens } from './validators/tokens.js';
 import { validateComponent } from './validators/component.js';
@@ -30,7 +30,7 @@ import {
   type ResolvedStage,
 } from './workflow-resolve.js';
 import { readFileSync, existsSync } from 'node:fs';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import { defaultRegistry, applyConfigExtensions } from './validation-registry.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
@@ -57,6 +57,15 @@ program
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) continue;
 
       if (Array.isArray(value)) {
+        if (key === 'extensions') {
+          // extensions: normalize to objects, then emit ids and skills separately
+          const entries = normalizeExtensions(value);
+          const ids = getExtensionIds(entries).replace(/'/g, "'\\''");
+          const skills = getExtensionSkillIds(entries).replace(/'/g, "'\\''");
+          console.log(`export DESIGNBOOK_EXTENSIONS='${ids}'`);
+          console.log(`export DESIGNBOOK_EXTENSION_SKILLS='${skills}'`);
+          continue;
+        }
         const envName = 'DESIGNBOOK_' + key.toUpperCase();
         const escaped = value.join(',').replace(/'/g, "'\\''");
         console.log(`export ${envName}='${escaped}'`);
@@ -297,7 +306,8 @@ workflow
   .requiredOption('--workflow <name>', 'Workflow name')
   .requiredOption('--items <json>', 'JSON array of {stage, params} items')
   .option('--params <json>', 'Global intake params JSON')
-  .action((opts: { workflow: string; items: string; params?: string }) => {
+  .option('--dry-run', 'Preview plan output without writing to tasks.yml')
+  .action((opts: { workflow: string; items: string; params?: string; dryRun?: boolean }) => {
     const config = loadConfig();
 
     let items: Array<{ stage: string; params?: Record<string, unknown> }>;
@@ -424,8 +434,10 @@ workflow
         task.depends_on = depsMap.get(task.id) ?? [];
       }
 
-      // Write to tasks.yml
-      workflowPlan(config.dist, opts.workflow, tasks, undefined, globalParams);
+      // Write to tasks.yml (skip in dry-run mode)
+      if (!opts.dryRun) {
+        workflowPlan(config.dist, opts.workflow, tasks, undefined, globalParams);
+      }
 
       // Output plan JSON
       console.log(JSON.stringify({ params: globalParams, stages: execStages, tasks }, null, 2));

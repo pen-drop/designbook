@@ -153,7 +153,7 @@ tasks:
     params:
       component: button
       slots: [icon, label]
-    task_file: /abs/path/.agents/skills/designbook-components-sdc/tasks/create-component.md
+    task_file: /abs/path/.agents/skills/designbook-drupal/components/tasks/create-component.md
     rules:
       - /abs/path/.agents/skills/designbook-css-daisyui/rules/daisyui-naming.md
     config_rules:

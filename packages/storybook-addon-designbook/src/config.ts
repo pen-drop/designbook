@@ -10,9 +10,15 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname, parse as parsePath } from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 
 const CONFIG_FILENAMES = ['designbook.config.yml', 'designbook.config.yaml'];
+
+export interface ExtensionEntry {
+  id: string;
+  url?: string;
+  skill?: string;
+}
 
 export interface DesignbookConfig {
   /** Path to the dist/output directory (resolved to absolute path relative to config location). */
@@ -23,6 +29,41 @@ export interface DesignbookConfig {
   tmp: string;
   /** Any additional keys from the config file. */
   [key: string]: unknown;
+}
+
+/**
+ * Normalize the `extensions` array from config.
+ * Accepts both plain strings and objects with `id`, optional `url` and `skill`.
+ */
+export function normalizeExtensions(raw: unknown): ExtensionEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((entry) => {
+      if (typeof entry === 'string') return { id: entry };
+      if (typeof entry === 'object' && entry !== null && typeof (entry as Record<string, unknown>).id === 'string') {
+        const e = entry as Record<string, unknown>;
+        return {
+          id: e.id as string,
+          ...(typeof e.url === 'string' ? { url: e.url } : {}),
+          ...(typeof e.skill === 'string' ? { skill: e.skill } : {}),
+        };
+      }
+      return null;
+    })
+    .filter((e): e is ExtensionEntry => e !== null);
+}
+
+/** Return comma-separated extension IDs, or empty string. */
+export function getExtensionIds(entries: ExtensionEntry[]): string {
+  return entries.map((e) => e.id).join(',');
+}
+
+/** Return comma-separated skill IDs from extensions that declare a skill. Unknown/missing skills are included as-is (caller validates). */
+export function getExtensionSkillIds(entries: ExtensionEntry[]): string {
+  return entries
+    .map((e) => e.skill)
+    .filter((s): s is string => typeof s === 'string' && s.length > 0)
+    .join(',');
 }
 
 const DEFAULTS: DesignbookConfig = {

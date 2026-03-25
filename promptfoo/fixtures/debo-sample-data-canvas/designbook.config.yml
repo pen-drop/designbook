@@ -1,0 +1,8 @@
+dist: ./designbook
+backend: drupal
+frameworks:
+  component: sdc
+  css: tailwind
+extensions:
+  - id: canvas
+    url: https://www.drupal.org/project/experience_builder

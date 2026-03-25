@@ -6,53 +6,90 @@ Designbook workflow evaluation using [promptfoo](https://promptfoo.dev).
 
 ```
 promptfoo/
-├── promptfooconfig.yaml        # All workflow tests (single file)
+├── configs/                      # All configs live here (source of truth)
+│   ├── chain.yaml                # Chain tests (sequential, shared workspace)
+│   ├── vision.yaml               # Single-workflow configs
+│   ├── sections.yaml
+│   ├── design-tokens.yaml
+│   ├── css-generate.yaml
+│   ├── data-model.yaml
+│   ├── data-model-layout-builder.yaml
+│   ├── data-model-canvas.yaml
+│   ├── shape-section.yaml
+│   ├── design-component.yaml
+│   ├── sample-data.yaml
+│   ├── design-screen.yaml
+│   └── design-shell.yaml
 ├── fixtures/
-│   ├── _shared/                # Shared PetMatch content
-│   └── debo-<workflow>/        # Per-workflow fixture subset
-├── workspaces/                 # Test output (gitignored)
-├── reports/                    # Eval results
-├── scripts/
-│   ├── clean.sh                # Remove + recreate workspaces from fixtures
-│   └── setup-workspace.sh      # Setup single workspace
-└── README.md
+│   ├── _shared/                  # Shared base (config, node_modules)
+│   └── debo-<workflow>/          # Per-workflow fixtures
+├── workspaces/                   # Created by scripts from fixtures
+├── providers/claude-cli.mjs      # Claude Code CLI provider
+└── scripts/
+    ├── clean.sh                  # Recreate all workspaces
+    ├── setup-workspace.sh        # Setup single workspace
+    ├── generate-configs.mjs      # Assemble monolith from configs/ (optional)
+    ├── run-single.sh             # Run single test by label
+    └── run-chain.sh              # Run chain tests
 ```
 
-## Quick Start
+## Run a Single Test
 
 ```bash
-# Clean workspaces and seed from fixtures
-./promptfoo/scripts/clean.sh
+# List available tests
+./promptfoo/scripts/run-single.sh --list
 
-# Run all workflow tests
-npx promptfoo eval -c promptfoo/promptfooconfig.yaml
-
-# Run single workflow
-npx promptfoo eval -c promptfoo/promptfooconfig.yaml \
-  --filter-pattern "debo-vision"
-
-# View results
+# Run one workflow test
+./promptfoo/scripts/run-single.sh data-model-canvas
 npx promptfoo view
 ```
 
-## Test Product
+## Run All Tests
 
-All tests use **PetMatch** — a fictional pet adoption platform. Fixtures in `fixtures/_shared/` contain the complete PetMatch dataset.
+```bash
+# Assemble monolith config from configs/, then run
+node promptfoo/scripts/generate-configs.mjs
+npx promptfoo eval -c promptfoo/promptfooconfig.yaml
+npx promptfoo view
+```
+
+## Run Chained Tests
+
+All workflows run sequentially in a shared workspace — each builds on previous output.
+
+```bash
+# Full chain
+./promptfoo/scripts/run-chain.sh --clean
+
+# Single workflow
+./promptfoo/scripts/run-chain.sh debo-vision
+
+# Workflow + dependencies
+./promptfoo/scripts/run-chain.sh debo-css-generate --deps
+
+# Everything up to a workflow
+./promptfoo/scripts/run-chain.sh --until debo-data-model
+```
+
+### Dependency Graph
+
+```
+[01] debo-vision
+ ├─ [02] debo-sections
+ │   ├─ [06] debo-shape-section
+ │   └─ [08] debo-sample-data ← (+ data-model)
+ ├─ [03] debo-design-tokens
+ │   └─ [04] debo-css-generate
+ │       ├─ [07] debo-design-component
+ │       ├─ [09] debo-design-screen ← (+ sections, data-model, sample-data, component)
+ │       └─ [10] debo-design-shell ← (+ sections)
+ └─ [05] debo-data-model
+```
 
 ## Provider
 
-Tests run against **Claude Opus 4.6** via Claude Code provider.
+Claude Sonnet 4.6 for single tests, Claude Opus 4.6 for chain. Timeout 300s, max 50/100 turns.
 
-- Timeout: 300s per test
-- Max concurrency: 1 (sequential)
+## Test Product
 
-## Assertions
-
-All assertions use `llm-rubric`. Each rubric verifies conversation output:
-1. The agent confirms file creation
-2. Key content elements are mentioned
-3. No errors or failures are reported
-
-## Config
-
-Fixtures use `tailwind` CSS framework with `sdc` components and `drupal` backend.
+All tests use **PetMatch** — a fictional pet adoption platform.

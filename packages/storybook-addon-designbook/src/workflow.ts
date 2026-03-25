@@ -8,7 +8,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, utimesSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { stringify as stringifyYaml, parse as parseYaml } from 'yaml';
+import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
 import type { ValidationFileResult } from './workflow-types.js';
 import { withLock, withLockAsync } from './workflow-lock.js';
 
