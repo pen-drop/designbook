@@ -31,7 +31,6 @@ tests:
 
           const data = output.fileContents[dataFile];
 
-          return data && typeof data === 'object' && (data.content ? Object.keys(data.content).length > 0 :
-          Object.keys(data).length > 0);
+          return data && typeof data === 'object' && data.content != null && Object.keys(data.content).length > 0;
       - type: javascript
         value: Object.keys(output.pendingWorkflows).length === 0

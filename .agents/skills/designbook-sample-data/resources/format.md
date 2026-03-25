@@ -16,45 +16,77 @@ content:
         - id: "1"
           title: Article Title
           field_author: "1"
+config:
+    view:
+      article_listing:
+        - id: "article_listing"
+          items_per_page: 6
+          rows:
+            - type: entity
+              entity_type: node
+              bundle: article
+              view_mode: teaser
+              record: 0
+            - type: entity
+              entity_type: node
+              bundle: article
+              view_mode: teaser
+              record: 1
+
 ```
 
 ### Structure Rules
 
-| Level | Key | Maps to |
-|-------|-----|---------|
-| 1 | `node`, `taxonomy_term`, `block_content`, `media`, `config` | Entity type from `data-model.yml` |
-| 2 | `article`, `author`, `pet`, `view` | Bundle (or config sub-type) |
-| 3 | Bundle name (for `config`) | e.g. `config.view.article_listing` |
-| 4 | Array of records | Individual entity instances |
+| Level | Key                                                                                 | Maps to                                                                                |
+|-------|-------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| 1     | `content`, `config`                                                                 | Either or content or config. Both are entities and using the same structure.           |
+| 2     | `node`, `taxonomy_term`, `block_content`, `media` or `view` as a example for config | Entity type from `data-model.yml`                                                      |
+| 3     | `article`, `author`, `pet`, or    `lsiting_article` for config                      | Bundle for content or config.                                                          |
+| 5     | Array of records                                                                    | Individual entity values for each field. If they are entity references use sub objects |
 
-**Config entities** (e.g. Drupal Views) use `config.view.<bundle>` and include a `rows` array with entity references:
-
-```yaml
-config:
-  view:
-    article_listing:
-      - id: "article_listing"
-        items_per_page: 6
-        rows:
-          - type: entity
-            entity_type: node
-            bundle: article
-            view_mode: teaser
-            record: 0
-          - type: entity
-            entity_type: node
-            bundle: article
-            view_mode: teaser
-            record: 1
-```
 
 `record` is the zero-based index into the target bundle's records array in `data.yml`.
 
-### Record Rules
+### Entity references
 
+Handle entity references if the field is described as type="entityrefernce|reference" `data-model.yml`:
+
+```
+content:
+    node:
+      article:
+        - title: "title"
+           field_author:
+            - type: entity
+              entity_type: user
+              bundle: user
+              view_mode: compact
+              record: 0
+
+```
+   
+The same logic for config entities. 
+```
+config:
+    view:
+      article_listing:
+        - id: "article_listing"
+          items_per_page: 6
+          rows:
+            - type: entity
+              entity_type: node
+              bundle: article
+              view_mode: teaser
+              record: 0
+            - type: entity
+              entity_type: node
+              bundle: article
+              view_mode: teaser
+              record: 1
+``` 
 - `id` — required, simple string (`"1"`, `"2"`, etc.)
 - `title` — required for most entities
-- Field names use `field_*` prefix (matching data-model.yml)
+- Field names MUST match data-model.yml)
 - Reference fields store the target entity's `id` value
 
 ## Field Templates

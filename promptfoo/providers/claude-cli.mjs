@@ -27,7 +27,7 @@ class ClaudeCliProvider {
   constructor(options = {}) {
     this.config = options.config || {};
     this.model = this.config.model || "claude-sonnet-4-6";
-    this.timeout = this.config.timeout || 300_000;
+    this.timeout = this.config.timeout || 600_000;
     this.id = () => `claude-cli:${this.model}`;
   }
 
@@ -45,6 +45,7 @@ class ClaudeCliProvider {
 
     try {
       const text = await new Promise((resolve, reject) => {
+        console.log(`Running Claude CLI with args: ${args.join(" ")} ::::`, this.timeout);
         execFile("claude", args, {
           cwd,
           timeout: this.timeout,
