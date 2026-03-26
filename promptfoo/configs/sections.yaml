@@ -12,7 +12,7 @@ prompts:
 tests:
   - description: 'sections: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo sections
+      workspace: promptfoo/workspaces/debo-sections
     prompts:
       - sections
     assert:

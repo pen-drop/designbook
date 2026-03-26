@@ -4,8 +4,8 @@ params:
 files:
   - $DESIGNBOOK_DIST/design-system/design-system.scenes.yml
 reads:
-  - path: $DESIGNBOOK_DRUPAL_THEME/components/*/
-    description: Shell components (group "Shell" in component.yml)
+  - path: $DESIGNBOOK_COMPONENT_SRC
+    description: Shell components — location resolved by the active framework skill
 ---
 
 # Create Shell Scene

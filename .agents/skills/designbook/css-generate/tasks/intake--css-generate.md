@@ -10,7 +10,7 @@ Check whether CSS regeneration is needed and confirm with the user.
 
 ## Step 1: Check Regeneration
 
-Check if CSS files in `$DESIGNBOOK_DRUPAL_THEME/css/tokens/` are newer than `$DESIGNBOOK_DIST/design-system/design-tokens.yml`.
+Check if generated CSS token files (location determined by the active CSS framework skill) are newer than `$DESIGNBOOK_DIST/design-system/design-tokens.yml`.
 
 **If up to date:**
 

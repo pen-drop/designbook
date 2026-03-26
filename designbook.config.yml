@@ -16,3 +16,4 @@ storybook_url: "http://localhost:6009"
 storybook_root: packages/integrations/test-integration-drupal/
 component:
   namespace: 'test_integration_drupal'
+  src: packages/integrations/test-integration-drupal/components

@@ -31,18 +31,15 @@ Read `data-model.yml`. Enumerate all bundles defined under `content:` and `confi
 Present the analysis in two groups:
 
 > **Content entities for [Section Title]:**
-> - `node.article` — [brief description from data-model title/description]
-> - `taxonomy_term.author` — [brief description]
-> - `media.image` — [brief description]
+> - `[entity_type].[bundle]` — [brief description from data-model title/description]
+> - `[entity_type].[bundle]` — [brief description]
 >
 > **Config entities:**
-> - `view.article_listing` — [brief description]
+> - `[listing_type].[bundle]` — [brief description]
 >
 > **Proposed records:**
-> - `node.article`: 6 records
-> - `taxonomy_term.author`: 3 records
-> - `media.image`: 6 records
-> - `view.article_listing`: 1 record (with 6 rows)
+> - `[entity_type].[bundle]`: 6 records
+> - `[listing_type].[bundle]`: 1 record (with 6 rows)
 >
 > ⛔ Any entities not yet in data-model.yml? → Run `/debo-data-model` first.
 

@@ -22,9 +22,9 @@ Present the work list for confirmation:
 
 | Entity | View Mode | Template | Output |
 |--------|-----------|----------|--------|
-| `node.article` | `full` | `field-map` | `entity-mapping/node.article.full.jsonata` |
-| `node.article` | `teaser` | `field-map` | `entity-mapping/node.article.teaser.jsonata` |
-| `media.image` | `default` | `field-map` | `entity-mapping/media.image.default.jsonata` |
+| `[entity_type].[bundle]` | `full`   | `field-map` | `entity-mapping/[entity_type].[bundle].full.jsonata`   |
+| `[entity_type].[bundle]` | `teaser` | `field-map` | `entity-mapping/[entity_type].[bundle].teaser.jsonata` |
+| `[entity_type].[bundle]` | `default`| `field-map` | `entity-mapping/[entity_type].[bundle].default.jsonata`|
 
 ## Why collect upfront
 
@@ -34,6 +34,6 @@ Present the work list for confirmation:
 
 ## Constraints
 
-- Traverse `type: reference` or `type: entityreference` fields recursively — add referenced entities with their implied view_mode
+- Traverse `type: reference` fields recursively — add referenced entities with their implied view_mode
 - Verify each template has a matching rule (`skills/*/rules/*.md` with `when: stages: [map-entity], template: {name}`). Stop and report if no rule found
 - Confirm with user before proceeding to `map-entity`

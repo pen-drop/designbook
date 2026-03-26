@@ -21,7 +21,7 @@ prompts:
 tests:
   - description: 'design-screen: PetMatch homepage'
     vars:
-      workspace: promptfoo/workspaces/debo design-screen
+      workspace: promptfoo/workspaces/debo-design-screen
     prompts:
       - design-screen
     assert:

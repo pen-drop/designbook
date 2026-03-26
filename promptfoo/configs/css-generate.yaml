@@ -11,7 +11,7 @@ prompts:
 tests:
   - description: 'css-generate: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo css-generate
+      workspace: promptfoo/workspaces/debo-css-generate
     prompts:
       - css-generate
     assert:

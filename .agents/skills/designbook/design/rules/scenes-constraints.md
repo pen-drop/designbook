@@ -81,34 +81,34 @@ when:
 
 ```yaml
 # ✅ Correct — entity is "entity_type.bundle", view_mode is a separate field
-- entity: "node.article"
+- entity: "[entity_type].[bundle]"
   view_mode: "full"
   record: 0
 
 # ❌ Wrong — view_mode embedded in entity string causes double-dot path
-- entity: "node.article.full"
+- entity: "[entity_type].[bundle].full"
   record: 0
 ```
 
 The renderer loads: `$DESIGNBOOK_DIST/entity-mapping/{entity_type}.{bundle}.{view_mode}.jsonata`
 
-The `entity` string provides `entity_type` (part 0) and `bundle` (part 1). `view_mode` is read from its own key — if omitted, the path becomes `node.article..jsonata` (double dot, file not found).
+The `entity` string provides `entity_type` (part 0) and `bundle` (part 1). `view_mode` is read from its own key — if omitted, the path becomes `[entity_type].[bundle]..jsonata` (double dot, file not found).
 
 `record:` is an optional integer (default: 0) — selects which record from `data.yml` to use.
 
-## Listing Scenes Use view.* Entities
+## Listing Scenes Use listing.* Entities
 
-> ⛔ **Listing scenes MUST use `entity: view.*` as the content node.** Never use `entity + records: []` for listing pages.
+> ⛔ **Listing scenes MUST use a `listing.*` config entity as the content node.** Never use `entity + records: []` for listing pages.
 
 ```yaml
-# ✅ Correct — view entity handles listing
-- entity: "view.recent_articles"
+# ✅ Correct — listing entity handles the collection
+- entity: "[listing_type].[bundle]"
   view_mode: "default"
 
 # ❌ Wrong — records shorthand is for component demos only
-- entity: "node.article"
+- entity: "[entity_type].[bundle]"
   view_mode: "teaser"
   records: [0, 1, 2]
 ```
 
-`records:` shorthand is for isolated component previews only. Listing pages use `entity: view.*` — the view JSONata file declares its own entity refs inline.
+`records:` shorthand is for isolated component previews only. Listing pages use a `listing.*` config entity — its JSONata file declares its own entity refs inline.

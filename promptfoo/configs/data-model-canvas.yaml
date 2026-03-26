@@ -16,7 +16,7 @@ prompts:
 tests:
   - description: 'data-model: PetMatch (canvas)'
     vars:
-      workspace: promptfoo/workspaces/debo data-model-canvas
+      workspace: promptfoo/workspaces/debo-data-model-canvas
     prompts:
       - data-model-canvas
     assert:

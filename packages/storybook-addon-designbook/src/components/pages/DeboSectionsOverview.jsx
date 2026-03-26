@@ -35,7 +35,7 @@ export function DeboSectionsOverview() {
         <SectionHeading>Sections</SectionHeading>
         <DeboEmptyState
           message="No sections found"
-          command="/debo-sections"
+          command="/debo sections"
           filePath="designbook/sections/"
         />
       </DeboPageLayout>

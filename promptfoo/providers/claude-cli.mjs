@@ -90,10 +90,14 @@ class ClaudeCliProvider {
     };
 
     try {
-      // 1. All output files (excluding workflows/)
-      const allOutputFiles = await this.walkDir(designbookDir, workspaceDir, (rel) =>
-        !rel.startsWith("designbook/workflows/")
-      );
+      // 1. All output files — scan workspace root, exclude noise dirs and workflow internals
+      const excludeDirs = new Set(["node_modules", ".git", ".pnpm-store"]);
+      const allOutputFiles = await this.walkDir(workspaceDir, workspaceDir, (rel) => {
+        const first = rel.split("/")[0];
+        if (excludeDirs.has(first)) return false;
+        if (rel.startsWith("designbook/workflows/")) return false;
+        return true;
+      });
       result.newFiles = allOutputFiles.map((f) => f.path);
 
       // 2. Parse content of YAML/MD files

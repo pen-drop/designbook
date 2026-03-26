@@ -18,7 +18,7 @@ prompts:
 tests:
   - description: 'data-model: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo data-model
+      workspace: promptfoo/workspaces/debo-data-model
     prompts:
       - data-model
     assert:

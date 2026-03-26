@@ -73,7 +73,7 @@ $defs:
     properties:
       component:
         type: string
-        description: "provider:component-name format (e.g. test_integration_drupal:card)"
+        description: "provider:component-name format (e.g. $COMPONENT_NAMESPACE:card)"
       props:
         type: object
         description: Data/configuration values passed to the component.
@@ -97,11 +97,11 @@ $defs:
     required: [entity]
     description: >
       Render an entity from sample data via JSONata mapping.
-      Entity format: "entity_type.bundle" (e.g. node.article) or "view.name" for listings.
+      Entity format: "entity_type.bundle" (e.g. [entity_type].[bundle]) or "[listing_type].[bundle]" for listings.
     properties:
       entity:
         type: string
-        description: "entity_type.bundle (e.g. node.article, view.recent_articles)"
+        description: "entity_type.bundle (e.g. [entity_type].[bundle])"
       view_mode:
         type: string
         description: Which view mode to use for entity mapping.
@@ -148,7 +148,7 @@ required: [component]
 properties:
   component:
     type: string
-    description: "provider:component-name (e.g. test_integration_drupal:heading)"
+    description: "provider:component-name (e.g. $COMPONENT_NAMESPACE:heading)"
   props:
     type: object
   slots:

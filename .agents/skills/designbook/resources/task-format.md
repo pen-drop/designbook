@@ -51,7 +51,7 @@ tasks:
     params:                        # per-task params from intake
       component: button
       slots: [icon, label]
-    task_file: /abs/path/.agents/skills/designbook-drupal/components/tasks/create-component.md
+    task_file: /abs/path/.agents/skills/$DESIGNBOOK_COMPONENT_SKILL/tasks/create-component.md
     rules:                         # absolute paths to matched rule files
       - /abs/path/.agents/skills/designbook-css-daisyui/rules/daisyui-naming.md
     config_rules:                  # strings from designbook.config.yml → workflow.rules.<stage>

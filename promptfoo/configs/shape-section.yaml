@@ -12,7 +12,7 @@ prompts:
 tests:
   - description: 'shape-section: PetMatch homepage'
     vars:
-      workspace: promptfoo/workspaces/debo shape-section
+      workspace: promptfoo/workspaces/debo-shape-section
     prompts:
       - shape-section
     assert:

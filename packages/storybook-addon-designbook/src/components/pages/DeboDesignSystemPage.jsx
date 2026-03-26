@@ -20,7 +20,7 @@ function GuidelinesTab() {
       title="Design Guidelines"
       dataPath="design-system/guidelines.yml"
       parser={(content) => parseYaml(content)}
-      command="/debo-design-guideline"
+      command="/debo design-guideline"
       emptyMessage="No design guidelines defined yet"
       renderContent={(data) => <DeboDesignGuidelines data={data} />}
     />
@@ -33,7 +33,7 @@ function TokensTab() {
       title="Design Tokens"
       dataPath="design-system/design-tokens.yml"
       parser={(content) => parseYaml(content)}
-      command="/debo-design-tokens"
+      command="/debo design-tokens"
       emptyMessage="No design tokens defined yet"
       renderContent={(data) => <DeboDesignTokens tokens={data} />}
     />
@@ -46,7 +46,7 @@ function ShellTab() {
       title="Shell Design"
       dataPath="design-system/design-system.scenes.yml"
       parser={(content) => scenesParser(content)}
-      command="/debo-design-shell"
+      command="/debo design-shell"
       emptyMessage="No shell design defined yet"
       filePath="designbook/design-system/design-system.scenes.yml"
       renderContent={(data) => {

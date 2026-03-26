@@ -60,8 +60,8 @@ params:
   component: ~               # ~ means required (from intake)
   slots: []
 files:
-  - ${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.component.yml
-  - ${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.twig
+  - ${DESIGNBOOK_COMPONENT_SRC}/{{ component }}/{{ component }}.component.yml
+  - ${DESIGNBOOK_COMPONENT_SRC}/{{ component }}/{{ component }}.twig
 ---
 # Task instructions go here
 ```

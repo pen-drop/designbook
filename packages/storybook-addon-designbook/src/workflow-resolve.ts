@@ -220,7 +220,12 @@ export function resolveFiles(
  * fall back to glob for workflow-qualified tasks (task--workflow-id.md pattern).
  * Generic stages use `resolveFiles` and pick the most specific match.
  */
-export function resolveTaskFile(stage: string, config: DesignbookConfig, agentsDir: string): string {
+export function resolveTaskFile(
+  stage: string,
+  config: DesignbookConfig,
+  agentsDir: string,
+  workflowId?: string,
+): string {
   // Named stage: skill-name:task-name
   if (stage.includes(':')) {
     const parts = stage.split(':', 2);
@@ -250,18 +255,34 @@ export function resolveTaskFile(stage: string, config: DesignbookConfig, agentsD
   const enrichedConfig = buildEnrichedConfig(config);
   const matches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir);
 
-  if (matches.length === 0) {
-    const configSummary = Object.fromEntries(
-      Object.entries(config).filter(([, v]) => v != null && typeof v !== 'object'),
-    );
-    throw new Error(
-      `No task file found for stage "${stage}". ` +
-        `Checked .agents/skills/**/tasks/${stage}.md with config: ${JSON.stringify(configSummary)}`,
-    );
+  if (matches.length > 0) {
+    matches.sort((a, b) => b.specificity - a.specificity);
+    return matches[0].path;
   }
 
-  matches.sort((a, b) => b.specificity - a.specificity);
-  return matches[0].path;
+  // Fallback: try workflow-qualified task file (e.g. intake--vision.md)
+  if (workflowId) {
+    const qualifiedMatches = resolveFiles(
+      `skills/**/tasks/${stage}--${workflowId}.md`,
+      context,
+      enrichedConfig,
+      agentsDir,
+    );
+    if (qualifiedMatches.length > 0) {
+      qualifiedMatches.sort((a, b) => b.specificity - a.specificity);
+      return qualifiedMatches[0].path;
+    }
+  }
+
+  const configSummary = Object.fromEntries(
+    Object.entries(config).filter(([, v]) => v != null && typeof v !== 'object'),
+  );
+  throw new Error(
+    `No task file found for stage "${stage}". ` +
+      `Checked .agents/skills/**/tasks/${stage}.md` +
+      (workflowId ? ` and .agents/skills/**/tasks/${stage}--${workflowId}.md` : '') +
+      ` with config: ${JSON.stringify(configSummary)}`,
+  );
 }
 
 // ── Rule File Matching ──────────────────────────────────────────────
@@ -475,10 +496,13 @@ export function resolveAllStages(
     throw new Error(`No stages found in frontmatter of ${workflowFilePath}`);
   }
 
+  // Extract workflow ID from file path (e.g. vision/workflows/vision.md → "vision")
+  const workflowId = workflowFilePath.replace(/\\/g, '/').split('/').pop()?.replace(/\.md$/, '');
+
   const stageResolved: Record<string, ResolvedStage> = {};
 
   for (const stage of allStages) {
-    const taskFilePath = resolveTaskFile(stage, config, agentsDir);
+    const taskFilePath = resolveTaskFile(stage, config, agentsDir, workflowId);
     const ruleFiles = matchRuleFiles(stage, config, agentsDir);
     const { config_rules, config_instructions } = resolveConfigForStage(stage, rawConfig);
 

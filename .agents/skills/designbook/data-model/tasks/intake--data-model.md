@@ -20,7 +20,7 @@ Read `extensions` from `designbook.config.yml` (available via `$DESIGNBOOK_EXTEN
 - If extensions are present: for each extension with a `url`, fetch the page to understand what entity types and field types it introduces. Use this knowledge in Step 1.
 - If extensions are empty or absent: proceed normally. Note that extensions can be declared manually in `designbook.config.yml` under the `extensions:` key if needed.
 
-**Load entity type schemas:** Scan `designbook-drupal/data-model/entity-types/*.md` (when `backend: drupal`). Filter each file by its `when:` frontmatter conditions against the active backend and extensions — same mechanism as all other rule files. The loaded schemas define which entity types are available and their base fields.
+**Load entity type schemas:** Scan entity type schema rules from the active backend skill (loaded via the `when: backend:` mechanism). Filter each file by its `when:` frontmatter conditions against the active backend and extensions. The loaded schemas define which entity types are available and their base fields.
 
 - `required: true` base fields → always include in every bundle of that entity type, no prompt needed
 - `required: false` base fields → ask the user per bundle whether this field is needed

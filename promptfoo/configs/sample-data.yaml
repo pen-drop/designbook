@@ -13,7 +13,7 @@ prompts:
 tests:
   - description: 'sample-data: PetMatch homepage'
     vars:
-      workspace: promptfoo/workspaces/debo sample-data
+      workspace: promptfoo/workspaces/debo-sample-data
     prompts:
       - sample-data
     assert:

@@ -55,4 +55,4 @@ Common templates:
 
 During the dialog, present available templates with descriptions and ask the author which template applies to each view mode.
 
-> Backend-specific naming rules (e.g. Drupal `field_` prefix) are loaded automatically via rule files.
+> Backend-specific naming rules are loaded automatically via rule files.

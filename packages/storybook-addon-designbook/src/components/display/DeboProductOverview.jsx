@@ -11,7 +11,7 @@ export function DeboProductOverview() {
       title="Vision"
       dataPath="product/vision.md"
       parser={parseProductSections}
-      command="/debo-vision"
+      command="/debo vision"
       emptyMessage="No vision defined yet"
       renderContent={(sections) => (
         <DeboGrid gap="lg">
