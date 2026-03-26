@@ -6,7 +6,7 @@ The schema is bundled in the addon package at `packages/storybook-addon-designbo
 
 ```
 content (required)
-  └── {entity_type}          # e.g. node, block_content, media, taxonomy_term
+  └── {entity_type}          # e.g. post, asset, category
         └── {bundle}          # e.g. article, landing_page
               ├── title
               ├── description
@@ -23,7 +23,7 @@ content (required)
                           └── sample_template  # optional: { template, settings: { hint } }
 
 config (optional)
-  └── {entity_type}          # e.g. view (Drupal views), block (module-provided blocks)
+  └── {entity_type}          # e.g. listing, singleton
         └── {bundle}          # e.g. recent_articles, user_login
               ├── view_modes   # same structure as content bundles
               └── fields
@@ -34,7 +34,7 @@ config (optional)
 Declares per-view-mode template mapping for a bundle. Each entry maps a view mode name to a template:
 
 ```yaml
-node:
+post:
   landing_page:
     view_modes:
       full:
@@ -48,8 +48,8 @@ Available templates are declared in `designbook.config.yml` under `entity_mappin
 Fields may declare a `sample_template` to guide sample data generation:
 
 ```yaml
-field_body:
-  type: text_with_summary
+body:
+  type: text
   sample_template:
     template: formatted-text
     settings:
@@ -58,6 +58,6 @@ field_body:
 
 ## Config Entities
 
-`config` follows the same `entity_type → bundle → view_modes/fields` structure as `content`. Use it for configuration entities (e.g. Drupal Views, singletons). Config entities are rendered like any other entity: `view_modes.<mode>.template` determines the JSONata rule loaded during `map-entity`.
+`config` follows the same `entity_type → bundle → view_modes/fields` structure as `content`. Use it for configuration entities (listings, singletons, etc.). Config entities are rendered like any other entity: `view_modes.<mode>.template` determines the JSONata rule loaded during `map-entity`.
 
-Backend-specific config entity guidance (e.g. Drupal `view` entity type) is documented in the backend data model skill.
+Backend-specific config entity guidance is documented in the backend data model skill.

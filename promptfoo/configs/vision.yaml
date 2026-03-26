@@ -24,7 +24,7 @@ prompts:
 tests:
   - description: 'vision: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo vision
+      workspace: promptfoo/workspaces/debo-vision
     prompts:
       - vision
     assert:

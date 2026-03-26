@@ -2,6 +2,7 @@
 when:
   stages: [create-sample-data]
   backend: drupal
+  extensions: layout_builder
 ---
 
 # Sample Data: Layout Builder

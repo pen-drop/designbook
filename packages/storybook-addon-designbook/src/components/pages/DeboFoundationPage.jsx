@@ -28,7 +28,7 @@ export function DeboFoundationPage() {
               title="Data Model"
               dataPath="data-model.yml"
               parser={(content) => parseYaml(content)}
-              command="/debo-data-model"
+              command="/debo data-model"
               emptyMessage="No data model defined yet"
               renderContent={(data) => (
                 <DeboDataModel data={data} selectedEntity={entity} onSelectEntity={setEntity} />

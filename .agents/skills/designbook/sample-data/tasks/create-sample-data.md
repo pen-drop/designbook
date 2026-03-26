@@ -4,8 +4,8 @@ params:
   entities: []       # optional: list of {entity_type, bundle, view_mode} from plan-entities
 reads:
   - path: $DESIGNBOOK_DIST/data-model.yml
-  - path: $DESIGNBOOK_DRUPAL_THEME/components/*/**.component.yml
-    description: Available SDC components — required for canvas bundle generation (rule canvas.md)
+  - path: $DESIGNBOOK_COMPONENT_SRC
+    description: Available components — required for canvas bundle generation (rule canvas.md)
 files:
   - $DESIGNBOOK_DIST/sections/{{ section_id }}/data.yml
 ---
@@ -28,7 +28,10 @@ If the file does not exist, treat all counts as 0.
 
 If `entities` is provided (populated by `plan-entities`), use it to determine per-bundle requirements. Otherwise read all bundles from `data-model.yml` (`content:` and `config:` sections).
 
-For each entity type/bundle:
+**Skip rule — `purpose: landing-page` bundles:**
+If a bundle declares `purpose: landing-page` in `data-model.yml` AND `entities` is provided AND that bundle is NOT present in the `entities` list → skip it entirely. Do not generate records for it, do not include it in `data.yml`.
+
+For each entity type/bundle (after applying the skip rule):
 
 **Non-full view modes** (listing, teaser, card, etc.):
 - `required_count = 6`
@@ -98,28 +101,28 @@ For each field in a record, determine value structure using this precedence:
 
 ### Entity reference fields (content entities)
 
-Reference fields (`type: reference` or `type: entityreference`) on `content:` entities store the target record's `id` as a **plain string**:
+Reference fields (`type: reference`) on `content:` entities store the target record's `id` as a **plain string**:
 
 ```yaml
-field_shelter: shelter-1
-field_category: cat-dogs
+shelter: shelter-1
+category: cat-dogs
 ```
 
 Use the `id` of a record that exists in the target bundle after this stage.
 
-### Entity reference fields on `config.view` entities (rows)
+### Entity reference fields on config listing entities (rows)
 
-`entityreference` fields named `rows` on `config.view` bundles use the **object form** instead of a plain string ID. Read `settings.target_type` and `settings.target_bundle` from the field definition to determine the target. `view_mode` comes from the first non-full view mode declared on the target bundle (default: `teaser`):
+Config listing bundles that aggregate content use the **object form** to reference records. Read `settings.target_type` and `settings.target_bundle` from the field definition to determine the target. `view_mode` comes from the first non-full view mode declared on the target bundle (default: `teaser`):
 
 ```yaml
 rows:
   - type: entity
-    entity_type: node       # from field settings.target_type
+    entity_type: post       # from field settings.target_type
     bundle: article         # from field settings.target_bundle
     view_mode: teaser       # first non-full view mode of target bundle
     record: 0               # zero-based index into target bundle records
   - type: entity
-    entity_type: node
+    entity_type: post
     bundle: article
     view_mode: teaser
     record: 1
@@ -149,7 +152,7 @@ Check against `$DESIGNBOOK_DIST/data-model.yml` before writing:
 
 If data was generated:
 > "Generated sample data for `[section_id]`:"
-> - `node.article`: 4 new records (had 2, needed 6)
+> - `[entity_type].[bundle]`: 4 new records (had 2, needed 6)
 
 If already sufficient:
 > "Sample data for `[section_id]` is up to date — no records generated."

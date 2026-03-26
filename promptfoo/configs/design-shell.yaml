@@ -14,7 +14,7 @@ prompts:
 tests:
   - description: 'design-shell: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo design-shell
+      workspace: promptfoo/workspaces/debo-design-shell
     prompts:
       - design-shell
     assert:

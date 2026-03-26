@@ -5,16 +5,16 @@
 Each `.jsonata` file is a pure JSONata expression. Input is a single entity record from `data.yml`. Output is `SceneNode[]`.
 
 ```jsonata
-/* entity-mapping/node.article.teaser.jsonata
- * Input: single record from data.yml → node.article[n]
+/* entity-mapping/[entity_type].[bundle].teaser.jsonata
+ * Input: single record from data.yml → [entity_type].[bundle][n]
  * Output: SceneNode[]
  */
 [
   {
     "component": "figure",
     "props": {
-      "src": field_media.url,
-      "alt": field_media.alt ? field_media.alt : title
+      "src": image.url,
+      "alt": image.alt ? image.alt : title
     }
   },
   {
@@ -25,7 +25,7 @@ Each `.jsonata` file is a pure JSONata expression. Input is a single entity reco
   {
     "component": "text-block",
     "slots": {
-      "content": field_teaser ? field_teaser : $substring(field_body, 0, 200) & "..."
+      "content": teaser ? teaser : $substring(body, 0, 200) & "..."
     }
   }
 ]
@@ -56,12 +56,12 @@ For cross-entity rendering, return an entity node. The addon resolves it recursi
 | Pattern | JSONata Syntax | Example |
 |---------|---------------|---------|
 | Field access | `field_name` | `title` → `"My Article"` |
-| Nested field | `field_name.property` | `field_media.url` → `"/img.jpg"` |
-| Fallback | `a ? a : b` | `field_teaser ? field_teaser : field_body` |
-| String concat | `a & b` | `"/files/" & field_file.filename` |
-| Substring | `$substring(str, start, len)` | `$substring(field_body, 0, 200) & "..."` |
-| Uppercase | `$uppercase(str)` | `$uppercase(field_category.name)` |
-| Array access | `arr[index]` | `field_tags[0].name` |
+| Nested field | `field_name.property` | `image.url` → `"/img.jpg"` |
+| Fallback | `a ? a : b` | `teaser ? teaser : body` |
+| String concat | `a & b` | `"/files/" & file.filename` |
+| Substring | `$substring(str, start, len)` | `$substring(body, 0, 200) & "..."` |
+| Uppercase | `$uppercase(str)` | `$uppercase(category.name)` |
+| Array access | `arr[index]` | `tags[0].name` |
 | Static value | `"literal"` or `123` | `"h1"`, `true`, `42` |
 | Conditional node | Ternary in array | See below |
 
@@ -76,16 +76,16 @@ Use JSONata's ternary to conditionally include components. `null` values are aut
     "props": { "level": "h1" },
     "slots": { "text": title }
   },
-  field_media ? {
+  image ? {
     "component": "figure",
     "props": {
-      "src": field_media.url,
-      "alt": field_media.alt
+      "src": image.url,
+      "alt": image.alt
     }
   },
   {
     "component": "text-block",
-    "slots": { "content": field_body }
+    "slots": { "content": body }
   }
 ]
 ```
@@ -102,7 +102,7 @@ Embedding a contact card from another entity type:
     "slots": { "text": title }
   },
   {
-    "entity": "block_content.contact_person",
+    "entity": "person.contact",
     "view_mode": "avatar",
     "record": 0
   }

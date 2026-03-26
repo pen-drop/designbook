@@ -9,7 +9,7 @@ description: Tailwind CSS v4 framework rules — structural token naming convent
 
 Tailwind v4 CSS generation rules. Generates `@theme` blocks from W3C Design Tokens.
 
-> **This skill is loaded by `designbook-css-generate`** for CSS generation. Token naming conventions for the `debo-design-tokens` dialog are loaded automatically via `rules/tailwind-naming.md`.
+> **This skill is loaded by `css-generate`** for CSS generation. Token naming conventions for the `debo-design-tokens` dialog are loaded automatically via `rules/tailwind-naming.md`.
 
 ## ⛔ Styling Rules (Tailwind v4)
 

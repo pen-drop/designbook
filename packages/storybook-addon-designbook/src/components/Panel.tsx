@@ -249,6 +249,7 @@ const S = {
 
 function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookDir: string }) {
   const allLoaded = Object.entries(wf.stage_loaded ?? {});
+  const allSkills = allLoaded.filter(([, l]) => l.task_file).map(([stage, l]) => ({ stage, path: l.task_file! }));
   const allRulesRaw = allLoaded.flatMap(([stage, l]) => (l.rules ?? []).map((r) => ({ stage, path: r })));
   const allRules = allRulesRaw.filter((r, i, arr) => arr.findIndex((x) => x.path === r.path) === i);
   const allConfigRules = allLoaded.flatMap(([, l]) => l.config_rules ?? []);
@@ -272,12 +273,7 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
           <span style={S.overviewValue}>Start: {formatDate(wf.started_at)}</span>
         </div>
         <div style={S.overviewRow}>
-          <span style={S.overviewValue}>
-            End: {formatDate(wf.completed_at)}
-            {wf.completed_at && wf.started_at && durationMin(wf.started_at, wf.completed_at) > 0 && (
-              <>, took {durationMin(wf.started_at, wf.completed_at)} min</>
-            )}
-          </span>
+          <span style={S.overviewValue}>End: {formatDate(wf.completed_at)}</span>
         </div>
         {designbookDir && (
           <div style={S.overviewRow}>
@@ -298,6 +294,20 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
               <span style={S.overviewValue}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {allSkills.length > 0 && (
+        <div style={S.overviewSection}>
+          <div style={S.overviewLabel}>Skills</div>
+          <div style={S.badgeWrap}>
+            {allSkills.map(({ path }) => (
+              <span key={path} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                <ManagerBadge variant="green">{shortenPath(path)}</ManagerBadge>
+                <ContextAction path={path} />
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
@@ -359,7 +369,7 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
 
 function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[]; designbookDir: string }) {
   if (workflows.length === 0) {
-    return <div style={S.empty}>No workflow activity yet. Run a /debo-* command to see progress here.</div>;
+    return <div style={S.empty}>No workflow activity yet. Run a /debo * command to see progress here.</div>;
   }
 
   return (
@@ -375,7 +385,12 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
             <WorkflowStatusDot status={wf.status} />
             <span style={S.summaryTitle}>{wf.title}</span>
             {designbookDir && <ContextAction path={logPath(designbookDir, wf)} />}
-            <span style={S.summaryTime}>{relativeTime(wf.completed_at || wf.started_at)}</span>
+            <span style={S.summaryTime}>
+              {relativeTime(wf.completed_at || wf.started_at)}
+              {wf.completed_at && wf.started_at && durationMin(wf.started_at, wf.completed_at) > 0 && (
+                <>, {durationMin(wf.started_at, wf.completed_at)} min</>
+              )}
+            </span>
           </span>
         );
 
@@ -416,7 +431,11 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
               const currentStageStatus = stageStatus(tasks);
 
               const hasLoaded =
-                loaded && (loaded.rules?.length || loaded.config_rules?.length || loaded.config_instructions?.length);
+                loaded &&
+                (loaded.task_file ||
+                  loaded.rules?.length ||
+                  loaded.config_rules?.length ||
+                  loaded.config_instructions?.length);
 
               const taskStatus2collapsible = (s: string): 'done' | 'running' | 'pending' => {
                 if (s === 'done') return 'done';
@@ -490,6 +509,13 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
 
               const overviewContent = () => (
                 <div style={S.loadedList}>
+                  {loaded?.task_file && (
+                    <div style={S.loadedRow}>
+                      <span style={S.loadedLabel}>📄 skill</span>
+                      <span style={S.loadedPath}>{shortenPath(loaded.task_file)}</span>
+                      <ContextAction path={loaded.task_file} />
+                    </div>
+                  )}
                   {loaded?.rules && loaded.rules.length > 0 && (
                     <>
                       <div style={S.overviewLabel}>Rules</div>

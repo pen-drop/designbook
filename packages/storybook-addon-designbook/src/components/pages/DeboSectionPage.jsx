@@ -81,7 +81,7 @@ export function DeboSectionPage({ sectionId, title }) {
                   title="Shape Section"
                   dataPath={`sections/${sectionId}/${sectionId}.section.scenes.yml`}
                   parser={yamlParser}
-                  command={`/debo-shape-section ${sectionId}`}
+                  command={`/debo shape-section ${sectionId}`}
                   emptyMessage={`No specification for ${title} yet`}
                   filePath={`designbook/sections/${sectionId}/${sectionId}.section.scenes.yml`}
                   renderContent={(data) => (
@@ -114,7 +114,7 @@ export function DeboSectionPage({ sectionId, title }) {
                   title="Sample Data"
                   dataPath={`sections/${sectionId}/data.yml`}
                   parser={yamlParser}
-                  command={`/debo-sample-data ${sectionId}`}
+                  command={`/debo sample-data ${sectionId}`}
                   emptyMessage="No sample data defined yet"
                   filePath={`designbook/sections/${sectionId}/data.yml`}
                   renderContent={(data) => <DeboSampleData data={data} />}
@@ -131,7 +131,7 @@ export function DeboSectionPage({ sectionId, title }) {
                   title="Design"
                   dataPath={`sections/${sectionId}/${sectionId}.section.scenes.yml`}
                   parser={scenesParser}
-                  command={`/debo-design-screen ${sectionId}`}
+                  command={`/debo design-screen ${sectionId}`}
                   emptyMessage="No designs yet"
                   filePath={`designbook/sections/${sectionId}/${sectionId}.section.scenes.yml`}
                   renderContent={(data) => <DeboSceneGrid data={data} />}
@@ -148,7 +148,7 @@ export function DeboSectionPage({ sectionId, title }) {
                   title="Screenshots"
                   dataPath={`sections/${sectionId}/screenshots.md`}
                   parser={screenshotsParser}
-                  command={`/debo-screenshot-design ${sectionId}`}
+                  command={`/debo screenshot-design ${sectionId}`}
                   emptyMessage="No screenshots captured yet"
                   filePath={`designbook/sections/${sectionId}/`}
                   renderContent={(shots) => (

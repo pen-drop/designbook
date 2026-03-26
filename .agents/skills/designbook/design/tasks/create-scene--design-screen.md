@@ -34,12 +34,12 @@ order: [number]
 group: "Designbook/Sections/{{ section_title }}"
 scenes:
   - name: "[Scene Name]"
-    reference:              # optional — write when provided
-      type: "stitch"
+    reference:       # optional — write when provided
+      type: "<stitch|figma|etc.>"
       url: "<resource URL>"
       title: "<label>"
     items:
-      - scene: "design-system:shell"
+      - scene: "design-system:[shell_name]"
         with:
           content:
             entity: "[ENTITY_TYPE].[ENTITY_BUNDLE]"
@@ -51,13 +51,11 @@ scenes:
 
 Each entry in `items:` uses one of three keys:
 
-- **`scene:`** — embed the shell and fill `$content`
-- **`component:`** — render a UI component directly with props/slots
+- **`scene:`** — embed the shell and fill `$content`. The scene MUST start with `design-system:` followed by an existing scene name under the design-system folder.
 - **`entity:`** — render an entity from sample data (`node.article`, `view.recent_articles`)
 
 ## Constraints
 
-- **Provider prefix** — every `component:` value uses `provider:name`
 - **No `type: element`** — plain strings for text content
 - **`group:`** must be `"Designbook/Sections/{{ section_title }}"`
-- For listings use `entity: view.*` — never `records:` shorthand
+

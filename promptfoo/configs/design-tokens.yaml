@@ -23,7 +23,7 @@ prompts:
 tests:
   - description: 'tokens: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo tokens
+      workspace: promptfoo/workspaces/debo-design-tokens
     prompts:
       - design-tokens
     assert:

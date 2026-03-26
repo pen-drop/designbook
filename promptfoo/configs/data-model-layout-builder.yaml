@@ -21,7 +21,7 @@ prompts:
 tests:
   - description: 'data-model: PetMatch (layout_builder)'
     vars:
-      workspace: promptfoo/workspaces/debo data-model-layout-builder
+      workspace: promptfoo/workspaces/debo-data-model-layout-builder
     prompts:
       - data-model-layout-builder
     assert:
