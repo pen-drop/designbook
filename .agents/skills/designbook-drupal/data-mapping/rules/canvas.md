@@ -17,29 +17,29 @@ For Canvas full view mode, the sample data IS the component tree — no JSONata 
 ```jsonata
 (
   $record := $;
-  $record.component_tree
+  $record.components
 )
 ```
 
-## Structure of `component_tree`
+## Structure of `components`
 
-The `component_tree` field contains a nested `ComponentNode[]`. Each top-level entry is a **section** component (e.g. `canvas_section`). Sections have `children` arrays of `canvas_*` components with inline `props`.
+The `components` field contains a nested `ComponentNode[]`. Each top-level entry is a **section** component (e.g. `canvas_section`). Sections have `children` arrays of `canvas_*` components with inline `props`.
 
 Example structure in sample data:
 ```yaml
-component_tree:
-  - component: canvas_section
+components:
+  - component: "COMPONENT_NAMESPACE:canvas_section"
     props:
       layout: full-width
     children:
-      - component: canvas_text
+      - component: "COMPONENT_NAMESPACE:canvas_text"
         props:
           text: "Welcome to our site"
       - component: canvas_image
         props:
           src: "/path/to/image.jpg"
           alt: "Hero image"
-      - component: canvas_cta
+      - component: "COMPONENT_NAMESPACE:canvas_cta"
         props:
           label: "Get started"
           href: "/contact"
@@ -47,8 +47,8 @@ component_tree:
 
 ## Rules
 
-- Read the `component_tree` field directly from the sample data record — this IS the component tree
-- Do NOT generate a field-by-field JSONata mapping — just return `$record.component_tree`
+- Read the `components` field directly from the sample data record — this IS the component tree
+- Do NOT generate a field-by-field JSONata mapping — just return `$record.components`
 - There are NO entity references in Canvas — all component data is inline
 - Canvas uses the entity type `canvas_page` (not `node`)
 - `canvas_*` child components carry their own `props` inline — no further resolution needed

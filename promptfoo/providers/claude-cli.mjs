@@ -38,7 +38,7 @@ class ClaudeCliProvider {
       "--model",
       this.model,
       "--max-turns",
-      String(this.config.max_turns || 50),
+      String(this.config.max_turns || 100),
       "--dangerously-skip-permissions",
       prompt,
     ];

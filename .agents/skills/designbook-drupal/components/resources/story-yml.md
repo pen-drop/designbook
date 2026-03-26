@@ -61,7 +61,7 @@ slots:                    # optional, define slot content
     - type: element
       value: [text or HTML]
     - type: component
-      component: "$DESIGNBOOK_SDC_PROVIDER:[componentName]"
+      component: "COMPONENT_NAMESPACE:[componentName]"
     - type: image
       uri: [url]
 ```

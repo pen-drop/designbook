@@ -17,7 +17,7 @@ name: [componentNameSnake]
 status: [status]
 group: [group]
 description: [description]
-provider: $DESIGNBOOK_SDC_PROVIDER
+provider: COMPONENT_NAMESPACE
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true

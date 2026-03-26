@@ -27,7 +27,7 @@ $DESIGNBOOK_DRUPAL_THEME/components/{{ component }}/
 ├── {{ component }}.component.yml
 ├── {{ component }}.twig
 ├── {{ component }}.default.story.yml
-└── {{ component }}.[variant-name].story.yml   (one per variant)
+└── {{ component }}.[variant-name].story.yml 
 ```
 
 ## Variant Story Files
@@ -43,7 +43,9 @@ $DESIGNBOOK_DRUPAL_THEME/components/{{ component }}/
 
 ## File Generation Order
 
-Generate in three phases across **all components** before moving to the next phase. Within each phase, process leaf components first (those that don't nest others), then composing components.
+Generate in three phases across **all components** before moving to the next phase.
+
+**Build order within each phase:** Scan each component's `.twig` file for Twig include/embed directives — `{% include %}`, `{% embed %}`, and `{{ component() }}`, and and `{{ include() }}` calls that reference other project components. Build components with no such dependencies first (leaf components), then components that include them. This ensures that when a composing component's Twig is written, all included components already exist.
 
 1. **Phase 1 — ALL `.twig` files** — read `resources/twig.md` + `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` once
 2. **Phase 2 — ALL `.story.yml` files** — read `resources/story-yml.md` once
@@ -62,7 +64,7 @@ The CSS skill is only needed in Phase 1. Validation runs after each component YA
 > value: "Hello World"
 >
 > # Wrong — causes parser errors
-> component: 'test_integration_drupal:header'
+> component: "test_integration_drupal:header"
 > value: 'Hello World'
 > ```
 

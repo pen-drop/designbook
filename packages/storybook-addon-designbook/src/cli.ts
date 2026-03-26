@@ -1,4 +1,4 @@
-import { basename, resolve, dirname } from 'node:path';
+import { resolve, dirname } from 'node:path';
 import { screenshot } from './screenshot.js';
 import { Command } from 'commander';
 import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
@@ -92,11 +92,6 @@ program
     console.log(`export DESIGNBOOK_ROOT='${configDir}'`);
 
     // Derive SDC provider from drupal.theme
-    const drupalTheme = config['drupal.theme'];
-    if (typeof drupalTheme === 'string') {
-      const provider = basename(drupalTheme).replace(/-/g, '_');
-      console.log(`export DESIGNBOOK_SDC_PROVIDER='${provider}'`);
-    }
   });
 
 const validate = program.command('validate').description('Validate Designbook artifacts against schemas');

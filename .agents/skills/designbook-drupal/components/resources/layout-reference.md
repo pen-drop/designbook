@@ -365,15 +365,15 @@ props:
 slots:
   items:
     - type: component
-      component: "$DESIGNBOOK_SDC_PROVIDER:card"
+      component: "COMPONENT_NAMESPACE:card"
       slots:
         title: "Card 1"
     - type: component
-      component: "$DESIGNBOOK_SDC_PROVIDER:card"
+      component: "COMPONENT_NAMESPACE:card"
       slots:
         title: "Card 2"
     - type: component
-      component: "$DESIGNBOOK_SDC_PROVIDER:card"
+      component: "COMPONENT_NAMESPACE:card"
       slots:
         title: "Card 3"
 ```
@@ -387,11 +387,11 @@ props:
 slots:
   items:
     - type: component
-      component: "$DESIGNBOOK_SDC_PROVIDER:card"
+      component: "COMPONENT_NAMESPACE:card"
       slots:
         title: "Card 1"
     - type: component
-      component: "$DESIGNBOOK_SDC_PROVIDER:card"
+      component: "COMPONENT_NAMESPACE:card"
       slots:
         title: "Card 2"
 ```
@@ -521,7 +521,7 @@ thirdPartySettings:
 
 {# Build grid content #}
 {% set grid_content %}
-  {{ include('$DESIGNBOOK_SDC_PROVIDER:grid', {
+  {{ include('COMPONENT_NAMESPACE:grid', {
     columns: columns,
     gap: gap,
     items: items,
@@ -529,7 +529,7 @@ thirdPartySettings:
 {% endset %}
 
 {# Delegate to container #}
-{{ include('$DESIGNBOOK_SDC_PROVIDER:container', {
+{{ include('COMPONENT_NAMESPACE:container', {
   max_width: max_width,
   padding_top: padding_top,
   padding_bottom: padding_bottom,
@@ -541,7 +541,7 @@ thirdPartySettings:
 }) }}
 ```
 
-> **Note:** `$DESIGNBOOK_SDC_PROVIDER` is resolved from `designbook.config.yml` at generation time. Use the actual value (e.g., `test_integration_drupal`) in generated Twig files.
+> **Note:** `COMPONENT_NAMESPACE` is resolved from `designbook.config.yml` at generation time. Use the actual value (e.g., `test_integration_drupal`) in generated Twig files.
 
 ### Story Example
 
@@ -557,17 +557,17 @@ props:
 slots:
   column_1:
     - type: component
-      component: "$DESIGNBOOK_SDC_PROVIDER:card"
+      component: "COMPONENT_NAMESPACE:card"
       slots:
         title: "Card 1"
   column_2:
     - type: component
-      component: "$DESIGNBOOK_SDC_PROVIDER:card"
+      component: "COMPONENT_NAMESPACE:card"
       slots:
         title: "Card 2"
   column_3:
     - type: component
-      component: "$DESIGNBOOK_SDC_PROVIDER:card"
+      component: "COMPONENT_NAMESPACE:card"
       slots:
         title: "Card 3"
 ```

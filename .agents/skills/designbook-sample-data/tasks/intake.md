@@ -13,12 +13,12 @@ Help the user select which section needs sample data. The result feeds the `crea
 
 ## Step 1: Select Section
 
-List all directories under `${DESIGNBOOK_DIST}/sections/`. For each, check if a `*.section.scenes.yml` exists. Present only sections that have a scenes file:
+List all directories under `${DESIGNBOOK_DIST}/sections/`. Present the available sections:
 
 > "Which section should get sample data?
 >
-> 1. **getting-started** — ✓ Scenes
-> 2. **blog** — ✓ Scenes
+> 1. **getting-started**
+> 2. **blog**
 >
 > (Enter number or section id)"
 
@@ -26,17 +26,23 @@ Wait for response. Set `section_id` to the selected section's directory name (e.
 
 ## Step 2: Analyze Data Needs
 
-Read the section's `*.section.scenes.yml` and `data-model.yml`. Identify which `entity_type.bundle` entries are relevant for this section.
+Read `data-model.yml`. Enumerate all bundles defined under `content:` and `config:`. These are the candidates for sample data generation — every bundle in the data model needs records.
 
-Present the analysis:
+Present the analysis in two groups:
 
-> **Entities needed for [Section Title]:**
-> - `node.article` — [why needed, based on section spec]
-> - `taxonomy_term.author` — [why needed]
+> **Content entities for [Section Title]:**
+> - `node.article` — [brief description from data-model title/description]
+> - `taxonomy_term.author` — [brief description]
+> - `media.image` — [brief description]
+>
+> **Config entities:**
+> - `view.article_listing` — [brief description]
 >
 > **Proposed records:**
-> - `node.article`: [N] records
-> - `taxonomy_term.author`: [N] records
+> - `node.article`: 6 records
+> - `taxonomy_term.author`: 3 records
+> - `media.image`: 6 records
+> - `view.article_listing`: 1 record (with 6 rows)
 >
 > ⛔ Any entities not yet in data-model.yml? → Run `/debo-data-model` first.
 

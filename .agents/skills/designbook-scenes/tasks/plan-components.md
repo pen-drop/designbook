@@ -12,7 +12,6 @@ Identify which UI components are needed for scene creation based on the section 
 ## Input
 
 - `guidelines.yml` — component patterns, naming conventions, design principles
-- Existing components in `$DESIGNBOOK_DRUPAL_THEME/components/`
 - Scene requirements from intake context
 
 ## Output

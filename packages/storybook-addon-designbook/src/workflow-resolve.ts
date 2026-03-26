@@ -7,7 +7,6 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { load as parseYaml } from 'js-yaml';
 import fm from 'front-matter';
 import { globSync } from 'glob';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
@@ -82,10 +81,12 @@ export function lookup(key: string, context: Record<string, unknown>, config: Re
   if (context[key] !== undefined) return context[key];
   if (config[key] !== undefined) return config[key];
   // Dot-path traversal into config (forward-compat for non-flattened configs)
-  return key.split('.').reduce(
-    (obj, part) => (obj != null && typeof obj === 'object' ? (obj as Record<string, unknown>)[part] : undefined),
-    config as unknown,
-  );
+  return key
+    .split('.')
+    .reduce(
+      (obj, part) => (obj != null && typeof obj === 'object' ? (obj as Record<string, unknown>)[part] : undefined),
+      config as unknown,
+    );
 }
 
 /**
@@ -120,10 +121,7 @@ export function checkWhen(
 /**
  * Build runtime context for `when` evaluation (stage-specific, not config).
  */
-export function buildRuntimeContext(
-  stage?: string,
-  extraConditions?: Record<string, string>,
-): Record<string, unknown> {
+export function buildRuntimeContext(stage?: string, extraConditions?: Record<string, string>): Record<string, unknown> {
   const context: Record<string, unknown> = {};
   if (stage !== undefined) context['stages'] = stage;
   if (extraConditions) Object.assign(context, extraConditions);
@@ -317,16 +315,13 @@ export function resolveConfigForStage(
 
   const explicitInstructions = Array.isArray(configInstructions) ? configInstructions.map(String) : [];
 
-  const extensionSkills = getExtensionSkillIds(normalizeExtensions(rawConfig['extensions']))
-    .split(',')
-    .filter(Boolean);
+  const extensionSkills = getExtensionSkillIds(normalizeExtensions(rawConfig['extensions'])).split(',').filter(Boolean);
 
   return {
     config_rules: Array.isArray(configRules) ? configRules.map(String) : [],
     config_instructions: [...explicitInstructions, ...extensionSkills],
   };
 }
-
 
 // ── Depends-On Computation ──────────────────────────────────────────
 

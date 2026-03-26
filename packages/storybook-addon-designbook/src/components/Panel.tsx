@@ -33,6 +33,7 @@ interface WorkflowTask {
   started_at: string | null;
   completed_at: string | null;
   files?: TaskFile[];
+  task_file?: string;
 }
 
 interface StageLoaded {
@@ -80,6 +81,9 @@ const shortenPath = (p: string): string => {
   const parts = p.replace(/\\/g, '/').split('/').filter(Boolean);
   return parts.slice(-1).join('/');
 };
+
+const durationMin = (start: string | null, end: string | null): number =>
+  start && end ? Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000) : 0;
 
 function WorkflowStatusDot({ status }: { status?: string }) {
   const mapped = status === 'completed' ? 'done' : status === 'running' ? 'in-progress' : 'pending';
@@ -245,8 +249,8 @@ const S = {
 
 function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookDir: string }) {
   const allLoaded = Object.entries(wf.stage_loaded ?? {});
-  const allSkills = allLoaded.filter(([, l]) => l.task_file).map(([stage, l]) => ({ stage, path: l.task_file }));
-  const allRules = allLoaded.flatMap(([stage, l]) => (l.rules ?? []).map((r) => ({ stage, path: r })));
+  const allRulesRaw = allLoaded.flatMap(([stage, l]) => (l.rules ?? []).map((r) => ({ stage, path: r })));
+  const allRules = allRulesRaw.filter((r, i, arr) => arr.findIndex((x) => x.path === r.path) === i);
   const allConfigRules = allLoaded.flatMap(([, l]) => l.config_rules ?? []);
   const allConfigInstructions = allLoaded.flatMap(([, l]) => l.config_instructions ?? []);
 
@@ -268,7 +272,12 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
           <span style={S.overviewValue}>Start: {formatDate(wf.started_at)}</span>
         </div>
         <div style={S.overviewRow}>
-          <span style={S.overviewValue}>End: {formatDate(wf.completed_at)}</span>
+          <span style={S.overviewValue}>
+            End: {formatDate(wf.completed_at)}
+            {wf.completed_at && wf.started_at && durationMin(wf.started_at, wf.completed_at) > 0 && (
+              <>, took {durationMin(wf.started_at, wf.completed_at)} min</>
+            )}
+          </span>
         </div>
         {designbookDir && (
           <div style={S.overviewRow}>
@@ -292,27 +301,15 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
         </div>
       )}
 
-      {allSkills.length > 0 && (
-        <div style={S.overviewSection}>
-          <div style={S.overviewLabel}>Skills</div>
-          <div style={S.badgeWrap}>
-            {allSkills.map(({ path }) => (
-              <span key={path} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                <ManagerBadge variant="green">{shortenPath(path)}</ManagerBadge>
-                <ContextAction path={path} />
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
       {allRules.length > 0 && (
         <div style={S.overviewSection}>
           <div style={S.overviewLabel}>Rules</div>
           <div style={S.badgeWrap}>
             {allRules.map(({ path }) => (
               <span key={path} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                <ManagerBadge variant="gray">{shortenPath(path)}</ManagerBadge>
+                <ManagerBadge variant="gray" title={path}>
+                  {shortenPath(path)}
+                </ManagerBadge>
                 <ContextAction path={path} />
               </span>
             ))}
@@ -392,6 +389,7 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
             defaultOpen={isOpen}
           >
             <WorkflowOverview wf={wf} designbookDir={designbookDir} />
+            <div style={S.overviewLabel}>Stages</div>
             {groups.map(({ stage, tasks }) => {
               const stageDone = tasks.filter((t) => t.status === 'done').length;
               const stageTotal = tasks.length;
@@ -415,12 +413,10 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                 </span>
               );
 
+              const currentStageStatus = stageStatus(tasks);
+
               const hasLoaded =
-                loaded &&
-                (loaded.task_file ||
-                  loaded.rules?.length ||
-                  loaded.config_rules?.length ||
-                  loaded.config_instructions?.length);
+                loaded && (loaded.rules?.length || loaded.config_rules?.length || loaded.config_instructions?.length);
 
               const taskStatus2collapsible = (s: string): 'done' | 'running' | 'pending' => {
                 if (s === 'done') return 'done';
@@ -435,12 +431,25 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                     const taskSummary = (
                       <span style={S.taskRow}>
                         <StatusDot status={task.status} />
-                        <span style={task.status === 'done' ? { ...S.taskTitle, opacity: 0.5 } : S.taskTitle}>
+                        <span
+                          style={task.status === 'done' ? { ...S.taskTitle, opacity: 0.5 } : S.taskTitle}
+                          title={task.title}
+                        >
                           {task.title}
                         </span>
+                        {task.task_file && <ContextAction path={task.task_file} />}
                         {task.status === 'in-progress' && task.started_at && (
                           <span style={S.taskTime}>{relativeTime(task.started_at)}</span>
                         )}
+                        {task.status === 'done' &&
+                          task.completed_at &&
+                          task.started_at &&
+                          durationMin(task.started_at, task.completed_at) > 0 && (
+                            <span style={S.taskTime}>
+                              {relativeTime(task.completed_at)}, took {durationMin(task.started_at, task.completed_at)}{' '}
+                              min
+                            </span>
+                          )}
                       </span>
                     );
 
@@ -459,12 +468,15 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                         variant="action-inline"
                         status={taskStatus2collapsible(task.status)}
                       >
+                        <div style={S.overviewLabel}>Files</div>
                         <span style={S.taskFileBadges}>
                           {task.files!.map((f) => {
                             const absPath = designbookDir ? `${designbookDir}/${f.path}` : f.path;
                             return (
                               <span key={f.path} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                                <ManagerBadge variant={fileBadgeVariant(f)}>{shortenPath(f.path)}</ManagerBadge>
+                                <ManagerBadge variant={fileBadgeVariant(f)} title={f.path}>
+                                  {shortenPath(f.path)}
+                                </ManagerBadge>
                                 <ContextAction path={absPath} validation={f.validation_result ?? undefined} />
                               </span>
                             );
@@ -478,20 +490,21 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
 
               const overviewContent = () => (
                 <div style={S.loadedList}>
-                  {loaded?.task_file && (
-                    <div style={S.loadedRow}>
-                      <span style={S.loadedLabel}>📄 skill</span>
-                      <span style={S.loadedPath}>{shortenPath(loaded.task_file)}</span>
-                      <ContextAction path={loaded.task_file} />
-                    </div>
+                  {loaded?.rules && loaded.rules.length > 0 && (
+                    <>
+                      <div style={S.overviewLabel}>Rules</div>
+                      <div style={S.badgeWrap}>
+                        {loaded.rules.map((rule) => (
+                          <span key={rule} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                            <ManagerBadge variant="white" title={rule}>
+                              {shortenPath(rule)}
+                            </ManagerBadge>
+                            <ContextAction path={rule} />
+                          </span>
+                        ))}
+                      </div>
+                    </>
                   )}
-                  {loaded?.rules?.map((rule) => (
-                    <div style={S.loadedRow} key={rule}>
-                      <span style={S.loadedLabel}>📏 rule</span>
-                      <span style={S.loadedPath}>{shortenPath(rule)}</span>
-                      <ContextAction path={rule} />
-                    </div>
-                  ))}
                   {loaded?.config_rules?.map((cr, i) => (
                     <div style={S.loadedRow} key={`cr-${i}`}>
                       <span style={S.loadedLabel}>⚙ config</span>
@@ -512,7 +525,7 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                   key={stage}
                   title={stageSummary}
                   variant="action-item"
-                  status={stageStatus(tasks)}
+                  status={currentStageStatus}
                   defaultOpen={stageIsOpen}
                 >
                   {hasLoaded && overviewContent()}

@@ -14,3 +14,5 @@ drupal:
 cmd: node packages/storybook-addon-designbook/dist/cli.js
 storybook_url: "http://localhost:6009"
 storybook_root: packages/integrations/test-integration-drupal/
+component:
+  namespace: 'test_integration_drupal'

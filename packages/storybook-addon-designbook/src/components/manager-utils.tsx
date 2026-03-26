@@ -30,27 +30,30 @@ export function timeRange(started: string | null, ended: string | null): string 
   return `${startDay} ${startTime} (${relativeTime(started)})`;
 }
 
-export const ManagerBadge = styled.span<{ variant?: 'green' | 'yellow' | 'gray' }>(({ variant = 'green' }) => {
-  const colors = {
-    green: { background: 'rgb(102, 191, 60)', color: '#FFFFFF' },
-    yellow: { background: '#FEF3C7', color: '#1E293B' },
-    gray: { background: '#F1F5F9', color: '#1E293B' },
-  };
-  const c = colors[variant] || colors.green;
-  return {
-    display: 'inline-block',
-    fontSize: 10,
-    fontWeight: 700,
-    lineHeight: '15px',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase' as const,
-    padding: '2px 8px',
-    borderRadius: 9999,
-    whiteSpace: 'nowrap' as const,
-    background: c.background,
-    color: c.color,
-  };
-});
+export const ManagerBadge = styled.span<{ variant?: 'green' | 'yellow' | 'gray' | 'white' }>(
+  ({ variant = 'green' }) => {
+    const colors = {
+      green: { background: 'rgb(102, 191, 60)', color: '#FFFFFF' },
+      yellow: { background: '#FEF3C7', color: '#1E293B' },
+      gray: { background: '#F1F5F9', color: '#1E293B' },
+      white: { background: '#FFFFFF', color: '#1E293B' },
+    };
+    const c = colors[variant] || colors.green;
+    return {
+      display: 'inline-block',
+      fontSize: 10,
+      fontWeight: 700,
+      lineHeight: '15px',
+      letterSpacing: '0.5px',
+      textTransform: 'uppercase' as const,
+      padding: '2px 8px',
+      borderRadius: 9999,
+      whiteSpace: 'nowrap' as const,
+      background: c.background,
+      color: c.color,
+    };
+  },
+);
 
 const ActivityDot = styled.div<{ done: boolean }>(({ done }) => ({
   width: 14,

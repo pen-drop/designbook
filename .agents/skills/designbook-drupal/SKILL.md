@@ -14,8 +14,6 @@ Rules and resources for Drupal-compatible data model creation (`when: backend: d
 - [data-model/rules/conventions.md](data-model/rules/conventions.md) — Entity mapping, `composition` per bundle, `field_` prefix convention
 - [data-model/rules/canvas.md](data-model/rules/canvas.md) — Canvas-specific data model rules
 - [data-model/rules/layout-builder.md](data-model/rules/layout-builder.md) — Layout Builder data model rules
-- [data-model/resources/drupal-views.md](data-model/resources/drupal-views.md) — Drupal Views as `config.view.<name>` entities
-- [data-model/resources/drupal-field-naming.md](data-model/resources/drupal-field-naming.md) — Field naming conventions reference
 
 ## Data Mapping
 

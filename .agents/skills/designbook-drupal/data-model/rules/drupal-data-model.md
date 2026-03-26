@@ -7,17 +7,11 @@ when:
 # Drupal Data Model Rules
 
 
-## Entity Mapping
+## Entity Types
 
-Map generic content concepts to Drupal entity types:
+Available entity types, their base fields, and section placement (`content` vs `config`) are defined in `entity-types/*.yml`. These schemas are loaded during intake and drive which entity types are available and which fields they require.
 
-| Content concept             | Entity type     | Path in data-model.yml              |
-|-----------------------------|-----------------|-------------------------------------|
-| Content (articles, pages)   | `node`          | `content.node.[bundle]`             |
-| Files, images, videos       | `media`         | `content.media.[bundle]`            |
-| Categories, tags            | `taxonomy_term` | `content.taxonomy_term.[bundle]`    |
-
-**Do NOT suggest `block_content` by default.** It is only appropriate when the `layout_builder` extension is active. Extension-specific entity types (`block_content`, `canvas_page`, `paragraph`) are introduced by extension rule files loaded via `when.extensions`.
+**Do NOT suggest `block_content` by default.** It is only appropriate when the `layout_builder` extension is active. Extension-specific entity types are introduced by their schema files (loaded via `when.extensions`).
 
 ## Extension-Aware Rules
 
@@ -36,42 +30,6 @@ Extension-specific entity types, fields, and `view_modes` templates are defined 
 
 ## Field Naming Conventions
 
-### Base Fields — No Prefix
-
-Do **not** prefix standard entity base properties:
-
-- `title` — Node title / Media name
-- `status` — Published/Unpublished
-- `uid` — Author
-- `created`, `changed`
-- `langcode`
-- `path` — URL alias
-- `body` — The main content node.
-
-### Custom Fields — Must Use `field_` Prefix
-
-All other fields **must** be prefixed with `field_`:
+Base fields (defined in `entity-types/*.yml`) do **not** use a prefix. All custom fields **must** be prefixed with `field_`:
 
 - `field_tags`, `field_media`, `field_subtitle` ✅
-
-
-### Example
-
-```yaml
-content:
-  node:
-    article:
-      title: Article
-      description: Standard news article
-      fields:
-        title:
-          type: string
-          title: Title
-        body:
-          type: text
-          title: Body
-        field_tags:
-          type: reference
-          title: Tags
-          multiple: true
-```

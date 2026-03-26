@@ -2,12 +2,11 @@
 when:
   stages: [create-sample-data]
   backend: drupal
-  template: link
 ---
 
 # Sample Template: link
 
-Applies when a field has `sample_template.template: link`, or when `field_type` matching is active for `link`.
+Applies when a when `field_type` matching is active for `link`.
 
 ## Output Structure
 

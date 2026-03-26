@@ -23,8 +23,8 @@ content (required)
                           └── sample_template  # optional: { template, settings: { hint } }
 
 config (optional)
-  └── {entity_type}          # e.g. view (Drupal views), singletons
-        └── {bundle}          # e.g. recent_articles
+  └── {entity_type}          # e.g. view (Drupal views), block (module-provided blocks)
+        └── {bundle}          # e.g. recent_articles, user_login
               ├── view_modes   # same structure as content bundles
               └── fields
 ```

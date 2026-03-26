@@ -6,7 +6,7 @@ when:
 
 # Sample Data: Layout Builder
 
-Applies **only to fields where `sample_template.template: layout_builder`** is set in `data-model.yml`. Ignore this rule for all other fields.
+Applies **only to bundles where `purpose: landing-page`** is set in `data-model.yml` and the `layout_builder` extension is active. Ignore this rule for all other bundles.
 
 ## Record Structure
 
@@ -40,21 +40,21 @@ content:
       landing_page:
         - title: "Home"
           layout_builder__layout:
-            - component: "provider:hero"
+            - component: "COMPONENT_NAMESPACE:hero"
               slots:
                 content:
                   type: entity
                   entity_type: block_content
                   bundle: hero
                   record: 0
-            - component: "provider:feature-section"
+            - component: "COMPONENT_NAMESPACE:feature-section"
               slots:
                 content:
                   type: entity
                   entity_type: block_content
                   bundle: features
                   record: 0
-            - component: "provider:cta"
+            - component: "COMPONENT_NAMESPACE:cta"
               slots:
                 content:
                   type: entity

@@ -11,18 +11,23 @@ This specification defines the `designbook-drupal/data-model/` skill, which serv
 ## Requirements
 
 ### Skill Definition
-- **Type**: Documentation / Reference Skill
+- **Type**: Documentation / Reference Skill + Entity Type Schemas
 - **Name**: `designbook-drupal/data-model/`
-- **Description**: Guidelines for creating Drupal-compatible data models.
+- **Description**: Guidelines and structured schemas for creating Drupal-compatible data models.
+
+#### Scenario: Entity type schemas are part of the skill
+- **WHEN** the designbook-drupal skill is loaded
+- **THEN** entity type schema files at `entity-types/*.md` are available for the intake task to read
 
 ### Content Guidelines
-The skill documentation (`SKILL.md`) must cover:
-1.  **Entity Mapping**:
-    -   `content` -> `node` entity type.
-    -   `assets` -> `media` entity type.
-2.  **Field Naming**:
-    -   **Base Fields**: Must NOT be prefixed (e.g., `title`, `body`, `uid`, `status`, `created`, `changed`, `path`, `langcode`).
-    -   **Configurable Fields**: Must be prefixed with `field_` (e.g., `field_subtitle`, `field_image`).
+The skill documentation SHALL cover:
+1. **Entity Mapping**: content → node, assets → media, categories → taxonomy_term, reusable blocks → block_content (layout_builder), canvas pages → canvas_page (canvas extension)
+2. **Field Naming**: base fields no prefix, custom fields must use `field_` prefix
+3. **Entity Type Schemas**: structured markdown files per entity type (in `entity-types/`) defining base fields and required status — loaded during intake via `when:` frontmatter filtering
+
+#### Scenario: Skill covers all supported entity types
+- **WHEN** the skill is read during intake
+- **THEN** it provides entity type schemas for node, media, taxonomy_term, block_content, canvas_page, and view
 
 ### Workflow Integration
 - The `debo-data-model` workflow must be updated to:

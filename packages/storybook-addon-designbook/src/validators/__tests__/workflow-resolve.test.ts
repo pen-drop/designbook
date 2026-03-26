@@ -413,12 +413,7 @@ describe('matchRuleFiles', () => {
   it('flat structure still discovered after glob change', () => {
     // skills/<skill>/rules/rule.md continues to work
     const agentsDir = resolve(tmpDir, '.agents');
-    const rulePath = writeSkillRuleFile(
-      agentsDir,
-      'designbook-scenes',
-      'flat-rule',
-      'when:\n  stages: [create-scene]',
-    );
+    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-scenes', 'flat-rule', 'when:\n  stages: [create-scene]');
 
     const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
     expect(result).toContain(rulePath);

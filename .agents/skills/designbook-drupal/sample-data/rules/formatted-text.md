@@ -7,7 +7,7 @@ when:
 
 # Sample Template: formatted-text
 
-Applies when a field has `sample_template.template: formatted-text`, or when `field_type` matching is active for `formatted_text` / `text_with_summary` / `text_long`.
+Applies when when `field_type` matching is active for `formatted_text` / `text_with_summary` / `text_long`.
 
 ## Output Structure
 

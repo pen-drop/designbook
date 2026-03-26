@@ -113,11 +113,9 @@ $DESIGNBOOK_DIST/
 
 ## Rules
 
-- [scenes-constraints](rules/scenes-constraints.md) — Provider format, no type:element, shell slot inlining
-- [listing-pattern](rules/listing-pattern.md) — Listings use view.* entities
+- [scenes-constraints](rules/scenes-constraints.md) — Provider format, no type:element, shell slot inlining, entity reference format, listing pattern
 
 ## Resources
 
 - [scenes-schema](resources/scenes-schema.md) — JSON Schema for `*.scenes.yml` format and ComponentNode output
 - [jsonata-reference](resources/jsonata-reference.md) — JSONata expression format, syntax, and output structure
-- [scenes-constraints](resources/scenes-constraints.md) — Constraint examples with correct/incorrect comparisons

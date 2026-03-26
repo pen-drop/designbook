@@ -42,7 +42,9 @@ scenes:
       - scene: "design-system:shell"
         with:
           content:
-            # Entities or components that fill the page
+            entity: "[ENTITY_TYPE].[ENTITY_BUNDLE]"
+            view: "[VIEW_NAME]"
+                        
 ```
 
 ## Scene Node Types

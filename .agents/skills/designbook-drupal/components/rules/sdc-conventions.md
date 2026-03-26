@@ -74,9 +74,9 @@ When variant markup only differs in a few classes, use conditional class assignm
 
 Shell components (header, footer, page) are full UI components with real HTML, not structural slot-only wrappers. Same location (`$DESIGNBOOK_DRUPAL_THEME/components/`), same provider as all other UI components.
 
-## Resolve `$DESIGNBOOK_SDC_PROVIDER` at Generation Time
+## Resolve `COMPONENT_NAMESPACE` at Generation Time
 
-Never leave `$DESIGNBOOK_SDC_PROVIDER` as a literal string in generated files. Read the config and substitute the actual value (e.g. `test_integration_drupal`).
+Never leave `COMPONENT_NAMESPACE` as a literal string in generated files. Read the config and substitute the actual value (e.g. `test_integration_drupal`).
 
 ## Placeholder Images in Stories
 
