@@ -1,5 +1,7 @@
 ---
 name: designbook-skills
+disable-model-invocation: true
+user-invocable: false
 description: Meta-skill for creating and maintaining Designbook skills. Defines conventions for skill structure, tasks, rules, schema validation, and workflow integration. Load this skill Alwys if skills from designbook is load.
 ---
 
@@ -10,17 +12,20 @@ This meta-skill documents the conventions for creating Designbook skills. Use it
 ## Architecture
 
 ```
-Workflow (debo-*)          →  Skill (designbook-*)
-  ↳ Interview only             ↳ tasks/<stage>.md  — what to create
-  ↳ Gather user input          ↳ rules/<name>.md   — constraints (conditional)
-  ↳ stages: [dialog, ...]
+designbook skill             →  Addon skills (designbook-css-*, designbook-drupal, etc.)
+  ↳ <concern>/workflows/       ↳ tasks/<stage>.md  — what to create
+  ↳ <workflow-id>.md           ↳ rules/<name>.md   — constraints (conditional)
+  ↳ stages: [intake, ...]
 ```
 
-**Workflows** are thin — they gather input conversationally, then let the AI discover task files:
+**Workflow files** live inside the `designbook` skill at `<concern>/workflows/<workflow-id>.md` and have simplified flat frontmatter:
 ```yaml
-workflow:
-  title: Design Shell
-  stages: [dialog, create-component, create-scene]
+title: Design Shell
+description: Design the application shell with header, content, and footer slots
+stages: [design-shell:intake, create-component, design-shell:create-scene]
+before:
+  - workflow: css-generate
+    execute: if-never-run
 ```
 
 After dialog, the AI:
@@ -34,6 +39,8 @@ After dialog, the AI:
 
 ## Skill Directory Structure
 
+Addon skills (`designbook-css-*`, `designbook-drupal`, etc.) use a flat structure:
+
 ```
 .agents/skills/[skill-name]/
 ├── SKILL.md              # Index only (required)
@@ -44,6 +51,19 @@ After dialog, the AI:
 ├── resources/            # Reference documentation, split by concern
 │   └── [topic].md
 └── *.schema.json         # JSON Schemas for validation (if applicable)
+```
+
+The `designbook` skill uses a three-level concern-based structure with workflows inside:
+
+```
+.agents/skills/designbook/
+├── SKILL.md
+├── resources/            # Execution engine
+├── <concern>/
+│   ├── tasks/            # Concern-level shared tasks + workflow-specific (intake--<id>.md)
+│   ├── rules/            # Concern-level rules
+│   ├── resources/        # Concern-level reference docs
+│   └── workflows/        # Workflow definition files (<workflow-id>.md)
 ```
 
 ### `tasks/` — Execution Units
@@ -116,7 +136,7 @@ when:
 | CSS skills | `designbook-css-[css-framework]` | `designbook-css-daisyui` |
 | Backend rules | `designbook-[backend]` (unified root) | `designbook-drupal` |
 | Addon skills | `designbook-addon-[concern]` | `designbook-addon-components` |
-| Workflow files | `debo-[action]` | `debo-design-component` |
+| Workflow files | `<concern>/workflows/<workflow-id>.md` within `designbook/` skill | `design/workflows/design-screen.md` |
 
 **Concern-first, framework-last.** The framework/backend identifier always comes last.
 
@@ -142,4 +162,4 @@ Before executing any task stage, check all `reads:` entries in the task file fro
 - [ ] Rule files in `rules/<name>.md` with `when.stages` if stage-specific
 - [ ] Schemas bundled in skill directory (not downloaded)
 - [ ] Reference docs in `resources/` for format specs and examples
-- [ ] Corresponding workflow in `.agents/workflows/` if user-facing
+- [ ] Corresponding workflow at `designbook/<concern>/workflows/<workflow-id>.md` if user-facing

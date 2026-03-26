@@ -1,20 +1,20 @@
 description: Designbook workflow evaluation suite — design-shell
 outputPath: promptfoo/reports/design-shell.json
 prompts:
-  - id: debo-design-shell
+  - id: design-shell
     label: design-shell
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-design-shell workflow. Do NOT ask any questions.
+      Run the /debo design-shell workflow. Do NOT ask any questions.
       The product is "PetMatch". Read the product overview and section definitions for navigation planning.
       The shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.
       The result should be a shell.scenes.yml file under designbook/shell/ and page/header/footer components.
       After generating all files, run `pnpm build-storybook` to verify everything renders.
       Execute the workflow now.
 tests:
-  - description: 'debo-design-shell: PetMatch'
+  - description: 'design-shell: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo-design-shell
+      workspace: promptfoo/workspaces/debo design-shell
     prompts:
       - design-shell
     assert:
@@ -32,9 +32,9 @@ tests:
           const storyFiles = output.newFiles.filter(f => f.includes('components/') && f.endsWith('.story.yml'));
           return twigFiles.length >= 3 && storyFiles.length >= 3;
       - type: javascript
-        value: output.archivedWorkflows['debo-design-shell']?.status === 'completed'
+        value: output.archivedWorkflows['design-shell']?.status === 'completed'
       - type: javascript
-        value: output.archivedWorkflows['debo-design-shell']?.tasks?.every(t => t.status === 'done')
+        value: output.archivedWorkflows['design-shell']?.tasks?.every(t => t.status === 'done')
       - type: javascript
         value: |
           return output.text.includes('build-storybook') || output.text.includes('Build completed');

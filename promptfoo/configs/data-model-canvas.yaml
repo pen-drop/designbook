@@ -1,12 +1,12 @@
 description: Designbook workflow evaluation suite — data-model-canvas
 outputPath: promptfoo/reports/data-model-canvas.json
 prompts:
-  - id: debo-data-model-canvas
+  - id: data-model-canvas
     label: data-model-canvas
     raw: >
       You are working in the directory {{workspace}}.
 
-      Run the /debo-data-model workflow. Do NOT ask any questions.
+      Run the /debo data-model workflow. Do NOT ask any questions.
 
       The product is "PetMatch". Read the product overview at designbook/product/product-overview.md.
 
@@ -14,18 +14,18 @@ prompts:
 
       Execute the workflow now.
 tests:
-  - description: 'debo-data-model: PetMatch (canvas)'
+  - description: 'data-model: PetMatch (canvas)'
     vars:
-      workspace: promptfoo/workspaces/debo-data-model-canvas
+      workspace: promptfoo/workspaces/debo data-model-canvas
     prompts:
       - data-model-canvas
     assert:
       - type: javascript
         value: output.newFiles.includes('designbook/data-model.yml')
       - type: javascript
-        value: output.archivedWorkflows['debo-data-model']?.status === 'completed'
+        value: output.archivedWorkflows['data-model']?.status === 'completed'
       - type: javascript
-        value: output.archivedWorkflows['debo-data-model']?.tasks?.every(t => t.status === 'done')
+        value: output.archivedWorkflows['data-model']?.tasks?.every(t => t.status === 'done')
       - type: javascript
         value: |
           const c = output.fileContents['designbook/data-model.yml']?.content;
@@ -72,15 +72,15 @@ tests:
           });
       - type: javascript
         value: |
-          const loaded = output.archivedWorkflows['debo-data-model']?.stage_loaded || {};
+          const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
           return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('canvas.md')));
       - type: javascript
         value: |
-          const loaded = output.archivedWorkflows['debo-data-model']?.stage_loaded || {};
+          const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
           return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('drupal-data-model.md')));
       - type: javascript
         value: |
-          const loaded = output.archivedWorkflows['debo-data-model']?.stage_loaded || {};
+          const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
           return !Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('layout-builder.md')));
       - type: javascript
         value: Object.keys(output.pendingWorkflows).length === 0

@@ -170,9 +170,9 @@ workflow
 workflow
   .command('create')
   .description('Create a new workflow tracking file. With --workflow-file, auto-resolves intake task.')
-  .requiredOption('--workflow <id>', 'Workflow identifier (e.g., debo-vision)')
+  .requiredOption('--workflow <id>', 'Workflow identifier (e.g., vision)')
   .option('--title <title>', 'Human-readable workflow title')
-  .option('--workflow-file <path>', 'Path to debo-*.md workflow file (resolves intake task + stages)')
+  .option('--workflow-file <path>', 'Path to workflow .md file (resolves intake task + stages)')
   .option('--tasks <json>', 'JSON array of tasks with id, title, type, stage?, files[] (legacy)')
   .option('--tasks-file <path>', 'Path to JSON file containing tasks array (legacy)')
   .option('--stages <json>', 'JSON array of ordered stage names (legacy)')

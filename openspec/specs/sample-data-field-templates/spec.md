@@ -13,6 +13,11 @@ field_body:
       hint: "Technical documentation with code examples"
 ```
 
+Built-in templates provided by `designbook-sample-data`:
+- `views` — generates a `rows[]` array of `{type: entity, entity_type, bundle, view_mode, record: N}` entries for view config entities
+
+Backend-specific templates (e.g. `formatted-text`, `link`, `image`) are provided by backend skills such as `designbook-drupal/sample-data/`.
+
 #### Scenario: Field with sample_template generates structured output
 - **WHEN** a field in `data-model.yml` has `sample_template.template: formatted-text`
 - **AND** the `create-sample-data` stage runs
@@ -27,6 +32,18 @@ field_body:
 #### Scenario: settings.hint guides content
 - **WHEN** a field has `sample_template.settings.hint: "Product description with features"`
 - **THEN** the generated content reflects that context
+
+#### Scenario: views template generates rows array
+- **WHEN** a field has `sample_template.template: views`
+- **AND** `settings.entity_type`, `settings.bundle`, and `settings.view_mode` are provided
+- **THEN** the generated value is an array of `{type: entity, entity_type, bundle, view_mode, record: N}` objects
+- **AND** `N` is a zero-based index into the target bundle's records in `data.yml`
+- **AND** the number of rows matches `items_per_page` from the same record (default: 6)
+
+#### Scenario: views template uses content records from pass 1
+- **WHEN** the `views` template runs during config pass 2
+- **AND** content pass 1 has generated records for the target bundle
+- **THEN** the `record: N` indices in rows reference valid positions in the generated content bundle
 
 ### Requirement: field_type condition on rules
 Rules in skills MAY declare `when: field_type: <type>` as a condition. This applies the rule automatically to any field whose `type` matches, without requiring explicit `sample_template` on the field. Acts as a fallback for models without `sample_template`.
@@ -80,3 +97,56 @@ During `debo-data-model:dialog` and `create-data-model` stages, the AI SHALL rea
 #### Scenario: No config mapping leaves field without sample_template
 - **WHEN** `designbook.config.yml` has no `sample_data.field_types`
 - **THEN** the AI does not set `sample_template` during model creation
+
+### Requirement: Sample rules for complex templates triggered by bundle purpose
+Sample data rules for layout-builder and canvas SHALL be triggered by bundle `purpose` rather than field-level `sample_template.template`. The `layout_builder__layout` and `components` fields no longer require `sample_template` to activate their respective sample rules.
+
+#### Scenario: layout-builder sample data triggered by purpose
+- **WHEN** a bundle has `purpose: landing-page` AND `layout_builder` extension is active
+- **THEN** `sample-layout-builder.md` rule applies to generate `layout_builder__layout` sample data
+- **AND** the field does NOT need `sample_template: { template: layout_builder }` to trigger this
+
+#### Scenario: canvas sample data triggered by purpose
+- **WHEN** a bundle has `purpose: landing-page` AND `canvas` extension is active
+- **THEN** `sample-canvas.md` rule applies to generate `components` sample data
+- **AND** the field does NOT need `sample_template: { template: canvas }` to trigger this
+
+#### Scenario: Simple field sample_templates unchanged
+- **WHEN** a field has `sample_template: { template: formatted-text }`
+- **THEN** the formatted-text sample rule applies as before — field-level sample_template is unchanged for simple types
+
+### Requirement: entity reference format in content entities
+Reference fields on `content:` entities SHALL store the target record's `id` value as a plain string. The `{type: entity, entity_type, bundle, view_mode, record: N}` object form is NOT used for content entity reference fields.
+
+```yaml
+# correct — content entity reference
+content:
+  node:
+    pet:
+      - id: pet-1
+        field_shelter: shelter-1        # plain string ID
+        field_category: cat-dogs        # plain string ID
+
+# object form — only inside template-generated structures
+config:
+  view:
+    pet_listing:
+      - id: pet_listing
+        rows:
+          - type: entity                # template-generated
+            entity_type: node
+            bundle: pet
+            view_mode: teaser
+            record: 0
+```
+
+#### Scenario: content reference field validates as string ID
+- **WHEN** `data-model.yml` declares `field_shelter` as `type: reference` targeting `node.shelter`
+- **AND** `data.yml` sets `field_shelter: shelter-1`
+- **THEN** the validator matches `shelter-1` against `id` fields of `content.node.shelter` records
+- **AND** validation passes if a record with `id: shelter-1` exists
+
+#### Scenario: object form reference in content field fails validation
+- **WHEN** a content entity field stores `{type: entity, entity_type: node, bundle: shelter, record: 0}` instead of a string ID
+- **THEN** the validator cannot match it against target record IDs
+- **AND** a broken-reference warning is emitted

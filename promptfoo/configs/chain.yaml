@@ -3,11 +3,11 @@ description: "Designbook chain — sequential workflows in shared workspace"
 outputPath: promptfoo/reports/chain.json
 
 prompts:
-  - id: debo-vision
-    label: "[01] debo-vision"
+  - id: vision
+    label: "[01] vision"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-vision workflow. Do NOT ask any questions — use the following inputs directly:
+      Run the /debo vision workflow. Do NOT ask any questions — use the following inputs directly:
 
       Product name: PetMatch
       Description: A modern pet adoption platform connecting shelters with potential adopters
@@ -24,20 +24,20 @@ prompts:
 
       Execute the workflow now.
 
-  - id: debo-sections
-    label: "[02] debo-sections"
+  - id: sections
+    label: "[02] sections"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-sections workflow. Do NOT ask any questions.
+      Run the /debo sections workflow. Do NOT ask any questions.
       The product is "PetMatch" — a pet adoption platform. Read the product overview at designbook/product/vision.md.
       Create between 3 and 5 sections that cover the key areas of the product.
       Execute the workflow now.
 
-  - id: debo-design-tokens
-    label: "[03] debo-design-tokens"
+  - id: tokens
+    label: "[03] tokens"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-design-tokens workflow. Do NOT ask any questions — use the following inputs directly:
+      Run the /debo tokens workflow. Do NOT ask any questions — use the following inputs directly:
 
       Product: PetMatch (pet adoption platform)
       Color palette:
@@ -53,67 +53,67 @@ prompts:
 
       Execute the workflow now.
 
-  - id: debo-css-generate
-    label: "[04] debo-css-generate"
+  - id: css-generate
+    label: "[04] css-generate"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-css-generate workflow. Do NOT ask any questions.
+      Run the /debo css-generate workflow. Do NOT ask any questions.
       Read the designbook.config.yml for configuration. Generate CSS token files from the existing design-tokens.yml.
       Execute the workflow now.
 
-  - id: debo-data-model
-    label: "[05] debo-data-model"
+  - id: data-model
+    label: "[05] data-model"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-data-model workflow. Do NOT ask any questions.
+      Run the /debo data-model workflow. Do NOT ask any questions.
       The product is "PetMatch". Read the product overview at designbook/product/vision.md.
       Define entity types for: pets (with fields for name, breed, age, description, photo, status), shelters (name, location, contact), adoption applications (applicant info, pet reference, status), and categories (name, description).
       Execute the workflow now.
 
-  - id: debo-shape-section
-    label: "[06] debo-shape-section"
+  - id: shape-section
+    label: "[06] shape-section"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-shape-section workflow for the "homepage" section. Do NOT ask any questions.
+      Run the /debo shape-section workflow for the "homepage" section. Do NOT ask any questions.
       The product is "PetMatch". Read designbook/sections/homepage/spec.section.yml for context.
       Define user flows for: browsing featured pets, searching/filtering pets, and initiating an adoption application.
       Execute the workflow now.
 
-  - id: debo-design-component
-    label: "[07] debo-design-component"
+  - id: design-component
+    label: "[07] design-component"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-design-component workflow. Do NOT ask any questions.
+      Run the /debo design-component workflow. Do NOT ask any questions.
       Create a "pet-card" component for PetMatch that displays: pet photo, name, breed, age, and an "Adopt Me" button.
       The component should have variants: default and featured (with a highlight border).
       Execute the workflow now.
 
-  - id: debo-sample-data
-    label: "[08] debo-sample-data"
+  - id: sample-data
+    label: "[08] sample-data"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-sample-data workflow for the "homepage" section. Do NOT ask any questions.
+      Run the /debo sample-data workflow for the "homepage" section. Do NOT ask any questions.
       The product is "PetMatch". Read designbook/data-model.yml for the entity schema.
       Generate realistic sample data with at least 5 pet records, 2 shelter records, and 3 category records.
       Use real pet names, breeds, and descriptions — no placeholder text.
       Execute the workflow now.
 
-  - id: debo-design-screen
-    label: "[09] debo-design-screen"
+  - id: design-screen
+    label: "[09] design-screen"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-design-screen workflow for the "homepage" section. Do NOT ask any questions.
+      Run the /debo design-screen workflow for the "homepage" section. Do NOT ask any questions.
       The product is "PetMatch". Read designbook/sections/homepage/spec.section.yml for context.
       The homepage should include: a hero section, featured pets grid, search/filter area, and a call-to-action for shelters.
       Generate UI components, entity-mapping (JSONata files), and a scenes file.
       After generating all files, run `pnpm build-storybook` to verify everything renders.
       Execute the workflow now.
 
-  - id: debo-design-shell
-    label: "[10] debo-design-shell"
+  - id: design-shell
+    label: "[10] design-shell"
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-design-shell workflow. Do NOT ask any questions.
+      Run the /debo design-shell workflow. Do NOT ask any questions.
       The product is "PetMatch". Read the product overview and section definitions for navigation planning.
       The shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.
       The result should be a shell.scenes.yml file under designbook/shell/ and page/header/footer components.
@@ -144,11 +144,11 @@ defaultTest:
 
 tests:
   # [01] Vision — no dependencies
-  # Workflow: debo-vision
+  # Workflow: vision
   # Stages: designbook-vision:intake, create-vision
   # Output: designbook/product/vision.md
-  - description: "[01] debo-vision"
-    prompts: [debo-vision]
+  - description: "[01] vision"
+    prompts: [vision]
     assert:
       - type: llm-rubric
         value: |
@@ -162,19 +162,19 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-vision (expected stages: designbook-vision:intake, create-vision):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-vision exists
+          Workflow lifecycle verification for vision (expected stages: designbook-vision:intake, create-vision):
+          1. In "Archived Workflow (this run)", a tasks.yml for vision exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-vision"
+          3. The tasks.yml has "workflow: vision"
           4. The tasks.yml lists stages including "designbook-vision:intake" and "create-vision"
           5. All tasks in the tasks array have "status: done"
-          6. There is NO debo-vision entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          6. There is NO vision entry in "In-Progress Workflows (NOT archived — indicates failure)"
 
   # [02] Sections — depends on: vision
-  # Workflow: debo-sections
+  # Workflow: sections
   # Output: designbook/sections/*/spec.section.yml
-  - description: "[02] debo-sections"
-    prompts: [debo-sections]
+  - description: "[02] sections"
+    prompts: [sections]
     assert:
       - type: llm-rubric
         value: |
@@ -186,20 +186,20 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-sections (expected stages: designbook-sections:intake, designbook-sections:create-section):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-sections exists
+          Workflow lifecycle verification for sections (expected stages: sections:intake, create-section):
+          1. In "Archived Workflow (this run)", a tasks.yml for sections exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-sections"
+          3. The tasks.yml has "workflow: sections"
           4. The tasks.yml lists stages including "designbook-sections:intake" and "designbook-sections:create-section"
           5. All tasks in the tasks array have "status: done"
           6. There are 3-5 tasks in the create-section stage (one per section)
-          7. There is NO debo-sections entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          7. There is NO sections entry in "In-Progress Workflows (NOT archived — indicates failure)"
 
   # [03] Design Tokens — depends on: vision
-  # Workflow: debo-design-tokens
+  # Workflow: design-tokens
   # Output: designbook/design-system/design-tokens.yml
-  - description: "[03] debo-design-tokens"
-    prompts: [debo-design-tokens]
+  - description: "[03] tokens"
+    prompts: [tokens]
     assert:
       - type: llm-rubric
         value: |
@@ -212,19 +212,19 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-design-tokens (expected stages: designbook-tokens:intake, create-tokens):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-design-tokens exists
+          Workflow lifecycle verification for tokens (expected stages: tokens:intake, create-tokens):
+          1. In "Archived Workflow (this run)", a tasks.yml for tokens exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-design-tokens"
+          3. The tasks.yml has "workflow: tokens"
           4. The tasks.yml lists stages including "designbook-tokens:intake" and "create-tokens"
           5. All tasks in the tasks array have "status: done"
-          6. There is NO debo-design-tokens entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          6. There is NO tokens entry in "In-Progress Workflows (NOT archived — indicates failure)"
 
   # [04] CSS Generate — depends on: design-tokens
-  # Workflow: debo-css-generate
+  # Workflow: css-generate
   # Output: css/tokens/*.src.css
-  - description: "[04] debo-css-generate"
-    prompts: [debo-css-generate]
+  - description: "[04] css-generate"
+    prompts: [css-generate]
     assert:
       - type: llm-rubric
         value: |
@@ -236,19 +236,19 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-css-generate (expected stages: designbook-css-generate:intake, generate-jsonata, generate-css):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-css-generate exists
+          Workflow lifecycle verification for css-generate (expected stages: css-generate:intake, generate-jsonata, generate-css):
+          1. In "Archived Workflow (this run)", a tasks.yml for css-generate exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-css-generate"
+          3. The tasks.yml has "workflow: css-generate"
           4. The tasks.yml lists stages including "designbook-css-generate:intake", "generate-jsonata", and "generate-css"
           5. All tasks in the tasks array have "status: done"
-          6. There is NO debo-css-generate entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          6. There is NO css-generate entry in "In-Progress Workflows (NOT archived — indicates failure)"
 
   # [05] Data Model — depends on: vision
-  # Workflow: debo-data-model
+  # Workflow: data-model
   # Output: designbook/data-model.yml
-  - description: "[05] debo-data-model"
-    prompts: [debo-data-model]
+  - description: "[05] data-model"
+    prompts: [data-model]
     assert:
       - type: llm-rubric
         value: |
@@ -262,19 +262,19 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-data-model (expected stages: designbook-data-model:intake, create-data-model):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-data-model exists
+          Workflow lifecycle verification for data-model (expected stages: data-model:intake, create-data-model):
+          1. In "Archived Workflow (this run)", a tasks.yml for data-model exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-data-model"
+          3. The tasks.yml has "workflow: data-model"
           4. The tasks.yml lists stages including "designbook-data-model:intake" and "create-data-model"
           5. All tasks in the tasks array have "status: done"
-          6. There is NO debo-data-model entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          6. There is NO data-model entry in "In-Progress Workflows (NOT archived — indicates failure)"
 
   # [06] Shape Section — depends on: sections
-  # Workflow: debo-shape-section
+  # Workflow: shape-section
   # Output: updates designbook/sections/homepage/spec.section.yml
-  - description: "[06] debo-shape-section"
-    prompts: [debo-shape-section]
+  - description: "[06] shape-section"
+    prompts: [shape-section]
     assert:
       - type: llm-rubric
         value: |
@@ -287,19 +287,19 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-shape-section (expected stages: designbook-shape-section:intake, create-section):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-shape-section exists
+          Workflow lifecycle verification for shape-section (expected stages: shape-section:intake, create-section):
+          1. In "Archived Workflow (this run)", a tasks.yml for shape-section exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-shape-section"
+          3. The tasks.yml has "workflow: shape-section"
           4. The tasks.yml lists stages including "designbook-shape-section:intake" and "create-section"
           5. All tasks in the tasks array have "status: done"
-          6. There is NO debo-shape-section entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          6. There is NO shape-section entry in "In-Progress Workflows (NOT archived — indicates failure)"
 
   # [07] Design Component — depends on: css-generate
-  # Workflow: debo-design-component
+  # Workflow: design-component
   # Output: components/pet-card/{pet-card.component.yml, pet-card.twig, pet-card.story.yml}
-  - description: "[07] debo-design-component"
-    prompts: [debo-design-component]
+  - description: "[07] design-component"
+    prompts: [design-component]
     assert:
       - type: llm-rubric
         value: |
@@ -311,19 +311,19 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-design-component (expected stages: designbook-design-component:intake, create-component):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-design-component exists
+          Workflow lifecycle verification for design-component (expected stages: design-component:intake, create-component):
+          1. In "Archived Workflow (this run)", a tasks.yml for design-component exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-design-component"
+          3. The tasks.yml has "workflow: design-component"
           4. The tasks.yml lists stages including "designbook-design-component:intake" and "create-component"
           5. All tasks in the tasks array have "status: done"
-          6. There is NO debo-design-component entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          6. There is NO design-component entry in "In-Progress Workflows (NOT archived — indicates failure)"
 
   # [08] Sample Data — depends on: data-model, sections
-  # Workflow: debo-sample-data
+  # Workflow: sample-data
   # Output: designbook/sections/homepage/data.yml
-  - description: "[08] debo-sample-data"
-    prompts: [debo-sample-data]
+  - description: "[08] sample-data"
+    prompts: [sample-data]
     assert:
       - type: llm-rubric
         value: |
@@ -337,19 +337,19 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-sample-data (expected stages: designbook-sample-data:intake, create-sample-data):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-sample-data exists
+          Workflow lifecycle verification for sample-data (expected stages: sample-data:intake, create-sample-data):
+          1. In "Archived Workflow (this run)", a tasks.yml for sample-data exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-sample-data"
+          3. The tasks.yml has "workflow: sample-data"
           4. The tasks.yml lists stages including "designbook-sample-data:intake" and "create-sample-data"
           5. All tasks in the tasks array have "status: done"
-          6. There is NO debo-sample-data entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          6. There is NO sample-data entry in "In-Progress Workflows (NOT archived — indicates failure)"
 
   # [09] Design Screen — depends on: css-generate, sections, data-model, sample-data, component
-  # Workflow: debo-design-screen
+  # Workflow: design-screen
   # Output: components/*/, entity-mapping/*.jsonata, sections/homepage/*.scenes.yml
-  - description: "[09] debo-design-screen"
-    prompts: [debo-design-screen]
+  - description: "[09] design-screen"
+    prompts: [design-screen]
     assert:
       - type: llm-rubric
         value: |
@@ -363,20 +363,20 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-design-screen (expected stages: designbook-design-screen:intake, create-component, plan-entities, create-sample-data, map-entity, create-section-scene):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-design-screen exists
+          Workflow lifecycle verification for design-screen (expected stages: design-screen:intake, create-component, design-screen:plan-entities, create-sample-data, design-screen:map-entity, design-screen:create-scene):
+          1. In "Archived Workflow (this run)", a tasks.yml for design-screen exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-design-screen"
+          3. The tasks.yml has "workflow: design-screen"
           4. The tasks.yml lists all 6 stages
           5. Tasks were created across multiple stages (create-component, plan-entities, etc.)
           6. All tasks in the tasks array have "status: done"
-          7. There is NO debo-design-screen entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          7. There is NO design-screen entry in "In-Progress Workflows (NOT archived — indicates failure)"
 
   # [10] Design Shell — depends on: css-generate, sections
-  # Workflow: debo-design-shell
+  # Workflow: design-shell
   # Output: components/page/, components/header/, components/footer/, designbook/shell/shell.scenes.yml
-  - description: "[10] debo-design-shell"
-    prompts: [debo-design-shell]
+  - description: "[10] design-shell"
+    prompts: [design-shell]
     assert:
       - type: llm-rubric
         value: |
@@ -390,11 +390,11 @@ tests:
       - type: llm-rubric
         value: |
           Check the WORKSPACE ARTIFACTS section for actual workflow data.
-          Workflow lifecycle verification for debo-design-shell (expected stages: designbook-design-shell:intake, create-component, create-shell-scene):
-          1. In "Archived Workflow (this run)", a tasks.yml for debo-design-shell exists
+          Workflow lifecycle verification for design-shell (expected stages: design-shell:intake, create-component, design-shell:create-scene):
+          1. In "Archived Workflow (this run)", a tasks.yml for design-shell exists
           2. The tasks.yml has top-level "status: completed"
-          3. The tasks.yml has "workflow: debo-design-shell"
+          3. The tasks.yml has "workflow: design-shell"
           4. The tasks.yml lists stages including "designbook-design-shell:intake", "create-component", and "create-shell-scene"
           5. Multiple tasks in create-component stage (page, header, footer)
           6. All tasks in the tasks array have "status: done"
-          7. There is NO debo-design-shell entry in "In-Progress Workflows (NOT archived — indicates failure)"
+          7. There is NO design-shell entry in "In-Progress Workflows (NOT archived — indicates failure)"

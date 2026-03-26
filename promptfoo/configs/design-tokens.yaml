@@ -1,11 +1,11 @@
 description: Designbook workflow evaluation suite — design-tokens
 outputPath: promptfoo/reports/design-tokens.json
 prompts:
-  - id: debo-design-tokens
+  - id: tokens
     label: design-tokens
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-design-tokens workflow. Do NOT ask any questions — use the following inputs directly:
+      Run the /debo tokens workflow. Do NOT ask any questions — use the following inputs directly:
 
       Product: PetMatch (pet adoption platform)
       Color palette:
@@ -21,17 +21,17 @@ prompts:
 
       Execute the workflow now.
 tests:
-  - description: 'debo-design-tokens: PetMatch'
+  - description: 'tokens: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo-design-tokens
+      workspace: promptfoo/workspaces/debo tokens
     prompts:
       - design-tokens
     assert:
       - type: javascript
         value: output.newFiles.some(f => f.includes('design-tokens.yml'))
       - type: javascript
-        value: output.archivedWorkflows['debo-design-tokens']?.status === 'completed'
+        value: output.archivedWorkflows['tokens']?.status === 'completed'
       - type: javascript
-        value: output.archivedWorkflows['debo-design-tokens']?.tasks?.every(t => t.status === 'done')
+        value: output.archivedWorkflows['tokens']?.tasks?.every(t => t.status === 'done')
       - type: javascript
         value: Object.keys(output.pendingWorkflows).length === 0

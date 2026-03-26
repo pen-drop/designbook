@@ -1,18 +1,18 @@
 description: Designbook workflow evaluation suite — sections
 outputPath: promptfoo/reports/sections.json
 prompts:
-  - id: debo-sections
+  - id: sections
     label: sections
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-sections workflow. Do NOT ask any questions.
+      Run the /debo sections workflow. Do NOT ask any questions.
       The product is "PetMatch" — a pet adoption platform. Read the product overview at designbook/product/vision.md.
       Create between 3 and 5 sections that cover the key areas of the product.
       Execute the workflow now.
 tests:
-  - description: 'debo-sections: PetMatch'
+  - description: 'sections: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo-sections
+      workspace: promptfoo/workspaces/debo sections
     prompts:
       - sections
     assert:
@@ -23,9 +23,9 @@ tests:
 
           return sectionFiles.length >= 3 && sectionFiles.length <= 5;
       - type: javascript
-        value: output.archivedWorkflows['debo-sections']?.status === 'completed'
+        value: output.archivedWorkflows['sections']?.status === 'completed'
       - type: javascript
-        value: output.archivedWorkflows['debo-sections']?.tasks?.every(t => t.status === 'done')
+        value: output.archivedWorkflows['sections']?.tasks?.every(t => t.status === 'done')
       - type: javascript
         value: >
           const sectionFiles = output.newFiles.filter(f =>

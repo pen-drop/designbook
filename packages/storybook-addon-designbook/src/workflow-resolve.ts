@@ -52,10 +52,24 @@ interface TaskFileFrontmatter {
 }
 
 interface WorkflowFrontmatter {
+  // New flat format: title, stages at root level
+  title?: string;
+  stages?: string[];
+  // Legacy nested format: workflow.title, workflow.stages
   workflow?: {
     title?: string;
     stages?: string[];
   };
+}
+
+/** Extract stages from workflow frontmatter (supports both flat and nested format). */
+function getWorkflowStages(fm: WorkflowFrontmatter): string[] | undefined {
+  return fm.stages ?? fm.workflow?.stages;
+}
+
+/** Extract title from workflow frontmatter (supports both flat and nested format). */
+function getWorkflowTitle(fm: WorkflowFrontmatter): string {
+  return fm.title ?? fm.workflow?.title ?? '';
 }
 
 // ── Frontmatter Parsing ────────────────────────────────────────────
@@ -202,18 +216,33 @@ export function resolveFiles(
 /**
  * Resolve a stage name to a task file path.
  *
- * Named stages (skill:task format) resolve directly.
+ * Named stages (skill:task format): first try direct skill-dir resolution, then
+ * fall back to glob for workflow-qualified tasks (task--workflow-id.md pattern).
  * Generic stages use `resolveFiles` and pick the most specific match.
  */
 export function resolveTaskFile(stage: string, config: DesignbookConfig, agentsDir: string): string {
-  // Named stage: skill-name:task-name → direct resolution
+  // Named stage: skill-name:task-name
   if (stage.includes(':')) {
-    const [skillName, taskName] = stage.split(':', 2);
+    const parts = stage.split(':', 2);
+    const skillName = parts[0] ?? '';
+    const taskName = parts[1] ?? '';
+    // Try direct skill-dir resolution first (e.g. designbook-drupal:create-component)
     const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
-    if (!existsSync(taskPath)) {
-      throw new Error(`Task file not found for named stage "${stage}": ${taskPath}`);
+    if (existsSync(taskPath)) {
+      return taskPath;
     }
-    return taskPath;
+    // Fall back to glob for workflow-qualified tasks within unified skill (e.g. design-screen:intake)
+    const context = buildRuntimeContext();
+    const enrichedConfig = buildEnrichedConfig(config);
+    const matches = resolveFiles(`skills/**/tasks/${taskName}--${skillName}.md`, context, enrichedConfig, agentsDir);
+    if (matches.length === 0) {
+      throw new Error(
+        `Task file not found for named stage "${stage}": ` +
+          `checked ${taskPath} and glob skills/**/tasks/${taskName}--${skillName}.md`,
+      );
+    }
+    matches.sort((a, b) => b.specificity - a.specificity);
+    return matches[0].path;
   }
 
   // Generic stage: resolve via glob + when matching
@@ -441,11 +470,11 @@ export function resolveAllStages(
   agentsDir: string,
 ): ResolvedStages {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
-  if (!wfFm?.workflow?.stages) {
-    throw new Error(`No workflow.stages found in frontmatter of ${workflowFilePath}`);
+  const allStages = wfFm ? getWorkflowStages(wfFm) : undefined;
+  if (!allStages) {
+    throw new Error(`No stages found in frontmatter of ${workflowFilePath}`);
   }
 
-  const allStages = wfFm.workflow.stages;
   const stageResolved: Record<string, ResolvedStage> = {};
 
   for (const stage of allStages) {
@@ -462,7 +491,7 @@ export function resolveAllStages(
   }
 
   return {
-    title: wfFm.workflow.title ?? '',
+    title: wfFm ? getWorkflowTitle(wfFm) : '',
     stages: allStages,
     stage_resolved: stageResolved,
   };
@@ -526,11 +555,11 @@ export function resolveWorkflowPlan(
   stageResolved?: Record<string, ResolvedStage>,
 ): ResolvedPlan {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
-  if (!wfFm?.workflow?.stages) {
-    throw new Error(`No workflow.stages found in frontmatter of ${workflowFilePath}`);
+  const allStages = wfFm ? getWorkflowStages(wfFm) : undefined;
+  if (!allStages) {
+    throw new Error(`No stages found in frontmatter of ${workflowFilePath}`);
   }
 
-  const allStages = wfFm.workflow.stages;
   const execStages = allStages.filter((s) => !s.endsWith(':intake'));
 
   for (const item of items) {
