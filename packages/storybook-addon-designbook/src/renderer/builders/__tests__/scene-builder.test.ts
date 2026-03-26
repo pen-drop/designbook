@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { resolve } from 'node:path';
 import { buildSceneModule } from '../../scene-module-builder';
 import { readFileSync } from 'node:fs';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures/scene-variables');
 

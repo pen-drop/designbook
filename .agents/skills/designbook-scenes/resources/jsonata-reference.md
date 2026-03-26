@@ -2,12 +2,12 @@
 
 ## Expression Format
 
-Each `.jsonata` file is a pure JSONata expression. Input is a single entity record from `data.yml`. Output is `ComponentNode[]`.
+Each `.jsonata` file is a pure JSONata expression. Input is a single entity record from `data.yml`. Output is `SceneNode[]`.
 
 ```jsonata
 /* entity-mapping/node.article.teaser.jsonata
  * Input: single record from data.yml → node.article[n]
- * Output: ComponentNode[]
+ * Output: SceneNode[]
  */
 [
   {
@@ -45,13 +45,11 @@ Each item in the output array:
 
 For cross-entity rendering, return an entity node. The addon resolves it recursively by loading the referenced `.jsonata` file:
 
-| Key | Required | Type | Description |
-|-----|----------|------|-------------|
-| `type` | ✅ | `"entity"` | Marks this as a nested entity reference |
-| `entity_type` | ✅ | string | Entity type (e.g. `"block_content"`) |
-| `bundle` | ✅ | string | Bundle name (e.g. `"contact_person"`) |
-| `view_mode` | ✅ | string | View mode to apply |
-| `record` | ❌ | integer | Record index in sample data (default: 0) |
+| Key           | Required | Type                   | Description |
+|---------------|----------|------------------------|-------------|
+| `entity`      | ✅ | `"entity_type.bundle"` | Marks this as a nested entity reference |
+| `view_mode`   | ✅ | string                 | View mode to apply |
+| `record`      | ❌ | integer                | Record index in sample data (default: 0) |
 
 ### JSONata Syntax Quick Reference
 
@@ -104,9 +102,7 @@ Embedding a contact card from another entity type:
     "slots": { "text": title }
   },
   {
-    "type": "entity",
-    "entity_type": "block_content",
-    "bundle": "contact_person",
+    "entity": "block_content.contact_person",
     "view_mode": "avatar",
     "record": 0
   }

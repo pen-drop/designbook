@@ -1,4 +1,4 @@
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
 import { readFileSync, writeFileSync, renameSync, mkdirSync, readdirSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { tmpdir } from 'os';
@@ -81,8 +81,8 @@ export function scanAllWorkflows(workflowsDir: string, limit = 10): WorkflowTask
 
   // Sort by most recent activity (completed_at or started_at), newest first
   all.sort((a, b) => {
-    const timeA = a.completed_at || a.started_at || '';
-    const timeB = b.completed_at || b.started_at || '';
+    const timeA = String(a.completed_at || a.started_at || '');
+    const timeB = String(b.completed_at || b.started_at || '');
     return timeB.localeCompare(timeA);
   });
 

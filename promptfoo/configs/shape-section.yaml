@@ -1,0 +1,34 @@
+description: Designbook workflow evaluation suite — shape-section
+outputPath: promptfoo/reports/shape-section.json
+prompts:
+  - id: debo-shape-section
+    label: shape-section
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the /debo-shape-section workflow for the "homepage" section. Do NOT ask any questions.
+      The product is "PetMatch". Read designbook/sections/homepage/spec.section.yml for context.
+      Define user flows for: browsing featured pets, searching/filtering pets, and initiating an adoption application.
+      Execute the workflow now.
+tests:
+  - description: 'debo-shape-section: PetMatch homepage'
+    vars:
+      workspace: promptfoo/workspaces/debo-shape-section
+    prompts:
+      - shape-section
+    assert:
+      - type: javascript
+        value: output.newFiles.some(f => f.includes('spec.section.yml'))
+      - type: javascript
+        value: output.archivedWorkflows['debo-shape-section']?.status === 'completed'
+      - type: javascript
+        value: output.archivedWorkflows['debo-shape-section']?.tasks?.every(t => t.status === 'done')
+      - type: javascript
+        value: |
+          const files = Object.keys(output.fileContents).filter(f => f.includes('spec.section.yml'));
+          if (files.length === 0) return false;
+          return files.some(f => {
+            const data = output.fileContents[f];
+            return data?.user_flows && data.user_flows.length >= 2;
+          });
+      - type: javascript
+        value: Object.keys(output.pendingWorkflows).length === 0

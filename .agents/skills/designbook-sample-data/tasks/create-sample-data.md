@@ -2,16 +2,17 @@
 params:
   section_id: ~
   entities: []       # optional: list of {entity_type, bundle, view_mode} from plan-entities
-  view_configs: []   # optional: list of {bundle, rows_entity_type, rows_bundle, rows_view_mode} for view entities
 reads:
   - path: $DESIGNBOOK_DIST/data-model.yml
+  - path: $DESIGNBOOK_DRUPAL_THEME/components/*/**.component.yml
+    description: Available SDC components — required for canvas bundle generation (rule canvas.md)
 files:
   - $DESIGNBOOK_DIST/sections/{{ section_id }}/data.yml
 ---
 
 # Create Sample Data
 
-Writes `$DESIGNBOOK_DIST/sections/{{ section_id }}/data.yml` with realistic sample records. Idempotent: checks existing records and only appends what is missing. Never overwrites existing data.
+Writes `$DESIGNBOOK_DIST/sections/{{ section_id }}/data.yml` with realistic sample records. Idempotent: checks existing records and only appends what is missing. Never overwrites existing data. Never writes a `_meta` key.
 
 ## Step 1: Read existing data.yml
 
@@ -25,14 +26,9 @@ If the file does not exist, treat all counts as 0.
 
 ## Step 2: Determine required record counts
 
-If `entities` is provided (populated by `plan-entities`), use it to determine per-bundle requirements. Otherwise infer from `data-model.yml` based on what the section needs.
+If `entities` is provided (populated by `plan-entities`), use it to determine per-bundle requirements. Otherwise read all bundles from `data-model.yml` (`content:` and `config:` sections).
 
 For each entity type/bundle:
-
-**View entities** (`entity_type: view`):
-- Look up `config.view.<bundle>.items_per_page` from existing data; default **6**
-- `required_count = max(items_per_page, 6)`
-- Apply `required_count` to the view's target content bundle (the entity type the view lists)
 
 **Non-full view modes** (listing, teaser, card, etc.):
 - `required_count = 6`
@@ -43,46 +39,49 @@ For each entity type/bundle:
 **Full view mode with other templates** (e.g. `field-map`):
 - `required_count = 1`
 
-## Step 3: Generate view records (if view_configs provided)
+**Config entities** (anything under `config:`):
+- `required_count = 1` unless the bundle already has records
 
-For each view in `view_configs`:
-- Check if `config.view.<bundle>` already has a record
-- If missing → generate a full view record including `rows`
+## Output Format
 
-`rows` count = `items_per_page` (default 6). Each row references a record of the target content bundle in round-robin order (record indices 0, 1, 2, …):
+`data.yml` MUST use `content:` and `config:` as top-level section keys — mirroring the structure of `data-model.yml`. Entity types are nested under their section:
 
 ```yaml
+content:
+  {entity_type}:       # e.g. node, media, taxonomy_term, canvas_page
+    {bundle}:          # e.g. article, image, tags, landing_page
+      - id: "1"
+        {field}: {value}
+
 config:
-  view:
-    <bundle>:
-      - id: "<bundle>"
-        items_per_page: 6
-        sort_field: title
-        sort_direction: asc
-        rows:
-          - type: entity
-            entity_type: <rows_entity_type>
-            bundle: <rows_bundle>
-            view_mode: <rows_view_mode>
-            record: 0
-          - type: entity
-            entity_type: <rows_entity_type>
-            bundle: <rows_bundle>
-            view_mode: <rows_view_mode>
-            record: 1
-          # … repeat up to items_per_page
+  {entity_type}:       # e.g. view
+    {bundle}:
+      - id: "1"
+        {field}: {value}
 ```
 
-If `rows_entity_type`/`rows_bundle`/`rows_view_mode` are not provided in the `view_configs` entry, omit the `rows` field.
+- Content entities from `data-model.yml → content:` → write under `content:` in `data.yml`
+- Config entities from `data-model.yml → config:` → write under `config:` in `data.yml`
+- Omit `config:` entirely if there are no config entities
+- ⛔ Never write entity types as root-level keys — all entity types must be nested under `content:` or `config:`
 
-## Step 4: Generate missing records
+## Step 3: Generate — Pass 1 (content entities)
 
-For each entity type/bundle where `existing_count < required_count`:
+Iterate all bundles under `data-model.yml → content:`.
 
+For each bundle where `existing_count < required_count`:
 - Generate `required_count - existing_count` new records
 - **Append only** — do NOT replace existing records
-- New record IDs continue from the highest existing numeric ID (or start at "1")
+- New record IDs continue from the highest existing ID (or start at "1")
 - Use the field value generation rules below
+
+## Step 4: Generate — Pass 2 (config entities)
+
+Iterate all bundles under `data-model.yml → config:`.
+
+For each bundle where `existing_count < required_count`:
+- Generate records using the same field value generation rules
+- Config templates (e.g. `views`) may reference `record: N` indices — by this point all content records from Pass 1 are known
 
 ## Field Value Generation
 
@@ -90,19 +89,43 @@ For each field in a record, determine value structure using this precedence:
 
 1. **Explicit `sample_template`** — field has `sample_template.template: <name>` in `data-model.yml`
    → Load rules matching `when: template: <name>`
-   → Apply `sample_template.settings.hint` as content context if present
+   → Apply `sample_template.settings` as context
 
 2. **`field_type` rule fallback** — a rule matches `when: field_type: <type>`
    → Load that rule and use its output structure
 
 3. **Plain string** — no template, no matching rule → realistic plain string value
 
-## Content Guidelines
+### Entity reference fields (content entities)
 
-- Realistic, varied content — no lorem ipsum
-- Include edge cases: long titles, empty optional fields, different statuses
-- Reference fields use IDs of records that exist after this stage
-- Field names must match exactly (including `field_` prefix for Drupal)
+Reference fields (`type: reference` or `type: entityreference`) on `content:` entities store the target record's `id` as a **plain string**:
+
+```yaml
+field_shelter: shelter-1
+field_category: cat-dogs
+```
+
+Use the `id` of a record that exists in the target bundle after this stage.
+
+### Entity reference fields on `config.view` entities (rows)
+
+`entityreference` fields named `rows` on `config.view` bundles use the **object form** instead of a plain string ID. Read `settings.target_type` and `settings.target_bundle` from the field definition to determine the target. `view_mode` comes from the first non-full view mode declared on the target bundle (default: `teaser`):
+
+```yaml
+rows:
+  - type: entity
+    entity_type: node       # from field settings.target_type
+    bundle: article         # from field settings.target_bundle
+    view_mode: teaser       # first non-full view mode of target bundle
+    record: 0               # zero-based index into target bundle records
+  - type: entity
+    entity_type: node
+    bundle: article
+    view_mode: teaser
+    record: 1
+```
+
+Row count = `items_per_page` from the same record (default: 6). Cycle through available content records round-robin if fewer records exist than rows needed.
 
 ## Validation
 
@@ -118,9 +141,9 @@ Check against `$DESIGNBOOK_DIST/data-model.yml` before writing:
 
 ### ⚠️ Warnings (continue but report)
 
-3. **Unknown field** — field not defined in `data-model.yml` for this bundle
-4. **Missing required field** — `required: true` field absent from a record
-5. **Broken reference** — reference field value doesn't match any `id` in the target entity's records
+1. **Unknown field** — field not defined in `data-model.yml` for this bundle
+2. **Missing required field** — `required: true` field absent from a record
+3. **Broken reference** — reference field value doesn't match any `id` in the target bundle's records
 
 ## Output
 

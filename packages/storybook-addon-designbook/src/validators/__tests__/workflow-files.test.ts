@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
 import { workflowCreate, workflowUpdate } from '../../workflow.js';
 
 interface TaskFileRaw {

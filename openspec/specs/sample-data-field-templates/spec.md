@@ -40,8 +40,8 @@ Rules in skills MAY declare `when: field_type: <type>` as a condition. This appl
 - **WHEN** a field has both `type: formatted_text` and `sample_template.template: custom-template`
 - **THEN** the AI uses the `custom-template` rule, not the `field_type: formatted_text` rule
 
-### Requirement: designbook-sample-data-drupal skill
-A `designbook-sample-data-drupal` skill SHALL be provided with rules for common Drupal field types. Rules declare `when: { stages: [create-sample-data], backend: drupal }` combined with `template:` or `field_type:` conditions.
+### Requirement: designbook-drupal sample-data skill
+A `designbook-drupal/sample-data/` sub-directory SHALL be provided with rules for common Drupal field types. Rules declare `when: { stages: [create-sample-data], backend: drupal }` combined with `template:` or `field_type:` conditions.
 
 Minimum templates provided:
 - `formatted-text` — generates `{ value: "<p>...</p>", format: "basic_html" }`

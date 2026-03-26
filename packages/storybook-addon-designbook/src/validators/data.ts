@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import type { ValidationResult } from './types.js';
 
 interface FieldDef {
@@ -36,8 +36,8 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
     return { valid: false, errors: [`data.yml not found: ${dataPath}`], warnings: [] };
   }
 
-  const dataModel: DataModel = parseYaml(readFileSync(dataModelPath, 'utf-8'));
-  const sampleData: SampleData = parseYaml(readFileSync(dataPath, 'utf-8'));
+  const dataModel = parseYaml(readFileSync(dataModelPath, 'utf-8')) as DataModel;
+  const sampleData = parseYaml(readFileSync(dataPath, 'utf-8')) as SampleData;
 
   const contentModel = dataModel.content ?? {};
   const configModel = dataModel.config ?? {};

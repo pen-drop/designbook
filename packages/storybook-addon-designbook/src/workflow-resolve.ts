@@ -5,10 +5,11 @@
  * constraints at plan time — so subagents receive fully-resolved tasks.
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { resolve, basename } from 'node:path';
-import { parse as parseYaml } from 'yaml';
-import type { DesignbookConfig } from './config.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import fm from 'front-matter';
+import { globSync } from 'glob';
+import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -37,15 +38,17 @@ export interface ResolvedPlan {
   tasks: ResolvedTask[];
 }
 
+export interface ResolvedFile {
+  path: string;
+  specificity: number;
+  frontmatter: Record<string, unknown> | null;
+}
+
 interface TaskFileFrontmatter {
   when?: Record<string, unknown>;
   params?: Record<string, unknown>;
   files?: string[];
   reads?: Array<{ path: string; workflow?: string }>;
-}
-
-interface RuleFileFrontmatter {
-  when?: Record<string, unknown>;
 }
 
 interface WorkflowFrontmatter {
@@ -63,13 +66,77 @@ interface WorkflowFrontmatter {
  */
 export function parseFrontmatter(filePath: string): Record<string, unknown> | null {
   const content = readFileSync(filePath, 'utf-8');
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return null;
-  try {
-    return (parseYaml(match[1]) as Record<string, unknown>) ?? {};
-  } catch {
-    return null;
+  const result = fm<Record<string, unknown>>(content);
+  if (!result.frontmatter) return null;
+  return result.attributes ?? {};
+}
+
+// ── When Condition Matching ────────────────────────────────────────
+
+/**
+ * Look up a key in context first, then config. Config supports dot-path traversal
+ * as fallback (e.g. `frameworks.css` walks into `config.frameworks.css`).
+ */
+export function lookup(key: string, context: Record<string, unknown>, config: Record<string, unknown>): unknown {
+  if (context[key] !== undefined) return context[key];
+  if (config[key] !== undefined) return config[key];
+  // Dot-path traversal into config (forward-compat for non-flattened configs)
+  return key
+    .split('.')
+    .reduce(
+      (obj, part) => (obj != null && typeof obj === 'object' ? (obj as Record<string, unknown>)[part] : undefined),
+      config as unknown,
+    );
+}
+
+/**
+ * Check whether all `when` conditions match against context + config.
+ *
+ * Lookup order per key: context first, config fallback (with dot-path traversal).
+ * Matching rules:
+ * - Array value in `when` → looked-up value must be one of those values
+ * - Array looked-up value → `when` value must be present in that array
+ * - Scalar vs scalar → exact string match
+ *
+ * Returns specificity count (number of matched keys) on success, or `false` if any key fails.
+ */
+export function checkWhen(
+  when: Record<string, unknown>,
+  context: Record<string, unknown>,
+  config: Record<string, unknown>,
+): number | false {
+  for (const [key, value] of Object.entries(when)) {
+    const actual = lookup(key, context, config);
+    if (Array.isArray(value)) {
+      if (!value.map(String).includes(String(actual ?? ''))) return false;
+    } else if (Array.isArray(actual)) {
+      if (!actual.map(String).includes(String(value))) return false;
+    } else {
+      if (String(actual ?? '') !== String(value)) return false;
+    }
   }
+  return Object.keys(when).length;
+}
+
+/**
+ * Build runtime context for `when` evaluation (stage-specific, not config).
+ */
+export function buildRuntimeContext(stage?: string, extraConditions?: Record<string, string>): Record<string, unknown> {
+  const context: Record<string, unknown> = {};
+  if (stage !== undefined) context['stages'] = stage;
+  if (extraConditions) Object.assign(context, extraConditions);
+  return context;
+}
+
+/**
+ * Enrich config with derived DESIGNBOOK_* env vars and normalized extensions array.
+ */
+export function buildEnrichedConfig(config: DesignbookConfig): Record<string, unknown> {
+  const enriched: Record<string, unknown> = { ...(config as Record<string, unknown>) };
+  Object.assign(enriched, buildEnvMap(config));
+  const extensions = normalizeExtensions(config['extensions']);
+  enriched['extensions'] = getExtensionIds(extensions).split(',').filter(Boolean);
+  return enriched;
 }
 
 // ── Environment Variable Map ───────────────────────────────────────
@@ -79,25 +146,64 @@ export function parseFrontmatter(filePath: string): Record<string, unknown> | nu
  */
 export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
   const env: Record<string, string> = {};
-  env['DESIGNBOOK_DIST'] = config.dist;
-  if (config.tmp) env['DESIGNBOOK_TMP'] = String(config.tmp);
-  if (config['css.app']) env['DESIGNBOOK_CSS_APP'] = String(config['css.app']);
-  if (config['drupal.theme']) env['DESIGNBOOK_DRUPAL_THEME'] = String(config['drupal.theme']);
-  // Derived: SDC provider from drupal.theme basename with - → _
-  if (config['drupal.theme']) {
-    env['DESIGNBOOK_SDC_PROVIDER'] = basename(String(config['drupal.theme'])).replace(/-/g, '_');
+
+  // Dynamic: all scalar config values → DESIGNBOOK_<KEY> (dots become underscores, uppercased)
+  for (const [key, value] of Object.entries(config)) {
+    if (value == null || typeof value === 'object') continue;
+    env[`DESIGNBOOK_${key.replace(/\./g, '_').toUpperCase()}`] = String(value);
   }
+
+  // Derived: extensions as comma-sep IDs + skill IDs
+  const extensions = normalizeExtensions(config['extensions']);
+  env['DESIGNBOOK_EXTENSIONS'] = getExtensionIds(extensions);
+  env['DESIGNBOOK_EXTENSION_SKILLS'] = getExtensionSkillIds(extensions);
+
   return env;
 }
 
-// ── 2.1: Task File Resolution ──────────────────────────────────────
+// ── Unified File Resolution ─────────────────────────────────────────
+
+/**
+ * Find markdown files matching a glob pattern and filter by `when` frontmatter
+ * conditions against context (runtime) and config (project).
+ *
+ * Returns all matches with their specificity (number of `when` keys matched).
+ * Files without `when` (or empty `when`) match unconditionally with specificity 0.
+ */
+export function resolveFiles(
+  globPattern: string,
+  context: Record<string, unknown>,
+  config: Record<string, unknown>,
+  agentsDir: string,
+): ResolvedFile[] {
+  const results: ResolvedFile[] = [];
+  const paths = globSync(globPattern, { cwd: agentsDir, absolute: true });
+
+  for (const filePath of paths) {
+    const frontmatter = parseFrontmatter(filePath);
+    const when = frontmatter?.when as Record<string, unknown> | undefined;
+
+    if (!when || Object.keys(when).length === 0) {
+      results.push({ path: filePath, specificity: 0, frontmatter });
+      continue;
+    }
+
+    const specificity = checkWhen(when, context, config);
+    if (specificity !== false) {
+      results.push({ path: filePath, specificity, frontmatter });
+    }
+  }
+
+  return results;
+}
+
+// ── Task File Resolution ────────────────────────────────────────────
 
 /**
  * Resolve a stage name to a task file path.
  *
  * Named stages (skill:task format) resolve directly.
- * Generic stages scan all skills for matching task files,
- * apply `when` condition filtering, and select the most specific match.
+ * Generic stages use `resolveFiles` and pick the most specific match.
  */
 export function resolveTaskFile(stage: string, config: DesignbookConfig, agentsDir: string): string {
   // Named stage: skill-name:task-name → direct resolution
@@ -110,62 +216,43 @@ export function resolveTaskFile(stage: string, config: DesignbookConfig, agentsD
     return taskPath;
   }
 
-  // Generic stage: scan all skills
-  const skillsDir = resolve(agentsDir, 'skills');
-  if (!existsSync(skillsDir)) {
-    throw new Error(`Skills directory not found: ${skillsDir}`);
-  }
+  // Generic stage: resolve via glob + when matching
+  const context = buildRuntimeContext();
+  const enrichedConfig = buildEnrichedConfig(config);
+  const matches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir);
 
-  const candidates: Array<{ path: string; specificity: number }> = [];
-
-  for (const skillDir of readdirSync(skillsDir, { withFileTypes: true })) {
-    if (!skillDir.isDirectory()) continue;
-    const taskPath = resolve(skillsDir, skillDir.name, 'tasks', `${stage}.md`);
-    if (!existsSync(taskPath)) continue;
-
-    const fm = parseFrontmatter(taskPath) as TaskFileFrontmatter | null;
-    const when = fm?.when;
-
-    if (!when || Object.keys(when).length === 0) {
-      // No conditions — universal fallback (specificity 0)
-      candidates.push({ path: taskPath, specificity: 0 });
-      continue;
-    }
-
-    // Check all when conditions against config
-    let allMatch = true;
-    let matchCount = 0;
-    for (const [key, value] of Object.entries(when)) {
-      const configValue = config[key];
-      if (String(configValue) !== String(value)) {
-        allMatch = false;
-        break;
-      }
-      matchCount++;
-    }
-
-    if (allMatch) {
-      candidates.push({ path: taskPath, specificity: matchCount });
-    }
-  }
-
-  if (candidates.length === 0) {
+  if (matches.length === 0) {
+    const configSummary = Object.fromEntries(
+      Object.entries(config).filter(([, v]) => v != null && typeof v !== 'object'),
+    );
     throw new Error(
       `No task file found for stage "${stage}". ` +
-        `Checked .agents/skills/*/tasks/${stage}.md with config: ${JSON.stringify({
-          backend: config.technology,
-          'frameworks.component': config['frameworks.component'],
-          'frameworks.css': config['frameworks.css'],
-        })}`,
+        `Checked .agents/skills/**/tasks/${stage}.md with config: ${JSON.stringify(configSummary)}`,
     );
   }
 
-  // Pick most specific (highest specificity)
-  candidates.sort((a, b) => b.specificity - a.specificity);
-  return candidates[0].path;
+  matches.sort((a, b) => b.specificity - a.specificity);
+  return matches[0].path;
 }
 
-// ── 2.2: File Path Expansion ───────────────────────────────────────
+// ── Rule File Matching ──────────────────────────────────────────────
+
+/**
+ * Scan all rule files and return paths matching the given stage and config.
+ */
+export function matchRuleFiles(
+  stage: string,
+  config: DesignbookConfig,
+  agentsDir: string,
+  extraConditions?: Record<string, string>,
+): string[] {
+  const context = buildRuntimeContext(stage, extraConditions);
+  const enrichedConfig = buildEnrichedConfig(config);
+  const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+  return matches.map((m) => m.path);
+}
+
+// ── File Path Expansion ─────────────────────────────────────────────
 
 /**
  * Expand a file path template by substituting {{ param }} and ${ENV_VAR} placeholders.
@@ -207,89 +294,36 @@ export function expandFilePaths(
   return templates.map((t) => expandFilePath(t, params, envMap));
 }
 
-// ── 2.3: Rule File Matching ────────────────────────────────────────
-
-/**
- * Scan all rule files and return paths matching the given stage and config.
- */
-export function matchRuleFiles(stage: string, config: DesignbookConfig, agentsDir: string): string[] {
-  const skillsDir = resolve(agentsDir, 'skills');
-  if (!existsSync(skillsDir)) return [];
-
-  const matched: string[] = [];
-
-  for (const skillDir of readdirSync(skillsDir, { withFileTypes: true })) {
-    if (!skillDir.isDirectory()) continue;
-    const rulesDir = resolve(skillsDir, skillDir.name, 'rules');
-    if (!existsSync(rulesDir)) continue;
-
-    for (const ruleFile of readdirSync(rulesDir, { withFileTypes: true })) {
-      if (!ruleFile.isFile() || !ruleFile.name.endsWith('.md')) continue;
-      const rulePath = resolve(rulesDir, ruleFile.name);
-
-      const fm = parseFrontmatter(rulePath) as RuleFileFrontmatter | null;
-      const when = fm?.when;
-
-      // No when block or empty when → applies to all stages (check config conditions)
-      if (!when || Object.keys(when).length === 0) {
-        matched.push(rulePath);
-        continue;
-      }
-
-      // Check stages constraint
-      const stages = when.stages;
-      if (stages !== undefined) {
-        const stageList = Array.isArray(stages) ? stages : [stages];
-        if (!stageList.includes(stage)) continue;
-      }
-
-      // Check all other when conditions against config
-      let allMatch = true;
-      for (const [key, value] of Object.entries(when)) {
-        if (key === 'stages') continue; // already handled
-
-        // Config conditions: check against flattened config
-        const configValue = config[key];
-        if (configValue === undefined || String(configValue) !== String(value)) {
-          allMatch = false;
-          break;
-        }
-      }
-
-      if (allMatch) {
-        matched.push(rulePath);
-      }
-    }
-  }
-
-  return matched;
-}
-
-// ── 2.4: Config Resolution ─────────────────────────────────────────
+// ── Config Resolution ───────────────────────────────────────────────
 
 /**
  * Resolve workflow config rules and instructions for a stage.
+ * Extension skills (from extensions[].skill in config) are injected into
+ * config_instructions at lower priority than explicit stage instructions.
  */
 export function resolveConfigForStage(
   stage: string,
   rawConfig: Record<string, unknown>,
 ): { config_rules: string[]; config_instructions: string[] } {
   const workflow = rawConfig.workflow as Record<string, unknown> | undefined;
-  if (!workflow) return { config_rules: [], config_instructions: [] };
 
-  const rules = workflow.rules as Record<string, unknown> | undefined;
-  const tasks = workflow.tasks as Record<string, unknown> | undefined;
+  const rules = workflow?.rules as Record<string, unknown> | undefined;
+  const tasks = workflow?.tasks as Record<string, unknown> | undefined;
 
   const configRules = rules?.[stage];
   const configInstructions = tasks?.[stage];
 
+  const explicitInstructions = Array.isArray(configInstructions) ? configInstructions.map(String) : [];
+
+  const extensionSkills = getExtensionSkillIds(normalizeExtensions(rawConfig['extensions'])).split(',').filter(Boolean);
+
   return {
     config_rules: Array.isArray(configRules) ? configRules.map(String) : [],
-    config_instructions: Array.isArray(configInstructions) ? configInstructions.map(String) : [],
+    config_instructions: [...explicitInstructions, ...extensionSkills],
   };
 }
 
-// ── 2.5: Depends-On Computation ────────────────────────────────────
+// ── Depends-On Computation ──────────────────────────────────────────
 
 /**
  * Compute depends_on arrays from stage ordering.
@@ -312,7 +346,7 @@ export function computeDependsOn(stages: string[], tasksByStage: Map<string, str
   return result;
 }
 
-// ── 2.6: Params Validation ─────────────────────────────────────────
+// ── Params Validation ───────────────────────────────────────────────
 
 /**
  * Validate and merge item params against task file's params schema.
@@ -327,38 +361,30 @@ export function validateAndMergeParams(
   const merged: Record<string, unknown> = { ...itemParams };
 
   for (const [key, defaultValue] of Object.entries(schemaParams)) {
-    if (merged[key] !== undefined) continue; // provided by item
+    if (merged[key] !== undefined) continue;
 
     if (defaultValue === null) {
-      // Required param (declared as ~)
       throw new Error(`Missing required param '${key}' for stage '${stage}'`);
     }
 
-    // Optional param — use default
     merged[key] = defaultValue;
   }
 
   return merged;
 }
 
-// ── 2.7: Task ID Generation ────────────────────────────────────────
+// ── Task ID Generation ──────────────────────────────────────────────
 
 /**
  * Generate a task ID from stage name and params.
- * Uses the task file's key param as discriminator. The key param is determined
- * from the schema: the first required param (value is null/~) that has a
- * string value in the merged params, or falls back to the first string param.
- * Example: create-component + {component: "button"} → "create-component-button"
  */
 export function generateTaskId(
   stage: string,
   params: Record<string, unknown>,
   schemaParams?: Record<string, unknown>,
 ): string {
-  // Use stage base name (remove skill: prefix if present)
   const baseName = stage.includes(':') ? stage.split(':')[1] : stage;
 
-  // If schema is available, use the first required param (value is null) as key
   if (schemaParams) {
     for (const [key, defaultValue] of Object.entries(schemaParams)) {
       if (defaultValue === null && typeof params[key] === 'string' && (params[key] as string).length > 0) {
@@ -367,7 +393,6 @@ export function generateTaskId(
     }
   }
 
-  // Fallback: first string param value
   for (const value of Object.values(params)) {
     if (typeof value === 'string' && value.length > 0) {
       return `${baseName}-${value}`;
@@ -408,8 +433,6 @@ export interface ResolvedStages {
 
 /**
  * Resolve ALL stages from a workflow file at create time.
- * Returns per-stage resolution (task_file, rules, config) to store in tasks.yml.
- * Both intake and execution stages are resolved — scanning happens once.
  */
 export function resolveAllStages(
   workflowFilePath: string,
@@ -445,7 +468,7 @@ export function resolveAllStages(
   };
 }
 
-// ── 2.8: Main Resolution Function ─────────────────────────────────
+// ── Main Resolution Function ────────────────────────────────────────
 
 /**
  * Infer task type from the stage name.
@@ -464,7 +487,6 @@ export function inferTaskType(stage: string): string {
 
 /**
  * Generate a human-readable task title from stage and params.
- * Uses schema's first required param as context, falling back to first string param.
  */
 export function generateTaskTitle(
   stage: string,
@@ -474,7 +496,6 @@ export function generateTaskTitle(
   const base = stage.includes(':') ? stage.split(':')[1] : stage;
   const words = base.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // If schema is available, use the first required param as context
   if (schemaParams) {
     for (const [key, defaultValue] of Object.entries(schemaParams)) {
       if (defaultValue === null && typeof params[key] === 'string' && (params[key] as string).length > 0) {
@@ -483,7 +504,6 @@ export function generateTaskTitle(
     }
   }
 
-  // Fallback: first string param for context
   for (const value of Object.values(params)) {
     if (typeof value === 'string' && value.length > 0) {
       return `${words}: ${value}`;
@@ -495,10 +515,6 @@ export function generateTaskTitle(
 
 /**
  * Resolve a full workflow plan from items + pre-resolved stage data.
- *
- * Two modes:
- * - With stageResolved: uses pre-resolved stage data from tasks.yml (preferred)
- * - Without: resolves stages on the fly from workflow file (legacy/fallback)
  */
 export function resolveWorkflowPlan(
   workflowFilePath: string,
@@ -509,17 +525,14 @@ export function resolveWorkflowPlan(
   agentsDir: string,
   stageResolved?: Record<string, ResolvedStage>,
 ): ResolvedPlan {
-  // 1. Read workflow file frontmatter → stages array
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
   if (!wfFm?.workflow?.stages) {
     throw new Error(`No workflow.stages found in frontmatter of ${workflowFilePath}`);
   }
 
-  // Filter out intake stages
   const allStages = wfFm.workflow.stages;
   const execStages = allStages.filter((s) => !s.endsWith(':intake'));
 
-  // Validate items: all item stages must be in the workflow's stages list
   for (const item of items) {
     if (!execStages.includes(item.stage)) {
       throw new Error(`Item stage "${item.stage}" not found in workflow stages: [${execStages.join(', ')}]`);
@@ -528,7 +541,6 @@ export function resolveWorkflowPlan(
 
   const envMap = buildEnvMap(config);
 
-  // 2. Group items by stage (preserving order from workflow stages)
   const itemsByStage = new Map<string, PlanItem[]>();
   for (const stage of execStages) {
     itemsByStage.set(stage, []);
@@ -537,7 +549,6 @@ export function resolveWorkflowPlan(
     itemsByStage.get(item.stage)!.push(item);
   }
 
-  // 3. Resolve each item into a task
   const tasks: ResolvedTask[] = [];
   const taskIdsByStage = new Map<string, string[]>();
 
@@ -547,14 +558,14 @@ export function resolveWorkflowPlan(
 
     taskIdsByStage.set(stage, []);
 
-    // Use pre-resolved stage data if available, otherwise resolve on the fly
     const resolved = stageResolved?.[stage];
     const taskFilePath = resolved?.task_file ?? resolveTaskFile(stage, config, agentsDir);
     const taskFm = parseFrontmatter(taskFilePath) as TaskFileFrontmatter | null;
     const schemaParams = taskFm?.params ?? {};
     const fileTemplates = taskFm?.files ?? [];
 
-    const ruleFiles = resolved?.rules ?? matchRuleFiles(stage, config, agentsDir);
+    const sharedRuleFiles = resolved?.rules ?? matchRuleFiles(stage, config, agentsDir);
+
     const configData = resolved
       ? { config_rules: resolved.config_rules, config_instructions: resolved.config_instructions }
       : resolveConfigForStage(stage, rawConfig);
@@ -565,6 +576,7 @@ export function resolveWorkflowPlan(
       const title = generateTaskTitle(stage, mergedParams, schemaParams);
       const type = inferTaskType(stage);
       const files = expandFilePaths(fileTemplates, mergedParams, envMap);
+      const itemRuleFiles = sharedRuleFiles;
 
       tasks.push({
         id: taskId,
@@ -574,7 +586,7 @@ export function resolveWorkflowPlan(
         depends_on: [],
         params: mergedParams,
         task_file: taskFilePath,
-        rules: ruleFiles,
+        rules: itemRuleFiles,
         config_rules: configData.config_rules,
         config_instructions: configData.config_instructions,
         files,

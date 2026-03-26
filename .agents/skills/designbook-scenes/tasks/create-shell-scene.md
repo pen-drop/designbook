@@ -12,11 +12,6 @@ reads:
 
 Creates `design-system/design-system.scenes.yml` — the base layout scene that section scenes inherit via `scene: design-system:shell`.
 
-## Input
-
-- Shell components from `$DESIGNBOOK_DRUPAL_THEME/components/` (group: Shell)
-- Each component's `*.component.yml` (slots, props) and `*.default.story.yml` (sample data)
-
 ## Output
 
 ```yaml
@@ -34,8 +29,9 @@ scenes:
       url: "<resource URL>"
       title: "<label>"
     items:
-      - component: "{{ provider }}:page"
+      - component: "COMPONENT_NAMESPACE:COMPONENT_NAME"
         slots:
+          ...
           # Shell components nested according to their slot structure
           # Exactly one slot MUST be set to: $content
 ```

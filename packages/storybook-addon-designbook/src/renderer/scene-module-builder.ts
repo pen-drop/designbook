@@ -10,7 +10,7 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 
 import { extractGroup, buildExportName, fileBaseName, extractScenes } from './scene-metadata';
 import { expandEntries } from './parser';

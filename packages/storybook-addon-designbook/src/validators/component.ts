@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import Ajv from 'ajv-draft-04';
 import type { ValidationResult } from './types.js';
 

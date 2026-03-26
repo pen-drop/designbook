@@ -11,7 +11,7 @@ The `debo-design-screen` workflow SHALL load each skill only at the execution st
 
 #### Scenario: Component creation loads components-sdc skill
 - **WHEN** the workflow reaches the UI component creation step
-- **THEN** it SHALL read `designbook-components-sdc/SKILL.md` and its resources at that point
+- **THEN** it SHALL read `designbook-drupal/SKILL.md` and its `components/` resources at that point
 - **AND** it SHALL NOT have loaded this skill in any prior step
 
 #### Scenario: View mode creation loads view-modes skill
@@ -74,12 +74,12 @@ The workflow SHALL delegate CSS generation to the `//debo-css-generate` workflow
 ---
 
 ## Requirement: Framework-aware skill resolution
-The workflow SHALL source `designbook-configuration` (`set-env.sh`) to resolve `$DESIGNBOOK_FRAMEWORK_COMPONENT` and `$DESIGNBOOK_FRAMEWORK_CSS`. It SHALL load the component skill matching the configured framework: `designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT`.
+The workflow SHALL source `designbook-configuration` (`set-env.sh`) to resolve `$DESIGNBOOK_FRAMEWORK_COMPONENT` and `$DESIGNBOOK_FRAMEWORK_CSS`. It SHALL load the component skill matching the configured framework: `designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT`. For `frameworks.component: sdc`, the resolved skill SHALL be `designbook-drupal` (sub-directory `components/`) — not the deleted `designbook-components-sdc` root.
 
 #### Scenario: Component skill resolved from config
 - **WHEN** `designbook.config.yml` has `frameworks.component: sdc`
-- **THEN** the workflow SHALL load `designbook-components-sdc/SKILL.md`
-- **AND** it SHALL NOT hardcode the skill name `designbook-components-sdc`
+- **THEN** the workflow SHALL load `designbook-drupal/components/` (via the `designbook-drupal` skill root)
+- **AND** it SHALL NOT reference the deleted path `designbook-components-sdc/SKILL.md`
 
 #### Scenario: CSS framework resolved by delegation
 - **WHEN** the workflow delegates to `//debo-css-generate`

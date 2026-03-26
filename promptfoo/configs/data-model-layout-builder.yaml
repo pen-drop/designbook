@@ -1,0 +1,59 @@
+description: Designbook workflow evaluation suite — data-model-layout-builder
+outputPath: promptfoo/reports/data-model-layout-builder.json
+prompts:
+  - id: debo-data-model-layout-builder
+    label: data-model-layout-builder
+    raw: >
+      You are working in the directory {{workspace}}.
+
+      Run the /debo-data-model workflow. Do NOT ask any questions.
+
+      The product is "PetMatch". Read the product overview at designbook/product/product-overview.md.
+
+      Read designbook.config.yml — note the layout_builder extension is active.
+
+      Define entity types for: pets (name, breed, age, description, photo, status), shelters (name, location, contact),
+      adoption applications (applicant info, pet reference, status), and categories (name, description).
+
+      The homepage and shelter detail pages should use Layout Builder for flexible layouts.
+
+      Execute the workflow now.
+tests:
+  - description: 'debo-data-model: PetMatch (layout_builder)'
+    vars:
+      workspace: promptfoo/workspaces/debo-data-model-layout-builder
+    prompts:
+      - data-model-layout-builder
+    assert:
+      - type: javascript
+        value: output.newFiles.includes('designbook/data-model.yml')
+      - type: javascript
+        value: output.archivedWorkflows['debo-data-model']?.status === 'completed'
+      - type: javascript
+        value: output.archivedWorkflows['debo-data-model']?.tasks?.every(t => t.status === 'done')
+      - type: javascript
+        value: |
+          const c = output.fileContents['designbook/data-model.yml']?.content;
+          if (!c?.node) return false;
+          return Object.values(c.node).some(bundle => {
+            const fields = bundle.fields || {};
+            return Object.values(fields).some(f => f.type === 'layout_builder__layout');
+          });
+      - type: javascript
+        value: |
+          const c = output.fileContents['designbook/data-model.yml']?.content;
+          return c?.block_content && Object.keys(c.block_content).length >= 1;
+      - type: javascript
+        value: |
+          const loaded = output.archivedWorkflows['debo-data-model']?.stage_loaded || {};
+          return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('layout-builder.md')));
+      - type: javascript
+        value: |
+          const loaded = output.archivedWorkflows['debo-data-model']?.stage_loaded || {};
+          return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('drupal-data-model.md')));
+      - type: javascript
+        value: |
+          const loaded = output.archivedWorkflows['debo-data-model']?.stage_loaded || {};
+          return !Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('canvas.md')));
+      - type: javascript
+        value: Object.keys(output.pendingWorkflows).length === 0

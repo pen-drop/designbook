@@ -112,9 +112,9 @@ when:
 
 | Scope | Convention | Example |
 |-------|-----------|---------|
-| Component skills | `designbook-[concern]-[component-framework]` | `designbook-components-sdc` |
+| Component skills | `designbook-[concern]-[component-framework]` | `designbook-drupal/components/` |
 | CSS skills | `designbook-css-[css-framework]` | `designbook-css-daisyui` |
-| Backend rules | `designbook-[concern]-[backend]` | `designbook-data-model-drupal` |
+| Backend rules | `designbook-[backend]` (unified root) | `designbook-drupal` |
 | Addon skills | `designbook-addon-[concern]` | `designbook-addon-components` |
 | Workflow files | `debo-[action]` | `debo-design-component` |
 

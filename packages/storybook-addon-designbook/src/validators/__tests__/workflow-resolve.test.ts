@@ -13,6 +13,11 @@ import {
   generateTaskId,
   resolveWorkflowPlan,
   buildEnvMap,
+  lookup,
+  checkWhen,
+  resolveFiles,
+  buildRuntimeContext,
+  buildEnrichedConfig,
 } from '../../workflow-resolve.js';
 import { acquireLock, releaseLock, withLock } from '../../workflow-lock.js';
 import type { DesignbookConfig } from '../../config.js';
@@ -49,6 +54,36 @@ function writeSkillRuleFile(
   const dir = resolve(agentsDir, 'skills', skillName, 'rules');
   mkdirSync(dir, { recursive: true });
   const path = resolve(dir, `${ruleName}.md`);
+  writeFileSync(path, `---\n${frontmatter}\n---\n${body}`);
+  return path;
+}
+
+function writeSkillRuleFileInSubdir(
+  agentsDir: string,
+  skillName: string,
+  subdir: string,
+  ruleName: string,
+  frontmatter: string,
+  body = '',
+): string {
+  const dir = resolve(agentsDir, 'skills', skillName, subdir, 'rules');
+  mkdirSync(dir, { recursive: true });
+  const path = resolve(dir, `${ruleName}.md`);
+  writeFileSync(path, `---\n${frontmatter}\n---\n${body}`);
+  return path;
+}
+
+function writeSkillTaskFileInSubdir(
+  agentsDir: string,
+  skillName: string,
+  subdir: string,
+  taskName: string,
+  frontmatter: string,
+  body = '',
+): string {
+  const dir = resolve(agentsDir, 'skills', skillName, subdir, 'tasks');
+  mkdirSync(dir, { recursive: true });
+  const path = resolve(dir, `${taskName}.md`);
   writeFileSync(path, `---\n${frontmatter}\n---\n${body}`);
   return path;
 }
@@ -121,6 +156,30 @@ describe('resolveTaskFile', () => {
     mkdirSync(resolve(agentsDir, 'skills'), { recursive: true });
 
     expect(() => resolveTaskFile('nonexistent-stage', baseConfig, agentsDir)).toThrow(/No task file found/);
+  });
+
+  it('discovers task file nested in a subdirectory above tasks/', () => {
+    // Verifies skills/<skill>/components/tasks/<stage>.md is found as a candidate
+    const agentsDir = resolve(tmpDir, '.agents');
+    const taskPath = writeSkillTaskFileInSubdir(
+      agentsDir,
+      'designbook-sdc',
+      'components',
+      'create-component',
+      'params:\n  component: ~',
+    );
+
+    const result = resolveTaskFile('create-component', baseConfig, agentsDir);
+    expect(result).toBe(taskPath);
+  });
+
+  it('flat task structure still discovered after glob change', () => {
+    // skills/<skill>/tasks/<stage>.md continues to work
+    const agentsDir = resolve(tmpDir, '.agents');
+    const taskPath = writeSkillTaskFile(agentsDir, 'designbook-tokens', 'create-tokens', 'params:\n  colors: {}');
+
+    const result = resolveTaskFile('create-tokens', baseConfig, agentsDir);
+    expect(result).toBe(taskPath);
   });
 });
 
@@ -335,6 +394,30 @@ describe('matchRuleFiles', () => {
     const result = matchRuleFiles('any-stage', baseConfig, agentsDir);
     expect(result).toContain(rulePath);
   });
+
+  it('discovers rule file nested in a subdirectory above rules/', () => {
+    // Verifies skills/<skill>/scenes/rules/rule.md is found (subdirectory above rules/)
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFileInSubdir(
+      agentsDir,
+      'designbook-drupal',
+      'scenes',
+      'canvas-rule',
+      'when:\n  stages: [create-scene]',
+    );
+
+    const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
+    expect(result).toContain(rulePath);
+  });
+
+  it('flat structure still discovered after glob change', () => {
+    // skills/<skill>/rules/rule.md continues to work
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-scenes', 'flat-rule', 'when:\n  stages: [create-scene]');
+
+    const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
+    expect(result).toContain(rulePath);
+  });
 });
 
 // 5.6: End-to-end resolveWorkflowPlan
@@ -449,7 +532,158 @@ describe('buildEnvMap', () => {
     const env = buildEnvMap(baseConfig);
     expect(env.DESIGNBOOK_DIST).toBe('/test/dist');
     expect(env.DESIGNBOOK_DRUPAL_THEME).toBe('/test/theme');
-    expect(env.DESIGNBOOK_SDC_PROVIDER).toBe('theme');
+  });
+});
+
+// lookup: context-first, config-fallback with dot-path
+describe('lookup', () => {
+  it('prefers context over config', () => {
+    expect(lookup('stages', { stages: 'create-scene' }, { stages: 'other' })).toBe('create-scene');
+  });
+
+  it('falls back to config flat key', () => {
+    expect(lookup('frameworks.css', {}, { 'frameworks.css': 'tailwind' })).toBe('tailwind');
+  });
+
+  it('falls back to config dot-path traversal', () => {
+    expect(lookup('frameworks.css', {}, { frameworks: { css: 'daisyui' } })).toBe('daisyui');
+  });
+
+  it('returns undefined for missing key', () => {
+    expect(lookup('nonexistent', {}, {})).toBeUndefined();
+  });
+
+  it('flat key takes precedence over dot-path traversal', () => {
+    // Config has both flat 'frameworks.css' and nested frameworks.css — flat wins
+    expect(lookup('frameworks.css', {}, { 'frameworks.css': 'tailwind', frameworks: { css: 'daisyui' } })).toBe(
+      'tailwind',
+    );
+  });
+});
+
+// checkWhen: dual-source (context + config)
+describe('checkWhen', () => {
+  it('matches scalar from config', () => {
+    expect(checkWhen({ backend: 'drupal' }, {}, { backend: 'drupal' })).toBe(1);
+  });
+
+  it('matches scalar from context (takes priority)', () => {
+    expect(checkWhen({ template: 'canvas' }, { template: 'canvas' }, {})).toBe(1);
+  });
+
+  it('matches array when value — stage in list', () => {
+    expect(checkWhen({ stages: ['create-scene', 'create-tokens'] }, { stages: 'create-scene' }, {})).toBe(1);
+  });
+
+  it('matches array context value — extension inclusion', () => {
+    expect(checkWhen({ extensions: 'canvas' }, {}, { extensions: ['canvas', 'drupal'] })).toBe(1);
+  });
+
+  it('returns false on mismatch', () => {
+    expect(checkWhen({ backend: 'drupal' }, {}, { backend: 'html' })).toBe(false);
+  });
+
+  it('returns specificity count', () => {
+    const result = checkWhen(
+      { stages: ['create-component'], 'frameworks.css': 'tailwind', backend: 'drupal' },
+      { stages: 'create-component' },
+      { 'frameworks.css': 'tailwind', backend: 'drupal' },
+    );
+    expect(result).toBe(3);
+  });
+
+  it('returns false if any condition fails', () => {
+    const result = checkWhen(
+      { stages: ['create-component'], 'frameworks.css': 'daisyui' },
+      { stages: 'create-component' },
+      { 'frameworks.css': 'tailwind' },
+    );
+    expect(result).toBe(false);
+  });
+});
+
+// resolveFiles: unified glob + when filter
+describe('resolveFiles', () => {
+  it('finds files matching glob and filters by when', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'when:\n  frameworks.css: tailwind');
+    writeSkillRuleFile(agentsDir, 'designbook-css', 'daisyui-rule', 'when:\n  frameworks.css: daisyui');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].path).toContain('tailwind-rule');
+    expect(matches[0].specificity).toBe(1);
+  });
+
+  it('includes unconditional files with specificity 0', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', 'when: {}');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].specificity).toBe(0);
+  });
+
+  it('uses context for stage matching and config for framework matching', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(
+      agentsDir,
+      'designbook-css',
+      'tailwind-tokens',
+      'when:\n  stages: [create-tokens]\n  frameworks.css: tailwind',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext('create-tokens');
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].specificity).toBe(2);
+  });
+});
+
+// buildRuntimeContext
+describe('buildRuntimeContext', () => {
+  it('builds empty context without args', () => {
+    expect(buildRuntimeContext()).toEqual({});
+  });
+
+  it('includes stage as stages key', () => {
+    expect(buildRuntimeContext('create-scene')).toEqual({ stages: 'create-scene' });
+  });
+
+  it('merges extra conditions', () => {
+    expect(buildRuntimeContext('create-sample-data', { template: 'canvas' })).toEqual({
+      stages: 'create-sample-data',
+      template: 'canvas',
+    });
+  });
+});
+
+// buildEnrichedConfig
+describe('buildEnrichedConfig', () => {
+  it('includes original config values', () => {
+    const enriched = buildEnrichedConfig(baseConfig);
+    expect(enriched['frameworks.css']).toBe('tailwind');
+    expect(enriched['backend']).toBe('drupal');
+  });
+
+  it('includes DESIGNBOOK_* env vars', () => {
+    const enriched = buildEnrichedConfig(baseConfig);
+    expect(enriched['DESIGNBOOK_DIST']).toBe('/test/dist');
+    expect(enriched['DESIGNBOOK_DRUPAL_THEME']).toBe('/test/theme');
+  });
+
+  it('normalizes extensions to string array', () => {
+    const configWithExt = { ...baseConfig, extensions: [{ id: 'canvas', url: 'https://example.com' }] };
+    const enriched = buildEnrichedConfig(configWithExt);
+    expect(enriched['extensions']).toEqual(['canvas']);
   });
 });
 

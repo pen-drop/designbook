@@ -1,5 +1,5 @@
 @theme {
-  --grid-gap-sm: 0.5rem;
-  --grid-gap-md: 1rem;
-  --grid-gap-lg: 1.5rem;
+  --grid-gap-sm: 1rem;
+  --grid-gap-md: 1.5rem;
+  --grid-gap-lg: 2rem;
 }

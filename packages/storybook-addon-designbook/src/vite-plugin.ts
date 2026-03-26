@@ -3,7 +3,7 @@ import type { IncomingMessage } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join, basename, dirname, relative } from 'node:path';
 import { createRequire } from 'node:module';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 
 import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';

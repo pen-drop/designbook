@@ -1,0 +1,19 @@
+providers:
+  - id: file://../providers/claude-cli.mjs
+    label: claude-sonnet-4-6
+    config:
+      model: claude-sonnet-4-6
+      timeout: 800000
+      max_turns: 200
+
+evaluateOptions:
+  maxConcurrency: 1
+
+defaultTest:
+  options:
+    provider:
+      id: file://../providers/claude-cli.mjs
+      config:
+        model: claude-sonnet-4-6
+        timeout: 800000
+        max_turns: 200

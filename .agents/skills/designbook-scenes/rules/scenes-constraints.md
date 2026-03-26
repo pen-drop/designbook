@@ -1,36 +1,114 @@
 ---
 when:
-  stages: [create-shell-scene, create-scene, map-entity]
+  stages: [create-shell-scene, create-section-scene, map-entity]
 ---
 
 # Scenes Critical Constraints
 
+> Full `*.scenes.yml` format and `ComponentNode` output schema: see [scenes-schema](../resources/scenes-schema.md).
+
 > ⛔ **`component:` values MUST always use `provider:component` format.**
-> Write `test_integration_drupal:header`, NEVER just `header`.
-> `$DESIGNBOOK_SDC_PROVIDER` is set by the workflow bootstrap (Rule 0).
+> Write `$COMPONENT_NAMESPACE:header`, NEVER just `header`.
+> `COMPONENT_NAMESPACE` is set by the workflow bootstrap (Rule 0).
 
-> ⛔ **No `type: element` in scenes.** Never use `type: element` nodes inside slots.
-> Use plain string values for text content. `type: element` is only valid in component `*.story.yml` files.
+```yaml
+# ✅ Correct — provider prefix on every component, including nested slots
+- component: "$COMPONENT_NAMESPACE:card"
+  slots:
+    media:
+      - component: "$COMPONENT_NAMESPACE:image"
+        props:
+          src: https://placehold.co/400x300
 
-> ⛔ **Shell scenes: inline all slots.** Header and footer MUST inline ALL their sub-component slots — `logo`, `navigation` (with `items` populated), `actions`, `copyright`. Never write `story: default` alone.
+# ❌ Wrong — missing provider prefix
+- component: card
+  slots:
+    media:
+      - component: image
+```
+
+> ⛔ **No `type: element` in scenes.** Use plain strings for text content. `type: element` is only valid in `*.story.yml` files.
+
+```yaml
+# ✅ Correct — plain string in slot
+- component: "$COMPONENT_NAMESPACE:heading"
+  slots:
+    text: "Welcome to the Blog"
+
+# ❌ Wrong — type: element is story-only
+- component: "$COMPONENT_NAMESPACE:heading"
+  slots:
+    text:
+      - type: element
+        tag: span
+        value: "Welcome to the Blog"
+```
+
+> ⛔ **Shell scenes: inline all slots.** Header and footer MUST inline ALL sub-component slots — `logo`, `navigation` (with `items` populated), `actions`, `copyright`. Never write `story: default` alone.
+
+```yaml
+# ✅ Correct — all header/footer slots inlined
+- component: "$COMPONENT_NAMESPACE:page"
+  slots:
+    header:
+      - component: "$COMPONENT_NAMESPACE:header"
+        slots:
+          logo: "<a href=\"/\">Designbook</a>"
+          navigation:
+            - component: "$COMPONENT_NAMESPACE:navigation"
+              props:
+                variant: main
+                items:
+                  - title: Docs
+                    url: /docs
+                    in_active_trail: false
+                    below: []
+          actions: "<a href=\"/github\">GitHub</a>"
+    content: $content
+    footer:
+      - component: "$COMPONENT_NAMESPACE:footer"
+        slots:
+          copyright: "© 2026 Designbook."
+
+# ❌ Wrong — story: default leaves navigation empty
+- component: "$COMPONENT_NAMESPACE:header"
+  story: default
+```
 
 ## Entity Reference Format
 
-> ⛔ **Entity references use three-part dotted format: `entity_type.bundle.view_mode`.**
->
-> ```yaml
-> # Correct — all three parts required
-> - entity: "block_content.maintenance_log.default"
->   record: 0
->
-> # Wrong — missing view_mode (causes JSONata resolution failure)
-> - entity: "block_content.maintenance_log"
->   record: 0
-> ```
->
-> The renderer resolves entity references by loading the JSONata file at:
-> `$DESIGNBOOK_DIST/entity-mapping/{entity_type}.{bundle}.{view_mode}.jsonata`
->
-> If any part is missing, the file path becomes malformed (e.g. `block_content.maintenance_log..jsonata` with double dot).
->
-> **`record:`** is an optional integer (default: 0) — selects which record from `data.yml` to use as input for the JSONata expression.
+> ⛔ **Entity references use a two-part `entity` string plus a separate `view_mode` key.**
+
+```yaml
+# ✅ Correct — entity is "entity_type.bundle", view_mode is a separate field
+- entity: "node.article"
+  view_mode: "full"
+  record: 0
+
+# ❌ Wrong — view_mode embedded in entity string causes double-dot path
+- entity: "node.article.full"
+  record: 0
+```
+
+The renderer loads: `$DESIGNBOOK_DIST/entity-mapping/{entity_type}.{bundle}.{view_mode}.jsonata`
+
+The `entity` string provides `entity_type` (part 0) and `bundle` (part 1). `view_mode` is read from its own key — if omitted, the path becomes `node.article..jsonata` (double dot, file not found).
+
+`record:` is an optional integer (default: 0) — selects which record from `data.yml` to use.
+
+## Listing Scenes Use view.* Entities
+
+> ⛔ **Listing scenes MUST use `entity: view.*` as the content node.** Never use `entity + records: []` for listing pages.
+
+```yaml
+# ✅ Correct — view entity handles listing
+- entity: "view.recent_articles"
+  view_mode: "default"
+
+# ❌ Wrong — records shorthand is for component demos only
+- entity: "node.article"
+  view_mode: "teaser"
+  records: [0, 1, 2]
+```
+
+`records:` shorthand is for isolated component previews only. Listing pages use `entity: view.*` — the view JSONata file declares its own entity refs inline.

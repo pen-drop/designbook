@@ -7,7 +7,7 @@
         "dev": "NODE_ENV=development vite build --watch",
         "lint:css": "stylelint --ignore-path .gitignore '**/*.(src.css)'",
         "lint:css:fix": "stylelint --ignore-path .gitignore '**/*.(src.css)' --fix",
-        "storybook": "storybook dev -p 6009 --logfile designbook/storybook2.log --loglevel=debug --debug",
+        "storybook": "storybook dev -p 6009",
         "storybook:clean": "rm -rf node_modules/.cache/storybook",
         "build-storybook": "storybook build"
     },

@@ -1,0 +1,30 @@
+description: Designbook workflow evaluation suite — design-component
+outputPath: promptfoo/reports/design-component.json
+prompts:
+  - id: debo-design-component
+    label: design-component
+    raw: |
+      You are working in the directory {{workspace}}.
+      Run the /debo-design-component workflow. Do NOT ask any questions.
+      Create a "pet-card" component for PetMatch that displays: pet photo, name, breed, age, and an "Adopt Me" button.
+      The component should have variants: default and featured (with a highlight border).
+      Execute the workflow now.
+tests:
+  - description: 'debo-design-component: PetMatch card'
+    vars:
+      workspace: promptfoo/workspaces/debo-design-component
+    prompts:
+      - design-component
+    assert:
+      - type: javascript
+        value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.component.yml'))
+      - type: javascript
+        value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.twig'))
+      - type: javascript
+        value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.story.yml'))
+      - type: javascript
+        value: output.archivedWorkflows['debo-design-component']?.status === 'completed'
+      - type: javascript
+        value: output.archivedWorkflows['debo-design-component']?.tasks?.every(t => t.status === 'done')
+      - type: javascript
+        value: Object.keys(output.pendingWorkflows).length === 0

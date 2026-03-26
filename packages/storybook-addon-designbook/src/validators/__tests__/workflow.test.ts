@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, utimesSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
 import {
   workflowCreate,
   workflowPlan,

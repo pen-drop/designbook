@@ -18,7 +18,6 @@ Creates a JSONata expression file that maps an entity's data to `ComponentNode[]
 ## Input
 
 - `data-model.yml` → `content.{entity_type}.{bundle}.view_modes.{view_mode}` for template name and settings
-- Template rule from `skills/*/rules/*.md` matching `when: stages: [map-entity], template: {template}`
 
 ## Output
 

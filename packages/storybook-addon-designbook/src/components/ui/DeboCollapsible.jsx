@@ -153,10 +153,12 @@ export function DeboCollapsible({ title, count, defaultOpen = false, variant = '
   return (
     <details
       open={open}
-      onToggle={(e) => setOpen(e.target.open)}
       style={containerStyle}
     >
-      <summary style={progressBar ? { ...summaryStyle, display: 'block', padding: 0 } : summaryStyle}>
+      <summary
+        style={progressBar ? { ...summaryStyle, display: 'block', padding: 0 } : summaryStyle}
+        onClick={(e) => { e.preventDefault(); setOpen(!open); }}
+      >
         <div style={progressBar ? { ...summaryStyle, padding: summaryStyle.padding } : { display: 'contents' }}>
           {title}
           {count != null && (

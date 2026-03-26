@@ -30,6 +30,10 @@ definitions:
     title: Bundle
     description: Bundle definition with its fields and view mode template mappings
     properties:
+      purpose:
+        type: string
+        title: Purpose
+        description: "Semantic intent of this bundle (e.g. landing-page, article, section). Drives view_modes template selection and sample data generation via extension rules."
       view_modes:
         type: object
         title: View Modes

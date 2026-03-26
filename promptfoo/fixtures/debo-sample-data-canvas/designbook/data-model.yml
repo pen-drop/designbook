@@ -1,0 +1,72 @@
+content:
+  node:
+    article:
+      title: Article
+      description: News and blog articles about pet adoption, care tips, and community stories
+      fields:
+        title:
+          type: string
+          title: Title
+        body:
+          type: text
+          title: Body
+        field_subtitle:
+          type: string
+          title: Subtitle
+        field_media:
+          type: reference
+          title: Featured Image
+          settings:
+            target_type: media
+            target_bundle: image
+        field_tags:
+          type: reference
+          title: Tags
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: tag
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+        card:
+          template: field-map
+
+  media:
+    image:
+      title: Image
+      description: Images and photos used across the platform
+      fields:
+        name:
+          type: string
+          title: Name
+        field_media_image:
+          type: image
+          title: Image
+          required: true
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+
+  canvas_page:
+    page:
+      title: Page
+      description: Canvas-managed landing page for flexible content layouts
+      fields:
+        title:
+          type: string
+          title: Title
+        components:
+          type: component_tree
+          title: Component Tree
+          sample_template:
+            template: canvas
+      view_modes:
+        full:
+          template: canvas
+        teaser:
+          template: field-map

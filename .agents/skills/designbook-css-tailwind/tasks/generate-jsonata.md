@@ -7,7 +7,7 @@ reads:
 files:
   - $DESIGNBOOK_DIST/designbook-css-tailwind/generate-layout-width.jsonata
   - $DESIGNBOOK_DIST/designbook-css-tailwind/generate-layout-spacing.jsonata
-  - $DESIGNBOOK_DIST/designbook-css-tailwind/generate-google-fonts.jsonata  (only if typography tokens exist)
+  - $DESIGNBOOK_DIST/designbook-css-tailwind/generate-google-fonts.jsonata
 ---
 
 # Generate JSONata Expressions — Tailwind

@@ -46,3 +46,4 @@
 @source "../ui_examples/*.yml";
 @source "./safelist.txt";
 /* shell components: page, header, footer, navigation, container */
+/* content components: hero, feature-card, stats, card */

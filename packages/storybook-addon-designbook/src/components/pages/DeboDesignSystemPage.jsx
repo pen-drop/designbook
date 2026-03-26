@@ -4,7 +4,7 @@ import { DeboDesignTokens } from '../display/DeboDesignTokens.jsx';
 import { DeboDesignGuidelines } from '../display/DeboDesignGuidelines.jsx';
 import { DeboProse } from '../ui/DeboTypography.jsx';
 import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
-import { parse as parseYaml } from 'yaml';
+import { load as parseYaml } from 'js-yaml';
 import { DeboTabs } from '../ui/DeboTabs.jsx';
 
 const scenesParser = (text) => {
