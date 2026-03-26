@@ -76,7 +76,7 @@ Validation runs automatically via the workflow CLI — do **not** invoke `ajv` o
 workflow validate $WORKFLOW_NAME
 ```
 
-One JSON line per registered file; `"valid": false` means fix and re-run. See `@designbook-workflow/SKILL.md` for the full fix loop.
+One JSON line per registered file; `"valid": false` means fix and re-run. See `@designbook/resources/workflow-execution.md` for the full fix loop.
 
 Schemas must be **bundled within the skill directory**, not downloaded at runtime:
 
@@ -122,4 +122,4 @@ Resolves to `.agents/skills/designbook-drupal/components/resources/shell-generat
 
 ## Configuration
 
-The `designbook-workflow` skill Rule 0 bootstraps `$DESIGNBOOK_CMD` and all `DESIGNBOOK_*` env vars from `designbook.config.yml`. This runs before any workflow command.
+The `designbook` skill Phase 0 bootstrap (from `resources/workflow-execution.md`) bootstraps `$DESIGNBOOK_CMD` and all `DESIGNBOOK_*` env vars from `designbook.config.yml`. This runs before any workflow command.

@@ -1,12 +1,12 @@
 description: Designbook workflow evaluation suite — design-screen
 outputPath: promptfoo/reports/design-screen.json
 prompts:
-  - id: debo-design-screen
+  - id: design-screen
     label: design-screen
     raw: >
       You are working in the directory {{workspace}}.
 
-      Run the /debo-design-screen workflow for the "homepage" section. Do NOT ask any questions.
+      Run the /debo design-screen workflow for the "homepage" section. Do NOT ask any questions.
 
       The product is "PetMatch". Read designbook/sections/homepage/spec.section.yml for context.
 
@@ -19,9 +19,9 @@ prompts:
 
       Execute the workflow now.
 tests:
-  - description: 'debo-design-screen: PetMatch homepage'
+  - description: 'design-screen: PetMatch homepage'
     vars:
-      workspace: promptfoo/workspaces/debo-design-screen
+      workspace: promptfoo/workspaces/debo design-screen
     prompts:
       - design-screen
     assert:
@@ -30,9 +30,9 @@ tests:
       - type: javascript
         value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.component.yml'))
       - type: javascript
-        value: output.archivedWorkflows['debo-design-screen']?.status === 'completed'
+        value: output.archivedWorkflows['design-screen']?.status === 'completed'
       - type: javascript
-        value: output.archivedWorkflows['debo-design-screen']?.tasks?.every(t => t.status === 'done')
+        value: output.archivedWorkflows['design-screen']?.tasks?.every(t => t.status === 'done')
       - type: javascript
         value: |
           return output.text.includes('build-storybook') || output.text.includes('Build completed');

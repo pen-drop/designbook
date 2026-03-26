@@ -1,5 +1,7 @@
 ---
 name: designbook-css-tailwind
+disable-model-invocation: true
+user-invocable: false
 description: Tailwind CSS v4 framework rules — structural token naming conventions (layout-width, layout-spacing, grid) and CSS token generation via @theme. Use when DESIGNBOOK_FRAMEWORK_CSS includes tailwind (directly or via daisyui).
 ---
 

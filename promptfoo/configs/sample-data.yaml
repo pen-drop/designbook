@@ -1,28 +1,28 @@
 description: Designbook workflow evaluation suite — sample-data
 outputPath: promptfoo/reports/sample-data.json
 prompts:
-  - id: debo-sample-data
+  - id: sample-data
     label: sample-data
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-sample-data workflow for the "homepage" section. Do NOT ask any questions.
+      Run the /debo sample-data workflow for the "homepage" section. Do NOT ask any questions.
       The product is "PetMatch". Read designbook/data-model.yml for the entity schema.
       Generate realistic sample data with at least 5 pet records, 2 shelter records, and 3 category records.
       Use real pet names, breeds, and descriptions — no placeholder text.
       Execute the workflow now.
 tests:
-  - description: 'debo-sample-data: PetMatch homepage'
+  - description: 'sample-data: PetMatch homepage'
     vars:
-      workspace: promptfoo/workspaces/debo-sample-data
+      workspace: promptfoo/workspaces/debo sample-data
     prompts:
       - sample-data
     assert:
       - type: javascript
         value: output.newFiles.some(f => f.endsWith('data.yml'))
       - type: javascript
-        value: output.archivedWorkflows['debo-sample-data']?.status === 'completed'
+        value: output.archivedWorkflows['sample-data']?.status === 'completed'
       - type: javascript
-        value: output.archivedWorkflows['debo-sample-data']?.tasks?.every(t => t.status === 'done')
+        value: output.archivedWorkflows['sample-data']?.tasks?.every(t => t.status === 'done')
       - type: javascript
         value: >
           const dataFile = Object.keys(output.fileContents).find(f => f.endsWith('data.yml'));

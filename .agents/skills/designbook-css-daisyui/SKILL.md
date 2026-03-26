@@ -1,5 +1,7 @@
 ---
 name: designbook-css-daisyui
+disable-model-invocation: true
+user-invocable: false
 description: DaisyUI framework rules — Tailwind-only styling, token naming conventions, and CSS token generation from W3C Design Tokens. Use when DESIGNBOOK_FRAMEWORK_CSS is daisyui.
 ---
 

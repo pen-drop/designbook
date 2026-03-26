@@ -1,11 +1,11 @@
 description: Designbook workflow evaluation suite — vision
 outputPath: promptfoo/reports/vision.json
 prompts:
-  - id: debo-vision
+  - id: vision
     label: vision
     raw: |
       You are working in the directory {{workspace}}.
-      Run the /debo-vision workflow. Do NOT ask any questions — use the following inputs directly:
+      Run the /debo vision workflow. Do NOT ask any questions — use the following inputs directly:
 
       Product name: PetMatch
       Description: A modern pet adoption platform connecting shelters with potential adopters
@@ -22,18 +22,18 @@ prompts:
 
       Execute the workflow now.
 tests:
-  - description: 'debo-vision: PetMatch'
+  - description: 'vision: PetMatch'
     vars:
-      workspace: promptfoo/workspaces/debo-vision
+      workspace: promptfoo/workspaces/debo vision
     prompts:
       - vision
     assert:
       - type: javascript
         value: output.newFiles.some(f => f === 'designbook/product/vision.md')
       - type: javascript
-        value: output.archivedWorkflows['debo-vision']?.status === 'completed'
+        value: output.archivedWorkflows['vision']?.status === 'completed'
       - type: javascript
-        value: output.archivedWorkflows['debo-vision']?.tasks?.every(t => t.status === 'done')
+        value: output.archivedWorkflows['vision']?.tasks?.every(t => t.status === 'done')
       - type: javascript
         value: Object.keys(output.pendingWorkflows).length === 0
       - type: javascript

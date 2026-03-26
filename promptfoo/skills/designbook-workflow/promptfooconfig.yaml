@@ -1,6 +1,6 @@
-description: "designbook-workflow skill smoke test — verifies bootstrap + workflow create"
+description: "designbook skill smoke test — verifies bootstrap + workflow create"
 
-outputPath: reports/designbook-workflow.json
+outputPath: reports/designbook.json
 
 prompts:
   - id: workflow-bootstrap
@@ -8,11 +8,11 @@ prompts:
     raw: |
       You are working in the directory {{workspace}}.
 
-      Load skill `designbook-workflow` and perform ONLY the following steps — do not run intake or execute tasks:
+      Load skill `designbook` and perform ONLY the following steps — do not run intake or execute tasks:
 
       1. Run Phase 0 bootstrap (find designbook.config.yml, eval the config command)
-      2. If any debo-vision workflows exist, abandon them: workflow abandon --workflow <each-name>
-      3. Run: workflow create --workflow debo-vision --workflow-file .agents/workflows/debo-vision.md
+      2. If any vision workflows exist, abandon them: workflow abandon --workflow <each-name>
+      3. Run: workflow create --workflow vision --workflow-file .agents/skills/designbook/vision/workflows/vision.md
       4. Report back: the workflow name returned (from .name), and the list of stage IDs resolved (from .stages[].id or .stage_resolved keys)
 
       Stop after reporting. Do NOT proceed to intake or task execution.
@@ -35,16 +35,16 @@ defaultTest:
         max_turns: 20
 
 tests:
-  - description: "designbook-workflow: bootstrap + create resolves stages"
+  - description: "designbook: bootstrap + create resolves stages"
     vars:
-      workspace: promptfoo/workspaces/designbook-workflow-bootstrap
+      workspace: promptfoo/workspaces/designbook-bootstrap
     assert:
       - type: llm-rubric
         value: |
-          The agent executed Phase 0 bootstrap of the designbook-workflow skill and ran `workflow create`.
+          The agent executed Phase 0 bootstrap of the designbook skill and ran `workflow create`.
           Verify from the conversation output:
           1. The agent ran the bootstrap bash commands (found designbook.config.yml, evaled config)
-          2. The agent ran `workflow create --workflow debo-vision`
-          3. The agent reports a workflow name (a string like "debo-vision-XXXX")
+          2. The agent ran `workflow create --workflow vision`
+          3. The agent reports a workflow name (a string like "vision-XXXX")
           4. The agent reports at least 2 resolved stages
           5. The output does NOT indicate errors or failures
