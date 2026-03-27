@@ -2,17 +2,17 @@
 params:
   content: {}
 files:
-  - $DESIGNBOOK_DIST/data-model.yml
+  - $DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml
 ---
 
 # Create Data Model
 
-Writes the approved data model to `$DESIGNBOOK_DIST/data-model.yml` in YAML format.
+Writes the approved data model to `$DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml` in YAML format.
 
 ## Output
 
 ```
-$DESIGNBOOK_DIST/data-model.yml
+$DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml
 ```
 
 ## Format

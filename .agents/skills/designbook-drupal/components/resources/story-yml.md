@@ -102,7 +102,7 @@ There are 3 core story node types:
 > | Component Location | Provider | Example Reference |
 > |---|---|---|
 > | `$DESIGNBOOK_DRUPAL_THEME/components/` | From `.component.yml` (e.g. `test_integration_drupal`) | `'test_integration_drupal:header'` |
-> | `$DESIGNBOOK_DIST/components/` | `designbook_design` | `'designbook_design:entity-article'` |
+> | `$DESIGNBOOK_OUTPUTS_CONFIG/components/` | `designbook_design` | `'designbook_design:entity-article'` |
 >
 > The provider maps to a Twig namespace configured in `.storybook/main.js` → `sdcStorybookOptions.namespaces`. Without it, the SDC addon cannot resolve the component path.
 

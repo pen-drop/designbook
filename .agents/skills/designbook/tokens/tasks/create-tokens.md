@@ -5,7 +5,7 @@ params:
   container_widths: {}
   section_spacing: {}
 files:
-  - $DESIGNBOOK_DIST/design-system/design-tokens.yml
+  - $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 # Fallback: applies when no CSS framework-specific task file matches.
 # Framework-specific versions (e.g. designbook-css-daisyui/tasks/create-tokens.md)
 # take precedence when their `when` conditions match.
@@ -13,12 +13,12 @@ files:
 
 # Create Design Tokens
 
-Writes the approved design tokens to `$DESIGNBOOK_DIST/design-system/design-tokens.yml` in W3C Design Token YAML format.
+Writes the approved design tokens to `$DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml` in W3C Design Token YAML format.
 
 ## Output
 
 ```
-$DESIGNBOOK_DIST/design-system/design-tokens.yml
+$DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 ```
 
 ## Format

@@ -5,8 +5,8 @@
  * under $DESIGNBOOK_DIST/workflows/changes/ and /archive/.
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, utimesSync, writeFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
+import { resolve, dirname, relative } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
 import type { ValidationFileResult } from './workflow-types.js';
@@ -62,6 +62,10 @@ export interface WorkflowFile {
   started_at: string;
   completed_at?: string;
   summary?: string;
+  /** Absolute path to the isolated WORKTREE directory for this workflow run. */
+  write_root?: string;
+  /** Absolute path to DESIGNBOOK_ROOT (config dir). Used by workflowDone to copy WORKTREE → root. */
+  root_dir?: string;
   tasks: WorkflowTask[];
 }
 
@@ -127,6 +131,82 @@ export function workflowAbandon(dist: string, name: string): WorkflowFile {
 
 function normalizeFilePath(_dist: string, p: string): string {
   return p; // Paths must always be absolute — stored as-is
+}
+
+/** Recursively collect all file paths under a directory. */
+function listFilesRecursive(dir: string): string[] {
+  const results: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = resolve(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...listFilesRecursive(full));
+    } else {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
+/**
+ * Seed the WORKTREE with files that already exist at the real path.
+ *
+ * Called at plan time so that:
+ * 1. `reads:` dependencies (e.g. data-model.yml, design-system.scenes.yml) are
+ *    available to tasks via WORKTREE-remapped env vars.
+ * 2. Existing output files (from `files:` templates) are pre-populated so that
+ *    idempotent tasks (e.g. create-sample-data) can read current state and avoid
+ *    generating duplicate records.
+ *
+ * Only copies files that fall under `rootDir` (i.e. relative path doesn't escape
+ * with `..`). Files outside rootDir (e.g. DESIGNBOOK_DRUPAL_THEME components) are
+ * skipped — those paths are never remapped to WORKTREE.
+ *
+ * If a real path is a directory, all files under it are copied recursively.
+ */
+export function seedWorktree(realPaths: string[], worktreePath: string, rootDir: string): void {
+  for (const realPath of realPaths) {
+    if (!existsSync(realPath)) continue;
+
+    const relPath = relative(rootDir, realPath);
+    if (relPath.startsWith('..')) continue; // outside rootDir — skip
+
+    if (statSync(realPath).isDirectory()) {
+      for (const file of listFilesRecursive(realPath)) {
+        const fileRel = relative(rootDir, file);
+        if (fileRel.startsWith('..')) continue;
+        const dest = resolve(worktreePath, fileRel);
+        mkdirSync(dirname(dest), { recursive: true });
+        copyFileSync(file, dest);
+      }
+    } else {
+      const dest = resolve(worktreePath, relPath);
+      mkdirSync(dirname(dest), { recursive: true });
+      copyFileSync(realPath, dest);
+    }
+  }
+}
+
+/**
+ * Copy all files from WORKTREE to rootDir (preserving relative structure),
+ * touch all copied files to trigger Storybook HMR, then remove the WORKTREE.
+ */
+function commitWorktree(writeRoot: string, rootDir: string): void {
+  const files = listFilesRecursive(writeRoot);
+  const now = new Date();
+
+  for (const src of files) {
+    const relPath = relative(writeRoot, src);
+    const dest = resolve(rootDir, relPath);
+    mkdirSync(dirname(dest), { recursive: true });
+    copyFileSync(src, dest);
+    try {
+      utimesSync(dest, now, now);
+    } catch {
+      // Silently skip if touch fails
+    }
+  }
+
+  rmSync(writeRoot, { recursive: true, force: true });
 }
 
 /**
@@ -236,6 +316,8 @@ export function workflowPlan(
   }>,
   stages?: string[],
   globalParams?: Record<string, unknown>,
+  writeRoot?: string,
+  rootDir?: string,
 ): WorkflowFile {
   const changesDir = resolve(dist, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -247,6 +329,8 @@ export function workflowPlan(
   }
   if (stages && stages.length > 0) data.stages = stages;
   if (globalParams && Object.keys(globalParams).length > 0) data.params = globalParams;
+  if (writeRoot) data.write_root = writeRoot;
+  if (rootDir) data.root_dir = rootDir;
   data.tasks = tasks.map((t) => ({
     id: t.id,
     title: t.title,
@@ -378,7 +462,6 @@ function _workflowDoneInner(
   task.status = 'done';
   if (!task.started_at) task.started_at = timestamp();
   task.completed_at = timestamp();
-  touchTaskFiles(task);
 
   if (data.status === 'planning' || data.status === 'running') {
     data.status = 'running';
@@ -407,6 +490,10 @@ function _workflowDoneInner(
 
   const allDone = data.tasks.every((t) => t.status === 'done');
   if (allDone) {
+    // Bulk copy WORKTREE → DESIGNBOOK_ROOT before archiving (replaces per-task touch)
+    if (data.write_root && data.root_dir && existsSync(data.write_root)) {
+      commitWorktree(data.write_root, data.root_dir);
+    }
     archiveWorkflow(dist, name, data);
     return { archived: true, data };
   }

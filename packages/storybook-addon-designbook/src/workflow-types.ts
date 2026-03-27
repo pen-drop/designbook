@@ -62,6 +62,10 @@ export interface WorkflowTaskFile {
   started_at: string | null;
   completed_at: string | null;
   summary?: string;
+  /** Absolute path to the isolated WORKTREE directory for this workflow run. Set at workflow plan time. */
+  write_root?: string;
+  /** Absolute path to DESIGNBOOK_ROOT (config dir). Stored so workflowDone can copy WORKTREE → root. */
+  root_dir?: string;
   tasks: WorkflowTask[];
 }
 

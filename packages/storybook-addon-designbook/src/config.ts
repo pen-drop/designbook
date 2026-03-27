@@ -27,6 +27,14 @@ export interface DesignbookConfig {
   technology: string;
   /** Temporary directory. */
   tmp: string;
+  /**
+   * Write-capable output directories. Each key becomes a DESIGNBOOK_OUTPUTS_<KEY> env var.
+   * Paths are resolved relative to the config file location.
+   * During workflow plan, these vars are remapped to the WORKTREE path.
+   */
+  outputs?: Record<string, string>;
+  /** Absolute path to the directory containing designbook.config.yml (exposed as DESIGNBOOK_ROOT). */
+  root?: string;
   /** Any additional keys from the config file. */
   [key: string]: unknown;
 }
@@ -118,7 +126,8 @@ export function loadConfig(startDir?: string): DesignbookConfig {
   const configPath = findConfig(startDir);
 
   if (!configPath) {
-    return { ...DEFAULTS, dist: resolve(process.cwd(), DEFAULTS.dist) };
+    const cwd = process.cwd();
+    return { ...DEFAULTS, dist: resolve(cwd, DEFAULTS.dist), root: cwd };
   }
 
   try {
@@ -156,6 +165,16 @@ export function loadConfig(startDir?: string): DesignbookConfig {
     if (typeof config['css.app'] === 'string') {
       config['css.app'] = resolve(configDir, config['css.app'] as string);
     }
+
+    // Resolve outputs.* paths relative to config file location
+    for (const key of Object.keys(config)) {
+      if (key.startsWith('outputs.') && typeof config[key] === 'string') {
+        config[key] = resolve(configDir, config[key] as string);
+      }
+    }
+
+    // Store config directory as root (exposed as DESIGNBOOK_ROOT)
+    config.root = configDir;
 
     return config;
   } catch (err) {

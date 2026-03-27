@@ -12,18 +12,18 @@ files:
   - ${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.twig
   - ${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.default.story.yml
 reads:
-  - path: $DESIGNBOOK_DIST/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
     workflow: debo-design-tokens
 ---
 
 # Create SDC Component
 
-Creates three files per component in `$DESIGNBOOK_DRUPAL_THEME/components/{{ component }}/`. All files share the same kebab-case base name as the directory.
+Creates three files per component in `$DESIGNBOOK_OUTPUTS_COMPONENTS/{{ component }}/`. All files share the same kebab-case base name as the directory.
 
 ## Output
 
 ```
-$DESIGNBOOK_DRUPAL_THEME/components/{{ component }}/
+$DESIGNBOOK_OUTPUTS_COMPONENTS/{{ component }}/
 ├── {{ component }}.component.yml
 ├── {{ component }}.twig
 ├── {{ component }}.default.story.yml

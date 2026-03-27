@@ -5,8 +5,12 @@ frameworks:
 extensions:
   - id: canvas
     url: https://www.drupal.org/project/experience_builder
-dist: packages/integrations/test-integration-drupal/designbook
+config: packages/integrations/test-integration-drupal/designbook
 tmp: packages/integrations/test-integration-drupal/designbook/tmp
+outputs:
+  config: packages/integrations/test-integration-drupal/designbook
+  components: packages/integrations/test-integration-drupal/components
+  css: packages/integrations/test-integration-drupal/css/tokens
 css:
   app: packages/integrations/test-integration-drupal/css/app.src.css
 drupal:

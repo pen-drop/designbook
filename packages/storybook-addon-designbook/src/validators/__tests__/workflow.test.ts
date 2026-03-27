@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, utimesSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, utimesSync, rmSync } from 'node:fs';
+import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
 import {
@@ -214,6 +214,152 @@ describe('workflowPlan', () => {
     const data = readWorkflowFile(dist, name);
     expect(data.status).toBe('planning');
   });
+
+  it('stores write_root and root_dir when provided', () => {
+    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
+    const writeRoot = join(dist, 'worktree');
+    const rootDir = join(dist, 'root');
+    workflowPlan(dist, name, [], undefined, undefined, writeRoot, rootDir);
+    const data = readWorkflowFile(dist, name);
+    expect(data.write_root).toBe(writeRoot);
+    expect(data.root_dir).toBe(rootDir);
+  });
+
+  it('does not write write_root when not provided', () => {
+    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
+    workflowPlan(dist, name, []);
+    const data = readWorkflowFile(dist, name);
+    expect(data.write_root).toBeUndefined();
+    expect(data.root_dir).toBeUndefined();
+  });
+});
+
+// ── WORKTREE: workflowDone bulk copy + touch + cleanup ────────────────────────
+
+describe('workflowDone with WORKTREE', () => {
+  let dist: string;
+  let rootDir: string;
+  let writeRoot: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-worktree-'));
+    rootDir = resolve(dist, 'project-root');
+    writeRoot = resolve(dist, 'worktree');
+    mkdirSync(rootDir, { recursive: true });
+    mkdirSync(writeRoot, { recursive: true });
+  });
+
+  function makeValidatedTask(id: string, filePath: string) {
+    return {
+      id,
+      title: id,
+      type: 'data' as const,
+      files: [filePath],
+    };
+  }
+
+  function makeValidatedWorkflow(name: string, taskId: string, filePath: string): void {
+    workflowCreate(dist, 'debo-test', 'Test', [makeValidatedTask(taskId, filePath)]);
+    // Manually mark the file as validated in tasks.yml
+    const data = readWorkflowFile(dist, name);
+    data.tasks[0].files![0].requires_validation = false;
+    data.tasks[0].files![0].validation_result = {
+      file: filePath,
+      type: 'data',
+      valid: true,
+      last_validated: new Date().toISOString(),
+    };
+    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
+  }
+
+  it('non-final task: no copy, no WORKTREE removal', () => {
+    const fileA = resolve(writeRoot, 'file-a.yml');
+    const fileB = resolve(writeRoot, 'file-b.yml');
+    writeFileSync(fileA, 'a: 1');
+    writeFileSync(fileB, 'b: 2');
+
+    const name = workflowCreate(dist, 'debo-test', 'Test', [
+      { id: 'task1', title: 'T1', type: 'data', files: [fileA] },
+      { id: 'task2', title: 'T2', type: 'data', files: [fileB] },
+    ]);
+    workflowPlan(dist, name, [
+      { id: 'task1', title: 'T1', type: 'data', files: [fileA] },
+      { id: 'task2', title: 'T2', type: 'data', files: [fileB] },
+    ], undefined, undefined, writeRoot, rootDir);
+
+    // Manually mark task1 validated
+    const data = readWorkflowFile(dist, name);
+    data.tasks[0].files![0].requires_validation = false;
+    data.tasks[0].files![0].validation_result = { file: fileA, type: 'data', valid: true, last_validated: '' };
+    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
+
+    const result = workflowDone(dist, name, 'task1');
+    expect(result.archived).toBe(false);
+
+    // WORKTREE still exists (not yet committed)
+    expect(existsSync(writeRoot)).toBe(true);
+    // Files not yet in rootDir
+    expect(existsSync(resolve(rootDir, 'file-a.yml'))).toBe(false);
+  });
+
+  it('final task: copies WORKTREE to rootDir, touches files, removes WORKTREE', () => {
+    const worktreeFile = resolve(writeRoot, 'subdir', 'data-model.yml');
+    mkdirSync(resolve(writeRoot, 'subdir'), { recursive: true });
+    writeFileSync(worktreeFile, 'key: value');
+
+    const name = workflowCreate(dist, 'debo-test', 'Test', [
+      { id: 'task1', title: 'T1', type: 'data', files: [worktreeFile] },
+    ]);
+    workflowPlan(dist, name, [
+      { id: 'task1', title: 'T1', type: 'data', files: [worktreeFile] },
+    ], undefined, undefined, writeRoot, rootDir);
+
+    // Manually mark validated
+    const data = readWorkflowFile(dist, name);
+    data.tasks[0].files![0].requires_validation = false;
+    data.tasks[0].files![0].validation_result = { file: worktreeFile, type: 'data', valid: true, last_validated: '' };
+    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
+
+    // Set old mtime on dest (ensure touch works)
+    const destFile = resolve(rootDir, 'subdir', 'data-model.yml');
+    mkdirSync(resolve(rootDir, 'subdir'), { recursive: true });
+    writeFileSync(destFile, 'old: content');
+    const oldMtime = new Date(Date.now() - 5000);
+    utimesSync(destFile, oldMtime, oldMtime);
+
+    const before = statSync(destFile).mtimeMs;
+    const result = workflowDone(dist, name, 'task1');
+    expect(result.archived).toBe(true);
+
+    // File copied to rootDir
+    expect(readFileSync(destFile, 'utf-8')).toBe('key: value');
+    // File touched (mtime updated)
+    expect(statSync(destFile).mtimeMs).toBeGreaterThan(before);
+    // WORKTREE removed
+    expect(existsSync(writeRoot)).toBe(false);
+  });
+
+  it('final task without write_root: no copy (backward compat)', () => {
+    const realFile = resolve(rootDir, 'data.yml');
+    writeFileSync(realFile, 'real: true');
+
+    const name = workflowCreate(dist, 'debo-test', 'Test', [
+      { id: 'task1', title: 'T1', type: 'data', files: [realFile] },
+    ]);
+    workflowPlan(dist, name, [
+      { id: 'task1', title: 'T1', type: 'data', files: [realFile] },
+    ]); // no write_root
+
+    const data = readWorkflowFile(dist, name);
+    data.tasks[0].files![0].requires_validation = false;
+    data.tasks[0].files![0].validation_result = { file: realFile, type: 'data', valid: true, last_validated: '' };
+    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
+
+    const result = workflowDone(dist, name, 'task1');
+    expect(result.archived).toBe(true);
+    // File still exists at real path (no copy needed, no deletion)
+    expect(existsSync(realFile)).toBe(true);
+  });
 });
 
 // ── workflowAddFile ──────────────────────────────────────────────────────────
@@ -374,7 +520,8 @@ describe('workflowDone', () => {
     expect(result.archived).toBe(true);
   });
 
-  it('touches task files after marking done', () => {
+  it('does not touch task files during non-final task done (touch deferred to workflow completion)', () => {
+    // Per-task touch removed: files are touched only when the final task completes via WORKTREE commit
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
       { id: 'task1', title: 'T1', type: 'component' },
       { id: 'task2', title: 'T2', type: 'data' },
@@ -405,9 +552,10 @@ describe('workflowDone', () => {
     ];
     writeFileSync(filePath, stringifyYaml(raw));
 
-    workflowDone(dist, name, 'task1');
+    workflowDone(dist, name, 'task1'); // non-final task
     const mtimeAfter = statSync(componentFile).mtimeMs;
-    expect(mtimeAfter).toBeGreaterThan(mtimeBefore);
+    // No touch during non-final task
+    expect(mtimeAfter).toBe(mtimeBefore);
   });
 
   it('silently skips missing files during touch', () => {

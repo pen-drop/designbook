@@ -13,6 +13,7 @@ import {
   generateTaskId,
   resolveWorkflowPlan,
   buildEnvMap,
+  buildWorktreeEnvMap,
   lookup,
   checkWhen,
   resolveFiles,
@@ -532,6 +533,68 @@ describe('buildEnvMap', () => {
     const env = buildEnvMap(baseConfig);
     expect(env.DESIGNBOOK_DIST).toBe('/test/dist');
     expect(env.DESIGNBOOK_DRUPAL_THEME).toBe('/test/theme');
+  });
+
+  it('exposes outputs.* as DESIGNBOOK_OUTPUTS_* env vars', () => {
+    const config: DesignbookConfig = {
+      ...baseConfig,
+      'outputs.config': '/test/dist',
+      'outputs.components': '/test/components',
+    };
+    const env = buildEnvMap(config);
+    expect(env.DESIGNBOOK_OUTPUTS_CONFIG).toBe('/test/dist');
+    expect(env.DESIGNBOOK_OUTPUTS_COMPONENTS).toBe('/test/components');
+  });
+});
+
+// buildWorktreeEnvMap
+describe('buildWorktreeEnvMap', () => {
+  it('remaps DESIGNBOOK_OUTPUTS_* vars to WORKTREE paths', () => {
+    const rootDir = '/home/user/project';
+    const envMap = {
+      DESIGNBOOK_ROOT: rootDir,
+      DESIGNBOOK_DIST: '/home/user/project/designbook',
+      DESIGNBOOK_OUTPUTS_CONFIG: '/home/user/project/designbook',
+      DESIGNBOOK_OUTPUTS_COMPONENTS: '/home/user/project/components',
+    };
+    const worktreePath = '/tmp/designbook-test-abc123';
+    const remapped = buildWorktreeEnvMap(envMap, worktreePath, rootDir);
+
+    // DESIGNBOOK_OUTPUTS_* are remapped to WORKTREE
+    expect(remapped.DESIGNBOOK_OUTPUTS_CONFIG).toBe('/tmp/designbook-test-abc123/designbook');
+    expect(remapped.DESIGNBOOK_OUTPUTS_COMPONENTS).toBe('/tmp/designbook-test-abc123/components');
+  });
+
+  it('does not remap non-DESIGNBOOK_OUTPUTS_* vars', () => {
+    const rootDir = '/home/user/project';
+    const envMap = {
+      DESIGNBOOK_ROOT: rootDir,
+      DESIGNBOOK_DIST: '/home/user/project/designbook',
+      DESIGNBOOK_OUTPUTS_CONFIG: '/home/user/project/designbook',
+    };
+    const remapped = buildWorktreeEnvMap(envMap, '/tmp/wt', rootDir);
+
+    // Non-outputs vars remain unchanged
+    expect(remapped.DESIGNBOOK_ROOT).toBe(rootDir);
+    expect(remapped.DESIGNBOOK_DIST).toBe('/home/user/project/designbook');
+  });
+
+  it('files: paths using remapped env differ from reads: paths using original env', () => {
+    const rootDir = '/home/user/project';
+    const envMap = {
+      DESIGNBOOK_OUTPUTS_CONFIG: '/home/user/project/designbook',
+    };
+    const worktreePath = '/tmp/wt-123';
+    const remappedEnvMap = buildWorktreeEnvMap(envMap, worktreePath, rootDir);
+
+    // files: path (uses remapped env) → WORKTREE
+    const fileTemplate = '$DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml';
+    const filesPath = expandFilePath(fileTemplate, {}, remappedEnvMap);
+    expect(filesPath).toBe('/tmp/wt-123/designbook/data-model.yml');
+
+    // reads: path (uses original env) → real path
+    const readsPath = expandFilePath(fileTemplate, {}, envMap);
+    expect(readsPath).toBe('/home/user/project/designbook/data-model.yml');
   });
 });
 

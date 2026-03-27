@@ -22,14 +22,52 @@ The `workflow plan` CLI (resolution mode) replaces AI-side task resolution:
 ```
 AI builds items array → CLI resolves:
   ├─ task files (scan + when-filter + precedence)
-  ├─ file path expansion ({{ param }} + ${ENV_VAR})
+  ├─ WORKTREE creation ($DESIGNBOOK_WORKSPACES/designbook-{name}/)
+  ├─ file path expansion — files: use WORKTREE-remapped DESIGNBOOK_OUTPUTS_* vars
+  ├─ reads: use real DESIGNBOOK_ROOT paths (not remapped)
   ├─ params validation (required/optional/defaults)
   ├─ depends_on computation (from stage ordering)
   ├─ rule file matching (stages + config conditions)
   └─ config rules/instructions per stage
-→ writes tasks.yml with fully-resolved data
+→ writes tasks.yml with fully-resolved paths + write_root/root_dir
 → outputs JSON plan to stdout
 ```
+
+## WORKTREE Lifecycle
+
+Each `workflow plan` creates an isolated write workspace under `$DESIGNBOOK_WORKSPACES/designbook-{workflow-name}/` (default: `/tmp`). Storybook never observes partial writes.
+
+```
+workflow plan
+  → create /tmp/designbook-{name}/             ← WORKTREE
+  → remap DESIGNBOOK_OUTPUTS_* → WORKTREE paths
+  → expand files: with remapped env → stored as WORKTREE absolute paths
+  → store write_root + root_dir in tasks.yml
+
+workflow done (each task)
+  → no file copy, no touch — Storybook sees nothing
+
+workflow done (final task, allDone=true)
+  → cp -r WORKTREE/* DESIGNBOOK_ROOT/          ← atomic commit
+  → touch all copied files                     ← Storybook HMR trigger
+  → rm -rf WORKTREE                            ← cleanup
+```
+
+**Key variables:**
+- `DESIGNBOOK_ROOT` — always the real config dir; used for `reads:` (never remapped)
+- `DESIGNBOOK_OUTPUTS_CONFIG` — remapped to `WORKTREE/...` during workflow; real path outside workflow
+- `DESIGNBOOK_OUTPUTS_COMPONENTS` — same remapping pattern
+- `DESIGNBOOK_WORKSPACES` — base directory for WORKTREE (default: `/tmp`)
+
+**`outputs` in designbook.config.yml:**
+```yaml
+outputs:
+  config: packages/integrations/test-integration-drupal/designbook    # → DESIGNBOOK_OUTPUTS_CONFIG
+  components: packages/integrations/test-integration-drupal/components # → DESIGNBOOK_OUTPUTS_COMPONENTS
+  css: packages/integrations/test-integration-drupal/css/tokens        # → DESIGNBOOK_OUTPUTS_CSS
+```
+
+Only `DESIGNBOOK_OUTPUTS_*` vars are remapped to WORKTREE at plan time. All other vars remain as real paths.
 
 ## DAG Orchestration Pattern
 
@@ -60,8 +98,8 @@ params:
   component: ~               # ~ means required (from intake)
   slots: []
 files:
-  - ${DESIGNBOOK_COMPONENT_SRC}/{{ component }}/{{ component }}.component.yml
-  - ${DESIGNBOOK_COMPONENT_SRC}/{{ component }}/{{ component }}.twig
+  - ${DESIGNBOOK_OUTPUTS_COMPONENTS}/{{ component }}/{{ component }}.component.yml
+  - ${DESIGNBOOK_OUTPUTS_COMPONENTS}/{{ component }}/{{ component }}.twig
 ---
 # Task instructions go here
 ```
