@@ -5,10 +5,10 @@ params:
   bundle: ~
   view_mode: ~
 reads:
-  - path: $DESIGNBOOK_DIST/data-model.yml
+  - path: $DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml
     workflow: debo-data-model
 files:
-  - $DESIGNBOOK_DIST/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
+  - $DESIGNBOOK_OUTPUTS_CONFIG/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
 ---
 
 # Map Entity
@@ -22,7 +22,7 @@ Creates a JSONata expression file that maps an entity's data to `ComponentNode[]
 ## Output
 
 ```
-$DESIGNBOOK_DIST/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
+$DESIGNBOOK_OUTPUTS_CONFIG/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
 ```
 
 A pure JSONata expression returning `ComponentNode[]`. See [jsonata-reference](../resources/jsonata-reference.md) for output format.

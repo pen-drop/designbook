@@ -34,6 +34,8 @@ title: Design Shell
 workflow: debo-design-shell
 status: running                    # planning | running | completed | incomplete
 parent: debo-design-tokens-2026-03-18-a3f7   # optional
+write_root: /tmp/designbook-debo-design-shell-2026-03-26-a1b2/  # WORKTREE path (set at plan time)
+root_dir: /home/cw/projects/designbook                           # DESIGNBOOK_ROOT (for final copy)
 params:                            # global intake params (from --params)
   section_id: dashboard
 stages:
@@ -61,14 +63,19 @@ tasks:
     started_at:
     completed_at:
     files:
-      - path: /abs/path/components/button/button.component.yml
-        requires_validation: true
+      - path: /tmp/designbook-{name}/packages/.../components/button/button.component.yml
+        requires_validation: true  # files: paths point to WORKTREE during workflow execution
 ```
+
+**`files:` vs `reads:` in task files:**
+
+- `files:` — output paths using `DESIGNBOOK_OUTPUTS_*` env vars (e.g. `$DESIGNBOOK_OUTPUTS_CONFIG`, `$DESIGNBOOK_OUTPUTS_COMPONENTS`). CLI remaps these vars to WORKTREE at plan time — subagents write to WORKTREE, Storybook sees nothing until workflow completes.
+- `reads:` — input paths using real `DESIGNBOOK_ROOT`-relative vars. Never remapped — always point to the actual filesystem so subagents can read pre-existing files.
 
 ## Directory Structure
 
 ```
-$DESIGNBOOK_DIST/
+$DESIGNBOOK_OUTPUTS_CONFIG/
 └── workflows/
     ├── changes/          # Active workflows
     │   └── [name]/

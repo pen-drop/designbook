@@ -2,9 +2,9 @@
 params:
   provider: ~
 files:
-  - $DESIGNBOOK_DIST/design-system/design-system.scenes.yml
+  - $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-system.scenes.yml
 reads:
-  - path: $DESIGNBOOK_COMPONENT_SRC
+  - path: $DESIGNBOOK_OUTPUTS_COMPONENTS
     description: Shell components — location resolved by the active framework skill
 ---
 

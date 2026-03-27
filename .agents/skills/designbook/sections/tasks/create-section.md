@@ -5,10 +5,10 @@ params:
   description: ~       # 2-3 sentence description
   order: ~             # integer order within the product
 files:
-  - $DESIGNBOOK_DIST/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+  - $DESIGNBOOK_OUTPUTS_CONFIG/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
 ---
 
-Create the directory `$DESIGNBOOK_DIST/sections/[section_id]/` and write `[section_id].section.scenes.yml`:
+Create the directory `$DESIGNBOOK_OUTPUTS_CONFIG/sections/[section_id]/` and write `[section_id].section.scenes.yml`:
 
 **For the `sections` workflow** (intake only provides `section_id`, `section_title`, `description`, `order`):
 

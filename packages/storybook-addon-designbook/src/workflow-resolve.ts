@@ -6,7 +6,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, relative } from 'node:path';
 import fm from 'front-matter';
 import { globSync } from 'glob';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
@@ -173,6 +173,29 @@ export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
   env['DESIGNBOOK_EXTENSION_SKILLS'] = getExtensionSkillIds(extensions);
 
   return env;
+}
+
+/**
+ * Build a remapped env map where all DESIGNBOOK_OUTPUTS_* vars point inside the WORKTREE.
+ *
+ * Each output var's real path is converted to a path relative to rootDir, then
+ * re-anchored under worktreePath. This preserves directory structure so that
+ * `cp -r WORKTREE/* DESIGNBOOK_ROOT/` restores files to their correct locations.
+ *
+ * All other vars (DESIGNBOOK_ROOT, DESIGNBOOK_DIST, etc.) remain unchanged.
+ */
+export function buildWorktreeEnvMap(
+  envMap: Record<string, string>,
+  worktreePath: string,
+  rootDir: string,
+): Record<string, string> {
+  const remapped = { ...envMap };
+  for (const [key, value] of Object.entries(envMap)) {
+    if (!key.startsWith('DESIGNBOOK_OUTPUTS_')) continue;
+    const relPath = relative(rootDir, value);
+    remapped[key] = resolve(worktreePath, relPath);
+  }
+  return remapped;
 }
 
 // ── Unified File Resolution ─────────────────────────────────────────

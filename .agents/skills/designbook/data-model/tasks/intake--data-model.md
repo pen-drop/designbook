@@ -1,15 +1,15 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_DIST/product/vision.md
+  - path: $DESIGNBOOK_OUTPUTS_CONFIG/product/vision.md
     workflow: /debo-vision
-  - path: $DESIGNBOOK_DIST/data-model.yml
+  - path: $DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml
     optional: true
 ---
 
 # Intake: Data Model
 
-Help the user define the core data model through conversation. The result is saved to `${DESIGNBOOK_DIST}/data-model.yml`.
+Help the user define the core data model through conversation. The result is saved to `${DESIGNBOOK_OUTPUTS_CONFIG}/data-model.yml`.
 
 > **Spec Mode (`--spec`):** Output a YAML plan showing what WOULD be created instead of writing files.
 

@@ -10,15 +10,15 @@ params:
   mcp: ~
   skills: []
 reads:
-  - path: $DESIGNBOOK_DIST/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
     optional: true
 files:
-  - $DESIGNBOOK_DIST/design-system/guidelines.yml
+  - $DESIGNBOOK_OUTPUTS_CONFIG/design-system/guidelines.yml
 ---
 
 # Create Design Guidelines
 
-Writes the approved design guidelines to `$DESIGNBOOK_DIST/design-system/guidelines.yml`.
+Writes the approved design guidelines to `$DESIGNBOOK_OUTPUTS_CONFIG/design-system/guidelines.yml`.
 
 ## Rules
 

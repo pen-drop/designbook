@@ -7,7 +7,7 @@ when:
 
 **Before starting this stage**, load the design guidelines:
 
-1. Resolve path: `$DESIGNBOOK_DIST/design-system/guidelines.yml`
+1. Resolve path: `$DESIGNBOOK_OUTPUTS_CONFIG/design-system/guidelines.yml`
 2. **If the file does not exist** → stop immediately and tell the user:
    > ❌ `guidelines.yml` not found. Run `/designbook design-guidelines` first.
 3. **If the file exists** → read it and apply its contents as constraints throughout this stage.

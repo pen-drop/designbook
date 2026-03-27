@@ -2,7 +2,7 @@
 params:
   framework: ~
 reads:
-  - path: $DESIGNBOOK_DIST/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
     workflow: debo-design-tokens
 ---
 
@@ -15,7 +15,7 @@ Each `.jsonata` file is self-contained — its embedded `@config` block specifie
 ## Step 1: Execute all transformations
 
 ```bash
-for f in $DESIGNBOOK_DIST/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-*.jsonata; do
+for f in $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-*.jsonata; do
   npx jsonata-w transform "$f"
 done
 ```

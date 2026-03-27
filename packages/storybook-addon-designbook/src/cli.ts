@@ -1,4 +1,5 @@
 import { resolve, dirname } from 'node:path';
+import { mkdirSync } from 'node:fs';
 import { screenshot } from './screenshot.js';
 import { Command } from 'commander';
 import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
@@ -16,15 +17,18 @@ import {
   workflowAddFile,
   workflowDone,
   workflowAbandon,
+  seedWorktree,
 } from './workflow.js';
 import {
   resolveAllStages,
   parseFrontmatter,
   buildEnvMap,
+  buildWorktreeEnvMap,
   validateAndMergeParams,
   generateTaskId,
   generateTaskTitle,
   inferTaskType,
+  expandFilePath,
   expandFilePaths,
   computeDependsOn,
   type ResolvedStage,
@@ -350,7 +354,46 @@ workflow
         }
       }
 
+      const rootDir = (config.root as string | undefined) ?? dirname(config.dist);
       const envMap = buildEnvMap(config);
+
+      // Create WORKTREE and remap outputs vars for files: expansion
+      const workspacesBase = process.env['DESIGNBOOK_WORKSPACES'] ?? '/tmp';
+      const worktreePath = resolve(workspacesBase, `designbook-${opts.workflow}`);
+      if (!opts.dryRun) {
+        mkdirSync(worktreePath, { recursive: true });
+      }
+      const filesEnvMap = buildWorktreeEnvMap(envMap, worktreePath, rootDir);
+
+      // Seed WORKTREE with existing real-path files before any task writes.
+      // This ensures:
+      //   1. reads: dependencies (data-model.yml, etc.) resolve via WORKTREE env vars
+      //   2. existing output files are visible to idempotent tasks (e.g. create-sample-data
+      //      reads current data.yml before appending new records)
+      if (!opts.dryRun) {
+        const realPathsToSeed = new Set<string>();
+        for (const item of items) {
+          const resolved = stageLoaded[item.stage];
+          if (!resolved) continue;
+          const taskFm = parseFrontmatter(resolved.task_file);
+          const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
+          const readEntries = (taskFm?.reads ?? []) as Array<{ path: string }>;
+          const fileTemplates = (taskFm?.files ?? []) as string[];
+          let mergedParams: Record<string, unknown>;
+          try {
+            mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, item.stage);
+          } catch {
+            mergedParams = { ...globalParams, ...item.params };
+          }
+          for (const entry of readEntries) {
+            try { realPathsToSeed.add(expandFilePath(entry.path, mergedParams, envMap)); } catch { /* skip */ }
+          }
+          for (const template of fileTemplates) {
+            try { realPathsToSeed.add(expandFilePath(template, mergedParams, envMap)); } catch { /* skip */ }
+          }
+        }
+        seedWorktree([...realPathsToSeed], worktreePath, rootDir);
+      }
 
       // Expand items into tasks using pre-resolved stage data
       const tasks: Array<{
@@ -387,7 +430,7 @@ workflow
           const taskId = generateTaskId(stage, mergedParams, schemaParams);
           const title = generateTaskTitle(stage, mergedParams, schemaParams);
           const type = inferTaskType(stage);
-          const files = expandFilePaths(fileTemplates, mergedParams, envMap);
+          const files = expandFilePaths(fileTemplates, mergedParams, filesEnvMap);
 
           tasks.push({
             id: taskId,
@@ -431,7 +474,7 @@ workflow
 
       // Write to tasks.yml (skip in dry-run mode)
       if (!opts.dryRun) {
-        workflowPlan(config.dist, opts.workflow, tasks, undefined, globalParams);
+        workflowPlan(config.dist, opts.workflow, tasks, undefined, globalParams, worktreePath, rootDir);
       }
 
       // Output plan JSON

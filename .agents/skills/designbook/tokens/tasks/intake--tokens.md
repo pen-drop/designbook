@@ -1,17 +1,17 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_DIST/product/vision.md
+  - path: $DESIGNBOOK_OUTPUTS_CONFIG/product/vision.md
     workflow: /debo-vision
-  - path: $DESIGNBOOK_DIST/design-system/guidelines.yml
+  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/guidelines.yml
     optional: true
-  - path: $DESIGNBOOK_DIST/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
     optional: true
 ---
 
 # Intake: Design Tokens
 
-Help the user choose colors and typography for their product. The result is saved to `$DESIGNBOOK_DIST/design-system/design-tokens.yml`.
+Help the user choose colors and typography for their product. The result is saved to `$DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml`.
 
 > Color naming and required token roles are determined by framework naming rules loaded for this stage.
 
