@@ -56,7 +56,7 @@ The validator SHALL:
 The `designbook validate component <name>` command SHALL validate a component's `.component.yml` against the Drupal SDC metadata schema.
 
 The validator SHALL:
-- Resolve the component path at `<drupal.theme>/components/<name>/<name>.component.yml`
+- Resolve the component path at `<outputs.root>/components/<name>/<name>.component.yml`
 - Use JSON Schema draft-04 validation (Drupal SDC requirement)
 - Report schema violations as errors (exit 1)
 

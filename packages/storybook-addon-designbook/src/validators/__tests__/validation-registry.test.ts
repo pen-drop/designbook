@@ -3,9 +3,8 @@ import { ValidationRegistry } from '../../validation-registry.js';
 import type { DesignbookConfig } from '../../config.js';
 
 const mockConfig: DesignbookConfig = {
-  dist: '/tmp/test-designbook',
+  data: '/tmp/test-designbook',
   technology: 'html',
-  tmp: 'tmp',
   extensions: [],
 };
 

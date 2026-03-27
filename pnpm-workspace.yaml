@@ -3,3 +3,4 @@ packages:
   - "packages/integrations/*"
   - "promptfoo/fixtures/*"
   - "promptfoo/workspaces/*"
+  - "workspaces/*"

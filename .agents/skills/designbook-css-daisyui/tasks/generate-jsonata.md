@@ -2,14 +2,14 @@
 when:
   frameworks.css: daisyui
 reads:
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_HOME/design-system/design-tokens.yml
     workflow: debo-design-tokens
 files:
-  - $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-daisyui/generate-color.jsonata
-  - $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-daisyui/generate-font.jsonata
-  - $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-daisyui/generate-google-fonts.jsonata
-  - $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-layout-width.jsonata
-  - $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-layout-spacing.jsonata
+  - $DESIGNBOOK_HOME/designbook-css-daisyui/generate-color.jsonata
+  - $DESIGNBOOK_HOME/designbook-css-daisyui/generate-font.jsonata
+  - $DESIGNBOOK_HOME/designbook-css-daisyui/generate-google-fonts.jsonata
+  - $DESIGNBOOK_HOME/designbook-css-tailwind/generate-layout-width.jsonata
+  - $DESIGNBOOK_HOME/designbook-css-tailwind/generate-layout-spacing.jsonata
 ---
 
 # Generate JSONata Expressions — DaisyUI
@@ -19,7 +19,7 @@ Generates `.jsonata` expression files for DaisyUI-compatible CSS. DaisyUI extend
 ## Output
 
 ```
-$DESIGNBOOK_OUTPUTS_CONFIG/
+$DESIGNBOOK_HOME/
 ├── designbook-css-daisyui/
 │   ├── generate-color.jsonata
 │   ├── generate-font.jsonata
@@ -32,21 +32,21 @@ $DESIGNBOOK_OUTPUTS_CONFIG/
 ## Step 1: Ensure directories
 
 ```bash
-mkdir -p $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-daisyui
-mkdir -p $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind
+mkdir -p $DESIGNBOOK_HOME/designbook-css-daisyui
+mkdir -p $DESIGNBOOK_HOME/designbook-css-tailwind
 ```
 
 ## Step 2: Inspect token structure
 
 ```bash
-npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml --summary
+npx jsonata-w inspect $DESIGNBOOK_HOME/design-system/design-tokens.yml --summary
 ```
 
 ## Step 3: Generate expression files
 
 ### Color → DaisyUI theme plugin format
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-daisyui/generate-color.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-daisyui/generate-color.jsonata`:
 
 ```jsonata
 /** @config
@@ -65,7 +65,7 @@ npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 
 ### Typography → `--font-*` variables in `@theme`
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-daisyui/generate-font.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-daisyui/generate-font.jsonata`:
 
 ```jsonata
 /** @config
@@ -84,7 +84,7 @@ npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 
 ### Google Fonts → `@import url(...)` for all typography fonts
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-daisyui/generate-google-fonts.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-daisyui/generate-google-fonts.jsonata`:
 
 ```jsonata
 /** @config
@@ -104,7 +104,7 @@ npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 
 ### Layout-width → `--container-*` in `@theme` (Tailwind standard namespace)
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-layout-width.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-tailwind/generate-layout-width.jsonata`:
 
 ```jsonata
 /** @config
@@ -123,7 +123,7 @@ npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 
 ### Layout-spacing → `--layout-spacing-*` in `@theme` (non-standard, use with `var()`)
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-layout-spacing.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-tailwind/generate-layout-spacing.jsonata`:
 
 ```jsonata
 /** @config

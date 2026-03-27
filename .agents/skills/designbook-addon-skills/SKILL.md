@@ -80,17 +80,17 @@ params:
   component: ~               # required param (~ = no default)
   slots: []                  # param with default
 reads:
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml
+  - path: $DESIGNBOOK_HOME/data-model.yml
     workflow: debo-data-model
 files:
-  - $DESIGNBOOK_OUTPUTS_CONFIG/components/{{ component }}/{{ component }}.component.yml
+  - $DESIGNBOOK_HOME/components/{{ component }}/{{ component }}.component.yml
 ---
 ```
 
 - `when` — config conditions that must match; **never contains `stage:`** (stage = filename)
 - `params` — AI fills from dialog; `~` means required
 - `reads` — files required before this stage; missing → stop + tell user which workflow to run
-- `files` — output paths; **must** use `$DESIGNBOOK_OUTPUTS_CONFIG/` or `$DESIGNBOOK_DRUPAL_THEME/` prefix
+- `files` — output paths; **must** use `$DESIGNBOOK_HOME/` or `$DESIGNBOOK_DIRS_ROOT/` prefix
 
 Validation is **never** part of a task file — it runs automatically via `workflow validate --task`.
 

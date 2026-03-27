@@ -1,5 +1,7 @@
-import { resolve, dirname } from 'node:path';
-import { mkdirSync } from 'node:fs';
+import { resolve, dirname, relative } from 'node:path';
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import * as http from 'node:http';
 import { screenshot } from './screenshot.js';
 import { Command } from 'commander';
 import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
@@ -17,8 +19,13 @@ import {
   workflowAddFile,
   workflowDone,
   workflowAbandon,
-  seedWorktree,
+  workflowMerge,
+  isGitRepo,
+  createGitWorktree,
+  checkPreflightClean,
+  type WorkflowFile,
 } from './workflow.js';
+import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
 import {
   resolveAllStages,
   parseFrontmatter,
@@ -33,8 +40,6 @@ import {
   computeDependsOn,
   type ResolvedStage,
 } from './workflow-resolve.js';
-import { readFileSync, existsSync } from 'node:fs';
-import { load as parseYaml } from 'js-yaml';
 import { defaultRegistry, applyConfigExtensions } from './validation-registry.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
@@ -53,12 +58,14 @@ program
   .command('config')
   .description('Output shell export statements for designbook.config.yml values')
   .action(() => {
-    const configPath = findConfig();
-    const configDir = configPath ? dirname(configPath) : process.cwd();
     const config = loadConfig();
 
     for (const [key, value] of Object.entries(config)) {
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) continue;
+
+      // Skip internal properties and designbook.* nested keys (handled explicitly below)
+      if (key === 'data' || key === 'workspace') continue;
+      if (key.startsWith('designbook.')) continue;
 
       if (Array.isArray(value)) {
         if (key === 'extensions') {
@@ -80,20 +87,25 @@ program
       const envParts = parts.map((p) => (p === 'frameworks' ? 'FRAMEWORK' : p.toUpperCase()));
       const envName = 'DESIGNBOOK_' + envParts.join('_');
 
-      // Emit cmd as a shell function that always runs from config root
-      if (envName === 'DESIGNBOOK_CMD') {
-        const cmd = String(value);
-        console.log(`designbook() { (cd '${configDir}' && ${cmd} "$@"); }`);
-        console.log(`export DESIGNBOOK_CMD='designbook'`);
-        continue;
-      }
-
       const escaped = String(value).replace(/'/g, "'\\''");
       console.log(`export ${envName}='${escaped}'`);
     }
 
-    // Export root directory
-    console.log(`export DESIGNBOOK_ROOT='${configDir}'`);
+    // Explicit: DESIGNBOOK_HOME, DESIGNBOOK_DATA, DESIGNBOOK_URL
+    const home = config['designbook.home'] as string | undefined;
+    const data = config['designbook.data'] as string | undefined;
+    const url = config['designbook.url'] as string | undefined;
+    if (home) console.log(`export DESIGNBOOK_HOME='${home.replace(/'/g, "'\\''")}'`);
+    if (data) console.log(`export DESIGNBOOK_DATA='${data.replace(/'/g, "'\\''")}'`);
+    if (url) console.log(`export DESIGNBOOK_URL='${url.replace(/'/g, "'\\''")}'`);
+
+    // DESIGNBOOK_CMD: shell function that runs from DESIGNBOOK_HOME
+    const cmd = config['designbook.cmd'] as string | undefined;
+    if (cmd) {
+      const runDir = (home ?? process.cwd()).replace(/'/g, "'\\''");
+      console.log(`designbook() { (cd '${runDir}' && ${cmd} "$@"); }`);
+      console.log(`export DESIGNBOOK_CMD='designbook'`);
+    }
 
     // Derive SDC provider from drupal.theme
   });
@@ -105,9 +117,8 @@ validate
   .description('Validate section data.yml against data-model.yml')
   .action((sectionId: string) => {
     const config = loadConfig();
-    const dist = config.dist;
-    const dataModelPath = resolve(dist, 'data-model.yml');
-    const dataPath = resolve(dist, 'sections', sectionId, 'data.yml');
+    const dataModelPath = resolve(config.data, 'data-model.yml');
+    const dataPath = resolve(config.data, 'sections', sectionId, 'data.yml');
     const result = validateData(dataModelPath, dataPath);
     printJson(sectionId, result.valid, result.errors, result.warnings);
   });
@@ -117,7 +128,7 @@ validate
   .description('Validate design tokens against W3C schema')
   .action(() => {
     const config = loadConfig();
-    const tokensPath = resolve(config.dist, 'design-system', 'design-tokens.yml');
+    const tokensPath = resolve(config.data, 'design-system', 'design-tokens.yml');
     const result = validateTokens(tokensPath);
     printJson('design-tokens', result.valid, result.errors, result.warnings);
   });
@@ -127,9 +138,9 @@ validate
   .description('Validate component YAML against Drupal SDC schema')
   .action((name: string) => {
     const config = loadConfig();
-    const themePath = config['drupal.theme'] as string;
+    const themePath = config['designbook.home'] as string | undefined;
     if (!themePath) {
-      console.error('Error: drupal.theme not configured in designbook.config.yml');
+      console.error('Error: designbook.home not configured in designbook.config.yml');
       process.exitCode = 1;
       return;
     }
@@ -143,7 +154,7 @@ validate
   .description('Validate data-model.yml against schema')
   .action(() => {
     const config = loadConfig();
-    const dataModelPath = resolve(config.dist, 'data-model.yml');
+    const dataModelPath = resolve(config.data, 'data-model.yml');
     const result = validateDataModel(dataModelPath);
     printJson('data-model', result.valid, result.errors, result.warnings);
   });
@@ -153,7 +164,7 @@ validate
   .description('Validate a .jsonata entity mapping file against sample data')
   .action(async (name: string) => {
     const config = loadConfig();
-    const file = resolve(config.dist, 'entity-mapping', `${name}.jsonata`);
+    const file = resolve(config.data, 'entity-mapping', `${name}.jsonata`);
     const result = await validateEntityMapping(file, config);
     printJson(name, result.valid, result.errors, result.warnings);
   });
@@ -167,7 +178,7 @@ workflow
   .option('--include-archived', 'Also include archived workflows')
   .action((opts: { workflow: string; includeArchived?: boolean }) => {
     const config = loadConfig();
-    const names = workflowList(config.dist, opts.workflow, opts.includeArchived);
+    const names = workflowList(config.data, opts.workflow, opts.includeArchived);
     for (const n of names) console.log(n);
   });
 
@@ -226,7 +237,7 @@ workflow
             : [];
 
           const name = workflowCreate(
-            config.dist,
+            config.data,
             opts.workflow,
             title,
             intakeTask,
@@ -294,7 +305,7 @@ workflow
         }
       }
 
-      const name = workflowCreate(config.dist, opts.workflow, title, tasks, stages, opts.parent);
+      const name = workflowCreate(config.data, opts.workflow, title, tasks, stages, opts.parent);
       console.log(name);
     },
   );
@@ -332,7 +343,7 @@ workflow
 
     try {
       // Read stage_loaded from existing tasks.yml
-      const changesDir = resolve(config.dist, 'workflows', 'changes', opts.workflow);
+      const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
       const tasksYmlPath = resolve(changesDir, 'tasks.yml');
       if (!existsSync(tasksYmlPath)) {
         throw new Error(`Workflow not found: ${opts.workflow}`);
@@ -354,46 +365,32 @@ workflow
         }
       }
 
-      const rootDir = (config.root as string | undefined) ?? dirname(config.dist);
+      const rootDir = (config.workspace as string | undefined) ?? dirname(config.data);
       const envMap = buildEnvMap(config);
 
-      // Create WORKTREE and remap outputs vars for files: expansion
-      const workspacesBase = process.env['DESIGNBOOK_WORKSPACES'] ?? '/tmp';
-      const worktreePath = resolve(workspacesBase, `designbook-${opts.workflow}`);
+      // Create WORKTREE and remap dirs vars for files: expansion
+      const workspacesBase = process.env['DESIGNBOOK_WORKSPACES'] ?? resolve(config.data, 'workspaces');
+      const worktreePath = resolve(workspacesBase, opts.workflow);
+      let worktreeBranch: string | undefined;
       if (!opts.dryRun) {
-        mkdirSync(worktreePath, { recursive: true });
+        const branchName = `workflow/${opts.workflow}`;
+        if (isGitRepo(rootDir)) {
+          // Pre-flight: ensure workspace has no uncommitted changes before creating worktree
+          const workspace = config['workspace'] as string | undefined ?? rootDir;
+          const preflight = checkPreflightClean(rootDir, workspace);
+          if (!preflight.clean) {
+            console.error(`Error: uncommitted changes in workspace — commit these files before running workflow plan:`);
+            for (const f of preflight.files) console.error(`  · ${f}`);
+            process.exitCode = 1;
+            return;
+          }
+          createGitWorktree(worktreePath, branchName, rootDir);
+          worktreeBranch = branchName;
+        } else {
+          mkdirSync(worktreePath, { recursive: true });
+        }
       }
       const filesEnvMap = buildWorktreeEnvMap(envMap, worktreePath, rootDir);
-
-      // Seed WORKTREE with existing real-path files before any task writes.
-      // This ensures:
-      //   1. reads: dependencies (data-model.yml, etc.) resolve via WORKTREE env vars
-      //   2. existing output files are visible to idempotent tasks (e.g. create-sample-data
-      //      reads current data.yml before appending new records)
-      if (!opts.dryRun) {
-        const realPathsToSeed = new Set<string>();
-        for (const item of items) {
-          const resolved = stageLoaded[item.stage];
-          if (!resolved) continue;
-          const taskFm = parseFrontmatter(resolved.task_file);
-          const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
-          const readEntries = (taskFm?.reads ?? []) as Array<{ path: string }>;
-          const fileTemplates = (taskFm?.files ?? []) as string[];
-          let mergedParams: Record<string, unknown>;
-          try {
-            mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, item.stage);
-          } catch {
-            mergedParams = { ...globalParams, ...item.params };
-          }
-          for (const entry of readEntries) {
-            try { realPathsToSeed.add(expandFilePath(entry.path, mergedParams, envMap)); } catch { /* skip */ }
-          }
-          for (const template of fileTemplates) {
-            try { realPathsToSeed.add(expandFilePath(template, mergedParams, envMap)); } catch { /* skip */ }
-          }
-        }
-        seedWorktree([...realPathsToSeed], worktreePath, rootDir);
-      }
 
       // Expand items into tasks using pre-resolved stage data
       const tasks: Array<{
@@ -474,11 +471,13 @@ workflow
 
       // Write to tasks.yml (skip in dry-run mode)
       if (!opts.dryRun) {
-        workflowPlan(config.dist, opts.workflow, tasks, undefined, globalParams, worktreePath, rootDir);
+        workflowPlan(config.data, opts.workflow, tasks, undefined, globalParams, worktreePath, rootDir, worktreeBranch);
       }
 
       // Output plan JSON
-      console.log(JSON.stringify({ params: globalParams, stages: execStages, tasks }, null, 2));
+      const planOutput: Record<string, unknown> = { params: globalParams, stages: execStages, tasks };
+      if (worktreeBranch) planOutput.worktree_branch = worktreeBranch;
+      console.log(JSON.stringify(planOutput, null, 2));
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;
@@ -492,7 +491,7 @@ workflow
   .requiredOption('--stage <name>', 'Stage name (e.g., designbook-components:intake, create-component)')
   .action((opts: { workflow: string; stage: string }) => {
     const config = loadConfig();
-    const changesDir = resolve(config.dist, 'workflows', 'changes', opts.workflow);
+    const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
     const tasksYmlPath = resolve(changesDir, 'tasks.yml');
 
     if (!existsSync(tasksYmlPath)) {
@@ -539,7 +538,7 @@ workflow
   .action((opts: { workflow: string; task: string; file: string }) => {
     const config = loadConfig();
     try {
-      workflowAddFile(config.dist, opts.workflow, opts.task, opts.file);
+      workflowAddFile(config.data, opts.workflow, opts.task, opts.file);
       console.log(`Added file to task ${opts.task}: ${opts.file}`);
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
@@ -569,7 +568,7 @@ workflow
       }
     }
     try {
-      const result = workflowDone(config.dist, opts.workflow, opts.task, loaded);
+      const result = workflowDone(config.data, opts.workflow, opts.task, loaded);
       const { data } = result;
 
       if (result.archived) {
@@ -578,10 +577,32 @@ workflow
         console.log(`  Summary:   ${data.summary}`);
       } else {
         const done = data.tasks.filter((t) => t.status === 'done').length;
+        const outputTasks = data.tasks.filter((t) => t.type !== 'test' && t.type !== 'prepare-environment');
+        const testTasks = data.tasks.filter((t) => t.type === 'test');
+        const allNonTestDone = outputTasks.length > 0 && outputTasks.every((t) => t.status === 'done');
+        const allDone = data.tasks.every((t) => t.status === 'done');
+
         console.log(`Task ${opts.task} → done (${done}/${data.tasks.length} tasks complete)`);
         for (const t of data.tasks) {
           const icon = t.status === 'done' ? '✓' : t.status === 'in-progress' ? '○' : '·';
           console.log(`  ${icon} ${t.title} — ${t.status}`);
+        }
+
+        if (allNonTestDone && data.worktree_branch && testTasks.length > 0 && testTasks.some((t) => t.status === 'pending')) {
+          // Inform agent that non-test stage is complete — prepare-environment task should run next
+          console.log(`\nNon-test tasks complete. Outputs committed to branch ${data.worktree_branch}.`);
+          console.log(`Next: run prepare-environment task before test stage.`);
+          console.log(`  workflow prepare-environment --workflow ${opts.workflow} --task <prepare-env-task-id>`);
+        } else if (allDone && data.worktree_branch) {
+          // All tasks done — emit review status
+          const outputCount = data.tasks.flatMap((t) => t.files ?? []).length;
+          console.log(`\n✓ Workflow ${opts.workflow} ready for review`);
+          console.log(`  Branch:   ${data.worktree_branch}`);
+          if (data.preview_port) {
+            console.log(`  Preview:  http://localhost:${data.preview_port}`);
+          }
+          console.log(`  Changes:  ${outputCount} files`);
+          console.log(`\nRun: workflow merge --workflow ${opts.workflow}`);
         }
       }
     } catch (err) {
@@ -597,7 +618,7 @@ workflow
   .action((opts: { workflow: string }) => {
     const config = loadConfig();
     try {
-      const data = workflowAbandon(config.dist, opts.workflow);
+      const data = workflowAbandon(config.data, opts.workflow);
       console.log(`Workflow ${opts.workflow} archived as incomplete`);
       console.log(`  Summary: ${data.summary}`);
     } catch (err) {
@@ -620,7 +641,7 @@ workflow
 
     const config = loadConfig();
     try {
-      const result = workflowUpdate(config.dist, name, taskId, opts.status, opts.files);
+      const result = workflowUpdate(config.data, name, taskId, opts.status, opts.files);
       const { data } = result;
 
       if (result.archived) {
@@ -667,7 +688,7 @@ workflow
 
     try {
       const results = await workflowValidate(
-        config.dist,
+        config.data,
         name,
         (file) => defaultRegistry.validate(file, config),
         opts.task,
@@ -702,6 +723,272 @@ program
     const config = loadConfig();
     try {
       await screenshot(config, { scene: opts.scene });
+    } catch (err) {
+      console.error(`Error: ${(err as Error).message}`);
+      process.exitCode = 1;
+    }
+  });
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+/** Bind to port 0, let the OS pick a free port, return it. */
+function findFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer();
+    server.listen(0, '127.0.0.1', () => {
+      const addr = server.address();
+      const port = typeof addr === 'object' && addr ? addr.port : null;
+      server.close((err) => {
+        if (err || port === null) reject(err ?? new Error('Could not determine port'));
+        else resolve(port);
+      });
+    });
+    server.on('error', reject);
+  });
+}
+
+function fetchJson(url: string): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    http
+      .get(url, (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        let body = '';
+        res.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        res.on('end', () => {
+          try { resolve(JSON.parse(body)); } catch { reject(new Error('Invalid JSON')); }
+        });
+      })
+      .on('error', reject);
+  });
+}
+
+/**
+ * Prepare the test environment: start Storybook preview, take screenshots, update tasks.yml.
+ * Internal — not a CLI command.
+ */
+async function prepareEnvironment(
+  dataDir: string,
+  name: string,
+  workflow: WorkflowFile,
+  config: ReturnType<typeof loadConfig>,
+): Promise<{ previewPort: number; previewPid: number | undefined; startupErrors: string[]; screenshotPaths: string[] }> {
+  const cliPath = process.argv[1] ?? process.execPath;
+
+  // Start Storybook — no --port: storybook start auto-detects a free port
+  // storybook start exits 0 when ready, writing JSON to stdout
+  let startupErrors: string[] = [];
+  let pid: number | undefined;
+  let port = 0;
+  try {
+    const output = execFileSync(process.execPath, [cliPath, 'storybook', 'start'], {
+      encoding: 'utf-8',
+      // Storybook logs go to stderr (inherited); stdout has only the JSON ready line
+      stdio: ['ignore', 'pipe', 'inherit'],
+    });
+    const result = JSON.parse(output.trim()) as { ready: boolean; pid?: number; port?: number; startup_errors?: string[] };
+    if (!result.ready) throw new Error('Storybook start returned ready: false');
+    pid = result.pid;
+    port = result.port ?? 0;
+    startupErrors = result.startup_errors ?? [];
+  } catch (err) {
+    throw new Error(`Storybook start failed: ${(err as Error).message}`);
+  }
+
+  // Screenshot each scene declared in task params
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
+  const screenshotDir = resolve(changesDir, 'screenshots');
+  mkdirSync(screenshotDir, { recursive: true });
+  const screenshotPaths: string[] = [];
+
+  const scenes = workflow.tasks
+    .filter((t) => t.params?.scene)
+    .map((t) => t.params!['scene'] as string)
+    .filter((v, i, arr) => arr.indexOf(v) === i);
+
+  const previewUrl = `http://localhost:${port}`;
+  for (const scene of scenes) {
+    const safeName = scene.replace(/[:/]/g, '-');
+    const screenshotPath = resolve(screenshotDir, `${safeName}.png`);
+    try {
+      execFileSync(process.execPath, [cliPath, 'screenshot', '--scene', scene], {
+        env: { ...process.env, DESIGNBOOK_STORYBOOK_URL: previewUrl },
+        stdio: 'inherit',
+      });
+      screenshotPaths.push(screenshotPath);
+    } catch {
+      // Screenshot failed — don't block test stage
+    }
+  }
+
+  return { previewPort: port, previewPid: pid, startupErrors, screenshotPaths };
+}
+
+// ── storybook commands ────────────────────────────────────────────────────────
+
+const storybookCmd = program.command('storybook').description('Storybook process management');
+
+storybookCmd
+  .command('start')
+  .description('Start Storybook dev server and exit when ready (Storybook continues as daemon)')
+  .option('--port <port>', 'Port to start Storybook on (auto-detected when omitted)')
+  .action(async (opts: { port?: string }) => {
+    const config = loadConfig(process.env['DESIGNBOOK_HOME']);
+    const storybookCmdStr = config['designbook.cmd'] as string | undefined;
+    if (!storybookCmdStr) {
+      console.error('Error: designbook.cmd not configured in designbook.config.yml');
+      process.exitCode = 1;
+      return;
+    }
+
+    const port = opts.port ? parseInt(opts.port, 10) : await findFreePort();
+    const fullCmd = `${storybookCmdStr} --port ${port}`;
+    const storybookRoot = config['designbook.home'] as string | undefined;
+    const startupErrors: string[] = [];
+    const errorPattern = /ERROR|ModuleNotFoundError|Cannot find|Failed to/;
+
+    console.log(storybookRoot, fullCmd)
+    const child = spawn(fullCmd, [], {
+      shell: true,
+      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      ...(storybookRoot ? { cwd: storybookRoot } : {}),
+    });
+
+    child.stdout?.on('data', (chunk: Buffer) => {
+      for (const line of chunk.toString().split('\n')) {
+        if (line.trim()) {
+          process.stderr.write(line + '\n');
+          if (errorPattern.test(line)) startupErrors.push(line.trim());
+        }
+      }
+    });
+
+    child.stderr?.on('data', (chunk: Buffer) => {
+      for (const line of chunk.toString().split('\n')) {
+        if (line.trim()) {
+          process.stderr.write(line + '\n');
+          if (errorPattern.test(line)) startupErrors.push(line.trim());
+        }
+      }
+    });
+
+    const timeoutMs = 120_000;
+    const startTime = Date.now();
+    let ready = false;
+
+    while (!ready && Date.now() - startTime < timeoutMs) {
+      await new Promise<void>((r) => setTimeout(r, 2000));
+      try {
+        const result = await fetchJson(`http://localhost:${port}/index.json`);
+        if (result !== null && typeof result === 'object' && 'entries' in result) {
+          ready = true;
+        }
+      } catch {
+        // Not ready yet
+      }
+    }
+
+    if (ready) {
+      child.unref();
+      console.log(JSON.stringify({
+        ready: true,
+        pid: child.pid,
+        port,
+        startup_errors: startupErrors.filter(Boolean),
+      }));
+      process.exit(0);
+    } else {
+      try { child.kill('SIGTERM'); } catch { /* ignore */ }
+      console.log(JSON.stringify({ ready: false, error: 'timeout' }));
+      process.exit(1);
+    }
+  });
+
+storybookCmd
+  .command('stop')
+  .description('Stop a Storybook process started by storybook start')
+  .requiredOption('--pid <pid>', 'Process ID to stop')
+  .action(async (opts: { pid: string }) => {
+    const pid = parseInt(opts.pid, 10);
+    try {
+      process.kill(-pid, 'SIGTERM'); // negative PID kills process group (shell + all children)
+      await new Promise<void>((r) => setTimeout(r, 5000));
+      try {
+        process.kill(-pid, 0); // throws if process group is gone
+        process.kill(-pid, 'SIGKILL');
+      } catch {
+        // Already gone — good
+      }
+    } catch {
+      // PID not found — exit 0 silently
+    }
+    process.exit(0);
+  });
+
+// ── workflow prepare-environment ──────────────────────────────────────────────
+
+workflow
+  .command('prepare-environment')
+  .description('Start Storybook preview, take screenshots, store preview PID/port, and mark task done')
+  .requiredOption('--workflow <name>', 'Workflow name')
+  .requiredOption('--task <id>', 'Task ID of the prepare-environment task')
+  .action(async (opts: { workflow: string; task: string }) => {
+    const config = loadConfig();
+    try {
+      const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
+      const workflow = parseYaml(readFileSync(resolve(changesDir, 'tasks.yml'), 'utf-8')) as WorkflowFile;
+      const prepResult = await prepareEnvironment(config.data, opts.workflow, workflow, config);
+
+      // Mark the prepare-environment task done with preview info in loaded payload
+      const result = workflowDone(config.data, opts.workflow, opts.task, {
+        preview_pid: prepResult.previewPid,
+        preview_port: prepResult.previewPort,
+        pre_test_screenshots: prepResult.screenshotPaths,
+      });
+
+      const previewUrl = `http://localhost:${prepResult.previewPort}`;
+      console.log(`✓ prepare-environment complete`);
+      console.log(`  Preview: ${previewUrl} (pid ${prepResult.previewPid})`);
+      if (prepResult.startupErrors.length > 0) {
+        console.log(`  ⚠ Storybook started with build errors:`);
+        for (const e of prepResult.startupErrors) console.log(`    · ${e}`);
+      }
+      if (prepResult.screenshotPaths.length > 0) {
+        console.log(`  Screenshots: ${prepResult.screenshotPaths.length} taken`);
+      }
+
+      // Show pending test tasks
+      const testTasks = result.data.tasks.filter((t) => t.type === 'test' && t.status === 'pending');
+      if (testTasks.length > 0) {
+        console.log(`\nTest tasks ready (DESIGNBOOK_PREVIEW_URL=${previewUrl}):`);
+        for (const t of testTasks) console.log(`  · ${t.title}`);
+      }
+    } catch (err) {
+      console.error(`Error: ${(err as Error).message}`);
+      process.exitCode = 1;
+    }
+  });
+
+// ── workflow merge ────────────────────────────────────────────────────────────
+
+workflow
+  .command('merge')
+  .description('Squash-merge a workflow branch, kill preview, and archive the workflow')
+  .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+  .action((opts: { workflow: string }) => {
+    const config = loadConfig();
+    try {
+      const result = workflowMerge(config.data, opts.workflow);
+      console.log(`✓ Workflow ${opts.workflow} merged and archived`);
+      console.log(`  Branch:  ${result.branch} (deleted)`);
+      console.log(`  Commit:  workflow: ${opts.workflow}`);
+      if (result.preview_pid) {
+        console.log(`  Preview: stopped (pid ${result.preview_pid})`);
+      }
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;

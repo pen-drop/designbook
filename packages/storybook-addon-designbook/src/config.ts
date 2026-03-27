@@ -21,20 +21,12 @@ export interface ExtensionEntry {
 }
 
 export interface DesignbookConfig {
-  /** Path to the dist/output directory (resolved to absolute path relative to config location). */
-  dist: string;
+  /** Resolved absolute path to the workflow data directory (= DESIGNBOOK_DATA). */
+  data: string;
   /** Technology used (e.g. 'html', 'drupal'). */
   technology: string;
-  /** Temporary directory. */
-  tmp: string;
-  /**
-   * Write-capable output directories. Each key becomes a DESIGNBOOK_OUTPUTS_<KEY> env var.
-   * Paths are resolved relative to the config file location.
-   * During workflow plan, these vars are remapped to the WORKTREE path.
-   */
-  outputs?: Record<string, string>;
-  /** Absolute path to the directory containing designbook.config.yml (exposed as DESIGNBOOK_ROOT). */
-  root?: string;
+  /** Absolute path to the git workspace root (= DESIGNBOOK_WORKSPACE). */
+  workspace?: string;
   /** Any additional keys from the config file. */
   [key: string]: unknown;
 }
@@ -75,9 +67,8 @@ export function getExtensionSkillIds(entries: ExtensionEntry[]): string {
 }
 
 const DEFAULTS: DesignbookConfig = {
-  dist: 'designbook',
+  data: 'designbook', // will be overwritten during loadConfig
   technology: 'html',
-  tmp: 'tmp',
 };
 
 /**
@@ -116,8 +107,11 @@ export function findConfig(startDir: string = process.cwd()): string | null {
  * Load and parse a designbook config file.
  *
  * Finds the config file via `findConfig()`, parses it as YAML,
- * applies defaults for missing keys, and resolves the `dist` path
- * relative to the config file's location (not relative to cwd).
+ * applies defaults for missing keys, and resolves paths:
+ * - `workspace` → absolute, relative to config dir; defaults to config dir (DESIGNBOOK_WORKSPACE)
+ * - `designbook.home` → absolute, relative to workspace; defaults to workspace (DESIGNBOOK_HOME)
+ * - `designbook.data` → absolute, as `home/<name>`; defaults to `home/designbook` (DESIGNBOOK_DATA)
+ * - `dirs.*` → absolute, relative to workspace (DESIGNBOOK_DIRS_*)
  *
  * @param startDir - Directory to start searching from (defaults to cwd)
  * @returns Parsed config with defaults applied
@@ -127,7 +121,14 @@ export function loadConfig(startDir?: string): DesignbookConfig {
 
   if (!configPath) {
     const cwd = process.cwd();
-    return { ...DEFAULTS, dist: resolve(cwd, DEFAULTS.dist), root: cwd };
+    const dataDir = resolve(cwd, 'designbook');
+    return {
+      ...DEFAULTS,
+      data: dataDir,
+      workspace: cwd,
+      'designbook.home': cwd,
+      'designbook.data': dataDir,
+    };
   }
 
   try {
@@ -153,28 +154,36 @@ export function loadConfig(startDir?: string): DesignbookConfig {
 
     const config = { ...DEFAULTS, ...flat } as DesignbookConfig;
 
-    // Resolve dist path relative to config file location, not cwd
-    config.dist = resolve(configDir, config.dist);
-
-    // Resolve drupal.theme to absolute path (same convention as dist)
-    if (typeof config['drupal.theme'] === 'string') {
-      config['drupal.theme'] = resolve(configDir, config['drupal.theme'] as string);
-    }
-
     // Resolve css.app to absolute path
     if (typeof config['css.app'] === 'string') {
       config['css.app'] = resolve(configDir, config['css.app'] as string);
     }
 
-    // Resolve outputs.* paths relative to config file location
+    // 1. Resolve workspace (git project root)
+    const rawWorkspace = config['workspace'] as string | undefined;
+    const workspaceDir = rawWorkspace !== undefined ? resolve(configDir, rawWorkspace) : configDir;
+    config['workspace'] = workspaceDir;
+    config.workspace = workspaceDir;
+
+    // 2. Resolve designbook.home (Storybook/theme app dir)
+    const rawHome = config['designbook.home'] as string | undefined;
+    const home = rawHome !== undefined ? resolve(configDir, rawHome) : workspaceDir;
+    config['designbook.home'] = home;
+
+    // 3. Resolve designbook.data (workflow data dir, name relative to home)
+    const rawData = config['designbook.data'] as string | undefined ?? 'designbook';
+    const dataDir = resolve(home, rawData);
+    config['designbook.data'] = dataDir;
+    config.data = dataDir;
+
+    // 4. designbook.url and designbook.cmd are plain strings — no resolution needed
+
+    // 5. Resolve dirs.* relative to configDir
     for (const key of Object.keys(config)) {
-      if (key.startsWith('outputs.') && typeof config[key] === 'string') {
+      if (key.startsWith('dirs.') && typeof config[key] === 'string') {
         config[key] = resolve(configDir, config[key] as string);
       }
     }
-
-    // Store config directory as root (exposed as DESIGNBOOK_ROOT)
-    config.root = configDir;
 
     return config;
   } catch (err) {

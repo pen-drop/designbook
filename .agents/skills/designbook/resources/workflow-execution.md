@@ -17,18 +17,19 @@ when: {}
 ```bash
 # Inline helper — bootstraps on first call, skips if already done
 _debo() {
-  if [ -z "$DESIGNBOOK_ROOT" ]; then
+  if [ -z "$DESIGNBOOK_HOME" ]; then
     dir="$PWD"
     while [ "$dir" != "/" ]; do
-      [ -f "$dir/designbook.config.yml" ] && DESIGNBOOK_ROOT="$dir" && break
+      [ -f "$dir/designbook.config.yml" ] && DESIGNBOOK_HOME="$dir" && break
       dir=$(dirname "$dir")
     done
-    [ -z "$DESIGNBOOK_ROOT" ] && echo "ERROR: designbook.config.yml not found" && return 1
-    _DEBO_CMD=$(sed -n 's/^cmd: *//p' "$DESIGNBOOK_ROOT/designbook.config.yml" | sed "s/^['\"]//;s/['\"]$//")
+    [ -z "$DESIGNBOOK_HOME" ] && echo "ERROR: designbook.config.yml not found" && return 1
+    _DEBO_CONFIGDIR="$DESIGNBOOK_HOME"
+    _DEBO_CMD=$(sed -n 's/^cmd: *//p' "$_DEBO_CONFIGDIR/designbook.config.yml" | sed "s/^['\"]//;s/['\"]$//")
     [ -z "$_DEBO_CMD" ] && _DEBO_CMD="npx storybook-addon-designbook"
     # Bake cmd into a wrapper at definition time so "$@" is never re-eval'd.
-    # This avoids zsh glob-expanding JSON args that contain [ or {.
-    eval "_debo_exec() { (cd \"\$DESIGNBOOK_ROOT\" && $_DEBO_CMD \"\$@\"); }"
+    # _DEBO_CONFIGDIR is used (not DESIGNBOOK_HOME) so eval "$(...config)" can't clobber it.
+    eval "_debo_exec() { (cd \"\$_DEBO_CONFIGDIR\" && $_DEBO_CMD \"\$@\"); }"
     eval "$(_debo_exec config)"
   fi
   _debo_exec "$@"
@@ -62,7 +63,7 @@ fi
 
 **Resume path:** when continuing an existing workflow, set `WORKFLOW_NAME=$EXISTING` and skip directly to Step 3 (Load Intake Instructions). Do **not** re-run `workflow create` or `workflow plan` — both have already been executed and tasks.yml is already populated.
 
-Use the **absolute path** for `--workflow-file`. Workflow files live at `$DESIGNBOOK_ROOT/.agents/skills/designbook/<concern>/workflows/<workflow-id>.md` (e.g. `$DESIGNBOOK_ROOT/.agents/skills/designbook/vision/workflows/vision.md`).
+Use the **absolute path** for `--workflow-file`. Workflow files live at `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/workflows/<workflow-id>.md` (e.g. `$DESIGNBOOK_HOME/.agents/skills/designbook/vision/workflows/vision.md`).
 
 ### 2. Create Workflow (resolves ALL stages)
 
@@ -91,7 +92,7 @@ Load the `task_file` and all `rules[]` files. Apply `config_rules[]` as constrai
 For each `before` entry in workflow frontmatter:
 - Check `reads:` gate on the referenced workflow's intake task file — skip if missing
 - Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
-- Resolve workflow name to file: `before: workflow: css-generate` → `$DESIGNBOOK_ROOT/.agents/skills/designbook/css-generate/workflows/css-generate.md`
+- Resolve workflow name to file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
 - Complete the hook workflow fully before continuing
 
 ### 5. Plan (expand items into tasks)

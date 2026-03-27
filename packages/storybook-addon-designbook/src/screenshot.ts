@@ -190,15 +190,13 @@ export async function screenshot(
     scene: string;
   },
 ): Promise<void> {
-  const storybookUrl = config.storybook_url as string | undefined;
+  const storybookUrl = config['designbook.url'] as string | undefined;
   if (!storybookUrl) {
-    throw new Error('storybook_url not configured in designbook.config.yml');
+    throw new Error('designbook.url not configured in designbook.config.yml');
   }
 
-  const dist = config.dist;
-
   // Resolve scene(s)
-  const { filePath, scenes } = resolveScene(dist, opts.scene);
+  const { filePath, scenes } = resolveScene(config.data, opts.scene);
   const screenshotsDir = resolve(dirname(filePath), 'screenshots');
 
   const results: ScreenshotResult[] = [];

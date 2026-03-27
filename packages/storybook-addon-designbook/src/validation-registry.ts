@@ -117,7 +117,7 @@ defaultRegistry.register('**/design-tokens.yml', (file) =>
   Promise.resolve(toFileResult(validateTokens(file), file, 'tokens')),
 );
 defaultRegistry.register('**/data.yml', (file, config) =>
-  Promise.resolve(toFileResult(validateData(resolve(config.dist, 'data-model.yml'), file), file, 'data')),
+  Promise.resolve(toFileResult(validateData(resolve(config.data, 'data-model.yml'), file), file, 'data')),
 );
 defaultRegistry.register('**/*.jsonata', async (file, config) => {
   const { validateEntityMapping } = await import('./validators/entity-mapping.js');

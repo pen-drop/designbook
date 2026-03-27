@@ -9,17 +9,17 @@ params:
   container_widths: {}
   section_spacing: {}
 files:
-  - $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
+  - $DESIGNBOOK_HOME/design-system/design-tokens.yml
 ---
 
 # Create Design Tokens — Tailwind
 
-Writes the approved design tokens to `$DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml` in W3C Design Token YAML format with Tailwind-specific naming conventions.
+Writes the approved design tokens to `$DESIGNBOOK_HOME/design-system/design-tokens.yml` in W3C Design Token YAML format with Tailwind-specific naming conventions.
 
 ## Output
 
 ```
-$DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
+$DESIGNBOOK_HOME/design-system/design-tokens.yml
 ```
 
 ## Format

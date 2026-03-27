@@ -96,13 +96,14 @@ function writeWorkflowFile(dir: string, name: string, frontmatter: string): stri
 }
 
 const baseConfig: DesignbookConfig = {
-  dist: '/test/dist',
+  data: '/test/dist',
   technology: 'drupal',
-  tmp: '/test/tmp',
   backend: 'drupal',
   'frameworks.component': 'sdc',
   'frameworks.css': 'tailwind',
-  'drupal.theme': '/test/theme',
+  workspace: '/test',
+  'designbook.home': '/test/theme',
+  'designbook.data': '/test/dist',
   'css.app': '/test/css/app.src.css',
 };
 
@@ -186,11 +187,11 @@ describe('resolveTaskFile', () => {
 
 // 5.2: File path expansion
 describe('expandFilePath', () => {
-  const envMap = { DESIGNBOOK_DIST: '/test/dist', DESIGNBOOK_DRUPAL_THEME: '/test/theme' };
+  const envMap = { DESIGNBOOK_DATA: '/test/dist', DESIGNBOOK_DIRS_COMPONENTS: '/test/theme/components' };
 
   it('expands {{ param }} placeholders', () => {
     const result = expandFilePath(
-      '$DESIGNBOOK_DIST/components/{{ component }}/{{ component }}.yml',
+      '$DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml',
       { component: 'button' },
       envMap,
     );
@@ -198,12 +199,12 @@ describe('expandFilePath', () => {
   });
 
   it('expands ${VAR} env vars', () => {
-    const result = expandFilePath('${DESIGNBOOK_DRUPAL_THEME}/components/test.yml', {}, envMap);
+    const result = expandFilePath('${DESIGNBOOK_DIRS_COMPONENTS}/test.yml', {}, envMap);
     expect(result).toBe('/test/theme/components/test.yml');
   });
 
   it('expands $VAR env vars (without braces)', () => {
-    const result = expandFilePath('$DESIGNBOOK_DIST/data.yml', {}, envMap);
+    const result = expandFilePath('$DESIGNBOOK_DATA/data.yml', {}, envMap);
     expect(result).toBe('/test/dist/data.yml');
   });
 
@@ -433,13 +434,13 @@ describe('resolveWorkflowPlan', () => {
       agentsDir,
       'designbook-components',
       'create-component',
-      'params:\n  component: ~\n  slots: []\nfiles:\n  - $DESIGNBOOK_DIST/components/{{ component }}/{{ component }}.yml',
+      'params:\n  component: ~\n  slots: []\nfiles:\n  - $DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml',
     );
     writeSkillTaskFile(
       agentsDir,
       'designbook-scenes',
       'create-scene',
-      'params:\n  section_id: ~\nfiles:\n  - $DESIGNBOOK_DIST/scenes/{{ section_id }}.yml',
+      'params:\n  section_id: ~\nfiles:\n  - $DESIGNBOOK_DATA/scenes/{{ section_id }}.yml',
     );
 
     // Create workflow file
@@ -531,64 +532,67 @@ describe('generateTaskId', () => {
 describe('buildEnvMap', () => {
   it('builds env map from config', () => {
     const env = buildEnvMap(baseConfig);
-    expect(env.DESIGNBOOK_DIST).toBe('/test/dist');
-    expect(env.DESIGNBOOK_DRUPAL_THEME).toBe('/test/theme');
+    expect(env.DESIGNBOOK_WORKSPACE).toBe('/test');
+    expect(env.DESIGNBOOK_HOME).toBe('/test/theme');
+    expect(env.DESIGNBOOK_DATA).toBe('/test/dist');
   });
 
-  it('exposes outputs.* as DESIGNBOOK_OUTPUTS_* env vars', () => {
+  it('exposes dirs.* as DESIGNBOOK_DIRS_* env vars', () => {
     const config: DesignbookConfig = {
       ...baseConfig,
-      'outputs.config': '/test/dist',
-      'outputs.components': '/test/components',
+      'dirs.config': '/test/dist',
+      'dirs.components': '/test/components',
     };
     const env = buildEnvMap(config);
-    expect(env.DESIGNBOOK_OUTPUTS_CONFIG).toBe('/test/dist');
-    expect(env.DESIGNBOOK_OUTPUTS_COMPONENTS).toBe('/test/components');
+    expect(env.DESIGNBOOK_HOME).toBe('/test/dist');
+    expect(env.DESIGNBOOK_DIRS_COMPONENTS).toBe('/test/components');
   });
 });
 
 // buildWorktreeEnvMap
 describe('buildWorktreeEnvMap', () => {
-  it('remaps DESIGNBOOK_OUTPUTS_* vars to WORKTREE paths', () => {
+  it('swaps DESIGNBOOK_WORKSPACE and remaps DESIGNBOOK_DIRS_* to WORKTREE paths', () => {
     const rootDir = '/home/user/project';
     const envMap = {
-      DESIGNBOOK_ROOT: rootDir,
-      DESIGNBOOK_DIST: '/home/user/project/designbook',
-      DESIGNBOOK_OUTPUTS_CONFIG: '/home/user/project/designbook',
-      DESIGNBOOK_OUTPUTS_COMPONENTS: '/home/user/project/components',
+      DESIGNBOOK_WORKSPACE: rootDir,
+      DESIGNBOOK_HOME: '/home/user/project/theme',
+      DESIGNBOOK_DATA: '/home/user/project/theme/designbook',
+      DESIGNBOOK_HOME: '/home/user/project/theme/designbook',
+      DESIGNBOOK_DIRS_COMPONENTS: '/home/user/project/components',
     };
-    const worktreePath = '/tmp/designbook-test-abc123';
+    const worktreePath = '/tmp/wt-abc123';
     const remapped = buildWorktreeEnvMap(envMap, worktreePath, rootDir);
 
-    // DESIGNBOOK_OUTPUTS_* are remapped to WORKTREE
-    expect(remapped.DESIGNBOOK_OUTPUTS_CONFIG).toBe('/tmp/designbook-test-abc123/designbook');
-    expect(remapped.DESIGNBOOK_OUTPUTS_COMPONENTS).toBe('/tmp/designbook-test-abc123/components');
+    expect(remapped.DESIGNBOOK_WORKSPACE).toBe('/tmp/wt-abc123');
+    expect(remapped.DESIGNBOOK_HOME).toBe('/tmp/wt-abc123/theme');
+    expect(remapped.DESIGNBOOK_DATA).toBe('/tmp/wt-abc123/theme/designbook');
+    expect(remapped.DESIGNBOOK_HOME).toBe('/tmp/wt-abc123/theme/designbook');
+    expect(remapped.DESIGNBOOK_DIRS_COMPONENTS).toBe('/tmp/wt-abc123/components');
   });
 
-  it('does not remap non-DESIGNBOOK_OUTPUTS_* vars', () => {
+  it('does not remap non-workspace vars', () => {
     const rootDir = '/home/user/project';
     const envMap = {
-      DESIGNBOOK_ROOT: rootDir,
-      DESIGNBOOK_DIST: '/home/user/project/designbook',
-      DESIGNBOOK_OUTPUTS_CONFIG: '/home/user/project/designbook',
+      DESIGNBOOK_WORKSPACE: rootDir,
+      DESIGNBOOK_TECHNOLOGY: 'drupal',
+      DESIGNBOOK_HOME: '/home/user/project/designbook',
     };
     const remapped = buildWorktreeEnvMap(envMap, '/tmp/wt', rootDir);
 
-    // Non-outputs vars remain unchanged
-    expect(remapped.DESIGNBOOK_ROOT).toBe(rootDir);
-    expect(remapped.DESIGNBOOK_DIST).toBe('/home/user/project/designbook');
+    expect(remapped.DESIGNBOOK_TECHNOLOGY).toBe('drupal');
   });
 
   it('files: paths using remapped env differ from reads: paths using original env', () => {
     const rootDir = '/home/user/project';
     const envMap = {
-      DESIGNBOOK_OUTPUTS_CONFIG: '/home/user/project/designbook',
+      DESIGNBOOK_WORKSPACE: rootDir,
+      DESIGNBOOK_HOME: '/home/user/project/designbook',
     };
     const worktreePath = '/tmp/wt-123';
     const remappedEnvMap = buildWorktreeEnvMap(envMap, worktreePath, rootDir);
 
     // files: path (uses remapped env) → WORKTREE
-    const fileTemplate = '$DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml';
+    const fileTemplate = '$DESIGNBOOK_HOME/data-model.yml';
     const filesPath = expandFilePath(fileTemplate, {}, remappedEnvMap);
     expect(filesPath).toBe('/tmp/wt-123/designbook/data-model.yml');
 
@@ -739,8 +743,9 @@ describe('buildEnrichedConfig', () => {
 
   it('includes DESIGNBOOK_* env vars', () => {
     const enriched = buildEnrichedConfig(baseConfig);
-    expect(enriched['DESIGNBOOK_DIST']).toBe('/test/dist');
-    expect(enriched['DESIGNBOOK_DRUPAL_THEME']).toBe('/test/theme');
+    expect(enriched['DESIGNBOOK_WORKSPACE']).toBe('/test');
+    expect(enriched['DESIGNBOOK_HOME']).toBe('/test/theme');
+    expect(enriched['DESIGNBOOK_DATA']).toBe('/test/dist');
   });
 
   it('normalizes extensions to string array', () => {

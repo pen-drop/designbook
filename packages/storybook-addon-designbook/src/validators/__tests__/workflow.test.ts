@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, utimesSync, rmSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -10,8 +10,17 @@ import {
   workflowAddFile,
   workflowDone,
   workflowValidate,
+  workflowMerge,
+  isGitRepo,
+  createGitWorktree,
+  mergeWorktree,
+  checkPreflightClean,
   type WorkflowFile,
 } from '../../workflow.js';
+
+vi.mock('node:child_process', () => ({
+  execFileSync: vi.fn(),
+}));
 
 function tasksYmlPath(dist: string, name: string): string {
   return resolve(dist, 'workflows', 'changes', name, 'tasks.yml');
@@ -723,5 +732,295 @@ describe('workflowValidate', () => {
 
     const data = readWorkflowFile(dist, name);
     expect(data.tasks[0].files![0].validation_result?.valid).toBe(false);
+  });
+});
+
+// ── Git worktree helpers ──────────────────────────────────────────────────────
+
+describe('isGitRepo', () => {
+  let execFileSync: Mock;
+
+  beforeEach(async () => {
+    const childProcess = await import('node:child_process');
+    execFileSync = childProcess.execFileSync as unknown as Mock;
+    vi.resetAllMocks();
+  });
+
+  it('returns true when git rev-parse succeeds', () => {
+    execFileSync.mockReturnValue(undefined);
+    expect(isGitRepo('/some/dir')).toBe(true);
+    expect(execFileSync).toHaveBeenCalledWith('git', ['rev-parse', '--git-dir'], { cwd: '/some/dir', stdio: 'ignore' });
+  });
+
+  it('returns false when git rev-parse throws', () => {
+    execFileSync.mockImplementation(() => { throw new Error('not a git repo'); });
+    expect(isGitRepo('/some/dir')).toBe(false);
+  });
+});
+
+describe('createGitWorktree', () => {
+  let execFileSync: Mock;
+
+  beforeEach(async () => {
+    const childProcess = await import('node:child_process');
+    execFileSync = childProcess.execFileSync as unknown as Mock;
+    vi.resetAllMocks();
+  });
+
+  it('calls git worktree add with full checkout (no --no-checkout, no sparse-checkout)', () => {
+    execFileSync.mockReturnValue(undefined);
+    createGitWorktree('/tmp/wt', 'workflow/test', '/repo');
+    expect(execFileSync).toHaveBeenCalledWith(
+      'git', ['worktree', 'add', '/tmp/wt', '-b', 'workflow/test'],
+      { cwd: '/repo' },
+    );
+    const calls = execFileSync.mock.calls as string[][];
+    expect(calls.some((c) => c[1]?.includes('--no-checkout'))).toBe(false);
+    expect(calls.some((c) => c[1]?.includes('sparse-checkout'))).toBe(false);
+  });
+});
+
+describe('mergeWorktree', () => {
+  let execFileSync: Mock;
+  let dist: string;
+
+  beforeEach(async () => {
+    const childProcess = await import('node:child_process');
+    execFileSync = childProcess.execFileSync as unknown as Mock;
+    vi.resetAllMocks();
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-merge-'));
+  });
+
+  it('stages only declared output paths (relative to writeRoot)', () => {
+    execFileSync.mockReturnValue(undefined);
+    const writeRoot = '/tmp/worktree';
+    const outputPaths = [`${writeRoot}/components/btn/btn.twig`, `${writeRoot}/components/btn/btn.yml`];
+    mergeWorktree(writeRoot, 'workflow/test', '/repo', outputPaths);
+    expect(execFileSync).toHaveBeenCalledWith(
+      'git', ['-C', writeRoot, 'add', 'components/btn/btn.twig', 'components/btn/btn.yml'],
+    );
+  });
+
+  it('commits and merges with --no-ff', () => {
+    execFileSync.mockReturnValue(undefined);
+    mergeWorktree('/tmp/wt', 'workflow/test', '/repo', []);
+    expect(execFileSync).toHaveBeenCalledWith('git', ['-C', '/tmp/wt', 'commit', '-m', 'workflow: workflow/test']);
+    expect(execFileSync).toHaveBeenCalledWith('git', ['-C', '/repo', 'merge', '--no-ff', 'workflow/test']);
+  });
+
+  it('aborts and throws when merge fails', () => {
+    let callCount = 0;
+    execFileSync.mockImplementation((_cmd: string, args: string[]) => {
+      callCount++;
+      // Fail on the merge command
+      if (args.includes('merge') && args.includes('--no-ff')) {
+        throw new Error('Merge conflict');
+      }
+    });
+    expect(() => mergeWorktree('/tmp/wt', 'workflow/test', '/repo', [])).toThrow('Git merge failed');
+    // Should have called merge --abort after failure
+    const calls = execFileSync.mock.calls as string[][];
+    expect(calls.some((c) => c[1]?.includes('--abort'))).toBe(true);
+  });
+
+  it('cleans up worktree and branch after successful merge', () => {
+    execFileSync.mockReturnValue(undefined);
+    mergeWorktree('/tmp/wt', 'workflow/test', '/repo', []);
+    const calls = execFileSync.mock.calls as string[][];
+    expect(calls.some((c) => c[1]?.includes('remove') && c[1]?.includes('/tmp/wt'))).toBe(true);
+    expect(calls.some((c) => c[1]?.includes('-d') && c[1]?.includes('workflow/test'))).toBe(true);
+  });
+});
+
+describe('workflowDone with git worktree', () => {
+  let execFileSync: Mock;
+  let dist: string;
+  let rootDir: string;
+  let writeRoot: string;
+
+  beforeEach(async () => {
+    const childProcess = await import('node:child_process');
+    execFileSync = childProcess.execFileSync as unknown as Mock;
+    vi.resetAllMocks();
+    execFileSync.mockReturnValue(undefined);
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-git-done-'));
+    rootDir = resolve(dist, 'project-root');
+    writeRoot = resolve(dist, 'worktree');
+    mkdirSync(rootDir, { recursive: true });
+    mkdirSync(writeRoot, { recursive: true });
+  });
+
+  it('commits to worktree branch + removes worktree (no merge) when worktree_branch is set', () => {
+    const outputFile = resolve(writeRoot, 'components', 'btn.twig');
+    mkdirSync(resolve(writeRoot, 'components'), { recursive: true });
+    writeFileSync(outputFile, 'twig content');
+
+    const name = workflowCreate(dist, 'debo-test', 'Test', [
+      { id: 'task1', title: 'T1', type: 'component', files: [outputFile] },
+    ]);
+    workflowPlan(dist, name, [
+      { id: 'task1', title: 'T1', type: 'component', files: [outputFile] },
+    ], undefined, undefined, writeRoot, rootDir, 'workflow/test');
+
+    const data = readWorkflowFile(dist, name);
+    data.tasks[0].files![0].requires_validation = false;
+    data.tasks[0].files![0].validation_result = { file: outputFile, type: 'component', valid: true, last_validated: '' };
+    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
+
+    const result = workflowDone(dist, name, 'task1');
+    // Worktree path: not archived — stays in changes/ until workflow merge
+    expect(result.archived).toBe(false);
+    const calls = execFileSync.mock.calls as string[][];
+    // Should have committed in the worktree
+    expect(calls.some((c) => c[1]?.includes('commit'))).toBe(true);
+    // Should have removed the worktree directory
+    expect(calls.some((c) => c[1]?.includes('remove'))).toBe(true);
+    // Should NOT have done a git merge
+    expect(calls.some((c) => c[1]?.includes('merge'))).toBe(false);
+  });
+
+  it('falls back to commitWorktree (copy+touch) when worktree_branch is absent', () => {
+    const worktreeFile = resolve(writeRoot, 'data.yml');
+    writeFileSync(worktreeFile, 'key: value');
+
+    const name = workflowCreate(dist, 'debo-test', 'Test', [
+      { id: 'task1', title: 'T1', type: 'data', files: [worktreeFile] },
+    ]);
+    workflowPlan(dist, name, [
+      { id: 'task1', title: 'T1', type: 'data', files: [worktreeFile] },
+    ], undefined, undefined, writeRoot, rootDir); // no worktreeBranch
+
+    const data = readWorkflowFile(dist, name);
+    data.tasks[0].files![0].requires_validation = false;
+    data.tasks[0].files![0].validation_result = { file: worktreeFile, type: 'data', valid: true, last_validated: '' };
+    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
+
+    const result = workflowDone(dist, name, 'task1');
+    expect(result.archived).toBe(true);
+    // commitWorktree copies file to rootDir
+    expect(existsSync(resolve(rootDir, 'data.yml'))).toBe(true);
+    // No git merge called
+    const calls = execFileSync.mock.calls as string[][];
+    expect(calls.some((c) => c[1]?.includes('merge'))).toBe(false);
+  });
+});
+
+// ── checkPreflightClean ───────────────────────────────────────────────────────
+
+describe('checkPreflightClean', () => {
+  let execFileSync: Mock;
+
+  beforeEach(async () => {
+    const childProcess = await import('node:child_process');
+    execFileSync = childProcess.execFileSync as unknown as Mock;
+    vi.resetAllMocks();
+  });
+
+  it('returns clean=true when git status outputs nothing', () => {
+    execFileSync.mockReturnValue('');
+    const result = checkPreflightClean('/repo', '/repo/packages/theme');
+    expect(result.clean).toBe(true);
+    expect(result.files).toEqual([]);
+  });
+
+  it('returns clean=false with file list when uncommitted changes exist', () => {
+    execFileSync.mockReturnValue(' M packages/theme/components/btn.twig\n?? packages/theme/tokens.yml\n');
+    const result = checkPreflightClean('/repo', '/repo/packages/theme');
+    expect(result.clean).toBe(false);
+    expect(result.files).toContain('packages/theme/components/btn.twig');
+    expect(result.files).toContain('packages/theme/tokens.yml');
+  });
+
+  it('returns clean=true when git command throws (non-git directory)', () => {
+    execFileSync.mockImplementation(() => { throw new Error('not a git repo'); });
+    const result = checkPreflightClean('/repo', '/repo/packages/theme');
+    expect(result.clean).toBe(true);
+  });
+
+  it('passes the relative outputsRoot path to git status', () => {
+    execFileSync.mockReturnValue('');
+    checkPreflightClean('/repo', '/repo/packages/theme');
+    expect(execFileSync).toHaveBeenCalledWith(
+      'git',
+      ['-C', '/repo', 'status', '--porcelain', '--', 'packages/theme'],
+      { encoding: 'utf-8' },
+    );
+  });
+});
+
+// ── workflowMerge ─────────────────────────────────────────────────────────────
+
+describe('workflowMerge', () => {
+  let execFileSync: Mock;
+  let dist: string;
+  let rootDir: string;
+
+  beforeEach(async () => {
+    const childProcess = await import('node:child_process');
+    execFileSync = childProcess.execFileSync as unknown as Mock;
+    vi.resetAllMocks();
+    execFileSync.mockReturnValue(undefined);
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-wmerge-'));
+    rootDir = resolve(dist, 'project-root');
+    mkdirSync(rootDir, { recursive: true });
+  });
+
+  function makeWorkflow(worktreeBranch?: string, previewPid?: number) {
+    const name = workflowCreate(dist, 'debo-test', 'Test', [
+      { id: 'task1', title: 'T1', type: 'data' },
+    ]);
+    workflowPlan(dist, name, [
+      { id: 'task1', title: 'T1', type: 'data' },
+    ], undefined, undefined, undefined, rootDir, worktreeBranch);
+    const data = readWorkflowFile(dist, name);
+    if (previewPid) data.preview_pid = previewPid;
+    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
+    return name;
+  }
+
+  it('calls git merge --squash + commit + branch delete', () => {
+    const name = makeWorkflow('workflow/test');
+    workflowMerge(dist, name);
+    const calls = execFileSync.mock.calls as string[][];
+    expect(calls.some((c) => c[1]?.includes('merge') && c[1]?.includes('--squash') && c[1]?.includes('workflow/test'))).toBe(true);
+    expect(calls.some((c) => c[1]?.includes('commit') && c[1]?.includes(`workflow: ${name}`))).toBe(true);
+    expect(calls.some((c) => c[1]?.includes('-D') && c[1]?.includes('workflow/test'))).toBe(true);
+  });
+
+  it('archives workflow after merge', () => {
+    const name = makeWorkflow('workflow/test');
+    workflowMerge(dist, name);
+    // Workflow moved to archive
+    expect(existsSync(resolve(dist, 'workflows', 'archive', name, 'tasks.yml'))).toBe(true);
+    expect(existsSync(tasksYmlPath(dist, name))).toBe(false);
+  });
+
+  it('throws when worktree_branch is not set', () => {
+    const name = makeWorkflow(); // no branch
+    expect(() => workflowMerge(dist, name)).toThrow('no worktree_branch');
+  });
+
+  it('returns branch, root_dir, and preview_pid', () => {
+    const name = makeWorkflow('workflow/test', 12345);
+    const result = workflowMerge(dist, name);
+    expect(result.branch).toBe('workflow/test');
+    expect(result.root_dir).toBe(rootDir);
+    expect(result.preview_pid).toBe(12345);
+  });
+
+  it('kills preview process when preview_pid is set', () => {
+    const killSpy = vi.spyOn(process, 'kill').mockReturnValue(true);
+    const name = makeWorkflow('workflow/test', 99999);
+    workflowMerge(dist, name);
+    expect(killSpy).toHaveBeenCalledWith(-99999, 'SIGTERM');
+    killSpy.mockRestore();
+  });
+
+  it('does not call process.kill when preview_pid is not set', () => {
+    const killSpy = vi.spyOn(process, 'kill').mockReturnValue(true);
+    const name = makeWorkflow('workflow/test'); // no preview_pid
+    workflowMerge(dist, name);
+    expect(killSpy).not.toHaveBeenCalled();
+    killSpy.mockRestore();
   });
 });

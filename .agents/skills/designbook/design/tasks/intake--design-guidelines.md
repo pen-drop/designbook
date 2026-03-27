@@ -1,15 +1,15 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/guidelines.yml
+  - path: $DESIGNBOOK_HOME/design-system/guidelines.yml
     optional: true
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_HOME/design-system/design-tokens.yml
     optional: true
 ---
 
 # Intake: Design Guidelines
 
-Help the user define their design guidelines. The result is saved to `$DESIGNBOOK_OUTPUTS_CONFIG/design-system/guidelines.yml` and is automatically loaded by all design-system workflows.
+Help the user define their design guidelines. The result is saved to `$DESIGNBOOK_HOME/design-system/guidelines.yml` and is automatically loaded by all design-system workflows.
 
 ## Step 1: Ask Everything at Once
 

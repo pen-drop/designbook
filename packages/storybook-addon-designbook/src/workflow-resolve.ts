@@ -157,15 +157,31 @@ export function buildEnrichedConfig(config: DesignbookConfig): Record<string, un
 
 /**
  * Build a map of DESIGNBOOK_* env vars from config for template expansion.
+ *
+ * Emits:
+ * - DESIGNBOOK_WORKSPACE from `workspace`
+ * - DESIGNBOOK_HOME / DESIGNBOOK_DATA / DESIGNBOOK_URL / DESIGNBOOK_CMD from `designbook.*` keys
+ * - DESIGNBOOK_DIRS_* from `dirs.*` keys
+ * - All other scalar config values → DESIGNBOOK_<KEY>
  */
 export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
   const env: Record<string, string> = {};
 
   // Dynamic: all scalar config values → DESIGNBOOK_<KEY> (dots become underscores, uppercased)
+  // Skip internal properties and designbook.* keys (handled explicitly below)
   for (const [key, value] of Object.entries(config)) {
     if (value == null || typeof value === 'object') continue;
+    if (key === 'data' || key === 'workspace') continue;
+    if (key.startsWith('designbook.')) continue;
     env[`DESIGNBOOK_${key.replace(/\./g, '_').toUpperCase()}`] = String(value);
   }
+
+  // Explicit: DESIGNBOOK_WORKSPACE, DESIGNBOOK_HOME, DESIGNBOOK_DATA, DESIGNBOOK_URL, DESIGNBOOK_CMD
+  if (config.workspace) env['DESIGNBOOK_WORKSPACE'] = String(config.workspace);
+  if (config['designbook.home']) env['DESIGNBOOK_HOME'] = String(config['designbook.home']);
+  if (config['designbook.data']) env['DESIGNBOOK_DATA'] = String(config['designbook.data']);
+  if (config['designbook.url']) env['DESIGNBOOK_URL'] = String(config['designbook.url']);
+  if (config['designbook.cmd']) env['DESIGNBOOK_CMD'] = String(config['designbook.cmd']);
 
   // Derived: extensions as comma-sep IDs + skill IDs
   const extensions = normalizeExtensions(config['extensions']);
@@ -176,13 +192,14 @@ export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
 }
 
 /**
- * Build a remapped env map where all DESIGNBOOK_OUTPUTS_* vars point inside the WORKTREE.
+ * Build a remapped env map for an isolated git WORKTREE.
  *
- * Each output var's real path is converted to a path relative to rootDir, then
- * re-anchored under worktreePath. This preserves directory structure so that
- * `cp -r WORKTREE/* DESIGNBOOK_ROOT/` restores files to their correct locations.
+ * Swaps DESIGNBOOK_WORKSPACE to the worktree path. All DESIGNBOOK_DIRS_* vars are
+ * re-derived by resolving their workspace-relative paths against the new workspace.
+ * DESIGNBOOK_HOME and DESIGNBOOK_DATA are re-resolved the same way.
  *
- * All other vars (DESIGNBOOK_ROOT, DESIGNBOOK_DIST, etc.) remain unchanged.
+ * This preserves directory structure so that `cp -r WORKTREE/* DESIGNBOOK_HOME/`
+ * restores files to their correct locations.
  */
 export function buildWorktreeEnvMap(
   envMap: Record<string, string>,
@@ -190,11 +207,25 @@ export function buildWorktreeEnvMap(
   rootDir: string,
 ): Record<string, string> {
   const remapped = { ...envMap };
+
+  // Swap workspace anchor
+  remapped['DESIGNBOOK_WORKSPACE'] = worktreePath;
+
+  // Re-resolve DESIGNBOOK_DIRS_* relative to new workspace
   for (const [key, value] of Object.entries(envMap)) {
-    if (!key.startsWith('DESIGNBOOK_OUTPUTS_')) continue;
+    if (!key.startsWith('DESIGNBOOK_DIRS_')) continue;
     const relPath = relative(rootDir, value);
     remapped[key] = resolve(worktreePath, relPath);
   }
+
+  // Re-resolve DESIGNBOOK_HOME and DESIGNBOOK_DATA relative to new workspace
+  if (envMap['DESIGNBOOK_HOME']) {
+    remapped['DESIGNBOOK_HOME'] = resolve(worktreePath, relative(rootDir, envMap['DESIGNBOOK_HOME']));
+  }
+  if (envMap['DESIGNBOOK_DATA']) {
+    remapped['DESIGNBOOK_DATA'] = resolve(worktreePath, relative(rootDir, envMap['DESIGNBOOK_DATA']));
+  }
+
   return remapped;
 }
 

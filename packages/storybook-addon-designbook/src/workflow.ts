@@ -2,12 +2,13 @@
  * Workflow tracking CLI logic.
  *
  * Provides commands for managing workflow task files
- * under $DESIGNBOOK_DIST/workflows/changes/ and /archive/.
+ * under $DESIGNBOOK_DATA/workflows/changes/ and /archive/.
  */
 
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
 import type { ValidationFileResult } from './workflow-types.js';
 import { withLock, withLockAsync } from './workflow-lock.js';
@@ -64,8 +65,16 @@ export interface WorkflowFile {
   summary?: string;
   /** Absolute path to the isolated WORKTREE directory for this workflow run. */
   write_root?: string;
-  /** Absolute path to DESIGNBOOK_ROOT (config dir). Used by workflowDone to copy WORKTREE → root. */
+  /** Absolute path to DESIGNBOOK_HOME (theme/Storybook app dir). Used by workflowDone to copy WORKTREE → home. */
   root_dir?: string;
+  /** Git branch name created for this workflow run (e.g. workflow/<name>). Set when git worktree is used. */
+  worktree_branch?: string;
+  /** Port number of the preview Storybook instance started after workflow done. */
+  preview_port?: number;
+  /** Process ID of the preview Storybook instance. Used by workflowMerge to kill it. */
+  preview_pid?: number;
+  /** Paths to screenshots taken before test tasks run. */
+  pre_test_screenshots?: string[];
   tasks: WorkflowTask[];
 }
 
@@ -94,16 +103,16 @@ function writeWorkflowAtomic(filePath: string, data: WorkflowFile): void {
   renameSync(tmpPath, filePath);
 }
 
-function archiveWorkflow(dist: string, name: string, data: WorkflowFile): void {
-  data.status = 'completed';
-  data.completed_at = timestamp();
-  data.summary = data.tasks.map((t) => `${t.title} (${t.type})`).join(', ');
+function archiveWorkflow(dataDir: string, name: string, wf: WorkflowFile): void {
+  wf.status = 'completed';
+  wf.completed_at = timestamp();
+  wf.summary = wf.tasks.map((t) => `${t.title} (${t.type})`).join(', ');
 
-  const changesDir = resolve(dist, 'workflows', 'changes', name);
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
-  writeFileSync(filePath, stringifyYaml(data));
+  writeFileSync(filePath, stringifyYaml(wf));
 
-  const archiveDir = resolve(dist, 'workflows', 'archive', name);
+  const archiveDir = resolve(dataDir, 'workflows', 'archive', name);
   mkdirSync(dirname(archiveDir), { recursive: true });
   renameSync(changesDir, archiveDir);
 }
@@ -111,8 +120,8 @@ function archiveWorkflow(dist: string, name: string, data: WorkflowFile): void {
 /**
  * Archive a workflow as incomplete (user declined to resume).
  */
-export function workflowAbandon(dist: string, name: string): WorkflowFile {
-  const changesDir = resolve(dist, 'workflows', 'changes', name);
+export function workflowAbandon(dataDir: string, name: string): WorkflowFile {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
   const data = readWorkflow(filePath);
 
@@ -122,14 +131,14 @@ export function workflowAbandon(dist: string, name: string): WorkflowFile {
 
   writeFileSync(filePath, stringifyYaml(data));
 
-  const archiveDir = resolve(dist, 'workflows', 'archive', name);
+  const archiveDir = resolve(dataDir, 'workflows', 'archive', name);
   mkdirSync(dirname(archiveDir), { recursive: true });
   renameSync(changesDir, archiveDir);
 
   return data;
 }
 
-function normalizeFilePath(_dist: string, p: string): string {
+function normalizeFilePath(_dataDir: string, p: string): string {
   return p; // Paths must always be absolute — stored as-is
 }
 
@@ -187,6 +196,130 @@ export function seedWorktree(realPaths: string[], worktreePath: string, rootDir:
 }
 
 /**
+ * Check whether `dir` is inside a git repository.
+ */
+export function isGitRepo(dir: string): boolean {
+  try {
+    execFileSync('git', ['rev-parse', '--git-dir'], { cwd: dir, stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Create a full git worktree at `worktreePath` on a new branch `branchName`.
+ * Full checkout — pre-flight commit check ensures all files are committed before this is called.
+ */
+export function createGitWorktree(worktreePath: string, branchName: string, rootDir: string): void {
+  execFileSync('git', ['worktree', 'add', worktreePath, '-b', branchName], { cwd: rootDir });
+}
+
+/**
+ * Check whether `outputsRoot` has uncommitted changes in the git repo at `rootDir`.
+ * Returns `{ clean: true }` when there are no uncommitted changes, otherwise
+ * `{ clean: false, files: [...] }` with the list of changed relative paths.
+ */
+export function checkPreflightClean(rootDir: string, outputsRoot: string): { clean: boolean; files: string[] } {
+  try {
+    const relOutputsRoot = relative(rootDir, outputsRoot);
+    const output = execFileSync(
+      'git',
+      ['-C', rootDir, 'status', '--porcelain', '--', relOutputsRoot],
+      { encoding: 'utf-8' },
+    );
+    if (!output.trim()) return { clean: true, files: [] };
+    const files = output
+      .split('\n')
+      .filter((line) => line.length >= 4)
+      .map((line) => line.slice(3).trim())
+      .filter(Boolean);
+    return { clean: false, files };
+  } catch {
+    return { clean: true, files: [] };
+  }
+}
+
+/**
+ * Stage declared output paths in the worktree, commit them, then remove the worktree directory.
+ * The branch remains in git — not merged. Called at `workflow done` time (final non-test task).
+ * User later calls `workflowMerge` to squash-merge the branch back.
+ */
+function commitWorktreeBranch(writeRoot: string, worktreeBranch: string, rootDir: string, outputPaths: string[]): void {
+  if (outputPaths.length > 0) {
+    const relPaths = outputPaths
+      .map((p) => relative(writeRoot, p))
+      .filter((r) => !r.startsWith('..'));
+    if (relPaths.length > 0) {
+      execFileSync('git', ['-C', writeRoot, 'add', ...relPaths]);
+    }
+  }
+  execFileSync('git', ['-C', writeRoot, 'commit', '--allow-empty', '-m', `workflow: ${worktreeBranch}`]);
+  execFileSync('git', ['worktree', 'remove', writeRoot, '--force'], { cwd: rootDir });
+}
+
+/**
+ * Squash-merge a workflow branch back into the working tree and archive the workflow.
+ * Kills the preview process if `preview_pid` is set. Called by `workflow merge` CLI command.
+ */
+export function workflowMerge(dataDir: string, name: string): { branch: string; root_dir: string; preview_pid?: number } {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+  const data = readWorkflow(filePath);
+
+  const branch = data.worktree_branch;
+  const rootDir = data.root_dir;
+
+  if (!branch) throw new Error(`Workflow "${name}" has no worktree_branch — nothing to merge`);
+  if (!rootDir) throw new Error(`Workflow "${name}" has no root_dir`);
+
+  // Kill preview process group before merge (negative PID kills shell + all children)
+  if (data.preview_pid) {
+    try { process.kill(-data.preview_pid, 'SIGTERM'); } catch { /* already gone */ }
+  }
+
+  execFileSync('git', ['-C', rootDir, 'merge', '--squash', branch]);
+  execFileSync('git', ['-C', rootDir, 'commit', '-m', `workflow: ${name}`]);
+  // Force delete — squash merge doesn't mark the branch as "fully merged" in git's view
+  execFileSync('git', ['-C', rootDir, 'branch', '-D', branch]);
+
+  archiveWorkflow(dataDir, name, data);
+
+  return { branch, root_dir: rootDir, preview_pid: data.preview_pid };
+}
+
+/**
+ * Merge a git worktree branch back into the main working tree (legacy — used by older tests).
+ *
+ * Stages only the declared output paths, commits, merges back with --no-ff,
+ * then removes the worktree and branch. On merge failure: aborts and throws.
+ */
+export function mergeWorktree(writeRoot: string, worktreeBranch: string, rootDir: string, outputPaths: string[]): void {
+  if (outputPaths.length > 0) {
+    const relPaths = outputPaths
+      .map((p) => relative(writeRoot, p))
+      .filter((r) => !r.startsWith('..'));
+    if (relPaths.length > 0) {
+      execFileSync('git', ['-C', writeRoot, 'add', ...relPaths]);
+    }
+  }
+
+  execFileSync('git', ['-C', writeRoot, 'commit', '-m', `workflow: ${worktreeBranch}`]);
+
+  try {
+    execFileSync('git', ['-C', rootDir, 'merge', '--no-ff', worktreeBranch]);
+  } catch {
+    try { execFileSync('git', ['-C', rootDir, 'merge', '--abort']); } catch { /* ignore */ }
+    try { execFileSync('git', ['worktree', 'remove', writeRoot, '--force'], { cwd: rootDir }); } catch { /* ignore */ }
+    try { execFileSync('git', ['branch', '-d', worktreeBranch], { cwd: rootDir }); } catch { /* ignore */ }
+    throw new Error(`Git merge failed for branch ${worktreeBranch}. Resolve conflicts manually.`);
+  }
+
+  execFileSync('git', ['worktree', 'remove', writeRoot, '--force'], { cwd: rootDir });
+  execFileSync('git', ['branch', '-d', worktreeBranch], { cwd: rootDir });
+}
+
+/**
  * Copy all files from WORKTREE to rootDir (preserving relative structure),
  * touch all copied files to trigger Storybook HMR, then remove the WORKTREE.
  */
@@ -214,15 +347,15 @@ function commitWorktree(writeRoot: string, rootDir: string): void {
  * Returns names newest-first.
  * When includeArchived is true, also scans workflows/archive/.
  */
-export function workflowList(dist: string, workflowId: string, includeArchived?: boolean): string[] {
-  const changesDir = resolve(dist, 'workflows', 'changes');
+export function workflowList(dataDir: string, workflowId: string, includeArchived?: boolean): string[] {
+  const changesDir = resolve(dataDir, 'workflows', 'changes');
   const active = existsSync(changesDir)
     ? readdirSync(changesDir).filter((name) => name.startsWith(`${workflowId}-`))
     : [];
 
   const archived: string[] = [];
   if (includeArchived) {
-    const archiveDir = resolve(dist, 'workflows', 'archive');
+    const archiveDir = resolve(dataDir, 'workflows', 'archive');
     if (existsSync(archiveDir)) {
       archived.push(...readdirSync(archiveDir).filter((name) => name.startsWith(`${workflowId}-`)));
     }
@@ -238,7 +371,7 @@ export function workflowList(dist: string, workflowId: string, includeArchived?:
  * @returns The generated unique workflow name
  */
 export function workflowCreate(
-  dist: string,
+  dataDir: string,
   workflowId: string,
   title: string,
   tasks: Array<{
@@ -281,13 +414,13 @@ export function workflowCreate(
         ? { config_instructions: t.config_instructions }
         : {}),
       files: (t.files ?? []).map((p) => ({
-        path: normalizeFilePath(dist, p),
+        path: normalizeFilePath(dataDir, p),
         requires_validation: true,
       })),
     })),
   };
 
-  const dir = resolve(dist, 'workflows', 'changes', name);
+  const dir = resolve(dataDir, 'workflows', 'changes', name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(resolve(dir, 'tasks.yml'), stringifyYaml(data));
 
@@ -299,7 +432,7 @@ export function workflowCreate(
  * Errors with exit code 1 if the workflow is not in planning status.
  */
 export function workflowPlan(
-  dist: string,
+  dataDir: string,
   name: string,
   tasks: Array<{
     id: string;
@@ -318,8 +451,9 @@ export function workflowPlan(
   globalParams?: Record<string, unknown>,
   writeRoot?: string,
   rootDir?: string,
+  worktreeBranch?: string,
 ): WorkflowFile {
-  const changesDir = resolve(dist, 'workflows', 'changes', name);
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
   const data = readWorkflow(filePath);
 
@@ -331,6 +465,7 @@ export function workflowPlan(
   if (globalParams && Object.keys(globalParams).length > 0) data.params = globalParams;
   if (writeRoot) data.write_root = writeRoot;
   if (rootDir) data.root_dir = rootDir;
+  if (worktreeBranch) data.worktree_branch = worktreeBranch;
   data.tasks = tasks.map((t) => ({
     id: t.id,
     title: t.title,
@@ -346,7 +481,7 @@ export function workflowPlan(
       ? { config_instructions: t.config_instructions }
       : {}),
     files: (t.files ?? []).map((p) => ({
-      path: normalizeFilePath(dist, p),
+      path: normalizeFilePath(dataDir, p),
       requires_validation: true,
     })),
   }));
@@ -358,8 +493,8 @@ export function workflowPlan(
 /**
  * Add a file to an existing task (escape hatch for files not known at plan time).
  */
-export function workflowAddFile(dist: string, name: string, taskId: string, filePath: string): void {
-  const changesDir = resolve(dist, 'workflows', 'changes', name);
+export function workflowAddFile(dataDir: string, name: string, taskId: string, filePath: string): void {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const taskFilePath = resolve(changesDir, 'tasks.yml');
   const data = readWorkflow(taskFilePath);
 
@@ -368,7 +503,7 @@ export function workflowAddFile(dist: string, name: string, taskId: string, file
     throw new Error(`Task not found: ${taskId} (available: ${data.tasks.map((t) => t.id).join(', ')})`);
   }
 
-  const normalized = normalizeFilePath(dist, filePath);
+  const normalized = normalizeFilePath(dataDir, filePath);
   task.files = task.files ?? [];
   if (!task.files.some((f) => f.path === normalized)) {
     task.files.push({ path: normalized, requires_validation: true });
@@ -385,6 +520,10 @@ export interface LoadedPayload {
   config_rules?: string[];
   config_instructions?: string[];
   validation?: TaskValidationEntry[];
+  /** Set by prepare-environment task to store preview process info in tasks.yml. */
+  preview_pid?: number;
+  preview_port?: number;
+  pre_test_screenshots?: string[];
 }
 
 /**
@@ -407,25 +546,15 @@ function touchTaskFiles(task: { files?: TaskFile[] }): void {
 }
 
 export function workflowDone(
-  dist: string,
+  dataDir: string,
   name: string,
   taskId: string,
   loaded?: LoadedPayload,
 ): { archived: boolean; data: WorkflowFile } {
-  const changesDir = resolve(dist, 'workflows', 'changes', name);
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
 
-  return withLock(filePath, () => _workflowDoneInner(dist, name, taskId, loaded, changesDir, filePath));
-}
-
-function _workflowDoneInner(
-  dist: string,
-  name: string,
-  taskId: string,
-  loaded: LoadedPayload | undefined,
-  changesDir: string,
-  filePath: string,
-): { archived: boolean; data: WorkflowFile } {
+  return withLock(filePath, () => {
   const data = readWorkflow(filePath);
 
   const task = data.tasks.find((t) => t.id === taskId);
@@ -486,20 +615,51 @@ function _workflowDoneInner(
     if (loaded.validation) {
       task.validation = loaded.validation;
     }
+
+    // Store prepare-environment results in workflow-level fields
+    if (loaded.preview_pid !== undefined) data.preview_pid = loaded.preview_pid;
+    if (loaded.preview_port !== undefined) data.preview_port = loaded.preview_port;
+    if (loaded.pre_test_screenshots !== undefined) data.pre_test_screenshots = loaded.pre_test_screenshots;
   }
 
+  // Commit output-producing tasks to worktree branch when they all complete.
+  // Excludes prepare-environment and test tasks (those run after the commit).
+  const outputTasks = data.tasks.filter((t) => t.type !== 'test' && t.type !== 'prepare-environment');
+  const allNonTestDone = outputTasks.length > 0 && outputTasks.every((t) => t.status === 'done');
   const allDone = data.tasks.every((t) => t.status === 'done');
+
+  if (
+    allNonTestDone &&
+    data.write_root &&
+    data.root_dir &&
+    data.worktree_branch &&
+    existsSync(data.write_root)
+  ) {
+    // Stage + commit declared outputs to worktree branch, then remove worktree directory.
+    // Branch stays in git — not merged. workflowMerge squash-merges it later on user approval.
+    const outputPaths = outputTasks.flatMap((t) => (t.files ?? []).map((f) => f.path));
+    commitWorktreeBranch(data.write_root, data.worktree_branch, data.root_dir, outputPaths);
+  }
+
   if (allDone) {
-    // Bulk copy WORKTREE → DESIGNBOOK_ROOT before archiving (replaces per-task touch)
-    if (data.write_root && data.root_dir && existsSync(data.write_root)) {
+    if (data.worktree_branch) {
+      // Worktree path: don't archive — workflow stays in changes/ until `workflow merge` is called
+      writeWorkflowAtomic(filePath, data);
+      return { archived: false, data };
+    } else if (data.write_root && data.root_dir && existsSync(data.write_root)) {
+      // Fallback: bulk copy WORKTREE → DESIGNBOOK_HOME (touches files for Storybook HMR)
       commitWorktree(data.write_root, data.root_dir);
+      archiveWorkflow(dataDir, name, data);
+      return { archived: true, data };
+    } else {
+      archiveWorkflow(dataDir, name, data);
+      return { archived: true, data };
     }
-    archiveWorkflow(dist, name, data);
-    return { archived: true, data };
   }
 
   writeWorkflowAtomic(filePath, data);
   return { archived: false, data };
+  });
 }
 
 export interface WorkflowValidateResult extends ValidationFileResult {
@@ -513,12 +673,12 @@ export interface WorkflowValidateResult extends ValidationFileResult {
  * @returns Array of per-file results, each annotated with the task id
  */
 export async function workflowValidate(
-  dist: string,
+  dataDir: string,
   name: string,
   validateFn: (file: string) => Promise<ValidationFileResult>,
   taskId?: string,
 ): Promise<WorkflowValidateResult[]> {
-  const changesDir = resolve(dist, 'workflows', 'changes', name);
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
 
   return withLockAsync(filePath, async () => {
@@ -569,7 +729,7 @@ export async function workflowValidate(
  * @deprecated Use workflowDone + workflowAddFile instead.
  */
 export function workflowUpdate(
-  dist: string,
+  dataDir: string,
   name: string,
   taskId: string,
   status: 'in-progress' | 'done',
@@ -581,7 +741,7 @@ export function workflowUpdate(
       `  Use "workflow add-file" to register files.\n`,
   );
 
-  const changesDir = resolve(dist, 'workflows', 'changes', name);
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
   const data = readWorkflow(filePath);
 
@@ -601,7 +761,7 @@ export function workflowUpdate(
   }
 
   if (files && files.length > 0) {
-    const normalizedFiles = files.map((p) => normalizeFilePath(dist, p));
+    const normalizedFiles = files.map((p) => normalizeFilePath(dataDir, p));
     const existingByPath = new Map((task.files ?? []).map((f) => [f.path, f]));
     task.files = normalizedFiles.map((path) => ({
       ...existingByPath.get(path),
@@ -613,7 +773,7 @@ export function workflowUpdate(
 
   const allDone = data.tasks.every((t) => t.status === 'done');
   if (allDone) {
-    archiveWorkflow(dist, name, data);
+    archiveWorkflow(dataDir, name, data);
     return { archived: true, data };
   }
 

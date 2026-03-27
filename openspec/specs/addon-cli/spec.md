@@ -20,7 +20,7 @@ The `config` subcommand SHALL load `designbook.config.yml` using the existing `l
 - **THEN** stdout contains lines including `export DESIGNBOOK_BACKEND='drupal'`, `export DESIGNBOOK_FRAMEWORK_COMPONENT='sdc'`, `export DESIGNBOOK_FRAMEWORK_CSS='daisyui'`, `export DESIGNBOOK_DIST='<absolute-path>'`
 
 #### Scenario: SDC provider is derived
-- **WHEN** config contains `drupal.theme: packages/integrations/test-integration-drupal`
+- **WHEN** config contains `outputs.root: packages/integrations/test-integration-drupal`
 - **THEN** stdout includes `export DESIGNBOOK_SDC_PROVIDER='test_integration_drupal'` (basename with hyphens converted to underscores)
 
 #### Scenario: Defaults applied when config is missing
@@ -34,7 +34,7 @@ The `config` subcommand SHALL load `designbook.config.yml` using the existing `l
 ### Requirement: Environment variable naming convention
 The CLI SHALL convert config keys to environment variables using these rules:
 - Prefix: `DESIGNBOOK_`
-- Dot-separated keys become underscore-separated (e.g., `drupal.theme` → `DESIGNBOOK_DRUPAL_THEME`)
+- Dot-separated keys become underscore-separated (e.g., `outputs.root` → `DESIGNBOOK_OUTPUTS_ROOT`)
 - The `frameworks` prefix becomes `FRAMEWORK` (singular) (e.g., `frameworks.css` → `DESIGNBOOK_FRAMEWORK_CSS`)
 - All parts are uppercased
 - Object values are skipped (only leaf values are exported)

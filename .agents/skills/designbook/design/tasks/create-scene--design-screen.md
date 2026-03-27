@@ -5,12 +5,12 @@ params:
   section_description: ~
   scenes: []
 reads:
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml
+  - path: $DESIGNBOOK_HOME/data-model.yml
     workflow: debo-data-model
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-system.scenes.yml
+  - path: $DESIGNBOOK_HOME/design-system/design-system.scenes.yml
     workflow: debo-design-shell
 files:
-  - $DESIGNBOOK_OUTPUTS_CONFIG/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+  - $DESIGNBOOK_HOME/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
 ---
 
 # Create Section Scene

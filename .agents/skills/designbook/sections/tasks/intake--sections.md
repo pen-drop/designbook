@@ -1,9 +1,9 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/product/vision.md
+  - path: $DESIGNBOOK_HOME/product/vision.md
     workflow: /debo-vision
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/sections
+  - path: $DESIGNBOOK_HOME/sections
     optional: true
 ---
 

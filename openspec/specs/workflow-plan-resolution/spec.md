@@ -24,8 +24,8 @@ Defines how `workflow plan` resolves task files, file paths, dependencies, rules
 - **THEN** the CLI resolves directly to `.agents/skills/designbook-sections/tasks/create-section.md` without scanning
 
 #### Scenario: File path templates expanded with params and env vars
-- **WHEN** a resolved task file declares `files: ["${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.component.yml"]`
-- **THEN** the CLI expands `${DESIGNBOOK_DRUPAL_THEME}` from config and `{{ component }}` from the item's params
+- **WHEN** a resolved task file declares `files: ["${DESIGNBOOK_OUTPUTS_ROOT}/components/{{ component }}/{{ component }}.component.yml"]`
+- **THEN** the CLI expands `${DESIGNBOOK_OUTPUTS_ROOT}` from config and `{{ component }}` from the item's params
 
 #### Scenario: Task ID generated from stage and params
 - **WHEN** an item has `"stage": "create-component"` and `"params": {"component": "button"}`

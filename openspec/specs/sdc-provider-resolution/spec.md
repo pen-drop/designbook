@@ -1,7 +1,7 @@
 ## Capability: sdc-provider-resolution
 
 ### Scenario: Derive SDC provider from config
-- Given `designbook.config.yml` has `drupal.theme: "packages/integrations/test-integration-drupal"`
+- Given `designbook.config.yml` has `outputs.root: "packages/integrations/test-integration-drupal"`
 - When the config is loaded
 - Then `$DESIGNBOOK_SDC_PROVIDER` equals `test_integration_drupal`
 

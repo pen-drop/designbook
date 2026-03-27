@@ -1,10 +1,10 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/data-model.yml
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-system.scenes.yml
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/guidelines.yml
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/sections/[section-id]/[section-id].section.scenes.yml
+  - path: $DESIGNBOOK_HOME/data-model.yml
+  - path: $DESIGNBOOK_HOME/design-system/design-system.scenes.yml
+  - path: $DESIGNBOOK_HOME/design-system/guidelines.yml
+  - path: $DESIGNBOOK_HOME/sections/[section-id]/[section-id].section.scenes.yml
     workflow: debo-shape-section
 ---
 

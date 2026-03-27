@@ -2,12 +2,12 @@
 when:
   frameworks.css: tailwind
 reads:
-  - path: $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_HOME/design-system/design-tokens.yml
     workflow: debo-design-tokens
 files:
-  - $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-layout-width.jsonata
-  - $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-layout-spacing.jsonata
-  - $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-google-fonts.jsonata
+  - $DESIGNBOOK_HOME/designbook-css-tailwind/generate-layout-width.jsonata
+  - $DESIGNBOOK_HOME/designbook-css-tailwind/generate-layout-spacing.jsonata
+  - $DESIGNBOOK_HOME/designbook-css-tailwind/generate-google-fonts.jsonata
 ---
 
 # Generate JSONata Expressions — Tailwind
@@ -19,7 +19,7 @@ Generates `.jsonata` expression files for Tailwind v4 `@theme` CSS. Covers struc
 ## Output
 
 ```
-$DESIGNBOOK_OUTPUTS_CONFIG/
+$DESIGNBOOK_HOME/
 └── designbook-css-tailwind/
     ├── generate-layout-width.jsonata
     ├── generate-layout-spacing.jsonata
@@ -32,20 +32,20 @@ $DESIGNBOOK_OUTPUTS_CONFIG/
 ## Step 1: Ensure directory
 
 ```bash
-mkdir -p $DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind
+mkdir -p $DESIGNBOOK_HOME/designbook-css-tailwind
 ```
 
 ## Step 2: Inspect token structure
 
 ```bash
-npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml --summary
+npx jsonata-w inspect $DESIGNBOOK_HOME/design-system/design-tokens.yml --summary
 ```
 
 ## Step 3: Generate expression files
 
 ### Layout-width → `--container-*` in `@theme` (standard namespace, auto-generates utilities)
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-layout-width.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-tailwind/generate-layout-width.jsonata`:
 
 ```jsonata
 /** @config
@@ -64,7 +64,7 @@ npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 
 ### Layout-spacing → `--layout-spacing-*` in `@theme` (non-standard, use with `var()`)
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-layout-spacing.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-tailwind/generate-layout-spacing.jsonata`:
 
 ```jsonata
 /** @config
@@ -83,7 +83,7 @@ npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 
 ### Grid → `--grid-*` in `@theme` (optional, only if `grid` group exists)
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-grid.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-tailwind/generate-grid.jsonata`:
 
 ```jsonata
 /** @config
@@ -102,7 +102,7 @@ npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 
 ### Color → `--color-*` in `@theme` (optional, only if `color` group exists)
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-color.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-tailwind/generate-color.jsonata`:
 
 ```jsonata
 /** @config
@@ -123,7 +123,7 @@ npx jsonata-w inspect $DESIGNBOOK_OUTPUTS_CONFIG/design-system/design-tokens.yml
 
 Maps to Tailwind's standard `--radius-*` namespace → auto-generates `rounded-*` utilities.
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-radius.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-tailwind/generate-radius.jsonata`:
 
 ```jsonata
 /** @config
@@ -144,7 +144,7 @@ Maps to Tailwind's standard `--radius-*` namespace → auto-generates `rounded-*
 
 Maps to Tailwind's standard `--shadow-*` namespace → auto-generates `shadow-*` utilities.
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-shadow.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-tailwind/generate-shadow.jsonata`:
 
 ```jsonata
 /** @config
@@ -163,7 +163,7 @@ Maps to Tailwind's standard `--shadow-*` namespace → auto-generates `shadow-*`
 
 ### Google Fonts → `@import url(...)` (optional, only if `typography` group exists)
 
-`$DESIGNBOOK_OUTPUTS_CONFIG/designbook-css-tailwind/generate-google-fonts.jsonata`:
+`$DESIGNBOOK_HOME/designbook-css-tailwind/generate-google-fonts.jsonata`:
 
 ```jsonata
 /** @config
