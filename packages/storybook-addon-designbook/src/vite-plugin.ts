@@ -30,7 +30,7 @@ export function designbookLoadPlugin(
     fsRoot?: string;
     provider?: string;
     builders?: SceneNodeBuilder[];
-    resolveImportPath?: (componentId: string, designbookDir: string) => string | null;
+    resolveImportPath?: (componentId: string) => string | null;
     wrapImport?: (alias: string) => string;
   },
 ): Plugin {
@@ -384,7 +384,7 @@ async function loadSceneModule(
   options: {
     provider?: string;
     builders?: SceneNodeBuilder[];
-    resolveImportPath?: (componentId: string, designbookDir: string) => string | null;
+    resolveImportPath?: (componentId: string) => string | null;
     wrapImport?: (alias: string) => string;
   },
 ): Promise<string | null> {

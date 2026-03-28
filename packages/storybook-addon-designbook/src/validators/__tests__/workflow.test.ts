@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, utimesSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, utimesSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
@@ -13,7 +13,6 @@ import {
   workflowMerge,
   isGitRepo,
   createGitWorktree,
-  mergeWorktree,
   checkPreflightClean,
   type WorkflowFile,
 } from '../../workflow.js';
@@ -61,7 +60,7 @@ describe('workflowCreate', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task-a', title: 'Task A', type: 'component' }]);
     const data = readWorkflowFile(dist, name);
     expect(data.tasks).toHaveLength(1);
-    const task = data.tasks[0];
+    const task = data.tasks[0]!;
     expect(task.id).toBe('task-a');
     expect(task.status).toBe('pending');
     expect(task.completed_at).toBeUndefined();
@@ -72,9 +71,9 @@ describe('workflowCreate', () => {
       { id: 'task-a', title: 'Task A', type: 'component', files: [`${dist}/components/button.component.yml`] },
     ]);
     const data = readWorkflowFile(dist, name);
-    const files = data.tasks[0].files ?? [];
+    const files = data.tasks[0]!.files ?? [];
     expect(files).toHaveLength(1);
-    expect(files[0].requires_validation).toBe(true);
+    expect(files[0]!.requires_validation).toBe(true);
   });
 
   it('creates multiple tasks in order', () => {
@@ -206,15 +205,15 @@ describe('workflowPlan', () => {
     workflowPlan(dist, name, [{ id: 'task1', title: 'Task 1', type: 'data' }]);
     const data = readWorkflowFile(dist, name);
     expect(data.tasks).toHaveLength(1);
-    expect(data.tasks[0].id).toBe('task1');
-    expect(data.tasks[0].status).toBe('pending');
+    expect(data.tasks[0]!.id).toBe('task1');
+    expect(data.tasks[0]!.status).toBe('pending');
   });
 
   it('sets stages when provided', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
-    workflowPlan(dist, name, [], ['dialog', 'create-tokens']);
+    workflowPlan(dist, name, [], { execute: { steps: ['dialog', 'create-tokens'] } });
     const data = readWorkflowFile(dist, name);
-    expect(data.stages).toEqual(['dialog', 'create-tokens']);
+    expect(data.stages).toEqual({ execute: { steps: ['dialog', 'create-tokens'] } });
   });
 
   it('keeps status as planning', () => {
@@ -258,29 +257,6 @@ describe('workflowDone with WORKTREE', () => {
     mkdirSync(writeRoot, { recursive: true });
   });
 
-  function makeValidatedTask(id: string, filePath: string) {
-    return {
-      id,
-      title: id,
-      type: 'data' as const,
-      files: [filePath],
-    };
-  }
-
-  function makeValidatedWorkflow(name: string, taskId: string, filePath: string): void {
-    workflowCreate(dist, 'debo-test', 'Test', [makeValidatedTask(taskId, filePath)]);
-    // Manually mark the file as validated in tasks.yml
-    const data = readWorkflowFile(dist, name);
-    data.tasks[0].files![0].requires_validation = false;
-    data.tasks[0].files![0].validation_result = {
-      file: filePath,
-      type: 'data',
-      valid: true,
-      last_validated: new Date().toISOString(),
-    };
-    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
-  }
-
   it('non-final task: no copy, no WORKTREE removal', () => {
     const fileA = resolve(writeRoot, 'file-a.yml');
     const fileB = resolve(writeRoot, 'file-b.yml');
@@ -291,15 +267,23 @@ describe('workflowDone with WORKTREE', () => {
       { id: 'task1', title: 'T1', type: 'data', files: [fileA] },
       { id: 'task2', title: 'T2', type: 'data', files: [fileB] },
     ]);
-    workflowPlan(dist, name, [
-      { id: 'task1', title: 'T1', type: 'data', files: [fileA] },
-      { id: 'task2', title: 'T2', type: 'data', files: [fileB] },
-    ], undefined, undefined, writeRoot, rootDir);
+    workflowPlan(
+      dist,
+      name,
+      [
+        { id: 'task1', title: 'T1', type: 'data', files: [fileA] },
+        { id: 'task2', title: 'T2', type: 'data', files: [fileB] },
+      ],
+      undefined,
+      undefined,
+      writeRoot,
+      rootDir,
+    );
 
     // Manually mark task1 validated
     const data = readWorkflowFile(dist, name);
-    data.tasks[0].files![0].requires_validation = false;
-    data.tasks[0].files![0].validation_result = { file: fileA, type: 'data', valid: true, last_validated: '' };
+    data.tasks[0]!.files![0]!.requires_validation = false;
+    data.tasks[0]!.files![0]!.validation_result = { file: fileA, type: 'data', valid: true, last_validated: '' };
     writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
 
     const result = workflowDone(dist, name, 'task1');
@@ -311,62 +295,23 @@ describe('workflowDone with WORKTREE', () => {
     expect(existsSync(resolve(rootDir, 'file-a.yml'))).toBe(false);
   });
 
-  it('final task: copies WORKTREE to rootDir, touches files, removes WORKTREE', () => {
-    const worktreeFile = resolve(writeRoot, 'subdir', 'data-model.yml');
-    mkdirSync(resolve(writeRoot, 'subdir'), { recursive: true });
-    writeFileSync(worktreeFile, 'key: value');
-
-    const name = workflowCreate(dist, 'debo-test', 'Test', [
-      { id: 'task1', title: 'T1', type: 'data', files: [worktreeFile] },
-    ]);
-    workflowPlan(dist, name, [
-      { id: 'task1', title: 'T1', type: 'data', files: [worktreeFile] },
-    ], undefined, undefined, writeRoot, rootDir);
-
-    // Manually mark validated
-    const data = readWorkflowFile(dist, name);
-    data.tasks[0].files![0].requires_validation = false;
-    data.tasks[0].files![0].validation_result = { file: worktreeFile, type: 'data', valid: true, last_validated: '' };
-    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
-
-    // Set old mtime on dest (ensure touch works)
-    const destFile = resolve(rootDir, 'subdir', 'data-model.yml');
-    mkdirSync(resolve(rootDir, 'subdir'), { recursive: true });
-    writeFileSync(destFile, 'old: content');
-    const oldMtime = new Date(Date.now() - 5000);
-    utimesSync(destFile, oldMtime, oldMtime);
-
-    const before = statSync(destFile).mtimeMs;
-    const result = workflowDone(dist, name, 'task1');
-    expect(result.archived).toBe(true);
-
-    // File copied to rootDir
-    expect(readFileSync(destFile, 'utf-8')).toBe('key: value');
-    // File touched (mtime updated)
-    expect(statSync(destFile).mtimeMs).toBeGreaterThan(before);
-    // WORKTREE removed
-    expect(existsSync(writeRoot)).toBe(false);
-  });
-
-  it('final task without write_root: no copy (backward compat)', () => {
+  it('final task without write_root: archives immediately (direct engine behavior)', () => {
     const realFile = resolve(rootDir, 'data.yml');
     writeFileSync(realFile, 'real: true');
 
     const name = workflowCreate(dist, 'debo-test', 'Test', [
       { id: 'task1', title: 'T1', type: 'data', files: [realFile] },
     ]);
-    workflowPlan(dist, name, [
-      { id: 'task1', title: 'T1', type: 'data', files: [realFile] },
-    ]); // no write_root
+    workflowPlan(dist, name, [{ id: 'task1', title: 'T1', type: 'data', files: [realFile] }]); // no write_root, no engine → defaults to archive path
 
     const data = readWorkflowFile(dist, name);
-    data.tasks[0].files![0].requires_validation = false;
-    data.tasks[0].files![0].validation_result = { file: realFile, type: 'data', valid: true, last_validated: '' };
+    data.tasks[0]!.files![0]!.requires_validation = false;
+    data.tasks[0]!.files![0]!.validation_result = { file: realFile, type: 'data', valid: true, last_validated: '' };
     writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
 
     const result = workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(true);
-    // File still exists at real path (no copy needed, no deletion)
+    // File still exists at real path
     expect(existsSync(realFile)).toBe(true);
   });
 });
@@ -385,15 +330,15 @@ describe('workflowAddFile', () => {
   it('adds a file to the task', () => {
     workflowAddFile(dist, name, 'task1', `${dist}/components/button.component.yml`);
     const data = readWorkflowFile(dist, name);
-    expect(data.tasks[0].files).toHaveLength(1);
-    expect(data.tasks[0].files![0].requires_validation).toBe(true);
+    expect(data.tasks[0]!.files).toHaveLength(1);
+    expect(data.tasks[0]!.files![0]!.requires_validation).toBe(true);
   });
 
   it('does not add duplicate files', () => {
     workflowAddFile(dist, name, 'task1', `${dist}/components/button.component.yml`);
     workflowAddFile(dist, name, 'task1', `${dist}/components/button.component.yml`);
     const data = readWorkflowFile(dist, name);
-    expect(data.tasks[0].files).toHaveLength(1);
+    expect(data.tasks[0]!.files).toHaveLength(1);
   });
 
   it('transitions status from planning to running', () => {
@@ -428,8 +373,8 @@ describe('workflowDone', () => {
     ]);
     const result = workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(false);
-    expect(result.data.tasks[0].status).toBe('done');
-    expect(result.data.tasks[0].completed_at).toBeTruthy();
+    expect(result.data.tasks[0]!.status).toBe('done');
+    expect(result.data.tasks[0]!.completed_at).toBeTruthy();
   });
 
   it('archives workflow when all tasks are done', () => {
@@ -469,7 +414,7 @@ describe('workflowDone', () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
     const filePath = tasksYmlPath(dist, name);
     const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
-    raw.tasks[0].files = [
+    raw.tasks[0]!.files = [
       {
         path: '/nonexistent/path/button.component.yml',
         requires_validation: false,
@@ -491,7 +436,7 @@ describe('workflowDone', () => {
     // Manually inject a failed validation_result
     const filePath = tasksYmlPath(dist, name);
     const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
-    raw.tasks[0].files = [
+    raw.tasks[0]!.files = [
       {
         path: `${dist}/components/button.component.yml`,
         requires_validation: false,
@@ -512,7 +457,7 @@ describe('workflowDone', () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
     const filePath = tasksYmlPath(dist, name);
     const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
-    raw.tasks[0].files = [
+    raw.tasks[0]!.files = [
       {
         path: `${dist}/components/button.component.yml`,
         requires_validation: false,
@@ -547,7 +492,7 @@ describe('workflowDone', () => {
     // Set up validated file in task
     const filePath = tasksYmlPath(dist, name);
     const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
-    raw.tasks[0].files = [
+    raw.tasks[0]!.files = [
       {
         path: componentFile,
         requires_validation: false,
@@ -575,7 +520,7 @@ describe('workflowDone', () => {
     const existingFile = resolve(dist, 'existing.yml');
     mkdirSync(resolve(dist), { recursive: true });
     writeFileSync(existingFile, 'test: true');
-    raw.tasks[0].files = [
+    raw.tasks[0]!.files = [
       {
         path: missingFile,
         requires_validation: false,
@@ -640,8 +585,8 @@ describe('workflowValidate', () => {
     ]);
     const results = await workflowValidate(dist, name, makeValidateFn(true));
     expect(results).toHaveLength(1);
-    expect(results[0].valid).toBe(true);
-    expect(results[0].task).toBe('task1');
+    expect(results[0]!.valid).toBe(true);
+    expect(results[0]!.task).toBe('task1');
   });
 
   it('clears requires_validation flag after validating', async () => {
@@ -656,7 +601,7 @@ describe('workflowValidate', () => {
     await workflowValidate(dist, name, makeValidateFn(true));
 
     const data = readWorkflowFile(dist, name);
-    const f = data.tasks[0].files![0];
+    const f = data.tasks[0]!.files![0]!;
     expect(f.requires_validation).toBe(false);
     expect(f.validation_result?.valid).toBe(true);
   });
@@ -705,11 +650,11 @@ describe('workflowValidate', () => {
 
     const results = await workflowValidate(dist, name, validateFn, 'task1');
     expect(called).toHaveLength(0); // validateFn must NOT be called
-    expect(results[0].valid).toBeNull();
-    expect(results[0].skipped).toBe(true);
+    expect(results[0]!.valid).toBeNull();
+    expect(results[0]!.skipped).toBe(true);
     const data = readWorkflowFile(dist, name);
-    expect(data.tasks[0].files![0].validation_result?.valid).toBeNull();
-    expect(data.tasks[0].files![0].requires_validation).toBe(false); // cleared — skipped counts as attempted
+    expect(data.tasks[0]!.files![0]!.validation_result?.valid).toBeNull();
+    expect(data.tasks[0]!.files![0]!.requires_validation).toBe(false); // cleared — skipped counts as attempted
   });
 
   it('throws when scoped taskId does not exist', async () => {
@@ -728,10 +673,10 @@ describe('workflowValidate', () => {
     ]);
 
     const results = await workflowValidate(dist, name, makeValidateFn(false));
-    expect(results[0].valid).toBe(false);
+    expect(results[0]!.valid).toBe(false);
 
     const data = readWorkflowFile(dist, name);
-    expect(data.tasks[0].files![0].validation_result?.valid).toBe(false);
+    expect(data.tasks[0]!.files![0]!.validation_result?.valid).toBe(false);
   });
 });
 
@@ -753,7 +698,9 @@ describe('isGitRepo', () => {
   });
 
   it('returns false when git rev-parse throws', () => {
-    execFileSync.mockImplementation(() => { throw new Error('not a git repo'); });
+    execFileSync.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
     expect(isGitRepo('/some/dir')).toBe(false);
   });
 });
@@ -770,65 +717,12 @@ describe('createGitWorktree', () => {
   it('calls git worktree add with full checkout (no --no-checkout, no sparse-checkout)', () => {
     execFileSync.mockReturnValue(undefined);
     createGitWorktree('/tmp/wt', 'workflow/test', '/repo');
-    expect(execFileSync).toHaveBeenCalledWith(
-      'git', ['worktree', 'add', '/tmp/wt', '-b', 'workflow/test'],
-      { cwd: '/repo' },
-    );
+    expect(execFileSync).toHaveBeenCalledWith('git', ['worktree', 'add', '/tmp/wt', '-b', 'workflow/test'], {
+      cwd: '/repo',
+    });
     const calls = execFileSync.mock.calls as string[][];
     expect(calls.some((c) => c[1]?.includes('--no-checkout'))).toBe(false);
     expect(calls.some((c) => c[1]?.includes('sparse-checkout'))).toBe(false);
-  });
-});
-
-describe('mergeWorktree', () => {
-  let execFileSync: Mock;
-  let dist: string;
-
-  beforeEach(async () => {
-    const childProcess = await import('node:child_process');
-    execFileSync = childProcess.execFileSync as unknown as Mock;
-    vi.resetAllMocks();
-    dist = mkdtempSync(resolve(tmpdir(), 'wf-merge-'));
-  });
-
-  it('stages only declared output paths (relative to writeRoot)', () => {
-    execFileSync.mockReturnValue(undefined);
-    const writeRoot = '/tmp/worktree';
-    const outputPaths = [`${writeRoot}/components/btn/btn.twig`, `${writeRoot}/components/btn/btn.yml`];
-    mergeWorktree(writeRoot, 'workflow/test', '/repo', outputPaths);
-    expect(execFileSync).toHaveBeenCalledWith(
-      'git', ['-C', writeRoot, 'add', 'components/btn/btn.twig', 'components/btn/btn.yml'],
-    );
-  });
-
-  it('commits and merges with --no-ff', () => {
-    execFileSync.mockReturnValue(undefined);
-    mergeWorktree('/tmp/wt', 'workflow/test', '/repo', []);
-    expect(execFileSync).toHaveBeenCalledWith('git', ['-C', '/tmp/wt', 'commit', '-m', 'workflow: workflow/test']);
-    expect(execFileSync).toHaveBeenCalledWith('git', ['-C', '/repo', 'merge', '--no-ff', 'workflow/test']);
-  });
-
-  it('aborts and throws when merge fails', () => {
-    let callCount = 0;
-    execFileSync.mockImplementation((_cmd: string, args: string[]) => {
-      callCount++;
-      // Fail on the merge command
-      if (args.includes('merge') && args.includes('--no-ff')) {
-        throw new Error('Merge conflict');
-      }
-    });
-    expect(() => mergeWorktree('/tmp/wt', 'workflow/test', '/repo', [])).toThrow('Git merge failed');
-    // Should have called merge --abort after failure
-    const calls = execFileSync.mock.calls as string[][];
-    expect(calls.some((c) => c[1]?.includes('--abort'))).toBe(true);
-  });
-
-  it('cleans up worktree and branch after successful merge', () => {
-    execFileSync.mockReturnValue(undefined);
-    mergeWorktree('/tmp/wt', 'workflow/test', '/repo', []);
-    const calls = execFileSync.mock.calls as string[][];
-    expect(calls.some((c) => c[1]?.includes('remove') && c[1]?.includes('/tmp/wt'))).toBe(true);
-    expect(calls.some((c) => c[1]?.includes('-d') && c[1]?.includes('workflow/test'))).toBe(true);
   });
 });
 
@@ -858,13 +752,25 @@ describe('workflowDone with git worktree', () => {
     const name = workflowCreate(dist, 'debo-test', 'Test', [
       { id: 'task1', title: 'T1', type: 'component', files: [outputFile] },
     ]);
-    workflowPlan(dist, name, [
-      { id: 'task1', title: 'T1', type: 'component', files: [outputFile] },
-    ], undefined, undefined, writeRoot, rootDir, 'workflow/test');
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task1', title: 'T1', type: 'component', files: [outputFile] }],
+      undefined,
+      undefined,
+      writeRoot,
+      rootDir,
+      'workflow/test',
+    );
 
     const data = readWorkflowFile(dist, name);
-    data.tasks[0].files![0].requires_validation = false;
-    data.tasks[0].files![0].validation_result = { file: outputFile, type: 'component', valid: true, last_validated: '' };
+    data.tasks[0]!.files![0]!.requires_validation = false;
+    data.tasks[0]!.files![0]!.validation_result = {
+      file: outputFile,
+      type: 'component',
+      valid: true,
+      last_validated: '',
+    };
     writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
 
     const result = workflowDone(dist, name, 'task1');
@@ -876,31 +782,6 @@ describe('workflowDone with git worktree', () => {
     // Should have removed the worktree directory
     expect(calls.some((c) => c[1]?.includes('remove'))).toBe(true);
     // Should NOT have done a git merge
-    expect(calls.some((c) => c[1]?.includes('merge'))).toBe(false);
-  });
-
-  it('falls back to commitWorktree (copy+touch) when worktree_branch is absent', () => {
-    const worktreeFile = resolve(writeRoot, 'data.yml');
-    writeFileSync(worktreeFile, 'key: value');
-
-    const name = workflowCreate(dist, 'debo-test', 'Test', [
-      { id: 'task1', title: 'T1', type: 'data', files: [worktreeFile] },
-    ]);
-    workflowPlan(dist, name, [
-      { id: 'task1', title: 'T1', type: 'data', files: [worktreeFile] },
-    ], undefined, undefined, writeRoot, rootDir); // no worktreeBranch
-
-    const data = readWorkflowFile(dist, name);
-    data.tasks[0].files![0].requires_validation = false;
-    data.tasks[0].files![0].validation_result = { file: worktreeFile, type: 'data', valid: true, last_validated: '' };
-    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
-
-    const result = workflowDone(dist, name, 'task1');
-    expect(result.archived).toBe(true);
-    // commitWorktree copies file to rootDir
-    expect(existsSync(resolve(rootDir, 'data.yml'))).toBe(true);
-    // No git merge called
-    const calls = execFileSync.mock.calls as string[][];
     expect(calls.some((c) => c[1]?.includes('merge'))).toBe(false);
   });
 });
@@ -932,7 +813,9 @@ describe('checkPreflightClean', () => {
   });
 
   it('returns clean=true when git command throws (non-git directory)', () => {
-    execFileSync.mockImplementation(() => { throw new Error('not a git repo'); });
+    execFileSync.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
     const result = checkPreflightClean('/repo', '/repo/packages/theme');
     expect(result.clean).toBe(true);
   });
@@ -940,11 +823,9 @@ describe('checkPreflightClean', () => {
   it('passes the relative outputsRoot path to git status', () => {
     execFileSync.mockReturnValue('');
     checkPreflightClean('/repo', '/repo/packages/theme');
-    expect(execFileSync).toHaveBeenCalledWith(
-      'git',
-      ['-C', '/repo', 'status', '--porcelain', '--', 'packages/theme'],
-      { encoding: 'utf-8' },
-    );
+    expect(execFileSync).toHaveBeenCalledWith('git', ['-C', '/repo', 'status', '--porcelain', '--', 'packages/theme'], {
+      encoding: 'utf-8',
+    });
   });
 });
 
@@ -966,12 +847,17 @@ describe('workflowMerge', () => {
   });
 
   function makeWorkflow(worktreeBranch?: string, previewPid?: number) {
-    const name = workflowCreate(dist, 'debo-test', 'Test', [
-      { id: 'task1', title: 'T1', type: 'data' },
-    ]);
-    workflowPlan(dist, name, [
-      { id: 'task1', title: 'T1', type: 'data' },
-    ], undefined, undefined, undefined, rootDir, worktreeBranch);
+    const name = workflowCreate(dist, 'debo-test', 'Test', [{ id: 'task1', title: 'T1', type: 'data' }]);
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task1', title: 'T1', type: 'data' }],
+      undefined,
+      undefined,
+      undefined,
+      rootDir,
+      worktreeBranch,
+    );
     const data = readWorkflowFile(dist, name);
     if (previewPid) data.preview_pid = previewPid;
     writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
@@ -982,8 +868,10 @@ describe('workflowMerge', () => {
     const name = makeWorkflow('workflow/test');
     workflowMerge(dist, name);
     const calls = execFileSync.mock.calls as string[][];
-    expect(calls.some((c) => c[1]?.includes('merge') && c[1]?.includes('--squash') && c[1]?.includes('workflow/test'))).toBe(true);
-    expect(calls.some((c) => c[1]?.includes('commit') && c[1]?.includes(`workflow: ${name}`))).toBe(true);
+    expect(
+      calls.some((c) => c[1]?.includes('merge') && c[1]?.includes('--squash') && c[1]?.includes('workflow/test')),
+    ).toBe(true);
+    expect(calls.some((c) => c[1]?.includes('commit') && c[1]?.includes('workflow: debo-test'))).toBe(true);
     expect(calls.some((c) => c[1]?.includes('-D') && c[1]?.includes('workflow/test'))).toBe(true);
   });
 
@@ -996,8 +884,8 @@ describe('workflowMerge', () => {
   });
 
   it('throws when worktree_branch is not set', () => {
-    const name = makeWorkflow(); // no branch
-    expect(() => workflowMerge(dist, name)).toThrow('no worktree_branch');
+    const name = makeWorkflow(); // no branch → resolves to direct engine
+    expect(() => workflowMerge(dist, name)).toThrow('does not support merge');
   });
 
   it('returns branch, root_dir, and preview_pid', () => {
@@ -1022,5 +910,262 @@ describe('workflowMerge', () => {
     workflowMerge(dist, name);
     expect(killSpy).not.toHaveBeenCalled();
     killSpy.mockRestore();
+  });
+});
+
+// ── Engine: direct ───────────────────────────────────────────────────────────
+
+describe('workflowDone with engine: direct', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-direct-'));
+  });
+
+  it('archives immediately when all tasks done', () => {
+    const name = workflowCreate(dist, 'debo-test', 'Test', [{ id: 'task1', title: 'T1', type: 'data' }]);
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task1', title: 'T1', type: 'data' }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    const result = workflowDone(dist, name, 'task1');
+    expect(result.archived).toBe(true);
+    expect(result.data.status).toBe('completed');
+    expect(existsSync(resolve(dist, 'workflows', 'archive', name, 'tasks.yml'))).toBe(true);
+    expect(existsSync(resolve(dist, 'workflows', 'changes', name))).toBe(false);
+  });
+
+  it('does not call git operations', async () => {
+    const childProcess = await import('node:child_process');
+    const mock = childProcess.execFileSync as unknown as Mock;
+    mock.mockClear();
+
+    const name = workflowCreate(dist, 'debo-test', 'Test', [{ id: 'task1', title: 'T1', type: 'data' }]);
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task1', title: 'T1', type: 'data' }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    mock.mockClear();
+    workflowDone(dist, name, 'task1');
+    expect(mock).not.toHaveBeenCalled();
+  });
+});
+
+describe('workflowPlan engine storage', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-engine-'));
+  });
+
+  it('stores engine field in tasks.yml', () => {
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(dist, name, [], undefined, undefined, undefined, undefined, undefined, 'direct');
+    const data = readWorkflowFile(dist, name);
+    expect(data.engine).toBe('direct');
+  });
+
+  it('stores git-worktree engine field in tasks.yml', () => {
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(dist, name, [], undefined, undefined, undefined, undefined, undefined, 'git-worktree');
+    const data = readWorkflowFile(dist, name);
+    expect(data.engine).toBe('git-worktree');
+  });
+
+  it('does not store engine field when not provided', () => {
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(dist, name, []);
+    const data = readWorkflowFile(dist, name);
+    expect(data.engine).toBeUndefined();
+  });
+});
+
+describe('workflowMerge with engine: direct', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-merge-direct-'));
+  });
+
+  it('throws when engine is direct (nothing to merge)', () => {
+    const name = workflowCreate(dist, 'debo-test', 'Test', [{ id: 'task1', title: 'T1', type: 'data' }]);
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task1', title: 'T1', type: 'data' }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    expect(() => workflowMerge(dist, name)).toThrow();
+  });
+});
+
+// ── Stage-based response ────────────────────────────────────────────────────
+
+describe('workflowDone stage-based response', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-response-'));
+  });
+
+  it('returns next_step when more steps remain in same stage', () => {
+    const stages = { execute: { steps: ['create-component', 'create-scene'] } };
+    const name = workflowCreate(
+      dist,
+      'debo-test',
+      'Test',
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'scene', step: 'create-scene', stage: 'execute' },
+      ],
+      stages,
+    );
+    // Set current_stage via plan
+    workflowPlan(
+      dist,
+      name,
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'scene', step: 'create-scene', stage: 'execute' },
+      ],
+      stages,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    const result = workflowDone(dist, name, 'task1');
+    expect(result.archived).toBe(false);
+    expect(result.response).toBeDefined();
+    expect(result.response!.stage).toBe('execute');
+    expect(result.response!.step_completed).toBe('create-component');
+    expect(result.response!.next_step).toBe('create-scene');
+  });
+
+  it('returns stage transition when last step in stage completes', () => {
+    const stages = {
+      execute: { steps: ['create-component'] },
+      test: { steps: ['visual-diff'] },
+    };
+    const name = workflowCreate(
+      dist,
+      'debo-test',
+      'Test',
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'test', step: 'visual-diff', stage: 'test' },
+      ],
+      stages,
+    );
+    workflowPlan(
+      dist,
+      name,
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'test', step: 'visual-diff', stage: 'test' },
+      ],
+      stages,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    const result = workflowDone(dist, name, 'task1');
+    expect(result.response).toBeDefined();
+    expect(result.response!.next_stage).toBe('test');
+    expect(result.response!.next_step).toBe('visual-diff');
+  });
+
+  it('returns waiting_for when stage has unfulfilled params', () => {
+    const stages = {
+      execute: { steps: ['create-component'] },
+      preview: {
+        steps: ['storybook-preview'],
+        params: { user_approved: { type: 'boolean', prompt: 'Passt alles?' } },
+      },
+    };
+    const name = workflowCreate(
+      dist,
+      'debo-test',
+      'Test',
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'prepare-environment', step: 'storybook-preview', stage: 'preview' },
+      ],
+      stages,
+    );
+    workflowPlan(
+      dist,
+      name,
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'prepare-environment', step: 'storybook-preview', stage: 'preview' },
+      ],
+      stages,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    const result = workflowDone(dist, name, 'task1');
+    expect(result.response).toBeDefined();
+    expect(result.response!.waiting_for).toBeDefined();
+    expect(result.response!.waiting_for!.user_approved).toBeDefined();
+    expect(result.response!.waiting_for!.user_approved!.prompt).toBe('Passt alles?');
+  });
+
+  it('direct engine archives and returns stage: done when all tasks complete', () => {
+    const stages = { execute: { steps: ['create-tokens'] } };
+    const name = workflowCreate(
+      dist,
+      'debo-test',
+      'Test',
+      [{ id: 'task1', title: 'T1', type: 'tokens', step: 'create-tokens', stage: 'execute' }],
+      stages,
+    );
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task1', title: 'T1', type: 'tokens', step: 'create-tokens', stage: 'execute' }],
+      stages,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    const result = workflowDone(dist, name, 'task1');
+    expect(result.archived).toBe(true);
+    expect(result.response).toBeDefined();
+    expect(result.response!.stage).toBe('done');
   });
 });

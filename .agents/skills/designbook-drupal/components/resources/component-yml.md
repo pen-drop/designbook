@@ -57,7 +57,7 @@ slots:
 
 **Write to file:**
 ```
-$DESIGNBOOK_DIRS_ROOT/components/[componentNameKebab]/[componentNameKebab].component.yml
+$DESIGNBOOK_HOME/components/[componentNameKebab]/[componentNameKebab].component.yml
 ```
 
 ## Rules

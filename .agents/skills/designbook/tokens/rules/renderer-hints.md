@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [tokens:intake, create-tokens]
+  steps: [tokens:intake, create-tokens]
 ---
 
 # Renderer Hints ($extensions.designbook.renderer)

@@ -4,14 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  mkdtempSync,
-  mkdirSync,
-  writeFileSync,
-  readFileSync,
-  existsSync,
-  rmSync,
-} from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -26,6 +19,7 @@ import {
   workflowMerge,
   type WorkflowFile,
 } from '../../workflow.js';
+import { resolveEngine } from '../../engines/index.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -141,7 +135,9 @@ describe('createGitWorktree (real git)', () => {
       try {
         execFileSync('git', ['worktree', 'remove', worktreePath, '--force'], { cwd: rootDir });
         execFileSync('git', ['branch', '-d', branchName], { cwd: rootDir });
-      } catch { /* ignore cleanup errors */ }
+      } catch {
+        /* ignore cleanup errors */
+      }
     }
   });
 
@@ -156,7 +152,9 @@ describe('createGitWorktree (real git)', () => {
       try {
         execFileSync('git', ['worktree', 'remove', worktreePath, '--force'], { cwd: rootDir });
         execFileSync('git', ['branch', '-d', branchName], { cwd: rootDir });
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   });
 
@@ -170,7 +168,9 @@ describe('createGitWorktree (real git)', () => {
       try {
         execFileSync('git', ['worktree', 'remove', worktreePath, '--force'], { cwd: rootDir });
         execFileSync('git', ['branch', '-d', branchName], { cwd: rootDir });
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   });
 });
@@ -215,8 +215,14 @@ describe('workflow round-trip (real git)', () => {
     // 5. Validate the file (mark it non-requiring-validation)
     const data = readTasksYml(dist, name);
     const task = data.tasks.find((t) => t.id === 'task-1')!;
-    task.files![0].requires_validation = false;
-    task.files![0].validation_result = { file: outputFilePath, type: 'component', valid: true, skipped: false, last_validated: new Date().toISOString() };
+    task.files![0]!.requires_validation = false;
+    task.files![0]!.validation_result = {
+      file: outputFilePath,
+      type: 'component',
+      valid: true,
+      skipped: false,
+      last_validated: new Date().toISOString(),
+    };
     const tasksYmlPath = resolve(dist, 'workflows', 'changes', name, 'tasks.yml');
     writeFileSync(tasksYmlPath, stringifyYaml(data));
 
@@ -248,6 +254,54 @@ describe('workflow round-trip (real git)', () => {
     expect(existsSync(resolve(dist, 'workflows', 'changes', name))).toBe(false);
   });
 
+  it('commits output files to branch and squash-merges on workflowMerge (explicit engine: git-worktree)', () => {
+    // Same as existing round-trip but with explicit engine field
+    const worktreePath = resolve(rootDir, '..', `wt-explicit-${Date.now()}`);
+    const branchName = 'workflow/explicit-engine';
+
+    createGitWorktree(worktreePath, branchName, rootDir);
+
+    const name = workflowCreate(dist, 'debo-test', 'Explicit Engine Test', []);
+    const outputFilePath = resolve(worktreePath, 'src', 'card.yml');
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task-1', title: 'Create Card', type: 'component', files: [outputFilePath] }],
+      undefined,
+      undefined,
+      worktreePath,
+      rootDir,
+      branchName,
+      'git-worktree',
+    );
+
+    // Verify engine field is stored
+    const planned = readTasksYml(dist, name);
+    expect(planned.engine).toBe('git-worktree');
+
+    mkdirSync(resolve(worktreePath, 'src'), { recursive: true });
+    writeFileSync(outputFilePath, 'name: Card');
+
+    const data = readTasksYml(dist, name);
+    data.tasks[0]!.files![0]!.requires_validation = false;
+    data.tasks[0]!.files![0]!.validation_result = {
+      file: outputFilePath,
+      type: 'component',
+      valid: true,
+      skipped: false,
+      last_validated: new Date().toISOString(),
+    };
+    writeFileSync(resolve(dist, 'workflows', 'changes', name, 'tasks.yml'), stringifyYaml(data));
+
+    const { archived } = workflowDone(dist, name, 'task-1');
+    expect(archived).toBe(false); // needs merge
+
+    const mergeResult = workflowMerge(dist, name);
+    expect(mergeResult.branch).toBe(branchName);
+    expect(existsSync(resolve(rootDir, 'src', 'card.yml'))).toBe(true);
+    expect(existsSync(resolve(dist, 'workflows', 'archive', name))).toBe(true);
+  });
+
   it('workflowDone stays in changes/ (not archived) when worktree_branch set and test tasks remain', async () => {
     const worktreePath = resolve(rootDir, '..', `wt-testpending-${Date.now()}`);
     const branchName = 'workflow/test-pending';
@@ -275,8 +329,14 @@ describe('workflow round-trip (real git)', () => {
     // Validate output task's file
     const data = readTasksYml(dist, name);
     const outputTask = data.tasks.find((t) => t.id === 'output-1')!;
-    outputTask.files![0].requires_validation = false;
-    outputTask.files![0].validation_result = { file: outputFilePath, type: 'component', valid: true, skipped: false, last_validated: new Date().toISOString() };
+    outputTask.files![0]!.requires_validation = false;
+    outputTask.files![0]!.validation_result = {
+      file: outputFilePath,
+      type: 'component',
+      valid: true,
+      skipped: false,
+      last_validated: new Date().toISOString(),
+    };
     const ymlPath = resolve(dist, 'workflows', 'changes', name, 'tasks.yml');
     writeFileSync(ymlPath, stringifyYaml(data));
 
@@ -306,5 +366,194 @@ describe('workflow round-trip (real git)', () => {
     // All done but worktree_branch set → stays in changes/, not archived
     expect(result2.archived).toBe(false);
     expect(existsSync(resolve(dist, 'workflows', 'changes', name))).toBe(true);
+  });
+});
+
+// ── direct engine round-trip ────────────────────────────────────────────────
+
+describe('direct engine round-trip (real git)', () => {
+  it('plan → write → done → auto-archives (no merge needed)', () => {
+    const name = workflowCreate(dist, 'debo-test', 'Direct Test', []);
+    const outputFilePath = resolve(rootDir, 'src', 'button.yml');
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task-1', title: 'Create Button', type: 'component', files: [outputFilePath] }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    // Verify no write_root in tasks.yml
+    const planned = readTasksYml(dist, name);
+    expect(planned.engine).toBe('direct');
+    expect(planned.write_root).toBeUndefined();
+    expect(planned.worktree_branch).toBeUndefined();
+
+    // Write file to real path (no worktree)
+    mkdirSync(resolve(rootDir, 'src'), { recursive: true });
+    writeFileSync(outputFilePath, 'name: Button\ntype: component');
+
+    // Validate
+    const data = readTasksYml(dist, name);
+    data.tasks[0]!.files![0]!.requires_validation = false;
+    data.tasks[0]!.files![0]!.validation_result = {
+      file: outputFilePath,
+      type: 'component',
+      valid: true,
+      skipped: false,
+      last_validated: new Date().toISOString(),
+    };
+    writeFileSync(resolve(dist, 'workflows', 'changes', name, 'tasks.yml'), stringifyYaml(data));
+
+    // Done → auto-archives
+    const { archived } = workflowDone(dist, name, 'task-1');
+    expect(archived).toBe(true);
+    expect(existsSync(resolve(dist, 'workflows', 'archive', name))).toBe(true);
+    expect(existsSync(resolve(dist, 'workflows', 'changes', name))).toBe(false);
+
+    // File stays at real path
+    expect(readFileSync(outputFilePath, 'utf-8')).toBe('name: Button\ntype: component');
+  });
+
+  it('files[] point to real paths, no write_root in tasks.yml', () => {
+    const name = workflowCreate(dist, 'debo-test', 'Direct Paths', []);
+    const filePath = resolve(rootDir, 'tokens', 'colors.yml');
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task-1', title: 'Create Tokens', type: 'tokens', files: [filePath] }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    const data = readTasksYml(dist, name);
+    expect(data.write_root).toBeUndefined();
+    expect(data.tasks[0]!.files![0]!.path).toBe(filePath);
+  });
+
+  it('workflowMerge throws for direct engine', () => {
+    const name = workflowCreate(dist, 'debo-test', 'Direct Merge', []);
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task-1', title: 'T1', type: 'data' }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+    expect(() => workflowMerge(dist, name)).toThrow();
+  });
+});
+
+// ── engine resolution ────────────────────────────────────────────────────────
+
+describe('resolveEngine', () => {
+  it('auto in git repo → git-worktree', () => {
+    expect(resolveEngine(undefined, undefined, true)).toBe('git-worktree');
+  });
+
+  it('auto without git → direct', () => {
+    expect(resolveEngine(undefined, undefined, false)).toBe('direct');
+  });
+
+  it('--engine direct overrides auto in git repo', () => {
+    expect(resolveEngine('direct', undefined, true)).toBe('direct');
+  });
+
+  it('--engine flag overrides frontmatter', () => {
+    expect(resolveEngine('direct', 'git-worktree', true)).toBe('direct');
+  });
+
+  it('frontmatter overrides auto', () => {
+    expect(resolveEngine(undefined, 'direct', true)).toBe('direct');
+  });
+
+  it('throws on unknown engine name', () => {
+    expect(() => resolveEngine('bogus')).toThrow('Unknown engine');
+  });
+});
+
+// ── merge_available behavior ─────────────────────────────────────────────────
+
+describe('merge_available behavior (real git)', () => {
+  it('git-worktree + all done → not archived (merge available)', () => {
+    const worktreePath = resolve(rootDir, '..', `wt-merge-avail-${Date.now()}`);
+    const branchName = 'workflow/merge-avail';
+    createGitWorktree(worktreePath, branchName, rootDir);
+
+    const name = workflowCreate(dist, 'debo-test', 'Merge Available', []);
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task-1', title: 'T1', type: 'data' }],
+      undefined,
+      undefined,
+      worktreePath,
+      rootDir,
+      branchName,
+      'git-worktree',
+    );
+
+    const result = workflowDone(dist, name, 'task-1');
+    // git-worktree + all done → stays in changes (merge available)
+    expect(result.archived).toBe(false);
+    expect(result.data.engine).toBe('git-worktree');
+    expect(result.data.tasks.every((t) => t.status === 'done')).toBe(true);
+  });
+
+  it('direct + all done → archived (no merge)', () => {
+    const name = workflowCreate(dist, 'debo-test', 'Direct Done', []);
+    workflowPlan(
+      dist,
+      name,
+      [{ id: 'task-1', title: 'T1', type: 'data' }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    const result = workflowDone(dist, name, 'task-1');
+    expect(result.archived).toBe(true);
+  });
+
+  it('git-worktree + tasks pending → not archived (not yet merge-able)', () => {
+    const worktreePath = resolve(rootDir, '..', `wt-pending-${Date.now()}`);
+    const branchName = 'workflow/pending';
+    createGitWorktree(worktreePath, branchName, rootDir);
+
+    const name = workflowCreate(dist, 'debo-test', 'Pending Tasks', []);
+    workflowPlan(
+      dist,
+      name,
+      [
+        { id: 'task-1', title: 'T1', type: 'data' },
+        { id: 'task-2', title: 'T2', type: 'data' },
+      ],
+      undefined,
+      undefined,
+      worktreePath,
+      rootDir,
+      branchName,
+      'git-worktree',
+    );
+
+    const result = workflowDone(dist, name, 'task-1');
+    expect(result.archived).toBe(false);
+    // Not all done yet
+    expect(result.data.tasks.some((t) => t.status === 'pending')).toBe(true);
   });
 });

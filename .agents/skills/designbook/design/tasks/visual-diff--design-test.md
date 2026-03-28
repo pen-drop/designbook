@@ -3,7 +3,7 @@ params:
   scene: ~
 files: []
 reads:
-  - path: $DESIGNBOOK_HOME/design-system/guidelines.yml
+  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
 ---
 
 # Visual Diff

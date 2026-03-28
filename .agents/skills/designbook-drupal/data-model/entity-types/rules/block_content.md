@@ -2,7 +2,7 @@
 when:
   backend: drupal
   extensions: layout_builder
-  stages: [designbook-data-model:intake, create-data-model]
+  steps: [designbook-data-model:intake, create-data-model]
 description: "Use for reusable layout sections placed via Layout Builder. One layer deep only — no nested block_content."
 ---
 

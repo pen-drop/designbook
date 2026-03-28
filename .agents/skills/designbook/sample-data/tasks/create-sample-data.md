@@ -3,20 +3,20 @@ params:
   section_id: ~
   entities: []       # optional: list of {entity_type, bundle, view_mode} from plan-entities
 reads:
-  - path: $DESIGNBOOK_HOME/data-model.yml
+  - path: $DESIGNBOOK_DATA/data-model.yml
   - path: $DESIGNBOOK_DIRS_COMPONENTS
     description: Available components — required for canvas bundle generation (rule canvas.md)
 files:
-  - $DESIGNBOOK_HOME/sections/{{ section_id }}/data.yml
+  - $DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml
 ---
 
 # Create Sample Data
 
-Writes `$DESIGNBOOK_HOME/sections/{{ section_id }}/data.yml` with realistic sample records. Idempotent: checks existing records and only appends what is missing. Never overwrites existing data. Never writes a `_meta` key.
+Writes `$DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml` with realistic sample records. Idempotent: checks existing records and only appends what is missing. Never overwrites existing data. Never writes a `_meta` key.
 
 ## Step 1: Read existing data.yml
 
-Read `$DESIGNBOOK_HOME/sections/{{ section_id }}/data.yml` if it exists. Build an inventory:
+Read `$DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml` if it exists. Build an inventory:
 
 ```
 existing_counts[entity_type][bundle] = number of records
@@ -132,7 +132,7 @@ Row count = `items_per_page` from the same record (default: 6). Cycle through av
 
 ## Validation
 
-Check against `$DESIGNBOOK_HOME/data-model.yml` before writing:
+Check against `$DESIGNBOOK_DATA/data-model.yml` before writing:
 
 ### ⛔ Hard Errors (stop — fix before writing)
 

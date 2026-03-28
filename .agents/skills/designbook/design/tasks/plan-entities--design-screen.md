@@ -1,9 +1,9 @@
 ---
 stage: plan-entities
 reads:
-  - path: $DESIGNBOOK_HOME/data-model.yml
+  - path: $DESIGNBOOK_DATA/data-model.yml
     workflow: debo-data-model
-  - path: $DESIGNBOOK_HOME/sections/[section-id]/[section-id].section.scenes.yml
+  - path: $DESIGNBOOK_DATA/sections/[section-id]/[section-id].section.scenes.yml
     workflow: debo-shape-section
 ---
 
@@ -35,5 +35,5 @@ Present the work list for confirmation:
 ## Constraints
 
 - Traverse `type: reference` fields recursively — add referenced entities with their implied view_mode
-- Verify each template has a matching rule (`skills/*/rules/*.md` with `when: stages: [map-entity], template: {name}`). Stop and report if no rule found
+- Verify each template has a matching rule (`skills/*/rules/*.md` with `when: steps: [map-entity], template: {name}`). Stop and report if no rule found
 - Confirm with user before proceeding to `map-entity`

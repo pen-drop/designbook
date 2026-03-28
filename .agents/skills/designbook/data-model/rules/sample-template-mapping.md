@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [data-model:intake, create-data-model]
+  steps: [data-model:intake, create-data-model]
 ---
 
 # Rule: Auto-assign sample_template from Config

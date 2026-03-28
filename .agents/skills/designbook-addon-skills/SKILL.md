@@ -15,14 +15,14 @@ This meta-skill documents the conventions for creating Designbook skills. Use it
 designbook skill             →  Addon skills (designbook-css-*, designbook-drupal, etc.)
   ↳ <concern>/workflows/       ↳ tasks/<stage>.md  — what to create
   ↳ <workflow-id>.md           ↳ rules/<name>.md   — constraints (conditional)
-  ↳ stages: [intake, ...]
+  ↳ steps: [intake, ...]
 ```
 
 **Workflow files** live inside the `designbook` skill at `<concern>/workflows/<workflow-id>.md` and have simplified flat frontmatter:
 ```yaml
 title: Design Shell
 description: Design the application shell with header, content, and footer slots
-stages: [design-shell:intake, create-component, design-shell:create-scene]
+steps: [design-shell:intake, create-component, design-shell:create-scene]
 before:
   - workflow: css-generate
     execute: if-never-run
@@ -90,28 +90,28 @@ files:
 - `when` — config conditions that must match; **never contains `stage:`** (stage = filename)
 - `params` — AI fills from dialog; `~` means required
 - `reads` — files required before this stage; missing → stop + tell user which workflow to run
-- `files` — output paths; **must** use `$DESIGNBOOK_HOME/` or `$DESIGNBOOK_DIRS_ROOT/` prefix
+- `files` — output paths; **must** use `$DESIGNBOOK_HOME/` or `$DESIGNBOOK_HOME/` prefix
 
 Validation is **never** part of a task file — it runs automatically via `workflow validate --task`.
 
 ### `rules/` — Conditional Constraints
 
-Rule files apply only when their `when` conditions match. Unlike task files, rules must explicitly declare `when.stages`:
+Rule files apply only when their `when` conditions match. Unlike task files, rules must explicitly declare `when.steps`:
 
 ```markdown
 ---
 when:
   backend: drupal
-  stages: [create-data-model]
+  steps: [create-data-model]
 ---
 ```
 
-| | Stage assignment | `when: stages:` required? |
+| | Stage assignment | `when: steps:` required? |
 |---|---|---|
 | Task File | Filename (`create-vision.md` → stage `create-vision`) | No |
 | Rule File | Must be declared explicitly | Yes (if stage-specific) |
 
-- Without `when.stages`: rule applies to all stages
+- Without `when.steps`: rule applies to all steps
 - Rules are loaded automatically — no explicit "read this file" needed in workflows
 
 ## Canonical Stage Names

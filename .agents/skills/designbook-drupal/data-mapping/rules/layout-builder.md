@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [map-entity]
+  steps: [map-entity]
   template: layout-builder
 ---
 

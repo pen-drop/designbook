@@ -2,13 +2,13 @@
 
 ## Stage-Based Architecture
 
-Workflows declare a `stages:` array in their frontmatter. Each non-intake stage maps to task files discovered in `.agents/skills/*/tasks/<stage>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints.
+Workflows declare a `steps:` array in their frontmatter. Each non-intake step maps to task files discovered in `.agents/skills/*/tasks/<step>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints.
 
 ```yaml
 # workflow frontmatter
 workflow:
   title: Design Shell
-  stages: [intake, create-component, create-shell-scene]
+  steps: [intake, create-component, create-shell-scene]
 ```
 
 The `intake` stage is the workflow body itself (interviews the user). All other stages are executed via skill task files.
@@ -61,7 +61,7 @@ workflow done (final task, allDone=true)
 
 **`outputs` in designbook.config.yml:**
 ```yaml
-outputs:
+dirs:
   config: packages/integrations/test-integration-drupal/designbook    # → DESIGNBOOK_DIRS_CONFIG
   components: packages/integrations/test-integration-drupal/components # → DESIGNBOOK_DIRS_COMPONENTS
   css: packages/integrations/test-integration-drupal/css/tokens        # → DESIGNBOOK_DIRS_CSS
@@ -121,13 +121,13 @@ Rule files live at `.agents/skills/<skill-name>/rules/<name>.md`. They define co
 ```markdown
 ---
 when:
-  stages: [create-component, create-shell-scene]   # one or more canonical stages
+  steps: [create-component, create-shell-scene]   # one or more canonical stages
   frameworks.component: sdc                         # optional additional condition
 ---
 # Rule constraints go here (prose — never execution steps)
 ```
 
-- `stages:` accepts a single value or an array
-- Without `when.stages`: rule applies to all stages
+- `steps:` accepts a single value or an array
+- Without `when.steps`: rule applies to all steps
 - **Named intake stages**: use `workflow-id:intake` to scope a rule to a specific workflow's intake
 

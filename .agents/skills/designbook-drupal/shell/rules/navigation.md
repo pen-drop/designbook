@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [debo-design-system:intake]
+  steps: [debo-design-system:intake]
   backend: drupal
 ---
 

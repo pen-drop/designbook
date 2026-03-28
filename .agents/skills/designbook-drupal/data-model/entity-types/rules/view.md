@@ -1,7 +1,7 @@
 ---
 when:
   backend: drupal
-  stages: [designbook-data-model:intake, create-data-model]
+  steps: [designbook-data-model:intake, create-data-model]
 description: "Use for Drupal Views — listings and queries that display collections of content. Lives under config: not content:."
 ---
 

@@ -1,9 +1,9 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_HOME/product/vision.md
-  - path: $DESIGNBOOK_HOME/design-system/design-tokens.yml
-  - path: $DESIGNBOOK_HOME/design-system/guidelines.yml
+  - path: $DESIGNBOOK_DATA/product/vision.md
+  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
 ---
 
 # Intake: Design Shell

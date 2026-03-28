@@ -30,7 +30,7 @@ export class ValidationRegistry {
   async validate(file: string, config: DesignbookConfig): Promise<ValidationFileResult> {
     // Last registration wins — iterate in reverse
     for (let i = this.entries.length - 1; i >= 0; i--) {
-      const entry = this.entries[i];
+      const entry = this.entries[i]!;
       const matches = entry.patterns.some((p) => minimatch(file, p, { dot: true, matchBase: false }));
       if (matches) {
         return entry.validate(file, config);

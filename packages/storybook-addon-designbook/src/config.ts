@@ -171,7 +171,7 @@ export function loadConfig(startDir?: string): DesignbookConfig {
     config['designbook.home'] = home;
 
     // 3. Resolve designbook.data (workflow data dir, name relative to home)
-    const rawData = config['designbook.data'] as string | undefined ?? 'designbook';
+    const rawData = (config['designbook.data'] as string | undefined) ?? 'designbook';
     const dataDir = resolve(home, rawData);
     config['designbook.data'] = dataDir;
     config.data = dataDir;

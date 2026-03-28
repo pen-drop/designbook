@@ -45,7 +45,7 @@ started_at: 2026-03-12T18:30:00
 completed_at:
 tasks:
   - id: create-component-button
-    title: Create Component: button
+    title: Button
     type: component
     stage: create-component
     status: pending                # pending | in-progress | done | incomplete
@@ -69,13 +69,13 @@ tasks:
 
 **`files:` vs `reads:` in task files:**
 
-- `files:` — output paths using `DESIGNBOOK_DIRS_*` env vars (e.g. `$DESIGNBOOK_HOME`, `$DESIGNBOOK_DIRS_COMPONENTS`). CLI remaps these vars to WORKTREE at plan time — subagents write to WORKTREE, Storybook sees nothing until workflow completes.
-- `reads:` — input paths using real `DESIGNBOOK_HOME`-relative vars. Never remapped — always point to the actual filesystem so subagents can read pre-existing files.
+- `files:` — output paths using `DESIGNBOOK_DIRS_*` env vars (e.g. `$DESIGNBOOK_DATA`, `$DESIGNBOOK_DIRS_COMPONENTS`). CLI remaps these vars to WORKTREE at plan time — subagents write to WORKTREE, Storybook sees nothing until workflow completes.
+- `reads:` — input paths using real `DESIGNBOOK_DATA`-relative vars. Never remapped — always point to the actual filesystem so subagents can read pre-existing files.
 
 ## Directory Structure
 
 ```
-$DESIGNBOOK_HOME/
+$DESIGNBOOK_DATA/
 └── workflows/
     ├── changes/          # Active workflows
     │   └── [name]/

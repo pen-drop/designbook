@@ -60,7 +60,7 @@ function resolveScene(
   sceneRef: string,
 ): { filePath: string; scenes: SceneEntry[]; allScenes: ScenesFile } {
   const parts = sceneRef.split(':');
-  const group = parts[0];
+  const group = parts[0]!;
   const sceneName = parts[1]; // may be undefined
 
   // Try design-system path first
@@ -74,7 +74,7 @@ function resolveScene(
     const sectionGlob = resolve(dist, 'sections', group, '*.section.scenes.yml');
     const matches = glob.sync(sectionGlob);
     if (matches.length > 0) {
-      filePath = matches[0];
+      filePath = matches[0]!;
     }
   }
 

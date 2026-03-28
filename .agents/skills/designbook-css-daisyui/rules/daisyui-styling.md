@@ -1,7 +1,7 @@
 ---
 when:
   frameworks.css: daisyui
-  stages: [create-component]
+  steps: [create-component]
 ---
 
 # DaisyUI Styling Rules

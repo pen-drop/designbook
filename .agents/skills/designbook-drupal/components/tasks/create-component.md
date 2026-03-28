@@ -8,11 +8,11 @@ params:
   group: ~
   variants: []
 files:
-  - ${DESIGNBOOK_DIRS_ROOT}/components/{{ component }}/{{ component }}.component.yml
-  - ${DESIGNBOOK_DIRS_ROOT}/components/{{ component }}/{{ component }}.twig
-  - ${DESIGNBOOK_DIRS_ROOT}/components/{{ component }}/{{ component }}.default.story.yml
+  - ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.component.yml
+  - ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.twig
+  - ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.default.story.yml
 reads:
-  - path: $DESIGNBOOK_HOME/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: debo-design-tokens
 ---
 

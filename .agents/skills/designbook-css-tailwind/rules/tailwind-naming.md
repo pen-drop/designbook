@@ -1,7 +1,7 @@
 ---
 when:
   frameworks.css: tailwind
-  stages: [designbook-tokens:intake, create-tokens]
+  steps: [designbook-tokens:intake, create-tokens]
 ---
 
 # Tailwind Token Naming Rules

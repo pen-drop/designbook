@@ -5,12 +5,12 @@ params:
   problems: []
   features: []
 files:
-  - $DESIGNBOOK_HOME/product/vision.md
+  - $DESIGNBOOK_DATA/product/vision.md
 ---
 
 # Create Product Vision
 
-Creates `$$DESIGNBOOK_HOME/product/vision.md` with the approved product vision from the dialog.
+Creates `$$DESIGNBOOK_DATA/product/vision.md` with the approved product vision from the dialog.
 
 ## File Format
 

@@ -7,7 +7,7 @@ import {
   resolveTaskFile,
   expandFilePath,
   matchRuleFiles,
-  resolveConfigForStage,
+  resolveConfigForStep,
   computeDependsOn,
   validateAndMergeParams,
   generateTaskId,
@@ -293,7 +293,7 @@ describe('validateAndMergeParams', () => {
 });
 
 // 5.5: Config resolution
-describe('resolveConfigForStage', () => {
+describe('resolveConfigForStep', () => {
   it('resolves config rules and instructions for a stage', () => {
     const rawConfig = {
       workflow: {
@@ -306,20 +306,20 @@ describe('resolveConfigForStage', () => {
       },
     };
 
-    const result = resolveConfigForStage('create-component', rawConfig);
+    const result = resolveConfigForStep('create-component', rawConfig);
     expect(result.config_rules).toEqual(['Rule A', 'Rule B']);
     expect(result.config_instructions).toEqual(['Instruction A']);
   });
 
   it('returns empty arrays for missing stage', () => {
     const rawConfig = { workflow: { rules: {}, tasks: {} } };
-    const result = resolveConfigForStage('nonexistent', rawConfig);
+    const result = resolveConfigForStep('nonexistent', rawConfig);
     expect(result.config_rules).toEqual([]);
     expect(result.config_instructions).toEqual([]);
   });
 
   it('handles absent workflow config', () => {
-    const result = resolveConfigForStage('create-component', {});
+    const result = resolveConfigForStep('create-component', {});
     expect(result.config_rules).toEqual([]);
     expect(result.config_instructions).toEqual([]);
   });
@@ -334,7 +334,7 @@ describe('resolveConfigForStage', () => {
       },
     };
 
-    const result = resolveConfigForStage('designbook-data-model:intake', rawConfig);
+    const result = resolveConfigForStep('designbook-data-model:intake', rawConfig);
     expect(result.config_rules).toEqual(['Drupal intake rule']);
   });
 });
@@ -454,41 +454,41 @@ describe('resolveWorkflowPlan', () => {
       wfPath,
       { section_id: 'dashboard' },
       [
-        { stage: 'create-component', params: { component: 'button' } },
-        { stage: 'create-component', params: { component: 'card' } },
-        { stage: 'create-scene', params: { section_id: 'dashboard' } },
+        { step: 'create-component', params: { component: 'button' } },
+        { step: 'create-component', params: { component: 'card' } },
+        { step: 'create-scene', params: { section_id: 'dashboard' } },
       ],
       baseConfig,
       {},
       agentsDir,
     );
 
-    // Check stages (intake filtered out)
-    expect(plan.stages).toEqual(['create-component', 'create-scene']);
+    // Check steps (intake filtered out)
+    expect(plan.steps).toEqual(['create-component', 'create-scene']);
 
     // Check tasks
     expect(plan.tasks).toHaveLength(3);
 
     // First two tasks: create-component (parallel, no deps)
-    expect(plan.tasks[0].id).toBe('create-component-button');
-    expect(plan.tasks[0].stage).toBe('create-component');
-    expect(plan.tasks[0].depends_on).toEqual([]);
-    expect(plan.tasks[0].params.component).toBe('button');
-    expect(plan.tasks[0].files).toEqual(['/test/dist/components/button/button.yml']);
+    expect(plan.tasks[0]!.id).toBe('create-component-button');
+    expect(plan.tasks[0]!.step).toBe('create-component');
+    expect(plan.tasks[0]!.depends_on).toEqual([]);
+    expect(plan.tasks[0]!.params.component).toBe('button');
+    expect(plan.tasks[0]!.files).toEqual(['/test/dist/components/button/button.yml']);
 
-    expect(plan.tasks[1].id).toBe('create-component-card');
-    expect(plan.tasks[1].depends_on).toEqual([]);
+    expect(plan.tasks[1]!.id).toBe('create-component-card');
+    expect(plan.tasks[1]!.depends_on).toEqual([]);
 
     // Third task: create-scene (depends on both components)
-    expect(plan.tasks[2].id).toBe('create-scene-dashboard');
-    expect(plan.tasks[2].depends_on).toEqual(['create-component-button', 'create-component-card']);
-    expect(plan.tasks[2].files).toEqual(['/test/dist/scenes/dashboard.yml']);
+    expect(plan.tasks[2]!.id).toBe('create-scene-dashboard');
+    expect(plan.tasks[2]!.depends_on).toEqual(['create-component-button', 'create-component-card']);
+    expect(plan.tasks[2]!.files).toEqual(['/test/dist/scenes/dashboard.yml']);
 
     // Global params
     expect(plan.params).toEqual({ section_id: 'dashboard' });
   });
 
-  it('throws on item with stage not in workflow', () => {
+  it('throws on item with step not in workflow', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     const workflowsDir = resolve(tmpDir, 'workflows');
     mkdirSync(workflowsDir, { recursive: true });
@@ -499,8 +499,8 @@ describe('resolveWorkflowPlan', () => {
       'workflow:\n  title: Test\n  stages: [create-component]',
     );
 
-    expect(() => resolveWorkflowPlan(wfPath, {}, [{ stage: 'nonexistent' }], baseConfig, {}, agentsDir)).toThrow(
-      /not found in workflow stages/,
+    expect(() => resolveWorkflowPlan(wfPath, {}, [{ step: 'nonexistent' }], baseConfig, {}, agentsDir)).toThrow(
+      /not found in workflow steps/,
     );
   });
 });
@@ -544,7 +544,8 @@ describe('buildEnvMap', () => {
       'dirs.components': '/test/components',
     };
     const env = buildEnvMap(config);
-    expect(env.DESIGNBOOK_HOME).toBe('/test/dist');
+    expect(env.DESIGNBOOK_HOME).toBe('/test/theme');
+    expect(env.DESIGNBOOK_DIRS_CONFIG).toBe('/test/dist');
     expect(env.DESIGNBOOK_DIRS_COMPONENTS).toBe('/test/components');
   });
 });
@@ -557,7 +558,6 @@ describe('buildWorktreeEnvMap', () => {
       DESIGNBOOK_WORKSPACE: rootDir,
       DESIGNBOOK_HOME: '/home/user/project/theme',
       DESIGNBOOK_DATA: '/home/user/project/theme/designbook',
-      DESIGNBOOK_HOME: '/home/user/project/theme/designbook',
       DESIGNBOOK_DIRS_COMPONENTS: '/home/user/project/components',
     };
     const worktreePath = '/tmp/wt-abc123';
@@ -566,7 +566,6 @@ describe('buildWorktreeEnvMap', () => {
     expect(remapped.DESIGNBOOK_WORKSPACE).toBe('/tmp/wt-abc123');
     expect(remapped.DESIGNBOOK_HOME).toBe('/tmp/wt-abc123/theme');
     expect(remapped.DESIGNBOOK_DATA).toBe('/tmp/wt-abc123/theme/designbook');
-    expect(remapped.DESIGNBOOK_HOME).toBe('/tmp/wt-abc123/theme/designbook');
     expect(remapped.DESIGNBOOK_DIRS_COMPONENTS).toBe('/tmp/wt-abc123/components');
   });
 
@@ -681,8 +680,8 @@ describe('resolveFiles', () => {
     const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
 
     expect(matches).toHaveLength(1);
-    expect(matches[0].path).toContain('tailwind-rule');
-    expect(matches[0].specificity).toBe(1);
+    expect(matches[0]!.path).toContain('tailwind-rule');
+    expect(matches[0]!.specificity).toBe(1);
   });
 
   it('includes unconditional files with specificity 0', () => {
@@ -694,7 +693,7 @@ describe('resolveFiles', () => {
     const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
 
     expect(matches).toHaveLength(1);
-    expect(matches[0].specificity).toBe(0);
+    expect(matches[0]!.specificity).toBe(0);
   });
 
   it('uses context for stage matching and config for framework matching', () => {
@@ -711,7 +710,7 @@ describe('resolveFiles', () => {
     const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
 
     expect(matches).toHaveLength(1);
-    expect(matches[0].specificity).toBe(2);
+    expect(matches[0]!.specificity).toBe(2);
   });
 });
 
@@ -721,12 +720,13 @@ describe('buildRuntimeContext', () => {
     expect(buildRuntimeContext()).toEqual({});
   });
 
-  it('includes stage as stages key', () => {
-    expect(buildRuntimeContext('create-scene')).toEqual({ stages: 'create-scene' });
+  it('includes step as steps key (with legacy stages compat)', () => {
+    expect(buildRuntimeContext('create-scene')).toEqual({ steps: 'create-scene', stages: 'create-scene' });
   });
 
   it('merges extra conditions', () => {
     expect(buildRuntimeContext('create-sample-data', { template: 'canvas' })).toEqual({
+      steps: 'create-sample-data',
       stages: 'create-sample-data',
       template: 'canvas',
     });

@@ -41,7 +41,7 @@ Create a Twig template with the following structure. Use classes from the CSS fr
 
 **Write to file:**
 ```
-$DESIGNBOOK_DIRS_ROOT/components/[componentNameKebab]/[componentNameKebab].twig
+$DESIGNBOOK_HOME/components/[componentNameKebab]/[componentNameKebab].twig
 ```
 
 ## Rules

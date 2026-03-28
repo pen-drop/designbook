@@ -1,7 +1,7 @@
 ---
 when:
   backend: drupal
-  stages: [designbook-data-model:intake, create-data-model]
+  steps: [designbook-data-model:intake, create-data-model]
 ---
 
 # Drupal Data Model Rules

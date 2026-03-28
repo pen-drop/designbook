@@ -65,13 +65,13 @@ describe('workflowUpdate --files', () => {
     // Manually inject a validation_result for file A
     const tasksPath = resolve(dist, 'workflows', 'changes', name, 'tasks.yml');
     const raw = parseYaml(readFileSync(tasksPath, 'utf-8')) as WorkflowRaw;
-    raw.tasks[0].files![0].validation_result = {
+    raw.tasks[0]!.files![0]!.validation_result = {
       file: fileAPath,
       type: 'component',
       valid: true,
       last_validated: '2026-01-01T00:00:00.000Z',
     };
-    raw.tasks[0].files![0].requires_validation = false;
+    raw.tasks[0]!.files![0]!.requires_validation = false;
     writeFileSync(tasksPath, stringifyYaml(raw));
 
     // Second update: mark done with same file A + new file B
@@ -79,7 +79,7 @@ describe('workflowUpdate --files', () => {
     workflowUpdate(dist, name, 'task1', 'done', [fileAPath, fileBPath]);
 
     const data2 = parseYaml(readFileSync(tasksPath, 'utf-8')) as WorkflowRaw;
-    const files = data2.tasks[0].files;
+    const files = data2.tasks[0]!.files;
     expect(files).toHaveLength(2);
 
     const fileA = files?.find((f) => f.path === fileAPath);

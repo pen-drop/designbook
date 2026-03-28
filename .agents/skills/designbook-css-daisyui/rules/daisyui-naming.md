@@ -1,7 +1,7 @@
 ---
 when:
   frameworks.css: daisyui
-  stages: [designbook-tokens:intake, create-tokens]
+  steps: [designbook-tokens:intake, create-tokens]
 ---
 
 # DaisyUI Token Naming Rules

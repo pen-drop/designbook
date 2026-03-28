@@ -2,7 +2,7 @@
 when:
   backend: drupal
   extensions: canvas
-  stages: [designbook-data-model:intake, create-data-model]
+  steps: [designbook-data-model:intake, create-data-model]
 description: "Use for landing pages managed by the Canvas module. Canvas stores the component tree directly on the entity — no block_content indirection."
 ---
 

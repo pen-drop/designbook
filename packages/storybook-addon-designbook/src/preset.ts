@@ -71,7 +71,9 @@ export const stories = async (entry: string[] = [], options: any) => {
   // Storybook resolves story globs relative to configDir (.storybook/).
   // The storybookTest() vitest plugin also uses configDir as base.
   // So all paths from presets must be relative to configDir.
-  const configDir = options?.configDir || resolve((designbookConfig['designbook.home'] as string | undefined) || process.cwd(), '.storybook');
+  const configDir =
+    options?.configDir ||
+    resolve((designbookConfig['designbook.home'] as string | undefined) || process.cwd(), '.storybook');
   const scenesGlob = resolve(distDir, '{sections,design-system}/**/*.scenes.yml');
 
   // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections.

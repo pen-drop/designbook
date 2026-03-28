@@ -1,7 +1,7 @@
 ---
 when:
   backend: drupal
-  stages: [designbook-data-model:intake, create-data-model]
+  steps: [designbook-data-model:intake, create-data-model]
 description: "Use for content types — articles, pages, products, or any structured content with fields."
 ---
 

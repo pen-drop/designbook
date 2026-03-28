@@ -68,7 +68,7 @@ slots:                    # optional, define slot content
 
 **Write to file:**
 ```
-$DESIGNBOOK_DIRS_ROOT/components/[componentNameKebab]/[componentNameKebab].[storyName].story.yml
+$DESIGNBOOK_HOME/components/[componentNameKebab]/[componentNameKebab].[storyName].story.yml
 ```
 
 > If `storyName` is not specified or the component has a single story, use `default` as the story name.
@@ -99,10 +99,10 @@ There are 3 core story node types:
 > [!IMPORTANT]
 > **Provider is mandatory.** Every component reference in a story **must** include the provider prefix. The provider is the SDC namespace that maps to the directory where the component lives. Look up the correct provider from the component's own `.component.yml` → `provider:` field.
 >
-> | Component Location | Provider | Example Reference |
-> |---|---|---|
-> | `$DESIGNBOOK_DIRS_ROOT/components/` | From `.component.yml` (e.g. `test_integration_drupal`) | `'test_integration_drupal:header'` |
-> | `$DESIGNBOOK_HOME/components/` | `designbook_design` | `'designbook_design:entity-article'` |
+> | Component Location             | Provider | Example Reference |
+> |--------------------------------|---|---|
+> | `$DESIGNBOOK_HOME/components/` | From `.component.yml` (e.g. `test_integration_drupal`) | `'test_integration_drupal:header'` |
+> | `$DESIGNBOOK_DATA/components/` | `designbook_design` | `'designbook_design:entity-article'` |
 >
 > The provider maps to a Twig namespace configured in `.storybook/main.js` → `sdcStorybookOptions.namespaces`. Without it, the SDC addon cannot resolve the component path.
 

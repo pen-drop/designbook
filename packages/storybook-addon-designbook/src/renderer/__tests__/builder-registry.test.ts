@@ -92,7 +92,7 @@ describe('resolveEntityRefs', () => {
 
     const result = await resolveEntityRefs([cardNode], ctx);
 
-    expect(result[0].slots?.author).toEqual(badge);
+    expect(result[0]!.slots?.author).toEqual(badge);
   });
 
   it('passes type:element through as-is (no special handling — scene validator rejects it)', async () => {
@@ -108,7 +108,7 @@ describe('resolveEntityRefs', () => {
     const result = await resolveEntityRefs([node], ctx);
 
     // type:element is not handled — it passes through as a raw object in the slot array
-    expect(Array.isArray(result[0].slots?.text)).toBe(true);
+    expect(Array.isArray(result[0]!.slots?.text)).toBe(true);
   });
 
   it('resolves entity refs in array slots', async () => {
@@ -126,6 +126,6 @@ describe('resolveEntityRefs', () => {
 
     const result = await resolveEntityRefs([listNode], ctx);
 
-    expect(result[0].slots?.items).toEqual([badge]);
+    expect(result[0]!.slots?.items).toEqual([badge]);
   });
 });

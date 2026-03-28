@@ -1,5 +1,8 @@
 ---
 title: Create Sample Data
 description: Create sample data and type definitions for a section
-stages: [intake, create-sample-data]
+stages:
+  execute:
+    steps: [intake, create-sample-data]
+engine: direct
 ---

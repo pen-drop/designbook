@@ -16,7 +16,6 @@ dirs:
   css: css/tokens
 css:
   app: css/app.src.css
-cmd: node ../../packages/storybook-addon-designbook/dist/cli.js
 component:
   namespace: 'test_integration_drupal'
   src: components

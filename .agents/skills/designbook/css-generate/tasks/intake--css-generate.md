@@ -1,7 +1,7 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_HOME/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
 ---
 
 # Intake: CSS Generate
@@ -10,7 +10,7 @@ Check whether CSS regeneration is needed and confirm with the user.
 
 ## Step 1: Check Regeneration
 
-Check if generated CSS token files (location determined by the active CSS framework skill) are newer than `$DESIGNBOOK_HOME/design-system/design-tokens.yml`.
+Check if generated CSS token files (location determined by the active CSS framework skill) are newer than `$DESIGNBOOK_DATA/design-system/design-tokens.yml`.
 
 **If up to date:**
 
