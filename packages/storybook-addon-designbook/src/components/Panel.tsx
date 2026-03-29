@@ -20,7 +20,8 @@ interface ValidationFileResult {
 
 interface TaskFile {
   path: string;
-  requires_validation?: boolean;
+  key: string;
+  validators: string[];
   validation_result?: ValidationFileResult;
 }
 
@@ -392,18 +393,20 @@ const S = {
 function FileBadge({
   path,
   isAbsolute,
+  label,
   variant = 'gray',
   validation,
 }: {
   path: string;
   isAbsolute: boolean;
+  label?: string;
   variant?: 'green' | 'yellow' | 'gray' | 'white';
   validation?: ValidationFileResult;
 }) {
   return (
     <span style={S.contextFileRow}>
       <ManagerBadge variant={variant} title={path}>
-        {shortenPath(path)}
+        {label || shortenPath(path)}
       </ManagerBadge>
       {isAbsolute && <ContextAction path={path} validation={validation} />}
     </span>
@@ -694,6 +697,7 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                                     key={f.path}
                                     path={absPath}
                                     isAbsolute={true}
+                                    label={f.key}
                                     variant={fileBadgeVariant(f)}
                                     validation={f.validation_result ?? undefined}
                                   />

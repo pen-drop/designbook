@@ -24,13 +24,12 @@ export interface ResolvedTask {
   type: string;
   step: string; // canonical step name (e.g. create-component) — was: stage
   stage: string; // parent stage name (execute, test, preview)
-  depends_on: string[];
   params: Record<string, unknown>;
   task_file: string;
   rules: string[];
   config_rules: string[];
   config_instructions: string[];
-  files: string[];
+  files: Array<{ path: string; key: string; validators: string[] }>;
 }
 
 export interface ResolvedPlan {
@@ -45,10 +44,16 @@ export interface ResolvedFile {
   frontmatter: Record<string, unknown> | null;
 }
 
+export interface TaskFileDeclaration {
+  file: string; // path template (supports $ENV and {{ param }})
+  key: string; // stable identifier used by write-file --key
+  validators?: string[]; // validator keys (e.g. ['tokens']); defaults to []
+}
+
 interface TaskFileFrontmatter {
   when?: Record<string, unknown>;
   params?: Record<string, unknown>;
-  files?: string[];
+  files?: TaskFileDeclaration[];
   reads?: Array<{ path: string; workflow?: string }>;
 }
 
@@ -300,19 +305,22 @@ export function resolveFiles(
 // ── Task File Resolution ────────────────────────────────────────────
 
 /**
- * Resolve a stage name to a task file path.
+ * Resolve a stage name to task file paths.
  *
  * Named stages (skill:task format): first try direct skill-dir resolution, then
  * fall back to glob for workflow-qualified tasks (task--workflow-id.md pattern).
- * Generic stages use `resolveFiles` and pick the most specific match.
+ * Named stages always return at most one result.
+ *
+ * Generic stages return ALL matching task files (multiple skills can contribute).
+ * Returns empty array if no task files match (callers skip the step).
  */
-export function resolveTaskFile(
+export function resolveTaskFiles(
   stage: string,
   config: DesignbookConfig,
   agentsDir: string,
   workflowId?: string,
-): string {
-  // Named stage: skill-name:task-name
+): string[] {
+  // Named stage: skill-name:task-name — single result
   if (stage.includes(':')) {
     const parts = stage.split(':', 2);
     const skillName = parts[0] ?? '';
@@ -320,30 +328,26 @@ export function resolveTaskFile(
     // Try direct skill-dir resolution first (e.g. designbook-drupal:create-component)
     const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
     if (existsSync(taskPath)) {
-      return taskPath;
+      return [taskPath];
     }
     // Fall back to glob for workflow-qualified tasks within unified skill (e.g. design-screen:intake)
     const context = buildRuntimeContext();
     const enrichedConfig = buildEnrichedConfig(config);
     const matches = resolveFiles(`skills/**/tasks/${taskName}--${skillName}.md`, context, enrichedConfig, agentsDir);
     if (matches.length === 0) {
-      throw new Error(
-        `Task file not found for named stage "${stage}": ` +
-          `checked ${taskPath} and glob skills/**/tasks/${taskName}--${skillName}.md`,
-      );
+      return [];
     }
     matches.sort((a, b) => b.specificity - a.specificity);
-    return matches[0]!.path;
+    return [matches[0]!.path];
   }
 
-  // Generic stage: resolve via glob + when matching
+  // Generic stage: resolve via glob + when matching — return ALL matches
   const context = buildRuntimeContext();
   const enrichedConfig = buildEnrichedConfig(config);
   const matches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir);
 
   if (matches.length > 0) {
-    matches.sort((a, b) => b.specificity - a.specificity);
-    return matches[0]!.path;
+    return matches.map((m) => m.path);
   }
 
   // Fallback: try workflow-qualified task file (e.g. intake--vision.md)
@@ -355,20 +359,11 @@ export function resolveTaskFile(
       agentsDir,
     );
     if (qualifiedMatches.length > 0) {
-      qualifiedMatches.sort((a, b) => b.specificity - a.specificity);
-      return qualifiedMatches[0]!.path;
+      return qualifiedMatches.map((m) => m.path);
     }
   }
 
-  const configSummary = Object.fromEntries(
-    Object.entries(config).filter(([, v]) => v != null && typeof v !== 'object'),
-  );
-  throw new Error(
-    `No task file found for stage "${stage}". ` +
-      `Checked .agents/skills/**/tasks/${stage}.md` +
-      (workflowId ? ` and .agents/skills/**/tasks/${stage}--${workflowId}.md` : '') +
-      ` with config: ${JSON.stringify(configSummary)}`,
-  );
+  return [];
 }
 
 // ── Rule File Matching ──────────────────────────────────────────────
@@ -420,14 +415,37 @@ export function expandFilePath(
 }
 
 /**
- * Expand all file path templates from a task file's frontmatter.
+ * Expand all file declarations from a task file's frontmatter.
+ * Expands the `file` path template, passes through `key` and `validators`.
  */
-export function expandFilePaths(
-  templates: string[],
+export function expandFileDeclarations(
+  declarations: TaskFileDeclaration[],
   params: Record<string, unknown>,
   envMap: Record<string, string>,
-): string[] {
-  return templates.map((t) => expandFilePath(t, params, envMap));
+  validatorKeys?: Set<string>,
+): Array<{ path: string; key: string; validators: string[] }> {
+  const keys = new Set<string>();
+  return declarations.map((d) => {
+    if (keys.has(d.key)) {
+      throw new Error(`Duplicate key '${d.key}' in file declarations`);
+    }
+    keys.add(d.key);
+    const validators = d.validators ?? [];
+    if (validatorKeys) {
+      for (const v of validators) {
+        if (!validatorKeys.has(v)) {
+          throw new Error(
+            `Unknown validator key '${v}' in file '${d.key}'. Available: ${[...validatorKeys].join(', ')}`,
+          );
+        }
+      }
+    }
+    return {
+      path: expandFilePath(d.file, params, envMap),
+      key: d.key,
+      validators,
+    };
+  });
 }
 
 // ── Config Resolution ───────────────────────────────────────────────
@@ -457,29 +475,6 @@ export function resolveConfigForStep(
     config_rules: Array.isArray(configRules) ? configRules.map(String) : [],
     config_instructions: [...explicitInstructions, ...extensionSkills],
   };
-}
-
-// ── Depends-On Computation ──────────────────────────────────────────
-
-/**
- * Compute depends_on arrays from step ordering.
- * All tasks in step N depend on all task IDs in step N-1.
- */
-export function computeDependsOn(steps: string[], tasksByStep: Map<string, string[]>): Map<string, string[]> {
-  const result = new Map<string, string[]>();
-
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i]!;
-    const taskIds = tasksByStep.get(step) ?? [];
-    const prevStep = i > 0 ? steps[i - 1] : null;
-    const deps = prevStep ? (tasksByStep.get(prevStep) ?? []) : [];
-
-    for (const taskId of taskIds) {
-      result.set(taskId, deps);
-    }
-  }
-
-  return result;
 }
 
 // ── Params Validation ───────────────────────────────────────────────
@@ -566,7 +561,7 @@ export interface ResolvedSteps {
   steps: string[];
   stages?: Record<string, StageDefinitionFm>;
   engine?: string;
-  step_resolved: Record<string, ResolvedStep>;
+  step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
 }
 
 /**
@@ -587,26 +582,41 @@ export function resolveAllStages(
   // Extract workflow ID from file path (e.g. vision/workflows/vision.md → "vision")
   const workflowId = workflowFilePath.replace(/\\/g, '/').split('/').pop()?.replace(/\.md$/, '');
 
-  const stepResolved: Record<string, ResolvedStep> = {};
+  const stepResolved: Record<string, ResolvedStep | ResolvedStep[]> = {};
+  const resolvedSteps: string[] = [];
 
   for (const step of allSteps) {
-    const taskFilePath = resolveTaskFile(step, config, agentsDir, workflowId);
+    const taskFilePaths = resolveTaskFiles(step, config, agentsDir, workflowId);
+    if (taskFilePaths.length === 0) {
+      console.debug(`[Designbook] workflow: step "${step}" skipped — no matching task file`);
+      continue;
+    }
     const ruleFiles = matchRuleFiles(step, config, agentsDir);
     const { config_rules, config_instructions } = resolveConfigForStep(step, rawConfig);
 
-    stepResolved[step] = {
-      task_file: taskFilePath,
-      rules: ruleFiles,
-      config_rules,
-      config_instructions,
-    };
+    if (taskFilePaths.length === 1) {
+      stepResolved[step] = {
+        task_file: taskFilePaths[0]!,
+        rules: ruleFiles,
+        config_rules,
+        config_instructions,
+      };
+    } else {
+      stepResolved[step] = taskFilePaths.map((taskFile) => ({
+        task_file: taskFile,
+        rules: ruleFiles,
+        config_rules,
+        config_instructions,
+      }));
+    }
+    resolvedSteps.push(step);
   }
 
   const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
 
   return {
     title: wfFm ? getWorkflowTitle(wfFm) : '',
-    steps: allSteps,
+    steps: resolvedSteps,
     ...(stageDefs ? { stages: stageDefs } : {}),
     ...(wfFm?.engine ? { engine: wfFm.engine } : {}),
     step_resolved: stepResolved,
@@ -708,67 +718,58 @@ export function resolveWorkflowPlan(
   }
 
   const tasks: ResolvedTask[] = [];
-  const taskIdsByStep = new Map<string, string[]>();
 
   for (const step of execSteps) {
     const stepItems = itemsByStep.get(step) ?? [];
     if (stepItems.length === 0) continue;
 
-    taskIdsByStep.set(step, []);
+    // Resolve task files for this step — may be pre-resolved or freshly resolved
+    const preResolved = stepResolved?.[step];
+    const resolvedEntries: ResolvedStep[] = preResolved
+      ? Array.isArray(preResolved)
+        ? preResolved
+        : [preResolved]
+      : resolveTaskFiles(step, config, agentsDir).map((taskFile) => ({
+          task_file: taskFile,
+          rules: matchRuleFiles(step, config, agentsDir),
+          ...resolveConfigForStep(step, rawConfig),
+        }));
 
-    const resolved = stepResolved?.[step];
-    const taskFilePath = resolved?.task_file ?? resolveTaskFile(step, config, agentsDir);
-    const taskFm = parseFrontmatter(taskFilePath) as TaskFileFrontmatter | null;
-    const schemaParams = taskFm?.params ?? {};
-    const fileTemplates = taskFm?.files ?? [];
+    if (resolvedEntries.length === 0) {
+      console.debug(`[Designbook] workflow plan: step "${step}" skipped — no matching task file`);
+      continue;
+    }
 
-    const sharedRuleFiles = resolved?.rules ?? matchRuleFiles(step, config, agentsDir);
+    for (const resolved of resolvedEntries) {
+      const taskFm = parseFrontmatter(resolved.task_file) as TaskFileFrontmatter | null;
+      const schemaParams = taskFm?.params ?? {};
+      const fileDeclarations = taskFm?.files ?? [];
 
-    const configData = resolved
-      ? { config_rules: resolved.config_rules, config_instructions: resolved.config_instructions }
-      : resolveConfigForStep(step, rawConfig);
+      for (const item of stepItems) {
+        const mergedParams = validateAndMergeParams(item.params ?? {}, schemaParams, step);
+        const taskId = generateTaskId(step, mergedParams, schemaParams);
+        const title = generateTaskTitle(step, mergedParams, schemaParams);
+        const type = inferTaskType(step);
+        const files = expandFileDeclarations(fileDeclarations, mergedParams, envMap);
 
-    for (const item of stepItems) {
-      const mergedParams = validateAndMergeParams(item.params ?? {}, schemaParams, step);
-      const taskId = generateTaskId(step, mergedParams, schemaParams);
-      const title = generateTaskTitle(step, mergedParams, schemaParams);
-      const type = inferTaskType(step);
-      const files = expandFilePaths(fileTemplates, mergedParams, envMap);
-      const itemRuleFiles = sharedRuleFiles;
-
-      tasks.push({
-        id: taskId,
-        title,
-        type,
-        step,
-        stage: stepToStage.get(step) ?? 'execute',
-        depends_on: [],
-        params: mergedParams,
-        task_file: taskFilePath,
-        rules: itemRuleFiles,
-        config_rules: configData.config_rules,
-        config_instructions: configData.config_instructions,
-        files,
-      });
-
-      taskIdsByStep.get(step)!.push(taskId);
+        tasks.push({
+          id: taskId,
+          title,
+          type,
+          step,
+          stage: stepToStage.get(step) ?? 'execute',
+          params: mergedParams,
+          task_file: resolved.task_file,
+          rules: resolved.rules,
+          config_rules: resolved.config_rules,
+          config_instructions: resolved.config_instructions,
+          files,
+        });
+      }
     }
   }
 
   deduplicateTaskIds(tasks);
-
-  taskIdsByStep.clear();
-  for (const task of tasks) {
-    if (!taskIdsByStep.has(task.step)) {
-      taskIdsByStep.set(task.step, []);
-    }
-    taskIdsByStep.get(task.step)!.push(task.id);
-  }
-
-  const depsMap = computeDependsOn(execSteps, taskIdsByStep);
-  for (const task of tasks) {
-    task.depends_on = depsMap.get(task.id) ?? [];
-  }
 
   return {
     params: globalParams,

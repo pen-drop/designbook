@@ -38,9 +38,9 @@ Non-standard namespaces (e.g. `--layout-spacing-*`, `--grid-*`) require `var()`:
 
 ## Task Files
 
-- [generate-jsonata.md](tasks/generate-jsonata.md) — Generate `.jsonata` expression files for Tailwind v4 `@theme` CSS
 - [create-tokens.md](tasks/create-tokens.md) — Generate `design-tokens.yml` (fallback, loaded by `debo-design-tokens`)
 
 ## Rules
 
+- [css-mapping.md](rules/css-mapping.md) — Token-group-to-CSS mapping for the generic `generate-jsonata` task
 - [tailwind-naming.md](rules/tailwind-naming.md) — Token naming conventions for `layout-width`, `layout-spacing`, `grid`

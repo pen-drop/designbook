@@ -1,4 +1,4 @@
-import type { WorkflowFile } from '../workflow.js';
+import type { WorkflowFile, WorkflowTask } from '../workflow.js';
 import type { StageParam } from '../workflow-types.js';
 
 export interface EngineContext {
@@ -50,6 +50,10 @@ export interface TransitionResult {
 export interface WorkflowEngine {
   /** Set up write isolation. Called at plan time from cli.ts. */
   setup(ctx: EngineContext): EngineSetupResult;
+  /** Write file content. Returns the path where the file was written. */
+  writeFile(data: WorkflowFile, task: WorkflowTask, key: string, content: string): { path: string };
+  /** Flush stashed files to target paths. Called at stage boundaries. Direct engine moves files; git-worktree is a no-op. */
+  flush(data: WorkflowFile, tasks: WorkflowTask[]): void;
   /** Seal outputs after last non-test task. Called from workflowDone. */
   commit(data: WorkflowFile): void;
   /** Integrate outputs back. Called from workflowMerge. */

@@ -132,6 +132,7 @@ export function designbookLoadPlugin(
         scene: '**/*.scenes.yml',
         vision: 'product/vision.md',
         tokens: 'tokens/**/*.yml',
+        designTokens: 'design-system/design-tokens.yml',
         dataModel: 'data-model.yml',
         guidelines: 'design-system/guidelines.yml',
       };

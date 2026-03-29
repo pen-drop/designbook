@@ -1,31 +1,24 @@
 # Task & Workflow File Formats
 
-## Task JSON Format
+## Task File Frontmatter — Structured File Declarations
 
-Each task entry in the `workflow plan` call:
+Each task file declares output files with `key` and `validators`:
 
-```json
-[
-  {
-    "id": "create-page",
-    "title": "Create page component",
-    "type": "component",
-    "stage": "create-component",
-    "files": [
-      "/absolute/path/to/components/page/page.component.yml",
-      "/absolute/path/to/components/page/page.twig",
-      "/absolute/path/to/components/page/page.story.yml"
-    ]
-  },
-  {
-    "id": "create-scene",
-    "title": "Create design system scene",
-    "type": "scene",
-    "stage": "create-shell-scene",
-    "files": ["/absolute/path/to/designbook/design-system/design-system.scenes.yml"]
-  }
-]
+```yaml
+---
+files:
+  - file: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+    key: component
+    validators: [component]
+  - file: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.twig
+    key: template
+    validators: []
+---
 ```
+
+- `file` — path template (supports `$ENV` and `{{ param }}`)
+- `key` — stable identifier used by `write-file --key`
+- `validators` — validator keys (`component`, `data-model`, `tokens`, `data`, `entity-mapping`, `scene`). Empty = auto-pass.
 
 ## tasks.yml Format
 
@@ -64,13 +57,21 @@ tasks:
     completed_at:
     files:
       - path: /tmp/designbook-{name}/packages/.../components/button/button.component.yml
-        requires_validation: true  # files: paths point to WORKTREE during workflow execution
+        key: component
+        validators: [component]
+        # validation_result absent = file not yet written
+        # validation_result present = file written + validated
 ```
 
 **`files:` vs `reads:` in task files:**
 
-- `files:` — output paths using `DESIGNBOOK_DIRS_*` env vars (e.g. `$DESIGNBOOK_DATA`, `$DESIGNBOOK_DIRS_COMPONENTS`). CLI remaps these vars to WORKTREE at plan time — subagents write to WORKTREE, Storybook sees nothing until workflow completes.
+- `files:` — output declarations with `key` and `validators`. The AI writes content via `workflow write-file --key <key>` (stdin). The engine decides where to write (stash for direct, WORKTREE for git-worktree). Validation runs immediately on write.
 - `reads:` — input paths using real `DESIGNBOOK_DATA`-relative vars. Never remapped — always point to the actual filesystem so subagents can read pre-existing files.
+
+**File state is derived from `validation_result`:**
+- absent → not yet written
+- `valid: true` → written + validated + OK
+- `valid: false` → written + validated + errors (AI must fix and re-write)
 
 ## Directory Structure
 

@@ -4,11 +4,10 @@ import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 import {
-  resolveTaskFile,
+  resolveTaskFiles,
   expandFilePath,
   matchRuleFiles,
   resolveConfigForStep,
-  computeDependsOn,
   validateAndMergeParams,
   generateTaskId,
   resolveWorkflowPlan,
@@ -120,27 +119,27 @@ afterEach(() => {
 });
 
 // 5.1: Task file resolution
-describe('resolveTaskFile', () => {
+describe('resolveTaskFiles', () => {
   it('resolves named stage (skill:task format) directly', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeSkillTaskFile(agentsDir, 'designbook-sections', 'create-section', 'params:\n  section_id: ~');
 
-    const result = resolveTaskFile('designbook-sections:create-section', baseConfig, agentsDir);
-    expect(result).toBe(resolve(agentsDir, 'skills/designbook-sections/tasks/create-section.md'));
+    const result = resolveTaskFiles('designbook-sections:create-section', baseConfig, agentsDir);
+    expect(result).toEqual([resolve(agentsDir, 'skills/designbook-sections/tasks/create-section.md')]);
   });
 
   it('resolves generic stage by scanning skills', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeSkillTaskFile(agentsDir, 'designbook-tokens', 'create-tokens', 'params:\n  colors: {}');
 
-    const result = resolveTaskFile('create-tokens', baseConfig, agentsDir);
-    expect(result).toBe(resolve(agentsDir, 'skills/designbook-tokens/tasks/create-tokens.md'));
+    const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
+    expect(result).toEqual([resolve(agentsDir, 'skills/designbook-tokens/tasks/create-tokens.md')]);
   });
 
-  it('selects most specific match by when conditions', () => {
+  it('returns all matching task files for generic stage', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     // Generic fallback (no when)
-    writeSkillTaskFile(agentsDir, 'generic-comp', 'create-component', 'params:\n  component: ~');
+    const genericPath = writeSkillTaskFile(agentsDir, 'generic-comp', 'create-component', 'params:\n  component: ~');
     // Specific match (when frameworks.component: sdc)
     const specificPath = writeSkillTaskFile(
       agentsDir,
@@ -149,19 +148,21 @@ describe('resolveTaskFile', () => {
       'when:\n  frameworks.component: sdc\nparams:\n  component: ~',
     );
 
-    const result = resolveTaskFile('create-component', baseConfig, agentsDir);
-    expect(result).toBe(specificPath);
+    const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
+    expect(result).toHaveLength(2);
+    expect(result).toContain(genericPath);
+    expect(result).toContain(specificPath);
   });
 
-  it('throws on no matching task file', () => {
+  it('returns empty array on no matching task file', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     mkdirSync(resolve(agentsDir, 'skills'), { recursive: true });
 
-    expect(() => resolveTaskFile('nonexistent-stage', baseConfig, agentsDir)).toThrow(/No task file found/);
+    const result = resolveTaskFiles('nonexistent-stage', baseConfig, agentsDir);
+    expect(result).toEqual([]);
   });
 
   it('discovers task file nested in a subdirectory above tasks/', () => {
-    // Verifies skills/<skill>/components/tasks/<stage>.md is found as a candidate
     const agentsDir = resolve(tmpDir, '.agents');
     const taskPath = writeSkillTaskFileInSubdir(
       agentsDir,
@@ -171,17 +172,16 @@ describe('resolveTaskFile', () => {
       'params:\n  component: ~',
     );
 
-    const result = resolveTaskFile('create-component', baseConfig, agentsDir);
-    expect(result).toBe(taskPath);
+    const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
+    expect(result).toContain(taskPath);
   });
 
   it('flat task structure still discovered after glob change', () => {
-    // skills/<skill>/tasks/<stage>.md continues to work
     const agentsDir = resolve(tmpDir, '.agents');
     const taskPath = writeSkillTaskFile(agentsDir, 'designbook-tokens', 'create-tokens', 'params:\n  colors: {}');
 
-    const result = resolveTaskFile('create-tokens', baseConfig, agentsDir);
-    expect(result).toBe(taskPath);
+    const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
+    expect(result).toContain(taskPath);
   });
 });
 
@@ -214,49 +214,6 @@ describe('expandFilePath', () => {
 
   it('throws on unknown param', () => {
     expect(() => expandFilePath('{{ missing }}', {}, envMap)).toThrow(/Unknown param/);
-  });
-});
-
-// 5.3: depends_on computation
-describe('computeDependsOn', () => {
-  it('first stage has empty depends_on', () => {
-    const stages = ['create-component', 'create-scene'];
-    const tasksByStage = new Map([
-      ['create-component', ['create-component-button']],
-      ['create-scene', ['create-scene-dashboard']],
-    ]);
-
-    const deps = computeDependsOn(stages, tasksByStage);
-    expect(deps.get('create-component-button')).toEqual([]);
-    expect(deps.get('create-scene-dashboard')).toEqual(['create-component-button']);
-  });
-
-  it('multiple tasks in same stage get same deps', () => {
-    const stages = ['create-component', 'create-scene'];
-    const tasksByStage = new Map([
-      ['create-component', ['comp-button', 'comp-card']],
-      ['create-scene', ['scene-dash']],
-    ]);
-
-    const deps = computeDependsOn(stages, tasksByStage);
-    expect(deps.get('comp-button')).toEqual([]);
-    expect(deps.get('comp-card')).toEqual([]);
-    expect(deps.get('scene-dash')).toEqual(['comp-button', 'comp-card']);
-  });
-
-  it('three stages chain correctly', () => {
-    const stages = ['a', 'b', 'c'];
-    const tasksByStage = new Map([
-      ['a', ['a1']],
-      ['b', ['b1', 'b2']],
-      ['c', ['c1']],
-    ]);
-
-    const deps = computeDependsOn(stages, tasksByStage);
-    expect(deps.get('a1')).toEqual([]);
-    expect(deps.get('b1')).toEqual(['a1']);
-    expect(deps.get('b2')).toEqual(['a1']);
-    expect(deps.get('c1')).toEqual(['b1', 'b2']);
   });
 });
 
@@ -434,13 +391,13 @@ describe('resolveWorkflowPlan', () => {
       agentsDir,
       'designbook-components',
       'create-component',
-      'params:\n  component: ~\n  slots: []\nfiles:\n  - $DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml',
+      'params:\n  component: ~\n  slots: []\nfiles:\n  - file: $DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml\n    key: component\n    validators: [component]',
     );
     writeSkillTaskFile(
       agentsDir,
       'designbook-scenes',
       'create-scene',
-      'params:\n  section_id: ~\nfiles:\n  - $DESIGNBOOK_DATA/scenes/{{ section_id }}.yml',
+      'params:\n  section_id: ~\nfiles:\n  - file: $DESIGNBOOK_DATA/scenes/{{ section_id }}.yml\n    key: scene\n    validators: [scene]',
     );
 
     // Create workflow file
@@ -469,20 +426,21 @@ describe('resolveWorkflowPlan', () => {
     // Check tasks
     expect(plan.tasks).toHaveLength(3);
 
-    // First two tasks: create-component (parallel, no deps)
+    // First two tasks: create-component (parallel within step)
     expect(plan.tasks[0]!.id).toBe('create-component-button');
     expect(plan.tasks[0]!.step).toBe('create-component');
-    expect(plan.tasks[0]!.depends_on).toEqual([]);
     expect(plan.tasks[0]!.params.component).toBe('button');
-    expect(plan.tasks[0]!.files).toEqual(['/test/dist/components/button/button.yml']);
+    expect(plan.tasks[0]!.files).toEqual([
+      { path: '/test/dist/components/button/button.yml', key: 'component', validators: ['component'] },
+    ]);
 
     expect(plan.tasks[1]!.id).toBe('create-component-card');
-    expect(plan.tasks[1]!.depends_on).toEqual([]);
 
-    // Third task: create-scene (depends on both components)
+    // Third task: create-scene (ordered by stage, no depends_on)
     expect(plan.tasks[2]!.id).toBe('create-scene-dashboard');
-    expect(plan.tasks[2]!.depends_on).toEqual(['create-component-button', 'create-component-card']);
-    expect(plan.tasks[2]!.files).toEqual(['/test/dist/scenes/dashboard.yml']);
+    expect(plan.tasks[2]!.files).toEqual([
+      { path: '/test/dist/scenes/dashboard.yml', key: 'scene', validators: ['scene'] },
+    ]);
 
     // Global params
     expect(plan.params).toEqual({ section_id: 'dashboard' });

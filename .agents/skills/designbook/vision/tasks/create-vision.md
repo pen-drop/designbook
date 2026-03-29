@@ -5,12 +5,17 @@ params:
   problems: []
   features: []
 files:
-  - $DESIGNBOOK_DATA/product/vision.md
+  - file: $DESIGNBOOK_DATA/product/vision.md
+    key: vision
+    validators: []
 ---
 
 # Create Product Vision
 
-Creates `$$DESIGNBOOK_DATA/product/vision.md` with the approved product vision from the dialog.
+Write the approved product vision from the dialog via stdin to the CLI:
+```
+ write-file $WORKFLOW_NAME $TASK_ID --key vision
+```
 
 ## File Format
 

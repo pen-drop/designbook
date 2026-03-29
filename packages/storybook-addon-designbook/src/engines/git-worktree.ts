@@ -1,8 +1,9 @@
-import { existsSync } from 'node:fs';
-import { relative } from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { relative, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { buildWorktreeEnvMap } from '../workflow-resolve.js';
 import type { WorkflowEngine, TransitionContext, TransitionResult } from './types.js';
+import type { WorkflowFile, WorkflowTask } from '../workflow.js';
 
 export function checkPreflightClean(rootDir: string, outputsRoot: string): { clean: boolean; files: string[] } {
   try {
@@ -27,6 +28,19 @@ export function createGitWorktree(worktreePath: string, branchName: string, root
 }
 
 export const gitWorktreeEngine: WorkflowEngine = {
+  writeFile(_data: WorkflowFile, task: WorkflowTask, key: string, content: string): { path: string } {
+    const fileEntry = (task.files ?? []).find((f) => f.key === key);
+    if (!fileEntry) throw new Error(`No file entry with key '${key}' in task '${task.id}'`);
+    // Write directly to the WORKTREE target path (already isolated)
+    mkdirSync(dirname(fileEntry.path), { recursive: true });
+    writeFileSync(fileEntry.path, content);
+    return { path: fileEntry.path };
+  },
+
+  flush(): void {
+    // no-op — files already written to WORKTREE target paths
+  },
+
   setup(ctx) {
     if (ctx.dryRun) {
       return { envMap: buildWorktreeEnvMap(ctx.envMap, ctx.worktreePath, ctx.rootDir) };

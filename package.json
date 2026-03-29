@@ -16,8 +16,8 @@
     "promptfoo": "^0.120.24"
   },
   "scripts": {
-    "build": "pnpm run build --workspaces",
-    "test": "pnpm run test --workspaces",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
     "test:prompt": "npx promptfoo eval -c promptfoo.yaml",
     "dev": "pnpm --filter storybook-addon-designbook clean && pnpm --filter storybook-addon-designbook build && export DESIGNBOOK_HOME=$(pwd)/workspaces/drupal && pnpm --filter storybook-addon-designbook run cli storybook start",
     "dev:addon": "pnpm --filter storybook-addon-designbook build:watch",

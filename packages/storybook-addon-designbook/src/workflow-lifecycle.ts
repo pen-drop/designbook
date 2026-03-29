@@ -47,19 +47,18 @@ export function getNextStage(current: string, stages: Record<string, StageDefini
 /**
  * Get the next pending step within a stage.
  *
- * @returns Next pending step name, or null if all steps in the stage are done.
+ * The completed task has already been marked done before this is called,
+ * so we simply find the first remaining pending task in the stage.
+ *
+ * @returns Next pending step name, or null if all tasks in the stage are done.
  */
 export function getNextStep(
   currentStage: string,
-  completedStep: string,
+  _completedStep: string,
   tasks: Array<{ stage?: string; step?: string; status: string }>,
 ): string | null {
-  const stageTasks = tasks.filter((t) => t.stage === currentStage && t.status !== 'done');
-  if (stageTasks.length === 0) return null;
-
-  // Return the first pending task's step
-  const next = stageTasks.find((t) => t.step !== completedStep);
-  return next?.step ?? null;
+  const pending = tasks.find((t) => t.stage === currentStage && t.status !== 'done');
+  return pending?.step ?? null;
 }
 
 /**

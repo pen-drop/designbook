@@ -198,7 +198,7 @@ describe('workflow round-trip (real git)', () => {
           id: 'task-1',
           title: 'Create Button',
           type: 'component',
-          files: [outputFilePath],
+          files: [{ path: outputFilePath, key: 'component', validators: [] }],
         },
       ],
       undefined,
@@ -212,10 +212,9 @@ describe('workflow round-trip (real git)', () => {
     mkdirSync(resolve(worktreePath, 'src'), { recursive: true });
     writeFileSync(outputFilePath, 'name: Button\ntype: component');
 
-    // 5. Validate the file (mark it non-requiring-validation)
+    // 5. Mark file as written+validated
     const data = readTasksYml(dist, name);
     const task = data.tasks.find((t) => t.id === 'task-1')!;
-    task.files![0]!.requires_validation = false;
     task.files![0]!.validation_result = {
       file: outputFilePath,
       type: 'component',
@@ -266,7 +265,14 @@ describe('workflow round-trip (real git)', () => {
     workflowPlan(
       dist,
       name,
-      [{ id: 'task-1', title: 'Create Card', type: 'component', files: [outputFilePath] }],
+      [
+        {
+          id: 'task-1',
+          title: 'Create Card',
+          type: 'component',
+          files: [{ path: outputFilePath, key: 'component', validators: [] }],
+        },
+      ],
       undefined,
       undefined,
       worktreePath,
@@ -283,7 +289,6 @@ describe('workflow round-trip (real git)', () => {
     writeFileSync(outputFilePath, 'name: Card');
 
     const data = readTasksYml(dist, name);
-    data.tasks[0]!.files![0]!.requires_validation = false;
     data.tasks[0]!.files![0]!.validation_result = {
       file: outputFilePath,
       type: 'component',
@@ -316,7 +321,12 @@ describe('workflow round-trip (real git)', () => {
       dist,
       name,
       [
-        { id: 'output-1', title: 'Create Card', type: 'component', files: [outputFilePath] },
+        {
+          id: 'output-1',
+          title: 'Create Card',
+          type: 'component',
+          files: [{ path: outputFilePath, key: 'component', validators: [] }],
+        },
         { id: 'test-1', title: 'Visual Test', type: 'test', files: [] },
       ],
       undefined,
@@ -326,10 +336,9 @@ describe('workflow round-trip (real git)', () => {
       branchName,
     );
 
-    // Validate output task's file
+    // Mark output task's file as written+validated
     const data = readTasksYml(dist, name);
     const outputTask = data.tasks.find((t) => t.id === 'output-1')!;
-    outputTask.files![0]!.requires_validation = false;
     outputTask.files![0]!.validation_result = {
       file: outputFilePath,
       type: 'component',
@@ -378,7 +387,14 @@ describe('direct engine round-trip (real git)', () => {
     workflowPlan(
       dist,
       name,
-      [{ id: 'task-1', title: 'Create Button', type: 'component', files: [outputFilePath] }],
+      [
+        {
+          id: 'task-1',
+          title: 'Create Button',
+          type: 'component',
+          files: [{ path: outputFilePath, key: 'component', validators: [] }],
+        },
+      ],
       undefined,
       undefined,
       undefined,
@@ -397,9 +413,8 @@ describe('direct engine round-trip (real git)', () => {
     mkdirSync(resolve(rootDir, 'src'), { recursive: true });
     writeFileSync(outputFilePath, 'name: Button\ntype: component');
 
-    // Validate
+    // Mark file as written+validated
     const data = readTasksYml(dist, name);
-    data.tasks[0]!.files![0]!.requires_validation = false;
     data.tasks[0]!.files![0]!.validation_result = {
       file: outputFilePath,
       type: 'component',
@@ -425,7 +440,14 @@ describe('direct engine round-trip (real git)', () => {
     workflowPlan(
       dist,
       name,
-      [{ id: 'task-1', title: 'Create Tokens', type: 'tokens', files: [filePath] }],
+      [
+        {
+          id: 'task-1',
+          title: 'Create Tokens',
+          type: 'tokens',
+          files: [{ path: filePath, key: 'tokens', validators: [] }],
+        },
+      ],
       undefined,
       undefined,
       undefined,

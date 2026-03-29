@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { ValidationRegistry } from '../../validation-registry.js';
+import { describe, it, expect } from 'vitest';
+import { getValidator, getValidatorKeys, validateByKeys } from '../../validation-registry.js';
 import type { DesignbookConfig } from '../../config.js';
 
 const mockConfig: DesignbookConfig = {
@@ -8,54 +8,42 @@ const mockConfig: DesignbookConfig = {
   extensions: [],
 };
 
-// ── ValidationRegistry ──────────────────────────────────────────────────────
+// ── Key-based Validator Registry ───────────────────────────────────────────────
 
-describe('ValidationRegistry', () => {
-  it('falls through to skipped when no validator matches', async () => {
-    const registry = new ValidationRegistry();
-    const result = await registry.validate('/some/unknown.xyz', mockConfig);
+describe('getValidator', () => {
+  it('returns a function for a known key', () => {
+    const fn = getValidator('component');
+    expect(fn).toBeTypeOf('function');
+  });
+
+  it('returns undefined for an unknown key', () => {
+    const fn = getValidator('nonexistent-validator');
+    expect(fn).toBeUndefined();
+  });
+});
+
+describe('getValidatorKeys', () => {
+  it('returns an array of registered keys', () => {
+    const keys = getValidatorKeys();
+    expect(keys).toContain('component');
+    expect(keys).toContain('data-model');
+    expect(keys).toContain('tokens');
+    expect(keys).toContain('data');
+  });
+});
+
+describe('validateByKeys', () => {
+  it('returns auto-pass (skipped) when keys array is empty', async () => {
+    const result = await validateByKeys([], '/some/unknown.xyz', mockConfig);
     expect(result.type).toBe('unknown');
     expect(result.valid).toBe(true);
     expect(result.skipped).toBe(true);
   });
 
-  it('calls matching validator', async () => {
-    const registry = new ValidationRegistry();
-    const validator = vi.fn().mockResolvedValue({
-      file: '/a/b.component.yml',
-      type: 'component',
-      valid: true,
-      last_validated: new Date().toISOString(),
-    });
-    registry.register('**/*.component.yml', validator);
-    await registry.validate('/a/b.component.yml', mockConfig);
-    expect(validator).toHaveBeenCalledWith('/a/b.component.yml', mockConfig);
-  });
-
-  it('last registration wins', async () => {
-    const registry = new ValidationRegistry();
-    const first = vi.fn().mockResolvedValue({ file: 'x', type: 't', valid: false, last_validated: '' });
-    const second = vi.fn().mockResolvedValue({ file: 'x', type: 't', valid: true, last_validated: '' });
-    registry.register('**/*.component.yml', first);
-    registry.register('**/*.component.yml', second);
-    const result = await registry.validate('/a/test.component.yml', mockConfig);
-    expect(second).toHaveBeenCalled();
-    expect(first).not.toHaveBeenCalled();
-    expect(result.valid).toBe(true);
-  });
-
-  it('array patterns all match', async () => {
-    const registry = new ValidationRegistry();
-    const validator = vi.fn().mockResolvedValue({
-      file: 'x',
-      type: 'story',
-      valid: true,
-      last_validated: '',
-    });
-    registry.register(['**/*.story.yml', '**/*.scenes.yml'], validator);
-
-    await registry.validate('/a/button.story.yml', mockConfig);
-    await registry.validate('/a/listing.scenes.yml', mockConfig);
-    expect(validator).toHaveBeenCalledTimes(2);
+  it('returns error for unknown validator key', async () => {
+    const result = await validateByKeys(['nonexistent'], '/some/file.yml', mockConfig);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("Unknown validator key: 'nonexistent'");
+    expect(result.error).toContain('Available:');
   });
 });

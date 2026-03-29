@@ -5,10 +5,15 @@ params:
   description: ~       # 2-3 sentence description
   order: ~             # integer order within the product
 files:
-  - $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+  - file: $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+    key: section-scenes
+    validators: [scene]
 ---
 
-Create the directory `$DESIGNBOOK_DATA/sections/[section_id]/` and write `[section_id].section.scenes.yml`:
+Write `[section_id].section.scenes.yml` via stdin to the CLI:
+```
+ write-file $WORKFLOW_NAME $TASK_ID --key section-scenes
+```
 
 **For the `sections` workflow** (intake only provides `section_id`, `section_title`, `description`, `order`):
 

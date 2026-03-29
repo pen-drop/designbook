@@ -2,17 +2,16 @@
 params:
   content: {}
 files:
-  - $DESIGNBOOK_DATA/data-model.yml
+  - file: $DESIGNBOOK_DATA/data-model.yml
+    key: data-model
+    validators: [data-model]
 ---
 
 # Create Data Model
 
-Writes the approved data model to `$DESIGNBOOK_DATA/data-model.yml` in YAML format.
-
-## Output
-
+Write the approved data model in YAML format via stdin to the CLI:
 ```
-$DESIGNBOOK_DATA/data-model.yml
+ write-file $WORKFLOW_NAME $TASK_ID --key data-model
 ```
 
 ## Format

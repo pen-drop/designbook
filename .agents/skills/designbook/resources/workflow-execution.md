@@ -42,14 +42,14 @@ If no config found → stop and ask the user.
 Bundle resume check and create in one Bash block:
 
 ```bash
-EXISTING=$(_debo workflow list --workflow <id>)
+EXISTING=$( list --workflow <id>)
 if [ -n "$EXISTING" ]; then
   # ask user: continue or fresh?
   # continue → WORKFLOW_NAME=$EXISTING  (skip workflow create — tasks.yml already exists; go straight to Phase 1 Step 3)
-  # fresh    → _debo workflow abandon --workflow $EXISTING; then create a new one below
+  # fresh    →  abandon --workflow $EXISTING; then create a new one below
   echo "EXISTING:$EXISTING"
 else
-  CREATE_JSON=$(_debo workflow create --workflow <id> --workflow-file <abs-path-to-workflow.md> [--parent <name>])
+  CREATE_JSON=$( create --workflow <id> --workflow-file <abs-path-to-workflow.md> [--parent <name>])
   WORKFLOW_NAME=$(echo "$CREATE_JSON" | jq -r '.name')
 fi
 ```
@@ -61,7 +61,7 @@ Use the **absolute path** for `--workflow-file`. Workflow files live at `$DESIGN
 ### 2. Create Workflow (resolves ALL steps)
 
 ```bash
-CREATE_JSON=$(_debo workflow create --workflow <id> --workflow-file <abs-path-to-workflow.md> [--parent <name>])
+CREATE_JSON=$( create --workflow <id> --workflow-file <abs-path-to-workflow.md> [--parent <name>])
 WORKFLOW_NAME=$(echo "$CREATE_JSON" | jq -r '.name')
 ```
 
@@ -74,7 +74,7 @@ The CLI resolves **every step** at create time — both intake and execution:
 ### 3. Load Intake Instructions
 
 ```bash
-_debo workflow instructions --workflow $WORKFLOW_NAME --stage <intake-stage>
+ instructions --workflow $WORKFLOW_NAME --stage <intake-stage>
 ```
 
 Returns JSON: `{ task_file, rules, config_rules, config_instructions }`.
@@ -93,7 +93,7 @@ For each `before` entry in workflow frontmatter:
 Build items array from intake results: `[{ "step": "<name>", "params": { ... } }, ...]`. Expand loops (3 components → 3 items).
 
 ```bash
-_debo workflow plan \
+ plan \
   --workflow $WORKFLOW_NAME \
   --params '<global_params_json>' \
   --items '<items_json>' \
@@ -112,13 +112,20 @@ Display the plan summary, then proceed immediately to Phase 2.
 
 The main agent executes all tasks sequentially. For each task:
 
-1. Load instructions: `_debo workflow instructions --workflow $WORKFLOW_NAME --stage <task-step>`
+1. Load instructions: ` instructions --workflow $WORKFLOW_NAME --stage <task-step>`
 2. Read task data from tasks.yml: `params`, `files` + top-level `params`
-3. Create files following task file instructions + rule constraints
-4. Validate + done in one block: `_debo workflow validate --workflow $WORKFLOW_NAME --task <id> && _debo workflow done --workflow $WORKFLOW_NAME --task <id>`
+3. For each file declared in the task, create the content and write it via CLI:
+   ```bash
+   cat <<'EOF' |  write-file $WORKFLOW_NAME <task-id> --key <key>
+   <file content>
+   EOF
+   ```
+   The CLI writes the file (engine decides where), validates it immediately, and returns JSON: `{ "valid": true|false, "errors": [...], "file_path": "..." }`
+4. If `valid: false` → fix the content and call `write-file` again until all files are green
+5. Mark task done: ` done --workflow $WORKFLOW_NAME --task <id>`
 
 > Rules are hard constraints — apply silently, never mention to the user.
-> `validate` MUST exit 0 before `done`. Never skip validation.
+> `write-file` validates on write. `workflow done` is a gate-check only — it rejects if any file is not green.
 
 ### Stage-based Response
 
@@ -162,7 +169,7 @@ Implicit stages (`committed`, `finalizing`) are managed by the engine and not de
 
 ### Merge Flow (git-worktree engine)
 
-When all tasks are done and the engine is `git-worktree`, the `finalizing → done` transition requires a `merge_approved` param. The response will contain `waiting_for` with a merge prompt. Ask the user, then call `_debo workflow merge --workflow $WORKFLOW_NAME`.
+When all tasks are done and the engine is `git-worktree`, the `finalizing → done` transition requires a `merge_approved` param. The response will contain `waiting_for` with a merge prompt. Ask the user, then call ` merge --workflow $WORKFLOW_NAME`.
 
 For `direct` engine workflows, `finalizing → done` happens automatically (auto-archive).
 

@@ -7,12 +7,17 @@ reads:
   - path: $DESIGNBOOK_DIRS_COMPONENTS
     description: Available components — required for canvas bundle generation (rule canvas.md)
 files:
-  - $DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml
+  - file: $DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml
+    key: sample-data
+    validators: [data]
 ---
 
 # Create Sample Data
 
-Writes `$DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml` with realistic sample records. Idempotent: checks existing records and only appends what is missing. Never overwrites existing data. Never writes a `_meta` key.
+Generates realistic sample records. Idempotent: checks existing records and only appends what is missing. Never overwrites existing data. Never writes a `_meta` key. Write the result via stdin to the CLI:
+```
+ write-file $WORKFLOW_NAME $TASK_ID --key sample-data
+```
 
 ## Step 1: Read existing data.yml
 

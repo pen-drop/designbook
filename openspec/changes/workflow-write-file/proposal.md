@@ -26,7 +26,7 @@ The current workflow file-writing pipeline is fragile: the AI writes files direc
 
 ## Impact
 
-- **Task files**: All ~15 task `.md` files need `files:` frontmatter migration to new format
+- **Task files**: All task `.md` files need full migration — frontmatter `files:` to new structured format AND task body rewritten to use `write-file --key` instead of raw file paths
 - **CLI**: New `workflow write-file` subcommand in `src/cli.ts`
 - **workflow-resolve.ts**: `TaskFileFrontmatter.files` parser changes from `string[]` to structured objects
 - **workflow-types.ts**: `TaskFile` interface gains `key`, `validators`, `stash_path` fields

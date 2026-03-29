@@ -14,10 +14,8 @@ import { validateEntityMapping } from './validators/entity-mapping.js';
 import {
   workflowCreate,
   workflowPlan,
-  workflowUpdate,
-  workflowValidate,
+  workflowWriteFile,
   workflowList,
-  workflowAddFile,
   workflowDone,
   workflowAbandon,
   workflowMerge,
@@ -35,11 +33,11 @@ import {
   generateTaskId,
   generateTaskTitle,
   inferTaskType,
-  expandFilePaths,
-  computeDependsOn,
+  expandFileDeclarations,
+  type TaskFileDeclaration,
   type ResolvedStep,
 } from './workflow-resolve.js';
-import { defaultRegistry, applyConfigExtensions } from './validation-registry.js';
+import { getValidatorKeys } from './validation-registry.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
   const out: Record<string, unknown> = { valid, label };
@@ -219,7 +217,8 @@ workflow
 
           // Find intake step (if any) to create an intake task
           const intakeStep = resolved.steps.find((s) => s.endsWith(':intake'));
-          const intakeResolved = intakeStep ? resolved.step_resolved[intakeStep] : undefined;
+          const intakeRaw = intakeStep ? resolved.step_resolved[intakeStep] : undefined;
+          const intakeResolved = intakeRaw && !Array.isArray(intakeRaw) ? intakeRaw : undefined;
           const intakeTask =
             intakeStep && intakeResolved
               ? [
@@ -229,7 +228,7 @@ workflow
                     type: 'data' as const,
                     step: intakeStep,
                     stage: 'execute' as const,
-                    files: [] as string[],
+                    files: [] as Array<{ path: string; key: string; validators: string[] }>,
                     task_file: intakeResolved.task_file,
                     rules: intakeResolved.rules,
                     config_rules: intakeResolved.config_rules,
@@ -272,7 +271,13 @@ workflow
 
       // Legacy mode: --tasks / --tasks-file
       const title = opts.title ?? opts.workflow;
-      let tasks: Array<{ id: string; title: string; type: string; stage?: string; files?: string[] }> = [];
+      let tasks: Array<{
+        id: string;
+        title: string;
+        type: string;
+        stage?: string;
+        files?: Array<{ path: string; key: string; validators: string[] }>;
+      }> = [];
 
       if (opts.tasksFile) {
         try {
@@ -368,7 +373,7 @@ workflow
       }
 
       const existing = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
-      const stageLoaded = existing.stage_loaded as Record<string, ResolvedStep> | undefined;
+      const stageLoaded = existing.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]> | undefined;
       if (!stageLoaded) {
         throw new Error(`No stage_loaded in tasks.yml. Was the workflow created with --workflow-file?`);
       }
@@ -436,53 +441,54 @@ workflow
         type: string;
         step: string;
         stage: string;
-        files: string[];
-        depends_on: string[];
+        files: Array<{ path: string; key: string; validators: string[] }>;
         params: Record<string, unknown>;
         task_file: string;
         rules: string[];
         config_rules: string[];
         config_instructions: string[];
       }> = [];
-      const taskIdsByStep = new Map<string, string[]>();
 
       for (const step of execSteps) {
         const stepItems = items.filter((i) => i.step === step);
         if (stepItems.length === 0) continue;
 
-        taskIdsByStep.set(step, []);
-        const resolved = stageLoaded[step];
-        if (!resolved) {
-          throw new Error(`No stage_loaded entry for step "${step}"`);
+        const preResolved = stageLoaded[step];
+        if (!preResolved) {
+          console.debug(`[Designbook] workflow plan: step "${step}" skipped — no stage_loaded entry`);
+          continue;
         }
 
-        const taskFm = parseFrontmatter(resolved.task_file);
-        const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
-        const fileTemplates = (taskFm?.files ?? []) as string[];
+        // Normalize to array for multi-task support
+        const resolvedEntries: ResolvedStep[] = Array.isArray(preResolved) ? preResolved : [preResolved];
 
-        for (const item of stepItems) {
-          const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, step);
-          const taskId = generateTaskId(step, mergedParams, schemaParams);
-          const title = generateTaskTitle(step, mergedParams, schemaParams);
-          const type = inferTaskType(step);
-          const files = expandFilePaths(fileTemplates, mergedParams, filesEnvMap);
+        for (const resolved of resolvedEntries) {
+          const taskFm = parseFrontmatter(resolved.task_file);
+          const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
+          const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
 
-          tasks.push({
-            id: taskId,
-            title,
-            type,
-            step,
-            stage: stepToStage.get(step) ?? 'execute',
-            files,
-            depends_on: [],
-            params: mergedParams,
-            task_file: resolved.task_file,
-            rules: resolved.rules ?? [],
-            config_rules: resolved.config_rules ?? [],
-            config_instructions: resolved.config_instructions ?? [],
-          });
+          for (const item of stepItems) {
+            const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, step);
+            const taskId = generateTaskId(step, mergedParams, schemaParams);
+            const title = generateTaskTitle(step, mergedParams, schemaParams);
+            const type = inferTaskType(step);
+            const knownValidators = new Set(getValidatorKeys());
+            const files = expandFileDeclarations(fileDeclarations, mergedParams, filesEnvMap, knownValidators);
 
-          taskIdsByStep.get(step)!.push(taskId);
+            tasks.push({
+              id: taskId,
+              title,
+              type,
+              step,
+              stage: stepToStage.get(step) ?? 'execute',
+              files,
+              params: mergedParams,
+              task_file: resolved.task_file,
+              rules: resolved.rules ?? [],
+              config_rules: resolved.config_rules ?? [],
+              config_instructions: resolved.config_instructions ?? [],
+            });
+          }
         }
       }
 
@@ -493,19 +499,6 @@ workflow
         const count = seen.get(base) ?? 0;
         if (count > 0) task.id = `${base}-${count + 1}`;
         seen.set(base, count + 1);
-      }
-
-      // Rebuild taskIdsByStep after dedup
-      taskIdsByStep.clear();
-      for (const task of tasks) {
-        if (!taskIdsByStep.has(task.step)) taskIdsByStep.set(task.step, []);
-        taskIdsByStep.get(task.step)!.push(task.id);
-      }
-
-      // Compute depends_on
-      const depsMap = computeDependsOn(execSteps, taskIdsByStep);
-      for (const task of tasks) {
-        task.depends_on = depsMap.get(task.id) ?? [];
       }
 
       // Write to tasks.yml (skip in dry-run mode)
@@ -584,16 +577,27 @@ workflow
   });
 
 workflow
-  .command('add-file')
-  .description('Add a file to an existing task (escape hatch for files not known at plan time)')
-  .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
-  .requiredOption('--task <id>', 'Task id')
-  .requiredOption('--file <path>', 'File path to register with the task')
-  .action((opts: { workflow: string; task: string; file: string }) => {
+  .command('write-file <workflow-name> <task-id>')
+  .description('Write file content from stdin, validate, and update task state')
+  .requiredOption('--key <key>', 'File key as declared in task frontmatter')
+  .action(async (workflowName: string, taskId: string, opts: { key: string }) => {
     const config = loadConfig();
     try {
-      workflowAddFile(config.data, opts.workflow, opts.task, opts.file);
-      console.log(`Added file to task ${opts.task}: ${opts.file}`);
+      // Read stdin
+      const chunks: Buffer[] = [];
+      for await (const chunk of process.stdin) {
+        chunks.push(chunk as Buffer);
+      }
+      const content = Buffer.concat(chunks).toString('utf-8');
+      if (!content.trim()) {
+        console.error('Error: No content provided on stdin');
+        process.exitCode = 1;
+        return;
+      }
+
+      const result = await workflowWriteFile(config.data, workflowName, taskId, opts.key, content, config);
+      console.log(JSON.stringify(result));
+      if (!result.valid) process.exitCode = 1;
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;
@@ -658,94 +662,6 @@ workflow
       const data = workflowAbandon(config.data, opts.workflow);
       console.log(`Workflow ${opts.workflow} archived as incomplete`);
       console.log(`  Summary: ${data.summary}`);
-    } catch (err) {
-      console.error(`Error: ${(err as Error).message}`);
-      process.exitCode = 1;
-    }
-  });
-
-workflow
-  .command('update <name> <task-id>')
-  .description('Update a task status in a workflow')
-  .requiredOption('--status <status>', 'New status: in-progress or done')
-  .option('--files <paths...>', 'Files produced by this task (absolute or relative to designbook dir)')
-  .action((name: string, taskId: string, opts: { status: string; files?: string[] }) => {
-    if (opts.status !== 'in-progress' && opts.status !== 'done') {
-      console.error(`Error: Invalid status "${opts.status}". Must be "in-progress" or "done"`);
-      process.exitCode = 1;
-      return;
-    }
-
-    const config = loadConfig();
-    try {
-      const result = workflowUpdate(config.data, name, taskId, opts.status, opts.files);
-      const { data } = result;
-
-      if (result.archived) {
-        console.log(`Workflow ${name} archived (all tasks done)`);
-        console.log(`  Completed: ${data.completed_at}`);
-        console.log(`  Summary:   ${data.summary}`);
-      } else {
-        console.log(`Task ${taskId} → ${opts.status}`);
-        console.log(
-          `  Updated: ${data.tasks.find((t) => t.id === taskId)?.started_at || data.tasks.find((t) => t.id === taskId)?.completed_at}`,
-        );
-        if (opts.files?.length) {
-          console.log(`  Files (requires validation):`);
-          for (const f of opts.files) {
-            console.log(`    · ${f}`);
-          }
-        }
-        const done = data.tasks.filter((t) => t.status === 'done').length;
-        const inProgress = data.tasks.filter((t) => t.status === 'in-progress').length;
-        const pending = data.tasks.filter((t) => t.status === 'pending').length;
-        console.log(
-          `  Progress: ${done}/${data.tasks.length} done${inProgress ? `, ${inProgress} in-progress` : ''}${pending ? `, ${pending} pending` : ''}`,
-        );
-        for (const t of data.tasks) {
-          const icon = t.status === 'done' ? '\u2713' : t.status === 'in-progress' ? '\u25CB' : '\u00B7';
-          console.log(`    ${icon} ${t.title} (${t.type}) — ${t.status}`);
-        }
-      }
-    } catch (err) {
-      console.error(`Error: ${(err as Error).message}`);
-      process.exitCode = 1;
-    }
-  });
-
-workflow
-  .command('validate')
-  .description('Validate files in a workflow. Use --task to scope to a single task.')
-  .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
-  .option('--task <id>', 'Scope validation to a specific task id')
-  .action(async (opts: { workflow: string; task?: string }) => {
-    const name = opts.workflow;
-    const config = loadConfig();
-    applyConfigExtensions(config, defaultRegistry);
-
-    try {
-      const results = await workflowValidate(
-        config.data,
-        name,
-        (file) => defaultRegistry.validate(file, config),
-        opts.task,
-      );
-
-      let hasFailure = false;
-      for (const r of results) {
-        const line: Record<string, unknown> = {
-          task: r.task,
-          file: r.file,
-          type: r.type,
-          valid: r.valid,
-        };
-        if (r.error) line.error = r.error;
-        if (r.skipped) line.skipped = r.skipped;
-        console.log(JSON.stringify(line));
-        if (r.valid === false) hasFailure = true;
-      }
-
-      process.exitCode = hasFailure ? 1 : 0;
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;

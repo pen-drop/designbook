@@ -12,7 +12,7 @@ Starts Storybook so the user can visually review the workflow output before merg
 Run the prepare-environment command:
 
 ```bash
-_debo workflow prepare-environment --workflow $WORKFLOW_NAME --task <this-task-id>
+ prepare-environment --workflow $WORKFLOW_NAME --task <this-task-id>
 ```
 
 This will:

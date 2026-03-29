@@ -15,15 +15,10 @@ export interface ValidationFileResult {
 }
 
 export interface TaskFile {
-  path: string; // relative to designbook dir
-  requires_validation?: boolean; // true after workflow update --files; cleared after workflow validate
-  validation_result?: ValidationFileResult;
-}
-
-export interface TaskValidationEntry {
-  file: string; // absolute path
-  validator: string; // e.g. 'component', 'scene', 'tokens', 'data', 'twig'
-  passed: boolean;
+  path: string; // resolved absolute target path
+  key: string; // stable identifier used by write-file --key
+  validators: string[]; // validator keys (e.g. ['tokens', 'component'])
+  validation_result?: ValidationFileResult; // absent = not yet written; present = written + validated
 }
 
 export interface StageLoaded {
@@ -59,7 +54,6 @@ export interface WorkflowTask {
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[]; // produced files, each with its own validation state
-  validation?: TaskValidationEntry[]; // validators run during workflow validate
 }
 
 export interface WorkflowTaskFile {

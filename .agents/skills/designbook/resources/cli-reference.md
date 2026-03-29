@@ -6,36 +6,36 @@
 
 ```bash
 # Create workflow (resolves all stages from frontmatter)
-_debo workflow create --workflow <id> --workflow-file <path> [--parent <name>]
+ create --workflow <id> --workflow-file <path> [--parent <name>]
 # → returns $WORKFLOW_NAME
 
 # Plan — expand items into tasks
-_debo workflow plan --workflow $WORKFLOW_NAME \
+ plan --workflow $WORKFLOW_NAME \
   --params '<global_params_json>' \
   --items '<items_json>'
 # → validates params, expands file paths, computes deps; writes tasks.yml; outputs JSON plan
 
 # Dry-run — preview plan without writing tasks.yml
-_debo workflow plan --workflow $WORKFLOW_NAME \
+ plan --workflow $WORKFLOW_NAME \
   --params '<global_params_json>' \
   --items '<items_json>' \
   --dry-run
 # → same JSON output, no writes
 
 # List workflows for an id
-_debo workflow list --workflow <id>
-_debo workflow list --workflow <id> --include-archived
+ list --workflow <id>
+ list --workflow <id> --include-archived
 
 # Inspect stage files (task_file + rules) for a stage
-_debo workflow instructions --workflow <name> --stage <stage>
+ instructions --workflow <name> --stage <stage>
 # → returns JSON: { stage, task_file, rules, config_rules, config_instructions }
 
 # Execution (2 calls per task)
-_debo workflow validate --workflow <name> --task <id>
-_debo workflow done     --workflow <name> --task <id>
+ validate --workflow <name> --task <id>
+ done     --workflow <name> --task <id>
 
 # Escape hatch: add file not known at plan time
-_debo workflow add-file --workflow <name> --task <id> --file <path>
+ add-file --workflow <name> --task <id> --file <path>
 ```
 
 ## `workflow plan` Options

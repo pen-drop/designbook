@@ -5,11 +5,11 @@
  * under $DESIGNBOOK_DATA/workflows/changes/ and /archive/.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
-import type { ValidationFileResult, StageParam, StageDefinition } from './workflow-types.js';
+import type { ValidationFileResult, StageParam, StageDefinition, TaskFile } from './workflow-types.js';
 import { withLock, withLockAsync } from './workflow-lock.js';
 import { engines } from './engines/index.js';
 import { getNextStage, getNextStep, checkStageParams, interpolatePrompt } from './workflow-lifecycle.js';
@@ -25,17 +25,7 @@ export { engines, resolveEngine, isGitRepo, checkPreflightClean, createGitWorktr
 
 export type { ValidationFileResult };
 
-export interface TaskFile {
-  path: string;
-  requires_validation?: boolean;
-  validation_result?: ValidationFileResult;
-}
-
-export interface TaskValidationEntry {
-  file: string; // absolute path
-  validator: string; // e.g. 'component', 'scene', 'tokens', 'data', 'twig'
-  passed: boolean;
-}
+export type { TaskFile };
 
 export interface StageLoaded {
   task_file: string; // absolute path to the matched task file
@@ -43,6 +33,8 @@ export interface StageLoaded {
   config_rules: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
 }
+
+export type StageLoadedEntry = StageLoaded | StageLoaded[];
 
 export interface WorkflowTask {
   id: string;
@@ -60,7 +52,6 @@ export interface WorkflowTask {
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[];
-  validation?: TaskValidationEntry[]; // validators run during workflow validate
 }
 
 export interface WorkflowFile {
@@ -73,7 +64,7 @@ export interface WorkflowFile {
   params?: Record<string, unknown>; // global intake params (accessible to all subagents)
   current_stage?: string; // current lifecycle stage (planned, execute, committed, test, preview, finalizing, done)
   stages?: Record<string, StageDefinition>; // keyed by stage name (execute, test, preview)
-  stage_loaded?: Record<string, StageLoaded>; // keyed by step name, populated via workflow done --loaded
+  stage_loaded?: Record<string, StageLoadedEntry>; // keyed by step name, populated via workflow done --loaded
   started_at: string;
   completed_at?: string;
   summary?: string;
@@ -224,7 +215,7 @@ export function workflowCreate(
     type: string;
     step?: string;
     stage?: string;
-    files?: string[];
+    files?: Array<{ path: string; key: string; validators: string[] }>;
     task_file?: string;
     rules?: string[];
     config_rules?: string[];
@@ -232,7 +223,7 @@ export function workflowCreate(
   }>,
   stages?: Record<string, StageDefinition>,
   parent?: string,
-  stageLoaded?: Record<string, StageLoaded>,
+  stageLoaded?: Record<string, StageLoadedEntry>,
   engine?: string,
 ): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -261,9 +252,10 @@ export function workflowCreate(
       ...(t.config_instructions && t.config_instructions.length > 0
         ? { config_instructions: t.config_instructions }
         : {}),
-      files: (t.files ?? []).map((p) => ({
-        path: normalizeFilePath(dataDir, p),
-        requires_validation: true,
+      files: (t.files ?? []).map((f) => ({
+        path: normalizeFilePath(dataDir, f.path),
+        key: f.key,
+        validators: f.validators,
       })),
     })),
   };
@@ -288,7 +280,7 @@ export function workflowPlan(
     type: string;
     step?: string;
     stage?: string;
-    files?: string[];
+    files?: Array<{ path: string; key: string; validators: string[] }>;
     depends_on?: string[];
     params?: Record<string, unknown>;
     task_file?: string;
@@ -313,7 +305,15 @@ export function workflowPlan(
   }
   if (stages && Object.keys(stages).length > 0) {
     data.stages = stages;
-    data.current_stage = 'execute'; // Set initial stage after plan
+  }
+  // Set initial stage when grouped stages exist (from create or plan)
+  if (
+    data.stages &&
+    typeof data.stages === 'object' &&
+    !Array.isArray(data.stages) &&
+    Object.keys(data.stages).length > 0
+  ) {
+    data.current_stage = 'execute';
   }
   if (globalParams && Object.keys(globalParams).length > 0) data.params = globalParams;
   if (writeRoot) data.write_root = writeRoot;
@@ -335,38 +335,15 @@ export function workflowPlan(
     ...(t.config_instructions && t.config_instructions.length > 0
       ? { config_instructions: t.config_instructions }
       : {}),
-    files: (t.files ?? []).map((p) => ({
-      path: normalizeFilePath(dataDir, p),
-      requires_validation: true,
+    files: (t.files ?? []).map((f) => ({
+      path: normalizeFilePath(dataDir, f.path),
+      key: f.key,
+      validators: f.validators,
     })),
   }));
 
   writeWorkflowAtomic(filePath, data);
   return data;
-}
-
-/**
- * Add a file to an existing task (escape hatch for files not known at plan time).
- */
-export function workflowAddFile(dataDir: string, name: string, taskId: string, filePath: string): void {
-  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
-  const taskFilePath = resolve(changesDir, 'tasks.yml');
-  const data = readWorkflow(taskFilePath);
-
-  const task = data.tasks.find((t) => t.id === taskId);
-  if (!task) {
-    throw new Error(`Task not found: ${taskId} (available: ${data.tasks.map((t) => t.id).join(', ')})`);
-  }
-
-  const normalized = normalizeFilePath(dataDir, filePath);
-  task.files = task.files ?? [];
-  if (!task.files.some((f) => f.path === normalized)) {
-    task.files.push({ path: normalized, requires_validation: true });
-  }
-
-  if (data.status === 'planning') data.status = 'running';
-
-  writeWorkflowAtomic(taskFilePath, data);
 }
 
 export interface StageResponse {
@@ -383,7 +360,6 @@ export interface LoadedPayload {
   rules?: string[];
   config_rules?: string[];
   config_instructions?: string[];
-  validation?: TaskValidationEntry[];
   /** Set by prepare-environment task to store preview process info in tasks.yml. */
   preview_pid?: number;
   preview_port?: number;
@@ -396,19 +372,6 @@ export interface LoadedPayload {
  * @param loaded - Optional context recorded for observability (stage-level data deduplicated, task-level validation stored per task)
  * @returns `{ archived, data }` — archived indicates whether the workflow was archived
  */
-function touchTaskFiles(task: { files?: TaskFile[] }): void {
-  const now = new Date();
-  for (const f of task.files ?? []) {
-    try {
-      if (existsSync(f.path)) {
-        utimesSync(f.path, now, now);
-      }
-    } catch {
-      // Silently skip files that can't be touched
-    }
-  }
-}
-
 export function workflowDone(
   dataDir: string,
   name: string,
@@ -419,7 +382,8 @@ export function workflowDone(
   const filePath = resolve(changesDir, 'tasks.yml');
 
   return withLock(filePath, () => {
-    const data = readWorkflow(filePath);
+    const data = readWorkflow(filePath) as WorkflowFile & { _changesDir?: string };
+    data._changesDir = changesDir; // transient: used by direct engine for stash path
 
     const task = data.tasks.find((t) => t.id === taskId);
     if (!task) {
@@ -429,26 +393,19 @@ export function workflowDone(
       throw new Error(`Task '${taskId}' is already done`);
     }
 
-    const unvalidated = (task.files ?? []).filter((f) => f.requires_validation);
-    if (unvalidated.length > 0) {
+    // Gate-check: assert all files are written and valid (no validation logic here)
+    const notWritten = (task.files ?? []).filter((f) => !f.validation_result);
+    if (notWritten.length > 0) {
       throw new Error(
-        `Cannot mark '${taskId}' as done — ${unvalidated.length} file(s) not yet validated:\n` +
-          unvalidated.map((f) => `  · ${f.path}`).join('\n') +
-          `\nRun: workflow validate --workflow ${name} --task ${taskId}`,
-      );
-    }
-    const missing = (task.files ?? []).filter((f) => f.validation_result?.skipped === true && !existsSync(f.path));
-    if (missing.length > 0) {
-      throw new Error(
-        `Cannot mark '${taskId}' as done — ${missing.length} file(s) not found:\n` +
-          missing.map((f) => `  · ${f.path}`).join('\n'),
+        `Cannot mark '${taskId}' as done — ${notWritten.length} file(s) not yet written:\n` +
+          notWritten.map((f) => `  · file \`${f.key}\` not yet written`).join('\n'),
       );
     }
     const failed = (task.files ?? []).filter((f) => f.validation_result?.valid === false);
     if (failed.length > 0) {
       throw new Error(
-        `Cannot mark '${taskId}' as done — ${failed.length} file(s) failed validation:\n` +
-          failed.map((f) => `  · ${f.path}: ${f.validation_result?.error ?? 'invalid'}`).join('\n'),
+        `Cannot mark '${taskId}' as done — ${failed.length} file(s) have errors:\n` +
+          failed.map((f) => `  · file \`${f.key}\` has errors: ${f.validation_result?.error ?? 'invalid'}`).join('\n'),
       );
     }
 
@@ -473,11 +430,6 @@ export function workflowDone(
             config_instructions: loaded.config_instructions ?? [],
           };
         }
-      }
-
-      // Write task-level validation
-      if (loaded.validation) {
-        task.validation = loaded.validation;
       }
 
       // Store prepare-environment results in workflow-level fields
@@ -583,7 +535,7 @@ export function workflowDone(
         }
       }
       writeWorkflowAtomic(filePath, data);
-      data.tasks.forEach(touchTaskFiles);
+
       return { archived: false, data, response: { stage: 'done' } };
     }
 
@@ -603,7 +555,7 @@ export function workflowDone(
         return { archived: true, data };
       }
       writeWorkflowAtomic(filePath, data);
-      data.tasks.forEach(touchTaskFiles);
+
       return { archived: false, data };
     }
 
@@ -612,121 +564,68 @@ export function workflowDone(
   });
 }
 
-export interface WorkflowValidateResult extends ValidationFileResult {
-  task: string;
-}
-
 /**
- * Validate files in a workflow. When taskId is provided, only validates
- * files declared for that specific task.
- *
- * @returns Array of per-file results, each annotated with the task id
+ * Write file content via engine, validate centrally, update task state.
+ * Called by the `workflow write-file` CLI command.
  */
-export async function workflowValidate(
+export async function workflowWriteFile(
   dataDir: string,
   name: string,
-  validateFn: (file: string) => Promise<ValidationFileResult>,
-  taskId?: string,
-): Promise<WorkflowValidateResult[]> {
+  taskId: string,
+  key: string,
+  content: string,
+  config: import('./config.js').DesignbookConfig,
+): Promise<{ valid: boolean; errors: string[]; file_path: string }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
 
   return withLockAsync(filePath, async () => {
     const data = readWorkflow(filePath);
 
-    const tasksToValidate = taskId ? data.tasks.filter((t) => t.id === taskId) : data.tasks;
-
-    if (taskId && tasksToValidate.length === 0) {
+    const task = data.tasks.find((t) => t.id === taskId);
+    if (!task) {
       throw new Error(`Task not found: ${taskId} (available: ${data.tasks.map((t) => t.id).join(', ')})`);
     }
 
-    // Transition to running on first validate
-    if (data.status === 'planning') data.status = 'running';
-
-    const allResults: WorkflowValidateResult[] = [];
-
-    for (const task of tasksToValidate) {
-      if (!task.files || task.files.length === 0) continue;
-
-      for (const taskFile of task.files) {
-        const absoluteFile = taskFile.path;
-        if (!existsSync(absoluteFile)) {
-          const result: ValidationFileResult = {
-            file: taskFile.path,
-            type: 'unknown',
-            valid: null,
-            skipped: true,
-            last_validated: new Date().toISOString(),
-          };
-          taskFile.validation_result = result;
-          taskFile.requires_validation = false;
-          allResults.push({ ...result, task: task.id });
-          continue;
-        }
-        const result = await validateFn(absoluteFile);
-        taskFile.validation_result = { ...result, file: taskFile.path };
-        taskFile.requires_validation = false;
-        allResults.push({ ...result, file: taskFile.path, task: task.id });
-      }
+    const fileEntry = (task.files ?? []).find((f) => f.key === key);
+    if (!fileEntry) {
+      const validKeys = (task.files ?? []).map((f) => f.key).join(', ');
+      throw new Error(`Unknown key '${key}' for task '${taskId}'. Valid keys: ${validKeys}`);
     }
 
-    writeWorkflowAtomic(filePath, data);
-    return allResults;
-  }); // end withLockAsync
-}
+    // Delegate writing to engine
+    const engine = resolveWorkflowEngine(data);
 
-/**
- * @deprecated Use workflowDone + workflowAddFile instead.
- */
-export function workflowUpdate(
-  dataDir: string,
-  name: string,
-  taskId: string,
-  status: 'in-progress' | 'done',
-  files?: string[],
-): { archived: boolean; data: WorkflowFile } {
-  process.stderr.write(
-    `[designbook] DEPRECATED: "workflow update" is deprecated.\n` +
-      `  Use "workflow done --workflow ${name} --task ${taskId}" to mark tasks done.\n` +
-      `  Use "workflow add-file" to register files.\n`,
-  );
+    // Set transient _changesDir so direct engine can compute stash path
+    const dataWithDir = data as WorkflowFile & { _changesDir?: string };
+    dataWithDir._changesDir = changesDir;
 
-  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
-  const filePath = resolve(changesDir, 'tasks.yml');
-  const data = readWorkflow(filePath);
+    let writtenPath: string;
+    if (engine?.writeFile) {
+      const result = engine.writeFile(dataWithDir, task, key, content);
+      writtenPath = result.path;
+    } else {
+      // Fallback: write directly to target path
+      const dir = dirname(fileEntry.path);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(fileEntry.path, content);
+      writtenPath = fileEntry.path;
+    }
 
-  const task = data.tasks.find((t) => t.id === taskId);
-  if (!task) {
-    throw new Error(`Task not found: ${taskId} (available: ${data.tasks.map((t) => t.id).join(', ')})`);
-  }
-  if (task.status === 'done') {
-    throw new Error(`Task '${taskId}' is already done`);
-  }
+    // Validate centrally
+    const { validateByKeys } = await import('./validation-registry.js');
+    const validationResult = await validateByKeys(fileEntry.validators, writtenPath, config);
+    fileEntry.validation_result = { ...validationResult, file: fileEntry.path };
 
-  task.status = status;
-  if (status === 'in-progress' && !task.started_at) task.started_at = timestamp();
-  if (status === 'done') {
-    if (!task.started_at) task.started_at = timestamp();
-    task.completed_at = timestamp();
-  }
-
-  if (files && files.length > 0) {
-    const normalizedFiles = files.map((p) => normalizeFilePath(dataDir, p));
-    const existingByPath = new Map((task.files ?? []).map((f) => [f.path, f]));
-    task.files = normalizedFiles.map((path) => ({
-      ...existingByPath.get(path),
-      path,
-      requires_validation: true,
-    }));
+    // Transition to running on first write
     if (data.status === 'planning') data.status = 'running';
-  }
 
-  const allDone = data.tasks.every((t) => t.status === 'done');
-  if (allDone) {
-    archiveWorkflow(dataDir, name, data);
-    return { archived: true, data };
-  }
+    writeWorkflowAtomic(filePath, data);
 
-  writeWorkflowAtomic(filePath, data);
-  return { archived: false, data };
+    return {
+      valid: validationResult.valid === true,
+      errors: validationResult.error ? [validationResult.error] : [],
+      file_path: writtenPath,
+    };
+  });
 }

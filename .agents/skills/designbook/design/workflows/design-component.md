@@ -4,7 +4,7 @@ description: Create a new UI component by gathering requirements interactively
 stages:
   execute:
     steps: [intake, create-component]
-engine: git-worktree
+engine: direct
 before:
   - workflow: css-generate
     execute: if-never-run
