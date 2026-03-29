@@ -15,13 +15,16 @@ Defines how `workflow plan` resolves task files, file paths, dependencies, rules
 - **WHEN** `workflow plan --workflow-file .agents/workflows/debo-design-screen.md` is called
 - **THEN** the CLI parses the YAML frontmatter and extracts the `workflow.stages` array, skipping any stage ending in `:intake`
 
-#### Scenario: Task file resolved per item via stage name
-- **WHEN** an item has `"stage": "create-component"`
-- **THEN** the CLI scans `.agents/skills/**/tasks/create-component.md` via `resolveFiles`, applies `when` condition filtering against runtime context (empty for tasks) and enriched config, and selects the most specific match (highest specificity count)
+#### Scenario: Multiple task files resolved per step
+- **WHEN** an item has `"stage": "generate-jsonata"`
+- **AND** two skills provide `tasks/generate-jsonata.md` that both match the current config
+- **THEN** the CLI creates a task for EACH matching task file
+- **AND** both tasks belong to the same step and run in parallel
 
 #### Scenario: Named stage resolution (skill:task format)
 - **WHEN** an item has `"stage": "designbook-sections:create-section"`
 - **THEN** the CLI resolves directly to `.agents/skills/designbook-sections/tasks/create-section.md` without scanning
+- **AND** only one task is created (no multi-match for named stages)
 
 #### Scenario: File path templates expanded with params and env vars
 - **WHEN** a resolved task file declares `files: ["${DESIGNBOOK_OUTPUTS_ROOT}/components/{{ component }}/{{ component }}.component.yml"]`
@@ -33,25 +36,20 @@ Defines how `workflow plan` resolves task files, file paths, dependencies, rules
 
 #### Scenario: No matching task file found
 - **WHEN** no task file matches the item's stage name and config conditions
-- **THEN** the CLI exits with error listing the stage name and config values checked
+- **THEN** the step is silently skipped and excluded from the resolved plan
+- **AND** a debug-level log message indicates the step was skipped
 
 ---
 
-### Requirement: workflow plan computes depends_on from stage ordering
+### Requirement: depends_on removed from resolved tasks
 
-`workflow plan` SHALL automatically compute `depends_on` for each task based on the stage ordering declared in the workflow-file.
+Resolved tasks SHALL NOT contain `depends_on` arrays. Execution order is determined by stage ordering: all tasks in step N complete before step N+1 begins.
 
-#### Scenario: First-stage tasks have empty depends_on
-- **WHEN** tasks belong to the first non-intake stage in the stages array
-- **THEN** their `depends_on` is `[]`
-
-#### Scenario: Later-stage tasks depend on all previous-stage tasks
-- **WHEN** a task belongs to stage index N (N > 0)
-- **THEN** its `depends_on` contains the IDs of all tasks in stage index N-1
-
-#### Scenario: Multiple tasks in same stage are parallel
-- **WHEN** two tasks both belong to stage `create-component`
-- **THEN** they have identical `depends_on` arrays and can run in parallel
+#### Scenario: Execution order from stages
+- **WHEN** workflow declares steps `[generate-jsonata, generate-css]`
+- **AND** `generate-jsonata` resolves to two parallel tasks
+- **THEN** neither task has a `depends_on` field
+- **AND** the orchestrator runs both before proceeding to `generate-css`
 
 ---
 
@@ -65,11 +63,11 @@ Defines how `workflow plan` resolves task files, file paths, dependencies, rules
 
 #### Scenario: Rule file matched by config condition
 - **WHEN** a rule file has `when: { "frameworks.css": "daisyui" }` and config has `frameworks.css: daisyui`
-- **THEN** the rule file path is included for all tasks whose stage matches (or rule has no `when.stages`)
+- **THEN** the rule file path is included for all tasks whose stage matches
 
-#### Scenario: Rule file without when.stages applies to all stages
-- **WHEN** a rule file has `when: {}` (no stages constraint)
-- **THEN** it is included in the `rules` array of every task (if other when conditions pass)
+#### Scenario: All tasks in a step receive the same rules
+- **WHEN** two tasks are resolved for the `generate-jsonata` step
+- **THEN** both tasks receive the same set of matched rule files
 
 ---
 

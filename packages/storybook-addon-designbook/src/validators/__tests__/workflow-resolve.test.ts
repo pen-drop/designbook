@@ -495,6 +495,13 @@ describe('buildEnvMap', () => {
     expect(env.DESIGNBOOK_DATA).toBe('/test/dist');
   });
 
+  it('renames frameworks.* to DESIGNBOOK_FRAMEWORK_* (singular)', () => {
+    const env = buildEnvMap(baseConfig);
+    expect(env.DESIGNBOOK_FRAMEWORK_CSS).toBe('tailwind');
+    expect(env.DESIGNBOOK_FRAMEWORK_COMPONENT).toBe('sdc');
+    expect(env.DESIGNBOOK_FRAMEWORKS_CSS).toBeUndefined();
+  });
+
   it('exposes dirs.* as DESIGNBOOK_DIRS_* env vars', () => {
     const config: DesignbookConfig = {
       ...baseConfig,

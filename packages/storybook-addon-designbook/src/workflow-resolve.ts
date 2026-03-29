@@ -204,13 +204,18 @@ export function buildEnrichedConfig(config: DesignbookConfig): Record<string, un
 export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
   const env: Record<string, string> = {};
 
-  // Dynamic: all scalar config values → DESIGNBOOK_<KEY> (dots become underscores, uppercased)
+  // Dynamic: all scalar config values → DESIGNBOOK_<KEY>
+  // Dot-path keys are split and rejoined with '_'. The 'frameworks' segment is
+  // renamed to 'FRAMEWORK' (singular) to match the shell `config` output
+  // (e.g. frameworks.css → DESIGNBOOK_FRAMEWORK_CSS).
   // Skip internal properties and designbook.* keys (handled explicitly below)
   for (const [key, value] of Object.entries(config)) {
     if (value == null || typeof value === 'object') continue;
     if (key === 'data' || key === 'workspace') continue;
     if (key.startsWith('designbook.')) continue;
-    env[`DESIGNBOOK_${key.replace(/\./g, '_').toUpperCase()}`] = String(value);
+    const parts = key.split('.');
+    const envParts = parts.map((p) => (p === 'frameworks' ? 'FRAMEWORK' : p.toUpperCase()));
+    env[`DESIGNBOOK_${envParts.join('_')}`] = String(value);
   }
 
   // Explicit: DESIGNBOOK_WORKSPACE, DESIGNBOOK_HOME, DESIGNBOOK_DATA, DESIGNBOOK_URL, DESIGNBOOK_CMD
@@ -433,6 +438,7 @@ export function expandFileDeclarations(
     const validators = d.validators ?? [];
     if (validatorKeys) {
       for (const v of validators) {
+        if (v.startsWith('cmd:')) continue; // cmd: validators are shell commands, not registry keys
         if (!validatorKeys.has(v)) {
           throw new Error(
             `Unknown validator key '${v}' in file '${d.key}'. Available: ${[...validatorKeys].join(', ')}`,

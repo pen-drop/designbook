@@ -46,4 +46,38 @@ describe('validateByKeys', () => {
     expect(result.error).toContain("Unknown validator key: 'nonexistent'");
     expect(result.error).toContain('Available:');
   });
+
+  it('cmd: validator passes on exit code 0', async () => {
+    const result = await validateByKeys(['cmd:true'], '/some/file.yml', mockConfig);
+    expect(result.valid).toBe(true);
+    expect(result.type).toBe('cmd');
+  });
+
+  it('cmd: validator fails on non-zero exit code', async () => {
+    const result = await validateByKeys(['cmd:false'], '/some/file.yml', mockConfig);
+    expect(result.valid).toBe(false);
+    expect(result.type).toBe('cmd');
+    expect(result.error).toContain('Command failed with exit code 1');
+  });
+
+  it('cmd: validator captures stderr as error message', async () => {
+    const result = await validateByKeys(
+      ['cmd:sh -c "echo validation error >&2; exit 1"'],
+      '/some/file.yml',
+      mockConfig,
+    );
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('validation error');
+  });
+
+  it('cmd: validator replaces {{ file }} with file path', async () => {
+    const result = await validateByKeys(['cmd:test -f {{ file }}'], '/some/nonexistent/file.xyz', mockConfig);
+    expect(result.valid).toBe(false);
+  });
+
+  it('cmd: validator coexists with built-in validators', async () => {
+    const result = await validateByKeys(['cmd:true', 'nonexistent'], '/some/file.yml', mockConfig);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("Unknown validator key: 'nonexistent'");
+  });
 });

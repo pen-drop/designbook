@@ -8,7 +8,14 @@ import { mkdtempSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { load as parseYaml } from 'js-yaml';
-import { workflowCreate, workflowPlan, workflowWriteFile, workflowDone, type WorkflowFile } from '../../workflow.js';
+import {
+  workflowCreate,
+  workflowPlan,
+  workflowWriteFile,
+  workflowDone,
+  workflowAbandon,
+  type WorkflowFile,
+} from '../../workflow.js';
 import type { DesignbookConfig } from '../../config.js';
 import { getValidatorKeys, getValidator, validateByKeys } from '../../validation-registry.js';
 import { expandFileDeclarations, type TaskFileDeclaration } from '../../workflow-resolve.js';
@@ -155,8 +162,9 @@ describe('write-file pipeline (direct engine)', () => {
     expect(task.files![0]!.validation_result).toBeDefined();
     expect(task.files![0]!.validation_result!.valid).toBe(true);
 
-    // File is in stash, NOT at target yet (direct engine stashes)
+    // File is stashed at target dir with .debo suffix, not at final target path
     expect(existsSync(targetPath)).toBe(false);
+    expect(result.file_path).toMatch(/\.debo$/);
     expect(existsSync(result.file_path)).toBe(true);
 
     // workflow done succeeds (gate-check passes)
@@ -191,7 +199,8 @@ describe('write-file pipeline (direct engine)', () => {
 
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
-    // File still written to stash
+    // File still written at target dir with .debo suffix
+    expect(result.file_path).toMatch(/\.debo$/);
     expect(existsSync(result.file_path)).toBe(true);
 
     // workflow done should reject (file has errors)
@@ -394,24 +403,112 @@ describe('direct engine flush', () => {
       'direct',
     );
 
-    // Write file to stash
+    // Write file — stashed at target dir with .debo suffix
     const content = 'tokens: true';
     const writeResult = await workflowWriteFile(dist, name, 'task1', 'tokens', content, config);
 
-    // File is in stash, not at target
+    // File is at target dir with .debo suffix, not at final target
     expect(existsSync(targetPath)).toBe(false);
+    expect(writeResult.file_path).toMatch(/\.debo$/);
     expect(existsSync(writeResult.file_path)).toBe(true);
 
-    // Mark task done — triggers stage transition execute→committed which flushes
+    // Mark task done — triggers stage transition execute→test which flushes
     const doneResult = workflowDone(dist, name, 'task1');
     expect(doneResult.archived).toBe(false); // test task still pending
 
-    // After flush: file is at target
+    // After flush: .debo renamed to final target path
     expect(existsSync(targetPath)).toBe(true);
     expect(readFileSync(targetPath, 'utf-8')).toBe(content);
 
-    // Stash should be cleaned up
-    const stashPath = writeResult.file_path;
-    expect(existsSync(stashPath)).toBe(false);
+    // .debo file should be gone after flush (renamed in-place)
+    expect(existsSync(writeResult.file_path)).toBe(false);
+  });
+});
+
+// ── direct engine cleanup (abandon) ──────────────────────────────────────────
+
+describe('direct engine cleanup on abandon', () => {
+  let dist: string;
+  let config: DesignbookConfig;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-cleanup-'));
+    config = { data: dist, technology: 'html', extensions: [] };
+  });
+
+  it('abandon removes .debo files for the workflow', async () => {
+    const targetPath = resolve(dist, 'output', 'tokens.yml');
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(
+      dist,
+      name,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'tokens',
+          files: [{ path: targetPath, key: 'tokens', validators: [] }],
+        },
+      ],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    // Write file — creates .debo stash file
+    const writeResult = await workflowWriteFile(dist, name, 'task1', 'tokens', 'content', config);
+    expect(existsSync(writeResult.file_path)).toBe(true);
+
+    // Abandon workflow — should clean up .debo files
+    workflowAbandon(dist, name);
+    expect(existsSync(writeResult.file_path)).toBe(false);
+  });
+
+  it('abandon does not remove .debo files from other workflows', async () => {
+    const outputDir = resolve(dist, 'output');
+    mkdirSync(outputDir, { recursive: true });
+    const targetPath = resolve(outputDir, 'tokens.yml');
+
+    // Create two workflows
+    const name1 = workflowCreate(dist, 'debo-test', 'Test 1', []);
+    const name2 = workflowCreate(dist, 'debo-test', 'Test 2', []);
+
+    workflowPlan(
+      dist,
+      name1,
+      [{ id: 'task1', title: 'T1', type: 'tokens', files: [{ path: targetPath, key: 'tokens', validators: [] }] }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+    workflowPlan(
+      dist,
+      name2,
+      [{ id: 'task1', title: 'T1', type: 'tokens', files: [{ path: targetPath, key: 'tokens', validators: [] }] }],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    // Write files for both workflows
+    const result1 = await workflowWriteFile(dist, name1, 'task1', 'tokens', 'content1', config);
+    const result2 = await workflowWriteFile(dist, name2, 'task1', 'tokens', 'content2', config);
+
+    expect(existsSync(result1.file_path)).toBe(true);
+    expect(existsSync(result2.file_path)).toBe(true);
+
+    // Abandon workflow 1 — should only remove its .debo file
+    workflowAbandon(dist, name1);
+    expect(existsSync(result1.file_path)).toBe(false);
+    expect(existsSync(result2.file_path)).toBe(true);
   });
 });

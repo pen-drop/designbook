@@ -80,6 +80,8 @@ export interface WorkflowFile {
   preview_pid?: number;
   /** Paths to screenshots taken before test tasks run. */
   pre_test_screenshots?: string[];
+  /** Short hex ID extracted from the workflow name suffix. Used by direct engine for stash-at-target file naming. */
+  workflow_id?: string;
   tasks: WorkflowTask[];
 }
 
@@ -227,11 +229,13 @@ export function workflowCreate(
   engine?: string,
 ): string {
   const date = new Date().toISOString().slice(0, 10);
-  const name = `${workflowId}-${date}-${shortId()}`;
+  const wfId = shortId();
+  const name = `${workflowId}-${date}-${wfId}`;
 
   const data: WorkflowFile = {
     title,
     workflow: workflowId,
+    workflow_id: wfId,
     status: 'planning',
     ...(engine ? { engine: engine as WorkflowFile['engine'] } : {}),
     ...(parent ? { parent } : {}),

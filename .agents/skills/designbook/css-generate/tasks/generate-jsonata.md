@@ -4,7 +4,9 @@ params:
 files:
   - file: $DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group }}.jsonata
     key: generate-jsonata
-    validators: []
+    validators:
+      - "cmd:npx jsonata-w transform --dry-run {{ file }}"
+      - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: design-tokens

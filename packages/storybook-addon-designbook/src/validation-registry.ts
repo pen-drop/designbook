@@ -4,6 +4,7 @@
  */
 
 import { resolve } from 'node:path';
+import { execSync } from 'node:child_process';
 import type { DesignbookConfig } from './config.js';
 import type { ValidationFileResult } from './workflow-types.js';
 import { validateComponent } from './validators/component.js';
@@ -79,6 +80,25 @@ export async function validateByKeys(
 
   let lastResult: ValidationFileResult | undefined;
   for (const key of keys) {
+    // cmd: prefix — execute shell command as validator
+    if (key.startsWith('cmd:')) {
+      const cmdTemplate = key.slice(4);
+      const cmd = cmdTemplate.replace(/\{\{\s*file\s*\}\}/g, file);
+      const ts = new Date().toISOString();
+      try {
+        execSync(cmd, { timeout: 30_000, stdio: ['pipe', 'pipe', 'pipe'] });
+        lastResult = { file, type: 'cmd', valid: true, last_validated: ts, last_passed: ts };
+      } catch (err: unknown) {
+        const execErr = err as { status?: number; stderr?: Buffer };
+        const stderr = execErr.stderr?.toString().trim() ?? '';
+        const exitCode = execErr.status ?? 1;
+        const errorMsg = stderr || `Command failed with exit code ${exitCode}`;
+        lastResult = { file, type: 'cmd', valid: false, error: errorMsg, last_validated: ts, last_failed: ts };
+        return lastResult;
+      }
+      continue;
+    }
+
     const fn = validators[key];
     if (!fn) {
       const ts = new Date().toISOString();
