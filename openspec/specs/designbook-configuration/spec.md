@@ -14,7 +14,7 @@ A script MUST be provided to load this configuration.
 ### Requirement: Environment Helper
 A shell helper MUST be provided for Bash scripts.
 - **Usage**: `eval "$(npx storybook-addon-designbook config)"`
-- **Effect**: Sets `DESIGNBOOK_BACKEND`, `DESIGNBOOK_FRAMEWORK_COMPONENT`, `DESIGNBOOK_FRAMEWORK_CSS`, `DESIGNBOOK_DIST`, `DESIGNBOOK_TMP`, `DESIGNBOOK_DRUPAL_THEME`, `DESIGNBOOK_SDC_PROVIDER`, `DESIGNBOOK_EXTENSIONS`, and `DESIGNBOOK_EXTENSION_SKILLS` environment variables.
+- **Effect**: Sets `DESIGNBOOK_BACKEND`, `DESIGNBOOK_FRAMEWORK_COMPONENT`, `DESIGNBOOK_FRAMEWORK_CSS`, `DESIGNBOOK_DIST`, `DESIGNBOOK_TMP`, `DESIGNBOOK_OUTPUTS_ROOT`, `DESIGNBOOK_SDC_PROVIDER`, `DESIGNBOOK_EXTENSIONS`, and `DESIGNBOOK_EXTENSION_SKILLS` environment variables.
 
 #### Scenario: Environment variables are set via CLI
 - **WHEN** a bash script runs `eval "$(npx storybook-addon-designbook config)"`

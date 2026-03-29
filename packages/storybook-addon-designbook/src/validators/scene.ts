@@ -20,7 +20,7 @@ function nowIso(): string {
 /**
  * Derive the designbook directory from the file path.
  * Walks up from the file until it finds a directory containing data-model.yml
- * or a designbook.config.yml, falling back to config.dist.
+ * or a designbook.config.yml, falling back to config.data.
  */
 function findDesignbookDir(file: string, config: DesignbookConfig): string {
   let dir = dirname(resolve(file));
@@ -30,7 +30,7 @@ function findDesignbookDir(file: string, config: DesignbookConfig): string {
     if (parent === dir) break;
     dir = parent;
   }
-  return config.dist;
+  return config.data;
 }
 
 export async function validateSceneBuild(file: string, config: DesignbookConfig): Promise<ValidationFileResult> {

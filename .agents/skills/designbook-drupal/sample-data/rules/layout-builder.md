@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [create-sample-data]
+  steps: [create-sample-data]
   backend: drupal
   extensions: layout_builder
 ---

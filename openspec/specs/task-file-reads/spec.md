@@ -6,7 +6,7 @@ Defines the `reads:` frontmatter convention for task files — declaring input f
 ## Requirements
 
 ### Requirement: Task files declare input dependencies via `reads:`
-Task files SHALL support an optional `reads:` frontmatter field listing files required before the task executes. Each entry SHALL have a `path` (using `$DESIGNBOOK_DIST` or `$DESIGNBOOK_DRUPAL_THEME` prefix) and a `workflow` (the debo-* workflow that generates the file).
+Task files SHALL support an optional `reads:` frontmatter field listing files required before the task executes. Each entry SHALL have a `path` (using `$DESIGNBOOK_DIST` or `$DESIGNBOOK_OUTPUTS_ROOT` prefix) and a `workflow` (the debo-* workflow that generates the file).
 
 #### Scenario: reads: field structure
 - **WHEN** a task file requires a previously generated file
@@ -28,7 +28,7 @@ Before executing any task stage, the AI SHALL verify that every file listed in `
 - **THEN** the AI reads each file for context before executing the task
 
 ### Requirement: Task files use env var prefixes in `files:`
-All paths in the `files:` frontmatter field SHALL begin with `$DESIGNBOOK_DIST/` or `$DESIGNBOOK_DRUPAL_THEME/`. Bare relative paths are not allowed.
+All paths in the `files:` frontmatter field SHALL begin with `$DESIGNBOOK_DIST/` or `$DESIGNBOOK_OUTPUTS_ROOT/`. Bare relative paths are not allowed.
 
 #### Scenario: DESIGNBOOK_DIST output file
 - **WHEN** a task writes to the designbook output directory
@@ -36,7 +36,7 @@ All paths in the `files:` frontmatter field SHALL begin with `$DESIGNBOOK_DIST/`
 
 #### Scenario: theme output file
 - **WHEN** a task writes to the Drupal theme directory
-- **THEN** the `files:` path begins with `$DESIGNBOOK_DRUPAL_THEME/`
+- **THEN** the `files:` path begins with `$DESIGNBOOK_OUTPUTS_ROOT/`
 
 ### Requirement: reads: convention documented in designbook-addon-skills
 The `designbook-addon-skills/SKILL.md` task file frontmatter spec SHALL include `reads:` with its structure, semantics, and the AI behavior rule for missing files.

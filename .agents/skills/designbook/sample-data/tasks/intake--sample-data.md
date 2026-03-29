@@ -1,8 +1,8 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_DIST/data-model.yml
-  - path: $DESIGNBOOK_DIST/sections
+  - path: $DESIGNBOOK_DATA/data-model.yml
+  - path: $DESIGNBOOK_DATA/sections
 ---
 
 # Intake: Sample Data
@@ -13,7 +13,7 @@ Help the user select which section needs sample data. The result feeds the `crea
 
 ## Step 1: Select Section
 
-List all directories under `${DESIGNBOOK_DIST}/sections/`. Present the available sections:
+List all directories under `${DESIGNBOOK_DATA}/sections/`. Present the available sections:
 
 > "Which section should get sample data?
 >
@@ -22,7 +22,7 @@ List all directories under `${DESIGNBOOK_DIST}/sections/`. Present the available
 >
 > (Enter number or section id)"
 
-Wait for response. Set `section_id` to the selected section's directory name (e.g. `getting-started`). This value is used in `workflow plan` to expand the `files[]` path `$DESIGNBOOK_DIST/sections/{{ section_id }}/data.yml`.
+Wait for response. Set `section_id` to the selected section's directory name (e.g. `getting-started`). This value is used in `workflow plan` to expand the `files[]` path `$DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml`.
 
 ## Step 2: Analyze Data Needs
 

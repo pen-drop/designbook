@@ -1,7 +1,7 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_DIST/design-system/guidelines.yml
+  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
     workflow: debo-design-guideline
 ---
 

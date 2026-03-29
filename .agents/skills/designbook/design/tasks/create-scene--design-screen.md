@@ -5,17 +5,22 @@ params:
   section_description: ~
   scenes: []
 reads:
-  - path: $DESIGNBOOK_DIST/data-model.yml
+  - path: $DESIGNBOOK_DATA/data-model.yml
     workflow: debo-data-model
-  - path: $DESIGNBOOK_DIST/design-system/design-system.scenes.yml
+  - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
     workflow: debo-design-shell
 files:
-  - $DESIGNBOOK_DIST/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+  - file: $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+    key: section-scenes
+    validators: [scene]
 ---
 
 # Create Section Scene
 
-Creates `sections/{{ section_id }}/{{ section_id }}.section.scenes.yml` — page scenes for a section, inheriting the shell layout.
+Creates page scenes for a section, inheriting the shell layout. Write the result via stdin to the CLI:
+```
+ write-file $WORKFLOW_NAME $TASK_ID --key section-scenes
+```
 
 ## Input
 

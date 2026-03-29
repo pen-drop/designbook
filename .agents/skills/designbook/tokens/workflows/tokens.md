@@ -1,7 +1,10 @@
 ---
 title: Design Tokens
 description: Choose colors and typography for your product
-stages: [intake, create-tokens]
+stages:
+  execute:
+    steps: [intake, create-tokens]
+engine: direct
 after:
   - workflow: css-generate
     optional: true

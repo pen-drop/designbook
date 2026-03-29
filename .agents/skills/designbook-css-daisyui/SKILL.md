@@ -20,10 +20,10 @@ Read this file when you need to understand DaisyUI class names, theme format (`@
 
 ## Task Files
 
-- [generate-jsonata.md](tasks/generate-jsonata.md) — Generate DaisyUI + Tailwind `.jsonata` expression files
 - [create-tokens.md](tasks/create-tokens.md) — Generate `design-tokens.yml` with DaisyUI semantic color names
 
 ## Rules
 
+- [css-mapping.md](rules/css-mapping.md) — Token-group-to-CSS mapping for the generic `generate-jsonata` task (uses `@plugin` for colors)
 - [daisyui-naming.md](rules/daisyui-naming.md) — DaisyUI token naming conventions (loaded during `create-tokens` and token dialog stages)
 - [daisyui-styling.md](rules/daisyui-styling.md) — Tailwind-only styling constraints (loaded during `create-component` stage)

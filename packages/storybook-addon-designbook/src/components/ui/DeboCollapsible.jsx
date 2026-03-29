@@ -122,10 +122,10 @@ function getProgressBar(progress, statusColor) {
  * DeboCollapsible — Expandable/collapsible section using native details/summary.
  *
  * @param {Object} props
- * @param {string} props.title — Section heading
+ * @param {string|React.ReactNode} props.title — Section heading
  * @param {number} [props.count] — Optional badge showing item count
  * @param {boolean} [props.defaultOpen=false] — Initial open state
- * @param {'card'|'action-summary'|'action-item'} [props.variant='card'] — Visual variant
+ * @param {'card'|'action-summary'|'action-item'|'action-inline'} [props.variant='card'] — Visual variant
  * @param {'done'|'running'|'pending'} [props.status='pending'] — Status color (action variants only)
  * @param {{ done: number, total: number }} [props.progress] — Progress bar (action-summary only)
  * @param {React.ReactNode} props.children — Collapsible content

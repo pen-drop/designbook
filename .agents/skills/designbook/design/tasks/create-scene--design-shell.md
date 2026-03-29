@@ -2,15 +2,20 @@
 params:
   provider: ~
 files:
-  - $DESIGNBOOK_DIST/design-system/design-system.scenes.yml
+  - file: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
+    key: shell-scenes
+    validators: [scene]
 reads:
-  - path: $DESIGNBOOK_COMPONENT_SRC
+  - path: $DESIGNBOOK_DIRS_COMPONENTS
     description: Shell components — location resolved by the active framework skill
 ---
 
 # Create Shell Scene
 
-Creates `design-system/design-system.scenes.yml` — the base layout scene that section scenes inherit via `scene: design-system:shell`.
+Creates the base layout scene that section scenes inherit via `scene: design-system:shell`. Write the result via stdin to the CLI:
+```
+ write-file $WORKFLOW_NAME $TASK_ID --key shell-scenes
+```
 
 ## Output
 

@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [create-component]
+  steps: [create-component]
   frameworks.component: sdc
 ---
 
@@ -72,7 +72,7 @@ When variant markup only differs in a few classes, use conditional class assignm
 
 ## Shell = UI
 
-Shell components (header, footer, page) are full UI components with real HTML, not structural slot-only wrappers. Same location (`$DESIGNBOOK_DRUPAL_THEME/components/`), same provider as all other UI components.
+Shell components (header, footer, page) are full UI components with real HTML, not structural slot-only wrappers. Same location (`$DESIGNBOOK_HOME/components/`), same provider as all other UI components.
 
 ## Resolve `COMPONENT_NAMESPACE` at Generation Time
 

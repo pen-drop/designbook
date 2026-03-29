@@ -6,7 +6,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, relative } from 'node:path';
 import fm from 'front-matter';
 import { globSync } from 'glob';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
@@ -14,7 +14,7 @@ import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type Design
 // ── Types ──────────────────────────────────────────────────────────
 
 export interface PlanItem {
-  stage: string;
+  step: string;
   params?: Record<string, unknown>;
 }
 
@@ -22,19 +22,19 @@ export interface ResolvedTask {
   id: string;
   title: string;
   type: string;
-  stage: string;
-  depends_on: string[];
+  step: string; // canonical step name (e.g. create-component) — was: stage
+  stage: string; // parent stage name (execute, test, preview)
   params: Record<string, unknown>;
   task_file: string;
   rules: string[];
   config_rules: string[];
   config_instructions: string[];
-  files: string[];
+  files: Array<{ path: string; key: string; validators: string[] }>;
 }
 
 export interface ResolvedPlan {
   params: Record<string, unknown>;
-  stages: string[];
+  steps: string[]; // ordered step names — was: stages
   tasks: ResolvedTask[];
 }
 
@@ -44,17 +44,29 @@ export interface ResolvedFile {
   frontmatter: Record<string, unknown> | null;
 }
 
+export interface TaskFileDeclaration {
+  file: string; // path template (supports $ENV and {{ param }})
+  key: string; // stable identifier used by write-file --key
+  validators?: string[]; // validator keys (e.g. ['tokens']); defaults to []
+}
+
 interface TaskFileFrontmatter {
   when?: Record<string, unknown>;
   params?: Record<string, unknown>;
-  files?: string[];
+  files?: TaskFileDeclaration[];
   reads?: Array<{ path: string; workflow?: string }>;
 }
 
+interface StageDefinitionFm {
+  steps: string[];
+  params?: Record<string, { type: string; prompt: string }>;
+}
+
 interface WorkflowFrontmatter {
-  // New flat format: title, stages at root level
+  // New grouped format: stages map stage names to step lists
   title?: string;
-  stages?: string[];
+  stages?: Record<string, StageDefinitionFm> | string[];
+  engine?: string;
   // Legacy nested format: workflow.title, workflow.stages
   workflow?: {
     title?: string;
@@ -62,9 +74,29 @@ interface WorkflowFrontmatter {
   };
 }
 
-/** Extract stages from workflow frontmatter (supports both flat and nested format). */
-function getWorkflowStages(fm: WorkflowFrontmatter): string[] | undefined {
-  return fm.stages ?? fm.workflow?.stages;
+/**
+ * Extract steps from workflow frontmatter.
+ * Supports three formats:
+ * - Grouped: stages: { execute: { steps: [...] }, test: { steps: [...] } }
+ * - Flat: stages: [step1, step2, ...] (legacy)
+ * - Nested: workflow.stages: [...] (legacy)
+ */
+function getWorkflowSteps(fm: WorkflowFrontmatter): string[] | undefined {
+  const stages = fm.stages ?? fm.workflow?.stages;
+  if (!stages) return undefined;
+  if (Array.isArray(stages)) return stages;
+  // Grouped format: flatten all steps from all stages in order
+  const steps: string[] = [];
+  for (const def of Object.values(stages)) {
+    steps.push(...(def.steps ?? []));
+  }
+  return steps;
+}
+
+/** Extract grouped stage definitions from frontmatter (new format only). */
+function getWorkflowStageDefinitions(fm: WorkflowFrontmatter): Record<string, StageDefinitionFm> | undefined {
+  if (fm.stages && !Array.isArray(fm.stages)) return fm.stages;
+  return undefined;
 }
 
 /** Extract title from workflow frontmatter (supports both flat and nested format). */
@@ -133,11 +165,16 @@ export function checkWhen(
 }
 
 /**
- * Build runtime context for `when` evaluation (stage-specific, not config).
+ * Build runtime context for `when` evaluation (step-specific, not config).
+ * Sets both `steps` (new) and `stages` (legacy) keys for backwards compatibility
+ * with existing rule files that use `when: stages:`.
  */
-export function buildRuntimeContext(stage?: string, extraConditions?: Record<string, string>): Record<string, unknown> {
+export function buildRuntimeContext(step?: string, extraConditions?: Record<string, string>): Record<string, unknown> {
   const context: Record<string, unknown> = {};
-  if (stage !== undefined) context['stages'] = stage;
+  if (step !== undefined) {
+    context['steps'] = step;
+    context['stages'] = step; // Legacy compat: rule files may use when: stages:
+  }
   if (extraConditions) Object.assign(context, extraConditions);
   return context;
 }
@@ -157,15 +194,36 @@ export function buildEnrichedConfig(config: DesignbookConfig): Record<string, un
 
 /**
  * Build a map of DESIGNBOOK_* env vars from config for template expansion.
+ *
+ * Emits:
+ * - DESIGNBOOK_WORKSPACE from `workspace`
+ * - DESIGNBOOK_HOME / DESIGNBOOK_DATA / DESIGNBOOK_URL / DESIGNBOOK_CMD from `designbook.*` keys
+ * - DESIGNBOOK_DIRS_* from `dirs.*` keys
+ * - All other scalar config values → DESIGNBOOK_<KEY>
  */
 export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
   const env: Record<string, string> = {};
 
-  // Dynamic: all scalar config values → DESIGNBOOK_<KEY> (dots become underscores, uppercased)
+  // Dynamic: all scalar config values → DESIGNBOOK_<KEY>
+  // Dot-path keys are split and rejoined with '_'. The 'frameworks' segment is
+  // renamed to 'FRAMEWORK' (singular) to match the shell `config` output
+  // (e.g. frameworks.css → DESIGNBOOK_FRAMEWORK_CSS).
+  // Skip internal properties and designbook.* keys (handled explicitly below)
   for (const [key, value] of Object.entries(config)) {
     if (value == null || typeof value === 'object') continue;
-    env[`DESIGNBOOK_${key.replace(/\./g, '_').toUpperCase()}`] = String(value);
+    if (key === 'data' || key === 'workspace') continue;
+    if (key.startsWith('designbook.')) continue;
+    const parts = key.split('.');
+    const envParts = parts.map((p) => (p === 'frameworks' ? 'FRAMEWORK' : p.toUpperCase()));
+    env[`DESIGNBOOK_${envParts.join('_')}`] = String(value);
   }
+
+  // Explicit: DESIGNBOOK_WORKSPACE, DESIGNBOOK_HOME, DESIGNBOOK_DATA, DESIGNBOOK_URL, DESIGNBOOK_CMD
+  if (config.workspace) env['DESIGNBOOK_WORKSPACE'] = String(config.workspace);
+  if (config['designbook.home']) env['DESIGNBOOK_HOME'] = String(config['designbook.home']);
+  if (config['designbook.data']) env['DESIGNBOOK_DATA'] = String(config['designbook.data']);
+  if (config['designbook.url']) env['DESIGNBOOK_URL'] = String(config['designbook.url']);
+  if (config['designbook.cmd']) env['DESIGNBOOK_CMD'] = String(config['designbook.cmd']);
 
   // Derived: extensions as comma-sep IDs + skill IDs
   const extensions = normalizeExtensions(config['extensions']);
@@ -173,6 +231,44 @@ export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
   env['DESIGNBOOK_EXTENSION_SKILLS'] = getExtensionSkillIds(extensions);
 
   return env;
+}
+
+/**
+ * Build a remapped env map for an isolated git WORKTREE.
+ *
+ * Swaps DESIGNBOOK_WORKSPACE to the worktree path. All DESIGNBOOK_DIRS_* vars are
+ * re-derived by resolving their workspace-relative paths against the new workspace.
+ * DESIGNBOOK_HOME and DESIGNBOOK_DATA are re-resolved the same way.
+ *
+ * This preserves directory structure so that `cp -r WORKTREE/* DESIGNBOOK_HOME/`
+ * restores files to their correct locations.
+ */
+export function buildWorktreeEnvMap(
+  envMap: Record<string, string>,
+  worktreePath: string,
+  rootDir: string,
+): Record<string, string> {
+  const remapped = { ...envMap };
+
+  // Swap workspace anchor
+  remapped['DESIGNBOOK_WORKSPACE'] = worktreePath;
+
+  // Re-resolve DESIGNBOOK_DIRS_* relative to new workspace
+  for (const [key, value] of Object.entries(envMap)) {
+    if (!key.startsWith('DESIGNBOOK_DIRS_')) continue;
+    const relPath = relative(rootDir, value);
+    remapped[key] = resolve(worktreePath, relPath);
+  }
+
+  // Re-resolve DESIGNBOOK_HOME and DESIGNBOOK_DATA relative to new workspace
+  if (envMap['DESIGNBOOK_HOME']) {
+    remapped['DESIGNBOOK_HOME'] = resolve(worktreePath, relative(rootDir, envMap['DESIGNBOOK_HOME']));
+  }
+  if (envMap['DESIGNBOOK_DATA']) {
+    remapped['DESIGNBOOK_DATA'] = resolve(worktreePath, relative(rootDir, envMap['DESIGNBOOK_DATA']));
+  }
+
+  return remapped;
 }
 
 // ── Unified File Resolution ─────────────────────────────────────────
@@ -214,19 +310,22 @@ export function resolveFiles(
 // ── Task File Resolution ────────────────────────────────────────────
 
 /**
- * Resolve a stage name to a task file path.
+ * Resolve a stage name to task file paths.
  *
  * Named stages (skill:task format): first try direct skill-dir resolution, then
  * fall back to glob for workflow-qualified tasks (task--workflow-id.md pattern).
- * Generic stages use `resolveFiles` and pick the most specific match.
+ * Named stages always return at most one result.
+ *
+ * Generic stages return ALL matching task files (multiple skills can contribute).
+ * Returns empty array if no task files match (callers skip the step).
  */
-export function resolveTaskFile(
+export function resolveTaskFiles(
   stage: string,
   config: DesignbookConfig,
   agentsDir: string,
   workflowId?: string,
-): string {
-  // Named stage: skill-name:task-name
+): string[] {
+  // Named stage: skill-name:task-name — single result
   if (stage.includes(':')) {
     const parts = stage.split(':', 2);
     const skillName = parts[0] ?? '';
@@ -234,30 +333,26 @@ export function resolveTaskFile(
     // Try direct skill-dir resolution first (e.g. designbook-drupal:create-component)
     const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
     if (existsSync(taskPath)) {
-      return taskPath;
+      return [taskPath];
     }
     // Fall back to glob for workflow-qualified tasks within unified skill (e.g. design-screen:intake)
     const context = buildRuntimeContext();
     const enrichedConfig = buildEnrichedConfig(config);
     const matches = resolveFiles(`skills/**/tasks/${taskName}--${skillName}.md`, context, enrichedConfig, agentsDir);
     if (matches.length === 0) {
-      throw new Error(
-        `Task file not found for named stage "${stage}": ` +
-          `checked ${taskPath} and glob skills/**/tasks/${taskName}--${skillName}.md`,
-      );
+      return [];
     }
     matches.sort((a, b) => b.specificity - a.specificity);
-    return matches[0].path;
+    return [matches[0]!.path];
   }
 
-  // Generic stage: resolve via glob + when matching
+  // Generic stage: resolve via glob + when matching — return ALL matches
   const context = buildRuntimeContext();
   const enrichedConfig = buildEnrichedConfig(config);
   const matches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir);
 
   if (matches.length > 0) {
-    matches.sort((a, b) => b.specificity - a.specificity);
-    return matches[0].path;
+    return matches.map((m) => m.path);
   }
 
   // Fallback: try workflow-qualified task file (e.g. intake--vision.md)
@@ -269,20 +364,11 @@ export function resolveTaskFile(
       agentsDir,
     );
     if (qualifiedMatches.length > 0) {
-      qualifiedMatches.sort((a, b) => b.specificity - a.specificity);
-      return qualifiedMatches[0].path;
+      return qualifiedMatches.map((m) => m.path);
     }
   }
 
-  const configSummary = Object.fromEntries(
-    Object.entries(config).filter(([, v]) => v != null && typeof v !== 'object'),
-  );
-  throw new Error(
-    `No task file found for stage "${stage}". ` +
-      `Checked .agents/skills/**/tasks/${stage}.md` +
-      (workflowId ? ` and .agents/skills/**/tasks/${stage}--${workflowId}.md` : '') +
-      ` with config: ${JSON.stringify(configSummary)}`,
-  );
+  return [];
 }
 
 // ── Rule File Matching ──────────────────────────────────────────────
@@ -334,24 +420,48 @@ export function expandFilePath(
 }
 
 /**
- * Expand all file path templates from a task file's frontmatter.
+ * Expand all file declarations from a task file's frontmatter.
+ * Expands the `file` path template, passes through `key` and `validators`.
  */
-export function expandFilePaths(
-  templates: string[],
+export function expandFileDeclarations(
+  declarations: TaskFileDeclaration[],
   params: Record<string, unknown>,
   envMap: Record<string, string>,
-): string[] {
-  return templates.map((t) => expandFilePath(t, params, envMap));
+  validatorKeys?: Set<string>,
+): Array<{ path: string; key: string; validators: string[] }> {
+  const keys = new Set<string>();
+  return declarations.map((d) => {
+    if (keys.has(d.key)) {
+      throw new Error(`Duplicate key '${d.key}' in file declarations`);
+    }
+    keys.add(d.key);
+    const validators = d.validators ?? [];
+    if (validatorKeys) {
+      for (const v of validators) {
+        if (v.startsWith('cmd:')) continue; // cmd: validators are shell commands, not registry keys
+        if (!validatorKeys.has(v)) {
+          throw new Error(
+            `Unknown validator key '${v}' in file '${d.key}'. Available: ${[...validatorKeys].join(', ')}`,
+          );
+        }
+      }
+    }
+    return {
+      path: expandFilePath(d.file, params, envMap),
+      key: d.key,
+      validators,
+    };
+  });
 }
 
 // ── Config Resolution ───────────────────────────────────────────────
 
 /**
- * Resolve workflow config rules and instructions for a stage.
+ * Resolve workflow config rules and instructions for a step.
  * Extension skills (from extensions[].skill in config) are injected into
- * config_instructions at lower priority than explicit stage instructions.
+ * config_instructions at lower priority than explicit step instructions.
  */
-export function resolveConfigForStage(
+export function resolveConfigForStep(
   stage: string,
   rawConfig: Record<string, unknown>,
 ): { config_rules: string[]; config_instructions: string[] } {
@@ -373,29 +483,6 @@ export function resolveConfigForStage(
   };
 }
 
-// ── Depends-On Computation ──────────────────────────────────────────
-
-/**
- * Compute depends_on arrays from stage ordering.
- * All tasks in stage N depend on all task IDs in stage N-1.
- */
-export function computeDependsOn(stages: string[], tasksByStage: Map<string, string[]>): Map<string, string[]> {
-  const result = new Map<string, string[]>();
-
-  for (let i = 0; i < stages.length; i++) {
-    const stage = stages[i];
-    const taskIds = tasksByStage.get(stage) ?? [];
-    const prevStage = i > 0 ? stages[i - 1] : null;
-    const deps = prevStage ? (tasksByStage.get(prevStage) ?? []) : [];
-
-    for (const taskId of taskIds) {
-      result.set(taskId, deps);
-    }
-  }
-
-  return result;
-}
-
 // ── Params Validation ───────────────────────────────────────────────
 
 /**
@@ -406,7 +493,7 @@ export function computeDependsOn(stages: string[], tasksByStage: Map<string, str
 export function validateAndMergeParams(
   itemParams: Record<string, unknown>,
   schemaParams: Record<string, unknown>,
-  stage: string,
+  step: string,
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...itemParams };
 
@@ -414,7 +501,7 @@ export function validateAndMergeParams(
     if (merged[key] !== undefined) continue;
 
     if (defaultValue === null) {
-      throw new Error(`Missing required param '${key}' for stage '${stage}'`);
+      throw new Error(`Missing required param '${key}' for step '${step}'`);
     }
 
     merged[key] = defaultValue;
@@ -433,7 +520,7 @@ export function generateTaskId(
   params: Record<string, unknown>,
   schemaParams?: Record<string, unknown>,
 ): string {
-  const baseName = stage.includes(':') ? stage.split(':')[1] : stage;
+  const baseName = stage.includes(':') ? stage.split(':')[1]! : stage;
 
   if (schemaParams) {
     for (const [key, defaultValue] of Object.entries(schemaParams)) {
@@ -466,58 +553,79 @@ function deduplicateTaskIds(tasks: ResolvedTask[]): void {
   }
 }
 
-// ── Stage Resolution (all stages at once) ───────────────────────────
+// ── Step Resolution (all steps at once) ────────────────────────────
 
-export interface ResolvedStage {
+export interface ResolvedStep {
   task_file: string;
   rules: string[];
   config_rules: string[];
   config_instructions: string[];
 }
 
-export interface ResolvedStages {
+export interface ResolvedSteps {
   title: string;
-  stages: string[];
-  stage_resolved: Record<string, ResolvedStage>;
+  steps: string[];
+  stages?: Record<string, StageDefinitionFm>;
+  engine?: string;
+  step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
 }
 
 /**
- * Resolve ALL stages from a workflow file at create time.
+ * Resolve ALL steps from a workflow file at create time.
  */
 export function resolveAllStages(
   workflowFilePath: string,
   config: DesignbookConfig,
   rawConfig: Record<string, unknown>,
   agentsDir: string,
-): ResolvedStages {
+): ResolvedSteps {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
-  const allStages = wfFm ? getWorkflowStages(wfFm) : undefined;
-  if (!allStages) {
-    throw new Error(`No stages found in frontmatter of ${workflowFilePath}`);
+  const allSteps = wfFm ? getWorkflowSteps(wfFm) : undefined;
+  if (!allSteps) {
+    throw new Error(`No steps found in frontmatter of ${workflowFilePath}`);
   }
 
   // Extract workflow ID from file path (e.g. vision/workflows/vision.md → "vision")
   const workflowId = workflowFilePath.replace(/\\/g, '/').split('/').pop()?.replace(/\.md$/, '');
 
-  const stageResolved: Record<string, ResolvedStage> = {};
+  const stepResolved: Record<string, ResolvedStep | ResolvedStep[]> = {};
+  const resolvedSteps: string[] = [];
 
-  for (const stage of allStages) {
-    const taskFilePath = resolveTaskFile(stage, config, agentsDir, workflowId);
-    const ruleFiles = matchRuleFiles(stage, config, agentsDir);
-    const { config_rules, config_instructions } = resolveConfigForStage(stage, rawConfig);
+  for (const step of allSteps) {
+    const taskFilePaths = resolveTaskFiles(step, config, agentsDir, workflowId);
+    if (taskFilePaths.length === 0) {
+      console.debug(`[Designbook] workflow: step "${step}" skipped — no matching task file`);
+      continue;
+    }
+    const ruleFiles = matchRuleFiles(step, config, agentsDir);
+    const { config_rules, config_instructions } = resolveConfigForStep(step, rawConfig);
 
-    stageResolved[stage] = {
-      task_file: taskFilePath,
-      rules: ruleFiles,
-      config_rules,
-      config_instructions,
-    };
+    if (taskFilePaths.length === 1) {
+      stepResolved[step] = {
+        task_file: taskFilePaths[0]!,
+        rules: ruleFiles,
+        config_rules,
+        config_instructions,
+      };
+    } else {
+      stepResolved[step] = taskFilePaths.map((taskFile) => ({
+        task_file: taskFile,
+        rules: ruleFiles,
+        config_rules,
+        config_instructions,
+      }));
+    }
+    resolvedSteps.push(step);
   }
+
+  const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
 
   return {
     title: wfFm ? getWorkflowTitle(wfFm) : '',
-    stages: allStages,
-    stage_resolved: stageResolved,
+    steps: resolvedSteps,
+    ...(stageDefs ? { stages: stageDefs } : {}),
+    ...(wfFm?.engine ? { engine: wfFm.engine } : {}),
+    step_resolved: stepResolved,
   };
 }
 
@@ -527,7 +635,7 @@ export function resolveAllStages(
  * Infer task type from the stage name.
  */
 export function inferTaskType(stage: string): string {
-  const base = stage.includes(':') ? stage.split(':')[1] : stage;
+  const base = stage.includes(':') ? stage.split(':')[1]! : stage;
   if (base.includes('component') || base.includes('shell')) return 'component';
   if (base.includes('scene')) return 'scene';
   if (base.includes('token')) return 'tokens';
@@ -535,6 +643,7 @@ export function inferTaskType(stage: string): string {
   if (base.includes('data') || base.includes('model') || base.includes('sample')) return 'data';
   if (base.includes('entity') || base.includes('map') || base.includes('collect')) return 'view-mode';
   if (base.includes('validate')) return 'validation';
+  if (base.includes('preview')) return 'prepare-environment';
   return 'data';
 }
 
@@ -546,7 +655,7 @@ export function generateTaskTitle(
   params: Record<string, unknown>,
   schemaParams?: Record<string, unknown>,
 ): string {
-  const base = stage.includes(':') ? stage.split(':')[1] : stage;
+  const base = stage.includes(':') ? stage.split(':')[1]! : stage;
   const words = base.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   if (schemaParams) {
@@ -567,7 +676,7 @@ export function generateTaskTitle(
 }
 
 /**
- * Resolve a full workflow plan from items + pre-resolved stage data.
+ * Resolve a full workflow plan from items + pre-resolved step data.
  */
 export function resolveWorkflowPlan(
   workflowFilePath: string,
@@ -576,97 +685,101 @@ export function resolveWorkflowPlan(
   config: DesignbookConfig,
   rawConfig: Record<string, unknown>,
   agentsDir: string,
-  stageResolved?: Record<string, ResolvedStage>,
+  stepResolved?: Record<string, ResolvedStep>,
 ): ResolvedPlan {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
-  const allStages = wfFm ? getWorkflowStages(wfFm) : undefined;
-  if (!allStages) {
-    throw new Error(`No stages found in frontmatter of ${workflowFilePath}`);
+  const allSteps = wfFm ? getWorkflowSteps(wfFm) : undefined;
+  if (!allSteps) {
+    throw new Error(`No steps found in frontmatter of ${workflowFilePath}`);
   }
 
-  const execStages = allStages.filter((s) => !s.endsWith(':intake'));
+  const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
+
+  // Build step → parent stage mapping
+  const stepToStage = new Map<string, string>();
+  if (stageDefs) {
+    for (const [stageName, def] of Object.entries(stageDefs)) {
+      for (const step of def.steps) {
+        stepToStage.set(step, stageName);
+      }
+    }
+  }
+
+  const execSteps = allSteps.filter((s) => !s.endsWith(':intake'));
 
   for (const item of items) {
-    if (!execStages.includes(item.stage)) {
-      throw new Error(`Item stage "${item.stage}" not found in workflow stages: [${execStages.join(', ')}]`);
+    if (!execSteps.includes(item.step)) {
+      throw new Error(`Item step "${item.step}" not found in workflow steps: [${execSteps.join(', ')}]`);
     }
   }
 
   const envMap = buildEnvMap(config);
 
-  const itemsByStage = new Map<string, PlanItem[]>();
-  for (const stage of execStages) {
-    itemsByStage.set(stage, []);
+  const itemsByStep = new Map<string, PlanItem[]>();
+  for (const step of execSteps) {
+    itemsByStep.set(step, []);
   }
   for (const item of items) {
-    itemsByStage.get(item.stage)!.push(item);
+    itemsByStep.get(item.step)!.push(item);
   }
 
   const tasks: ResolvedTask[] = [];
-  const taskIdsByStage = new Map<string, string[]>();
 
-  for (const stage of execStages) {
-    const stageItems = itemsByStage.get(stage) ?? [];
-    if (stageItems.length === 0) continue;
+  for (const step of execSteps) {
+    const stepItems = itemsByStep.get(step) ?? [];
+    if (stepItems.length === 0) continue;
 
-    taskIdsByStage.set(stage, []);
+    // Resolve task files for this step — may be pre-resolved or freshly resolved
+    const preResolved = stepResolved?.[step];
+    const resolvedEntries: ResolvedStep[] = preResolved
+      ? Array.isArray(preResolved)
+        ? preResolved
+        : [preResolved]
+      : resolveTaskFiles(step, config, agentsDir).map((taskFile) => ({
+          task_file: taskFile,
+          rules: matchRuleFiles(step, config, agentsDir),
+          ...resolveConfigForStep(step, rawConfig),
+        }));
 
-    const resolved = stageResolved?.[stage];
-    const taskFilePath = resolved?.task_file ?? resolveTaskFile(stage, config, agentsDir);
-    const taskFm = parseFrontmatter(taskFilePath) as TaskFileFrontmatter | null;
-    const schemaParams = taskFm?.params ?? {};
-    const fileTemplates = taskFm?.files ?? [];
+    if (resolvedEntries.length === 0) {
+      console.debug(`[Designbook] workflow plan: step "${step}" skipped — no matching task file`);
+      continue;
+    }
 
-    const sharedRuleFiles = resolved?.rules ?? matchRuleFiles(stage, config, agentsDir);
+    for (const resolved of resolvedEntries) {
+      const taskFm = parseFrontmatter(resolved.task_file) as TaskFileFrontmatter | null;
+      const schemaParams = taskFm?.params ?? {};
+      const fileDeclarations = taskFm?.files ?? [];
 
-    const configData = resolved
-      ? { config_rules: resolved.config_rules, config_instructions: resolved.config_instructions }
-      : resolveConfigForStage(stage, rawConfig);
+      for (const item of stepItems) {
+        const mergedParams = validateAndMergeParams(item.params ?? {}, schemaParams, step);
+        const taskId = generateTaskId(step, mergedParams, schemaParams);
+        const title = generateTaskTitle(step, mergedParams, schemaParams);
+        const type = inferTaskType(step);
+        const files = expandFileDeclarations(fileDeclarations, mergedParams, envMap);
 
-    for (const item of stageItems) {
-      const mergedParams = validateAndMergeParams(item.params ?? {}, schemaParams, stage);
-      const taskId = generateTaskId(stage, mergedParams, schemaParams);
-      const title = generateTaskTitle(stage, mergedParams, schemaParams);
-      const type = inferTaskType(stage);
-      const files = expandFilePaths(fileTemplates, mergedParams, envMap);
-      const itemRuleFiles = sharedRuleFiles;
-
-      tasks.push({
-        id: taskId,
-        title,
-        type,
-        stage,
-        depends_on: [],
-        params: mergedParams,
-        task_file: taskFilePath,
-        rules: itemRuleFiles,
-        config_rules: configData.config_rules,
-        config_instructions: configData.config_instructions,
-        files,
-      });
-
-      taskIdsByStage.get(stage)!.push(taskId);
+        tasks.push({
+          id: taskId,
+          title,
+          type,
+          step,
+          stage: stepToStage.get(step) ?? 'execute',
+          params: mergedParams,
+          task_file: resolved.task_file,
+          rules: resolved.rules,
+          config_rules: resolved.config_rules,
+          config_instructions: resolved.config_instructions,
+          files,
+        });
+      }
     }
   }
 
   deduplicateTaskIds(tasks);
 
-  taskIdsByStage.clear();
-  for (const task of tasks) {
-    if (!taskIdsByStage.has(task.stage)) {
-      taskIdsByStage.set(task.stage, []);
-    }
-    taskIdsByStage.get(task.stage)!.push(task.id);
-  }
-
-  const depsMap = computeDependsOn(execStages, taskIdsByStage);
-  for (const task of tasks) {
-    task.depends_on = depsMap.get(task.id) ?? [];
-  }
-
   return {
     params: globalParams,
-    stages: execStages,
+    steps: execSteps,
     tasks,
   };
 }

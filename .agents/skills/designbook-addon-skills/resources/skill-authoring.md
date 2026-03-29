@@ -108,7 +108,7 @@ Each `.jsonata` file is self-contained with an embedded config block:
 ( /* Your JSONata expression */ )
 ```
 
-Place `.jsonata` files under `$DESIGNBOOK_DIST/[skill-name]/` — not in the skill directory.
+Place `.jsonata` files under `$DESIGNBOOK_DATA/[skill-name]/` — not in the skill directory.
 
 ## Referencing Skill Resources
 

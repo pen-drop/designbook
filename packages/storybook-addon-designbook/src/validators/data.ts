@@ -56,12 +56,12 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
     for (const [bundle, records] of Object.entries(bundles)) {
       if (!Array.isArray(records)) continue;
 
-      if (!(bundle in contentModel[entityType])) {
+      if (!(bundle in contentModel[entityType]!)) {
         errors.push(`Bundle "${entityType}.${bundle}" not in data-model`);
         continue;
       }
 
-      const dmFields = contentModel[entityType][bundle].fields ?? {};
+      const dmFields = contentModel[entityType]![bundle]!.fields ?? {};
 
       for (const rec of records) {
         const rid = (rec as Record<string, unknown>).id ?? '?';
@@ -113,7 +113,7 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
     }
 
     for (const [bundle] of Object.entries(bundles)) {
-      if (!(bundle in configModel[entityType])) {
+      if (!(bundle in configModel[entityType]!)) {
         errors.push(`Config bundle "${entityType}.${bundle}" not in data-model config`);
       }
     }

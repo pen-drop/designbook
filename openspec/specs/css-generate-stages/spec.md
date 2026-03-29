@@ -6,48 +6,53 @@ Defines the stages-based architecture for CSS generation — framework skills se
 ## Requirements
 
 ### Requirement: CSS framework skills self-register via task files
-Each CSS framework skill SHALL provide a `tasks/generate-jsonata.md` file with `when: frameworks.css: <framework>` to participate in the CSS generation pipeline. No central registry SHALL exist.
-
-#### Scenario: DaisyUI framework selected
-- **WHEN** `DESIGNBOOK_FRAMEWORK_CSS=daisyui`
-- **THEN** Rule 1 discovery selects `designbook-css-daisyui/tasks/generate-jsonata.md` for the `generate-jsonata` stage
+Each CSS framework skill SHALL provide a `rules/css-mapping.md` rule file with `when: frameworks.css: <framework>` to participate in the CSS generation pipeline. Framework skills SHALL NOT provide `tasks/generate-jsonata.md`. The generic `generate-jsonata` task in `designbook/css-generate` reads the css-mapping rule and generates JSONata templates accordingly.
 
 #### Scenario: Tailwind framework selected
 - **WHEN** `DESIGNBOOK_FRAMEWORK_CSS=tailwind`
-- **THEN** Rule 1 discovery selects `designbook-css-tailwind/tasks/generate-jsonata.md` for the `generate-jsonata` stage
+- **THEN** `designbook-css-tailwind/rules/css-mapping.md` is loaded for the `generate-jsonata` step
+- **AND** the generic `designbook/css-generate/tasks/generate-jsonata.md` generates templates based on the mapping
 
-#### Scenario: Unknown framework
+#### Scenario: DaisyUI framework selected
+- **WHEN** `DESIGNBOOK_FRAMEWORK_CSS=daisyui`
+- **THEN** `designbook-css-daisyui/rules/css-mapping.md` is loaded for the `generate-jsonata` step
+- **AND** the generic `generate-jsonata` task generates templates based on the DaisyUI mapping
+
+#### Scenario: Unknown framework with no css-mapping rule
 - **WHEN** `DESIGNBOOK_FRAMEWORK_CSS` is set to an unknown value
-- **THEN** no task file matches the `generate-jsonata` stage and the workflow reports an error listing supported frameworks
+- **AND** no `css-mapping` rule matches the `generate-jsonata` step
+- **THEN** the `generate-jsonata` task reports an error that no css-mapping rule was found
 
 ### Requirement: debo-css-generate uses stages architecture
-The `debo-css-generate` workflow SHALL declare `stages: [generate-jsonata, generate-css]` in its frontmatter and follow the standard stages workflow pattern (Rule 0 resume check, Rule 1 plan, Rule 2 execution).
+The `debo-css-generate` workflow SHALL declare steps `[generate-jsonata, generate-css]` in its frontmatter. Font loading is handled by font skills contributing additional tasks to the `generate-jsonata` step (via multi-task resolution), not as a separate step.
 
-#### Scenario: Workflow plan created
-- **WHEN** the workflow starts and no existing workflow is found
-- **THEN** `workflow create` is called with stages `["generate-jsonata", "generate-css"]` and the discovered task files
+#### Scenario: Workflow plan created with font provider configured
+- **WHEN** the workflow starts and `frameworks.fonts: google-fonts` is configured
+- **THEN** the `generate-jsonata` step resolves to two tasks: the generic CSS generator and the font skill's generator
+- **AND** both run in parallel
 
-#### Scenario: Two tasks created
-- **WHEN** `workflow create` completes
-- **THEN** the workflow has exactly two tasks: one for `generate-jsonata` and one for `generate-css`
+#### Scenario: Workflow plan created without font provider
+- **WHEN** the workflow starts and `frameworks.fonts` is not set
+- **THEN** the `generate-jsonata` step resolves to one task: the generic CSS generator only
 
 ### Requirement: Generic pipeline steps in generate-css task
-`designbook-css-generate/tasks/generate-css.md` (no `when`) SHALL contain the complete generic pipeline: run all `.jsonata` files via `jsonata-w transform`, update `app.src.css` imports, verify output files exist and are non-empty.
+`designbook/css-generate/tasks/generate-css.md` (no `when`) SHALL contain the generic pipeline: run all `.jsonata` files via `jsonata-w transform`, update `app.src.css` imports, verify output files. It SHALL NOT contain font download logic.
 
 #### Scenario: Generic task applies to all frameworks
 - **WHEN** any CSS framework is configured
-- **THEN** `designbook-css-generate/tasks/generate-css.md` is selected for the `generate-css` stage (no `when` = universal fallback)
+- **THEN** `designbook/css-generate/tasks/generate-css.md` is selected for the `generate-css` step
 
-#### Scenario: Transforms executed
+#### Scenario: No font download in generate-css
 - **WHEN** the `generate-css` task runs
-- **THEN** all `.jsonata` files in `$DESIGNBOOK_DIST/designbook-css-<framework>/` are executed via `npx jsonata-w transform`
+- **THEN** it does NOT download fonts or manipulate Google Fonts URLs
 
-### Requirement: DaisyUI generate-jsonata includes layout tokens
-Because DaisyUI extends Tailwind, `designbook-css-daisyui/tasks/generate-jsonata.md` SHALL generate `.jsonata` expression files for both DaisyUI-specific tokens (color, font) AND Tailwind structural tokens (layout-width, layout-spacing, grid).
+### Requirement: Generic generate-jsonata task reads css-mapping rule
+`designbook/css-generate/tasks/generate-jsonata.md` (no `when`) SHALL read the `css-mapping` rule from its resolved rules, iterate over the declared groups, and generate one JSONata template per present token group.
 
-#### Scenario: DaisyUI project generates all token groups
-- **WHEN** `DESIGNBOOK_FRAMEWORK_CSS=daisyui` and the `generate-jsonata` task runs
-- **THEN** `.jsonata` files are created for `color`, `font`, `layout-width`, `layout-spacing` token groups
+#### Scenario: Generate templates from mapping
+- **WHEN** the css-mapping rule declares groups `color`, `layout-width`, `typography`
+- **AND** `design-tokens.yml` contains all three groups
+- **THEN** three `.jsonata` files are generated using the declared prefix and wrap for each group
 
 ### Requirement: delegate-framework.md step removed
 The `designbook-css-generate/steps/delegate-framework.md` file and its hardcoded framework registry SHALL be removed. Framework delegation is handled entirely by stage-discovery (Rule 1).

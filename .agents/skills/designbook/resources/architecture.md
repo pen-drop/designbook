@@ -2,13 +2,13 @@
 
 ## Stage-Based Architecture
 
-Workflows declare a `stages:` array in their frontmatter. Each non-intake stage maps to task files discovered in `.agents/skills/*/tasks/<stage>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints.
+Workflows declare a `steps:` array in their frontmatter. Each non-intake step maps to task files discovered in `.agents/skills/*/tasks/<step>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints.
 
 ```yaml
 # workflow frontmatter
 workflow:
   title: Design Shell
-  stages: [intake, create-component, create-shell-scene]
+  steps: [intake, create-component, create-shell-scene]
 ```
 
 The `intake` stage is the workflow body itself (interviews the user). All other stages are executed via skill task files.
@@ -22,14 +22,52 @@ The `workflow plan` CLI (resolution mode) replaces AI-side task resolution:
 ```
 AI builds items array → CLI resolves:
   ├─ task files (scan + when-filter + precedence)
-  ├─ file path expansion ({{ param }} + ${ENV_VAR})
+  ├─ WORKTREE creation ($DESIGNBOOK_WORKSPACES/designbook-{name}/)
+  ├─ file path expansion — files: use WORKTREE-remapped DESIGNBOOK_DIRS_* vars
+  ├─ reads: use real DESIGNBOOK_HOME paths (not remapped)
   ├─ params validation (required/optional/defaults)
   ├─ depends_on computation (from stage ordering)
   ├─ rule file matching (stages + config conditions)
   └─ config rules/instructions per stage
-→ writes tasks.yml with fully-resolved data
+→ writes tasks.yml with fully-resolved paths + write_root/root_dir
 → outputs JSON plan to stdout
 ```
+
+## WORKTREE Lifecycle
+
+Each `workflow plan` creates an isolated write workspace under `$DESIGNBOOK_WORKSPACES/designbook-{workflow-name}/` (default: `/tmp`). Storybook never observes partial writes.
+
+```
+workflow plan
+  → create /tmp/designbook-{name}/             ← WORKTREE
+  → remap DESIGNBOOK_DIRS_* → WORKTREE paths
+  → expand files: with remapped env → stored as WORKTREE absolute paths
+  → store write_root + root_dir in tasks.yml
+
+workflow done (each task)
+  → no file copy, no touch — Storybook sees nothing
+
+workflow done (final task, allDone=true)
+  → cp -r WORKTREE/* DESIGNBOOK_HOME/          ← atomic commit
+  → touch all copied files                     ← Storybook HMR trigger
+  → rm -rf WORKTREE                            ← cleanup
+```
+
+**Key variables:**
+- `DESIGNBOOK_HOME` — always the real config dir; used for `reads:` (never remapped)
+- `DESIGNBOOK_DIRS_CONFIG` — remapped to `WORKTREE/...` during workflow; real path outside workflow
+- `DESIGNBOOK_DIRS_COMPONENTS` — same remapping pattern
+- `DESIGNBOOK_WORKSPACES` — base directory for WORKTREE (default: `/tmp`)
+
+**`outputs` in designbook.config.yml:**
+```yaml
+dirs:
+  config: packages/integrations/test-integration-drupal/designbook    # → DESIGNBOOK_DIRS_CONFIG
+  components: packages/integrations/test-integration-drupal/components # → DESIGNBOOK_DIRS_COMPONENTS
+  css: packages/integrations/test-integration-drupal/css/tokens        # → DESIGNBOOK_DIRS_CSS
+```
+
+Only `DESIGNBOOK_DIRS_*`, `DESIGNBOOK_HOME`, and `DESIGNBOOK_DATA` are remapped to WORKTREE at plan time. All other vars remain as real paths.
 
 ## DAG Orchestration Pattern
 
@@ -60,8 +98,8 @@ params:
   component: ~               # ~ means required (from intake)
   slots: []
 files:
-  - ${DESIGNBOOK_COMPONENT_SRC}/{{ component }}/{{ component }}.component.yml
-  - ${DESIGNBOOK_COMPONENT_SRC}/{{ component }}/{{ component }}.twig
+  - ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component }}/{{ component }}.component.yml
+  - ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component }}/{{ component }}.twig
 ---
 # Task instructions go here
 ```
@@ -83,13 +121,13 @@ Rule files live at `.agents/skills/<skill-name>/rules/<name>.md`. They define co
 ```markdown
 ---
 when:
-  stages: [create-component, create-shell-scene]   # one or more canonical stages
+  steps: [create-component, create-shell-scene]   # one or more canonical stages
   frameworks.component: sdc                         # optional additional condition
 ---
 # Rule constraints go here (prose — never execution steps)
 ```
 
-- `stages:` accepts a single value or an array
-- Without `when.stages`: rule applies to all stages
+- `steps:` accepts a single value or an array
+- Without `when.steps`: rule applies to all steps
 - **Named intake stages**: use `workflow-id:intake` to scope a rule to a specific workflow's intake
 

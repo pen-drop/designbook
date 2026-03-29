@@ -9,15 +9,17 @@ import type { ComponentNode } from '../types';
 const FIXTURES_DIR = resolve(__dirname, 'fixtures');
 
 const sampleData = {
-  node: {
-    article: [
-      {
-        title: 'Understanding Modern Architecture',
-        field_body: '<p>Architecture...</p>',
-        field_media: { url: '/images/arch.jpg', alt: 'Building' },
-        field_teaser: 'A deep dive.',
-      },
-    ],
+  content: {
+    node: {
+      article: [
+        {
+          title: 'Understanding Modern Architecture',
+          field_body: '<p>Architecture...</p>',
+          field_media: { url: '/images/arch.jpg', alt: 'Building' },
+          field_teaser: 'A deep dive.',
+        },
+      ],
+    },
   },
 };
 

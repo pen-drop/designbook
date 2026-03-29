@@ -90,7 +90,7 @@ export interface SceneModuleOptions {
    * Framework-specific component import path resolver.
    * Defaults to the SDC (.component.yml) resolver.
    */
-  resolveImportPath?: (componentId: string, designbookDir: string) => string | null;
+  resolveImportPath?: (componentId: string) => string | null;
   /**
    * Optional wrapper for each __imports map entry.
    * Defaults to the SDC wrapper: { render: (p, s) => alias.default.component({...p, ...s}) }

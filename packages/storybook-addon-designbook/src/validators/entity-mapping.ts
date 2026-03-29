@@ -62,7 +62,7 @@ export async function validateEntityMapping(file: string, config: DesignbookConf
 
   // Load sample data: try section data files first, then root data.yml
   const dataPaths: string[] = [];
-  const sectionsDir = resolve(config.dist, 'sections');
+  const sectionsDir = resolve(config.data, 'sections');
   if (existsSync(sectionsDir)) {
     for (const entry of readdirSync(sectionsDir, { withFileTypes: true })) {
       if (entry.isDirectory()) {
@@ -71,7 +71,7 @@ export async function validateEntityMapping(file: string, config: DesignbookConf
       }
     }
   }
-  const rootData = resolve(config.dist, 'data.yml');
+  const rootData = resolve(config.data, 'data.yml');
   if (existsSync(rootData)) dataPaths.push(rootData);
 
   if (dataPaths.length === 0) {

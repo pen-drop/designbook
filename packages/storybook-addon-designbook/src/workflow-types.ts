@@ -15,15 +15,10 @@ export interface ValidationFileResult {
 }
 
 export interface TaskFile {
-  path: string; // relative to designbook dir
-  requires_validation?: boolean; // true after workflow update --files; cleared after workflow validate
-  validation_result?: ValidationFileResult;
-}
-
-export interface TaskValidationEntry {
-  file: string; // absolute path
-  validator: string; // e.g. 'component', 'scene', 'tokens', 'data', 'twig'
-  passed: boolean;
+  path: string; // resolved absolute target path
+  key: string; // stable identifier used by write-file --key
+  validators: string[]; // validator keys (e.g. ['tokens', 'component'])
+  validation_result?: ValidationFileResult; // absent = not yet written; present = written + validated
 }
 
 export interface StageLoaded {
@@ -33,22 +28,32 @@ export interface StageLoaded {
   config_instructions: string[];
 }
 
+export interface StageParam {
+  type: string;
+  prompt: string;
+}
+
+export interface StageDefinition {
+  steps: string[];
+  params?: Record<string, StageParam>;
+}
+
 export interface WorkflowTask {
   id: string;
   title: string;
   type: TaskType;
-  stage?: string; // canonical stage name (e.g. create-component, create-scene)
+  step?: string; // canonical step name (e.g. create-component, create-scene) — was: stage
+  stage?: string; // parent stage name (execute, test, preview)
   status: TaskStatus;
   started_at: string | null;
   completed_at: string | null;
-  depends_on?: string[]; // task IDs this task depends on (computed from stage ordering)
+  depends_on?: string[]; // task IDs this task depends on (computed from step ordering)
   params?: Record<string, unknown>; // per-task params from intake (e.g. component name, slots)
   task_file?: string; // absolute path to resolved skill task file
   rules?: string[]; // absolute paths to matched skill rule files
-  config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<stage>
-  config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<stage>
+  config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
+  config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[]; // produced files, each with its own validation state
-  validation?: TaskValidationEntry[]; // validators run during workflow validate
 }
 
 export interface WorkflowTaskFile {
@@ -57,11 +62,16 @@ export interface WorkflowTaskFile {
   status?: 'planning' | 'running' | 'completed' | 'incomplete';
   parent?: string;
   params?: Record<string, unknown>; // global intake params (accessible to all subagents)
-  stages?: string[]; // ordered stage names from workflow frontmatter
-  stage_loaded?: Record<string, StageLoaded>; // keyed by stage name, populated via workflow done --loaded
+  current_stage?: string; // current lifecycle stage (planned, execute, committed, test, preview, finalizing, done)
+  stages?: Record<string, StageDefinition>; // keyed by stage name (execute, test, preview)
+  stage_loaded?: Record<string, StageLoaded>; // keyed by step name, populated via workflow done --loaded
   started_at: string | null;
   completed_at: string | null;
   summary?: string;
+  /** Absolute path to the isolated WORKTREE directory for this workflow run. Set at workflow plan time. */
+  write_root?: string;
+  /** Absolute path to DESIGNBOOK_HOME (theme/Storybook app dir). Stored so workflowDone can copy WORKTREE → home. */
+  root_dir?: string;
   tasks: WorkflowTask[];
 }
 

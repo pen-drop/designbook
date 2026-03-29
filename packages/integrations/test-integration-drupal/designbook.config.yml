@@ -1,0 +1,21 @@
+workspace: .
+
+backend: drupal
+frameworks:
+  component: sdc
+  css: tailwind
+extensions:
+  - id: canvas
+    url: https://www.drupal.org/project/canvas
+designbook:
+  home: .
+  url: "http://localhost:6009"
+  cmd: pnpm storybook
+dirs:
+  components: components
+  css: css/tokens
+css:
+  app: css/app.src.css
+component:
+  namespace: 'test_integration_drupal'
+  src: components

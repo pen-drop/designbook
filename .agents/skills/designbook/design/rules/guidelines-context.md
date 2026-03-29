@@ -1,13 +1,13 @@
 ---
 when:
-  stages: [design-guidelines:intake, design-component:intake, design-screen:intake, design-shell:intake, sample-data:intake, sections:intake, shape-section:intake, create-component, create-section, design-screen:create-scene, design-shell:create-scene, create-sample-data, create-guidelines]
+  steps: [design-guidelines:intake, design-component:intake, design-screen:intake, design-shell:intake, sample-data:intake, sections:intake, shape-section:intake, create-component, create-section, design-screen:create-scene, design-shell:create-scene, create-sample-data, create-guidelines]
 ---
 
 # Design Guidelines Context
 
 **Before starting this stage**, load the design guidelines:
 
-1. Resolve path: `$DESIGNBOOK_DIST/design-system/guidelines.yml`
+1. Resolve path: `$DESIGNBOOK_DATA/design-system/guidelines.yml`
 2. **If the file does not exist** → stop immediately and tell the user:
    > ❌ `guidelines.yml` not found. Run `/designbook design-guidelines` first.
 3. **If the file exists** → read it and apply its contents as constraints throughout this stage.

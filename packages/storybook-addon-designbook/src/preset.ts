@@ -18,7 +18,7 @@ export const viteFinal = async (config: any, options: any) => {
 
   // Use shared config resolver (walks up directory tree to find designbook.config.yml)
   const designbookConfig = loadConfig();
-  let fsRoot = designbookConfig.dist;
+  let fsRoot = designbookConfig.data;
 
   // Allow options override
   if (options?.designbook?.fsRoot) {
@@ -58,7 +58,7 @@ export const webpack = async (config: any) => {
 export const stories = async (entry: string[] = [], options: any) => {
   // Use shared config resolver for dist directory
   const designbookConfig = loadConfig();
-  let distDir = designbookConfig.dist;
+  let distDir = designbookConfig.data;
 
   // Allow options override
   if (options?.designbook?.fsRoot) {
@@ -71,8 +71,10 @@ export const stories = async (entry: string[] = [], options: any) => {
   // Storybook resolves story globs relative to configDir (.storybook/).
   // The storybookTest() vitest plugin also uses configDir as base.
   // So all paths from presets must be relative to configDir.
-  const configDir = options?.configDir || resolve(designbookConfig['drupal.theme'] || process.cwd(), '.storybook');
-  const scenesGlob = resolve(distDir, '**/*.scenes.yml');
+  const configDir =
+    options?.configDir ||
+    resolve((designbookConfig['designbook.home'] as string | undefined) || process.cwd(), '.storybook');
+  const scenesGlob = resolve(distDir, '{sections,design-system}/**/*.scenes.yml');
 
   // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections.
   // File-name order is Storybook 10's sort mechanism when no storySort is configured.

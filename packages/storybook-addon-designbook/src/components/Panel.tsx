@@ -1,7 +1,7 @@
 import React, { memo, useState, useEffect } from 'react';
 import { AddonPanel, TabsView } from 'storybook/internal/components';
 import { addons } from 'storybook/manager-api';
-import { relativeTime, ManagerBadge } from './manager-utils.tsx';
+import { ManagerBadge } from './manager-utils.js';
 import { DeboCollapsible } from './ui/DeboCollapsible.jsx';
 import { ContextAction } from './ui/ContextAction.jsx';
 
@@ -20,7 +20,8 @@ interface ValidationFileResult {
 
 interface TaskFile {
   path: string;
-  requires_validation?: boolean;
+  key: string;
+  validators: string[];
   validation_result?: ValidationFileResult;
 }
 
@@ -28,12 +29,17 @@ interface WorkflowTask {
   id: string;
   title: string;
   type: string;
-  stage?: string;
+  step?: string; // canonical step name (was: stage)
+  stage?: string; // parent stage name (execute, test, preview)
   status: 'pending' | 'in-progress' | 'done' | 'incomplete';
   started_at: string | null;
   completed_at: string | null;
-  files?: TaskFile[];
+  params?: Record<string, unknown>;
   task_file?: string;
+  rules?: string[];
+  config_rules?: string[];
+  config_instructions?: string[];
+  files?: TaskFile[];
 }
 
 interface StageLoaded {
@@ -49,7 +55,11 @@ interface WorkflowData {
   workflow: string;
   status?: 'planning' | 'running' | 'completed' | 'incomplete';
   parent?: string;
-  stages?: string[];
+  engine?: 'git-worktree' | 'direct';
+  write_root?: string;
+  worktree_branch?: string;
+  current_stage?: string;
+  stages?: Record<string, { steps: string[] }> | string[];
   stage_loaded?: Record<string, StageLoaded>;
   params?: Record<string, unknown>;
   started_at: string | null;
@@ -72,6 +82,21 @@ interface PanelProps {
 }
 
 // ---------------------------------------------------------------------------
+// Hooks
+// ---------------------------------------------------------------------------
+
+/** Triggers a re-render every `intervalMs` while `active` is true. */
+function useTick(active: boolean, intervalMs = 1000): number {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => setTick((t) => t + 1), intervalMs);
+    return () => clearInterval(id);
+  }, [active, intervalMs]);
+  return tick;
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -82,8 +107,16 @@ const shortenPath = (p: string): string => {
   return parts.slice(-1).join('/');
 };
 
-const durationMin = (start: string | null, end: string | null): number =>
-  start && end ? Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000) : 0;
+/** Format a live duration from `start` to now (or `end`) as "Xm Ys". */
+const formatDuration = (start: string | null, end?: string | null): string => {
+  if (!start) return '';
+  const ms = (end ? new Date(end).getTime() : Date.now()) - new Date(start).getTime();
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  if (min === 0) return `${sec}s`;
+  return `${min}m ${sec}s`;
+};
 
 function WorkflowStatusDot({ status }: { status?: string }) {
   const mapped = status === 'completed' ? 'done' : status === 'running' ? 'in-progress' : 'pending';
@@ -140,6 +173,27 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
+/** Intake icon — speech bubble SVG for conversation/intake tasks. */
+function IntakeIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#7C3AED"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+const isIntakeStep = (step?: string): boolean => !!step && step.endsWith(':intake');
+
 const fileBadgeVariant = (f: TaskFile): 'green' | 'yellow' | 'gray' => {
   if (!f.validation_result) return 'gray';
   if (f.validation_result.valid === true) return 'green';
@@ -152,28 +206,76 @@ const logPath = (designbookDir: string, wf: WorkflowData): string => {
   return `${designbookDir}/workflows/${dir}/${wf.changeName}/tasks.yml`;
 };
 
-function groupByStage(wf: WorkflowData): { stage: string; tasks: WorkflowTask[] }[] {
-  const stageOrder = wf.stages ?? [...new Set(wf.tasks.map((t) => t.stage).filter(Boolean) as string[])];
-  const byStage = new Map<string, WorkflowTask[]>();
-  const unstaged: WorkflowTask[] = [];
+function groupByStep(wf: WorkflowData): { step: string; tasks: WorkflowTask[] }[] {
+  // Extract step order from stages (grouped or legacy flat format)
+  let stepOrder: string[];
+  if (wf.stages && !Array.isArray(wf.stages)) {
+    stepOrder = [];
+    for (const def of Object.values(wf.stages)) {
+      stepOrder.push(...(def.steps ?? []));
+    }
+  } else if (Array.isArray(wf.stages)) {
+    stepOrder = wf.stages;
+  } else {
+    stepOrder = [...new Set(wf.tasks.map((t) => t.step ?? t.stage).filter(Boolean) as string[])];
+  }
+
+  const byStep = new Map<string, WorkflowTask[]>();
+  const unstepped: WorkflowTask[] = [];
 
   for (const task of wf.tasks) {
-    if (task.stage) {
-      const group = byStage.get(task.stage) ?? [];
+    const stepName = task.step ?? task.stage;
+    if (stepName) {
+      const group = byStep.get(stepName) ?? [];
       group.push(task);
-      byStage.set(task.stage, group);
+      byStep.set(stepName, group);
     } else {
-      unstaged.push(task);
+      unstepped.push(task);
     }
   }
 
-  const groups: { stage: string; tasks: WorkflowTask[] }[] = [];
-  for (const stage of stageOrder) {
-    const group = byStage.get(stage);
-    if (group?.length) groups.push({ stage, tasks: group });
+  const groups: { step: string; tasks: WorkflowTask[] }[] = [];
+  for (const step of stepOrder) {
+    const group = byStep.get(step);
+    if (group?.length) groups.push({ step, tasks: group });
   }
-  if (unstaged.length) groups.push({ stage: '(unstaged)', tasks: unstaged });
+  if (unstepped.length) groups.push({ step: '(unassigned)', tasks: unstepped });
   return groups;
+}
+
+/** Find the currently active task across all workflow tasks. */
+function getActiveTask(wf: WorkflowData): WorkflowTask | undefined {
+  return wf.tasks.find((t) => t.status === 'in-progress');
+}
+
+/** Collect all loaded file references from a StageLoaded or task into a flat list. */
+interface LoadedFile {
+  label: string;
+  path: string;
+  isAbsolute: boolean;
+}
+
+function collectLoaded(loaded?: StageLoaded | null, task?: WorkflowTask | null): LoadedFile[] {
+  const files: LoadedFile[] = [];
+  const src = loaded ?? task;
+  if (!src) return files;
+
+  const taskFile = 'task_file' in src ? src.task_file : undefined;
+  const rules = 'rules' in src ? src.rules : undefined;
+  const configRules = 'config_rules' in src ? src.config_rules : undefined;
+  const configInstructions = 'config_instructions' in src ? src.config_instructions : undefined;
+
+  if (taskFile) files.push({ label: 'task', path: taskFile, isAbsolute: true });
+  if (rules) {
+    for (const r of rules) files.push({ label: 'rule', path: r, isAbsolute: true });
+  }
+  if (configRules) {
+    for (const cr of configRules) files.push({ label: 'config-rule', path: cr, isAbsolute: false });
+  }
+  if (configInstructions) {
+    for (const ci of configInstructions) files.push({ label: 'instruction', path: ci, isAbsolute: false });
+  }
+  return files;
 }
 
 // ---------------------------------------------------------------------------
@@ -202,7 +304,6 @@ const S = {
   },
   summaryRow: { display: 'inline-flex', alignItems: 'center', gap: 6, flex: 1, overflow: 'hidden' as const },
   summaryTitle: { overflow: 'hidden' as const, textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 },
-  summaryTime: { fontSize: 10, color: '#94A3B8', flexShrink: 0 },
   taskRow: {
     display: 'flex',
     alignItems: 'center',
@@ -219,19 +320,7 @@ const S = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const,
   },
-  taskTime: { fontSize: 10, color: '#7B8794', opacity: 0.6, flexShrink: 0 },
   taskFileBadges: { display: 'inline-flex', gap: 4, flexWrap: 'wrap' as const, alignItems: 'center' },
-  loadedList: { display: 'flex', flexDirection: 'column' as const, gap: 2 },
-  loadedRow: { display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', fontSize: 11, color: 'inherit' },
-  loadedLabel: { fontSize: 10, color: '#7B8794', flexShrink: 0, minWidth: 44 },
-  loadedPath: {
-    flex: 1,
-    fontFamily: 'monospace',
-    fontSize: 10,
-    overflow: 'hidden' as const,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
-  },
   overviewSection: { marginBottom: 8 },
   overviewLabel: {
     fontSize: 10,
@@ -245,21 +334,205 @@ const S = {
   overviewRow: { display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', fontSize: 12, color: 'inherit' },
   overviewValue: { color: '#7B8794', fontSize: 11 },
   badgeWrap: { display: 'flex', flexWrap: 'wrap' as const, gap: 4, alignItems: 'center' },
+  contextFileRow: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '2px 0',
+  },
+  durationLabel: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#94A3B8',
+    flexShrink: 0,
+    fontFamily: 'monospace',
+  },
+  durationRunning: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#92400E',
+    flexShrink: 0,
+    fontFamily: 'monospace',
+  },
+  activeTaskHint: {
+    fontSize: 10,
+    color: '#64748B',
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+    maxWidth: 180,
+    flexShrink: 0,
+  },
+  worktreeTag: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: '#7C3AED',
+    background: '#F5F3FF',
+    padding: '2px 8px',
+    borderRadius: 9999,
+    fontWeight: 600,
+  },
+  intakeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '4px 0',
+    fontSize: 12,
+    color: '#7C3AED',
+    fontStyle: 'italic' as const,
+  },
 };
 
-function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookDir: string }) {
-  const allLoaded = Object.entries(wf.stage_loaded ?? {});
-  const allSkills = allLoaded.filter(([, l]) => l.task_file).map(([stage, l]) => ({ stage, path: l.task_file! }));
-  const allRulesRaw = allLoaded.flatMap(([stage, l]) => (l.rules ?? []).map((r) => ({ stage, path: r })));
-  const allRules = allRulesRaw.filter((r, i, arr) => arr.findIndex((x) => x.path === r.path) === i);
-  const allConfigRules = allLoaded.flatMap(([, l]) => l.config_rules ?? []);
-  const allConfigInstructions = allLoaded.flatMap(([, l]) => l.config_instructions ?? []);
+// ---------------------------------------------------------------------------
+// FileBadge — badge with ContextAction inside dropdown
+// ---------------------------------------------------------------------------
 
-  const formatDate = (iso: string | null) => {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return `${d.toLocaleDateString('de-DE')} ${d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
+function FileBadge({
+  path,
+  isAbsolute,
+  label,
+  variant = 'gray',
+  validation,
+}: {
+  path: string;
+  isAbsolute: boolean;
+  label?: string;
+  variant?: 'green' | 'yellow' | 'gray' | 'white';
+  validation?: ValidationFileResult;
+}) {
+  return (
+    <span style={S.contextFileRow}>
+      <ManagerBadge variant={variant} title={path}>
+        {label || shortenPath(path)}
+      </ManagerBadge>
+      {isAbsolute && <ContextAction path={path} validation={validation} />}
+    </span>
+  );
+}
+
+/** Group loaded files by label and render with section headers. */
+function GroupedFileBadges({ files }: { files: LoadedFile[] }) {
+  const groups = new Map<string, LoadedFile[]>();
+  for (const f of files) {
+    const group = groups.get(f.label) ?? [];
+    group.push(f);
+    groups.set(f.label, group);
+  }
+
+  const groupLabels: Record<string, string> = {
+    task: 'Tasks',
+    rule: 'Rules',
+    'config-rule': 'Config Rules',
+    instruction: 'Instructions',
   };
+
+  return (
+    <>
+      {[...groups.entries()].map(([label, groupFiles]) => (
+        <div key={label}>
+          <div style={S.overviewLabel}>{groupLabels[label] ?? label}</div>
+          <div style={S.badgeWrap}>
+            {groupFiles.map((f, i) => (
+              <FileBadge key={`${f.path}-${i}`} path={f.path} isAbsolute={f.isAbsolute} variant="gray" />
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LiveDuration — shows "running: 3m 12s" or "took: 18m 0s"
+// ---------------------------------------------------------------------------
+
+function LiveDuration({ startedAt, completedAt }: { startedAt: string | null; completedAt: string | null }) {
+  const isRunning = !!startedAt && !completedAt;
+  useTick(isRunning);
+
+  if (!startedAt) return null;
+
+  if (completedAt) {
+    const dur = formatDuration(startedAt, completedAt);
+    if (dur === '0s') return null;
+    return <span style={S.durationLabel}>took: {dur}</span>;
+  }
+
+  return <span style={S.durationRunning}>running: {formatDuration(startedAt)}</span>;
+}
+
+// ---------------------------------------------------------------------------
+// ContextCollapsible — shows all loaded files for a stage or workflow
+// ---------------------------------------------------------------------------
+
+function ContextCollapsible({
+  files,
+  worktreeBranch,
+  engine,
+  params,
+}: {
+  files: LoadedFile[];
+  worktreeBranch?: string;
+  engine?: string;
+  params?: Record<string, unknown>;
+}) {
+  const hasContent = files.length > 0 || worktreeBranch || (params && Object.keys(params).length > 0);
+  if (!hasContent) return null;
+
+  return (
+    <DeboCollapsible title="Context" variant="action-inline" status="pending" defaultOpen={false}>
+      {worktreeBranch && (
+        <div style={{ ...S.overviewRow, marginBottom: 4 }}>
+          <span style={S.worktreeTag}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2">
+              <line x1="6" y1="3" x2="6" y2="15" />
+              <circle cx="18" cy="6" r="3" />
+              <circle cx="6" cy="18" r="3" />
+              <path d="M18 9a9 9 0 0 1-9 9" />
+            </svg>
+            {worktreeBranch}
+          </span>
+          {engine && <span style={S.overviewValue}>({engine})</span>}
+        </div>
+      )}
+
+      {params && Object.keys(params).length > 0 && (
+        <div style={S.overviewSection}>
+          <div style={S.overviewLabel}>Params</div>
+          {Object.entries(params).map(([k, v]) => (
+            <div style={S.overviewRow} key={k}>
+              <span style={{ fontWeight: 600, fontSize: 11 }}>{k}:</span>
+              <span style={S.overviewValue}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {files.length > 0 && <GroupedFileBadges files={files} />}
+    </DeboCollapsible>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WorkflowOverview — summary info for a workflow (shown inside workflow collapsible)
+// ---------------------------------------------------------------------------
+
+function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookDir: string }) {
+  // Collect all loaded files across all stages
+  const allFiles: LoadedFile[] = [];
+  for (const [, loaded] of Object.entries(wf.stage_loaded ?? {})) {
+    allFiles.push(...collectLoaded(loaded));
+  }
+  // Deduplicate by path
+  const seen = new Set<string>();
+  const uniqueFiles = allFiles.filter((f) => {
+    if (seen.has(f.path)) return false;
+    seen.add(f.path);
+    return true;
+  });
 
   return (
     <div>
@@ -267,13 +540,8 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
         <div style={S.overviewRow}>
           <WorkflowStatusDot status={wf.status} />
           <span style={{ fontWeight: 600 }}>{wf.status ?? 'running'}</span>
-          {wf.parent && <span style={S.overviewValue}>↳ {wf.parent}</span>}
-        </div>
-        <div style={S.overviewRow}>
-          <span style={S.overviewValue}>Start: {formatDate(wf.started_at)}</span>
-        </div>
-        <div style={S.overviewRow}>
-          <span style={S.overviewValue}>End: {formatDate(wf.completed_at)}</span>
+          <LiveDuration startedAt={wf.started_at} completedAt={wf.completed_at ?? null} />
+          {wf.parent && <span style={S.overviewValue}>\u21b3 {wf.parent}</span>}
         </div>
         {designbookDir && (
           <div style={S.overviewRow}>
@@ -285,80 +553,19 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
         )}
       </div>
 
-      {wf.params && Object.keys(wf.params).length > 0 && (
-        <div style={S.overviewSection}>
-          <div style={S.overviewLabel}>Context</div>
-          {Object.entries(wf.params).map(([k, v]) => (
-            <div style={S.overviewRow} key={k}>
-              <span style={{ fontWeight: 600, fontSize: 11 }}>{k}:</span>
-              <span style={S.overviewValue}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {allSkills.length > 0 && (
-        <div style={S.overviewSection}>
-          <div style={S.overviewLabel}>Skills</div>
-          <div style={S.badgeWrap}>
-            {allSkills.map(({ path }) => (
-              <span key={path} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                <ManagerBadge variant="green">{shortenPath(path)}</ManagerBadge>
-                <ContextAction path={path} />
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {allRules.length > 0 && (
-        <div style={S.overviewSection}>
-          <div style={S.overviewLabel}>Rules</div>
-          <div style={S.badgeWrap}>
-            {allRules.map(({ path }) => (
-              <span key={path} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                <ManagerBadge variant="gray" title={path}>
-                  {shortenPath(path)}
-                </ManagerBadge>
-                <ContextAction path={path} />
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {allConfigRules.length > 0 && (
-        <div style={S.overviewSection}>
-          <div style={S.overviewLabel}>Config Rules</div>
-          <div style={S.badgeWrap}>
-            {allConfigRules.map((cr, i) => (
-              <ManagerBadge key={i} variant="gray">
-                {cr}
-              </ManagerBadge>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {allConfigInstructions.length > 0 && (
-        <div style={S.overviewSection}>
-          <div style={S.overviewLabel}>Instructions</div>
-          <div style={S.badgeWrap}>
-            {allConfigInstructions.map((ci, i) => (
-              <ManagerBadge key={i} variant="gray">
-                {ci}
-              </ManagerBadge>
-            ))}
-          </div>
-        </div>
-      )}
-
       {wf.summary && (
         <div style={S.overviewSection}>
           <div style={S.overviewLabel}>Summary</div>
           <span style={{ ...S.overviewValue, whiteSpace: 'pre-wrap', fontSize: 11 }}>{wf.summary}</span>
         </div>
       )}
+
+      <ContextCollapsible
+        files={uniqueFiles}
+        worktreeBranch={wf.worktree_branch}
+        engine={wf.engine}
+        params={wf.params}
+      />
     </div>
   );
 }
@@ -368,6 +575,10 @@ function WorkflowOverview({ wf, designbookDir }: { wf: WorkflowData; designbookD
 // ---------------------------------------------------------------------------
 
 function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[]; designbookDir: string }) {
+  // Keep tick alive for any running workflow
+  const hasRunning = workflows.some((wf) => wf.status === 'running');
+  useTick(hasRunning);
+
   if (workflows.length === 0) {
     return <div style={S.empty}>No workflow activity yet. Run a /debo * command to see progress here.</div>;
   }
@@ -378,19 +589,22 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
         const done = wf.tasks.filter((t) => t.status === 'done').length;
         const total = wf.tasks.length;
         const isOpen = wf.status === 'running' || wf.status === 'planning';
-        const groups = groupByStage(wf);
+        const groups = groupByStep(wf);
+        const activeTask = getActiveTask(wf);
 
         const wfSummary = (
           <span style={S.summaryRow}>
             <WorkflowStatusDot status={wf.status} />
             <span style={S.summaryTitle}>{wf.title}</span>
+            {activeTask && (
+              <span style={S.activeTaskHint} title={activeTask.title}>
+                {isIntakeStep(activeTask.step ?? activeTask.stage) ? '\ud83d\udcac' : '\u25b6'} {activeTask.title}
+              </span>
+            )}
             {designbookDir && <ContextAction path={logPath(designbookDir, wf)} />}
-            <span style={S.summaryTime}>
-              {relativeTime(wf.completed_at || wf.started_at)}
-              {wf.completed_at && wf.started_at && durationMin(wf.started_at, wf.completed_at) > 0 && (
-                <>, {durationMin(wf.started_at, wf.completed_at)} min</>
-              )}
-            </span>
+            <ManagerBadge variant={done === total ? 'green' : 'gray'}>
+              {done}/{total}
+            </ManagerBadge>
           </span>
         );
 
@@ -404,38 +618,27 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
             defaultOpen={isOpen}
           >
             <WorkflowOverview wf={wf} designbookDir={designbookDir} />
-            <div style={S.overviewLabel}>Stages</div>
-            {groups.map(({ stage, tasks }) => {
-              const stageDone = tasks.filter((t) => t.status === 'done').length;
-              const stageTotal = tasks.length;
-              const stageIsOpen = tasks.some((t) => t.status === 'in-progress' || t.status === 'pending');
-              const loaded = wf.stage_loaded?.[stage];
+            {wf.current_stage && <div style={S.overviewLabel}>Stage: {wf.current_stage}</div>}
+            <div style={S.overviewLabel}>Steps</div>
+            {groups.map(({ step, tasks }) => {
+              const stepDone = tasks.filter((t) => t.status === 'done').length;
+              const stepTotal = tasks.length;
+              const stepIsOpen = tasks.some((t) => t.status === 'in-progress' || t.status === 'pending');
+              const loaded = wf.stage_loaded?.[step];
+              const stepFiles = collectLoaded(loaded);
+              const isIntake = isIntakeStep(step);
 
-              const extraLinks =
-                loaded?.rules?.map((rule) => ({
-                  id: `rule-${rule}`,
-                  title: `📏 ${shortenPath(rule)}`,
-                  path: rule,
-                })) ?? [];
-
-              const stageSummary = (
+              const stepSummary = (
                 <span style={S.summaryRow}>
-                  <span style={S.summaryTitle}>{stage}</span>
-                  {loaded?.task_file && <ContextAction path={loaded.task_file} extraLinks={extraLinks} />}
-                  <ManagerBadge variant={stageDone === stageTotal ? 'green' : 'gray'}>
-                    {stageDone}/{stageTotal}
+                  {isIntake && <IntakeIcon />}
+                  <span style={S.summaryTitle}>{step}</span>
+                  <ManagerBadge variant={stepDone === stepTotal ? 'green' : 'gray'}>
+                    {stepDone}/{stepTotal}
                   </ManagerBadge>
                 </span>
               );
 
-              const currentStageStatus = stageStatus(tasks);
-
-              const hasLoaded =
-                loaded &&
-                (loaded.task_file ||
-                  loaded.rules?.length ||
-                  loaded.config_rules?.length ||
-                  loaded.config_instructions?.length);
+              const currentStepStatus = stageStatus(tasks);
 
               const taskStatus2collapsible = (s: string): 'done' | 'running' | 'pending' => {
                 if (s === 'done') return 'done';
@@ -447,9 +650,12 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                 <div>
                   {tasks.map((task) => {
                     const hasFiles = task.files && task.files.length > 0;
+                    const taskIsIntake = isIntakeStep(task.step ?? task.stage);
+                    const taskLoadedFiles = collectLoaded(null, task);
+
                     const taskSummary = (
-                      <span style={S.taskRow}>
-                        <StatusDot status={task.status} />
+                      <span style={taskIsIntake ? S.intakeRow : S.taskRow}>
+                        {taskIsIntake ? <IntakeIcon /> : <StatusDot status={task.status} />}
                         <span
                           style={task.status === 'done' ? { ...S.taskTitle, opacity: 0.5 } : S.taskTitle}
                           title={task.title}
@@ -457,22 +663,14 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                           {task.title}
                         </span>
                         {task.task_file && <ContextAction path={task.task_file} />}
-                        {task.status === 'in-progress' && task.started_at && (
-                          <span style={S.taskTime}>{relativeTime(task.started_at)}</span>
-                        )}
-                        {task.status === 'done' &&
-                          task.completed_at &&
-                          task.started_at &&
-                          durationMin(task.started_at, task.completed_at) > 0 && (
-                            <span style={S.taskTime}>
-                              {relativeTime(task.completed_at)}, took {durationMin(task.started_at, task.completed_at)}{' '}
-                              min
-                            </span>
-                          )}
+                        <LiveDuration startedAt={task.started_at} completedAt={task.completed_at} />
                       </span>
                     );
 
-                    if (!hasFiles) {
+                    const hasTaskContext = taskLoadedFiles.length > 0;
+                    const hasAnyContent = hasFiles || hasTaskContext;
+
+                    if (!hasAnyContent) {
                       return (
                         <div key={task.id} style={{ padding: '3px 0' }}>
                           {taskSummary}
@@ -487,74 +685,42 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
                         variant="action-inline"
                         status={taskStatus2collapsible(task.status)}
                       >
-                        <div style={S.overviewLabel}>Files</div>
-                        <span style={S.taskFileBadges}>
-                          {task.files!.map((f) => {
-                            const absPath = designbookDir ? `${designbookDir}/${f.path}` : f.path;
-                            return (
-                              <span key={f.path} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                                <ManagerBadge variant={fileBadgeVariant(f)} title={f.path}>
-                                  {shortenPath(f.path)}
-                                </ManagerBadge>
-                                <ContextAction path={absPath} validation={f.validation_result ?? undefined} />
-                              </span>
-                            );
-                          })}
-                        </span>
+                        {hasTaskContext && <GroupedFileBadges files={taskLoadedFiles} />}
+                        {hasFiles && (
+                          <>
+                            <div style={S.overviewLabel}>Files</div>
+                            <div style={S.taskFileBadges}>
+                              {task.files!.map((f) => {
+                                const absPath = designbookDir ? `${designbookDir}/${f.path}` : f.path;
+                                return (
+                                  <FileBadge
+                                    key={f.path}
+                                    path={absPath}
+                                    isAbsolute={true}
+                                    label={f.key}
+                                    variant={fileBadgeVariant(f)}
+                                    validation={f.validation_result ?? undefined}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
                       </DeboCollapsible>
                     );
                   })}
                 </div>
               );
 
-              const overviewContent = () => (
-                <div style={S.loadedList}>
-                  {loaded?.task_file && (
-                    <div style={S.loadedRow}>
-                      <span style={S.loadedLabel}>📄 skill</span>
-                      <span style={S.loadedPath}>{shortenPath(loaded.task_file)}</span>
-                      <ContextAction path={loaded.task_file} />
-                    </div>
-                  )}
-                  {loaded?.rules && loaded.rules.length > 0 && (
-                    <>
-                      <div style={S.overviewLabel}>Rules</div>
-                      <div style={S.badgeWrap}>
-                        {loaded.rules.map((rule) => (
-                          <span key={rule} style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-                            <ManagerBadge variant="white" title={rule}>
-                              {shortenPath(rule)}
-                            </ManagerBadge>
-                            <ContextAction path={rule} />
-                          </span>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  {loaded?.config_rules?.map((cr, i) => (
-                    <div style={S.loadedRow} key={`cr-${i}`}>
-                      <span style={S.loadedLabel}>⚙ config</span>
-                      <span style={S.loadedPath}>{cr}</span>
-                    </div>
-                  ))}
-                  {loaded?.config_instructions?.map((ci, i) => (
-                    <div style={S.loadedRow} key={`ci-${i}`}>
-                      <span style={S.loadedLabel}>💡 instr</span>
-                      <span style={S.loadedPath}>{ci}</span>
-                    </div>
-                  ))}
-                </div>
-              );
-
               return (
                 <DeboCollapsible
-                  key={stage}
-                  title={stageSummary}
+                  key={step}
+                  title={stepSummary}
                   variant="action-item"
-                  status={currentStageStatus}
-                  defaultOpen={stageIsOpen}
+                  status={currentStepStatus}
+                  defaultOpen={stepIsOpen}
                 >
-                  {hasLoaded && overviewContent()}
+                  {stepFiles.length > 0 && <ContextCollapsible files={stepFiles} />}
                   {tasksContent()}
                 </DeboCollapsible>
               );
@@ -567,7 +733,7 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
 }
 
 // ---------------------------------------------------------------------------
-// StatusTab (unchanged)
+// StatusTab
 // ---------------------------------------------------------------------------
 
 function StatusTab({ status }: { status: StatusData | null }) {

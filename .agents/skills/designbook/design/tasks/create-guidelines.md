@@ -10,15 +10,20 @@ params:
   mcp: ~
   skills: []
 reads:
-  - path: $DESIGNBOOK_DIST/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
 files:
-  - $DESIGNBOOK_DIST/design-system/guidelines.yml
+  - file: $DESIGNBOOK_DATA/design-system/guidelines.yml
+    key: guidelines
+    validators: []
 ---
 
 # Create Design Guidelines
 
-Writes the approved design guidelines to `$DESIGNBOOK_DIST/design-system/guidelines.yml`.
+Write the approved design guidelines via stdin to the CLI:
+```
+ write-file $WORKFLOW_NAME $TASK_ID --key guidelines
+```
 
 ## Rules
 

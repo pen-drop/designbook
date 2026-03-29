@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [design-shell:create-scene, design-screen:create-scene, design-screen:map-entity]
+  steps: [design-shell:create-scene, design-screen:create-scene, design-screen:map-entity]
 ---
 
 # Scenes Critical Constraints
@@ -90,7 +90,7 @@ when:
   record: 0
 ```
 
-The renderer loads: `$DESIGNBOOK_DIST/entity-mapping/{entity_type}.{bundle}.{view_mode}.jsonata`
+The renderer loads: `$DESIGNBOOK_DATA/entity-mapping/{entity_type}.{bundle}.{view_mode}.jsonata`
 
 The `entity` string provides `entity_type` (part 0) and `bundle` (part 1). `view_mode` is read from its own key — if omitted, the path becomes `[entity_type].[bundle]..jsonata` (double dot, file not found).
 

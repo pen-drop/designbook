@@ -10,7 +10,7 @@ TBD - created by archiving change addon-vitest-integration. Update Purpose after
 The addon CLI SHALL validate stories by executing them in Node.js using Vite's `ssrLoadModule` API with the project's Storybook Vite plugin chain. No browser or Playwright installation SHALL be required.
 
 The implementation SHALL:
-- Dynamically import `.storybook/main.js` from `storybook.configDir` (resolved via `loadConfig()`, with walk-up fallback from `drupal.theme`)
+- Dynamically import `.storybook/main.js` from `storybook.configDir` (resolved via `loadConfig()`, with walk-up fallback from `outputs.root`)
 - Extract addon configurations and call each addon preset's `viteFinal` to build a Vite server config
 - Create a Vite server and call `ssrLoadModule` for each discovered story file
 - Call `render(args)` on each named story export (skipping `default`)
@@ -74,7 +74,7 @@ The `buildExportName` function SHALL strip all non-alphanumeric, non-whitespace 
 
 ### Requirement: CLI validate story command (old)
 
-**Reason**: Replaced by the updated requirement above. The old implementation spawned `npx vitest run --project=storybook` and required `drupal.theme` to be set. New implementation uses Vite SSR and reads `storybook.configDir`.
+**Reason**: Replaced by the updated requirement above. The old implementation spawned `npx vitest run --project=storybook` and required `outputs.root` to be set. New implementation uses Vite SSR and reads `storybook.configDir`.
 
 **Migration**: No change to CLI surface (`validate story [name]`). Internal implementation changes.
 

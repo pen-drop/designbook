@@ -8,26 +8,27 @@ params:
   group: ~
   variants: []
 files:
-  - ${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.component.yml
-  - ${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.twig
-  - ${DESIGNBOOK_DRUPAL_THEME}/components/{{ component }}/{{ component }}.default.story.yml
+  - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.component.yml
+    key: component-yml
+    validators: [component]
+  - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.twig
+    key: component-twig
+    validators: []
+  - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.default.story.yml
+    key: component-story
+    validators: []
 reads:
-  - path: $DESIGNBOOK_DIST/design-system/design-tokens.yml
+  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: debo-design-tokens
 ---
 
 # Create SDC Component
 
-Creates three files per component in `$DESIGNBOOK_DRUPAL_THEME/components/{{ component }}/`. All files share the same kebab-case base name as the directory.
-
-## Output
-
+Creates three files per component. All files share the same kebab-case base name as the directory. Write each file via stdin to the CLI:
 ```
-$DESIGNBOOK_DRUPAL_THEME/components/{{ component }}/
-├── {{ component }}.component.yml
-├── {{ component }}.twig
-├── {{ component }}.default.story.yml
-└── {{ component }}.[variant-name].story.yml 
+designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-yml
+designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-twig
+designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-story
 ```
 
 ## Variant Story Files

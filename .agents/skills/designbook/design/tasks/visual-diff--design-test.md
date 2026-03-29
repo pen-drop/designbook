@@ -3,7 +3,7 @@ params:
   scene: ~
 files: []
 reads:
-  - path: $DESIGNBOOK_DIST/design-system/guidelines.yml
+  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
 ---
 
 # Visual Diff
@@ -15,7 +15,7 @@ Screenshots a Storybook scene and compares it against its design reference. The 
 Run the CLI screenshot command (without `--diff`):
 
 ```bash
-$DESIGNBOOK_CMD screenshot --scene ${scene}
+_debo screenshot --scene ${scene}
 ```
 
 This outputs JSON with the screenshot path:

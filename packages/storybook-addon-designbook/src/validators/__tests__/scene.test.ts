@@ -5,8 +5,8 @@ import type { DesignbookConfig } from '../../config.js';
 
 const fixtures = resolve(import.meta.dirname, 'fixtures', 'scene');
 
-function configWith(dist: string): DesignbookConfig {
-  return { dist, technology: 'html', tmp: 'tmp' };
+function configWith(data: string): DesignbookConfig {
+  return { data, technology: 'html' };
 }
 
 describe('validateSceneBuild', () => {

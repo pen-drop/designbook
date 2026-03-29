@@ -53,8 +53,9 @@ describe('parseScene', () => {
     const scene = parseScene(raw);
     const entry = scene.items[0];
 
-    expect('component' in entry).toBe(true);
-    if ('component' in entry) {
+    expect(entry).toBeDefined();
+    expect('component' in entry!).toBe(true);
+    if (entry && 'component' in entry) {
       expect(entry.component).toBe('heading');
     }
   });

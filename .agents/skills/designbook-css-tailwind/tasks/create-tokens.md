@@ -9,17 +9,16 @@ params:
   container_widths: {}
   section_spacing: {}
 files:
-  - $DESIGNBOOK_DIST/design-system/design-tokens.yml
+  - file: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+    key: design-tokens
+    validators: [tokens]
 ---
 
 # Create Design Tokens — Tailwind
 
-Writes the approved design tokens to `$DESIGNBOOK_DIST/design-system/design-tokens.yml` in W3C Design Token YAML format with Tailwind-specific naming conventions.
-
-## Output
-
+Write the approved design tokens in W3C Design Token YAML format with Tailwind-specific naming conventions via stdin to the CLI:
 ```
-$DESIGNBOOK_DIST/design-system/design-tokens.yml
+designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key design-tokens
 ```
 
 ## Format

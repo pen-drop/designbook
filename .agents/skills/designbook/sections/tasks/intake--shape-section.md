@@ -1,16 +1,16 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_DIST/product/vision.md
+  - path: $DESIGNBOOK_DATA/product/vision.md
 ---
 
 # Intake: Shape Section
 
-Help the user define a specification for one roadmap section. The result feeds the `create-section` stage and is saved to `${DESIGNBOOK_DIST}/sections/[section-id]/[section-id].section.scenes.yml`.
+Help the user define a specification for one roadmap section. The result feeds the `create-section` stage and is saved to `${DESIGNBOOK_DATA}/sections/[section-id]/[section-id].section.scenes.yml`.
 
 ## Step 1: Select Section
 
-Parse the sections from the product vision. Check which sections already have specs at `${DESIGNBOOK_DIST}/sections/[section-id]/*.section.scenes.yml`.
+Parse the sections from the product vision. Check which sections already have specs at `${DESIGNBOOK_DATA}/sections/[section-id]/*.section.scenes.yml`.
 
 **Section ID conversion:** Convert the section title to kebab-case: lowercase, remove `&`, replace non-alphanumeric with `-`, trim dashes. Examples:
 - "Homepage" → "homepage"

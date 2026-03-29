@@ -50,6 +50,7 @@
     "*.d.ts"
   ],
   "scripts": {
+    "cli": "node dist/cli.js",
     "clean": "node -e \"fs.rmSync('./dist', { recursive: true, force: true })\"",
     "prebuild": "pnpm run clean",
     "build": "tsup",
@@ -61,8 +62,8 @@
     "prerelease": "zx scripts/prepublish-checks.js",
     "release": "npm run build && auto shipit",
     "start": "run-p build:watch \"storybook --quiet\"",
-    "storybook": "storybook dev -p 6006",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

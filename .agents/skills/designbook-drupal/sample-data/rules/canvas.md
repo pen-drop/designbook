@@ -1,6 +1,6 @@
 ---
 when:
-  stages: [create-sample-data]
+  steps: [create-sample-data]
   extensions: canvas
   backend: drupal
 ---
@@ -17,7 +17,7 @@ Canvas pages use the `canvas_page` entity type (not `node`). In `data-model.yml`
 
 > ⛔ **Do this before writing any `components` field.** The `create-component` stage may have added new components — always read the current state.
 
-Read all `*.component.yml` files in `$DESIGNBOOK_DRUPAL_THEME/components/*/`. Build an allowlist:
+Read all `*.component.yml` files in `$DESIGNBOOK_HOME/components/*/`. Build an allowlist:
 
 ```
 available_components = [provider:name, ...]  # one entry per *.component.yml
