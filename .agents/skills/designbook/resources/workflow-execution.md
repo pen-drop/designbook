@@ -66,12 +66,15 @@ WORKFLOW_NAME=$(echo "$CREATE_JSON" | jq -r '.name')
 ```
 
 The CLI resolves **every step** at create time — both intake and execution:
-- Reads `stages:` from the workflow frontmatter (grouped format: `{ execute: { steps: [...] }, test: { steps: [...] } }`)
+- Reads `stages:` from the workflow frontmatter (grouped format with optional `each`)
 - For each step: resolves task_file, rules, config_rules, config_instructions
+- Intake is resolved by convention (`intake--<workflow-id>.md` or `<prefix>:intake`) — it is NOT listed in stage steps
 - Stores everything in `stage_loaded` in tasks.yml
 - Outputs JSON with `name` + `steps` + `stages` + `step_resolved`
 
 ### 3. Load Intake Instructions
+
+Intake is an **engine convention** — it always runs first, before any stage. It is not declared in stages.
 
 ```bash
  instructions --workflow $WORKFLOW_NAME --stage <intake-stage>
@@ -79,6 +82,8 @@ The CLI resolves **every step** at create time — both intake and execution:
 
 Returns JSON: `{ task_file, rules, config_rules, config_instructions }`.
 Load the `task_file` and all `rules[]` files. Apply `config_rules[]` as constraints.
+
+The intake gathers information from the user and produces **iterables** — arrays of items that stages will iterate over (e.g. components to create, scenes to build).
 
 ### 4. Before Hooks
 
@@ -88,19 +93,58 @@ For each `before` entry in workflow frontmatter:
 - Resolve workflow name to file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
 - Complete the hook workflow fully before continuing
 
-### 5. Plan (expand items into tasks)
+### 5. Plan (expand iterables into tasks)
 
-Build items array from intake results: `[{ "step": "<name>", "params": { ... } }, ...]`. Expand loops (3 components → 3 items).
+Build iterables from intake results and pass them as named arrays in `--params`. Stages with `each: <name>` auto-expand all their steps for each item in the corresponding iterable.
 
 ```bash
  plan \
   --workflow $WORKFLOW_NAME \
-  --params '<global_params_json>' \
-  --items '<items_json>' \
+  --params '<params_json>' \
   [--engine <name>]
 ```
 
-The CLI reads `stage_loaded` from tasks.yml and expands items into tasks: validates params, generates IDs, expands file paths, computes `depends_on`. Each task gets a `step` (work unit name) and `stage` (parent grouping: execute, test, preview). Outputs the plan as JSON.
+**Params format:**
+
+```json
+{
+  "component": [
+    {"component": "header", "group": "Shell", "slots": ["navigation"]},
+    {"component": "footer", "group": "Shell", "slots": ["navigation"]}
+  ],
+  "scene": [
+    {"scene": "design-system:shell"}
+  ]
+}
+```
+
+**How the CLI expands:**
+
+- For each stage with `each: <name>`: creates one task per step × item in `params[name]`
+- For stages without `each`: creates one singleton task per step
+- Intake steps are excluded (handled by engine convention)
+
+**Example expansion:**
+
+```yaml
+# Workflow declares:
+stages:
+  component:
+    each: component
+    steps: [create-component]
+  scene:
+    each: scene
+    steps: [create-scene]
+  test:
+    each: scene
+    steps: [screenshot, resolve-reference, visual-compare, polish]
+```
+
+With `params.component` (2 items) and `params.scene` (1 item):
+- `component` stage: 2 tasks (create-component × 2)
+- `scene` stage: 1 task (create-scene × 1)
+- `test` stage: 4 tasks (4 steps × 1 scene)
+- **Total: 7 tasks**, all auto-generated
 
 The optional `--engine` flag overrides the engine declared in the workflow.md frontmatter (`engine: direct` or `engine: git-worktree`). Precedence: `--engine` flag > frontmatter `engine:` > auto (git-worktree if git repo, else direct). The `debo <workflow> --engine <name>` shorthand passes through to `workflow plan`.
 
@@ -133,13 +177,13 @@ Every `workflow done` response ends with a `RESPONSE:` JSON line. Parse it and a
 
 **Next step in same stage:**
 ```json
-{ "stage": "execute", "step_completed": "create-component", "next_step": "create-scene" }
+{ "stage": "component", "step_completed": "create-component", "next_step": "create-component" }
 ```
-→ Continue to the next step.
+→ Continue to the next task.
 
 **Stage transition:**
 ```json
-{ "stage": "test", "transition_from": "committed", "next_stage": "test", "next_step": "visual-diff" }
+{ "stage": "test", "transition_from": "committed", "next_stage": "test", "next_step": "screenshot" }
 ```
 → Stage changed. Continue to the next step in the new stage.
 
@@ -157,13 +201,16 @@ Every `workflow done` response ends with a `RESPONSE:` JSON line. Parse it and a
 
 ### Stage Vocabulary
 
-Workflows declare stages in their frontmatter as a grouped structure:
+Workflows declare stages in their frontmatter as a grouped structure. Stage names are semantic — they describe what the stage iterates over or does:
 
-| Stage | Role | Skipped when |
-|-------|------|-------------|
-| `execute` | Main work: create components, scenes, tokens, etc. | Never — always present |
-| `test` | Automated tests (visual diff) | No test steps declared |
-| `preview` | Manual review (Storybook preview, user approval) | No preview steps declared |
+| Stage pattern | Role | `each` |
+|-------|------|--------|
+| `component` | Create components | `component` |
+| `scene` | Create scenes | `scene` |
+| `execute` | Singleton work (no iteration) | — |
+| `transform` | Transform/generate (no iteration) | — |
+| `test` | Visual testing (screenshot, compare, polish) | `scene` or `component` |
+| `preview` | Manual review (Storybook preview, user approval) | — |
 
 Implicit stages (`committed`, `finalizing`) are managed by the engine and not declared in frontmatter.
 

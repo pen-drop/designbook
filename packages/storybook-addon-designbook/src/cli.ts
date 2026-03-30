@@ -330,26 +330,28 @@ workflow
   .command('plan')
   .description('Expand items into tasks using pre-resolved stage data from tasks.yml.')
   .requiredOption('--workflow <name>', 'Workflow name')
-  .requiredOption('--items <json>', 'JSON array of {stage, params} items')
-  .option('--params <json>', 'Global intake params JSON')
+  .option('--items <json>', 'JSON array of {step, params} items (legacy, optional when stages use each)')
+  .option('--params <json>', 'Global intake params JSON (iterables are arrays keyed by each name)')
   .option('--engine <name>', 'Write engine: git-worktree or direct (overrides workflow frontmatter)')
   .option('--dry-run', 'Preview plan output without writing to tasks.yml')
-  .action((opts: { workflow: string; items: string; params?: string; engine?: string; dryRun?: boolean }) => {
+  .action((opts: { workflow: string; items?: string; params?: string; engine?: string; dryRun?: boolean }) => {
     const config = loadConfig();
 
-    let items: Array<{ step: string; params?: Record<string, unknown> }>;
-    try {
-      const rawItems = JSON.parse(opts.items);
-      if (!Array.isArray(rawItems)) throw new Error('items must be an array');
-      // Support both old { stage } and new { step } format
-      items = rawItems.map((item: Record<string, unknown>) => ({
-        step: (item.step ?? item.stage) as string,
-        params: item.params as Record<string, unknown> | undefined,
-      }));
-    } catch (err) {
-      console.error(`Error parsing --items JSON: ${(err as Error).message}`);
-      process.exitCode = 1;
-      return;
+    let items: Array<{ step: string; params?: Record<string, unknown> }> = [];
+    if (opts.items) {
+      try {
+        const rawItems = JSON.parse(opts.items);
+        if (!Array.isArray(rawItems)) throw new Error('items must be an array');
+        // Support both old { stage } and new { step } format
+        items = rawItems.map((item: Record<string, unknown>) => ({
+          step: (item.step ?? item.stage) as string,
+          params: item.params as Record<string, unknown> | undefined,
+        }));
+      } catch (err) {
+        console.error(`Error parsing --items JSON: ${(err as Error).message}`);
+        process.exitCode = 1;
+        return;
+      }
     }
 
     let globalParams: Record<string, unknown> = {};
@@ -380,10 +382,10 @@ workflow
       // Extract steps from stages (grouped format) or legacy flat format
       const rawStages = existing.stages;
       let allSteps: string[];
-      let stageDefinitions: Record<string, { steps: string[] }> | undefined;
+      let stageDefinitions: Record<string, { steps: string[]; each?: string }> | undefined;
       if (rawStages && !Array.isArray(rawStages)) {
-        // Grouped format: { execute: { steps: [...] }, test: { steps: [...] } }
-        stageDefinitions = rawStages as Record<string, { steps: string[] }>;
+        // Grouped format: { execute: { steps: [...] }, test: { each: 'scene', steps: [...] } }
+        stageDefinitions = rawStages as Record<string, { steps: string[]; each?: string }>;
         allSteps = [];
         for (const def of Object.values(stageDefinitions)) {
           allSteps.push(...(def.steps ?? []));
@@ -393,14 +395,39 @@ workflow
       }
       const execSteps = allSteps.filter((s) => !s.endsWith(':intake'));
 
-      // Build step → parent stage mapping
+      // Build step → parent stage mapping and step → each mapping
       const stepToStage = new Map<string, string>();
+      const stepToEach = new Map<string, string>();
       if (stageDefinitions) {
         for (const [stageName, def] of Object.entries(stageDefinitions)) {
           for (const step of def.steps) {
             stepToStage.set(step, stageName);
+            if (def.each) stepToEach.set(step, def.each);
           }
         }
+      }
+
+      // Expand each-based items from params: for steps with `each`, create items from params[eachName]
+      if (stageDefinitions) {
+        for (const [_stageName, def] of Object.entries(stageDefinitions)) {
+          if (!def.each) continue;
+          const iterables = globalParams[def.each] as Array<Record<string, unknown>> | undefined;
+          if (!iterables || !Array.isArray(iterables)) continue;
+          for (const step of def.steps) {
+            // Skip if explicit items were provided for this step (legacy mode)
+            if (items.some((i) => i.step === step)) continue;
+            for (const iterableItem of iterables) {
+              items.push({ step, params: iterableItem });
+            }
+          }
+        }
+      }
+
+      // For steps without `each` and no explicit items, create a singleton item
+      for (const step of execSteps) {
+        if (items.some((i) => i.step === step)) continue;
+        if (stepToEach.has(step)) continue; // each-step with empty iterable — skip
+        items.push({ step, params: {} });
       }
 
       // Validate items against known steps
