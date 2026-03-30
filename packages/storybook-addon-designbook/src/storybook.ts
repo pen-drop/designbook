@@ -142,6 +142,15 @@ export async function startDaemon(opts: {
   cwd?: string;
 }): Promise<StartResult> {
   const { cmd, port, dataDir, cwd } = opts;
+
+  // Guard: refuse to start if a Storybook is already running
+  const status = getStatus(dataDir);
+  if (status.running) {
+    throw new Error(
+      `Storybook is already running (pid ${status.pid}, port ${status.port}). Use 'storybook restart' to replace it.`,
+    );
+  }
+
   const fullCmd = `${cmd} --port ${port}`;
   const startupErrors: string[] = [];
   const errorPattern = /ERROR|ModuleNotFoundError|Cannot find|Failed to/;
