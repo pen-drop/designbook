@@ -294,9 +294,9 @@ describe('startDaemon', () => {
     writePidFile(dataDir, sampleInfo);
     killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
 
-    await expect(
-      startDaemon({ cmd: 'npx storybook dev', port: 6006, dataDir }),
-    ).rejects.toThrow(/already running.*restart/i);
+    await expect(startDaemon({ cmd: 'npx storybook dev', port: 6006, dataDir })).rejects.toThrow(
+      /already running.*restart/i,
+    );
   });
 
   it('returns { ready: false } on timeout', async () => {
