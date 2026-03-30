@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { EventEmitter } from 'node:events';
 import {
   pidFilePath,
   logFilePath,
@@ -12,6 +13,7 @@ import {
   getStatus,
   killProcess,
   stopDaemon,
+  startDaemon,
   type StorybookInfo,
 } from '../storybook.js';
 
@@ -220,5 +222,155 @@ describe('stopDaemon', () => {
 
   it('errors gracefully when no PID file and no override', async () => {
     await expect(stopDaemon(dataDir)).rejects.toThrow('no PID file found');
+  });
+});
+
+// ── startDaemon ─────────────────────────────────────────────────────────────
+
+vi.mock('node:child_process', () => ({
+  spawn: vi.fn(),
+}));
+
+vi.mock('node:http', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return { ...actual, get: vi.fn() };
+});
+
+import * as http from 'node:http';
+
+function makeFakeChild(pid = 55555) {
+  const child = Object.assign(new EventEmitter(), {
+    pid,
+    unref: vi.fn(),
+    kill: vi.fn(),
+  });
+  return child;
+}
+
+/** Configure the mocked http.get to either reject or resolve with JSON. */
+function mockHttpGet(behaviour: 'reject' | { json: unknown }) {
+  const mockedGet = vi.mocked(http.get);
+  mockedGet.mockImplementation((...args: unknown[]) => {
+    // http.get(url, cb) — cb is last argument
+    const cb = args[args.length - 1] as ((res: EventEmitter & { statusCode: number }) => void) | undefined;
+    const req = Object.assign(new EventEmitter(), { end: vi.fn() }) as EventEmitter & { end: ReturnType<typeof vi.fn> };
+    if (behaviour === 'reject') {
+      queueMicrotask(() => req.emit('error', new Error('ECONNREFUSED')));
+    } else if (cb && typeof cb === 'function') {
+      queueMicrotask(() => {
+        const body = JSON.stringify(behaviour.json);
+        const res = Object.assign(new EventEmitter(), {
+          statusCode: 200,
+          resume: vi.fn(),
+        });
+        cb(res);
+        res.emit('data', Buffer.from(body));
+        res.emit('end');
+      });
+    }
+    return req as unknown as http.ClientRequest;
+  });
+}
+
+describe('startDaemon', () => {
+  let dataDir: string;
+  let killSpy: ReturnType<typeof vi.spyOn>;
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(async () => {
+    dataDir = makeTmpDir();
+    // Silence stderr output from log forwarding
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+  });
+
+  afterEach(() => {
+    killSpy?.mockRestore();
+    stderrSpy?.mockRestore();
+    vi.mocked(http.get).mockReset();
+    vi.useRealTimers();
+  });
+
+  it('throws when Storybook is already running', async () => {
+    writePidFile(dataDir, sampleInfo);
+    killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
+
+    await expect(
+      startDaemon({ cmd: 'npx storybook dev', port: 6006, dataDir }),
+    ).rejects.toThrow(/already running.*restart/i);
+  });
+
+  it('returns { ready: false } on timeout', async () => {
+    vi.useFakeTimers();
+
+    const { spawn } = await import('node:child_process');
+    const fakeChild = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(fakeChild as never);
+
+    mockHttpGet('reject');
+
+    const promise = startDaemon({ cmd: 'npx storybook dev', port: 6006, dataDir });
+
+    // Fast-forward past the 120s timeout (60 polling intervals of 2s each)
+    for (let i = 0; i < 61; i++) {
+      await vi.advanceTimersByTimeAsync(2000);
+    }
+
+    const result = await promise;
+    expect(result.ready).toBe(false);
+    expect(result.port).toBe(6006);
+    expect(fakeChild.kill).toHaveBeenCalledWith('SIGTERM');
+  });
+
+  it('returns { ready: true } with pid/port/log when Storybook starts successfully', async () => {
+    vi.useFakeTimers();
+
+    const { spawn } = await import('node:child_process');
+    const fakeChild = makeFakeChild(77777);
+    vi.mocked(spawn).mockReturnValue(fakeChild as never);
+
+    mockHttpGet({ json: { entries: {} } });
+
+    const promise = startDaemon({ cmd: 'npx storybook dev', port: 9009, dataDir });
+
+    // Advance past the first polling interval
+    await vi.advanceTimersByTimeAsync(2000);
+
+    const result = await promise;
+    expect(result.ready).toBe(true);
+    expect(result.pid).toBe(77777);
+    expect(result.port).toBe(9009);
+    expect(result.log).toBe(logFilePath(dataDir));
+    expect(fakeChild.unref).toHaveBeenCalled();
+
+    // Verify PID file was written
+    const pidData = readPidFile(dataDir);
+    expect(pidData).not.toBeNull();
+    expect(pidData!.pid).toBe(77777);
+    expect(pidData!.port).toBe(9009);
+  });
+
+  it('cleans up stale PID file before starting', async () => {
+    vi.useFakeTimers();
+
+    // Write a PID file for a dead process
+    writePidFile(dataDir, { ...sampleInfo, pid: 99999 });
+    killSpy = vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
+      // getStatus calls isAlive(99999) with signal 0 — should throw (dead)
+      if (pid === 99999 && signal === 0) throw new Error('ESRCH');
+      return true;
+    });
+
+    const { spawn } = await import('node:child_process');
+    const fakeChild = makeFakeChild(88888);
+    vi.mocked(spawn).mockReturnValue(fakeChild as never);
+
+    mockHttpGet({ json: { entries: {} } });
+
+    const promise = startDaemon({ cmd: 'npx storybook dev', port: 6006, dataDir });
+    await vi.advanceTimersByTimeAsync(2000);
+
+    const result = await promise;
+    expect(result.ready).toBe(true);
+    expect(result.pid).toBe(88888);
   });
 });
