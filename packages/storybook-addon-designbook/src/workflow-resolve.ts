@@ -59,6 +59,7 @@ interface TaskFileFrontmatter {
 
 interface StageDefinitionFm {
   steps: string[];
+  each?: string;
   params?: Record<string, { type: string; prompt: string }>;
 }
 
