@@ -330,29 +330,13 @@ workflow
   .command('plan')
   .description('Expand items into tasks using pre-resolved stage data from tasks.yml.')
   .requiredOption('--workflow <name>', 'Workflow name')
-  .option('--items <json>', 'JSON array of {step, params} items (legacy, optional when stages use each)')
-  .option('--params <json>', 'Global intake params JSON (iterables are arrays keyed by each name)')
+  .option('--params <json>', 'Intake params JSON (iterables are arrays keyed by each name)')
   .option('--engine <name>', 'Write engine: git-worktree or direct (overrides workflow frontmatter)')
   .option('--dry-run', 'Preview plan output without writing to tasks.yml')
-  .action((opts: { workflow: string; items?: string; params?: string; engine?: string; dryRun?: boolean }) => {
+  .action((opts: { workflow: string; params?: string; engine?: string; dryRun?: boolean }) => {
     const config = loadConfig();
 
     let items: Array<{ step: string; params?: Record<string, unknown> }> = [];
-    if (opts.items) {
-      try {
-        const rawItems = JSON.parse(opts.items);
-        if (!Array.isArray(rawItems)) throw new Error('items must be an array');
-        // Support both old { stage } and new { step } format
-        items = rawItems.map((item: Record<string, unknown>) => ({
-          step: (item.step ?? item.stage) as string,
-          params: item.params as Record<string, unknown> | undefined,
-        }));
-      } catch (err) {
-        console.error(`Error parsing --items JSON: ${(err as Error).message}`);
-        process.exitCode = 1;
-        return;
-      }
-    }
 
     let globalParams: Record<string, unknown> = {};
     if (opts.params) {
