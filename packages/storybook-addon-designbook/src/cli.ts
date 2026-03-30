@@ -1,6 +1,5 @@
 import { resolve, dirname } from 'node:path';
-import { mkdirSync, readFileSync, existsSync, openSync, closeSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, readFileSync, existsSync, openSync, closeSync, writeFileSync, unlinkSync } from 'node:fs';
 import { execFileSync, spawn } from 'node:child_process';
 import * as http from 'node:http';
 import { screenshot } from './screenshot.js';
@@ -824,8 +823,10 @@ storybookCmd
 
     // Use a log file instead of pipes — pipes get EPIPE when the parent exits,
     // which can kill intermediary processes (npm/pnpm wrappers) and take Storybook down with them.
-    const logPath = resolve(tmpdir(), `designbook-storybook-${Date.now()}.log`);
-    const logFd = openSync(logPath, 'a');
+    const logPath = resolve(config.data, 'storybook.log');
+    const pidFilePath = resolve(config.data, 'storybook.json');
+    mkdirSync(config.data, { recursive: true });
+    const logFd = openSync(logPath, 'w');
     const child = spawn(fullCmd, [], {
       shell: true,
       detached: true,
@@ -869,11 +870,26 @@ storybookCmd
 
     if (ready) {
       child.unref();
+      writeFileSync(
+        pidFilePath,
+        JSON.stringify(
+          {
+            pid: child.pid,
+            port,
+            log: logPath,
+            cwd: storybookRoot ?? process.cwd(),
+            started_at: new Date().toISOString(),
+          },
+          null,
+          2,
+        ),
+      );
       console.log(
         JSON.stringify({
           ready: true,
           pid: child.pid,
           port,
+          log: logPath,
           startup_errors: startupErrors.filter(Boolean),
         }),
       );
@@ -892,9 +908,23 @@ storybookCmd
 storybookCmd
   .command('stop')
   .description('Stop a Storybook process started by storybook start')
-  .requiredOption('--pid <pid>', 'Process ID to stop')
-  .action(async (opts: { pid: string }) => {
-    const pid = parseInt(opts.pid, 10);
+  .option('--pid <pid>', 'Process ID to stop (reads from storybook.json when omitted)')
+  .action(async (opts: { pid?: string }) => {
+    let pid: number;
+    const config = loadConfig(process.env['DESIGNBOOK_HOME']);
+    const pidFilePath = resolve(config.data, 'storybook.json');
+
+    if (opts.pid) {
+      pid = parseInt(opts.pid, 10);
+    } else if (existsSync(pidFilePath)) {
+      const info = JSON.parse(readFileSync(pidFilePath, 'utf-8')) as { pid: number };
+      pid = info.pid;
+    } else {
+      console.error('Error: no --pid provided and no storybook.json found');
+      process.exitCode = 1;
+      return;
+    }
+
     try {
       process.kill(-pid, 'SIGTERM'); // negative PID kills process group (shell + all children)
       await new Promise<void>((r) => setTimeout(r, 5000));
@@ -907,7 +937,226 @@ storybookCmd
     } catch {
       // PID not found — exit 0 silently
     }
+
+    // Clean up PID file
+    try {
+      unlinkSync(pidFilePath);
+    } catch {
+      /* already gone */
+    }
+
     process.exit(0);
+  });
+
+storybookCmd
+  .command('status')
+  .description('Check if a Storybook daemon is running')
+  .action(() => {
+    const config = loadConfig(process.env['DESIGNBOOK_HOME']);
+    const pidFilePath = resolve(config.data, 'storybook.json');
+
+    if (!existsSync(pidFilePath)) {
+      console.log(JSON.stringify({ running: false }));
+      return;
+    }
+
+    const info = JSON.parse(readFileSync(pidFilePath, 'utf-8')) as {
+      pid: number;
+      port: number;
+      log: string;
+      started_at: string;
+    };
+
+    try {
+      process.kill(info.pid, 0); // throws if not alive
+      console.log(
+        JSON.stringify({
+          running: true,
+          pid: info.pid,
+          port: info.port,
+          log: info.log,
+          started_at: info.started_at,
+        }),
+      );
+    } catch {
+      // PID is dead — stale file
+      try {
+        unlinkSync(pidFilePath);
+      } catch {
+        /* already gone */
+      }
+      console.log(JSON.stringify({ running: false, stale: true }));
+    }
+  });
+
+storybookCmd
+  .command('logs')
+  .description('Print Storybook daemon log output')
+  .option('-f, --follow', 'Follow the log (tail with polling)')
+  .action(async (opts: { follow?: boolean }) => {
+    const config = loadConfig(process.env['DESIGNBOOK_HOME']);
+    const logPath = resolve(config.data, 'storybook.log');
+
+    if (!existsSync(logPath)) {
+      console.error('Error: no storybook.log found');
+      process.exitCode = 1;
+      return;
+    }
+
+    if (!opts.follow) {
+      process.stdout.write(readFileSync(logPath, 'utf-8'));
+      return;
+    }
+
+    // Follow mode: print existing content, then poll for new content
+    let offset = 0;
+    const poll = (): void => {
+      try {
+        const content = readFileSync(logPath, 'utf-8');
+        if (content.length > offset) {
+          process.stdout.write(content.slice(offset));
+          offset = content.length;
+        }
+      } catch {
+        /* file may have been removed */
+      }
+    };
+
+    poll();
+    setInterval(poll, 1000);
+  });
+
+storybookCmd
+  .command('restart')
+  .description('Restart the Storybook daemon (stop + start)')
+  .option('--port <port>', 'Port to start Storybook on (auto-detected when omitted)')
+  .action(async (opts: { port?: string }) => {
+    const config = loadConfig(process.env['DESIGNBOOK_HOME']);
+    const pidFilePath = resolve(config.data, 'storybook.json');
+
+    // Stop if running
+    if (existsSync(pidFilePath)) {
+      try {
+        const info = JSON.parse(readFileSync(pidFilePath, 'utf-8')) as { pid: number };
+        try {
+          process.kill(-info.pid, 'SIGTERM');
+          await new Promise<void>((r) => setTimeout(r, 5000));
+          try {
+            process.kill(-info.pid, 0);
+            process.kill(-info.pid, 'SIGKILL');
+          } catch {
+            /* already gone */
+          }
+        } catch {
+          /* PID not found */
+        }
+        try {
+          unlinkSync(pidFilePath);
+        } catch {
+          /* already gone */
+        }
+      } catch {
+        /* invalid JSON — just remove */
+        try {
+          unlinkSync(pidFilePath);
+        } catch {
+          /* already gone */
+        }
+      }
+    }
+
+    // Start — delegate to the start command by re-invoking the CLI
+    const designbookCmdStr = config['designbook.cmd'] as string | undefined;
+    if (!designbookCmdStr) {
+      console.error('Error: designbook.cmd not configured in designbook.config.yml');
+      process.exitCode = 1;
+      return;
+    }
+
+    const port = opts.port ? parseInt(opts.port, 10) : await findFreePort();
+    const fullCmd = `${designbookCmdStr} --port ${port}`;
+    const storybookRoot = config['designbook.home'] as string | undefined;
+    const startupErrors: string[] = [];
+    const errorPattern = /ERROR|ModuleNotFoundError|Cannot find|Failed to/;
+
+    const logPath = resolve(config.data, 'storybook.log');
+    mkdirSync(config.data, { recursive: true });
+    const logFd = openSync(logPath, 'w');
+    const child = spawn(fullCmd, [], {
+      shell: true,
+      detached: true,
+      stdio: ['ignore', logFd, logFd],
+      ...(storybookRoot ? { cwd: storybookRoot } : {}),
+    });
+    closeSync(logFd);
+
+    const timeoutMs = 120_000;
+    const startTime = Date.now();
+    let ready = false;
+    let logOffset = 0;
+
+    while (!ready && Date.now() - startTime < timeoutMs) {
+      await new Promise<void>((r) => setTimeout(r, 2000));
+
+      try {
+        const content = readFileSync(logPath, 'utf-8');
+        const newContent = content.slice(logOffset);
+        logOffset = content.length;
+        for (const line of newContent.split('\n')) {
+          if (line.trim()) {
+            process.stderr.write(line + '\n');
+            if (errorPattern.test(line)) startupErrors.push(line.trim());
+          }
+        }
+      } catch {
+        /* log not yet written */
+      }
+
+      try {
+        const result = await fetchJson(`http://localhost:${port}/index.json`);
+        if (result !== null && typeof result === 'object' && 'entries' in result) {
+          ready = true;
+        }
+      } catch {
+        // Not ready yet
+      }
+    }
+
+    if (ready) {
+      child.unref();
+      writeFileSync(
+        pidFilePath,
+        JSON.stringify(
+          {
+            pid: child.pid,
+            port,
+            log: logPath,
+            cwd: storybookRoot ?? process.cwd(),
+            started_at: new Date().toISOString(),
+          },
+          null,
+          2,
+        ),
+      );
+      console.log(
+        JSON.stringify({
+          ready: true,
+          pid: child.pid,
+          port,
+          log: logPath,
+          startup_errors: startupErrors.filter(Boolean),
+        }),
+      );
+      process.exit(0);
+    } else {
+      try {
+        child.kill('SIGTERM');
+      } catch {
+        /* ignore */
+      }
+      console.log(JSON.stringify({ ready: false, error: 'timeout' }));
+      process.exit(1);
+    }
   });
 
 // ── workflow prepare-environment ──────────────────────────────────────────────
