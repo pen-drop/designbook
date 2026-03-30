@@ -336,7 +336,7 @@ workflow
   .action((opts: { workflow: string; params?: string; engine?: string; dryRun?: boolean }) => {
     const config = loadConfig();
 
-    let items: Array<{ step: string; params?: Record<string, unknown> }> = [];
+    const items: Array<{ step: string; params?: Record<string, unknown> }> = [];
 
     let globalParams: Record<string, unknown> = {};
     if (opts.params) {
@@ -393,7 +393,7 @@ workflow
 
       // Expand each-based items from params: for steps with `each`, create items from params[eachName]
       if (stageDefinitions) {
-        for (const [_stageName, def] of Object.entries(stageDefinitions)) {
+        for (const [, def] of Object.entries(stageDefinitions)) {
           if (!def.each) continue;
           const iterables = globalParams[def.each] as Array<Record<string, unknown>> | undefined;
           if (!iterables || !Array.isArray(iterables)) continue;
