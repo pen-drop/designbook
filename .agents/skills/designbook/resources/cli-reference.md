@@ -1,8 +1,44 @@
-# Workflow CLI Reference
+# CLI Reference
+
+## Storybook Process Management
+
+Manages the Storybook daemon lifecycle. State is persisted in `$DESIGNBOOK_DATA/storybook.json` (PID/port) and `$DESIGNBOOK_DATA/storybook.log` (output).
+
+```bash
+# Start Storybook as a detached daemon, wait until ready
+ storybook start [--port <port>]
+# → JSON to stdout: { ready, pid, port, log, startup_errors }
+# → exit 0 if ready, exit 1 on timeout (120s)
+# → errors if already running (use restart instead)
+
+# Stop a running Storybook
+ storybook stop [--pid <pid>]
+# → reads PID from storybook.json when --pid omitted
+# → SIGTERM → 5s wait → SIGKILL if needed
+# → removes storybook.json
+
+# Check if Storybook is running
+ storybook status
+# → JSON: { running: true, pid, port, log, started_at }
+# → JSON: { running: false } or { running: false, stale: true }
+# → cleans up stale PID file automatically
+
+# Print Storybook log output
+ storybook logs [-f|--follow]
+# → without -f: prints log content to stdout
+# → with -f: tails log, polling every 1s
+
+# Restart (stop + start)
+ storybook restart [--port <port>]
+```
+
+---
+
+## Workflow CLI
 
 > This is the **complete command list** — do not attempt `status`, `tasks`, or other subcommands. To inspect task state, read the workflow's `tasks.yml` directly.
 
-## Commands
+### Commands
 
 ```bash
 # Create workflow (resolves all stages from frontmatter)
@@ -38,7 +74,7 @@
  add-file --workflow <name> --task <id> --file <path>
 ```
 
-## `workflow plan` Options
+### `workflow plan` Options
 
 Stage resolution happens at `workflow create --workflow-file` time. The `plan` command reads the pre-resolved `stage_loaded` from tasks.yml.
 
