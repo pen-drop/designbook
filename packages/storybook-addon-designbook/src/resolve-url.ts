@@ -1,16 +1,13 @@
 /**
- * Screenshot module — captures Storybook scene screenshots via Playwright.
+ * resolve-url module — resolves scene references to Storybook iframe URLs.
  *
- * Supports:
- * - --scene <group>:<name> — resolve scene file, find story_id, screenshot
- *
- * Design reference comparison is handled by the agent (not the CLI).
- * The agent fetches references via MCP and compares visually.
+ * Extracted from screenshot.ts. Supports:
+ * - --scene <group>:<name> — resolve scene file, find story_id, return URL
+ * - --file <path> --scene <name> — resolve from explicit file path
  */
 
-import { resolve, dirname, basename } from 'node:path';
-import { existsSync, readFileSync, mkdirSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { resolve, basename } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
 import { glob } from 'glob';
 import type { DesignbookConfig } from './config.js';
@@ -29,6 +26,7 @@ interface SceneEntry {
     type: string;
     url: string;
     title?: string;
+    screens?: Record<string, string>;
   };
   items?: unknown[];
 }
@@ -41,10 +39,11 @@ interface ScenesFile {
   scenes?: SceneEntry[];
 }
 
-interface ScreenshotResult {
+export interface ResolveUrlResult {
   scene: string;
   storyId: string;
-  screenshotPath: string;
+  url: string;
+  filePath: string;
 }
 
 /**
@@ -55,7 +54,7 @@ interface ScreenshotResult {
  * - "galerie:product-detail" → sections/galerie/galerie.section.scenes.yml → scene "product-detail"
  * - "galerie" (no colon) → all scenes in sections/galerie/
  */
-function resolveScene(
+export function resolveScene(
   dist: string,
   sceneRef: string,
 ): { filePath: string; scenes: SceneEntry[]; allScenes: ScenesFile } {
@@ -103,7 +102,7 @@ function resolveScene(
 /**
  * Fetch the Storybook index and find the story ID for a scenes file.
  */
-async function resolveStoryId(storybookUrl: string, scenesFilePath: string, sceneName: string): Promise<string> {
+export async function resolveStoryId(storybookUrl: string, scenesFilePath: string, sceneName: string): Promise<string> {
   const res = await fetch(`${storybookUrl}/index.json`);
   if (!res.ok) {
     throw new Error(`Storybook index returned ${res.status}. Is Storybook running at ${storybookUrl}?`);
@@ -144,50 +143,13 @@ async function resolveStoryId(storybookUrl: string, scenesFilePath: string, scen
 }
 
 /**
- * Take a Playwright screenshot of a Storybook story.
+ * Main resolve-url command handler.
  */
-function takeScreenshot(storybookUrl: string, storyId: string, outputPath: string): void {
-  mkdirSync(dirname(outputPath), { recursive: true });
-
-  // Find playwright binary — check pnpm hoisted location and node_modules
-  const searchPaths = [
-    resolve(process.cwd(), 'node_modules/.bin/playwright'),
-    resolve(process.cwd(), 'node_modules/playwright/cli.js'),
-  ];
-
-  // Also search in pnpm's .pnpm directory
-  const pnpmPlaywright = glob.sync(
-    resolve(process.cwd(), 'node_modules/.pnpm/playwright@*/node_modules/playwright/cli.js'),
-  );
-  searchPaths.push(...pnpmPlaywright);
-
-  let playwrightCmd = '';
-  for (const p of searchPaths) {
-    if (existsSync(p)) {
-      playwrightCmd = p.endsWith('.js') ? `node "${p}"` : `"${p}"`;
-      break;
-    }
-  }
-
-  if (!playwrightCmd) {
-    throw new Error('Playwright not found. Install it with: npm install playwright');
-  }
-
-  const url = `${storybookUrl}/iframe.html?id=${storyId}&viewMode=story`;
-
-  execSync(
-    `${playwrightCmd} screenshot --full-page --viewport-size "2560,1600" --wait-for-timeout 3000 "${url}" "${outputPath}"`,
-    { stdio: 'pipe' },
-  );
-}
-
-/**
- * Main screenshot command handler.
- */
-export async function screenshot(
+export async function resolveUrl(
   config: DesignbookConfig,
   opts: {
     scene: string;
+    file?: string;
   },
 ): Promise<void> {
   const storybookUrl = config['designbook.url'] as string | undefined;
@@ -195,17 +157,32 @@ export async function screenshot(
     throw new Error('designbook.url not configured in designbook.config.yml');
   }
 
-  // Resolve scene(s)
-  const { filePath, scenes } = resolveScene(config.data, opts.scene);
-  const screenshotsDir = resolve(dirname(filePath), 'screenshots');
+  let filePath: string;
+  let scenes: SceneEntry[];
 
-  const results: ScreenshotResult[] = [];
+  if (opts.file) {
+    // Explicit file path + scene name
+    const content = readFileSync(opts.file, 'utf-8');
+    const parsed = parseYaml(content) as ScenesFile;
+    filePath = opts.file;
+    const allScenes = parsed.scenes ?? [];
+    const sceneName = opts.scene;
+    const matched = allScenes.filter((s) => s.name === sceneName);
+    if (matched.length === 0) {
+      const available = allScenes.map((s) => s.name).join(', ');
+      throw new Error(`Scene "${sceneName}" not found in ${opts.file}. Available: ${available}`);
+    }
+    scenes = matched;
+  } else {
+    const resolved = resolveScene(config.data, opts.scene);
+    filePath = resolved.filePath;
+    scenes = resolved.scenes;
+  }
+
+  const results: ResolveUrlResult[] = [];
 
   for (const scene of scenes) {
     const name = scene.name;
-    const screenshotPath = resolve(screenshotsDir, `${name}.png`);
-
-    // 1. Resolve story ID
     let storyId: string;
     try {
       storyId = await resolveStoryId(storybookUrl, filePath, name);
@@ -214,17 +191,9 @@ export async function screenshot(
       continue;
     }
 
-    // 2. Take screenshot
-    try {
-      takeScreenshot(storybookUrl, storyId, screenshotPath);
-    } catch (err) {
-      console.error(`Error taking screenshot for "${name}": ${(err as Error).message}`);
-      continue;
-    }
-
-    results.push({ scene: name, storyId, screenshotPath });
+    const url = `${storybookUrl}/iframe.html?id=${storyId}&viewMode=story`;
+    results.push({ scene: name, storyId, url, filePath });
   }
 
-  // Output JSON results
   console.log(JSON.stringify(results, null, 2));
 }

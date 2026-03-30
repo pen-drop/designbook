@@ -48,15 +48,20 @@ $defs:
         type: string
       reference:
         type: object
-        description: Design source for visual diff testing (metadata only).
+        description: Design source for visual diff testing.
         properties:
           type:
             type: string
-            enum: [stitch, image, figma]
+            enum: [stitch, image, figma, url]
           url:
             type: string
           title:
             type: string
+          screens:
+            type: object
+            description: Per-breakpoint reference URLs. Keys MUST match breakpoint names from design-tokens.yml.
+            additionalProperties:
+              type: string
 
   SceneNode:
     description: >

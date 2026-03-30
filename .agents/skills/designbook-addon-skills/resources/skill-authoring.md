@@ -123,3 +123,31 @@ Resolves to `.agents/skills/designbook-drupal/components/resources/shell-generat
 ## Configuration
 
 The `designbook` skill Phase 0 bootstrap (from `resources/workflow-execution.md`) bootstraps `$DESIGNBOOK_CMD` and all `DESIGNBOOK_*` env vars from `designbook.config.yml`. This runs before any workflow command.
+
+## Component Reference Convention
+
+Framework skills that support component-level design references must provide a `component-reference` rule:
+
+```
+designbook-drupal/components/rules/component-reference.md
+  when: steps: [resolve-reference, design-component:intake]
+```
+
+This rule must handle two responsibilities:
+
+1. **Store** — During `design-component:intake`, store the reference in the framework-specific component file format (e.g. `.component.yml` for Drupal, `.stories.tsx` parameters for React)
+2. **Read** — During `resolve-reference`, read the reference from the component file and return the normalized schema (`type`, `url`, `title`, `screens`)
+
+The reference schema is identical to the scene-level `reference` block:
+
+```yaml
+reference:
+  type: stitch | image | figma | url
+  url: "..."
+  title: "..."
+  screens:           # optional per-breakpoint
+    xl: "..."
+    sm: "..."
+```
+
+If no framework skill provides a `component-reference` rule, the `resolve-reference` task skips with a warning.

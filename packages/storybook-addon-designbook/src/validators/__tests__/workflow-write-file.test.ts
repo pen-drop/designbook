@@ -168,7 +168,7 @@ describe('write-file pipeline (direct engine)', () => {
     expect(existsSync(result.file_path)).toBe(true);
 
     // workflow done succeeds (gate-check passes)
-    const doneResult = workflowDone(dist, name, 'create-tokens');
+    const doneResult = await workflowDone(dist, name, 'create-tokens');
     expect(doneResult.archived).toBe(true);
   });
 
@@ -204,7 +204,7 @@ describe('write-file pipeline (direct engine)', () => {
     expect(existsSync(result.file_path)).toBe(true);
 
     // workflow done should reject (file has errors)
-    expect(() => workflowDone(dist, name, 'create-dm')).toThrow('errors');
+    await expect(() => workflowDone(dist, name, 'create-dm')).rejects.toThrow('errors');
   });
 
   it('write-file re-write overwrites stash and re-validates', async () => {
@@ -288,7 +288,7 @@ describe('write-file pipeline (direct engine)', () => {
     );
   });
 
-  it('workflow done rejects when file not yet written (no validation_result)', () => {
+  it('workflow done rejects when file not yet written (no validation_result)', async () => {
     const name = workflowCreate(dist, 'debo-test', 'Test', []);
     workflowPlan(
       dist,
@@ -309,7 +309,7 @@ describe('write-file pipeline (direct engine)', () => {
       'direct',
     );
 
-    expect(() => workflowDone(dist, name, 'task1')).toThrow('not yet written');
+    await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow('not yet written');
   });
 });
 
@@ -413,7 +413,7 @@ describe('direct engine flush', () => {
     expect(existsSync(writeResult.file_path)).toBe(true);
 
     // Mark task done — triggers stage transition execute→test which flushes
-    const doneResult = workflowDone(dist, name, 'task1');
+    const doneResult = await workflowDone(dist, name, 'task1');
     expect(doneResult.archived).toBe(false); // test task still pending
 
     // After flush: .debo renamed to final target path

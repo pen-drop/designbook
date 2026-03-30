@@ -80,7 +80,7 @@ Iterate until the user is satisfied. Once confirmed, proceed to Step 5.
 
 ## Step 5: Design Reference (optional)
 
-Check `guidelines.yml` for `design_file` or `mcp` entries. If a design source is configured:
+Check `guidelines.yml` for `design_reference` or `mcp` entries. If a design source is configured:
 
 1. Load available screens (e.g. `mcp__stitch__list_screens`)
 2. Ask the user which screen matches the shell:

@@ -1,11 +1,10 @@
 ---
 name: debo
-disable-model-invocation: true
-argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-guidelines|design-test|sections|shape-section|sample-data|css-generate]"
+argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-guidelines|sections|shape-section|sample-data|css-generate]"
 description: >
   Designbook design system. Use when the user wants to create or design
   anything. Sub-commands: vision, tokens, data-model, design-component,
-  design-screen, design-shell, design-guidelines, design-test, sections,
+  design-screen, design-shell, design-guidelines, sections,
   shape-section, sample-data, css-generate.
 ---
 

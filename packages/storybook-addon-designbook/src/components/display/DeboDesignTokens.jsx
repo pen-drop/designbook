@@ -370,6 +370,215 @@ const SubSectionTitle = styled.h4(({ theme }) => ({
   margin: 0,
 }));
 
+// ─── Renderer helpers ───────────────────────────────────────────────────────
+
+function getGroupRenderer(group) {
+  const explicit = group?.$extensions?.designbook?.renderer;
+  if (explicit) return explicit;
+  const tokens = Object.entries(group).filter(([k, v]) => !k.startsWith('$') && isToken(v));
+  if (tokens.length === 0) return 'generic';
+  const types = {};
+  for (const [, v] of tokens) {
+    const t = v.$type || 'unknown';
+    types[t] = (types[t] || 0) + 1;
+  }
+  const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0][0];
+  if (dominant === 'dimension') return 'bar';
+  return 'generic';
+}
+
+function parseToPixels(value) {
+  if (typeof value === 'number') return value;
+  const s = String(value);
+  const num = parseFloat(s);
+  if (isNaN(num)) return 0;
+  if (s.endsWith('rem')) return num * 16;
+  return num;
+}
+
+function groupTitle(name) {
+  return name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ─── Dimension renderers ────────────────────────────────────────────────────
+
+const DimRow = styled.div(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 16,
+  padding: '6px 0',
+}));
+
+const DimLabel = styled.span(({ theme }) => ({
+  fontFamily: theme.typography.fonts.base,
+  fontSize: 13,
+  fontWeight: 600,
+  color: theme.color.defaultText,
+  width: 40,
+  flexShrink: 0,
+}));
+
+const DimValue = styled.span(({ theme }) => ({
+  fontFamily: theme.typography.fonts.mono,
+  fontSize: 12,
+  color: theme.color.mediumdark,
+  width: 64,
+  flexShrink: 0,
+  textAlign: 'right',
+}));
+
+const DimBarTrack = styled.div(({ theme }) => ({
+  flex: 1,
+  height: 8,
+  background: theme.background?.hoverable || '#F1F5F9',
+  borderRadius: 4,
+  overflow: 'hidden',
+}));
+
+const DimBarFill = styled.div({
+  height: '100%',
+  borderRadius: 4,
+  transition: 'width 0.3s ease',
+});
+
+function BarRenderer({ tokens, fillColor = '#2563EB' }) {
+  const max = Math.max(...tokens.map(([, v]) => parseToPixels(v.$value)), 1);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {tokens.map(([k, v]) => {
+        const px = parseToPixels(v.$value);
+        const pct = (px / max) * 100;
+        return (
+          <DimRow key={k}>
+            <DimLabel>{k}</DimLabel>
+            <DimValue>{v.$value}</DimValue>
+            <DimBarTrack>
+              <DimBarFill style={{ width: `${pct}%`, background: fillColor }} />
+            </DimBarTrack>
+          </DimRow>
+        );
+      })}
+    </div>
+  );
+}
+
+function ContainerRenderer({ tokens }) {
+  const max = Math.max(...tokens.map(([, v]) => parseToPixels(v.$value)), 1);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '8px 0' }}>
+      {[...tokens].reverse().map(([k, v]) => {
+        const px = parseToPixels(v.$value);
+        const pct = (px / max) * 100;
+        return (
+          <div
+            key={k}
+            style={{
+              width: `${pct}%`,
+              minWidth: 80,
+              height: 40,
+              border: '2px solid #2563EB',
+              borderRadius: 8,
+              background: 'rgba(37, 99, 235, 0.04)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 12px',
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#2563EB' }}>{k}</span>
+            <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SpacingRenderer({ tokens }) {
+  return (
+    <div style={{ display: 'flex', gap: 32, alignItems: 'flex-end', padding: '8px 0' }}>
+      {tokens.map(([k, v]) => {
+        const px = parseToPixels(v.$value);
+        return (
+          <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 48,
+              height: Math.max(px, 16),
+              background: 'repeating-linear-gradient(0deg, #2563EB 0px, #2563EB 1px, rgba(37,99,235,0.08) 1px, rgba(37,99,235,0.08) 8px)',
+              borderRadius: 4,
+              border: '1px solid rgba(37,99,235,0.2)',
+            }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>{k}</span>
+            <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function GapRenderer({ tokens }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
+      {tokens.map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', width: 40, flexShrink: 0 }}>{k}</span>
+          <div style={{ display: 'flex', gap: v.$value }}>
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ width: 32, height: 32, borderRadius: 6, background: '#2563EB' }} />
+            ))}
+          </div>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RadiusRenderer({ tokens }) {
+  return (
+    <div style={{ display: 'flex', gap: 24, padding: '8px 0' }}>
+      {tokens.map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 56,
+            height: 56,
+            border: '2px solid #2563EB',
+            background: 'rgba(37,99,235,0.06)',
+            borderRadius: v.$value,
+          }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>{k}</span>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ScreenRenderer({ tokens }) {
+  const devices = { sm: '📱', md: '📱', lg: '💻', xl: '🖥️', '2xl': '🖥️' };
+  return (
+    <div style={{ display: 'flex', gap: 32, alignItems: 'flex-end', padding: '8px 0' }}>
+      {tokens.map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 32 }}>{devices[k] || '📺'}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>{k}</span>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const RENDERERS = {
+  bar: BarRenderer,
+  container: ContainerRenderer,
+  spacing: SpacingRenderer,
+  gap: GapRenderer,
+  radius: RadiusRenderer,
+  screen: ScreenRenderer,
+};
+
 // ─── Generic token fallback ─────────────────────────────────────────────────
 
 const GenericTokenRow = styled.div(({ theme }) => ({
@@ -404,10 +613,25 @@ function GenericGroup({ name, group }) {
   const subgroups = entries.filter(([, v]) => !isToken(v) && typeof v === 'object');
 
   return (
-    <DeboCollapsible title={name} count={tokens.length} defaultOpen={false}>
+    <DeboCollapsible title={groupTitle(name)} count={tokens.length} defaultOpen={false}>
       <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {tokens.map(([k, v]) => <GenericToken key={k} name={k} value={v.$value} />)}
         {subgroups.map(([k, v]) => <GenericGroup key={k} name={k} group={v} />)}
+      </div>
+    </DeboCollapsible>
+  );
+}
+
+function RenderedGroup({ name, group }) {
+  const renderer = getGroupRenderer(group);
+  const Comp = RENDERERS[renderer];
+  if (!Comp) return <GenericGroup name={name} group={group} />;
+
+  const tokens = Object.entries(group).filter(([k, v]) => !k.startsWith('$') && isToken(v));
+  return (
+    <DeboCollapsible title={groupTitle(name)} count={tokens.length} defaultOpen={true}>
+      <div style={{ padding: '16px 24px' }}>
+        <Comp tokens={tokens} />
       </div>
     </DeboCollapsible>
   );
@@ -453,7 +677,7 @@ export function DeboDesignTokens({ tokens }) {
       {hasTypography && <DeboTypographySection group={typographyGroup} />}
       {otherGroups.map(([key, group]) => (
         typeof group === 'object' && !isToken(group)
-          ? <GenericGroup key={key} name={key} group={group} />
+          ? <RenderedGroup key={key} name={key} group={group} />
           : null
       ))}
     </TokensWrapper>

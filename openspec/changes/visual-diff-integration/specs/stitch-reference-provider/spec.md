@@ -1,55 +1,55 @@
 ## ADDED Requirements
 
-### Requirement: designbook-stitch skill provides resolve-reference task
+### Requirement: designbook-stitch provides stitch-reference rule
 
-The `designbook-stitch` skill SHALL provide a `tasks/resolve-reference.md` task that resolves a `stitch://` reference URL to a local PNG image path using the Stitch MCP server.
+The `designbook-stitch` skill SHALL provide `rules/stitch-reference.md` with `when: steps: [resolve-reference], design_tool.type: stitch` that instructs the agent to resolve stitch:// references via Stitch MCP.
 
-#### Scenario: Resolve stitch reference to image
-- **WHEN** the resolve-reference task receives a reference with `type: stitch` and `url: stitch://project-id/screen-id`
-- **THEN** it calls `mcp__stitch__get_screen` with the screen ID
-- **AND** fetches the screenshot from `screenshot.downloadUrl` via WebFetch
-- **AND** saves the image to a local temporary path
-- **AND** returns the local image path
+#### Scenario: Resolve single stitch reference
+- **WHEN** the resolve-reference task loads the stitch-reference rule
+- **AND** the target has `reference: { type: stitch, url: "stitch://project/screen-123" }`
+- **THEN** the rule instructs: call `mcp__stitch__get_screen` → fetch `screenshot.downloadUrl` → save to `designbook/screenshots/{storyId}/reference/{breakpoint}.png`
+
+#### Scenario: Resolve per-breakpoint stitch references
+- **WHEN** the scene has `reference.screens` with multiple stitch URLs
+- **THEN** the rule instructs: resolve each screen separately, one reference image per breakpoint
+
+#### Scenario: Scene has no reference block
+- **WHEN** the scene has no `reference`
+- **THEN** the rule is loaded but has no work to do — resolve-reference task handles the skip
 
 #### Scenario: Stitch MCP unavailable
-- **WHEN** the Stitch MCP server is not configured or returns an error
-- **THEN** the task reports a clear error message indicating Stitch MCP is unavailable
-- **AND** the visual-diff task skips comparison (non-blocking)
+- **WHEN** `mcp__stitch__get_screen` returns an error
+- **THEN** the agent reports a warning and continues without reference
 
-#### Scenario: Screen not found in Stitch
-- **WHEN** the screen ID from the reference URL does not exist in Stitch
-- **THEN** the task reports which screen ID was not found
-- **AND** the visual-diff task skips comparison (non-blocking)
+### Requirement: designbook-stitch provides stitch-intake rule
 
-### Requirement: designbook-stitch skill provides list-screens task
+The `designbook-stitch` skill SHALL provide `rules/stitch-intake.md` with `when: steps: [design-shell:intake, design-screen:intake, design-component:intake], design_tool.type: stitch` that enhances the core reference intake with Stitch-specific screen selection via MCP.
 
-The `designbook-stitch` skill SHALL provide a `tasks/list-screens.md` task that lists available screens from a Stitch project for reference selection during design intake workflows.
+The core intake already asks for references when a design source is configured in guidelines. The stitch-intake rule adds MCP-based screen listing so the user can pick from available Stitch screens instead of entering URLs manually.
 
-#### Scenario: List screens for reference selection
-- **WHEN** the list-screens task runs during a design intake step
-- **THEN** it calls `mcp__stitch__list_screens` with the project from guidelines.yml `design_tool.project`
-- **AND** returns a numbered list of screens with titles for user selection
+#### Scenario: Screen selection via MCP during intake
+- **WHEN** the core intake asks for a reference
+- **AND** the design source type is `stitch`
+- **AND** the stitch-intake rule matches
+- **THEN** the rule instructs: call `mcp__stitch__list_screens`, present screens to user for selection per breakpoint
 
-#### Scenario: No project configured
-- **WHEN** `guidelines.yml` does not contain `design_tool.project`
-- **THEN** the task calls `mcp__stitch__list_projects` first
-- **AND** asks the user to select a project before listing screens
+#### Scenario: No stitch project configured
+- **WHEN** `guidelines.yml` has no `design_tool.project`
+- **THEN** the rule instructs: call `mcp__stitch__list_projects` first, ask user to select
 
-### Requirement: designbook-stitch skill follows addon skill conventions
-
-The `designbook-stitch` skill SHALL follow the designbook addon skill directory structure with SKILL.md, tasks/, and rules/ directories.
+### Requirement: designbook-stitch follows addon skill conventions
 
 #### Scenario: Skill directory structure
 - **WHEN** the designbook-stitch skill is created
-- **THEN** it has the structure:
+- **THEN** it has:
   ```
   .agents/skills/designbook-stitch/
   ├── SKILL.md
-  └── tasks/
-      ├── resolve-reference.md
-      └── list-screens.md
+  └── rules/
+      ├── stitch-reference.md
+      └── stitch-intake.md
   ```
 
 #### Scenario: SKILL.md metadata
 - **WHEN** the SKILL.md is loaded
-- **THEN** it has `name: designbook-stitch`, `user-invocable: false`, and `disable-model-invocation: true`
+- **THEN** it has `name: designbook-stitch`, `user-invocable: false`, `disable-model-invocation: true`

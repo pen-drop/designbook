@@ -1,7 +1,7 @@
 import { resolve, dirname } from 'node:path';
 import { mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { screenshot } from './screenshot.js';
+import { resolveUrl } from './resolve-url.js';
 import { findFreePort, getStatus, startDaemon, stopDaemon, logFilePath } from './storybook.js';
 import { Command } from 'commander';
 import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
@@ -612,7 +612,7 @@ workflow
     '--loaded <json>',
     'JSON payload with stage context (task_file, rules, config_rules, config_instructions) and task validation results',
   )
-  .action((opts: { workflow: string; task: string; loaded?: string }) => {
+  .action(async (opts: { workflow: string; task: string; loaded?: string }) => {
     const config = loadConfig();
     let loaded;
     if (opts.loaded) {
@@ -625,7 +625,7 @@ workflow
       }
     }
     try {
-      const result = workflowDone(config.data, opts.workflow, opts.task, loaded);
+      const result = await workflowDone(config.data, opts.workflow, opts.task, loaded);
       const { data, response } = result;
 
       if (result.archived) {
@@ -668,13 +668,14 @@ workflow
   });
 
 program
-  .command('screenshot')
-  .description('Screenshot Storybook scenes')
+  .command('resolve-url')
+  .description('Resolve scene reference to Storybook iframe URL')
   .requiredOption('--scene <ref>', 'Scene reference (e.g. design-system:shell, galerie:product-detail)')
-  .action(async (opts: { scene: string }) => {
+  .option('--file <path>', 'Explicit scenes.yml file path')
+  .action(async (opts: { scene: string; file?: string }) => {
     const config = loadConfig();
     try {
-      await screenshot(config, { scene: opts.scene });
+      await resolveUrl(config, { scene: opts.scene, file: opts.file });
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;
@@ -746,7 +747,7 @@ async function prepareEnvironment(
     const safeName = scene.replace(/[:/]/g, '-');
     const screenshotPath = resolve(screenshotDir, `${safeName}.png`);
     try {
-      execFileSync(cliExec, [...cliBaseArgs, 'screenshot', '--scene', scene], {
+      execFileSync(cliExec, [...cliBaseArgs, 'resolve-url', '--scene', scene], {
         env: { ...process.env, DESIGNBOOK_STORYBOOK_URL: previewUrl },
         stdio: 'inherit',
       });
@@ -896,7 +897,7 @@ workflow
       const prepResult = await prepareEnvironment(config.data, opts.workflow, workflow);
 
       // Mark the prepare-environment task done with preview info in loaded payload
-      const result = workflowDone(config.data, opts.workflow, opts.task, {
+      const result = await workflowDone(config.data, opts.workflow, opts.task, {
         preview_pid: prepResult.previewPid,
         preview_port: prepResult.previewPort,
         pre_test_screenshots: prepResult.screenshotPaths,

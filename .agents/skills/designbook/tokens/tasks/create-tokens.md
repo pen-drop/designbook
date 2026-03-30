@@ -2,22 +2,21 @@
 params:
   colors: {}
   typography: {}
+  type_scale: {}
+  breakpoints: {}
   container_widths: {}
   section_spacing: {}
 files:
   - file: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     key: design-tokens
     validators: [tokens]
-# Fallback: applies when no CSS framework-specific task file matches.
-# Framework-specific versions (e.g. designbook-css-daisyui/tasks/create-tokens.md)
-# take precedence when their `when` conditions match.
 ---
 
 # Create Design Tokens
 
 Write the result in W3C Design Token YAML format via stdin to the CLI:
 ```
- write-file $WORKFLOW_NAME $TASK_ID --key design-tokens
+write-file $WORKFLOW_NAME $TASK_ID --key design-tokens
 ```
 
 ## Format
@@ -51,30 +50,28 @@ layout-spacing:
 
 | Group | Required | Notes |
 |-------|----------|-------|
-| `color` | ✅ | Framework-specific names if CSS framework is set |
-| `typography` | ✅ | `heading`, `body`, `mono` sub-keys |
+| `color` | ✅ | Semantic names; framework-specific naming via rules |
+| `typography` | ✅ | `heading`, `body`, `mono` sub-keys (`$type: fontFamily`) |
 | `layout-width` | ✅ | `sm`, `md`, `lg`, `xl` — maps from dialog "container widths" |
 | `layout-spacing` | ✅ | `sm`, `md`, `lg` — maps from dialog "section spacing" |
-| `grid` | ❌ optional | `gap-sm`, `gap-md`, `gap-lg` |
 
-## Full Example (Generic)
+## Optional Groups
+
+| Group | When | Notes |
+|-------|------|-------|
+| `typography` (composite) | `type_scale` param provided | `$type: typography` tokens for type scale (h1, h2, body, etc.) |
+| `breakpoints` | `breakpoints` param provided | `$type: dimension` — responsive breakpoints |
+| `radius` | design requires it | `sm`, `md`, `lg` |
+| `shadow` | design requires it | `sm`, `md`, `lg` |
+| `grid` | design requires it | `gap-sm`, `gap-md`, `gap-lg` |
+
+## Typography Composite Tokens
+
+When the intake `type_scale` param is provided, generate `$type: typography` composite tokens in the `typography` group alongside the `fontFamily` tokens.
 
 ```yaml
-color:
-  primary:
-    $value: "#4F46E5"
-    $type: color
-    description: Main brand color
-  secondary:
-    $value: "#7C3AED"
-    $type: color
-    description: Secondary accent
-  neutral:
-    $value: "#6B7280"
-    $type: color
-    description: Neutral UI
-
 typography:
+  # Font families (always present)
   heading:
     $value: "Space Grotesk"
     $type: fontFamily
@@ -85,37 +82,31 @@ typography:
     $value: "JetBrains Mono"
     $type: fontFamily
 
-layout-width:
-  sm:
-    $value: "640px"
-    $type: dimension
-  md:
-    $value: "768px"
-    $type: dimension
-  lg:
-    $value: "1024px"
-    $type: dimension
-  xl:
-    $value: "1280px"
-    $type: dimension
-
-layout-spacing:
-  sm:
-    $value: "2rem"
-    $type: dimension
-    description: Tight sections
-  md:
-    $value: "4rem"
-    $type: dimension
-    description: Default section padding
-  lg:
-    $value: "6rem"
-    $type: dimension
-    description: Hero/spacious sections
+  # Type scale (from type_scale param)
+  h1:
+    $value:
+      fontFamily: "Space Grotesk"
+      fontSize: "2.25rem"
+      lineHeight: "2.5rem"
+      fontWeight: 700
+    $type: typography
+  body-lg:
+    $value:
+      fontFamily: "Inter"
+      fontSize: "1.125rem"
+      lineHeight: "1.75rem"
+      fontWeight: 400
+    $type: typography
 ```
+
+Rules:
+- Heading-level tokens (h1, h2, h3, display, title) use the heading font family
+- Body-level tokens (body, body-lg, small, caption) use the body font family
+- If intake specifies a modular scale ratio, calculate sizes from a 16px base
+- Token names are free-form — use whatever the user chose in intake
 
 ## Valid `$type` Values
 
 `color`, `fontFamily`, `dimension`, `number`, `fontWeight`, `duration`, `cubicBezier`, `shadow`, `gradient`, `transition`, `border`, `strokeStyle`, `typography`
 
-> CSS framework naming rules (e.g. DaisyUI semantic color names) are loaded automatically via rule files when `DESIGNBOOK_FRAMEWORK_CSS` matches.
+> Framework-specific naming rules (e.g. DaisyUI semantic colors, Tailwind breakpoint defaults) are loaded automatically via rule files when `DESIGNBOOK_FRAMEWORK_CSS` matches.

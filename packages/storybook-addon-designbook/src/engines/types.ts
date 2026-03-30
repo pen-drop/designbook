@@ -53,7 +53,7 @@ export interface WorkflowEngine {
   /** Write file content. Returns the path where the file was written. */
   writeFile(data: WorkflowFile, task: WorkflowTask, key: string, content: string): { path: string };
   /** Flush stashed files to target paths. Called at stage boundaries. Direct engine moves files; git-worktree is a no-op. */
-  flush(data: WorkflowFile, tasks: WorkflowTask[]): void;
+  flush(data: WorkflowFile, tasks: WorkflowTask[]): void | Promise<void>;
   /** Seal outputs after last non-test task. Called from workflowDone. */
   commit(data: WorkflowFile): void;
   /** Integrate outputs back. Called from workflowMerge. */
@@ -63,5 +63,5 @@ export interface WorkflowEngine {
   /** Tear down isolation on abandon. Called from workflowAbandon. */
   cleanup(data: WorkflowFile): void;
   /** Handle a lifecycle stage transition. */
-  onTransition(from: string, to: string, ctx: TransitionContext): TransitionResult;
+  onTransition(from: string, to: string, ctx: TransitionContext): TransitionResult | Promise<TransitionResult>;
 }

@@ -1,8 +1,7 @@
 ---
 name: designbook-skills
-disable-model-invocation: true
 user-invocable: false
-description: Meta-skill for creating and maintaining Designbook skills. Defines conventions for skill structure, tasks, rules, schema validation, and workflow integration. Load this skill Alwys if skills from designbook is load.
+description: Meta-skill for creating and maintaining Designbook skills. Defines conventions for skill structure, tasks, rules, schema validation, and workflow integration. Load this skill ALWAYS if skills from designbook is about to be changed.
 ---
 
 # Designbook Skills

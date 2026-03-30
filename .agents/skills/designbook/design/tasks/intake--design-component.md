@@ -107,7 +107,26 @@ Go to Step 4.
 >
 > Ready to create? (y/n)"
 
-Wait for response. If no, go back to relevant step. Once confirmed, the `create-component` stage runs automatically.
+Wait for response. If no, go back to relevant step.
+
+## Step 5: Design Reference (optional)
+
+Check `guidelines.yml` for a `design_reference` entry. If a design source is configured:
+
+1. Ask the user for a design reference for this component:
+
+> "Your guidelines have a design reference configured. Do you have a specific design reference for this component?
+>
+> - Enter a reference URL (Figma, Stitch, website, image)
+> - Or skip (no reference)"
+
+2. Optionally ask for per-breakpoint references if relevant.
+
+3. Delegate storage to the framework skill's component-reference rule (the storage location is framework-specific, e.g. `.component.yml` for Drupal).
+
+If no `design_reference` is configured, skip this step silently.
+
+Once confirmed, the `create-component` stage runs automatically.
 
 **Guardrails**
 

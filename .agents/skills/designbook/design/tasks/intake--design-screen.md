@@ -144,6 +144,26 @@ Present a complete summary of everything that will be built before any files are
 
 Wait for final confirmation before handing off to the next stage.
 
+## Step 6: Design Reference (optional)
+
+Check `guidelines.yml` for a `design_reference` entry. If a design source is configured:
+
+1. Ask the user which design reference matches each screen:
+
+> "Your guidelines have a design reference configured. Which design screen matches each planned screen?
+>
+> **[screen 1 name]:**
+> - Enter a reference URL, or skip
+>
+> **[screen 2 name]:**
+> - Enter a reference URL, or skip
+>
+> For each screen, you can also specify per-breakpoint references (e.g. different mobile vs desktop designs)."
+
+2. Store the selection as a `reference` param for each scene.
+
+If no `design_reference` is configured, skip this step silently.
+
 **Guardrails**
 
 - Reference the section spec for required user flows and UI requirements

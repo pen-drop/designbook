@@ -10,7 +10,7 @@ import { resolve, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
 import type { ValidationFileResult, StageParam, StageDefinition, TaskFile } from './workflow-types.js';
-import { withLock, withLockAsync } from './workflow-lock.js';
+import { withLockAsync } from './workflow-lock.js';
 import { engines } from './engines/index.js';
 import { getNextStage, getNextStep, checkStageParams, interpolatePrompt } from './workflow-lifecycle.js';
 
@@ -376,16 +376,16 @@ export interface LoadedPayload {
  * @param loaded - Optional context recorded for observability (stage-level data deduplicated, task-level validation stored per task)
  * @returns `{ archived, data }` — archived indicates whether the workflow was archived
  */
-export function workflowDone(
+export async function workflowDone(
   dataDir: string,
   name: string,
   taskId: string,
   loaded?: LoadedPayload,
-): { archived: boolean; data: WorkflowFile; response?: StageResponse } {
+): Promise<{ archived: boolean; data: WorkflowFile; response?: StageResponse }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
 
-  return withLock(filePath, () => {
+  return withLockAsync(filePath, async () => {
     const data = readWorkflow(filePath) as WorkflowFile & { _changesDir?: string };
     data._changesDir = changesDir; // transient: used by direct engine for stash path
 
@@ -471,7 +471,7 @@ export function workflowDone(
       while (nextStage) {
         // Run engine transition
         if (engine) {
-          const transitionResult = engine.onTransition(fromStage, nextStage, { data });
+          const transitionResult = await engine.onTransition(fromStage, nextStage, { data });
 
           if (transitionResult.requires) {
             const promptState: Record<string, unknown> = {
