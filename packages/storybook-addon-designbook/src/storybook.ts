@@ -140,15 +140,19 @@ export async function startDaemon(opts: {
   port: number;
   dataDir: string;
   cwd?: string;
+  force?: boolean;
 }): Promise<StartResult> {
-  const { cmd, port, dataDir, cwd } = opts;
+  const { cmd, port, dataDir, cwd, force } = opts;
 
-  // Guard: refuse to start if a Storybook is already running
   const status = getStatus(dataDir);
   if (status.running) {
-    throw new Error(
-      `Storybook is already running (pid ${status.pid}, port ${status.port}). Use 'storybook restart' to replace it.`,
-    );
+    if (force) {
+      await stopDaemon(dataDir, status.pid);
+    } else {
+      throw new Error(
+        `Storybook is already running (pid ${status.pid}, port ${status.port}). Use --force to replace it.`,
+      );
+    }
   }
 
   const fullCmd = `${cmd} --port ${port}`;

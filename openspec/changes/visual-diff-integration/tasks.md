@@ -21,8 +21,8 @@
 ## 4. designbook-stitch Skill (rules only)
 
 - [x] 4.1 Create `designbook-stitch/SKILL.md`
-- [x] 4.2 Create `designbook-stitch/rules/stitch-reference.md` — `when: steps: [resolve-reference], design_tool.type: stitch`. Instructs: mcp__stitch__get_screen → fetch screenshot.downloadUrl → save to `reference/{breakpoint}.png`.
-- [x] 4.3 Create `designbook-stitch/rules/stitch-intake.md` — `when: steps: [design-shell:intake, design-screen:intake, design-component:intake], design_tool.type: stitch`. Enhances core reference intake with MCP-based screen listing.
+- [x] 4.2 Create `designbook-stitch/rules/stitch-reference.md` — `when: steps: [resolve-reference], extensions: stitch`. Instructs: mcp__stitch__get_screen → fetch screenshot.downloadUrl → save to `reference/{breakpoint}.png`.
+- [x] 4.3 Create `designbook-stitch/rules/stitch-intake.md` — `when: steps: [design-shell:intake, design-screen:intake, design-component:intake], extensions: stitch`. Enhances core reference intake with MCP-based screen listing.
 
 ## 5. designbook-devtools Skill (rules only)
 

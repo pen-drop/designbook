@@ -768,7 +768,8 @@ storybookCmd
   .command('start')
   .description('Start Storybook dev server and exit when ready (Storybook continues as daemon)')
   .option('--port <port>', 'Port to start Storybook on (auto-detected when omitted)')
-  .action(async (opts: { port?: string }) => {
+  .option('--force', 'Stop any running Storybook before starting')
+  .action(async (opts: { port?: string; force?: boolean }) => {
     const config = loadConfig(process.env['DESIGNBOOK_HOME']);
     const storybookCmdStr = config['designbook.cmd'] as string | undefined;
     if (!storybookCmdStr) {
@@ -783,6 +784,7 @@ storybookCmd
       port,
       dataDir: config.data,
       cwd: config['designbook.home'] as string | undefined,
+      force: opts.force,
     });
 
     console.log(JSON.stringify(result));

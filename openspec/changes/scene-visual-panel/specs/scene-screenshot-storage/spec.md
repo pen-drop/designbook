@@ -1,39 +1,28 @@
 ## ADDED Requirements
 
-### Requirement: Screenshots stored per scene per breakpoint in directory structure
+### Requirement: Screenshots stored per storyId per breakpoint
 
-Visual artifacts SHALL be stored in a structured directory under the scenes file's parent directory.
+Visual artifacts SHALL be stored in `designbook/screenshots/{storyId}/` with `storybook/` and `reference/` subdirectories, as defined in the visual-diff-integration change (Decision 9).
 
-#### Scenario: Section scene screenshots
-- **WHEN** the screenshot task captures screenshots for scene "product-detail" in section "galerie"
+#### Scenario: Scene screenshots
+- **WHEN** the screenshot task captures screenshots for a scene with storyId `designbook-design-system--shell`
 - **THEN** screenshots are stored at:
   ```
-  sections/galerie/screenshots/product-detail/
-    desktop.png
-    sm.png
-    md.png
+  designbook/screenshots/designbook-design-system--shell/
+    storybook/
+      default.png
+      sm.png
+      xl.png
   ```
 
-#### Scenario: Design system scene screenshots
-- **WHEN** the screenshot task captures screenshots for scene "shell" in design-system
-- **THEN** screenshots are stored at:
-  ```
-  design-system/screenshots/shell/
-    desktop.png
-    sm.png
-  ```
-
-### Requirement: References stored in reference subdirectory
-
-Reference images resolved by the resolve-reference task SHALL be stored in a `reference/` subdirectory alongside screenshots.
-
-#### Scenario: Stitch references per breakpoint
-- **WHEN** the resolve-reference task resolves references for scene "product-detail"
+#### Scenario: Reference images
+- **WHEN** the resolve-reference task resolves references for the same scene
 - **THEN** references are stored at:
   ```
-  sections/galerie/screenshots/product-detail/reference/
-    desktop.png
-    sm.png
+  designbook/screenshots/designbook-design-system--shell/
+    reference/
+      default.png
+      sm.png
   ```
 
 ### Requirement: Visual-compare report stored as report.md
@@ -41,16 +30,16 @@ Reference images resolved by the resolve-reference task SHALL be stored in a `re
 The visual-compare task SHALL write its report as `report.md` in the scene's screenshot directory.
 
 #### Scenario: Report written
-- **WHEN** the visual-compare task completes for scene "product-detail"
+- **WHEN** the visual-compare task completes for storyId `designbook-design-system--shell`
 - **THEN** the report is written to:
   ```
-  sections/galerie/screenshots/product-detail/report.md
+  designbook/screenshots/designbook-design-system--shell/report.md
   ```
 
 ### Requirement: Screenshot directories are gitignored
 
-Screenshot directories SHALL be gitignored since they are generated artifacts.
+The `designbook/screenshots/` directory SHALL be gitignored since it contains generated artifacts.
 
 #### Scenario: Gitignore pattern
 - **WHEN** the project has a `.gitignore`
-- **THEN** it includes `**/screenshots/` or equivalent pattern to exclude generated screenshots
+- **THEN** it includes `designbook/screenshots/` to exclude generated screenshots

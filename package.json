@@ -19,7 +19,7 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "test:prompt": "npx promptfoo eval -c promptfoo.yaml",
-    "dev": "pnpm --filter storybook-addon-designbook clean && pnpm --filter storybook-addon-designbook build && export DESIGNBOOK_HOME=$(pwd)/workspaces/drupal && pnpm --filter storybook-addon-designbook run cli storybook start",
+    "dev": "pnpm --filter storybook-addon-designbook clean && pnpm --filter storybook-addon-designbook build && export DESIGNBOOK_HOME=$(pwd)/workspaces/drupal && pnpm --filter storybook-addon-designbook run cli storybook start --force",
     "dev:addon": "pnpm --filter storybook-addon-designbook build:watch",
     "dev:integration:drupal": "pnpm --filter test-integration-drupal storybook",
     "check": "run-s typecheck lint test",

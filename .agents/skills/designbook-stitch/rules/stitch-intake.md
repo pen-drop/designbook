@@ -1,7 +1,7 @@
 ---
 when:
   steps: [design-shell:intake, design-screen:intake, design-component:intake]
-  design_tool.type: stitch
+  extensions: stitch
 ---
 
 # Stitch Intake — Screen Selection
@@ -12,9 +12,9 @@ Enhances the core reference intake with MCP-based Stitch screen listing. When th
 
 ### 1. List Available Screens
 
-If `guidelines.yml` has `design_tool.project`, call `mcp__stitch__get_project` to verify the project, then `mcp__stitch__list_screens` to get available screens.
+If `guidelines.yml` has `design_reference` with a `stitch://project-id/...` URL, extract the project ID and call `mcp__stitch__get_project` to verify, then `mcp__stitch__list_screens` to get available screens.
 
-If no project is configured, call `mcp__stitch__list_projects` first and ask the user to select a project.
+If no `design_reference` is configured, call `mcp__stitch__list_projects` first and ask the user to select a project.
 
 ### 2. Present Screens for Selection
 

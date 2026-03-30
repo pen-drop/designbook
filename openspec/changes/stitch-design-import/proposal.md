@@ -6,7 +6,7 @@ When users have an existing Stitch project with designed screens, they manually 
 
 - Add `stitch-tokens` rule to `designbook-stitch` skill: during `tokens:intake`, fetch `designTheme` from Stitch project via `get_project` and propose token values (colors, fonts, roundness, color mode)
 - Add `stitch-guidelines` rule to `designbook-stitch` skill: during `design-guidelines:intake`, fetch screen HTML via `get_screen` → `htmlCode.downloadUrl`, analyze component patterns, layout principles, and visual atmosphere, and propose guidelines values
-- Both rules are optional — only active when `design_tool.type: stitch` is configured in `guidelines.yml`
+- Both rules are optional — only active when `stitch` is listed in `extensions` in `designbook.config.yml`
 
 ## Capabilities
 

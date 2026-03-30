@@ -2,7 +2,7 @@
 
 ### Requirement: stitch-tokens rule imports designTheme during tokens intake
 
-The `designbook-stitch` skill SHALL provide `rules/stitch-tokens.md` with `when: steps: [tokens:intake], design_tool.type: stitch` that fetches the Stitch project's designTheme and proposes token values.
+The `designbook-stitch` skill SHALL provide `rules/stitch-tokens.md` with `when: steps: [tokens:intake], extensions: stitch` that fetches the Stitch project's designTheme and proposes token values. The Stitch project ID is read from `guidelines.yml` → `design_reference.url` (e.g. `stitch://project-id/screen-id`).
 
 #### Scenario: Full designTheme available
 - **WHEN** the tokens intake loads the stitch-tokens rule
@@ -46,14 +46,14 @@ The stitch-tokens rule SHALL map Stitch roundness enums to pixel values.
 - **WHEN** designTheme contains a roundness enum
 - **THEN** the mapping is: `ROUND_FOUR` → `"4px"`, `ROUND_EIGHT` → `"8px"`, `ROUND_TWELVE` → `"12px"`, `ROUND_FULL` → `"9999px"`
 
-### Requirement: design_tool.type from designbook config
+### Requirement: Extension-based skill loading
 
-The rule's `when` condition SHALL use `design_tool.type: stitch` which is read from the designbook config (not guidelines.yml).
+The rule's `when` condition SHALL use `extensions: stitch` which is read from `designbook.config.yml`. The `extensions` array controls which extension skills are loaded.
 
-#### Scenario: Stitch configured in designbook config
-- **WHEN** the designbook config has `design_tool.type: stitch`
+#### Scenario: Stitch extension configured
+- **WHEN** `designbook.config.yml` has `extensions: [stitch]` (or `- id: stitch`)
 - **THEN** the stitch-tokens rule matches for the `tokens:intake` step
 
-#### Scenario: No design tool configured
-- **WHEN** the designbook config does not have `design_tool.type`
+#### Scenario: No stitch extension configured
+- **WHEN** `designbook.config.yml` does not list `stitch` in `extensions`
 - **THEN** the stitch-tokens rule does not match

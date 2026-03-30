@@ -2,7 +2,7 @@
 
 ### Requirement: designbook-stitch provides stitch-reference rule
 
-The `designbook-stitch` skill SHALL provide `rules/stitch-reference.md` with `when: steps: [resolve-reference], design_tool.type: stitch` that instructs the agent to resolve stitch:// references via Stitch MCP.
+The `designbook-stitch` skill SHALL provide `rules/stitch-reference.md` with `when: steps: [resolve-reference], extensions: stitch` that instructs the agent to resolve stitch:// references via Stitch MCP.
 
 #### Scenario: Resolve single stitch reference
 - **WHEN** the resolve-reference task loads the stitch-reference rule
@@ -23,7 +23,7 @@ The `designbook-stitch` skill SHALL provide `rules/stitch-reference.md` with `wh
 
 ### Requirement: designbook-stitch provides stitch-intake rule
 
-The `designbook-stitch` skill SHALL provide `rules/stitch-intake.md` with `when: steps: [design-shell:intake, design-screen:intake, design-component:intake], design_tool.type: stitch` that enhances the core reference intake with Stitch-specific screen selection via MCP.
+The `designbook-stitch` skill SHALL provide `rules/stitch-intake.md` with `when: steps: [design-shell:intake, design-screen:intake, design-component:intake], extensions: stitch` that enhances the core reference intake with Stitch-specific screen selection via MCP.
 
 The core intake already asks for references when a design source is configured in guidelines. The stitch-intake rule adds MCP-based screen listing so the user can pick from available Stitch screens instead of entering URLs manually.
 
@@ -34,7 +34,7 @@ The core intake already asks for references when a design source is configured i
 - **THEN** the rule instructs: call `mcp__stitch__list_screens`, present screens to user for selection per breakpoint
 
 #### Scenario: No stitch project configured
-- **WHEN** `guidelines.yml` has no `design_tool.project`
+- **WHEN** `guidelines.yml` has no `design_reference`
 - **THEN** the rule instructs: call `mcp__stitch__list_projects` first, ask user to select
 
 ### Requirement: designbook-stitch follows addon skill conventions

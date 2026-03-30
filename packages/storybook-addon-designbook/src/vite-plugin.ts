@@ -144,9 +144,12 @@ export function designbookLoadPlugin(
         return null;
       };
 
-      server.watcher.add(designbookDir);
-
-      const isDesignbookFile = (file: string) => file.startsWith(designbookDir);
+      server.watcher.add(resolve(designbookDir, 'data-model.yml'));
+      server.watcher.add(resolve(designbookDir, 'design-system'));
+      server.watcher.add(resolve(designbookDir, 'product'));
+      server.watcher.add(resolve(designbookDir, 'sections'));
+      server.watcher.add(resolve(designbookDir, 'tokens'));
+      server.watcher.add(resolve(designbookDir, 'workflows'));
 
       for (const [watchEvent, channelEvent] of [
         ['add', 'designbook:file-add'],
@@ -154,13 +157,10 @@ export function designbookLoadPlugin(
         ['unlink', 'designbook:file-delete'],
       ] as const) {
         server.watcher.on(watchEvent, (file: string) => {
-          if (!isDesignbookFile(file)) return;
+          if (!file.startsWith(designbookDir)) return;
           const relPath = relative(designbookDir, file);
           const fileType = resolveFileType(relPath);
-          if (!fileType) {
-            console.debug('[Designbook] watcher: no fileType matched for', relPath, '— skipping');
-            return;
-          }
+          if (!fileType) return;
           const payload = { fileType, path: relPath };
           console.debug('[Designbook] watcher:', watchEvent, relPath, '→ sending', channelEvent, payload);
           server.ws.send({

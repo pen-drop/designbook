@@ -2,7 +2,7 @@
 
 ### Requirement: stitch-guidelines rule analyzes screen HTML during guidelines intake
 
-The `designbook-stitch` skill SHALL provide `rules/stitch-guidelines.md` with `when: steps: [design-guidelines:intake], design_tool.type: stitch` that fetches Stitch screen HTML and proposes guidelines values.
+The `designbook-stitch` skill SHALL provide `rules/stitch-guidelines.md` with `when: steps: [design-guidelines:intake], extensions: stitch` that fetches Stitch screen HTML and proposes guidelines values.
 
 #### Scenario: Screen HTML available
 - **WHEN** the guidelines intake loads the stitch-guidelines rule
@@ -67,10 +67,10 @@ When the stitch-guidelines rule successfully analyzes a screen, it SHALL propose
     server: stitch
   ```
 
-### Requirement: design_tool.type from designbook config
+### Requirement: Extension-based skill loading
 
-The rule's `when` condition SHALL use `design_tool.type: stitch` from the designbook config.
+The rule's `when` condition SHALL use `extensions: stitch` from `designbook.config.yml`.
 
-#### Scenario: Stitch configured
-- **WHEN** the designbook config has `design_tool.type: stitch`
+#### Scenario: Stitch extension configured
+- **WHEN** `designbook.config.yml` has `extensions: [stitch]` (or `- id: stitch`)
 - **THEN** the stitch-guidelines rule matches for `design-guidelines:intake`

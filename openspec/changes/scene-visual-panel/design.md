@@ -24,55 +24,49 @@ The existing `/__designbook/load` endpoint serves files from the designbook data
 
 ## Decisions
 
-### Decision 1: Addon panel tab per scene story
+### Decision 1: Top-level "Visual" tab per scene story
 
-When viewing a scene story, the addon panel gets a "Visual" tab (alongside the existing workflow tab). This tab shows screenshots, references, compare, and report for that specific scene.
+When viewing a scene story, a "Visual" tab appears alongside Canvas and Docs (using Storybook's `types.TAB` addon type). This tab shows screenshots, references, compare, and report for that specific scene.
 
-The panel reads `parameters.scene.source` from the current story to find the scene file, then looks for visual artifacts in the corresponding screenshot directory.
+The tab reads `parameters.scene.source` from the current story to find the scene file, then looks for visual artifacts in the corresponding screenshot directory.
 
-**Alternative**: New page-level component.
-**Why rejected**: Pages are for overview. The visual panel is contextual to a specific scene — panel is the right place.
+Verified: `types.TAB` works with generated JS stories in Storybook 10.
 
-### Decision 2: Screenshot storage per scene per breakpoint
+**Alternative considered**: Addon panel tab (in bottom panel).
+**Why rejected**: Panel is cramped for image comparison. A full-width tab gives proper space for side-by-side breakpoint views.
 
-```
-designbook/
-  sections/{sectionId}/
-    screenshots/
-      {sceneName}/
-        desktop.png
-        sm.png
-        md.png
-        reference/
-          desktop.png
-          sm.png
-        report.md
-  design-system/
-    screenshots/
-      shell/
-        desktop.png
-        sm.png
-        reference/
-          desktop.png
-        report.md
-```
+### Decision 2: Screenshot storage per storyId (aligned with visual-diff-integration)
 
-The `screenshot` core task writes to this structure. The `resolve-reference` task writes to the `reference/` subdirectory. The `visual-compare` task writes `report.md`.
-
-**Alternative**: Flat screenshots directory with naming convention (`shell-desktop.png`).
-**Why rejected**: Directory structure is cleaner and easier to serve via `/__designbook/load`.
-
-### Decision 3: Panel tabs structure
+Uses the storage convention from visual-diff-integration (Decision 9):
 
 ```
-Visual Panel (per scene):
+designbook/screenshots/
+  {storyId}/
+    storybook/
+      sm.png
+      xl.png
+      default.png
+    reference/
+      sm.png
+      xl.png
+    report.md
+```
+
+The `screenshot` core task writes to `storybook/`. The `resolve-reference` task writes to `reference/`. The `visual-compare` task writes `report.md`. The Visual tab reads all three.
+
+StoryId is the universal key — works for scenes, components, and variants.
+
+### Decision 3: Visual tab internal structure
+
+```
+Visual Tab (per scene, full width):
 ├─ Screenshots    Grid of breakpoint screenshots
 ├─ References     Grid of breakpoint reference images
 ├─ Compare        Side-by-side: screenshot | reference per breakpoint
 └─ Report         visual-compare report.md rendered as HTML
 ```
 
-Empty tabs show `DeboEmptyState` with the command to generate (e.g. `/debo design-screen`).
+Internal navigation via sub-tabs within the Visual tab view. Empty states show `DeboEmptyState` with the command to generate (e.g. `/debo design-screen`).
 
 ### Decision 4: Section-level screenshots tab removed
 
@@ -82,4 +76,4 @@ The `DeboSectionPage` screenshots tab (reading from `screenshots.md`) is removed
 
 - **[Many images loaded]** → Panel only loads images for the currently viewed scene. Breakpoint images are lazy-loaded.
 - **[Storage size]** → PNG screenshots at multiple breakpoints per scene can be large. Mitigation: screenshots are gitignored, regenerated on demand.
-- **[Panel space]** → Side-by-side comparison needs horizontal space. Mitigation: responsive layout, stack vertically on narrow panels.
+- **[Tab space]** → Full-width tab provides ample space for side-by-side comparison. Responsive layout stacks vertically on narrow viewports.

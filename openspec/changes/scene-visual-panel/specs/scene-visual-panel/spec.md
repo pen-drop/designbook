@@ -1,13 +1,13 @@
 ## ADDED Requirements
 
-### Requirement: Addon panel shows Visual tab for scene stories
+### Requirement: Top-level "Visual" tab for scene stories
 
-When viewing a scene story, the addon panel SHALL display a "Visual" tab showing screenshots, references, comparison, and report for that scene.
+When viewing a scene story, a "Visual" tab SHALL appear alongside Canvas and Docs (using Storybook `types.TAB`). The tab shows screenshots, references, comparison, and report for that scene.
 
 #### Scenario: Scene story with screenshots available
 - **WHEN** the user views a scene story
-- **AND** screenshots exist in `screenshots/{sceneName}/`
-- **THEN** the addon panel shows a "Visual" tab with sub-tabs: Screenshots, References, Compare, Report
+- **AND** screenshots exist in `designbook/screenshots/{storyId}/`
+- **THEN** the "Visual" tab appears alongside Canvas/Docs with sub-tabs: Screenshots, References, Compare, Report
 
 #### Scenario: Scene story without screenshots
 - **WHEN** the user views a scene story
@@ -16,7 +16,7 @@ When viewing a scene story, the addon panel SHALL display a "Visual" tab showing
 
 #### Scenario: Non-scene story
 - **WHEN** the user views a story that is not a scene (no `parameters.scene` in story metadata)
-- **THEN** the Visual tab is not shown
+- **THEN** the Visual tab shows empty state (tab is always registered but content is contextual)
 
 ### Requirement: Screenshots tab shows breakpoint grid
 
@@ -56,8 +56,8 @@ The Compare sub-tab SHALL display screenshot and reference side-by-side per brea
 - **WHEN** a screenshot exists but no reference for that breakpoint
 - **THEN** the screenshot is shown alone with a note "No reference for this breakpoint"
 
-#### Scenario: Narrow panel
-- **WHEN** the addon panel is narrower than 600px
+#### Scenario: Narrow viewport
+- **WHEN** the tab viewport is narrower than 600px
 - **THEN** the side-by-side layout stacks vertically (screenshot above, reference below)
 
 ### Requirement: Report tab shows visual-compare report
@@ -72,31 +72,25 @@ The Report sub-tab SHALL render the `report.md` file as formatted HTML.
 - **WHEN** no report.md exists
 - **THEN** the tab shows empty state: "No visual comparison report yet"
 
-### Requirement: Panel reads scene context from story parameters
+### Requirement: Tab reads scene context from story parameters
 
-The panel SHALL use `parameters.scene.source` from the current story to determine the scenes file path, then derive the screenshot directory from the scene name.
+The Visual tab SHALL use the current story's ID to derive the screenshot directory path (`designbook/screenshots/{storyId}/`).
 
-#### Scenario: Design system scene
-- **WHEN** story has `parameters.scene.source` pointing to `design-system/design-system.scenes.yml`
-- **AND** the story name maps to scene "shell"
-- **THEN** the panel looks for screenshots in `design-system/screenshots/shell/`
-
-#### Scenario: Section scene
-- **WHEN** story has `parameters.scene.source` pointing to `sections/galerie/galerie.section.scenes.yml`
-- **AND** the story name maps to scene "product-detail"
-- **THEN** the panel looks for screenshots in `sections/galerie/screenshots/product-detail/`
+#### Scenario: Story ID maps to screenshot directory
+- **WHEN** the current story has ID `designbook-design-system--shell`
+- **THEN** the tab looks for screenshots in `designbook/screenshots/designbook-design-system--shell/`
 
 ### Requirement: Images served via /__designbook/load endpoint
 
 All screenshots and references SHALL be loaded via the existing `/__designbook/load?path=` endpoint.
 
 #### Scenario: Screenshot image loaded
-- **WHEN** the panel displays a screenshot
-- **THEN** the img src is `/__designbook/load?path=sections/galerie/screenshots/product-detail/desktop.png`
+- **WHEN** the tab displays a screenshot
+- **THEN** the img src is `/__designbook/load?path=designbook/screenshots/{storyId}/storybook/sm.png`
 
 ### Requirement: DeboSectionPage screenshots tab removed
 
-The section-level Screenshots tab in `DeboSectionPage` SHALL be removed. Visual artifacts are now per-scene in the addon panel.
+The section-level Screenshots tab in `DeboSectionPage` SHALL be removed. Visual artifacts are now per-scene in the Visual tab.
 
 #### Scenario: Section page without screenshots tab
 - **WHEN** the user views a section page
