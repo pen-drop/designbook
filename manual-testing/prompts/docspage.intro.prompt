@@ -20,8 +20,8 @@ Remove all other content types (no products, articles, taxonomies, views).
 
 ## 3. /debo design-guidelines
 
-- **Design reference:** Stitch — https://stitch.withgoogle.com/projects/5626339350367683412
-- **MCP server:** stitch / https://stitch.googleapis.com/mcp
+- **Design reference:** URL — https://example.com/design-reference
+- **MCP server:** (none)
 - **Component patterns:**
   - Always use layout components: container, grid, section
   - Section is used in Canvas and provides slots: `column_1`, `column_2`

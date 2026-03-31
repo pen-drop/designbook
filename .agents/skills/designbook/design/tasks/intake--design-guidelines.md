@@ -18,7 +18,7 @@ Send a single message asking for all information together:
 > "Let's set up your design guidelines — answer what applies, skip the rest:
 >
 > 1. **References** — Any design systems, websites, or visual styles you're drawing inspiration from? (URLs or names)
-> 2. **Design reference** — Primary design source: Figma, Stitch, website URL, or image? (URL + short label)
+> 2. **Design reference** — Primary design source: website URL, image, or integration-specific (e.g. a design tool)? (URL + short label)
 > 3. **Principles** — Design principles that always apply? (e.g. 'accessible by default', 'mobile-first')
 > 4. **Component patterns** — Composition rules to always follow? (e.g. 'cards always use card-header + card-body')
 > 5. **Naming** — Component naming convention? Default: kebab-case. Share 2–3 examples (e.g. `hero-section`, `card-teaser`)

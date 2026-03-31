@@ -39,25 +39,32 @@ If the user wants per-breakpoint references, ask which screen maps to each break
 
 ### 4. Store the Reference
 
-Build the reference object:
+Build the reference array with one entry per breakpoint:
 
 ```yaml
-# Single screen:
+# Single breakpoint:
 reference:
-  type: stitch
-  url: stitch://project-id/screen-id
-  title: "Screen Title"
+  - type: stitch
+    url: stitch://project-id/screen-id
+    breakpoint: xl
+    threshold: 3
+    title: "Screen Title"
 
-# Per-breakpoint:
+# Multiple breakpoints:
 reference:
-  type: stitch
-  screens:
-    xl: stitch://project-id/screen-desktop
-    sm: stitch://project-id/screen-mobile
-  title: "Screen Title (multi-breakpoint)"
+  - type: stitch
+    url: stitch://project-id/screen-desktop
+    breakpoint: xl
+    threshold: 3
+    title: "Desktop View"
+  - type: stitch
+    url: stitch://project-id/screen-mobile
+    breakpoint: sm
+    threshold: 5
+    title: "Mobile View"
 ```
 
-For scenes: store directly in the scene's `reference` block.
+For scenes: store directly in the scene's `reference` array.
 
 For components: delegate storage to the framework skill's component-reference rule.
 

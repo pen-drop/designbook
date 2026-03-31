@@ -40,9 +40,11 @@ group: "Designbook/Sections/{{ section_title }}"
 scenes:
   - name: "[Scene Name]"
     reference:       # optional — write when provided
-      type: "<stitch|figma|etc.>"
-      url: "<resource URL>"
-      title: "<label>"
+      - type: "<url|image|...>"
+        url: "<resource URL>"
+        breakpoint: "<breakpoint name>"
+        threshold: 3
+        title: "<label>"
     items:
       - scene: "design-system:[shell_name]"
         with:

@@ -20,24 +20,26 @@ Determine if the target is a **scene** or a **component**:
 - If `${scene}` contains `:` → it's a scene reference. Read the `*.scenes.yml` file to find the `reference` block.
 - If the target is a component → read matched framework skill rules for component reference resolution. If no rule matches, skip with: "No component-reference rule — skipping."
 
-## Step 2: Read Reference Block
+## Step 2: Read Reference Array
 
-For scenes, the `reference` block looks like:
+For scenes, the `reference` is an array where each entry represents one breakpoint:
 
 ```yaml
 reference:
-  type: stitch | image | figma | url
-  url: "..."
-  title: "..."
-  screens:           # optional, per-breakpoint
-    xl: "..."
-    sm: "..."
+  - type: url
+    url: "https://..."
+    breakpoint: sm
+    threshold: 5
+    title: "Mobile View"
+  - type: image
+    url: "..."
+    breakpoint: xl
+    threshold: 2
 ```
 
-- If no `reference` block exists → skip with: "No reference — skipping."
-- If `screens` exists → resolve each breakpoint separately.
-- If only `url` exists (no `screens`) → use `url` for all breakpoints.
-- Missing breakpoint in `screens` → fall back to the largest defined breakpoint.
+- If no `reference` array exists → skip with: "No reference — skipping."
+- Each entry is resolved independently by its `type`.
+- Mixed types are allowed (e.g. url for mobile, image for desktop). Integration skills can add custom types.
 
 ## Step 3: Resolve storyId
 
@@ -45,14 +47,14 @@ Run `_debo resolve-url --scene ${scene}` to get the `storyId` for the output pat
 
 ## Step 4: Read Matched Rules and Resolve
 
-Read all matched rules for the `resolve-reference` step. Rules provide type-specific resolution instructions:
+For each entry in the `reference` array, resolve by its `type`. Rules provide type-specific resolution:
 
-- **`url`** → `url-reference` rule: screenshot the website at each breakpoint via Playwright
+- **`url`** → `url-reference` rule: screenshot the URL at the entry's breakpoint via Playwright
 - **`image`** → `image-reference` rule: fetch image directly via WebFetch/Read
-- **`stitch`** → `stitch-reference` rule (from designbook-stitch): use MCP to fetch screenshot
+- Integration-specific types (e.g. from design tool skills) → matched rule from the corresponding skill
 - **Unknown type with no matching rule** → warn and skip
 
-Save resolved images to:
+Save each resolved image to:
 
 ```
 designbook/screenshots/${storyId}/reference/${breakpoint}.png
@@ -70,5 +72,5 @@ Report which references were resolved:
 
 | Breakpoint | Source | Path |
 |-----------|--------|------|
-| sm        | stitch://... | `designbook/screenshots/{storyId}/reference/sm.png` |
-| xl        | stitch://... | `designbook/screenshots/{storyId}/reference/xl.png` |
+| sm        | https://example.com/mobile | `designbook/screenshots/{storyId}/reference/sm.png` |
+| xl        | https://example.com/desktop | `designbook/screenshots/{storyId}/reference/xl.png` |

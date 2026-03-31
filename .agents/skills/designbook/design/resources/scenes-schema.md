@@ -47,20 +47,26 @@ $defs:
       docs:
         type: string
       reference:
-        type: object
-        description: Design source for visual diff testing.
-        properties:
-          type:
-            type: string
-            enum: [stitch, image, figma, url]
-          url:
-            type: string
-          title:
-            type: string
-          screens:
-            type: object
-            description: Per-breakpoint reference URLs. Keys MUST match breakpoint names from design-tokens.yml.
-            additionalProperties:
+        type: array
+        description: Design references for visual diff testing. Each entry represents one breakpoint with its own source type, URL, and optional diff threshold.
+        items:
+          type: object
+          required: [type, url, breakpoint]
+          properties:
+            type:
+              type: string
+              type: string
+              description: Built-in types are "url" and "image". Integration skills can register additional types (e.g. stitch, figma).
+            url:
+              type: string
+            breakpoint:
+              type: string
+              description: Breakpoint name from design-tokens.yml (e.g. sm, md, lg, xl). Only breakpoints with a reference entry get screenshotted.
+            threshold:
+              type: number
+              default: 3
+              description: Diff threshold in percent. Differences below this value are considered a PASS. Default 3%.
+            title:
               type: string
 
   SceneNode:

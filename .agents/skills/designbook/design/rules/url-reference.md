@@ -10,33 +10,31 @@ When the scene reference is `type: url` and the URL is a website (not an image f
 
 ## Instructions
 
-1. Read breakpoints from `design-tokens.yml` (same as the screenshot task).
+For each `type: url` entry in the scene's `reference` array:
 
-2. For each breakpoint, capture the reference URL:
+1. Read `design-tokens.yml` to resolve the entry's `breakpoint` to a pixel width.
+
+2. Capture the reference URL at that breakpoint:
 
 ```bash
 mkdir -p "designbook/screenshots/${storyId}/reference"
-npx playwright screenshot --full-page --viewport-size "${width},1600" --wait-for-timeout 3000 "${referenceUrl}" "designbook/screenshots/${storyId}/reference/${breakpoint}.png"
+npx playwright screenshot --full-page --viewport-size "${width},1600" --wait-for-timeout 3000 "${entry.url}" "designbook/screenshots/${storyId}/reference/${entry.breakpoint}.png"
 ```
 
-3. Also capture at the default viewport:
+Each entry is resolved independently — different entries may have different URLs.
 
-```bash
-npx playwright screenshot --full-page --viewport-size "2560,1600" --wait-for-timeout 3000 "${referenceUrl}" "designbook/screenshots/${storyId}/reference/default.png"
-```
-
-4. If `reference.screens` exists, use the per-breakpoint URL for each breakpoint instead of the single `reference.url`.
-
-## Per-Breakpoint URLs
-
-When the reference has a `screens` mapping:
+## Example
 
 ```yaml
 reference:
-  type: url
-  screens:
-    xl: https://example.com/desktop
-    sm: https://example.com/mobile
+  - type: url
+    url: https://example.com/desktop
+    breakpoint: xl
+    threshold: 3
+  - type: url
+    url: https://example.com/mobile
+    breakpoint: sm
+    threshold: 5
 ```
 
 Screenshot each URL at its corresponding breakpoint viewport width.
