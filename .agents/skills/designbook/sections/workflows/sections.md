@@ -3,6 +3,6 @@ title: Define Sections
 description: Define your sections based on the product vision
 stages:
   execute:
-    steps: [sections:intake, create-section]
+    steps: [create-section]
 engine: direct
 ---

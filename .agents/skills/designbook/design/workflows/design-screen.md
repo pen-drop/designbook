@@ -2,10 +2,17 @@
 title: Design Screen
 description: Create screen design components for a section
 stages:
+  component:
+    each: component
+    steps: [create-component]
   execute:
-    steps: [design-screen:intake, create-component, create-sample-data, design-screen:map-entity, design-screen:create-scene]
+    steps: [create-sample-data, design-screen:map-entity]
+  scene:
+    each: scene
+    steps: [design-screen:create-scene]
   test:
-    steps: [screenshot, resolve-reference, visual-compare, polish]
+    each: scene
+    steps: [storybook-preview, screenshot, resolve-reference, visual-compare, polish]
 engine: direct
 before:
   - workflow: css-generate

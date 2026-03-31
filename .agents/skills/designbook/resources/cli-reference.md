@@ -45,16 +45,15 @@ Manages the Storybook daemon lifecycle. State is persisted in `$DESIGNBOOK_DATA/
  create --workflow <id> --workflow-file <path> [--parent <name>]
 # → returns $WORKFLOW_NAME
 
-# Plan — expand items into tasks
+# Plan — expand stages into tasks via each iterables
  plan --workflow $WORKFLOW_NAME \
-  --params '<global_params_json>' \
-  --items '<items_json>'
+  --params '<params_json>'
+# → stages with each: expand iterables into tasks; stages without each: singleton tasks
 # → validates params, expands file paths, computes deps; writes tasks.yml; outputs JSON plan
 
 # Dry-run — preview plan without writing tasks.yml
  plan --workflow $WORKFLOW_NAME \
-  --params '<global_params_json>' \
-  --items '<items_json>' \
+  --params '<params_json>' \
   --dry-run
 # → same JSON output, no writes
 
@@ -81,10 +80,9 @@ Stage resolution happens at `workflow create --workflow-file` time. The `plan` c
 | Option | Required | Description |
 |---|---|---|
 | `--workflow <name>` | Yes | Workflow name (from `workflow create`) |
-| `--items <json>` | Yes | Array of `{stage, params}` items |
-| `--params <json>` | No | Global params — merged as defaults into each item's params before validation |
+| `--params <json>` | No | Intake params — iterables are arrays keyed by `each` name (e.g. `{"component":[...],"scene":[...]}`) |
 
-**Param merging:** Global `--params` are merged with item-level `params` (item takes precedence). Params common to all items (e.g. `product_name`) go in `--params` instead of repeating per item.
+**Each expansion:** Stages with `each: <name>` auto-expand all their steps for each item in `params[name]`. Stages without `each` create one singleton task per step.
 
 **JSON output format:**
 ```json
