@@ -17,13 +17,19 @@ Help the user choose colors and typography for their product. The result is save
 
 ## Step 1: Explain and Gather Preferences
 
-> "Let's define the visual identity for **[Product Name]**. I'll help you choose colors and typography. Do you have anything in mind, or would you like suggestions?"
+> "Let's define the visual identity for **[Product Name]**. We'll set up **primitive** tokens (raw values) and **semantic** tokens (purpose-based aliases).
+>
+> Component-level tokens (layout spacing, container widths, etc.) are contributed automatically by blueprints — you don't need to define those here.
+>
+> Do you have colors and typography in mind, or would you like suggestions?"
 
 Wait for their response.
 
 ## Step 2: Choose Colors
 
 Guide the user through choosing colors. Suggest values based on the product vision and design guidelines reference.
+
+These become `primitive.color.*` values, with `semantic.color.*` aliases pointing to them.
 
 ## Step 3: Choose Typography
 
