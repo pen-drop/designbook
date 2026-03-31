@@ -317,7 +317,8 @@ export function workflowPlan(
     !Array.isArray(data.stages) &&
     Object.keys(data.stages).length > 0
   ) {
-    data.current_stage = 'execute';
+    const firstStage = Object.keys(data.stages)[0];
+    data.current_stage = firstStage;
   }
   if (globalParams && Object.keys(globalParams).length > 0) data.params = globalParams;
   if (writeRoot) data.write_root = writeRoot;

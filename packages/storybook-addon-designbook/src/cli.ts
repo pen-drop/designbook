@@ -717,29 +717,40 @@ async function prepareEnvironment(
     ? designbookCmdEnv.split(/\s+/)
     : ['npx', 'storybook-addon-designbook'];
 
-  // Start Storybook — no --port: storybook start auto-detects a free port
-  // storybook start exits 0 when ready, writing JSON to stdout
+  // For direct engine workflows, reuse an already-running Storybook instance
+  const isDirect = workflow.engine === 'direct' || !workflow.engine;
+  const status = getStatus(dataDir);
+
   let startupErrors: string[] = [];
   let pid: number | undefined;
   let port = 0;
-  try {
-    const output = execFileSync(cliExec, [...cliBaseArgs, 'storybook', 'start'], {
-      encoding: 'utf-8',
-      // Storybook logs go to stderr (inherited); stdout has only the JSON ready line
-      stdio: ['ignore', 'pipe', 'inherit'],
-    });
-    const result = JSON.parse(output.trim()) as {
-      ready: boolean;
-      pid?: number;
-      port?: number;
-      startup_errors?: string[];
-    };
-    if (!result.ready) throw new Error('Storybook start returned ready: false');
-    pid = result.pid;
-    port = result.port ?? 0;
-    startupErrors = result.startup_errors ?? [];
-  } catch (err) {
-    throw new Error(`Storybook start failed: ${(err as Error).message}`);
+
+  if (isDirect && status.running && status.port) {
+    // Reuse existing Storybook — no restart needed
+    pid = status.pid;
+    port = status.port;
+  } else {
+    // Start Storybook — no --port: storybook start auto-detects a free port
+    // storybook start exits 0 when ready, writing JSON to stdout
+    try {
+      const output = execFileSync(cliExec, [...cliBaseArgs, 'storybook', 'start'], {
+        encoding: 'utf-8',
+        // Storybook logs go to stderr (inherited); stdout has only the JSON ready line
+        stdio: ['ignore', 'pipe', 'inherit'],
+      });
+      const result = JSON.parse(output.trim()) as {
+        ready: boolean;
+        pid?: number;
+        port?: number;
+        startup_errors?: string[];
+      };
+      if (!result.ready) throw new Error('Storybook start returned ready: false');
+      pid = result.pid;
+      port = result.port ?? 0;
+      startupErrors = result.startup_errors ?? [];
+    } catch (err) {
+      throw new Error(`Storybook start failed: ${(err as Error).message}`);
+    }
   }
 
   // Screenshot each scene declared in task params
@@ -750,7 +761,11 @@ async function prepareEnvironment(
 
   const scenes = workflow.tasks
     .filter((t) => t.params?.scene)
-    .map((t) => t.params!['scene'] as string)
+    .map((t) => {
+      const s = t.params!['scene'];
+      return typeof s === 'string' ? s : (((s as Record<string, unknown>)['scene'] as string) ?? String(s));
+    })
+    .filter((v): v is string => typeof v === 'string')
     .filter((v, i, arr) => arr.indexOf(v) === i);
 
   const previewUrl = `http://localhost:${port}`;

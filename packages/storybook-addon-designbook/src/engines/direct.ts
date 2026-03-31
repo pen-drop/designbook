@@ -93,8 +93,8 @@ export const directEngine: WorkflowEngine = {
   },
   async onTransition(from: string, to: string, ctx: { data: WorkflowFile }): Promise<TransitionResult> {
     // Flush stashed files for every declared stage that completes
-    const DECLARED = ['execute', 'test', 'preview', 'transform'];
-    if (DECLARED.includes(from)) {
+    const declared = ctx.data.stages ? Object.keys(ctx.data.stages) : [];
+    if (declared.includes(from)) {
       const stageTasks = ctx.data.tasks.filter((t) => t.stage === from);
       if (stageTasks.length > 0) {
         await directEngine.flush(ctx.data, stageTasks);

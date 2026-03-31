@@ -1,9 +1,12 @@
 ---
 name: debo
-argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-guidelines|sections|shape-section|sample-data|css-generate]"
+argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|design-guidelines|sections|shape-section|sample-data|css-generate]"
 description: >
-  Designbook design system. Use when the user wants to create or design
-  anything. Sub-commands: vision, tokens, data-model, design-component,
+  Designbook design system. Use ALWAYS when creating, modifying, or
+  deleting components, screens, scenes, design tokens, CSS, or any
+  design system artifact — whether the user asks directly or the need
+  arises during other work. Never create component files without this
+  skill. Sub-commands: vision, tokens, data-model, design-component,
   design-screen, design-shell, design-guidelines, sections,
   shape-section, sample-data, css-generate.
 ---
@@ -21,6 +24,31 @@ description: >
 Sub-command: **$ARGUMENTS[0]**
 
 **If `$ARGUMENTS[0]` is a known sub-command**, directly load and execute `<concern>/workflows/$0.md` — no scanning, no matching.
+
+**If the user mentions a designbook-managed file or artifact** (without an explicit sub-command), resolve the workflow from the file-to-workflow mapping below and start it automatically. This applies to all artifacts **except components** — component references still require explicit `/debo design-component`.
+
+### File-to-Workflow Mapping
+
+When the user references one of these files or topics in conversation, start the corresponding workflow:
+
+| File / Artifact | Workflow | Path Pattern |
+|---|---|---|
+| vision | `vision` | `$DESIGNBOOK_DATA/product/vision.md` |
+| data-model | `data-model` | `$DESIGNBOOK_DATA/data-model.yml` |
+| design-tokens, tokens | `tokens` | `$DESIGNBOOK_DATA/design-system/design-tokens.yml` |
+| guidelines, design-guidelines | `design-guidelines` | `$DESIGNBOOK_DATA/design-system/guidelines.yml` |
+| sections | `sections` | `$DESIGNBOOK_DATA/sections/**/*.section.scenes.yml` |
+| sample-data | `sample-data` | `$DESIGNBOOK_DATA/sections/**/data.yml` |
+| css, css-generate | `css-generate` | `$DESIGNBOOK_DIRS_CSS/*.src.css` + `$DESIGNBOOK_DATA/designbook-css-*/*.jsonata` |
+| shell, design-shell | `design-shell` | design-system.scenes.yml + shell components |
+| screen, design-screen | `design-screen` | section scenes + screen components |
+| verify, design-verify | `design-verify` | visual testing of existing scenes against references |
+
+**Detection rules:**
+- Match by keyword in user message (e.g. "in der vision", "data-model anpassen", "tokens ändern")
+- Match by file path if the user references a specific file under `$DESIGNBOOK_DATA/`
+- If ambiguous, prefer the more specific workflow (e.g. "guidelines" → `design-guidelines`, not `design-shell`)
+- **Never auto-dispatch for components** — always require explicit `design-component` or `design-screen` sub-command
 
 **If `$ARGUMENTS[0]` is an unknown or fuzzy argument**, or when user intent matches the design system domain:
 

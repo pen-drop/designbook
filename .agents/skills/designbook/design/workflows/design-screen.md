@@ -5,8 +5,10 @@ stages:
   component:
     each: component
     steps: [create-component]
-  execute:
-    steps: [create-sample-data, design-screen:map-entity]
+  sample-data:
+    steps: [create-sample-data]
+  entity-mapping:
+    steps: [design-screen:map-entity]
   scene:
     each: scene
     steps: [design-screen:create-scene]

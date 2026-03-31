@@ -22,14 +22,24 @@ If no section was provided, ask:
 
 Wait for their response before continuing.
 
-## Step 2: Determine Screens
+## Step 2: Resolve Design Reference
+
+> ⛔ **MANDATORY**: Execute this step before any screen determination or component planning.
+
+Follow the process in [resolve-design-reference.md](partials/resolve-design-reference.md).
+
+If a reference was loaded, use it as the primary input for all subsequent steps. When planning screens and components, **derive them from the reference** rather than asking the user speculative questions.
+
+## Step 3: Determine Screens
 
 Read `data-model.yml` to understand the entities and structure of the selected section.
 
-Based on the section name and data model, determine which screens make sense:
+Based on the section name, data model, and **loaded design reference** (if available), determine which screens make sense:
 
 - **Homepage / landing section** → suggest a single **landing page** only
 - **All other sections** → suggest an **overview page** and a **detail page**
+
+If a design reference was loaded, use the reference structure to inform the screen suggestion (e.g. if the reference shows a landing page with embedded lists, suggest that pattern).
 
 ### Overview page type (non-homepage sections only)
 
@@ -70,7 +80,7 @@ Present the full screen suggestion and ask the user to confirm or adjust:
 
 Wait for confirmation before continuing.
 
-## Step 3: Plan Entities
+## Step 4: Plan Entities
 
 Based on the confirmed screens and the section spec scenes, build the authoritative entity mapping work list:
 
@@ -90,13 +100,15 @@ Present the entity work list:
 
 Ask the user to confirm. Wait for confirmation.
 
-## Step 4: Plan Components
+## Step 5: Plan Components
 
-Based on the confirmed screens, entities, section spec, data model, and guidelines:
+Based on the confirmed screens, entities, section spec, data model, guidelines, and **loaded design reference** (if available):
 
 1. Read `guidelines.yml` for component patterns and naming conventions
 2. Scan existing components (location provided by framework rules)
 3. Identify which UI components are needed for the planned screens beyond entities and shell (cards, filter bars, badges, stat displays, empty states, pagination, etc.)
+
+**If a design reference is available**, analyze its structure to derive the component list. Extract components from the HTML structure rather than asking the user to describe them from scratch.
 
 Present the component plan **grouped per entity** — list which components are needed to render each entity view mode, then list any screen-level components that are not tied to a specific entity:
 
@@ -123,7 +135,7 @@ The following fields are **auto-set from context** (do NOT ask the user):
 - `provider` → from `$COMPONENT_NAMESPACE` or `designbook.config.yml`
 - `description` → auto-generated from section context
 
-## Step 5: Summary
+## Step 6: Summary
 
 Present a complete summary of everything that will be built before any files are written:
 
@@ -143,26 +155,6 @@ Present a complete summary of everything that will be built before any files are
 > Ready to proceed?"
 
 Wait for final confirmation before handing off to the next stage.
-
-## Step 6: Design Reference (optional)
-
-Check `guidelines.yml` for a `design_reference` entry. If a design source is configured:
-
-1. Ask the user which design reference matches each screen:
-
-> "Your guidelines have a design reference configured. Which design screen matches each planned screen?
->
-> **[screen 1 name]:**
-> - Enter a reference URL, or skip
->
-> **[screen 2 name]:**
-> - Enter a reference URL, or skip
->
-> For each screen, you can also specify per-breakpoint references (e.g. different mobile vs desktop designs)."
-
-2. Store the selection as a `reference` param for each scene.
-
-If no `design_reference` is configured, skip this step silently.
 
 **Guardrails**
 
