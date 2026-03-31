@@ -69,14 +69,18 @@ $DESIGNBOOK_HOME/components/[componentNameKebab]/[componentNameKebab].component.
 - `array` → `type: array`
 - `object` → `type: object`
 
+### Variant Prop Duplication
+
+> ⛔ **NEVER** define a `variant` prop under `props.properties` when `variants:` is already defined at the top level. The variant selection is handled by the `variants:` metadata block — duplicating it as a prop causes redundancy. The `variants:` block is the canonical source for variant definitions.
+
 ### Props with Enums
 ```yaml
-variant:
+theme:
   type: string
   enum:
-    - default
-    - outline
-    - ghost
+    - light
+    - dark
+    - auto
 ```
 
 ### Required Props

@@ -11,7 +11,11 @@ Visual testing workflow — verify existing scenes against design references. No
 
 ## Step 1: Select Section
 
-List all available sections by scanning `$DESIGNBOOK_DATA/sections/*/`:
+List all available sections by scanning `$DESIGNBOOK_DATA/sections/*/`.
+
+> ⛔ **Skip sections that have no scene files** (no `*.scenes.yml` files or empty scenes). Only list sections that contain at least one scene.
+
+Present only non-empty sections:
 
 > "Which section would you like to verify?
 >

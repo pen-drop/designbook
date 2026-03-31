@@ -48,6 +48,8 @@ $DESIGNBOOK_HOME/components/[componentNameKebab]/[componentNameKebab].twig
 
 ### Slot Rendering
 
+> ⛔ **Always use slots** when markup contains other components or interactive elements (buttons, links, icons). Never inline component markup that could be a slot. For example, a CTA button inside a banner MUST be a slot, not inline `<a>` markup. If a UI element exists as a component, reference it via a slot.
+
 For each slot, render it conditionally. Wrapping elements and their classes come from the CSS framework skill:
 ```twig
 {% if slot_name %}
