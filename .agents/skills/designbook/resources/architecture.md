@@ -140,12 +140,13 @@ Blueprint files live at `.agents/skills/<skill-name>/blueprints/<name>.md`. They
 ---
 type: component          # blueprint type (currently: component)
 name: section            # unique name within the type
+priority: 10             # higher wins (default: 0)
 when:
   steps: [create-component]
 ---
 ```
 
-**Uniqueness rule:** Only one blueprint per `type`+`name` combination is active. If multiple skills define the same blueprint, the more specific skill wins (overrides the base). This allows integrations to customize base blueprints.
+**Uniqueness rule:** Only one blueprint per `type`+`name` combination is active. When multiple skills define the same blueprint, the one with the highest `priority` wins. If priorities are equal, the last match wins (skills are globbed alphabetically). Convention: base = 0, integration = 10, project = 20. This allows integrations and projects to explicitly override base blueprints.
 
 **Unlike rules:** Rules are additive (all matching rules are loaded). Blueprints are unique per type+name — only one is active.
 
@@ -179,5 +180,5 @@ section:
 - Blueprints say "what to build" (starting points); rules say "how to build" (constraints)
 - Loaded alongside rules via `skills/**/blueprints/*.md` glob
 - Same `when` conditions as rules (`steps`, config keys)
-- Deduplicated by `type`+`name` — last match wins (more specific skill overrides base)
+- Deduplicated by `type`+`name` — highest `priority` wins (equal priority: last match wins)
 

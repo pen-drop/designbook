@@ -397,8 +397,9 @@ export function matchRuleFiles(
  * Blueprints use the same when-frontmatter matching as rules.
  *
  * Unlike rules (which are additive), blueprints are unique per `type`+`name`.
- * If multiple skills define the same type+name blueprint, the last match wins
- * (skills are globbed alphabetically, so more specific skills override base ones).
+ * If multiple skills define the same type+name blueprint, the one with the
+ * highest `priority` frontmatter field wins (default: 0). Equal priority
+ * uses last-match-wins (skills are globbed alphabetically).
  */
 export function matchBlueprintFiles(
   stage: string,
@@ -410,16 +411,21 @@ export function matchBlueprintFiles(
   const enrichedConfig = buildEnrichedConfig(config);
   const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir);
 
-  // Deduplicate by type+name — last match wins (more specific skill)
-  const byKey = new Map<string, string>();
+  // Deduplicate by type+name — highest priority wins, equal priority = last match wins
+  const byKey = new Map<string, { path: string; priority: number }>();
   for (const m of matches) {
     const type = m.frontmatter?.['type'] as string | undefined;
     const name = m.frontmatter?.['name'] as string | undefined;
     if (type && name) {
-      byKey.set(`${type}:${name}`, m.path);
+      const key = `${type}:${name}`;
+      const priority = typeof m.frontmatter?.['priority'] === 'number' ? (m.frontmatter['priority'] as number) : 0;
+      const existing = byKey.get(key);
+      if (!existing || priority >= existing.priority) {
+        byKey.set(key, { path: m.path, priority });
+      }
     }
   }
-  return Array.from(byKey.values());
+  return Array.from(byKey.values()).map((v) => v.path);
 }
 
 // ── File Path Expansion ─────────────────────────────────────────────

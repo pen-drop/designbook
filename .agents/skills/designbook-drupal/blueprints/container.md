@@ -1,6 +1,7 @@
 ---
 type: component
 name: container
+priority: 10
 when:
   steps: [create-component]
 ---

@@ -1,6 +1,7 @@
 ---
 type: component
 name: grid
+priority: 10
 when:
   steps: [create-component]
 ---

@@ -1,6 +1,7 @@
 ---
 type: component
 name: section
+priority: 10
 when:
   steps: [create-component]
 ---
