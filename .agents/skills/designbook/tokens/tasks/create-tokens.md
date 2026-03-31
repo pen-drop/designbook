@@ -1,10 +1,6 @@
 ---
 params:
-  colors: {}
-  typography: {}
-  type_scale: {}
-  breakpoints: {}
-  component_tokens: {}
+  intake: {}
 files:
   - file: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     key: design-tokens
@@ -43,32 +39,18 @@ component:        # Component-specific tokens from blueprint required_tokens
 
 ## Instructions
 
-1. Write `primitive` tokens from intake params (`colors`, `typography`)
-2. Write `semantic` tokens referencing primitives (`colors` → semantic names, `typography` → heading/body/mono, `breakpoints`, `radius`, `shadow`)
-3. Write `component` tokens from `component_tokens` param — these come from blueprint `required_tokens` and are merged under `component.*`
+1. **Primitive tokens** — for each group in `intake`, write raw values under `primitive.<group>`
+2. **Semantic tokens** — create purpose-based aliases referencing primitives (e.g., `color` → `primary`/`secondary`, `typography` → `heading`/`body`/`mono`)
+3. **Component tokens** — read `required_tokens` from each matched blueprint file and write them under `component.<group>`. These are defaults — if `component.<group>` already exists in a prior `design-tokens.yml`, keep existing values and only add missing keys
 4. Apply renderer hints per the `renderer-hints` rule
 
-## Required Semantic Groups
+## Intake Param
 
-| Group | Notes |
-|-------|-------|
-| `color` | Semantic names; framework-specific naming via rules |
-| `typography` | `heading`, `body`, `mono` sub-keys (`$type: fontFamily`) |
+The `intake` param is a free-form object whose keys are token groups gathered during intake (e.g., `colors`, `typography`, `breakpoints`, `type_scale`). The set of groups is not fixed — process whatever the intake provides.
 
-## Optional Semantic Groups
+## Component Tokens from Blueprints
 
-| Group | When | Notes |
-|-------|------|-------|
-| `typography` (composite) | `type_scale` param provided | `$type: typography` tokens (h1, h2, body, etc.) |
-| `breakpoints` | `breakpoints` param provided | `$type: dimension` |
-| `radius` | design requires it | `sm`, `md`, `lg` |
-| `shadow` | design requires it | `sm`, `md`, `lg` |
-
-## Component Tokens
-
-The `component_tokens` param contains merged `required_tokens` from all matched blueprints. Write each entry under `component.<group>`.
-
-**Merge rule:** Blueprint tokens provide defaults — if `component.<group>` already exists in a prior `design-tokens.yml`, keep existing values and only add missing keys.
+Each matched blueprint declares `required_tokens` in its frontmatter. Read these and write under `component.*`.
 
 Component tokens may reference primitives or semantics:
 ```yaml
@@ -80,7 +62,7 @@ component:
 
 ## Typography Composite Tokens
 
-When the intake `type_scale` param is provided, generate `$type: typography` composite tokens in `semantic.typography` alongside the `fontFamily` tokens.
+When `intake` contains a `type_scale` group, generate `$type: typography` composite tokens in `semantic.typography` alongside any `fontFamily` tokens.
 
 Rules:
 - Heading-level tokens (h1, h2, h3, display, title) use the heading font family

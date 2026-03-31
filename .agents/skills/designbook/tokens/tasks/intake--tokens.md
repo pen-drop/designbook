@@ -41,9 +41,32 @@ These become `primitive.color.*` values, with `semantic.color.*` aliases pointin
 >
 > My suggestions for **[Product Name]**: ..."
 
-## Step 4: Present Final Choices and Confirm
+## Step 4: Optional — Additional Token Groups
 
-Summarize all chosen tokens before saving. Once approved, the `create-tokens` stage runs automatically.
+Depending on the design, the user may want to define additional groups (breakpoints, spacing scale, type scale with modular ratio, radius, shadows, etc.). Ask if they need any of these. Each group becomes a key in the `intake` param.
+
+## Step 5: Present Final Choices and Confirm
+
+Summarize all chosen tokens before saving. Structure the result as a single `intake` param object where each key is a token group:
+
+```yaml
+intake:
+  colors:
+    indigo-600: "#4F46E5"
+    slate-50: "#F8FAFC"
+  typography:
+    heading: "Space Grotesk"
+    body: "Inter"
+  type_scale:          # optional
+    ratio: 1.25
+    base: 16
+  breakpoints:         # optional
+    sm: 640
+    md: 768
+    lg: 1024
+```
+
+Once approved, the `create-tokens` stage runs automatically.
 
 **Constraints**
 - Colors must be hex codes (e.g. `#494FE5`)
