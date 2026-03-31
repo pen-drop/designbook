@@ -93,7 +93,18 @@ Follow the component planning process:
 >
 > Does this match what you had in mind?"
 
-Iterate until the user is satisfied. Once confirmed, proceed to component creation.
+Iterate until the user is satisfied. Once confirmed, proceed to the structure preview.
+
+## Step 6: Structure Preview
+
+Display a full recursive ASCII tree of the shell component structure so the user can verify the complete picture before building starts.
+
+Follow the process in [structure-preview.md](partials/structure-preview.md).
+
+**Input for the tree:**
+- Root: the `page` component with all its slots and nested components
+- Show `content → $content` for the content injection point
+- Title: "Shell Structure"
 
 **Guardrails**
 - Be conversational — help the user think through layout decisions

@@ -154,7 +154,20 @@ Present a complete summary of everything that will be built before any files are
 >
 > Ready to proceed?"
 
-Wait for final confirmation before handing off to the next stage.
+Wait for confirmation before proceeding to the structure preview.
+
+## Step 7: Structure Preview
+
+Display a full recursive ASCII tree for every screen so the user can verify the complete component structure before building starts.
+
+Follow the process in [structure-preview.md](partials/structure-preview.md).
+
+**Input for the trees:**
+- One tree per screen
+- Each tree starts from `scene: design-system:shell` with `content` injection point
+- Show entity mappings and view modes where applicable
+- Title each tree: "Screen Structure: [Screen Name]"
+- After all trees, show combined summary across all screens
 
 **Guardrails**
 
