@@ -169,7 +169,7 @@ const SkillBadge = styled.span(({ theme }) => ({
 export function DeboDesignGuidelines({ data }) {
   if (!data) return null;
 
-  const { references, design_file, principles, component_patterns, naming, mcp, skills } = data;
+  const { references, design_reference, principles, component_patterns, naming, mcp, skills } = data;
 
   return (
     <Wrapper>
@@ -182,10 +182,10 @@ export function DeboDesignGuidelines({ data }) {
         </Section>
       )}
 
-      {design_file?.url && (
+      {design_reference?.url && (
         <Section>
-          <SectionLabel>Design File</SectionLabel>
-          <LinkEntry type={design_file.type} url={design_file.url} label={design_file.label} />
+          <SectionLabel>Design Reference</SectionLabel>
+          <LinkEntry type={design_reference.type} url={design_reference.url} label={design_reference.label} />
         </Section>
       )}
 

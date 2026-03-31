@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  getNextStage,
-  getNextStep,
-  checkStageParams,
-  interpolatePrompt,
-  DECLARED_STAGES,
-} from '../workflow-lifecycle.js';
+import { getNextStage, getNextStep, checkStageParams, interpolatePrompt } from '../workflow-lifecycle.js';
 
 describe('getNextStage', () => {
   it('full lifecycle with all stages present', () => {
@@ -15,10 +9,11 @@ describe('getNextStage', () => {
       preview: { steps: ['storybook-preview'] },
     };
 
-    expect(getNextStage('execute', stages)).toBe('committed');
-    expect(getNextStage('committed', stages)).toBe('test');
+    // Declared stages in frontmatter order, then implicit stages
+    expect(getNextStage('execute', stages)).toBe('test');
     expect(getNextStage('test', stages)).toBe('preview');
-    expect(getNextStage('preview', stages)).toBe('finalizing');
+    expect(getNextStage('preview', stages)).toBe('committed');
+    expect(getNextStage('committed', stages)).toBe('finalizing');
     expect(getNextStage('finalizing', stages)).toBe('done');
     expect(getNextStage('done', stages)).toBeNull();
   });
@@ -39,7 +34,10 @@ describe('getNextStage', () => {
       preview: { steps: ['storybook-preview'] },
     };
 
-    expect(getNextStage('committed', stages)).toBe('preview');
+    // committed comes after all declared stages
+    expect(getNextStage('execute', stages)).toBe('preview');
+    expect(getNextStage('preview', stages)).toBe('committed');
+    expect(getNextStage('committed', stages)).toBe('finalizing');
   });
 
   it('returns null for unknown stage', () => {
@@ -50,8 +48,16 @@ describe('getNextStage', () => {
     expect(getNextStage('done', { execute: { steps: ['a'] } })).toBeNull();
   });
 
-  it('exports DECLARED_STAGES', () => {
-    expect(DECLARED_STAGES).toEqual(['execute', 'test', 'preview']);
+  it('traverses custom stage names in frontmatter order', () => {
+    const stages = {
+      generate: { steps: ['generate-jsonata'] },
+      transform: { steps: ['generate-css'] },
+    };
+
+    expect(getNextStage('generate', stages)).toBe('transform');
+    expect(getNextStage('transform', stages)).toBe('committed');
+    expect(getNextStage('committed', stages)).toBe('finalizing');
+    expect(getNextStage('finalizing', stages)).toBe('done');
   });
 });
 

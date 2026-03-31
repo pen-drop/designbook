@@ -1,13 +1,14 @@
 ---
 params:
   references: []
-  design_file: ~
+  design_reference: ~
   principles: []
   component_patterns: []
   naming:
     convention: kebab-case
     examples: []
-  mcp: ~
+  mcp: {}
+  visual_diff: {}
   skills: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
@@ -40,10 +41,10 @@ references:
     url: https://...
     label: Brand Guidelines
 
-design_file:
-  type: figma            # figma | sketch | xd | other
+design_reference:
+  type: figma            # figma | stitch | url | image
   url: https://...
-  label: Main Design File
+  label: Main Design Reference
 
 principles:
   - "Accessible by default"
@@ -63,6 +64,9 @@ mcp:
   server: figma-mcp
   url: http://localhost:3333
 
+visual_diff:
+  breakpoints: [sm, xl]   # optional — filter which breakpoints to screenshot (default: all from design-tokens.yml)
+
 skills:
   - frontend-design
   - web-design-guidelines
@@ -78,4 +82,4 @@ naming:
 ## Notes
 
 - If `design-tokens.yml` was read as context, do NOT copy token values into guidelines — it is for reference only
-- Key order: references → design_file → principles → component_patterns → naming → mcp → skills
+- Key order: references → design_reference → principles → component_patterns → naming → mcp → visual_diff → skills

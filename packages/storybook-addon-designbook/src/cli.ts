@@ -1,7 +1,7 @@
 import { resolve, dirname } from 'node:path';
 import { mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { screenshot } from './screenshot.js';
+import { resolveUrl } from './resolve-url.js';
 import { findFreePort, getStatus, startDaemon, stopDaemon, logFilePath } from './storybook.js';
 import { Command } from 'commander';
 import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
@@ -623,7 +623,7 @@ workflow
     '--loaded <json>',
     'JSON payload with stage context (task_file, rules, config_rules, config_instructions) and task validation results',
   )
-  .action((opts: { workflow: string; task: string; loaded?: string }) => {
+  .action(async (opts: { workflow: string; task: string; loaded?: string }) => {
     const config = loadConfig();
     let loaded;
     if (opts.loaded) {
@@ -636,7 +636,7 @@ workflow
       }
     }
     try {
-      const result = workflowDone(config.data, opts.workflow, opts.task, loaded);
+      const result = await workflowDone(config.data, opts.workflow, opts.task, loaded);
       const { data, response } = result;
 
       if (result.archived) {
@@ -679,13 +679,14 @@ workflow
   });
 
 program
-  .command('screenshot')
-  .description('Screenshot Storybook scenes')
+  .command('resolve-url')
+  .description('Resolve scene reference to Storybook iframe URL')
   .requiredOption('--scene <ref>', 'Scene reference (e.g. design-system:shell, galerie:product-detail)')
-  .action(async (opts: { scene: string }) => {
+  .option('--file <path>', 'Explicit scenes.yml file path')
+  .action(async (opts: { scene: string; file?: string }) => {
     const config = loadConfig();
     try {
-      await screenshot(config, { scene: opts.scene });
+      await resolveUrl(config, { scene: opts.scene, file: opts.file });
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
       process.exitCode = 1;
@@ -716,29 +717,40 @@ async function prepareEnvironment(
     ? designbookCmdEnv.split(/\s+/)
     : ['npx', 'storybook-addon-designbook'];
 
-  // Start Storybook — no --port: storybook start auto-detects a free port
-  // storybook start exits 0 when ready, writing JSON to stdout
+  // For direct engine workflows, reuse an already-running Storybook instance
+  const isDirect = workflow.engine === 'direct' || !workflow.engine;
+  const status = getStatus(dataDir);
+
   let startupErrors: string[] = [];
   let pid: number | undefined;
   let port = 0;
-  try {
-    const output = execFileSync(cliExec, [...cliBaseArgs, 'storybook', 'start'], {
-      encoding: 'utf-8',
-      // Storybook logs go to stderr (inherited); stdout has only the JSON ready line
-      stdio: ['ignore', 'pipe', 'inherit'],
-    });
-    const result = JSON.parse(output.trim()) as {
-      ready: boolean;
-      pid?: number;
-      port?: number;
-      startup_errors?: string[];
-    };
-    if (!result.ready) throw new Error('Storybook start returned ready: false');
-    pid = result.pid;
-    port = result.port ?? 0;
-    startupErrors = result.startup_errors ?? [];
-  } catch (err) {
-    throw new Error(`Storybook start failed: ${(err as Error).message}`);
+
+  if (isDirect && status.running && status.port) {
+    // Reuse existing Storybook — no restart needed
+    pid = status.pid;
+    port = status.port;
+  } else {
+    // Start Storybook — no --port: storybook start auto-detects a free port
+    // storybook start exits 0 when ready, writing JSON to stdout
+    try {
+      const output = execFileSync(cliExec, [...cliBaseArgs, 'storybook', 'start'], {
+        encoding: 'utf-8',
+        // Storybook logs go to stderr (inherited); stdout has only the JSON ready line
+        stdio: ['ignore', 'pipe', 'inherit'],
+      });
+      const result = JSON.parse(output.trim()) as {
+        ready: boolean;
+        pid?: number;
+        port?: number;
+        startup_errors?: string[];
+      };
+      if (!result.ready) throw new Error('Storybook start returned ready: false');
+      pid = result.pid;
+      port = result.port ?? 0;
+      startupErrors = result.startup_errors ?? [];
+    } catch (err) {
+      throw new Error(`Storybook start failed: ${(err as Error).message}`);
+    }
   }
 
   // Screenshot each scene declared in task params
@@ -749,7 +761,11 @@ async function prepareEnvironment(
 
   const scenes = workflow.tasks
     .filter((t) => t.params?.scene)
-    .map((t) => t.params!['scene'] as string)
+    .map((t) => {
+      const s = t.params!['scene'];
+      return typeof s === 'string' ? s : (((s as Record<string, unknown>)['scene'] as string) ?? String(s));
+    })
+    .filter((v): v is string => typeof v === 'string')
     .filter((v, i, arr) => arr.indexOf(v) === i);
 
   const previewUrl = `http://localhost:${port}`;
@@ -757,7 +773,7 @@ async function prepareEnvironment(
     const safeName = scene.replace(/[:/]/g, '-');
     const screenshotPath = resolve(screenshotDir, `${safeName}.png`);
     try {
-      execFileSync(cliExec, [...cliBaseArgs, 'screenshot', '--scene', scene], {
+      execFileSync(cliExec, [...cliBaseArgs, 'resolve-url', '--scene', scene], {
         env: { ...process.env, DESIGNBOOK_STORYBOOK_URL: previewUrl },
         stdio: 'inherit',
       });
@@ -778,7 +794,8 @@ storybookCmd
   .command('start')
   .description('Start Storybook dev server and exit when ready (Storybook continues as daemon)')
   .option('--port <port>', 'Port to start Storybook on (auto-detected when omitted)')
-  .action(async (opts: { port?: string }) => {
+  .option('--force', 'Stop any running Storybook before starting')
+  .action(async (opts: { port?: string; force?: boolean }) => {
     const config = loadConfig(process.env['DESIGNBOOK_HOME']);
     const storybookCmdStr = config['designbook.cmd'] as string | undefined;
     if (!storybookCmdStr) {
@@ -793,6 +810,7 @@ storybookCmd
       port,
       dataDir: config.data,
       cwd: config['designbook.home'] as string | undefined,
+      force: opts.force,
     });
 
     console.log(JSON.stringify(result));
@@ -907,7 +925,7 @@ workflow
       const prepResult = await prepareEnvironment(config.data, opts.workflow, workflow);
 
       // Mark the prepare-environment task done with preview info in loaded payload
-      const result = workflowDone(config.data, opts.workflow, opts.task, {
+      const result = await workflowDone(config.data, opts.workflow, opts.task, {
         preview_pid: prepResult.previewPid,
         preview_port: prepResult.previewPort,
         pre_test_screenshots: prepResult.screenshotPaths,

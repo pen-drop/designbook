@@ -206,20 +206,18 @@ const logPath = (designbookDir: string, wf: WorkflowData): string => {
   return `${designbookDir}/workflows/${dir}/${wf.changeName}/tasks.yml`;
 };
 
-function groupByStep(wf: WorkflowData): { step: string; tasks: WorkflowTask[] }[] {
-  // Extract step order from stages (grouped or legacy flat format)
-  let stepOrder: string[];
-  if (wf.stages && !Array.isArray(wf.stages)) {
-    stepOrder = [];
-    for (const def of Object.values(wf.stages)) {
-      stepOrder.push(...(def.steps ?? []));
-    }
-  } else if (Array.isArray(wf.stages)) {
-    stepOrder = wf.stages;
-  } else {
-    stepOrder = [...new Set(wf.tasks.map((t) => t.step ?? t.stage).filter(Boolean) as string[])];
-  }
+interface StepGroup {
+  step: string;
+  tasks: WorkflowTask[];
+}
 
+interface StageGroup {
+  stage: string;
+  steps: StepGroup[];
+}
+
+function groupByStage(wf: WorkflowData): StageGroup[] {
+  // Build task lookup by step name
   const byStep = new Map<string, WorkflowTask[]>();
   const unstepped: WorkflowTask[] = [];
 
@@ -234,13 +232,41 @@ function groupByStep(wf: WorkflowData): { step: string; tasks: WorkflowTask[] }[
     }
   }
 
-  const groups: { step: string; tasks: WorkflowTask[] }[] = [];
-  for (const step of stepOrder) {
-    const group = byStep.get(step);
-    if (group?.length) groups.push({ step, tasks: group });
+  const buildStepGroups = (stepNames: string[]): StepGroup[] => {
+    const groups: StepGroup[] = [];
+    for (const step of stepNames) {
+      const tasks = byStep.get(step);
+      if (tasks?.length) groups.push({ step, tasks });
+    }
+    return groups;
+  };
+
+  // Grouped format: Record<string, { steps: string[] }>
+  if (wf.stages && !Array.isArray(wf.stages)) {
+    const stages: StageGroup[] = [];
+    for (const [stageName, def] of Object.entries(wf.stages)) {
+      const steps = buildStepGroups(def.steps ?? []);
+      if (steps.length) stages.push({ stage: stageName, steps });
+    }
+    if (unstepped.length) {
+      stages.push({ stage: '(unassigned)', steps: [{ step: '(unassigned)', tasks: unstepped }] });
+    }
+    return stages;
   }
-  if (unstepped.length) groups.push({ step: '(unassigned)', tasks: unstepped });
-  return groups;
+
+  // Legacy flat format or no stages: single implicit stage
+  let stepOrder: string[];
+  if (Array.isArray(wf.stages)) {
+    stepOrder = wf.stages;
+  } else {
+    stepOrder = [...new Set(wf.tasks.map((t) => t.step ?? t.stage).filter(Boolean) as string[])];
+  }
+
+  const steps = buildStepGroups(stepOrder);
+  if (unstepped.length) steps.push({ step: '(unassigned)', tasks: unstepped });
+
+  // Return as a single implicit stage (no stage header rendered)
+  return [{ stage: '', steps }];
 }
 
 /** Find the currently active task across all workflow tasks. */
@@ -374,6 +400,19 @@ const S = {
     padding: '2px 8px',
     borderRadius: 9999,
     fontWeight: 600,
+  },
+  stepHeading: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+    color: '#7B8794',
+    marginTop: 10,
+    marginBottom: 4,
+    padding: '2px 0',
   },
   intakeRow: {
     display: 'flex',
@@ -589,7 +628,7 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
         const done = wf.tasks.filter((t) => t.status === 'done').length;
         const total = wf.tasks.length;
         const isOpen = wf.status === 'running' || wf.status === 'planning';
-        const groups = groupByStep(wf);
+        const stageGroups = groupByStage(wf);
         const activeTask = getActiveTask(wf);
 
         const wfSummary = (
@@ -618,110 +657,139 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
             defaultOpen={isOpen}
           >
             <WorkflowOverview wf={wf} designbookDir={designbookDir} />
-            {wf.current_stage && <div style={S.overviewLabel}>Stage: {wf.current_stage}</div>}
-            <div style={S.overviewLabel}>Steps</div>
-            {groups.map(({ step, tasks }) => {
-              const stepDone = tasks.filter((t) => t.status === 'done').length;
-              const stepTotal = tasks.length;
-              const stepIsOpen = tasks.some((t) => t.status === 'in-progress' || t.status === 'pending');
-              const loaded = wf.stage_loaded?.[step];
-              const stepFiles = collectLoaded(loaded);
-              const isIntake = isIntakeStep(step);
+            {stageGroups.map(({ stage: stageName, steps }) => {
+              const hasStageHeader = stageName !== '';
+              const allStageTasks = steps.flatMap((s) => s.tasks);
+              const stageDone = allStageTasks.filter((t) => t.status === 'done').length;
+              const stageTotal = allStageTasks.length;
+              const stageIsActive = stageName === wf.current_stage;
+              const stageIsOpen = allStageTasks.some((t) => t.status === 'in-progress' || t.status === 'pending');
 
-              const stepSummary = (
+              const stepsContent = (
+                <>
+                  {steps.map(({ step, tasks }) => {
+                    const stepDone = tasks.filter((t) => t.status === 'done').length;
+                    const stepTotal = tasks.length;
+                    const loaded = wf.stage_loaded?.[step];
+                    const stepFiles = collectLoaded(loaded);
+                    const isIntake = isIntakeStep(step);
+
+                    const taskStatus2collapsible = (s: string): 'done' | 'running' | 'pending' => {
+                      if (s === 'done') return 'done';
+                      if (s === 'in-progress') return 'running';
+                      return 'pending';
+                    };
+
+                    const tasksContent = () => (
+                      <div>
+                        {tasks.map((task) => {
+                          const hasFiles = task.files && task.files.length > 0;
+                          const taskIsIntake = isIntakeStep(task.step ?? task.stage);
+                          const taskLoadedFiles = collectLoaded(null, task);
+
+                          const taskSummary = (
+                            <span style={taskIsIntake ? S.intakeRow : S.taskRow}>
+                              {taskIsIntake ? <IntakeIcon /> : <StatusDot status={task.status} />}
+                              <span
+                                style={task.status === 'done' ? { ...S.taskTitle, opacity: 0.5 } : S.taskTitle}
+                                title={task.title}
+                              >
+                                {task.title}
+                              </span>
+                              {task.task_file && <ContextAction path={task.task_file} />}
+                              <LiveDuration startedAt={task.started_at} completedAt={task.completed_at} />
+                            </span>
+                          );
+
+                          const hasTaskContext = taskLoadedFiles.length > 0;
+                          const hasAnyContent = hasFiles || hasTaskContext;
+
+                          if (!hasAnyContent) {
+                            return (
+                              <div key={task.id} style={{ padding: '3px 0' }}>
+                                {taskSummary}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <DeboCollapsible
+                              key={task.id}
+                              title={taskSummary}
+                              variant="action-inline"
+                              status={taskStatus2collapsible(task.status)}
+                            >
+                              {hasTaskContext && <GroupedFileBadges files={taskLoadedFiles} />}
+                              {hasFiles && (
+                                <>
+                                  <div style={S.overviewLabel}>Files</div>
+                                  <div style={S.taskFileBadges}>
+                                    {task.files!.map((f) => {
+                                      const absPath = designbookDir ? `${designbookDir}/${f.path}` : f.path;
+                                      return (
+                                        <FileBadge
+                                          key={f.path}
+                                          path={absPath}
+                                          isAbsolute={true}
+                                          label={f.key}
+                                          variant={fileBadgeVariant(f)}
+                                          validation={f.validation_result ?? undefined}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                </>
+                              )}
+                            </DeboCollapsible>
+                          );
+                        })}
+                      </div>
+                    );
+
+                    return (
+                      <div key={step}>
+                        <div style={S.stepHeading}>
+                          {isIntake && <IntakeIcon />}
+                          <span>{step}</span>
+                          <ManagerBadge variant={stepDone === stepTotal ? 'green' : 'gray'}>
+                            {stepDone}/{stepTotal}
+                          </ManagerBadge>
+                        </div>
+                        {stepFiles.length > 0 && <ContextCollapsible files={stepFiles} />}
+                        {tasksContent()}
+                      </div>
+                    );
+                  })}
+                </>
+              );
+
+              if (!hasStageHeader) {
+                // Legacy flat format — render steps without stage wrapper
+                return <React.Fragment key="__flat__">{stepsContent}</React.Fragment>;
+              }
+
+              const currentStageStatus = stageStatus(allStageTasks);
+              const stageSummary = (
                 <span style={S.summaryRow}>
-                  {isIntake && <IntakeIcon />}
-                  <span style={S.summaryTitle}>{step}</span>
-                  <ManagerBadge variant={stepDone === stepTotal ? 'green' : 'gray'}>
-                    {stepDone}/{stepTotal}
+                  <span style={{ ...S.summaryTitle, fontWeight: 600, textTransform: 'capitalize' as const }}>
+                    {stageName}
+                  </span>
+                  {stageIsActive && <ManagerBadge variant="yellow">active</ManagerBadge>}
+                  <ManagerBadge variant={stageDone === stageTotal ? 'green' : 'gray'}>
+                    {stageDone}/{stageTotal}
                   </ManagerBadge>
                 </span>
               );
 
-              const currentStepStatus = stageStatus(tasks);
-
-              const taskStatus2collapsible = (s: string): 'done' | 'running' | 'pending' => {
-                if (s === 'done') return 'done';
-                if (s === 'in-progress') return 'running';
-                return 'pending';
-              };
-
-              const tasksContent = () => (
-                <div>
-                  {tasks.map((task) => {
-                    const hasFiles = task.files && task.files.length > 0;
-                    const taskIsIntake = isIntakeStep(task.step ?? task.stage);
-                    const taskLoadedFiles = collectLoaded(null, task);
-
-                    const taskSummary = (
-                      <span style={taskIsIntake ? S.intakeRow : S.taskRow}>
-                        {taskIsIntake ? <IntakeIcon /> : <StatusDot status={task.status} />}
-                        <span
-                          style={task.status === 'done' ? { ...S.taskTitle, opacity: 0.5 } : S.taskTitle}
-                          title={task.title}
-                        >
-                          {task.title}
-                        </span>
-                        {task.task_file && <ContextAction path={task.task_file} />}
-                        <LiveDuration startedAt={task.started_at} completedAt={task.completed_at} />
-                      </span>
-                    );
-
-                    const hasTaskContext = taskLoadedFiles.length > 0;
-                    const hasAnyContent = hasFiles || hasTaskContext;
-
-                    if (!hasAnyContent) {
-                      return (
-                        <div key={task.id} style={{ padding: '3px 0' }}>
-                          {taskSummary}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <DeboCollapsible
-                        key={task.id}
-                        title={taskSummary}
-                        variant="action-inline"
-                        status={taskStatus2collapsible(task.status)}
-                      >
-                        {hasTaskContext && <GroupedFileBadges files={taskLoadedFiles} />}
-                        {hasFiles && (
-                          <>
-                            <div style={S.overviewLabel}>Files</div>
-                            <div style={S.taskFileBadges}>
-                              {task.files!.map((f) => {
-                                const absPath = designbookDir ? `${designbookDir}/${f.path}` : f.path;
-                                return (
-                                  <FileBadge
-                                    key={f.path}
-                                    path={absPath}
-                                    isAbsolute={true}
-                                    label={f.key}
-                                    variant={fileBadgeVariant(f)}
-                                    validation={f.validation_result ?? undefined}
-                                  />
-                                );
-                              })}
-                            </div>
-                          </>
-                        )}
-                      </DeboCollapsible>
-                    );
-                  })}
-                </div>
-              );
-
               return (
                 <DeboCollapsible
-                  key={step}
-                  title={stepSummary}
+                  key={stageName}
+                  title={stageSummary}
                   variant="action-item"
-                  status={currentStepStatus}
-                  defaultOpen={stepIsOpen}
+                  status={currentStageStatus}
+                  defaultOpen={stageIsOpen || stageIsActive}
                 >
-                  {stepFiles.length > 0 && <ContextCollapsible files={stepFiles} />}
-                  {tasksContent()}
+                  {stepsContent}
                 </DeboCollapsible>
               );
             })}

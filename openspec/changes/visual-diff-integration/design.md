@@ -1,74 +1,182 @@
 ## Context
 
-Design workflows (design-shell, design-screen, design-component) produce Storybook scenes from `*.scenes.yml` files. Each scene can optionally carry a `reference` block pointing to a design tool screen (Stitch, Figma, URL). The existing `design-test` workflow runs visual-diff as a standalone workflow with `git-worktree` engine — this is separate from the design workflows themselves.
+Design workflows produce Storybook scenes from `*.scenes.yml` files. Each scene can carry a `reference` block. The project uses a plugin architecture: `designbook` core defines workflows and tasks, extension skills contribute rules.
 
-The screenshot CLI (`_debo screenshot --scene X`) uses Playwright CLI (`playwright screenshot`) to capture full-page PNGs at 2560x1600. It outputs JSON with `screenshotPath` but no metadata about the scene content or design tokens.
+Breakpoints are already defined in `design-tokens.yml` as the `breakpoints` token group (e.g. sm: 640px, md: 768px, lg: 1024px, xl: 1280px). Screenshots should use these breakpoints for responsive comparison.
 
-Provider skills follow the pattern established by `designbook-css-*` skills: framework-specific logic in separate skill directories, loaded by convention based on config values.
+The existing `_debo screenshot` CLI command wraps Playwright CLI with scene-to-storyId resolution logic. The Playwright call itself is a single `execSync`. The resolution logic (scene ref → scenes.yml → Storybook index → story ID → iframe URL) is the valuable part.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Visual comparison runs automatically after every design workflow when a reference exists
-- Core visual-diff logic (screenshot, compare, report) lives in `designbook` skill — reusable across providers
-- Reference resolution delegates to provider skills based on `scene.reference.type`
-- Screenshots include structured metadata (scene definition, design tokens, component list) for richer AI context
-- `guidelines.yml` configurable: viewports, visual_diff defaults
+- Test stage runs automatically after every design workflow
+- Core tasks handle screenshots (Playwright), URL/image references, AI comparison, and fix loops
+- Extension skills contribute only rules — no tasks in extensions
+- Screenshots at all breakpoints from design-tokens.yml
+- References per breakpoint in scene schema
+- `type: url` references are screenshotted at all breakpoints (for rebuilding existing websites)
 
 **Non-Goals:**
-- Figma support (future — only Stitch provider for now)
-- Pixel-level diff tooling (Playwright API migration needed — separate change)
-- Computed CSS styles extraction (requires Playwright API, not CLI — separate change)
-- Responsive multi-viewport screenshots (requires CLI changes — separate change, guidelines.yml schema is forward-compatible)
+- Figma support (future extension skill)
+- Pixel-level diff (future enhancement)
+- Bidirectional Stitch sync (separate change)
 
 ## Decisions
 
-### Decision 1: Shared visual-diff task, not workflow-specific copies
+### Decision 1: Four core tasks, extensions contribute rules only
 
-The `visual-diff` task lives at `designbook/design/tasks/visual-diff.md` (no workflow suffix). All three design workflows reference it via `test: [visual-diff]` in their stage declarations.
+```
+designbook/design/tasks/
+  screenshot.md         → Playwright screenshots at all breakpoints
+  resolve-reference.md  → URL/image direct, reads rules for special types
+  visual-compare.md     → AI comparison with all collected context
+  polish.md             → Fix loop: fix → re-screenshot → re-compare
 
-**Alternative**: Separate `visual-diff--design-shell.md`, `visual-diff--design-screen.md` etc.
-**Why rejected**: The logic is identical — screenshot scene, resolve reference, compare. Scene-specific params come from the workflow plan, not the task file.
+designbook-stitch/rules/
+  stitch-reference.md   → "For type stitch: use mcp__stitch__get_screen"
+  stitch-intake.md      → "During intake: offer screen selection"
 
-### Decision 2: Reference type drives provider skill selection
+designbook-devtools/rules/
+  devtools-context.md   → "Additionally: evaluate_script, take_snapshot, etc."
+```
 
-The `visual-diff` task reads `scene.reference.type` from the scene file and loads `resolve-reference` task from `designbook-{type}` skill. For `type: stitch` → `designbook-stitch/tasks/resolve-reference.md`.
+Extension skills never have tasks. Core tasks read matched rules and follow their instructions — same pattern as `generate-jsonata` reading `css-mapping` rules.
 
-**Alternative**: Config in `guidelines.yml` → `design_tool.type` determines provider globally.
-**Why rejected**: Per-scene reference type is more flexible (mixed sources possible) and the data already exists in scene files.
+### Decision 2: Breakpoints from design-tokens.yml, not guidelines.yml
 
-**Fallback**: `type: url` is handled by core directly (WebFetch) — no provider skill needed.
+Screenshot viewports are derived from the `breakpoints` token group in `design-tokens.yml`. No separate viewport configuration needed. The `screenshot` task reads breakpoints and captures one screenshot per breakpoint plus a desktop default (2560x1600).
 
-### Decision 3: Task-level skip when no reference exists
+Optional filter in `guidelines.yml`:
+```yaml
+visual_diff:
+  breakpoints: [sm, xl]  # only these; default: all
+```
 
-The `visual-diff` task reads the scene file. If no `reference` block exists, it calls `workflow done` with `status: skipped` and a message. No new skip mechanism needed at the workflow engine level.
+### Decision 3: Per-breakpoint references in scene schema
 
-**Alternative**: Plan-level skip (don't create visual-diff tasks when no reference detected).
-**Why rejected**: References may be added between plan and execution time. Task-level skip is simpler and more resilient.
+The `reference` block in scenes.yml gains a `screens` object mapping breakpoint keys to reference URLs:
 
-### Decision 4: Metadata collected as text context, not additional images
+```yaml
+# Single reference (backward compatible):
+reference:
+  type: stitch
+  url: stitch://project/screen-123
 
-The visual-diff task collects scene definition (components used, entities, slots), design tokens summary (colors, fonts, spacing values), and guidelines principles as text. This is passed alongside the screenshot and reference images for AI comparison. Text tokens are negligible cost vs. image tokens.
+# Per-breakpoint references (keys must match breakpoint names from design-tokens.yml):
+reference:
+  type: stitch
+  screens:
+    xl: stitch://project/screen-desktop
+    sm: stitch://project/screen-mobile
+    md: stitch://project/screen-tablet
+```
 
-**Alternative**: Multiple annotated screenshots, overlay grids.
-**Why rejected**: Adds complexity and image token cost. Text metadata gives the AI structured data it can reason about more precisely.
+Fallback: if a breakpoint has no specific reference, use the largest defined breakpoint. If no `screens` object, use `url` for all breakpoints.
 
-### Decision 5: designbook-stitch as new addon skill
+### Decision 10: Core intake asks for references when design source is configured
 
-Follows the established pattern: `designbook-css-tailwind`, `designbook-css-daisyui`, `designbook-drupal`. New skill at `.agents/skills/designbook-stitch/` with tasks for reference resolution and screen listing.
+When `guidelines.yml` contains a `design_reference` or `references` entry, the core intake step (in design-shell, design-screen, and design-component workflows) asks the user to provide a reference for each scene or component. This is a core responsibility, not extension-specific.
 
-**Alternative**: Stitch logic inline in core visual-diff task.
-**Why rejected**: Violates provider separation. When Figma support is added, the same pattern applies.
+The intake step:
+1. Reads `guidelines.yml` → checks for `design_reference` or `references`
+2. If present: asks the user for a reference per scene/component, with optional per-breakpoint `screens` mapping
+3. The reference `type` defaults to the type from the guideline's design source (e.g. `design_reference.type`)
+4. Extension rules (like stitch-intake) can enhance the selection UX (e.g. listing screens via MCP) but are not required for the question to be asked
 
-### Decision 6: Remove standalone design-test workflow
+If `guidelines.yml` has no design source configured, the intake skips the reference question.
 
-The `design-test` workflow and its `visual-diff--design-test.md` task file are removed. Visual-diff is now a test stage within each design workflow.
+Note: `design_reference` in guidelines should ideally be renamed to something more generic (it can be a website, not just a file) — but that's a separate change to the guidelines spec.
 
-**Alternative**: Keep design-test as a manual re-run option.
-**Why rejected**: Users can re-run the test stage of any design workflow. A separate workflow adds confusion about which one to use.
+### Decision 8: Component references are framework-skill responsibility
+
+Components don't have `*.scenes.yml` files — they're defined in framework-specific formats (e.g. `.component.yml` for Drupal, `.stories.tsx` for React). The reference schema (type, url, title, screens) is identical to scenes, but **where and how** it's stored is determined by the framework skill.
+
+Core defines:
+- The semantic reference schema (type, url, title, screens with breakpoint mapping)
+- The `resolve-reference` task that reads references
+- The `design-component:intake` step that asks the user for references
+
+Framework skills contribute rules that:
+- **Intake rule**: store the reference in the framework-specific component file format
+- **Resolve rule**: read the reference from the framework-specific component file format and return the normalized schema to the core task
+
+```
+# Example: Drupal skill stores reference in .component.yml
+# (actual storage format is up to the framework skill)
+thirdPartySettings:
+  designbook:
+    reference:
+      type: stitch
+      screens:
+        xl: stitch://project/screen-desktop
+        sm: stitch://project/screen-mobile
+
+# Example: React skill might store in .stories.tsx parameters
+# parameters: { designbook: { reference: { ... } } }
+```
+
+This keeps core generic while each framework skill owns its storage format.
+
+### Decision 4: URL references are screenshotted at breakpoints
+
+When `reference.type` is `url` and the URL is a website (not an image file), the `resolve-reference` task screenshots the URL at each breakpoint using Playwright — identical to how the `screenshot` task screenshots Storybook. This produces matching screenshot pairs for comparison.
+
+```
+reference:
+  type: url
+  url: https://example.com/product     → screenshot at each breakpoint
+
+reference:
+  type: url
+  url: https://example.com/mockup.png  → fetch image directly (single reference)
+```
+
+### Decision 9: Screenshot storage by story ID
+
+Screenshots are stored under `designbook/screenshots/{storyId}/` with separate subdirectories for Storybook captures and resolved references:
+
+```
+designbook/screenshots/
+  {storyId}/
+    storybook/          # Storybook screenshots (actual)
+      sm.png
+      xl.png
+    reference/          # Resolved reference images (expected)
+      sm.png
+      xl.png
+```
+
+- `{storyId}` is the Storybook story ID — works for scenes, components, and variants uniformly
+- Breakpoint names from `design-tokens.yml` are used as filenames
+- The `screenshot` task writes to `storybook/`, the `resolve-reference` task writes to `reference/`
+- The `visual-compare` task reads both directories and matches by breakpoint filename
+- Files are overwritten on each run (not versioned)
+
+### Decision 5: _debo resolve-url replaces _debo screenshot
+
+The existing `_debo screenshot` is split:
+- `resolveScene()` + `resolveStoryId()` → new `_debo resolve-url` command (core CLI)
+- `takeScreenshot()` → deleted (Playwright calls move to task instructions)
+
+`_debo resolve-url --scene design-system:shell` returns the Storybook iframe URL. Tasks call Playwright CLI directly.
+
+### Decision 6: Polish step handles fix loop
+
+The `polish` task reads the visual-compare report. If issues exist, it:
+1. Fixes the code (edits components/scenes/CSS)
+2. Re-screenshots via Playwright (knows the URL from resolve-url)
+3. Re-compares against reference
+4. Loops until satisfied or max iterations reached
+
+Polish uses Playwright directly for re-screenshots — no need to re-run the formal screenshot step.
+
+### Decision 7: Remove standalone design-test workflow
+
+`design-test` workflow and `visual-diff--design-test.md` task are removed. Visual comparison is now integrated as test stage in each design workflow.
 
 ## Risks / Trade-offs
 
-- **[Stitch MCP availability]** → The visual-diff test stage depends on Stitch MCP being configured. If MCP is down or misconfigured, the test stage fails. Mitigation: task-level skip with clear error message, non-blocking for workflow completion.
-- **[AI comparison quality]** → Multimodal vision comparison is approximate, not pixel-perfect. Mitigation: structured metadata (exact token values) supplements visual comparison. Pixel-diff is a future enhancement.
-- **[design-test removal]** → Users accustomed to `debo design-test` lose that command. Mitigation: clear migration note; visual-diff runs automatically now, which is better UX.
+- **[No breakpoints defined]** → Screenshot task falls back to a single default viewport (2560x1600). Compare still works.
+- **[No reference for some breakpoints]** → Falls back to the largest defined breakpoint reference or skips comparison for that breakpoint.
+- **[Polish loop divergence]** → Max iteration limit prevents infinite loops. Report shows what was fixed vs. what remains.
+- **[URL reference site changes]** → External website may change between runs. Mitigation: screenshots are timestamped, user can re-run.

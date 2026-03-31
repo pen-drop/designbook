@@ -13,7 +13,7 @@ The workflow task file SHALL declare `design-system/design-tokens.yml` as an opt
 The dialog SHALL ask questions in order from non-technical to technical. All output (component names, guidelines content) SHALL always be in English — no language question is asked.
 
 1. **References** — Existing design systems, websites, or styles to orient from (optional, multiple)
-2. **Design file** — Design file URL with type (Figma, Sketch, XD, other) and label (optional)
+2. **Design reference** — Design reference URL with type (Figma, Stitch, URL, image) and label (optional)
 3. **Principles** — General design principles (e.g. accessible, mobile-first) as free text (optional)
 4. **Component patterns** — Component usage rules (e.g. "always use the container component") as free text (optional)
 5. **Naming** — Component naming convention (default: `kebab-case`) and 2–3 examples (semi-technical)
@@ -41,10 +41,10 @@ references:
     url: https://...
     label: Reference Design System
 
-design_file:
+design_reference:
   type: figma
   url: https://...
-  label: Main Design File
+  label: Main Design Reference
 
 principles:
   - "Accessible by default"
@@ -63,6 +63,9 @@ mcp:
   server: figma-mcp
   url: http://localhost:3333
 
+visual_diff:
+  breakpoints: [sm, xl]   # optional — filter which breakpoints to screenshot (default: all)
+
 skills:
   - frontend-design
   - web-design-guidelines
@@ -74,10 +77,10 @@ skills:
 
 #### Scenario: Full guidelines file
 - **WHEN** the user provides all fields
-- **THEN** `guidelines.yml` contains: `references`, `design_file`, `principles`, `component_patterns`, `naming`, `mcp`, `skills`
+- **THEN** `guidelines.yml` contains: `references`, `design_reference`, `principles`, `component_patterns`, `naming`, `mcp`, `visual_diff`, `skills`
 
 #### Scenario: Optional fields skipped
-- **WHEN** the user skips references, design file, principles, component patterns, MCP, or skills
+- **WHEN** the user skips references, design reference, principles, component patterns, MCP, or skills
 - **THEN** those keys are NOT written to `guidelines.yml` (no empty arrays or null values)
 
 ### Requirement: Automatic Skill Loading in Design-System Workflows

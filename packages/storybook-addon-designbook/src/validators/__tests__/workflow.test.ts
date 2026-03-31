@@ -263,7 +263,7 @@ describe('workflowDone with WORKTREE', () => {
     mkdirSync(writeRoot, { recursive: true });
   });
 
-  it('non-final task: no copy, no WORKTREE removal', () => {
+  it('non-final task: no copy, no WORKTREE removal', async () => {
     const fileA = resolve(writeRoot, 'file-a.yml');
     const fileB = resolve(writeRoot, 'file-b.yml');
     writeFileSync(fileA, 'a: 1');
@@ -291,7 +291,7 @@ describe('workflowDone with WORKTREE', () => {
     data.tasks[0]!.files![0]!.validation_result = { file: fileA, type: 'data', valid: true, last_validated: '' };
     writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
 
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(false);
 
     // WORKTREE still exists (not yet committed)
@@ -300,7 +300,7 @@ describe('workflowDone with WORKTREE', () => {
     expect(existsSync(resolve(rootDir, 'file-a.yml'))).toBe(false);
   });
 
-  it('final task without write_root: archives immediately (direct engine behavior)', () => {
+  it('final task without write_root: archives immediately (direct engine behavior)', async () => {
     const realFile = resolve(rootDir, 'data.yml');
     writeFileSync(realFile, 'real: true');
 
@@ -315,7 +315,7 @@ describe('workflowDone with WORKTREE', () => {
     data.tasks[0]!.files![0]!.validation_result = { file: realFile, type: 'data', valid: true, last_validated: '' };
     writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
 
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(true);
     // File still exists at real path
     expect(existsSync(realFile)).toBe(true);
@@ -332,20 +332,20 @@ describe('workflowDone', () => {
     dist = mkdtempSync(resolve(tmpdir(), 'wf-done-'));
   });
 
-  it('marks a task done when it has no files', () => {
+  it('marks a task done when it has no files', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
       { id: 'task1', title: 'Task 1', type: 'component' },
       { id: 'task2', title: 'Task 2', type: 'data' },
     ]);
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(false);
     expect(result.data.tasks[0]!.status).toBe('done');
     expect(result.data.tasks[0]!.completed_at).toBeTruthy();
   });
 
-  it('archives workflow when all tasks are done', () => {
+  it('archives workflow when all tasks are done', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'Task 1', type: 'component' }]);
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(true);
     expect(result.data.status).toBe('completed');
     expect(result.data.completed_at).toBeTruthy();
@@ -355,21 +355,21 @@ describe('workflowDone', () => {
     expect(existsSync(resolve(dist, 'workflows', 'changes', name))).toBe(false);
   });
 
-  it('throws when task id is unknown', () => {
+  it('throws when task id is unknown', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'Task 1', type: 'component' }]);
-    expect(() => workflowDone(dist, name, 'nope')).toThrow('Task not found: nope');
+    await expect(() => workflowDone(dist, name, 'nope')).rejects.toThrow('Task not found: nope');
   });
 
-  it('throws when task is already done', () => {
+  it('throws when task is already done', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
       { id: 'task1', title: 'T1', type: 'component' },
       { id: 'task2', title: 'T2', type: 'data' },
     ]);
-    workflowDone(dist, name, 'task1');
-    expect(() => workflowDone(dist, name, 'task1')).toThrow('already done');
+    await workflowDone(dist, name, 'task1');
+    await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow('already done');
   });
 
-  it('throws when a file has not been written (no validation_result)', () => {
+  it('throws when a file has not been written (no validation_result)', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
       {
         id: 'task1',
@@ -378,10 +378,10 @@ describe('workflowDone', () => {
         files: [{ path: '/absolute/path/button.component.yml', key: 'component', validators: ['component'] }],
       },
     ]);
-    expect(() => workflowDone(dist, name, 'task1')).toThrow('not yet written');
+    await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow('not yet written');
   });
 
-  it('throws when a file failed validation', () => {
+  it('throws when a file failed validation', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
     // Manually inject a failed validation_result
     const filePath = tasksYmlPath(dist, name);
@@ -401,10 +401,10 @@ describe('workflowDone', () => {
       },
     ];
     writeFileSync(filePath, stringifyYaml(raw));
-    expect(() => workflowDone(dist, name, 'task1')).toThrow('errors');
+    await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow('errors');
   });
 
-  it('succeeds when all files have passing validation_result', () => {
+  it('succeeds when all files have passing validation_result', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
     const filePath = tasksYmlPath(dist, name);
     const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
@@ -422,11 +422,11 @@ describe('workflowDone', () => {
       },
     ];
     writeFileSync(filePath, stringifyYaml(raw));
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(true);
   });
 
-  it('does not touch task files during non-final task done (touch deferred to workflow completion)', () => {
+  it('does not touch task files during non-final task done (touch deferred to workflow completion)', async () => {
     // Per-task touch removed: files are touched only when the final task completes via WORKTREE commit
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
       { id: 'task1', title: 'T1', type: 'component' },
@@ -459,13 +459,13 @@ describe('workflowDone', () => {
     ];
     writeFileSync(filePath, stringifyYaml(raw));
 
-    workflowDone(dist, name, 'task1'); // non-final task
+    await workflowDone(dist, name, 'task1'); // non-final task
     const mtimeAfter = statSync(componentFile).mtimeMs;
     // No touch during non-final task
     expect(mtimeAfter).toBe(mtimeBefore);
   });
 
-  it('silently skips missing files during touch', () => {
+  it('silently skips missing files during touch', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
     const filePath = tasksYmlPath(dist, name);
     const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
@@ -499,7 +499,7 @@ describe('workflowDone', () => {
     ];
     writeFileSync(filePath, stringifyYaml(raw));
     // Should not throw despite missing file
-    expect(() => workflowDone(dist, name, 'task1')).not.toThrow();
+    await expect(workflowDone(dist, name, 'task1')).resolves.not.toThrow();
   });
 });
 
@@ -567,7 +567,7 @@ describe('workflowDone with git worktree', () => {
     mkdirSync(writeRoot, { recursive: true });
   });
 
-  it('commits to worktree branch + removes worktree (no merge) when worktree_branch is set', () => {
+  it('commits to worktree branch + removes worktree (no merge) when worktree_branch is set', async () => {
     const outputFile = resolve(writeRoot, 'components', 'btn.twig');
     mkdirSync(resolve(writeRoot, 'components'), { recursive: true });
     writeFileSync(outputFile, 'twig content');
@@ -595,7 +595,7 @@ describe('workflowDone with git worktree', () => {
     };
     writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
 
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     // Worktree path: not archived — stays in changes/ until workflow merge
     expect(result.archived).toBe(false);
     const calls = execFileSync.mock.calls as string[][];
@@ -744,7 +744,7 @@ describe('workflowDone with engine: direct', () => {
     dist = mkdtempSync(resolve(tmpdir(), 'wf-direct-'));
   });
 
-  it('archives immediately when all tasks done', () => {
+  it('archives immediately when all tasks done', async () => {
     const name = workflowCreate(dist, 'debo-test', 'Test', [{ id: 'task1', title: 'T1', type: 'data' }]);
     workflowPlan(
       dist,
@@ -758,7 +758,7 @@ describe('workflowDone with engine: direct', () => {
       'direct',
     );
 
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(true);
     expect(result.data.status).toBe('completed');
     expect(existsSync(resolve(dist, 'workflows', 'archive', name, 'tasks.yml'))).toBe(true);
@@ -784,7 +784,7 @@ describe('workflowDone with engine: direct', () => {
     );
 
     mock.mockClear();
-    workflowDone(dist, name, 'task1');
+    await workflowDone(dist, name, 'task1');
     expect(mock).not.toHaveBeenCalled();
   });
 });
@@ -852,7 +852,7 @@ describe('workflowDone stage-based response', () => {
     dist = mkdtempSync(resolve(tmpdir(), 'wf-response-'));
   });
 
-  it('returns next_step when more steps remain in same stage', () => {
+  it('returns next_step when more steps remain in same stage', async () => {
     const stages = { execute: { steps: ['create-component', 'create-scene'] } };
     const name = workflowCreate(
       dist,
@@ -880,7 +880,7 @@ describe('workflowDone stage-based response', () => {
       'direct',
     );
 
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(false);
     expect(result.response).toBeDefined();
     expect(result.response!.stage).toBe('execute');
@@ -888,7 +888,7 @@ describe('workflowDone stage-based response', () => {
     expect(result.response!.next_step).toBe('create-scene');
   });
 
-  it('returns stage transition when last step in stage completes', () => {
+  it('returns stage transition when last step in stage completes', async () => {
     const stages = {
       execute: { steps: ['create-component'] },
       test: { steps: ['visual-diff'] },
@@ -918,13 +918,13 @@ describe('workflowDone stage-based response', () => {
       'direct',
     );
 
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.response).toBeDefined();
     expect(result.response!.next_stage).toBe('test');
     expect(result.response!.next_step).toBe('visual-diff');
   });
 
-  it('returns waiting_for when stage has unfulfilled params', () => {
+  it('returns waiting_for when stage has unfulfilled params', async () => {
     const stages = {
       execute: { steps: ['create-component'] },
       preview: {
@@ -957,14 +957,14 @@ describe('workflowDone stage-based response', () => {
       'direct',
     );
 
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.response).toBeDefined();
     expect(result.response!.waiting_for).toBeDefined();
     expect(result.response!.waiting_for!.user_approved).toBeDefined();
     expect(result.response!.waiting_for!.user_approved!.prompt).toBe('Passt alles?');
   });
 
-  it('direct engine archives and returns stage: done when all tasks complete', () => {
+  it('direct engine archives and returns stage: done when all tasks complete', async () => {
     const stages = { execute: { steps: ['create-tokens'] } };
     const name = workflowCreate(
       dist,
@@ -985,7 +985,7 @@ describe('workflowDone stage-based response', () => {
       'direct',
     );
 
-    const result = workflowDone(dist, name, 'task1');
+    const result = await await workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(true);
     expect(result.response).toBeDefined();
     expect(result.response!.stage).toBe('done');

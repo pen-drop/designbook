@@ -10,7 +10,7 @@ stages:
     steps: [create-scene]
   test:
     each: scene
-    steps: [screenshot, resolve-reference, visual-compare, polish]
+    steps: [storybook-preview, screenshot, resolve-reference, visual-compare, polish]
 engine: direct
 before:
   - workflow: css-generate

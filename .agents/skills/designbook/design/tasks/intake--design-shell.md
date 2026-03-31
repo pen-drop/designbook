@@ -10,9 +10,21 @@ reads:
 
 Help the user design the application shell — a `page` component with `header`, `content`, and `footer` slots, composed as a scene named `shell` in `design-system.scenes.yml`.
 
-## Step 1: Analyze and Propose Layout
+## Step 1: Resolve Design Reference
+
+> ⛔ **MANDATORY**: Execute this step before any layout analysis or component planning.
+
+Follow the process in [resolve-design-reference.md](partials/resolve-design-reference.md).
+
+If a reference was loaded, use it as the primary input for all subsequent steps. When proposing layouts and components, **derive them from the reference** rather than asking the user speculative questions.
+
+## Step 2: Analyze and Propose Layout
 
 Review the product and sections, then present navigation options:
+
+**If a design reference is available**, analyze its structure (header, nav, footer, content area) and propose the layout pattern that matches the reference. Skip hypothetical options and present the derived layout directly.
+
+**If no design reference**, present options:
 
 > "I'm designing the shell for **[Product Name]**. Based on your sections:
 >
@@ -36,17 +48,22 @@ Review the product and sections, then present navigation options:
 
 Wait for their response.
 
-## Step 2: Plan Components
+## Step 3: Plan Components
 
-Follow the component planning process in [plan-components.md](../../designbook-scenes/tasks/plan-components.md):
+Follow the component planning process:
 1. Read guidelines.yml for component patterns and naming conventions
 2. Scan existing components (location provided by framework rules)
 3. Determine which shell components exist (reuse) vs. need creation (page, header, footer, navigation, etc.)
+
+**If a design reference is available**, derive the component list from the reference HTML structure rather than guessing.
+
 4. Present the component plan and get user confirmation before proceeding
 
-## Step 3: Gather Shell Details
+## Step 4: Gather Shell Details
 
-Ask clarifying questions:
+**If a design reference is available**, extract details from the reference and present them for confirmation rather than asking open-ended questions.
+
+**If no design reference**, ask clarifying questions:
 
 - "What navigation items should appear? (Based on your sections, I suggest: [list])"
 - "Where should the user menu / contact info appear? (Top right is common)"
@@ -54,7 +71,7 @@ Ask clarifying questions:
 - "How should it adapt on mobile? (Hamburger menu, collapsible sidebar, bottom nav)"
 - "Footer: What links, copyright text, and social icons should appear?"
 
-## Step 4: Present Shell Design
+## Step 5: Present Shell Design
 
 > "Here's the shell design for **[Product Name]**:
 >
@@ -76,26 +93,7 @@ Ask clarifying questions:
 >
 > Does this match what you had in mind?"
 
-Iterate until the user is satisfied. Once confirmed, proceed to Step 5.
-
-## Step 5: Design Reference (optional)
-
-Check `guidelines.yml` for `design_file` or `mcp` entries. If a design source is configured:
-
-1. Load available screens (e.g. `mcp__stitch__list_screens`)
-2. Ask the user which screen matches the shell:
-
-> "I found these design screens. Which one shows the shell/page layout?
->
-> 1. **Model - Die Putz-Ziege (Desktop)**
-> 2. **Home - Kinetic Lab**
-> 3. _(skip — no reference)_"
-
-3. Store the selection as a `reference` param for the shell scene.
-
-If no design source is configured, skip silently.
-
-The `create-component` and `create-shell-scene` stages run automatically.
+Iterate until the user is satisfied. Once confirmed, proceed to component creation.
 
 **Guardrails**
 - Be conversational — help the user think through layout decisions

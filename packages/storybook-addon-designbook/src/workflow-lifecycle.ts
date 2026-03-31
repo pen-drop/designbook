@@ -10,38 +10,34 @@
 
 import type { StageDefinition, StageParam } from './workflow-types.js';
 
-/** Fixed lifecycle order. Only declared stages (execute, test, preview) appear in frontmatter. */
-const LIFECYCLE_ORDER = ['created', 'planned', 'execute', 'committed', 'test', 'preview', 'finalizing', 'done'];
-
-/** Stages that can be declared in workflow frontmatter. */
-export const DECLARED_STAGES = ['execute', 'test', 'preview'];
+/** Implicit stages injected between declared stages and at the end of the lifecycle. */
+const IMPLICIT_STAGES: Record<string, string[]> = {
+  _after_declared: ['committed'],
+  _before_done: ['finalizing', 'done'],
+};
 
 /**
- * Get the next stage in the lifecycle, skipping stages with no steps.
+ * Build the full lifecycle order from the declared stages in the workflow.
+ * Declared stages preserve their frontmatter order. Implicit stages
+ * (committed, finalizing, done) are injected at fixed positions.
+ */
+function buildLifecycleOrder(stages: Record<string, StageDefinition>): string[] {
+  const declared = Object.keys(stages).filter((s) => stages[s]!.steps.length > 0);
+  return ['created', 'planned', ...declared, ...IMPLICIT_STAGES._after_declared!, ...IMPLICIT_STAGES._before_done!];
+}
+
+/**
+ * Get the next stage in the lifecycle, skipping stages with no tasks.
  * Implicit stages (committed, finalizing) are always traversed.
  *
  * @returns Next stage name, or null if lifecycle is complete.
  */
 export function getNextStage(current: string, stages: Record<string, StageDefinition>): string | null {
-  const currentIdx = LIFECYCLE_ORDER.indexOf(current);
-  if (currentIdx === -1 || currentIdx >= LIFECYCLE_ORDER.length - 1) return null;
+  const order = buildLifecycleOrder(stages);
+  const currentIdx = order.indexOf(current);
+  if (currentIdx === -1 || currentIdx >= order.length - 1) return null;
 
-  for (let i = currentIdx + 1; i < LIFECYCLE_ORDER.length; i++) {
-    const candidate = LIFECYCLE_ORDER[i]!;
-
-    // Implicit stages (not in DECLARED_STAGES) are always traversed
-    if (!DECLARED_STAGES.includes(candidate)) {
-      return candidate;
-    }
-
-    // Declared stages: skip if not present or has no steps
-    const def = stages[candidate];
-    if (def && def.steps.length > 0) {
-      return candidate;
-    }
-  }
-
-  return null;
+  return order[currentIdx + 1] ?? null;
 }
 
 /**

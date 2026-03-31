@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, renameSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { setTimeout as delay } from 'node:timers/promises';
 import { resolve, dirname } from 'node:path';
 import type { WorkflowEngine, TransitionResult } from './types.js';
 import type { WorkflowFile, WorkflowTask } from '../workflow.js';
@@ -27,10 +28,11 @@ export const directEngine: WorkflowEngine = {
     return { path };
   },
 
-  flush(data: WorkflowFile, tasks: WorkflowTask[]): void {
+  async flush(data: WorkflowFile, tasks: WorkflowTask[]): Promise<void> {
     const paths: string[] = [];
     const suffix = deboSuffix(data);
 
+    // Phase 1: rename all stashed files to final paths (silent — no watcher trigger)
     for (const task of tasks) {
       for (const file of task.files ?? []) {
         if (!file.validation_result) continue; // not yet written
@@ -42,13 +44,17 @@ export const directEngine: WorkflowEngine = {
       }
     }
 
-    // utime batch on ALL moved files
-    const now = new Date();
-    for (const p of paths) {
-      try {
-        utimesSync(p, now, now);
-      } catch {
-        // silently skip
+    // Phase 2: wait for all renames to settle, then touch all files at once
+    // This ensures Storybook's watcher sees all components when it rebuilds
+    if (paths.length > 0) {
+      await delay(200);
+      const now = new Date();
+      for (const p of paths) {
+        try {
+          utimesSync(p, now, now);
+        } catch {
+          // silently skip
+        }
       }
     }
   },
@@ -85,13 +91,13 @@ export const directEngine: WorkflowEngine = {
       }
     }
   },
-  onTransition(from: string, to: string, ctx: { data: WorkflowFile }): TransitionResult {
+  async onTransition(from: string, to: string, ctx: { data: WorkflowFile }): Promise<TransitionResult> {
     // Flush stashed files for every declared stage that completes
-    const DECLARED = ['execute', 'test', 'preview', 'transform'];
-    if (DECLARED.includes(from)) {
+    const declared = ctx.data.stages ? Object.keys(ctx.data.stages) : [];
+    if (declared.includes(from)) {
       const stageTasks = ctx.data.tasks.filter((t) => t.stage === from);
       if (stageTasks.length > 0) {
-        directEngine.flush(ctx.data, stageTasks);
+        await directEngine.flush(ctx.data, stageTasks);
       }
     }
 

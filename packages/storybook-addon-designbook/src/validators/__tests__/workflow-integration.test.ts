@@ -178,7 +178,7 @@ describe('createGitWorktree (real git)', () => {
 // ── full round-trip: plan → write → done → merge ─────────────────────────────
 
 describe('workflow round-trip (real git)', () => {
-  it('commits output files to branch and squash-merges on workflowMerge', () => {
+  it('commits output files to branch and squash-merges on workflowMerge', async () => {
     // 1. Create worktree path (initial commit already exists from beforeEach)
     const worktreePath = resolve(rootDir, '..', `wt-roundtrip-${Date.now()}`);
     const branchName = 'workflow/roundtrip';
@@ -226,7 +226,7 @@ describe('workflow round-trip (real git)', () => {
     writeFileSync(tasksYmlPath, stringifyYaml(data));
 
     // 6. Mark task done — should commit to branch + remove worktree
-    const { archived } = workflowDone(dist, name, 'task-1');
+    const { archived } = await workflowDone(dist, name, 'task-1');
 
     // Worktree was committed and removed
     expect(archived).toBe(false); // not archived — needs merge
@@ -253,7 +253,7 @@ describe('workflow round-trip (real git)', () => {
     expect(existsSync(resolve(dist, 'workflows', 'changes', name))).toBe(false);
   });
 
-  it('commits output files to branch and squash-merges on workflowMerge (explicit engine: git-worktree)', () => {
+  it('commits output files to branch and squash-merges on workflowMerge (explicit engine: git-worktree)', async () => {
     // Same as existing round-trip but with explicit engine field
     const worktreePath = resolve(rootDir, '..', `wt-explicit-${Date.now()}`);
     const branchName = 'workflow/explicit-engine';
@@ -298,7 +298,7 @@ describe('workflow round-trip (real git)', () => {
     };
     writeFileSync(resolve(dist, 'workflows', 'changes', name, 'tasks.yml'), stringifyYaml(data));
 
-    const { archived } = workflowDone(dist, name, 'task-1');
+    const { archived } = await workflowDone(dist, name, 'task-1');
     expect(archived).toBe(false); // needs merge
 
     const mergeResult = workflowMerge(dist, name);
@@ -350,7 +350,7 @@ describe('workflow round-trip (real git)', () => {
     writeFileSync(ymlPath, stringifyYaml(data));
 
     // Mark output task done — triggers commit to branch
-    const result1 = workflowDone(dist, name, 'output-1');
+    const result1 = await workflowDone(dist, name, 'output-1');
     expect(result1.archived).toBe(false);
 
     // Worktree removed after commit
@@ -371,7 +371,7 @@ describe('workflow round-trip (real git)', () => {
     testTask2.status = 'pending'; // reset so workflowDone can mark done
     writeFileSync(ymlPath2, stringifyYaml(data3));
 
-    const result2 = workflowDone(dist, name, 'test-1');
+    const result2 = await workflowDone(dist, name, 'test-1');
     // All done but worktree_branch set → stays in changes/, not archived
     expect(result2.archived).toBe(false);
     expect(existsSync(resolve(dist, 'workflows', 'changes', name))).toBe(true);
@@ -381,7 +381,7 @@ describe('workflow round-trip (real git)', () => {
 // ── direct engine round-trip ────────────────────────────────────────────────
 
 describe('direct engine round-trip (real git)', () => {
-  it('plan → write → done → auto-archives (no merge needed)', () => {
+  it('plan → write → done → auto-archives (no merge needed)', async () => {
     const name = workflowCreate(dist, 'debo-test', 'Direct Test', []);
     const outputFilePath = resolve(rootDir, 'src', 'button.yml');
     workflowPlan(
@@ -425,7 +425,7 @@ describe('direct engine round-trip (real git)', () => {
     writeFileSync(resolve(dist, 'workflows', 'changes', name, 'tasks.yml'), stringifyYaml(data));
 
     // Done → auto-archives
-    const { archived } = workflowDone(dist, name, 'task-1');
+    const { archived } = await workflowDone(dist, name, 'task-1');
     expect(archived).toBe(true);
     expect(existsSync(resolve(dist, 'workflows', 'archive', name))).toBe(true);
     expect(existsSync(resolve(dist, 'workflows', 'changes', name))).toBe(false);
@@ -509,7 +509,7 @@ describe('resolveEngine', () => {
 // ── merge_available behavior ─────────────────────────────────────────────────
 
 describe('merge_available behavior (real git)', () => {
-  it('git-worktree + all done → not archived (merge available)', () => {
+  it('git-worktree + all done → not archived (merge available)', async () => {
     const worktreePath = resolve(rootDir, '..', `wt-merge-avail-${Date.now()}`);
     const branchName = 'workflow/merge-avail';
     createGitWorktree(worktreePath, branchName, rootDir);
@@ -527,14 +527,14 @@ describe('merge_available behavior (real git)', () => {
       'git-worktree',
     );
 
-    const result = workflowDone(dist, name, 'task-1');
+    const result = await workflowDone(dist, name, 'task-1');
     // git-worktree + all done → stays in changes (merge available)
     expect(result.archived).toBe(false);
     expect(result.data.engine).toBe('git-worktree');
     expect(result.data.tasks.every((t) => t.status === 'done')).toBe(true);
   });
 
-  it('direct + all done → archived (no merge)', () => {
+  it('direct + all done → archived (no merge)', async () => {
     const name = workflowCreate(dist, 'debo-test', 'Direct Done', []);
     workflowPlan(
       dist,
@@ -548,11 +548,11 @@ describe('merge_available behavior (real git)', () => {
       'direct',
     );
 
-    const result = workflowDone(dist, name, 'task-1');
+    const result = await workflowDone(dist, name, 'task-1');
     expect(result.archived).toBe(true);
   });
 
-  it('git-worktree + tasks pending → not archived (not yet merge-able)', () => {
+  it('git-worktree + tasks pending → not archived (not yet merge-able)', async () => {
     const worktreePath = resolve(rootDir, '..', `wt-pending-${Date.now()}`);
     const branchName = 'workflow/pending';
     createGitWorktree(worktreePath, branchName, rootDir);
@@ -573,7 +573,7 @@ describe('merge_available behavior (real git)', () => {
       'git-worktree',
     );
 
-    const result = workflowDone(dist, name, 'task-1');
+    const result = await workflowDone(dist, name, 'task-1');
     expect(result.archived).toBe(false);
     // Not all done yet
     expect(result.data.tasks.some((t) => t.status === 'pending')).toBe(true);
