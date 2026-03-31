@@ -29,7 +29,7 @@ Read the `designTheme` object from the project response. It may contain:
 - `bodyFont` (enum)
 - `labelFont` (enum, optional)
 - `roundness` (enum)
-- `colorMode` (LIGHT/DARK) — context only, not a token
+- `colorMode` (LIGHT/DARK) — used as theme hint (see Theme Support below)
 
 Only propose fields that exist and are set. Skip unset/empty fields.
 
@@ -107,6 +107,19 @@ Present the mapped values to the user before continuing with the normal intake f
 > Use these as starting values? You can modify any of them during intake."
 
 Only show fields that were found. The user may accept, modify, or reject each value. Continue the normal tokens intake with the user's choices as defaults.
+
+## Theme Support (colorMode hint)
+
+If the Stitch project has `colorMode` set:
+
+- **`colorMode: LIGHT`** — imported colors go into `design-tokens.yml` as the base (light default)
+- **`colorMode: DARK`** — imported colors go into `design-tokens.yml` as the base (dark default)
+
+After presenting the imported values, ask:
+
+> "Your Stitch project uses **[LIGHT/DARK]** mode. Would you like to set up a **[dark/light]** theme as well?"
+
+If yes, add a theme step to the intake where the user provides color overrides for the alternate theme. Do **not** auto-generate inverted colors — always ask the user for specific values. The alternate theme is saved as `$DESIGNBOOK_DATA/design-system/themes/{name}.yml`.
 
 ## Error Handling
 

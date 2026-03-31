@@ -70,6 +70,33 @@ Rules:
 - If intake specifies a modular scale ratio, calculate sizes from a 16px base
 - Token names are free-form — use whatever the user chose in intake
 
+## Theme Files
+
+If `intake` contains a `themes` group, write each theme as a separate file:
+```
+write-file $WORKFLOW_NAME $TASK_ID --key theme-{name}
+```
+
+Theme files are saved to `$DESIGNBOOK_DATA/design-system/themes/{name}.yml` and contain **only color overrides** in W3C design token format:
+
+```yaml
+name: dark
+color-scheme: dark
+color:
+  primary:
+    $value: "#60A5FA"
+    $type: color
+  surface:
+    $value: "#111111"
+    $type: color
+```
+
+Rules:
+- Base `design-tokens.yml` remains the canonical color source (default theme)
+- Theme files only contain the `color` group — no typography, spacing, or layout tokens
+- Each theme file must have `name` and `color-scheme` top-level keys
+- Only colors that differ from the base need to be included
+
 ## Constraints
 
 - Every leaf token must have `$value` and `$type`

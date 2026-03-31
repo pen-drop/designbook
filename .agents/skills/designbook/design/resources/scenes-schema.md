@@ -46,6 +46,9 @@ $defs:
         description: Section ID for data loading.
       docs:
         type: string
+      theme:
+        type: string
+        description: Optional theme name for rendering (e.g. "dark"). Sets data-theme on the scene wrapper for screenshots and visual testing.
       reference:
         type: array
         description: Design references for visual diff testing. Each entry represents one breakpoint with its own source type, URL, and optional diff threshold.

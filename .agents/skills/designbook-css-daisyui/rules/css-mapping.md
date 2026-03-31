@@ -25,3 +25,16 @@ groups:
 ```
 
 The `color` group uses DaisyUI's `@plugin "daisyui/theme"` wrapper instead of `@theme`. The `meta` block provides theme attributes (`name`, `default`, `color-scheme`) that are emitted before the color variables.
+
+## Theme Support
+
+DaisyUI has native multi-theme support via `@plugin "daisyui/theme"`. Each theme file generates its own `@plugin` block:
+
+```yaml
+theme_wrap: '@plugin "daisyui/theme"'
+theme_meta:
+  - "name: {{ name }}"
+  - "color-scheme: {{ color-scheme }}"
+```
+
+For each theme file in `design-system/themes/`, the generator creates an additional `.jsonata` file that outputs a `@plugin "daisyui/theme"` block with the theme's `name` and `color-scheme` resolved from the theme file. The base color group's `meta` block uses `default: true`; theme overrides omit `default` so DaisyUI treats them as alternate themes.

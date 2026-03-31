@@ -21,4 +21,10 @@ If yes → proceed.
 
 **If outdated or missing:** proceed automatically to the `generate-jsonata` and `generate-css` stages.
 
+## Step 2: Detect Theme Files
+
+Scan `$DESIGNBOOK_DATA/design-system/themes/` for `.yml` files. If theme files exist, include them in the generation plan — each theme file produces an additional JSONata expression and CSS output alongside the base color generation.
+
+Theme files are color-only overrides; they generate `[data-theme="..."]` blocks (or framework-equivalent) instead of `@theme` blocks.
+
 > CSS framework naming and expression format is determined automatically via task files discovered for each stage.

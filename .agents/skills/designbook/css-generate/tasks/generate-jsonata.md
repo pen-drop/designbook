@@ -76,6 +76,42 @@ Quote font family values:
   --font-heading: "Space Grotesk";
 ```
 
-## Step 3: Verify
+## Step 3: Generate Theme JSONata Files
 
-Check that the `.jsonata` file was written and is non-empty.
+If theme files exist in `$DESIGNBOOK_DATA/design-system/themes/` **and** `params.group` is `color`, generate an additional JSONata file per theme.
+
+For each theme file `themes/{name}.yml`, create `generate-color-theme-{name}.jsonata`:
+
+### Config block
+
+- `input`: relative path to `../design-system/themes/{name}.yml`
+- `output`: relative path to CSS output named `color-theme-{name}.src.css`
+
+### Template
+
+Read the `theme_wrap` value from the `css-mapping` rule. If `theme_meta` is present, emit its key-value pairs (with `{{ name }}` and `{{ color-scheme }}` placeholders resolved from the theme file).
+
+```jsonata
+/** @config
+ {
+   "input": "<relative-path-to-themes/{name}.yml>",
+   "output": "<relative-path-to-css>/color-theme-{name}.src.css"
+ }
+ */
+(
+  $entries := $each(color, function($v, $k) {
+    "  --color-" & $k & ": " & $v."$value" & ";"
+  });
+  "<theme_wrap resolved> {\n<meta-lines>" & $join($entries, "\n") & "\n}\n"
+)
+```
+
+Where:
+- `<theme_wrap resolved>` — the `theme_wrap` value from `css-mapping` with `{{ name }}` replaced by the theme's `name`
+- `<meta-lines>` — if `theme_meta` exists in the mapping, emit each entry with `{{ name }}` and `{{ color-scheme }}` resolved from the theme file's top-level keys
+
+For Tailwind this produces `[data-theme="dark"] { ... }`. For DaisyUI this produces `@plugin "daisyui/theme" { name: dark; color-scheme: dark; ... }`.
+
+## Step 4: Verify
+
+Check that the `.jsonata` file was written and is non-empty. If theme JSONata files were generated, verify those as well.

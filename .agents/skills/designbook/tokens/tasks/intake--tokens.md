@@ -31,7 +31,31 @@ Guide the user through choosing colors. Suggest values based on the product visi
 
 These become `primitive.color.*` values, with `semantic.color.*` aliases pointing to them.
 
-## Step 3: Choose Typography
+## Step 3: Color Themes (optional)
+
+> "Do you need multiple color themes (e.g. light/dark)?
+> If yes — how many and what are their names?"
+
+If the user wants themes:
+- For each theme, ask which colors differ from the base and collect the override values
+- Save each theme as a separate file under `$DESIGNBOOK_DATA/design-system/themes/{name}.yml`
+
+Theme file format:
+```yaml
+name: dark
+color-scheme: dark    # "light" or "dark" — for prefers-color-scheme
+color:
+  primary: { $value: "#60A5FA" }
+  # only overridden colors, rest inherited from base
+```
+
+Rules:
+- Theme files contain **only color overrides** — no typography, spacing, etc.
+- Each theme file must have `name` and `color-scheme` top-level keys
+- Color tokens use the same W3C format as `design-tokens.yml` (with `$value`)
+- The base `design-tokens.yml` colors remain the default theme
+
+## Step 4: Choose Typography
 
 > "For typography, we'll use Google Fonts.
 >
@@ -41,11 +65,11 @@ These become `primitive.color.*` values, with `semantic.color.*` aliases pointin
 >
 > My suggestions for **[Product Name]**: ..."
 
-## Step 4: Optional — Additional Token Groups
+## Step 5: Optional — Additional Token Groups
 
 Depending on the design, the user may want to define additional groups (breakpoints, spacing scale, type scale with modular ratio, radius, shadows, etc.). Ask if they need any of these. Each group becomes a key in the `intake` param.
 
-## Step 5: Present Final Choices and Confirm
+## Step 6: Present Final Choices and Confirm
 
 Summarize all chosen tokens before saving. Structure the result as a single `intake` param object where each key is a token group:
 
@@ -57,6 +81,12 @@ intake:
   typography:
     heading: "Space Grotesk"
     body: "Inter"
+  themes:              # optional
+    - name: dark
+      color-scheme: dark
+      colors:
+        primary: "#60A5FA"
+        surface: "#111111"
   type_scale:          # optional
     ratio: 1.25
     base: 16
