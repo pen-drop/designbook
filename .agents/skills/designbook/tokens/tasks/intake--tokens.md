@@ -35,15 +35,7 @@ Guide the user through choosing colors. Suggest values based on the product visi
 >
 > My suggestions for **[Product Name]**: ..."
 
-## Step 4: Container Widths
-
-Ask about container (max-width) preferences. Standard Tailwind sizes: `sm`: 640px, `md`: 768px, `lg`: 1024px, `xl`: 1280px.
-
-## Step 5: Section Spacing
-
-Ask about vertical rhythm. Standard scale: `sm`: 2rem, `md`: 4rem, `lg`: 6rem.
-
-## Step 6: Present Final Choices and Confirm
+## Step 4: Present Final Choices and Confirm
 
 Summarize all chosen tokens before saving. Once approved, the `create-tokens` stage runs automatically.
 

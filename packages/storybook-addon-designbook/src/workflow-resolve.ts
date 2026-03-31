@@ -27,6 +27,7 @@ export interface ResolvedTask {
   params: Record<string, unknown>;
   task_file: string;
   rules: string[];
+  blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
   files: Array<{ path: string; key: string; validators: string[] }>;
@@ -389,6 +390,24 @@ export function matchRuleFiles(
   return matches.map((m) => m.path);
 }
 
+// ── Blueprint File Matching ───────────────────────────────────────────
+
+/**
+ * Scan all blueprint files and return paths matching the given stage and config.
+ * Blueprints use the same when-frontmatter matching as rules.
+ */
+export function matchBlueprintFiles(
+  stage: string,
+  config: DesignbookConfig,
+  agentsDir: string,
+  extraConditions?: Record<string, string>,
+): string[] {
+  const context = buildRuntimeContext(stage, extraConditions);
+  const enrichedConfig = buildEnrichedConfig(config);
+  const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir);
+  return matches.map((m) => m.path);
+}
+
 // ── File Path Expansion ─────────────────────────────────────────────
 
 /**
@@ -559,6 +578,7 @@ function deduplicateTaskIds(tasks: ResolvedTask[]): void {
 export interface ResolvedStep {
   task_file: string;
   rules: string[];
+  blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
 }
@@ -599,12 +619,14 @@ export function resolveAllStages(
       continue;
     }
     const ruleFiles = matchRuleFiles(step, config, agentsDir);
+    const blueprintFiles = matchBlueprintFiles(step, config, agentsDir);
     const { config_rules, config_instructions } = resolveConfigForStep(step, rawConfig);
 
     if (taskFilePaths.length === 1) {
       stepResolved[step] = {
         task_file: taskFilePaths[0]!,
         rules: ruleFiles,
+        blueprints: blueprintFiles,
         config_rules,
         config_instructions,
       };
@@ -612,6 +634,7 @@ export function resolveAllStages(
       stepResolved[step] = taskFilePaths.map((taskFile) => ({
         task_file: taskFile,
         rules: ruleFiles,
+        blueprints: blueprintFiles,
         config_rules,
         config_instructions,
       }));
@@ -739,6 +762,7 @@ export function resolveWorkflowPlan(
       : resolveTaskFiles(step, config, agentsDir).map((taskFile) => ({
           task_file: taskFile,
           rules: matchRuleFiles(step, config, agentsDir),
+          blueprints: matchBlueprintFiles(step, config, agentsDir),
           ...resolveConfigForStep(step, rawConfig),
         }));
 
@@ -768,6 +792,7 @@ export function resolveWorkflowPlan(
           params: mergedParams,
           task_file: resolved.task_file,
           rules: resolved.rules,
+          blueprints: resolved.blueprints,
           config_rules: resolved.config_rules,
           config_instructions: resolved.config_instructions,
           files,

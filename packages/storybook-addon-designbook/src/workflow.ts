@@ -30,6 +30,7 @@ export type { TaskFile };
 export interface StageLoaded {
   task_file: string; // absolute path to the matched task file
   rules: string[]; // absolute paths to skill rule files
+  blueprints: string[]; // absolute paths to skill blueprint files
   config_rules: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
 }
@@ -49,6 +50,7 @@ export interface WorkflowTask {
   params?: Record<string, unknown>; // per-task params from intake
   task_file?: string; // absolute path to resolved skill task file
   rules?: string[]; // absolute paths to matched skill rule files
+  blueprints?: string[]; // absolute paths to matched skill blueprint files
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[];
@@ -220,6 +222,7 @@ export function workflowCreate(
     files?: Array<{ path: string; key: string; validators: string[] }>;
     task_file?: string;
     rules?: string[];
+    blueprints?: string[];
     config_rules?: string[];
     config_instructions?: string[];
   }>,
@@ -252,6 +255,7 @@ export function workflowCreate(
       status: 'pending' as const,
       ...(t.task_file ? { task_file: t.task_file } : {}),
       ...(t.rules && t.rules.length > 0 ? { rules: t.rules } : {}),
+      ...(t.blueprints && t.blueprints.length > 0 ? { blueprints: t.blueprints } : {}),
       ...(t.config_rules && t.config_rules.length > 0 ? { config_rules: t.config_rules } : {}),
       ...(t.config_instructions && t.config_instructions.length > 0
         ? { config_instructions: t.config_instructions }
@@ -289,6 +293,7 @@ export function workflowPlan(
     params?: Record<string, unknown>;
     task_file?: string;
     rules?: string[];
+    blueprints?: string[];
     config_rules?: string[];
     config_instructions?: string[];
   }>,
@@ -336,6 +341,7 @@ export function workflowPlan(
     ...(t.params ? { params: t.params } : {}),
     ...(t.task_file ? { task_file: t.task_file } : {}),
     ...(t.rules && t.rules.length > 0 ? { rules: t.rules } : {}),
+    ...(t.blueprints && t.blueprints.length > 0 ? { blueprints: t.blueprints } : {}),
     ...(t.config_rules && t.config_rules.length > 0 ? { config_rules: t.config_rules } : {}),
     ...(t.config_instructions && t.config_instructions.length > 0
       ? { config_instructions: t.config_instructions }
@@ -363,6 +369,7 @@ export interface StageResponse {
 export interface LoadedPayload {
   task_file?: string;
   rules?: string[];
+  blueprints?: string[];
   config_rules?: string[];
   config_instructions?: string[];
   /** Set by prepare-environment task to store preview process info in tasks.yml. */
@@ -431,6 +438,7 @@ export async function workflowDone(
           data.stage_loaded[stepName] = {
             task_file: loaded.task_file ?? '',
             rules: loaded.rules ?? [],
+            blueprints: loaded.blueprints ?? [],
             config_rules: loaded.config_rules ?? [],
             config_instructions: loaded.config_instructions ?? [],
           };

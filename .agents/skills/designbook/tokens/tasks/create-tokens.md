@@ -4,8 +4,6 @@ params:
   typography: {}
   type_scale: {}
   breakpoints: {}
-  container_widths: {}
-  section_spacing: {}
 files:
   - file: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     key: design-tokens
@@ -34,16 +32,6 @@ typography:
   heading:
     $value: "DM Sans"
     $type: fontFamily
-
-layout-width:
-  md:
-    $value: "768px"
-    $type: dimension
-
-layout-spacing:
-  md:
-    $value: "4rem"
-    $type: dimension
 ```
 
 ## Required Groups
@@ -52,8 +40,6 @@ layout-spacing:
 |-------|----------|-------|
 | `color` | ✅ | Semantic names; framework-specific naming via rules |
 | `typography` | ✅ | `heading`, `body`, `mono` sub-keys (`$type: fontFamily`) |
-| `layout-width` | ✅ | `sm`, `md`, `lg`, `xl` — maps from dialog "container widths" |
-| `layout-spacing` | ✅ | `sm`, `md`, `lg` — maps from dialog "section spacing" |
 
 ## Optional Groups
 
@@ -63,7 +49,8 @@ layout-spacing:
 | `breakpoints` | `breakpoints` param provided | `$type: dimension` — responsive breakpoints |
 | `radius` | design requires it | `sm`, `md`, `lg` |
 | `shadow` | design requires it | `sm`, `md`, `lg` |
-| `grid` | design requires it | `gap-sm`, `gap-md`, `gap-lg` |
+
+> **Note:** Layout tokens (spacing, container widths, grid gaps) are component-level tokens defined by blueprints, not global design tokens. See blueprint files in `skills/*/blueprints/` for layout token definitions.
 
 ## Typography Composite Tokens
 

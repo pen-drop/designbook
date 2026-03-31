@@ -2,7 +2,7 @@
 
 ## Stage-Based Architecture
 
-Workflows declare a `steps:` array in their frontmatter. Each non-intake step maps to task files discovered in `.agents/skills/*/tasks/<step>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints.
+Workflows declare a `steps:` array in their frontmatter. Each non-intake step maps to task files discovered in `.agents/skills/*/tasks/<step>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints. Blueprint files at `.agents/skills/*/blueprints/<name>.md` provide starting points for component creation.
 
 ```yaml
 # workflow frontmatter
@@ -28,6 +28,7 @@ AI builds items array → CLI resolves:
   ├─ params validation (required/optional/defaults)
   ├─ depends_on computation (from stage ordering)
   ├─ rule file matching (stages + config conditions)
+  ├─ blueprint file matching (stages + config conditions)
   └─ config rules/instructions per stage
 → writes tasks.yml with fully-resolved paths + write_root/root_dir
 → outputs JSON plan to stdout
@@ -130,4 +131,37 @@ when:
 - `steps:` accepts a single value or an array
 - Without `when.steps`: rule applies to all steps
 - **Named intake stages**: use `workflow-id:intake` to scope a rule to a specific workflow's intake
+
+## Blueprint File Format (skills)
+
+Blueprint files live at `.agents/skills/<skill-name>/blueprints/<name>.md`. They provide starting points for component creation — required tokens, props, slots, and markup guidance. Blueprints use the same `when` frontmatter matching as rules:
+
+```markdown
+---
+when:
+  steps: [create-component]
+---
+# Blueprint: Section
+
+## When to use
+Use when building a component that wraps content in a vertical section.
+
+## Required Tokens
+section:
+  padding-y:
+    sm: { $value: "2rem", $type: "dimension" }
+
+## Props
+- background: string (optional)
+
+## Slots
+- content (required)
+
+## Markup Guidance
+- Outer wrapper with vertical padding from section tokens
+```
+
+- Blueprints say "what to build" (starting points); rules say "how to build" (constraints)
+- Loaded alongside rules via `skills/**/blueprints/*.md` glob
+- Same `when` conditions as rules (`steps`, config keys)
 
