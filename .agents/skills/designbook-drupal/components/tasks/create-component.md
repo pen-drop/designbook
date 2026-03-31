@@ -42,6 +42,10 @@ designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-story
 > navigation.footer.story.yml    ← add via workflow add-file
 > ```
 
+## Component Reuse
+
+> ⛔ **Prefer component reuse over inline markup.** If a UI element (button, icon, badge, link) exists as a component, it MUST be referenced via a slot — never rebuild it inline. If it doesn't exist yet, create it as a separate component and reference it.
+
 ## File Generation Order
 
 Generate in three phases across **all components** before moving to the next phase.
