@@ -66,27 +66,34 @@ Wait for response.
 1. Use Figma MCP if available
 2. Fall back to asking for a screenshot URL
 
-## Step 4: Per-breakpoint references (optional)
+## Step 4: Per-breakpoint references
 
-If the design warrants different references per breakpoint:
+Ask which breakpoints should have references (from `visual_diff.breakpoints` in guidelines.yml):
 
-> "Do you have separate references for different breakpoints (e.g. mobile vs desktop)?
+> "Which breakpoints should have a design reference?
 >
-> - **Yes** — I'll ask for each breakpoint
-> - **No** — I'll use this single reference for all breakpoints"
+> - **All** — I'll ask for each breakpoint
+> - **Just one** — I'll create a single entry
+> - **Select** — pick specific breakpoints"
 
-If yes, ask for each breakpoint defined in `visual_diff.breakpoints` from guidelines.yml.
+For each selected breakpoint, ask for the reference source (may differ per breakpoint — e.g. stitch for mobile, figma for desktop).
 
-Store in the reference object as:
+Build the reference array:
 ```yaml
 reference:
-  type: "stitch"
-  url: "<main reference>"
-  title: "<title>"
-  screens:
-    sm: "<mobile reference url>"
-    xl: "<desktop reference url>"
+  - type: "stitch"
+    url: "<mobile reference url>"
+    breakpoint: sm
+    threshold: 3
+    title: "<title>"
+  - type: "stitch"
+    url: "<desktop reference url>"
+    breakpoint: xl
+    threshold: 3
+    title: "<title>"
 ```
+
+Only breakpoints with a reference entry will be screenshotted during visual testing. Mixed types are allowed (e.g. stitch for mobile, figma for desktop).
 
 ## Step 5: Analyze and provide context
 
@@ -100,17 +107,16 @@ Make this analysis available as context for subsequent intake steps. When the ca
 
 ## Result
 
-Return a `reference` object to the calling intake:
+Return a `reference` array to the calling intake:
 
 ```yaml
 reference:
-  type: "<stitch|url|image|figma>"
-  url: "<reference URL>"
-  title: "<reference title>"
-  html: "<path to downloaded HTML if available>"
-  screens:          # optional, per-breakpoint
-    sm: "<url>"
-    xl: "<url>"
+  - type: "<stitch|url|image|figma>"
+    url: "<reference URL>"
+    breakpoint: "<breakpoint name>"
+    threshold: 3
+    title: "<reference title>"
+    html: "<path to downloaded HTML if available>"
 ```
 
-If no reference was selected, return `null` and let the calling intake proceed with its normal flow.
+Each entry represents one breakpoint. If no reference was selected, return `null` and let the calling intake proceed with its normal flow.

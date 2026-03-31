@@ -21,6 +21,10 @@ Read the visual-compare report from the previous step. If no issues were found, 
 
 ## Step 2: Fix Loop (max 3 iterations)
 
+**Important**: Remote reference screenshots (stitch, image, figma, url) are fetched ONCE before the loop starts. They do not change between iterations. Only local Storybook screenshots are re-taken each iteration.
+
+Only re-screenshot breakpoints that have reference entries in the scene's `reference` array.
+
 For each iteration:
 
 ### 2a. Analyze Issues
@@ -31,18 +35,20 @@ Prioritize by severity: Critical → Major → Minor. Focus on the highest-sever
 
 Edit the component files, scene definitions, or CSS to address the issues. Keep changes minimal and focused on the reported issues.
 
-### 2c. Re-screenshot
+### 2c. Re-screenshot (Storybook only)
 
-Resolve the Storybook URL and re-capture screenshots at the affected breakpoints:
+Resolve the Storybook URL and re-capture screenshots only at breakpoints that have reference entries:
 
 ```bash
 _debo resolve-url --scene ${scene}
 npx playwright screenshot --full-page --viewport-size "${width},1600" --wait-for-timeout 3000 "${url}" "designbook/screenshots/${storyId}/storybook/${breakpoint}.png"
 ```
 
+Do NOT re-fetch remote reference screenshots — they were resolved once before the loop.
+
 ### 2d. Re-compare
 
-Read the new screenshots alongside the reference images. Perform the same visual comparison as in the `visual-compare` task.
+Read the new Storybook screenshots alongside the (unchanged) reference images. Use the `threshold` from each reference entry (default 3%) for PASS/FAIL determination.
 
 ### 2e. Check Resolution
 

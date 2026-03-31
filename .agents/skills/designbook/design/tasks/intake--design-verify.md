@@ -33,19 +33,27 @@ Wait for the user's response.
 
 Follow the process in [resolve-design-reference.md](partials/resolve-design-reference.md).
 
-For each scene that has an existing `reference:` block in its `*.scenes.yml`, ask:
+For each scene that has an existing `reference:` array in its `*.scenes.yml`, list the entries and ask per entry:
 
-> "Scene **[scene-name]** has an existing reference ([type]: [title]).
+> "Scene **[scene-name]** has references:
 >
-> - **Keep** — use the existing reference
-> - **Update** — provide a new reference
-> - **Skip** — verify without reference (token compliance only)"
-
-For scenes without a reference, ask:
-
-> "Scene **[scene-name]** has no reference. Would you like to add one?
+> | # | Type | Breakpoint | Threshold | Title |
+> |---|------|-----------|-----------|-------|
+> | 1 | stitch | sm | 3% | Mobile View |
+> | 2 | figma | xl | 5% | Desktop View |
 >
-> - **Yes** — I'll ask for a reference
+> For each entry:
+> - **Keep** — use as-is
+> - **Update** — provide a new reference for this breakpoint
+> - **Remove** — drop this breakpoint from testing
+>
+> Or: **Add** — add a new breakpoint reference entry"
+
+For scenes without a reference array, ask:
+
+> "Scene **[scene-name]** has no references. Would you like to add one?
+>
+> - **Yes** — I'll ask for each breakpoint
 > - **No** — I'll verify token compliance only"
 
 ## Step 3: Build Scene List

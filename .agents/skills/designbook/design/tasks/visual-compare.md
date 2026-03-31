@@ -19,12 +19,14 @@ Run `_debo resolve-url --scene ${scene}` to get the `storyId`.
 
 ## Step 2: Collect Images
 
-Read the screenshot directories:
+Read the scene's `reference` array from the `*.scenes.yml` file. Only compare breakpoints that have reference entries.
 
-- **Storybook screenshots**: `designbook/screenshots/${storyId}/storybook/*.png`
-- **Reference images**: `designbook/screenshots/${storyId}/reference/*.png`
+For each reference entry, locate:
 
-Match by filename (breakpoint name). For each breakpoint that has both a Storybook screenshot and a reference image, perform a comparison.
+- **Storybook screenshot**: `designbook/screenshots/${storyId}/storybook/${breakpoint}.png`
+- **Reference image**: `designbook/screenshots/${storyId}/reference/${breakpoint}.png`
+
+Read the `threshold` from each reference entry (default: 3% if not specified).
 
 ## Step 3: Collect Text Context
 
@@ -45,15 +47,15 @@ Read any matched rules for the `visual-compare` step (e.g. `devtools-context` fr
 
 ## Step 5: Compare Per Breakpoint
 
-For each breakpoint with matching screenshot pairs, read both images and compare visually. Produce a structured report:
+For each reference entry, read both images and compare visually. Use the entry's `threshold` (default 3%) to determine PASS/FAIL. Produce a structured report:
 
-| Element       | Breakpoint | Match | Issue |
-|--------------|-----------|-------|-------|
-| Layout        | sm        | ✓/✗   | ...   |
-| Colors        | sm        | ✓/✗   | ...   |
-| Fonts         | sm        | ✓/✗   | ...   |
-| Spacing       | sm        | ✓/✗   | ...   |
-| Accessibility | sm        | ✓/✗   | ...   |
+| Element       | Breakpoint | Diff   | Threshold | Result | Issue |
+|--------------|-----------|--------|-----------|--------|-------|
+| Layout        | sm        | 1.2%   | 5%        | PASS   | ...   |
+| Colors        | sm        | 4.8%   | 3%        | FAIL   | ...   |
+| Fonts         | xl        | 0.5%   | 3%        | PASS   | ...   |
+
+Include threshold context in the output: "2.1% diff, threshold 5% → PASS" or "4.8% diff, threshold 3% → FAIL".
 
 Severity: **Critical** (structure wrong), **Major** (colors/fonts off), **Minor** (spacing/opacity).
 

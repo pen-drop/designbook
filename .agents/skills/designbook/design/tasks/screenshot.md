@@ -15,11 +15,12 @@ Captures Storybook screenshots at all configured breakpoints using Playwright.
 
 ## Step 1: Resolve Breakpoints
 
-Read `design-tokens.yml` and extract the `breakpoints` token group (e.g. `sm: 640px`, `md: 768px`, `lg: 1024px`, `xl: 1280px`).
+Read the scene's `reference` array from the `*.scenes.yml` file. Extract the `breakpoint` value from each reference entry — these are the only breakpoints that need screenshots.
 
-If `guidelines.yml` has `visual_diff.breakpoints`, filter to only those breakpoints.
+If the scene has no `reference` array, skip screenshots entirely:
+> "No references defined for this scene — skipping screenshots."
 
-If no breakpoints are defined, use only the default viewport (2560x1600).
+Read `design-tokens.yml` to resolve breakpoint names to pixel widths (e.g. `sm: 640px`, `xl: 1280px`).
 
 ## Step 2: Resolve Storybook URL
 

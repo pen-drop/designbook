@@ -30,9 +30,11 @@ group: "Designbook/Design System"
 scenes:
   - name: shell
     reference:              # optional — write when provided in params
-      type: "stitch"
-      url: "<resource URL>"
-      title: "<label>"
+      - type: "stitch"
+        url: "<resource URL>"
+        breakpoint: "<breakpoint name>"
+        threshold: 3
+        title: "<label>"
     items:
       - component: "COMPONENT_NAMESPACE:COMPONENT_NAME"
         slots:
