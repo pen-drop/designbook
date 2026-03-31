@@ -136,8 +136,23 @@ when:
 
 Blueprint files live at `.agents/skills/<skill-name>/blueprints/<name>.md`. They provide starting points for component creation — required tokens, props, slots, and markup guidance. Blueprints use the same `when` frontmatter matching as rules:
 
+```yaml
+---
+type: component          # blueprint type (currently: component)
+name: section            # unique name within the type
+when:
+  steps: [create-component]
+---
+```
+
+**Uniqueness rule:** Only one blueprint per `type`+`name` combination is active. If multiple skills define the same blueprint, the more specific skill wins (overrides the base). This allows integrations to customize base blueprints.
+
+**Unlike rules:** Rules are additive (all matching rules are loaded). Blueprints are unique per type+name — only one is active.
+
 ```markdown
 ---
+type: component
+name: section
 when:
   steps: [create-component]
 ---
@@ -164,4 +179,5 @@ section:
 - Blueprints say "what to build" (starting points); rules say "how to build" (constraints)
 - Loaded alongside rules via `skills/**/blueprints/*.md` glob
 - Same `when` conditions as rules (`steps`, config keys)
+- Deduplicated by `type`+`name` — last match wins (more specific skill overrides base)
 

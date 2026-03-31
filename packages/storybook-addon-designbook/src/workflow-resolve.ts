@@ -395,6 +395,10 @@ export function matchRuleFiles(
 /**
  * Scan all blueprint files and return paths matching the given stage and config.
  * Blueprints use the same when-frontmatter matching as rules.
+ *
+ * Unlike rules (which are additive), blueprints are unique per `type`+`name`.
+ * If multiple skills define the same type+name blueprint, the last match wins
+ * (skills are globbed alphabetically, so more specific skills override base ones).
  */
 export function matchBlueprintFiles(
   stage: string,
@@ -405,7 +409,17 @@ export function matchBlueprintFiles(
   const context = buildRuntimeContext(stage, extraConditions);
   const enrichedConfig = buildEnrichedConfig(config);
   const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir);
-  return matches.map((m) => m.path);
+
+  // Deduplicate by type+name — last match wins (more specific skill)
+  const byKey = new Map<string, string>();
+  for (const m of matches) {
+    const type = m.frontmatter?.['type'] as string | undefined;
+    const name = m.frontmatter?.['name'] as string | undefined;
+    if (type && name) {
+      byKey.set(`${type}:${name}`, m.path);
+    }
+  }
+  return Array.from(byKey.values());
 }
 
 // ── File Path Expansion ─────────────────────────────────────────────

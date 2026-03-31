@@ -1,4 +1,6 @@
 ---
+type: component
+name: container
 when:
   steps: [create-component]
 ---

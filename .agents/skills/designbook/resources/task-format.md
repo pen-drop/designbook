@@ -49,7 +49,7 @@ tasks:
     task_file: /abs/path/.agents/skills/$DESIGNBOOK_COMPONENT_SKILL/tasks/create-component.md
     rules:                         # absolute paths to matched rule files
       - /abs/path/.agents/skills/designbook-css-daisyui/rules/daisyui-naming.md
-    blueprints:                    # absolute paths to matched blueprint files
+    blueprints:                    # absolute paths to matched blueprint files (unique per type+name)
       - /abs/path/.agents/skills/designbook-drupal/blueprints/section.md
     config_rules:                  # strings from designbook.config.yml → workflow.rules.<stage>
       - "Komponenten-Namen immer auf Englisch, kebab-case"

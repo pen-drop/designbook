@@ -23,7 +23,7 @@
 | Content type | Destination |
 |---|---|
 | AI execution rules | `rules/<name>.md` (omit `when.stages` for global rules) |
-| Component starting points | `blueprints/<name>.md` (with `when.steps`) |
+| Component starting points | `blueprints/<name>.md` (with `type`, `name`, `when.steps`) |
 | CLI reference, YAML format specs | `resources/<topic>.md` |
 | Output structure, architecture docs | `resources/<topic>.md` |
 | Schema reference | `resources/schema-reference.md` |

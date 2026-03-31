@@ -1,4 +1,6 @@
 ---
+type: component
+name: grid
 when:
   steps: [create-component]
 ---

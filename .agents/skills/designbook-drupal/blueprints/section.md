@@ -1,4 +1,6 @@
 ---
+type: component
+name: section
 when:
   steps: [create-component]
 ---
