@@ -55,7 +55,8 @@ $defs:
           properties:
             type:
               type: string
-              enum: [stitch, image, figma, url]
+              type: string
+              description: Built-in types are "url" and "image". Integration skills can register additional types (e.g. stitch, figma).
             url:
               type: string
             breakpoint:

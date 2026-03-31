@@ -40,7 +40,7 @@ group: "Designbook/Sections/{{ section_title }}"
 scenes:
   - name: "[Scene Name]"
     reference:       # optional — write when provided
-      - type: "<stitch|figma|etc.>"
+      - type: "<url|image|...>"
         url: "<resource URL>"
         breakpoint: "<breakpoint name>"
         threshold: 3

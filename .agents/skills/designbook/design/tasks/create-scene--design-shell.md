@@ -30,7 +30,7 @@ group: "Designbook/Design System"
 scenes:
   - name: shell
     reference:              # optional — write when provided in params
-      - type: "stitch"
+      - type: "url"
         url: "<resource URL>"
         breakpoint: "<breakpoint name>"
         threshold: 3

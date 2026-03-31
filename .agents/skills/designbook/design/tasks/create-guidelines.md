@@ -37,12 +37,12 @@ Write the approved design guidelines via stdin to the CLI:
 
 ```yaml
 references:
-  - type: figma          # figma | url
+  - type: url            # url | ... (integration skills can add types)
     url: https://...
     label: Brand Guidelines
 
 design_reference:
-  type: figma            # figma | stitch | url | image
+  type: url              # url | image | ... (integration skills can add types)
   url: https://...
   label: Main Design Reference
 
@@ -61,7 +61,7 @@ naming:
     - card-teaser
 
 mcp:
-  server: figma-mcp
+  server: my-design-tool
   url: http://localhost:3333
 
 visual_diff:

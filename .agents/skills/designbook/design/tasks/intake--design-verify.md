@@ -39,8 +39,8 @@ For each scene that has an existing `reference:` array in its `*.scenes.yml`, li
 >
 > | # | Type | Breakpoint | Threshold | Title |
 > |---|------|-----------|-----------|-------|
-> | 1 | stitch | sm | 3% | Mobile View |
-> | 2 | figma | xl | 5% | Desktop View |
+> | 1 | url | sm | 3% | Mobile View |
+> | 2 | image | xl | 5% | Desktop View |
 >
 > For each entry:
 > - **Keep** — use as-is
@@ -75,8 +75,8 @@ Present the verification plan:
 >
 > | Scene | Reference | Breakpoints |
 > |-------|-----------|-------------|
-> | homepage:landing | stitch (Vercel-style Landing Page) | sm, xl |
-> | design-system:shell | stitch (Vercel-style Landing Page) | sm, xl |
+> | homepage:landing | url (Landing Page) | sm, xl |
+> | design-system:shell | image (Design Reference) | sm, xl |
 >
 > Ready to start?"
 

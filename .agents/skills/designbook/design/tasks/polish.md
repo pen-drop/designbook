@@ -21,7 +21,7 @@ Read the visual-compare report from the previous step. If no issues were found, 
 
 ## Step 2: Fix Loop (max 3 iterations)
 
-**Important**: Remote reference screenshots (stitch, image, figma, url) are fetched ONCE before the loop starts. They do not change between iterations. Only local Storybook screenshots are re-taken each iteration.
+**Important**: Remote reference screenshots (e.g. url, image) are fetched ONCE before the loop starts. They do not change between iterations. Only local Storybook screenshots are re-taken each iteration.
 
 Only re-screenshot breakpoints that have reference entries in the scene's `reference` array.
 

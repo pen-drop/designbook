@@ -26,12 +26,12 @@ For scenes, the `reference` is an array where each entry represents one breakpoi
 
 ```yaml
 reference:
-  - type: stitch
-    url: "..."
+  - type: url
+    url: "https://..."
     breakpoint: sm
     threshold: 5
-    title: "..."
-  - type: figma
+    title: "Mobile View"
+  - type: image
     url: "..."
     breakpoint: xl
     threshold: 2
@@ -39,7 +39,7 @@ reference:
 
 - If no `reference` array exists → skip with: "No reference — skipping."
 - Each entry is resolved independently by its `type`.
-- Mixed types are allowed (e.g. stitch for mobile, figma for desktop).
+- Mixed types are allowed (e.g. url for mobile, image for desktop). Integration skills can add custom types.
 
 ## Step 3: Resolve storyId
 
@@ -51,7 +51,7 @@ For each entry in the `reference` array, resolve by its `type`. Rules provide ty
 
 - **`url`** → `url-reference` rule: screenshot the URL at the entry's breakpoint via Playwright
 - **`image`** → `image-reference` rule: fetch image directly via WebFetch/Read
-- **`stitch`** → `stitch-reference` rule (from designbook-stitch): use MCP to fetch screenshot
+- Integration-specific types (e.g. from design tool skills) → matched rule from the corresponding skill
 - **Unknown type with no matching rule** → warn and skip
 
 Save each resolved image to:
@@ -72,5 +72,5 @@ Report which references were resolved:
 
 | Breakpoint | Source | Path |
 |-----------|--------|------|
-| sm        | stitch://... | `designbook/screenshots/{storyId}/reference/sm.png` |
-| xl        | stitch://... | `designbook/screenshots/{storyId}/reference/xl.png` |
+| sm        | https://example.com/mobile | `designbook/screenshots/{storyId}/reference/sm.png` |
+| xl        | https://example.com/desktop | `designbook/screenshots/{storyId}/reference/xl.png` |

@@ -22,33 +22,9 @@ Wait for response.
 
 ## Step 3: Resolve reference by type
 
-### Stitch (`design_reference.type: stitch`)
+### Integration-specific types
 
-1. List available screens:
-   ```
-   mcp__stitch__list_screens({ projectId: "<from design_reference.url>" })
-   ```
-
-2. Present numbered list to user:
-   > "Which screen matches this [screen/component/shell]?
-   >
-   > 1. **Screen Title A** (WxH)
-   > 2. **Screen Title B** (WxH)
-   > 3. _(skip — no reference)_"
-
-3. Wait for selection.
-
-4. If selected, fetch the screen details:
-   ```
-   mcp__stitch__get_screen({ name, projectId, screenId })
-   ```
-
-5. Download the HTML via the `htmlCode.downloadUrl`:
-   ```bash
-   curl -sL "<downloadUrl>" -o /tmp/stitch-reference.html
-   ```
-
-6. Read and analyze the HTML structure.
+Resolution is handled by the matching integration skill's rules (e.g. a design tool skill may register its own type). If a rule for the type exists, follow it. If not, warn and skip.
 
 ### URL (`design_reference.type: url`)
 
@@ -61,11 +37,6 @@ Wait for response.
 1. Ask user for image URL or path
 2. Load and display the image
 
-### Figma (`design_reference.type: figma`)
-
-1. Use Figma MCP if available
-2. Fall back to asking for a screenshot URL
-
 ## Step 4: Per-breakpoint references
 
 Ask which breakpoints should have references (from `visual_diff.breakpoints` in guidelines.yml):
@@ -76,24 +47,24 @@ Ask which breakpoints should have references (from `visual_diff.breakpoints` in 
 > - **Just one** — I'll create a single entry
 > - **Select** — pick specific breakpoints"
 
-For each selected breakpoint, ask for the reference source (may differ per breakpoint — e.g. stitch for mobile, figma for desktop).
+For each selected breakpoint, ask for the reference source (may differ per breakpoint — e.g. url for mobile, image for desktop).
 
 Build the reference array:
 ```yaml
 reference:
-  - type: "stitch"
+  - type: "url"
     url: "<mobile reference url>"
     breakpoint: sm
     threshold: 3
     title: "<title>"
-  - type: "stitch"
+  - type: "image"
     url: "<desktop reference url>"
     breakpoint: xl
     threshold: 3
     title: "<title>"
 ```
 
-Only breakpoints with a reference entry will be screenshotted during visual testing. Mixed types are allowed (e.g. stitch for mobile, figma for desktop).
+Only breakpoints with a reference entry will be screenshotted during visual testing. Mixed types are allowed. Integration skills can register additional types.
 
 ## Step 5: Analyze and provide context
 
@@ -111,7 +82,7 @@ Return a `reference` array to the calling intake:
 
 ```yaml
 reference:
-  - type: "<stitch|url|image|figma>"
+  - type: "<url|image|...>"
     url: "<reference URL>"
     breakpoint: "<breakpoint name>"
     threshold: 3

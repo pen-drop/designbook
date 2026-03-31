@@ -142,7 +142,7 @@ The reference schema is identical to the scene-level `reference` block:
 
 ```yaml
 reference:
-  type: stitch | image | figma | url
+  type: url | image | ...     # integration skills can register additional types
   url: "..."
   title: "..."
   screens:           # optional per-breakpoint
