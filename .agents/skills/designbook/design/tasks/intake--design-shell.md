@@ -93,7 +93,44 @@ Follow the component planning process:
 >
 > Does this match what you had in mind?"
 
-Iterate until the user is satisfied. Once confirmed, proceed to component creation.
+Iterate until the user is satisfied. Once confirmed, proceed to the structure preview.
+
+## Step 6: Structure Preview
+
+Display a full recursive ASCII tree of the shell component structure so the user can verify the complete picture before building starts.
+
+**How to build the tree:**
+
+1. Start from the top-level `page` component
+2. For each slot in the component, show the slot name as a branch label
+3. If a slot contains a component reference, show the component name after `←` (e.g. `← navigation[variant=main]`)
+4. Recursively expand every referenced component — show its own slots and nested components, all the way down to leaf nodes
+5. For repeated items, use `× n` notation (e.g. `nav-item × 5`)
+6. Check which components already exist in `$DESIGNBOOK_HOME/components/` — mark each component as `[existing]` or `[new]`
+7. Where a variant is selected, show it in bracket notation (e.g. `navigation[variant=main]`)
+
+**Present the tree using this format:**
+
+```
+Shell Structure
+═══════════════
+
+page                                        [new]
+├── header (slot)                           [new]
+│   ├── logo (slot) ← image                [existing]
+│   ├── navigation (slot) ← navigation[variant=main]  [existing]
+│   │   └── nav-item × 5
+│   └── cta (slot) ← button[variant=primary]           [existing]
+├── content → $content
+└── footer (slot)                           [new]
+    ├── navigation (slot) ← navigation[variant=footer] [existing]
+    └── social (slot) ← icon-link × 4                  [new]
+
+Components: 3 new (page, header, footer), 2 existing (navigation, button)
+Scenes: 1 (shell)
+```
+
+After presenting the tree, wait for the user to confirm the structure before proceeding to component creation.
 
 **Guardrails**
 - Be conversational — help the user think through layout decisions

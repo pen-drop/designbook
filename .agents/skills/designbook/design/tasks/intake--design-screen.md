@@ -154,7 +154,69 @@ Present a complete summary of everything that will be built before any files are
 >
 > Ready to proceed?"
 
-Wait for final confirmation before handing off to the next stage.
+Wait for confirmation before proceeding to the structure preview.
+
+## Step 7: Structure Preview
+
+Display a full recursive ASCII tree for every screen so the user can verify the complete component structure before building starts.
+
+**How to build the tree:**
+
+1. Create one tree per screen
+2. Start each tree from the scene inheritance (e.g. `scene: design-system:shell`) and show the `content` injection point
+3. For each component in the screen, show its slots as branches
+4. If a slot contains a component reference, show the component name after `←` (e.g. `← button[variant=primary]`)
+5. Recursively expand every referenced component — show its own slots and nested components, all the way down to leaf nodes
+6. For repeated items, use `× n` notation (e.g. `article-card × n`)
+7. Show props as `(prop)` and slots as `(slot)` to distinguish them
+8. Check which components already exist in `$DESIGNBOOK_HOME/components/` — mark each component as `[existing]` or `[new]`
+9. Where a variant is selected, show it in bracket notation (e.g. `button[variant=outline]`)
+10. Show entity mappings and their view modes where applicable
+
+**Present each screen tree using this format:**
+
+```
+Screen Structure: Blog Overview
+═══════════════════════════════
+
+scene: design-system:shell
+└── content
+    ├── hero-banner (slot)
+    │   ├── heading (prop)
+    │   └── cta (slot) ← button[variant=primary]  [existing]
+    ├── filter-bar (slot)                           [new]
+    │   └── tag-filter × n
+    └── article-list
+        └── article-card × n                        [new]
+            ├── image (slot) ← image
+            ├── title (prop)
+            ├── excerpt (prop)
+            └── cta (slot) ← button[variant=outline] [existing]
+
+Screen Structure: Blog Detail
+═════════════════════════════
+
+scene: design-system:shell
+└── content
+    └── article-detail                              [new]
+        ├── hero-image (slot) ← image
+        ├── title (prop)
+        ├── body (slot) ← rich-text
+        └── related (slot)
+            └── article-card × 3                    [existing]
+
+Components: 3 new (filter-bar, article-card, article-detail), 2 existing (button, rich-text)
+Entity Mappings: article.blog.teaser, article.blog.full
+Scenes: 2 (overview, detail)
+```
+
+**After all screen trees**, present a combined summary at the bottom:
+- Total new components (with names)
+- Total existing components (with names)
+- Entity mappings (entity.bundle.view_mode format)
+- Total scenes
+
+Wait for the user to confirm the structure before handing off to the next stage.
 
 **Guardrails**
 
