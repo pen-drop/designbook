@@ -47,4 +47,14 @@ Rules, tasks, and resources for creating Drupal SDC components (`when: framework
 - [components/resources/story-yml.md](components/resources/story-yml.md) — Story YAML structure
 - [components/resources/component-yml.md](components/resources/component-yml.md) — Component YAML structure
 - [components/resources/component-patterns.md](components/resources/component-patterns.md) — Slot/variant/prop detection heuristics
-- [components/resources/layout-reference.md](components/resources/layout-reference.md) — Layout components — full definitions for container, grid, section
+- [components/resources/container-reference.md](components/resources/container-reference.md) — Container markup (component.yml, Twig, stories)
+- [components/resources/grid-reference.md](components/resources/grid-reference.md) — Grid markup (component.yml, Twig, stories)
+- [components/resources/section-reference.md](components/resources/section-reference.md) — Section markup (component.yml, Twig, stories)
+
+## Blueprints
+
+Layout component blueprints with tokens, props/slots summary (`when: steps: [create-component]`). Full markup in resources above.
+
+- [blueprints/container.md](blueprints/container.md) — Universal structural wrapper (max-width, padding, header, background)
+- [blueprints/grid.md](blueprints/grid.md) — Responsive column grid layout
+- [blueprints/section.md](blueprints/section.md) — Layout Builder adapter (container + grid + column slots)

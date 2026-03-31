@@ -230,6 +230,7 @@ workflow
                     files: [] as Array<{ path: string; key: string; validators: string[] }>,
                     task_file: intakeResolved.task_file,
                     rules: intakeResolved.rules,
+                    blueprints: intakeResolved.blueprints,
                     config_rules: intakeResolved.config_rules,
                     config_instructions: intakeResolved.config_instructions,
                   },
@@ -455,6 +456,7 @@ workflow
         params: Record<string, unknown>;
         task_file: string;
         rules: string[];
+        blueprints: string[];
         config_rules: string[];
         config_instructions: string[];
       }> = [];
@@ -495,6 +497,7 @@ workflow
               params: mergedParams,
               task_file: resolved.task_file,
               rules: resolved.rules ?? [],
+              blueprints: resolved.blueprints ?? [],
               config_rules: resolved.config_rules ?? [],
               config_instructions: resolved.config_instructions ?? [],
             });
@@ -577,6 +580,7 @@ workflow
           stage: opts.stage,
           task_file: stage.task_file,
           rules: stage.rules ?? [],
+          blueprints: stage.blueprints ?? [],
           config_rules: stage.config_rules ?? [],
           config_instructions: stage.config_instructions ?? [],
         },

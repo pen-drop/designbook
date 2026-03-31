@@ -37,6 +37,7 @@ interface WorkflowTask {
   params?: Record<string, unknown>;
   task_file?: string;
   rules?: string[];
+  blueprints?: string[];
   config_rules?: string[];
   config_instructions?: string[];
   files?: TaskFile[];
@@ -45,6 +46,7 @@ interface WorkflowTask {
 interface StageLoaded {
   task_file: string;
   rules: string[];
+  blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
 }
@@ -288,12 +290,16 @@ function collectLoaded(loaded?: StageLoaded | null, task?: WorkflowTask | null):
 
   const taskFile = 'task_file' in src ? src.task_file : undefined;
   const rules = 'rules' in src ? src.rules : undefined;
+  const blueprints = 'blueprints' in src ? src.blueprints : undefined;
   const configRules = 'config_rules' in src ? src.config_rules : undefined;
   const configInstructions = 'config_instructions' in src ? src.config_instructions : undefined;
 
   if (taskFile) files.push({ label: 'task', path: taskFile, isAbsolute: true });
   if (rules) {
     for (const r of rules) files.push({ label: 'rule', path: r, isAbsolute: true });
+  }
+  if (blueprints) {
+    for (const b of blueprints) files.push({ label: 'blueprint', path: b, isAbsolute: true });
   }
   if (configRules) {
     for (const cr of configRules) files.push({ label: 'config-rule', path: cr, isAbsolute: false });
@@ -464,6 +470,7 @@ function GroupedFileBadges({ files }: { files: LoadedFile[] }) {
   const groupLabels: Record<string, string> = {
     task: 'Tasks',
     rule: 'Rules',
+    blueprint: 'Blueprints',
     'config-rule': 'Config Rules',
     instruction: 'Instructions',
   };

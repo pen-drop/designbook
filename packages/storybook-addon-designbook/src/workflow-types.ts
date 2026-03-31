@@ -24,6 +24,7 @@ export interface TaskFile {
 export interface StageLoaded {
   task_file: string;
   rules: string[];
+  blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
 }
@@ -52,6 +53,7 @@ export interface WorkflowTask {
   params?: Record<string, unknown>; // per-task params from intake (e.g. component name, slots)
   task_file?: string; // absolute path to resolved skill task file
   rules?: string[]; // absolute paths to matched skill rule files
+  blueprints?: string[]; // absolute paths to matched skill blueprint files
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[]; // produced files, each with its own validation state

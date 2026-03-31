@@ -63,7 +63,7 @@ Manages the Storybook daemon lifecycle. State is persisted in `$DESIGNBOOK_DATA/
 
 # Inspect stage files (task_file + rules) for a stage
  instructions --workflow <name> --stage <stage>
-# → returns JSON: { stage, task_file, rules, config_rules, config_instructions }
+# → returns JSON: { stage, task_file, rules, blueprints, config_rules, config_instructions }
 
 # Execution (2 calls per task)
  validate --workflow <name> --task <id>
@@ -99,6 +99,7 @@ Stage resolution happens at `workflow create --workflow-file` time. The `plan` c
       "params": { "component": "button", "slots": [] },
       "task_file": "/abs/path/.agents/skills/.../tasks/create-component.md",
       "rules": ["/abs/path/.agents/skills/.../rules/rule.md"],
+      "blueprints": ["/abs/path/.agents/skills/.../blueprints/section.md"],
       "config_rules": [],
       "config_instructions": [],
       "files": ["/abs/path/components/button/button.component.yml"]

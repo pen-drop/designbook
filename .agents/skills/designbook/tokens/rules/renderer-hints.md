@@ -10,13 +10,14 @@ Every `$type: dimension` token group MUST include `$extensions.designbook.render
 ## Format
 
 ```yaml
-radius:
-  $extensions:
-    designbook:
-      renderer: radius
-  sm:
-    $value: "0.125rem"
-    $type: dimension
+semantic:
+  radius:
+    $extensions:
+      designbook:
+        renderer: radius
+    sm:
+      $value: "0.125rem"
+      $type: dimension
 ```
 
 ## Available Renderers
@@ -34,15 +35,19 @@ radius:
 
 When creating `$type: dimension` token groups, use this table to choose the correct renderer:
 
-| Group purpose | Renderer | Why |
-|---------------|----------|-----|
-| Container max-widths (`layout-width`) | `container` | Nested rectangles show relative container sizes at a glance |
-| Responsive breakpoints (`breakpoints`) | `screen` | Device silhouettes make breakpoint-to-device mapping immediately clear |
-| Border radius (`radius`) | `radius` | Small values (0.125–1rem), visual corner shape preview is more useful than a bar |
-| Grid gaps (`grid`) | `gap` | Shows actual spacing between elements |
-| Section vertical spacing (`layout-spacing`) | `spacing` | Shows actual spacing between elements |
-| Generic small dimensions | `spacing` | Better than misleading proportional bars |
-| Generic large dimensions | `bar` | Proportional comparison makes sense at large scale |
+| Group purpose | Level | Renderer | Why |
+|---------------|-------|----------|-----|
+| Container max-widths | `component.container` | `container` | Nested rectangles show relative container sizes at a glance |
+| Responsive breakpoints | `semantic.breakpoints` | `screen` | Device silhouettes make breakpoint-to-device mapping immediately clear |
+| Border radius | `semantic.radius` | `radius` | Small values (0.125–1rem), visual corner shape preview is more useful than a bar |
+| Grid gaps | `component.grid` | `gap` | Shows actual spacing between elements |
+| Section vertical spacing | `component.section` | `spacing` | Shows actual spacing between elements |
+| Generic small dimensions | any | `spacing` | Better than misleading proportional bars |
+| Generic large dimensions | any | `bar` | Proportional comparison makes sense at large scale |
+
+## Blueprint tokens
+
+Blueprints include `$extensions.designbook.renderer` directly in their `required_tokens` frontmatter. When merging blueprint tokens into `component.*`, preserve these extensions.
 
 ## Non-dimension groups
 

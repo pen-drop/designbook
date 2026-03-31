@@ -75,7 +75,7 @@ The CSS skill is only needed in Phase 1. Validation runs after each component YA
 
 ## Layout Components
 
-> ⛔ **MANDATORY**: When the component `group` is `Layout`, you **MUST** read `resources/layout-reference.md` before generating any files. Layout components (`container`, `grid`, `section`) have fixed definitions — copy them exactly from the reference. Do not invent layout component structures.
+> ⛔ **MANDATORY**: When the component `group` is `Layout`, you **MUST** read the matching blueprint file before generating any files. Layout components (`container`, `grid`, `section`) have blueprints with fixed definitions — copy them exactly. Do not invent layout component structures.
 
 ## Resources
 
@@ -85,6 +85,5 @@ Read the relevant resource file at the start of each phase:
 - `resources/story-yml.md` — Story YAML structure
 - `resources/component-yml.md` — Component YAML structure
 - `resources/component-patterns.md` — Drupal-specific component patterns (navigation) and slot/variant/prop detection heuristics
-- `resources/layout-reference.md` — **Required** for `group: Layout` components — fixed definitions for `container`, `grid`, `section`
 
 > ⛔ **MANDATORY**: Change the app css after a new component is created. It must be changed to see changes!

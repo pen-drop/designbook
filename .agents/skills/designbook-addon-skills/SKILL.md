@@ -47,6 +47,8 @@ Addon skills (`designbook-css-*`, `designbook-drupal`, etc.) use a flat structur
 │   └── [task-name].md    # e.g. create-component.md
 ├── rules/                # Constraints loaded conditionally
 │   └── [rule-name].md    # frontmatter: when: { backend: drupal }
+├── blueprints/           # Starting points for component creation
+│   └── [name].md         # frontmatter: when: { steps: [create-component] }
 ├── resources/            # Reference documentation, split by concern
 │   └── [topic].md
 └── *.schema.json         # JSON Schemas for validation (if applicable)
@@ -113,6 +115,32 @@ when:
 - Without `when.steps`: rule applies to all steps
 - Rules are loaded automatically — no explicit "read this file" needed in workflows
 
+### `blueprints/` — Component Starting Points
+
+Blueprint files provide starting points for component creation — required tokens, props, slots, and markup guidance. They use the same `when` frontmatter matching as rules:
+
+```markdown
+---
+when:
+  steps: [create-component]
+---
+# Blueprint: Section
+## When to use
+...
+## Required Tokens
+...
+## Props
+...
+## Slots
+...
+## Markup Guidance
+...
+```
+
+- Blueprints say "what to build"; rules say "how to build"
+- Loaded via `skills/**/blueprints/*.md` glob, same matching as rules
+- Layout tokens (spacing, container widths, grid gaps) are defined as component-level tokens in blueprints, not as global design tokens
+
 ## Canonical Stage Names
 
 | Stage | Used for |
@@ -159,6 +187,7 @@ Before executing any task stage, check all `reads:` entries in the task file fro
 - [ ] `SKILL.md` with correct frontmatter (name, description) — index only
 - [ ] Task files in `tasks/<stage-name>.md` with `when`, `params`, `reads`, `files` frontmatter
 - [ ] Rule files in `rules/<name>.md` with `when.stages` if stage-specific
+- [ ] Blueprint files in `blueprints/<name>.md` with `when.steps` (for component starting points)
 - [ ] Schemas bundled in skill directory (not downloaded)
 - [ ] Reference docs in `resources/` for format specs and examples
 - [ ] Corresponding workflow at `designbook/<concern>/workflows/<workflow-id>.md` if user-facing
