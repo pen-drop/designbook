@@ -11,7 +11,7 @@ files:
 
 Write the approved data model in YAML format via stdin to the CLI:
 ```
- write-file $WORKFLOW_NAME $TASK_ID --key data-model
+_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key data-model
 ```
 
 ## Format
@@ -53,5 +53,3 @@ Common templates:
 - `field-map` — structured field mapping, entity fields drive component selection
 
 During the dialog, present available templates with descriptions and ask the author which template applies to each view mode.
-
-> Backend-specific naming rules are loaded automatically via rule files.

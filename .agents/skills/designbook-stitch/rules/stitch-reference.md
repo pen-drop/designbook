@@ -1,7 +1,7 @@
 ---
 when:
   steps: [resolve-reference]
-  design_tool.type: stitch
+  extensions: stitch
 ---
 
 # Stitch Reference Resolution

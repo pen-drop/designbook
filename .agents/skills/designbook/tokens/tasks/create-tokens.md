@@ -39,10 +39,11 @@ component:        # Component-specific tokens from blueprint required_tokens
 
 ## Instructions
 
-1. **Primitive tokens** — for each group in `intake`, write raw values under `primitive.<group>`
-2. **Semantic tokens** — create purpose-based aliases referencing primitives (e.g., `color` → `primary`/`secondary`, `typography` → `heading`/`body`/`mono`)
-3. **Component tokens** — read `required_tokens` from each matched blueprint file and write them under `component.<group>`. These are defaults — if `component.<group>` already exists in a prior `design-tokens.yml`, keep existing values and only add missing keys
-4. Apply renderer hints per the `renderer-hints` rule
+1. **Read naming conventions** — read the css-naming blueprint from `task.blueprints[]` filtered by `type: css-naming` for token group names, sub-key conventions, and CSS variable mapping
+2. **Primitive tokens** — for each group in `intake`, write raw values under `primitive.<group>`. Sub-key naming follows the css-naming blueprint loaded in step 1.
+3. **Semantic tokens** — create purpose-based aliases referencing primitives (e.g., `color` → `primary`/`secondary`, `typography` → `heading`/`body`/`mono`). Semantic tokens MUST reference primitives via `{primitive.<group>.<key>}` — no raw values in semantics.
+4. **Component tokens** — read `required_tokens` from each matched blueprint file and write them under `component.<group>`. These are defaults — if `component.<group>` already exists in a prior `design-tokens.yml`, keep existing values and only add missing keys
+5. Apply renderer hints per the `renderer-hints` rule
 
 ## Intake Param
 
@@ -64,16 +65,8 @@ component:
 
 When `intake` contains a `type_scale` group, generate `$type: typography` composite tokens in `semantic.typography` alongside any `fontFamily` tokens.
 
-Rules:
-- Heading-level tokens (h1, h2, h3, display, title) use the heading font family
-- Body-level tokens (body, body-lg, small, caption) use the body font family
-- If intake specifies a modular scale ratio, calculate sizes from a 16px base
-- Token names are free-form — use whatever the user chose in intake
-
 ## Constraints
 
 - Every leaf token must have `$value` and `$type`
 - Colors must be hex codes
-- Fonts must be exact Google Fonts names
 - Valid `$type` values: `color`, `fontFamily`, `dimension`, `number`, `fontWeight`, `duration`, `cubicBezier`, `shadow`, `gradient`, `transition`, `border`, `strokeStyle`, `typography`
-- Framework-specific naming rules are loaded automatically via rule files when `DESIGNBOOK_FRAMEWORK_CSS` matches

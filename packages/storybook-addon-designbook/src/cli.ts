@@ -180,7 +180,7 @@ workflow
 
 workflow
   .command('create')
-  .description('Create a new workflow tracking file. With --workflow-file, auto-resolves intake task.')
+  .description('Create a new workflow tracking file. With --workflow-file, auto-resolves all stages.')
   .requiredOption('--workflow <id>', 'Workflow identifier (e.g., vision)')
   .option('--title <title>', 'Human-readable workflow title')
   .option('--workflow-file <path>', 'Path to workflow .md file (resolves intake task + stages)')
@@ -214,8 +214,9 @@ workflow
 
           const title = opts.title ?? resolved.title;
 
-          // Find intake step (if any) to create an intake task
-          const intakeStep = resolved.steps.find((s) => s.endsWith(':intake'));
+          // Find intake stage (if declared in stages frontmatter)
+          const intakeStage = resolved.stages?.intake;
+          const intakeStep = intakeStage ? 'intake' : undefined;
           const intakeRaw = intakeStep ? resolved.step_resolved[intakeStep] : undefined;
           const intakeResolved = intakeRaw && !Array.isArray(intakeRaw) ? intakeRaw : undefined;
           const intakeTask =
@@ -226,7 +227,7 @@ workflow
                     title: `Intake: ${title}`,
                     type: 'data' as const,
                     step: intakeStep,
-                    stage: 'execute' as const,
+                    stage: 'intake' as const,
                     files: [] as Array<{ path: string; key: string; validators: string[] }>,
                     task_file: intakeResolved.task_file,
                     rules: intakeResolved.rules,
@@ -378,7 +379,9 @@ workflow
       } else {
         allSteps = (rawStages as string[] | undefined) ?? [];
       }
-      const execSteps = allSteps.filter((s) => !s.endsWith(':intake'));
+      // Filter out intake stage steps (already created at workflow create time)
+      const intakeSteps = new Set(stageDefinitions?.intake?.steps ?? []);
+      const execSteps = allSteps.filter((s) => !intakeSteps.has(s));
 
       // Build step → parent stage mapping and step → each mapping
       const stepToStage = new Map<string, string>();
@@ -548,7 +551,7 @@ workflow
   .command('instructions')
   .description('Get the files to load before starting a stage. Returns task_file, rules, config from stage_loaded.')
   .requiredOption('--workflow <name>', 'Workflow name')
-  .requiredOption('--stage <name>', 'Stage name (e.g., designbook-components:intake, create-component)')
+  .requiredOption('--stage <name>', 'Stage name (e.g., intake, create-component)')
   .action((opts: { workflow: string; stage: string }) => {
     const config = loadConfig();
     const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
@@ -574,15 +577,30 @@ workflow
     }
 
     const stage = stageLoaded[opts.stage] as Record<string, unknown>;
+    const taskFile = stage.task_file as string | undefined;
+
+    // Read expected_params from task file frontmatter
+    let expectedParams: Record<string, { required: boolean; default?: unknown }> = {};
+    if (taskFile && existsSync(taskFile)) {
+      const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
+      const params = taskFm?.params as Record<string, unknown> | undefined;
+      if (params) {
+        for (const [key, value] of Object.entries(params)) {
+          expectedParams[key] = value === null ? { required: true } : { required: false, default: value };
+        }
+      }
+    }
+
     console.log(
       JSON.stringify(
         {
           stage: opts.stage,
-          task_file: stage.task_file,
+          task_file: taskFile,
           rules: stage.rules ?? [],
           blueprints: stage.blueprints ?? [],
           config_rules: stage.config_rules ?? [],
           config_instructions: stage.config_instructions ?? [],
+          expected_params: expectedParams,
         },
         null,
         2,

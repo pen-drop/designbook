@@ -84,4 +84,4 @@ Present the verification plan:
 >
 > Ready to start?"
 
-Wait for confirmation, then proceed to `workflow plan`.
+Wait for confirmation — once confirmed, intake is complete.

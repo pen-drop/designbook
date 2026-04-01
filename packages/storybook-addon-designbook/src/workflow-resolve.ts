@@ -337,7 +337,7 @@ export function resolveTaskFiles(
     if (existsSync(taskPath)) {
       return [taskPath];
     }
-    // Fall back to glob for workflow-qualified tasks within unified skill (e.g. design-screen:intake)
+    // Fall back to glob for workflow-qualified tasks within unified skill (e.g. design-screen:create-scene)
     const context = buildRuntimeContext();
     const enrichedConfig = buildEnrichedConfig(config);
     const matches = resolveFiles(`skills/**/tasks/${taskName}--${skillName}.md`, context, enrichedConfig, agentsDir);
@@ -537,14 +537,24 @@ export function validateAndMergeParams(
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...itemParams };
 
+  const missing: string[] = [];
   for (const [key, defaultValue] of Object.entries(schemaParams)) {
     if (merged[key] !== undefined) continue;
 
     if (defaultValue === null) {
-      throw new Error(`Missing required param '${key}' for step '${step}'`);
+      missing.push(key);
+    } else {
+      merged[key] = defaultValue;
     }
+  }
 
-    merged[key] = defaultValue;
+  if (missing.length > 0) {
+    const paramList = Object.entries(schemaParams)
+      .map(([k, v]) => `${k} (${v === null ? 'required' : 'optional'})`)
+      .join(', ');
+    throw new Error(
+      `Missing required param '${missing[0]}' for step '${step}'. Expected params: ${paramList}`,
+    );
   }
 
   return merged;
@@ -638,8 +648,21 @@ export function resolveAllStages(
       console.debug(`[Designbook] workflow: step "${step}" skipped — no matching task file`);
       continue;
     }
+    // Match rules/blueprints for both the plain step and the workflow-qualified name
+    // (e.g. step "intake" also matches rules scoped to "vision:intake")
+    const qualifiedStep = workflowId ? `${workflowId}:${step}` : undefined;
     const ruleFiles = matchRuleFiles(step, config, agentsDir);
+    if (qualifiedStep) {
+      for (const r of matchRuleFiles(qualifiedStep, config, agentsDir)) {
+        if (!ruleFiles.includes(r)) ruleFiles.push(r);
+      }
+    }
     const blueprintFiles = matchBlueprintFiles(step, config, agentsDir);
+    if (qualifiedStep) {
+      for (const b of matchBlueprintFiles(qualifiedStep, config, agentsDir)) {
+        if (!blueprintFiles.includes(b)) blueprintFiles.push(b);
+      }
+    }
     const { config_rules, config_instructions } = resolveConfigForStep(step, rawConfig);
 
     if (taskFilePaths.length === 1) {
@@ -749,7 +772,9 @@ export function resolveWorkflowPlan(
     }
   }
 
-  const execSteps = allSteps.filter((s) => !s.endsWith(':intake'));
+  // Filter out intake stage steps (already created at workflow create time)
+  const intakeSteps = new Set(stageDefs?.intake?.steps ?? []);
+  const execSteps = allSteps.filter((s) => !intakeSteps.has(s));
 
   for (const item of items) {
     if (!execSteps.includes(item.step)) {

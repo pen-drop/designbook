@@ -19,6 +19,6 @@ Check if generated CSS token files (location determined by the active CSS framew
 If no → stop (skip workflow creation).
 If yes → proceed.
 
-**If outdated or missing:** proceed automatically to the `generate-jsonata` and `generate-css` stages.
+**If outdated or missing:** intake is complete — regeneration needed.
 
 > CSS framework naming and expression format is determined automatically via task files discovered for each stage.

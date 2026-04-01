@@ -9,7 +9,7 @@ files:
       - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    workflow: design-tokens
+    workflow: tokens
 ---
 
 # Generate JSONata Expression — Generic
@@ -23,9 +23,9 @@ Write the file via stdin to the CLI:
 designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key generate-jsonata
 ```
 
-## Step 1: Read the css-mapping rule
+## Step 1: Read the css-mapping blueprint
 
-Find the `css-mapping` rule in your resolved rules. Parse the `groups:` YAML block. Look up the entry for `params.group`. It provides:
+Read the css-mapping blueprint from `task.blueprints[]` filtered by `type: css-mapping`. Parse the `groups:` YAML block. Look up the entry for `params.group`. It provides:
 
 - **`prefix`** — CSS variable prefix (e.g. `color` → `--color-*`)
 - **`wrap`** — CSS wrapper, used verbatim as the opening block (e.g. `@theme`, `@plugin "daisyui/theme"`)

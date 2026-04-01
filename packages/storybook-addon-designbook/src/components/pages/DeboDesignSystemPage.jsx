@@ -1,6 +1,6 @@
 import React from 'react';
 import { DeboSection } from '../DeboSection.jsx';
-import { DeboDesignTokens } from '../display/DeboDesignTokens.jsx';
+import { DeboDesignTokens, resolveTokenReferences } from '../display/DeboDesignTokens.jsx';
 import { DeboDesignGuidelines } from '../display/DeboDesignGuidelines.jsx';
 import { DeboProse } from '../ui/DeboTypography.jsx';
 import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
@@ -32,8 +32,8 @@ function TokensTab() {
     <DeboSection
       title="Design Tokens"
       dataPath="design-system/design-tokens.yml"
-      parser={(content) => parseYaml(content)}
-      command="/debo design-tokens"
+      parser={(content) => resolveTokenReferences(parseYaml(content))}
+      command="/debo tokens"
       emptyMessage="No design tokens defined yet"
       renderContent={(data) => <DeboDesignTokens tokens={data} />}
     />

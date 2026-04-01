@@ -13,24 +13,7 @@
 /**
  * Include design tokens
  */
-@import "./tokens/color.src.css";
-@import "./tokens/spacing.src.css";
-@import "./tokens/font.src.css";
-@import "./tokens/radius.src.css";
-@import "./tokens/opacity.src.css";
-@import "./tokens/layout.src.css";
-@import "./tokens/container.src.css";
-@import "./tokens/section-spacing.src.css";
-@import "./tokens/layout-width.src.css";
-@import "./tokens/layout-spacing.src.css";
-@import "./tokens/grid.src.css";
-@import "./tokens/shadow.src.css";
-@import "./tokens/google-fonts.src.css";
-
-/**
- * Include utilities
- */
-@import "./utilities.src.css";
+@import "./tokens/index.src.css";
 
 /**
  * Include additional plugins here

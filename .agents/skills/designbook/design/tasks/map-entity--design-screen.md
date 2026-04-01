@@ -28,9 +28,13 @@ A pure JSONata expression returning `ComponentNode[]`. See [jsonata-reference](.
  write-file $WORKFLOW_NAME $TASK_ID --key entity-mapping
 ```
 
+## Data Mapping Pattern
+
+Read the data-mapping blueprint from `task.blueprints[]` filtered by `type: data-mapping`. The matching blueprint provides the JSONata pattern and rules for the declared template.
+
 ## Constraints
 
 - One file per `entity_type.bundle.view_mode` combination
 - Provider prefix resolved at generation time (never leave as placeholder)
 - Reference fields emit `{ "type": "entity", ... }` nodes — resolved recursively at build time
-- If no matching template rule found, stop and report the error
+- If no matching data-mapping blueprint found for the template, stop and report the error

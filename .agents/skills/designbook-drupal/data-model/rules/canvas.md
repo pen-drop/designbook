@@ -8,9 +8,9 @@ when:
 
 Applies when the Canvas module is active. Canvas manages pages through a visual component editor stored directly on the entity — no block_content indirection.
 
-## Purpose: landing-page
+## Purpose: layout-builder
 
-When a bundle has `purpose: landing-page`:
+All `canvas_page` bundles always have `purpose: layout-builder`:
 
 - Use `canvas_page` as the entity type — do NOT use `node` for Canvas-managed pages
 - Set `view_modes.full.template: canvas`

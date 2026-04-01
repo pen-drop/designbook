@@ -1,6 +1,6 @@
 ---
 name: debo
-argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|design-guidelines|sections|shape-section|sample-data|css-generate]"
+argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|design-guidelines|sections|shape-section|sample-data|css-generate] [--optimize]"
 description: >
   Designbook design system. Use ALWAYS when creating, modifying, or
   deleting components, screens, scenes, design tokens, CSS, or any
@@ -17,7 +17,18 @@ description: >
 
 > ⛔ **Never load or apply this skill for `opsx-*` or `openspec-*` workflows.** Those workflows manage their own artifact lifecycle (changes, specs, archives) and must not be wrapped in a designbook workflow.
 
-> ⛔ **OpenSpec spec files are forbidden inputs.** Never read change files, delta specs, or main specs (`.agents/changes/`, OpenSpec paths) inside a `debo` workflow. Task context comes only from `.agents/skills/*/tasks/` and `.agents/skills/*/rules/`.
+> ⛔ **OpenSpec spec files are forbidden inputs.** Never read change files, delta specs, or main specs (`.agents/changes/`, OpenSpec paths) inside a `debo` workflow. Task context comes only from `.agents/skills/*/tasks/`, `.agents/skills/*/rules/`, and `.agents/skills/*/blueprints/`.
+
+## Global Flags
+
+| Flag | Visibility | Effect |
+|---|---|---|
+| `--optimize` | User-facing | After the workflow completes, review all created/modified artifacts and suggest concrete optimizations (performance, maintainability, accessibility, design-system consistency). Output as a numbered list. Do not apply changes — only suggest. |
+| `--research` | Internal | After the workflow completes, audit the skill execution itself: collect all errors, retries, fallbacks, and friction points that occurred during the workflow run. Analyze task files, rules, CLI commands, and workflow-execution.md for bugs, ambiguities, or missing instructions that caused the issues. Output a numbered diagnostic report with concrete fixes for the skill infrastructure. Do not modify skill files automatically — only report. |
+
+Parse flags from `$ARGUMENTS` before dispatch. Flags are not sub-commands and do not affect workflow selection. Multiple flags can be combined (e.g. `--optimize --research`).
+
+> **Internal flags** are not shown in `argument-hint` or help output. They are for skill development and debugging.
 
 ## Dispatch
 
@@ -35,7 +46,7 @@ When the user references one of these files or topics in conversation, start the
 |---|---|---|
 | vision | `vision` | `$DESIGNBOOK_DATA/product/vision.md` |
 | data-model | `data-model` | `$DESIGNBOOK_DATA/data-model.yml` |
-| design-tokens, tokens | `tokens` | `$DESIGNBOOK_DATA/design-system/design-tokens.yml` |
+| tokens | `tokens` | `$DESIGNBOOK_DATA/design-system/design-tokens.yml` |
 | guidelines, design-guidelines | `design-guidelines` | `$DESIGNBOOK_DATA/design-system/guidelines.yml` |
 | sections | `sections` | `$DESIGNBOOK_DATA/sections/**/*.section.scenes.yml` |
 | sample-data | `sample-data` | `$DESIGNBOOK_DATA/sections/**/data.yml` |

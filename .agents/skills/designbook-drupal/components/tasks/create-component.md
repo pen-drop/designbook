@@ -73,10 +73,6 @@ The CSS skill is only needed in Phase 1. Validation runs after each component YA
 > value: 'Hello World'
 > ```
 
-## Layout Components
-
-> ⛔ **MANDATORY**: When the component `group` is `Layout`, you **MUST** read the matching blueprint file before generating any files. Layout components (`container`, `grid`, `section`) have blueprints with fixed definitions — copy them exactly. Do not invent layout component structures.
-
 ## Resources
 
 Read the relevant resource file at the start of each phase:

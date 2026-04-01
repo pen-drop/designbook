@@ -5,6 +5,7 @@
     "packages/*",
     "packages/integrations/*"
   ],
+
   "type": "module",
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.81",
@@ -14,6 +15,9 @@
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "promptfoo": "^0.120.24"
+  },
+  "dependencies": {
+    "storybook-addon-designbook": "workspace:*"
   },
   "scripts": {
     "build": "pnpm -r run build",

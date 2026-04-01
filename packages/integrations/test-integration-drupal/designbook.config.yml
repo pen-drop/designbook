@@ -8,9 +8,9 @@ extensions:
   - id: canvas
     url: https://www.drupal.org/project/canvas
 designbook:
+  cmd: npx storybook dev
   home: .
   url: "http://localhost:6009"
-  cmd: pnpm storybook
 dirs:
   components: components
   css: css/tokens

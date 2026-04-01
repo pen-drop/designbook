@@ -47,6 +47,7 @@ git config user.name "Designbook Workspace"
 git add .
 git commit -m "init: test-integration-drupal workspace"
 
+rm -r -f node_modules
 # Install dependencies
 pnpm install
 

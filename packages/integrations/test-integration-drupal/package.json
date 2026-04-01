@@ -29,8 +29,8 @@
         "playwright": "^1.58.2",
         "prettier": "^3.5.3",
         "storybook": "^10.0.0",
-        "storybook-addon-designbook": "workspace:*",
         "storybook-addon-sdc": "^0.22.0",
+        "storybook-addon-designbook": "workspace:*",
         "stylelint": "^16.15.0",
         "stylelint-config-standard": "^37.0.0",
         "stylelint-config-tailwindcss": "^1.0.0",
@@ -42,6 +42,7 @@
         "vite-plugin-static-copy": "^2.3.0"
     },
     "dependencies": {
+
         "@egjs/flicking": "^4.14.1",
         "@egjs/flicking-plugins": "^4.7.1"
     }
