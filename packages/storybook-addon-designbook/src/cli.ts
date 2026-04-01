@@ -580,7 +580,7 @@ workflow
     const taskFile = stage.task_file as string | undefined;
 
     // Read expected_params from task file frontmatter
-    let expectedParams: Record<string, { required: boolean; default?: unknown }> = {};
+    const expectedParams: Record<string, { required: boolean; default?: unknown }> = {};
     if (taskFile && existsSync(taskFile)) {
       const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
       const params = taskFm?.params as Record<string, unknown> | undefined;

@@ -552,9 +552,7 @@ export function validateAndMergeParams(
     const paramList = Object.entries(schemaParams)
       .map(([k, v]) => `${k} (${v === null ? 'required' : 'optional'})`)
       .join(', ');
-    throw new Error(
-      `Missing required param '${missing[0]}' for step '${step}'. Expected params: ${paramList}`,
-    );
+    throw new Error(`Missing required param '${missing[0]}' for step '${step}'. Expected params: ${paramList}`);
   }
 
   return merged;
