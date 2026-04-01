@@ -1,19 +1,21 @@
 ---
 files:
-  - $DESIGNBOOK_DIRS_CSS/tokens/index.src.css
+  - file: $DESIGNBOOK_DIRS_CSS/index.src.css
+    key: index-css
+    validators: []
 ---
 
 # Generate CSS Token Index
 
-Generiert `css/tokens/index.src.css` — eine Sammeldatei mit einem `@import`-Eintrag pro vorhandener Token-CSS-Datei.
+Generates `$DESIGNBOOK_DIRS_CSS/index.src.css` — a barrel file with one `@import` per generated token CSS file.
 
-## Schritt 1: Token-Dateien ermitteln
+## Step 1: List token files
 
-Lese alle `*.src.css`-Dateien aus `$DESIGNBOOK_DIRS_CSS/tokens/`, alphabetisch sortiert. Schließe `index.src.css` selbst aus.
+Read all `*.src.css` files in `$DESIGNBOOK_DIRS_CSS/`, sorted alphabetically. Exclude `index.src.css` itself.
 
-## Schritt 2: index.src.css schreiben
+## Step 2: Write index.src.css
 
-Schreibe `$DESIGNBOOK_DIRS_CSS/tokens/index.src.css` mit je einem `@import`-Eintrag pro Datei:
+Write `$DESIGNBOOK_DIRS_CSS/index.src.css` with one `@import` per file:
 
 ```css
 @import "./color.src.css";
@@ -21,15 +23,15 @@ Schreibe `$DESIGNBOOK_DIRS_CSS/tokens/index.src.css` mit je einem `@import`-Eint
 /* ... */
 ```
 
-Schreibe die Datei via stdin:
+Write via stdin:
 ```
-designbook workflow write-file $WORKFLOW_NAME $TASK_ID
+designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key index-css
 ```
 
-## Schritt 3: Verifizieren
+## Step 3: Verify
 
-Prüfe dass `index.src.css` geschrieben wurde und mindestens einen `@import`-Eintrag enthält. Berichte die Anzahl der Imports:
+Confirm `index.src.css` was written and contains at least one `@import`. Report the count:
 
 ```
-✅ tokens/index.src.css — 10 imports
+✅ tokens/index.src.css — 6 imports
 ```
