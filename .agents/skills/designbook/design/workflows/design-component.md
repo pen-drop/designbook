@@ -2,6 +2,8 @@
 title: Design Component
 description: Create a new UI component by gathering requirements interactively
 stages:
+  intake:
+    steps: [intake]
   component:
     each: component
     steps: [create-component]

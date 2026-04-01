@@ -2,6 +2,8 @@
 title: Design Screen
 description: Create screen design components for a section
 stages:
+  intake:
+    steps: [intake]
   component:
     each: component
     steps: [create-component]

@@ -1,7 +1,7 @@
 ---
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    workflow: debo-design-tokens
+    workflow: tokens
 ---
 
 # Generate CSS — Execute JSONata

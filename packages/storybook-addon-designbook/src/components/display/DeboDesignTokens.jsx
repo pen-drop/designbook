@@ -6,6 +6,46 @@ import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 
 const isToken = (obj) => obj && typeof obj === 'object' && '$value' in obj;
 
+/**
+ * Resolve DTCG token references ({path.to.token}) to their computed $value.
+ * Traverses the entire token tree and replaces reference strings in-place.
+ */
+export function resolveTokenReferences(tokens) {
+  if (!tokens || typeof tokens !== 'object') return tokens;
+
+  // Build a flat lookup: "primitive.color.red.500" → token object
+  const lookup = new Map();
+  function index(obj, path = []) {
+    for (const [k, v] of Object.entries(obj)) {
+      if (k.startsWith('$')) continue;
+      const p = [...path, k];
+      if (isToken(v)) {
+        lookup.set(p.join('.'), v);
+      } else if (v && typeof v === 'object') {
+        index(v, p);
+      }
+    }
+  }
+  index(tokens);
+
+  // Resolve references (max depth to avoid circular refs)
+  const REF_RE = /^\{(.+)\}$/;
+  function resolve(value, depth = 0) {
+    if (depth > 10 || typeof value !== 'string') return value;
+    const match = value.match(REF_RE);
+    if (!match) return value;
+    const target = lookup.get(match[1]);
+    if (!target) return value;
+    return resolve(target.$value, depth + 1);
+  }
+
+  for (const token of lookup.values()) {
+    token.$value = resolve(token.$value);
+  }
+
+  return tokens;
+}
+
 function isLightColor(hex) {
   if (!hex || !hex.startsWith('#')) return false;
   const c = hex.replace('#', '');
@@ -370,6 +410,18 @@ const SubSectionTitle = styled.h4(({ theme }) => ({
   margin: 0,
 }));
 
+// ─── Color renderer ────────────────────────────────────────────────────────
+
+function ColorRenderer({ tokens }) {
+  return (
+    <SwatchRow>
+      {tokens.map(([key, token]) => (
+        <DeboColorSwatch key={key} name={key} value={token.$value} />
+      ))}
+    </SwatchRow>
+  );
+}
+
 // ─── Renderer helpers ───────────────────────────────────────────────────────
 
 function getGroupRenderer(group) {
@@ -384,6 +436,7 @@ function getGroupRenderer(group) {
   }
   const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0][0];
   if (dominant === 'dimension') return 'bar';
+  if (dominant === 'color') return 'color';
   return 'generic';
 }
 
@@ -572,6 +625,7 @@ function ScreenRenderer({ tokens }) {
 
 const RENDERERS = {
   bar: BarRenderer,
+  color: ColorRenderer,
   container: ContainerRenderer,
   spacing: SpacingRenderer,
   gap: GapRenderer,
@@ -607,34 +661,66 @@ function GenericToken({ name, value }) {
   );
 }
 
-function GenericGroup({ name, group }) {
+/**
+ * Collect leaf groups (groups that contain tokens) with their breadcrumb path.
+ * Intermediate groups (only subgroups, no tokens) are flattened into the path.
+ */
+function collectLeafGroups(group, path = []) {
   const entries = Object.entries(group).filter(([k]) => !k.startsWith('$'));
   const tokens = entries.filter(([, v]) => isToken(v));
   const subgroups = entries.filter(([, v]) => !isToken(v) && typeof v === 'object');
 
-  return (
-    <DeboCollapsible title={groupTitle(name)} count={tokens.length} defaultOpen={false}>
-      <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {tokens.map(([k, v]) => <GenericToken key={k} name={k} value={v.$value} />)}
-        {subgroups.map(([k, v]) => <GenericGroup key={k} name={k} group={v} />)}
-      </div>
-    </DeboCollapsible>
-  );
+  const leaves = [];
+  if (tokens.length > 0) {
+    leaves.push({ path, tokens, group });
+  }
+  for (const [k, v] of subgroups) {
+    leaves.push(...collectLeafGroups(v, [...path, k]));
+  }
+  return leaves;
+}
+
+function GenericGroup({ name, group }) {
+  const leaves = collectLeafGroups(group, [name]);
+
+  return leaves.map(({ path, tokens }) => {
+    const breadcrumb = path.map(p => groupTitle(p)).join(' \u2192 ');
+    return (
+      <DeboCollapsible key={path.join('.')} title={breadcrumb} count={tokens.length} defaultOpen={false}>
+        <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {tokens.map(([k, v]) => <GenericToken key={k} name={k} value={v.$value} />)}
+        </div>
+      </DeboCollapsible>
+    );
+  });
 }
 
 function RenderedGroup({ name, group }) {
-  const renderer = getGroupRenderer(group);
-  const Comp = RENDERERS[renderer];
-  if (!Comp) return <GenericGroup name={name} group={group} />;
+  const leaves = collectLeafGroups(group, [name]);
 
-  const tokens = Object.entries(group).filter(([k, v]) => !k.startsWith('$') && isToken(v));
-  return (
-    <DeboCollapsible title={groupTitle(name)} count={tokens.length} defaultOpen={true}>
-      <div style={{ padding: '16px 24px' }}>
-        <Comp tokens={tokens} />
-      </div>
-    </DeboCollapsible>
-  );
+  return leaves.map(({ path, tokens, group: leafGroup }) => {
+    const renderer = getGroupRenderer(leafGroup);
+    const Comp = RENDERERS[renderer];
+    const breadcrumb = path.map(p => groupTitle(p)).join(' \u2192 ');
+
+    if (!Comp) {
+      return (
+        <DeboCollapsible key={path.join('.')} title={breadcrumb} count={tokens.length} defaultOpen={false}>
+          <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {tokens.map(([k, v]) => <GenericToken key={k} name={k} value={v.$value} />)}
+          </div>
+        </DeboCollapsible>
+      );
+    }
+
+    return (
+      <DeboCollapsible key={path.join('.')} title={breadcrumb} count={tokens.length} defaultOpen={true}>
+        <div style={{ padding: '16px 24px' }}>
+          <Comp tokens={tokens} />
+        </div>
+      </DeboCollapsible>
+    );
+  });
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────

@@ -21,7 +21,15 @@ designbook skill             →  Addon skills (designbook-css-*, designbook-dru
 ```yaml
 title: Design Shell
 description: Design the application shell with header, content, and footer slots
-steps: [design-shell:intake, create-component, design-shell:create-scene]
+stages:
+  intake:
+    steps: [intake]
+  component:
+    each: component
+    steps: [create-component]
+  scene:
+    each: scene
+    steps: [create-scene]
 before:
   - workflow: css-generate
     execute: if-never-run

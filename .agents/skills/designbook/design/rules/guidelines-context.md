@@ -1,6 +1,6 @@
 ---
 when:
-  steps: [design-guidelines:intake, design-component:intake, design-screen:intake, design-shell:intake, sample-data:intake, sections:intake, shape-section:intake, create-component, create-section, design-screen:create-scene, design-shell:create-scene, create-sample-data, create-guidelines, screenshot, resolve-reference, visual-compare, polish]
+  steps: [tokens:intake, design-guidelines:intake, design-component:intake, design-screen:intake, design-shell:intake, sample-data:intake, sections:intake, shape-section:intake, create-component, create-section, design-screen:create-scene, design-shell:create-scene, create-sample-data, create-guidelines, screenshot, resolve-reference, visual-compare, polish]
 ---
 
 # Design Guidelines Context
@@ -21,7 +21,7 @@ when:
 | `principles` | Apply these as quality constraints — every output must satisfy them |
 | `component_patterns` | **Binding rules** — read these BEFORE proposing or creating any component. Every pattern is a hard constraint on component structure, naming, and composition. Do not invent components that violate these patterns. If a pattern says "use container for width control", every component that needs width control MUST use container — no alternatives. |
 | `references` | Consult linked design systems or reference files for visual guidance |
-| `design_reference` | Primary source for visual decisions; use `mcp.server` if available. During intake, ask the user for per-scene/component references when this is set. |
+| `design_reference` | Primary source for visual decisions. **Before accessing it**, ask the user: "I see a design reference (`<label>`) in the guidelines — may I access it?" Wait for confirmation. Once confirmed, fetch it immediately (via `mcp` server if declared, otherwise via URL) and use it as the basis for all color, typography, and visual suggestions. Never present suggestions without consulting the reference first. |
 | `mcp` | If an MCP server is declared, use it to inspect the design file directly |
 | `visual_diff` | Optional visual diff configuration. `visual_diff.breakpoints` filters which breakpoints to screenshot (default: all from design-tokens.yml). |
 | `skills` | You MUST call the Skill tool for each skill listed BEFORE producing any output or asking the user questions. This is a blocking prerequisite — do not proceed until all skills are loaded. |

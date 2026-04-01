@@ -37,18 +37,22 @@ Only propose fields that exist and are set. Skip unset/empty fields.
 
 #### designTheme → Token Path Mapping
 
-| designTheme Field | Token Path |
-|---|---|
-| `overridePrimaryColor` or `customColor` | `color.primary.$value` |
-| `overrideSecondaryColor` | `color.secondary.$value` |
-| `overrideTertiaryColor` | `color.tertiary.$value` |
-| `overrideNeutralColor` | `color.neutral.$value` |
-| `headlineFont` | `typography.heading.font_family` |
-| `bodyFont` | `typography.body.font_family` |
-| `labelFont` | `typography.label.font_family` |
-| `roundness` | `spacing.border_radius.$value` |
+Stitch brand colors populate **primitive** color tokens using Tailwind scale names. Each Stitch role maps to one canonical primitive slot — the "main shade" of that hue (typically the 600 step).
+
+| designTheme Field | Token Path | Notes |
+|---|---|---|
+| `overridePrimaryColor` or `customColor` | `primitive.color.blue-600.$value` | Main brand blue |
+| `overrideSecondaryColor` | `primitive.color.green-600.$value` | Main brand green |
+| `overrideTertiaryColor` | `primitive.color.blue-400.$value` | Accent blue |
+| `overrideNeutralColor` | `primitive.color.gray-900.$value` | Brand neutral |
+| `headlineFont` | `typography.heading.font_family` | |
+| `bodyFont` | `typography.body.font_family` | |
+| `labelFont` | `typography.label.font_family` | |
+| `roundness` | `spacing.border_radius.$value` | |
 
 If both `overridePrimaryColor` and `customColor` exist, use `overridePrimaryColor`.
+
+> **Never interpolate.** Only create `primitive.color` entries for values that appear in `designTheme.namedColors` or are direct brand overrides (`overridePrimaryColor`, `overrideSecondaryColor`, `overrideTertiaryColor`, `overrideNeutralColor`). Do not fill in missing scale steps (50, 100, 400, 500 etc.) with invented or approximated values.
 
 #### Font Enum → Google Fonts Name
 
@@ -93,6 +97,22 @@ Skip `FONT_UNSPECIFIED` — treat as unset.
 | `ROUND_EIGHT` | 8px |
 | `ROUND_TWELVE` | 12px |
 | `ROUND_FULL` | 9999px |
+
+#### namedColors → Primitive Color Entries
+
+If `designTheme.namedColors` is present, use it as the source of truth for all primitive color values. Each entry in `namedColors` maps to one `primitive.color` entry using the appropriate Tailwind hue + scale step.
+
+Assign scale steps based on relative lightness within each hue family. Do not add entries for values not present in `namedColors` or the brand overrides above.
+
+#### namedColors → Semantic Color Entries
+
+Map `namedColors` to `semantic.color` with the following **exclusions** — these M3-specific roles have no practical equivalent in web component systems and must be omitted:
+
+- `*_fixed` and `*_fixed_dim` (e.g. `primary_fixed`, `secondary_fixed_dim`) — M3 adaptive color, unused in web
+- `on_*_fixed` and `on_*_fixed_variant` (e.g. `on_primary_fixed`, `on_tertiary_fixed_variant`) — same reason
+- `surface_bright`, `surface_tint`, `surface_dim` — M3 elevation tinting, no web equivalent
+
+All other `namedColors` entries become semantic tokens.
 
 ### 4. Present Proposals
 

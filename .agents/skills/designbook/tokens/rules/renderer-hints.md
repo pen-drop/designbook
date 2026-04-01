@@ -25,6 +25,7 @@ semantic:
 | Renderer value | Visual | Use for |
 |----------------|--------|---------|
 | `bar` | Proportional horizontal bars scaled to group max | Generic large px/rem values |
+| `color` | Color swatches with hex labels | Color tokens (`$type: color`) — auto-detected, no hint needed |
 | `screen` | Device silhouettes (phone → tablet → laptop → desktop) with breakpoint labels | Responsive breakpoints |
 | `container` | Nested rectangles showing proportional container widths | Container max-widths |
 | `radius` | Squares with border-radius applied | Border radius tokens |
@@ -49,8 +50,10 @@ When creating `$type: dimension` token groups, use this table to choose the corr
 
 Blueprints include `$extensions.designbook.renderer` directly in their `required_tokens` frontmatter. When merging blueprint tokens into `component.*`, preserve these extensions.
 
-## Non-dimension groups
+## Auto-detected types
 
-Groups with other `$type` values (color, shadow, fontFamily, etc.) do NOT need a renderer hint — they are rendered automatically by their `$type`.
+Groups with `$type: color` are automatically rendered as color swatches — no renderer hint needed.
+
+All other non-dimension types (shadow, fontFamily, etc.) fall back to the generic key/value renderer.
 
 Only `$type: dimension` needs the hint because "dimension" is too generic to determine the right visualization.

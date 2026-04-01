@@ -2,18 +2,19 @@
 
 ## Stage-Based Architecture
 
-Workflows declare a `steps:` array in their frontmatter. Each non-intake step maps to task files discovered in `.agents/skills/*/tasks/<step>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints. Blueprint files at `.agents/skills/*/blueprints/<name>.md` provide starting points for component creation.
+Workflows declare `stages:` in their frontmatter. Each stage groups one or more steps that map to task files in `.agents/skills/*/tasks/<step>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints. Blueprint files at `.agents/skills/*/blueprints/<name>.md` provide starting points for component creation.
 
 ```yaml
 # workflow frontmatter
-workflow:
-  title: Design Shell
-  steps: [intake, create-component, create-shell-scene]
+stages:
+  intake:
+    steps: [intake]
+  component:
+    each: component
+    steps: [create-component]
 ```
 
-The `intake` stage is the workflow body itself (interviews the user). All other stages are executed via skill task files.
-
-**Named intake stages**: use `workflow-id:intake` (e.g. `debo-design-tokens:intake`) when rules should apply specifically to one workflow's intake without affecting other workflows.
+The `intake` stage is a regular declared stage — its task file is resolved via the `intake--<workflow-id>.md` fallback convention. It runs first, gathering user input and producing iterables for subsequent stages.
 
 ## CLI-Side Resolution
 
@@ -130,7 +131,7 @@ when:
 
 - `steps:` accepts a single value or an array
 - Without `when.steps`: rule applies to all steps
-- **Named intake stages**: use `workflow-id:intake` to scope a rule to a specific workflow's intake
+- To scope a rule to a specific workflow's intake, use `intake` in `steps:` combined with additional `when` conditions
 
 ## Blueprint File Format (skills)
 

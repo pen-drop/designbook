@@ -12,9 +12,9 @@ Extract these fields from the user's message:
 - **Problems & Solutions** (1-5 pairs)
 - **Key Features** (bulleted list)
 
-If the user's message already contains all four fields, proceed immediately to the create-vision stage without asking questions.
+If the user's message already contains all four fields, intake is complete — no questions needed.
 
-If any field is missing, ask for the missing fields only — in a single question. Once all fields are gathered, proceed to create-vision.
+If any field is missing, ask for the missing fields only — in a single question. Once all fields are gathered, intake is complete.
 
 **Constraints**
 - Always ensure the product has a name before proceeding

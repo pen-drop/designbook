@@ -224,9 +224,9 @@ describe('validateAndMergeParams', () => {
     expect(result).toEqual({ component: 'button', slots: [] });
   });
 
-  it('throws on missing required param', () => {
-    expect(() => validateAndMergeParams({}, { component: null }, 'create-component')).toThrow(
-      /Missing required param 'component'/,
+  it('throws on missing required param with expected params list', () => {
+    expect(() => validateAndMergeParams({}, { component: null, slots: [] }, 'create-component')).toThrow(
+      /Missing required param 'component' for step 'create-component'. Expected params: component \(required\), slots \(optional\)/,
     );
   });
 
@@ -404,7 +404,7 @@ describe('resolveWorkflowPlan', () => {
     const wfPath = writeWorkflowFile(
       workflowsDir,
       'debo-test',
-      'workflow:\n  title: Test\n  stages: [designbook-components:intake, create-component, create-scene]',
+      'title: Test\nstages:\n  intake:\n    steps: [intake]\n  component:\n    steps: [create-component]\n  scene:\n    steps: [create-scene]',
     );
 
     const plan = resolveWorkflowPlan(
