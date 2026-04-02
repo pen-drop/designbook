@@ -24,7 +24,7 @@ description: >
 | Flag | Visibility | Effect |
 |---|---|---|
 | `--optimize` | User-facing | After the workflow completes, review all created/modified artifacts and suggest concrete optimizations (performance, maintainability, accessibility, design-system consistency). Output as a numbered list. Do not apply changes — only suggest. |
-| `--research` | Internal | After the workflow completes, audit the skill execution itself: collect all errors, retries, fallbacks, and friction points that occurred during the workflow run. Analyze task files, rules, CLI commands, and workflow-execution.md for bugs, ambiguities, or missing instructions that caused the issues. Output a numbered diagnostic report with concrete fixes for the skill infrastructure. Do not modify skill files automatically — only report. |
+| `--research` | Internal | After the workflow completes, run the research review flow. Load `designbook-skill-creator` and follow [`resources/research.md`](../designbook-skill-creator/resources/research.md) for the full protocol. |
 
 Parse flags from `$ARGUMENTS` before dispatch. Flags are not sub-commands and do not affect workflow selection. Multiple flags can be combined (e.g. `--optimize --research`).
 

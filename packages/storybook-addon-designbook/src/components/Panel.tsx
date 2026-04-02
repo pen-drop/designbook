@@ -4,6 +4,7 @@ import { addons } from 'storybook/manager-api';
 import { ManagerBadge } from './manager-utils.js';
 import { DeboCollapsible } from './ui/DeboCollapsible.jsx';
 import { ContextAction } from './ui/ContextAction.jsx';
+import { useUrlState } from '../hooks/useUrlState.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -325,8 +326,8 @@ const S = {
     cursor: 'pointer',
   },
   tabButtonActive: {
-    color: '#0F172A',
-    borderBottomColor: '#3B82F6',
+    color: '#FFFFFF',
+    borderBottomColor: '#66BF3C',
   },
   // -- Tasks tab --
   stageHeader: {
@@ -505,6 +506,11 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
           <span>Started: {new Date(wf.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         )}
         {wf.started_at && <span>Duration: {formatDuration(wf.started_at, wf.completed_at ?? null)}</span>}
+        {wf.completed_at && (
+          <span>
+            Completed: {new Date(wf.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
       </div>
 
       {/* Summary text */}
@@ -532,18 +538,47 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
             {activeTask.stage && <span>Stage: {activeTask.stage}</span>}
             {activeTask.step && <span>Step: {activeTask.step}</span>}
           </div>
+          {/* Context */}
+          {(() => {
+            const ctx: { type: string; name: string }[] = [];
+            if (activeTask.task_file) ctx.push({ type: 'task', name: shortenPath(activeTask.task_file) });
+            for (const r of activeTask.rules ?? []) ctx.push({ type: 'rule', name: shortenPath(r) });
+            for (const b of activeTask.blueprints ?? []) ctx.push({ type: 'blueprint', name: shortenPath(b) });
+            for (const cr of activeTask.config_rules ?? []) ctx.push({ type: 'config', name: shortenPath(cr) });
+            for (const ci of activeTask.config_instructions ?? [])
+              ctx.push({ type: 'instruction', name: shortenPath(ci) });
+            if (ctx.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 6 }}>
+                <div style={S.overviewLabel}>Context</div>
+                {ctx.map((c, i) => (
+                  <div
+                    key={i}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '1px 0' }}
+                  >
+                    <ManagerBadge variant="gray">{c.type}</ManagerBadge>
+                    <span>{c.name}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          {/* Files */}
           {activeTask.files && activeTask.files.length > 0 && (
-            <div style={S.taskFileBadges}>
-              {activeTask.files.map((f) => (
-                <FileBadge
-                  key={f.path}
-                  path={f.path}
-                  isAbsolute={true}
-                  label={f.key}
-                  variant={fileBadgeVariant(f)}
-                  validation={f.validation_result ?? undefined}
-                />
-              ))}
+            <div>
+              <div style={S.overviewLabel}>Files</div>
+              <div style={S.taskFileBadges}>
+                {activeTask.files.map((f) => (
+                  <FileBadge
+                    key={f.path}
+                    path={f.path}
+                    isAbsolute={true}
+                    label={f.key}
+                    variant={fileBadgeVariant(f)}
+                    validation={f.validation_result ?? undefined}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </DeboCollapsible>
@@ -705,18 +740,18 @@ function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
       <table style={S.contextTable}>
         <thead>
           <tr>
-            <th style={S.contextTh}>Type</th>
             <th style={S.contextTh}>Name</th>
+            <th style={S.contextTh}>Type</th>
             <th style={S.contextTh}>Step</th>
           </tr>
         </thead>
         <tbody>
           {filtered.map((entry, i) => (
             <tr key={`${entry.fullPath}-${entry.step}-${i}`} title={entry.fullPath}>
+              <td style={S.contextTd}>{entry.name}</td>
               <td style={S.contextTd}>
                 <ManagerBadge variant="gray">{entry.type}</ManagerBadge>
               </td>
-              <td style={S.contextTd}>{entry.name}</td>
               <td style={{ ...S.contextTd, color: '#64748B', fontSize: 10 }}>{entry.step}</td>
             </tr>
           ))}
@@ -727,18 +762,126 @@ function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
 }
 
 // ---------------------------------------------------------------------------
+// WorkflowFilesTab
+// ---------------------------------------------------------------------------
+
+interface FileEntry {
+  path: string;
+  key: string;
+  taskId: string;
+  taskTitle: string;
+  file: TaskFile;
+}
+
+function collectAllFiles(wf: WorkflowData): FileEntry[] {
+  const entries: FileEntry[] = [];
+  for (const task of wf.tasks) {
+    for (const f of task.files ?? []) {
+      entries.push({ path: f.path, key: f.key, taskId: task.id, taskTitle: task.title, file: f });
+    }
+  }
+  return entries;
+}
+
+const fileRowColor = (f: TaskFile): string => {
+  if (!f.validation_result) return 'inherit'; // white/neutral
+  if (f.validation_result.valid === true) return 'rgba(34, 197, 94, 0.12)'; // green
+  return 'rgba(245, 158, 11, 0.12)'; // orange
+};
+
+const fileStatusDot = (f: TaskFile): string => {
+  if (!f.validation_result) return 'pending';
+  if (f.validation_result.valid === true) return 'done';
+  return 'in-progress';
+};
+
+function WorkflowFilesTab({ wf }: { wf: WorkflowData }) {
+  const allFiles = collectAllFiles(wf);
+  const allTasks = [...new Set(allFiles.map((e) => e.taskId))];
+  const taskTitles = Object.fromEntries(wf.tasks.map((t) => [t.id, t.title]));
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+
+  const toggleTask = (taskId: string) => {
+    setSelectedTasks((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  const filtered = selectedTasks.size === 0 ? allFiles : allFiles.filter((e) => selectedTasks.has(e.taskId));
+
+  if (allFiles.length === 0) {
+    return <div style={{ ...S.empty, padding: '1rem' }}>No files registered yet.</div>;
+  }
+
+  return (
+    <div>
+      {/* Task filter badges */}
+      <div style={S.filterBadgeRow}>
+        {allTasks.map((taskId) => {
+          const isActive = selectedTasks.has(taskId);
+          return (
+            <button
+              key={taskId}
+              style={{ ...S.filterBadge, ...(isActive ? S.filterBadgeActive : {}) }}
+              onClick={() => toggleTask(taskId)}
+            >
+              {taskTitles[taskId] ?? taskId}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* File list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {filtered.map((entry, i) => (
+          <div
+            key={`${entry.path}-${entry.taskId}-${i}`}
+            title={entry.path}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '3px 6px',
+              fontSize: 12,
+              borderRadius: 4,
+              background: fileRowColor(entry.file),
+            }}
+          >
+            <StatusDot status={fileStatusDot(entry.file)} />
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {shortenPath(entry.path)}
+            </span>
+            {entry.key && <span style={{ fontSize: 10, color: '#94A3B8', flexShrink: 0 }}>{entry.key}</span>}
+            <ContextAction path={entry.path} validation={entry.file.validation_result ?? undefined} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // WorkflowsTab
 // ---------------------------------------------------------------------------
 
-type WorkflowSubTab = 'summary' | 'tasks' | 'context';
+type WorkflowSubTab = 'summary' | 'tasks' | 'context' | 'files';
+
+const WORKFLOW_SUB_TABS: WorkflowSubTab[] = ['summary', 'tasks', 'context', 'files'];
 
 function WorkflowTabs({ wf }: { wf: WorkflowData }) {
-  const [tab, setTab] = useState<WorkflowSubTab>('summary');
+  const [rawTab, setRawTab] = useUrlState('debo-wf-tab', 'summary');
+  const tab: WorkflowSubTab = WORKFLOW_SUB_TABS.includes(rawTab as WorkflowSubTab)
+    ? (rawTab as WorkflowSubTab)
+    : 'summary';
 
   const tabs: { id: WorkflowSubTab; label: string }[] = [
     { id: 'summary', label: 'Summary' },
     { id: 'tasks', label: 'Tasks' },
     { id: 'context', label: 'Context' },
+    { id: 'files', label: 'Files' },
   ];
 
   return (
@@ -748,7 +891,7 @@ function WorkflowTabs({ wf }: { wf: WorkflowData }) {
           <button
             key={t.id}
             style={{ ...S.tabButton, ...(tab === t.id ? S.tabButtonActive : {}) }}
-            onClick={() => setTab(t.id)}
+            onClick={() => setRawTab(t.id)}
           >
             {t.label}
           </button>
@@ -757,6 +900,7 @@ function WorkflowTabs({ wf }: { wf: WorkflowData }) {
       {tab === 'summary' && <WorkflowSummaryTab wf={wf} />}
       {tab === 'tasks' && <WorkflowTasksTab wf={wf} />}
       {tab === 'context' && <WorkflowContextTab wf={wf} />}
+      {tab === 'files' && <WorkflowFilesTab wf={wf} />}
     </div>
   );
 }

@@ -7,6 +7,7 @@ frameworks:
 extensions:
   - id: canvas
     url: https://www.drupal.org/project/canvas
+  - id: stitch
 designbook:
   cmd: npx storybook dev
   home: .

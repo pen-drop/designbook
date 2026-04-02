@@ -40,7 +40,7 @@ Guide the user through choosing fonts from Google Fonts for heading, body, and m
 
 ## Step 4: Check Layout Blueprints
 
-Load all blueprints with `when: steps` matching `tokens:intake` or `design-token:intake`. For each blueprint that declares `required_tokens`, extract its token groups and present them to the user with their default values.
+Read `required_tokens` from each blueprint already loaded for this stage. For each blueprint that declares `required_tokens`, extract its token groups and present them to the user with their default values.
 
 Suggest adjusted values based on the product's design guidelines. Let the user confirm or override each group. Include the final values in the `intake` param under their respective `component.*` keys.
 

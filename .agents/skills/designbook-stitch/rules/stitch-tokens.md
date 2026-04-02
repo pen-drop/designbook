@@ -41,9 +41,9 @@ Stitch brand colors populate **primitive** color tokens using Tailwind scale nam
 
 | designTheme Field | Token Path | Notes |
 |---|---|---|
-| `overridePrimaryColor` or `customColor` | `primitive.color.blue-600.$value` | Main brand blue |
-| `overrideSecondaryColor` | `primitive.color.green-600.$value` | Main brand green |
-| `overrideTertiaryColor` | `primitive.color.blue-400.$value` | Accent blue |
+| `overridePrimaryColor` or `customColor` | `primitive.color.<hue>-600.$value` | Main brand color (hue detected from hex) |
+| `overrideSecondaryColor` | `primitive.color.<hue>-600.$value` | Secondary brand color (hue detected from hex) |
+| `overrideTertiaryColor` | `primitive.color.<hue>-<step>.$value` | Tertiary color (hue AND step detected from hex) |
 | `overrideNeutralColor` | `primitive.color.gray-900.$value` | Brand neutral |
 | `headlineFont` | `typography.heading.font_family` | |
 | `bodyFont` | `typography.body.font_family` | |
@@ -51,6 +51,36 @@ Stitch brand colors populate **primitive** color tokens using Tailwind scale nam
 | `roundness` | `spacing.border_radius.$value` | |
 
 If both `overridePrimaryColor` and `customColor` exist, use `overridePrimaryColor`.
+
+#### Hue Detection for Brand Overrides
+
+Do not hardcode hue family names. Determine the Tailwind hue from the hex value:
+
+1. Convert hex to HSL
+2. Classify by hue angle:
+   | Hue range | Tailwind hue |
+   |---|---|
+   | 0–15, 346–360 | red |
+   | 16–45 | orange |
+   | 46–65 | yellow |
+   | 66–170 | green |
+   | 171–260 | blue |
+   | 261–300 | purple |
+   | 301–345 | pink |
+3. If saturation < 10%, classify as `gray` regardless of hue angle
+4. Assign scale step by lightness: L > 90% → 50, L > 80% → 100, L > 70% → 200, L > 60% → 300, L > 50% → 400, L > 40% → 500, L > 30% → 600, L > 20% → 700, L > 10% → 800, else → 900
+
+#### Brand Override → Semantic Priority
+
+When both a brand override (e.g., `overridePrimaryColor`) and a `namedColors` entry of the same role (e.g., `namedColors.primary`) exist, the **semantic token** for that role MUST reference the primitive that holds the **brand override** value — not the namedColors value.
+
+| Role | Semantic token | MUST reference |
+|---|---|---|
+| Primary | `semantic.color.primary` | Primitive holding `overridePrimaryColor` value |
+| Secondary | `semantic.color.secondary` | Primitive holding `overrideSecondaryColor` value |
+| Tertiary | `semantic.color.tertiary` | Primitive holding `overrideTertiaryColor` value |
+
+The namedColors value for the same role name becomes a separate primitive (if distinct) but does NOT get the semantic role assignment. The brand override is what the user sees and confirms during intake — it wins.
 
 > **Never interpolate.** Only create `primitive.color` entries for values that appear in `designTheme.namedColors` or are direct brand overrides (`overridePrimaryColor`, `overrideSecondaryColor`, `overrideTertiaryColor`, `overrideNeutralColor`). Do not fill in missing scale steps (50, 100, 400, 500 etc.) with invented or approximated values.
 
@@ -98,11 +128,50 @@ Skip `FONT_UNSPECIFIED` — treat as unset.
 | `ROUND_TWELVE` | 12px |
 | `ROUND_FULL` | 9999px |
 
+#### Scale-Step Heuristic
+
+Standard Tailwind scale has 11 slots per hue: 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950.
+
+If a hue family has **≤11 distinct values**, use only standard steps. Assign by sorting values from lightest to darkest and distributing across the standard slots.
+
+If a hue family has **>11 distinct values**, use intermediate steps to accommodate all values:
+
+| Intermediate step | Between |
+|---|---|
+| 25 | 0–50 |
+| 75 | 50–100 |
+| 125 | 100–200 |
+| 150 | 100–200 |
+| 175 | 100–200 |
+| 250 | 200–300 |
+| 350 | 300–400 |
+| 450 | 400–500 |
+| 550 | 500–600 |
+| 650 | 600–700 |
+| 750 | 700–800 |
+| 850 | 800–900 |
+| 925 | 900–950 |
+
+Sort all values by lightness, assign standard steps first to the most distinct values, then fill gaps with intermediate steps.
+
+#### Delta-E Approximation
+
+When a `namedColors` value is very close to an existing primitive (RGB euclidean distance < 8, roughly ΔE < 3 CIE76), the semantic token MAY reference that primitive instead of creating a new one. Add a YAML comment noting the approximation:
+
+```yaml
+inverse-on-surface:
+  # approx: actual #edf1f9 → using gray-100 #eaeef6
+  $value: "{primitive.color.gray-100}"
+  $type: color
+```
+
+If the distance is ≥ 8, a separate primitive MUST be created.
+
 #### namedColors → Primitive Color Entries
 
 If `designTheme.namedColors` is present, use it as the source of truth for all primitive color values. Each entry in `namedColors` maps to one `primitive.color` entry using the appropriate Tailwind hue + scale step.
 
-Assign scale steps based on relative lightness within each hue family. Do not add entries for values not present in `namedColors` or the brand overrides above.
+Assign scale steps based on relative lightness within each hue family using the Scale-Step Heuristic above. Do not add entries for values not present in `namedColors` or the brand overrides above.
 
 #### namedColors → Semantic Color Entries
 

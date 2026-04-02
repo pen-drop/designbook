@@ -34,6 +34,34 @@ Manages the Storybook daemon lifecycle. State is persisted in `$DESIGNBOOK_DATA/
 
 ---
 
+## Scene URL Resolution
+
+Resolves scene references to Storybook iframe URLs. Reads the active port from `$DESIGNBOOK_DATA/storybook.json` to construct the full URL.
+
+```bash
+# Resolve scene to Storybook URL
+ resolve-url --scene <group>:<name>
+# → JSON array: [{ scene, storyId, url, filePath }]
+# → Requires Storybook running (reads port from storybook.json)
+
+# Resolve from explicit file
+ resolve-url --scene <name> --file <path-to-scenes.yml>
+```
+
+**Output format:**
+```json
+[{
+  "scene": "shell",
+  "storyId": "designbook-design-system-scenes--shell",
+  "url": "http://localhost:39943/iframe.html?id=designbook-design-system-scenes--shell&viewMode=story",
+  "filePath": "/abs/path/designbook/design-system/design-system.scenes.yml"
+}]
+```
+
+**Note:** The URL includes the active Storybook port from `storybook.json`. If Storybook is not running, the command will fail with "fetch failed". Fallback: derive `storyId` from `designbook/screenshots/` directory listing.
+
+---
+
 ## Workflow CLI
 
 > This is the **complete command list** — do not attempt `status`, `tasks`, or other subcommands. To inspect task state, read the workflow's `tasks.yml` directly.

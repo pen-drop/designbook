@@ -19,6 +19,19 @@ Read the visual-compare report from the previous step. If no issues were found, 
 
 > "No visual issues found — skipping polish."
 
+## Change Scope
+
+Polish may modify these file types:
+
+| In scope | Out of scope |
+|----------|-------------|
+| Component templates (resolved via framework blueprint) | `design-tokens.yml` (requires tokens workflow) |
+| Scene definitions (`*.scenes.yml`) | Workflow configuration |
+| Story files (`*.story.yml`) | Component schema structure |
+| CSS framework output files (resolved via CSS blueprint) | |
+
+When CSS output values are changed to match the reference, the polish report MUST include a reconciliation note: "CSS output values adjusted — reconcile with `design-tokens.yml` via tokens workflow."
+
 ## Step 2: Fix Loop (max 3 iterations)
 
 **Important**: Remote reference screenshots (e.g. url, image) are fetched ONCE before the loop starts. They do not change between iterations. Only local Storybook screenshots are re-taken each iteration.
