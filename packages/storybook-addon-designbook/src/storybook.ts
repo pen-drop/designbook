@@ -258,12 +258,7 @@ export class StorybookDaemon {
   }
 
   /** Start the Storybook daemon. */
-  async start(opts: {
-    cmd: string;
-    port: number;
-    cwd?: string;
-    force?: boolean;
-  }): Promise<StartResult> {
+  async start(opts: { cmd: string; port: number; cwd?: string; force?: boolean }): Promise<StartResult> {
     const { cmd, port, cwd, force } = opts;
 
     if (force) {
@@ -271,9 +266,7 @@ export class StorybookDaemon {
     } else {
       const st = this.status();
       if (st.running) {
-        throw new Error(
-          `Storybook is already running (pid ${st.pid}, port ${st.port}). Use --force to replace it.`,
-        );
+        throw new Error(`Storybook is already running (pid ${st.pid}, port ${st.port}). Use --force to replace it.`);
       }
     }
 

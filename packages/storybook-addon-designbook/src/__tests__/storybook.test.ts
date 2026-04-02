@@ -1,14 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { EventEmitter } from 'node:events';
-import {
-  StorybookDaemon,
-  isAlive,
-  killProcess,
-  type StorybookInfo,
-} from '../storybook.js';
+import { StorybookDaemon, isAlive, killProcess, type StorybookInfo } from '../storybook.js';
 
 function makeTmpDir(): string {
   return mkdtempSync(join(tmpdir(), 'storybook-test-'));

@@ -347,7 +347,13 @@ export function resolveTaskFiles(
     // Fall back to glob for workflow-qualified tasks within unified skill (e.g. design-screen:create-scene)
     const context = buildRuntimeContext();
     const enrichedConfig = buildEnrichedConfig(config);
-    const matches = resolveFiles(`skills/**/tasks/${taskName}--${skillName}.md`, context, enrichedConfig, agentsDir, false);
+    const matches = resolveFiles(
+      `skills/**/tasks/${taskName}--${skillName}.md`,
+      context,
+      enrichedConfig,
+      agentsDir,
+      false,
+    );
     if (matches.length === 0) {
       return [];
     }
