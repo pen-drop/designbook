@@ -346,12 +346,12 @@ describe('matchRuleFiles', () => {
     expect(result).toEqual([]);
   });
 
-  it('includes rule file with empty when (applies to all)', () => {
+  it('excludes rule file with empty when', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', 'when: {}');
+    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', 'when: {}');
 
     const result = matchRuleFiles('any-stage', baseConfig, agentsDir);
-    expect(result).toContain(rulePath);
+    expect(result).toEqual([]);
   });
 
   it('discovers rule file nested in a subdirectory above rules/', () => {
@@ -649,7 +649,7 @@ describe('resolveFiles', () => {
     expect(matches[0]!.specificity).toBe(1);
   });
 
-  it('includes unconditional files with specificity 0', () => {
+  it('skips files without when or with empty when', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', 'when: {}');
 
@@ -657,8 +657,7 @@ describe('resolveFiles', () => {
     const context = buildRuntimeContext();
     const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
 
-    expect(matches).toHaveLength(1);
-    expect(matches[0]!.specificity).toBe(0);
+    expect(matches).toHaveLength(0);
   });
 
   it('uses context for stage matching and config for framework matching', () => {

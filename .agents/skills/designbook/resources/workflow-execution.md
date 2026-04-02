@@ -152,6 +152,16 @@ The optional `--engine` flag overrides the engine declared in the workflow.md fr
 
 Display the plan summary, then proceed immediately to Phase 2.
 
+### Singleton Workflows
+
+Workflows where no stage uses `each` (e.g., `tokens`, `design-guidelines`) have no iterables. The `--params` call is still required but passes an empty object:
+
+```bash
+_debo workflow plan --workflow $WORKFLOW_NAME --params '{}'
+```
+
+In singleton workflows, intake results are transported via **conversation context** — the agent carries the gathered information forward to the execute stage. There is no structured param handoff for singleton data.
+
 ---
 
 ## Phase 2: Execute
@@ -168,7 +178,8 @@ The main agent executes all tasks sequentially. For each task:
    ```
    The CLI writes the file (engine decides where), validates it immediately, and returns JSON: `{ "valid": true|false, "errors": [...], "file_path": "..." }`
 4. If `valid: false` → fix the content and call `write-file` again until all files are green
-5. Mark task done: `_debo workflow done --workflow $WORKFLOW_NAME --task <id>`
+5. **Verify against intake** — after all files for the task pass validation, compare key output values against what was confirmed during intake. If any user-confirmed value diverges (e.g., a color, font, or dimension shown in the intake summary differs from the written output), fix the content and re-run `write-file`. Only values explicitly presented to and approved by the user during intake are in scope — internally derived values are not checked.
+6. Mark task done: `_debo workflow done --workflow $WORKFLOW_NAME --task <id>`
 
 > Rules are hard constraints — apply silently, never mention to the user.
 > `write-file` validates on write. `workflow done` is a gate-check only — it rejects if any file is not green.

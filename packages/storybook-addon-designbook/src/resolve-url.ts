@@ -11,6 +11,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
 import { glob } from 'glob';
 import type { DesignbookConfig } from './config.js';
+import { StorybookDaemon } from './storybook.js';
 
 interface IndexEntry {
   id: string;
@@ -152,10 +153,15 @@ export async function resolveUrl(
     file?: string;
   },
 ): Promise<void> {
-  const storybookUrl = config['designbook.url'] as string | undefined;
-  if (!storybookUrl) {
+  const baseUrl = config['designbook.url'] as string | undefined;
+  if (!baseUrl) {
     throw new Error('designbook.url not configured in designbook.config.yml');
   }
+
+  // Resolve URL with active port from storybook.json
+  const dataDir = config['designbook.data'] as string | undefined;
+  const sb = dataDir ? new StorybookDaemon(dataDir, baseUrl) : undefined;
+  const storybookUrl = sb?.url ?? baseUrl;
 
   let filePath: string;
   let scenes: SceneEntry[];

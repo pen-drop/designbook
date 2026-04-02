@@ -2,7 +2,7 @@ import { resolve, dirname } from 'node:path';
 import { mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolveUrl } from './resolve-url.js';
-import { findFreePort, getStatus, startDaemon, stopDaemon, logFilePath } from './storybook.js';
+import { findFreePort, StorybookDaemon } from './storybook.js';
 import { Command } from 'commander';
 import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
 import { validateData } from './validators/data.js';
@@ -379,10 +379,6 @@ workflow
       } else {
         allSteps = (rawStages as string[] | undefined) ?? [];
       }
-      // Filter out intake stage steps (already created at workflow create time)
-      const intakeSteps = new Set(stageDefinitions?.intake?.steps ?? []);
-      const execSteps = allSteps.filter((s) => !intakeSteps.has(s));
-
       // Build step → parent stage mapping and step → each mapping
       const stepToStage = new Map<string, string>();
       const stepToEach = new Map<string, string>();
@@ -412,7 +408,7 @@ workflow
       }
 
       // For steps without `each` and no explicit items, create a singleton item
-      for (const step of execSteps) {
+      for (const step of allSteps) {
         if (items.some((i) => i.step === step)) continue;
         if (stepToEach.has(step)) continue; // each-step with empty iterable — skip
         items.push({ step, params: {} });
@@ -420,8 +416,8 @@ workflow
 
       // Validate items against known steps
       for (const item of items) {
-        if (!execSteps.includes(item.step)) {
-          throw new Error(`Item step "${item.step}" not in workflow steps: [${execSteps.join(', ')}]`);
+        if (!allSteps.includes(item.step)) {
+          throw new Error(`Item step "${item.step}" not in workflow steps: [${allSteps.join(', ')}]`);
         }
       }
 
@@ -464,7 +460,7 @@ workflow
         config_instructions: string[];
       }> = [];
 
-      for (const step of execSteps) {
+      for (const step of allSteps) {
         const stepItems = items.filter((i) => i.step === step);
         if (stepItems.length === 0) continue;
 
@@ -535,7 +531,7 @@ workflow
       // Output plan JSON
       const planOutput: Record<string, unknown> = {
         params: globalParams,
-        steps: execSteps,
+        steps: allSteps,
         tasks,
         engine: resolvedEngine,
       };
@@ -741,7 +737,8 @@ async function prepareEnvironment(
 
   // For direct engine workflows, reuse an already-running Storybook instance
   const isDirect = workflow.engine === 'direct' || !workflow.engine;
-  const status = getStatus(dataDir);
+  const sb = new StorybookDaemon(dataDir);
+  const status = sb.status();
 
   let startupErrors: string[] = [];
   let pid: number | undefined;
@@ -826,11 +823,11 @@ storybookCmd
       return;
     }
 
+    const sb = new StorybookDaemon(config.data);
     const port = opts.port ? parseInt(opts.port, 10) : await findFreePort();
-    const result = await startDaemon({
+    const result = await sb.start({
       cmd: storybookCmdStr,
       port,
-      dataDir: config.data,
       cwd: config['designbook.home'] as string | undefined,
       force: opts.force,
     });
@@ -842,16 +839,10 @@ storybookCmd
 storybookCmd
   .command('stop')
   .description('Stop a Storybook process started by storybook start')
-  .option('--pid <pid>', 'Process ID to stop (reads from storybook.json when omitted)')
-  .action(async (opts: { pid?: string }) => {
+  .action(async () => {
     const config = loadConfig(process.env['DESIGNBOOK_HOME']);
-    try {
-      await stopDaemon(config.data, opts.pid ? parseInt(opts.pid, 10) : undefined);
-    } catch {
-      console.error('Error: no --pid provided and no storybook.json found');
-      process.exitCode = 1;
-      return;
-    }
+    const sb = new StorybookDaemon(config.data);
+    await sb.stop();
     process.exit(0);
   });
 
@@ -860,7 +851,8 @@ storybookCmd
   .description('Check if a Storybook daemon is running')
   .action(() => {
     const config = loadConfig(process.env['DESIGNBOOK_HOME']);
-    console.log(JSON.stringify(getStatus(config.data)));
+    const sb = new StorybookDaemon(config.data);
+    console.log(JSON.stringify(sb.status()));
   });
 
 storybookCmd
@@ -869,35 +861,24 @@ storybookCmd
   .option('-f, --follow', 'Follow the log (tail with polling)')
   .action(async (opts: { follow?: boolean }) => {
     const config = loadConfig(process.env['DESIGNBOOK_HOME']);
-    const logPath = logFilePath(config.data);
+    const sb = new StorybookDaemon(config.data);
 
-    if (!existsSync(logPath)) {
+    const content = sb.logs();
+    if (content === undefined) {
       console.error('Error: no storybook.log found');
       process.exitCode = 1;
       return;
     }
 
     if (!opts.follow) {
-      process.stdout.write(readFileSync(logPath, 'utf-8'));
+      process.stdout.write(content);
       return;
     }
 
-    // Follow mode: print existing content, then poll for new content
-    let offset = 0;
-    const poll = (): void => {
-      try {
-        const content = readFileSync(logPath, 'utf-8');
-        if (content.length > offset) {
-          process.stdout.write(content.slice(offset));
-          offset = content.length;
-        }
-      } catch {
-        /* file may have been removed */
-      }
-    };
-
-    poll();
-    setInterval(poll, 1000);
+    // Follow mode via async generator
+    for await (const chunk of sb.tailLogs()) {
+      process.stdout.write(chunk);
+    }
   });
 
 storybookCmd
@@ -913,18 +894,11 @@ storybookCmd
       return;
     }
 
-    // Stop if running (ignore errors — may not be running)
-    try {
-      await stopDaemon(config.data);
-    } catch {
-      /* not running — that's fine */
-    }
-
+    const sb = new StorybookDaemon(config.data);
     const port = opts.port ? parseInt(opts.port, 10) : await findFreePort();
-    const result = await startDaemon({
+    const result = await sb.restart({
       cmd: storybookCmdStr,
       port,
-      dataDir: config.data,
       cwd: config['designbook.home'] as string | undefined,
     });
 

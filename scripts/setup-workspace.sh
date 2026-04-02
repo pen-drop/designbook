@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Setup a local workspace from the test-integration-drupal template.
-# The workspace is a standalone git repo in workspaces/<name>/ with adjusted config paths.
+# Always rebuilds from scratch — removes any existing workspace first.
+# Copies .agents and .claude from the current working directory (CWD),
+# so workspaces created from a git worktree reflect that worktree's skill state.
 #
 # Usage: ./scripts/setup-workspace.sh [name]
 #   name  Workspace name (default: drupal)
-#
-# The workspace is gitignored — run this script once to set it up locally.
 
 set -euo pipefail
 
@@ -16,9 +16,9 @@ SOURCE_DIR="$REPO_ROOT/packages/integrations/test-integration-drupal"
 
 echo "Setting up workspace: $WORKSPACE_DIR"
 
-if [ -d "$WORKSPACE_DIR/.git" ]; then
-  echo "Workspace already exists. Remove $WORKSPACE_DIR to recreate."
-  exit 1
+if [ -d "$WORKSPACE_DIR" ]; then
+  echo "Removing existing workspace..."
+  rm -rf "$WORKSPACE_DIR"
 fi
 
 mkdir -p "$WORKSPACE_DIR"
@@ -35,9 +35,10 @@ rsync -a \
   --exclude='tmp' \
   "$SOURCE_DIR/" "$WORKSPACE_DIR/"
 
-# Symlink .agents and .claude so the CLI and Claude can resolve skills from the workspace
-ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
-ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
+# Copy .agents and .claude from CWD so the workspace reflects the current
+# worktree's skill state (not a symlink back to the repo root)
+cp -r "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
+cp -r "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
 
 # Initialize git repo
 cd "$WORKSPACE_DIR"

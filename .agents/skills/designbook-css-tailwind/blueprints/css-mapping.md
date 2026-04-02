@@ -13,13 +13,13 @@ Maps design token groups to CSS output using Tailwind v4 `@theme` blocks.
 
 ```yaml
 groups:
-  color:          { prefix: color,          wrap: "@theme" }
-  radius:         { prefix: radius,         wrap: "@theme" }
-  shadow:         { prefix: shadow,         wrap: "@theme" }
-  layout-width:   { prefix: container,      wrap: "@theme" }
-  layout-spacing: { prefix: layout-spacing, wrap: "@theme" }
-  grid:           { prefix: grid,           wrap: "@theme" }
-  typography:     { prefix: font,           wrap: "@theme" }
+  color:          { prefix: color,          wrap: "@theme", path: "semantic.color" }
+  radius:         { prefix: radius,         wrap: "@theme", path: "semantic.radius" }
+  shadow:         { prefix: shadow,         wrap: "@theme", path: "semantic.shadow" }
+  layout-width:   { prefix: container,      wrap: "@theme", path: "component.container.max-width" }
+  layout-spacing: { prefix: layout-spacing, wrap: "@theme", path: "component.section.padding-y" }
+  grid:           { prefix: grid,           wrap: "@theme", path: "component.grid.gap" }
+  typography:     { prefix: font,           wrap: "@theme", path: "semantic.typography" }
 ```
 
 Each group generates one `.jsonata` file that transforms `design-tokens.yml` → `css/tokens/{group}.src.css`.

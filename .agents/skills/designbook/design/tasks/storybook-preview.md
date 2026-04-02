@@ -5,22 +5,25 @@ files: []
 
 # Storybook Preview
 
-Starts Storybook so the user can visually review the workflow output before merging.
+Ensures Storybook is running so the user can visually review the workflow output.
 
 ## Execution
 
-Run the prepare-environment command:
+1. Check if Storybook is already running:
+   ```bash
+   _debo storybook status
+   ```
 
-```bash
- prepare-environment --workflow $WORKFLOW_NAME --task <this-task-id>
-```
+2. **If running** (`{ running: true, port: ... }`): skip starting, use the existing instance.
 
-This will:
-1. Start Storybook on a free port
-2. Monitor startup logs for build errors
-3. Take screenshots of declared scenes
-4. Store the preview PID and port in tasks.yml
+3. **If not running** (`{ running: false }`): start Storybook:
+   ```bash
+   _debo storybook start
+   ```
+   Wait for the JSON output with `{ ready: true, port: ... }`.
+
+4. **If startup fails** (build errors in output): report the errors from `_debo storybook logs` and pause for user intervention.
 
 ## After
 
-Show the user the preview URL and ask them to review the result in Storybook before proceeding to merge.
+Show the user the preview URL (`http://localhost:${port}`) and confirm Storybook is ready before proceeding to the next task.

@@ -45,6 +45,8 @@ reference:
 
 Run `_debo resolve-url --scene ${scene}` to get the `storyId` for the output path.
 
+**Fallback if `resolve-url` fails**: scan `designbook/screenshots/` for a directory matching the scene pattern and use that as the `storyId`.
+
 ## Step 4: Read Matched Rules and Resolve
 
 For each entry in the `reference` array, resolve by its `type`. Rules provide type-specific resolution:

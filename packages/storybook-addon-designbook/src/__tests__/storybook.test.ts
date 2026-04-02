@@ -1,19 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { EventEmitter } from 'node:events';
 import {
-  pidFilePath,
-  logFilePath,
-  readPidFile,
-  writePidFile,
-  removePidFile,
+  StorybookDaemon,
   isAlive,
-  getStatus,
   killProcess,
-  stopDaemon,
-  startDaemon,
   type StorybookInfo,
 } from '../storybook.js';
 
@@ -29,44 +22,141 @@ const sampleInfo: StorybookInfo = {
   started_at: '2026-01-01T00:00:00.000Z',
 };
 
-describe('PID file management', () => {
+function writePidFile(dataDir: string, info: StorybookInfo): void {
+  writeFileSync(join(dataDir, 'storybook.json'), JSON.stringify(info, null, 2));
+}
+
+describe('StorybookDaemon — state access', () => {
   let dataDir: string;
 
   beforeEach(() => {
     dataDir = makeTmpDir();
   });
 
-  it('pidFilePath returns storybook.json path', () => {
-    expect(pidFilePath(dataDir)).toBe(join(dataDir, 'storybook.json'));
+  it('logPath returns storybook.log path', () => {
+    const sb = new StorybookDaemon(dataDir);
+    expect(sb.logPath).toBe(join(dataDir, 'storybook.log'));
   });
 
-  it('logFilePath returns storybook.log path', () => {
-    expect(logFilePath(dataDir)).toBe(join(dataDir, 'storybook.log'));
-  });
-
-  it('writePidFile creates storybook.json with correct content', () => {
+  it('returns properties from storybook.json', () => {
     writePidFile(dataDir, sampleInfo);
-    const raw = readFileSync(pidFilePath(dataDir), 'utf-8');
-    expect(JSON.parse(raw)).toEqual(sampleInfo);
+    const sb = new StorybookDaemon(dataDir);
+    expect(sb.pid).toBe(sampleInfo.pid);
+    expect(sb.port).toBe(sampleInfo.port);
+    expect(sb.log).toBe(sampleInfo.log);
+    expect(sb.cwd).toBe(sampleInfo.cwd);
+    expect(sb.startedAt).toBe(sampleInfo.started_at);
+    expect(sb.exists).toBe(true);
   });
 
-  it('readPidFile returns parsed content', () => {
+  it('returns undefined when no storybook.json', () => {
+    const sb = new StorybookDaemon(dataDir);
+    expect(sb.pid).toBeUndefined();
+    expect(sb.port).toBeUndefined();
+    expect(sb.exists).toBe(false);
+  });
+
+  it('reload() forces re-read from disk', () => {
+    const sb = new StorybookDaemon(dataDir);
+    expect(sb.exists).toBe(false);
+
     writePidFile(dataDir, sampleInfo);
-    expect(readPidFile(dataDir)).toEqual(sampleInfo);
+    expect(sb.exists).toBe(false); // still cached
+
+    sb.reload();
+    expect(sb.exists).toBe(true);
+    expect(sb.port).toBe(6006);
+  });
+});
+
+describe('StorybookDaemon — URL resolution', () => {
+  let dataDir: string;
+
+  beforeEach(() => {
+    dataDir = makeTmpDir();
   });
 
-  it('readPidFile returns null when file does not exist', () => {
-    expect(readPidFile(dataDir)).toBeNull();
-  });
-
-  it('removePidFile deletes the file', () => {
+  it('url returns origin with port', () => {
     writePidFile(dataDir, sampleInfo);
-    removePidFile(dataDir);
-    expect(existsSync(pidFilePath(dataDir))).toBe(false);
+    const sb = new StorybookDaemon(dataDir, 'http://localhost');
+    expect(sb.url).toBe('http://localhost:6006');
   });
 
-  it('removePidFile is silent when file does not exist', () => {
-    expect(() => removePidFile(dataDir)).not.toThrow();
+  it('iframeUrl returns full story URL', () => {
+    writePidFile(dataDir, sampleInfo);
+    const sb = new StorybookDaemon(dataDir, 'http://localhost');
+    expect(sb.iframeUrl('my-story--default')).toBe(
+      'http://localhost:6006/iframe.html?id=my-story--default&viewMode=story',
+    );
+  });
+
+  it('url returns undefined when no port', () => {
+    const sb = new StorybookDaemon(dataDir);
+    expect(sb.url).toBeUndefined();
+    expect(sb.iframeUrl('test')).toBeUndefined();
+  });
+});
+
+describe('StorybookDaemon — status', () => {
+  let dataDir: string;
+
+  beforeEach(() => {
+    dataDir = makeTmpDir();
+  });
+
+  it('returns { running: false } when no file and no process', () => {
+    const sb = new StorybookDaemon(dataDir);
+    const status = sb.status();
+    expect(status.running).toBe(false);
+  });
+
+  it('returns { running: false, stale: true } and cleans up stale file', () => {
+    writePidFile(dataDir, sampleInfo);
+    const sb = new StorybookDaemon(dataDir);
+    // No actual storybook process running → /proc scan will find nothing
+    const status = sb.status();
+    expect(status.running).toBe(false);
+    expect(status.stale).toBe(true);
+    expect(existsSync(join(dataDir, 'storybook.json'))).toBe(false);
+  });
+});
+
+describe('StorybookDaemon — stop', () => {
+  let dataDir: string;
+
+  beforeEach(() => {
+    dataDir = makeTmpDir();
+  });
+
+  it('removes stale PID file even when no process running', async () => {
+    writePidFile(dataDir, sampleInfo);
+    const sb = new StorybookDaemon(dataDir);
+    await sb.stop();
+    expect(existsSync(join(dataDir, 'storybook.json'))).toBe(false);
+  });
+
+  it('does not throw when no file and no process', async () => {
+    const sb = new StorybookDaemon(dataDir);
+    await expect(sb.stop()).resolves.toBeUndefined();
+  });
+});
+
+describe('StorybookDaemon — logs', () => {
+  let dataDir: string;
+
+  beforeEach(() => {
+    dataDir = makeTmpDir();
+  });
+
+  it('returns undefined when no log file', () => {
+    const sb = new StorybookDaemon(dataDir);
+    expect(sb.logs()).toBeUndefined();
+  });
+
+  it('returns log content when file exists', () => {
+    writeFileSync(join(dataDir, 'storybook.log'), 'line1\nline2\n');
+    const sb = new StorybookDaemon(dataDir);
+    expect(sb.logs()).toBe('line1\nline2\n');
   });
 });
 
@@ -87,39 +177,6 @@ describe('isAlive', () => {
   });
 });
 
-describe('getStatus', () => {
-  let dataDir: string;
-
-  beforeEach(() => {
-    dataDir = makeTmpDir();
-  });
-
-  it('returns { running: false } when no PID file', () => {
-    expect(getStatus(dataDir)).toEqual({ running: false });
-  });
-
-  it('returns running info when PID file exists and process alive', () => {
-    writePidFile(dataDir, sampleInfo);
-    const spy = vi.spyOn(process, 'kill').mockImplementation(() => true);
-    const status = getStatus(dataDir);
-    expect(status.running).toBe(true);
-    expect(status.pid).toBe(sampleInfo.pid);
-    expect(status.port).toBe(sampleInfo.port);
-    spy.mockRestore();
-  });
-
-  it('returns { running: false, stale: true } and cleans up when PID is dead', () => {
-    writePidFile(dataDir, sampleInfo);
-    const spy = vi.spyOn(process, 'kill').mockImplementation(() => {
-      throw new Error('ESRCH');
-    });
-    const status = getStatus(dataDir);
-    expect(status).toEqual({ running: false, stale: true });
-    expect(existsSync(pidFilePath(dataDir))).toBe(false);
-    spy.mockRestore();
-  });
-});
-
 describe('killProcess', () => {
   let killSpy: ReturnType<typeof vi.spyOn>;
 
@@ -133,7 +190,6 @@ describe('killProcess', () => {
     const calls: Array<[number, string | number]> = [];
     killSpy = vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
       calls.push([pid as number, signal as string | number]);
-      // After SIGTERM, the check-alive (signal 0) should throw to indicate process is gone
       if (signal === 0) throw new Error('ESRCH');
       return true;
     });
@@ -151,7 +207,7 @@ describe('killProcess', () => {
     const calls: Array<[number, string | number]> = [];
     killSpy = vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
       calls.push([pid as number, signal as string | number]);
-      return true; // signal 0 doesn't throw — process is still alive
+      return true;
     });
 
     const promise = killProcess(42);
@@ -177,54 +233,6 @@ describe('killProcess', () => {
   });
 });
 
-describe('stopDaemon', () => {
-  let dataDir: string;
-  let killSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    dataDir = makeTmpDir();
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    killSpy?.mockRestore();
-    vi.useRealTimers();
-  });
-
-  it('kills process and removes PID file', async () => {
-    writePidFile(dataDir, sampleInfo);
-    killSpy = vi.spyOn(process, 'kill').mockImplementation((_, signal) => {
-      if (signal === 0) throw new Error('ESRCH');
-      return true;
-    });
-
-    const promise = stopDaemon(dataDir);
-    await vi.advanceTimersByTimeAsync(5000);
-    await promise;
-
-    expect(existsSync(pidFilePath(dataDir))).toBe(false);
-  });
-
-  it('uses pidOverride when provided', async () => {
-    const calls: Array<[number, string | number]> = [];
-    killSpy = vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
-      calls.push([pid as number, signal as string | number]);
-      if (signal === 0) throw new Error('ESRCH');
-      return true;
-    });
-
-    const promise = stopDaemon(dataDir, 777);
-    await vi.advanceTimersByTimeAsync(5000);
-    await promise;
-
-    expect(calls[0]).toEqual([-777, 'SIGTERM']);
-  });
-
-  it('errors gracefully when no PID file and no override', async () => {
-    await expect(stopDaemon(dataDir)).rejects.toThrow('no PID file found');
-  });
-});
-
 // ── startDaemon ─────────────────────────────────────────────────────────────
 
 vi.mock('node:child_process', () => ({
@@ -247,11 +255,9 @@ function makeFakeChild(pid = 55555) {
   return child;
 }
 
-/** Configure the mocked http.get to either reject or resolve with JSON. */
 function mockHttpGet(behaviour: 'reject' | { json: unknown }) {
   const mockedGet = vi.mocked(http.get);
   mockedGet.mockImplementation((...args: unknown[]) => {
-    // http.get(url, cb) — cb is last argument
     const cb = args[args.length - 1] as ((res: EventEmitter & { statusCode: number }) => void) | undefined;
     const req = Object.assign(new EventEmitter(), { end: vi.fn() }) as EventEmitter & { end: ReturnType<typeof vi.fn> };
     if (behaviour === 'reject') {
@@ -272,29 +278,19 @@ function mockHttpGet(behaviour: 'reject' | { json: unknown }) {
   });
 }
 
-describe('startDaemon', () => {
+describe('StorybookDaemon.start', () => {
   let dataDir: string;
-  let killSpy: ReturnType<typeof vi.spyOn>;
   let stderrSpy: ReturnType<typeof vi.spyOn>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     dataDir = makeTmpDir();
-    // Silence stderr output from log forwarding
     stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
   });
 
   afterEach(() => {
-    killSpy?.mockRestore();
     stderrSpy?.mockRestore();
     vi.mocked(http.get).mockReset();
     vi.useRealTimers();
-  });
-
-  it('throws when Storybook is already running', async () => {
-    writePidFile(dataDir, sampleInfo);
-    killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
-
-    await expect(startDaemon({ cmd: 'npx storybook dev', port: 6006, dataDir })).rejects.toThrow(/already running/i);
   });
 
   it('returns { ready: false } on timeout', async () => {
@@ -306,9 +302,9 @@ describe('startDaemon', () => {
 
     mockHttpGet('reject');
 
-    const promise = startDaemon({ cmd: 'npx storybook dev', port: 6006, dataDir });
+    const sb = new StorybookDaemon(dataDir);
+    const promise = sb.start({ cmd: 'npx storybook dev', port: 6006 });
 
-    // Fast-forward past the 120s timeout (60 polling intervals of 2s each)
     for (let i = 0; i < 61; i++) {
       await vi.advanceTimersByTimeAsync(2000);
     }
@@ -328,47 +324,21 @@ describe('startDaemon', () => {
 
     mockHttpGet({ json: { entries: {} } });
 
-    const promise = startDaemon({ cmd: 'npx storybook dev', port: 9009, dataDir });
+    const sb = new StorybookDaemon(dataDir);
+    const promise = sb.start({ cmd: 'npx storybook dev', port: 9009 });
 
-    // Advance past the first polling interval
     await vi.advanceTimersByTimeAsync(2000);
 
     const result = await promise;
     expect(result.ready).toBe(true);
     expect(result.pid).toBe(77777);
     expect(result.port).toBe(9009);
-    expect(result.log).toBe(logFilePath(dataDir));
+    expect(result.log).toBe(sb.logPath);
     expect(fakeChild.unref).toHaveBeenCalled();
 
-    // Verify PID file was written
-    const pidData = readPidFile(dataDir);
-    expect(pidData).not.toBeNull();
-    expect(pidData!.pid).toBe(77777);
-    expect(pidData!.port).toBe(9009);
-  });
-
-  it('cleans up stale PID file before starting', async () => {
-    vi.useFakeTimers();
-
-    // Write a PID file for a dead process
-    writePidFile(dataDir, { ...sampleInfo, pid: 99999 });
-    killSpy = vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
-      // getStatus calls isAlive(99999) with signal 0 — should throw (dead)
-      if (pid === 99999 && signal === 0) throw new Error('ESRCH');
-      return true;
-    });
-
-    const { spawn } = await import('node:child_process');
-    const fakeChild = makeFakeChild(88888);
-    vi.mocked(spawn).mockReturnValue(fakeChild as never);
-
-    mockHttpGet({ json: { entries: {} } });
-
-    const promise = startDaemon({ cmd: 'npx storybook dev', port: 6006, dataDir });
-    await vi.advanceTimersByTimeAsync(2000);
-
-    const result = await promise;
-    expect(result.ready).toBe(true);
-    expect(result.pid).toBe(88888);
+    // Verify state is accessible after start
+    sb.reload();
+    expect(sb.pid).toBe(77777);
+    expect(sb.port).toBe(9009);
   });
 });

@@ -12,6 +12,14 @@ Collects extra rendering context via Chrome DevTools MCP to enrich visual compar
 - Chrome DevTools MCP server must be configured in `.mcp.json` as `devtools`
 - Storybook must be running and accessible
 
+## Availability Check
+
+Before executing any DevTools step, verify that `mcp__devtools__*` tools are available. If the DevTools MCP server is not configured or not responding:
+
+> "DevTools MCP not configured — skipping computed style collection."
+
+Skip all steps below and complete without error. The visual-compare task will proceed with screenshot-only comparison.
+
 ## Instructions
 
 After the Storybook page has been screenshotted, use the DevTools MCP to collect additional context.

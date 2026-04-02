@@ -1,20 +1,20 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Designbook is a design-system authoring tool built on Storybook, with a CLI-driven workflow engine.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Three-part architecture:
+  - Part 1 — Core skill (`designbook`): workflows, stages, component creation
+  - Part 2 — Storybook addon (`storybook-addon-designbook`): TypeScript package powering the CLI and UI
+  - Part 3 — Integration skills (`designbook-css-tailwind`, `designbook-drupal`, `designbook-stitch`, `designbook-devtools`): extend Part 1 for specific frameworks/backends
+
+  4-level skill model: workflow → stage → task / blueprint / rule
+  - Tasks declare WHAT to produce (never HOW)
+  - Blueprints are overridable starting points (directory structure, naming, markup)
+  - Rules are hard constraints that cannot be overridden by integrations
+
+rules:
+  proposal:
+    - "Ask the user whether the change should be created in a git worktree (isolated branch) or in the current working directory."
+  tasks:
+    - "For changes that touch `.agents/skills/` or integration code, ask the user whether to add a Verification task group. The group should contain: run `./scripts/setup-workspace.sh <name>` from the repo root (or worktree root), then `pnpm run dev` inside the workspace."

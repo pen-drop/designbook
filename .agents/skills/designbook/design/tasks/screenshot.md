@@ -30,6 +30,8 @@ _debo resolve-url --scene ${scene}
 
 This outputs JSON with `storyId` and `url` (the Storybook iframe URL).
 
+**Fallback if `resolve-url` fails** (e.g. "fetch failed" when Storybook is restarting): scan `designbook/screenshots/` for a directory matching the scene pattern and derive `storyId` from the directory name. Construct the URL manually from `storybook.json` port: `http://localhost:${port}/iframe.html?id=${storyId}&viewMode=story`.
+
 ## Step 3: Capture Screenshots
 
 For each breakpoint, run Playwright CLI to capture a full-page screenshot:

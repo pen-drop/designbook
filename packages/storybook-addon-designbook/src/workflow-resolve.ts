@@ -280,13 +280,17 @@ export function buildWorktreeEnvMap(
  * conditions against context (runtime) and config (project).
  *
  * Returns all matches with their specificity (number of `when` keys matched).
- * Files without `when` (or empty `when`) match unconditionally with specificity 0.
+ *
+ * When `requireWhen` is true (default), files without `when` (or empty `when`)
+ * are skipped — at least one `when` condition is required. Set to false for
+ * task files where unconditional matching is expected.
  */
 export function resolveFiles(
   globPattern: string,
   context: Record<string, unknown>,
   config: Record<string, unknown>,
   agentsDir: string,
+  requireWhen = true,
 ): ResolvedFile[] {
   const results: ResolvedFile[] = [];
   const paths = globSync(globPattern, { cwd: agentsDir, absolute: true });
@@ -296,6 +300,9 @@ export function resolveFiles(
     const when = frontmatter?.when as Record<string, unknown> | undefined;
 
     if (!when || Object.keys(when).length === 0) {
+      if (requireWhen) {
+        continue;
+      }
       results.push({ path: filePath, specificity: 0, frontmatter });
       continue;
     }
@@ -340,7 +347,7 @@ export function resolveTaskFiles(
     // Fall back to glob for workflow-qualified tasks within unified skill (e.g. design-screen:create-scene)
     const context = buildRuntimeContext();
     const enrichedConfig = buildEnrichedConfig(config);
-    const matches = resolveFiles(`skills/**/tasks/${taskName}--${skillName}.md`, context, enrichedConfig, agentsDir);
+    const matches = resolveFiles(`skills/**/tasks/${taskName}--${skillName}.md`, context, enrichedConfig, agentsDir, false);
     if (matches.length === 0) {
       return [];
     }
@@ -351,7 +358,7 @@ export function resolveTaskFiles(
   // Generic stage: resolve via glob + when matching — return ALL matches
   const context = buildRuntimeContext();
   const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir);
+  const matches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir, false);
 
   if (matches.length > 0) {
     return matches.map((m) => m.path);
@@ -364,6 +371,7 @@ export function resolveTaskFiles(
       context,
       enrichedConfig,
       agentsDir,
+      false,
     );
     if (qualifiedMatches.length > 0) {
       return qualifiedMatches.map((m) => m.path);
