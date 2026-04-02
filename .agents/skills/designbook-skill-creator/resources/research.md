@@ -135,3 +135,17 @@ If the suggested changes affect multiple files (2+), introduce new stages, or re
 The change name follows the pattern `designbook-<workflow>-<change-summary>` — workflow name + short summary of what needs fixing.
 
 **Important:** The agent must not passively wait for the user to request an OpenSpec change. If the diagnostic identifies multi-file fixes, the OpenSpec recommendation is a required part of the research output.
+
+## Verification Loop
+
+After implementing fixes (via OpenSpec or inline), verify them by re-running the workflow with `--research` against a clean workspace state:
+
+1. **Ensure workspace exists** — In the repo root, the workspace is permanent (`workspaces/<name>/`). In a git worktree, run `./scripts/setup-workspace.sh <name>` once to create it.
+2. **Commit workspace state** — `git add -A && git commit -m "pre-research snapshot"` in the workspace. This preserves all pipeline data (vision, tokens, sections, components, CSS).
+3. **Reset to clean state** — `git reset --hard HEAD~1` removes generated data so the workflow runs from scratch.
+4. **Re-run the workflow** — `/designbook <workflow> --research`
+5. **Confirm zero friction** — the research pass should report no issues. If new friction is found, repeat from step 2.
+
+Skill files are symlinked from the repo root — fixes are available immediately without rebuilding the workspace. The reset step only clears generated pipeline data (designbook/, components/, css/) so the workflow can run end-to-end. `setup-workspace.sh` is only needed once per worktree — never re-run it to pick up skill changes.
+
+This loop is the standard way to validate skill changes: **research → fix → commit → reset → re-run with `--research` → confirm zero friction**.

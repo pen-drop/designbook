@@ -5,6 +5,7 @@ stages:
   intake:
     steps: [intake]
   execute:
+    each: section
     steps: [create-section]
 engine: direct
 ---

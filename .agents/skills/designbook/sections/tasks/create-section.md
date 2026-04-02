@@ -20,8 +20,8 @@ Write `[section_id].section.scenes.yml` via stdin to the CLI:
 ```yaml
 id: {{ section_id }}
 group: "Designbook/Sections/{{ section_title }}"
-title: {{ section_title }}
-description: {{ description }}
+title: "{{ section_title }}"
+description: "{{ description }}"
 status: planned
 order: {{ order }}
 scenes: []
@@ -32,8 +32,8 @@ scenes: []
 ```yaml
 id: {{ section_id }}
 group: "Designbook/Sections/{{ section_title }}"
-title: {{ section_title }}
-description: {{ description }}
+title: "{{ section_title }}"
+description: "{{ description }}"
 status: shaped
 order: {{ order }}
 scenes: []

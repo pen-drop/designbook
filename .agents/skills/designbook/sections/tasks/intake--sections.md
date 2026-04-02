@@ -41,13 +41,13 @@ Iterate on the sections based on user feedback. Ask clarifying questions as need
 
 Keep iterating until the user approves. Once confirmed, the `create-section` stage runs automatically — one item per section.
 
-**Items format** (for `workflow plan --items`):
-Each approved section becomes a separate item with stage `create-section`:
+**Params format** (for `workflow plan --params`):
+Each approved section becomes an entry in the `section` array (keyed by `each: section`):
 ```json
-[
-  {"stage": "create-section", "params": {"section_id": "dashboard", "section_title": "Dashboard", "description": "...", "order": 1}},
-  {"stage": "create-section", "params": {"section_id": "training", "section_title": "Training", "description": "...", "order": 2}}
-]
+{"section": [
+  {"section_id": "dashboard", "section_title": "Dashboard", "description": "...", "order": 1},
+  {"section_id": "training", "section_title": "Training", "description": "...", "order": 2}
+]}
 ```
 
 **Guardrails**

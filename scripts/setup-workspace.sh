@@ -35,8 +35,11 @@ rsync -a \
   --exclude='tmp' \
   "$SOURCE_DIR/" "$WORKSPACE_DIR/"
 
-# Symlink .agents and .claude so the CLI and Claude can resolve skills from the workspace
+# Symlink .claude so the CLI and Claude can resolve skills from the workspace
 ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
+
+# Symlink openspec so changes are always stored at repo root
+ln -sfn "$REPO_ROOT/openspec" "$WORKSPACE_DIR/openspec"
 
 # Initialize git repo
 cd "$WORKSPACE_DIR"

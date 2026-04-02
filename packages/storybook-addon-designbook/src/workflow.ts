@@ -336,7 +336,7 @@ export function workflowPlan(
     type: t.type,
     ...(t.step ? { step: t.step } : {}),
     ...(t.stage ? { stage: t.stage } : {}),
-    status: 'pending' as const,
+    status: (t.stage === 'intake' ? 'done' : 'pending') as 'done' | 'pending',
     ...(t.depends_on ? { depends_on: t.depends_on } : {}),
     ...(t.params ? { params: t.params } : {}),
     ...(t.task_file ? { task_file: t.task_file } : {}),
