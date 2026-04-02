@@ -35,10 +35,8 @@ rsync -a \
   --exclude='tmp' \
   "$SOURCE_DIR/" "$WORKSPACE_DIR/"
 
-# Copy .agents and .claude from CWD so the workspace reflects the current
-# worktree's skill state (not a symlink back to the repo root)
-cp -r "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
-cp -r "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
+# Symlink .agents and .claude so the CLI and Claude can resolve skills from the workspace
+ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
 
 # Initialize git repo
 cd "$WORKSPACE_DIR"
