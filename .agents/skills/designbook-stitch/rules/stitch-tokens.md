@@ -197,8 +197,94 @@ Present the mapped values to the user before continuing with the normal intake f
 
 Only show fields that were found. The user may accept, modify, or reject each value. Continue the normal tokens intake with the user's choices as defaults.
 
+### 5. Theme Selection
+
+After the default design system is imported and the user has confirmed the base token values, offer theme import:
+
+#### 5a. Ask for Additional Themes
+
+> "Import additional Stitch design systems as color themes? These will override only color tokens."
+
+If the user confirms, call `mcp__stitch__list_design_systems` (with the project ID if available, or without for global design systems). Present the available design systems excluding the one already used as default:
+
+> "Available design systems:
+>
+> 1. **Egger** (Architectural Artisan)
+> 2. **Merzi Merzi** (The Statesman)
+> 3. _(skip — no themes)_
+>
+> Select one or more."
+
+#### 5b. Compute Color Deltas
+
+For each selected theme design system:
+
+1. Extract its `namedColors` (or derive semantic colors from brand overrides using the same mapping as step 3)
+2. Compare each `semantic.color.*` token against the default's semantic colors
+3. **Exclude identical values**: if the hex values match exactly, omit the token
+4. **Exclude near-identical values**: if RGB euclidean distance < 8 (approx ΔE < 3 CIE76), treat as identical and omit
+5. The remaining tokens are the delta
+
+Present the delta summary:
+
+> "Theme **Egger** has 18 color overrides out of 30 total tokens. Key changes:
+> - primary: #004fa8 → #722961
+> - secondary: #006e2c → #835245
+> - surface: #f7f9ff → #faf9f7
+>
+> Confirm?"
+
+#### 5c. Ask for Dark Mode
+
+If one or more themes were selected:
+
+> "Mark any of these themes as dark mode (adds automatic `prefers-color-scheme: dark` switching)?
+>
+> 1. **Egger** — mark as dark mode
+> 2. **Merzi Merzi** — mark as dark mode
+> 3. _(none)_"
+
+At most one theme can be marked as dark mode.
+
+#### 5d. Write Theme Files
+
+For each confirmed theme, write a file to `$DESIGNBOOK_DATA/design-system/themes/<kebab-name>.yml`:
+
+```yaml
+# themes/<kebab-name>.yml — only color deltas against default
+semantic:
+  color:
+    primary:
+      $value: "#722961"
+      $type: color
+    secondary:
+      $value: "#835245"
+      $type: color
+    # ... only tokens that differ from default
+```
+
+If the theme is marked as dark mode, add at the root level:
+
+```yaml
+$extensions:
+  darkMode: true
+semantic:
+  color:
+    # ... deltas
+```
+
+The `<kebab-name>` is derived from the Stitch design system's display name (e.g., "Architectural Artisan" → `architectural-artisan`).
+
+**Theme file constraints:**
+- Only `semantic.color.*` tokens — no primitives, no typography, no spacing
+- Only resolved hex values — no `{references}`
+- Only tokens that differ from the default (delta only)
+
+If the user declines themes entirely, do not create the `themes/` directory.
+
 ## Error Handling
 
 - If `mcp__stitch__get_project` fails → skip silently, intake proceeds normally
 - If `designTheme` is missing or empty → skip silently
 - If individual fields are unset → only propose fields that exist
+- If `mcp__stitch__list_design_systems` fails → skip theme selection, inform user

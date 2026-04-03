@@ -69,3 +69,49 @@ $v."$type" = "fontFamily" ? "  --<prefix>-" & $k & ": \"" & $v."$value" & "\";"
 ```
 
 Skip composite typography tokens (`$type: typography`).
+
+## Theme Override Expression Template
+
+For theme files (`themes/*.yml`), use a different wrapper that outputs `@layer theme` with a `[data-theme]` selector instead of `@theme`.
+
+### Standard Theme
+
+```jsonata
+(
+  $entries := $each($$.semantic.color, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "    --color-" & $k & ": " & $v."$value" & ";"
+  });
+  "@layer theme {\n  [data-theme=\"<name>\"] {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n  }\n}\n"
+)
+```
+
+Where `<name>` is the theme filename without `.yml` extension.
+
+### Dark Mode Theme
+
+If the theme file has `$extensions.darkMode: true`, output **both** a `prefers-color-scheme` media query and a `data-theme` selector:
+
+```jsonata
+(
+  $entries := $each($$.semantic.color, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "    --color-" & $k & ": " & $v."$value" & ";"
+  });
+  $block := $join($filter($entries, function($e) { $e != null }), "\n");
+  $dark := $$."$extensions".darkMode;
+  $darkBlock := $dark ? "@layer theme {\n  @media (prefers-color-scheme: dark) {\n    :root {\n" & $block & "\n    }\n  }\n}\n\n" : "";
+  $darkBlock & "@layer theme {\n  [data-theme=\"<name>\"] {\n" & $block & "\n  }\n}\n"
+)
+```
+
+### @config Block for Theme Files
+
+Theme expressions use the theme YAML file as input (not `design-tokens.yml`):
+
+```jsonata
+/** @config
+ {
+   "input": "<relative-path-to-themes/<name>.yml>",
+   "output": "<relative-path-to-css/tokens/color.theme-<name>.src.css>"
+ }
+ */
+```
