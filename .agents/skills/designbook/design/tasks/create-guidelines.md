@@ -10,9 +10,6 @@ params:
   mcp: {}
   visual_diff: {}
   skills: []
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
 files:
   - file: $DESIGNBOOK_DATA/design-system/guidelines.yml
     key: guidelines
@@ -23,7 +20,7 @@ files:
 
 Write the approved design guidelines via stdin to the CLI:
 ```
- write-file $WORKFLOW_NAME $TASK_ID --key guidelines
+_debo write-file $WORKFLOW_NAME $TASK_ID --key guidelines
 ```
 
 ## Rules
@@ -52,7 +49,6 @@ principles:
 
 component_patterns:
   - "Always use the container component as layout wrapper"
-  - "Cards always use card-header + card-body slots"
 
 naming:
   convention: kebab-case

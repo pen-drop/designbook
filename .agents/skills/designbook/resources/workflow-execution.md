@@ -26,13 +26,7 @@ _debo() {
 
 > **Important:** Always use `npx storybook-addon-designbook` for CLI commands. The `DESIGNBOOK_CMD` / `designbook()` shell function from config starts the Storybook dev server — it is **not** the CLI entry point.
 
-> **Bootstrap Scope:** `DESIGNBOOK_*` variables set by `eval "$(npx storybook-addon-designbook config)"` are scoped to the current Bash block only. They are **not** available in subsequent Bash calls. The `_debo()` helper re-bootstraps automatically on first call within each block — use it for all CLI calls. If you need a value like `$DESIGNBOOK_HOME` for path construction, capture it in the same block:
->
-> ```bash
-> _debo workflow list --workflow design-screen  # first _debo call bootstraps DESIGNBOOK_*
-> WF_FILE="$DESIGNBOOK_HOME/.agents/skills/designbook/design/workflows/design-screen.md"  # ✓ set by bootstrap above
-> _debo workflow create --workflow design-screen --workflow-file "$WF_FILE"
-> ```
+> **`DESIGNBOOK_*` Variablen:** If you need a `DESIGNBOOK_*` variable (e.g. `$DESIGNBOOK_HOME` for path construction), call `_debo config` first in the same Bash block — it bootstraps and exports all variables. Then use them freely in that block.
 
 All subsequent CLI calls use `_debo <command>` — bootstrap is skipped after the first call. Bundle multiple commands in one Bash block to maximise reuse.
 

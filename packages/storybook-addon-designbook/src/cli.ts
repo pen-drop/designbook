@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { resolveUrl } from './resolve-url.js';
 import { findFreePort, StorybookDaemon } from './storybook.js';
 import { Command } from 'commander';
-import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
+import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds, resolveSkillsRoot } from './config.js';
 import { validateData } from './validators/data.js';
 import { validateTokens } from './validators/tokens.js';
 import { validateComponent } from './validators/component.js';
@@ -207,7 +207,7 @@ workflow
           ? ((parseYaml(readFileSync(configPath, 'utf-8')) as Record<string, unknown>) ?? {})
           : {};
         const configDir = configPath ? dirname(configPath) : process.cwd();
-        const agentsDir = resolve(configDir, '.agents');
+        const agentsDir = resolveSkillsRoot(configDir);
 
         try {
           const resolved = resolveAllStages(resolve(opts.workflowFile), config, rawConfig, agentsDir);
@@ -409,10 +409,12 @@ workflow
       }
 
       // For steps without `each` and no explicit items, create a singleton item
+      const singletonSteps = new Set<string>();
       for (const step of allSteps) {
         if (items.some((i) => i.step === step)) continue;
         if (stepToEach.has(step)) continue; // each-step with empty iterable — skip
         items.push({ step, params: {} });
+        singletonSteps.add(step);
       }
 
       // Validate items against known steps
@@ -480,7 +482,8 @@ workflow
           const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
 
           for (const item of stepItems) {
-            const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, step);
+            const isSingleton = singletonSteps.has(step);
+            const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, step, isSingleton);
             const taskId = generateTaskId(step, mergedParams, schemaParams);
             const title = generateTaskTitle(step, mergedParams, schemaParams);
             const type = inferTaskType(step);

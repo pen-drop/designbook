@@ -548,6 +548,7 @@ export function validateAndMergeParams(
   itemParams: Record<string, unknown>,
   schemaParams: Record<string, unknown>,
   step: string,
+  skipRequired = false,
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...itemParams };
 
@@ -556,7 +557,7 @@ export function validateAndMergeParams(
     if (merged[key] !== undefined) continue;
 
     if (defaultValue === null) {
-      missing.push(key);
+      if (!skipRequired) missing.push(key);
     } else {
       merged[key] = defaultValue;
     }
