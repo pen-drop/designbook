@@ -258,16 +258,26 @@ export class StorybookDaemon {
   }
 
   /** Start the Storybook daemon. */
-  async start(opts: { cmd: string; port: number; cwd?: string; force?: boolean }): Promise<StartResult> {
-    const { cmd, port, cwd, force } = opts;
+  async start(opts: { cmd: string; port?: number; cwd?: string; force?: boolean }): Promise<StartResult> {
+    const { cmd, cwd, force } = opts;
+    let port = opts.port;
 
     if (force) {
+      // Read existing port before stopping so we can reuse it
+      if (port === undefined && this.info) {
+        port = this.info.port;
+      }
       await this.stop();
     } else {
       const st = this.status();
       if (st.running) {
         throw new Error(`Storybook is already running (pid ${st.pid}, port ${st.port}). Use --force to replace it.`);
       }
+    }
+
+    // Fallback: if no port was determined (no --port flag, no existing instance), pick a free one
+    if (port === undefined) {
+      port = await findFreePort();
     }
 
     const fullCmd = `${cmd} --port ${port}`;
@@ -361,10 +371,11 @@ export class StorybookDaemon {
     this.reload();
   }
 
-  /** Restart: stop then start. */
-  async restart(opts: { cmd: string; port: number; cwd?: string }): Promise<StartResult> {
+  /** Restart: stop then start. Reuses existing port when none is specified. */
+  async restart(opts: { cmd: string; port?: number; cwd?: string }): Promise<StartResult> {
+    const port = opts.port ?? this.info?.port;
     await this.stop();
-    return this.start({ ...opts, force: false });
+    return this.start({ ...opts, port, force: false });
   }
 
   // ── Logs ────────────────────────────────────────────────────────────────

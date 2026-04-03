@@ -4,7 +4,6 @@ name: layout-builder
 priority: 10
 when:
   steps: [map-entity]
-  template: layout-builder
 ---
 
 # Rule: Layout Builder — Passthrough Mapping

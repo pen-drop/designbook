@@ -17,7 +17,7 @@ The workflow runs as usual — all stages, tasks, rules, blueprints apply. The o
 
 **Step 2 — Discover what was loaded**
 
-Research mode reads the **workflow definition file** from the skill directory (`designbook/<concern>/workflows/<workflow-id>.md`). From the stages declared there, it identifies which task files, rules, blueprints, and `reads:` context files were involved in this run.
+Research mode reads the archived workflow from `designbook/workflows/archive/<workflow-name>/tasks.yml`. The `stage_loaded` section contains the resolved task files, rules, blueprints, and config instructions that were involved in this run.
 
 **Step 3 — Audit every loaded file**
 
@@ -141,10 +141,9 @@ The change name follows the pattern `designbook-<workflow>-<change-summary>` —
 After implementing fixes (via OpenSpec or inline), verify them by re-running the workflow with `--research` against a clean workspace state:
 
 1. **Ensure workspace exists** — In the repo root, the workspace is permanent (`workspaces/<name>/`). In a git worktree, run `./scripts/setup-workspace.sh <name>` once to create it.
-2. **Commit workspace state** — `git add -A && git commit -m "pre-research snapshot"` in the workspace. This preserves all pipeline data (vision, tokens, sections, components, CSS).
-3. **Reset to clean state** — `git reset --hard HEAD~1` removes generated data so the workflow runs from scratch.
-4. **Re-run the workflow** — `/designbook <workflow> --research`
-5. **Confirm zero friction** — the research pass should report no issues. If new friction is found, repeat from step 2.
+2. **Reset to clean state** — `git reset --hard HEAD~1` removes generated data so the workflow runs from scratch.
+3. **Re-run the workflow** — `/designbook <workflow> --research`
+4. **Confirm zero friction** — the research pass should report no issues. If new friction is found, repeat from step 2.
 
 Skill files are symlinked from the repo root — fixes are available immediately without rebuilding the workspace. The reset step only clears generated pipeline data (designbook/, components/, css/) so the workflow can run end-to-end. `setup-workspace.sh` is only needed once per worktree — never re-run it to pick up skill changes.
 

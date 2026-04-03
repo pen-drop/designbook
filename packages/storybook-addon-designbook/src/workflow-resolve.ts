@@ -625,12 +625,19 @@ export interface ResolvedStep {
   config_instructions: string[];
 }
 
+export interface ExpectedParam {
+  required: boolean;
+  from_step: string;
+  default?: unknown;
+}
+
 export interface ResolvedSteps {
   title: string;
   steps: string[];
   stages?: Record<string, StageDefinitionFm>;
   engine?: string;
   step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
+  expected_params: Record<string, ExpectedParam>;
 }
 
 /**
@@ -653,6 +660,7 @@ export function resolveAllStages(
 
   const stepResolved: Record<string, ResolvedStep | ResolvedStep[]> = {};
   const resolvedSteps: string[] = [];
+  const expectedParams: Record<string, ExpectedParam> = {};
 
   for (const step of allSteps) {
     const taskFilePaths = resolveTaskFiles(step, config, agentsDir, workflowId);
@@ -660,18 +668,27 @@ export function resolveAllStages(
       console.debug(`[Designbook] workflow: step "${step}" skipped — no matching task file`);
       continue;
     }
-    // Match rules/blueprints for both the plain step and the workflow-qualified name
-    // (e.g. step "intake" also matches rules scoped to "vision:intake")
-    const qualifiedStep = workflowId ? `${workflowId}:${step}` : undefined;
-    const ruleFiles = matchRuleFiles(step, config, agentsDir);
-    if (qualifiedStep) {
-      for (const r of matchRuleFiles(qualifiedStep, config, agentsDir)) {
+    // Match rules/blueprints for the step name AND variant names:
+    // - If step is plain (e.g. "intake"), also try workflow-qualified ("vision:intake")
+    // - If step is already qualified (e.g. "design-screen:map-entity"), also try base ("map-entity")
+    const isQualified = step.includes(':');
+    const baseStep = isQualified ? step.split(':').pop()! : step;
+    const qualifiedStep = isQualified ? step : workflowId ? `${workflowId}:${step}` : undefined;
+
+    // Collect from all name variants (step itself + base/qualified alternate)
+    const stepsToMatch = [step];
+    if (isQualified && baseStep !== step) stepsToMatch.push(baseStep);
+    if (qualifiedStep && qualifiedStep !== step) stepsToMatch.push(qualifiedStep);
+
+    const ruleFiles: string[] = [];
+    for (const s of stepsToMatch) {
+      for (const r of matchRuleFiles(s, config, agentsDir)) {
         if (!ruleFiles.includes(r)) ruleFiles.push(r);
       }
     }
-    const blueprintFiles = matchBlueprintFiles(step, config, agentsDir);
-    if (qualifiedStep) {
-      for (const b of matchBlueprintFiles(qualifiedStep, config, agentsDir)) {
+    const blueprintFiles: string[] = [];
+    for (const s of stepsToMatch) {
+      for (const b of matchBlueprintFiles(s, config, agentsDir)) {
         if (!blueprintFiles.includes(b)) blueprintFiles.push(b);
       }
     }
@@ -695,6 +712,29 @@ export function resolveAllStages(
       }));
     }
     resolvedSteps.push(step);
+
+    // Aggregate expected_params from task file frontmatter
+    const taskFiles = taskFilePaths;
+    for (const taskFile of taskFiles) {
+      const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
+      const params = taskFm?.params as Record<string, unknown> | undefined;
+      if (!params) continue;
+      for (const [key, value] of Object.entries(params)) {
+        const isRequired = value === null;
+        if (key in expectedParams) {
+          // If ANY step marks it required, it stays required
+          if (isRequired && !expectedParams[key]!.required) {
+            expectedParams[key]!.required = true;
+          }
+        } else {
+          expectedParams[key] = {
+            required: isRequired,
+            from_step: step,
+            ...(isRequired ? {} : { default: value }),
+          };
+        }
+      }
+    }
   }
 
   const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
@@ -705,6 +745,7 @@ export function resolveAllStages(
     ...(stageDefs ? { stages: stageDefs } : {}),
     ...(wfFm?.engine ? { engine: wfFm.engine } : {}),
     step_resolved: stepResolved,
+    expected_params: expectedParams,
   };
 }
 
