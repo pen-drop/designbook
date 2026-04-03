@@ -33,6 +33,7 @@ export const directEngine: WorkflowEngine = {
     const suffix = deboSuffix(data);
 
     // Phase 1: rename all stashed files to final paths (silent — no watcher trigger)
+    const now = new Date().toISOString();
     for (const task of tasks) {
       for (const file of task.files ?? []) {
         if (!file.validation_result) continue; // not yet written
@@ -40,6 +41,7 @@ export const directEngine: WorkflowEngine = {
         if (!existsSync(src)) continue;
         mkdirSync(dirname(file.path), { recursive: true });
         renameSync(src, file.path);
+        file.flushed_at = now;
         paths.push(file.path);
       }
     }
