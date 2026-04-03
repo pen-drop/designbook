@@ -104,6 +104,29 @@ export function findConfig(startDir: string = process.cwd()): string | null {
 }
 
 /**
+ * Resolve the root directory that contains the `skills/` folder.
+ *
+ * Tries candidate directories relative to `configDir` until one
+ * with a `skills/` subdirectory is found. Falls back to `configDir`
+ * itself if no candidate matches.
+ *
+ * Candidate order: `.claude`, `.agents`, `.` (configDir itself)
+ */
+export function resolveSkillsRoot(configDir: string): string {
+  const candidates = ['.claude', '.agents'];
+  for (const candidate of candidates) {
+    const dir = resolve(configDir, candidate);
+    if (existsSync(resolve(dir, 'skills'))) {
+      return dir;
+    }
+  }
+  if (existsSync(resolve(configDir, 'skills'))) {
+    return configDir;
+  }
+  return resolve(configDir, '.claude');
+}
+
+/**
  * Load and parse a designbook config file.
  *
  * Finds the config file via `findConfig()`, parses it as YAML,
