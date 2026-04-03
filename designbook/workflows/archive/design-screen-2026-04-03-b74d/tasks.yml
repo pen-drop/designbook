@@ -1,0 +1,138 @@
+title: Design Screen
+workflow: design-screen
+workflow_id: b74d
+status: incomplete
+engine: direct
+stages:
+  intake:
+    steps:
+      - intake
+  component:
+    each: component
+    steps:
+      - create-component
+  sample-data:
+    steps:
+      - create-sample-data
+  entity-mapping:
+    steps:
+      - design-screen:map-entity
+  scene:
+    each: scene
+    steps:
+      - design-screen:create-scene
+  test:
+    each: scene
+    steps:
+      - storybook-preview
+      - screenshot
+      - resolve-reference
+      - visual-compare
+      - polish
+stage_loaded:
+  intake:
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/design/tasks/intake--design-screen.md
+    rules: &ref_0
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook/design/rules/guidelines-context.md
+    blueprints: &ref_1
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook-drupal/components/blueprints/section.md
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook-drupal/components/blueprints/grid.md
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook-drupal/components/blueprints/container.md
+    config_rules: []
+    config_instructions: []
+  create-sample-data:
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/sample-data/tasks/create-sample-data.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook/design/rules/guidelines-context.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  design-screen:map-entity:
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/design/tasks/map-entity--design-screen.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook/design/rules/scenes-constraints.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  design-screen:create-scene:
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/design/tasks/create-scene--design-screen.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook/design/rules/scenes-constraints.md
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook/design/rules/guidelines-context.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  storybook-preview:
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/design/tasks/storybook-preview.md
+    rules: []
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  screenshot:
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/design/tasks/screenshot.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook-devtools/rules/devtools-context.md
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook/design/rules/guidelines-context.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  resolve-reference:
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/design/tasks/resolve-reference.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook/design/rules/guidelines-context.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  visual-compare:
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/design/tasks/visual-compare.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook-devtools/rules/devtools-context.md
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook/design/rules/guidelines-context.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  polish:
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/design/tasks/polish.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.agents/skills/designbook/design/rules/guidelines-context.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+started_at: '2026-04-03T18:35:18'
+tasks:
+  - id: intake
+    title: 'Intake: Design Screen'
+    type: data
+    step: intake
+    stage: intake
+    status: pending
+    task_file: >-
+      /home/cw/projects/designbook/.agents/skills/designbook/design/tasks/intake--design-screen.md
+    rules: *ref_0
+    blueprints: *ref_1
+    files: []
+completed_at: '2026-04-03T18:44:23'
+summary: 'Intake: Design Screen (data)'

@@ -668,18 +668,27 @@ export function resolveAllStages(
       console.debug(`[Designbook] workflow: step "${step}" skipped — no matching task file`);
       continue;
     }
-    // Match rules/blueprints for both the plain step and the workflow-qualified name
-    // (e.g. step "intake" also matches rules scoped to "vision:intake")
-    const qualifiedStep = workflowId ? `${workflowId}:${step}` : undefined;
-    const ruleFiles = matchRuleFiles(step, config, agentsDir);
-    if (qualifiedStep) {
-      for (const r of matchRuleFiles(qualifiedStep, config, agentsDir)) {
+    // Match rules/blueprints for the step name AND variant names:
+    // - If step is plain (e.g. "intake"), also try workflow-qualified ("vision:intake")
+    // - If step is already qualified (e.g. "design-screen:map-entity"), also try base ("map-entity")
+    const isQualified = step.includes(':');
+    const baseStep = isQualified ? step.split(':').pop()! : step;
+    const qualifiedStep = isQualified ? step : workflowId ? `${workflowId}:${step}` : undefined;
+
+    // Collect from all name variants (step itself + base/qualified alternate)
+    const stepsToMatch = [step];
+    if (isQualified && baseStep !== step) stepsToMatch.push(baseStep);
+    if (qualifiedStep && qualifiedStep !== step) stepsToMatch.push(qualifiedStep);
+
+    const ruleFiles: string[] = [];
+    for (const s of stepsToMatch) {
+      for (const r of matchRuleFiles(s, config, agentsDir)) {
         if (!ruleFiles.includes(r)) ruleFiles.push(r);
       }
     }
-    const blueprintFiles = matchBlueprintFiles(step, config, agentsDir);
-    if (qualifiedStep) {
-      for (const b of matchBlueprintFiles(qualifiedStep, config, agentsDir)) {
+    const blueprintFiles: string[] = [];
+    for (const s of stepsToMatch) {
+      for (const b of matchBlueprintFiles(s, config, agentsDir)) {
         if (!blueprintFiles.includes(b)) blueprintFiles.push(b);
       }
     }
