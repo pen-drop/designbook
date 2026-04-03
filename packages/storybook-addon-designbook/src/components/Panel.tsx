@@ -24,6 +24,7 @@ interface TaskFile {
   key: string;
   validators: string[];
   validation_result?: ValidationFileResult;
+  flushed_at?: string;
 }
 
 interface WorkflowTask {
@@ -121,6 +122,32 @@ const formatDuration = (start: string | null, end?: string | null): string => {
   return `${min}m ${sec}s`;
 };
 
+const isSameDay = (a: Date, b: Date): boolean =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+const fmtTime = (d: Date): string => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+const fmtDayTime = (d: Date): string =>
+  `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${fmtTime(d)}`;
+
+/** Smart timestamp range: time-only for today, date+time otherwise, date shown only once when same day. */
+const formatTimestampRange = (start: string | null, end: string | null): string => {
+  if (!start) return '';
+  const s = new Date(start);
+  const now = new Date();
+  const isToday = isSameDay(s, now);
+
+  if (!end) {
+    return isToday ? fmtTime(s) : fmtDayTime(s);
+  }
+
+  const e = new Date(end);
+  if (isSameDay(s, e)) {
+    return isToday ? `${fmtTime(s)} – ${fmtTime(e)}` : `${fmtDayTime(s)} – ${fmtTime(e)}`;
+  }
+  return `${fmtDayTime(s)} – ${fmtDayTime(e)}`;
+};
+
 function WorkflowStatusDot({ status }: { status?: string }) {
   const mapped = status === 'completed' ? 'done' : status === 'running' ? 'in-progress' : 'pending';
   return <StatusDot status={mapped} />;
@@ -171,6 +198,7 @@ function StatusDot({ status }: { status: string }) {
 }
 
 const fileBadgeVariant = (f: TaskFile): 'green' | 'yellow' | 'gray' => {
+  if (f.flushed_at) return 'green';
   if (!f.validation_result) return 'gray';
   if (f.validation_result.valid === true) return 'green';
   if (f.validation_result.valid === false) return 'yellow';
@@ -502,15 +530,8 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
 
       {/* Timestamps */}
       <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#64748B', marginBottom: 8 }}>
-        {wf.started_at && (
-          <span>Started: {new Date(wf.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-        )}
-        {wf.started_at && <span>Duration: {formatDuration(wf.started_at, wf.completed_at ?? null)}</span>}
-        {wf.completed_at && (
-          <span>
-            Completed: {new Date(wf.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        )}
+        {wf.started_at && <span>{formatTimestampRange(wf.started_at, wf.completed_at ?? null)}</span>}
+        {wf.started_at && <span>({formatDuration(wf.started_at, wf.completed_at ?? null)})</span>}
       </div>
 
       {/* Summary text */}
@@ -630,7 +651,16 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
         const done = tasks.filter((t) => t.status === 'done').length;
         const total = tasks.length;
         const allDone = done === total;
-        const hasPending = tasks.every((t) => t.status === 'pending');
+        const allPending = tasks.every((t) => t.status === 'pending');
+        const hasRunningTask = tasks.some((t) => t.status === 'in-progress');
+
+        const stageBadge = (): { label: string; variant: 'green' | 'gray' | 'yellow' } => {
+          if (allDone) return { label: `${done}/${total}`, variant: 'green' };
+          if (allPending) return { label: 'pending', variant: 'gray' };
+          if (hasRunningTask) return { label: 'running', variant: 'yellow' };
+          return { label: `${done}/${total}`, variant: 'gray' };
+        };
+        const badge = stageBadge();
 
         return (
           <div key={stage || '__flat__'}>
@@ -638,9 +668,7 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
               <div style={S.stageHeader}>
                 <span style={S.stageHeaderLine} />
                 <span>{stage}</span>
-                <ManagerBadge variant={allDone ? 'green' : 'gray'}>
-                  {hasPending ? 'pending' : `${done}/${total}`}
-                </ManagerBadge>
+                <ManagerBadge variant={badge.variant}>{badge.label}</ManagerBadge>
                 <span style={S.stageHeaderLine} />
               </div>
             )}
@@ -703,6 +731,14 @@ function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
   const allSteps = [...new Set(allEntries.map((e) => e.step))];
   const [selectedSteps, setSelectedSteps] = useState<Set<string>>(new Set());
 
+  // Derive loaded steps from task statuses
+  const loadedSteps = new Set<string>();
+  for (const task of wf.tasks) {
+    if ((task.status === 'done' || task.status === 'in-progress') && task.step) {
+      loadedSteps.add(task.step);
+    }
+  }
+
   const toggleStep = (step: string) => {
     setSelectedSteps((prev) => {
       const next = new Set(prev);
@@ -713,10 +749,27 @@ function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
   };
 
   const filtered = selectedSteps.size === 0 ? allEntries : allEntries.filter((e) => selectedSteps.has(e.step));
+  const loaded = filtered.filter((e) => loadedSteps.has(e.step));
+  const pending = filtered.filter((e) => !loadedSteps.has(e.step));
 
   if (allEntries.length === 0) {
     return <div style={{ ...S.empty, padding: '1rem' }}>No context loaded yet.</div>;
   }
+
+  const renderRows = (entries: ContextEntry[], dimmed: boolean) =>
+    entries.map((entry, i) => (
+      <tr
+        key={`${entry.fullPath}-${entry.step}-${i}`}
+        title={entry.fullPath}
+        style={dimmed ? { opacity: 0.5 } : undefined}
+      >
+        <td style={S.contextTd}>{entry.name}</td>
+        <td style={S.contextTd}>
+          <ManagerBadge variant="gray">{entry.type}</ManagerBadge>
+        </td>
+        <td style={{ ...S.contextTd, color: '#64748B', fontSize: 10 }}>{entry.step}</td>
+      </tr>
+    ));
 
   return (
     <div>
@@ -746,15 +799,17 @@ function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
           </tr>
         </thead>
         <tbody>
-          {filtered.map((entry, i) => (
-            <tr key={`${entry.fullPath}-${entry.step}-${i}`} title={entry.fullPath}>
-              <td style={S.contextTd}>{entry.name}</td>
-              <td style={S.contextTd}>
-                <ManagerBadge variant="gray">{entry.type}</ManagerBadge>
-              </td>
-              <td style={{ ...S.contextTd, color: '#64748B', fontSize: 10 }}>{entry.step}</td>
-            </tr>
-          ))}
+          {loaded.length > 0 && renderRows(loaded, false)}
+          {pending.length > 0 && (
+            <>
+              <tr>
+                <td colSpan={3} style={{ ...S.contextTh, paddingTop: 10, borderBottom: 'none' }}>
+                  Pending
+                </td>
+              </tr>
+              {renderRows(pending, true)}
+            </>
+          )}
         </tbody>
       </table>
     </div>
@@ -790,6 +845,7 @@ const fileRowColor = (f: TaskFile): string => {
 };
 
 const fileStatusDot = (f: TaskFile): string => {
+  if (f.flushed_at) return 'done';
   if (!f.validation_result) return 'pending';
   if (f.validation_result.valid === true) return 'done';
   return 'in-progress';
@@ -920,10 +976,12 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
         const total = wf.tasks.length;
         const isOpen = wf.status === 'running' || wf.status === 'planning';
 
+        const activeTask = wf.tasks.find((t) => t.status === 'in-progress');
         const wfSummary = (
           <span style={S.summaryRow}>
             <WorkflowStatusDot status={wf.status} />
             <span style={S.summaryTitle}>{wf.title}</span>
+            {activeTask?.step && <span style={S.activeTaskHint}>{activeTask.step}</span>}
             {designbookDir && <ContextAction path={logPath(designbookDir, wf)} />}
             <ManagerBadge variant={done === total ? 'green' : 'gray'}>
               {done}/{total}
@@ -949,8 +1007,45 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
 }
 
 // ---------------------------------------------------------------------------
+// CopyBadge — clickable badge that copies a command to clipboard
+// ---------------------------------------------------------------------------
+
+function CopyBadge({ label, command, variant }: { label: string; command: string; variant: 'green' | 'gray' }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleClick = () => {
+    navigator.clipboard.writeText(command).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <span
+      onClick={handleClick}
+      title={copied ? 'Copied!' : command}
+      style={{
+        cursor: 'pointer',
+        position: 'relative' as const,
+        display: 'inline-block',
+      }}
+    >
+      <ManagerBadge variant={copied ? 'yellow' : variant}>{copied ? 'copied!' : label}</ManagerBadge>
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // StatusTab
 // ---------------------------------------------------------------------------
+
+const STATUS_COMMANDS: Record<string, string> = {
+  vision: '/designbook vision',
+  guidelines: '/designbook design-guidelines',
+  tokens: '/designbook tokens',
+  'data-model': '/designbook data-model',
+  shell: '/designbook design-shell',
+};
 
 function StatusTab({ status }: { status: StatusData | null }) {
   if (!status) {
@@ -960,11 +1055,23 @@ function StatusTab({ status }: { status: StatusData | null }) {
   return (
     <div style={S.container}>
       <div style={S.badgeRow}>
-        <ManagerBadge variant={status.vision.exists ? 'green' : 'gray'}>vision</ManagerBadge>
-        <ManagerBadge variant={status.designSystem.guidelines ? 'green' : 'gray'}>guidelines</ManagerBadge>
-        <ManagerBadge variant={status.designSystem.tokens ? 'green' : 'gray'}>tokens</ManagerBadge>
-        <ManagerBadge variant={status.dataModel.exists ? 'green' : 'gray'}>data-model</ManagerBadge>
-        <ManagerBadge variant={status.shell.exists ? 'green' : 'gray'}>shell</ManagerBadge>
+        <CopyBadge label="vision" command={STATUS_COMMANDS.vision!} variant={status.vision.exists ? 'green' : 'gray'} />
+        <CopyBadge
+          label="guidelines"
+          command={STATUS_COMMANDS.guidelines!}
+          variant={status.designSystem.guidelines ? 'green' : 'gray'}
+        />
+        <CopyBadge
+          label="tokens"
+          command={STATUS_COMMANDS.tokens!}
+          variant={status.designSystem.tokens ? 'green' : 'gray'}
+        />
+        <CopyBadge
+          label="data-model"
+          command={STATUS_COMMANDS['data-model']!}
+          variant={status.dataModel.exists ? 'green' : 'gray'}
+        />
+        <CopyBadge label="shell" command={STATUS_COMMANDS.shell!} variant={status.shell.exists ? 'green' : 'gray'} />
       </div>
 
       {status.sections && status.sections.length > 0 && (
@@ -972,9 +1079,12 @@ function StatusTab({ status }: { status: StatusData | null }) {
           <div style={S.sectionLabel}>Sections</div>
           <div style={S.badgeRow}>
             {status.sections.map((section) => (
-              <ManagerBadge key={section.id} variant={section.hasScenes ? 'green' : 'gray'}>
-                {section.title}
-              </ManagerBadge>
+              <CopyBadge
+                key={section.id}
+                label={section.title}
+                command={`/designbook design-screen ${section.id}`}
+                variant={section.hasScenes ? 'green' : 'gray'}
+              />
             ))}
           </div>
         </>

@@ -19,6 +19,7 @@ export interface TaskFile {
   key: string; // stable identifier used by write-file --key
   validators: string[]; // validator keys (e.g. ['tokens', 'component'])
   validation_result?: ValidationFileResult; // absent = not yet written; present = written + validated
+  flushed_at?: string; // ISO timestamp — set when engine flushes stash to final path
 }
 
 export interface StageLoaded {
