@@ -26,7 +26,12 @@ _debo() {
 
 > **Important:** Always use `npx storybook-addon-designbook` for CLI commands. The `DESIGNBOOK_CMD` / `designbook()` shell function from config starts the Storybook dev server — it is **not** the CLI entry point.
 
-Show all DESIGNBOOK_* variables to the user.
+> **Bootstrap Scope:** `DESIGNBOOK_*` variables set by `eval "$(npx storybook-addon-designbook config)"` are scoped to the current Bash block only. They are **not** available in subsequent Bash calls. The `_debo()` helper re-bootstraps automatically on first call within each block — use it for all CLI calls. If you need a value like `$DESIGNBOOK_HOME` for path construction, capture it in the same block:
+>
+> ```bash
+> _debo workflow list  # bootstraps DESIGNBOOK_* in this block
+> echo "$DESIGNBOOK_HOME"  # ✓ available here
+> ```
 
 All subsequent CLI calls use `_debo <command>` — bootstrap is skipped after the first call. Bundle multiple commands in one Bash block to maximise reuse.
 
@@ -69,7 +74,7 @@ The CLI resolves **every step** at create time — including intake:
 - For each step: resolves task_file, rules, blueprints, config_rules, config_instructions
 - The `intake` stage is declared in frontmatter like any other stage — resolved via `intake--<workflow-id>.md` fallback
 - Stores everything in `stage_loaded` in tasks.yml
-- Outputs JSON with `name` + `steps` + `stages` + `step_resolved`
+- Outputs JSON with `name` + `steps` + `stages` + `step_resolved` + `expected_params`
 
 ### 3. Load Intake Instructions
 
@@ -96,6 +101,8 @@ For each `before` entry in workflow frontmatter:
 - Complete the hook workflow fully before continuing
 
 ### 5. Plan (expand iterables into tasks)
+
+The `workflow create` response includes `expected_params` — a map of all params required across all stages, aggregated from task file frontmatter. Use this to map intake results to the correct param names before calling `workflow plan`. Each param has `required: boolean` and `from_step: string`. Params with `required: true` MUST be provided; optional params have defaults.
 
 Build iterables from intake results and pass them as named arrays in `--params`. Stages with `each: <name>` auto-expand all their steps for each item in the corresponding iterable.
 

@@ -13,6 +13,8 @@ context: |
   - Blueprints are overridable starting points (directory structure, naming, markup)
   - Rules are hard constraints that cannot be overridden by integrations
 
+  All artifacts (proposals, designs, specs, tasks) MUST be written in English.
+
 rules:
   proposal:
     - "Ask the user whether the change should be created in a git worktree (isolated branch) or in the current working directory."

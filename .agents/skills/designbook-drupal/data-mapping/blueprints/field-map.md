@@ -4,7 +4,6 @@ name: field-map
 priority: 10
 when:
   steps: [map-entity]
-  template: field-map
 ---
 
 # Rule: Field Map

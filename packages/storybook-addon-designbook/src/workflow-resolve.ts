@@ -625,12 +625,19 @@ export interface ResolvedStep {
   config_instructions: string[];
 }
 
+export interface ExpectedParam {
+  required: boolean;
+  from_step: string;
+  default?: unknown;
+}
+
 export interface ResolvedSteps {
   title: string;
   steps: string[];
   stages?: Record<string, StageDefinitionFm>;
   engine?: string;
   step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
+  expected_params: Record<string, ExpectedParam>;
 }
 
 /**
@@ -653,6 +660,7 @@ export function resolveAllStages(
 
   const stepResolved: Record<string, ResolvedStep | ResolvedStep[]> = {};
   const resolvedSteps: string[] = [];
+  const expectedParams: Record<string, ExpectedParam> = {};
 
   for (const step of allSteps) {
     const taskFilePaths = resolveTaskFiles(step, config, agentsDir, workflowId);
@@ -695,6 +703,29 @@ export function resolveAllStages(
       }));
     }
     resolvedSteps.push(step);
+
+    // Aggregate expected_params from task file frontmatter
+    const taskFiles = taskFilePaths;
+    for (const taskFile of taskFiles) {
+      const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
+      const params = taskFm?.params as Record<string, unknown> | undefined;
+      if (!params) continue;
+      for (const [key, value] of Object.entries(params)) {
+        const isRequired = value === null;
+        if (key in expectedParams) {
+          // If ANY step marks it required, it stays required
+          if (isRequired && !expectedParams[key]!.required) {
+            expectedParams[key]!.required = true;
+          }
+        } else {
+          expectedParams[key] = {
+            required: isRequired,
+            from_step: step,
+            ...(isRequired ? {} : { default: value }),
+          };
+        }
+      }
+    }
   }
 
   const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
@@ -705,6 +736,7 @@ export function resolveAllStages(
     ...(stageDefs ? { stages: stageDefs } : {}),
     ...(wfFm?.engine ? { engine: wfFm.engine } : {}),
     step_resolved: stepResolved,
+    expected_params: expectedParams,
   };
 }
 

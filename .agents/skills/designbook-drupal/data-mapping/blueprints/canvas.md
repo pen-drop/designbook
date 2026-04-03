@@ -4,7 +4,6 @@ name: canvas
 priority: 10
 when:
   steps: [map-entity]
-  template: canvas
 ---
 
 # Rule: Canvas — Passthrough Mapping

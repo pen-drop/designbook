@@ -258,6 +258,7 @@ workflow
                 ...(resolved.stages ? { stages: resolved.stages } : {}),
                 ...(resolved.engine ? { engine: resolved.engine } : {}),
                 step_resolved: resolved.step_resolved,
+                expected_params: resolved.expected_params,
               },
               null,
               2,
@@ -824,7 +825,7 @@ storybookCmd
     }
 
     const sb = new StorybookDaemon(config.data);
-    const port = opts.port ? parseInt(opts.port, 10) : await findFreePort();
+    const port = opts.port ? parseInt(opts.port, 10) : opts.force ? undefined : await findFreePort();
     const result = await sb.start({
       cmd: storybookCmdStr,
       port,
@@ -895,7 +896,7 @@ storybookCmd
     }
 
     const sb = new StorybookDaemon(config.data);
-    const port = opts.port ? parseInt(opts.port, 10) : await findFreePort();
+    const port = opts.port ? parseInt(opts.port, 10) : undefined;
     const result = await sb.restart({
       cmd: storybookCmdStr,
       port,
