@@ -74,19 +74,38 @@ export function fetchJson(url: string): Promise<unknown> {
   });
 }
 
+/** Read the process group ID (pgrp) for a given PID from /proc. */
+function getProcessGroup(pid: number): number | null {
+  try {
+    const stat = readFileSync(`/proc/${pid}/stat`, 'utf-8');
+    const afterComm = stat.split(') ')[1];
+    if (!afterComm) return null;
+    const fields = afterComm.split(' ');
+    // Fields after "(comm) ": state(0) ppid(1) pgrp(2)
+    return parseInt(fields[2], 10);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Find all storybook-related PIDs whose cwd matches the given directory.
  * Uses /proc to reliably identify processes belonging to this workspace,
  * regardless of whether they were started by this daemon manager.
+ *
+ * Excludes the current process and any process sharing its process group
+ * (e.g. the npx wrapper or parent shell) so the CLI doesn't kill itself
+ * during stop/restart.
  */
 export function findStorybookPids(workspaceCwd: string): number[] {
-  const self = process.pid;
+  const selfPgrp = getProcessGroup(process.pid);
   try {
     return readdirSync('/proc')
       .filter((e) => /^\d+$/.test(e))
       .map(Number)
       .filter((pid) => {
-        if (pid === self) return false;
+        if (pid === process.pid) return false;
+        if (selfPgrp !== null && getProcessGroup(pid) === selfPgrp) return false;
         try {
           const cmdline = readFileSync(`/proc/${pid}/cmdline`, 'utf-8');
           if (!cmdline.includes('storybook')) return false;
@@ -262,17 +281,24 @@ export class StorybookDaemon {
     const { cmd, cwd, force } = opts;
     let port = opts.port;
 
-    if (force) {
-      // Read existing port before stopping so we can reuse it
-      if (port === undefined && this.info) {
-        port = this.info.port;
+    // Read existing port before stopping so we can reuse it
+    if (port === undefined && this.info) {
+      port = this.info.port;
+    }
+
+    const st = this.status();
+    if (st.running) {
+      if (force) {
+        await this.stop();
+      } else {
+        throw new Error(
+          `Storybook is already running (pid ${st.pid}, port ${st.port}). Use --force to replace it.`,
+        );
       }
-      await this.stop();
     } else {
-      const st = this.status();
-      if (st.running) {
-        throw new Error(`Storybook is already running (pid ${st.pid}, port ${st.port}). Use --force to replace it.`);
-      }
+      // Not running — clean up stale file if present
+      this.removeFile();
+      this.reload();
     }
 
     // Fallback: if no port was determined (no --port flag, no existing instance), pick a free one

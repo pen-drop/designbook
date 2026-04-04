@@ -420,8 +420,8 @@ describe('resolveWorkflowPlan', () => {
       agentsDir,
     );
 
-    // Check steps (intake filtered out)
-    expect(plan.steps).toEqual(['create-component', 'create-scene']);
+    // Check steps (intake included like any other step)
+    expect(plan.steps).toEqual(['intake', 'create-component', 'create-scene']);
 
     // Check tasks
     expect(plan.tasks).toHaveLength(3);

@@ -17,6 +17,9 @@ files:
   - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.default.story.yml
     key: component-story
     validators: []
+  - file: ${DESIGNBOOK_CSS_APP}
+    key: app-css
+    validators: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: debo-design-tokens
@@ -41,10 +44,6 @@ designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-story
 > navigation.main.story.yml      ← add via workflow add-file
 > navigation.footer.story.yml    ← add via workflow add-file
 > ```
-
-## Component Reuse
-
-> ⛔ **Prefer component reuse over inline markup.** If a UI element (button, icon, badge, link) exists as a component, it MUST be referenced via a slot — never rebuild it inline. If it doesn't exist yet, create it as a separate component and reference it.
 
 ## File Generation Order
 
@@ -82,4 +81,6 @@ Read the relevant resource file at the start of each phase:
 - `resources/component-yml.md` — Component YAML structure
 - `resources/component-patterns.md` — Drupal-specific component patterns (navigation) and slot/variant/prop detection heuristics
 
-> ⛔ **MANDATORY**: Change the app css after a new component is created. It must be changed to see changes!
+## App CSS Update
+
+After creating a component, add a `@source` directive for the new component directory to `$DESIGNBOOK_CSS_APP` so Tailwind picks up its utility classes. This file is declared in `files:` as `app-css`.

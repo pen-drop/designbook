@@ -54,14 +54,25 @@ describe('workflowCreate', () => {
     expect(data.status).toBe('planning');
   });
 
-  it('creates tasks with pending status and no timestamps', () => {
+  it('creates first task with in-progress status and started_at', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task-a', title: 'Task A', type: 'component' }]);
     const data = readWorkflowFile(dist, name);
     expect(data.tasks).toHaveLength(1);
     const task = data.tasks[0]!;
     expect(task.id).toBe('task-a');
-    expect(task.status).toBe('pending');
+    expect(task.status).toBe('in-progress');
+    expect(task.started_at).toBeDefined();
     expect(task.completed_at).toBeUndefined();
+  });
+
+  it('creates subsequent tasks with pending status', () => {
+    const name = workflowCreate(dist, 'debo-vision', 'Vision', [
+      { id: 'task-a', title: 'Task A', type: 'component' },
+      { id: 'task-b', title: 'Task B', type: 'component' },
+    ]);
+    const data = readWorkflowFile(dist, name);
+    expect(data.tasks[0]!.status).toBe('in-progress');
+    expect(data.tasks[1]!.status).toBe('pending');
   });
 
   it('records declared files with key and validators', () => {
@@ -206,13 +217,13 @@ describe('workflowPlan', () => {
     dist = mkdtempSync(resolve(tmpdir(), 'wf-plan-'));
   });
 
-  it('adds tasks to a planning-status workflow with empty tasks', () => {
+  it('adds tasks to a planning-status workflow and sets first to in-progress', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
     workflowPlan(dist, name, [{ id: 'task1', title: 'Task 1', type: 'data' }]);
     const data = readWorkflowFile(dist, name);
     expect(data.tasks).toHaveLength(1);
     expect(data.tasks[0]!.id).toBe('task1');
-    expect(data.tasks[0]!.status).toBe('pending');
+    expect(data.tasks[0]!.status).toBe('in-progress');
   });
 
   it('sets stages when provided', () => {

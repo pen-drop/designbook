@@ -14,7 +14,11 @@ Ensures Storybook is running so the user can visually review the workflow output
    _debo storybook status
    ```
 
-2. **If running** (`{ running: true, port: ... }`): skip starting, use the existing instance.
+2. **If running** (`{ running: true, port: ... }`): check freshness — compare the `started_at` timestamp from status against the modification time of the components directory. If any component files are newer than Storybook's start time, restart:
+   ```bash
+   _debo storybook stop && _debo storybook start
+   ```
+   Otherwise, use the existing instance.
 
 3. **If not running** (`{ running: false }`): start Storybook:
    ```bash

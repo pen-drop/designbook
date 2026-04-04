@@ -825,20 +825,16 @@ export function resolveWorkflowPlan(
     }
   }
 
-  // Filter out intake stage steps (already created at workflow create time)
-  const intakeSteps = new Set(stageDefs?.intake?.steps ?? []);
-  const execSteps = allSteps.filter((s) => !intakeSteps.has(s));
-
   for (const item of items) {
-    if (!execSteps.includes(item.step)) {
-      throw new Error(`Item step "${item.step}" not found in workflow steps: [${execSteps.join(', ')}]`);
+    if (!allSteps.includes(item.step)) {
+      throw new Error(`Item step "${item.step}" not found in workflow steps: [${allSteps.join(', ')}]`);
     }
   }
 
   const envMap = buildEnvMap(config);
 
   const itemsByStep = new Map<string, PlanItem[]>();
-  for (const step of execSteps) {
+  for (const step of allSteps) {
     itemsByStep.set(step, []);
   }
   for (const item of items) {
@@ -847,7 +843,7 @@ export function resolveWorkflowPlan(
 
   const tasks: ResolvedTask[] = [];
 
-  for (const step of execSteps) {
+  for (const step of allSteps) {
     const stepItems = itemsByStep.get(step) ?? [];
     if (stepItems.length === 0) continue;
 
@@ -903,7 +899,7 @@ export function resolveWorkflowPlan(
 
   return {
     params: globalParams,
-    steps: execSteps,
+    steps: allSteps,
     tasks,
   };
 }

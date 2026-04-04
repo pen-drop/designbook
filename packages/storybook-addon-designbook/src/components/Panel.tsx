@@ -981,7 +981,7 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
           <span style={S.summaryRow}>
             <WorkflowStatusDot status={wf.status} />
             <span style={S.summaryTitle}>{wf.title}</span>
-            {activeTask?.step && <span style={S.activeTaskHint}>{activeTask.step}</span>}
+            {activeTask && <span style={S.activeTaskHint}>{activeTask.title}</span>}
             {designbookDir && <ContextAction path={logPath(designbookDir, wf)} />}
             <ManagerBadge variant={done === total ? 'green' : 'gray'}>
               {done}/{total}

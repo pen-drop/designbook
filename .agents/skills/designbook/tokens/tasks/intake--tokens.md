@@ -15,13 +15,6 @@ Help the user choose colors and typography for their product. The result is save
 
 > Color naming and required token roles are determined by framework naming rules loaded for this stage.
 
-## Step 0: Design Reference
-
-If `guidelines.yml` contains a `design_reference`, ask the user before accessing it:
-> "I see a design reference (`<label>`) in the guidelines — may I access it?"
-
-Wait for confirmation. Once confirmed, fetch the reference immediately and extract colors, typography, and visual intent. Use these as the basis for all suggestions in the following steps — never present suggestions without consulting the reference first.
-
 ## Step 1: Explain and Gather Preferences
 
 Introduce the token setup to the user: primitive tokens (raw values) and semantic tokens (purpose-based aliases). Ask whether they have colors and typography in mind or would like suggestions.

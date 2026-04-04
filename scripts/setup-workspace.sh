@@ -35,8 +35,11 @@ rsync -a \
   --exclude='tmp' \
   "$SOURCE_DIR/" "$WORKSPACE_DIR/"
 
-# Symlink .claude so the CLI and Claude can resolve skills from the workspace
+# Symlink .claude and .agents so the CLI and Claude can resolve skills from the workspace.
+# .claude/skills is a relative symlink (../.agents/skills), so .agents must also be
+# present in the workspace for the CLI to resolve it correctly.
 ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
+ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
 
 # Symlink openspec so changes are always stored at repo root
 ln -sfn "$REPO_ROOT/openspec" "$WORKSPACE_DIR/openspec"

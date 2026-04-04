@@ -1,6 +1,6 @@
 ---
 name: debo
-argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|design-guidelines|sections|shape-section|sample-data|css-generate] [--optimize]"
+argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|design-guidelines|sections|shape-section|sample-data|css-generate|sb] [--optimize]"
 description: >
   Designbook design system. Use ALWAYS when creating, modifying, or
   deleting components, screens, scenes, design tokens, CSS, or any

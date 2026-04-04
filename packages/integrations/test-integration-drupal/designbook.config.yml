@@ -14,7 +14,9 @@ designbook:
   url: "http://localhost:6009"
 dirs:
   components: components
-  css: css/tokens
+  css:
+    tokens: css/tokens
+    themes: css/themes
 css:
   app: css/app.src.css
 component:

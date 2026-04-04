@@ -13,7 +13,8 @@ Maps design token groups to CSS output using Tailwind v4 `@theme` blocks.
 
 ```yaml
 groups:
-  color:          { prefix: color,          wrap: "@theme", path: "semantic.color" }
+  primitive-color: { prefix: color,         wrap: "@theme", path: "primitive.color" }
+  color:          { prefix: color,          wrap: "@theme", path: "semantic.color", resolve: "var" }
   radius:         { prefix: radius,         wrap: "@theme", path: "semantic.radius" }
   shadow:         { prefix: shadow,         wrap: "@theme", path: "semantic.shadow" }
   layout-width:   { prefix: container,      wrap: "@theme", path: "component.container.max-width" }

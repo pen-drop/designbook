@@ -159,21 +159,23 @@ export function loadConfig(startDir?: string): DesignbookConfig {
     const parsed = parseYaml(content) || {};
     const configDir = dirname(configPath);
 
-    // Flatten nested keys (e.g. css.framework → css.framework) for compatibility
-    // with the existing environment variable pattern.
+    // Recursively flatten nested keys (e.g. dirs.css.tokens → dirs.css.tokens)
+    // for compatibility with the environment variable pattern.
     // Arrays (like extensions) are preserved as-is at their original key.
     const flat: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      if (Array.isArray(value)) {
-        flat[key] = value;
-      } else if (typeof value === 'object' && value !== null) {
-        for (const [subKey, subValue] of Object.entries(value as Record<string, unknown>)) {
-          flat[`${key}.${subKey}`] = subValue;
+    const flatten = (obj: Record<string, unknown>, prefix: string) => {
+      for (const [key, value] of Object.entries(obj)) {
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+        if (Array.isArray(value)) {
+          flat[fullKey] = value;
+        } else if (typeof value === 'object' && value !== null) {
+          flatten(value as Record<string, unknown>, fullKey);
+        } else {
+          flat[fullKey] = value;
         }
-      } else {
-        flat[key] = value;
       }
-    }
+    };
+    flatten(parsed as Record<string, unknown>, '');
 
     const config = { ...DEFAULTS, ...flat } as DesignbookConfig;
 

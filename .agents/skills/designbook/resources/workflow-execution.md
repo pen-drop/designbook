@@ -40,6 +40,19 @@ If no config found → stop and ask the user.
 
 ---
 
+## Untracked Workflows (`track: false`)
+
+Workflows with `track: false` in frontmatter skip the entire workflow lifecycle (no `workflow create`, no `done`). They are utility commands, not artifact-producing workflows.
+
+**Execution:**
+1. Bootstrap (`_debo` helper — same as Phase 0)
+2. Load the workflow file and read its instructions
+3. Execute the CLI commands directly — no tracking, no tasks.yml
+
+**When to use:** Dev tooling, server management, or any command that doesn't produce designbook artifacts.
+
+---
+
 ## Phase 1: Intake & Planning (Main Agent)
 
 ### 1. Resume Check + Create (one block)
@@ -59,7 +72,7 @@ else
 fi
 ```
 
-**Resume path:** when continuing an existing workflow, set `WORKFLOW_NAME=$EXISTING` and skip directly to Step 3 (Load Intake Instructions). Do **not** re-run `workflow create` or `workflow plan` — both have already been executed and tasks.yml is already populated.
+**Resume path:** when continuing an existing workflow, set `WORKFLOW_NAME=$EXISTING` and skip directly to Step 3 (Load Intake Instructions). Do **not** re-run `workflow create` — it has already been executed and tasks.yml is already populated.
 
 Use the **absolute path** for `--workflow-file`. Workflow files live at `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/workflows/<workflow-id>.md` (e.g. `$DESIGNBOOK_HOME/.agents/skills/designbook/vision/workflows/vision.md`).
 
@@ -93,25 +106,15 @@ If the user explicitly requests no confirmation (e.g. "ohne Rücksprache", "just
 
 The intake gathers information from the user and produces **iterables** — arrays of items that stages will iterate over (e.g. components to create, scenes to build).
 
-### 4. Before Hooks
+After intake is complete, build the params JSON from intake results and mark the intake task as done. The `--params` flag triggers implicit plan logic — the CLI expands iterables into tasks before marking intake done, preventing premature archival.
 
-For each `before` entry in workflow frontmatter:
-- Check `reads:` gate on the referenced workflow's intake task file — skip if missing
-- Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
-- Resolve workflow name to file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
-- Complete the hook workflow fully before continuing
+The `workflow create` response includes `expected_params` — a map of all params required across all stages, aggregated from task file frontmatter. Use this to map intake results to the correct param names. Each param has `required: boolean` and `from_step: string`. Params with `required: true` MUST be provided; optional params have defaults.
 
-### 5. Plan (expand iterables into tasks)
-
-The `workflow create` response includes `expected_params` — a map of all params required across all stages, aggregated from task file frontmatter. Use this to map intake results to the correct param names before calling `workflow plan`. Each param has `required: boolean` and `from_step: string`. Params with `required: true` MUST be provided; optional params have defaults.
-
-Build iterables from intake results and pass them as named arrays in `--params`. Stages with `each: <name>` auto-expand all their steps for each item in the corresponding iterable.
+Build iterables from intake results and pass them as named arrays in `--params`:
 
 ```bash
-_debo workflow plan \
-  --workflow $WORKFLOW_NAME \
-  --params '<params_json>' \
-  [--engine <name>]
+_debo workflow done --workflow $WORKFLOW_NAME --task intake \
+  --params '<params_json>'
 ```
 
 **Params format:**
@@ -156,16 +159,22 @@ With `params.component` (2 items) and `params.scene` (1 item):
 - `test` stage: 4 tasks (4 steps × 1 scene)
 - **Total: 7 tasks**, all auto-generated
 
-The optional `--engine` flag overrides the engine declared in the workflow.md frontmatter (`engine: direct` or `engine: git-worktree`). Precedence: `--engine` flag > frontmatter `engine:` > auto (git-worktree if git repo, else direct). The `debo <workflow> --engine <name>` shorthand passes through to `workflow plan`.
-
 Display the plan summary, then proceed immediately to Phase 2.
+
+### 4. Before Hooks
+
+For each `before` entry in workflow frontmatter:
+- Check `reads:` gate on the referenced workflow's intake task file — skip if missing
+- Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
+- Resolve workflow name to file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
+- Complete the hook workflow fully before continuing
 
 ### Singleton Workflows
 
-Workflows where no stage uses `each` (e.g., `tokens`, `design-guidelines`) have no iterables. The `--params` call is still required but passes an empty object:
+Workflows where no stage uses `each` (e.g., `tokens`, `design-guidelines`) have no iterables. Call `workflow done --task intake` without `--params` — the CLI auto-plans with empty params `{}`:
 
 ```bash
-_debo workflow plan --workflow $WORKFLOW_NAME --params '{}'
+_debo workflow done --workflow $WORKFLOW_NAME --task intake
 ```
 
 In singleton workflows, intake results are transported via **conversation context** — the agent carries the gathered information forward to the execute stage. There is no structured param handoff for singleton data.
