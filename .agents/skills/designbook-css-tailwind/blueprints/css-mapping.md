@@ -21,8 +21,12 @@ groups:
   layout-spacing: { prefix: layout-spacing, wrap: "@theme", path: "component.section.padding-y" }
   grid:           { prefix: grid,           wrap: "@theme", path: "component.grid.gap" }
   typography:     { prefix: font,           wrap: "@theme", path: "semantic.typography" }
+  primitive-typography: { prefix: text,    wrap: "@theme", path: "primitive.typography" }
+  typography-scale: { prefix: text,        wrap: "@theme", path: "semantic.typography-scale", expand: "typography" }
 ```
 
 Each group generates one `.jsonata` file that transforms `design-tokens.yml` → `css/tokens/{group}.src.css`.
 
-Standard namespaces (`--color-*`, `--container-*`, `--radius-*`, `--shadow-*`, `--font-*`) auto-generate Tailwind utilities. Non-standard namespaces (`--layout-spacing-*`, `--grid-*`) require `var()` in markup.
+Standard namespaces (`--color-*`, `--container-*`, `--radius-*`, `--shadow-*`, `--font-*`, `--text-*`) auto-generate Tailwind utilities. Non-standard namespaces (`--layout-spacing-*`, `--grid-*`) require `var()` in markup.
+
+The `typography-scale` group uses `expand: "typography"` to expand composite `$type: typography` tokens into individual CSS properties (see jsonata-template for expansion rules).

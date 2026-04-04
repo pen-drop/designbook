@@ -31,6 +31,8 @@ These become `primitive.color.*` values, with `semantic.color.*` aliases pointin
 
 Guide the user through choosing fonts from Google Fonts for heading, body, and mono roles. Suggest options based on the product vision.
 
+Also collect a typography scale with semantic roles (e.g., display, headline, title, body, label). Each role SHALL have a font size, font weight, and line height. Concrete role names and values come from the design reference at runtime — do not hardcode specific roles or sizes in this task.
+
 ## Step 4: Check Layout Blueprints
 
 Read `required_tokens` from each blueprint already loaded for this stage. For each blueprint that declares `required_tokens`, extract its token groups and present them to the user with their default values.
@@ -39,7 +41,7 @@ Suggest adjusted values based on the product's design guidelines. Let the user c
 
 ## Step 5: Optional — Additional Token Groups
 
-Depending on the design, the user may want to define additional groups (breakpoints, spacing scale, type scale with modular ratio, radius, shadows, etc.). Ask if they need any of these. Each group becomes a key in the `intake` param.
+Depending on the design, the user may want to define additional groups (breakpoints, spacing scale, radius, shadows, etc.). Ask if they need any of these. Each group becomes a key in the `intake` param.
 
 ## Step 6: Present Final Choices and Confirm
 

@@ -4,6 +4,8 @@ description: Generate CSS token files from design tokens. Automatically selects 
 stages:
   intake:
     steps: [intake]
+  prepare:
+    steps: [prepare-fonts, prepare-icons]
   generate:
     each: group
     steps: [generate-jsonata]

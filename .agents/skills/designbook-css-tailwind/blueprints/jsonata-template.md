@@ -89,6 +89,30 @@ $v."$type" = "fontFamily" ? "  --<prefix>-" & $k & ": \"" & $v."$value" & "\";"
 
 Skip composite typography tokens (`$type: typography`).
 
+## Composite Typography Expansion (`expand: "typography"`)
+
+For groups with `expand: "typography"` in their css-mapping entry, the JSONata expression SHALL expand each composite `$type: typography` token into three CSS custom properties:
+
+- `--<prefix>-<role>`: the `fontSize` value
+- `--<prefix>-<role>--weight`: the `fontWeight` value
+- `--<prefix>-<role>--line-height`: the `lineHeight` value
+
+The `fontFamily` sub-value is NOT emitted (it is already handled by the `typography` fontFamily group).
+
+```jsonata
+(
+  $entries := $each($$.<token-path>, function($v, $k) {
+    $substring($k, 0, 1) != "$" and $v."$type" = "typography" ? (
+      $val := $v."$value";
+      "  --<prefix>-" & $k & ": " & $val.fontSize & ";\n" &
+      "  --<prefix>-" & $k & "--weight: " & $val.fontWeight & ";\n" &
+      "  --<prefix>-" & $k & "--line-height: " & $val.lineHeight & ";"
+    )
+  });
+  "<wrap> {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)
+```
+
 ## Theme Override Expression Template
 
 For themes declared in the `themes:` section of `design-tokens.yml`, use `@layer theme` with a `[data-theme]` selector instead of `@theme`. The input is the same `design-tokens.yml` — the expression navigates to `$$.themes.<name>.semantic.color`.
