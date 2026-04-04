@@ -18,10 +18,11 @@ import { BuilderRegistry } from './builder-registry';
 import { entityBuilder } from './builders/entity-builder';
 import { sceneBuilder } from './builders/scene-builder';
 import { componentBuilder } from './builders/component-builder';
+import { imageStyleBuilder } from './builders/image-style-builder';
 import { buildCsfModule } from './csf-prep';
 import { validateSceneNodes } from './validate-scene-nodes';
 
-import type { DataModel, SampleData, SceneNode, SceneNodeBuilder, ComponentNode } from './types';
+import type { DataModel, DesignbookConfig, SampleData, SceneNode, SceneNodeBuilder, ComponentNode } from './types';
 
 // ── Default SDC import resolver ────────────────────────────────────────
 
@@ -57,6 +58,24 @@ function loadDataModel(designbookDir: string): DataModel {
   } catch {
     console.warn('[Designbook] No data-model.yml found, scene entities will not resolve');
     return { content: {} };
+  }
+}
+
+function loadDesignbookConfig(designbookDir: string): DesignbookConfig | undefined {
+  const configPath = join(resolve(designbookDir, '..'), 'designbook.config.yml');
+  if (!existsSync(configPath)) {
+    const altPath = join(resolve(designbookDir, '..'), 'designbook.config.yaml');
+    if (!existsSync(altPath)) return undefined;
+    try {
+      return parseYaml(readFileSync(altPath, 'utf-8')) as DesignbookConfig;
+    } catch {
+      return undefined;
+    }
+  }
+  try {
+    return parseYaml(readFileSync(configPath, 'utf-8')) as DesignbookConfig;
+  } catch {
+    return undefined;
   }
 }
 
@@ -122,18 +141,22 @@ export async function buildSceneModule(
     typeof firstScene?.section === 'string' ? firstScene.section : undefined,
   );
 
+  // ── 2b. Load designbook config ──────────────────────────────��─────
+  const config = loadDesignbookConfig(designbookDir);
+
   // ── 3. Build registry with built-in + custom builders ─────────────
   const registry = new BuilderRegistry();
   // Built-ins registered first (lowest priority — custom builders override)
   registry.register(componentBuilder);
   registry.register(entityBuilder);
   registry.register(sceneBuilder);
+  registry.register(imageStyleBuilder);
   // Custom builders registered last (highest priority)
   for (const builder of options.builders ?? []) {
     registry.register(builder);
   }
 
-  const ctx = registry.createContext({ dataModel, sampleData, designbookDir });
+  const ctx = registry.createContext({ dataModel, sampleData, designbookDir, config });
 
   // ── 4. Scene metadata ─────────────────────────────────────────────
   const fileBase = fileBaseName(id);

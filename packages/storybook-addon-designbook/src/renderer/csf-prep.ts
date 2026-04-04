@@ -9,6 +9,7 @@
  */
 
 import type { ComponentNode } from './types';
+import { builtInComponents } from './built-in-components';
 
 // ── Options ────────────────────────────────────────────────────────────
 
@@ -84,6 +85,13 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
   const importsMapEntries: string[] = [];
 
   for (const componentId of allIds) {
+    // Built-in components: emit inline render function, no external import
+    if (componentId.startsWith('designbook:') && builtInComponents[componentId]) {
+      const renderFn = builtInComponents[componentId].render.toString();
+      importsMapEntries.push(`  '${componentId}': { render: ${renderFn} },`);
+      continue;
+    }
+
     const alias = toAlias(componentId);
     const importPath = resolveImportPath(componentId);
 

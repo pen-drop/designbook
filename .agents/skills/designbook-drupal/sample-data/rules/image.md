@@ -10,42 +10,33 @@ Applies when a field has `sample_template.template: image`, or when `field_type`
 
 ## Output Structure
 
-Generate an `<img>` tag using a Picsum Photos URL. Always use a real placeholder URL — never use `public://` paths, local file paths, or invented filenames.
+Generate an object with `alt` (required) and optionally `src`. **Do NOT generate `<img>` HTML tags** — image rendering is handled by the image style system at display time.
 
 ```yaml
-field_hero_image: "<img src=\"https://picsum.photos/id/42/1200/630\" alt=\"Hero banner\"/>"
+field_hero_image:
+  alt: "Aerial view of modern glass office building"
 ```
 
-## URL Format
+If the user has placed custom images in the project, reference them via `src`:
 
+```yaml
+field_hero_image:
+  alt: "Company headquarters"
+  src: "/images/headquarters.jpg"
 ```
-https://picsum.photos/id/{id}/{width}/{height}
-```
 
-- `{id}` — a stable integer ID (0–1000). Vary the ID across records to get different images.
-- `{width}` / `{height}` — dimensions derived from the aspect ratio (see table below).
-
-## Aspect Ratio → Dimensions
-
-Choose dimensions based on the context. Use the `hint` setting to determine which ratio applies:
-
-| Context / hint              | Ratio  | Dimensions     |
-|-----------------------------|--------|----------------|
-| hero, banner, header        | 16:9   | 1200 × 675     |
-| card, teaser, thumbnail     | 4:3    | 800 × 600      |
-| square, avatar, icon        | 1:1    | 400 × 400      |
-| portrait, person, product   | 3:4    | 600 × 800      |
-| wide, cinema, landscape     | 21:9   | 1260 × 540     |
-| default (no hint)           | 16:9   | 800 × 450      |
+When no `src` is provided, the image provider (configured in `designbook.config.yml`) generates placeholder images automatically at render time.
 
 ## Settings
 
-| Key    | Default | Description                                                                                           |
-|--------|---------|-------------------------------------------------------------------------------------------------------|
-| `hint` | —       | Context for the image subject and ratio selection (e.g. `"hero"`, `"product thumbnail"`, `"avatar"`). |
+| Key    | Default | Description                                                                          |
+|--------|---------|--------------------------------------------------------------------------------------|
+| `hint` | —       | Context for the image subject (e.g. `"hero"`, `"product thumbnail"`, `"avatar"`). Used to generate descriptive alt text. |
 
 ## Rules
 
-- Each record in the same bundle should use a **different Picsum ID** to show visual variety.
+- Output an object with `alt` key — never an `<img>` tag or HTML string.
 - Alt text must be descriptive and derived from the `hint` or field name context.
-- Never use `public://` paths, invented filenames, or `placehold.co` URLs in `data.yml` image fields — Picsum only.
+- Each record in the same bundle should have **different, varied alt text** to show content variety.
+- Never use `public://` paths, invented filenames, or placeholder service URLs in `data.yml` image fields.
+- The `src` field is optional — omit it to let the image provider generate placeholders.
