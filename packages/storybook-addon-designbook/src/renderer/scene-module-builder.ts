@@ -20,9 +20,10 @@ import { sceneBuilder } from './builders/scene-builder';
 import { componentBuilder } from './builders/component-builder';
 import { imageStyleBuilder } from './builders/image-style-builder';
 import { buildCsfModule } from './csf-prep';
+import { view } from './view';
 import { validateSceneNodes } from './validate-scene-nodes';
 
-import type { DataModel, DesignbookConfig, SampleData, SceneNode, SceneNodeBuilder, ComponentNode } from './types';
+import type { DataModel, DesignbookConfig, SampleData, SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
 
 // ── Default SDC import resolver ────────────────────────────────────────
 
@@ -162,8 +163,8 @@ export async function buildSceneModule(
   const fileBase = fileBaseName(id);
   const group = extractGroup(raw, fileBase);
 
-  // ── 5. Build each scene: items → ComponentNode[] ──────────────────
-  const resolvedScenes: Array<{ name: string; exportName: string; nodes: ComponentNode[]; theme?: string }> = [];
+  // ── 5. Build each scene: items → SceneTree → RenderTree ────────────
+  const resolvedScenes: Array<{ name: string; exportName: string; nodes: ComponentNode[]; theme?: string; tree: SceneTreeNode[] }> = [];
 
   for (const rawScene of scenesArray) {
     const scene = rawScene as Record<string, unknown>;
@@ -171,11 +172,15 @@ export async function buildSceneModule(
     const sceneTheme = (scene.theme as string) || undefined;
     const items = expandEntries((scene.items as unknown[] | undefined) ?? []);
 
-    const nodes: ComponentNode[] = [];
+    // build() → SceneTree
+    const tree: SceneTreeNode[] = [];
     for (const entry of items) {
       const built = await ctx.buildNode(entry as SceneNode);
-      nodes.push(...built);
+      tree.push(...built);
     }
+
+    // view() → RenderTree
+    const nodes = view(tree);
 
     // Validate: built scene must contain only proper ComponentNodes
     const validationErrors = validateSceneNodes(nodes, `scene:${sceneName}`);
@@ -188,6 +193,7 @@ export async function buildSceneModule(
       exportName: buildExportName(sceneName),
       nodes,
       theme: sceneTheme,
+      tree,
     });
   }
 

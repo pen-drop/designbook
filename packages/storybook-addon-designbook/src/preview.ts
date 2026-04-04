@@ -8,6 +8,7 @@ import { themes as designbookThemes, defaultTheme } from 'virtual:designbook-the
 import { KEY, VISUAL_COMPARE_KEY } from './constants';
 import { withRoundTrip } from './withRoundTrip';
 import { withVisualCompare } from './withVisualCompare';
+import { withInspectOverlay } from './decorators/inspect-overlay';
 import { setActiveTheme } from './pages/theme-store';
 
 if (
@@ -58,7 +59,7 @@ if (metaHot) {
   console.debug('[Designbook] HMR event forwarding registered for', EVENTS);
 }
 
-export const decorators = [withDesignbookTheme, withDeboTheme, withRoundTrip, withVisualCompare];
+export const decorators = [withDesignbookTheme, withDeboTheme, withRoundTrip, withVisualCompare, withInspectOverlay];
 
 export const initialGlobals = {
   [KEY]: false,

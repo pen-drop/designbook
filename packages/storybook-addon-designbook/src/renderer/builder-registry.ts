@@ -3,11 +3,19 @@
  *
  * Responsibilities:
  * - appliesTo dispatch
- * - buildNode(): find builder → build() → resolveEntityRefs()
+ * - buildNode(): find builder → build() → resolveEntityRefs() → assemble SceneTreeNode
  * - resolveEntityRefs(): shared walk — top-level SceneNode refs and ComponentNode slots
  */
 
-import type { SceneNode, SceneNodeBuilder, BuildContext, ComponentNode, RawNode } from './types';
+import type {
+  SceneNode,
+  SceneNodeBuilder,
+  BuildContext,
+  ComponentNode,
+  RawNode,
+  SceneTreeNode,
+  BuildResult,
+} from './types';
 
 // ── Type guards ────────────────────────────────────────────────────────
 
@@ -33,45 +41,54 @@ function needsBuilding(node: RawNode): node is SceneNode {
 
 /**
  * Walk a slots record and resolve any SceneNode values embedded in slots.
- * - String slots: pass through unchanged
- * - Array slots: each entry may be a SceneNode or ComponentNode
- * - Single ComponentNode slot: recurse into its slots
+ * Returns SceneTreeNode[] for each slot (for the SceneTree).
  */
 async function resolveSlots(
   slots: Record<string, ComponentNode | ComponentNode[] | string>,
   ctx: BuildContext,
-): Promise<Record<string, ComponentNode | ComponentNode[] | string>> {
-  const resolved: Record<string, ComponentNode | ComponentNode[] | string> = {};
+): Promise<Record<string, SceneTreeNode[]>> {
+  const resolved: Record<string, SceneTreeNode[]> = {};
 
   for (const [key, value] of Object.entries(slots)) {
     if (typeof value === 'string') {
-      resolved[key] = value;
+      resolved[key] = [{ kind: 'string', value }];
     } else if (Array.isArray(value)) {
       const items = await Promise.all(
-        (value as (RawNode | string)[]).map(async (item): Promise<ComponentNode[] | string> => {
+        (value as (RawNode | string)[]).map(async (item): Promise<SceneTreeNode[]> => {
           if (typeof item === 'string') {
-            return item;
+            return [{ kind: 'string', value: item }];
           }
           if (needsBuilding(item)) {
             return ctx.buildNode(item);
           }
           const cn = item as ComponentNode;
-          return [{ ...cn, slots: cn.slots ? await resolveSlots(cn.slots, ctx) : undefined }];
+          const childSlots = cn.slots ? await resolveSlots(cn.slots, ctx) : undefined;
+          return [
+            {
+              kind: 'component',
+              component: cn.component,
+              props: cn.props,
+              slots: childSlots,
+            },
+          ];
         }),
       );
-      // All strings → join into a single string slot value (e.g. text: ['Hello'])
-      // Otherwise keep as ComponentNode[]
-      const allStrings = items.every((i) => typeof i === 'string');
-      resolved[key] = allStrings ? (items as string[]).join('') : (items as ComponentNode[][]).flat();
+      resolved[key] = items.flat();
     } else {
       // Single node — may be a SceneNode ref or a ComponentNode
       if (needsBuilding(value as RawNode)) {
-        const built = await ctx.buildNode(value as unknown as SceneNode);
-        // Single slot: use the first built node or an array if multiple
-        resolved[key] = built.length === 1 ? built[0]! : built;
+        resolved[key] = await ctx.buildNode(value as unknown as SceneNode);
       } else {
         const cn = value as ComponentNode;
-        resolved[key] = { ...cn, slots: cn.slots ? await resolveSlots(cn.slots, ctx) : undefined };
+        const childSlots = cn.slots ? await resolveSlots(cn.slots, ctx) : undefined;
+        resolved[key] = [
+          {
+            kind: 'component',
+            component: cn.component,
+            props: cn.props,
+            slots: childSlots,
+          },
+        ];
       }
     }
   }
@@ -79,24 +96,34 @@ async function resolveSlots(
   return resolved;
 }
 
-// ── resolveEntityRefs ─────────────────────────────────────────────────
+// ── resolveToTree ─────────────────────────────────────────────────────
 
 /**
- * After every builder.build() call, walk the raw result:
+ * After every builder.build() call, walk the raw result and produce SceneTreeNodes.
  * - Top-level SceneNodes (entity/config/scene) → ctx.buildNode()
  * - ComponentNode slots → resolveSlots()
- *
- * This is a plain function in the registry, not part of SceneNodeBuilder interface.
- * Runs automatically after every build().
  */
-export async function resolveEntityRefs(nodes: RawNode[], ctx: BuildContext): Promise<ComponentNode[]> {
+async function resolveToTree(nodes: RawNode[], meta: BuildResult['meta'], ctx: BuildContext): Promise<SceneTreeNode[]> {
+  // If the builder produced multiple nodes (e.g. entity mapping returning array),
+  // each top-level node may need further resolution.
   const results = await Promise.all(
-    nodes.map(async (node): Promise<ComponentNode[]> => {
+    nodes.map(async (node): Promise<SceneTreeNode[]> => {
       if (needsBuilding(node)) {
+        // Nested SceneNode ref — dispatch recursively (gets its own meta)
         return ctx.buildNode(node);
       }
+      // ComponentNode — wrap with the parent meta for the first node,
+      // subsequent nodes from the same builder are component-typed
       const cn = node as ComponentNode;
-      return [{ ...cn, slots: cn.slots ? await resolveSlots(cn.slots, ctx) : undefined }];
+      const childSlots = cn.slots ? await resolveSlots(cn.slots, ctx) : undefined;
+      return [
+        {
+          ...meta,
+          component: cn.component,
+          props: cn.props,
+          slots: childSlots,
+        },
+      ];
     }),
   );
   return results.flat();
@@ -112,10 +139,9 @@ export class BuilderRegistry {
   }
 
   /**
-   * Dispatch a node to the matching builder, then resolve entity refs.
-   * Always returns clean ComponentNode[].
+   * Dispatch a node to the matching builder, then resolve to SceneTreeNodes.
    */
-  async buildNode(node: SceneNode, ctx: BuildContext): Promise<ComponentNode[]> {
+  async buildNode(node: SceneNode, ctx: BuildContext): Promise<SceneTreeNode[]> {
     const builder = this.builders.find((b) => b.appliesTo(node));
 
     if (!builder) {
@@ -123,8 +149,19 @@ export class BuilderRegistry {
       return [];
     }
 
-    const raw = await builder.build(node, ctx);
-    return resolveEntityRefs(raw, ctx);
+    const result = await builder.build(node, ctx);
+
+    // Scene builder returns already-resolved children — wrap in a scene-ref node
+    if (result.resolvedChildren) {
+      return [
+        {
+          ...result.meta,
+          children: result.resolvedChildren,
+        } as SceneTreeNode,
+      ];
+    }
+
+    return resolveToTree(result.nodes ?? [], result.meta, ctx);
   }
 
   /**

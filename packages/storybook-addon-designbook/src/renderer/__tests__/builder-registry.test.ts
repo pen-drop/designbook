@@ -1,24 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
-import { BuilderRegistry, resolveEntityRefs } from '../builder-registry';
-import type { SceneNode, BuildContext, ComponentNode, SceneNodeBuilder, RawNode } from '../types';
-
-function makeCtx(overrides?: Partial<BuildContext>): BuildContext {
-  const ctx: BuildContext = {
-    dataModel: { content: {} },
-    sampleData: {},
-    designbookDir: '/test',
-    buildNode: vi.fn().mockResolvedValue([]),
-    ...overrides,
-  };
-  return ctx;
-}
+import { BuilderRegistry } from '../builder-registry';
+import type { SceneNode, SceneNodeBuilder, SceneTreeNode } from '../types';
 
 describe('BuilderRegistry', () => {
-  it('dispatches to matching builder', async () => {
+  it('dispatches to matching builder and returns SceneTreeNode[]', async () => {
     const registry = new BuilderRegistry();
     const mockBuilder: SceneNodeBuilder = {
       appliesTo: (node) => node.type === 'entity',
-      build: vi.fn().mockResolvedValue([{ component: 'test:badge' }]),
+      build: vi.fn().mockResolvedValue({
+        nodes: [{ component: 'test:badge' }],
+        meta: {
+          kind: 'entity',
+          entity: { entity_type: 'user', bundle: 'user', view_mode: 'compact', mapping: '/test.jsonata' },
+        },
+      }),
     };
     registry.register(mockBuilder);
 
@@ -34,7 +29,15 @@ describe('BuilderRegistry', () => {
     );
 
     expect(mockBuilder.build).toHaveBeenCalledOnce();
-    expect(result).toEqual([{ component: 'test:badge' }]);
+    expect(result.length).toBe(1);
+    expect(result[0]!.kind).toBe('entity');
+    expect(result[0]!.component).toBe('test:badge');
+    expect(result[0]!.entity).toEqual({
+      entity_type: 'user',
+      bundle: 'user',
+      view_mode: 'compact',
+      mapping: '/test.jsonata',
+    });
   });
 
   it('returns [] and warns for unknown node type', async () => {
@@ -53,102 +56,86 @@ describe('BuilderRegistry', () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('No builder found'));
     warnSpy.mockRestore();
   });
-});
 
-describe('resolveEntityRefs', () => {
-  it('passes through ComponentNode (type: component) unchanged', async () => {
-    const ctx = makeCtx();
-    const node: RawNode = { component: 'test:heading', props: { level: 'h1' } } as ComponentNode;
-    const result = await resolveEntityRefs([node], ctx);
-    expect(result).toEqual([{ component: 'test:heading', props: { level: 'h1' }, slots: undefined }]);
+  it('wraps scene-ref resolvedChildren in a scene-ref node', async () => {
+    const registry = new BuilderRegistry();
+    const childNodes: SceneTreeNode[] = [
+      { kind: 'component', component: 'footer_nav' },
+      { kind: 'component', component: 'copyright' },
+    ];
+    const mockBuilder: SceneNodeBuilder = {
+      appliesTo: (node) => 'scene' in node,
+      build: vi.fn().mockResolvedValue({
+        resolvedChildren: childNodes,
+        meta: { kind: 'scene-ref', ref: { source: 'shared:footer' } },
+      }),
+    };
+    registry.register(mockBuilder);
+
+    const ctx = registry.createContext({
+      dataModel: { content: {} },
+      sampleData: {},
+      designbookDir: '/test',
+    });
+
+    const result = await registry.buildNode({ scene: 'shared:footer' } as SceneNode, ctx);
+
+    expect(result.length).toBe(1);
+    expect(result[0]!.kind).toBe('scene-ref');
+    expect(result[0]!.children).toEqual(childNodes);
   });
 
-  it('dispatches SceneNode (type: entity) to ctx.buildNode', async () => {
-    const badge: ComponentNode = { component: 'test:badge' };
-    const ctx = makeCtx({ buildNode: vi.fn().mockResolvedValue([badge]) });
+  it('resolves entity refs in slots to SceneTreeNodes', async () => {
+    const registry = new BuilderRegistry();
 
-    const entityNode: SceneNode = { type: 'entity', entity_type: 'user', bundle: 'user', view_mode: 'compact' };
-    const result = await resolveEntityRefs([entityNode], ctx);
-
-    expect(ctx.buildNode).toHaveBeenCalledWith(entityNode);
-    expect(result).toEqual([badge]);
-  });
-
-  it('resolves entity refs in slots', async () => {
-    const badge: ComponentNode = { component: 'test:badge' };
-    const ctx = makeCtx({ buildNode: vi.fn().mockResolvedValue([badge]) });
-
-    const cardNode: RawNode = {
-      component: 'test:card',
-      slots: {
-        author: {
-          type: 'entity',
-          entity_type: 'user',
-          bundle: 'user',
-          view_mode: 'compact',
-        } as unknown as ComponentNode,
-      },
-    } as ComponentNode;
-
-    const result = await resolveEntityRefs([cardNode], ctx);
-
-    expect(result[0]!.slots?.author).toEqual(badge);
-  });
-
-  it('passes type:element through as-is (no special handling — scene validator rejects it)', async () => {
-    const ctx = makeCtx();
-
-    const node: RawNode = {
-      component: 'test:button',
-      slots: {
-        text: [{ type: 'element', value: 'Get Started' } as unknown as ComponentNode],
-      },
-    } as ComponentNode;
-
-    const result = await resolveEntityRefs([node], ctx);
-
-    // type:element is not handled — it passes through as a raw object in the slot array
-    expect(Array.isArray(result[0]!.slots?.text)).toBe(true);
-  });
-
-  it('preserves string elements in slot arrays', async () => {
-    const ctx = makeCtx();
-
-    const node: RawNode = {
-      component: 'test:header',
-      slots: {
-        logo: ['Designbook'] as unknown as ComponentNode[],
-        nav: [
-          'Home' as unknown as ComponentNode,
-          { component: 'test:link', props: { href: '/about' } } as ComponentNode,
+    // Component builder for the card
+    const componentBuilder: SceneNodeBuilder = {
+      appliesTo: (node) => 'component' in node && typeof node['component'] === 'string',
+      build: vi.fn().mockResolvedValue({
+        nodes: [
+          {
+            component: 'test:card',
+            slots: {
+              author: { type: 'entity', entity_type: 'user', bundle: 'user', view_mode: 'compact' },
+            },
+          },
         ],
-      },
-    } as ComponentNode;
+        meta: { kind: 'component' },
+      }),
+    };
 
-    const result = await resolveEntityRefs([node], ctx);
+    // Entity builder for the author slot
+    const entityBuilder: SceneNodeBuilder = {
+      appliesTo: (node) => node.type === 'entity' || ('entity' in node && typeof node['entity'] === 'string'),
+      build: vi.fn().mockResolvedValue({
+        nodes: [{ component: 'test:badge' }],
+        meta: {
+          kind: 'entity',
+          entity: { entity_type: 'user', bundle: 'user', view_mode: 'compact', mapping: '/user.jsonata' },
+        },
+      }),
+    };
 
-    // Single string in array → joined into a string value
-    expect(result[0]!.slots?.logo).toBe('Designbook');
-    // Mixed array: string + component → string stays, component preserved
-    const nav = result[0]!.slots?.nav as ComponentNode[];
-    expect(Array.isArray(nav)).toBe(true);
-  });
+    registry.register(componentBuilder);
+    registry.register(entityBuilder);
 
-  it('resolves entity refs in array slots', async () => {
-    const badge: ComponentNode = { component: 'test:badge' };
-    const ctx = makeCtx({ buildNode: vi.fn().mockResolvedValue([badge]) });
+    const ctx = registry.createContext({
+      dataModel: { content: {} },
+      sampleData: {},
+      designbookDir: '/test',
+    });
 
-    const listNode: RawNode = {
-      component: 'test:list',
-      slots: {
-        items: [
-          { type: 'entity', entity_type: 'user', bundle: 'user', view_mode: 'compact' } as unknown as ComponentNode,
-        ],
-      },
-    } as ComponentNode;
+    const result = await registry.buildNode({ component: 'test:card' } as SceneNode, ctx);
 
-    const result = await resolveEntityRefs([listNode], ctx);
-
-    expect(result[0]!.slots?.items).toEqual([badge]);
+    expect(result.length).toBe(1);
+    const card = result[0]!;
+    expect(card.kind).toBe('component');
+    expect(card.component).toBe('test:card');
+    // The author slot should contain a resolved entity SceneTreeNode
+    const author = card.slots?.author;
+    expect(author).toBeDefined();
+    expect(author!.length).toBe(1);
+    expect(author![0]!.kind).toBe('entity');
+    expect(author![0]!.component).toBe('test:badge');
   });
 });

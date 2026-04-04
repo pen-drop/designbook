@@ -20,7 +20,7 @@ import type {
   SceneNodeBuilder,
   SceneNode,
   BuildContext,
-  RawNode,
+  BuildResult,
   SceneSceneNode,
   SceneDef,
   ScenesFile,
@@ -80,7 +80,7 @@ export const sceneBuilder: SceneNodeBuilder = {
     return 'scene' in node && typeof node.scene === 'string';
   },
 
-  async build(node: SceneNode, ctx: BuildContext): Promise<RawNode[]> {
+  async build(node: SceneNode, ctx: BuildContext): Promise<BuildResult> {
     const sceneNode = node as SceneSceneNode;
     const ref = sceneNode.scene;
 
@@ -91,11 +91,16 @@ export const sceneBuilder: SceneNodeBuilder = {
       withVars = sceneNode.slots as Record<string, unknown>;
     }
 
+    const meta = {
+      kind: 'scene-ref' as const,
+      ref: { source: ref, with: withVars },
+    };
+
     // Parse ref: "source:sceneName"
     const colonIdx = ref.indexOf(':');
     if (colonIdx === -1) {
       console.warn(`[Designbook] SceneBuilder: invalid ref format "${ref}" — expected "source:sceneName"`);
-      return [];
+      return { resolvedChildren: [], meta };
     }
     const source = ref.slice(0, colonIdx);
     const sceneName = ref.slice(colonIdx + 1);
@@ -104,14 +109,14 @@ export const sceneBuilder: SceneNodeBuilder = {
     const scenesFile = findScenesFile(ctx.designbookDir, source);
     if (!scenesFile) {
       console.warn(`[Designbook] SceneBuilder: cannot find scenes file for source "${source}"`);
-      return [];
+      return { resolvedChildren: [], meta };
     }
 
     // Find the scene by name
     let scene = findScene(scenesFile, sceneName);
     if (!scene) {
       console.warn(`[Designbook] SceneBuilder: scene "${sceneName}" not found in ${scenesFile}`);
-      return [];
+      return { resolvedChildren: [], meta };
     }
 
     // Substitute $variable placeholders before building
@@ -119,13 +124,13 @@ export const sceneBuilder: SceneNodeBuilder = {
       scene = substitute(scene, withVars) as SceneDef;
     }
 
-    // Build all items in the referenced scene
-    const builtItems = [];
+    // Build all items in the referenced scene — ctx.buildNode() returns SceneTreeNode[]
+    const children: import('../types').SceneTreeNode[] = [];
     for (const entry of scene.items) {
       const built = await ctx.buildNode(entry as SceneNode);
-      builtItems.push(...built);
+      children.push(...built);
     }
 
-    return builtItems;
+    return { resolvedChildren: children, meta };
   },
 };

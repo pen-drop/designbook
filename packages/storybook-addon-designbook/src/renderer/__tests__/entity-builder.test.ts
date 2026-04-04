@@ -41,7 +41,7 @@ describe('entityBuilder', () => {
     expect(entityBuilder.appliesTo({ type: 'config' })).toBe(false);
   });
 
-  it('build() returns ComponentNode[] from teaser jsonata', async () => {
+  it('build() returns BuildResult with entity meta and nodes from teaser jsonata', async () => {
     const node = {
       type: 'entity',
       entity_type: 'node',
@@ -53,11 +53,19 @@ describe('entityBuilder', () => {
     const ctx = makeCtx();
     const result = await entityBuilder.build(node, ctx);
 
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
+    expect(result.meta.kind).toBe('entity');
+    expect(result.meta).toHaveProperty('entity');
+    if (result.meta.kind === 'entity') {
+      expect(result.meta.entity.entity_type).toBe('node');
+      expect(result.meta.entity.bundle).toBe('article');
+      expect(result.meta.entity.view_mode).toBe('teaser');
+    }
+
+    expect(Array.isArray(result.nodes)).toBe(true);
+    expect(result.nodes!.length).toBeGreaterThan(0);
 
     // teaser returns figure, heading, text-block
-    const components = result.map((n) => (n as ComponentNode).component);
+    const components = result.nodes!.map((n) => (n as ComponentNode).component);
     expect(components).toContain('figure');
     expect(components).toContain('heading');
     expect(components).toContain('text-block');
@@ -76,9 +84,8 @@ describe('entityBuilder', () => {
     const result = await entityBuilder.build(node, ctx);
 
     // with-author returns: heading (component) + entity ref (user.user)
-    // entity ref is raw — resolveEntityRefs() handles it afterward
-    expect(result.length).toBe(2);
-    const types = result.map((n) => (n as { type?: string }).type);
+    expect(result.nodes!.length).toBe(2);
+    const types = result.nodes!.map((n) => (n as { type?: string }).type);
     expect(types).toContain('entity');
     expect(types).toContain('component');
   });
@@ -95,8 +102,9 @@ describe('entityBuilder', () => {
     const ctx = makeCtx();
     const result = await entityBuilder.build(node, ctx);
 
-    expect(result.length).toBe(1);
-    expect((result[0] as ComponentNode).component).toBe('designbook:placeholder');
+    expect(result.nodes!.length).toBe(1);
+    expect((result.nodes![0] as ComponentNode).component).toBe('designbook:placeholder');
+    expect(result.meta.kind).toBe('entity');
   });
 
   it('build() evaluates with {} when record is missing (view entity pattern)', async () => {
@@ -112,9 +120,9 @@ describe('entityBuilder', () => {
     const result = await entityBuilder.build(node, ctx);
 
     // No placeholder — evaluates JSONata with {} input, returns components with empty fields
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
-    expect((result[0] as ComponentNode).component).not.toBe('designbook:placeholder');
+    expect(Array.isArray(result.nodes)).toBe(true);
+    expect(result.nodes!.length).toBeGreaterThan(0);
+    expect((result.nodes![0] as ComponentNode).component).not.toBe('designbook:placeholder');
   });
 
   it('build() resolves view entity without data.yml entry', async () => {
@@ -127,8 +135,8 @@ describe('entityBuilder', () => {
     const ctx = makeCtx();
     const result = await entityBuilder.build(node, ctx);
 
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBe(1);
-    expect((result[0] as ComponentNode).component).toBe('view');
+    expect(Array.isArray(result.nodes)).toBe(true);
+    expect(result.nodes!.length).toBe(1);
+    expect((result.nodes![0] as ComponentNode).component).toBe('view');
   });
 });
