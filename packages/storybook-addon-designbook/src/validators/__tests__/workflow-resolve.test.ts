@@ -427,17 +427,18 @@ describe('resolveWorkflowPlan', () => {
     expect(plan.tasks).toHaveLength(3);
 
     // First two tasks: create-component (parallel within step)
-    expect(plan.tasks[0]!.id).toBe('create-component-button');
+    expect(plan.tasks[0]!.id).toMatch(/^create-component-[0-9a-f]{6}$/);
     expect(plan.tasks[0]!.step).toBe('create-component');
     expect(plan.tasks[0]!.params.component).toBe('button');
     expect(plan.tasks[0]!.files).toEqual([
       { path: '/test/dist/components/button/button.yml', key: 'component', validators: ['component'] },
     ]);
 
-    expect(plan.tasks[1]!.id).toBe('create-component-card');
+    expect(plan.tasks[1]!.id).toMatch(/^create-component-[0-9a-f]{6}$/);
+    expect(plan.tasks[0]!.id).not.toBe(plan.tasks[1]!.id);
 
     // Third task: create-scene (ordered by stage, no depends_on)
-    expect(plan.tasks[2]!.id).toBe('create-scene-dashboard');
+    expect(plan.tasks[2]!.id).toMatch(/^create-scene-[0-9a-f]{6}$/);
     expect(plan.tasks[2]!.files).toEqual([
       { path: '/test/dist/scenes/dashboard.yml', key: 'scene', validators: ['scene'] },
     ]);
@@ -465,24 +466,31 @@ describe('resolveWorkflowPlan', () => {
 
 // Task ID generation
 describe('generateTaskId', () => {
-  it('generates ID from stage and first string param', () => {
-    expect(generateTaskId('create-component', { component: 'button', slots: [] })).toBe('create-component-button');
+  it('generates hash-based ID with step prefix', () => {
+    const id = generateTaskId('create-component', { component: 'button', slots: [] });
+    expect(id).toMatch(/^create-component-[0-9a-f]{6}$/);
   });
 
   it('strips skill prefix from named stages', () => {
-    expect(generateTaskId('designbook-sections:create-section', { section_id: 'dashboard' })).toBe(
-      'create-section-dashboard',
-    );
+    const id = generateTaskId('designbook-sections:create-section', { section_id: 'dashboard' });
+    expect(id).toMatch(/^create-section-[0-9a-f]{6}$/);
   });
 
-  it('falls back to stage name when no string params', () => {
-    expect(generateTaskId('create-tokens', { colors: {} })).toBe('create-tokens');
+  it('produces hash even when no string params', () => {
+    const id = generateTaskId('create-tokens', { colors: {} });
+    expect(id).toMatch(/^create-tokens-[0-9a-f]{6}$/);
   });
 
-  it('uses first required schema param as key over arbitrary string params', () => {
-    const params = { provider: 'test_integration_drupal', component: 'button', group: 'Shell' };
-    const schema = { component: null, slots: [], props: [], group: null };
-    expect(generateTaskId('create-component', params, schema)).toBe('create-component-button');
+  it('produces different hashes for different params', () => {
+    const id1 = generateTaskId('create-component', { component: 'button' });
+    const id2 = generateTaskId('create-component', { component: 'card' });
+    expect(id1).not.toBe(id2);
+  });
+
+  it('produces different hashes for same params but different index', () => {
+    const id1 = generateTaskId('create-component', { component: 'button' }, undefined, 0);
+    const id2 = generateTaskId('create-component', { component: 'button' }, undefined, 1);
+    expect(id1).not.toBe(id2);
   });
 });
 

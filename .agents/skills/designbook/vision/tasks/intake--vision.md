@@ -4,7 +4,7 @@ files: []
 
 # Intake: Product Vision
 
-Extract the product vision from the user's input. Result goes to `${DESIGNBOOK_DATA}/product/vision.md`.
+Extract the product vision from the user's input. Result goes to `${DESIGNBOOK_DATA}/vision.md`.
 
 Extract these fields from the user's message:
 - **Product name**

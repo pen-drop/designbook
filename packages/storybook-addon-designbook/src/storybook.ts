@@ -291,9 +291,7 @@ export class StorybookDaemon {
       if (force) {
         await this.stop();
       } else {
-        throw new Error(
-          `Storybook is already running (pid ${st.pid}, port ${st.port}). Use --force to replace it.`,
-        );
+        throw new Error(`Storybook is already running (pid ${st.pid}, port ${st.port}). Use --force to replace it.`);
       }
     } else {
       // Not running — clean up stale file if present

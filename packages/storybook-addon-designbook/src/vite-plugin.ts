@@ -39,6 +39,9 @@ export function designbookLoadPlugin(
   const VIRTUAL_SECTIONS = 'virtual:designbook-sections';
   const RESOLVED_VIRTUAL_SECTIONS = '\0' + VIRTUAL_SECTIONS;
 
+  const VIRTUAL_THEMES = 'virtual:designbook-themes';
+  const RESOLVED_VIRTUAL_THEMES = '\0' + VIRTUAL_THEMES;
+
   // Resolve React package directories so mount-react.js works in pnpm strict mode
   let reactDir: string | undefined;
   let reactDomDir: string | undefined;
@@ -100,6 +103,7 @@ export function designbookLoadPlugin(
       }
       const cleanId = id.startsWith('./') ? id.slice(2) : id;
       if (cleanId === VIRTUAL_SECTIONS) return RESOLVED_VIRTUAL_SECTIONS;
+      if (cleanId === VIRTUAL_THEMES) return RESOLVED_VIRTUAL_THEMES;
 
       // Resolve *.scenes.yml imports so Vite treats them as modules (not static assets)
       if (cleanId.endsWith('.scenes.yml')) {
@@ -111,6 +115,10 @@ export function designbookLoadPlugin(
     async load(id: string) {
       if (id === RESOLVED_VIRTUAL_SECTIONS) {
         return buildSectionsModule(designbookDir);
+      }
+
+      if (id === RESOLVED_VIRTUAL_THEMES) {
+        return buildThemesModule(designbookDir);
       }
 
       const match = matchHandler(id, defaultHandlers);
@@ -130,7 +138,7 @@ export function designbookLoadPlugin(
       const FILE_TYPES: Record<string, string> = {
         task: 'workflows/**/*.yml',
         scene: '**/*.scenes.yml',
-        vision: 'product/vision.md',
+        vision: 'vision.md',
         tokens: 'tokens/**/*.yml',
         designTokens: 'design-system/design-tokens.yml',
         dataModel: 'data-model.yml',
@@ -146,7 +154,7 @@ export function designbookLoadPlugin(
 
       server.watcher.add(resolve(designbookDir, 'data-model.yml'));
       server.watcher.add(resolve(designbookDir, 'design-system'));
-      server.watcher.add(resolve(designbookDir, 'product'));
+      server.watcher.add(resolve(designbookDir, 'vision.md'));
       server.watcher.add(resolve(designbookDir, 'sections'));
       server.watcher.add(resolve(designbookDir, 'tokens'));
       server.watcher.add(resolve(designbookDir, 'workflows'));
@@ -168,6 +176,15 @@ export function designbookLoadPlugin(
             event: channelEvent,
             data: payload,
           });
+
+          // Invalidate virtual:designbook-themes when design tokens change
+          if (fileType === 'designTokens') {
+            const themesModule = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_THEMES);
+            if (themesModule) {
+              server.moduleGraph.invalidateModule(themesModule);
+              server.ws.send({ type: 'full-reload' });
+            }
+          }
         });
       }
 
@@ -213,7 +230,7 @@ export function designbookLoadPlugin(
           }
 
           const status = {
-            vision: { exists: existsSync(resolve(designbookDir, 'product/vision.md')) },
+            vision: { exists: existsSync(resolve(designbookDir, 'vision.md')) },
             designSystem: {
               guidelines: existsSync(resolve(designbookDir, 'design-system/guidelines.yml')),
               tokens: existsSync(resolve(designbookDir, 'design-system/design-tokens.yml')),
@@ -373,6 +390,40 @@ function buildSectionsModule(designbookDir: string): string {
   }
 
   return `export default ${JSON.stringify(sections)};`;
+}
+
+// ---------------------------------------------------------------------------
+// Themes virtual module
+// ---------------------------------------------------------------------------
+
+export function buildThemesModule(designbookDir: string): string {
+  const tokensPath = resolve(designbookDir, 'design-system/design-tokens.yml');
+  const themeNames: string[] = ['light'];
+
+  if (existsSync(tokensPath)) {
+    try {
+      const parsed = parseYaml(readFileSync(tokensPath, 'utf-8')) as Record<string, unknown>;
+      const themesObj = parsed?.themes;
+      if (themesObj && typeof themesObj === 'object' && !Array.isArray(themesObj)) {
+        for (const key of Object.keys(themesObj)) {
+          if (!themeNames.includes(key)) themeNames.push(key);
+        }
+      }
+    } catch {
+      // design-tokens.yml unreadable — fall back to light only
+    }
+  }
+
+  const themes: Record<string, string> = {};
+  for (const name of themeNames) {
+    themes[name] = name;
+  }
+
+  return [
+    `export const themes = ${JSON.stringify(themes)};`,
+    `export const themeNames = ${JSON.stringify(themeNames)};`,
+    `export const defaultTheme = 'light';`,
+  ].join('\n');
 }
 
 // ---------------------------------------------------------------------------

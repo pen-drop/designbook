@@ -5,7 +5,7 @@ params:
   problems: []
   features: []
 files:
-  - file: $DESIGNBOOK_DATA/product/vision.md
+  - file: $DESIGNBOOK_DATA/vision.md
     key: vision
     validators: []
 ---

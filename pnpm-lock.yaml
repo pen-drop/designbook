@@ -134,6 +134,9 @@ importers:
 
   packages/storybook-addon-designbook:
     dependencies:
+      '@storybook/addon-themes':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       ajv:
         specifier: ^8.18.0
         version: 8.18.0
@@ -289,7 +292,7 @@ importers:
         specifier: ^6.3.5
         version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
 
-  workspaces/panel-test:
+  workspaces/drupal:
     dependencies:
       '@egjs/flicking':
         specifier: ^4.14.1

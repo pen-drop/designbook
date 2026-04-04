@@ -1,7 +1,7 @@
 ---
 files: []
 reads:
-  - path: $DESIGNBOOK_DATA/product/vision.md
+  - path: $DESIGNBOOK_DATA/vision.md
 ---
 
 # Intake: Shape Section

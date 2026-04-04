@@ -9,7 +9,7 @@ import { loadDesignbookFile } from '../components/designbookApi.js';
  * with the provided parser function. Reacts to typed file-change channel events
  * instead of maintaining a persistent EventSource connection.
  *
- * @param {string} path — Relative path within designbook/ (e.g., "product/vision.md")
+ * @param {string} path — Relative path within designbook/ (e.g., "vision.md")
  * @param {(content: string) => any} parser — Function to parse the raw content into structured data.
  * @returns {{ data: any, loading: boolean, error: string|null, reload: () => void }}
  */

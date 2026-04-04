@@ -4,7 +4,14 @@ import { execFileSync } from 'node:child_process';
 import { resolveUrl } from './resolve-url.js';
 import { findFreePort, StorybookDaemon } from './storybook.js';
 import { Command } from 'commander';
-import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds, resolveSkillsRoot } from './config.js';
+import {
+  loadConfig,
+  findConfig,
+  normalizeExtensions,
+  getExtensionIds,
+  getExtensionSkillIds,
+  resolveSkillsRoot,
+} from './config.js';
 import { validateData } from './validators/data.js';
 import { validateTokens } from './validators/tokens.js';
 import { validateComponent } from './validators/component.js';
@@ -471,9 +478,10 @@ function runPlanLogic(
       const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
       const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
 
-      for (const item of stepItems) {
+      for (let itemIdx = 0; itemIdx < stepItems.length; itemIdx++) {
+        const item = stepItems[itemIdx]!;
         const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, step);
-        const taskId = generateTaskId(step, mergedParams, schemaParams);
+        const taskId = generateTaskId(step, mergedParams, schemaParams, itemIdx);
         const title = generateTaskTitle(step, mergedParams, schemaParams);
         const type = inferTaskType(step);
         const knownValidators = new Set(getValidatorKeys());
@@ -621,7 +629,10 @@ workflow
   .description('Mark a task as done. Auto-archives workflow when all tasks are done.')
   .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
   .requiredOption('--task <id>', 'Task id to mark done')
-  .option('--params <json>', 'Intake params JSON — when used with --task intake, implicitly runs plan logic before marking done')
+  .option(
+    '--params <json>',
+    'Intake params JSON — when used with --task intake, implicitly runs plan logic before marking done',
+  )
   .option(
     '--loaded <json>',
     'JSON payload with stage context (task_file, rules, config_rules, config_instructions) and task validation results',
@@ -665,11 +676,16 @@ workflow
         // Output transition response: intake → execute (first stage with pending tasks)
         const firstTask = planResult.tasks[0] as { step?: string; stage?: string } | undefined;
         if (firstTask) {
+          const expandedTasks = planResult.tasks.map((t) => {
+            const tt = t as { id: string; step: string; stage: string; title: string };
+            return { id: tt.id, step: tt.step, stage: tt.stage, title: tt.title };
+          });
           const response = {
             stage: firstTask.stage ?? 'execute',
             transition_from: 'intake',
             next_stage: firstTask.stage ?? 'execute',
             next_step: firstTask.step ?? null,
+            expanded_tasks: expandedTasks,
           };
           console.log(`\nRESPONSE: ${JSON.stringify(response)}`);
         }

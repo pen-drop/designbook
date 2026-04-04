@@ -56,6 +56,15 @@ scenes:
           title: My Card
           body: Some content here
 
+  - name: DarkTheme
+    theme: dark
+    items:
+      - component: test_provider:heading
+        props:
+          level: h1
+        slots:
+          text: Dark Mode
+
   - name: WithShell
     items:
       - scene: shell:shell

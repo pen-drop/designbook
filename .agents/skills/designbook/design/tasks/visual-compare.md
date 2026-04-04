@@ -44,6 +44,8 @@ Read any matched rules for the `visual-compare` step (e.g. `devtools-context` fr
 - DOM structure snapshot
 - Accessibility audit results
 - Console errors
+- Check expected fonts
+- Check expected color scheme. 
 
 ## Step 5: Compare Per Breakpoint
 

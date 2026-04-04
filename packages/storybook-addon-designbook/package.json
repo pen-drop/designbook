@@ -128,6 +128,7 @@
     "icon": "https://user-images.githubusercontent.com/321738/63501763-88dbf600-c4cc-11e9-96cd-94adadc2fd72.png"
   },
   "dependencies": {
+    "@storybook/addon-themes": "^10.0.0",
     "ajv": "^8.18.0",
     "ajv-draft-04": "^1.0.0",
     "commander": "^14.0.3",

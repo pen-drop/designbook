@@ -1,0 +1,15 @@
+primitive:
+  color:
+    blue-600: { $value: "#0366d6", $type: color }
+semantic:
+  color:
+    primary: { $value: "{primitive.color.blue-600}", $type: color }
+themes:
+  dark:
+    semantic:
+      color:
+        primary: { $value: "#aec6ff", $type: color }
+  brand-x:
+    semantic:
+      color:
+        primary: { $value: "#ff6600", $type: color }

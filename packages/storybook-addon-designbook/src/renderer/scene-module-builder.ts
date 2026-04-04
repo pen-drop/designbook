@@ -140,11 +140,12 @@ export async function buildSceneModule(
   const group = extractGroup(raw, fileBase);
 
   // ── 5. Build each scene: items → ComponentNode[] ──────────────────
-  const resolvedScenes: Array<{ name: string; exportName: string; nodes: ComponentNode[] }> = [];
+  const resolvedScenes: Array<{ name: string; exportName: string; nodes: ComponentNode[]; theme?: string }> = [];
 
   for (const rawScene of scenesArray) {
     const scene = rawScene as Record<string, unknown>;
     const sceneName = (scene.name as string) || 'Default';
+    const sceneTheme = (scene.theme as string) || undefined;
     const items = expandEntries((scene.items as unknown[] | undefined) ?? []);
 
     const nodes: ComponentNode[] = [];
@@ -163,6 +164,7 @@ export async function buildSceneModule(
       name: sceneName,
       exportName: buildExportName(sceneName),
       nodes,
+      theme: sceneTheme,
     });
   }
 

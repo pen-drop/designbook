@@ -5,6 +5,7 @@
  * constraints at plan time — so subagents receive fully-resolved tasks.
  */
 
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, relative } from 'node:path';
 import fm from 'front-matter';
@@ -575,34 +576,26 @@ export function validateAndMergeParams(
 // ── Task ID Generation ──────────────────────────────────────────────
 
 /**
- * Generate a task ID from stage name and params.
+ * Generate a task ID from stage name, params, and index.
+ * Produces `<step-basename>-<6-char-hash>` for unambiguous, short IDs.
  */
 export function generateTaskId(
   stage: string,
   params: Record<string, unknown>,
-  schemaParams?: Record<string, unknown>,
+  _schemaParams?: Record<string, unknown>,
+  index: number = 0,
 ): string {
   const baseName = stage.includes(':') ? stage.split(':')[1]! : stage;
-
-  if (schemaParams) {
-    for (const [key, defaultValue] of Object.entries(schemaParams)) {
-      if (defaultValue === null && typeof params[key] === 'string' && (params[key] as string).length > 0) {
-        return `${baseName}-${params[key]}`;
-      }
-    }
-  }
-
-  for (const value of Object.values(params)) {
-    if (typeof value === 'string' && value.length > 0) {
-      return `${baseName}-${value}`;
-    }
-  }
-
-  return baseName;
+  const hash = createHash('sha256')
+    .update(stage + JSON.stringify(params) + index)
+    .digest('hex')
+    .slice(0, 6);
+  return `${baseName}-${hash}`;
 }
 
 /**
  * Ensure task IDs are unique within a plan. Appends suffix for duplicates.
+ * Kept as safety net — hash-based IDs should already be unique due to index input.
  */
 function deduplicateTaskIds(tasks: ResolvedTask[]): void {
   const seen = new Map<string, number>();

@@ -178,7 +178,33 @@ describe('buildSceneModule integration', () => {
 
     expect(module).toContain('import { renderComponent }');
     expect(module).toContain('const __imports');
-    expect(module).toContain('render: (args) => renderComponent(args.__scene, __imports)');
+  });
+
+  it('scene with theme: "dark" produces args.theme: "dark"', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    expect(module).toContain('export const DarkTheme');
+    const themeMatch = module.match(/export const DarkTheme[\s\S]*?theme:\s*'([^']+)'/);
+    expect(themeMatch).not.toBeNull();
+    expect(themeMatch![1]).toBe('dark');
+  });
+
+  it('scene without theme defaults to args.theme: "light"', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    // ComponentDirect has no theme declared — should default to 'light'
+    const exportBlock = module.slice(
+      module.indexOf('export const ComponentDirect'),
+      module.indexOf('export const', module.indexOf('export const ComponentDirect') + 1),
+    );
+    expect(exportBlock).toContain("theme: 'light'");
+  });
+
+  it('render function wraps output with data-theme div', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    expect(module).toContain('data-theme');
+    expect(module).toContain('${args.theme}');
   });
 
   it('exports default with correct title and tags', async () => {

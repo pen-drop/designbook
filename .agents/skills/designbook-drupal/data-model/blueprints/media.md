@@ -4,7 +4,7 @@ name: media
 priority: 10
 when:
   backend: drupal
-  steps: [design-token:intake]
+  steps: [design-token:intake, data-model:intake]
 ---
 
 # Entity Type: media

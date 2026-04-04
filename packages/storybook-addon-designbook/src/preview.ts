@@ -1,8 +1,10 @@
 import type { ProjectAnnotations, Renderer, StoryContext } from 'storybook/internal/types';
 
 import { useGlobals, addons } from 'storybook/preview-api';
-import { themes, ensure } from 'storybook/theming';
+import { themes as sbThemes, ensure } from 'storybook/theming';
+import { withThemeByDataAttribute } from '@storybook/addon-themes';
 
+import { themes as designbookThemes, defaultTheme } from 'virtual:designbook-themes';
 import { KEY } from './constants';
 import { withRoundTrip } from './withRoundTrip';
 import { setActiveTheme } from './pages/theme-store';
@@ -25,10 +27,16 @@ if (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function withDeboTheme(Story: any, context: StoryContext) {
   const [globals] = useGlobals();
-  const base = ensure(globals?.theme === 'dark' ? themes.dark : themes.light);
+  const base = ensure(globals?.theme === 'dark' ? sbThemes.dark : sbThemes.light);
   setActiveTheme(base);
   return Story(context);
 }
+
+const withDesignbookTheme = withThemeByDataAttribute({
+  themes: designbookThemes,
+  defaultTheme,
+  attributeName: 'data-theme',
+});
 
 // Forward Vite HMR custom events to the Storybook channel so the Panel
 // and manager-notifications can react to file-change events.
@@ -49,7 +57,7 @@ if (metaHot) {
   console.debug('[Designbook] HMR event forwarding registered for', EVENTS);
 }
 
-export const decorators = [withDeboTheme, withRoundTrip];
+export const decorators = [withDesignbookTheme, withDeboTheme, withRoundTrip];
 
 export const initialGlobals = {
   [KEY]: false,

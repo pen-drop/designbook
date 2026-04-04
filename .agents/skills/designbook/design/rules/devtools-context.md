@@ -42,7 +42,7 @@ Compare collected computed values against design tokens:
 | `layout-width.xl` | `1280px` | from computed layout | ✓/✗ |
 
 Report any:
-- Color mismatches vs. design tokens
+- Color mismatches vs. design tokens -> Assign the right theme as default theme
 - Font mismatches vs. design tokens
 - Accessibility violations
 - Console errors
