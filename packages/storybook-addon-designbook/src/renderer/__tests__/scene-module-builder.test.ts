@@ -173,6 +173,49 @@ describe('buildSceneModule integration', () => {
     expect(calledSlots).toEqual({ text: 'Hello World' });
   });
 
+  it('exports ImageProvider scene — designbook:image with sources and fallback', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    const nodes = extractSceneNodes(module, 'ImageProvider');
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0]!.component).toBe('designbook:image');
+
+    const props = nodes[0]!.props!;
+    // Hero style has xl, md, sm breakpoints → 3 sources sorted largest-first
+    const sources = props.sources as Array<{ media: string; src: string }>;
+    expect(sources).toHaveLength(3);
+    expect(sources[0]!.media).toBe('(min-width: 1200px)');
+    expect(sources[1]!.media).toBe('(min-width: 768px)');
+    expect(sources[2]!.media).toBe('(min-width: 480px)');
+
+    const fallback = props.fallback as { src: string; alt: string };
+    expect(fallback.alt).toBe('Hero banner image');
+    expect(fallback.src).toMatch(/picsum\.photos/);
+  });
+
+  it('exports ImageCss scene — designbook:image with src and CSS style', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    const nodes = extractSceneNodes(module, 'ImageCss');
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0]!.component).toBe('designbook:image');
+    expect(nodes[0]!.props!.src).toBe('/images/landscape.jpg');
+    expect(nodes[0]!.props!.alt).toBe('Landscape photo');
+
+    const style = nodes[0]!.props!.style as Record<string, string>;
+    expect(style.aspectRatio).toBe('16/9');
+    expect(style.objectFit).toBe('cover');
+  });
+
+  it('exports ImageUnknownStyle scene — designbook:placeholder with error', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    const nodes = extractSceneNodes(module, 'ImageUnknownStyle');
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0]!.component).toBe('designbook:placeholder');
+    expect(nodes[0]!.props!.message as string).toContain('nonexistent');
+  });
+
   it('has import statements and __imports map', async () => {
     const module = await buildFixtureModule('test.scenes.yml');
 

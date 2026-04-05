@@ -65,6 +65,25 @@ scenes:
         slots:
           text: Dark Mode
 
+  - name: ImageProvider
+    items:
+      - type: image
+        image_style: hero
+        alt: "Hero banner image"
+
+  - name: ImageCss
+    items:
+      - type: image
+        image_style: 16_9
+        alt: "Landscape photo"
+        src: "/images/landscape.jpg"
+
+  - name: ImageUnknownStyle
+    items:
+      - type: image
+        image_style: nonexistent
+        alt: "Should show placeholder"
+
   - name: WithShell
     items:
       - scene: shell:shell
