@@ -1,0 +1,26 @@
+fixtures:
+  - vision
+  - tokens
+  - sections
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-shell workflow. Do NOT ask any questions.
+  The product is "PetMatch". Read the product overview and section definitions for navigation planning.
+  The shell should have a top navigation bar with links to all sections, a footer, and responsive mobile menu.
+  The result should be a shell.scenes.yml file under designbook/shell/ and page/header/footer components.
+  After generating all files, run `pnpm build-storybook` to verify everything renders.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.component.yml'))
+  - type: javascript
+    value: output.archivedWorkflows['design-shell']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-shell']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: |
+      return output.text.includes('build-storybook') || output.text.includes('Build completed');
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

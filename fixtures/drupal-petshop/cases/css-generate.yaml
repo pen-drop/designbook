@@ -1,0 +1,19 @@
+fixtures:
+  - vision
+  - tokens
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo css-generate workflow. Do NOT ask any questions.
+  Read the designbook.config.yml for configuration. Generate CSS token files from the existing design-tokens.yml.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('css/tokens/') && f.endsWith('.src.css'))
+  - type: javascript
+    value: output.archivedWorkflows['css-generate']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['css-generate']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

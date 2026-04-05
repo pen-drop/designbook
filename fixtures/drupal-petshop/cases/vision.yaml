@@ -1,0 +1,38 @@
+fixtures: []
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo vision workflow. Do NOT ask any questions — use the following inputs directly:
+
+  Product name: PetMatch
+  Description: A modern pet adoption platform connecting shelters with potential adopters
+  Problems & Solutions:
+  1. Shelters struggle to showcase available pets → Rich pet profiles with photos and personality traits
+  2. Adopters can't filter by lifestyle compatibility → Smart matching algorithm based on living situation
+  3. Post-adoption support is lacking → Built-in community and vet appointment scheduling
+  Key Features:
+  - Pet profile browser with advanced search
+  - Shelter dashboard for managing listings
+  - Adoption application workflow
+  - Community forum and resources
+  - Vet integration and health tracking
+
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f === 'designbook/product/vision.md')
+  - type: javascript
+    value: output.archivedWorkflows['vision']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['vision']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: |
+      const md = output.fileContents['designbook/product/vision.md'] || '';
+      return md.includes('PetMatch');
+  - type: javascript
+    value: |
+      const md = output.fileContents['designbook/product/vision.md'] || '';
+      return md.includes('## Description') || md.includes('## Problems') || md.includes('## Key Features');
