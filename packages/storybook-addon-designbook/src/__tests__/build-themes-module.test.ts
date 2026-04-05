@@ -4,7 +4,11 @@ import { buildThemesModule } from '../vite-plugin';
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures');
 
-function parseExports(moduleStr: string): { themes: Record<string, string>; themeNames: string[]; defaultTheme: string } {
+function parseExports(moduleStr: string): {
+  themes: Record<string, string>;
+  themeNames: string[];
+  defaultTheme: string;
+} {
   const themesMatch = moduleStr.match(/export const themes = ({[^;]+});/);
   const namesMatch = moduleStr.match(/export const themeNames = (\[[^\]]+\]);/);
   const defaultMatch = moduleStr.match(/export const defaultTheme = '([^']+)';/);

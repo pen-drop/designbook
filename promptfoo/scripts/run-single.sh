@@ -60,6 +60,22 @@ const path = require('path');
 const base = yaml.load(fs.readFileSync('$CONFIGS_DIR/base.yaml', 'utf-8'));
 const caseData = yaml.load(fs.readFileSync('$CASE_FILE', 'utf-8'));
 
+// Resolve relative file:// provider paths to absolute paths based on configs dir
+const resolveProviderPath = (provider) => {
+  if (typeof provider === 'string' && provider.startsWith('file://')) {
+    const relPath = provider.slice('file://'.length);
+    return 'file://' + path.resolve('$CONFIGS_DIR', relPath);
+  }
+  if (provider && typeof provider === 'object' && typeof provider.id === 'string' && provider.id.startsWith('file://')) {
+    const relPath = provider.id.slice('file://'.length);
+    provider.id = 'file://' + path.resolve('$CONFIGS_DIR', relPath);
+  }
+  return provider;
+};
+
+if (base.providers) base.providers = base.providers.map(resolveProviderPath);
+if (base.defaultTest?.options?.provider) resolveProviderPath(base.defaultTest.options.provider);
+
 const config = {
   description: 'Designbook workflow evaluation — $LABEL',
   outputPath: 'promptfoo/reports/$LABEL.json',

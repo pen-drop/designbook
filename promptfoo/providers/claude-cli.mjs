@@ -14,7 +14,7 @@
  *   Otherwise falls back to vars.workspace (legacy).
  */
 import { execFile, execFileSync } from "node:child_process";
-import { readdir, readFile, readFileSync, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { readFileSync as readFileSyncFs, existsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { createRequire } from "node:module";
