@@ -26,11 +26,27 @@ If only `<suite>` is provided:
 
 ### 2. Setup workspace
 
-1. Run: `./scripts/setup-test.sh <suite> <case>`
-2. The script creates a workspace at `workspaces/<suite>-<case>/`
+One workspace per suite — reuse it across cases.
+
+1. Check if `workspaces/<suite>` already exists
+   - **Yes**: skip `setup-workspace.sh`, reuse the existing workspace
+   - **No**: Run `./scripts/setup-workspace.sh <suite>` — creates the base workspace with Storybook infrastructure and `pnpm install`
+2. Run: `./scripts/setup-test.sh <suite> <case> --into workspaces/<suite>` — layers fixtures and config onto the workspace
 3. Report the workspace path to the user
 
-### 3. Display prompt and confirm
+### 3. Start Storybook
+
+After setup, start Storybook via the addon CLI:
+
+```bash
+_debo() { npx storybook-addon-designbook "$@"; }
+eval "$(_debo config)"
+_debo storybook start
+```
+
+Report the Storybook URL to the user (`_debo storybook status` returns the `url` field when running).
+
+### 4. Display prompt and confirm
 
 1. Read `fixtures/<suite>/cases/<case>.yaml`
 2. Display the `prompt` field to the user
@@ -38,7 +54,9 @@ If only `<suite>` is provided:
 4. If **yes**: `cd` into the workspace and execute the prompt (run the workflow)
 5. If **no**: Tell the user the workspace is ready for manual use
 
-### 4. Snapshot offer (after workflow completion)
+Use `_debo storybook stop` to stop Storybook when the session ends or the user requests it.
+
+### 5. Snapshot offer (after workflow completion)
 
 After the workflow completes:
 

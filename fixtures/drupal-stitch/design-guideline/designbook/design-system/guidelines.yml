@@ -1,0 +1,13 @@
+principles:
+  - "Container components must always be used when max-width is needed — never apply max-width directly to content elements"
+  - "Section is the base building block for canvas page layouts"
+
+component_patterns:
+  - "Always wrap constrained-width content in a container component"
+  - "Canvas page layouts are composed of section components"
+
+naming:
+  convention: kebab-case
+  examples:
+    - hero-section
+    - card-teaser

@@ -1,0 +1,83 @@
+content:
+  canvas_page:
+    landing_page:
+      title: Landing Page
+      description: A landing page assembled from components via Canvas
+      purpose: landing-page
+      view_modes:
+        full:
+          template: canvas
+      fields:
+        components:
+          type: component_tree
+          title: Components
+          description: Inline component tree managed by Canvas
+          required: true
+          multiple: false
+
+  node:
+    doc:
+      title: Documentation
+      description: A documentation article with rich text content
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+      fields:
+        field_body:
+          type: formatted_text
+          title: Body
+          description: Rich text content with embedded media
+          required: true
+          multiple: false
+        field_topic:
+          type: reference
+          title: Topic
+          description: Reference to a topic taxonomy term
+          required: false
+          multiple: true
+        field_next:
+          type: reference
+          title: Next Article
+          description: Reference to the next documentation article
+          required: false
+          multiple: false
+
+  taxonomy_term:
+    topic:
+      title: Topic
+      description: Documentation topic for categorization
+      view_modes:
+        full:
+          template: field-map
+      fields: {}
+
+  media:
+    image:
+      title: Image
+      description: Image media for embedding in rich text
+      view_modes:
+        full:
+          template: field-map
+      fields:
+        field_media_image:
+          type: image
+          title: Image
+          description: The image file
+          required: true
+          multiple: false
+
+    video:
+      title: Video
+      description: Video media for embedding in rich text
+      view_modes:
+        full:
+          template: field-map
+      fields:
+        field_media_video:
+          type: string
+          title: Video URL
+          description: Video embed URL
+          required: true
+          multiple: false

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Set up a test workspace from fixtures and a case definition.
-# Layers fixture directories in order, initializes git for diff tracking.
+# Layer fixtures onto an existing workspace created by setup-workspace.sh.
+# Expects setup-workspace.sh to have already created the workspace with
+# Storybook infrastructure, node_modules, and git init.
 #
 # Usage: ./scripts/setup-test.sh <suite> <case> [--into <dir>]
 #   suite   Fixture suite name (e.g., drupal-petshop, drupal-stitch)
@@ -81,16 +82,15 @@ if [[ "$TARGET_DIR" != /* ]]; then
   TARGET_DIR="$REPO_ROOT/$TARGET_DIR"
 fi
 
-echo "Setting up test workspace: $TARGET_DIR"
+echo "Layering fixtures into workspace: $TARGET_DIR"
 echo "  Suite: $SUITE"
 echo "  Case:  $CASE"
 
-# Clean and create target
-if [[ -d "$TARGET_DIR" ]]; then
-  echo "  Removing existing workspace..."
-  rm -rf "$TARGET_DIR"
+if [[ ! -d "$TARGET_DIR" ]]; then
+  echo "Error: Workspace not found at $TARGET_DIR" >&2
+  echo "Run ./scripts/setup-workspace.sh first to create the base workspace." >&2
+  exit 1
 fi
-mkdir -p "$TARGET_DIR"
 
 # 1. Copy suite base config (or config override if specified in case)
 CONFIG_OVERRIDE=$(sed -n 's/^config: *//p' "$CASE_FILE")
@@ -101,7 +101,16 @@ elif [[ -f "$FIXTURES_DIR/designbook.config.yml" ]]; then
   cp "$FIXTURES_DIR/designbook.config.yml" "$TARGET_DIR/"
 fi
 
-# 2. Parse fixtures list from case YAML and layer them
+# 2. Reset workspace to init commit (clean slate for re-runs)
+cd "$TARGET_DIR"
+INIT_COMMIT=$(git log --reverse --format='%H' | head -1)
+if [[ -n "$INIT_COMMIT" ]]; then
+  git reset --hard "$INIT_COMMIT" --quiet
+  git clean -fd --quiet
+fi
+cd - > /dev/null
+
+# 3. Parse fixtures list from case YAML and layer them
 # Uses a simple grep+sed approach to avoid yq dependency
 FIXTURES=$(sed -n '/^fixtures:/,/^[^ ]/{ /^  - /p; }' "$CASE_FILE" | sed 's/^  - //')
 
@@ -115,20 +124,10 @@ for FIXTURE in $FIXTURES; do
   cp -r "$FIXTURE_DIR/." "$TARGET_DIR/"
 done
 
-# 3. Symlink .agents and .claude
-ln -sfn "$REPO_ROOT/.claude" "$TARGET_DIR/.claude"
-ln -sfn "$REPO_ROOT/.agents" "$TARGET_DIR/.agents"
-
-# 4. Symlink openspec
-ln -sfn "$REPO_ROOT/openspec" "$TARGET_DIR/openspec"
-
-# 5. Git init + base commit for diff tracking
+# 3. Commit fixture layer as baseline for diff tracking
 cd "$TARGET_DIR"
-git init -q
-git config user.email "test@designbook.local"
-git config user.name "designbook-test"
 git add -A
-git commit -q -m "base" --allow-empty
+git commit -q -m "fixtures: $SUITE/$CASE" --allow-empty
 
 echo ""
 echo "✓ Workspace ready at $TARGET_DIR"

@@ -1,0 +1,44 @@
+fixtures:
+  - vision
+  - data-model
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-guidelines workflow. Do NOT ask any questions — use the following inputs directly:
+
+  1. References: none
+  2. Design reference: none
+  3. Principles:
+     - "Container components must always be used when max-width is needed — never apply max-width directly to content elements"
+     - "Section is the base building block for canvas page layouts"
+  4. Component patterns:
+     - "Always wrap constrained-width content in a container component"
+     - "Canvas page layouts are composed of section components"
+  5. Naming: kebab-case (examples: hero-section, card-teaser)
+  6. MCP server: none
+  7. Visual diff: none
+  8. Skills: none
+
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.includes('designbook/design-system/guidelines.yml')
+  - type: javascript
+    value: output.archivedWorkflows['design-guidelines']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-guidelines']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/design-system/guidelines.yml']?.content;
+      return c?.principles?.some(p => /container/i.test(p));
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/design-system/guidelines.yml']?.content;
+      return c?.principles?.some(p => /section/i.test(p));
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/design-system/guidelines.yml']?.content;
+      return c?.component_patterns?.length >= 2;

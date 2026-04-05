@@ -1,0 +1,38 @@
+fixtures:
+  - vision
+
+prompt: >
+  You are working in the directory {{workspace}}.
+  Run the /debo data-model workflow. Do NOT ask any questions.
+  The product is "Designbook". Read the product overview at designbook/vision.md.
+  Define entity types for: a canvas_page landing page,
+  a doc node with body (formatted_text with embedded media image and video),
+  a reference field to taxonomy topic, and a next reference to doc.
+  Also add media types for image and video.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.includes('designbook/data-model.yml')
+  - type: javascript
+    value: output.archivedWorkflows['data-model']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['data-model']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/data-model.yml']?.content;
+      return c?.canvas_page?.landing_page != null;
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/data-model.yml']?.content;
+      return c?.node?.doc != null;
+  - type: javascript
+    value: |
+      const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
+      return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('canvas.md')));
+  - type: javascript
+    value: |
+      const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
+      return !Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('layout-builder.md')));
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

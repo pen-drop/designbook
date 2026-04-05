@@ -890,7 +890,9 @@ storybookCmd
   .action(() => {
     const config = loadConfig(process.env['DESIGNBOOK_HOME']);
     const sb = new StorybookDaemon(config.data);
-    console.log(JSON.stringify(sb.status()));
+    const st = sb.status();
+    const url = st.running ? sb.url : undefined;
+    console.log(JSON.stringify({ ...st, ...(url ? { url } : {}) }));
   });
 
 storybookCmd

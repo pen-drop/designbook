@@ -19,7 +19,7 @@ Manages the Storybook daemon lifecycle. State is persisted in `$DESIGNBOOK_DATA/
 
 # Check if Storybook is running
  storybook status
-# → JSON: { running: true, pid, port, log, started_at }
+# → JSON: { running: true, pid, port, url, log, started_at }
 # → JSON: { running: false } or { running: false, stale: true }
 # → cleans up stale PID file automatically
 
