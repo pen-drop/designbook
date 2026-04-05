@@ -29,12 +29,10 @@ scripts/
 
 promptfoo/
 ├── configs/
-│   ├── base.yaml                   # Provider settings (model, timeout)
-│   └── chain.yaml                  # Sequential chain test
+│   └── base.yaml                   # Provider settings (model, timeout)
 ├── providers/claude-cli.mjs        # Claude CLI provider
 └── scripts/
     ├── run-single.sh               # Run one case
-    ├── run-chain.sh                # Run chain
     ├── generate-configs.mjs        # Generate monolith from case files
     ├── clean.sh                    # Rebuild all workspaces
     ├── show-report.mjs             # Pretty-print report
@@ -68,10 +66,6 @@ assert:                      # promptfoo assertions (ignored in manual mode)
 # All cases
 node promptfoo/scripts/generate-configs.mjs
 npx promptfoo eval -c promptfoo/promptfooconfig.yaml
-
-# Chain (sequential, shared workspace)
-./promptfoo/scripts/run-chain.sh --clean
-./promptfoo/scripts/run-chain.sh --until debo-data-model
 
 # View results
 npx promptfoo view
