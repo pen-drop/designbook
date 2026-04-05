@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { imageStyleBuilder } from '../builders/image-style-builder';
-import type { BuildContext, ComponentNode, DataModel, SceneNode } from '../types';
+import type { BuildContext, ComponentNode, SceneNode } from '../types';
 
-function makeCtx(imageStyles?: DataModel['image_styles']): BuildContext {
+function makeCtx(
+  imageStyles?: Record<
+    string,
+    { aspect_ratio: string; breakpoints?: Record<string, { width: number; aspect_ratio?: string }> }
+  >,
+): BuildContext {
   return {
-    dataModel: { content: {}, image_styles: imageStyles },
+    dataModel: { content: {}, config: { image_style: imageStyles ?? {} } },
     sampleData: {},
     designbookDir: '/tmp/test/designbook',
     config: { image_provider: { type: 'picsum' } },

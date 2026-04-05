@@ -6,7 +6,7 @@
  * and returns a `designbook:image` ComponentNode.
  */
 
-import type { SceneNodeBuilder, SceneNode, BuildContext, RawNode } from '../types';
+import type { SceneNodeBuilder, SceneNode, BuildContext, RawNode, ImageStyleDef } from '../types';
 import { parseAspectRatio, calcHeight } from '../image-utils';
 import { createProvider } from '../image-providers';
 
@@ -31,7 +31,7 @@ export const imageStyleBuilder: SceneNodeBuilder = {
       ];
     }
 
-    const styleDef = ctx.dataModel.image_styles?.[styleName];
+    const styleDef = ctx.dataModel.config?.['image_style']?.[styleName] as unknown as ImageStyleDef | undefined;
     if (!styleDef) {
       return [
         {

@@ -46,6 +46,33 @@ when:
 
 > ⛔ **Shell scenes: inline all slots.** Header and footer MUST inline ALL sub-component slots — never use `story: default` alone.
 
+## Image Node Format
+
+> ⛔ **Image nodes use `type: image` with `image_style` referencing a config entity.**
+> The `image_style` value MUST match a bundle name under `config.image_style` in `data-model.yml`.
+
+```yaml
+# ✅ Correct — image node with named style
+- type: image
+  image_style: hero
+  alt: "Modern architecture building"
+
+# ✅ Correct — image node with custom source (CSS aspect-ratio mode)
+- type: image
+  image_style: card
+  alt: "Team photo"
+  src: "/images/team.jpg"
+
+# ❌ Wrong — missing image_style
+- type: image
+  alt: "Some image"
+
+# ❌ Wrong — using component instead of image node
+- component: "$COMPONENT_NAMESPACE:image"
+  props:
+    src: "https://picsum.photos/800/600"
+```
+
 ## Entity Reference Format
 
 > ⛔ **Entity references use a two-part `entity` string plus a separate `view_mode` key.**

@@ -41,7 +41,7 @@ scenes:
     # ↑ Write the reference entries from {{ reference }} param.
     #   If {{ reference }} is null or empty, OMIT the reference: key entirely.
     items:
-      - component: "COMPONENT_NAMESPACE:COMPONENT_NAME"
+      - component: "$COMPONENT_NAMESPACE:COMPONENT_NAME"
         slots:
           ...
           # Shell components nested according to their slot structure

@@ -14,6 +14,7 @@ export interface BundleDef {
   title?: string;
   description?: string;
   fields?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 /** The data model structure (content section of data-model.yml). */
@@ -39,7 +40,6 @@ export interface ImageStyleDef {
 export interface DataModel {
   content: DataModelContent;
   config?: DataModelContent;
-  image_styles?: Record<string, ImageStyleDef>;
 }
 
 /** Entity bundles map used in SampleData. */

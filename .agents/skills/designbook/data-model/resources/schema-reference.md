@@ -58,6 +58,27 @@ body:
 
 ## Config Entities
 
-`config` follows the same `entity_type → bundle → view_modes/fields` structure as `content`. Use it for configuration entities (listings, singletons, etc.). Config entities are rendered like any other entity: `view_modes.<mode>.template` determines the JSONata rule loaded during `map-entity`.
+`config` follows the same `entity_type → bundle �� view_modes/fields` structure as `content`. Use it for configuration entities (listings, singletons, etc.). Config entities are rendered like any other entity: `view_modes.<mode>.template` determines the JSONata rule loaded during `map-entity`.
 
 Backend-specific config entity guidance is documented in the backend data model skill.
+
+### image_style
+
+`image_style` is a built-in config entity type with a different bundle structure — bundles use `aspect_ratio` and `breakpoints` directly instead of `fields`:
+
+```yaml
+config:
+  image_style:
+    hero:
+      aspect_ratio: 21:9
+      breakpoints:
+        xl: { width: 1200 }
+        md: { width: 768, aspect_ratio: 16:9 }
+        sm: { width: 480, aspect_ratio: 4:3 }
+    card:
+      aspect_ratio: 4:3
+    avatar:
+      aspect_ratio: 1:1
+```
+
+Image styles are referenced in scenes via `type: image` nodes (not `entity:` nodes). See [scenes-schema](../../design/resources/scenes-schema.md) for the `ImageNode` definition.
