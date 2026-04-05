@@ -1,54 +1,80 @@
 #!/usr/bin/env bash
-# Run a single promptfoo test by label.
+# Run a single promptfoo test by case name.
+# Generates a temporary config from the case file with assertions included.
 #
-# Usage: ./promptfoo/scripts/run-single.sh <label> [extra args...]
+# Usage: ./promptfoo/scripts/run-single.sh <case> [--suite <suite>] [extra args...]
 # Example: ./promptfoo/scripts/run-single.sh data-model-canvas
-#          ./promptfoo/scripts/run-single.sh data-model-canvas --no-cache
+#          ./promptfoo/scripts/run-single.sh data-model-canvas --suite drupal-petshop --no-cache
 #
-# List available labels:
-#   ./promptfoo/scripts/run-single.sh --list
+# List available cases:
+#   ./promptfoo/scripts/run-single.sh --list [--suite <suite>]
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROMPTFOO_DIR="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(cd "$PROMPTFOO_DIR/.." && pwd)"
 CONFIGS_DIR="$PROMPTFOO_DIR/configs"
+SUITE="drupal-petshop"
+LABEL=""
+EXTRA_ARGS=()
 
-if [ "${1:-}" = "--list" ] || [ -z "${1:-}" ]; then
-  echo "Available tests:"
-  for f in "$CONFIGS_DIR"/*.yaml; do
-    label=$(basename "$f" .yaml)
-    [ "$label" = "chain" ] || [ "$label" = "base" ] && continue
-    echo "  ./promptfoo/scripts/run-single.sh $label"
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --suite) SUITE="$2"; shift 2 ;;
+    --list) LABEL="--list"; shift ;;
+    -*) EXTRA_ARGS+=("$1"); shift ;;
+    *) [[ -z "$LABEL" ]] && LABEL="$1" || EXTRA_ARGS+=("$1"); shift ;;
+  esac
+done
+
+FIXTURES_DIR="$REPO_ROOT/fixtures/$SUITE"
+
+if [[ "$LABEL" == "--list" ]] || [[ -z "$LABEL" ]]; then
+  echo "Available cases for $SUITE:"
+  for f in "$FIXTURES_DIR"/cases/*.yaml; do
+    [[ -f "$f" ]] && echo "  ./promptfoo/scripts/run-single.sh $(basename "$f" .yaml)"
   done
   exit 0
 fi
 
-LABEL="$1"
-shift
-CONFIG="$CONFIGS_DIR/$LABEL.yaml"
-
-if [ "$LABEL" = "chain" ]; then
+if [[ "$LABEL" == "chain" ]]; then
   echo "Error: Use run-chain.sh for chain tests."
   exit 1
 fi
 
-if [ ! -f "$CONFIG" ]; then
-  echo "Error: No config found for '$LABEL'"
-  echo "Run './promptfoo/scripts/run-single.sh --list' to see available tests."
+CASE_FILE="$FIXTURES_DIR/cases/$LABEL.yaml"
+if [[ ! -f "$CASE_FILE" ]]; then
+  echo "Error: No case found for '$LABEL' at $CASE_FILE"
+  echo "Run './promptfoo/scripts/run-single.sh --list' to see available cases."
   exit 1
 fi
 
-# Derive workspace id (debo-<label> convention)
-WORKSPACE_ID="debo-$LABEL"
-WORKSPACE_DIR="$PROMPTFOO_DIR/workspaces/$WORKSPACE_ID"
+# Generate a single-test config from the case file
+node -e "
+const yaml = require('js-yaml');
+const fs = require('fs');
+const path = require('path');
 
-# Setup workspace if missing or stale — clean and recreate from fixtures
-if [ -d "$WORKSPACE_DIR" ]; then
-  echo "Cleaning workspace $WORKSPACE_ID..."
-    rm -rf "$WORKSPACE_DIR"
+const base = yaml.load(fs.readFileSync('$CONFIGS_DIR/base.yaml', 'utf-8'));
+const caseData = yaml.load(fs.readFileSync('$CASE_FILE', 'utf-8'));
 
-fi
-"$SCRIPT_DIR/setup-workspace.sh" "$WORKSPACE_DIR" "$WORKSPACE_ID"
-BASE_CONFIG="$CONFIGS_DIR/base.yaml"
-npx promptfoo eval -c "$BASE_CONFIG" -c "$CONFIG" "$@"
+const config = {
+  description: 'Designbook workflow evaluation — $LABEL',
+  outputPath: 'promptfoo/reports/$LABEL.json',
+  prompts: ['{{prompt}}'],
+  providers: base.providers,
+  evaluateOptions: base.evaluateOptions,
+  defaultTest: base.defaultTest,
+  tests: [{
+    description: '$LABEL: $SUITE',
+    vars: { suite: '$SUITE', case: '$LABEL' },
+    assert: caseData.assert || [],
+  }],
+};
+
+fs.writeFileSync('/tmp/promptfoo-$LABEL.yaml', yaml.dump(config, { lineWidth: 120, noRefs: true }));
+"
+
+npx promptfoo eval -c "/tmp/promptfoo-$LABEL.yaml" "${EXTRA_ARGS[@]}"

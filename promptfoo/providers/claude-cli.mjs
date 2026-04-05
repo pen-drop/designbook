@@ -8,10 +8,15 @@
  *   output.archivedWorkflows — keyed by workflow id, parsed tasks.yml
  *   output.pendingWorkflows  — keyed by workflow id (indicates failure)
  *   output.fileContents    — parsed YAML/text content of new files
+ *
+ * Workspace setup:
+ *   If vars contain `suite` + `case`, runs scripts/setup-test.sh automatically.
+ *   Otherwise falls back to vars.workspace (legacy).
  */
-import { execFile } from "node:child_process";
-import { readdir, readFile, stat } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { execFile, execFileSync } from "node:child_process";
+import { readdir, readFile, readFileSync, stat } from "node:fs/promises";
+import { readFileSync as readFileSyncFs, existsSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -31,8 +36,50 @@ class ClaudeCliProvider {
     this.id = () => `claude-cli:${this.model}`;
   }
 
+  /**
+   * Set up workspace and resolve prompt from case file.
+   * Returns { cwd, prompt } where prompt may override the one from config.
+   */
+  setupWorkspace(vars, configPrompt) {
+    const suite = vars?.suite;
+    const caseName = vars?.case;
+
+    if (suite && caseName) {
+      const repoRoot = resolve(process.cwd());
+      const setupScript = join(repoRoot, "scripts", "setup-test.sh");
+      const workspaceDir = join(repoRoot, "promptfoo", "workspaces", `${suite}-${caseName}`);
+
+      console.log(`Setting up workspace: ${suite}/${caseName} → ${workspaceDir}`);
+      execFileSync(setupScript, [suite, caseName, "--into", workspaceDir], {
+        cwd: repoRoot,
+        stdio: "pipe",
+      });
+
+      // Read prompt from case file if config prompt is a placeholder
+      let prompt = configPrompt;
+      if (!prompt || prompt === "{{prompt}}") {
+        const caseFile = join(repoRoot, "fixtures", suite, "cases", `${caseName}.yaml`);
+        if (existsSync(caseFile)) {
+          const caseData = yaml.load(readFileSyncFs(caseFile, "utf-8"));
+          if (caseData?.prompt) {
+            prompt = caseData.prompt.replace(/\{\{workspace\}\}/g, workspaceDir);
+          }
+        }
+      } else {
+        prompt = prompt.replace(/\{\{workspace\}\}/g, workspaceDir);
+      }
+
+      return { cwd: workspaceDir, prompt };
+    }
+
+    // Legacy: workspace path directly in vars
+    const cwd = vars?.workspace || process.cwd();
+    const prompt = configPrompt?.replace(/\{\{workspace\}\}/g, cwd) || configPrompt;
+    return { cwd, prompt };
+  }
+
   async callApi(prompt, context) {
-    const cwd = context?.vars?.workspace || process.cwd();
+    const { cwd, prompt: resolvedPrompt } = this.setupWorkspace(context?.vars, prompt);
     const args = [
       "--print",
       "--model",
@@ -40,12 +87,12 @@ class ClaudeCliProvider {
       "--max-turns",
       String(this.config.max_turns || 100),
       "--dangerously-skip-permissions",
-      prompt,
+      resolvedPrompt,
     ];
 
     try {
       const text = await new Promise((resolve, reject) => {
-        console.log(`Running Claude CLI with args: ${args.join(" ")} ::::`, this.timeout);
+        console.log(`Running Claude CLI in ${cwd} with model ${this.model}, timeout ${this.timeout}ms`);
         execFile("claude", args, {
           cwd,
           timeout: this.timeout,

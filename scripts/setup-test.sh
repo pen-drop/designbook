@@ -92,8 +92,12 @@ if [[ -d "$TARGET_DIR" ]]; then
 fi
 mkdir -p "$TARGET_DIR"
 
-# 1. Copy suite base config
-if [[ -f "$FIXTURES_DIR/designbook.config.yml" ]]; then
+# 1. Copy suite base config (or config override if specified in case)
+CONFIG_OVERRIDE=$(sed -n 's/^config: *//p' "$CASE_FILE")
+if [[ -n "$CONFIG_OVERRIDE" && -f "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" ]]; then
+  echo "  Config override: $CONFIG_OVERRIDE"
+  cp "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" "$TARGET_DIR/designbook.config.yml"
+elif [[ -f "$FIXTURES_DIR/designbook.config.yml" ]]; then
   cp "$FIXTURES_DIR/designbook.config.yml" "$TARGET_DIR/"
 fi
 

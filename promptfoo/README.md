@@ -5,41 +5,38 @@ Designbook workflow evaluation using [promptfoo](https://promptfoo.dev).
 ## Structure
 
 ```
+fixtures/                         # Fixtures live at repo root
+├── drupal-petshop/               # Test suite
+│   ├── designbook.config.yml     # Base config
+│   ├── config-overrides/         # Alternative configs (canvas, layout-builder)
+│   ├── vision/                   # Fixture layers (delta-only)
+│   ├── tokens/
+│   ├── data-model/
+│   └── cases/                    # Case files (fixtures + prompt + assertions)
+│       ├── vision.yaml
+│       ├── design-screen.yaml
+│       └── ...
+└── drupal-stitch/
+
 promptfoo/
-├── configs/                      # All configs live here (source of truth)
+├── configs/                      # Promptfoo configs (reference case files)
+│   ├── base.yaml                 # Provider settings
 │   ├── chain.yaml                # Chain tests (sequential, shared workspace)
-│   ├── vision.yaml               # Single-workflow configs
-│   ├── sections.yaml
-│   ├── design-tokens.yaml
-│   ├── css-generate.yaml
-│   ├── data-model.yaml
-│   ├── data-model-layout-builder.yaml
-│   ├── data-model-canvas.yaml
-│   ├── shape-section.yaml
-│   ├── design-component.yaml
-│   ├── sample-data.yaml
-│   ├── design-screen.yaml
-│   └── design-shell.yaml
-├── fixtures/
-│   ├── _shared/                  # Shared base (config, node_modules)
-│   └── debo-<workflow>/          # Per-workflow fixtures
-├── workspaces/                   # Created by scripts from fixtures
-├── providers/claude-cli.mjs      # Claude Code CLI provider
+│   └── <case>.yaml               # One per case
+├── providers/claude-cli.mjs      # Claude CLI provider (auto workspace setup)
 └── scripts/
-    ├── clean.sh                  # Recreate all workspaces
-    ├── setup-workspace.sh        # Setup single workspace
-    ├── generate-configs.mjs      # Assemble monolith from configs/ (optional)
-    ├── run-single.sh             # Run single test by label
-    └── run-chain.sh              # Run chain tests
+    ├── clean.sh                  # Recreate all workspaces from fixtures
+    ├── generate-configs.mjs      # Generate monolith config from case files
+    ├── run-single.sh             # Run single test by case name
+    ├── run-chain.sh              # Run chain tests
+    ├── show-report.mjs           # Pretty-print test report
+    └── test-assertions.mjs       # Smoke-test assertions offline
 ```
 
 ## Run a Single Test
 
 ```bash
-# List available tests
 ./promptfoo/scripts/run-single.sh --list
-
-# Run one workflow test
 ./promptfoo/scripts/run-single.sh data-model-canvas
 npx promptfoo view
 ```
@@ -47,7 +44,6 @@ npx promptfoo view
 ## Run All Tests
 
 ```bash
-# Assemble monolith config from configs/, then run
 node promptfoo/scripts/generate-configs.mjs
 npx promptfoo eval -c promptfoo/promptfooconfig.yaml
 npx promptfoo view
@@ -55,41 +51,45 @@ npx promptfoo view
 
 ## Run Chained Tests
 
-All workflows run sequentially in a shared workspace — each builds on previous output.
+All workflows run sequentially in a shared workspace.
 
 ```bash
-# Full chain
 ./promptfoo/scripts/run-chain.sh --clean
-
-# Single workflow
 ./promptfoo/scripts/run-chain.sh debo-vision
-
-# Workflow + dependencies
 ./promptfoo/scripts/run-chain.sh debo-css-generate --deps
-
-# Everything up to a workflow
 ./promptfoo/scripts/run-chain.sh --until debo-data-model
 ```
 
-### Dependency Graph
+## Manual Testing
 
+Same fixtures and prompts, interactive mode:
+
+```bash
+# Via script
+./scripts/setup-test.sh drupal-petshop design-screen
+
+# Via skill (in Claude)
+/debo-test drupal-petshop design-screen
 ```
-[01] debo-vision
- ├─ [02] debo-sections
- │   ├─ [06] debo-shape-section
- │   └─ [08] debo-sample-data ← (+ data-model)
- ├─ [03] debo-design-tokens
- │   └─ [04] debo-css-generate
- │       ├─ [07] debo-design-component
- │       ├─ [09] debo-design-screen ← (+ sections, data-model, sample-data, component)
- │       └─ [10] debo-design-shell ← (+ sections)
- └─ [05] debo-data-model
+
+## Case File Format
+
+Each case is a YAML file in `fixtures/<suite>/cases/`:
+
+```yaml
+config: canvas.yml           # optional config override
+fixtures:                    # fixture layers to load
+  - vision
+  - tokens
+  - data-model
+prompt: |                    # shared between manual + automated
+  Run /debo design-screen...
+assert:                      # promptfoo assertions
+  - type: javascript
+    value: output.newFiles.some(f => f.endsWith('.scenes.yml'))
 ```
 
 ## Provider
 
-Claude Sonnet 4.6 for single tests, Claude Opus 4.6 for chain. Timeout 300s, max 50/100 turns.
-
-## Test Product
-
-All tests use **PetMatch** — a fictional pet adoption platform.
+The `claude-cli.mjs` provider auto-sets up workspaces when `suite` + `case` vars are present.
+Reads prompts from case files. Default: Claude Sonnet 4.6, timeout 800s, max 200 turns.

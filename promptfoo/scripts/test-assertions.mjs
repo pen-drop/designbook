@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
  * Smoke-test assertions against existing workspace data.
- * Simulates what the provider returns and runs each assertion.
+ * Reads case files from fixtures/ and tests assertions against workspace artifacts.
  *
- * Usage: node promptfoo/scripts/test-assertions.mjs [label]
+ * Usage: node promptfoo/scripts/test-assertions.mjs [case] [--suite <suite>]
  * Example: node promptfoo/scripts/test-assertions.mjs data-model-canvas
- *          node promptfoo/scripts/test-assertions.mjs  (runs all with existing workspaces)
+ *          node promptfoo/scripts/test-assertions.mjs --suite drupal-stitch
+ *          node promptfoo/scripts/test-assertions.mjs  (runs all for default suite)
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
@@ -16,29 +17,19 @@ const require = createRequire(import.meta.url);
 const yaml = require("js-yaml");
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const promptfooDir = join(__dirname, "..");
-const configsDir = join(promptfooDir, "configs");
-const filterLabel = process.argv[2];
+const repoRoot = join(__dirname, "../..");
 
-// Load all single-workflow configs from configs/ (exclude chain.yaml)
-const configFiles = readdirSync(configsDir)
-  .filter(f => f.endsWith(".yaml") && f !== "chain.yaml" && f !== "base.yaml")
-  .sort();
-
-const configs = configFiles.map(f => yaml.load(readFileSync(join(configsDir, f), "utf-8")));
-
-// Merge into a single config shape for processing
-const config = {
-  prompts: configs.flatMap(c => c.prompts || []),
-  tests: configs.flatMap(c => c.tests || []),
-};
-
-// Build prompt lookup
-const promptsByRef = new Map();
-for (const p of config.prompts) {
-  if (p.label) promptsByRef.set(p.label, p);
-  if (p.id) promptsByRef.set(p.id, p);
+// Parse args
+let suite = "drupal-petshop";
+let filterCase = null;
+const args = process.argv.slice(2);
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--suite" && args[i + 1]) { suite = args[++i]; }
+  else if (!args[i].startsWith("-")) { filterCase = args[i]; }
 }
+
+const casesDir = join(repoRoot, "fixtures", suite, "cases");
+const workspacesDir = join(repoRoot, "promptfoo", "workspaces");
 
 function walkDir(dir, baseDir) {
   const results = [];
@@ -117,30 +108,28 @@ function buildOutput(workspaceDir) {
 
 let totalPass = 0, totalFail = 0, totalSkip = 0;
 
-for (const test of config.tests) {
-  const promptRef = test.prompts?.[0];
-  const prompt = promptsByRef.get(promptRef);
-  const label = prompt?.label || prompt?.id || promptRef;
+const caseFiles = readdirSync(casesDir).filter(f => f.endsWith(".yaml")).sort();
 
-  if (filterLabel && label !== filterLabel) continue;
+for (const f of caseFiles) {
+  const caseName = f.replace(".yaml", "");
+  if (filterCase && caseName !== filterCase) continue;
 
-  const workspaceDir = test.vars?.workspace;
-  if (!workspaceDir) { totalSkip++; continue; }
+  const caseData = yaml.load(readFileSync(join(casesDir, f), "utf-8"));
+  const workspaceDir = join(workspacesDir, `${suite}-${caseName}`);
 
-  const absWorkspace = join(process.cwd(), workspaceDir);
   try {
-    statSync(join(absWorkspace, "designbook"));
+    statSync(join(workspaceDir, "designbook"));
   } catch {
-    console.log(`\n⏭  ${test.description} — workspace not found, skipping`);
+    console.log(`\n⏭  ${caseName} — workspace not found, skipping`);
     totalSkip++;
     continue;
   }
 
-  const output = buildOutput(absWorkspace);
-  console.log(`\n━━ ${test.description} ━━`);
+  const output = buildOutput(workspaceDir);
+  console.log(`\n━━ ${caseName} ━━`);
   console.log(`   Files: ${output.newFiles.length}, Archived: ${Object.keys(output.archivedWorkflows).join(", ") || "(none)"}, Pending: ${Object.keys(output.pendingWorkflows).join(", ") || "(none)"}`);
 
-  for (const assertion of (test.assert || [])) {
+  for (const assertion of (caseData.assert || [])) {
     if (assertion.type !== "javascript") {
       console.log(`   ⏭  [${assertion.type}] — not testable offline`);
       totalSkip++;
@@ -148,17 +137,16 @@ for (const test of config.tests) {
     }
 
     try {
-      // promptfoo wraps multiline values as function body, not expression
       const code = assertion.value.trim();
       const isExpression = !code.includes('\n') && !code.startsWith('const ') && !code.startsWith('let ') && !code.startsWith('if ') && !code.startsWith('return ');
       const body = isExpression ? `return (${code})` : code;
       const fn = new Function("output", "context", body);
-      const result = fn(output, { vars: test.vars, providerResponse: { output } });
+      const result = fn(output, { vars: { suite, case: caseName }, providerResponse: { output } });
       if (result) {
-        console.log(`   ✅ ${assertion.value.trim().slice(0, 80)}`);
+        console.log(`   ✅ ${code.slice(0, 80)}`);
         totalPass++;
       } else {
-        console.log(`   ❌ ${assertion.value.trim().slice(0, 80)}`);
+        console.log(`   ❌ ${code.slice(0, 80)}`);
         totalFail++;
       }
     } catch (err) {
