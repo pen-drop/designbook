@@ -1,3 +1,12 @@
+config:
+  image_style:
+    16_9:
+      aspect_ratio: "16:9"
+    4_3:
+      aspect_ratio: "4:3"
+    1_1:
+      aspect_ratio: "1:1"
+
 content:
   canvas_page:
     landing_page:
@@ -58,7 +67,11 @@ content:
       title: Image
       description: Image media for embedding in rich text
       view_modes:
-        full:
+        16_9:
+          template: field-map
+        4_3:
+          template: field-map
+        1_1:
           template: field-map
       fields:
         field_media_image:
