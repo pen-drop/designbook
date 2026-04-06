@@ -1,9 +1,12 @@
 ---
+when:
+  steps: [design-screen:create-scene]
 params:
   section_id: ~
   section_title: ~
   section_description: ~
   scenes: []
+  reference: []
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
     workflow: debo-data-model
@@ -39,12 +42,14 @@ order: [number]
 group: "Designbook/Sections/{{ section_title }}"
 scenes:
   - name: "[Scene Name]"
-    reference:       # optional — write when provided
+    reference:       # include ONLY when {{ reference }} is non-empty
       - type: "<url|image|...>"
         url: "<resource URL>"
         breakpoint: "<breakpoint name>"
         threshold: 3
         title: "<label>"
+    # ↑ Write the reference entries from {{ reference }} param.
+    #   If {{ reference }} is null or empty, OMIT the reference: key entirely.
     items:
       - scene: "design-system:[shell_name]"
         with:

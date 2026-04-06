@@ -12,31 +12,36 @@ when: {}
 
 ## Phase 0: Bootstrap
 
-> Run FIRST — nothing works without it. Bundle ALL CLI calls in one Bash block so bootstrap runs only once.
+> Run FIRST — nothing works without it. Each Bash tool call starts a **fresh shell** — no state carries over between calls.
 
 ```bash
-# Inline helper — bootstraps on first call, skips if already done
-_debo() {
-  if [ -z "$DESIGNBOOK_HOME" ]; then
-    eval "$(npx storybook-addon-designbook config)"
-  fi
-  npx storybook-addon-designbook "$@"
-}
+# Define _debo and bootstrap at the top of EVERY Bash block
+_debo() { npx storybook-addon-designbook "$@"; }
+eval "$(_debo config)"
+
+_debo workflow list --workflow design-screen
+WF_FILE="$DESIGNBOOK_HOME/.agents/skills/designbook/design/workflows/design-screen.md"
+_debo workflow create --workflow design-screen --workflow-file "$WF_FILE"
 ```
 
-> **Important:** Always use `npx storybook-addon-designbook` for CLI commands. The `DESIGNBOOK_CMD` / `designbook()` shell function from config starts the Storybook dev server — it is **not** the CLI entry point.
+> **Important:** Always use `_debo` (or `npx storybook-addon-designbook`) for CLI commands. The `DESIGNBOOK_CMD` / `designbook()` shell function from config starts the Storybook dev server — it is **not** the CLI entry point.
 
-> **Bootstrap Scope:** `DESIGNBOOK_*` variables set by `eval "$(npx storybook-addon-designbook config)"` are scoped to the current Bash block only. They are **not** available in subsequent Bash calls. The `_debo()` helper re-bootstraps automatically on first call within each block — use it for all CLI calls. If you need a value like `$DESIGNBOOK_HOME` for path construction, capture it in the same block:
->
-> ```bash
-> _debo workflow list --workflow design-screen  # first _debo call bootstraps DESIGNBOOK_*
-> WF_FILE="$DESIGNBOOK_HOME/.agents/skills/designbook/design/workflows/design-screen.md"  # ✓ set by bootstrap above
-> _debo workflow create --workflow design-screen --workflow-file "$WF_FILE"
-> ```
-
-All subsequent CLI calls use `_debo <command>` — bootstrap is skipped after the first call. Bundle multiple commands in one Bash block to maximise reuse.
+> **Bootstrap Scope:** `DESIGNBOOK_*` variables are scoped to the current Bash block only. Every new Bash tool call is a fresh shell — the two-line bootstrap (`_debo()` definition + `eval`) must appear at the top of each block. After `eval "$(_debo config)"`, all `$DESIGNBOOK_*` variables are immediately available.
 
 If no config found → stop and ask the user.
+
+---
+
+## Untracked Workflows (`track: false`)
+
+Workflows with `track: false` in frontmatter skip the entire workflow lifecycle (no `workflow create`, no `done`). They are utility commands, not artifact-producing workflows.
+
+**Execution:**
+1. Bootstrap (`_debo` helper — same as Phase 0)
+2. Load the workflow file and read its instructions
+3. Execute the CLI commands directly — no tracking, no tasks.yml
+
+**When to use:** Dev tooling, server management, or any command that doesn't produce designbook artifacts.
 
 ---
 
@@ -59,7 +64,7 @@ else
 fi
 ```
 
-**Resume path:** when continuing an existing workflow, set `WORKFLOW_NAME=$EXISTING` and skip directly to Step 3 (Load Intake Instructions). Do **not** re-run `workflow create` or `workflow plan` — both have already been executed and tasks.yml is already populated.
+**Resume path:** when continuing an existing workflow, set `WORKFLOW_NAME=$EXISTING` and skip directly to Step 3 (Load Intake Instructions). Do **not** re-run `workflow create` — it has already been executed and tasks.yml is already populated.
 
 Use the **absolute path** for `--workflow-file`. Workflow files live at `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/workflows/<workflow-id>.md` (e.g. `$DESIGNBOOK_HOME/.agents/skills/designbook/vision/workflows/vision.md`).
 
@@ -93,25 +98,15 @@ If the user explicitly requests no confirmation (e.g. "ohne Rücksprache", "just
 
 The intake gathers information from the user and produces **iterables** — arrays of items that stages will iterate over (e.g. components to create, scenes to build).
 
-### 4. Before Hooks
+After intake is complete, build the params JSON from intake results and mark the intake task as done. The `--params` flag triggers implicit plan logic — the CLI expands iterables into tasks before marking intake done, preventing premature archival.
 
-For each `before` entry in workflow frontmatter:
-- Check `reads:` gate on the referenced workflow's intake task file — skip if missing
-- Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
-- Resolve workflow name to file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
-- Complete the hook workflow fully before continuing
+The `workflow create` response includes `expected_params` — a map of all params required across all stages, aggregated from task file frontmatter. Use this to map intake results to the correct param names. Each param has `required: boolean` and `from_step: string`. Params with `required: true` MUST be provided; optional params have defaults.
 
-### 5. Plan (expand iterables into tasks)
-
-The `workflow create` response includes `expected_params` — a map of all params required across all stages, aggregated from task file frontmatter. Use this to map intake results to the correct param names before calling `workflow plan`. Each param has `required: boolean` and `from_step: string`. Params with `required: true` MUST be provided; optional params have defaults.
-
-Build iterables from intake results and pass them as named arrays in `--params`. Stages with `each: <name>` auto-expand all their steps for each item in the corresponding iterable.
+Build iterables from intake results and pass them as named arrays in `--params`:
 
 ```bash
-_debo workflow plan \
-  --workflow $WORKFLOW_NAME \
-  --params '<params_json>' \
-  [--engine <name>]
+_debo workflow done --workflow $WORKFLOW_NAME --task intake \
+  --params '<params_json>'
 ```
 
 **Params format:**
@@ -156,23 +151,53 @@ With `params.component` (2 items) and `params.scene` (1 item):
 - `test` stage: 4 tasks (4 steps × 1 scene)
 - **Total: 7 tasks**, all auto-generated
 
-The optional `--engine` flag overrides the engine declared in the workflow.md frontmatter (`engine: direct` or `engine: git-worktree`). Precedence: `--engine` flag > frontmatter `engine:` > auto (git-worktree if git repo, else direct). The `debo <workflow> --engine <name>` shorthand passes through to `workflow plan`.
-
 Display the plan summary, then proceed immediately to Phase 2.
 
-### Singleton Workflows
+### 4. Before Hooks
 
-Workflows where no stage uses `each` (e.g., `tokens`, `design-guidelines`) have no iterables. The `--params` call is still required but passes an empty object:
+For each `before` entry in workflow frontmatter:
+- Check `reads:` gate on the referenced workflow's intake task file — skip if missing
+- Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
+- Resolve workflow name to file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
+- Complete the hook workflow fully before continuing
+
+### When `--params` is Required
+
+The rule is simple: if `expected_params` (from the `workflow create` response) contains any entry with `required: true`, then `--params` **must** be passed to `workflow done --task intake`. Otherwise `--params` can be omitted.
 
 ```bash
-_debo workflow plan --workflow $WORKFLOW_NAME --params '{}'
+# Has required params (e.g. vision: product_name required) → --params is mandatory
+_debo workflow done --workflow $WORKFLOW_NAME --task intake \
+  --params '{"product_name": "My Product", "description": "..."}'
+
+# No required params (e.g. tokens, design-guidelines) → --params can be omitted
+_debo workflow done --workflow $WORKFLOW_NAME --task intake
 ```
 
-In singleton workflows, intake results are transported via **conversation context** — the agent carries the gathered information forward to the execute stage. There is no structured param handoff for singleton data.
+Whether stages use `each` or not is irrelevant to this rule. Workflows without `each` that still have required params (like `vision`) must pass `--params`. Workflows without required params auto-plan with empty params `{}`, and intake results are transported via conversation context.
 
 ---
 
 ## Phase 2: Execute
+
+### Task ID Convention
+
+Task IDs are short hashes generated by the CLI during intake expansion. They follow the pattern `<step>-<6-char-hex>` (e.g., `create-vision-a3f2b1`). Do **not** construct task IDs manually.
+
+After `workflow done --task intake`, the RESPONSE JSON includes `expanded_tasks` — an array with all generated task IDs:
+
+```json
+{
+  "stage": "create-vision",
+  "expanded_tasks": [
+    { "id": "create-vision-a3f2b1", "step": "create-vision", "stage": "create-vision", "title": "Create Vision: My Product" }
+  ]
+}
+```
+
+Always capture task IDs from `expanded_tasks` and use them for all subsequent `write-file` and `done` calls.
+
+### Execution
 
 The main agent executes all tasks sequentially. For each task:
 
@@ -219,22 +244,6 @@ Every `workflow done` response ends with a `RESPONSE:` JSON line. Parse it and a
 { "stage": "done" }
 ```
 → Workflow archived. Process after hooks.
-
-### Stage Vocabulary
-
-Workflows declare stages in their frontmatter as a grouped structure. Stage names are semantic — they describe what the stage iterates over or does:
-
-| Stage pattern | Role | `each` |
-|-------|------|--------|
-| `intake` | Gather user input, produce iterables | — |
-| `component` | Create components | `component` |
-| `scene` | Create scenes | `scene` |
-| `execute` | Singleton work (no iteration) | — |
-| `transform` | Transform/generate (no iteration) | — |
-| `test` | Visual testing (screenshot, compare, polish) | `scene` or `component` |
-| `preview` | Manual review (Storybook preview, user approval) | — |
-
-Implicit stages (`committed`, `finalizing`) are managed by the engine and not declared in frontmatter.
 
 ### Merge Flow (git-worktree engine)
 

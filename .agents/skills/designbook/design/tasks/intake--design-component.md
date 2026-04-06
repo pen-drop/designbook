@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [design-component:intake]
 files: []
 ---
 

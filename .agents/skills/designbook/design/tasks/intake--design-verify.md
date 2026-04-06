@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [design-verify:intake]
 files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/guidelines.yml

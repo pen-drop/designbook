@@ -14,7 +14,6 @@ const config = {
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
   ],
   addons: [
-    '@storybook/addon-themes',
     '@storybook/addon-docs',
     {
       name: 'storybook-addon-designbook',

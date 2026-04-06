@@ -16,6 +16,7 @@ export interface CsfPrepScene {
   name: string;
   exportName: string;
   nodes: ComponentNode[];
+  theme?: string;
 }
 
 export interface CsfPrepOptions {
@@ -122,9 +123,14 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
       .map((line, i) => (i === 0 ? line : '    ' + line))
       .join('\n');
 
+    const parameters = [`designbook: { order: ${100 + index} }`];
+    if (scene.theme) {
+      parameters.push(`themes: { themeOverride: '${scene.theme.replace(/'/g, "\\'")}' }`);
+    }
+
     return [
       `export const ${scene.exportName} = {`,
-      `  parameters: { designbook: { order: ${100 + index} } },`,
+      `  parameters: { ${parameters.join(', ')} },`,
       '  args: {',
       `    __scene: ${nodesJson},`,
       '  },',

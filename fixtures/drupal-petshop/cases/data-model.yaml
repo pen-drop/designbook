@@ -1,0 +1,38 @@
+fixtures:
+  - vision
+
+prompt: >
+  You are working in the directory {{workspace}}.
+  Run the /debo data-model workflow. Do NOT ask any questions.
+  The product is "PetMatch". Read the product overview at designbook/product/vision.md.
+  Define entity types for: pets (with fields for name, breed, age, description, photo, status), shelters (name,
+  location, contact), adoption applications (applicant info, pet reference, status), and categories (name,
+  description).
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.includes('designbook/data-model.yml')
+  - type: javascript
+    value: output.archivedWorkflows['data-model']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['data-model']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/data-model.yml']?.content;
+      return c?.node && Object.keys(c.node).length >= 2;
+  - type: javascript
+    value: |
+      const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
+      return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('drupal-data-model.md')));
+  - type: javascript
+    value: |
+      const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
+      return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('sample-template-mapping.md')));
+  - type: javascript
+    value: >
+      const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
+      return !Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('layout-builder.md') ||
+      r.endsWith('canvas.md')));
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

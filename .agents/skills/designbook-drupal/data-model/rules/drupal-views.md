@@ -1,7 +1,7 @@
 ---
 when:
   backend: drupal
-  steps: [designbook-data-model:intake, create-data-model]
+  steps: [data-model:intake, create-data-model]
 ---
 
 # Rule: Drupal Views Config Entities

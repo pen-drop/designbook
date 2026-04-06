@@ -5,7 +5,7 @@ priority: 10
 when:
   backend: drupal
   extensions: layout_builder
-  steps: [design-token:intake]
+  steps: [design-token:intake, data-model:intake]
 ---
 
 # Entity Type: block_content

@@ -6,7 +6,7 @@ when:
   steps: [map-entity]
 ---
 
-# Rule: List View — Wrapper Mapping
+# Blueprint: List View — Wrapper Mapping
 
 Applies when `map-entity` runs for `entity_type: view` (i.e. a `config.view` bundle).
 

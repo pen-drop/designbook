@@ -1,0 +1,39 @@
+{#
+/**
+ * @file
+ * Template for header component.
+ *
+ * Available variables:
+ * - sticky: Whether the header should be sticky
+ * - logo: Site logo / brand mark
+ * - navigation: Navigation component
+ * - actions: Action buttons (search, CTA, etc.)
+ */
+#}
+{% set sticky = sticky|default(false) %}
+{% set header_classes = ["border-b", "border-outline-variant/20", "bg-background/80", "backdrop-blur-md"] %}
+{% if sticky %}
+  {% set header_classes = header_classes|merge(["sticky", "top-0", "z-50"]) %}
+{% endif %}
+
+<header{{ attributes.addClass(header_classes) }}>
+  <div class="max-w-xl mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between h-16">
+    {% if logo %}
+      <div class="flex items-center shrink-0">
+        {{ logo }}
+      </div>
+    {% endif %}
+
+    {% if navigation %}
+      <div class="hidden md:flex items-center">
+        {{ navigation }}
+      </div>
+    {% endif %}
+
+    {% if actions %}
+      <div class="flex items-center gap-3">
+        {{ actions }}
+      </div>
+    {% endif %}
+  </div>
+</header>

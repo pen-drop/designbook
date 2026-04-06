@@ -1,0 +1,13 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/primitive-typography.src.css"
+ }
+ */
+(
+  $entries := $each($$.primitive.typography, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "  --text-" & $k & ": " & $v."$value" & ";"
+  });
+  $filtered := $filter($entries, function($e) { $e != null });
+  $count($filtered) > 0 ? "@theme {\n" & $join($filtered, "\n") & "\n}\n" : "/* no primitive typography tokens */\n"
+)

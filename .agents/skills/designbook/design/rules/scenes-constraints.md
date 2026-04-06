@@ -44,36 +44,7 @@ when:
         value: "Welcome to the Blog"
 ```
 
-> ⛔ **Shell scenes: inline all slots.** Header and footer MUST inline ALL sub-component slots — `logo`, `navigation` (with `items` populated), `actions`, `copyright`. Never write `story: default` alone.
-
-```yaml
-# ✅ Correct — all header/footer slots inlined
-- component: "$COMPONENT_NAMESPACE:page"
-  slots:
-    header:
-      - component: "$COMPONENT_NAMESPACE:header"
-        slots:
-          logo: "<a href=\"/\">Designbook</a>"
-          navigation:
-            - component: "$COMPONENT_NAMESPACE:navigation"
-              props:
-                variant: main
-                items:
-                  - title: Docs
-                    url: /docs
-                    in_active_trail: false
-                    below: []
-          actions: "<a href=\"/github\">GitHub</a>"
-    content: $content
-    footer:
-      - component: "$COMPONENT_NAMESPACE:footer"
-        slots:
-          copyright: "© 2026 Designbook."
-
-# ❌ Wrong — story: default leaves navigation empty
-- component: "$COMPONENT_NAMESPACE:header"
-  story: default
-```
+> ⛔ **Shell scenes: inline all slots.** Header and footer MUST inline ALL sub-component slots — never use `story: default` alone.
 
 ## Entity Reference Format
 

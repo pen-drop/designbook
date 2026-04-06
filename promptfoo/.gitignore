@@ -1,13 +1,8 @@
 # Workspace output from test runs
 workspaces/
 
-# Generated monolith config (assembled from configs/)
+# Generated monolith config (assembled from case files)
 promptfooconfig.yaml
 
-# Test reports (keep error-log.md)
+# Test reports
 reports/*.json
-
-# Stray test artifacts from old runs (before workspace isolation)
-screenshot.png
-test-render.js
-fixtures/_shared/node_modules

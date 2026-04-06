@@ -5,7 +5,7 @@ priority: 10
 when:
   backend: drupal
   extensions: canvas
-  steps: [design-token:intake]
+  steps: [design-token:intake, data-model:intake]
 ---
 
 # Entity Type: canvas_page

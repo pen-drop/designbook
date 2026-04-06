@@ -39,7 +39,7 @@ Slots are rendered directly — no wrapper unless the slot content requires it:
 
 ## No Hardcoded Colors
 
-Do not hardcode color values in Twig. Use CSS framework classes (e.g. DaisyUI semantic classes like `bg-primary`, `text-base-content`) or design token classes.
+Do not hardcode color values in Twig. Use design token CSS custom properties (e.g. `color: var(--color-primary)`, `background: var(--color-surface)`) or utility classes derived from them.
 
 ## Variants Instead of Duplicate Components
 

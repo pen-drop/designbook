@@ -1,4 +1,8 @@
 ---
+name: designbook:design:polish
+when:
+  steps: [polish]
+priority: 50
 params:
   scene: ~
 files: []
@@ -44,11 +48,15 @@ For each iteration:
 
 Prioritize by severity: Critical → Major → Minor. Focus on the highest-severity issues first.
 
-### 2b. Fix Code
+### 2b. Rule Compliance Check
+
+Before applying any fix, verify it does not contradict any loaded rules for the current stage. Re-read active rules and check the proposed change against each constraint.
+
+### 2c. Fix Code
 
 Edit the component files, scene definitions, or CSS to address the issues. Keep changes minimal and focused on the reported issues.
 
-### 2c. Re-screenshot (Storybook only)
+### 2d. Re-screenshot (Storybook only)
 
 Resolve the Storybook URL and re-capture screenshots only at breakpoints that have reference entries:
 
@@ -59,11 +67,11 @@ npx playwright screenshot --full-page --viewport-size "${width},1600" --wait-for
 
 Do NOT re-fetch remote reference screenshots — they were resolved once before the loop.
 
-### 2d. Re-compare
+### 2e. Re-compare
 
 Read the new Storybook screenshots alongside the (unchanged) reference images. Use the `threshold` from each reference entry (default 3%) for PASS/FAIL determination.
 
-### 2e. Check Resolution
+### 2f. Check Resolution
 
 - If all issues are resolved → exit loop, report success.
 - If issues remain and iterations < max → continue to next iteration.

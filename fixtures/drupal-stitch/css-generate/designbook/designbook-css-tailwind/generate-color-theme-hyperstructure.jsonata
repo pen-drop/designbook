@@ -1,0 +1,20 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/color.theme-hyperstructure.src.css"
+ }
+ */
+(
+  $theme := $$.themes.hyperstructure;
+  $entries := $each($theme.semantic.color, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "      --color-" & $k & ": " & $v."$value" & ";"
+  });
+  $block := $join($filter($entries, function($e) { $e != null }), "\n");
+  $dark := $theme."$extensions".darkMode;
+  $darkBlock := $dark ? "@layer theme {\n  @media (prefers-color-scheme: dark) {\n    :root {\n" & $block & "\n    }\n  }\n}\n\n" : "";
+  $selectorEntries := $each($theme.semantic.color, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "    --color-" & $k & ": " & $v."$value" & ";"
+  });
+  $selectorBlock := $join($filter($selectorEntries, function($e) { $e != null }), "\n");
+  $darkBlock & "@layer theme {\n  [data-theme=\"hyperstructure\"] {\n" & $selectorBlock & "\n  }\n}\n"
+)

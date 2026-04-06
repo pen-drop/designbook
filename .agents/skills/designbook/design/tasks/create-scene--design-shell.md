@@ -1,6 +1,9 @@
 ---
+when:
+  steps: [design-shell:create-scene]
 params:
   provider: ~
+  reference: []
 files:
   - file: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
     key: shell-scenes
@@ -29,12 +32,14 @@ order: 0
 group: "Designbook/Design System"
 scenes:
   - name: shell
-    reference:              # optional — write when provided in params
+    reference:              # include ONLY when {{ reference }} is non-empty
       - type: "url"
         url: "<resource URL>"
         breakpoint: "<breakpoint name>"
         threshold: 3
         title: "<label>"
+    # ↑ Write the reference entries from {{ reference }} param.
+    #   If {{ reference }} is null or empty, OMIT the reference: key entirely.
     items:
       - component: "COMPONENT_NAMESPACE:COMPONENT_NAME"
         slots:

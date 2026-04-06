@@ -575,7 +575,7 @@ describe('merge_available behavior (real git)', () => {
 
     const result = await workflowDone(dist, name, 'task-1');
     expect(result.archived).toBe(false);
-    // Not all done yet
-    expect(result.data.tasks.some((t) => t.status === 'pending')).toBe(true);
+    // Not all done yet — next task auto-advanced to in-progress
+    expect(result.data.tasks.some((t) => t.status !== 'done')).toBe(true);
   });
 });

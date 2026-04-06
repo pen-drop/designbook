@@ -244,15 +244,17 @@ export function workflowCreate(
     ...(parent ? { parent } : {}),
     ...(stages && Object.keys(stages).length > 0 ? { stages } : {}),
     ...(stageLoaded ? { stage_loaded: stageLoaded } : {}),
+    ...(stages && Object.keys(stages).length > 0 ? { current_stage: Object.keys(stages)[0] } : {}),
     started_at: timestamp(),
     completed_at: undefined,
-    tasks: tasks.map((t) => ({
+    tasks: tasks.map((t, i) => ({
       id: t.id,
       title: t.title,
       type: t.type,
       ...(t.step ? { step: t.step } : {}),
       ...(t.stage ? { stage: t.stage } : {}),
-      status: 'pending' as const,
+      status: i === 0 ? ('in-progress' as const) : ('pending' as const),
+      ...(i === 0 ? { started_at: timestamp() } : {}),
       ...(t.task_file ? { task_file: t.task_file } : {}),
       ...(t.rules && t.rules.length > 0 ? { rules: t.rules } : {}),
       ...(t.blueprints && t.blueprints.length > 0 ? { blueprints: t.blueprints } : {}),
@@ -315,28 +317,28 @@ export function workflowPlan(
   if (stages && Object.keys(stages).length > 0) {
     data.stages = stages;
   }
-  // Set initial stage when grouped stages exist (from create or plan)
-  if (
-    data.stages &&
-    typeof data.stages === 'object' &&
-    !Array.isArray(data.stages) &&
-    Object.keys(data.stages).length > 0
-  ) {
-    const firstStage = Object.keys(data.stages)[0];
-    data.current_stage = firstStage;
-  }
+  // Set current_stage to the first stage that has non-done tasks (after merging preserved + new)
+  // Deferred until after tasks are assembled — see below.
   if (globalParams && Object.keys(globalParams).length > 0) data.params = globalParams;
   if (writeRoot) data.write_root = writeRoot;
   if (rootDir) data.root_dir = rootDir;
   if (worktreeBranch) data.worktree_branch = worktreeBranch;
   if (engine) data.engine = engine as WorkflowFile['engine'];
-  data.tasks = tasks.map((t) => ({
+
+  // Preserve existing tasks (e.g. intake) that are not being replaced by the plan
+  // Mark preserved tasks as done — intake was completed during planning
+  const newSteps = new Set(tasks.map((t) => t.step).filter(Boolean));
+  const preserved = data.tasks
+    .filter((t) => t.step && !newSteps.has(t.step))
+    .map((t) => ({ ...t, status: 'done' as const, completed_at: t.completed_at ?? timestamp() }));
+
+  const newTasks: WorkflowTask[] = tasks.map((t) => ({
     id: t.id,
     title: t.title,
     type: t.type,
     ...(t.step ? { step: t.step } : {}),
     ...(t.stage ? { stage: t.stage } : {}),
-    status: (t.stage === 'intake' ? 'done' : 'pending') as 'done' | 'pending',
+    status: 'pending' as const,
     ...(t.depends_on ? { depends_on: t.depends_on } : {}),
     ...(t.params ? { params: t.params } : {}),
     ...(t.task_file ? { task_file: t.task_file } : {}),
@@ -352,6 +354,27 @@ export function workflowPlan(
       validators: f.validators,
     })),
   }));
+
+  data.tasks = [...preserved, ...newTasks];
+
+  // Set first pending task to in-progress
+  const firstPending = data.tasks.find((t) => t.status === 'pending');
+  if (firstPending) {
+    firstPending.status = 'in-progress';
+    firstPending.started_at = timestamp();
+  }
+
+  // Set current_stage to the first stage with non-done tasks
+  if (
+    data.stages &&
+    typeof data.stages === 'object' &&
+    !Array.isArray(data.stages) &&
+    Object.keys(data.stages).length > 0
+  ) {
+    const stageNames = Object.keys(data.stages);
+    const firstPendingStage = stageNames.find((s) => data.tasks.some((t) => t.stage === s && t.status !== 'done'));
+    data.current_stage = firstPendingStage ?? stageNames[0];
+  }
 
   writeWorkflowAtomic(filePath, data);
   return data;
@@ -464,6 +487,12 @@ export async function workflowDone(
       let response: StageResponse;
 
       if (nextStepInStage) {
+        // Mark next task as in-progress
+        const nextTask = data.tasks.find((t) => t.step === nextStepInStage && t.status === 'pending');
+        if (nextTask) {
+          nextTask.status = 'in-progress';
+          nextTask.started_at = timestamp();
+        }
         response = {
           stage: currentStage,
           step_completed: task.step,
@@ -522,6 +551,11 @@ export async function workflowDone(
         // If this stage has pending tasks, stop here
         const nextStepInNewStage = data.tasks.find((t) => t.stage === nextStage && t.status !== 'done');
         if (nextStepInNewStage) {
+          // Mark next task as in-progress
+          if (nextStepInNewStage.status === 'pending') {
+            nextStepInNewStage.status = 'in-progress';
+            nextStepInNewStage.started_at = timestamp();
+          }
           data.current_stage = nextStage;
           response = {
             stage: nextStage,
@@ -553,6 +587,13 @@ export async function workflowDone(
     }
 
     // Legacy path: no grouped stages — use old commit/done behavior
+    // Mark next pending task as in-progress
+    const nextPending = data.tasks.find((t) => t.status === 'pending');
+    if (nextPending) {
+      nextPending.status = 'in-progress';
+      nextPending.started_at = timestamp();
+    }
+
     const outputTasks = data.tasks.filter((t) => t.type !== 'test' && t.type !== 'prepare-environment');
     const allNonTestDone = outputTasks.length > 0 && outputTasks.every((t) => t.status === 'done');
     const allDone = data.tasks.every((t) => t.status === 'done');

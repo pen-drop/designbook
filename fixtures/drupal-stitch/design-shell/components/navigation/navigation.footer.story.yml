@@ -1,0 +1,20 @@
+name: "Footer"
+props:
+  variant: "footer"
+  items:
+    - title: "Changelog"
+      url: "/changelog"
+      in_active_trail: false
+      below: []
+    - title: "GitHub"
+      url: "/github"
+      in_active_trail: false
+      below: []
+    - title: "Status"
+      url: "/status"
+      in_active_trail: false
+      below: []
+    - title: "Privacy"
+      url: "/privacy"
+      in_active_trail: false
+      below: []

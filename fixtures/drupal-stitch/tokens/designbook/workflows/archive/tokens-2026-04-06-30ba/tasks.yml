@@ -1,0 +1,98 @@
+title: Design Tokens
+workflow: tokens
+workflow_id: 30ba
+status: completed
+engine: direct
+stages:
+  intake:
+    steps:
+      - intake
+  execute:
+    steps:
+      - create-tokens
+stage_loaded:
+  intake:
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/tokens/tasks/intake--tokens.md
+    rules: &ref_0
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-stitch/rules/stitch-tokens.md
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/tokens/rules/renderer-hints.md
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/design/rules/guidelines-context.md
+    blueprints: &ref_1
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-drupal/components/blueprints/section.md
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-drupal/components/blueprints/grid.md
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-drupal/components/blueprints/container.md
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-css-tailwind/blueprints/css-naming.md
+    config_rules: []
+    config_instructions: []
+  create-tokens:
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/tokens/tasks/create-tokens.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/tokens/rules/renderer-hints.md
+    blueprints:
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-css-tailwind/blueprints/css-naming.md
+    config_rules: []
+    config_instructions: []
+current_stage: done
+started_at: '2026-04-06T19:12:45'
+tasks:
+  - id: intake
+    title: 'Intake: Design Tokens'
+    type: data
+    step: intake
+    stage: intake
+    status: done
+    started_at: '2026-04-06T19:12:45'
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/tokens/tasks/intake--tokens.md
+    rules: *ref_0
+    blueprints: *ref_1
+    files: []
+    completed_at: '2026-04-06T19:17:24'
+  - id: create-tokens-00ebe9
+    title: Create Tokens
+    type: tokens
+    step: create-tokens
+    stage: execute
+    status: done
+    params:
+      intake: {}
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/tokens/tasks/create-tokens.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/tokens/rules/renderer-hints.md
+    blueprints:
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-css-tailwind/blueprints/css-naming.md
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/design-system/design-tokens.yml
+        key: design-tokens
+        validators:
+          - tokens
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/design-system/design-tokens.yml
+          type: tokens
+          valid: true
+          last_validated: '2026-04-06T17:18:01.820Z'
+          last_passed: '2026-04-06T17:18:01.820Z'
+        flushed_at: '2026-04-06T17:18:07.040Z'
+    started_at: '2026-04-06T19:17:24'
+    completed_at: '2026-04-06T19:18:07'
+root_dir: /home/cw/projects/designbook/workspaces/drupal-stitch
+_changesDir: >-
+  /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/workflows/changes/tokens-2026-04-06-30ba
+completed_at: '2026-04-06T19:18:07'
+summary: 'Intake: Design Tokens (data), Create Tokens (tokens)'

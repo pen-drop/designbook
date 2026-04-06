@@ -1,21 +1,30 @@
 # Task & Workflow File Formats
 
-## Task File Frontmatter — Structured File Declarations
+## Task File Frontmatter — Unified Extension Model
 
-Each task file declares output files with `key` and `validators`:
+Every task, rule, and blueprint file supports these frontmatter fields:
 
 ```yaml
 ---
-files:
+name: designbook:design:screenshot           # namespaced identity (<skill>:<concern>:<artifact>)
+as: designbook:design:resolve-reference      # optional: override the named artifact
+priority: 10                                  # optional: execution order + override strength (default: 0)
+when:                                         # optional: conditions for matching
+  steps: [screenshot]
+  frameworks.css: tailwind
+params:                                       # task-specific: declared parameters
+  scene: ~
+files:                                        # task-specific: output file declarations
   - file: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
     key: component
     validators: [component]
-  - file: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.twig
-    key: template
-    validators: []
 ---
 ```
 
+- `name` — unique namespaced identity. Convention: `<skill>:<concern>:<artifact>`. Derived from filesystem path if omitted.
+- `as` — override target. Replaces the named artifact if this artifact's `priority` is higher.
+- `priority` — integer (default 0). Lower runs first. Higher wins in `as` conflicts.
+- `when` — conditions checked against runtime context (step name) and project config.
 - `file` — path template (supports `$ENV` and `{{ param }}`)
 - `key` — stable identifier used by `write-file --key`
 - `validators` — validator keys (`component`, `data-model`, `tokens`, `data`, `entity-mapping`, `scene`). Empty = auto-pass.

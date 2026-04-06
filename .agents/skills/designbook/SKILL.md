@@ -1,6 +1,6 @@
 ---
 name: debo
-argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|design-guidelines|sections|shape-section|sample-data|css-generate] [--optimize]"
+argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|design-guidelines|sections|shape-section|sample-data|css-generate|import|sb] [--optimize]"
 description: >
   Designbook design system. Use ALWAYS when creating, modifying, or
   deleting components, screens, scenes, design tokens, CSS, or any
@@ -8,7 +8,7 @@ description: >
   arises during other work. Never create component files without this
   skill. Sub-commands: vision, tokens, data-model, design-component,
   design-screen, design-shell, design-guidelines, sections,
-  shape-section, sample-data, css-generate.
+  shape-section, sample-data, css-generate, import.
 ---
 
 ## Rules
@@ -44,7 +44,7 @@ When the user references one of these files or topics in conversation, start the
 
 | File / Artifact | Workflow | Path Pattern |
 |---|---|---|
-| vision | `vision` | `$DESIGNBOOK_DATA/product/vision.md` |
+| vision | `vision` | `$DESIGNBOOK_DATA/vision.md` |
 | data-model | `data-model` | `$DESIGNBOOK_DATA/data-model.yml` |
 | tokens | `tokens` | `$DESIGNBOOK_DATA/design-system/design-tokens.yml` |
 | guidelines, design-guidelines | `design-guidelines` | `$DESIGNBOOK_DATA/design-system/guidelines.yml` |
@@ -54,6 +54,7 @@ When the user references one of these files or topics in conversation, start the
 | shell, design-shell | `design-shell` | design-system.scenes.yml + shell components |
 | screen, design-screen | `design-screen` | section scenes + screen components |
 | verify, design-verify | `design-verify` | visual testing of existing scenes against references |
+| import | `import` | full design system import from a design reference |
 
 **Detection rules:**
 - Match by keyword in user message (e.g. "in der vision", "data-model anpassen", "tokens ändern")

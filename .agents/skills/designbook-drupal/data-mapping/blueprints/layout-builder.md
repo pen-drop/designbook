@@ -6,7 +6,7 @@ when:
   steps: [map-entity]
 ---
 
-# Rule: Layout Builder — Passthrough Mapping
+# Blueprint: Layout Builder — Passthrough Mapping
 
 Applies when `map-entity` runs for a view mode with `template: layout-builder` (i.e. a node bundle's full view mode that uses Layout Builder).
 

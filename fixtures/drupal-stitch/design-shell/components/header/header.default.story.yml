@@ -1,0 +1,36 @@
+name: "Default"
+props:
+  sticky: false
+slots:
+  logo:
+    - type: element
+      tag: "a"
+      attributes:
+        href: "/"
+        class: "text-base font-bold font-heading text-on-surface"
+      value: "Designbook"
+  navigation:
+    - type: component
+      component: "test_integration_drupal:navigation"
+      props:
+        variant: "main"
+        items:
+          - title: "Guide"
+            url: "/guide"
+            in_active_trail: false
+            below: []
+          - title: "Examples"
+            url: "/examples"
+            in_active_trail: false
+            below: []
+          - title: "Community"
+            url: "/community"
+            in_active_trail: false
+            below: []
+  actions:
+    - type: element
+      tag: "a"
+      attributes:
+        href: "/get-started"
+        class: "text-sm font-label px-4 py-2 rounded-md bg-on-surface text-surface hover:bg-on-surface/90 transition-colors"
+      value: "Get Started"

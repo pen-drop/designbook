@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [create-data-model]
 params:
   content: {}
 files:

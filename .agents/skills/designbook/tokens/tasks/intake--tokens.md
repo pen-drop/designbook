@@ -1,7 +1,9 @@
 ---
+when:
+  steps: [tokens:intake]
 files: []
 reads:
-  - path: $DESIGNBOOK_DATA/product/vision.md
+  - path: $DESIGNBOOK_DATA/vision.md
     workflow: /debo-vision
   - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
     optional: true
@@ -14,13 +16,6 @@ reads:
 Help the user choose colors and typography for their product. The result is saved to `$DESIGNBOOK_DATA/design-system/design-tokens.yml`.
 
 > Color naming and required token roles are determined by framework naming rules loaded for this stage.
-
-## Step 0: Design Reference
-
-If `guidelines.yml` contains a `design_reference`, ask the user before accessing it:
-> "I see a design reference (`<label>`) in the guidelines — may I access it?"
-
-Wait for confirmation. Once confirmed, fetch the reference immediately and extract colors, typography, and visual intent. Use these as the basis for all suggestions in the following steps — never present suggestions without consulting the reference first.
 
 ## Step 1: Explain and Gather Preferences
 
@@ -38,6 +33,8 @@ These become `primitive.color.*` values, with `semantic.color.*` aliases pointin
 
 Guide the user through choosing fonts from Google Fonts for heading, body, and mono roles. Suggest options based on the product vision.
 
+Also collect a typography scale with semantic roles (e.g., display, headline, title, body, label). Each role SHALL have a font size, font weight, and line height. Concrete role names and values come from the design reference at runtime — do not hardcode specific roles or sizes in this task.
+
 ## Step 4: Check Layout Blueprints
 
 Read `required_tokens` from each blueprint already loaded for this stage. For each blueprint that declares `required_tokens`, extract its token groups and present them to the user with their default values.
@@ -46,7 +43,7 @@ Suggest adjusted values based on the product's design guidelines. Let the user c
 
 ## Step 5: Optional — Additional Token Groups
 
-Depending on the design, the user may want to define additional groups (breakpoints, spacing scale, type scale with modular ratio, radius, shadows, etc.). Ask if they need any of these. Each group becomes a key in the `intake` param.
+Depending on the design, the user may want to define additional groups (breakpoints, spacing scale, radius, shadows, etc.). Ask if they need any of these. Each group becomes a key in the `intake` param.
 
 ## Step 6: Present Final Choices and Confirm
 

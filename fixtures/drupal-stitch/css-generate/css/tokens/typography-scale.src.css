@@ -1,0 +1,17 @@
+@theme {
+  --text-display: 3.5rem;
+  --text-display--weight: 700;
+  --text-display--line-height: 1.1;
+  --text-headline: 2.25rem;
+  --text-headline--weight: 700;
+  --text-headline--line-height: 1.2;
+  --text-title: 1.5rem;
+  --text-title--weight: 600;
+  --text-title--line-height: 1.3;
+  --text-body-text: 1rem;
+  --text-body-text--weight: 400;
+  --text-body-text--line-height: 1.5;
+  --text-label-text: 0.875rem;
+  --text-label-text--weight: 500;
+  --text-label-text--line-height: 1.4;
+}

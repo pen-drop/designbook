@@ -6,7 +6,7 @@ when:
   steps: [map-entity]
 ---
 
-# Rule: Canvas — Passthrough Mapping
+# Blueprint: Canvas — Passthrough Mapping
 
 Applies when `map-entity` runs for a view mode with `template: canvas` (i.e. a `canvas_page` bundle's full view mode).
 
@@ -25,26 +25,31 @@ For Canvas full view mode, the sample data IS the component tree — no JSONata 
 
 ## Structure of `components`
 
-The `components` field contains a nested `ComponentNode[]`. Each top-level entry is a **section** component (e.g. `canvas_section`). Sections have `children` arrays of `canvas_*` components with inline `props`.
+The `components` field contains a nested `ComponentNode[]`. Each top-level entry is typically a **section** component. Sections use `slots` for nested content, with each slot containing either plain strings or arrays of nested `ComponentNode`.
 
 Example structure in sample data:
 ```yaml
 components:
-  - component: "COMPONENT_NAMESPACE:canvas_section"
+  - component: "COMPONENT_NAMESPACE:section"
     props:
-      layout: full-width
-    children:
-      - component: "COMPONENT_NAMESPACE:canvas_text"
-        props:
-          text: "Welcome to our site"
-      - component: canvas_image
-        props:
-          src: "/path/to/image.jpg"
-          alt: "Hero image"
-      - component: "COMPONENT_NAMESPACE:canvas_cta"
-        props:
-          label: "Get started"
-          href: "/contact"
+      max_width: "lg"
+      padding_top: "lg"
+      columns: 1
+    slots:
+      column_1:
+        - component: "COMPONENT_NAMESPACE:hero"
+          slots:
+            content:
+              - component: "COMPONENT_NAMESPACE:rich-snippet"
+                props:
+                  headline: "Welcome to our site"
+                  headline_level: "h1"
+                  text: "Get started with our platform."
+            actions:
+              - component: "COMPONENT_NAMESPACE:button"
+                props:
+                  variant: "primary"
+                  content: "Get started"
 ```
 
 ## Rules
@@ -53,5 +58,5 @@ components:
 - Do NOT generate a field-by-field JSONata mapping — just return `$record.components`
 - There are NO entity references in Canvas — all component data is inline
 - Canvas uses the entity type `canvas_page` (not `node`)
-- `canvas_*` child components carry their own `props` inline — no further resolution needed
+- Nested components carry their own `props` and `slots` inline — no further resolution needed
 - Sections can have multiple levels of nesting (unlike Layout Builder which is flat)

@@ -1,5 +1,29 @@
 # Workflow Architecture
 
+## Unified Extension Model
+
+Every artifact (task, rule, blueprint) has a namespaced `name` in frontmatter:
+
+```yaml
+name: <skill>:<concern>:<artifact>
+# Examples:
+# designbook:design:screenshot        (nested skill)
+# designbook-stitch:stitch-inspect    (flat skill)
+```
+
+If `name` is omitted, it's derived from the filesystem path. Three optional fields control extensibility:
+
+- **`name`** — unique identity, convention `<skill>:<concern>:<artifact>`
+- **`as`** — overrides the named artifact (highest `priority` wins)
+- **`priority`** — integer (default 0), determines execution order and override winner
+
+**Override rules:**
+- No `as` = additive (runs alongside others)
+- With `as` = override (replaces the named artifact if priority is higher)
+- Equal priority tiebreak: alphabetically last skill wins
+
+**Short-name resolution:** Within the same skill, the skill prefix can be omitted in `as`. Cross-skill overrides require the full name.
+
 ## Stage-Based Architecture
 
 Workflows declare `stages:` in their frontmatter. Each stage groups one or more steps that map to task files in `.agents/skills/*/tasks/<step>.md`. Rule files at `.agents/skills/*/rules/<name>.md` apply contextual constraints. Blueprint files at `.agents/skills/*/blueprints/<name>.md` provide starting points for component creation.
@@ -22,7 +46,8 @@ The `workflow plan` CLI (resolution mode) replaces AI-side task resolution:
 
 ```
 AI builds items array → CLI resolves:
-  ├─ task files (scan + when-filter + precedence)
+  ├─ task files (scan + when-filter + name/as dedup + priority sort)
+  ├─ multiple tasks per step (ordered by priority, lowest first)
   ├─ WORKTREE creation ($DESIGNBOOK_WORKSPACES/designbook-{name}/)
   ├─ file path expansion — files: use WORKTREE-remapped DESIGNBOOK_DIRS_* vars
   ├─ reads: use real DESIGNBOOK_HOME paths (not remapped)
@@ -34,6 +59,8 @@ AI builds items array → CLI resolves:
 → writes tasks.yml with fully-resolved paths + write_root/root_dir
 → outputs JSON plan to stdout
 ```
+
+**Multi-task resolution per step:** When multiple tasks match a step, they are deduplicated by `name`/`as` and sorted by `priority`. Tasks without `as` are additive; tasks with `as` override the named artifact. Within each step, tasks execute sequentially (lowest priority first).
 
 ## WORKTREE Lifecycle
 

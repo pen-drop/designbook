@@ -1,4 +1,8 @@
 ---
+name: designbook:design:resolve-reference
+when:
+  steps: [resolve-reference]
+priority: 20
 params:
   scene: ~
 files: []

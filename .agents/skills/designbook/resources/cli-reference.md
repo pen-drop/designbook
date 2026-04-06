@@ -19,7 +19,7 @@ Manages the Storybook daemon lifecycle. State is persisted in `$DESIGNBOOK_DATA/
 
 # Check if Storybook is running
  storybook status
-# → JSON: { running: true, pid, port, log, started_at }
+# → JSON: { running: true, pid, port, url, log, started_at }
 # → JSON: { running: false } or { running: false, stale: true }
 # → cleans up stale PID file automatically
 
@@ -73,18 +73,6 @@ Resolves scene references to Storybook iframe URLs. Reads the active port from `
  create --workflow <id> --workflow-file <path> [--parent <name>]
 # → returns $WORKFLOW_NAME
 
-# Plan — expand stages into tasks via each iterables
- plan --workflow $WORKFLOW_NAME \
-  --params '<params_json>'
-# → stages with each: expand iterables into tasks; stages without each: singleton tasks
-# → validates params, expands file paths, computes deps; writes tasks.yml; outputs JSON plan
-
-# Dry-run — preview plan without writing tasks.yml
- plan --workflow $WORKFLOW_NAME \
-  --params '<params_json>' \
-  --dry-run
-# → same JSON output, no writes
-
 # List workflows for an id
  list --workflow <id>
  list --workflow <id> --include-archived
@@ -95,43 +83,22 @@ Resolves scene references to Storybook iframe URLs. Reads the active port from `
 
 # Execution (2 calls per task)
  validate --workflow <name> --task <id>
- done     --workflow <name> --task <id>
+ done     --workflow <name> --task <id> [--params '<json>']
+# → when --task intake: --params triggers implicit plan (expands iterables into tasks)
+# → without --params on intake: auto-plans with empty params {} (singleton workflows)
 
 # Escape hatch: add file not known at plan time
  add-file --workflow <name> --task <id> --file <path>
 ```
 
-### `workflow plan` Options
+### `workflow done` with `--params` (Implicit Plan)
 
-Stage resolution happens at `workflow create --workflow-file` time. The `plan` command reads the pre-resolved `stage_loaded` from tasks.yml.
+When completing the intake task, `--params` triggers implicit plan logic. Stage resolution happens at `workflow create --workflow-file` time. The done command reads the pre-resolved `stage_loaded` from tasks.yml and expands iterables into tasks before marking intake as done.
 
 | Option | Required | Description |
 |---|---|---|
 | `--workflow <name>` | Yes | Workflow name (from `workflow create`) |
-| `--params <json>` | No | Intake params — iterables are arrays keyed by `each` name (e.g. `{"component":[...],"scene":[...]}`) |
+| `--task <id>` | Yes | Task id — use `intake` to trigger implicit plan |
+| `--params <json>` | No | Intake params — iterables are arrays keyed by `each` name (e.g. `{"component":[...],"scene":[...]}`). Omit for singleton workflows (auto-plans with `{}`) |
 
 **Each expansion:** Stages with `each: <name>` auto-expand all their steps for each item in `params[name]`. Stages without `each` create one singleton task per step.
-
-**JSON output format:**
-```json
-{
-  "params": { "section_id": "dashboard" },
-  "stages": ["create-component", "create-scene"],
-  "tasks": [
-    {
-      "id": "create-component-button",
-      "title": "Create Component: button",
-      "type": "component",
-      "stage": "create-component",
-      "depends_on": [],
-      "params": { "component": "button", "slots": [] },
-      "task_file": "/abs/path/.agents/skills/.../tasks/create-component.md",
-      "rules": ["/abs/path/.agents/skills/.../rules/rule.md"],
-      "blueprints": ["/abs/path/.agents/skills/.../blueprints/section.md"],
-      "config_rules": [],
-      "config_instructions": [],
-      "files": ["/abs/path/components/button/button.component.yml"]
-    }
-  ]
-}
-```

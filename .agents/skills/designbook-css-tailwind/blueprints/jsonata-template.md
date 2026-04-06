@@ -47,7 +47,11 @@ Filter entries where key starts with `$` (e.g., `$extensions`, `$type`) to skip 
 
 ## DTCG Reference Resolution
 
-When token values contain DTCG references (e.g., `{primitive.color.blue-600}`), resolve them to their final `$value`:
+When token values contain DTCG references (e.g., `{primitive.color.blue-600}`), there are two resolution modes:
+
+### Hex resolution (default)
+
+Resolves references to their final `$value` (concrete hex). Use for groups that don't have `resolve: "var"` in css-mapping:
 
 ```jsonata
 $resolve := function($val) {
@@ -58,7 +62,22 @@ $resolve := function($val) {
 };
 ```
 
-Use `$resolve($v."$value")` instead of bare `$v."$value"` when the token group contains alias references.
+### Var resolution (`resolve: "var"`)
+
+Resolves references to `var()` CSS custom property references. Use for groups with `resolve: "var"` in css-mapping:
+
+```jsonata
+$resolveVar := function($val, $prefix) {
+  $substring($val, 0, 1) = "{" ? (
+    $ref := $replace($replace($val, "{", ""), "}", "");
+    $parts := $split($ref, ".");
+    $name := $join($filter($parts, function($v, $i) { $i >= 2 }), "-");
+    "var(--" & $prefix & "-" & $name & ")"
+  ) : $val
+};
+```
+
+Use `$resolveVar($v."$value", "<prefix>")` instead of bare `$v."$value"` when the group references another token layer via `var()`.
 
 ## Typography: fontFamily Quoting
 
@@ -70,48 +89,71 @@ $v."$type" = "fontFamily" ? "  --<prefix>-" & $k & ": \"" & $v."$value" & "\";"
 
 Skip composite typography tokens (`$type: typography`).
 
+## Composite Typography Expansion (`expand: "typography"`)
+
+For groups with `expand: "typography"` in their css-mapping entry, the JSONata expression SHALL expand each composite `$type: typography` token into three CSS custom properties:
+
+- `--<prefix>-<role>`: the `fontSize` value
+- `--<prefix>-<role>--weight`: the `fontWeight` value
+- `--<prefix>-<role>--line-height`: the `lineHeight` value
+
+The `fontFamily` sub-value is NOT emitted (it is already handled by the `typography` fontFamily group).
+
+```jsonata
+(
+  $entries := $each($$.<token-path>, function($v, $k) {
+    $substring($k, 0, 1) != "$" and $v."$type" = "typography" ? (
+      $val := $v."$value";
+      "  --<prefix>-" & $k & ": " & $val.fontSize & ";\n" &
+      "  --<prefix>-" & $k & "--weight: " & $val.fontWeight & ";\n" &
+      "  --<prefix>-" & $k & "--line-height: " & $val.lineHeight & ";"
+    )
+  });
+  "<wrap> {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)
+```
+
 ## Theme Override Expression Template
 
-For theme files (`themes/*.yml`), use a different wrapper that outputs `@layer theme` with a `[data-theme]` selector instead of `@theme`.
+For themes declared in the `themes:` section of `design-tokens.yml`, use `@layer theme` with a `[data-theme]` selector instead of `@theme`. The input is the same `design-tokens.yml` — the expression navigates to `$$.themes.<name>.semantic.color`.
 
 ### Standard Theme
 
 ```jsonata
 (
-  $entries := $each($$.semantic.color, function($v, $k) {
+  $entries := $each($$.themes."<name>".semantic.color, function($v, $k) {
     $substring($k, 0, 1) != "$" ? "    --color-" & $k & ": " & $v."$value" & ";"
   });
   "@layer theme {\n  [data-theme=\"<name>\"] {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n  }\n}\n"
 )
 ```
 
-Where `<name>` is the theme filename without `.yml` extension.
-
 ### Dark Mode Theme
 
-If the theme file has `$extensions.darkMode: true`, output **both** a `prefers-color-scheme` media query and a `data-theme` selector:
+If the theme has `$extensions.darkMode: true`, output **both** a `prefers-color-scheme` media query and a `data-theme` selector:
 
 ```jsonata
 (
-  $entries := $each($$.semantic.color, function($v, $k) {
+  $theme := $$.themes."<name>";
+  $entries := $each($theme.semantic.color, function($v, $k) {
     $substring($k, 0, 1) != "$" ? "    --color-" & $k & ": " & $v."$value" & ";"
   });
   $block := $join($filter($entries, function($e) { $e != null }), "\n");
-  $dark := $$."$extensions".darkMode;
+  $dark := $theme."$extensions".darkMode;
   $darkBlock := $dark ? "@layer theme {\n  @media (prefers-color-scheme: dark) {\n    :root {\n" & $block & "\n    }\n  }\n}\n\n" : "";
   $darkBlock & "@layer theme {\n  [data-theme=\"<name>\"] {\n" & $block & "\n  }\n}\n"
 )
 ```
 
-### @config Block for Theme Files
+### @config Block for Theme Expressions
 
-Theme expressions use the theme YAML file as input (not `design-tokens.yml`):
+Theme expressions use the same `design-tokens.yml` as input:
 
 ```jsonata
 /** @config
  {
-   "input": "<relative-path-to-themes/<name>.yml>",
-   "output": "<relative-path-to-css/tokens/color.theme-<name>.src.css>"
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/color.theme-<name>.src.css"
  }
  */
 ```

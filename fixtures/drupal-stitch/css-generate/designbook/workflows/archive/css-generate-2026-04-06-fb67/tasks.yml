@@ -1,0 +1,359 @@
+title: Generate CSS
+workflow: css-generate
+workflow_id: fb67
+status: completed
+engine: direct
+stages:
+  intake:
+    steps:
+      - intake
+  prepare:
+    steps:
+      - prepare-fonts
+      - prepare-icons
+  generate:
+    each: group
+    steps:
+      - generate-jsonata
+  transform:
+    steps:
+      - generate-css
+  index:
+    steps:
+      - generate-index
+stage_loaded:
+  intake:
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/intake--css-generate.md
+    rules: []
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  prepare-fonts:
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/fonts/google/tasks/prepare-fonts.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/fonts/google/rules/font-url-construction.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  generate-jsonata:
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    rules: []
+    blueprints:
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    config_rules: []
+    config_instructions: []
+  generate-css:
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-css.md
+    rules: []
+    blueprints:
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    config_rules: []
+    config_instructions: []
+  generate-index:
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-index.md
+    rules: []
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+current_stage: done
+started_at: '2026-04-06T19:21:06'
+tasks:
+  - id: intake
+    title: 'Intake: Generate CSS'
+    type: data
+    step: intake
+    stage: intake
+    status: done
+    started_at: '2026-04-06T19:21:06'
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/intake--css-generate.md
+    files: []
+    completed_at: '2026-04-06T19:22:05'
+  - id: prepare-fonts-d20faf
+    title: Prepare Fonts
+    type: data
+    step: prepare-fonts
+    stage: prepare
+    status: done
+    params:
+      group: &ref_2
+        - group: primitive-color
+        - group: color
+        - group: radius
+        - group: layout-width
+        - group: layout-spacing
+        - group: grid
+        - group: typography
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/fonts/google/tasks/prepare-fonts.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/fonts/google/rules/font-url-construction.md
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/css/tokens/google-fonts.src.css
+        key: google-fonts-css
+        validators: []
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/css/tokens/google-fonts.src.css
+          type: unknown
+          valid: true
+          skipped: true
+          last_validated: '2026-04-06T17:25:22.777Z'
+        flushed_at: '2026-04-06T17:25:27.722Z'
+    started_at: '2026-04-06T19:22:05'
+    completed_at: '2026-04-06T19:25:27'
+  - id: generate-jsonata-22bcc0
+    title: 'Generate Jsonata: primitive-color'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: primitive-color
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints: &ref_0
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-primitive-color.jsonata
+        key: generate-jsonata
+        validators: &ref_1
+          - cmd:npx jsonata-w transform --dry-run {{ file }}
+          - >-
+            cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint
+            --stdin-filename output.css
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-primitive-color.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-06T17:25:47.131Z'
+          last_passed: '2026-04-06T17:25:47.131Z'
+        flushed_at: '2026-04-06T17:28:13.901Z'
+    started_at: '2026-04-06T19:25:27'
+    completed_at: '2026-04-06T19:25:59'
+  - id: generate-jsonata-6ab5e1
+    title: 'Generate Jsonata: color'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: color
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints: *ref_0
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-color.jsonata
+        key: generate-jsonata
+        validators: *ref_1
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-color.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-06T17:26:14.442Z'
+          last_passed: '2026-04-06T17:26:14.442Z'
+        flushed_at: '2026-04-06T17:28:13.901Z'
+    started_at: '2026-04-06T19:25:59'
+    completed_at: '2026-04-06T19:26:24'
+  - id: generate-jsonata-b90e34
+    title: 'Generate Jsonata: radius'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: radius
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints: *ref_0
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-radius.jsonata
+        key: generate-jsonata
+        validators: *ref_1
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-radius.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-06T17:26:37.313Z'
+          last_passed: '2026-04-06T17:26:37.313Z'
+        flushed_at: '2026-04-06T17:28:13.901Z'
+    started_at: '2026-04-06T19:26:24'
+    completed_at: '2026-04-06T19:26:49'
+  - id: generate-jsonata-797573
+    title: 'Generate Jsonata: layout-width'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: layout-width
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints: *ref_0
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-layout-width.jsonata
+        key: generate-jsonata
+        validators: *ref_1
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-layout-width.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-06T17:26:56.826Z'
+          last_passed: '2026-04-06T17:26:56.826Z'
+        flushed_at: '2026-04-06T17:28:13.901Z'
+    started_at: '2026-04-06T19:26:49'
+    completed_at: '2026-04-06T19:27:10'
+  - id: generate-jsonata-6263bf
+    title: 'Generate Jsonata: layout-spacing'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: layout-spacing
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints: *ref_0
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-layout-spacing.jsonata
+        key: generate-jsonata
+        validators: *ref_1
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-layout-spacing.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-06T17:27:17.120Z'
+          last_passed: '2026-04-06T17:27:17.120Z'
+        flushed_at: '2026-04-06T17:28:13.901Z'
+    started_at: '2026-04-06T19:27:10'
+    completed_at: '2026-04-06T19:27:38'
+  - id: generate-jsonata-16dc06
+    title: 'Generate Jsonata: grid'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: grid
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints: *ref_0
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-grid.jsonata
+        key: generate-jsonata
+        validators: *ref_1
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-grid.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-06T17:27:43.866Z'
+          last_passed: '2026-04-06T17:27:43.866Z'
+        flushed_at: '2026-04-06T17:28:13.901Z'
+    started_at: '2026-04-06T19:27:38'
+    completed_at: '2026-04-06T19:27:56'
+  - id: generate-jsonata-63f98e
+    title: 'Generate Jsonata: typography'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: typography
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints: *ref_0
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-typography.jsonata
+        key: generate-jsonata
+        validators: *ref_1
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/designbook-css-tailwind/generate-typography.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-06T17:28:02.248Z'
+          last_passed: '2026-04-06T17:28:02.248Z'
+        flushed_at: '2026-04-06T17:28:13.901Z'
+    started_at: '2026-04-06T19:27:56'
+    completed_at: '2026-04-06T19:28:13'
+  - id: generate-css-a81aae
+    title: Generate Css
+    type: css
+    step: generate-css
+    stage: transform
+    status: done
+    params:
+      group: *ref_2
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-css.md
+    blueprints:
+      - >-
+        /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files: []
+    started_at: '2026-04-06T19:28:14'
+    completed_at: '2026-04-06T19:29:23'
+  - id: generate-index-cffdc8
+    title: Generate Index
+    type: css
+    step: generate-index
+    stage: index
+    status: done
+    params:
+      group: *ref_2
+    task_file: >-
+      /home/cw/projects/designbook/workspaces/drupal-stitch/.claude/skills/designbook/css-generate/tasks/generate-index.md
+    files:
+      - path: >-
+          /home/cw/projects/designbook/workspaces/drupal-stitch/css/tokens/index.src.css
+        key: index-css
+        validators: []
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/workspaces/drupal-stitch/css/tokens/index.src.css
+          type: unknown
+          valid: true
+          skipped: true
+          last_validated: '2026-04-06T17:29:31.780Z'
+        flushed_at: '2026-04-06T17:29:36.334Z'
+    started_at: '2026-04-06T19:29:23'
+    completed_at: '2026-04-06T19:29:36'
+params:
+  group: *ref_2
+root_dir: /home/cw/projects/designbook/workspaces/drupal-stitch
+_changesDir: >-
+  /home/cw/projects/designbook/workspaces/drupal-stitch/designbook/workflows/changes/css-generate-2026-04-06-fb67
+completed_at: '2026-04-06T19:29:36'
+summary: >-
+  Intake: Generate CSS (data), Prepare Fonts (data), Generate Jsonata:
+  primitive-color (css), Generate Jsonata: color (css), Generate Jsonata: radius
+  (css), Generate Jsonata: layout-width (css), Generate Jsonata: layout-spacing
+  (css), Generate Jsonata: grid (css), Generate Jsonata: typography (css),
+  Generate Css (css), Generate Index (css)

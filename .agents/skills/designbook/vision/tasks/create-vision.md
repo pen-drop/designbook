@@ -1,11 +1,13 @@
 ---
+when:
+  steps: [create-vision]
 params:
   product_name: ~
   description: ~
   problems: []
   features: []
 files:
-  - file: $DESIGNBOOK_DATA/product/vision.md
+  - file: $DESIGNBOOK_DATA/vision.md
     key: vision
     validators: []
 ---

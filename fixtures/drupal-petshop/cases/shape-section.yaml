@@ -1,0 +1,28 @@
+fixtures:
+  - vision
+  - sections
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo shape-section workflow for the "homepage" section. Do NOT ask any questions.
+  The product is "PetMatch". Read designbook/sections/homepage/spec.section.yml for context.
+  Define user flows for: browsing featured pets, searching/filtering pets, and initiating an adoption application.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('spec.section.yml'))
+  - type: javascript
+    value: output.archivedWorkflows['shape-section']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['shape-section']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: |
+      const files = Object.keys(output.fileContents).filter(f => f.includes('spec.section.yml'));
+      if (files.length === 0) return false;
+      return files.some(f => {
+        const data = output.fileContents[f];
+        return data?.user_flows && data.user_flows.length >= 2;
+      });
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

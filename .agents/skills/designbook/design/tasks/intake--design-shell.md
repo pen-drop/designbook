@@ -1,7 +1,9 @@
 ---
+when:
+  steps: [design-shell:intake]
 files: []
 reads:
-  - path: $DESIGNBOOK_DATA/product/vision.md
+  - path: $DESIGNBOOK_DATA/vision.md
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
   - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
 ---

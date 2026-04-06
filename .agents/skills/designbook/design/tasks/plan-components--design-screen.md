@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [design-screen:plan-components]
 files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/guidelines.yml

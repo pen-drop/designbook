@@ -1,0 +1,27 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Header"
+status: "experimental"
+group: "Shell"
+description: "Site header with logo, navigation, and optional action buttons."
+provider: "test_integration_drupal"
+props:
+  type: object
+  properties:
+    sticky:
+      type: boolean
+      title: "Sticky"
+      description: "Whether the header should stick to the top of the viewport."
+      default: false
+slots:
+  logo:
+    title: "Logo"
+    description: "Site logo or brand mark."
+  navigation:
+    title: "Navigation"
+    description: "Navigation component."
+  actions:
+    title: "Actions"
+    description: "Action buttons (search, CTA, etc.)."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

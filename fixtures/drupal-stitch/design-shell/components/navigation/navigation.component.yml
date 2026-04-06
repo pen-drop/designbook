@@ -1,0 +1,22 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Navigation"
+status: "experimental"
+group: "Navigation"
+description: "Renders a Drupal menu tree. Supports main and footer variants."
+provider: "test_integration_drupal"
+variants:
+  main:
+    title: "Main Navigation"
+  footer:
+    title: "Footer Navigation"
+props:
+  type: object
+  properties:
+    items:
+      type: array
+      title: "Items"
+      description: "Array of Drupal MenuLinkTreeElement items."
+slots: {}
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

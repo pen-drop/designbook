@@ -178,7 +178,35 @@ describe('buildSceneModule integration', () => {
 
     expect(module).toContain('import { renderComponent }');
     expect(module).toContain('const __imports');
-    expect(module).toContain('render: (args) => renderComponent(args.__scene, __imports)');
+  });
+
+  it('scene with theme: "dark" sets themeOverride parameter', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    expect(module).toContain('export const DarkTheme');
+    const themeMatch = module.match(
+      /export const DarkTheme[\s\S]*?themes:\s*\{\s*themeOverride:\s*'([^']+)'/,
+    );
+    expect(themeMatch).not.toBeNull();
+    expect(themeMatch![1]).toBe('dark');
+  });
+
+  it('scene without theme has no themeOverride parameter', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    // ComponentDirect has no theme declared — should not have themeOverride
+    const exportBlock = module.slice(
+      module.indexOf('export const ComponentDirect'),
+      module.indexOf('export const', module.indexOf('export const ComponentDirect') + 1),
+    );
+    expect(exportBlock).not.toContain('themeOverride');
+  });
+
+  it('render function uses renderComponent without theme wrapping', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    expect(module).toContain('renderComponent(args.__scene, __imports)');
+    expect(module).not.toContain('data-theme');
   });
 
   it('exports default with correct title and tags', async () => {

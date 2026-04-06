@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [design-screen:plan-entities]
 stage: plan-entities
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml

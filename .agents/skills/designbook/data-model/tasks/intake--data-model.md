@@ -1,7 +1,9 @@
 ---
+when:
+  steps: [data-model:intake]
 files: []
 reads:
-  - path: $DESIGNBOOK_DATA/product/vision.md
+  - path: $DESIGNBOOK_DATA/vision.md
     workflow: /debo-vision
   - path: $DESIGNBOOK_DATA/data-model.yml
     optional: true

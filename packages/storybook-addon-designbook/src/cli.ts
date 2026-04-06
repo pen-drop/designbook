@@ -4,7 +4,14 @@ import { execFileSync } from 'node:child_process';
 import { resolveUrl } from './resolve-url.js';
 import { findFreePort, StorybookDaemon } from './storybook.js';
 import { Command } from 'commander';
-import { loadConfig, findConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds, resolveSkillsRoot } from './config.js';
+import {
+  loadConfig,
+  findConfig,
+  normalizeExtensions,
+  getExtensionIds,
+  getExtensionSkillIds,
+  resolveSkillsRoot,
+} from './config.js';
 import { validateData } from './validators/data.js';
 import { validateTokens } from './validators/tokens.js';
 import { validateComponent } from './validators/component.js';
@@ -215,18 +222,18 @@ workflow
           const title = opts.title ?? resolved.title;
 
           // Find intake stage (if declared in stages frontmatter)
-          const intakeStage = resolved.stages?.intake;
-          const intakeStep = intakeStage ? 'intake' : undefined;
-          const intakeRaw = intakeStep ? resolved.step_resolved[intakeStep] : undefined;
+          const intakeStage = resolved.stages?.intake as { steps?: string[] } | undefined;
+          const intakeStepName = intakeStage?.steps?.[0] ?? (intakeStage ? 'intake' : undefined);
+          const intakeRaw = intakeStepName ? resolved.step_resolved[intakeStepName] : undefined;
           const intakeResolved = intakeRaw && !Array.isArray(intakeRaw) ? intakeRaw : undefined;
           const intakeTask =
-            intakeStep && intakeResolved
+            intakeStepName && intakeResolved
               ? [
                   {
                     id: 'intake',
                     title: `Intake: ${title}`,
                     type: 'data' as const,
-                    step: intakeStep,
+                    step: intakeStepName,
                     stage: 'intake' as const,
                     files: [] as Array<{ path: string; key: string; validators: string[] }>,
                     task_file: intakeResolved.task_file,
@@ -329,220 +336,204 @@ workflow
     },
   );
 
-workflow
-  .command('plan')
-  .description('Expand items into tasks using pre-resolved stage data from tasks.yml.')
-  .requiredOption('--workflow <name>', 'Workflow name')
-  .option('--params <json>', 'Intake params JSON (iterables are arrays keyed by each name)')
-  .option('--engine <name>', 'Write engine: git-worktree or direct (overrides workflow frontmatter)')
-  .option('--dry-run', 'Preview plan output without writing to tasks.yml')
-  .action((opts: { workflow: string; params?: string; engine?: string; dryRun?: boolean }) => {
-    const config = loadConfig();
+/**
+ * Run plan logic: expand iterables into tasks using stage_loaded from tasks.yml.
+ * Called implicitly when completing the intake task via `workflow done --task intake --params`.
+ */
+function runPlanLogic(
+  config: ReturnType<typeof loadConfig>,
+  workflowName: string,
+  globalParams: Record<string, unknown>,
+): { tasks: Array<Record<string, unknown>>; steps: string[]; engine: string; worktree_branch?: string } {
+  const items: Array<{ step: string; params?: Record<string, unknown> }> = [];
 
-    const items: Array<{ step: string; params?: Record<string, unknown> }> = [];
+  // Read stage_loaded from existing tasks.yml
+  const changesDir = resolve(config.data, 'workflows', 'changes', workflowName);
+  const tasksYmlPath = resolve(changesDir, 'tasks.yml');
+  if (!existsSync(tasksYmlPath)) {
+    throw new Error(`Workflow not found: ${workflowName}`);
+  }
 
-    let globalParams: Record<string, unknown> = {};
-    if (opts.params) {
-      try {
-        globalParams = JSON.parse(opts.params);
-      } catch (err) {
-        console.error(`Error parsing --params JSON: ${(err as Error).message}`);
-        process.exitCode = 1;
-        return;
+  const existing = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
+  const stageLoaded = existing.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]> | undefined;
+  if (!stageLoaded) {
+    throw new Error(`No stage_loaded in tasks.yml. Was the workflow created with --workflow-file?`);
+  }
+
+  // Extract steps from stages (grouped format) or legacy flat format
+  const rawStages = existing.stages;
+  let allSteps: string[];
+  let stageDefinitions: Record<string, { steps: string[]; each?: string }> | undefined;
+  if (rawStages && !Array.isArray(rawStages)) {
+    // Grouped format: { execute: { steps: [...] }, test: { each: 'scene', steps: [...] } }
+    stageDefinitions = rawStages as Record<string, { steps: string[]; each?: string }>;
+    allSteps = [];
+    for (const def of Object.values(stageDefinitions)) {
+      allSteps.push(...(def.steps ?? []));
+    }
+  } else {
+    allSteps = (rawStages as string[] | undefined) ?? [];
+  }
+  // Build step → parent stage mapping and step → each mapping
+  const stepToStage = new Map<string, string>();
+  const stepToEach = new Map<string, string>();
+  if (stageDefinitions) {
+    for (const [stageName, def] of Object.entries(stageDefinitions)) {
+      for (const step of def.steps) {
+        stepToStage.set(step, stageName);
+        if (def.each) stepToEach.set(step, def.each);
       }
     }
+  }
 
-    try {
-      // Read stage_loaded from existing tasks.yml
-      const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
-      const tasksYmlPath = resolve(changesDir, 'tasks.yml');
-      if (!existsSync(tasksYmlPath)) {
-        throw new Error(`Workflow not found: ${opts.workflow}`);
-      }
+  // Steps that already have tasks in tasks.yml (e.g. intake) — skip during item expansion
+  const existingTasks = (existing.tasks as Array<{ step?: string }>) ?? [];
+  const existingSteps = new Set(existingTasks.map((t) => t.step).filter(Boolean));
 
-      const existing = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
-      const stageLoaded = existing.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]> | undefined;
-      if (!stageLoaded) {
-        throw new Error(`No stage_loaded in tasks.yml. Was the workflow created with --workflow-file?`);
-      }
-
-      // Extract steps from stages (grouped format) or legacy flat format
-      const rawStages = existing.stages;
-      let allSteps: string[];
-      let stageDefinitions: Record<string, { steps: string[]; each?: string }> | undefined;
-      if (rawStages && !Array.isArray(rawStages)) {
-        // Grouped format: { execute: { steps: [...] }, test: { each: 'scene', steps: [...] } }
-        stageDefinitions = rawStages as Record<string, { steps: string[]; each?: string }>;
-        allSteps = [];
-        for (const def of Object.values(stageDefinitions)) {
-          allSteps.push(...(def.steps ?? []));
-        }
-      } else {
-        allSteps = (rawStages as string[] | undefined) ?? [];
-      }
-      // Build step → parent stage mapping and step → each mapping
-      const stepToStage = new Map<string, string>();
-      const stepToEach = new Map<string, string>();
-      if (stageDefinitions) {
-        for (const [stageName, def] of Object.entries(stageDefinitions)) {
-          for (const step of def.steps) {
-            stepToStage.set(step, stageName);
-            if (def.each) stepToEach.set(step, def.each);
-          }
-        }
-      }
-
-      // Expand each-based items from params: for steps with `each`, create items from params[eachName]
-      if (stageDefinitions) {
-        for (const [, def] of Object.entries(stageDefinitions)) {
-          if (!def.each) continue;
-          const iterables = globalParams[def.each] as Array<Record<string, unknown>> | undefined;
-          if (!iterables || !Array.isArray(iterables)) continue;
-          for (const step of def.steps) {
-            // Skip if explicit items were provided for this step (legacy mode)
-            if (items.some((i) => i.step === step)) continue;
-            for (const iterableItem of iterables) {
-              items.push({ step, params: iterableItem });
-            }
-          }
-        }
-      }
-
-      // For steps without `each` and no explicit items, create a singleton item
-      for (const step of allSteps) {
+  // Expand each-based items from params: for steps with `each`, create items from params[eachName]
+  if (stageDefinitions) {
+    for (const [, def] of Object.entries(stageDefinitions)) {
+      if (!def.each) continue;
+      const iterables = globalParams[def.each] as Array<Record<string, unknown>> | undefined;
+      if (!iterables || !Array.isArray(iterables)) continue;
+      for (const step of def.steps) {
+        if (existingSteps.has(step)) continue;
         if (items.some((i) => i.step === step)) continue;
-        if (stepToEach.has(step)) continue; // each-step with empty iterable — skip
-        items.push({ step, params: {} });
-      }
-
-      // Validate items against known steps
-      for (const item of items) {
-        if (!allSteps.includes(item.step)) {
-          throw new Error(`Item step "${item.step}" not in workflow steps: [${allSteps.join(', ')}]`);
+        for (const iterableItem of iterables) {
+          items.push({ step, params: iterableItem });
         }
       }
-
-      const rootDir = (config.workspace as string | undefined) ?? dirname(config.data);
-      const envMap = buildEnvMap(config);
-
-      // Resolve engine: --engine flag > frontmatter engine > auto
-      const frontmatterEngine = existing.engine as string | undefined;
-      const resolvedEngine = resolveEngine(opts.engine, frontmatterEngine, isGitRepo(rootDir));
-
-      // Engine setup: creates isolation context and returns the envMap for path expansion
-      const workspacesBase = process.env['DESIGNBOOK_WORKSPACES'] ?? resolve(config.data, 'workspaces');
-      const worktreePath = resolve(workspacesBase, opts.workflow);
-      const workspace = (config['workspace'] as string | undefined) ?? rootDir;
-      const engine = engineRegistry[resolvedEngine];
-      if (!engine) throw new Error(`Unknown engine: "${resolvedEngine}"`);
-      const engineResult = engine.setup({
-        envMap,
-        worktreePath,
-        rootDir,
-        workflowName: opts.workflow,
-        workspace,
-        dryRun: !!opts.dryRun,
-      });
-      const filesEnvMap = engineResult.envMap;
-
-      // Expand items into tasks using pre-resolved step data
-      const tasks: Array<{
-        id: string;
-        title: string;
-        type: string;
-        step: string;
-        stage: string;
-        files: Array<{ path: string; key: string; validators: string[] }>;
-        params: Record<string, unknown>;
-        task_file: string;
-        rules: string[];
-        blueprints: string[];
-        config_rules: string[];
-        config_instructions: string[];
-      }> = [];
-
-      for (const step of allSteps) {
-        const stepItems = items.filter((i) => i.step === step);
-        if (stepItems.length === 0) continue;
-
-        const preResolved = stageLoaded[step];
-        if (!preResolved) {
-          console.debug(`[Designbook] workflow plan: step "${step}" skipped — no stage_loaded entry`);
-          continue;
-        }
-
-        // Normalize to array for multi-task support
-        const resolvedEntries: ResolvedStep[] = Array.isArray(preResolved) ? preResolved : [preResolved];
-
-        for (const resolved of resolvedEntries) {
-          const taskFm = parseFrontmatter(resolved.task_file);
-          const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
-          const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
-
-          for (const item of stepItems) {
-            const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, step);
-            const taskId = generateTaskId(step, mergedParams, schemaParams);
-            const title = generateTaskTitle(step, mergedParams, schemaParams);
-            const type = inferTaskType(step);
-            const knownValidators = new Set(getValidatorKeys());
-            const files = expandFileDeclarations(fileDeclarations, mergedParams, filesEnvMap, knownValidators);
-
-            tasks.push({
-              id: taskId,
-              title,
-              type,
-              step,
-              stage: stepToStage.get(step) ?? 'execute',
-              files,
-              params: mergedParams,
-              task_file: resolved.task_file,
-              rules: resolved.rules ?? [],
-              blueprints: resolved.blueprints ?? [],
-              config_rules: resolved.config_rules ?? [],
-              config_instructions: resolved.config_instructions ?? [],
-            });
-          }
-        }
-      }
-
-      // Deduplicate IDs
-      const seen = new Map<string, number>();
-      for (const task of tasks) {
-        const base = task.id;
-        const count = seen.get(base) ?? 0;
-        if (count > 0) task.id = `${base}-${count + 1}`;
-        seen.set(base, count + 1);
-      }
-
-      // Write to tasks.yml (skip in dry-run mode)
-      if (!opts.dryRun) {
-        workflowPlan(
-          config.data,
-          opts.workflow,
-          tasks,
-          undefined,
-          globalParams,
-          engineResult.write_root,
-          rootDir,
-          engineResult.worktree_branch,
-          resolvedEngine,
-        );
-      }
-
-      // Output plan JSON
-      const planOutput: Record<string, unknown> = {
-        params: globalParams,
-        steps: allSteps,
-        tasks,
-        engine: resolvedEngine,
-      };
-      if (engineResult.worktree_branch) planOutput.worktree_branch = engineResult.worktree_branch;
-      console.log(JSON.stringify(planOutput, null, 2));
-    } catch (err) {
-      console.error(`Error: ${(err as Error).message}`);
-      process.exitCode = 1;
     }
+  }
+
+  // For steps without `each` and no explicit items, create a singleton item
+  for (const step of allSteps) {
+    if (existingSteps.has(step)) continue;
+    if (items.some((i) => i.step === step)) continue;
+    if (stepToEach.has(step)) continue;
+    items.push({ step, params: {} });
+  }
+
+  // Validate items against known steps
+  for (const item of items) {
+    if (!allSteps.includes(item.step)) {
+      throw new Error(`Item step "${item.step}" not in workflow steps: [${allSteps.join(', ')}]`);
+    }
+  }
+
+  const rootDir = (config.workspace as string | undefined) ?? dirname(config.data);
+  const envMap = buildEnvMap(config);
+
+  // Resolve engine: frontmatter engine > auto
+  const frontmatterEngine = existing.engine as string | undefined;
+  const resolvedEngine = resolveEngine(undefined, frontmatterEngine, isGitRepo(rootDir));
+
+  // Engine setup: creates isolation context and returns the envMap for path expansion
+  const workspacesBase = process.env['DESIGNBOOK_WORKSPACES'] ?? resolve(config.data, 'workspaces');
+  const worktreePath = resolve(workspacesBase, workflowName);
+  const workspace = (config['workspace'] as string | undefined) ?? rootDir;
+  const engine = engineRegistry[resolvedEngine];
+  if (!engine) throw new Error(`Unknown engine: "${resolvedEngine}"`);
+  const engineResult = engine.setup({
+    envMap,
+    worktreePath,
+    rootDir,
+    workflowName,
+    workspace,
+    dryRun: false,
   });
+  const filesEnvMap = engineResult.envMap;
+
+  // Expand items into tasks using pre-resolved step data
+  const tasks: Array<{
+    id: string;
+    title: string;
+    type: string;
+    step: string;
+    stage: string;
+    files: Array<{ path: string; key: string; validators: string[] }>;
+    params: Record<string, unknown>;
+    task_file: string;
+    rules: string[];
+    blueprints: string[];
+    config_rules: string[];
+    config_instructions: string[];
+  }> = [];
+
+  for (const step of allSteps) {
+    const stepItems = items.filter((i) => i.step === step);
+    if (stepItems.length === 0) continue;
+
+    const preResolved = stageLoaded[step];
+    if (!preResolved) {
+      console.debug(`[Designbook] workflow plan: step "${step}" skipped — no stage_loaded entry`);
+      continue;
+    }
+
+    // Normalize to array for multi-task support
+    const resolvedEntries: ResolvedStep[] = Array.isArray(preResolved) ? preResolved : [preResolved];
+
+    for (const resolved of resolvedEntries) {
+      const taskFm = parseFrontmatter(resolved.task_file);
+      const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
+      const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
+
+      for (let itemIdx = 0; itemIdx < stepItems.length; itemIdx++) {
+        const item = stepItems[itemIdx]!;
+        const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, step);
+        const taskId = generateTaskId(step, mergedParams, schemaParams, itemIdx);
+        const title = generateTaskTitle(step, mergedParams, schemaParams);
+        const type = inferTaskType(step);
+        const knownValidators = new Set(getValidatorKeys());
+        const files = expandFileDeclarations(fileDeclarations, mergedParams, filesEnvMap, knownValidators);
+
+        tasks.push({
+          id: taskId,
+          title,
+          type,
+          step,
+          stage: stepToStage.get(step) ?? 'execute',
+          files,
+          params: mergedParams,
+          task_file: resolved.task_file,
+          rules: resolved.rules ?? [],
+          blueprints: resolved.blueprints ?? [],
+          config_rules: resolved.config_rules ?? [],
+          config_instructions: resolved.config_instructions ?? [],
+        });
+      }
+    }
+  }
+
+  // Deduplicate IDs
+  const seen = new Map<string, number>();
+  for (const task of tasks) {
+    const base = task.id;
+    const count = seen.get(base) ?? 0;
+    if (count > 0) task.id = `${base}-${count + 1}`;
+    seen.set(base, count + 1);
+  }
+
+  // Write to tasks.yml
+  workflowPlan(
+    config.data,
+    workflowName,
+    tasks,
+    undefined,
+    globalParams,
+    engineResult.write_root,
+    rootDir,
+    engineResult.worktree_branch,
+    resolvedEngine,
+  );
+
+  return {
+    tasks,
+    steps: allSteps,
+    engine: resolvedEngine,
+    ...(engineResult.worktree_branch ? { worktree_branch: engineResult.worktree_branch } : {}),
+  };
+}
 
 workflow
   .command('instructions')
@@ -563,7 +554,18 @@ workflow
     const data = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
     const stageLoaded = data.stage_loaded as Record<string, unknown> | undefined;
 
-    if (!stageLoaded || !stageLoaded[opts.stage]) {
+    // Resolve stage name: try direct key first, then look up via stages definition
+    // (e.g. "intake" → stages.intake.steps[0] → "design-shell:intake")
+    let resolvedKey = opts.stage;
+    if (stageLoaded && !stageLoaded[resolvedKey]) {
+      const stages = data.stages as Record<string, { steps?: string[] }> | undefined;
+      const stageEntry = stages?.[opts.stage];
+      if (stageEntry?.steps?.[0] && stageLoaded[stageEntry.steps[0]]) {
+        resolvedKey = stageEntry.steps[0];
+      }
+    }
+
+    if (!stageLoaded || !stageLoaded[resolvedKey]) {
       console.error(
         `Error: no resolved data for stage "${opts.stage}". ` +
           `Available stages: ${stageLoaded ? Object.keys(stageLoaded).join(', ') : 'none'}. ` +
@@ -573,7 +575,7 @@ workflow
       return;
     }
 
-    const stage = stageLoaded[opts.stage] as Record<string, unknown>;
+    const stage = stageLoaded[resolvedKey] as Record<string, unknown>;
     const taskFile = stage.task_file as string | undefined;
 
     // Read expected_params from task file frontmatter
@@ -639,10 +641,14 @@ workflow
   .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
   .requiredOption('--task <id>', 'Task id to mark done')
   .option(
+    '--params <json>',
+    'Intake params JSON — when used with --task intake, implicitly runs plan logic before marking done',
+  )
+  .option(
     '--loaded <json>',
     'JSON payload with stage context (task_file, rules, config_rules, config_instructions) and task validation results',
   )
-  .action(async (opts: { workflow: string; task: string; loaded?: string }) => {
+  .action(async (opts: { workflow: string; task: string; params?: string; loaded?: string }) => {
     const config = loadConfig();
     let loaded;
     if (opts.loaded) {
@@ -655,6 +661,48 @@ workflow
       }
     }
     try {
+      // When completing intake, implicitly run plan logic first.
+      // workflowPlan() already marks intake as done and sets the first pending task
+      // to in-progress, so we skip workflowDone() and output the result directly.
+      if (opts.task === 'intake') {
+        let globalParams: Record<string, unknown> = {};
+        if (opts.params) {
+          try {
+            globalParams = JSON.parse(opts.params);
+          } catch (err) {
+            console.error(`Error parsing --params JSON: ${(err as Error).message}`);
+            process.exitCode = 1;
+            return;
+          }
+        }
+        const planResult = runPlanLogic(config, opts.workflow, globalParams);
+        const doneCount = 1; // intake
+        const totalCount = planResult.tasks.length + doneCount;
+        console.log(`Task intake → done (${doneCount}/${totalCount} tasks complete)`);
+        console.log(`  ✓ intake — done`);
+        for (const t of planResult.tasks) {
+          const icon = (t as { id: string; status?: string }).status === 'in-progress' ? '○' : '·';
+          console.log(`  ${icon} ${(t as { title: string }).title} — pending`);
+        }
+        // Output transition response: intake → execute (first stage with pending tasks)
+        const firstTask = planResult.tasks[0] as { step?: string; stage?: string } | undefined;
+        if (firstTask) {
+          const expandedTasks = planResult.tasks.map((t) => {
+            const tt = t as { id: string; step: string; stage: string; title: string };
+            return { id: tt.id, step: tt.step, stage: tt.stage, title: tt.title };
+          });
+          const response = {
+            stage: firstTask.stage ?? 'execute',
+            transition_from: 'intake',
+            next_stage: firstTask.stage ?? 'execute',
+            next_step: firstTask.step ?? null,
+            expanded_tasks: expandedTasks,
+          };
+          console.log(`\nRESPONSE: ${JSON.stringify(response)}`);
+        }
+        return;
+      }
+
       const result = await workflowDone(config.data, opts.workflow, opts.task, loaded);
       const { data, response } = result;
 
@@ -853,7 +901,9 @@ storybookCmd
   .action(() => {
     const config = loadConfig(process.env['DESIGNBOOK_HOME']);
     const sb = new StorybookDaemon(config.data);
-    console.log(JSON.stringify(sb.status()));
+    const st = sb.status();
+    const url = st.running ? sb.url : undefined;
+    console.log(JSON.stringify({ ...st, ...(url ? { url } : {}) }));
   });
 
 storybookCmd

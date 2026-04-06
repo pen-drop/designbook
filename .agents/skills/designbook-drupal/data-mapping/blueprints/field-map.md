@@ -6,7 +6,7 @@ when:
   steps: [map-entity]
 ---
 
-# Rule: Field Map
+# Blueprint: Field Map
 
 Applies when a view mode declares `template: field-map`. Generates a JSONata expression that maps entity fields to a `ComponentNode[]` array.
 

@@ -12,6 +12,6 @@ Stitch-specific rules for resolving design references via Stitch MCP and enhanci
 ## Rules
 
 - `rules/stitch-reference.md` — Resolves `type: stitch` references via `mcp__stitch__get_screen`
-- `rules/stitch-intake.md` — Enhances intake with Stitch screen listing via MCP
 - `rules/stitch-tokens.md` — Imports designTheme as token proposals during tokens intake
 - `rules/stitch-guidelines.md` — Analyzes screen HTML/screenshots for guidelines proposals during guidelines intake
+- `rules/stitch-import.md` — Provides screen listing and reference resolution for the import workflow intake

@@ -3,7 +3,7 @@ type: component
 name: section
 priority: 10
 when:
-  steps: [design-shell:intake, design-screen:intake, design-shell:intake, tokens:intake]
+  steps: [design-shell:intake, design-screen:intake, tokens:intake]
 required_tokens:
   section:
     padding-y:
@@ -38,4 +38,4 @@ A Layout Builder adapter that combines container + grid with 8 fixed named colum
 
 ## Markup
 
-Full component.yml, Twig template, and story examples: [components/resources/section-reference.md](../components/resources/section-reference.md)
+Full component.yml, Twig template, and story examples: [resources/section-reference.md](../resources/section-reference.md)

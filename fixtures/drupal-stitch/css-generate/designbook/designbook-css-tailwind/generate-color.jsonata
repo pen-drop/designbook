@@ -1,0 +1,20 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/color.src.css"
+ }
+ */
+(
+  $resolveVar := function($val, $prefix) {
+    $substring($val, 0, 1) = "{" ? (
+      $ref := $replace($replace($val, "{", ""), "}", "");
+      $parts := $split($ref, ".");
+      $name := $join($filter($parts, function($v, $i) { $i >= 2 }), "-");
+      "var(--" & $prefix & "-" & $name & ")"
+    ) : $val
+  };
+  $entries := $each($$.semantic.color, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "  --color-" & $k & ": " & $resolveVar($v."$value", "color") & ";"
+  });
+  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)

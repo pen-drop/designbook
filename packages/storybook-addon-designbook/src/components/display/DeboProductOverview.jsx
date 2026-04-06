@@ -9,7 +9,7 @@ export function DeboProductOverview() {
   return (
     <DeboSection
       title="Vision"
-      dataPath="product/vision.md"
+      dataPath="vision.md"
       parser={parseProductSections}
       command="/debo vision"
       emptyMessage="No vision defined yet"

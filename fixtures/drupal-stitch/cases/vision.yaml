@@ -1,0 +1,38 @@
+fixtures: []
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo vision workflow. Do NOT ask any questions — use the following inputs directly:
+
+  Product name: Designbook
+  Description: An AI-powered design-to-implementation platform that bridges the gap between design tools and CMS/frontend development
+  Problems & Solutions:
+  1. Translating designs into CMS content types and components is tedious manual work → Guided AI workflows that progressively structure designs into implementation-ready specs
+  2. Design handoff loses context between designers and developers → Single source of truth with YAML specs, component code, and live Storybook preview
+  3. Every CMS and frontend framework requires different implementation patterns → Framework-agnostic approach that generates output for any stack (Drupal, React, Twig, Tailwind, etc.)
+  Key Features:
+  - Staged AI workflows (vision → sections → tokens → data model → sample data → shell → screens)
+  - Design input from Figma, Google Stitch, existing websites, or AI conversation
+  - Live component preview in Storybook
+  - YAML-based specs for content types, view modes, and page compositions
+  - Integration plugins for Drupal, Tailwind CSS, and SDC
+
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f === 'designbook/vision.md')
+  - type: javascript
+    value: output.archivedWorkflows['vision']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['vision']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: |
+      const md = output.fileContents['designbook/vision.md'] || '';
+      return md.includes('Designbook');
+  - type: javascript
+    value: |
+      const md = output.fileContents['designbook/vision.md'] || '';
+      return md.includes('## Description') || md.includes('## Problems') || md.includes('## Key Features');

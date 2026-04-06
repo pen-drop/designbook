@@ -46,32 +46,51 @@ slots:
 
 ## Example
 
-Using the components available in a typical Petshop theme (`hero-section`, `container`, `grid`, `card`, `category-tile`, `trust-item`):
+Using the components available from the Step 0 scan (e.g. `section`, `hero`, `feature-card`, `rich-snippet`):
 
 ```yaml
 components:
-  - component: "COMPONENT_NAMESPACE:canvas_section"
-    slots:
-      preheadline: "Trusted by pet owners everywhere"
-      title: "Quality Nutrition for Happy Pets"
-      body: "Curated, quality-verified products for dogs, cats, birds, and more."
-
-  - component: "COMPONENT_NAMESPACE:canvas_section"
+  - component: "COMPONENT_NAMESPACE:section"
     props:
-      max_width: "xl"
+      max_width: "lg"
       padding_top: "lg"
       padding_bottom: "lg"
+      columns: 1
     slots:
-      header: "Featured Products"
       column_1:
-          - component: "COMPONENT_NAMESPACE:canvas_card"
-            slots:
-              card_image: "<img src=\"/public/product-dog-food.jpg\" alt=\"Premium Dog Food\">"
-              card_body: "<strong>Premium Dog Food</strong><p>High-protein formula for adult dogs</p>"
-          - component: "COMPONENT_NAMESPACE:card"
-            slots:
-              card_image: "<img src=\"/public/product-cat-treats.jpg\" alt=\"Cat Treats\">"
-              card_body: "<strong>Cat Treats</strong><p>Irresistible flavours cats love</p>"
+        - component: "COMPONENT_NAMESPACE:hero"
+          slots:
+            content:
+              - component: "COMPONENT_NAMESPACE:rich-snippet"
+                props:
+                  headline: "Quality Nutrition for Happy Pets"
+                  headline_level: "h1"
+                  text: "Curated, quality-verified products for dogs, cats, birds, and more."
 
+  - component: "COMPONENT_NAMESPACE:section"
+    props:
+      max_width: "lg"
+      padding_top: "md"
+      padding_bottom: "md"
+      columns: 2
+    slots:
+      column_1:
+        - component: "COMPONENT_NAMESPACE:feature-card"
+          slots:
+            content:
+              - component: "COMPONENT_NAMESPACE:rich-snippet"
+                props:
+                  headline: "Premium Dog Food"
+                  headline_level: "h3"
+                  text: "High-protein formula for adult dogs"
+      column_2:
+        - component: "COMPONENT_NAMESPACE:feature-card"
+          slots:
+            content:
+              - component: "COMPONENT_NAMESPACE:rich-snippet"
+                props:
+                  headline: "Cat Treats"
+                  headline_level: "h3"
+                  text: "Irresistible flavours cats love"
 ```
 

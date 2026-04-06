@@ -1,0 +1,40 @@
+{#
+/**
+ * @file
+ * Template for navigation component.
+ *
+ * Available variables:
+ * - variant: Navigation variant (main, footer)
+ * - items: Array of Drupal MenuLinkTreeElement items
+ */
+#}
+
+{% set variant = variant|default("main") %}
+
+{% macro menu_links(items, variant, level) %}
+  {% for item in items %}
+    {% set link_classes = item.in_active_trail ? "text-primary" : "" %}
+    {% if variant == "main" %}
+      <a href="{{ item.url }}" class="text-sm font-label text-on-surface-variant hover:text-on-surface transition-colors {{ link_classes }}">
+        {{ item.title }}
+      </a>
+    {% elseif variant == "footer" %}
+      <a href="{{ item.url }}" class="text-sm text-on-surface-variant hover:text-on-surface transition-colors {{ link_classes }}">
+        {{ item.title }}
+      </a>
+    {% endif %}
+    {% if item.below is iterable and item.below|length > 0 %}
+      {{ _self.menu_links(item.below, variant, level + 1) }}
+    {% endif %}
+  {% endfor %}
+{% endmacro %}
+
+{% if variant == "footer" %}
+<nav{{ attributes.addClass(["flex", "flex-wrap", "gap-6"]) }}>
+  {{ _self.menu_links(items, variant, 0) }}
+</nav>
+{% else %}
+<nav{{ attributes.addClass(["flex", "items-center", "gap-6"]) }}>
+  {{ _self.menu_links(items, variant, 0) }}
+</nav>
+{% endif %}

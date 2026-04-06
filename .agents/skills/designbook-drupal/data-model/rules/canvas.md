@@ -1,7 +1,7 @@
 ---
 when:
   extensions: canvas
-  steps: [designbook-data-model:intake, create-data-model]
+  steps: [data-model:intake, create-data-model]
 ---
 
 # Rule: Canvas Extension

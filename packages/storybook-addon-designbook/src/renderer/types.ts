@@ -83,6 +83,7 @@ export interface SceneDef {
   docs?: string;
   section?: string;
   group?: string;
+  theme?: string;
   items: SceneNode[];
 }
 

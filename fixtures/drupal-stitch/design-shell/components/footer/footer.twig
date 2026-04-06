@@ -1,0 +1,32 @@
+{#
+/**
+ * @file
+ * Template for footer component.
+ *
+ * Available variables:
+ * - copyright: Copyright text
+ * - brand: Logo or brand area
+ * - navigation: Footer navigation component
+ */
+#}
+<footer{{ attributes.addClass(["border-t", "border-outline-variant/20", "bg-background"]) }}>
+  <div class="max-w-xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      {% if brand %}
+        <div class="shrink-0">
+          {{ brand }}
+        </div>
+      {% endif %}
+
+      {% if navigation %}
+        {{ navigation }}
+      {% endif %}
+    </div>
+
+    {% if copyright %}
+      <div class="mt-8 pt-6 border-t border-outline-variant/10 text-sm text-on-surface-variant">
+        {{ copyright }}
+      </div>
+    {% endif %}
+  </div>
+</footer>
