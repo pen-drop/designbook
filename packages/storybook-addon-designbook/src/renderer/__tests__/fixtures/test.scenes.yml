@@ -67,21 +67,18 @@ scenes:
 
   - name: ImageProvider
     items:
-      - type: image
-        image_style: hero
+      - image: hero
         alt: "Hero banner image"
 
   - name: ImageCss
     items:
-      - type: image
-        image_style: 16_9
+      - image: "16_9"
         alt: "Landscape photo"
         src: "/images/landscape.jpg"
 
   - name: ImageUnknownStyle
     items:
-      - type: image
-        image_style: nonexistent
+      - image: nonexistent
         alt: "Should show placeholder"
 
   - name: WithShell

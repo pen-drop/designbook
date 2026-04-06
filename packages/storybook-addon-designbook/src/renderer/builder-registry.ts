@@ -23,6 +23,7 @@ function needsBuilding(node: RawNode): node is SceneNode {
     t === 'entity' ||
     t === 'config' ||
     ('entity' in n && typeof n.entity === 'string') ||
+    ('image' in n && typeof n.image === 'string') ||
     ('config' in n && typeof n.config === 'string') ||
     ('scene' in n && typeof n.scene === 'string')
   );

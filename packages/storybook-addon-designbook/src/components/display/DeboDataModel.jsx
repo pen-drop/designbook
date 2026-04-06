@@ -38,7 +38,7 @@ function EntityGroup({ type, bundles, onSelect }) {
               badgeColor={ENTITY_BADGE_COLORS[type] || 'red'}
               description={def.description}
               entityPath={`${type}.${key}`}
-              fieldCount={def.fields ? Object.keys(def.fields).length : 0}
+              fieldCount={def.fields ? Object.keys(def.fields).length : undefined}
             />
           </ClickableCard>
         ))}

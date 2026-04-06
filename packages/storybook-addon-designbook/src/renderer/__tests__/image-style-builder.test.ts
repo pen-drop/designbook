@@ -19,20 +19,20 @@ function makeCtx(
 
 describe('imageStyleBuilder', () => {
   describe('appliesTo', () => {
-    it('matches type: "image"', () => {
-      expect(imageStyleBuilder.appliesTo({ type: 'image' })).toBe(true);
+    it('matches duck-typed image node', () => {
+      expect(imageStyleBuilder.appliesTo({ image: 'hero' })).toBe(true);
     });
 
-    it('rejects type: "entity"', () => {
-      expect(imageStyleBuilder.appliesTo({ type: 'entity' })).toBe(false);
+    it('rejects entity node', () => {
+      expect(imageStyleBuilder.appliesTo({ entity: 'node.article' })).toBe(false);
     });
 
-    it('rejects type: "component"', () => {
-      expect(imageStyleBuilder.appliesTo({ type: 'component' })).toBe(false);
-    });
-
-    it('rejects nodes without type', () => {
+    it('rejects component node', () => {
       expect(imageStyleBuilder.appliesTo({ component: 'test:card' })).toBe(false);
+    });
+
+    it('rejects nodes without image key', () => {
+      expect(imageStyleBuilder.appliesTo({ type: 'entity' })).toBe(false);
     });
   });
 
@@ -48,7 +48,7 @@ describe('imageStyleBuilder', () => {
         },
       });
 
-      const node: SceneNode = { type: 'image', image_style: 'hero', alt: 'Building' };
+      const node: SceneNode = { image: 'hero', alt: 'Building' };
       const result = await imageStyleBuilder.build(node, ctx);
 
       expect(result).toHaveLength(1);
@@ -74,7 +74,7 @@ describe('imageStyleBuilder', () => {
         avatar: { aspect_ratio: '1:1' },
       });
 
-      const node: SceneNode = { type: 'image', image_style: 'avatar', alt: 'Profile' };
+      const node: SceneNode = { image: 'avatar', alt: 'Profile' };
       const result = await imageStyleBuilder.build(node, ctx);
 
       const cn = result[0] as ComponentNode;
@@ -93,7 +93,7 @@ describe('imageStyleBuilder', () => {
         hero: { aspect_ratio: '21:9' },
       });
 
-      const node: SceneNode = { type: 'image', image_style: 'hero', src: '/images/hero.jpg', alt: 'Hero' };
+      const node: SceneNode = { image: 'hero', src: '/images/hero.jpg', alt: 'Hero' };
       const result = await imageStyleBuilder.build(node, ctx);
 
       const cn = result[0] as ComponentNode;
@@ -117,7 +117,7 @@ describe('imageStyleBuilder', () => {
         },
       });
 
-      const node: SceneNode = { type: 'image', image_style: 'hero', src: '/img/hero.jpg', alt: 'Hero' };
+      const node: SceneNode = { image: 'hero', src: '/img/hero.jpg', alt: 'Hero' };
       const result = await imageStyleBuilder.build(node, ctx);
 
       const cn = result[0] as ComponentNode;
@@ -134,7 +134,7 @@ describe('imageStyleBuilder', () => {
     it('returns placeholder for unknown image style', async () => {
       const ctx = makeCtx({});
 
-      const node: SceneNode = { type: 'image', image_style: 'nonexistent', alt: 'Test' };
+      const node: SceneNode = { image: 'nonexistent', alt: 'Test' };
       const result = await imageStyleBuilder.build(node, ctx);
 
       const cn = result[0] as ComponentNode;
@@ -142,15 +142,15 @@ describe('imageStyleBuilder', () => {
       expect(cn.props!.message as string).toContain('nonexistent');
     });
 
-    it('returns placeholder when image_style is missing', async () => {
+    it('returns placeholder when style name is empty', async () => {
       const ctx = makeCtx({});
 
-      const node: SceneNode = { type: 'image', alt: 'Test' };
+      const node: SceneNode = { image: '', alt: 'Test' };
       const result = await imageStyleBuilder.build(node, ctx);
 
       const cn = result[0] as ComponentNode;
       expect(cn.component).toBe('designbook:placeholder');
-      expect(cn.props!.message as string).toContain('missing image_style');
+      expect(cn.props!.message as string).toContain('missing style name');
     });
   });
 });

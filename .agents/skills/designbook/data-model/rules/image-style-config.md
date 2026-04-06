@@ -30,4 +30,4 @@ config:
 - Breakpoint names are arbitrary labels — NOT tied to CSS/design-token breakpoints
 - Breakpoints without `aspect_ratio` inherit the bundle's default ratio
 - Do NOT add `fields`, `view_modes`, or `template` to image_style bundles
-- Image styles are consumed in scenes via `type: image` nodes, not `entity:` nodes
+- Image styles are consumed in scenes via `image:` nodes, not `entity:` nodes

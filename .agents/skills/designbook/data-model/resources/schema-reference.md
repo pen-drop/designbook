@@ -81,4 +81,4 @@ config:
       aspect_ratio: 1:1
 ```
 
-Image styles are referenced in scenes via `type: image` nodes (not `entity:` nodes). See [scenes-schema](../../design/resources/scenes-schema.md) for the `ImageNode` definition.
+Image styles are referenced in scenes via `image:` nodes (not `entity:` nodes). See [scenes-schema](../../design/resources/scenes-schema.md) for the `ImageNode` definition.

@@ -151,17 +151,15 @@ $defs:
 
   ImageNode:
     type: object
-    required: [type, image_style]
+    required: [image]
     description: >
-      Render an image using a named image style from config.image_style in data-model.yml.
-      Resolved by imageStyleBuilder into a designbook:image ComponentNode.
+      Duck-typed by the `image` key. Render an image using a named image style
+      from config.image_style in data-model.yml. Resolved by imageStyleBuilder
+      into a designbook:image ComponentNode.
     properties:
-      type:
+      image:
         type: string
-        const: image
-      image_style:
-        type: string
-        description: Name of an image style bundle defined under config.image_style in data-model.yml (e.g. hero, card, avatar).
+        description: Name of an image style bundle defined under config.image_style in data-model.yml (e.g. hero, "16_9", "4_3").
       alt:
         type: string
         description: Alt text for the image.

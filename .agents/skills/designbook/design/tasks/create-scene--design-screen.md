@@ -66,7 +66,7 @@ Each entry in `items:` uses one of four keys:
 - **`component:`** — render a UI component directly (`$COMPONENT_NAMESPACE:card`)
 - **`entity:`** — render an entity from sample data (`node.article`, `view.recent_articles`)
 - **`scene:`** — embed the shell and fill `$content`. The scene MUST start with `design-system:` followed by an existing scene name under the design-system folder.
-- **`type: image`** — render an image using a named image style from `config.image_style` in data-model.yml. Requires `image_style` (bundle name) and `alt`. Optional `src` for custom images.
+- **`image:`** — render an image using a named image style from `config.image_style` in data-model.yml. The value is the style name (e.g. `hero`, `"16_9"`). Add `alt` for alt text, optional `src` for custom images.
 
 ## Constraints
 

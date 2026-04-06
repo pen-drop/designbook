@@ -14,11 +14,11 @@ const DEFAULT_WIDTH = 800;
 
 export const imageStyleBuilder: SceneNodeBuilder = {
   appliesTo(node: SceneNode): boolean {
-    return node.type === 'image';
+    return 'image' in node && typeof node.image === 'string';
   },
 
   async build(node: SceneNode, ctx: BuildContext): Promise<RawNode[]> {
-    const styleName = node['image_style'] as string | undefined;
+    const styleName = node['image'] as string | undefined;
     const alt = (node['alt'] as string) ?? '';
     const src = node['src'] as string | undefined;
 
@@ -26,7 +26,7 @@ export const imageStyleBuilder: SceneNodeBuilder = {
       return [
         {
           component: 'designbook:placeholder',
-          props: { message: 'image node missing image_style' },
+          props: { message: 'image node missing style name' },
         },
       ];
     }

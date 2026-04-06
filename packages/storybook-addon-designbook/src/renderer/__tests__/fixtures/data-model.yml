@@ -9,7 +9,7 @@ config:
         default:
           template: view-entity
   image_style:
-    16_9:
+    "16_9":
       aspect_ratio: "16:9"
     hero:
       aspect_ratio: "21:9"
