@@ -1,0 +1,16 @@
+name: "Default"
+props:
+  variant: "main"
+  items:
+    - title: "Guide"
+      url: "/guide"
+      in_active_trail: true
+      below: []
+    - title: "Examples"
+      url: "/examples"
+      in_active_trail: false
+      below: []
+    - title: "Community"
+      url: "/community"
+      in_active_trail: false
+      below: []

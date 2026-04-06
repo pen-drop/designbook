@@ -1,0 +1,33 @@
+name: "Default"
+props:
+  copyright: "&copy; 2024 Designbook. High-performance spec-driven design tools for the modern web."
+slots:
+  brand:
+    - type: element
+      tag: "a"
+      attributes:
+        href: "/"
+        class: "text-base font-bold font-heading text-on-surface"
+      value: "Designbook"
+  navigation:
+    - type: component
+      component: "test_integration_drupal:navigation"
+      props:
+        variant: "footer"
+        items:
+          - title: "Changelog"
+            url: "/changelog"
+            in_active_trail: false
+            below: []
+          - title: "GitHub"
+            url: "/github"
+            in_active_trail: false
+            below: []
+          - title: "Status"
+            url: "/status"
+            in_active_trail: false
+            below: []
+          - title: "Privacy"
+            url: "/privacy"
+            in_active_trail: false
+            below: []
