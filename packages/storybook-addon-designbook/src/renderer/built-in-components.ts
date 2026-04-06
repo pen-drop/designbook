@@ -7,11 +7,6 @@
 
 import type { ComponentModule } from './types';
 
-/** Generate a unique scope ID for scoped styles. */
-let scopeCounter = 0;
-function nextScope(): string {
-  return `dbi-${++scopeCounter}`;
-}
 
 interface ImageSource {
   media: string;
@@ -62,7 +57,7 @@ export const builtInComponents: Record<string, ComponentModule> = {
 
       // CSS mode: <img> with aspect-ratio + optional responsive <style>
       const imgSrc = src ?? fallback?.src ?? '';
-      const scopeId = nextScope();
+      const scopeId = 'dbi-' + Math.random().toString(36).slice(2, 8);
 
       if (responsiveStyles.length > 0) {
         const mediaRules = responsiveStyles

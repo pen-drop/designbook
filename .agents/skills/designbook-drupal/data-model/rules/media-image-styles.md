@@ -12,7 +12,7 @@ In Drupal, media entity view modes typically correspond to image styles. When cr
 
 For each media bundle with image fields (e.g. `media.image`):
 - Create a view mode for each image style that media will be displayed in
-- Name the view mode the same as the image style bundle (e.g. view mode `16_9` uses image style `16_9`)
+- Name the view mode the same as the image style bundle (e.g. view mode `ratio_16_9` uses image style `ratio_16_9`)
 
 ## Example
 
@@ -21,11 +21,11 @@ content:
   media:
     image:
       view_modes:
-        16_9:
+        ratio_16_9:
           template: field-map
-        4_3:
+        ratio_4_3:
           template: field-map
-        1_1:
+        ratio_1_1:
           template: field-map
       fields:
         field_media_image:
@@ -34,11 +34,11 @@ content:
 
 config:
   image_style:
-    16_9:
+    ratio_16_9:
       aspect_ratio: 16:9
-    4_3:
+    ratio_4_3:
       aspect_ratio: 4:3
-    1_1:
+    ratio_1_1:
       aspect_ratio: 1:1
 ```
 

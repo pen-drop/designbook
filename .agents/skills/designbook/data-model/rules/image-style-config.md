@@ -31,3 +31,4 @@ config:
 - Breakpoints without `aspect_ratio` inherit the bundle's default ratio
 - Do NOT add `fields`, `view_modes`, or `template` to image_style bundles
 - Image styles are consumed in scenes via `image:` nodes, not `entity:` nodes
+- Ratio-based bundle names MUST use the `ratio_` prefix (e.g. `ratio_16_9`, `ratio_4_3`) to avoid YAML parsing numeric-looking keys as integers

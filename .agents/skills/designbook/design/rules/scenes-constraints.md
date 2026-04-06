@@ -50,15 +50,15 @@ when:
 
 > ⛔ **Image nodes use the duck-typed `image:` key referencing a config entity.**
 > The `image` value MUST match a bundle name under `config.image_style` in `data-model.yml`.
-> Numeric-looking style names (e.g. `16_9`) MUST be quoted in YAML to prevent integer parsing.
+> Ratio-based style names use the `ratio_` prefix (e.g. `ratio_16_9`) to avoid YAML numeric parsing issues.
 
 ```yaml
 # ✅ Correct — image node with named style
 - image: hero
   alt: "Modern architecture building"
 
-# ✅ Correct — ratio-based style (quoted to prevent YAML parsing as integer)
-- image: "16_9"
+# ✅ Correct — ratio-based style with ratio_ prefix
+- image: ratio_16_9
   alt: "Landscape photo"
 
 # ✅ Correct — image node with custom source (CSS aspect-ratio mode)

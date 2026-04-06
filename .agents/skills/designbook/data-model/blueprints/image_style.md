@@ -34,15 +34,15 @@ bundle_properties:
 
 ## Naming Convention
 
-**Ratio-based names** — when the aspect ratio is the same across all viewports. Name after the ratio using underscores:
+**Ratio-based names** — when the aspect ratio is the same across all viewports. Use `ratio_` prefix followed by the ratio with underscores. The prefix avoids YAML parsing numeric-looking keys as integers:
 
 ```yaml
 image_style:
-  16_9:
+  ratio_16_9:
     aspect_ratio: 16:9
-  4_3:
+  ratio_4_3:
     aspect_ratio: 4:3
-  1_1:
+  ratio_1_1:
     aspect_ratio: 1:1
 ```
 
