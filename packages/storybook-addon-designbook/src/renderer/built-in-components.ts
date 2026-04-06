@@ -7,7 +7,6 @@
 
 import type { ComponentModule } from './types';
 
-
 interface ImageSource {
   media: string;
   src: string;
