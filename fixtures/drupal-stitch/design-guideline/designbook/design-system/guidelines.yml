@@ -1,3 +1,8 @@
+design_reference:
+  type: url
+  url: https://stitch.withgoogle.com/projects/5626339350367683412
+  label: Google Stitch
+
 principles:
   - "Container components must always be used when max-width is needed — never apply max-width directly to content elements"
   - "Section is the base building block for canvas page layouts"

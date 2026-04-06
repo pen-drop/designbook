@@ -1,0 +1,12 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/color.theme-technical-blueprint.src.css"
+ }
+ */
+(
+  $entries := $each($$.themes."technical-blueprint".semantic.color, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "    --color-" & $k & ": " & $v."$value" & ";"
+  });
+  "@layer theme {\n  [data-theme=\"technical-blueprint\"] {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n  }\n}\n"
+)

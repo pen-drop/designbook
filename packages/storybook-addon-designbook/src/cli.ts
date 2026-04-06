@@ -222,18 +222,18 @@ workflow
           const title = opts.title ?? resolved.title;
 
           // Find intake stage (if declared in stages frontmatter)
-          const intakeStage = resolved.stages?.intake;
-          const intakeStep = intakeStage ? 'intake' : undefined;
-          const intakeRaw = intakeStep ? resolved.step_resolved[intakeStep] : undefined;
+          const intakeStage = resolved.stages?.intake as { steps?: string[] } | undefined;
+          const intakeStepName = intakeStage?.steps?.[0] ?? (intakeStage ? 'intake' : undefined);
+          const intakeRaw = intakeStepName ? resolved.step_resolved[intakeStepName] : undefined;
           const intakeResolved = intakeRaw && !Array.isArray(intakeRaw) ? intakeRaw : undefined;
           const intakeTask =
-            intakeStep && intakeResolved
+            intakeStepName && intakeResolved
               ? [
                   {
                     id: 'intake',
                     title: `Intake: ${title}`,
                     type: 'data' as const,
-                    step: intakeStep,
+                    step: intakeStepName,
                     stage: 'intake' as const,
                     files: [] as Array<{ path: string; key: string; validators: string[] }>,
                     task_file: intakeResolved.task_file,
@@ -554,7 +554,18 @@ workflow
     const data = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
     const stageLoaded = data.stage_loaded as Record<string, unknown> | undefined;
 
-    if (!stageLoaded || !stageLoaded[opts.stage]) {
+    // Resolve stage name: try direct key first, then look up via stages definition
+    // (e.g. "intake" → stages.intake.steps[0] → "design-shell:intake")
+    let resolvedKey = opts.stage;
+    if (stageLoaded && !stageLoaded[resolvedKey]) {
+      const stages = data.stages as Record<string, { steps?: string[] }> | undefined;
+      const stageEntry = stages?.[opts.stage];
+      if (stageEntry?.steps?.[0] && stageLoaded[stageEntry.steps[0]]) {
+        resolvedKey = stageEntry.steps[0];
+      }
+    }
+
+    if (!stageLoaded || !stageLoaded[resolvedKey]) {
       console.error(
         `Error: no resolved data for stage "${opts.stage}". ` +
           `Available stages: ${stageLoaded ? Object.keys(stageLoaded).join(', ') : 'none'}. ` +
@@ -564,7 +575,7 @@ workflow
       return;
     }
 
-    const stage = stageLoaded[opts.stage] as Record<string, unknown>;
+    const stage = stageLoaded[resolvedKey] as Record<string, unknown>;
     const taskFile = stage.task_file as string | undefined;
 
     // Read expected_params from task file frontmatter

@@ -42,6 +42,7 @@ export interface ResolvedPlan {
 
 export interface ResolvedFile {
   path: string;
+  name: string;
   specificity: number;
   frontmatter: Record<string, unknown> | null;
 }
@@ -105,6 +106,72 @@ function getWorkflowStageDefinitions(fm: WorkflowFrontmatter): Record<string, St
 /** Extract title from workflow frontmatter (supports both flat and nested format). */
 function getWorkflowTitle(fm: WorkflowFrontmatter): string {
   return fm.title ?? fm.workflow?.title ?? '';
+}
+
+// ── Artifact Name Derivation ──────────────────────────────────────
+
+/**
+ * Derive namespaced artifact name from file path relative to agentsDir.
+ *
+ * Convention: `<skill>:<concern>:<artifact>` for nested skills,
+ * `<skill>:<artifact>` for flat skills.
+ *
+ * Examples:
+ * - `skills/designbook/design/tasks/screenshot-reference.md` → `designbook:design:screenshot-reference`
+ * - `skills/designbook-stitch/tasks/stitch-inspect.md` → `designbook-stitch:stitch-inspect`
+ * - `skills/designbook/design/rules/playwright-session.md` → `designbook:design:playwright-session`
+ * - `skills/designbook-sdc/blueprints/component.md` with type=component, name=section → `designbook-sdc:blueprints:component/section`
+ */
+export function deriveArtifactName(
+  filePath: string,
+  agentsDir: string,
+  frontmatter?: Record<string, unknown> | null,
+): string {
+  // Blueprint legacy: derive from type+name (check BEFORE explicit name,
+  // because blueprint `name` is the short component name, not a namespace)
+  if (frontmatter?.type && typeof frontmatter.type === 'string') {
+    // If name contains ':', it's an explicit namespaced name — use it directly
+    if (frontmatter.name && typeof frontmatter.name === 'string' && frontmatter.name.includes(':')) {
+      return frontmatter.name;
+    }
+    const bpName = frontmatter.name ?? filePath.replace(/\\/g, '/').split('/').pop()?.replace(/\.md$/, '') ?? '';
+    const rel = relative(resolve(agentsDir, 'skills'), filePath).replace(/\\/g, '/');
+    const skill = rel.split('/')[0] ?? '';
+    return `${skill}:blueprints:${frontmatter.type}/${bpName}`;
+  }
+
+  // Use explicit name if set in frontmatter (non-blueprint)
+  if (frontmatter?.name && typeof frontmatter.name === 'string') {
+    return frontmatter.name;
+  }
+
+  // Derive from filesystem path: skills/<skill>[/<concern>]/<kind>/<artifact>.md
+  const rel = relative(resolve(agentsDir, 'skills'), filePath).replace(/\\/g, '/');
+  const parts = rel.split('/');
+  const skill = parts[0] ?? '';
+  const artifact = (parts[parts.length - 1] ?? '').replace(/\.md$/, '');
+
+  // Kind directory is tasks/, rules/, or blueprints/
+  // If there's a concern dir between skill and kind: skill/concern/kind/file → 4 parts
+  // Flat: skill/kind/file → 3 parts
+  if (parts.length >= 4) {
+    // Nested: skill/concern/kind/artifact.md (or deeper — take segment after skill)
+    const concern = parts[1]!;
+    return `${skill}:${concern}:${artifact}`;
+  }
+
+  // Flat: skill/kind/artifact.md
+  return `${skill}:${artifact}`;
+}
+
+/**
+ * Resolve short name to full namespaced name within the same skill context.
+ * E.g., `design:screenshot-reference` in skill `designbook` → `designbook:design:screenshot-reference`
+ */
+export function resolveShortName(shortName: string, skillName: string): string {
+  const segments = shortName.split(':');
+  if (segments.length >= 3) return shortName; // Already fully qualified
+  return `${skillName}:${shortName}`;
 }
 
 // ── Frontmatter Parsing ────────────────────────────────────────────
@@ -299,22 +366,117 @@ export function resolveFiles(
   for (const filePath of paths) {
     const frontmatter = parseFrontmatter(filePath);
     const when = frontmatter?.when as Record<string, unknown> | undefined;
+    const name = deriveArtifactName(filePath, agentsDir, frontmatter);
 
     if (!when || Object.keys(when).length === 0) {
       if (requireWhen) {
         continue;
       }
-      results.push({ path: filePath, specificity: 0, frontmatter });
+      results.push({ path: filePath, name, specificity: 0, frontmatter });
       continue;
     }
 
     const specificity = checkWhen(when, context, config);
     if (specificity !== false) {
-      results.push({ path: filePath, specificity, frontmatter });
+      results.push({ path: filePath, name, specificity, frontmatter });
     }
   }
 
   return results;
+}
+
+// ── Name/As Deduplication & Priority Sorting ─────────────────────────
+
+/**
+ * Apply name/as deduplication and priority sorting to resolved files.
+ *
+ * 1. Collect all files
+ * 2. Group by effective name (own `name` for standalone, `as` target for overrides)
+ * 3. Within each group, highest `priority` wins (tiebreak: alphabetical skill name, last wins)
+ * 4. Return remaining files sorted by priority (lowest first)
+ *
+ * Emits warnings for `as` targets that don't exist in the resolved set.
+ */
+export function deduplicateByNameAs(files: ResolvedFile[], agentsDir: string, warnings: string[] = []): ResolvedFile[] {
+  // Separate files into standalone (no `as`) and overrides (with `as`)
+  const standalone: ResolvedFile[] = [];
+  const overrides: Array<{ file: ResolvedFile; asTarget: string; priority: number }> = [];
+
+  for (const file of files) {
+    const asValue = file.frontmatter?.as as string | undefined;
+    if (asValue) {
+      // Resolve short name: derive skill from file path
+      const rel = relative(resolve(agentsDir, 'skills'), file.path).replace(/\\/g, '/');
+      const skill = rel.split('/')[0] ?? '';
+      const resolvedAs = resolveShortName(asValue, skill);
+      const priority = typeof file.frontmatter?.priority === 'number' ? (file.frontmatter.priority as number) : 0;
+      overrides.push({ file, asTarget: resolvedAs, priority });
+    } else {
+      standalone.push(file);
+    }
+  }
+
+  // Build a map of standalone files by name for override lookup
+  const standaloneByName = new Map<string, ResolvedFile>();
+  for (const file of standalone) {
+    standaloneByName.set(file.name, file);
+  }
+
+  // Apply overrides: group by asTarget, highest priority wins
+  const overridesByTarget = new Map<string, Array<{ file: ResolvedFile; priority: number }>>();
+  for (const o of overrides) {
+    if (!overridesByTarget.has(o.asTarget)) {
+      overridesByTarget.set(o.asTarget, []);
+    }
+    overridesByTarget.get(o.asTarget)!.push({ file: o.file, priority: o.priority });
+  }
+
+  for (const [target, candidates] of overridesByTarget) {
+    const original = standaloneByName.get(target);
+    if (!original) {
+      // as target doesn't exist — warn and run as additive
+      warnings.push(`as target '${target}' not found — task runs as additive`);
+      for (const c of candidates) {
+        standalone.push(c.file);
+      }
+      continue;
+    }
+
+    // Compare original priority with override candidates
+    const originalPriority =
+      typeof original.frontmatter?.priority === 'number' ? (original.frontmatter.priority as number) : 0;
+
+    // Find highest priority override
+    candidates.sort((a, b) => b.priority - a.priority);
+    const winner = candidates[0]!;
+
+    if (winner.priority > originalPriority) {
+      // Override wins — remove original, add winner
+      standaloneByName.delete(target);
+      standalone.splice(standalone.indexOf(original), 1);
+      standalone.push(winner.file);
+    } else if (winner.priority === originalPriority) {
+      // Equal priority — alphabetical tiebreak (last wins)
+      const originalSkill = original.name.split(':')[0] ?? '';
+      const winnerSkill = winner.file.name.split(':')[0] ?? '';
+      if (winnerSkill >= originalSkill) {
+        standaloneByName.delete(target);
+        standalone.splice(standalone.indexOf(original), 1);
+        standalone.push(winner.file);
+      }
+      // else original wins
+    }
+    // else original priority is higher — original stays
+  }
+
+  // Sort by priority (lowest first)
+  standalone.sort((a, b) => {
+    const pa = typeof a.frontmatter?.priority === 'number' ? (a.frontmatter.priority as number) : 0;
+    const pb = typeof b.frontmatter?.priority === 'number' ? (b.frontmatter.priority as number) : 0;
+    return pa - pb;
+  });
+
+  return standalone;
 }
 
 // ── Task File Resolution ────────────────────────────────────────────
@@ -329,60 +491,91 @@ export function resolveFiles(
  * Generic stages return ALL matching task files (multiple skills can contribute).
  * Returns empty array if no task files match (callers skip the step).
  */
-export function resolveTaskFiles(
-  stage: string,
-  config: DesignbookConfig,
-  agentsDir: string,
-  workflowId?: string,
-): string[] {
-  // Named stage: skill-name:task-name — single result
+export function resolveTaskFiles(stage: string, config: DesignbookConfig, agentsDir: string): string[] {
+  const context = buildRuntimeContext(stage);
+  const enrichedConfig = buildEnrichedConfig(config);
+
+  // Primary: broad scan — find all tasks with when.steps matching this stage
+  const broadMatches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, true);
+
+  // Named stage (skill:task format): return single best match
   if (stage.includes(':')) {
+    if (broadMatches.length > 0) {
+      broadMatches.sort((a, b) => b.specificity - a.specificity);
+      return [broadMatches[0]!.path];
+    }
+    // Fallback: direct skill-dir resolution (e.g. designbook-drupal:create-component)
     const parts = stage.split(':', 2);
     const skillName = parts[0] ?? '';
     const taskName = parts[1] ?? '';
-    // Try direct skill-dir resolution first (e.g. designbook-drupal:create-component)
     const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
     if (existsSync(taskPath)) {
+      console.warn(`[designbook] task "${taskPath}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
       return [taskPath];
     }
-    // Fall back to glob for workflow-qualified tasks within unified skill (e.g. design-screen:create-scene)
-    const context = buildRuntimeContext();
-    const enrichedConfig = buildEnrichedConfig(config);
-    const matches = resolveFiles(
-      `skills/**/tasks/${taskName}--${skillName}.md`,
-      context,
-      enrichedConfig,
-      agentsDir,
-      false,
-    );
-    if (matches.length === 0) {
-      return [];
-    }
-    matches.sort((a, b) => b.specificity - a.specificity);
-    return [matches[0]!.path];
+    return [];
   }
 
-  // Generic stage: resolve via glob + when matching — return ALL matches
-  const context = buildRuntimeContext();
+  // Generic stage: return ALL broad-scan matches
+  if (broadMatches.length > 0) {
+    return broadMatches.map((m) => m.path);
+  }
+
+  // Fallback: filename-based resolution with deprecation warning
+  const filenameMatches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir, false);
+  if (filenameMatches.length > 0) {
+    for (const m of filenameMatches) {
+      console.warn(`[designbook] task "${m.path}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+    }
+    return filenameMatches.map((m) => m.path);
+  }
+
+  return [];
+}
+
+/**
+ * Resolve a stage name to ResolvedFile[] with name/as deduplication and priority sorting.
+ * Used by resolveAllStages for the unified extension model.
+ */
+export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, agentsDir: string): ResolvedFile[] {
+  const context = buildRuntimeContext(stage);
   const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir, false);
 
-  if (matches.length > 0) {
-    return matches.map((m) => m.path);
+  // Primary: broad scan — find all tasks with when.steps matching this stage
+  const broadMatches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, true);
+
+  // Named stage (skill:task format): return single best match, no dedup needed
+  if (stage.includes(':')) {
+    if (broadMatches.length > 0) {
+      broadMatches.sort((a, b) => b.specificity - a.specificity);
+      return [broadMatches[0]!];
+    }
+    // Fallback: direct skill-dir resolution
+    const parts = stage.split(':', 2);
+    const skillName = parts[0] ?? '';
+    const taskName = parts[1] ?? '';
+    const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
+    if (existsSync(taskPath)) {
+      console.warn(`[designbook] task "${taskPath}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+      const frontmatter = parseFrontmatter(taskPath);
+      const name = deriveArtifactName(taskPath, agentsDir, frontmatter);
+      return [{ path: taskPath, name, specificity: 0, frontmatter }];
+    }
+    return [];
   }
 
-  // Fallback: try workflow-qualified task file (e.g. intake--vision.md)
-  if (workflowId) {
-    const qualifiedMatches = resolveFiles(
-      `skills/**/tasks/${stage}--${workflowId}.md`,
-      context,
-      enrichedConfig,
-      agentsDir,
-      false,
-    );
-    if (qualifiedMatches.length > 0) {
-      return qualifiedMatches.map((m) => m.path);
+  // Generic stage: return ALL broad-scan matches, deduplicated
+  if (broadMatches.length > 0) {
+    return deduplicateByNameAs(broadMatches, agentsDir);
+  }
+
+  // Fallback: filename-based resolution with deprecation warning
+  const filenameMatches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir, false);
+  if (filenameMatches.length > 0) {
+    for (const m of filenameMatches) {
+      console.warn(`[designbook] task "${m.path}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
     }
+    return deduplicateByNameAs(filenameMatches, agentsDir);
   }
 
   return [];
@@ -656,11 +849,13 @@ export function resolveAllStages(
   const expectedParams: Record<string, ExpectedParam> = {};
 
   for (const step of allSteps) {
-    const taskFilePaths = resolveTaskFiles(step, config, agentsDir, workflowId);
-    if (taskFilePaths.length === 0) {
+    const resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir, workflowId);
+    if (resolvedTaskFiles.length === 0) {
       console.debug(`[Designbook] workflow: step "${step}" skipped — no matching task file`);
       continue;
     }
+    const taskFilePaths = resolvedTaskFiles.map((r) => r.path);
+
     // Match rules/blueprints for the step name AND variant names:
     // - If step is plain (e.g. "intake"), also try workflow-qualified ("vision:intake")
     // - If step is already qualified (e.g. "design-screen:map-entity"), also try base ("map-entity")
@@ -696,6 +891,7 @@ export function resolveAllStages(
         config_instructions,
       };
     } else {
+      // Multiple tasks per step: ordered by priority (from deduplicateByNameAs)
       stepResolved[step] = taskFilePaths.map((taskFile) => ({
         task_file: taskFile,
         rules: ruleFiles,
@@ -707,8 +903,7 @@ export function resolveAllStages(
     resolvedSteps.push(step);
 
     // Aggregate expected_params from task file frontmatter
-    const taskFiles = taskFilePaths;
-    for (const taskFile of taskFiles) {
+    for (const taskFile of taskFilePaths) {
       const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
       const params = taskFm?.params as Record<string, unknown> | undefined;
       if (!params) continue;

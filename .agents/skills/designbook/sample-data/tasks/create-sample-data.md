@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [create-sample-data]
 params:
   section_id: ~
   entities: []       # optional: list of {entity_type, bundle, view_mode} from plan-entities

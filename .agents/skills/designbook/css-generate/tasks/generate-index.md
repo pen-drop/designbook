@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [generate-index]
 files:
   - file: $DESIGNBOOK_DIRS_CSS_TOKENS/index.src.css
     key: index-css

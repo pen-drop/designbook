@@ -1,5 +1,6 @@
 ---
 when:
+  steps: [create-component]
   frameworks.component: sdc
 params:
   component: ~

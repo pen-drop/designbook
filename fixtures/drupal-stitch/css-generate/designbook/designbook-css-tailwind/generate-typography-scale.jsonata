@@ -1,0 +1,17 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/typography-scale.src.css"
+ }
+ */
+(
+  $entries := $each($$.semantic.typography, function($v, $k) {
+    $substring($k, 0, 1) != "$" and $v."$type" = "typography" ? (
+      $val := $v."$value";
+      "  --text-" & $k & ": " & $val.fontSize & ";\n" &
+      "  --text-" & $k & "--weight: " & $val.fontWeight & ";\n" &
+      "  --text-" & $k & "--line-height: " & $val.lineHeight & ";"
+    )
+  });
+  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)

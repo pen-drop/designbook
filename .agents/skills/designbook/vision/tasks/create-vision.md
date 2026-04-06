@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [create-vision]
 params:
   product_name: ~
   description: ~

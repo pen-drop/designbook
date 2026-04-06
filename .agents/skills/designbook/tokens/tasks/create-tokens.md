@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [create-tokens]
 params:
   intake: {}
 files:

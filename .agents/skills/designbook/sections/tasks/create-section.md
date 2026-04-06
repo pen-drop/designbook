@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [create-section]
 params:
   section_id: ~        # kebab-case id from dialog
   section_title: ~     # display title

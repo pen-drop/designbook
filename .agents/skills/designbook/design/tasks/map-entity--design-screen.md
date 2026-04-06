@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [design-screen:map-entity]
 stage: map-entity
 params:
   entity_type: ~

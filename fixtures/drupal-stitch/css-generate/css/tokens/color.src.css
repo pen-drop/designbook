@@ -1,0 +1,34 @@
+@theme {
+  --color-primary: var(--color-blue-200);
+  --color-primary-container: var(--color-blue-800);
+  --color-on-primary: var(--color-blue-900);
+  --color-on-primary-container: var(--color-blue-100);
+  --color-inverse-primary: var(--color-blue-700);
+  --color-secondary: var(--color-gray-500);
+  --color-secondary-container: var(--color-gray-800);
+  --color-on-secondary: var(--color-gray-875);
+  --color-on-secondary-container: var(--color-gray-300);
+  --color-tertiary: var(--color-violet-100);
+  --color-tertiary-container: var(--color-violet-200);
+  --color-on-tertiary: var(--color-violet-700);
+  --color-on-tertiary-container: var(--color-violet-800);
+  --color-background: var(--color-gray-950);
+  --color-on-background: var(--color-gray-200);
+  --color-surface: var(--color-gray-950);
+  --color-surface-container-lowest: var(--color-black);
+  --color-surface-container-low: var(--color-gray-925);
+  --color-surface-container: var(--color-gray-900);
+  --color-surface-container-high: var(--color-gray-875);
+  --color-surface-container-highest: var(--color-gray-850);
+  --color-surface-variant: var(--color-gray-850);
+  --color-on-surface: var(--color-gray-200);
+  --color-on-surface-variant: var(--color-gray-400);
+  --color-outline: var(--color-gray-600);
+  --color-outline-variant: var(--color-gray-750);
+  --color-inverse-surface: var(--color-gray-50);
+  --color-inverse-on-surface: var(--color-gray-700);
+  --color-error: var(--color-red-300);
+  --color-error-container: var(--color-red-800);
+  --color-on-error: var(--color-red-950);
+  --color-on-error-container: var(--color-red-200);
+}

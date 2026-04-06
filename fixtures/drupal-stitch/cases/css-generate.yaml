@@ -1,0 +1,36 @@
+fixtures:
+  - vision
+  - data-model
+  - design-guideline
+  - tokens
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo css-generate workflow. Do NOT ask any questions.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['css-generate']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['css-generate']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.newFiles.includes('css/tokens/google-fonts.src.css')
+  - type: javascript
+    value: |
+      const c = output.fileContents['css/tokens/google-fonts.src.css'] || '';
+      return c.includes('@font-face') && c.includes('Inter') && c.includes('Space Grotesk');
+  - type: javascript
+    value: |
+      const c = output.fileContents['css/tokens/google-fonts.src.css'] || '';
+      return c.includes('.woff2') && c.includes('../fonts/');
+  - type: javascript
+    value: |
+      const c = output.fileContents['css/tokens/google-fonts.src.css'] || '';
+      return !c.includes('@import url') && !c.includes('fonts.gstatic.com');
+  - type: javascript
+    value: output.newFiles.includes('css/tokens/color.src.css')
+  - type: javascript
+    value: output.newFiles.includes('css/tokens/typography-scale.src.css')

@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [generate-jsonata]
 params:
   group: ~
 files:

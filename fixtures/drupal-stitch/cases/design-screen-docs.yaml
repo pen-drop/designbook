@@ -1,0 +1,23 @@
+fixtures:
+  - vision
+  - data-model
+  - design-guideline
+  - tokens
+  - css-generate
+  - sections
+  - sample-data-docs
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-screen workflow. Do NOT ask any questions.
+  Design the docs section (documentation pages).
+  Use the design reference from guidelines.yml.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['design-screen']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-screen']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

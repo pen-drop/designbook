@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -18,6 +18,10 @@ import {
   resolveFiles,
   buildRuntimeContext,
   buildEnrichedConfig,
+  deriveArtifactName,
+  resolveShortName,
+  deduplicateByNameAs,
+  type ResolvedFile,
 } from '../../workflow-resolve.js';
 import { acquireLock, releaseLock, withLock } from '../../workflow-lock.js';
 import type { DesignbookConfig } from '../../config.js';
@@ -120,32 +124,47 @@ afterEach(() => {
 
 // 5.1: Task file resolution
 describe('resolveTaskFiles', () => {
-  it('resolves named stage (skill:task format) directly', () => {
+  it('resolves named stage (skill:task format) via when.steps', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillTaskFile(agentsDir, 'designbook-sections', 'create-section', 'params:\n  section_id: ~');
+    writeSkillTaskFile(
+      agentsDir,
+      'designbook-sections',
+      'create-section',
+      'when:\n  steps: [designbook-sections:create-section]\nparams:\n  section_id: ~',
+    );
 
     const result = resolveTaskFiles('designbook-sections:create-section', baseConfig, agentsDir);
     expect(result).toEqual([resolve(agentsDir, 'skills/designbook-sections/tasks/create-section.md')]);
   });
 
-  it('resolves generic stage by scanning skills', () => {
+  it('resolves generic stage via when.steps', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillTaskFile(agentsDir, 'designbook-tokens', 'create-tokens', 'params:\n  colors: {}');
+    writeSkillTaskFile(
+      agentsDir,
+      'designbook-tokens',
+      'create-tokens',
+      'when:\n  steps: [create-tokens]\nparams:\n  colors: {}',
+    );
 
     const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
     expect(result).toEqual([resolve(agentsDir, 'skills/designbook-tokens/tasks/create-tokens.md')]);
   });
 
-  it('returns all matching task files for generic stage', () => {
+  it('returns all matching task files for generic stage via when.steps', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    // Generic fallback (no when)
-    const genericPath = writeSkillTaskFile(agentsDir, 'generic-comp', 'create-component', 'params:\n  component: ~');
-    // Specific match (when frameworks.component: sdc)
+    // Generic match
+    const genericPath = writeSkillTaskFile(
+      agentsDir,
+      'generic-comp',
+      'create-component',
+      'when:\n  steps: [create-component]\nparams:\n  component: ~',
+    );
+    // Specific match (when frameworks.component: sdc + steps)
     const specificPath = writeSkillTaskFile(
       agentsDir,
       'sdc-comp',
       'create-component',
-      'when:\n  frameworks.component: sdc\nparams:\n  component: ~',
+      'when:\n  steps: [create-component]\n  frameworks.component: sdc\nparams:\n  component: ~',
     );
 
     const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
@@ -169,7 +188,7 @@ describe('resolveTaskFiles', () => {
       'designbook-sdc',
       'components',
       'create-component',
-      'params:\n  component: ~',
+      'when:\n  steps: [create-component]\nparams:\n  component: ~',
     );
 
     const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
@@ -178,10 +197,79 @@ describe('resolveTaskFiles', () => {
 
   it('flat task structure still discovered after glob change', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const taskPath = writeSkillTaskFile(agentsDir, 'designbook-tokens', 'create-tokens', 'params:\n  colors: {}');
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'designbook-tokens',
+      'create-tokens',
+      'when:\n  steps: [create-tokens]\nparams:\n  colors: {}',
+    );
 
     const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
     expect(result).toContain(taskPath);
+  });
+
+  // 3.1: broad-scan finds task by when.steps regardless of filename
+  it('finds task by when.steps even when filename does not match step name', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'designbook-devtools',
+      'inspect-storybook',
+      'when:\n  steps: [inspect]',
+    );
+
+    const result = resolveTaskFiles('inspect', baseConfig, agentsDir);
+    expect(result).toEqual([taskPath]);
+  });
+
+  // 3.2: task without when.steps falls back to filename match with warning
+  it('falls back to filename match with warning when task has no when.steps', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const taskPath = writeSkillTaskFile(agentsDir, 'legacy-skill', 'my-step', 'params:\n  foo: bar');
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = resolveTaskFiles('my-step', baseConfig, agentsDir);
+    expect(result).toEqual([taskPath]);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('resolved by filename'));
+    warnSpy.mockRestore();
+  });
+
+  // 3.3: multiple tasks from different skills match one step via when.steps
+  it('returns tasks from multiple skills matching the same step via when.steps', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const path1 = writeSkillTaskFile(agentsDir, 'skill-a', 'do-thing', 'when:\n  steps: [shared-step]');
+    const path2 = writeSkillTaskFile(agentsDir, 'skill-b', 'do-thing-alt', 'when:\n  steps: [shared-step]');
+
+    const result = resolveTaskFiles('shared-step', baseConfig, agentsDir);
+    expect(result).toHaveLength(2);
+    expect(result).toContain(path1);
+    expect(result).toContain(path2);
+  });
+
+  // Named stage fallback: direct path when no when.steps
+  it('named stage falls back to direct path with warning when no when.steps match', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillTaskFile(agentsDir, 'my-skill', 'my-task', 'params:\n  x: 1');
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = resolveTaskFiles('my-skill:my-task', baseConfig, agentsDir);
+    expect(result).toEqual([resolve(agentsDir, 'skills/my-skill/tasks/my-task.md')]);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('resolved by filename'));
+    warnSpy.mockRestore();
+  });
+
+  // Workflow-qualified step via when.steps (e.g. design-shell:intake)
+  it('resolves workflow-qualified step via when.steps on -- task files', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'designbook',
+      'intake--design-shell',
+      'when:\n  steps: [design-shell:intake]',
+    );
+
+    const result = resolveTaskFiles('design-shell:intake', baseConfig, agentsDir);
+    expect(result).toEqual([taskPath]);
   });
 });
 
@@ -796,5 +884,453 @@ describe('file locking', () => {
     // Should recover from stale lock
     const result = withLock(filePath, () => 'recovered');
     expect(result).toBe('recovered');
+  });
+});
+
+// ── Artifact Name Derivation ──────────────────────────────────────
+
+describe('deriveArtifactName', () => {
+  it('derives nested skill name: skill/concern/tasks/file.md', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook/design/tasks/screenshot-reference.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook:design:screenshot-reference');
+  });
+
+  it('derives flat skill name: skill/tasks/file.md', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook-stitch/tasks/stitch-inspect.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook-stitch:stitch-inspect');
+  });
+
+  it('derives name for nested rule file', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook/design/rules/playwright-session.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook:design:playwright-session');
+  });
+
+  it('derives name for flat rule file', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook-css/rules/tailwind-tokens.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook-css:tailwind-tokens');
+  });
+
+  it('uses explicit name from frontmatter if present', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook-stitch/tasks/screenshot-stitch.md');
+    const fm = { name: 'designbook-stitch:design:screenshot-stitch' };
+    expect(deriveArtifactName(filePath, agentsDir, fm)).toBe('designbook-stitch:design:screenshot-stitch');
+  });
+
+  it('derives blueprint name from type+name (legacy)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook-sdc/blueprints/section.md');
+    const fm = { type: 'component', name: 'section' };
+    expect(deriveArtifactName(filePath, agentsDir, fm)).toBe('designbook-sdc:blueprints:component/section');
+  });
+
+  it('derives blueprint name using filename when no name in frontmatter', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook-sdc/blueprints/component.md');
+    const fm = { type: 'component' };
+    expect(deriveArtifactName(filePath, agentsDir, fm)).toBe('designbook-sdc:blueprints:component/component');
+  });
+});
+
+// ── Short Name Resolution ─────────────────────────────────────────
+
+describe('resolveShortName', () => {
+  it('resolves 2-segment short name within skill', () => {
+    expect(resolveShortName('design:screenshot-reference', 'designbook')).toBe(
+      'designbook:design:screenshot-reference',
+    );
+  });
+
+  it('passes through fully qualified name unchanged', () => {
+    expect(resolveShortName('designbook:design:screenshot-reference', 'designbook-stitch')).toBe(
+      'designbook:design:screenshot-reference',
+    );
+  });
+
+  it('resolves single-segment name within skill', () => {
+    expect(resolveShortName('stitch-inspect', 'designbook-stitch')).toBe('designbook-stitch:stitch-inspect');
+  });
+});
+
+// ── resolveFiles includes name ────────────────────────────────────
+
+describe('resolveFiles with name', () => {
+  it('includes derived name in resolved files', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'when:\n  frameworks.css: tailwind');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.name).toBe('designbook-css:tailwind-rule');
+  });
+
+  it('includes derived name for nested skill files', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFileInSubdir(agentsDir, 'designbook', 'design', 'screenshot-rule', 'when:\n  stages: [screenshot]');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext('screenshot');
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.name).toBe('designbook:design:screenshot-rule');
+  });
+
+  it('uses explicit name from frontmatter over derived name', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(
+      agentsDir,
+      'designbook-css',
+      'tailwind-rule',
+      'name: designbook-css:tokens:tailwind-rule\nwhen:\n  frameworks.css: tailwind',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.name).toBe('designbook-css:tokens:tailwind-rule');
+  });
+
+  it('includes name for task files without when (requireWhen=false)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillTaskFile(agentsDir, 'designbook-tokens', 'create-tokens', 'params:\n  colors: {}');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, false);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.name).toBe('designbook-tokens:create-tokens');
+  });
+
+  it('includes name for nested task files', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillTaskFileInSubdir(
+      agentsDir,
+      'designbook',
+      'design',
+      'screenshot-storybook',
+      'when:\n  stages: [screenshot]\npriority: 10',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext('screenshot');
+    const matches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, false);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.name).toBe('designbook:design:screenshot-storybook');
+  });
+});
+
+// ── when + name integration ───────────────────────────────────────
+
+describe('when conditions with named artifacts', () => {
+  it('filters by when and preserves name on matching artifacts', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillTaskFileInSubdir(
+      agentsDir,
+      'designbook',
+      'design',
+      'inspect-storybook',
+      'name: designbook:design:inspect-storybook\nwhen:\n  stages: [inspect]\npriority: 10',
+    );
+    writeSkillTaskFileInSubdir(
+      agentsDir,
+      'designbook',
+      'design',
+      'inspect-reference',
+      'name: designbook:design:inspect-reference\nwhen:\n  stages: [inspect]\npriority: 20',
+    );
+    writeSkillTaskFile(
+      agentsDir,
+      'designbook-stitch',
+      'inspect-stitch',
+      'name: designbook-stitch:inspect-stitch\nwhen:\n  stages: [inspect]\n  backend: drupal\npriority: 30',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext('inspect');
+    const matches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, false);
+
+    // All three match (backend=drupal is in baseConfig)
+    expect(matches).toHaveLength(3);
+    const names = matches.map((m) => m.name).sort();
+    expect(names).toEqual([
+      'designbook-stitch:inspect-stitch',
+      'designbook:design:inspect-reference',
+      'designbook:design:inspect-storybook',
+    ]);
+  });
+
+  it('excludes artifacts whose when conditions do not match', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillTaskFile(
+      agentsDir,
+      'designbook-stitch',
+      'inspect-stitch',
+      'name: designbook-stitch:inspect-stitch\nwhen:\n  stages: [inspect]\n  backend: html\npriority: 30',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext('inspect');
+    const matches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, false);
+
+    // backend: html doesn't match (config has drupal)
+    expect(matches).toHaveLength(0);
+  });
+
+  it('preserves priority from frontmatter alongside name', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillTaskFileInSubdir(
+      agentsDir,
+      'designbook',
+      'design',
+      'ensure-storybook',
+      'name: designbook:design:ensure-storybook\nwhen:\n  stages: [screenshot]\npriority: 5',
+    );
+    writeSkillTaskFileInSubdir(
+      agentsDir,
+      'designbook',
+      'design',
+      'screenshot-storybook',
+      'name: designbook:design:screenshot-storybook\nwhen:\n  stages: [screenshot]\npriority: 10',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext('screenshot');
+    const matches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, false);
+
+    expect(matches).toHaveLength(2);
+    // Sort by priority to verify ordering
+    const sorted = matches.sort(
+      (a, b) => ((a.frontmatter?.priority as number) ?? 0) - ((b.frontmatter?.priority as number) ?? 0),
+    );
+    expect(sorted[0]!.name).toBe('designbook:design:ensure-storybook');
+    expect(sorted[0]!.frontmatter?.priority).toBe(5);
+    expect(sorted[1]!.name).toBe('designbook:design:screenshot-storybook');
+    expect(sorted[1]!.frontmatter?.priority).toBe(10);
+  });
+
+  it('matches rules from multiple skills for the same step', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFileInSubdir(
+      agentsDir,
+      'designbook',
+      'design',
+      'playwright-session',
+      'name: designbook:design:playwright-session\nwhen:\n  stages: [inspect]',
+    );
+    writeSkillRuleFile(
+      agentsDir,
+      'designbook-css',
+      'inspect-tokens',
+      'name: designbook-css:inspect-tokens\nwhen:\n  stages: [inspect]\n  frameworks.css: tailwind',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext('inspect');
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+
+    expect(matches).toHaveLength(2);
+    const names = matches.map((m) => m.name).sort();
+    expect(names).toEqual(['designbook-css:inspect-tokens', 'designbook:design:playwright-session']);
+  });
+});
+
+// ── deduplicateByNameAs ───────────────────────────────────────────
+
+describe('deduplicateByNameAs', () => {
+  function makeResolvedFile(name: string, priority: number, as?: string, skillDir = 'designbook'): ResolvedFile {
+    const agentsDir = resolve(tmpDir, '.agents');
+    return {
+      path: resolve(agentsDir, `skills/${skillDir}/tasks/${name.split(':').pop()}.md`),
+      name,
+      specificity: 1,
+      frontmatter: {
+        priority,
+        ...(as ? { as } : {}),
+      },
+    };
+  }
+
+  it('returns all additive files sorted by priority', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const files: ResolvedFile[] = [
+      makeResolvedFile('designbook:design:screenshot-storybook', 10),
+      makeResolvedFile('designbook:design:ensure-storybook', 5),
+      makeResolvedFile('designbook:design:screenshot-reference', 20),
+    ];
+
+    const result = deduplicateByNameAs(files, agentsDir);
+    expect(result.map((r) => r.name)).toEqual([
+      'designbook:design:ensure-storybook',
+      'designbook:design:screenshot-storybook',
+      'designbook:design:screenshot-reference',
+    ]);
+  });
+
+  it('override with higher priority replaces original', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const files: ResolvedFile[] = [
+      makeResolvedFile('designbook:design:screenshot-reference', 20),
+      makeResolvedFile(
+        'designbook-stitch:design:screenshot-stitch',
+        30,
+        'designbook:design:screenshot-reference',
+        'designbook-stitch',
+      ),
+    ];
+
+    const result = deduplicateByNameAs(files, agentsDir);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.name).toBe('designbook-stitch:design:screenshot-stitch');
+  });
+
+  it('override with lower priority does not replace original', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const files: ResolvedFile[] = [
+      makeResolvedFile('designbook:design:screenshot-reference', 20),
+      makeResolvedFile(
+        'designbook-stitch:design:screenshot-stitch',
+        10,
+        'designbook:design:screenshot-reference',
+        'designbook-stitch',
+      ),
+    ];
+
+    const result = deduplicateByNameAs(files, agentsDir);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.name).toBe('designbook:design:screenshot-reference');
+  });
+
+  it('override alongside additive tasks', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const files: ResolvedFile[] = [
+      makeResolvedFile('designbook:design:ensure-storybook', 5),
+      makeResolvedFile('designbook:design:screenshot-reference', 20),
+      makeResolvedFile(
+        'designbook-stitch:design:screenshot-stitch',
+        30,
+        'designbook:design:screenshot-reference',
+        'designbook-stitch',
+      ),
+    ];
+
+    const result = deduplicateByNameAs(files, agentsDir);
+    expect(result).toHaveLength(2);
+    expect(result[0]!.name).toBe('designbook:design:ensure-storybook');
+    expect(result[1]!.name).toBe('designbook-stitch:design:screenshot-stitch');
+  });
+
+  it('warns when as target does not exist and runs as additive', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const warnings: string[] = [];
+    const files: ResolvedFile[] = [
+      makeResolvedFile(
+        'designbook-stitch:design:screenshot-stitch',
+        30,
+        'designbook:design:nonexistent',
+        'designbook-stitch',
+      ),
+    ];
+
+    const result = deduplicateByNameAs(files, agentsDir, warnings);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.name).toBe('designbook-stitch:design:screenshot-stitch');
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('nonexistent');
+    expect(warnings[0]).toContain('not found');
+  });
+
+  it('resolves short name in as field using skill from file path', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // File in designbook-stitch skill with short as: "design:screenshot-reference"
+    // Should resolve to designbook-stitch:design:screenshot-reference (own skill)
+    // which doesn't match the standalone — so it warns and runs as additive
+    const files: ResolvedFile[] = [
+      makeResolvedFile('designbook:design:screenshot-reference', 20),
+      {
+        path: resolve(agentsDir, 'skills/designbook-stitch/tasks/screenshot-stitch.md'),
+        name: 'designbook-stitch:screenshot-stitch',
+        specificity: 1,
+        frontmatter: { priority: 30, as: 'design:screenshot-reference' },
+      },
+    ];
+
+    const warnings: string[] = [];
+    const result = deduplicateByNameAs(files, agentsDir, warnings);
+    // Short name resolves to designbook-stitch:design:screenshot-reference — not found
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('designbook-stitch:design:screenshot-reference');
+    // Both run (additive fallback + original)
+    expect(result).toHaveLength(2);
+  });
+
+  it('full name as field correctly overrides across skills', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const files: ResolvedFile[] = [
+      makeResolvedFile('designbook:design:screenshot-reference', 20),
+      {
+        path: resolve(agentsDir, 'skills/designbook-stitch/tasks/screenshot-stitch.md'),
+        name: 'designbook-stitch:screenshot-stitch',
+        specificity: 1,
+        frontmatter: { priority: 30, as: 'designbook:design:screenshot-reference' },
+      },
+    ];
+
+    const result = deduplicateByNameAs(files, agentsDir);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.name).toBe('designbook-stitch:screenshot-stitch');
+  });
+
+  it('equal priority uses alphabetical skill tiebreak (last wins)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // 2-segment names are flat skills — as must use full name for cross-skill override
+    // resolveShortName('aaa-skill:screenshot-ref', 'zzz-skill') would resolve to own skill
+    // So we need a 3-segment name to test proper cross-skill override
+    const files: ResolvedFile[] = [
+      {
+        path: resolve(agentsDir, 'skills/aaa-skill/design/tasks/screenshot-ref.md'),
+        name: 'aaa-skill:design:screenshot-ref',
+        specificity: 1,
+        frontmatter: { priority: 20 },
+      },
+      {
+        path: resolve(agentsDir, 'skills/zzz-skill/tasks/screenshot-alt.md'),
+        name: 'zzz-skill:screenshot-alt',
+        specificity: 1,
+        frontmatter: { priority: 20, as: 'aaa-skill:design:screenshot-ref' },
+      },
+    ];
+
+    const result = deduplicateByNameAs(files, agentsDir);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.name).toBe('zzz-skill:screenshot-alt');
+  });
+
+  it('default priority is 0 for files without priority field', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const files: ResolvedFile[] = [
+      {
+        path: resolve(agentsDir, 'skills/designbook/tasks/basic.md'),
+        name: 'designbook:basic',
+        specificity: 1,
+        frontmatter: {},
+      },
+      makeResolvedFile('designbook:design:advanced', 10),
+    ];
+
+    const result = deduplicateByNameAs(files, agentsDir);
+    expect(result[0]!.name).toBe('designbook:basic'); // priority 0 comes first
+    expect(result[1]!.name).toBe('designbook:design:advanced'); // priority 10
   });
 });

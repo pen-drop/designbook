@@ -1,0 +1,23 @@
+fixtures:
+  - vision
+  - data-model
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo sections workflow. Do NOT ask any questions.
+  Based on the vision and data model, define two sections:
+  1. Homepage — the main landing page showcasing Designbook's features
+  2. Docs — the documentation section for articles and guides
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['sections']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['sections']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('sections/homepage/'))
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('sections/docs/'))

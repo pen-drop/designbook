@@ -1,4 +1,8 @@
 ---
+name: designbook:design:visual-compare
+when:
+  steps: [visual-compare]
+priority: 50
 params:
   scene: ~
 files: []
@@ -36,16 +40,25 @@ Read the following for comparison context:
 2. **Design tokens** — `design-tokens.yml` (colors, fonts, spacing, breakpoints)
 3. **Guidelines** — `guidelines.yml` (principles, component patterns)
 
-## Step 4: Read Matched Rules for Extra Context
+## Step 4: Load Inspect Data
 
-Read any matched rules for the `visual-compare` step (e.g. `devtools-context` from designbook-devtools). These may provide:
+Check for `inspect-*.json` files from the prior `inspect` step:
 
-- Computed styles (actual rendered CSS values)
-- DOM structure snapshot
-- Accessibility audit results
-- Console errors
-- Check expected fonts
-- Check expected color scheme. 
+```
+designbook/workflows/<workflow>/steps/inspect/inspect-*.json
+```
+
+If inspect data exists, load all files and use them as structured context:
+- **customProperties**: Verify CSS custom properties match design-tokens.yml values
+- **fonts**: Verify expected fonts are loaded (loaded: true) — flag any that failed
+- **computedStyles**: Compare actual rendered values against token values
+- **consoleErrors**: Report any errors as Critical issues
+
+If no inspect data exists (inspect step was skipped), degrade gracefully — rely on visual comparison only.
+
+## Step 4b: Read Matched Rules for Extra Context
+
+Read any matched rules for the `visual-compare` step. These may provide additional context for comparison.
 
 ## Step 5: Compare Per Breakpoint
 

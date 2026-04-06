@@ -1,0 +1,205 @@
+primitive:
+  color:
+    # Blue family (from overridePrimaryColor #0070F3)
+    blue-100: { $value: "#bdd0ff", $type: color }
+    blue-200: { $value: "#aec6ff", $type: color }
+    blue-300: { $value: "#99b8ff", $type: color }
+    blue-700: { $value: "#005ac6", $type: color }
+    blue-800: { $value: "#004397", $type: color }
+    blue-900: { $value: "#003d8a", $type: color }
+    # Gray family (from overrideSecondaryColor #888888, overrideNeutralColor #000000)
+    gray-50: { $value: "#f9f9f9", $type: color }
+    gray-200: { $value: "#e5e5e5", $type: color }
+    gray-300: { $value: "#c0bfbf", $type: color }
+    gray-400: { $value: "#ababab", $type: color }
+    gray-500: { $value: "#9e9e9e", $type: color }
+    gray-600: { $value: "#757575", $type: color }
+    gray-700: { $value: "#555555", $type: color }
+    gray-750: { $value: "#484848", $type: color }
+    gray-800: { $value: "#3b3b3c", $type: color }
+    gray-850: { $value: "#262626", $type: color }
+    gray-875: { $value: "#1f1f1f", $type: color }
+    gray-900: { $value: "#191919", $type: color }
+    gray-925: { $value: "#131313", $type: color }
+    gray-950: { $value: "#0e0e0e", $type: color }
+    black: { $value: "#000000", $type: color }
+    # Violet family (tertiary — no brand override)
+    violet-100: { $value: "#e4dfff", $type: color }
+    violet-200: { $value: "#d6d0f1", $type: color }
+    violet-700: { $value: "#524f6a", $type: color }
+    violet-800: { $value: "#494661", $type: color }
+    # Red/Error family
+    red-200: { $value: "#ff9993", $type: color }
+    red-300: { $value: "#ee7d77", $type: color }
+    red-800: { $value: "#7f2927", $type: color }
+    red-950: { $value: "#490106", $type: color }
+  spacing:
+    0: { $value: "0", $type: dimension }
+    1: { $value: "0.25rem", $type: dimension }
+    2: { $value: "0.5rem", $type: dimension }
+    3: { $value: "0.75rem", $type: dimension }
+    4: { $value: "1rem", $type: dimension }
+    5: { $value: "1.25rem", $type: dimension }
+    6: { $value: "1.5rem", $type: dimension }
+    8: { $value: "2rem", $type: dimension }
+    10: { $value: "2.5rem", $type: dimension }
+    12: { $value: "3rem", $type: dimension }
+    16: { $value: "4rem", $type: dimension }
+    20: { $value: "5rem", $type: dimension }
+    24: { $value: "6rem", $type: dimension }
+
+semantic:
+  color:
+    primary: { $value: "{primitive.color.blue-200}", $type: color }
+    primary-container: { $value: "{primitive.color.blue-800}", $type: color }
+    on-primary: { $value: "{primitive.color.blue-900}", $type: color }
+    on-primary-container: { $value: "{primitive.color.blue-100}", $type: color }
+    inverse-primary: { $value: "{primitive.color.blue-700}", $type: color }
+    secondary: { $value: "{primitive.color.gray-500}", $type: color }
+    secondary-container: { $value: "{primitive.color.gray-800}", $type: color }
+    on-secondary: { $value: "{primitive.color.gray-875}", $type: color } # approx #1f2020
+    on-secondary-container: { $value: "{primitive.color.gray-300}", $type: color }
+    tertiary: { $value: "{primitive.color.violet-100}", $type: color }
+    tertiary-container: { $value: "{primitive.color.violet-200}", $type: color }
+    on-tertiary: { $value: "{primitive.color.violet-700}", $type: color }
+    on-tertiary-container: { $value: "{primitive.color.violet-800}", $type: color }
+    background: { $value: "{primitive.color.gray-950}", $type: color }
+    on-background: { $value: "{primitive.color.gray-200}", $type: color }
+    surface: { $value: "{primitive.color.gray-950}", $type: color }
+    surface-container-lowest: { $value: "{primitive.color.black}", $type: color }
+    surface-container-low: { $value: "{primitive.color.gray-925}", $type: color }
+    surface-container: { $value: "{primitive.color.gray-900}", $type: color }
+    surface-container-high: { $value: "{primitive.color.gray-875}", $type: color }
+    surface-container-highest: { $value: "{primitive.color.gray-850}", $type: color }
+    surface-variant: { $value: "{primitive.color.gray-850}", $type: color }
+    on-surface: { $value: "{primitive.color.gray-200}", $type: color }
+    on-surface-variant: { $value: "{primitive.color.gray-400}", $type: color }
+    outline: { $value: "{primitive.color.gray-600}", $type: color }
+    outline-variant: { $value: "{primitive.color.gray-750}", $type: color }
+    inverse-surface: { $value: "{primitive.color.gray-50}", $type: color }
+    inverse-on-surface: { $value: "{primitive.color.gray-700}", $type: color }
+    error: { $value: "{primitive.color.red-300}", $type: color }
+    error-container: { $value: "{primitive.color.red-800}", $type: color }
+    on-error: { $value: "{primitive.color.red-950}", $type: color }
+    on-error-container: { $value: "{primitive.color.red-200}", $type: color }
+  typography:
+    heading: { $value: "Inter", $type: fontFamily }
+    body: { $value: "Inter", $type: fontFamily }
+    label: { $value: "Space Grotesk", $type: fontFamily }
+    display:
+      $type: typography
+      $value:
+        fontFamily: "Inter"
+        fontSize: "3.5rem"
+        fontWeight: 700
+        lineHeight: 1.1
+        letterSpacing: "-0.04em"
+    headline:
+      $type: typography
+      $value:
+        fontFamily: "Inter"
+        fontSize: "2.25rem"
+        fontWeight: 700
+        lineHeight: 1.2
+        letterSpacing: "-0.02em"
+    title:
+      $type: typography
+      $value:
+        fontFamily: "Inter"
+        fontSize: "1.5rem"
+        fontWeight: 600
+        lineHeight: 1.3
+    body-text:
+      $type: typography
+      $value:
+        fontFamily: "Inter"
+        fontSize: "1rem"
+        fontWeight: 400
+        lineHeight: 1.5
+    label-text:
+      $type: typography
+      $value:
+        fontFamily: "Space Grotesk"
+        fontSize: "0.875rem"
+        fontWeight: 500
+        lineHeight: 1.4
+  radius:
+    $extensions:
+      designbook:
+        renderer: radius
+    sm: { $value: "0.125rem", $type: dimension }
+    md: { $value: "0.25rem", $type: dimension }
+    lg: { $value: "0.5rem", $type: dimension }
+    full: { $value: "9999px", $type: dimension }
+  breakpoints:
+    $extensions:
+      designbook:
+        renderer: screen
+    sm: { $value: "640px", $type: dimension }
+    md: { $value: "768px", $type: dimension }
+    lg: { $value: "1024px", $type: dimension }
+    xl: { $value: "1280px", $type: dimension }
+
+component:
+  container:
+    max-width:
+      $extensions:
+        designbook:
+          renderer: container
+      sm: { $value: "640px", $type: dimension }
+      md: { $value: "768px", $type: dimension }
+      lg: { $value: "1024px", $type: dimension }
+      xl: { $value: "1280px", $type: dimension }
+  grid:
+    gap:
+      $extensions:
+        designbook:
+          renderer: gap
+      sm: { $value: "{primitive.spacing.4}", $type: dimension }
+      md: { $value: "{primitive.spacing.6}", $type: dimension }
+      lg: { $value: "{primitive.spacing.8}", $type: dimension }
+  section:
+    padding-y:
+      $extensions:
+        designbook:
+          renderer: spacing
+      sm: { $value: "{primitive.spacing.8}", $type: dimension }
+      md: { $value: "{primitive.spacing.16}", $type: dimension }
+      lg: { $value: "{primitive.spacing.24}", $type: dimension }
+
+themes:
+  technical-blueprint:
+    semantic:
+      color:
+        primary: { $value: "#004fa8", $type: color }
+        primary-container: { $value: "#0366d6", $type: color }
+        on-primary: { $value: "#ffffff", $type: color }
+        on-primary-container: { $value: "#e5ebff", $type: color }
+        inverse-primary: { $value: "#adc6ff", $type: color }
+        secondary: { $value: "#006e2c", $type: color }
+        secondary-container: { $value: "#88fb9a", $type: color }
+        on-secondary: { $value: "#ffffff", $type: color }
+        on-secondary-container: { $value: "#00742f", $type: color }
+        tertiary: { $value: "#4d5259", $type: color }
+        tertiary-container: { $value: "#656a71", $type: color }
+        on-tertiary: { $value: "#ffffff", $type: color }
+        on-tertiary-container: { $value: "#e7ebf3", $type: color }
+        background: { $value: "#f7f9ff", $type: color }
+        on-background: { $value: "#171c22", $type: color }
+        surface: { $value: "#f7f9ff", $type: color }
+        surface-container-lowest: { $value: "#ffffff", $type: color }
+        surface-container-low: { $value: "#f0f4fc", $type: color }
+        surface-container: { $value: "#eaeef6", $type: color }
+        surface-container-high: { $value: "#e4e8f0", $type: color }
+        surface-container-highest: { $value: "#dee3eb", $type: color }
+        surface-variant: { $value: "#dee3eb", $type: color }
+        on-surface: { $value: "#171c22", $type: color }
+        on-surface-variant: { $value: "#424753", $type: color }
+        outline: { $value: "#727785", $type: color }
+        outline-variant: { $value: "#c2c6d6", $type: color }
+        inverse-surface: { $value: "#2c3137", $type: color }
+        inverse-on-surface: { $value: "#edf1f9", $type: color }
+        error: { $value: "#ba1a1a", $type: color }
+        error-container: { $value: "#ffdad6", $type: color }
+        on-error: { $value: "#ffffff", $type: color }
+        on-error-container: { $value: "#93000a", $type: color }

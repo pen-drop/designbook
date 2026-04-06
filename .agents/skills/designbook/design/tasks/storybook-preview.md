@@ -1,4 +1,8 @@
 ---
+name: designbook:design:storybook-preview
+when:
+  steps: [storybook-preview]
+priority: 5
 params: {}
 files: []
 ---

@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [run-workflow]
 files: []
 params:
   workflow: ~

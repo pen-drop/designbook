@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [design-shell:intake]
 files: []
 reads:
   - path: $DESIGNBOOK_DATA/vision.md

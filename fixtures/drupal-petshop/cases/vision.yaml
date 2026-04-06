@@ -21,7 +21,7 @@ prompt: |
 
 assert:
   - type: javascript
-    value: output.newFiles.some(f => f === 'designbook/product/vision.md')
+    value: output.newFiles.some(f => f === 'designbook/vision.md')
   - type: javascript
     value: output.archivedWorkflows['vision']?.status === 'completed'
   - type: javascript
@@ -30,9 +30,9 @@ assert:
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript
     value: |
-      const md = output.fileContents['designbook/product/vision.md'] || '';
+      const md = output.fileContents['designbook/vision.md'] || '';
       return md.includes('PetMatch');
   - type: javascript
     value: |
-      const md = output.fileContents['designbook/product/vision.md'] || '';
+      const md = output.fileContents['designbook/vision.md'] || '';
       return md.includes('## Description') || md.includes('## Problems') || md.includes('## Key Features');

@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [generate-css]
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: tokens

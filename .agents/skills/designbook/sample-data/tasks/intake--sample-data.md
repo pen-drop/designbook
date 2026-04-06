@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [sample-data:intake]
 files: []
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml

@@ -1,0 +1,12 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/layout-width.src.css"
+ }
+ */
+(
+  $entries := $each($$.component.container."max-width", function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "  --container-" & $k & ": " & $v."$value" & ";"
+  });
+  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)

@@ -1,5 +1,6 @@
 ---
 when:
+  steps: [prepare-fonts]
   extensions: google-fonts
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
@@ -22,16 +23,32 @@ Read `semantic.typography` tokens from `design-tokens.yml`. Extract all unique `
 
 If `semantic.typography-scale` tokens exist, extract all unique `fontWeight` values referenced in the scale. Otherwise default to `400;500;600;700`.
 
-## Step 3: Build Google Fonts URL
+## Step 3: Download woff2 Files
 
-For each font family, construct a Google Fonts CSS URL:
+For each font family, download woff2 files using `google-font-cli`:
 
+```bash
+npx google-font-cli download "<Font Name>" -v <w1>,<w2>,<w3> --woff2 -d $DESIGNBOOK_DIRS_CSS/fonts
 ```
-https://fonts.googleapis.com/css2?family=<Font+Name>:wght@<weights>&display=swap
+
+- `<Font Name>`: exact family name (e.g. `"Inter"`, `"Space Grotesk"`)
+- `-v`: comma-separated weight values sorted numerically (e.g. `400,500,600,700`)
+- `--woff2`: download in woff2 format (modern, small file size)
+
+## Step 4: Write CSS
+
+After downloading, generate `css/tokens/google-fonts.src.css` with `@font-face` declarations for each downloaded woff2 file:
+
+```css
+@font-face {
+  font-family: '<Font Name>';
+  font-style: normal;
+  font-weight: <weight>;
+  font-display: swap;
+  src: url("../fonts/<filename>.woff2") format("woff2");
+}
 ```
 
-Where `<weights>` is a semicolon-separated list of weight values sorted numerically.
-
-## Step 4: Fetch and Save
-
-Fetch the CSS from each URL and combine into a single file. Write the result to `css/tokens/google-fonts.src.css` containing `@import url(...)` statements for each font family.
+- One `@font-face` block per weight per family
+- Use relative paths from the token CSS directory to the fonts directory (`../fonts/`)
+- The file SHALL contain only `@font-face` declarations with local woff2 references — never remote URLs or `@import url(...)` statements

@@ -1,4 +1,8 @@
 ---
+name: designbook:design:screenshot
+when:
+  steps: [screenshot]
+priority: 10
 params:
   scene: ~
 files: []

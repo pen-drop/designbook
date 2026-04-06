@@ -1,0 +1,18 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/layout-spacing.src.css"
+ }
+ */
+(
+  $resolve := function($val) {
+    $substring($val, 0, 1) = "{" ? (
+      $path := $split($replace($replace($val, "{", ""), "}", ""), ".");
+      $reduce($path, function($acc, $key) { $lookup($acc, $key) }, $$)."$value"
+    ) : $val
+  };
+  $entries := $each($$.component.section."padding-y", function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "  --layout-spacing-" & $k & ": " & $resolve($v."$value") & ";"
+  });
+  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)

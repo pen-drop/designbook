@@ -91,3 +91,5 @@ reference:
 ```
 
 Each entry represents one breakpoint. If no reference was selected, return `null` and let the calling intake proceed with its normal flow.
+
+> ⛔ **MANDATORY**: The calling intake MUST include the resolved `reference` array in its `--params` JSON when calling `workflow done --task intake --params '{ ... "reference": [...] }'`. This ensures the reference data flows through to the `create-scene` task. If no reference was resolved, pass `"reference": null`.

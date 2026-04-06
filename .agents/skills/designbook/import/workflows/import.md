@@ -3,7 +3,7 @@ title: Import Design System
 description: Import a full design system from a design reference
 stages:
   intake:
-    steps: [intake]
+    steps: [import:intake]
   execute:
     each: workflow
     steps: [run-workflow]

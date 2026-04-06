@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [vision:intake]
 files: []
 ---
 

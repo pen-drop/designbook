@@ -1,4 +1,6 @@
 ---
+when:
+  steps: [create-guidelines]
 params:
   references: []
   design_reference: ~
