@@ -164,7 +164,13 @@ export async function buildSceneModule(
   const group = extractGroup(raw, fileBase);
 
   // ── 5. Build each scene: items → SceneTree → RenderTree ────────────
-  const resolvedScenes: Array<{ name: string; exportName: string; nodes: ComponentNode[]; theme?: string; tree: SceneTreeNode[] }> = [];
+  const resolvedScenes: Array<{
+    name: string;
+    exportName: string;
+    nodes: ComponentNode[];
+    theme?: string;
+    tree: SceneTreeNode[];
+  }> = [];
 
   for (const rawScene of scenesArray) {
     const scene = rawScene as Record<string, unknown>;
