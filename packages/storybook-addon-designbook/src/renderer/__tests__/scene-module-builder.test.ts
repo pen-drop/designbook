@@ -227,9 +227,7 @@ describe('buildSceneModule integration', () => {
     const module = await buildFixtureModule('test.scenes.yml');
 
     expect(module).toContain('export const DarkTheme');
-    const themeMatch = module.match(
-      /export const DarkTheme[\s\S]*?themes:\s*\{\s*themeOverride:\s*'([^']+)'/,
-    );
+    const themeMatch = module.match(/export const DarkTheme[\s\S]*?themes:\s*\{\s*themeOverride:\s*'([^']+)'/);
     expect(themeMatch).not.toBeNull();
     expect(themeMatch![1]).toBe('dark');
   });

@@ -849,7 +849,7 @@ export function resolveAllStages(
   const expectedParams: Record<string, ExpectedParam> = {};
 
   for (const step of allSteps) {
-    const resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir, workflowId);
+    const resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir);
     if (resolvedTaskFiles.length === 0) {
       console.debug(`[Designbook] workflow: step "${step}" skipped — no matching task file`);
       continue;

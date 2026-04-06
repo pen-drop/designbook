@@ -82,7 +82,7 @@ function getProcessGroup(pid: number): number | null {
     if (!afterComm) return null;
     const fields = afterComm.split(' ');
     // Fields after "(comm) ": state(0) ppid(1) pgrp(2)
-    return parseInt(fields[2], 10);
+    return parseInt(fields[2] ?? '', 10);
   } catch {
     return null;
   }
