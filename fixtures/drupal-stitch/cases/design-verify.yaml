@@ -13,7 +13,7 @@ prompt: |
   Verify the Design System (shell) scene only.
   The reference is a Stitch screen:
   projects/5626339350367683412/screens/c0b358251f844f5da0313176267819de
-  Use breakpoint sm with threshold 3%.
+  Use breakpoints sm and xl with threshold 3%.
   Execute the workflow now.
 
 assert:
