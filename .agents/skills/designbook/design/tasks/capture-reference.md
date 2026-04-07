@@ -6,7 +6,9 @@ priority: 10
 each: reference.breakpoints
 params:
   scene: ~
-files: []
+files:
+  - key: screenshot
+    path: designbook/stories/{storyId}/screenshots/reference/{breakpoint}.png
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
