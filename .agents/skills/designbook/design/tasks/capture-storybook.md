@@ -1,14 +1,17 @@
 ---
 name: designbook:design:capture-storybook
+title: "Capture Storybook: {scene} ({breakpoint}/{region})"
 when:
-  steps: [capture]
+  steps: [capture, recapture]
 priority: 20
-each: reference.breakpoints
 params:
   scene: ~
+  storyId: ~
+  breakpoint: ~
+  region: ~
 files:
   - key: screenshot
-    path: designbook/stories/{storyId}/screenshots/current/{breakpoint}.png
+    path: designbook/stories/{storyId}/screenshots/current/{breakpoint}--{region}.png
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
@@ -24,7 +27,7 @@ Captures Storybook screenshots at each breakpoint viewport width via Playwright.
 |---|---|---|
 | `storybookUrl` | `_debo story` | Storybook iframe URL for this story |
 | `viewportWidth` | design-tokens.yml breakpoint | Pixel width for this breakpoint |
-| `outputPath` | computed | `designbook/stories/{storyId}/screenshots/current/{breakpoint}.png` |
+| `outputPath` | computed | `designbook/stories/{storyId}/screenshots/current/{breakpoint}--{region}.png` |
 
 ## Execution
 
@@ -34,31 +37,18 @@ Captures Storybook screenshots at each breakpoint viewport width via Playwright.
    ```
    Extract `storyId` and `url` (iframe URL).
 
-2. **Read meta.yml** to get the list of breakpoints:
-   ```
-   designbook/stories/${storyId}/meta.yml → reference.breakpoints
-   ```
+2. **Capture screenshot** for this breakpoint/region combination (from params):
 
-   If no meta.yml exists, skip:
-   > "No meta.yml for this scene — skipping capture."
+   a. **Resolve viewport width** from `design-tokens.yml` and **selector** from `meta.yml` regions.
 
-3. **For each breakpoint** (from `each: reference.breakpoints`):
-
-   a. **Resolve viewport width** from `design-tokens.yml`.
-
-   b. **Capture screenshot**:
-   ```bash
-   mkdir -p "designbook/stories/${storyId}/screenshots/current"
-   npx playwright screenshot --full-page --viewport-size "${viewportWidth},1600" --wait-for-timeout 3000 "${storybookUrl}" "${outputPath}"
-   ```
+   b. **Capture** using the method from the `playwright-capture` rule (full-page CLI or element Node API depending on region type).
 
    c. **Verify** by reading the captured image.
 
 ## Output
 
-Report which Storybook screenshots were captured:
-
-| Breakpoint | Path |
-|-----------|------|
-| sm | `designbook/stories/{storyId}/screenshots/current/sm.png` |
-| xl | `designbook/stories/{storyId}/screenshots/current/xl.png` |
+| Breakpoint | Region | Path |
+|-----------|--------|------|
+| sm | header | `screenshots/current/sm--header.png` |
+| sm | footer | `screenshots/current/sm--footer.png` |
+| xl | full | `screenshots/current/xl--full.png` |

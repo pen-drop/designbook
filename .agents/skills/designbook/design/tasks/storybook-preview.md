@@ -1,9 +1,11 @@
 ---
 name: designbook:design:storybook-preview
+title: "Storybook Preview: {scene}"
 when:
   steps: [storybook-preview]
 priority: 5
-params: {}
+params:
+  scene: ~
 files: []
 ---
 

@@ -6,6 +6,7 @@
  * Available variables:
  * - variant: Navigation variant (main, footer)
  * - items: Array of Drupal MenuLinkTreeElement items
+ * - groups: Array of grouped footer navigation items
  */
 #}
 
@@ -29,12 +30,23 @@
   {% endfor %}
 {% endmacro %}
 
-{% if variant == "footer" %}
+{% if variant == "footer" and groups is iterable %}
+{% for group in groups %}
+<div class="space-y-4">
+  <h5 class="text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">{{ group.title }}</h5>
+  <ul class="space-y-3">
+    {% for item in group.items %}
+      <li><a href="{{ item.url }}" class="text-sm text-on-surface-variant hover:text-on-surface transition-colors">{{ item.title }}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endfor %}
+{% elseif variant == "footer" %}
 <nav{{ attributes.addClass(["flex", "flex-wrap", "gap-6"]) }}>
   {{ _self.menu_links(items, variant, 0) }}
 </nav>
 {% else %}
-<nav{{ attributes.addClass(["flex", "items-center", "gap-6"]) }}>
-  {{ _self.menu_links(items, variant, 0) }}
+<nav{{ attributes.addClass(["flex", "items-center", "gap-8"]) }}>
+{{ _self.menu_links(items, variant, 0) }}
 </nav>
 {% endif %}

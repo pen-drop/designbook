@@ -1,6 +1,6 @@
 ---
 when:
-  steps: [configure-meta]
+  steps: [configure-meta-scene]
   extensions: stitch
 ---
 

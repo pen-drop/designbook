@@ -4,12 +4,12 @@
  * Template for page component.
  *
  * Available variables:
- * - header: Site header region
- * - content: Main content area
- * - footer: Site footer region
+ * - header: Header region
+ * - content: Main content region
+ * - footer: Footer region
  */
 #}
-<div{{ attributes.addClass(["min-h-screen", "flex", "flex-col", "bg-background", "text-on-background"]) }}>
+<div{{ attributes.addClass(["min-h-screen", "flex", "flex-col", "bg-background", "text-on-surface"]) }}>
   {% if header %}
     {{ header }}
   {% endif %}

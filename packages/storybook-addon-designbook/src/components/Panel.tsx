@@ -43,6 +43,7 @@ interface WorkflowTask {
   config_rules?: string[];
   config_instructions?: string[];
   files?: TaskFile[];
+  iteration?: number;
 }
 
 interface StageLoaded {
@@ -63,12 +64,13 @@ interface WorkflowData {
   write_root?: string;
   worktree_branch?: string;
   current_stage?: string;
-  stages?: Record<string, { steps: string[] }> | string[];
+  stages?: Record<string, { steps: string[]; each?: string; loop?: number }> | string[];
   stage_loaded?: Record<string, StageLoaded>;
   params?: Record<string, unknown>;
   started_at: string | null;
   completed_at: string | null;
   summary?: string;
+  root_dir?: string;
   tasks: WorkflowTask[];
   source: 'active' | 'archived';
 }
@@ -105,6 +107,13 @@ function useTick(active: boolean, intervalMs = 1000): number {
 // ---------------------------------------------------------------------------
 
 const MAX_LOG_ENTRIES = 10;
+
+/** Resolve a potentially relative path to absolute using root_dir. */
+const resolvePath = (p: string, rootDir?: string): string => {
+  if (!p || p.startsWith('/')) return p;
+  if (rootDir) return `${rootDir}/${p}`;
+  return p;
+};
 
 const shortenPath = (p: string): string => {
   const parts = p.replace(/\\/g, '/').split('/').filter(Boolean);
@@ -592,7 +601,7 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
                 {activeTask.files.map((f) => (
                   <FileBadge
                     key={f.path}
-                    path={f.path}
+                    path={resolvePath(f.path, wf.root_dir)}
                     isAbsolute={true}
                     label={f.key}
                     variant={fileBadgeVariant(f)}
@@ -615,6 +624,8 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
 interface StageTaskGroup {
   stage: string;
   tasks: WorkflowTask[];
+  maxIteration?: number;
+  loopMax?: number;
 }
 
 function groupTasksByStage(wf: WorkflowData): StageTaskGroup[] {
@@ -623,7 +634,9 @@ function groupTasksByStage(wf: WorkflowData): StageTaskGroup[] {
     for (const [stageName, def] of Object.entries(wf.stages)) {
       const stepNames = new Set(def.steps ?? []);
       const tasks = wf.tasks.filter((t) => stepNames.has(t.step ?? '') || t.stage === stageName);
-      if (tasks.length) groups.push({ stage: stageName, tasks });
+      const maxIteration = tasks.length > 0 ? Math.max(...tasks.map((t) => t.iteration ?? 1)) : undefined;
+      const loopMax = def.loop;
+      if (tasks.length) groups.push({ stage: stageName, tasks, maxIteration, loopMax });
     }
     const assigned = new Set(groups.flatMap((g) => g.tasks.map((t) => t.id)));
     const unassigned = wf.tasks.filter((t) => !assigned.has(t.id));
@@ -647,7 +660,7 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
 
   return (
     <div>
-      {stageGroups.map(({ stage, tasks }) => {
+      {stageGroups.map(({ stage, tasks, maxIteration, loopMax }) => {
         const done = tasks.filter((t) => t.status === 'done').length;
         const total = tasks.length;
         const allDone = done === total;
@@ -668,6 +681,11 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
               <div style={S.stageHeader}>
                 <span style={S.stageHeaderLine} />
                 <span>{stage}</span>
+                {loopMax && maxIteration && maxIteration > 1 && (
+                  <ManagerBadge variant="gray">
+                    Loop {maxIteration}/{loopMax}
+                  </ManagerBadge>
+                )}
                 <ManagerBadge variant={badge.variant}>{badge.label}</ManagerBadge>
                 <span style={S.stageHeaderLine} />
               </div>
@@ -675,7 +693,12 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
             {tasks.map((task) => (
               <div key={task.id} style={getTaskRowStyle(task.status)}>
                 <StatusDot status={task.status} />
-                <span style={{ ...S.taskTitle, opacity: task.status === 'done' ? 0.7 : 1 }}>{task.title}</span>
+                <span style={{ ...S.taskTitle, opacity: task.status === 'done' ? 0.7 : 1 }}>
+                  {task.title}
+                  {task.iteration && task.iteration > 1 && (
+                    <span style={{ fontSize: 10, color: '#94A3B8', marginLeft: 4 }}>#{task.iteration}</span>
+                  )}
+                </span>
                 <LiveDuration startedAt={task.started_at} completedAt={task.completed_at} />
               </div>
             ))}
@@ -892,28 +915,31 @@ function WorkflowFilesTab({ wf }: { wf: WorkflowData }) {
 
       {/* File list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {filtered.map((entry, i) => (
-          <div
-            key={`${entry.path}-${entry.taskId}-${i}`}
-            title={entry.path}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '3px 6px',
-              fontSize: 12,
-              borderRadius: 4,
-              background: fileRowColor(entry.file),
-            }}
-          >
-            <StatusDot status={fileStatusDot(entry.file)} />
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {shortenPath(entry.path)}
-            </span>
-            {entry.key && <span style={{ fontSize: 10, color: '#94A3B8', flexShrink: 0 }}>{entry.key}</span>}
-            <ContextAction path={entry.path} validation={entry.file.validation_result ?? undefined} />
-          </div>
-        ))}
+        {filtered.map((entry, i) => {
+          const absPath = resolvePath(entry.path, wf.root_dir);
+          return (
+            <div
+              key={`${entry.path}-${entry.taskId}-${i}`}
+              title={absPath}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '3px 6px',
+                fontSize: 12,
+                borderRadius: 4,
+                background: fileRowColor(entry.file),
+              }}
+            >
+              <StatusDot status={fileStatusDot(entry.file)} />
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {shortenPath(entry.path)}
+              </span>
+              {entry.key && <span style={{ fontSize: 10, color: '#94A3B8', flexShrink: 0 }}>{entry.key}</span>}
+              <ContextAction path={absPath} validation={entry.file.validation_result ?? undefined} />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

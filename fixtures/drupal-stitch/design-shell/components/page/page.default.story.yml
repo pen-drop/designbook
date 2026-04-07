@@ -1,20 +1,17 @@
-name: "Default"
+title: "Page"
+component: "test_integration_drupal:page"
 slots:
   header:
-    - type: element
+    - type: "element"
       tag: "div"
-      attributes:
-        class: "border-b border-outline-variant/20 bg-background px-6 py-4"
-      value: "Header Area"
+      value: "[Header placeholder]"
   content:
-    - type: element
+    - type: "element"
       tag: "div"
       attributes:
-        class: "p-8"
-      value: "Main Content Area"
+        class: "p-8 text-center text-on-surface-variant"
+      value: "Content area"
   footer:
-    - type: element
+    - type: "element"
       tag: "div"
-      attributes:
-        class: "border-t border-outline-variant/20 bg-background px-6 py-4"
-      value: "Footer Area"
+      value: "[Footer placeholder]"

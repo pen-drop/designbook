@@ -1,5 +1,6 @@
-name: "Main"
-props:
+title: "Navigation Main"
+component: "test_integration_drupal:navigation"
+args:
   variant: "main"
   items:
     - title: "Guide"

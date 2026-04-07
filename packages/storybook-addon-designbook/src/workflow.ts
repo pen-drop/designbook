@@ -54,6 +54,7 @@ export interface WorkflowTask {
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[];
+  iteration?: number; // loop iteration (1-based), absent = iteration 1
 }
 
 export interface WorkflowFile {
@@ -380,6 +381,33 @@ export function workflowPlan(
   return data;
 }
 
+/**
+ * Append newly expanded tasks to an existing workflow.
+ * Used for deferred stage expansion: when a stage's iterable becomes
+ * available after intake (e.g. after configure-meta-scene resolves breakpoints/regions).
+ */
+export function workflowAppendTasks(
+  dataDir: string,
+  name: string,
+  tasks: WorkflowTask[],
+  newParams?: Record<string, unknown>,
+): WorkflowFile {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+  const data = readWorkflow(filePath);
+
+  // Merge new params additively (don't overwrite existing keys)
+  if (newParams && Object.keys(newParams).length > 0) {
+    data.params = { ...data.params, ...newParams };
+  }
+
+  // Append tasks
+  data.tasks.push(...tasks);
+
+  writeWorkflowAtomic(filePath, data);
+  return data;
+}
+
 export interface StageResponse {
   stage: string;
   step_completed?: string;
@@ -429,7 +457,29 @@ export async function workflowDone(
     }
 
     // Gate-check: assert all files are written and valid (no validation logic here)
-    const notWritten = (task.files ?? []).filter((f) => !f.validation_result);
+    // Skip files with unresolved {param} placeholders — these are task-level iterators
+    // that couldn't be expanded at planning time (e.g. {breakpoint} from each: reference.breakpoints)
+    const hasUnresolvedPlaceholder = (f: { path: string }) => /\{[a-zA-Z]\w*\}/.test(f.path);
+    // Accept files that exist on disk even without validation_result (e.g. binary files written directly by Playwright)
+    const workflowRoot = data.root_dir ?? dirname(dataDir);
+    const fileExistsOnDisk = (f: { path: string }) => existsSync(resolve(workflowRoot, f.path));
+
+    // Guard: reject if ALL files have unresolved placeholders and none are validated or on disk
+    const taskFiles = task.files ?? [];
+    if (
+      taskFiles.length > 0 &&
+      taskFiles.every((f) => hasUnresolvedPlaceholder(f)) &&
+      !taskFiles.some((f) => f.validation_result || fileExistsOnDisk(f))
+    ) {
+      throw new Error(
+        `Cannot mark '${taskId}' as done — all file paths have unresolved placeholders and no files exist on disk:\n` +
+          taskFiles.map((f) => `  · \`${f.path}\``).join('\n'),
+      );
+    }
+
+    const notWritten = taskFiles.filter(
+      (f) => !f.validation_result && !hasUnresolvedPlaceholder(f) && !fileExistsOnDisk(f),
+    );
     if (notWritten.length > 0) {
       throw new Error(
         `Cannot mark '${taskId}' as done — ${notWritten.length} file(s) not yet written:\n` +

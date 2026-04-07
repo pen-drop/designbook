@@ -392,6 +392,18 @@ describe('workflowDone', () => {
     await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow('not yet written');
   });
 
+  it('throws when all files have unresolved placeholders and none exist on disk', async () => {
+    name = workflowCreate(dist, 'debo-vision', 'Vision', [
+      {
+        id: 'task1',
+        title: 'T1',
+        type: 'component',
+        files: [{ path: 'designbook/stories/{storyId}/meta.yml', key: 'meta', validators: [] }],
+      },
+    ]);
+    await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow('unresolved placeholders');
+  });
+
   it('throws when a file failed validation', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [{ id: 'task1', title: 'T1', type: 'component' }]);
     // Manually inject a failed validation_result

@@ -6,7 +6,16 @@ import { VISUAL_COMPARE_KEY, VISUAL_TOOL_ID } from '../constants';
 
 interface VisualCompareState {
   breakpoint: string | null;
+  region: string | null;
   opacity: number;
+}
+
+interface RegionInfo {
+  name: string;
+  selector: string;
+  diffPercent: number | null;
+  threshold: number | null;
+  pass: boolean | null;
 }
 
 interface BreakpointInfo {
@@ -19,6 +28,7 @@ interface BreakpointInfo {
   markupPass: boolean | null;
   markupIssues: number | null;
   markupMissing: string[];
+  regions: RegionInfo[];
 }
 
 const KNOWN_BREAKPOINTS: Record<string, number> = {
@@ -39,28 +49,29 @@ interface MetaYml {
         lastDiff?: number | null;
         lastResult?: string | null;
         markup?: { lastResult?: string | null; issues?: number | null; missing?: string[] };
+        regions?: Record<
+          string,
+          {
+            selector?: string;
+            threshold?: number;
+            lastDiff?: number | null;
+            lastResult?: string | null;
+          }
+        >;
       }
     >;
   };
 }
 
 function parseMetaYml(yamlContent: string): MetaYml {
-  // Minimal parser for the flat meta.yml breakpoints structure.
-  // Parses lines like "    sm:" and "      threshold: 3" under "  breakpoints:".
   const meta: MetaYml = {};
-  const breakpoints: Record<
-    string,
-    {
-      threshold?: number;
-      lastDiff?: number | null;
-      lastResult?: string | null;
-      markup?: { lastResult?: string | null; issues?: number | null; missing?: string[] };
-    }
-  > = {};
+  const breakpoints: NonNullable<NonNullable<MetaYml['reference']>['breakpoints']> = {};
 
   let inBreakpoints = false;
   let currentBp: string | null = null;
   let inMarkup = false;
+  let inRegions = false;
+  let currentRegion: string | null = null;
 
   for (const line of yamlContent.split('\n')) {
     const trimmed = line.trimStart();
@@ -78,18 +89,31 @@ function parseMetaYml(yamlContent: string): MetaYml {
       currentBp = trimmed.slice(0, -1);
       breakpoints[currentBp] = {};
       inMarkup = false;
+      inRegions = false;
+      currentRegion = null;
       continue;
     }
 
     // markup: sub-block (6 spaces indent)
     if (indent === 6 && currentBp && trimmed === 'markup:') {
       inMarkup = true;
+      inRegions = false;
+      currentRegion = null;
       breakpoints[currentBp]!.markup = {};
       continue;
     }
 
+    // regions: sub-block (6 spaces indent)
+    if (indent === 6 && currentBp && trimmed === 'regions:') {
+      inRegions = true;
+      inMarkup = false;
+      currentRegion = null;
+      breakpoints[currentBp]!.regions = {};
+      continue;
+    }
+
     // Property inside markup block (8+ spaces indent)
-    if (indent >= 8 && currentBp && inMarkup) {
+    if (indent >= 8 && currentBp && inMarkup && !inRegions) {
       const match = trimmed.match(/^(\w+):\s*(.+)$/);
       if (match) {
         const [, key, rawVal] = match;
@@ -98,7 +122,6 @@ function parseMetaYml(yamlContent: string): MetaYml {
         if (key === 'lastResult') mu.lastResult = val === 'null' ? null : val;
         else if (key === 'issues') mu.issues = val === 'null' ? null : parseInt(val, 10);
         else if (key === 'missing') {
-          // Parse inline YAML array: missing: ["logo", "hero-image"]
           const arrMatch = val.match(/^\[(.+)\]$/);
           if (arrMatch) {
             mu.missing = arrMatch[1]!
@@ -111,26 +134,32 @@ function parseMetaYml(yamlContent: string): MetaYml {
       continue;
     }
 
-    // Property line under a breakpoint (6+ spaces indent, not in markup)
-    if (indent >= 6 && currentBp && !inMarkup) {
+    // Region name (8 spaces indent, ends with colon)
+    if (indent === 8 && currentBp && inRegions && trimmed.endsWith(':') && !trimmed.includes(' ')) {
+      currentRegion = trimmed.slice(0, -1);
+      breakpoints[currentBp]!.regions![currentRegion] = {};
+      continue;
+    }
+
+    // Region property (10 spaces indent)
+    if (indent === 10 && currentBp && inRegions && currentRegion) {
       const match = trimmed.match(/^(\w+):\s*(.+)$/);
       if (match) {
         const [, key, rawVal] = match;
-        const val = rawVal!.trim();
-        const bp = breakpoints[currentBp]!;
-        if (key === 'threshold') bp.threshold = parseFloat(val);
-        else if (key === 'lastDiff') bp.lastDiff = val === 'null' ? null : parseFloat(val);
-        else if (key === 'lastResult') bp.lastResult = val === 'null' ? null : val;
+        const val = rawVal!.trim().replace(/^["']|["']$/g, '');
+        const reg = breakpoints[currentBp]!.regions![currentRegion]!;
+        if (key === 'selector') reg.selector = val;
+        else if (key === 'threshold') reg.threshold = parseFloat(val);
+        else if (key === 'lastDiff') reg.lastDiff = val === 'null' ? null : parseFloat(val);
+        else if (key === 'lastResult') reg.lastResult = val === 'null' ? null : val;
       }
       continue;
     }
 
-    // Non-markup property at indent 6 exits markup mode
-    if (indent === 6 && inMarkup) {
-      inMarkup = false;
-      // Re-process this line as a breakpoint property
+    // Property line under a breakpoint (6+ spaces indent, not in sub-block)
+    if (indent === 6 && currentBp && !inMarkup && !inRegions) {
       const match = trimmed.match(/^(\w+):\s*(.+)$/);
-      if (match && currentBp) {
+      if (match) {
         const [, key, rawVal] = match;
         const val = rawVal!.trim();
         const bp = breakpoints[currentBp]!;
@@ -152,7 +181,6 @@ function parseMetaYml(yamlContent: string): MetaYml {
 }
 
 async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
-  // Fetch meta.yml — single request replaces per-breakpoint probing
   const metaUrl = `/__designbook/load?path=stories/${encodeURIComponent(storyId)}/meta.yml`;
   let meta: MetaYml | null = null;
   try {
@@ -164,7 +192,6 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
       if (!json.exists || !json.content) return [];
       meta = parseMetaYml(json.content);
     } catch {
-      // Not JSON — try as raw YAML
       meta = parseMetaYml(text);
     }
   } catch {
@@ -176,6 +203,20 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
   const breakpoints: BreakpointInfo[] = [];
   for (const [name, bp] of Object.entries(meta.reference.breakpoints)) {
     const width = KNOWN_BREAKPOINTS[name] ?? 0;
+
+    const regions: RegionInfo[] = [];
+    if (bp.regions) {
+      for (const [regName, reg] of Object.entries(bp.regions)) {
+        regions.push({
+          name: regName,
+          selector: reg.selector ?? regName,
+          diffPercent: reg.lastDiff ?? null,
+          threshold: reg.threshold ?? bp.threshold ?? null,
+          pass: reg.lastResult === 'pass' ? true : reg.lastResult === 'fail' ? false : null,
+        });
+      }
+    }
+
     breakpoints.push({
       name,
       width,
@@ -186,10 +227,31 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
       markupPass: bp.markup?.lastResult === 'pass' ? true : bp.markup?.lastResult === 'fail' ? false : null,
       markupIssues: bp.markup?.issues ?? null,
       markupMissing: bp.markup?.missing ?? [],
+      regions,
     });
   }
 
   return breakpoints.sort((a, b) => a.width - b.width);
+}
+
+function DiffBadge({ diff, pass }: { diff: number | null; pass: boolean | null }) {
+  if (diff === null || pass === null) {
+    return <span style={{ fontSize: 10, color: '#aaa' }}>—</span>;
+  }
+  return (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 600,
+        padding: '1px 6px',
+        borderRadius: 9999,
+        background: pass ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+        color: pass ? '#16a34a' : '#dc2626',
+      }}
+    >
+      {diff.toFixed(1)}%
+    </span>
+  );
 }
 
 const DropdownContent = memo(function DropdownContent({
@@ -200,7 +262,7 @@ const DropdownContent = memo(function DropdownContent({
 }: {
   storyId: string;
   state: VisualCompareState;
-  onSelect: (bp: string | null) => void;
+  onSelect: (bp: string | null, region: string | null) => void;
   onOpacityChange: (opacity: number) => void;
 }) {
   const [breakpoints, setBreakpoints] = useState<BreakpointInfo[]>([]);
@@ -223,13 +285,20 @@ const DropdownContent = memo(function DropdownContent({
   }
 
   return (
-    <div style={{ minWidth: 200, padding: 8 }}>
+    <div style={{ minWidth: 220, padding: 8 }}>
       {breakpoints.map((bp) => {
-        const isActive = state.breakpoint === bp.name;
+        const isBpActive = state.breakpoint === bp.name;
         return (
           <React.Fragment key={bp.name}>
+            {/* Breakpoint header row */}
             <button
-              onClick={() => onSelect(isActive ? null : bp.name)}
+              onClick={() => {
+                if (isBpActive && !state.region) {
+                  onSelect(null, null); // Deactivate
+                } else {
+                  onSelect(bp.name, null); // Select breakpoint (all regions)
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -238,31 +307,31 @@ const DropdownContent = memo(function DropdownContent({
                 padding: '6px 8px',
                 border: 'none',
                 borderRadius: 4,
-                background: isActive ? 'rgba(30, 167, 253, 0.12)' : 'transparent',
+                background: isBpActive && !state.region ? 'rgba(30, 167, 253, 0.12)' : 'transparent',
                 cursor: 'pointer',
                 fontSize: 12,
                 textAlign: 'left',
               }}
             >
-              <span style={{ fontWeight: isActive ? 600 : 400 }}>
+              <span style={{ fontWeight: isBpActive ? 600 : 400 }}>
                 {bp.name} <span style={{ color: '#888' }}>{bp.width}px</span>
               </span>
               <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                {bp.diffPercent !== null && bp.threshold !== null ? (
+                {bp.regions.some((r) => r.pass !== null) && (
                   <span
                     style={{
                       fontSize: 10,
                       fontWeight: 600,
                       padding: '1px 6px',
                       borderRadius: 9999,
-                      background: bp.pass ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                      color: bp.pass ? '#16a34a' : '#dc2626',
+                      background: bp.regions.every((r) => r.pass !== false)
+                        ? 'rgba(34, 197, 94, 0.15)'
+                        : 'rgba(239, 68, 68, 0.15)',
+                      color: bp.regions.every((r) => r.pass !== false) ? '#16a34a' : '#dc2626',
                     }}
                   >
-                    {bp.diffPercent.toFixed(1)}%
+                    {bp.regions.filter((r) => r.pass === true).length}/{bp.regions.length}
                   </span>
-                ) : (
-                  <span style={{ fontSize: 10, color: '#aaa' }}>—</span>
                 )}
                 {bp.markupPass !== null && (
                   <span
@@ -280,6 +349,42 @@ const DropdownContent = memo(function DropdownContent({
                 )}
               </span>
             </button>
+
+            {/* Region rows (indented under breakpoint) */}
+            {bp.regions.map((region) => {
+              const isRegionActive = isBpActive && state.region === region.name;
+              return (
+                <button
+                  key={region.name}
+                  onClick={() => {
+                    if (isRegionActive) {
+                      onSelect(bp.name, null); // Back to all regions
+                    } else {
+                      onSelect(bp.name, region.name); // Select single region
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '4px 8px 4px 24px',
+                    border: 'none',
+                    borderRadius: 4,
+                    background: isRegionActive ? 'rgba(30, 167, 253, 0.12)' : 'transparent',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    textAlign: 'left',
+                    color: isBpActive ? 'inherit' : '#888',
+                  }}
+                >
+                  <span style={{ fontWeight: isRegionActive ? 600 : 400 }}>{region.name}</span>
+                  <DiffBadge diff={region.diffPercent} pass={region.pass} />
+                </button>
+              );
+            })}
+
+            {/* Missing content */}
             {bp.markupMissing.length > 0 && (
               <div style={{ padding: '2px 8px 4px', fontSize: 10, color: '#dc2626' }}>
                 Missing: {bp.markupMissing.join(', ')}
@@ -313,20 +418,21 @@ export const VisualCompareTool = memo(function VisualCompareTool() {
   const [globals, updateGlobals] = useGlobals();
   const api = useStorybookApi();
 
-  const state: VisualCompareState = globals[VISUAL_COMPARE_KEY] ?? { breakpoint: null, opacity: 50 };
+  const state: VisualCompareState = globals[VISUAL_COMPARE_KEY] ?? { breakpoint: null, region: null, opacity: 50 };
   const isActive = !!state.breakpoint;
 
   const storyId = api.getCurrentStoryData()?.id;
 
   const handleSelect = useCallback(
-    (bp: string | null) => {
+    (bp: string | null, region: string | null) => {
       const url = new URL(window.location.href);
       if (bp && KNOWN_BREAKPOINTS[bp]) {
         const dims = `${KNOWN_BREAKPOINTS[bp]}-896`;
-        url.searchParams.set(
-          'globals',
-          `viewport.value:${dims};${VISUAL_COMPARE_KEY}.breakpoint:${bp};${VISUAL_COMPARE_KEY}.opacity:${state.opacity}`,
-        );
+        let globals = `viewport.value:${dims};${VISUAL_COMPARE_KEY}.breakpoint:${bp};${VISUAL_COMPARE_KEY}.opacity:${state.opacity}`;
+        if (region) {
+          globals += `;${VISUAL_COMPARE_KEY}.region:${region}`;
+        }
+        url.searchParams.set('globals', globals);
       } else {
         url.searchParams.delete('globals');
       }

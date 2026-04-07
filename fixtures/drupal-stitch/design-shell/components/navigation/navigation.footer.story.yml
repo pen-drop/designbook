@@ -1,20 +1,17 @@
-name: "Footer"
-props:
+title: "Navigation Footer"
+component: "test_integration_drupal:navigation"
+args:
   variant: "footer"
-  items:
-    - title: "Changelog"
-      url: "/changelog"
-      in_active_trail: false
-      below: []
-    - title: "GitHub"
-      url: "/github"
-      in_active_trail: false
-      below: []
-    - title: "Status"
-      url: "/status"
-      in_active_trail: false
-      below: []
-    - title: "Privacy"
-      url: "/privacy"
-      in_active_trail: false
-      below: []
+  groups:
+    - title: "Resources"
+      items:
+        - title: "Changelog"
+          url: "/changelog"
+        - title: "GitHub"
+          url: "/github"
+    - title: "Legal"
+      items:
+        - title: "Status"
+          url: "/status"
+        - title: "Privacy"
+          url: "/privacy"

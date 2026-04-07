@@ -35,13 +35,13 @@ Wait for the user's response.
 
 ## Step 2: Build Scene List
 
-Build the `scene` iterable for subsequent stages:
+Build the `scene` iterable for subsequent stages. Each item only needs the scene name — `storyId`, breakpoints, and regions are resolved by `configure-meta-scene` at runtime.
 
 ```json
 {
   "scene": [
-    {"scene": "homepage:landing", "storyId": "designbook-homepage-landing", "section_id": "homepage"},
-    {"scene": "design-system:shell", "storyId": "designbook-design-system-shell"}
+    {"scene": "homepage:landing"},
+    {"scene": "design-system:shell"}
   ]
 }
 ```
@@ -50,10 +50,11 @@ Present the verification plan:
 
 > "I will verify **[n]** scenes:
 >
-> | Scene | Breakpoints |
-> |-------|-------------|
-> | design-system:shell | (configured in next step) |
+> | Scene |
+> |-------|
+> | design-system:shell |
+> | homepage:landing |
 >
 > Ready to start?"
 
-Wait for confirmation — once confirmed, intake is complete. The `configure-meta` step will handle reference configuration for each scene.
+Wait for confirmation — once confirmed, intake is complete. The `configure-meta-scene` step will resolve storyId, determine breakpoints and regions, and write `meta.yml` for each scene.

@@ -1,19 +1,18 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
-name: "Page"
+name: "page"
 status: "experimental"
 group: "Shell"
-description: "Top-level page wrapper that composes header, content, and footer regions."
-provider: "test_integration_drupal"
 slots:
   header:
     title: "Header"
-    description: "Site header region"
   content:
     title: "Content"
-    description: "Main content area"
   footer:
     title: "Footer"
-    description: "Site footer region"
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}

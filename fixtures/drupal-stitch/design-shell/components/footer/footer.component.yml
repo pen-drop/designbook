@@ -1,23 +1,22 @@
 $schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
-name: "Footer"
+name: "footer"
 status: "experimental"
 group: "Shell"
-description: "Site footer with brand area, navigation, and copyright."
-provider: "test_integration_drupal"
 props:
-  type: object
+  type: "object"
   properties:
     copyright:
-      type: string
+      type: "string"
       title: "Copyright"
-      description: "Copyright text displayed at the bottom."
 slots:
   brand:
     title: "Brand"
-    description: "Logo or brand area."
   navigation:
     title: "Navigation"
-    description: "Footer navigation component."
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}

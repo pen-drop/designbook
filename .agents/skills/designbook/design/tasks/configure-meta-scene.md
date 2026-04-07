@@ -1,11 +1,10 @@
 ---
-name: designbook:design:configure-meta
-title: Configure Meta
+name: designbook:design:configure-meta-scene
+title: "Configure Meta: {scene}"
 when:
-  steps: [configure-meta]
-each: story
+  steps: [configure-meta-scene]
 params:
-  storyId: ~
+  scene: ~
 files:
   - key: meta
     path: designbook/stories/{storyId}/meta.yml
@@ -14,13 +13,13 @@ reads:
     optional: true
 ---
 
-# Configure Meta
+# Configure Meta (Scene)
 
-Create or update `meta.yml` for each scene after scene creation. This step ensures reference configuration is in place before the test stage runs capture and compare.
+Create or update `meta.yml` for each scene. This step resolves the storyId, determines regions from the scene structure, and ensures reference configuration is in place before the test stage runs capture and compare.
 
 ## Execution
 
-1. **Resolve storyId** (if not provided as param):
+1. **Resolve storyId**:
    ```bash
    _debo story --scene ${scene}
    ```
@@ -32,11 +31,11 @@ Create or update `meta.yml` for each scene after scene creation. This step ensur
 
 Show the current configuration:
 
-> "Scene **{storyId}** already has reference configuration:
+> "Scene **{scene}** already has reference configuration:
 >
-> | Breakpoint | Threshold | Last Result |
-> |-----------|-----------|-------------|
-> | sm | 3% | — |
+> | Breakpoint | Threshold | Regions |
+> |-----------|-----------|---------|
+> | sm | 3% | header, footer |
 >
 > Source: [origin] — [url]
 >
@@ -50,11 +49,11 @@ If keep: done. If update: continue as if it doesn't exist.
    - If a Stitch screen ID was provided during intake → use it as source with `origin: stitch`
    - If a design reference URL was resolved during intake → use it with `origin: manual`
    - If no reference available → skip this scene:
-     > "No reference for **{storyId}** — skipping meta configuration."
+     > "No reference for **{scene}** — skipping meta configuration."
 
 3. **Select breakpoints** — read `design-tokens.yml` for available breakpoints with pixel widths:
 
-   > "Which breakpoints should be tested for **{storyId}**?
+   > "Which breakpoints should be tested for **{scene}**?
    >
    > Available:
    > - **sm** (640px)
@@ -125,6 +124,20 @@ If keep: done. If update: continue as if it doesn't exist.
    designbook/stories/*/screenshots/current/
    designbook/stories/*/screenshots/diff/
    ```
+
+## Step 7: Produce Test Iterable
+
+After writing `meta.yml`, produce the flattened `test` iterable for deferred stage expansion. Each combination of scene × breakpoint × region becomes one item:
+
+```bash
+_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID --params '{"test": [
+  {"scene": "design-system:shell", "storyId": "design-system-shell", "breakpoint": "sm", "region": "header"},
+  {"scene": "design-system:shell", "storyId": "design-system-shell", "breakpoint": "sm", "region": "footer"},
+  {"scene": "design-system:shell", "storyId": "design-system-shell", "breakpoint": "xl", "region": "full"}
+]}'
+```
+
+This triggers deferred expansion of the `test` stage — the CLI creates capture, compare, and polish tasks for each item.
 
 ## Read Matched Rules
 

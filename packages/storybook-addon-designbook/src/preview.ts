@@ -62,7 +62,7 @@ export const decorators = [withDesignbookTheme, withDeboTheme, withRoundTrip, wi
 
 export const initialGlobals = {
   [KEY]: false,
-  [VISUAL_COMPARE_KEY]: { breakpoint: null, opacity: 50 },
+  [VISUAL_COMPARE_KEY]: { breakpoint: null, region: null, opacity: 50 },
 };
 
 export const parameters = {};

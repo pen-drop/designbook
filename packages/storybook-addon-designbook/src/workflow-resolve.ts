@@ -48,7 +48,8 @@ export interface ResolvedFile {
 }
 
 export interface TaskFileDeclaration {
-  file: string; // path template (supports $ENV and {{ param }})
+  file?: string; // path template (supports $ENV, {{ param }}, and {param})
+  path?: string; // alias for file — task files use `path:` by convention
   key: string; // stable identifier used by write-file --key
   validators?: string[]; // validator keys (e.g. ['tokens']); defaults to []
 }
@@ -641,6 +642,29 @@ export function matchBlueprintFiles(
 /**
  * Expand a file path template by substituting {{ param }} and ${ENV_VAR} placeholders.
  */
+/**
+ * Expand {param} and {{ param }} placeholders in a template string.
+ * Unknown {param} placeholders are left as-is (for runtime resolution).
+ * Unknown {{ param }} placeholders throw (strict mode for legacy paths).
+ */
+export function expandParams(template: string, params: Record<string, unknown>): string {
+  let result = template;
+
+  // Expand {{ param }} patterns (strict — throws on unknown)
+  result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, paramName) => {
+    if (params[paramName] !== undefined) return String(params[paramName]);
+    throw new Error(`Unknown param: {{ ${paramName} }} in "${template}"`);
+  });
+
+  // Expand {param} patterns (lenient — leaves unknown as-is for runtime resolution)
+  result = result.replace(/\{(\w+)\}/g, (match, paramName) => {
+    if (params[paramName] !== undefined) return String(params[paramName]);
+    return match;
+  });
+
+  return result;
+}
+
 export function expandFilePath(
   template: string,
   params: Record<string, unknown>,
@@ -658,11 +682,8 @@ export function expandFilePath(
     throw new Error(`Unknown environment variable: $${varName} in path "${template}"`);
   });
 
-  // Expand {{ param }} patterns (intake params)
-  result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, paramName) => {
-    if (params[paramName] !== undefined) return String(params[paramName]);
-    throw new Error(`Unknown param: {{ ${paramName} }} in path "${template}"`);
-  });
+  // Expand param placeholders
+  result = expandParams(result, params);
 
   return result;
 }
@@ -694,8 +715,12 @@ export function expandFileDeclarations(
         }
       }
     }
+    const template = d.path ?? d.file;
+    if (!template) {
+      throw new Error(`File declaration '${d.key}' has no 'path' or 'file' property`);
+    }
     return {
-      path: expandFilePath(d.file, params, envMap),
+      path: expandFilePath(template, params, envMap),
       key: d.key,
       validators,
     };
@@ -777,10 +802,11 @@ export function generateTaskId(
   params: Record<string, unknown>,
   _schemaParams?: Record<string, unknown>,
   index: number = 0,
+  iteration: number = 1,
 ): string {
   const baseName = stage.includes(':') ? stage.split(':')[1]! : stage;
   const hash = createHash('sha256')
-    .update(stage + JSON.stringify(params) + index)
+    .update(stage + JSON.stringify(params) + index + iteration)
     .digest('hex')
     .slice(0, 6);
   return `${baseName}-${hash}`;
@@ -962,7 +988,13 @@ export function generateTaskTitle(
   stage: string,
   params: Record<string, unknown>,
   schemaParams?: Record<string, unknown>,
+  explicitTitle?: string,
 ): string {
+  if (explicitTitle) {
+    return expandParams(explicitTitle, params);
+  }
+
+  // Derive title from step name
   const base = stage.includes(':') ? stage.split(':')[1]! : stage;
   const words = base.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 

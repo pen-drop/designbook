@@ -1,11 +1,14 @@
 ---
 name: designbook:design:compare-screenshots
+title: "Compare Screenshots: {scene} ({breakpoint}/{region})"
 when:
   steps: [compare]
 priority: 20
-each: reference.breakpoints
 params:
   scene: ~
+  storyId: ~
+  breakpoint: ~
+  region: ~
 files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
@@ -44,37 +47,32 @@ Performs AI visual comparison between Storybook and reference screenshots per br
    - Design tokens from `design-tokens.yml`
    - Guidelines from `guidelines.yml`
 
-4. **For each breakpoint** (from `each: reference.breakpoints`):
+4. **Compare this breakpoint/region pair:**
 
    a. Read both images:
-   - `designbook/stories/${storyId}/screenshots/reference/${breakpoint}.png`
-   - `designbook/stories/${storyId}/screenshots/current/${breakpoint}.png`
+   - `designbook/stories/${storyId}/screenshots/reference/${breakpoint}--${region}.png`
+   - `designbook/stories/${storyId}/screenshots/current/${breakpoint}--${region}.png`
 
    If either image is missing, skip with a warning.
 
-   b. **Compare visually** using multimodal capabilities. Evaluate:
-   - Layout and structure
-   - Colors and theming
-   - Typography
-   - Spacing and alignment
+   b. **Compare visually** using multimodal capabilities. Evaluate layout, colors, typography, spacing. Focus on the specific element for named regions (header, footer, etc.).
 
-   c. **Determine PASS/FAIL** based on `threshold`:
-   - Estimate diff percentage
-   - Below threshold → PASS
-   - Above threshold → FAIL
-
-   d. **Update meta.yml** — set `reference.breakpoints.{breakpoint}`:
+   c. **Determine PASS/FAIL** using region threshold (or breakpoint threshold as fallback). Update `meta.yml`:
    ```yaml
-   lastDiff: 2.1
-   lastResult: pass
+   regions:
+     header:
+       selector: "header"
+       lastDiff: 2.1
+       lastResult: pass
    ```
 
 5. **Produce comparison report** for the `polish` task:
 
-| Breakpoint | Diff | Threshold | Result | Issues |
-|-----------|------|-----------|--------|--------|
-| sm | 2.1% | 3% | PASS | — |
-| xl | 4.8% | 3% | FAIL | Color mismatch in header |
+| Breakpoint | Region | Diff | Threshold | Result | Issues |
+|-----------|--------|------|-----------|--------|--------|
+| sm | header | 2.1% | 3% | PASS | — |
+| sm | footer | 1.5% | 3% | PASS | — |
+| xl | header | 4.8% | 3% | FAIL | Color mismatch |
 
 Severity: **Critical** (structure wrong), **Major** (colors/fonts off), **Minor** (spacing/opacity).
 

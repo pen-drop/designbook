@@ -1,10 +1,11 @@
-name: "Default"
-props:
+title: "Navigation"
+component: "test_integration_drupal:navigation"
+args:
   variant: "main"
   items:
     - title: "Guide"
       url: "/guide"
-      in_active_trail: true
+      in_active_trail: false
       below: []
     - title: "Examples"
       url: "/examples"

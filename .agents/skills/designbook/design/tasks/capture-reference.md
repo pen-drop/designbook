@@ -1,14 +1,17 @@
 ---
 name: designbook:design:capture-reference
+title: "Capture Reference: {scene} ({breakpoint}/{region})"
 when:
   steps: [capture]
 priority: 10
-each: reference.breakpoints
 params:
   scene: ~
+  storyId: ~
+  breakpoint: ~
+  region: ~
 files:
   - key: screenshot
-    path: designbook/stories/{storyId}/screenshots/reference/{breakpoint}.png
+    path: designbook/stories/{storyId}/screenshots/reference/{breakpoint}--{region}.png
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
@@ -24,7 +27,7 @@ Captures reference screenshots by loading the source URL at each breakpoint view
 |---|---|---|
 | `url` | `meta.yml` → `reference.source.url` | URL to screenshot |
 | `viewportWidth` | design-tokens.yml breakpoint | Pixel width for this breakpoint |
-| `outputPath` | computed | `designbook/stories/{storyId}/screenshots/reference/{breakpoint}.png` |
+| `outputPath` | computed | `designbook/stories/{storyId}/screenshots/reference/{breakpoint}--{region}.png` |
 
 ## Execution
 
@@ -34,26 +37,22 @@ Captures reference screenshots by loading the source URL at each breakpoint view
    ```
    Read `designbook/stories/{storyId}/meta.yml` → `reference.source.url` and `reference.breakpoints`.
 
-2. **For each breakpoint** (from `each: reference.breakpoints`):
+   If `source.url` is a download URL (triggers file download instead of rendering), download it to a local temp file first, then use `file:///tmp/reference-${storyId}.html` as the capture URL.
 
-   a. **Check skip condition**: If `outputPath` already exists, check if `source.url` has changed since last capture. If unchanged, skip:
-   > "Reference for {breakpoint} unchanged — skipping."
+2. **Capture screenshot** for this breakpoint/region combination (from params):
 
-   b. **Resolve viewport width** from `design-tokens.yml` breakpoint definitions.
+   a. **Check skip condition**: If output file already exists and `source.url` has not changed, skip.
 
-   c. **Capture screenshot**:
-   ```bash
-   mkdir -p "designbook/stories/${storyId}/screenshots/reference"
-   npx playwright screenshot --full-page --viewport-size "${viewportWidth},1600" --wait-for-timeout 3000 "${url}" "${outputPath}"
-   ```
+   b. **Resolve viewport width** from `design-tokens.yml` and **selector** from `meta.yml` regions.
+
+   c. **Capture** using the method from the `playwright-capture` rule (full-page CLI or element Node API depending on region type).
 
    d. **Verify** by reading the captured image.
 
 ## Output
 
-Report which reference screenshots were captured:
-
-| Breakpoint | Path | Status |
-|-----------|------|--------|
-| sm | `designbook/stories/{storyId}/screenshots/reference/sm.png` | captured |
-| xl | `designbook/stories/{storyId}/screenshots/reference/xl.png` | skipped (unchanged) |
+| Breakpoint | Region | Path |
+|-----------|--------|------|
+| sm | header | `screenshots/reference/sm--header.png` |
+| sm | footer | `screenshots/reference/sm--footer.png` |
+| xl | full | `screenshots/reference/xl--full.png` |

@@ -17,7 +17,7 @@
 {% endif %}
 
 <header{{ attributes.addClass(header_classes) }}>
-  <div class="max-w-xl mx-auto px-4 md:px-6 lg:px-8 flex items-center justify-between h-16">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
     {% if logo %}
       <div class="flex items-center shrink-0">
         {{ logo }}
@@ -31,7 +31,7 @@
     {% endif %}
 
     {% if actions %}
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-4">
         {{ actions }}
       </div>
     {% endif %}

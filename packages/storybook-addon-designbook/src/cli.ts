@@ -20,6 +20,7 @@ import { validateEntityMapping } from './validators/entity-mapping.js';
 import {
   workflowCreate,
   workflowPlan,
+  workflowAppendTasks,
   workflowWriteFile,
   workflowList,
   workflowDone,
@@ -28,6 +29,7 @@ import {
   isGitRepo,
   resolveEngine,
   type WorkflowFile,
+  type WorkflowTask,
 } from './workflow.js';
 import { engines as engineRegistry } from './engines/index.js';
 import { load as parseYaml } from 'js-yaml';
@@ -476,13 +478,16 @@ function runPlanLogic(
     for (const resolved of resolvedEntries) {
       const taskFm = parseFrontmatter(resolved.task_file);
       const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
+      const taskTitle = taskFm?.title as string | undefined;
       const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
 
       for (let itemIdx = 0; itemIdx < stepItems.length; itemIdx++) {
         const item = stepItems[itemIdx]!;
         const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, step);
         const taskId = generateTaskId(step, mergedParams, schemaParams, itemIdx);
-        const title = generateTaskTitle(step, mergedParams, schemaParams);
+        const title = taskTitle
+          ? generateTaskTitle(step, mergedParams, schemaParams, taskTitle)
+          : generateTaskTitle(step, mergedParams, schemaParams);
         const type = inferTaskType(step);
         const knownValidators = new Set(getValidatorKeys());
         const files = expandFileDeclarations(fileDeclarations, mergedParams, filesEnvMap, knownValidators);
@@ -533,6 +538,170 @@ function runPlanLogic(
     engine: resolvedEngine,
     ...(engineResult.worktree_branch ? { worktree_branch: engineResult.worktree_branch } : {}),
   };
+}
+
+/**
+ * Expand deferred stages whose iterable is now available in newParams.
+ * Called when `workflow done --task <non-intake> --params '...'` provides
+ * new iterables for stages that were skipped during initial planning.
+ */
+function expandDeferredStages(
+  config: ReturnType<typeof loadConfig>,
+  workflowName: string,
+  newParams: Record<string, unknown>,
+): WorkflowTask[] | null {
+  const changesDir = resolve(config.data, 'workflows', 'changes', workflowName);
+  const tasksYmlPath = resolve(changesDir, 'tasks.yml');
+  if (!existsSync(tasksYmlPath)) return null;
+
+  const existing = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
+  const stageLoaded = existing.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]> | undefined;
+  if (!stageLoaded) return null;
+
+  const rawStages = existing.stages;
+  if (!rawStages || Array.isArray(rawStages)) return null;
+  const stageDefinitions = rawStages as Record<string, { steps: string[]; each?: string; loop?: number }>;
+
+  // Collect steps and step→stage/each maps
+  const allSteps: string[] = [];
+  const stepToStage = new Map<string, string>();
+  const stepToEach = new Map<string, string>();
+  for (const [stageName, def] of Object.entries(stageDefinitions)) {
+    allSteps.push(...(def.steps ?? []));
+    for (const step of def.steps) {
+      stepToStage.set(step, stageName);
+      if (def.each) stepToEach.set(step, def.each);
+    }
+  }
+
+  // Steps that already have tasks
+  const existingTasks =
+    (existing.tasks as Array<{ step?: string; id?: string; stage?: string; iteration?: number }>) ?? [];
+  const existingSteps = new Set(existingTasks.map((t) => t.step).filter(Boolean));
+  const existingIds = new Set(existingTasks.map((t) => t.id).filter(Boolean));
+
+  // Find stages to expand: deferred (no tasks yet) or loop (tasks exist but loop allows more)
+  let iteration = 1;
+  const items: Array<{ step: string; params?: Record<string, unknown> }> = [];
+  for (const [stageName, def] of Object.entries(stageDefinitions)) {
+    if (!def.each) continue;
+    const iterables = newParams[def.each] as Array<Record<string, unknown>> | undefined;
+    if (!iterables || !Array.isArray(iterables)) continue;
+
+    const stageHasTasks = def.steps.some((s) => existingSteps.has(s));
+
+    if (stageHasTasks) {
+      // Loop re-expansion: only if stage has loop config
+      if (!def.loop) continue;
+      const stageTasks = existingTasks.filter((t) => t.stage === stageName);
+      const currentIteration = Math.max(...stageTasks.map((t) => t.iteration ?? 1));
+      if (currentIteration >= def.loop) {
+        console.error(`Loop limit reached: stage "${stageName}" at iteration ${currentIteration}/${def.loop}`);
+        continue;
+      }
+      iteration = currentIteration + 1;
+      for (const step of def.steps) {
+        for (const iterableItem of iterables) {
+          items.push({ step, params: iterableItem });
+        }
+      }
+    } else {
+      // Deferred initial expansion
+      for (const step of def.steps) {
+        for (const iterableItem of iterables) {
+          items.push({ step, params: iterableItem });
+        }
+      }
+    }
+  }
+
+  if (items.length === 0) return null;
+
+  // Engine setup for file path expansion
+  const rootDir = (config.workspace as string | undefined) ?? dirname(config.data);
+  const envMap = buildEnvMap(config);
+  const frontmatterEngine = existing.engine as string | undefined;
+  const resolvedEngine = resolveEngine(undefined, frontmatterEngine, isGitRepo(rootDir));
+  const workspacesBase = process.env['DESIGNBOOK_WORKSPACES'] ?? resolve(config.data, 'workspaces');
+  const worktreePath = resolve(workspacesBase, workflowName);
+  const workspace = (config['workspace'] as string | undefined) ?? rootDir;
+  const engine = engineRegistry[resolvedEngine];
+  if (!engine) return null;
+  const engineResult = engine.setup({
+    envMap,
+    worktreePath,
+    rootDir,
+    workflowName,
+    workspace,
+    dryRun: false,
+  });
+  const filesEnvMap = engineResult.envMap;
+
+  // Merge existing global params with new params for validation
+  const globalParams = { ...((existing.params as Record<string, unknown>) ?? {}), ...newParams };
+
+  // Expand items into tasks
+  const tasks: WorkflowTask[] = [];
+  for (const step of allSteps) {
+    const stepItems = items.filter((i) => i.step === step);
+    if (stepItems.length === 0) continue;
+
+    const preResolved = stageLoaded[step];
+    if (!preResolved) continue;
+
+    const resolvedEntries: ResolvedStep[] = Array.isArray(preResolved) ? preResolved : [preResolved];
+
+    for (const resolved of resolvedEntries) {
+      const taskFm = parseFrontmatter(resolved.task_file);
+      const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
+      const taskTitle = taskFm?.title as string | undefined;
+      const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
+
+      for (let itemIdx = 0; itemIdx < stepItems.length; itemIdx++) {
+        const item = stepItems[itemIdx]!;
+        const mergedParams = validateAndMergeParams({ ...globalParams, ...item.params }, schemaParams, step);
+        let taskId = generateTaskId(step, mergedParams, schemaParams, itemIdx, iteration);
+        // Ensure no collision with existing IDs
+        let suffix = 2;
+        while (existingIds.has(taskId)) {
+          taskId = `${taskId.replace(/-\d+$/, '')}-${suffix}`;
+          suffix++;
+        }
+        existingIds.add(taskId);
+
+        const title = taskTitle
+          ? generateTaskTitle(step, mergedParams, schemaParams, taskTitle)
+          : generateTaskTitle(step, mergedParams, schemaParams);
+        const type = inferTaskType(step);
+        const knownValidators = new Set(getValidatorKeys());
+        const files = expandFileDeclarations(fileDeclarations, mergedParams, filesEnvMap, knownValidators);
+
+        tasks.push({
+          id: taskId,
+          title,
+          type,
+          step,
+          stage: stepToStage.get(step) ?? 'execute',
+          status: 'pending',
+          params: mergedParams,
+          task_file: resolved.task_file,
+          rules: resolved.rules ?? [],
+          blueprints: resolved.blueprints ?? [],
+          config_rules: resolved.config_rules ?? [],
+          config_instructions: resolved.config_instructions ?? [],
+          files: files.map((f) => ({ path: f.path, key: f.key, validators: f.validators })),
+          ...(iteration > 1 ? { iteration } : {}),
+        });
+      }
+    }
+  }
+
+  if (tasks.length === 0) return null;
+
+  // Append to tasks.yml
+  workflowAppendTasks(config.data, workflowName, tasks, newParams);
+
+  return tasks;
 }
 
 workflow
@@ -642,7 +811,7 @@ workflow
   .requiredOption('--task <id>', 'Task id to mark done')
   .option(
     '--params <json>',
-    'Intake params JSON — when used with --task intake, implicitly runs plan logic before marking done',
+    'Params JSON — with --task intake runs plan logic; with other tasks expands deferred stages',
   )
   .option(
     '--loaded <json>',
@@ -703,6 +872,50 @@ workflow
         return;
       }
 
+      // If --params provided on a non-intake task, expand deferred stages first
+      let expandedTasks: WorkflowTask[] | null = null;
+      if (opts.params) {
+        let newParams: Record<string, unknown> = {};
+        try {
+          newParams = JSON.parse(opts.params);
+        } catch (err) {
+          console.error(`Error parsing --params JSON: ${(err as Error).message}`);
+          process.exitCode = 1;
+          return;
+        }
+        if (Object.keys(newParams).length > 0) {
+          expandedTasks = expandDeferredStages(config, opts.workflow, newParams);
+          if (expandedTasks) {
+            console.log(`Expanded ${expandedTasks.length} deferred tasks`);
+          }
+        }
+      }
+
+      // If task is already done and --params were provided, skip workflowDone —
+      // the expansion already happened above and that's the intended side-effect.
+      if (opts.params && expandedTasks) {
+        const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
+        const wfPath = resolve(changesDir, 'tasks.yml');
+        if (existsSync(wfPath)) {
+          const wfData = parseYaml(readFileSync(wfPath, 'utf-8')) as WorkflowFile;
+          const targetTask = wfData.tasks.find((t) => t.id === opts.task);
+          if (targetTask?.status === 'done') {
+            console.log(`Task ${opts.task} already done — expanded ${expandedTasks.length} deferred tasks`);
+            const responseObj = {
+              stage: targetTask.stage ?? 'unknown',
+              expanded_tasks: expandedTasks.map((t) => ({
+                id: t.id,
+                step: t.step,
+                stage: t.stage,
+                title: t.title,
+              })),
+            };
+            console.log(`\nRESPONSE: ${JSON.stringify(responseObj)}`);
+            return;
+          }
+        }
+      }
+
       const result = await workflowDone(config.data, opts.workflow, opts.task, loaded);
       const { data, response } = result;
 
@@ -720,8 +933,17 @@ workflow
       }
 
       // Output stage-based response (replaces FLAGS)
-      if (response) {
-        console.log(`\nRESPONSE: ${JSON.stringify(response)}`);
+      const responseObj = response ? { ...response } : null;
+      if (expandedTasks && responseObj) {
+        (responseObj as Record<string, unknown>).expanded_tasks = expandedTasks.map((t) => ({
+          id: t.id,
+          step: t.step,
+          stage: t.stage,
+          title: t.title,
+        }));
+      }
+      if (responseObj) {
+        console.log(`\nRESPONSE: ${JSON.stringify(responseObj)}`);
       }
     } catch (err) {
       console.error(`Error: ${(err as Error).message}`);
