@@ -64,7 +64,12 @@ properties:
                 issues:
                   type: integer
                   nullable: true
-                  description: Number of differences found (CSS, fonts, computed styles).
+                  description: Total number of differences found (CSS, fonts, computed styles, content).
+                missing:
+                  type: array
+                  items:
+                    type: string
+                  description: Content elements expected but not found (e.g. logo, hero-image, nav-items). Detected by comparing reference DOM against Storybook DOM and sample-data.
 ```
 
 ## Example
@@ -83,8 +88,9 @@ reference:
       lastDiff: 2.1
       lastResult: pass
       markup:
-        lastResult: pass
-        issues: 0
+        lastResult: fail
+        issues: 2
+        missing: ["logo", "hero-image"]
     xl:
       threshold: 5
       lastDiff: null

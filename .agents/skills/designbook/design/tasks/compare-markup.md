@@ -59,7 +59,7 @@ Inspects both the reference URL and Storybook URL via Playwright, extracts struc
    - CSS custom properties: diff values
    - Fonts: flag unloaded fonts
    - Computed styles: compare color, fontSize, fontFamily, fontWeight per element
-   - DOM structure: simplified tree comparison (optional)
+   - Content: check for missing elements (see below)
 
    f. **Close session**
    ```bash
@@ -87,7 +87,8 @@ Structured comparison report per breakpoint:
     "differences": [
       { "selector": "h1", "property": "fontSize", "reference": "32px", "storybook": "30px" }
     ]
-  }
+  },
+  "missing": ["logo", "hero-image"]
 }
 ```
 
@@ -99,6 +100,22 @@ After comparison, update `reference.breakpoints.{breakpoint}.markup` in `meta.ym
 
 ```yaml
 markup:
-  lastResult: pass    # pass if no critical/major issues, fail otherwise
-  issues: 3           # total number of differences found
+  lastResult: fail
+  issues: 3
+  missing: ["logo", "hero-image"]
 ```
+
+- `lastResult`: pass if no critical/major issues, fail otherwise
+- `issues`: total number of differences (CSS + fonts + computed styles + missing content)
+- `missing`: content elements expected in reference but absent in Storybook
+
+## Content Verification
+
+Check for missing content by comparing both DOMs:
+
+1. **Images** — `<img>` elements in reference: check if corresponding `<img>` exists in Storybook and loads (no 404/broken). Label by nearest landmark or alt text (e.g. "logo", "hero-image").
+2. **Navigation** — compare nav link counts and labels between reference and Storybook.
+3. **Text blocks** — headings and major text areas present in reference should have corresponding content in Storybook.
+4. **Sample-data assets** — if scene uses sample-data (`data.yml`), verify referenced images/URLs render.
+
+Only flag content as `missing` when the element is clearly present in the reference DOM but absent or broken in Storybook. Don't flag layout/styling differences here — those belong in CSS/computed styles.

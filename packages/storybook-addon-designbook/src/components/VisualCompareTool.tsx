@@ -18,6 +18,7 @@ interface BreakpointInfo {
   pass: boolean | null;
   markupPass: boolean | null;
   markupIssues: number | null;
+  markupMissing: string[];
 }
 
 const KNOWN_BREAKPOINTS: Record<string, number> = {
@@ -37,7 +38,7 @@ interface MetaYml {
         threshold?: number;
         lastDiff?: number | null;
         lastResult?: string | null;
-        markup?: { lastResult?: string | null; issues?: number | null };
+        markup?: { lastResult?: string | null; issues?: number | null; missing?: string[] };
       }
     >;
   };
@@ -53,7 +54,7 @@ function parseMetaYml(yamlContent: string): MetaYml {
       threshold?: number;
       lastDiff?: number | null;
       lastResult?: string | null;
-      markup?: { lastResult?: string | null; issues?: number | null };
+      markup?: { lastResult?: string | null; issues?: number | null; missing?: string[] };
     }
   > = {};
 
@@ -96,6 +97,16 @@ function parseMetaYml(yamlContent: string): MetaYml {
         const mu = breakpoints[currentBp]!.markup!;
         if (key === 'lastResult') mu.lastResult = val === 'null' ? null : val;
         else if (key === 'issues') mu.issues = val === 'null' ? null : parseInt(val, 10);
+        else if (key === 'missing') {
+          // Parse inline YAML array: missing: ["logo", "hero-image"]
+          const arrMatch = val.match(/^\[(.+)\]$/);
+          if (arrMatch) {
+            mu.missing = arrMatch[1]!
+              .split(',')
+              .map((s) => s.trim().replace(/^["']|["']$/g, ''))
+              .filter(Boolean);
+          }
+        }
       }
       continue;
     }
@@ -174,6 +185,7 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
       pass: bp.lastResult === 'pass' ? true : bp.lastResult === 'fail' ? false : null,
       markupPass: bp.markup?.lastResult === 'pass' ? true : bp.markup?.lastResult === 'fail' ? false : null,
       markupIssues: bp.markup?.issues ?? null,
+      markupMissing: bp.markup?.missing ?? [],
     });
   }
 
@@ -215,59 +227,65 @@ const DropdownContent = memo(function DropdownContent({
       {breakpoints.map((bp) => {
         const isActive = state.breakpoint === bp.name;
         return (
-          <button
-            key={bp.name}
-            onClick={() => onSelect(isActive ? null : bp.name)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '6px 8px',
-              border: 'none',
-              borderRadius: 4,
-              background: isActive ? 'rgba(30, 167, 253, 0.12)' : 'transparent',
-              cursor: 'pointer',
-              fontSize: 12,
-              textAlign: 'left',
-            }}
-          >
-            <span style={{ fontWeight: isActive ? 600 : 400 }}>
-              {bp.name} <span style={{ color: '#888' }}>{bp.width}px</span>
-            </span>
-            <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              {bp.diffPercent !== null && bp.threshold !== null ? (
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    padding: '1px 6px',
-                    borderRadius: 9999,
-                    background: bp.pass ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    color: bp.pass ? '#16a34a' : '#dc2626',
-                  }}
-                >
-                  {bp.diffPercent.toFixed(1)}%
-                </span>
-              ) : (
-                <span style={{ fontSize: 10, color: '#aaa' }}>—</span>
-              )}
-              {bp.markupPass !== null && (
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    padding: '1px 6px',
-                    borderRadius: 9999,
-                    background: bp.markupPass ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    color: bp.markupPass ? '#16a34a' : '#dc2626',
-                  }}
-                >
-                  CSS{bp.markupIssues !== null && bp.markupIssues > 0 ? ` ${bp.markupIssues}` : ''}
-                </span>
-              )}
-            </span>
-          </button>
+          <React.Fragment key={bp.name}>
+            <button
+              onClick={() => onSelect(isActive ? null : bp.name)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '6px 8px',
+                border: 'none',
+                borderRadius: 4,
+                background: isActive ? 'rgba(30, 167, 253, 0.12)' : 'transparent',
+                cursor: 'pointer',
+                fontSize: 12,
+                textAlign: 'left',
+              }}
+            >
+              <span style={{ fontWeight: isActive ? 600 : 400 }}>
+                {bp.name} <span style={{ color: '#888' }}>{bp.width}px</span>
+              </span>
+              <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                {bp.diffPercent !== null && bp.threshold !== null ? (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      padding: '1px 6px',
+                      borderRadius: 9999,
+                      background: bp.pass ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: bp.pass ? '#16a34a' : '#dc2626',
+                    }}
+                  >
+                    {bp.diffPercent.toFixed(1)}%
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 10, color: '#aaa' }}>—</span>
+                )}
+                {bp.markupPass !== null && (
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      padding: '1px 6px',
+                      borderRadius: 9999,
+                      background: bp.markupPass ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: bp.markupPass ? '#16a34a' : '#dc2626',
+                    }}
+                  >
+                    CSS{bp.markupIssues !== null && bp.markupIssues > 0 ? ` ${bp.markupIssues}` : ''}
+                  </span>
+                )}
+              </span>
+            </button>
+            {bp.markupMissing.length > 0 && (
+              <div style={{ padding: '2px 8px 4px', fontSize: 10, color: '#dc2626' }}>
+                Missing: {bp.markupMissing.join(', ')}
+              </div>
+            )}
+          </React.Fragment>
         );
       })}
 
