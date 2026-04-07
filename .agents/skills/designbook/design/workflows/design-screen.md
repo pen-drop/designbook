@@ -13,10 +13,10 @@ stages:
     steps: [design-screen:map-entity]
   scene:
     each: scene
-    steps: [design-screen:create-scene]
+    steps: [design-screen:create-scene, configure-meta]
   test:
     each: scene
-    steps: [storybook-preview, screenshot, inspect, resolve-reference, visual-compare, polish]
+    steps: [storybook-preview, capture, compare, polish]
 engine: direct
 before:
   - workflow: css-generate

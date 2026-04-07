@@ -40,12 +40,12 @@ Resolves scene references to Storybook iframe URLs. Reads the active port from `
 
 ```bash
 # Resolve scene to Storybook URL
- resolve-url --scene <group>:<name>
+ story --scene <group>:<name>
 # → JSON array: [{ scene, storyId, url, filePath }]
 # → Requires Storybook running (reads port from storybook.json)
 
 # Resolve from explicit file
- resolve-url --scene <name> --file <path-to-scenes.yml>
+ story --scene <name> --file <path-to-scenes.yml>
 ```
 
 **Output format:**

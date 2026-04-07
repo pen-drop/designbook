@@ -1,0 +1,10 @@
+reference:
+  source:
+    origin: stitch
+    screenId: "projects/5626339350367683412/screens/c0b358251f844f5da0313176267819de"
+    hasMarkup: true
+  breakpoints:
+    sm:
+      threshold: 3
+      lastDiff: null
+      lastResult: null

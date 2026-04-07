@@ -26,63 +26,96 @@ const KNOWN_BREAKPOINTS: Record<string, number> = {
   '2xl': 1536,
 };
 
-function parseReport(text: string): Map<string, { diff: number; threshold: number; pass: boolean }> {
-  const results = new Map<string, { diff: number; threshold: number; pass: boolean }>();
-  // Parse report.md for per-breakpoint results
-  // Expected format: lines like "| md | 2.1% | 5% | PASS |" or "## md" sections with diff info
-  const linePattern = /\|\s*(\w+)\s*\|\s*([\d.]+)%?\s*\|\s*([\d.]+)%?\s*\|\s*(PASS|FAIL)\s*\|/gi;
-  let match;
-  while ((match = linePattern.exec(text)) !== null) {
-    const [, bpRaw, diffRaw, threshRaw, passRaw] = match;
-    if (!bpRaw || !diffRaw || !threshRaw || !passRaw) continue;
-    results.set(bpRaw.toLowerCase(), {
-      diff: parseFloat(diffRaw),
-      threshold: parseFloat(threshRaw),
-      pass: passRaw.toUpperCase() === 'PASS',
-    });
+interface MetaYml {
+  reference?: {
+    source?: { url?: string; origin?: string; hasMarkup?: boolean };
+    breakpoints?: Record<string, { threshold?: number; lastDiff?: number | null; lastResult?: string | null }>;
+  };
+}
+
+function parseMetaYml(yamlContent: string): MetaYml {
+  // Minimal parser for the flat meta.yml breakpoints structure.
+  // Parses lines like "    sm:" and "      threshold: 3" under "  breakpoints:".
+  const meta: MetaYml = {};
+  const breakpoints: Record<string, { threshold?: number; lastDiff?: number | null; lastResult?: string | null }> = {};
+
+  let inBreakpoints = false;
+  let currentBp: string | null = null;
+
+  for (const line of yamlContent.split('\n')) {
+    const trimmed = line.trimStart();
+    const indent = line.length - trimmed.length;
+
+    if (trimmed.startsWith('breakpoints:')) {
+      inBreakpoints = true;
+      continue;
+    }
+
+    if (!inBreakpoints) continue;
+
+    // Breakpoint name line (4 spaces indent, ends with colon)
+    if (indent === 4 && trimmed.endsWith(':') && !trimmed.includes(' ')) {
+      currentBp = trimmed.slice(0, -1);
+      breakpoints[currentBp] = {};
+      continue;
+    }
+
+    // Property line under a breakpoint (6+ spaces indent)
+    if (indent >= 6 && currentBp) {
+      const match = trimmed.match(/^(\w+):\s*(.+)$/);
+      if (match) {
+        const [, key, rawVal] = match;
+        const val = rawVal!.trim();
+        const bp = breakpoints[currentBp]!;
+        if (key === 'threshold') bp.threshold = parseFloat(val);
+        else if (key === 'lastDiff') bp.lastDiff = val === 'null' ? null : parseFloat(val);
+        else if (key === 'lastResult') bp.lastResult = val === 'null' ? null : val;
+      }
+      continue;
+    }
+
+    // Left of breakpoints indent means we've exited the breakpoints block
+    if (indent < 4 && trimmed.length > 0) break;
   }
-  return results;
+
+  if (Object.keys(breakpoints).length > 0) {
+    meta.reference = { breakpoints };
+  }
+  return meta;
 }
 
 async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
-  const breakpoints: BreakpointInfo[] = [];
-
-  // Probe each known breakpoint for a reference image
-  const probes = Object.entries(KNOWN_BREAKPOINTS).map(async ([name, width]) => {
-    const url = `/__designbook/load?path=screenshots/${encodeURIComponent(storyId)}/reference/${name}.png`;
-    try {
-      const res = await fetch(url, { method: 'GET' });
-      const contentType = res.headers.get('content-type') || '';
-      return { name, width, exists: res.ok && contentType.startsWith('image/') };
-    } catch {
-      return { name, width, exists: false };
-    }
-  });
-
-  const results = await Promise.all(probes);
-
-  // Fetch report for diff data
-  let reportData = new Map<string, { diff: number; threshold: number; pass: boolean }>();
+  // Fetch meta.yml — single request replaces per-breakpoint probing
+  const metaUrl = `/__designbook/load?path=stories/${encodeURIComponent(storyId)}/meta.yml`;
+  let meta: MetaYml | null = null;
   try {
-    const reportUrl = `/__designbook/load?path=screenshots/${encodeURIComponent(storyId)}/report.md`;
-    const reportRes = await fetch(reportUrl);
-    if (reportRes.ok) {
-      reportData = parseReport(await reportRes.text());
+    const res = await fetch(metaUrl);
+    if (!res.ok) return [];
+    const text = await res.text();
+    try {
+      const json = JSON.parse(text) as { exists?: boolean; content?: string };
+      if (!json.exists || !json.content) return [];
+      meta = parseMetaYml(json.content);
+    } catch {
+      // Not JSON — try as raw YAML
+      meta = parseMetaYml(text);
     }
   } catch {
-    // No report available
+    return [];
   }
 
-  for (const { name, width, exists } of results) {
-    if (!exists) continue;
-    const report = reportData.get(name);
+  if (!meta?.reference?.breakpoints) return [];
+
+  const breakpoints: BreakpointInfo[] = [];
+  for (const [name, bp] of Object.entries(meta.reference.breakpoints)) {
+    const width = KNOWN_BREAKPOINTS[name] ?? 0;
     breakpoints.push({
       name,
       width,
       hasReference: true,
-      diffPercent: report?.diff ?? null,
-      threshold: report?.threshold ?? null,
-      pass: report?.pass ?? null,
+      diffPercent: bp.lastDiff ?? null,
+      threshold: bp.threshold ?? null,
+      pass: bp.lastResult === 'pass' ? true : bp.lastResult === 'fail' ? false : null,
     });
   }
 

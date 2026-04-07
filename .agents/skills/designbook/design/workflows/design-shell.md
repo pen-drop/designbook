@@ -9,10 +9,10 @@ stages:
     steps: [create-component]
   scene:
     each: scene
-    steps: [design-shell:create-scene]
+    steps: [design-shell:create-scene, configure-meta]
   test:
     each: scene
-    steps: [storybook-preview, screenshot, inspect, resolve-reference, visual-compare, polish]
+    steps: [storybook-preview, capture, compare, polish]
 engine: direct
 before:
   - workflow: css-generate

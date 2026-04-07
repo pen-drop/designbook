@@ -1,6 +1,10 @@
 fixtures:
   - vision
   - data-model
+  - design-guideline
+  - tokens
+  - css-generate
+  - design-shell
 
 prompt: |
   You are working in the directory {{workspace}}.

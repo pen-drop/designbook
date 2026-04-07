@@ -15,17 +15,22 @@ reads:
 
 # Polish
 
-Iterative fix loop: reads the visual-compare report, fixes issues, re-screenshots, and re-compares until resolved or max iterations reached.
+Iterative fix loop: reads the compare reports, fixes issues, re-captures Storybook screenshots, and re-compares until resolved or max iterations reached.
 
-## Step 1: Read Visual Compare Report
+## Params
 
-Read the visual-compare report from the previous step. If no issues were found, complete immediately:
+| Param | Source | Description |
+|---|---|---|
+| `storyId` | workflow context | Story identifier |
+| `compareResults` | compare step output | Per-breakpoint results from compare-screenshots and compare-markup |
+
+## Step 1: Read Compare Reports
+
+Read the compare-screenshots and compare-markup (if available) reports from the previous step. If no issues were found, complete immediately:
 
 > "No visual issues found — skipping polish."
 
 ## Change Scope
-
-Polish may modify these file types:
 
 | In scope | Out of scope |
 |----------|-------------|
@@ -38,9 +43,7 @@ When CSS output values are changed to match the reference, the polish report MUS
 
 ## Step 2: Fix Loop (max 3 iterations)
 
-**Important**: Remote reference screenshots (e.g. url, image) are fetched ONCE before the loop starts. They do not change between iterations. Only local Storybook screenshots are re-taken each iteration.
-
-Only re-screenshot breakpoints that have reference entries in the scene's `reference` array.
+**Important**: Reference screenshots do not change between iterations. Only Storybook screenshots are re-captured.
 
 For each iteration:
 
@@ -56,20 +59,19 @@ Before applying any fix, verify it does not contradict any loaded rules for the 
 
 Edit the component files, scene definitions, or CSS to address the issues. Keep changes minimal and focused on the reported issues.
 
-### 2d. Re-screenshot (Storybook only)
+### 2d. Re-capture Storybook Screenshots
 
-Resolve the Storybook URL and re-capture screenshots only at breakpoints that have reference entries:
+Resolve the Storybook URL and re-capture at all breakpoints from `meta.yml`:
 
 ```bash
-_debo resolve-url --scene ${scene}
-npx playwright screenshot --full-page --viewport-size "${width},1600" --wait-for-timeout 3000 "${url}" "designbook/screenshots/${storyId}/storybook/${breakpoint}.png"
+_debo story --scene ${scene}
+mkdir -p "designbook/stories/${storyId}/screenshots/current"
+npx playwright screenshot --full-page --viewport-size "${viewportWidth},1600" --wait-for-timeout 3000 "${url}" "designbook/stories/${storyId}/screenshots/current/${breakpoint}.png"
 ```
-
-Do NOT re-fetch remote reference screenshots — they were resolved once before the loop.
 
 ### 2e. Re-compare
 
-Read the new Storybook screenshots alongside the (unchanged) reference images. Use the `threshold` from each reference entry (default 3%) for PASS/FAIL determination.
+Read the new Storybook screenshots alongside the (unchanged) reference images. Use the `threshold` from `meta.yml` for PASS/FAIL determination. Update `meta.yml` with new `lastDiff` and `lastResult`.
 
 ### 2f. Check Resolution
 
@@ -85,7 +87,7 @@ Report the polish results:
 ## Polish Report
 
 **Iterations:** 2/3
-**Status:** All issues resolved ✓
+**Status:** All issues resolved
 
 ### Iteration 1
 - Fixed: Layout alignment on sm breakpoint (Critical)
@@ -93,20 +95,4 @@ Report the polish results:
 
 ### Iteration 2
 - Fixed: Spacing inconsistency in footer (Minor)
-```
-
-Or if issues remain:
-
-```
-## Polish Report
-
-**Iterations:** 3/3 (max reached)
-**Status:** 1 issue remaining
-
-### Resolved
-- Layout alignment (Critical)
-- Font size mismatch (Major)
-
-### Remaining
-- Subtle color difference in hover state (Minor) — within acceptable tolerance
 ```

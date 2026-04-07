@@ -746,8 +746,8 @@ workflow
   });
 
 program
-  .command('resolve-url')
-  .description('Resolve scene reference to Storybook iframe URL')
+  .command('story')
+  .description('Resolve scene reference to story info (storyId, url)')
   .requiredOption('--scene <ref>', 'Scene reference (e.g. design-system:shell, galerie:product-detail)')
   .option('--file <path>', 'Explicit scenes.yml file path')
   .action(async (opts: { scene: string; file?: string }) => {
@@ -841,7 +841,7 @@ async function prepareEnvironment(
     const safeName = scene.replace(/[:/]/g, '-');
     const screenshotPath = resolve(screenshotDir, `${safeName}.png`);
     try {
-      execFileSync(cliExec, [...cliBaseArgs, 'resolve-url', '--scene', scene], {
+      execFileSync(cliExec, [...cliBaseArgs, 'story', '--scene', scene], {
         env: { ...process.env, DESIGNBOOK_STORYBOOK_URL: previewUrl },
         stdio: 'inherit',
       });

@@ -27,7 +27,7 @@ export const withVisualCompare: DecoratorFunction = (storyFn, context) => {
   if (!state.breakpoint || state.opacity <= 0) return result;
 
   const storyId = context.id;
-  const src = `/__designbook/load?path=screenshots/${encodeURIComponent(storyId)}/reference/${encodeURIComponent(state.breakpoint)}.png`;
+  const src = `/__designbook/load?path=stories/${encodeURIComponent(storyId)}/screenshots/reference/${encodeURIComponent(state.breakpoint)}.png`;
 
   // Use requestAnimationFrame to ensure the story has rendered before adding overlay
   requestAnimationFrame(() => {

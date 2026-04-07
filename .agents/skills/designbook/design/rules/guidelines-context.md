@@ -1,6 +1,6 @@
 ---
 when:
-  steps: [tokens:intake, design-guidelines:intake, design-component:intake, design-screen:intake, design-shell:intake, sample-data:intake, sections:intake, shape-section:intake, create-component, create-section, design-screen:create-scene, design-shell:create-scene, create-sample-data, create-guidelines, screenshot, resolve-reference, visual-compare, polish]
+  steps: [tokens:intake, design-guidelines:intake, design-component:intake, design-screen:intake, design-shell:intake, sample-data:intake, sections:intake, shape-section:intake, create-component, create-section, design-screen:create-scene, design-shell:create-scene, create-sample-data, create-guidelines, capture, compare, polish]
 ---
 
 # Design Guidelines Context

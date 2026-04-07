@@ -1,7 +1,7 @@
 ---
 name: designbook:design:playwright-session
 when:
-  steps: [inspect]
+  steps: [capture, compare]
 ---
 
 # Playwright Session Management

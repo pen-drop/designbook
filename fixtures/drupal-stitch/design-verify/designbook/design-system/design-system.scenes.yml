@@ -1,0 +1,64 @@
+id: "debo-design-system"
+title: "Design System"
+description: "Designbook application shell — Vercel-style dark landing page with header, content area, and footer."
+status: "planned"
+order: 0
+
+group: "Designbook/Design System"
+scenes:
+  - name: "shell"
+    items:
+      - component: "test_integration_drupal:page"
+        slots:
+          header:
+            - component: "test_integration_drupal:header"
+              props:
+                sticky: true
+              slots:
+                logo: "<a href=\"/\" class=\"text-base font-bold font-heading text-on-surface\">Designbook</a>"
+                navigation:
+                  - component: "test_integration_drupal:navigation"
+                    props:
+                      variant: "main"
+                      items:
+                        - title: "Guide"
+                          url: "/guide"
+                          in_active_trail: false
+                          below: []
+                        - title: "Examples"
+                          url: "/examples"
+                          in_active_trail: false
+                          below: []
+                        - title: "Community"
+                          url: "/community"
+                          in_active_trail: false
+                          below: []
+                actions: "<a href=\"/get-started\" class=\"text-sm font-label px-4 py-2 rounded-md bg-on-surface text-surface\">Get Started</a>"
+          content: "$content"
+          footer:
+            - component: "test_integration_drupal:footer"
+              props:
+                copyright: "&copy; 2024 Designbook. High-performance spec-driven design tools for the modern web."
+              slots:
+                brand: "<a href=\"/\" class=\"text-base font-bold font-heading text-on-surface\">Designbook</a>"
+                navigation:
+                  - component: "test_integration_drupal:navigation"
+                    props:
+                      variant: "footer"
+                      items:
+                        - title: "Changelog"
+                          url: "/changelog"
+                          in_active_trail: false
+                          below: []
+                        - title: "GitHub"
+                          url: "/github"
+                          in_active_trail: false
+                          below: []
+                        - title: "Status"
+                          url: "/status"
+                          in_active_trail: false
+                          below: []
+                        - title: "Privacy"
+                          url: "/privacy"
+                          in_active_trail: false
+                          below: []

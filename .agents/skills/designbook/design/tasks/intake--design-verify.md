@@ -33,44 +33,15 @@ Wait for the user's response.
 **If a specific section:** collect only that section's scenes.
 **If 'shell' or 'Design System':** collect only `design-system:shell`.
 
-## Step 2: Resolve Design References
+## Step 2: Build Scene List
 
-> ⛔ **MANDATORY**: Execute this step for each selected scene.
-
-Follow the process in [resolve-design-reference.md](partials/resolve-design-reference.md).
-
-For each scene that has an existing `reference:` array in its `*.scenes.yml`, list the entries and ask per entry:
-
-> "Scene **[scene-name]** has references:
->
-> | # | Type | Breakpoint | Threshold | Title |
-> |---|------|-----------|-----------|-------|
-> | 1 | url | sm | 3% | Mobile View |
-> | 2 | image | xl | 5% | Desktop View |
->
-> For each entry:
-> - **Keep** — use as-is
-> - **Update** — provide a new reference for this breakpoint
-> - **Remove** — drop this breakpoint from testing
->
-> Or: **Add** — add a new breakpoint reference entry"
-
-For scenes without a reference array, ask:
-
-> "Scene **[scene-name]** has no references. Would you like to add one?
->
-> - **Yes** — I'll ask for each breakpoint
-> - **No** — I'll verify token compliance only"
-
-## Step 3: Build Scene List
-
-Build the `scene` iterable for `workflow plan`:
+Build the `scene` iterable for subsequent stages:
 
 ```json
 {
   "scene": [
-    {"scene": "homepage:landing", "provider": "COMPONENT_NAMESPACE", "section_id": "homepage"},
-    {"scene": "design-system:shell", "provider": "COMPONENT_NAMESPACE"}
+    {"scene": "homepage:landing", "storyId": "designbook-homepage-landing", "section_id": "homepage"},
+    {"scene": "design-system:shell", "storyId": "designbook-design-system-shell"}
   ]
 }
 ```
@@ -79,11 +50,10 @@ Present the verification plan:
 
 > "I will verify **[n]** scenes:
 >
-> | Scene | Reference | Breakpoints |
-> |-------|-----------|-------------|
-> | homepage:landing | url (Landing Page) | sm, xl |
-> | design-system:shell | image (Design Reference) | sm, xl |
+> | Scene | Breakpoints |
+> |-------|-------------|
+> | design-system:shell | (configured in next step) |
 >
 > Ready to start?"
 
-Wait for confirmation — once confirmed, intake is complete.
+Wait for confirmation — once confirmed, intake is complete. The `configure-meta` step will handle reference configuration for each scene.
