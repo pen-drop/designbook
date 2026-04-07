@@ -1,42 +1,35 @@
 ---
 when:
-  steps: [design-verify:intake, configure-meta]
+  steps: [configure-meta]
   extensions: stitch
 ---
 
 # Resolve Stitch URL
 
-When a reference source has `origin: stitch`, resolve the Stitch screen ID to a preview URL and set `hasMarkup: true`.
+When a reference source has `origin: stitch`, resolve the Stitch screen ID to a preview URL.
 
 ## When to Apply
 
-This rule triggers during intake when the user provides a Stitch screen ID as the reference source, or when an existing `meta.yml` has `source.origin: stitch`.
+This rule triggers during `configure-meta` when the user provides a Stitch screen ID as the reference source.
 
 ## Execution
 
-1. Read `source.screenId` from `meta.yml` (e.g., `projects/123/screens/abc123`)
+1. If `origin` is not `stitch`, skip.
 
-2. Call the Stitch MCP server:
+2. Read the `screenId` (e.g., `projects/123/screens/abc123`)
+
+3. Call the Stitch MCP server:
    ```
    mcp__stitch__get_screen({ name: "<screenId>", projectId: "<projectId>", screenId: "<screenId>" })
    ```
 
-3. Extract the preview URL from the response. Look for a preview or HTML URL in the screen data.
+4. Extract the preview URL from the response.
 
-4. Write to `meta.yml`:
-   ```yaml
-   reference:
-     source:
-       url: "<resolved-preview-url>"
-       origin: stitch
-       screenId: "<original-screen-id>"
-       hasMarkup: true
-   ```
-
+5. Return to `configure-meta`:
    - `url`: the resolved preview URL
-   - `hasMarkup: true`: Stitch screens serve inspectable HTML (CSS properties, fonts, DOM)
+   - `hasMarkup: true` — Stitch screens serve inspectable HTML (CSS properties, fonts, DOM)
 
 ## Error Handling
 
-- If `get_screen` fails or returns no usable URL, warn the user and leave `source.url` empty. The intake task will prompt for an alternative.
-- If the screen has a `screenshot.downloadUrl` but no HTML preview, use the download URL but set `hasMarkup: false`.
+- If `get_screen` fails or returns no usable URL, warn the user and leave `url` empty. The `configure-meta` task will prompt for an alternative.
+- If the screen has a `screenshot.downloadUrl` but no HTML preview, use the download URL and set `hasMarkup: false`.
