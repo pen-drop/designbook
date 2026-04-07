@@ -6,7 +6,8 @@ each: story
 params:
   storyId: ~
 files:
-  - designbook/stories/{storyId}/meta.yml
+  - key: meta
+    path: designbook/stories/{storyId}/meta.yml
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
@@ -64,20 +65,22 @@ If keep: done. If update: continue as if it doesn't exist.
 
    For each selected breakpoint, ask threshold (default 3%).
 
-4. **Write `meta.yml`**:
+4. **Write `meta.yml`** via write-file:
 
-   ```yaml
+   ```bash
+   cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME $TASK_ID --key meta
    reference:
      source:
-       url: "<resolved-url>"       # empty if origin needs resolution (e.g. stitch)
-       origin: "<origin>"          # stitch, figma, manual
-       screenId: "<screen-id>"     # only for stitch/figma
-       hasMarkup: true/false       # set by origin rules
+       url: "<resolved-url>"
+       origin: "<origin>"
+       screenId: "<screen-id>"
+       hasMarkup: true/false
      breakpoints:
        sm:
          threshold: 3
          lastDiff: null
          lastResult: null
+   EOF
    ```
 
 5. **Ensure `.gitignore` entries** exist in workspace root:
