@@ -71,11 +71,12 @@ $defs:
 
   SceneNode:
     description: >
-      Duck-typed by its identifying key. Exactly one of: component, entity, scene.
+      Duck-typed by its identifying key. Exactly one of: component, entity, scene, image.
     oneOf:
       - $ref: "#/$defs/ComponentNode"
       - $ref: "#/$defs/EntityNode"
       - $ref: "#/$defs/SceneRefNode"
+      - $ref: "#/$defs/ImageNode"
 
   ComponentNode:
     type: object
@@ -147,6 +148,26 @@ $defs:
             - type: array
               items:
                 $ref: "#/$defs/SceneNode"
+
+  ImageNode:
+    type: object
+    required: [image]
+    description: >
+      Duck-typed by the `image` key. Render an image using a named image style
+      from config.image_style in data-model.yml. Resolved by imageStyleBuilder
+      into a designbook:image ComponentNode.
+    properties:
+      image:
+        type: string
+        description: Name of an image style bundle defined under config.image_style in data-model.yml (e.g. hero, "16_9", "4_3").
+      alt:
+        type: string
+        description: Alt text for the image.
+      src:
+        type: string
+        description: >
+          Optional custom image path. When omitted, the configured image provider
+          generates a placeholder URL. When provided, CSS aspect-ratio is applied instead.
 ```
 
 ## ComponentNode Output

@@ -54,17 +54,19 @@ scenes:
       - scene: "design-system:[shell_name]"
         with:
           content:
-            entity: "[ENTITY_TYPE].[ENTITY_BUNDLE]"
-            view: "[VIEW_NAME]"
+            - entity: "[ENTITY_TYPE].[ENTITY_BUNDLE]"
+              view_mode: "[VIEW_MODE]"
 
 ```
 
 ## Scene Node Types
 
-Each entry in `items:` uses one of three keys:
+Each entry in `items:` uses one of four keys:
 
-- **`scene:`** — embed the shell and fill `$content`. The scene MUST start with `design-system:` followed by an existing scene name under the design-system folder.
+- **`component:`** — render a UI component directly (`$COMPONENT_NAMESPACE:card`)
 - **`entity:`** — render an entity from sample data (`node.article`, `view.recent_articles`)
+- **`scene:`** — embed the shell and fill `$content`. The scene MUST start with `design-system:` followed by an existing scene name under the design-system folder.
+- **`image:`** — render an image using a named image style from `config.image_style` in data-model.yml. The value is the style name (e.g. `hero`, `"16_9"`). Add `alt` for alt text, optional `src` for custom images.
 
 ## Constraints
 

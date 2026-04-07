@@ -11,6 +11,16 @@ const ClickableCard = styled.div({
   '&:hover': { opacity: 0.85 },
 });
 
+const SectionHeading = styled.h3({
+  fontSize: '13px',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: 'var(--sb-color-mediumdark, #999)',
+  margin: 0,
+  paddingTop: '8px',
+});
+
 function EntityGroup({ type, bundles, onSelect }) {
   const bundleEntries = Object.entries(bundles || {});
   if (bundleEntries.length === 0) return null;
@@ -28,7 +38,7 @@ function EntityGroup({ type, bundles, onSelect }) {
               badgeColor={ENTITY_BADGE_COLORS[type] || 'red'}
               description={def.description}
               entityPath={`${type}.${key}`}
-              fieldCount={def.fields ? Object.keys(def.fields).length : 0}
+              fieldCount={def.fields ? Object.keys(def.fields).length : undefined}
             />
           </ClickableCard>
         ))}
@@ -38,11 +48,11 @@ function EntityGroup({ type, bundles, onSelect }) {
 }
 
 export function DeboDataModel({ data, selectedEntity, onSelectEntity }) {
-  if (!data || !data.content) return null;
+  if (!data || (!data.content && !data.config)) return null;
 
   if (selectedEntity) {
     const [type, bundle] = selectedEntity.split('.');
-    const bundleDef = data.content?.[type]?.[bundle];
+    const bundleDef = data.content?.[type]?.[bundle] ?? data.config?.[type]?.[bundle];
     if (!bundleDef) {
       onSelectEntity?.(null);
       return null;
@@ -57,13 +67,22 @@ export function DeboDataModel({ data, selectedEntity, onSelectEntity }) {
     );
   }
 
-  const entityTypes = Object.entries(data.content);
+  const contentTypes = Object.entries(data.content || {});
+  const configTypes = Object.entries(data.config || {});
 
   return (
     <DeboGrid gap="lg">
-      {entityTypes.map(([type, bundles]) => (
+      {contentTypes.map(([type, bundles]) => (
         <EntityGroup key={type} type={type} bundles={bundles} onSelect={(path) => onSelectEntity?.(path)} />
       ))}
+      {configTypes.length > 0 && (
+        <>
+          <SectionHeading>Config Entities</SectionHeading>
+          {configTypes.map(([type, bundles]) => (
+            <EntityGroup key={`config-${type}`} type={type} bundles={bundles} onSelect={(path) => onSelectEntity?.(path)} />
+          ))}
+        </>
+      )}
     </DeboGrid>
   );
 }

@@ -14,6 +14,7 @@ export interface BundleDef {
   title?: string;
   description?: string;
   fields?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 /** The data model structure (content section of data-model.yml). */
@@ -21,6 +22,18 @@ export interface DataModelContent {
   [entityType: string]: {
     [bundle: string]: BundleDef;
   };
+}
+
+/** A breakpoint within an image style definition. */
+export interface ImageStyleBreakpoint {
+  width: number;
+  aspect_ratio?: string;
+}
+
+/** An image style definition from data-model.yml. */
+export interface ImageStyleDef {
+  aspect_ratio: string;
+  breakpoints?: Record<string, ImageStyleBreakpoint>;
 }
 
 /** Top-level data model. */
@@ -114,6 +127,12 @@ export type RawNode = ComponentNode | SceneNode;
 /**
  * Context provided to each builder during the async build phase.
  */
+/** Designbook configuration (from designbook.config.yml). */
+export interface DesignbookConfig {
+  image_provider?: { type: string };
+  [key: string]: unknown;
+}
+
 export interface BuildContext {
   /** Data model from data-model.yml. */
   dataModel: DataModel;
@@ -123,6 +142,9 @@ export interface BuildContext {
 
   /** Absolute path to the designbook directory. */
   designbookDir: string;
+
+  /** Designbook configuration. */
+  config?: DesignbookConfig;
 
   /**
    * Dispatch a node through the registry + resolveEntityRefs.

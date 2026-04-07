@@ -20,6 +20,12 @@ _debo workflow write-file $WORKFLOW_NAME $TASK_ID --key data-model
 
 ```yaml
 config:                   # optional — configuration entities (views, singletons)
+  image_style:            # special structure — see image-style-config rule
+    {style_name}:
+      aspect_ratio: "W:H"
+      breakpoints:        # optional
+        {name}: { width: {int}, aspect_ratio: "W:H" }
+
   {entity_type}:          # e.g. view, block_content
     {bundle}:             # e.g. recent_articles, sidebar
       view_modes:

@@ -1,0 +1,116 @@
+title: Define Data Model
+workflow: data-model
+workflow_id: abab
+status: completed
+engine: direct
+stages:
+  intake:
+    steps:
+      - data-model:intake
+  execute:
+    steps:
+      - create-data-model
+stage_loaded:
+  data-model:intake:
+    task_file: >-
+      /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/tasks/intake--data-model.md
+    rules: &ref_0
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/rules/media-image-styles.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/rules/drupal-views.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/rules/canvas.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/rules/sample-template-mapping.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/rules/image-style-config.md
+    blueprints: &ref_1
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/blueprints/view.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/blueprints/taxonomy_term.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/blueprints/node.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/blueprints/media.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/blueprints/canvas_page.md
+    config_rules: []
+    config_instructions: []
+  create-data-model:
+    task_file: >-
+      /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/tasks/create-data-model.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/rules/media-image-styles.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/rules/drupal-views.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/rules/canvas.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/rules/sample-template-mapping.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/rules/image-style-config.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+current_stage: done
+started_at: '2026-04-07T01:36:09'
+tasks:
+  - id: intake
+    title: 'Intake: Define Data Model'
+    type: data
+    step: data-model:intake
+    stage: intake
+    status: done
+    started_at: '2026-04-07T01:36:09'
+    task_file: >-
+      /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/tasks/intake--data-model.md
+    rules: *ref_0
+    blueprints: *ref_1
+    files: []
+    completed_at: '2026-04-07T01:36:55'
+  - id: create-data-model-5557a7
+    title: Create Data Model
+    type: data
+    step: create-data-model
+    stage: execute
+    status: done
+    params:
+      content: {}
+    task_file: >-
+      /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/tasks/create-data-model.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/rules/media-image-styles.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/rules/drupal-views.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook-drupal/data-model/rules/canvas.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/rules/sample-template-mapping.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/.claude/skills/designbook/data-model/rules/image-style-config.md
+    files:
+      - path: >-
+          /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/designbook/data-model.yml
+        key: data-model
+        validators:
+          - data-model
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/designbook/data-model.yml
+          type: data-model
+          valid: true
+          last_validated: '2026-04-06T23:37:22.659Z'
+          last_passed: '2026-04-06T23:37:22.659Z'
+        flushed_at: '2026-04-06T23:37:27.330Z'
+    started_at: '2026-04-07T01:36:55'
+    completed_at: '2026-04-07T01:37:27'
+root_dir: >-
+  /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch
+_changesDir: >-
+  /home/cw/projects/designbook/.claude/worktrees/worktree-image-styles/workspaces/drupal-stitch/designbook/workflows/changes/data-model-2026-04-06-abab
+completed_at: '2026-04-07T01:37:27'
+summary: 'Intake: Define Data Model (data), Create Data Model (data)'
