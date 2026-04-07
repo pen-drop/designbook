@@ -51,8 +51,9 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
   const probes = Object.entries(KNOWN_BREAKPOINTS).map(async ([name, width]) => {
     const url = `/__designbook/load?path=screenshots/${encodeURIComponent(storyId)}/reference/${name}.png`;
     try {
-      const res = await fetch(url, { method: 'HEAD' });
-      return { name, width, exists: res.ok };
+      const res = await fetch(url, { method: 'GET' });
+      const contentType = res.headers.get('content-type') || '';
+      return { name, width, exists: res.ok && contentType.startsWith('image/') };
     } catch {
       return { name, width, exists: false };
     }
@@ -194,23 +195,19 @@ export const VisualCompareTool = memo(function VisualCompareTool() {
 
   const handleSelect = useCallback(
     (bp: string | null) => {
-      updateGlobals({
-        [VISUAL_COMPARE_KEY]: { ...state, breakpoint: bp },
-      });
-
-      // Switch viewport to match breakpoint
+      const url = new URL(window.location.href);
       if (bp && KNOWN_BREAKPOINTS[bp]) {
-        updateGlobals({
-          [VISUAL_COMPARE_KEY]: { ...state, breakpoint: bp },
-          viewport: { value: `${KNOWN_BREAKPOINTS[bp]}px` },
-        });
+        const dims = `${KNOWN_BREAKPOINTS[bp]}-896`;
+        url.searchParams.set(
+          'globals',
+          `viewport.value:${dims};${VISUAL_COMPARE_KEY}.breakpoint:${bp};${VISUAL_COMPARE_KEY}.opacity:${state.opacity}`,
+        );
       } else {
-        updateGlobals({
-          [VISUAL_COMPARE_KEY]: { ...state, breakpoint: null },
-        });
+        url.searchParams.delete('globals');
       }
+      window.location.replace(url.toString());
     },
-    [state, updateGlobals],
+    [state],
   );
 
   const handleOpacityChange = useCallback(

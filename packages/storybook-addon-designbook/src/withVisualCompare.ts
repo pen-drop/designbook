@@ -10,20 +10,24 @@ interface VisualCompareState {
 
 export const withVisualCompare: DecoratorFunction = (storyFn, context) => {
   const [globals] = useGlobals();
-  const state: VisualCompareState = globals[VISUAL_COMPARE_KEY] ?? { breakpoint: null, opacity: 50 };
+  const raw = globals[VISUAL_COMPARE_KEY] ?? { breakpoint: null, opacity: 50 };
+  const rawOpacity = Number(raw.opacity);
+  const state: VisualCompareState = {
+    breakpoint: raw.breakpoint || null,
+    opacity: Number.isFinite(rawOpacity) ? rawOpacity : 50,
+  };
   const result = storyFn();
 
-  if (!state.breakpoint) return result;
-
-  const storyId = context.id;
-  const src = `/__designbook/load?path=screenshots/${encodeURIComponent(storyId)}/reference/${encodeURIComponent(state.breakpoint)}.png`;
-
-  // Create the overlay image element
   const canvasElement = context.canvasElement as HTMLElement;
 
   // Clean up any previous overlay
   const existing = canvasElement.querySelector('[data-visual-compare-overlay]');
   if (existing) existing.remove();
+
+  if (!state.breakpoint || state.opacity <= 0) return result;
+
+  const storyId = context.id;
+  const src = `/__designbook/load?path=screenshots/${encodeURIComponent(storyId)}/reference/${encodeURIComponent(state.breakpoint)}.png`;
 
   // Use requestAnimationFrame to ensure the story has rendered before adding overlay
   requestAnimationFrame(() => {
