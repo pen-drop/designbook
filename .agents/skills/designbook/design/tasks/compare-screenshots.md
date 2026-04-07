@@ -6,7 +6,9 @@ priority: 20
 each: reference.breakpoints
 params:
   scene: ~
-files: []
+files:
+  - key: meta
+    path: designbook/stories/{storyId}/meta.yml
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
@@ -63,11 +65,19 @@ Performs AI visual comparison between Storybook and reference screenshots per br
    - Below threshold → PASS
    - Above threshold → FAIL
 
-   d. **Write results to meta.yml**:
-   Update `reference.breakpoints.{breakpoint}`:
-   ```yaml
-   lastDiff: 2.1
-   lastResult: pass
+   d. **Write results to meta.yml** via write-file:
+   Read current `meta.yml`, update `reference.breakpoints.{breakpoint}` with results, write back:
+   ```bash
+   cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME $TASK_ID --key meta
+   reference:
+     source:
+       ...existing source...
+     breakpoints:
+       {breakpoint}:
+         threshold: 3
+         lastDiff: 2.1
+         lastResult: pass
+   EOF
    ```
 
 5. **Produce comparison report** for the `polish` task:
