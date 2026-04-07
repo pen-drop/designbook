@@ -92,3 +92,13 @@ Structured comparison report per breakpoint:
 ```
 
 This report is consumed by the `polish` task alongside `compare-screenshots` results.
+
+## Update meta.yml
+
+After comparison, update `reference.breakpoints.{breakpoint}.markup` in `meta.yml`:
+
+```yaml
+markup:
+  lastResult: pass    # pass if no critical/major issues, fail otherwise
+  issues: 3           # total number of differences found
+```

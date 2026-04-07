@@ -51,6 +51,20 @@ properties:
               nullable: true
               enum: [pass, fail, null]
               description: Last comparison result. Null if never compared.
+            markup:
+              type: object
+              nullable: true
+              description: Results from compare-markup (only present when source.hasMarkup is true).
+              properties:
+                lastResult:
+                  type: string
+                  nullable: true
+                  enum: [pass, fail, null]
+                  description: Last markup comparison result.
+                issues:
+                  type: integer
+                  nullable: true
+                  description: Number of differences found (CSS, fonts, computed styles).
 ```
 
 ## Example
@@ -68,6 +82,9 @@ reference:
       threshold: 3
       lastDiff: 2.1
       lastResult: pass
+      markup:
+        lastResult: pass
+        issues: 0
     xl:
       threshold: 5
       lastDiff: null
