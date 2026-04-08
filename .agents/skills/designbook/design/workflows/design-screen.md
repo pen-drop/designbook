@@ -14,9 +14,9 @@ stages:
   scene:
     each: scene
     steps: [design-screen:create-scene]
-  test:
+  verify:
     each: scene
-    steps: [storybook-preview, screenshot, inspect, resolve-reference, visual-compare, polish]
+    workflow: design-verify
 engine: direct
 before:
   - workflow: css-generate

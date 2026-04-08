@@ -1,89 +1,120 @@
 ---
 when:
   steps: [design-verify:intake]
+params:
+  scene: ~
+  reference: []
 files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
+    optional: true
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+    optional: true
 ---
 
 # Intake: Design Verify
 
-Visual testing workflow — verify existing scenes against design references. No components or scenes are created.
+Visual testing for a single scene. Called once per scene — either as subworkflow (from design-shell/design-screen) or standalone.
 
-## Step 1: Select Section
+## Context Detection
 
-List all available sections by scanning `$DESIGNBOOK_DATA/sections/*/`.
+- **`params.scene` is set:** Subworkflow — skip dialog, go to Step 2.
+- **`params.scene` is NOT set:** Standalone — proceed with Step 1.
 
-> ⛔ **Skip sections that have no scene files** (no `*.scenes.yml` files or empty scenes). Only list sections that contain at least one scene.
+## Step 1: Identify Scene and Reference (standalone only)
 
-Present only non-empty sections:
+Ask the user which scene to verify and how:
 
-> "Which section would you like to verify?
->
-> 1. **[Section Title]** — [n] scenes
-> 2. **[Section Title]** — [n] scenes
-> 3. **Design System** (shell)
->
-> Or type 'all' to verify everything."
+> "Which scene should I verify? (e.g. `design-system:shell`, `homepage:landing`)"
 
-Wait for the user's response.
+Then ask for the reference:
 
-**If 'all':** collect all scenes from all sections + design-system.
-**If a specific section:** collect only that section's scenes.
-**If 'shell' or 'Design System':** collect only `design-system:shell`.
+> "What is the design reference?
+> - Stitch screen ID (e.g. `projects/123/screens/abc`)
+> - URL to a design screenshot
+> - Or 'skip' to verify without reference"
 
-## Step 2: Resolve Design References
+Then ask for breakpoints:
 
-> ⛔ **MANDATORY**: Execute this step for each selected scene.
+> "Which breakpoints to test? (default: all from design-tokens)"
 
-Follow the process in [resolve-design-reference.md](partials/resolve-design-reference.md).
+Set `params.scene` and `params.reference` from the answers. `reference` is an array:
+```json
+[{"type": "stitch", "url": "projects/...", "threshold": 3, "title": "Screen Name"}]
+```
 
-For each scene that has an existing `reference:` array in its `*.scenes.yml`, list the entries and ask per entry:
+Reference entries describe the design source only — no `breakpoint` field. Breakpoints are resolved separately in Step 3a.
 
-> "Scene **[scene-name]** has references:
->
-> | # | Type | Breakpoint | Threshold | Title |
-> |---|------|-----------|-----------|-------|
-> | 1 | url | sm | 3% | Mobile View |
-> | 2 | image | xl | 5% | Desktop View |
->
-> For each entry:
-> - **Keep** — use as-is
-> - **Update** — provide a new reference for this breakpoint
-> - **Remove** — drop this breakpoint from testing
->
-> Or: **Add** — add a new breakpoint reference entry"
+## Step 2: Ensure Storybook is running
 
-For scenes without a reference array, ask:
+```bash
+_debo storybook status
+```
 
-> "Scene **[scene-name]** has no references. Would you like to add one?
->
-> - **Yes** — I'll ask for each breakpoint
-> - **No** — I'll verify token compliance only"
+- **If running:** check freshness — if component files are newer than `started_at`, restart with `_debo storybook start --force`.
+- **If not running:** `_debo storybook start`. Wait for `{ ready: true }`.
+- **If startup fails:** report errors from `_debo storybook logs` and pause.
 
-## Step 3: Build Scene List
+## Step 3: Create Story and Get Checks
 
-Build the `scene` iterable for `workflow plan`:
+Build a meta-seed JSON from `params.reference` and create the story via CLI. The CLI validates that a reference exists and returns the checks array.
+
+### 3a. Build meta-seed JSON
+
+From `params.reference` (array) and resolved breakpoints, build the meta seed.
+
+**Determine regions** from the scene name:
+- **Shell scenes** (`scene` ends with `:shell`): `"header": {}`, `"footer": {}`
+- **All other scenes**: `"full": {}`
+
+**Resolve breakpoints** (independent of reference source):
+1. Read `guidelines.yml` → `visual_diff.breakpoints` — if set, use only those
+2. If standalone mode: use breakpoints from user input (Step 1)
+3. Fallback: read ALL breakpoints from `design-tokens.yml`
+
+Build the full breakpoints × regions matrix:
 
 ```json
 {
-  "scene": [
-    {"scene": "homepage:landing", "provider": "COMPONENT_NAMESPACE", "section_id": "homepage"},
-    {"scene": "design-system:shell", "provider": "COMPONENT_NAMESPACE"}
-  ]
+  "reference": {
+    "source": {
+      "url": "<reference[0].url>",
+      "origin": "<reference[0].type>"
+    },
+    "breakpoints": {
+      "<bp1>": { "threshold": <threshold>, "regions": { "<region>": {}, ... } },
+      "<bp2>": { "threshold": <threshold>, "regions": { "<region>": {}, ... } }
+    }
+  }
 }
 ```
 
-Present the verification plan:
+Breakpoints are a test matrix concern — every resolved breakpoint gets an entry with all regions. The `reference[]` entries describe WHERE the design comes from, not which viewports to test.
 
-> "I will verify **[n]** scenes:
->
-> | Scene | Reference | Breakpoints |
-> |-------|-----------|-------------|
-> | homepage:landing | url (Landing Page) | sm, xl |
-> | design-system:shell | image (Design Reference) | sm, xl |
->
-> Ready to start?"
+If `reference` is empty or null: report "No reference for {scene}" and pause.
 
-Wait for confirmation — once confirmed, intake is complete.
+### 3b. Get checks from CLI
+
+```bash
+CHECKS=$(_debo story --scene ${scene} --create --json '<meta-seed-json>' checks)
+```
+
+This creates the story directory + `meta.yml`, validates the reference exists, and returns the checks as a JSON array. Each check has: `storyId`, `breakpoint`, `region`, `threshold`.
+
+If the command fails (no reference, no checks), report the error and pause.
+
+### 3c. Apply matched rules (before story creation)
+
+Before calling `_debo story checks`, check loaded rules that modify the reference:
+- **`provide-stitch-url`**: If reference origin is `stitch`, call the Stitch MCP server (`mcp__stitch__get_screen`) to resolve the screen ID. Extract `htmlCode.downloadUrl` as the reference URL and set `origin: stitch` in the meta-seed.
+
+Apply rule modifications to the meta-seed JSON before passing it to the CLI.
+
+## Step 4: Complete with Checks
+
+Pass the checks array and `scene` param to `workflow done`. The `scene` param is required by capture/compare/polish tasks — it must be a top-level param alongside `checks`.
+
+```bash
+_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID \
+  --params "{\"scene\": \"${scene}\", \"checks\": $CHECKS}"
+```

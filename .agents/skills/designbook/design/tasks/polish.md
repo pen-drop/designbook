@@ -1,10 +1,14 @@
 ---
 name: designbook:design:polish
+title: "Polish: {scene} ({breakpoint}/{region})"
 when:
   steps: [polish]
 priority: 50
 params:
   scene: ~
+  storyId: ~
+  breakpoint: ~
+  region: ~
 files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
@@ -13,19 +17,31 @@ reads:
     optional: true
 ---
 
-# Polish
+# Polishdas 
 
-Iterative fix loop: reads the visual-compare report, fixes issues, re-screenshots, and re-compares until resolved or max iterations reached.
+Reads the compare reports and fixes code issues. Re-capture and re-compare are handled by the separate `recapture` and `verify` steps in the polish stage. Uses `DeboStory` entity for check data.
 
-## Step 1: Read Visual Compare Report
+## Params (from DeboStoryCheck test item)
 
-Read the visual-compare report from the previous step. If no issues were found, complete immediately:
+| Param | Source | Description |
+|---|---|---|
+| `scene` | test item | Scene reference |
+| `storyId` | test item | Story identifier |
+| `breakpoint` | test item | Breakpoint name |
+| `region` | test item | Region name |
+
+## Step 1: Read Compare Reports
+
+Load the story entity to get the current check result:
+```bash
+_debo story --scene ${scene}
+```
+
+Read this breakpoint/region's `lastDiff` and `lastResult` from the entity. Read the compare report from the previous step. If no issues were found (`lastResult: pass`), complete immediately:
 
 > "No visual issues found — skipping polish."
 
 ## Change Scope
-
-Polish may modify these file types:
 
 | In scope | Out of scope |
 |----------|-------------|
@@ -36,77 +52,25 @@ Polish may modify these file types:
 
 When CSS output values are changed to match the reference, the polish report MUST include a reconciliation note: "CSS output values adjusted — reconcile with `design-tokens.yml` via tokens workflow."
 
-## Step 2: Fix Loop (max 3 iterations)
-
-**Important**: Remote reference screenshots (e.g. url, image) are fetched ONCE before the loop starts. They do not change between iterations. Only local Storybook screenshots are re-taken each iteration.
-
-Only re-screenshot breakpoints that have reference entries in the scene's `reference` array.
-
-For each iteration:
-
-### 2a. Analyze Issues
+## Step 2: Analyze Issues
 
 Prioritize by severity: Critical → Major → Minor. Focus on the highest-severity issues first.
 
-### 2b. Rule Compliance Check
+## Step 3: Rule Compliance Check
 
 Before applying any fix, verify it does not contradict any loaded rules for the current stage. Re-read active rules and check the proposed change against each constraint.
 
-### 2c. Fix Code
+## Step 4: Fix Code
 
 Edit the component files, scene definitions, or CSS to address the issues. Keep changes minimal and focused on the reported issues.
 
-### 2d. Re-screenshot (Storybook only)
-
-Resolve the Storybook URL and re-capture screenshots only at breakpoints that have reference entries:
-
-```bash
-_debo resolve-url --scene ${scene}
-npx playwright screenshot --full-page --viewport-size "${width},1600" --wait-for-timeout 3000 "${url}" "designbook/screenshots/${storyId}/storybook/${breakpoint}.png"
-```
-
-Do NOT re-fetch remote reference screenshots — they were resolved once before the loop.
-
-### 2e. Re-compare
-
-Read the new Storybook screenshots alongside the (unchanged) reference images. Use the `threshold` from each reference entry (default 3%) for PASS/FAIL determination.
-
-### 2f. Check Resolution
-
-- If all issues are resolved → exit loop, report success.
-- If issues remain and iterations < max → continue to next iteration.
-- If max iterations reached → exit loop, report what was fixed and what remains.
-
 ## Output
 
-Report the polish results:
+Report what was fixed:
 
 ```
 ## Polish Report
 
-**Iterations:** 2/3
-**Status:** All issues resolved ✓
-
-### Iteration 1
 - Fixed: Layout alignment on sm breakpoint (Critical)
 - Fixed: Font size mismatch on xl breakpoint (Major)
-
-### Iteration 2
-- Fixed: Spacing inconsistency in footer (Minor)
-```
-
-Or if issues remain:
-
-```
-## Polish Report
-
-**Iterations:** 3/3 (max reached)
-**Status:** 1 issue remaining
-
-### Resolved
-- Layout alignment (Critical)
-- Font size mismatch (Major)
-
-### Remaining
-- Subtle color difference in hover state (Minor) — within acceptable tolerance
 ```

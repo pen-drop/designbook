@@ -27,13 +27,33 @@ when:
       - component: image
 ```
 
-> ⛔ **No `type: element` in scenes.** Use plain strings for text content. `type: element` is only valid in `*.story.yml` files.
+> ⛔ **No `type: element` in scenes.** Use plain strings/markup for text content. `type: element` is only valid in `*.story.yml` files.
+
+Slots accept three value types:
+1. **Component references** — objects with a `component` property
+2. **Plain strings / markup** — rendered as raw HTML/text content inside the slot (both as direct values and as array elements)
+3. **`$content` / `$variable`** — special placeholder variables
 
 ```yaml
 # ✅ Correct — plain string in slot
 - component: "$COMPONENT_NAMESPACE:heading"
   slots:
     text: "Welcome to the Blog"
+
+# ✅ Correct — string as array element in slot
+- component: "$COMPONENT_NAMESPACE:header"
+  slots:
+    logo:
+      - "Designbook"
+
+# ✅ Correct — mixed array with strings and components
+- component: "$COMPONENT_NAMESPACE:nav"
+  slots:
+    items:
+      - "Home"
+      - component: "$COMPONENT_NAMESPACE:link"
+        props:
+          href: "/about"
 
 # ❌ Wrong — type: element is story-only
 - component: "$COMPONENT_NAMESPACE:heading"

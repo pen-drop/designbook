@@ -36,7 +36,8 @@ export interface StageParam {
 }
 
 export interface StageDefinition {
-  steps: string[];
+  steps?: string[];
+  workflow?: string;
   each?: string;
   params?: Record<string, StageParam>;
 }

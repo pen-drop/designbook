@@ -1,0 +1,521 @@
+import { resolve, dirname } from 'node:path';
+import { readFileSync, existsSync } from 'node:fs';
+import type { Command } from 'commander';
+import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
+import {
+  workflowCreate,
+  workflowPlan,
+  workflowAppendTasks,
+  expandTasksFromParams,
+  workflowWriteFile,
+  workflowList,
+  workflowDone,
+  workflowAbandon,
+  workflowMerge,
+  isGitRepo,
+  resolveEngine,
+  type WorkflowFile,
+  type WorkflowTask,
+} from '../workflow.js';
+import type { StageDefinition } from '../workflow-types.js';
+import { engines as engineRegistry } from '../engines/index.js';
+import { load as parseYaml } from 'js-yaml';
+import { resolveAllStages, parseFrontmatter, buildEnvMap, type ResolvedStep } from '../workflow-resolve.js';
+
+/**
+ * Unified task expansion for the CLI.
+ * Reads tasks.yml, sets up engine, expands tasks via expandTasksFromParams, and persists.
+ *
+ * In 'plan' mode (initial expansion after intake or skip-intake):
+ *   Uses workflowPlan to replace tasks and set engine fields.
+ * In 'append' mode (deferred expansion on subsequent done calls):
+ *   Uses workflowAppendTasks to append new tasks.
+ */
+function expandWorkflowTasks(
+  config: ReturnType<typeof loadConfig>,
+  workflowName: string,
+  newParams: Record<string, unknown>,
+  mode: 'plan' | 'append',
+): { tasks: WorkflowTask[]; steps: string[]; engine: string; worktree_branch?: string } | null {
+  const changesDir = resolve(config.data, 'workflows', 'changes', workflowName);
+  const tasksYmlPath = resolve(changesDir, 'tasks.yml');
+  if (!existsSync(tasksYmlPath)) {
+    if (mode === 'plan') throw new Error(`Workflow not found: ${workflowName}`);
+    return null;
+  }
+
+  const existing = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
+  const stageLoaded = existing.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]> | undefined;
+  if (!stageLoaded) {
+    if (mode === 'plan')
+      throw new Error(`No stage_loaded in tasks.yml. Was the workflow created with --workflow-file?`);
+    return null;
+  }
+
+  const rawStages = existing.stages;
+  if (!rawStages || Array.isArray(rawStages)) {
+    if (mode === 'plan') throw new Error('No stages in tasks.yml');
+    return null;
+  }
+  const stageDefinitions = rawStages as Record<string, StageDefinition>;
+
+  const allSteps: string[] = [];
+  for (const def of Object.values(stageDefinitions)) {
+    allSteps.push(...(def.steps ?? []));
+  }
+
+  const existingTasks = (existing.tasks as WorkflowTask[]) ?? [];
+
+  // Engine setup for file path expansion
+  const rootDir = (config.workspace as string | undefined) ?? dirname(config.data);
+  const envMap = buildEnvMap(config);
+  const frontmatterEngine = existing.engine as string | undefined;
+  const resolvedEngine = resolveEngine(undefined, frontmatterEngine, isGitRepo(rootDir));
+  const workspacesBase = process.env['DESIGNBOOK_WORKSPACES'] ?? resolve(config.data, 'workspaces');
+  const worktreePath = resolve(workspacesBase, workflowName);
+  const workspace = (config['workspace'] as string | undefined) ?? rootDir;
+  const engine = engineRegistry[resolvedEngine];
+  if (!engine) {
+    if (mode === 'plan') throw new Error(`Unknown engine: "${resolvedEngine}"`);
+    return null;
+  }
+  const engineResult = engine.setup({
+    envMap,
+    worktreePath,
+    rootDir,
+    workflowName,
+    workspace,
+    dryRun: false,
+  });
+
+  // Merge params: in plan mode use newParams directly, in append mode merge with existing
+  const globalParams =
+    mode === 'append' ? { ...((existing.params as Record<string, unknown>) ?? {}), ...newParams } : newParams;
+
+  const tasks = expandTasksFromParams(stageLoaded, stageDefinitions, globalParams, existingTasks, engineResult.envMap);
+
+  if (tasks.length === 0) return mode === 'plan' ? { tasks: [], steps: allSteps, engine: resolvedEngine } : null;
+
+  // Persist
+  if (mode === 'plan') {
+    workflowPlan(
+      config.data,
+      workflowName,
+      tasks,
+      undefined,
+      globalParams,
+      engineResult.write_root,
+      rootDir,
+      engineResult.worktree_branch,
+      resolvedEngine,
+    );
+  } else {
+    workflowAppendTasks(config.data, workflowName, tasks, newParams);
+  }
+
+  return {
+    tasks,
+    steps: allSteps,
+    engine: resolvedEngine,
+    ...(engineResult.worktree_branch ? { worktree_branch: engineResult.worktree_branch } : {}),
+  };
+}
+
+export function register(program: Command): void {
+  const workflow = program.command('workflow').description('Manage workflow tracking');
+
+  workflow
+    .command('list')
+    .description('List workflows for a given workflow id')
+    .requiredOption('--workflow <id>', 'Workflow identifier (e.g., debo-design-shell)')
+    .option('--include-archived', 'Also include archived workflows')
+    .action((opts: { workflow: string; includeArchived?: boolean }) => {
+      const config = loadConfig();
+      const names = workflowList(config.data, opts.workflow, opts.includeArchived);
+      for (const n of names) console.log(n);
+    });
+
+  workflow
+    .command('create')
+    .description('Create a new workflow tracking file from a workflow .md file.')
+    .requiredOption('--workflow <id>', 'Workflow identifier (e.g., vision)')
+    .requiredOption('--workflow-file <path>', 'Path to workflow .md file (resolves intake task + stages)')
+    .option('--title <title>', 'Human-readable workflow title')
+    .option('--parent <name>', 'Triggering workflow name when started via a hook')
+    .option('--params <json>', 'JSON object of initial params (e.g. from parent dispatch)')
+    .action((opts: { workflow: string; workflowFile: string; title?: string; parent?: string; params?: string }) => {
+      const config = loadConfig();
+
+      // Parse initial params if provided
+      let initialParams: Record<string, unknown> | undefined;
+      if (opts.params) {
+        try {
+          initialParams = JSON.parse(opts.params) as Record<string, unknown>;
+        } catch (err) {
+          console.error(`Error parsing --params JSON: ${(err as Error).message}`);
+          process.exitCode = 1;
+          return;
+        }
+      }
+
+      const configPath = findConfig();
+      const rawConfig = configPath
+        ? ((parseYaml(readFileSync(configPath, 'utf-8')) as Record<string, unknown>) ?? {})
+        : {};
+      const configDir = configPath ? dirname(configPath) : process.cwd();
+      const agentsDir = resolveSkillsRoot(configDir);
+
+      try {
+        const resolved = resolveAllStages(resolve(opts.workflowFile), config, rawConfig, agentsDir);
+
+        const title = opts.title ?? resolved.title;
+
+        // Find intake stage (if declared in stages frontmatter)
+        const intakeStage = resolved.stages?.intake as { steps?: string[] } | undefined;
+        const intakeStepName = intakeStage?.steps?.[0] ?? (intakeStage ? 'intake' : undefined);
+        const intakeRaw = intakeStepName ? resolved.step_resolved[intakeStepName] : undefined;
+        const intakeResolved = intakeRaw && !Array.isArray(intakeRaw) ? intakeRaw : undefined;
+        const intakeTask =
+          intakeStepName && intakeResolved
+            ? [
+                {
+                  id: 'intake',
+                  title: `Intake: ${title}`,
+                  type: 'data' as const,
+                  step: intakeStepName,
+                  stage: 'intake' as const,
+                  files: [] as Array<{ path: string; key: string; validators: string[] }>,
+                  task_file: intakeResolved.task_file,
+                  rules: intakeResolved.rules,
+                  blueprints: intakeResolved.blueprints,
+                  config_rules: intakeResolved.config_rules,
+                  config_instructions: intakeResolved.config_instructions,
+                },
+              ]
+            : [];
+
+        // Check if --params satisfies all required params → skip intake
+        const skipIntake =
+          initialParams &&
+          resolved.expected_params &&
+          Object.entries(resolved.expected_params).every(([key, meta]) => {
+            const m = meta as { required?: boolean };
+            return !m.required || initialParams[key] !== undefined;
+          });
+
+        const tasksForCreate = skipIntake ? [] : intakeTask;
+
+        const name = workflowCreate(
+          config.data,
+          opts.workflow,
+          title,
+          tasksForCreate,
+          resolved.stages,
+          opts.parent,
+          resolved.step_resolved,
+          resolved.engine,
+          resolved.subworkflows,
+          initialParams,
+        );
+
+        // If intake was skipped, immediately expand tasks
+        let expandedTasks: WorkflowTask[] | undefined;
+        if (skipIntake) {
+          try {
+            const result = expandWorkflowTasks(config, name, initialParams!, 'plan');
+            expandedTasks = result?.tasks;
+          } catch (err) {
+            console.error(`Error expanding tasks: ${(err as Error).message}`);
+            process.exitCode = 1;
+            return;
+          }
+        }
+
+        // Output JSON with workflow name + all resolved steps
+        console.log(
+          JSON.stringify(
+            {
+              name,
+              steps: resolved.steps,
+              ...(resolved.stages ? { stages: resolved.stages } : {}),
+              ...(resolved.engine ? { engine: resolved.engine } : {}),
+              step_resolved: resolved.step_resolved,
+              expected_params: resolved.expected_params,
+              ...(skipIntake ? { intake_skipped: true } : {}),
+              ...(expandedTasks ? { expanded_tasks: expandedTasks } : {}),
+            },
+            null,
+            2,
+          ),
+        );
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('instructions')
+    .description('Get the files to load before starting a stage. Returns task_file, rules, config from stage_loaded.')
+    .requiredOption('--workflow <name>', 'Workflow name')
+    .requiredOption('--stage <name>', 'Stage name (e.g., intake, create-component)')
+    .action((opts: { workflow: string; stage: string }) => {
+      const config = loadConfig();
+      const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
+      const tasksYmlPath = resolve(changesDir, 'tasks.yml');
+
+      if (!existsSync(tasksYmlPath)) {
+        console.error(`Error: workflow not found: ${opts.workflow}`);
+        process.exitCode = 1;
+        return;
+      }
+
+      const data = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
+      const stages = data.stages as Record<string, { steps?: string[]; workflow?: string; each?: string }> | undefined;
+      const stageLoaded = data.stage_loaded as Record<string, unknown> | undefined;
+
+      // Subworkflow dispatch stage — return dispatch metadata
+      const stageDef = stages?.[opts.stage];
+      if (stageDef?.workflow && stageDef?.each) {
+        const subworkflows = data.subworkflows as Record<string, { workflowFile?: string }> | undefined;
+        const subData = subworkflows?.[opts.stage];
+        const params = data.params as Record<string, unknown> | undefined;
+        const iterables = (params?.[stageDef.each] ?? []) as Array<Record<string, unknown>>;
+
+        console.log(
+          JSON.stringify(
+            {
+              stage: opts.stage,
+              dispatch: true,
+              workflow: stageDef.workflow,
+              workflow_file: subData?.workflowFile ?? '',
+              items: iterables.map((item) => ({ ...params, ...item })),
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+
+      // Resolve stage name: try direct key first, then look up via stages definition
+      let resolvedKey = opts.stage;
+      if (stageLoaded && !stageLoaded[resolvedKey]) {
+        const stageEntry = stages?.[opts.stage];
+        if (stageEntry?.steps?.[0] && stageLoaded[stageEntry.steps[0]]) {
+          resolvedKey = stageEntry.steps[0];
+        }
+      }
+
+      if (!stageLoaded || !stageLoaded[resolvedKey]) {
+        console.error(
+          `Error: no resolved data for stage "${opts.stage}". ` +
+            `Available stages: ${stageLoaded ? Object.keys(stageLoaded).join(', ') : 'none'}. ` +
+            `Was the workflow created with --workflow-file?`,
+        );
+        process.exitCode = 1;
+        return;
+      }
+
+      const stage = stageLoaded[resolvedKey] as Record<string, unknown>;
+      const taskFile = stage.task_file as string | undefined;
+
+      // Read expected_params from task file frontmatter
+      const expectedParams: Record<string, { required: boolean; default?: unknown }> = {};
+      if (taskFile && existsSync(taskFile)) {
+        const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
+        const params = taskFm?.params as Record<string, unknown> | undefined;
+        if (params) {
+          for (const [key, value] of Object.entries(params)) {
+            expectedParams[key] = value === null ? { required: true } : { required: false, default: value };
+          }
+        }
+      }
+
+      console.log(
+        JSON.stringify(
+          {
+            stage: opts.stage,
+            task_file: taskFile,
+            rules: stage.rules ?? [],
+            blueprints: stage.blueprints ?? [],
+            config_rules: stage.config_rules ?? [],
+            config_instructions: stage.config_instructions ?? [],
+            expected_params: expectedParams,
+          },
+          null,
+          2,
+        ),
+      );
+    });
+
+  workflow
+    .command('write-file <workflow-name> <task-id>')
+    .description('Write file content from stdin, validate, and update task state')
+    .requiredOption('--key <key>', 'File key as declared in task frontmatter')
+    .action(async (workflowName: string, taskId: string, opts: { key: string }) => {
+      const config = loadConfig();
+      try {
+        // Read stdin
+        const chunks: Buffer[] = [];
+        for await (const chunk of process.stdin) {
+          chunks.push(chunk as Buffer);
+        }
+        const content = Buffer.concat(chunks).toString('utf-8');
+        if (!content.trim()) {
+          console.error('Error: No content provided on stdin');
+          process.exitCode = 1;
+          return;
+        }
+
+        const result = await workflowWriteFile(config.data, workflowName, taskId, opts.key, content, config);
+        console.log(JSON.stringify(result));
+        if (!result.valid) process.exitCode = 1;
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('done')
+    .description('Mark a task as done. Auto-archives workflow when all tasks are done.')
+    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+    .requiredOption('--task <id>', 'Task id to mark done')
+    .option(
+      '--params <json>',
+      'Params JSON — expands tasks from params (intake uses plan mode, other tasks use append mode)',
+    )
+    .option(
+      '--loaded <json>',
+      'JSON payload with stage context (task_file, rules, config_rules, config_instructions) and task validation results',
+    )
+    .action(async (opts: { workflow: string; task: string; params?: string; loaded?: string }) => {
+      const config = loadConfig();
+      let loaded;
+      if (opts.loaded) {
+        try {
+          loaded = JSON.parse(opts.loaded);
+        } catch {
+          console.error('Error: --loaded must be valid JSON');
+          process.exitCode = 1;
+          return;
+        }
+      }
+      try {
+        // If --params provided, expand tasks (works for intake and non-intake alike)
+        let expandedTasks: WorkflowTask[] | null = null;
+        if (opts.params) {
+          let newParams: Record<string, unknown> = {};
+          try {
+            newParams = JSON.parse(opts.params);
+          } catch (err) {
+            console.error(`Error parsing --params JSON: ${(err as Error).message}`);
+            process.exitCode = 1;
+            return;
+          }
+          if (Object.keys(newParams).length > 0) {
+            // Use 'plan' mode for intake (first expansion — sets engine fields),
+            // 'append' mode for subsequent tasks (adds to existing tasks)
+            const mode = opts.task === 'intake' ? 'plan' : 'append';
+            const result = expandWorkflowTasks(config, opts.workflow, newParams, mode);
+            expandedTasks = result?.tasks ?? null;
+            if (expandedTasks && expandedTasks.length > 0) {
+              console.log(`Expanded ${expandedTasks.length} tasks`);
+            }
+          }
+        }
+
+        // If task is already done and --params were provided, skip workflowDone —
+        // the expansion already happened above and that's the intended side-effect.
+        if (opts.params && expandedTasks) {
+          const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
+          const wfPath = resolve(changesDir, 'tasks.yml');
+          if (existsSync(wfPath)) {
+            const wfData = parseYaml(readFileSync(wfPath, 'utf-8')) as WorkflowFile;
+            const targetTask = wfData.tasks.find((t) => t.id === opts.task);
+            if (targetTask?.status === 'done') {
+              console.log(`Task ${opts.task} already done — expanded ${expandedTasks.length} tasks`);
+              const responseObj = {
+                stage: targetTask.stage ?? 'unknown',
+                expanded_tasks: expandedTasks.map((t) => ({
+                  id: t.id,
+                  step: t.step,
+                  stage: t.stage,
+                  title: t.title,
+                })),
+              };
+              console.log(`\nRESPONSE: ${JSON.stringify(responseObj)}`);
+              return;
+            }
+          }
+        }
+
+        const result = await workflowDone(config.data, opts.workflow, opts.task, loaded);
+        const { data, response } = result;
+
+        if (result.archived) {
+          console.log(`Workflow ${opts.workflow} archived (all tasks done)`);
+          console.log(`  Completed: ${data.completed_at}`);
+          console.log(`  Summary:   ${data.summary}`);
+        } else {
+          const done = data.tasks.filter((t) => t.status === 'done').length;
+          console.log(`Task ${opts.task} → done (${done}/${data.tasks.length} tasks complete)`);
+          for (const t of data.tasks) {
+            const icon = t.status === 'done' ? '✓' : t.status === 'in-progress' ? '○' : '·';
+            console.log(`  ${icon} ${t.title} — ${t.status}`);
+          }
+        }
+
+        // Output stage-based response (replaces FLAGS)
+        const responseObj = response ? { ...response } : null;
+        if (expandedTasks && responseObj) {
+          (responseObj as Record<string, unknown>).expanded_tasks = expandedTasks.map((t) => ({
+            id: t.id,
+            step: t.step,
+            stage: t.stage,
+            title: t.title,
+          }));
+        }
+        if (responseObj) {
+          console.log(`\nRESPONSE: ${JSON.stringify(responseObj)}`);
+        }
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('abandon')
+    .description('Archive a workflow as incomplete (user declined to resume).')
+    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+    .action((opts: { workflow: string }) => {
+      const config = loadConfig();
+      try {
+        const data = workflowAbandon(config.data, opts.workflow);
+        console.log(`Workflow ${opts.workflow} archived as incomplete`);
+        console.log(`  Summary: ${data.summary}`);
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('merge')
+    .description('Squash-merge a workflow branch, kill preview, and archive the workflow')
+    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+    .action((opts: { workflow: string }) => {
+      const config = loadConfig();
+      try {
+        const result = workflowMerge(config.data, opts.workflow);
+        console.log(`✓ Workflow ${opts.workflow} merged and archived`);
+        console.log(`  Branch:  ${result.branch} (deleted)`);
+        console.log(`  Commit:  workflow: ${opts.workflow}`);
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+}

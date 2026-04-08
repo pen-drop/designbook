@@ -20,9 +20,10 @@ const IMPLICIT_STAGES: Record<string, string[]> = {
  * Build the full lifecycle order from the declared stages in the workflow.
  * Declared stages preserve their frontmatter order. Implicit stages
  * (committed, finalizing, done) are injected at fixed positions.
+ * Stages with `workflow:` (subworkflow dispatch) are included even if steps is empty.
  */
 function buildLifecycleOrder(stages: Record<string, StageDefinition>): string[] {
-  const declared = Object.keys(stages).filter((s) => stages[s]!.steps.length > 0);
+  const declared = Object.keys(stages).filter((s) => (stages[s]!.steps?.length ?? 0) > 0 || stages[s]!.workflow);
   return ['created', 'planned', ...declared, ...IMPLICIT_STAGES._after_declared!, ...IMPLICIT_STAGES._before_done!];
 }
 

@@ -1,0 +1,25 @@
+fixtures:
+  - vision
+  - data-model
+  - design-guideline
+  - tokens
+  - css-generate
+  - design-shell
+  - design-verify
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-verify workflow. Do NOT ask any questions.
+  Verify the Design System (shell) scene only.
+  The reference is a Stitch screen:
+  projects/5626339350367683412/screens/c0b358251f844f5da0313176267819de
+  Use breakpoints sm and xl with threshold 3%.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['design-verify']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-verify']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

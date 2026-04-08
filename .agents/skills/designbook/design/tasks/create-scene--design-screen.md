@@ -68,6 +68,10 @@ Each entry in `items:` uses one of four keys:
 - **`scene:`** — embed the shell and fill `$content`. The scene MUST start with `design-system:` followed by an existing scene name under the design-system folder.
 - **`image:`** — render an image using a named image style from `config.image_style` in data-model.yml. The value is the style name (e.g. `hero`, `"16_9"`). Add `alt` for alt text, optional `src` for custom images.
 
+## Ensure Meta
+
+After writing the scene file, ensure `meta.yml` is created for each story via the `DeboStory` entity. This is handled automatically when design-verify runs as a subworkflow — the intake queries `_debo story --scene ${section_id}:${scene_name}` which triggers `ensureMeta()` if needed.
+
 ## Constraints
 
 - **No `type: element`** — plain strings for text content

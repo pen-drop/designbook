@@ -11,6 +11,7 @@ prompt: |
   Use the design reference from guidelines.yml.
   The landing page screen on Stitch is the primary reference for the shell design:
   projects/5626339350367683412/screens/c0b358251f844f5da0313176267819de
+  Use breakpoints sm and xl.
   Execute the workflow now.
 
 assert:

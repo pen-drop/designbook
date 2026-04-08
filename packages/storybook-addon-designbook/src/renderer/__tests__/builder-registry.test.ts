@@ -111,6 +111,29 @@ describe('resolveEntityRefs', () => {
     expect(Array.isArray(result[0]!.slots?.text)).toBe(true);
   });
 
+  it('preserves string elements in slot arrays', async () => {
+    const ctx = makeCtx();
+
+    const node: RawNode = {
+      component: 'test:header',
+      slots: {
+        logo: ['Designbook'] as unknown as ComponentNode[],
+        nav: [
+          'Home' as unknown as ComponentNode,
+          { component: 'test:link', props: { href: '/about' } } as ComponentNode,
+        ],
+      },
+    } as ComponentNode;
+
+    const result = await resolveEntityRefs([node], ctx);
+
+    // Single string in array → joined into a string value
+    expect(result[0]!.slots?.logo).toBe('Designbook');
+    // Mixed array: string + component → string stays, component preserved
+    const nav = result[0]!.slots?.nav as ComponentNode[];
+    expect(Array.isArray(nav)).toBe(true);
+  });
+
   it('resolves entity refs in array slots', async () => {
     const badge: ComponentNode = { component: 'test:badge' };
     const ctx = makeCtx({ buildNode: vi.fn().mockResolvedValue([badge]) });

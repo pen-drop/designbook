@@ -7,12 +7,6 @@ order: 0
 group: "Designbook/Design System"
 scenes:
   - name: "shell"
-    reference:
-      - type: "stitch"
-        screenId: "projects/5626339350367683412/screens/c0b358251f844f5da0313176267819de"
-        breakpoint: "sm"
-        threshold: 3
-        title: "Designbook Landing Page (Stitch)"
     items:
       - component: "test_integration_drupal:page"
         slots:
@@ -21,7 +15,7 @@ scenes:
               props:
                 sticky: true
               slots:
-                logo: "<a href=\"/\" class=\"text-base font-bold font-heading text-on-surface\">Designbook</a>"
+                logo: "<a href=\"/\" class=\"flex items-center gap-2 text-on-surface\"><span class=\"material-symbols-outlined\">terminal</span><span class=\"text-xl font-bold tracking-tight font-heading\">Designbook</span></a>"
                 navigation:
                   - component: "test_integration_drupal:navigation"
                     props:
@@ -39,32 +33,28 @@ scenes:
                           url: "/community"
                           in_active_trail: false
                           below: []
-                actions: "<a href=\"/get-started\" class=\"text-sm font-label px-4 py-2 rounded-md bg-on-surface text-surface\">Get Started</a>"
+                actions: "<button class=\"material-symbols-outlined p-2 text-on-surface-variant hover:text-on-surface transition-colors\">search</button><a href=\"/get-started\" class=\"bg-white text-black px-4 py-1.5 rounded font-semibold text-sm hover:bg-white/90 transition-all\">Get Started</a>"
           content: "$content"
           footer:
             - component: "test_integration_drupal:footer"
               props:
                 copyright: "&copy; 2024 Designbook. High-performance spec-driven design tools for the modern web."
               slots:
-                brand: "<a href=\"/\" class=\"text-base font-bold font-heading text-on-surface\">Designbook</a>"
+                brand: "<span class=\"material-symbols-outlined text-on-surface\">terminal</span><span class=\"font-bold text-on-surface text-xl font-heading\">Designbook</span>"
                 navigation:
                   - component: "test_integration_drupal:navigation"
                     props:
                       variant: "footer"
-                      items:
-                        - title: "Changelog"
-                          url: "/changelog"
-                          in_active_trail: false
-                          below: []
-                        - title: "GitHub"
-                          url: "/github"
-                          in_active_trail: false
-                          below: []
-                        - title: "Status"
-                          url: "/status"
-                          in_active_trail: false
-                          below: []
-                        - title: "Privacy"
-                          url: "/privacy"
-                          in_active_trail: false
-                          below: []
+                      groups:
+                        - title: "Resources"
+                          items:
+                            - title: "Changelog"
+                              url: "/changelog"
+                            - title: "GitHub"
+                              url: "/github"
+                        - title: "Legal"
+                          items:
+                            - title: "Status"
+                              url: "/status"
+                            - title: "Privacy"
+                              url: "/privacy"

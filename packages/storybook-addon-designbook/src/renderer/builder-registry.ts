@@ -48,7 +48,10 @@ async function resolveSlots(
       resolved[key] = value;
     } else if (Array.isArray(value)) {
       const items = await Promise.all(
-        (value as RawNode[]).map(async (item): Promise<ComponentNode[] | string> => {
+        (value as (RawNode | string)[]).map(async (item): Promise<ComponentNode[] | string> => {
+          if (typeof item === 'string') {
+            return item;
+          }
           if (needsBuilding(item)) {
             return ctx.buildNode(item);
           }

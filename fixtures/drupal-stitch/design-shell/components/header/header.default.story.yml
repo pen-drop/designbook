@@ -1,18 +1,19 @@
-name: "Default"
-props:
-  sticky: false
+title: "Header"
+component: "test_integration_drupal:header"
+args:
+  sticky: true
 slots:
   logo:
-    - type: element
+    - type: "element"
       tag: "a"
       attributes:
         href: "/"
-        class: "text-base font-bold font-heading text-on-surface"
-      value: "Designbook"
+        class: "flex items-center gap-2 text-on-surface"
+      value: "<span class=\"material-symbols-outlined\">terminal</span><span class=\"text-xl font-bold tracking-tight font-heading\">Designbook</span>"
   navigation:
-    - type: component
+    - type: "component"
       component: "test_integration_drupal:navigation"
-      props:
+      args:
         variant: "main"
         items:
           - title: "Guide"
@@ -28,9 +29,8 @@ slots:
             in_active_trail: false
             below: []
   actions:
-    - type: element
-      tag: "a"
+    - type: "element"
+      tag: "div"
       attributes:
-        href: "/get-started"
-        class: "text-sm font-label px-4 py-2 rounded-md bg-on-surface text-surface hover:bg-on-surface/90 transition-colors"
-      value: "Get Started"
+        class: "flex items-center gap-4"
+      value: "<button class=\"material-symbols-outlined p-2 text-on-surface-variant hover:text-on-surface transition-colors\">search</button><a href=\"/get-started\" class=\"bg-white text-black px-4 py-1.5 rounded font-semibold text-sm hover:bg-white/90 transition-all\">Get Started</a>"

@@ -37,13 +37,13 @@ designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-story
 
 ## Variant Story Files
 
-> ⛔ **Each variant MUST have its own `.story.yml` file.** The `.default.story.yml` is always created (tracked by the workflow). For components with variants, additionally create one `{{ component }}.[variant-id].story.yml` per variant and register each with `workflow add-file --workflow $WORKFLOW_NAME --task <id> --file <path>`.
+> ⛔ **Each variant MUST have its own `.story.yml` file.** The `.default.story.yml` is always created (tracked by the workflow). For components with variants, additionally create one `{{ component }}.[variant-id].story.yml` per variant. Write variant story files directly to disk alongside the tracked default story.
 >
 > ```
 > # Example: navigation with variants main + footer
 > navigation.default.story.yml   ← tracked by workflow (always)
-> navigation.main.story.yml      ← add via workflow add-file
-> navigation.footer.story.yml    ← add via workflow add-file
+> navigation.main.story.yml      ← written directly to disk
+> navigation.footer.story.yml    ← written directly to disk
 > ```
 
 ## File Generation Order

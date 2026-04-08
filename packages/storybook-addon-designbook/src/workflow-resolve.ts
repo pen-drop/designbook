@@ -48,7 +48,8 @@ export interface ResolvedFile {
 }
 
 export interface TaskFileDeclaration {
-  file: string; // path template (supports $ENV and {{ param }})
+  file?: string; // path template (supports $ENV, {{ param }}, and {param})
+  path?: string; // alias for file — task files use `path:` by convention
   key: string; // stable identifier used by write-file --key
   validators?: string[]; // validator keys (e.g. ['tokens']); defaults to []
 }
@@ -61,7 +62,8 @@ interface TaskFileFrontmatter {
 }
 
 interface StageDefinitionFm {
-  steps: string[];
+  steps?: string[];
+  workflow?: string;
   each?: string;
   params?: Record<string, { type: string; prompt: string }>;
 }
@@ -641,6 +643,29 @@ export function matchBlueprintFiles(
 /**
  * Expand a file path template by substituting {{ param }} and ${ENV_VAR} placeholders.
  */
+/**
+ * Expand {param} and {{ param }} placeholders in a template string.
+ * Unknown {param} placeholders are left as-is (for runtime resolution).
+ * Unknown {{ param }} placeholders throw (strict mode for legacy paths).
+ */
+export function expandParams(template: string, params: Record<string, unknown>): string {
+  let result = template;
+
+  // Expand {{ param }} patterns (strict — throws on unknown)
+  result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, paramName) => {
+    if (params[paramName] !== undefined) return String(params[paramName]);
+    throw new Error(`Unknown param: {{ ${paramName} }} in "${template}"`);
+  });
+
+  // Expand {param} patterns (lenient — leaves unknown as-is for runtime resolution)
+  result = result.replace(/\{(\w+)\}/g, (match, paramName) => {
+    if (params[paramName] !== undefined) return String(params[paramName]);
+    return match;
+  });
+
+  return result;
+}
+
 export function expandFilePath(
   template: string,
   params: Record<string, unknown>,
@@ -658,11 +683,8 @@ export function expandFilePath(
     throw new Error(`Unknown environment variable: $${varName} in path "${template}"`);
   });
 
-  // Expand {{ param }} patterns (intake params)
-  result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, paramName) => {
-    if (params[paramName] !== undefined) return String(params[paramName]);
-    throw new Error(`Unknown param: {{ ${paramName} }} in path "${template}"`);
-  });
+  // Expand param placeholders
+  result = expandParams(result, params);
 
   return result;
 }
@@ -694,8 +716,12 @@ export function expandFileDeclarations(
         }
       }
     }
+    const template = d.path ?? d.file;
+    if (!template) {
+      throw new Error(`File declaration '${d.key}' has no 'path' or 'file' property`);
+    }
     return {
-      path: expandFilePath(d.file, params, envMap),
+      path: expandFilePath(template, params, envMap),
       key: d.key,
       validators,
     };
@@ -817,6 +843,14 @@ export interface ExpectedParam {
   default?: unknown;
 }
 
+export interface SubworkflowResolved {
+  workflowFile: string;
+  title: string;
+  steps: string[];
+  stages?: Record<string, StageDefinitionFm>;
+  step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
+}
+
 export interface ResolvedSteps {
   title: string;
   steps: string[];
@@ -824,6 +858,32 @@ export interface ResolvedSteps {
   engine?: string;
   step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
   expected_params: Record<string, ExpectedParam>;
+  subworkflows?: Record<string, SubworkflowResolved>;
+}
+
+/**
+ * Validate stage definitions: workflow/steps mutual exclusivity,
+ * workflow requires each.
+ */
+export function validateStageDefinitions(stages: Record<string, StageDefinitionFm>): void {
+  for (const [name, def] of Object.entries(stages)) {
+    if (def.workflow && def.steps && def.steps.length > 0) {
+      throw new Error(`Stage "${name}": "workflow" and "steps" are mutually exclusive`);
+    }
+    if (def.workflow && !def.each) {
+      throw new Error(`Stage "${name}": "workflow" requires "each"`);
+    }
+  }
+}
+
+/**
+ * Resolve a workflow ID to a file path by scanning skill directories.
+ * Searches for `workflows/<id>.md` files in all skill subdirectories.
+ */
+export function resolveWorkflowFileById(workflowId: string, agentsDir: string): string | null {
+  const pattern = resolve(agentsDir, 'skills', '**', 'workflows', `${workflowId}.md`);
+  const matches = globSync(pattern);
+  return matches.length > 0 ? matches[0]! : null;
 }
 
 /**
@@ -836,8 +896,15 @@ export function resolveAllStages(
   agentsDir: string,
 ): ResolvedSteps {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
+  const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
+
+  // Validate stage definitions
+  if (stageDefs) {
+    validateStageDefinitions(stageDefs);
+  }
+
   const allSteps = wfFm ? getWorkflowSteps(wfFm) : undefined;
-  if (!allSteps) {
+  if (!allSteps && !stageDefs) {
     throw new Error(`No steps found in frontmatter of ${workflowFilePath}`);
   }
 
@@ -848,7 +915,27 @@ export function resolveAllStages(
   const resolvedSteps: string[] = [];
   const expectedParams: Record<string, ExpectedParam> = {};
 
-  for (const step of allSteps) {
+  // Resolve subworkflow stages: stages with `workflow:` instead of `steps:`
+  const subworkflows: Record<string, SubworkflowResolved> = {};
+  if (stageDefs) {
+    for (const [stageName, def] of Object.entries(stageDefs)) {
+      if (!def.workflow) continue;
+      const subWorkflowFile = resolveWorkflowFileById(def.workflow, agentsDir);
+      if (!subWorkflowFile) {
+        throw new Error(`Stage "${stageName}": subworkflow "${def.workflow}" not found`);
+      }
+      const subResolved = resolveAllStages(subWorkflowFile, config, rawConfig, agentsDir);
+      subworkflows[stageName] = {
+        workflowFile: subWorkflowFile,
+        title: subResolved.title,
+        steps: subResolved.steps,
+        stages: subResolved.stages,
+        step_resolved: subResolved.step_resolved,
+      };
+    }
+  }
+
+  for (const step of allSteps ?? []) {
     const resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir);
     if (resolvedTaskFiles.length === 0) {
       console.debug(`[Designbook] workflow: step "${step}" skipped — no matching task file`);
@@ -925,8 +1012,6 @@ export function resolveAllStages(
     }
   }
 
-  const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
-
   return {
     title: wfFm ? getWorkflowTitle(wfFm) : '',
     steps: resolvedSteps,
@@ -934,6 +1019,7 @@ export function resolveAllStages(
     ...(wfFm?.engine ? { engine: wfFm.engine } : {}),
     step_resolved: stepResolved,
     expected_params: expectedParams,
+    ...(Object.keys(subworkflows).length > 0 ? { subworkflows } : {}),
   };
 }
 
@@ -951,7 +1037,6 @@ export function inferTaskType(stage: string): string {
   if (base.includes('data') || base.includes('model') || base.includes('sample')) return 'data';
   if (base.includes('entity') || base.includes('map') || base.includes('collect')) return 'view-mode';
   if (base.includes('validate')) return 'validation';
-  if (base.includes('preview')) return 'prepare-environment';
   return 'data';
 }
 
@@ -962,7 +1047,13 @@ export function generateTaskTitle(
   stage: string,
   params: Record<string, unknown>,
   schemaParams?: Record<string, unknown>,
+  explicitTitle?: string,
 ): string {
+  if (explicitTitle) {
+    return expandParams(explicitTitle, params);
+  }
+
+  // Derive title from step name
   const base = stage.includes(':') ? stage.split(':')[1]! : stage;
   const words = base.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -1007,7 +1098,7 @@ export function resolveWorkflowPlan(
   const stepToStage = new Map<string, string>();
   if (stageDefs) {
     for (const [stageName, def] of Object.entries(stageDefs)) {
-      for (const step of def.steps) {
+      for (const step of def.steps ?? []) {
         stepToStage.set(step, stageName);
       }
     }

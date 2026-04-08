@@ -5,8 +5,9 @@ import { themes as sbThemes, ensure } from 'storybook/theming';
 import { withThemeByDataAttribute } from '@storybook/addon-themes';
 
 import { themes as designbookThemes, defaultTheme } from 'virtual:designbook-themes';
-import { KEY } from './constants';
+import { KEY, VISUAL_COMPARE_KEY } from './constants';
 import { withRoundTrip } from './withRoundTrip';
+import { withVisualCompare } from './withVisualCompare';
 import { setActiveTheme } from './pages/theme-store';
 
 if (
@@ -57,10 +58,11 @@ if (metaHot) {
   console.debug('[Designbook] HMR event forwarding registered for', EVENTS);
 }
 
-export const decorators = [withDesignbookTheme, withDeboTheme, withRoundTrip];
+export const decorators = [withDesignbookTheme, withDeboTheme, withRoundTrip, withVisualCompare];
 
 export const initialGlobals = {
   [KEY]: false,
+  [VISUAL_COMPARE_KEY]: { breakpoint: null, region: null, opacity: 50 },
 };
 
 export const parameters = {};

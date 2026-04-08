@@ -26,13 +26,12 @@ If only `<suite>` is provided:
 
 ### 2. Setup workspace
 
-One workspace per suite — reuse it across cases.
+Always create a fresh workspace — never reuse an existing one.
 
-1. Check if `workspaces/<suite>` already exists
-   - **Yes**: skip `setup-workspace.sh`, reuse the existing workspace
-   - **No**: Run `./scripts/setup-workspace.sh <suite>` — creates the base workspace with Storybook infrastructure and `pnpm install`
-2. Run: `./scripts/setup-test.sh <suite> <case> --into workspaces/<suite>` — layers fixtures and config onto the workspace
-3. Report the workspace path to the user
+1. If `workspaces/<suite>` already exists, **delete it first**: `rm -rf workspaces/<suite>`
+2. Run `./scripts/setup-workspace.sh <suite>` — creates the base workspace with Storybook infrastructure and `pnpm install`
+3. Run: `./scripts/setup-test.sh <suite> <case> --into workspaces/<suite>` — layers fixtures and config onto the workspace
+4. Report the workspace path to the user
 
 ### 3. Start Storybook
 

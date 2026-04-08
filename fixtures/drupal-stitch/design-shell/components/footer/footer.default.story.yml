@@ -1,33 +1,29 @@
-name: "Default"
-props:
+title: "Footer"
+component: "test_integration_drupal:footer"
+args:
   copyright: "&copy; 2024 Designbook. High-performance spec-driven design tools for the modern web."
 slots:
   brand:
-    - type: element
-      tag: "a"
+    - type: "element"
+      tag: "div"
       attributes:
-        href: "/"
-        class: "text-base font-bold font-heading text-on-surface"
-      value: "Designbook"
+        class: "flex items-center gap-2"
+      value: "<span class=\"material-symbols-outlined text-on-surface\">terminal</span><span class=\"font-bold text-on-surface text-xl font-heading\">Designbook</span>"
   navigation:
-    - type: component
+    - type: "component"
       component: "test_integration_drupal:navigation"
-      props:
+      args:
         variant: "footer"
-        items:
-          - title: "Changelog"
-            url: "/changelog"
-            in_active_trail: false
-            below: []
-          - title: "GitHub"
-            url: "/github"
-            in_active_trail: false
-            below: []
-          - title: "Status"
-            url: "/status"
-            in_active_trail: false
-            below: []
-          - title: "Privacy"
-            url: "/privacy"
-            in_active_trail: false
-            below: []
+        groups:
+          - title: "Resources"
+            items:
+              - title: "Changelog"
+                url: "/changelog"
+              - title: "GitHub"
+                url: "/github"
+          - title: "Legal"
+            items:
+              - title: "Status"
+                url: "/status"
+              - title: "Privacy"
+                url: "/privacy"

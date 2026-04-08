@@ -35,11 +35,11 @@ scenes:
     reference:              # include ONLY when {{ reference }} is non-empty
       - type: "url"
         url: "<resource URL>"
-        breakpoint: "<breakpoint name>"
         threshold: 3
         title: "<label>"
     # ↑ Write the reference entries from {{ reference }} param.
     #   If {{ reference }} is null or empty, OMIT the reference: key entirely.
+    #   Reference entries describe the design source only — no breakpoint field.
     items:
       - component: "$COMPONENT_NAMESPACE:COMPONENT_NAME"
         slots:
@@ -47,6 +47,10 @@ scenes:
           # Shell components nested according to their slot structure
           # Exactly one slot MUST be set to: $content
 ```
+
+## Ensure Meta
+
+After writing the scene file, ensure `meta.yml` is created for the story via the `DeboStory` entity. This is handled automatically when design-verify runs as a subworkflow — the intake queries `_debo story --scene design-system:shell` which triggers `ensureMeta()` if needed.
 
 ## Constraints
 
