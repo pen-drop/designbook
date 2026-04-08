@@ -1,72 +1,60 @@
 # css-generate-stages Specification
 
 ## Purpose
-Defines the stages-based architecture for CSS generation — framework skills self-register via task files, removing the central registry and enabling open extension.
+CSS framework architecture: self-registering blueprints, token-to-CSS mapping, five-stage generation pipeline, and generic task contracts.
+
 ## Requirements
-### Requirement: CSS framework skills self-register via task files
-Each CSS framework skill SHALL provide a `rules/css-mapping.md` rule file with `when: frameworks.css: <framework>` to participate in the CSS generation pipeline. Framework skills SHALL NOT provide `tasks/generate-jsonata.md`. The generic `generate-jsonata` task in `designbook/css-generate` reads the css-mapping rule and generates JSONata templates accordingly.
 
-#### Scenario: Tailwind framework selected
-- **WHEN** `DESIGNBOOK_FRAMEWORK_CSS=tailwind`
-- **THEN** `designbook-css-tailwind/rules/css-mapping.md` is loaded for the `generate-jsonata` step
-- **AND** the generic `designbook/css-generate/tasks/generate-jsonata.md` generates templates based on the mapping
+### Requirement: CSS framework skills self-register via css-mapping blueprint
 
-#### Scenario: DaisyUI framework selected
-- **WHEN** `DESIGNBOOK_FRAMEWORK_CSS=daisyui`
-- **THEN** `designbook-css-daisyui/rules/css-mapping.md` is loaded for the `generate-jsonata` step
-- **AND** the generic `generate-jsonata` task generates templates based on the DaisyUI mapping
+Each CSS framework skill provides `blueprints/css-mapping.md` with `type: css-mapping` and `when: frameworks.css: <framework>`. Body contains a `groups:` YAML block mapping token groups to `prefix`, `wrap`, and `path`. The generic `generate-jsonata` task reads this blueprint.
 
-#### Scenario: Unknown framework with no css-mapping rule
-- **WHEN** `DESIGNBOOK_FRAMEWORK_CSS` is set to an unknown value
-- **AND** no `css-mapping` rule matches the `generate-jsonata` step
-- **THEN** the `generate-jsonata` task reports an error that no css-mapping rule was found
+- Tailwind: `designbook-css-tailwind/blueprints/css-mapping.md` with groups like `color: { prefix: color, wrap: "@theme", path: "semantic.color" }`
+- DaisyUI: `wrap: '@plugin "daisyui/theme"'` with `meta` for theme attributes
+- Custom frameworks: provide `css-mapping.md` with matching `when:` — no task files needed
+- Unknown framework with no matching blueprint -> error reported
 
-### Requirement: debo-css-generate uses stages architecture
+### Requirement: css-mapping blueprint scoped to generation steps
 
-The `debo-css-generate` workflow SHALL declare two stages: `execute` with steps `[css-generate:intake, generate-jsonata]` and `transform` with steps `[generate-css]`. This ensures the stage flush boundary exists between JSONata file generation and CSS transformation.
+Uses `when: steps: [generate-jsonata, generate-css]`. Available during CSS generation but NOT during unrelated steps like `create-component`.
 
-#### Scenario: Workflow plan created with font provider configured
-- **WHEN** the workflow starts and `frameworks.fonts: google-fonts` is configured
-- **THEN** the `generate-jsonata` step resolves to two tasks: the generic CSS generator and the font skill's generator
-- **AND** both run in parallel
+### Requirement: css-mapping groups declare token paths
 
-#### Scenario: Workflow plan created without font provider
-- **WHEN** the workflow starts and `frameworks.fonts` is not set
-- **THEN** the `generate-jsonata` step resolves to one task: the generic CSS generator only
+Each group includes `path` (dot-separated token path in `design-tokens.yml`). Optional: `resolve: "var"` for CSS variable reference resolution, `expand: "typography"` for composite token expansion.
 
-#### Scenario: generate-css runs after execute stage flush
-- **WHEN** all tasks in the `execute` stage complete
-- **THEN** the engine flushes stashed files (renames `.debo` → final extension)
-- **AND** then the `transform` stage begins with `generate-css`
-- **AND** `generate-css` finds `.jsonata` files at their final target paths
+- `path: "component.container.max-width"` -> navigates to that token location
+- `resolve: "var"` -> resolves references as `var(--color-*)` instead of hex values
+- `expand: "typography"` -> expands composite tokens into individual CSS properties for fontSize, fontWeight, lineHeight
 
-### Requirement: Generic pipeline steps in generate-css task
+### Requirement: css-mapping groups only generate for present token groups
 
-`designbook/css-generate/tasks/generate-css.md` (no `when`) SHALL contain the generic pipeline: run all `.jsonata` files via `jsonata-w transform` and verify output files. It SHALL NOT update `app.src.css` imports directly — index file generation is handled by the separate `generate-index` task. It SHALL NOT contain font download logic.
+`generate-jsonata` checks which mapped groups exist in `design-tokens.yml` and only generates templates for present groups.
 
-#### Scenario: Generic task applies to all frameworks
+### Requirement: debo-css-generate uses five-stage architecture
 
-- **WHEN** any CSS framework is configured
-- **THEN** `designbook/css-generate/tasks/generate-css.md` is selected for the `generate-css` step
+Five stages in order: `intake` (`[css-generate:intake]`), `prepare` (`[prepare-fonts, prepare-icons]`), `generate` (`each: group`, `[generate-jsonata]`), `transform` (`[generate-css]`), `index` (`[generate-index]`).
 
-#### Scenario: No app.src.css manipulation in generate-css
+- `generate` iterates per group via `each: group`
+- `prepare` runs `prepare-fonts` if font extension configured; skipped otherwise
+- After `generate` completes, engine flushes stashed files (`.debo` -> final extension), then `transform` begins
+- After `transform` completes, `index` creates barrel file importing all `.src.css` files
 
-- **WHEN** the `generate-css` task runs
-- **THEN** it does NOT modify `app.src.css`
-- **AND** it does NOT download fonts or manipulate Google Fonts URLs
+### Requirement: Generic generate-css task
 
-### Requirement: Generic generate-jsonata task reads css-mapping rule
-`designbook/css-generate/tasks/generate-jsonata.md` (no `when`) SHALL read the `css-mapping` rule from its resolved rules, iterate over the declared groups, and generate one JSONata template per present token group.
+`designbook/css-generate/tasks/generate-css.md` (step: `generate-css`): runs all `.jsonata` files via `jsonata-w transform`, verifies output. Applies to all frameworks. Does NOT modify `app.src.css` or handle font downloads.
 
-#### Scenario: Generate templates from mapping
-- **WHEN** the css-mapping rule declares groups `color`, `layout-width`, `typography`
-- **AND** `design-tokens.yml` contains all three groups
-- **THEN** three `.jsonata` files are generated using the declared prefix and wrap for each group
+### Requirement: Generic generate-jsonata task reads css-mapping blueprint
 
-### Requirement: delegate-framework.md step removed
-The `designbook-css-generate/steps/delegate-framework.md` file and its hardcoded framework registry SHALL be removed. Framework delegation is handled entirely by stage-discovery (Rule 1).
+`designbook/css-generate/tasks/generate-jsonata.md` (step: `generate-jsonata`): accepts `group` parameter, reads css-mapping for that group's config, generates one JSONata template file. Also generates theme override `.jsonata` files when `design-tokens.yml` contains a `themes:` section.
 
-#### Scenario: New framework added without editing orchestrator
-- **WHEN** a new CSS framework skill is created with `tasks/generate-jsonata.md`
-- **THEN** the framework is automatically available without modifying any existing file
+### Requirement: generate-index creates CSS barrel file
 
+`designbook/css-generate/tasks/generate-index.md` (step: `generate-index`): generates `index.src.css` with one `@import` per `*.src.css` file (excluding itself), sorted alphabetically. Theme override files (e.g. `color.theme-dark.src.css`) cascade correctly via alphabetical ordering after their base files.
+
+### Requirement: Font provider configured via extensions
+
+Configured in `designbook.config.yml` under `extensions: google-fonts`. Font skills provide `tasks/prepare-fonts.md` with `when: extensions: google-fonts`.
+
+- With extension: font task matches during `prepare` stage, downloads before `generate`
+- Without extension: no task matches, `prepare` effectively skipped
+- Font skill reads css-mapping's typography group to determine which fonts to load

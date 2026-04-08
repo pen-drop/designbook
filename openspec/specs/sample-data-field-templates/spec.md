@@ -1,7 +1,8 @@
 ## Requirements
 
 ### Requirement: sample_template on field
-Fields in `data-model.yml` MAY declare a `sample_template` key with `template` (string, required) and `settings` (object, optional). `settings.hint` is a conventional key providing content guidance. Additional settings keys are template-specific.
+
+Fields in `data-model.yml` MAY declare `sample_template` with `template` (string, required) and `settings` (object, optional). `settings.hint` provides content guidance; additional keys are template-specific.
 
 ```yaml
 field_body:
@@ -13,121 +14,80 @@ field_body:
       hint: "Technical documentation with code examples"
 ```
 
-Built-in templates provided by `designbook-sample-data`:
-- `views` — generates a `rows[]` array of `{type: entity, entity_type, bundle, view_mode, record: N}` entries for view config entities
+Built-in templates: `views` (generates `rows[]` of `{type: entity, entity_type, bundle, view_mode, record: N}`). Backend-specific templates (`formatted-text`, `link`, `image`) come from backend skills like `designbook-drupal/sample-data/`.
 
-Backend-specific templates (e.g. `formatted-text`, `link`, `image`) are provided by backend skills such as `designbook-drupal/sample-data/`.
+#### Scenario: Field with sample_template
+- **WHEN** a field has `sample_template.template: formatted-text` and `create-sample-data` runs
+- **THEN** load rules matching `when: template: formatted-text` and generate accordingly
 
-#### Scenario: Field with sample_template generates structured output
-- **WHEN** a field in `data-model.yml` has `sample_template.template: formatted-text`
-- **AND** the `create-sample-data` stage runs
-- **THEN** the AI loads rules matching `when: template: formatted-text`
-- **AND** generates a structured value according to that rule (e.g. `{ value: "<p>...</p>", format: "basic_html" }`)
-
-#### Scenario: Field without sample_template generates plain string
-- **WHEN** a field in `data-model.yml` has no `sample_template`
-- **AND** no matching `when: field_type:` rule applies
-- **THEN** the AI generates a plain string value
+#### Scenario: Field without sample_template
+- **WHEN** no `sample_template` and no matching `field_type` rule → generate plain string
 
 #### Scenario: settings.hint guides content
-- **WHEN** a field has `sample_template.settings.hint: "Product description with features"`
-- **THEN** the generated content reflects that context
+- **WHEN** `settings.hint: "Product description with features"` → generated content MUST reflect that context
 
-#### Scenario: views template generates rows array
-- **WHEN** a field has `sample_template.template: views`
-- **AND** `settings.entity_type`, `settings.bundle`, and `settings.view_mode` are provided
-- **THEN** the generated value is an array of `{type: entity, entity_type, bundle, view_mode, record: N}` objects
-- **AND** `N` is a zero-based index into the target bundle's records in `data.yml`
-- **AND** the number of rows matches `items_per_page` from the same record (default: 6)
-
-#### Scenario: views template uses content records from pass 1
-- **WHEN** the `views` template runs during config pass 2
-- **AND** content pass 1 has generated records for the target bundle
-- **THEN** the `record: N` indices in rows reference valid positions in the generated content bundle
+#### Scenario: views template
+- **WHEN** `template: views` with `entity_type`, `bundle`, `view_mode` settings
+- **THEN** generate array of `{type: entity, entity_type, bundle, view_mode, record: N}` with zero-based indices into target bundle's records, count matching `items_per_page` (default 6)
+- **AND** during pass 2, `record: N` indices reference valid positions from pass 1
 
 ### Requirement: field_type condition on rules
-Rules in skills MAY declare `when: field_type: <type>` as a condition. This applies the rule automatically to any field whose `type` matches, without requiring explicit `sample_template` on the field. Acts as a fallback for models without `sample_template`.
+
+Rules MAY declare `when: field_type: <type>` to auto-apply to matching fields without requiring `sample_template`. Acts as fallback.
 
 #### Scenario: field_type rule applies automatically
-- **WHEN** a field has `type: formatted_text` and no `sample_template`
-- **AND** a rule exists with `when: { stages: [create-sample-data], field_type: formatted_text }`
-- **THEN** the AI applies that rule when generating the field's sample value
+- **WHEN** field has `type: formatted_text`, no `sample_template`, and a rule exists with `when: { stages: [create-sample-data], field_type: formatted_text }` → apply that rule
 
-#### Scenario: explicit sample_template takes precedence over field_type
-- **WHEN** a field has both `type: formatted_text` and `sample_template.template: custom-template`
-- **THEN** the AI uses the `custom-template` rule, not the `field_type: formatted_text` rule
+#### Scenario: explicit sample_template takes precedence
+- **WHEN** field has both `type: formatted_text` and `sample_template.template: custom-template` → use `custom-template` rule
 
 ### Requirement: designbook-drupal sample-data skill
-A `designbook-drupal/sample-data/` sub-directory SHALL be provided with rules for common Drupal field types. Rules declare `when: { stages: [create-sample-data], backend: drupal }` combined with `template:` or `field_type:` conditions.
 
-Minimum templates provided:
-- `formatted-text` — generates `{ value: "<p>...</p>", format: "basic_html" }`
-- `link` — generates `{ uri: "https://...", title: "..." }`
-- `image` — generates `{ uri: "public://filename.jpg", alt: "..." }`
+`designbook-drupal/sample-data/` SHALL provide rules for Drupal field types with `when: { steps: [create-sample-data], backend: drupal }`.
 
-#### Scenario: Drupal formatted-text rule generates correct structure
-- **WHEN** backend is drupal
-- **AND** a field has `sample_template.template: formatted-text` or `type: formatted_text`
-- **THEN** the generated value is an object with `value` (HTML string) and `format` keys
+Templates: `formatted-text` (plain HTML string), `link` (HTML anchor string), `image` (object with `alt`, optional `src`, no `<img>` tags or `public://` paths).
 
-#### Scenario: Drupal link rule generates correct structure
-- **WHEN** backend is drupal
-- **AND** a field has `sample_template.template: link` or `type: link`
-- **THEN** the generated value is an object with `uri` and `title` keys
+#### Scenario: Drupal formatted-text
+- **WHEN** backend is drupal and field matches `formatted-text` or type `formatted_text`/`text_with_summary`/`text_long` → generate plain HTML string
+
+#### Scenario: Drupal link
+- **WHEN** backend is drupal and field matches `link` or type `link` → generate HTML anchor string
+
+#### Scenario: Drupal image
+- **WHEN** backend is drupal and field matches `image` or type `image` → generate object with `alt` key, optional `src`, no HTML tags or placeholder URLs
 
 ### Requirement: sample_template in data-model schema
-The JSON schema for `data-model.yml` (`data-model.schema.yml`) SHALL include `sample_template` as an optional property on field definitions, with `template` (string, required) and `settings` (object with `additionalProperties: true`, optional).
 
-#### Scenario: Valid field with sample_template passes schema validation
-- **WHEN** a field in `data-model.yml` includes a valid `sample_template` block
-- **THEN** schema validation passes without errors
+`data-model.schema.yml` SHALL include `sample_template` as optional on fields: `template` (string, required), `settings` (object, additionalProperties: true, optional).
 
-#### Scenario: sample_template missing template key fails validation
-- **WHEN** a field has `sample_template` but no `template` key
-- **THEN** schema validation reports an error
+#### Scenario: Valid sample_template passes validation
+#### Scenario: Missing template key fails validation
 
 ### Requirement: Auto-assignment during data model creation
-During `debo-data-model:dialog` and `create-data-model` stages, the AI SHALL read `sample_data.field_types` from `designbook.config.yml` and set `sample_template.template` on fields whose type has a mapping. Fields already having `sample_template` SHALL NOT be overwritten.
 
-#### Scenario: AI sets sample_template from config mapping
-- **WHEN** `designbook.config.yml` has `sample_data.field_types: { formatted_text: formatted-text }`
-- **AND** user adds a field with `type: formatted_text` during the data model dialog
-- **THEN** the AI sets `sample_template.template: formatted-text` on that field
+During `debo-data-model:dialog` and `create-data-model`, the AI SHALL read `sample_data.field_types` from config and set `sample_template.template` on matching fields. Existing `sample_template` SHALL NOT be overwritten. No config mapping → no auto-assignment.
 
-#### Scenario: No config mapping leaves field without sample_template
-- **WHEN** `designbook.config.yml` has no `sample_data.field_types`
-- **THEN** the AI does not set `sample_template` during model creation
+### Requirement: Complex templates triggered by bundle purpose
 
-### Requirement: Sample rules for complex templates triggered by bundle purpose
-Sample data rules for layout-builder and canvas SHALL be triggered by bundle `purpose` rather than field-level `sample_template.template`. The `layout_builder__layout` and `components` fields no longer require `sample_template` to activate their respective sample rules.
+Layout-builder and canvas sample rules are triggered by bundle `purpose` (e.g. `landing-page`), not field-level `sample_template`. Simple field templates (e.g. `formatted-text`) remain field-level.
 
-#### Scenario: layout-builder sample data triggered by purpose
-- **WHEN** a bundle has `purpose: landing-page` AND `layout_builder` extension is active
-- **THEN** `sample-layout-builder.md` rule applies to generate `layout_builder__layout` sample data
-- **AND** the field does NOT need `sample_template: { template: layout_builder }` to trigger this
+#### Scenario: layout-builder by purpose
+- **WHEN** bundle has `purpose: landing-page` and `layout_builder` extension active → `sample-layout-builder.md` rule applies without needing `sample_template`
 
-#### Scenario: canvas sample data triggered by purpose
-- **WHEN** a bundle has `purpose: landing-page` AND `canvas` extension is active
-- **THEN** `sample-canvas.md` rule applies to generate `components` sample data
-- **AND** the field does NOT need `sample_template: { template: canvas }` to trigger this
+#### Scenario: canvas by purpose
+- **WHEN** bundle has `purpose: landing-page` and `canvas` extension active → `sample-canvas.md` rule applies without needing `sample_template`
 
-#### Scenario: Simple field sample_templates unchanged
-- **WHEN** a field has `sample_template: { template: formatted-text }`
-- **THEN** the formatted-text sample rule applies as before — field-level sample_template is unchanged for simple types
+### Requirement: Entity reference format in content entities
 
-### Requirement: entity reference format in content entities
-Reference fields on `content:` entities SHALL store the target record's `id` value as a plain string. The `{type: entity, entity_type, bundle, view_mode, record: N}` object form is NOT used for content entity reference fields.
+Reference fields on `content:` entities store target record `id` as plain string. The `{type: entity, ...}` object form is only for template-generated structures.
 
 ```yaml
-# correct — content entity reference
 content:
   node:
     pet:
       - id: pet-1
         field_shelter: shelter-1        # plain string ID
-        field_category: cat-dogs        # plain string ID
 
-# object form — only inside template-generated structures
 config:
   view:
     pet_listing:
@@ -140,13 +100,8 @@ config:
             record: 0
 ```
 
-#### Scenario: content reference field validates as string ID
-- **WHEN** `data-model.yml` declares `field_shelter` as `type: reference` targeting `node.shelter`
-- **AND** `data.yml` sets `field_shelter: shelter-1`
-- **THEN** the validator matches `shelter-1` against `id` fields of `content.node.shelter` records
-- **AND** validation passes if a record with `id: shelter-1` exists
+#### Scenario: content reference validates as string ID
+- **WHEN** `field_shelter: shelter-1` and a record `id: shelter-1` exists → validation passes
 
-#### Scenario: object form reference in content field fails validation
-- **WHEN** a content entity field stores `{type: entity, entity_type: node, bundle: shelter, record: 0}` instead of a string ID
-- **THEN** the validator cannot match it against target record IDs
-- **AND** a broken-reference warning is emitted
+#### Scenario: object form in content field fails
+- **WHEN** content field stores `{type: entity, ...}` instead of string ID → broken-reference warning

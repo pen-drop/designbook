@@ -1,30 +1,36 @@
-## MODIFIED Requirements
+# Designbook Configuration
+
+## Purpose
+Define how `designbook.config.yml` is loaded and exposed as environment variables. Config loading lives in `packages/storybook-addon-designbook/src/config.ts`, importable as `storybook-addon-designbook/config`.
+
+## Requirements
 
 ### Requirement: Loading Utility
-A script MUST be provided to load this configuration.
-- **Script**: `.agent/skills/designbook-configuration/scripts/load-config.cjs`
-- **Import**: `require('storybook-addon-designbook/config')`
-- **Output**: JSON string of the configuration object.
-- **Error Handling**: verified valid YAML, returns defaults if file missing.
+
+Module `storybook-addon-designbook/config` SHALL provide `findConfig(startDir?)` and `loadConfig(startDir?)`. Returns parsed config with defaults applied and paths resolved. Returns defaults if no config file found; throws on invalid YAML.
 
 #### Scenario: Load config via package import
-- **WHEN** `load-config.cjs` is executed
-- **THEN** it imports `loadConfig` from `storybook-addon-designbook/config` without filesystem fallback paths
+- **WHEN** importing `loadConfig` → finds and parses `designbook.config.yml` via walk-up traversal, returns `DesignbookConfig` with resolved paths
 
 ### Requirement: Environment Helper
-A shell helper MUST be provided for Bash scripts.
-- **Usage**: `eval "$(npx storybook-addon-designbook config)"`
-- **Effect**: Sets `DESIGNBOOK_BACKEND`, `DESIGNBOOK_FRAMEWORK_COMPONENT`, `DESIGNBOOK_FRAMEWORK_CSS`, `DESIGNBOOK_DIST`, `DESIGNBOOK_TMP`, `DESIGNBOOK_OUTPUTS_ROOT`, `DESIGNBOOK_SDC_PROVIDER`, `DESIGNBOOK_EXTENSIONS`, and `DESIGNBOOK_EXTENSION_SKILLS` environment variables.
 
-#### Scenario: Environment variables are set via CLI
-- **WHEN** a bash script runs `eval "$(npx storybook-addon-designbook config)"`
-- **THEN** all `DESIGNBOOK_*` environment variables are available in the shell session
+`eval "$(npx storybook-addon-designbook config)"` SHALL set environment variables from resolved config:
 
-## ADDED Requirements
+`DESIGNBOOK_TECHNOLOGY`, `DESIGNBOOK_WORKSPACE`, `DESIGNBOOK_HOME`, `DESIGNBOOK_DATA`, `DESIGNBOOK_URL`, `DESIGNBOOK_CMD` (also defines shell function), `DESIGNBOOK_FRAMEWORK_COMPONENT`, `DESIGNBOOK_FRAMEWORK_CSS`, `DESIGNBOOK_DIRS_*` (resolved to absolute paths), `DESIGNBOOK_COMPONENT_NAMESPACE`, `DESIGNBOOK_COMPONENT_SRC`, `DESIGNBOOK_EXTENSIONS` (comma-separated IDs), `DESIGNBOOK_EXTENSION_SKILLS` (comma-separated skill IDs)
 
-### Requirement: Extensions array in config
+#### Scenario: Dotted keys become underscored env vars
+- **WHEN** config contains `frameworks.css: tailwind` → output `export DESIGNBOOK_FRAMEWORK_CSS='tailwind'` (note: `frameworks` renamed to `FRAMEWORK` singular)
 
-`designbook.config.yml` MAY declare an `extensions` array at the top level. Each entry is either a plain string (backward-compatible) or an object with `id` (required), `url` (optional), and `skill` (optional).
+### Requirement: Config key flattening
+
+Nested YAML keys SHALL be recursively flattened into dot-separated paths. Arrays (like `extensions`) are preserved as-is.
+
+#### Scenario: Nested keys are flattened
+- **WHEN** `dirs: { components: components, css: { tokens: css/tokens } }` → config contains `dirs.components` and `dirs.css.tokens`
+
+### Requirement: Extensions array
+
+`extensions` MAY be an array of plain strings or objects with `id` (required), `url` (optional), `skill` (optional).
 
 ```yaml
 extensions:
@@ -32,77 +38,54 @@ extensions:
     url: https://www.drupal.org/project/canvas
   - id: layout_builder
     skill: designbook-data-model-layout-builder
-  - id: paragraphs
-    url: https://www.drupal.org/project/paragraphs
-    skill: designbook-data-model-paragraphs
-  # plain string (backward-compatible):
-  - address
+  - address  # plain string
 ```
 
-- `id` — machine name of the extension; used for `when.extensions` conditions in rule files
-- `url` — optional documentation URL; AI workflows fetch this to understand the extension's field types and entities
-- `skill` — optional Designbook skill ID; automatically injected as a `config_instruction` into every workflow stage, augmenting existing rules
-
-The config command exposes:
-- `DESIGNBOOK_EXTENSIONS` — comma-separated list of extension IDs (e.g. `canvas,paragraphs`)
-- `DESIGNBOOK_EXTENSION_SKILLS` — comma-separated list of skill IDs from extensions that declare `skill`
+- `id` -- machine name for `when.extensions` conditions
+- `url` -- optional; AI fetches to understand extension field types/entities
+- `skill` -- optional; auto-injected as `config_instruction` into every workflow stage
 
 #### Scenario: Extensions expose env vars
-- **WHEN** `designbook.config.yml` contains `extensions: [{id: canvas, skill: designbook-data-model-canvas}, {id: paragraphs}]`
-- **THEN** `DESIGNBOOK_EXTENSIONS` SHALL be `canvas,paragraphs`
-- **AND** `DESIGNBOOK_EXTENSION_SKILLS` SHALL be `designbook-data-model-canvas`
+- **WHEN** `extensions: [{id: canvas, skill: designbook-data-model-canvas}, {id: paragraphs}]`
+- **THEN** `DESIGNBOOK_EXTENSIONS=canvas,paragraphs`, `DESIGNBOOK_EXTENSION_SKILLS=designbook-data-model-canvas`
 
 #### Scenario: Plain string backward-compatible
-- **WHEN** `designbook.config.yml` contains `extensions: [layout_builder]`
-- **THEN** `DESIGNBOOK_EXTENSIONS` SHALL be `layout_builder`
-- **AND** `DESIGNBOOK_EXTENSION_SKILLS` SHALL be empty string
+- **WHEN** `extensions: [layout_builder]` → `DESIGNBOOK_EXTENSIONS=layout_builder`, `DESIGNBOOK_EXTENSION_SKILLS=`
 
 ### Requirement: Workflow Rules in Config
-The `designbook.config.yml` file MAY include a `workflow.rules` map. Each key is a stage name (e.g. `create-component`, `debo-design-component:dialog`). Each value is an array of strings. These strings are treated as additional constraints applied silently during that stage — additive to any skill rule files that also match the stage.
+
+`workflow.rules` MAY map stage names to string arrays. Strings are additional constraints applied during that stage, additive to skill rule files.
 
 ```yaml
 workflow:
   rules:
     create-component:
       - "All interactive elements require ARIA labels"
-    debo-design-component:dialog:
-      - "Always ask for the client's Figma link"
 ```
 
 #### Scenario: Config rules applied during stage
-- **WHEN** the AI executes a stage (e.g. `create-component`)
-- **THEN** it reads `designbook.config.yml` → `workflow.rules.create-component` and applies each string as a constraint alongside skill rule files
+- **WHEN** executing `create-component` → read and apply `workflow.rules.create-component` alongside skill rules
 
-#### Scenario: Workflow-scoped dialog rules applied
-- **WHEN** the AI executes the dialog stage of `debo-design-component`
-- **THEN** it reads `workflow.rules["debo-design-component:dialog"]` and applies those constraints during the dialog
-
-#### Scenario: No workflow key in config
-- **WHEN** `designbook.config.yml` has no `workflow:` key
-- **THEN** no config rules are applied; skill rules apply as normal
+#### Scenario: No workflow key
+- **WHEN** no `workflow:` key → no config rules applied
 
 ### Requirement: Workflow Tasks in Config
-The `designbook.config.yml` file MAY include a `workflow.tasks` map. Each key is a stage name. Each value is an array of strings. These strings are appended as additional instructions to the task file content for that stage — they do not replace task files and do not declare files for `workflow plan`.
+
+`workflow.tasks` MAY map stage names to string arrays. Strings are appended as additional instructions to task file content (additive, never replacing task files).
 
 ```yaml
 workflow:
   tasks:
     create-component:
       - "After creation, verify the component renders in Storybook"
-    create-tokens:
-      - "Export final token names to TOKENS.md"
 ```
 
-#### Scenario: Config task instructions appended during stage
-- **WHEN** the AI executes tasks for a stage (e.g. `create-component`)
-- **THEN** it reads `designbook.config.yml` → `workflow.tasks.create-component` and appends each string as additional instructions to the task file content
-
-#### Scenario: Config tasks are additive only
-- **WHEN** both a skill task file and config tasks exist for the same stage
-- **THEN** both apply — config strings are appended, skill task file is not replaced
+#### Scenario: Config task instructions appended
+- **WHEN** executing tasks for `create-component` → append config strings to task file content
 
 ### Requirement: sample_data.field_types config key
-The `designbook.config.yml` file MAY include a `sample_data.field_types` map. Each key is a field type name (matching the `type` key on fields in `data-model.yml`). Each value is a template name used to set `sample_template.template` when that field type is added during data model creation.
+
+`sample_data.field_types` MAY map field type names to template names, used to auto-set `sample_template.template` during data model creation.
 
 ```yaml
 sample_data:
@@ -111,14 +94,10 @@ sample_data:
     text_with_summary: formatted-text
     link: link
     image: image
-    address: address
 ```
 
-#### Scenario: Field type mapping read during model creation
-- **WHEN** `designbook.config.yml` has `sample_data.field_types`
-- **AND** the AI creates a field with a matching type during `debo-data-model:dialog` or `create-data-model`
-- **THEN** the AI sets `sample_template.template` to the mapped value on that field
+#### Scenario: Field type mapping during model creation
+- **WHEN** config has mapping and AI creates a matching field → set `sample_template.template` to mapped value
 
-#### Scenario: No sample_data key in config
-- **WHEN** `designbook.config.yml` has no `sample_data:` key
-- **THEN** no automatic `sample_template` assignment occurs during model creation
+#### Scenario: No sample_data key
+- **WHEN** no `sample_data:` key → no automatic assignment

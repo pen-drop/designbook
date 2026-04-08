@@ -1,39 +1,30 @@
 # google-fonts-css Specification
 
 ## Purpose
-TBD - created by archiving change designbook-design-screen-typography-precision. Update Purpose after archive.
+Defines how Google Fonts are downloaded as local woff2 files and integrated into CSS generation via `@font-face` declarations.
+
 ## Requirements
-### Requirement: Google Fonts download task in css-generate
 
-A dedicated `download-fonts` task under `designbook/css-generate/fonts/google/` SHALL fetch Google Fonts CSS, gated by `when: extensions: google-fonts`.
+### Requirement: prepare-fonts task in css-generate
+A `prepare-fonts` task at `designbook/css-generate/fonts/google/tasks/prepare-fonts.md` downloads Google Fonts woff2 files and generates `@font-face` CSS, gated by `when: extensions: google-fonts`.
 
-#### Scenario: Task location and extension gate
-- **WHEN** the `css-generate` workflow loads tasks
-- **THEN** the `download-fonts` task SHALL be located at `designbook/css-generate/fonts/google/tasks/download-fonts.md`
-- **THEN** it SHALL only be loaded when `extensions: google-fonts` is active
+- Runs in `prepare` stage, BEFORE `generate` and `transform`
+- Not a JSONata pattern — HTTP fetch and file generation
+- Reads `semantic.typography` fontFamily tokens from `design-tokens.yml` (all unique `$type: fontFamily` values)
+- Weights from `semantic.typography-scale` fontWeight values; defaults to `400,500,600,700` if absent
 
-#### Scenario: download-fonts is a separate task step
-- **WHEN** the `css-generate` workflow runs
-- **THEN** `download-fonts` SHALL execute as a dedicated step BEFORE `generate-jsonata` and `generate-css`
-- **THEN** it SHALL NOT use the JSONata expression pattern — it is an HTTP fetch operation
+### Requirement: Download woff2 via google-font-cli
+Command: `npx google-font-cli download "<Font Name>" -v <weights> --woff2 -d $DESIGNBOOK_DIRS_CSS/fonts`
+- Weights comma-separated, sorted numerically
+- woff2 format only
 
-#### Scenario: Font families derived from tokens
-- **WHEN** the `download-fonts` task runs
-- **THEN** it SHALL read `semantic.typography` fontFamily tokens from `design-tokens.yml`
-- **THEN** it SHALL build a Google Fonts API URL for each unique font family
+### Requirement: CSS output with local @font-face
+Generates `css/tokens/google-fonts.src.css` with `@font-face` declarations referencing local woff2 files.
 
-#### Scenario: Font weights derived from typography scale
-- **WHEN** `semantic.typography-scale` tokens exist
-- **THEN** the Google Fonts URL SHALL include all font weights referenced in the scale (e.g., `wght@400;600;700`)
-- **WHEN** no typography-scale tokens exist
-- **THEN** it SHALL default to `wght@400;500;600;700`
+- `src: url("../fonts/<filename>.woff2") format("woff2")` with `font-display: swap`
+- One `@font-face` per weight per family
+- No remote URLs or `@import` statements
+- Must appear BEFORE any `@theme` blocks referencing the font families
 
-#### Scenario: CSS output
-- **WHEN** the fonts are fetched
-- **THEN** the task SHALL save the result to `css/tokens/google-fonts.src.css`
-- **THEN** the file SHALL contain `@import url(...)` statements that load the fonts
-
-#### Scenario: Cascade ordering
-- **WHEN** `google-fonts.src.css` is included in the CSS index
-- **THEN** it SHALL appear BEFORE any `@theme` blocks that reference the font families
-
+### Requirement: font-url-construction rule
+Rule at `designbook/css-generate/fonts/google/rules/font-url-construction.md` defines weight derivation and output format constraints. Loaded when `prepare-fonts` runs with `extensions: google-fonts`.

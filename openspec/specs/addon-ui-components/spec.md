@@ -1,96 +1,37 @@
 # addon-ui-components Specification
 
 ## Purpose
-Defines the Debo React component library used in the Storybook addon's display layer. All components use `debo:` prefixed Tailwind CSS classes for CSS isolation.
+Debo React component library for the Storybook addon display layer. Manager-side components use `styled()` from `storybook/theming`. No Tailwind CSS.
 
----
+## Requirements
 
-## Requirement: CSS isolation via debo: prefix
+### Requirement: CSS isolation via styled() theming
+All `Debo*` manager components use `styled()` from `storybook/theming`, accessing theme tokens for colors/fonts/borders. Lightweight cases use inline styles. Dark mode supported via theme tokens (`theme.color.defaultText`, `theme.background.content`, etc.).
 
-All `Debo*` components SHALL use `debo:` prefixed Tailwind classes exclusively. The CSS entry point uses `@import "tailwindcss" prefix(debo)`. No unprefixed Tailwind classes in component source.
+### Requirement: Component catalog
 
-### Scenario: Dark mode support
-- **WHEN** dark theme is active
-- **THEN** all `Debo*` components use `debo:dark:` variant classes — all UI elements remain readable
+| Component | Location | Description |
+|-----------|----------|-------------|
+| **DeboCard** | `components/ui/DeboCard.jsx` | Entity card with title, badge (`DeboBadge`), description, metadata tags. Styled via `styled()`: `border-radius: 14px`, `padding: 20px`, shadow, theme bg/border. Title: `18px bold`, description: `15px/1.625`. |
+| **DeboCollapsible** | `components/ui/DeboCollapsible.jsx` | `<details>`/`<summary>` with React state. Variants: `card` (default), `action-summary`, `action-item`, `action-inline`. Supports `status` and `progress` props. |
+| **DeboSection** | `components/DeboSection.jsx` | Data loading + empty/error/content states + reload + command reference. Props: `dataPath`, `parser`, `renderContent`, `command`, `emptyMessage`, `title`, `filePath`, `bare`. Uses `useDesignbookData`. Shows `DeboEmptyState` (404), `DeboLoading`, `DeboAlert` (error). Non-bare wraps in `DeboPageLayout` with `DeboSourceFooter`. |
+| **DeboEmptyState** | | Empty state with AI command reference. Props: `message`, `command`, `filePath`. |
+| **DeboNumberedList** | | Ordered list with numbered indicators, titles, descriptions. |
+| **DeboSceneCard** | `components/ui/DeboSceneCard.jsx` | Letter icon (first char, blue square 40px), title, optional date. `borderRadius: 14px`. Clickable via `DeboLink` when `storyId`/`storyTitle` present. |
+| **DeboSceneGrid** | `components/display/DeboSceneGrid.jsx` | Renders scenes as `DeboSceneCard` in `DeboGrid` (`variant="auto"`, `gap="sm"`, `minWidth={220}`). |
+| **DeboDesignTokens** | `components/display/DeboDesignTokens.jsx` | Color swatches + typography in collapsible sections. Exports `resolveTokenReferences`. |
+| **DeboDataModel** | `components/display/DeboDataModel.jsx` | Entity display with selection. Props: `data`, `selectedEntity`, `onSelectEntity`. |
+| **DeboProductOverview** | `components/display/DeboProductOverview.jsx` | Wraps `DeboSection`, loads `vision.md`, parses into `DeboCollapsible`+`DeboProse` sections. First open by default. |
+| **DeboDesignGuidelines** | `components/display/DeboDesignGuidelines.jsx` | Renders guidelines.yml: references, principles, patterns, naming conventions, MCP card, auto-load skills. `styled()` only. |
 
----
+### Requirement: useDesignbookData hook
+`useDesignbookData(path, parser)` returns `{ data, loading, error, reload }`. Fetches via `GET /__designbook/load?path=<path>`. Reacts to file-change channel events for auto-refresh.
 
-## Requirement: Component catalog
+### Requirement: Export structure
+- `components/ui/index.js` -- UI components
+- `components/display/index.js` -- display components
+- `components/pages/index.js` -- page components
+- `components/index.js` -- re-exports all above + `DeboSection` + `useDesignbookData`
 
-### DeboCard
-Location: `packages/storybook-addon-designbook/src/components/ui/DeboCard.jsx`
-
-Displays an entity bundle as a structured card with title, type badge, description, and metadata tags.
-
-Props: `title` (required), `badge`, `description`, `entityPath`, `fieldCount`, `className`, `children`
-
-Styling: `debo:bg-white debo:rounded-lg debo:shadow-sm debo:p-5` — all classes `debo:` prefixed. Under 50 lines, no data fetching.
-
-### DeboCollapsible
-Location: `packages/storybook-addon-designbook/src/components/ui/DeboCollapsible.jsx`
-
-Expandable section with title, optional count badge, and chevron toggle. Collapsed by default; `defaultOpen` prop overrides.
-
-### DeboSection
-Location: `packages/storybook-addon-designbook/src/components/DeboSection.jsx`
-
-Combines data loading, empty state, content rendering, reload button, and AI command reference into a single page section wrapper.
-
-Props: `dataPath`, `parser`, `renderContent`, `command`, `emptyMessage`
-
-Loads data via `GET /__designbook/load?path=<path>`. Shows `DeboEmptyState` on 404.
-
-### DeboEmptyState
-Displays empty state with AI command reference and instructions. Props: `message`, `command`, `filePath`.
-
-### DeboNumberedList
-Ordered list of items with numbered indicators, titles, and descriptions.
-
-### DeboSceneCard
-Location: `packages/storybook-addon-designbook/src/components/ui/DeboSceneCard.jsx`
-
-Card with circular letter icon (first char of scene name), scene title, optional modified date. Uses `data-theme` for DaisyUI theme, letter circle uses `bg-primary` / `text-primary-content`.
-
-### DeboSceneGrid
-Display component. Accepts parsed scenes.yml data, renders each scene as a `DeboSceneCard` in a responsive grid (1 col on small, 2-3 on wider).
-
-### DesignTokensCard
-Location: `packages/storybook-addon-designbook/src/components/display/DeboDesignTokens.jsx`
-
-Displays color swatches (primary/secondary/neutral, 3-shade each) and typography (heading/body/mono fonts) in collapsible sections. Handles partial data gracefully.
-
-### ShellSpecCard
-Displays application shell spec (overview, navigation, layout pattern, responsive) using `DeboCard` + `DeboCollapsible` sections.
-
-### DeboDataModelCard
-Displays data model entities grouped by entity type using `DeboCard` + `DeboCollapsible`. Read-only indicator. Renders nothing when no data.
-
-### ProductOverviewCard
-Displays product vision (name, description, problems/solutions, key features) using `DeboCard` + `DeboCollapsible`. ~30 lines after refactoring from inline card.
-
-### DeboDesignGuidelines
-Location: `packages/storybook-addon-designbook/src/components/display/DeboDesignGuidelines.jsx`
-
-Renders guidelines.yml data: references (clickable links), design file, principles, component patterns, naming conventions, MCP, skills. Uses `styled` from `storybook/theming` — no Tailwind.
-
----
-
-## Requirement: useDesignbookData hook
-
-`useDesignbookData(path, parser)` encapsulates fetch/parse/reload for loading from `designbook/`.
-
-Returns `{ data, loading, error, reload }`. Fetches on mount. Reload refetches and reparses.
-
----
-
-## Requirement: Export structure
-
-- UI components exported from `components/ui/index.js`
-- Display components from `components/display/index.js`
-- All re-exported from `components/index.js`
-
----
-
-## Requirement: DeboSectionPage Design step uses DeboSceneGrid
-
-The Design step in `DeboSectionPage` SHALL use `DeboSceneGrid` instead of `DeboSampleData`. Parser returns `null` for empty/missing `scenes` array (so `DeboSection` shows empty state).
+### Requirement: DeboSectionPage Design tab
+Uses `DeboSceneGrid` for scene data. Parser returns `null` for empty/missing `scenes` array.

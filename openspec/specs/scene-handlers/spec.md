@@ -1,7 +1,7 @@
 # scene-handlers Specification
 
 ## Purpose
-Defines the declarative scene handler registry, the unified Vite loader, and the merged Storybook indexer for `*.scenes.yml` files.
+Scene handler registry, unified Vite loader, merged Storybook indexer, runtime props, HMR invalidation, and shared scene-metadata module.
 
 ---
 
@@ -11,57 +11,78 @@ File: `src/renderer/scene-handlers.ts`
 
 ```typescript
 export interface SceneHandler {
-  pattern: string;           // e.g. '.scenes.yml'
-  type: 'canvas';
-  docsWhenPrefix?: string;   // if filename starts with this, also generate a docs page
-  docsComponent?: string;
+  pattern: string;          // file suffix to match (e.g. 'section.scenes.yml')
+  hasOverview: boolean;     // whether to generate an Overview story
 }
-
+export interface HandlerMatch { handler: SceneHandler; }
 export const defaultHandlers: SceneHandler[] = [
-  {
-    pattern: '.scenes.yml',
-    type: 'canvas',
-    docsWhenPrefix: 'spec.',
-    docsComponent: 'DeboSection',
-  },
+  { pattern: 'section.scenes.yml', hasOverview: true },
+  { pattern: 'design-system.scenes.yml', hasOverview: false },
 ];
 ```
 
-Match logic: `filename.endsWith(handler.pattern)`. `hasDocs = true` if `basename(filename).startsWith(handler.docsWhenPrefix)`. Returns first match or null.
+Match logic: `id.endsWith(handler.pattern)` — first match wins, else `null`.
 
 ---
 
 ## Requirement: Unified loader in vite-plugin.ts
 
-Single `load(id)` handler routes all `*.scenes.yml` files through the handler registry:
+Single `load(id)` routes all matched `*.scenes.yml` through the handler registry:
 
 ```
-load(id) →
-  1. matchHandler(basename(id), handlers)
-  2. if no match → return undefined
-  3. Parse YAML
-  4. if spec.* prefix → prepend Overview story (plain HTML, no React)
-  5. Build scene stories via ModuleBuilder
-  6. Return combined CSF module
+load(id) ->
+  1. matchHandler(id, defaultHandlers) — if no match, return undefined
+  2. Parse YAML, extract scenes
+  3. if handler.hasOverview -> prepend Overview story (React page via mountReact + DeboSectionPage)
+  4. Build scene stories via buildSceneModule
+  5. Return combined CSF module (esbuild-transformed)
 ```
 
-Overview story (for `spec.*` files): reads section metadata from YAML, generates plain HTML story with `parameters: { layout: 'fullscreen' }`.
+- Section files -> Overview export + scene exports
+- Design system files -> scene exports only, no Overview
+- Empty/missing scenes array -> placeholder module with Overview only
 
 ---
 
 ## Requirement: Merged Storybook indexer
 
-The indexer in `preset.ts` scans `*.scenes.yml` only (covers all types):
-- `spec.*` prefix → emit Overview entry + scene entries
-- No prefix → scene entries only
+Single regex `/\.scenes\.yml$/` in `preset.ts`:
+
+- `hasOverview: true` -> Overview entry (type: story, exportName: overview) + scene entries under `/Scenes` title suffix
+- `hasOverview: false` -> scene entries only
 
 ---
 
 ## Requirement: scene-metadata.ts shared module
 
-File: `src/renderer/scene-metadata.ts`
+File: `src/renderer/scene-metadata.ts` — used by both `preset.ts` and `vite-plugin.ts`:
 
-Both `preset.ts` and `vite-plugin.ts` SHALL use this module for:
-- `extractGroup(parsed, basename)` — returns `parsed.name` or falls back to basename
-- `buildExportName(name)` — PascalCase from any separator (`"Ratgeber Detail"` → `"RatgeberDetail"`, `"pet-discovery"` → `"PetDiscovery"`)
+- `extractGroup(parsed, basename)` — returns `parsed.group` || `parsed.name` || basename
+- `buildExportName(name)` — PascalCase from any separator (`"pet-discovery-listing"` -> `"PetDiscoveryListing"`)
 - `extractScenes(parsed)` — returns `parsed.scenes[]` or `[parsed]` for legacy flat format
+
+---
+
+## Requirement: Props on component items forwarded to renderer
+
+`props:` map on `component:` items passed as first argument to `mod.render(props, slots)`.
+
+- `buildSceneModule` produces CSF where `args.__scene[0].props` equals the declared props object — NOT merged into slots
+- Props and slots coexist as separate arguments: `mod.render({ level: 'h1' }, { text: 'Hello World' })`
+- No `props:` key -> `mod.render({}, slots)`
+
+---
+
+## Requirement: Scene module invalidation on file change
+
+Vite plugin uses `configureServer` for file watchers sending custom WebSocket events:
+
+- `.scenes.yml` modified/added/deleted -> `designbook:file-update`, `designbook:file-add`, `designbook:file-delete`
+- `design-tokens.yml` changes -> `virtual:designbook-themes` invalidated + full reload
+- Files classified by matching against known patterns (`**/*.scenes.yml` -> scene, `workflows/**/*.yml` -> task, `data-model.yml` -> dataModel); only recognized types emit events
+
+---
+
+## Requirement: Clean debug output
+
+No `console.log` during normal operation. Only `console.warn`, `console.error`, and `console.debug` are acceptable. Diagnostic messages use `console.debug`.

@@ -1,97 +1,63 @@
 # Lazy Skill Loading
 
 ## Purpose
+Defines the just-in-time skill and task loading pattern for Designbook workflows. Task files, rules, and blueprints are loaded only at the execution step where they are needed, not upfront. All designbook workflows are part of the unified `designbook` skill (command `/debo`).
 
-Defines the just-in-time skill loading pattern for Designbook workflows. Skills are loaded only at the execution step where needed, not upfront.
+## Requirements
 
----
+### Requirement: Just-in-time task and rule loading
+Designbook workflows SHALL load task files and rule files only at the execution step where they are needed, not upfront. The CLI resolves which files to load at each step via `when` frontmatter matching.
 
-## Requirement: Just-in-time skill loading
-The `debo-design-screen` workflow SHALL load each skill only at the execution step where it is needed, not upfront.
+#### Scenario: Component creation loads matching tasks at step time
+- **WHEN** the `design-screen` workflow reaches the `create-component` step
+- **THEN** the CLI resolves task files matching `when: { steps: [create-component] }` at that point
+- **AND** matching rules are loaded before the task file
+- **AND** no task or rule files for later steps have been loaded yet
 
-#### Scenario: Component creation loads components-sdc skill
-- **WHEN** the workflow reaches the UI component creation step
-- **THEN** it SHALL read `designbook-drupal/SKILL.md` and its `components/` resources at that point
-- **AND** it SHALL NOT have loaded this skill in any prior step
+#### Scenario: Extension skill tasks loaded only when matched
+- **WHEN** the `design-screen` workflow reaches a step and `designbook-drupal` has a task with matching `when.steps`
+- **THEN** the extension task is loaded at that step
+- **AND** it was NOT loaded in any prior step
 
-#### Scenario: View mode creation loads view-modes skill
-- **WHEN** the workflow reaches the view mode creation step
-- **THEN** it SHALL read `designbook-view-modes/SKILL.md` at that point
-- **AND** it SHALL NOT have loaded this skill in any prior step
-
-#### Scenario: Scenes creation loads scenes skill
-- **WHEN** the workflow reaches the scenes file creation step
-- **THEN** it SHALL read `designbook-scenes/SKILL.md` at that point
-- **AND** it SHALL NOT have loaded this skill in any prior step
-
----
-
-## Requirement: No upfront skill loading step
+### Requirement: No upfront skill loading step
 The workflow SHALL NOT contain a step that reads all skills before execution begins.
 
-#### Scenario: Old Step 3 removed
+#### Scenario: No bulk skill loading
 - **WHEN** the workflow is executed
 - **THEN** there SHALL be no step titled "Read All Design Skills & Resources"
 - **AND** the workflow SHALL NOT reference `daisyui-llms.txt`
 
----
+### Requirement: Before hooks for prerequisite workflows
+Design workflows SHALL use `before:` hooks in workflow frontmatter to declare prerequisite workflows that must run first. The `execute: if-never-run` condition ensures the prerequisite runs only if it has never completed.
 
-## Requirement: Shell as prerequisite
-The workflow SHALL check for the existence of `shell.scenes.yml` and page/header/footer components. If any are missing, it SHALL stop and tell the user to run `/debo-design-shell` first.
+#### Scenario: CSS generation as prerequisite
+- **WHEN** `design-screen.md` declares `before: [{ workflow: css-generate, execute: if-never-run }]`
+- **AND** `css-generate` has never been run
+- **THEN** the `css-generate` workflow runs before `design-screen` begins its own stages
 
-#### Scenario: Shell exists
-- **WHEN** `shell.scenes.yml` and shell components exist
-- **THEN** the workflow proceeds normally
+#### Scenario: Prerequisite already satisfied
+- **WHEN** `design-screen.md` declares `before: [{ workflow: css-generate, execute: if-never-run }]`
+- **AND** `css-generate` has previously completed
+- **THEN** the `css-generate` workflow is skipped and `design-screen` proceeds directly
 
-#### Scenario: Shell missing
-- **WHEN** `shell.scenes.yml` or shell components are missing
-- **THEN** the workflow SHALL stop with a message pointing to `/debo-design-shell`
-- **AND** it SHALL NOT attempt to create shell components
+#### Scenario: Multiple design workflows share the same prerequisite
+- **WHEN** `design-screen.md`, `design-shell.md`, and `design-component.md` all declare `before: [{ workflow: css-generate, execute: if-never-run }]`
+- **THEN** each workflow independently checks if `css-generate` has been run
 
----
-
-## Requirement: Direct execution without plan approval
-The workflow SHALL execute component creation, view mode generation, scenes generation, and CSS generation immediately after section selection without a plan-and-approve step.
+### Requirement: Direct execution without plan approval
+The workflow SHALL execute steps directly via the CLI response-driven loop without a plan-and-approve step, unless `--spec` mode is enabled.
 
 #### Scenario: Normal execution
-- **WHEN** user runs `/debo-design-screen` without `--spec`
-- **THEN** the workflow SHALL execute all steps directly after section selection
+- **WHEN** user runs `/debo design-screen` without `--spec`
+- **THEN** the workflow executes all steps directly via the CLI loop
 
 #### Scenario: Spec mode dry run
-- **WHEN** user runs `/debo-design-screen --spec`
-- **THEN** the workflow SHALL output what WOULD be created (file paths and content summaries) without writing any files
+- **WHEN** user runs `/debo design-screen --spec`
+- **THEN** the workflow outputs what WOULD be created (file paths and content summaries) without writing any files
 
----
-
-## Requirement: CSS generation via delegation
-The workflow SHALL delegate CSS generation to the `//debo-css-generate` workflow instead of loading CSS skills inline.
-
-#### Scenario: CSS generation delegated
-- **WHEN** the workflow reaches the CSS generation step
-- **THEN** it SHALL invoke the `//debo-css-generate` workflow
-- **AND** it SHALL NOT load `designbook-css-daisyui` or `designbook-css-generate` skills directly
-
----
-
-## Requirement: Framework-aware skill resolution
-The workflow SHALL source `designbook-configuration` (`set-env.sh`) to resolve `$DESIGNBOOK_FRAMEWORK_COMPONENT` and `$DESIGNBOOK_FRAMEWORK_CSS`. It SHALL load the component skill matching the configured framework: `designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT`. For `frameworks.component: sdc`, the resolved skill SHALL be `designbook-drupal` (sub-directory `components/`) — not the deleted `designbook-components-sdc` root.
-
-#### Scenario: Component skill resolved from config
-- **WHEN** `designbook.config.yml` has `frameworks.component: sdc`
-- **THEN** the workflow SHALL load `designbook-drupal/components/` (via the `designbook-drupal` skill root)
-- **AND** it SHALL NOT reference the deleted path `designbook-components-sdc/SKILL.md`
-
-#### Scenario: CSS framework resolved by delegation
-- **WHEN** the workflow delegates to `//debo-css-generate`
-- **THEN** the CSS workflow SHALL resolve `$DESIGNBOOK_FRAMEWORK_CSS` internally
-- **AND** the screen workflow SHALL NOT load any CSS framework skill directly
-
----
-
-## Requirement: Dead references removed
-The workflow SHALL NOT reference `components-entity-sdc`, `generate-stories.js`, or `designbook-web-reference`.
+### Requirement: Dead references removed
+The workflow SHALL NOT reference deleted or renamed skills.
 
 #### Scenario: No dead skill references
-- **WHEN** the workflow file is inspected
-- **THEN** it SHALL NOT contain references to `designbook-components-entity-sdc`
-- **AND** it SHALL NOT contain references to `designbook-web-reference`
+- **WHEN** any workflow file in the `designbook` skill is inspected
+- **THEN** it SHALL NOT contain references to `designbook-view-modes`, `designbook-scenes`, `designbook-css-daisyui`, `designbook-components-sdc`, `designbook-components-entity-sdc`, or `designbook-web-reference`

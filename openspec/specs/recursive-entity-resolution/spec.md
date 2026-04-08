@@ -1,70 +1,69 @@
-## ADDED Requirements
+# recursive-entity-resolution Specification
 
-### Requirement: Recursive entity resolution in renderer
+## Purpose
+Define how the builder registry recursively resolves entity, config, and scene reference nodes in the rendering pipeline.
 
-The scene-module-builder renderer SHALL recursively resolve `type: "entity"` nodes wherever they appear — in JSONata output and in component slot values.
-
-#### Scenario: Entity node in JSONata output
-
-- **WHEN** a JSONata expression returns a `SceneNode[]` containing `{ type: "entity", entity_type, bundle, view_mode }`
-- **THEN** the renderer SHALL look up the sample data for that entity
-- **AND** evaluate the corresponding JSONata expression (e.g., `user.user.compact.jsonata`)
-- **AND** recursively render the resulting nodes
-
-#### Scenario: Entity node in component slot
-
-- **WHEN** a component node has a slot value that is an array containing `{ type: "entity", ... }` nodes
-- **THEN** the renderer SHALL recursively resolve each entity node in that slot
-- **AND** replace the entity node with the rendered output
-
-#### Scenario: Nested recursion
-
-- **WHEN** a resolved entity produces output that itself contains `type: "entity"` nodes
-- **THEN** the renderer SHALL continue resolving recursively
-
-#### Scenario: Recursion depth guard
-
-- **WHEN** entity resolution exceeds 5 levels of nesting
-- **THEN** the renderer SHALL stop and emit a warning
-- **AND** the unresolved entity node SHALL be rendered as a placeholder/comment
-
-#### Scenario: Mixed slots
-
-- **WHEN** a component slot contains a mix of plain values (strings) and `SceneNode[]`
-- **THEN** the renderer SHALL only recursively process array values that contain objects with a `type` property
-- **AND** plain string values SHALL be passed through unchanged
 ## Requirements
+
 ### Requirement: Recursive entity resolution in renderer
+The `resolveEntityRefs` function in the builder registry SHALL recursively resolve nodes that need building (entity, config, scene, and image refs) wherever they appear -- in top-level builder output and in component slot values.
 
-The scene-module-builder renderer SHALL recursively resolve `type: "entity"` nodes wherever they appear — in JSONata output and in component slot values.
+#### Scenario: Entity node in builder output
+- **WHEN** a builder returns a `RawNode[]` containing `{ type: "entity", entity_type, bundle, view_mode }`
+- **THEN** `resolveEntityRefs` SHALL dispatch the node to `ctx.buildNode()`
+- **AND** `ctx.buildNode()` finds the matching builder, calls `build()`, and recursively calls `resolveEntityRefs` on the result
 
-#### Scenario: Entity node in JSONata output
+#### Scenario: Entity node in component slot (single value)
+- **WHEN** a component node has a slot value that is a single object matching `needsBuilding()` (entity, config, scene, or image ref)
+- **THEN** `resolveSlots` SHALL dispatch the node to `ctx.buildNode()`
+- **AND** replace the slot value with the first built ComponentNode (or the full array if multiple)
 
-- **WHEN** a JSONata expression returns a `SceneNode[]` containing `{ type: "entity", entity_type, bundle, view_mode }`
-- **THEN** the renderer SHALL look up the sample data for that entity
-- **AND** evaluate the corresponding JSONata expression (e.g., `user.user.compact.jsonata`)
-- **AND** recursively render the resulting nodes
+#### Scenario: Entity node in component slot (array)
+- **WHEN** a component slot is an array containing objects that match `needsBuilding()`
+- **THEN** `resolveSlots` SHALL dispatch each such object to `ctx.buildNode()`
+- **AND** flatten the results into the slot array
 
-#### Scenario: Entity node in component slot
+#### Scenario: Nested recursion via buildNode loop
+- **WHEN** a resolved entity produces output that itself contains nodes needing building
+- **THEN** the `buildNode` -> `build` -> `resolveEntityRefs` chain SHALL continue resolving recursively
+- **AND** there is no explicit depth guard -- recursion continues until no more nodes need building
 
-- **WHEN** a component node has a slot value that is an array containing `{ type: "entity", ... }` nodes
-- **THEN** the renderer SHALL recursively resolve each entity node in that slot
-- **AND** replace the entity node with the rendered output
+### Requirement: needsBuilding type detection
+The `needsBuilding()` function SHALL detect nodes that require further building using both normalized and YAML duck-typed formats.
 
-#### Scenario: Nested recursion
+#### Scenario: Normalized type detection
+- **WHEN** a node has `type: 'entity'` or `type: 'config'`
+- **THEN** `needsBuilding()` SHALL return true
 
-- **WHEN** a resolved entity produces output that itself contains `type: "entity"` nodes
-- **THEN** the renderer SHALL continue resolving recursively
+#### Scenario: Duck-typed format detection
+- **WHEN** a node has `entity` (string), `image` (string), `config` (string), or `scene` (string) as a direct property
+- **THEN** `needsBuilding()` SHALL return true
 
-#### Scenario: Recursion depth guard
+#### Scenario: Plain ComponentNode passes through
+- **WHEN** a node has `component` property but does not match any building criteria
+- **THEN** `needsBuilding()` SHALL return false
+- **AND** the node SHALL pass through with only its slots recursively resolved
 
-- **WHEN** entity resolution exceeds 5 levels of nesting
-- **THEN** the renderer SHALL stop and emit a warning
-- **AND** the unresolved entity node SHALL be rendered as a placeholder/comment
+### Requirement: Mixed slots handling
+Component slots SHALL handle mixed content types correctly: strings, component nodes, and nodes that need building.
 
-#### Scenario: Mixed slots
+#### Scenario: All-string array slot
+- **WHEN** a component slot is an array where every element is a string
+- **THEN** `resolveSlots` SHALL join the strings into a single string value
 
-- **WHEN** a component slot contains a mix of plain values (strings) and `SceneNode[]`
-- **THEN** the renderer SHALL only recursively process array values that contain objects with a `type` property
-- **AND** plain string values SHALL be passed through unchanged
+#### Scenario: Mixed array with components and entities
+- **WHEN** a component slot is an array containing both ComponentNode objects and entity refs
+- **THEN** entity refs SHALL be resolved via `ctx.buildNode()` and the results flattened into the array
+- **AND** ComponentNode objects SHALL have their own slots recursively resolved
 
+#### Scenario: String slot passes through unchanged
+- **WHEN** a component slot value is a plain string
+- **THEN** `resolveSlots` SHALL pass it through unchanged
+
+### Requirement: Missing builder warning
+When no registered builder matches a node, `buildNode` SHALL log a warning and return an empty array.
+
+#### Scenario: Unknown node type
+- **WHEN** a node has `type: "unknown-custom"` and no builder's `appliesTo` returns true
+- **THEN** `buildNode` SHALL log `[Designbook] No builder found for node type "unknown-custom" -- skipping.`
+- **AND** return an empty `ComponentNode[]`

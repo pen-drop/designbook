@@ -1,74 +1,50 @@
 # addon-onboarding-pages Specification
 
 ## Purpose
-Defines the Storybook onboarding display pages — read-only MDX pages that display workflow outputs via `DeboSection`. All data entry happens exclusively via AI commands, not in Storybook.
+Read-only Storybook pages displaying workflow outputs via `DeboSection`. All data entry via AI commands only. Three page components: `DeboFoundationPage`, `DeboDesignSystemPage`, `DeboSectionPage`.
 
----
+## Requirements
 
-## Requirement: DeboSection pattern for all onboarding pages
+### Requirement: DeboSection pattern
+All pages SHALL use `DeboSection` with `dataPath`, `parser`, `renderContent`, `command`, `emptyMessage`. Internally uses `useDesignbookData(path, parser)`. No inline fetch logic.
 
-All onboarding pages SHALL use `DeboSection` with `dataPath`, `parser`, `renderContent`, `command`, and `emptyMessage` props. No inline `useState`, `useEffect`, or `fetch` logic in MDX files.
+States: 404 -> `DeboEmptyState` with AI command | loading -> `DeboLoading` | error -> `DeboAlert` | data -> `DeboSourceFooter` with reload button (refetch without navigation).
 
-### Scenario: Empty state
-- **WHEN** the file at `dataPath` does not exist (404)
-- **THEN** `DeboSection` renders `DeboEmptyState` referencing the AI command
+### Requirement: Vite middleware
+`GET /__designbook/load?path=<path>` serves files from `designbook/` directory. Returns 404 when file not found.
 
-### Scenario: Reload
-- **WHEN** data is displayed
-- **THEN** a reload button refetches from the Vite middleware without page navigation
+### Requirement: DeboFoundationPage
+Renders as `DeboTabs` with two tabs:
 
----
+| Tab | id | Component | dataPath | Command |
+|-----|----|----|----------|---------|
+| Vision | `vision` | `DeboProductOverview` | `vision.md` | `/debo vision` |
+| Data Model | `data-model` | `DeboDataModel` | `data-model.yml` | `/debo data-model` |
 
-## Requirement: Vite middleware loads designbook files
+`DeboProductOverview` wraps `DeboSection` internally, parsing vision.md into sections rendered as `DeboCollapsible` with `DeboProse`. Entity selection resets to null on tab switch.
 
-`GET /__designbook/load?path=<path>` serves files from `designbook/`. Returns 404 when not found.
+### Requirement: DeboDesignSystemPage
+Renders as `DeboTabs` with three tabs (in order):
 
----
+| Tab | id | Component | dataPath | Command |
+|-----|----|----|----------|---------|
+| Guidelines | `guidelines` | `DeboDesignGuidelines` | `design-system/guidelines.yml` | `/debo design-guideline` |
+| Tokens | `tokens` | `DeboDesignTokens` | `design-system/design-tokens.yml` | `/debo tokens` |
+| Shell | `shell` | `DeboSceneGrid` | `design-system/design-system.scenes.yml` | `/debo design-shell` |
 
-## Requirement: Per-page data paths and commands
+Shell tab renders `DeboProse` description + `DeboSceneGrid`. Parser returns `null` for empty/missing `scenes` array.
 
-| Page | MDX path | dataPath | AI command | Display component |
-|------|----------|----------|------------|-------------------|
-| Product Vision | `.storybook/onboarding/product-vision.mdx` | `product/vision.md` | `/debo-vision` | `ProductOverviewCard` |
-| Product Roadmap | (section on product-vision page) | `product/product-roadmap.md` | `/product-roadmap` | `DeboNumberedList` |
-| Data Model | `.storybook/onboarding/data-model.mdx` | `data-model.yml` | `/debo-data-model` | `DeboDataModelCard` |
-| Design Shell | `.storybook/onboarding/design-shell.mdx` | `design-system/design-system.scenes.yml` | `/debo-design-shell` | `ShellSpecCard` |
-| Design Tokens | (DeboDesignSystemPage Tokens tab) | `design-system/design-tokens.yml` | `/debo-design-tokens` | `DesignTokensCard` |
+### Requirement: DeboSectionPage
+Renders as `DeboTabs` with four tabs:
 
-### Scenario: Product Vision page contains roadmap section
-- **WHEN** user opens `product-vision.mdx`
-- **THEN** product vision section appears first, roadmap section below — each loads data independently
+| Tab | id | dataPath | Component |
+|-----|----|----|-----------|
+| Spec | `spec` | `sections/{id}/{id}.section.scenes.yml` | `DeboCollapsible` (Description, User Flows, UI Requirements) |
+| Sample Data | `data` | `sections/{id}/data.yml` | `DeboSampleData` |
+| Design | `design` | `sections/{id}/{id}.section.scenes.yml` | `DeboSceneGrid` |
+| Screenshots | `screenshots` | `sections/{id}/screenshots.md` | `DeboGrid` |
 
----
+Scenes parser returns `null` for empty/missing `scenes` array.
 
-## Requirement: Design tokens workflow — interview + skill delegation
-
-The `debo-design-tokens` workflow interviews the user for token values (colors, typography) and delegates to `designbook-tokens` skill for validation and storage. The skill is the sole authority for saving `designbook/design-tokens.json` (W3C format).
-
-### Scenario: Skill validates before saving
-- **WHEN** the workflow passes collected token data to `designbook-tokens`
-- **THEN** schema validation runs before the file is written
-
----
-
-## Requirement: Design-system workflows declare guidelines dependency
-
-Task files for `debo-design-tokens`, `debo-design-component`, `debo-design-screen`, and `debo-design-shell` SHALL declare `reads: design-system/guidelines.yml` as a required dependency.
-
-### Scenario: Stage blocked without guidelines
-- **WHEN** any design-system stage starts and `design-system/guidelines.yml` is missing
-- **THEN** the AI stops and tells the user: "❌ `guidelines.yml` not found. Run /debo-design-guideline first."
-
-### Scenario: Naming and principles applied silently
-- **WHEN** `guidelines.yml` is present
-- **THEN** naming conventions and principles are applied as hard constraints without being mentioned to the user
-
----
-
-## Requirement: Design Guidelines tab in DeboDesignSystemPage
-
-`DeboDesignSystemPage` SHALL include a "Guidelines" tab as the first entry before "Tokens". Tab uses `DeboSection` with `dataPath="design-system/guidelines.yml"`, renders `DeboDesignGuidelines`.
-
-### Scenario: Guidelines tab is first
-- **WHEN** `DeboDesignSystemPage` renders
-- **THEN** tabs array starts with `{ id: 'guidelines', title: 'Guidelines', ... }`, Tokens tab at index 1
+### Requirement: Guidelines dependency
+Tasks for `debo-design-tokens`, `debo-design-component`, `debo-design-screen`, `debo-design-shell` SHALL declare `reads: design-system/guidelines.yml`. Missing -> stop and tell user to run `/debo-design-guideline`. Present -> apply naming/principles silently.

@@ -1,7 +1,71 @@
 # scene-conventions Specification
 
 ## Purpose
-Defines authoring conventions for scenes: entity stage routing, listing vs detail patterns, unstructured inline composition, and shell scenes.
+Authoring conventions for scenes: duck-typed nodes, slot variables, scene references, shell scenes, entity routing, and listing patterns.
+
+---
+
+## Requirement: Scene node types are duck-typed by identifying key
+
+Scene nodes in `*.scenes.yml` are duck-typed — no `type` field.
+
+| Builder | `appliesTo` condition |
+|---|---|
+| `componentBuilder` | `'component' in node` |
+| `entityBuilder` | `'entity' in node` (YAML) or `node.type === 'entity'` (normalized from JSONata) |
+| `imageStyleBuilder` | `'image' in node` |
+| `sceneBuilder` | `'scene' in node` |
+
+- A YAML item with `component:` key -> `componentBuilder.appliesTo()` returns true
+- A YAML item with `entity:` key -> `entityBuilder.appliesTo()` returns true
+- A YAML item with `scene:` key -> `sceneBuilder.appliesTo()` returns true
+- A YAML item with `image:` key -> `imageStyleBuilder.appliesTo()` returns true
+
+---
+
+## Requirement: Slot variable placeholders
+
+A slot value of `$identifier` marks an injection point. Any slot at any nesting depth MAY be a variable. Multiple variables in one scene (e.g. `content: $content` and `sidebar: $sidebar`) MUST be independently substitutable.
+
+---
+
+## Requirement: `with:` fills variables on scene references
+
+A scene reference node supports `with:` map whose keys match `$variable` names in the referenced scene. When omitted, variables remain as literal strings.
+
+---
+
+## Requirement: SceneSceneNode uses scene:string
+
+```typescript
+export interface SceneSceneNode extends SceneNode {
+  scene: string;            // "source:sceneName" (e.g. "design-system:shell")
+  with?: Record<string, unknown>;
+  slots?: Record<string, unknown>; // deprecated alias for `with`
+}
+```
+
+The builder parses `"design-system:shell"` as source `"design-system"`, scene name `"shell"`.
+
+---
+
+## Requirement: Substitution on raw SceneDef before building
+
+```
+1. findScene(ref) -> raw SceneDef
+2. if (with) -> scene = substitute(scene, with)
+3. for entry of scene.items -> ctx.buildNode(entry) -> ComponentNode[]
+4. return ComponentNode[]
+```
+
+- After substitution, `buildNode()` receives entries with no `$` strings
+- Unresolved `$variable` (no matching key in `with:`) is left as-is
+
+---
+
+## Requirement: `slots:` deprecated alias
+
+The old `slots:` key on scene references SHALL be accepted as alias for `with:` with deprecation warning: `[Designbook] SceneBuilder: "slots:" on scene ref "..." is deprecated -- use "with:" instead`
 
 ---
 
@@ -9,79 +73,38 @@ Defines authoring conventions for scenes: entity stage routing, listing vs detai
 
 `map-entity` covers all structured entity rendering: all view modes except `full` when `composition: unstructured`, and recursive entity references.
 
-### Scenario: Recursive entity resolution
-- **WHEN** a JSONata expression emits a `type: entity` node (e.g. a Paragraphs reference field)
-- **THEN** the agent SHALL apply `map-entity` for that nested entity's view_mode — recursion MAY be arbitrarily deep
-
-### Scenario: Non-full view mode always uses map-entity
-- **WHEN** mapping any entity with `view_mode != full`
-- **THEN** the agent uses `map-entity` regardless of `composition`
+- Non-full view_mode always uses `map-entity` regardless of `composition`
+- Recursive entity resolution MAY be arbitrarily deep
 
 ---
 
-## Requirement: compose-entity stage for unstructured entity rendering
+## Requirement: Listing scenes use listing.* config entities
 
-Two cases route to `compose-entity`:
-1. `entity_type: view` — regardless of view_mode
-2. `view_mode: full` AND `composition: unstructured` on a content entity
-
-Extension-specific compose rules apply via `when: extensions: [...]`:
-- `layout_builder` → `compose-layout-builder` rule (section components wrapping `block_content` entity refs in column slots)
-- `canvas` → `compose-canvas` rule (flat component trees)
-- `entity_type: view` → `compose-view-entity` rule (JSONata file with `{}` input, inline entity refs, wrapper component)
+- Listing pages SHALL use an `entity: listing.*` node whose JSONata declares entity refs inline
+- Detail pages SHALL use an `entity` node with a single `record` index
+- `records: [0, 1, 2]` shorthand is for component demos only — MUST NOT be used for listing scenes
 
 ---
 
-## Requirement: Listing scenes use config:list
+## Requirement: Shell scenes define the application layout container
 
-Scene files for listing pages SHALL use a `config: list.*` node, not `entity + records` arrays. `records` is only valid for component demos or isolated entity previews.
+Shell scenes compose a page component with header, content, and footer slots at `designbook/design-system/design-system.scenes.yml`. Exactly one slot MUST use `$content`.
 
-### Scenario: Listing scene with config:list
-- **WHEN** a scene is generated for a listing page
-- **THEN** items contain a `config: list.<name>` node referencing a named list in `data-model.yml`
-
-### Scenario: Detail scene with entity
-- **WHEN** a scene is generated for a single-entity detail page
-- **THEN** items use an `entity` node with a single `record` index
+- Section scenes reference shell via `scene: "design-system:shell"` with `with:` map filling `$content`
+- Header and footer slots MUST inline all sub-component slots with props and content — never use `story: default` alone
+- Output location: `designbook/design-system/design-system.scenes.yml` with `group: "Designbook/Design System"`
 
 ---
 
-## Requirement: designbook-scenes skill resources are split by concern
+## Requirement: Scene resources are split by concern
 
-- `field-reference.md` — YAML field tables only (file-level and scene-level fields)
-- `entry-types.md` — all entry types: component, entity, records, config, scene-ref (notes that `records` is for demos only)
-- `config-list.md` — full config:list contract: syntax, data-model mapping, sources structure, JSONata bindings (`$rows`, `$count`, `$limit`)
-
----
-
-## Requirement: Entity nodes support inline component trees
-
-An entity node in scenes.yml MAY carry a `components` array containing a static `RawNode[]` tree. When present, the entityBuilder returns it directly without loading a JSONata expression file.
-
-### Scenario: Inline components bypass JSONata lookup
-- **WHEN** an entity node has a `components` array
-- **THEN** the entityBuilder returns that array as `RawNode[]` without attempting to load a `.jsonata` file
-
-### Scenario: Nested entity refs in inline components are resolved
-- **WHEN** an inline `components` array contains `entity` nodes
-- **THEN** `resolveEntityRefs` recursively resolves them to `ComponentNode[]`
-
-### Scenario: Entity node without components follows existing path
-- **WHEN** an entity node has no `components` key
-- **THEN** the entityBuilder follows the existing JSONata lookup path unchanged
+Three resource files under `.agents/skills/designbook/design/resources/`:
+- `scenes-schema.md` — JSON Schema for `*.scenes.yml`, scene node types, ComponentNode output
+- `jsonata-reference.md` — JSONata expression format, ComponentNode output, nested entity refs
+- `story-meta-schema.md` — JSON Schema for `meta.yml` at `designbook/stories/{storyId}/meta.yml`
 
 ---
 
-## Requirement: Shell scenes — application layout container
+## Requirement: YAML anchors work natively
 
-Shell scenes compose a `page` component with `header`, `content`, and `footer` slots. Located at `designbook/design-system/design-system.scenes.yml`.
-
-### Components
-- **page**: slots `header`, `content`, `footer` — full viewport height, sticky header, content fills remaining space
-- **header**: props `logo`, `nav_items`, `cta` — responsive hamburger on mobile
-- **footer**: props `links`, `copyright`, `social`
-
-### Storybook integration
-- Title maps to `Designbook/Design System/{name}`
-- `debo-design-shell.md` workflow produces `design-system.scenes.yml` + ensures page/header/footer components exist
-- Section scenes reference shell layout via `layout: "design-system:shell"`
+Standard YAML anchors (`&` / `*`) work out of the box. No implementation needed.
