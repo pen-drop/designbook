@@ -17,20 +17,27 @@ reads:
     optional: true
 ---
 
-# Polish
+# Polishdas 
 
-Reads the compare reports and fixes code issues. Re-capture and re-compare are handled by the separate `recapture` and `verify` steps in the polish stage.
+Reads the compare reports and fixes code issues. Re-capture and re-compare are handled by the separate `recapture` and `verify` steps in the polish stage. Uses `DeboStory` entity for check data.
 
-## Params
+## Params (from DeboStoryCheck test item)
 
 | Param | Source | Description |
 |---|---|---|
-| `storyId` | workflow context | Story identifier |
-| `compareResults` | compare step output | Per-breakpoint results from compare-screenshots and compare-markup |
+| `scene` | test item | Scene reference |
+| `storyId` | test item | Story identifier |
+| `breakpoint` | test item | Breakpoint name |
+| `region` | test item | Region name |
 
 ## Step 1: Read Compare Reports
 
-Read `meta.yml` for the current breakpoint/region's `lastDiff` and `lastResult`. Read the compare report from the previous step. If no issues were found (`lastResult: pass`), complete immediately:
+Load the story entity to get the current check result:
+```bash
+_debo story --scene ${scene}
+```
+
+Read this breakpoint/region's `lastDiff` and `lastResult` from the entity. Read the compare report from the previous step. If no issues were found (`lastResult: pass`), complete immediately:
 
 > "No visual issues found — skipping polish."
 

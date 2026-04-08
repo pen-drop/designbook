@@ -1,6 +1,7 @@
 ---
+provides: reference.url
 when:
-  steps: [configure-meta-scene]
+  steps: [design-verify:intake]
   extensions: stitch
 ---
 
@@ -10,7 +11,7 @@ When a reference source has `origin: stitch`, resolve the Stitch screen ID to a 
 
 ## When to Apply
 
-This rule triggers during `configure-meta` when the user provides a Stitch screen ID as the reference source.
+This rule triggers during `design-verify:intake` when the user provides a Stitch screen ID as the reference source.
 
 ## Execution
 
@@ -25,11 +26,11 @@ This rule triggers during `configure-meta` when the user provides a Stitch scree
 
 4. Extract the preview URL from the response.
 
-5. Return to `configure-meta`:
+5. Return to `design-verify:intake`:
    - `url`: the resolved preview URL
    - `hasMarkup: true` — Stitch screens serve inspectable HTML (CSS properties, fonts, DOM)
 
 ## Error Handling
 
-- If `get_screen` fails or returns no usable URL, warn the user and leave `url` empty. The `configure-meta` task will prompt for an alternative.
+- If `get_screen` fails or returns no usable URL, warn the user and leave `url` empty. The `design-verify:intake` task will prompt for an alternative.
 - If the screen has a `screenshot.downloadUrl` but no HTML preview, use the download URL and set `hasMarkup: false`.

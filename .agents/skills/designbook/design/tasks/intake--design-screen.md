@@ -179,3 +179,4 @@ Follow the process in [structure-preview.md](partials/structure-preview.md).
 - Reference the shell for navigation context
 - Each screen should address specific user flows from the section spec
 - Consider responsive behavior for all screens
+- The `scene` iterable items must use `group:sceneName` format matching `_debo story --scene` resolution. E.g. `{ "scene": "homepage:landing" }`, `{ "scene": "blog:overview" }`

@@ -27,7 +27,7 @@ properties:
             type: boolean
             description: >
               True if the reference URL serves inspectable HTML (CSS properties, fonts, DOM).
-              Set by origin-specific rules (e.g. resolve-stitch-url sets this to true).
+              Set by origin-specific provider rules (e.g. provide-stitch-url sets this to true).
               When true, compare-markup task runs alongside compare-screenshots.
               When false or absent, only pixel comparison is performed.
       breakpoints:

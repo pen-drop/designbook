@@ -77,6 +77,19 @@ describe('validateSceneNodes', () => {
     expect(errors[0]!.path).toContain('text');
   });
 
+  it('passes for string elements inside slot arrays', () => {
+    const nodes: ComponentNode[] = [
+      {
+        component: 'test:header',
+        slots: {
+          logo: ['Designbook'] as unknown as ComponentNode[],
+          nav: ['Home' as unknown as ComponentNode, { component: 'test:link', props: { href: '/about' } }],
+        },
+      },
+    ];
+    expect(validateSceneNodes(nodes)).toEqual([]);
+  });
+
   it('returns empty list for empty node array', () => {
     expect(validateSceneNodes([])).toEqual([]);
   });

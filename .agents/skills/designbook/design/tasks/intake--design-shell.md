@@ -16,7 +16,14 @@ Help the user design the application shell — a `page` component with `header`,
 
 > ⛔ **MANDATORY**: Execute this step before any layout analysis or component planning.
 
-Follow the process in [resolve-design-reference.md](partials/resolve-design-reference.md).
+1. Check `guidelines.yml` → `design_reference` for a configured reference source.
+2. If no configured source, ask the user:
+   > "Do you have a design reference? (Stitch screen ID, URL, or 'skip')"
+3. If a **Stitch screen ID** is provided, resolve it via MCP (`mcp__stitch__get_screen`) to get the preview URL. Store as `reference: [{type: "url", url: "<resolved-url>", threshold: 3, title: "<screen-title>"}]`.
+4. If a **URL** is provided, store as `reference: [{type: "url", url: "<url>", threshold: 3, title: "<label>"}]`.
+5. If **skipped**, proceed without reference.
+
+Reference entries describe the design source only — no `breakpoint` field. Breakpoints are resolved separately in design-verify intake.
 
 If a reference was loaded, use it as the primary input for all subsequent steps. When proposing layouts and components, **derive them from the reference** rather than asking the user speculative questions.
 
@@ -114,3 +121,4 @@ Follow the process in [structure-preview.md](partials/structure-preview.md).
 - Consider the product type when suggesting layout patterns
 - If `design-system/design-system.scenes.yml` already exists, read it first and ask: "You already have a shell design. Would you like to update it or start fresh?"
 - If page/header/footer components already exist, reuse them — only create if missing
+- The `scene` iterable items must use `group:sceneName` format matching `_debo story --scene` resolution. For shell: `{ "scene": "design-system:shell" }`

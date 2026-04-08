@@ -1,18 +1,19 @@
 ---
 title: Design Verify
 description: Visual testing — verify existing screens against design references
+params:
+  scene: ~
+  reference: []
 stages:
   intake:
     steps: [design-verify:intake]
-  configure:
-    each: scene
-    steps: [configure-meta-scene, storybook-preview]
   test:
-    each: test
+    each: checks
     steps: [capture, compare]
   polish:
-    each: test
+    each: checks
     steps: [polish, recapture, verify]
-    loop: 3
+  outtake:
+    steps: [design-verify:outtake]
 engine: direct
 ---

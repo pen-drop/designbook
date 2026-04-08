@@ -81,7 +81,7 @@ When the user references one of these files or topics in conversation, start the
 
 ## Resources
 
-- [workflow-execution.md](resources/workflow-execution.md) — AI execution rules (Rules 0–6, before/after hooks)
-- [cli-reference.md](resources/cli-reference.md) — CLI commands
+- [workflow-execution.md](resources/workflow-execution.md) — Response-driven AI execution rules
+- [cli-reference.md](resources/cli-reference.md) — CLI command index (links to per-type references)
 - [task-format.md](resources/task-format.md) — Task JSON format, tasks.yml format, directory structure, hook frontmatter
 - [architecture.md](resources/architecture.md) — Stage-based architecture, task/rule file formats, Storybook integration

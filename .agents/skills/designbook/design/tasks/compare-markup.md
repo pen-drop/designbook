@@ -17,24 +17,23 @@ reads:
 
 Inspects both the reference URL and Storybook URL via Playwright, extracts structured data (CSS, fonts, computed styles, DOM), and compares them. Only runs when the reference source has `hasMarkup: true`.
 
-## Params (per iteration)
+The check passes only when both visual AND markup comparison pass (if both references are available).
+
+## Params (from DeboStoryCheck test item)
 
 | Param | Source | Description |
 |---|---|---|
-| `referenceUrl` | `meta.yml` → `reference.source.url` | Reference URL to inspect |
-| `storybookUrl` | `_debo story` | Storybook iframe URL |
-| `breakpoint` | `each` iterator | Breakpoint name |
-| `viewportWidth` | design-tokens.yml | Breakpoint pixel width |
+| `scene` | test item | Scene reference in `group:sceneName` format |
 
 ## Execution
 
-1. **Resolve URLs and breakpoints**
+1. **Load story entity** to get reference URL and breakpoints:
    ```bash
    _debo story --scene ${scene}
    ```
-   Read `meta.yml` → `reference.source.url`.
+   Read `reference.url` and `reference.hasMarkup`. If `hasMarkup` is not true, skip.
 
-2. **For each breakpoint** (from `each: reference.breakpoints`):
+2. **For each breakpoint** from the story's checks:
 
    a. **Open Playwright session for reference URL**
    ```bash
@@ -45,12 +44,9 @@ Inspects both the reference URL and Storybook URL via Playwright, extracts struc
    b. **Extract reference data**:
    - CSS custom properties (`--*` variables)
    - Font loading status
-   - Computed styles on key elements (h1–h4, p, section, header, footer, nav)
+   - Computed styles on key elements (h1-h4, p, section, header, footer, nav)
 
    c. **Navigate to Storybook URL** (reuse session)
-   ```bash
-   npx playwright-cli -s=compare open "${storybookUrl}"
-   ```
    Set same viewport width. Wait for page load.
 
    d. **Extract Storybook data**: same properties as above.
@@ -59,63 +55,32 @@ Inspects both the reference URL and Storybook URL via Playwright, extracts struc
    - CSS custom properties: diff values
    - Fonts: flag unloaded fonts
    - Computed styles: compare color, fontSize, fontFamily, fontWeight per element
-   - Content: check for missing elements (see below)
+   - Content: check for missing elements
 
    f. **Close session**
-   ```bash
-   npx playwright-cli -s=compare close
-   ```
 
 ## Output
 
-Structured comparison report per breakpoint:
-
-```json
-{
-  "breakpoint": "sm",
-  "customProperties": {
-    "matching": 42,
-    "differing": [
-      { "name": "--color-primary", "reference": "#1a1a2e", "storybook": "#1a1a30" }
-    ]
-  },
-  "fonts": {
-    "reference": [{ "family": "Inter", "loaded": true }],
-    "storybook": [{ "family": "Inter", "loaded": true }]
-  },
-  "computedStyles": {
-    "differences": [
-      { "selector": "h1", "property": "fontSize", "reference": "32px", "storybook": "30px" }
-    ]
-  },
-  "missing": ["logo", "hero-image"]
-}
-```
-
-This report is consumed by the `polish` task alongside `compare-screenshots` results.
+Structured comparison report per breakpoint. This report is consumed by the `polish` task alongside `compare-screenshots` results.
 
 ## Update meta.yml
 
-After comparison, update `reference.breakpoints.{breakpoint}.markup` in `meta.yml`:
+After comparison, persist the result per breakpoint:
 
-```yaml
-markup:
-  lastResult: fail
-  issues: 3
-  missing: ["logo", "hero-image"]
+```bash
+_debo story check --scene ${scene} --json '{"breakpoint":"<breakpoint>","region":"markup","status":"pass|fail","issues":["missing logo","wrong font"]}'
 ```
 
-- `lastResult`: pass if no critical/major issues, fail otherwise
-- `issues`: total number of differences (CSS + fonts + computed styles + missing content)
-- `missing`: content elements expected in reference but absent in Storybook
+- `status`: pass if no critical/major issues, fail otherwise
+- `issues`: list of differences (CSS + fonts + computed styles + missing content)
 
 ## Content Verification
 
 Check for missing content by comparing both DOMs:
 
-1. **Images** — `<img>` elements in reference: check if corresponding `<img>` exists in Storybook and loads (no 404/broken). Label by nearest landmark or alt text (e.g. "logo", "hero-image").
-2. **Navigation** — compare nav link counts and labels between reference and Storybook.
+1. **Images** — `<img>` elements in reference: check if corresponding `<img>` exists in Storybook and loads. Label by nearest landmark or alt text.
+2. **Navigation** — compare nav link counts and labels.
 3. **Text blocks** — headings and major text areas present in reference should have corresponding content in Storybook.
-4. **Sample-data assets** — if scene uses sample-data (`data.yml`), verify referenced images/URLs render.
+4. **Sample-data assets** — if scene uses sample-data, verify referenced images/URLs render.
 
-Only flag content as `missing` when the element is clearly present in the reference DOM but absent or broken in Storybook. Don't flag layout/styling differences here — those belong in CSS/computed styles.
+Only flag content as `missing` when the element is clearly present in the reference DOM but absent or broken in Storybook.

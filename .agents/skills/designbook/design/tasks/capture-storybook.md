@@ -19,27 +19,28 @@ reads:
 
 # Capture Storybook
 
-Captures Storybook screenshots at each breakpoint viewport width via Playwright.
+Captures Storybook screenshots at each breakpoint viewport width via Playwright. Uses the `DeboStoryCheck` test item for all parameters.
 
-## Params (per iteration)
+## Params (from DeboStoryCheck test item)
 
 | Param | Source | Description |
 |---|---|---|
-| `storybookUrl` | `_debo story` | Storybook iframe URL for this story |
-| `viewportWidth` | design-tokens.yml breakpoint | Pixel width for this breakpoint |
-| `outputPath` | computed | `designbook/stories/{storyId}/screenshots/current/{breakpoint}--{region}.png` |
+| `scene` | test item | Scene reference in `group:sceneName` format |
+| `storyId` | test item | Story identifier |
+| `breakpoint` | test item | Breakpoint name |
+| `region` | test item | Region name |
 
 ## Execution
 
-1. **Resolve storyId and Storybook URL**
+1. **Resolve Storybook URL** from `DeboStory` entity:
    ```bash
    _debo story --scene ${scene}
    ```
-   Extract `storyId` and `url` (iframe URL).
+   Extract the Storybook iframe URL from the story JSON output.
 
-2. **Capture screenshot** for this breakpoint/region combination (from params):
+2. **Capture screenshot** for this breakpoint/region combination:
 
-   a. **Resolve viewport width** from `design-tokens.yml` and **selector** from `meta.yml` regions.
+   a. **Resolve viewport width** from `design-tokens.yml` and **selector** from the check's `selector` field.
 
    b. **Capture** using the method from the `playwright-capture` rule (full-page CLI or element Node API depending on region type).
 

@@ -62,7 +62,7 @@ export const gitWorktreeEngine: WorkflowEngine = {
   commit(data) {
     if (!data.write_root || !data.worktree_branch || !data.root_dir) return;
     if (!existsSync(data.write_root)) return;
-    const outputTasks = data.tasks.filter((t) => t.type !== 'test' && t.type !== 'prepare-environment');
+    const outputTasks = data.tasks.filter((t) => t.type !== 'test');
     const outputPaths = outputTasks.flatMap((t) => (t.files ?? []).map((f) => f.path));
     if (outputPaths.length > 0) {
       const relPaths = outputPaths.map((p) => relative(data.write_root!, p)).filter((r) => !r.startsWith('..'));
@@ -79,17 +79,10 @@ export const gitWorktreeEngine: WorkflowEngine = {
     const rootDir = data.root_dir;
     if (!branch) throw new Error('Workflow has no worktree_branch — nothing to merge');
     if (!rootDir) throw new Error('Workflow has no root_dir');
-    if (data.preview_pid) {
-      try {
-        process.kill(-data.preview_pid, 'SIGTERM');
-      } catch {
-        /* already gone */
-      }
-    }
     execFileSync('git', ['-C', rootDir, 'merge', '--squash', branch]);
     execFileSync('git', ['-C', rootDir, 'commit', '-m', `workflow: ${data.workflow}`]);
     execFileSync('git', ['-C', rootDir, 'branch', '-D', branch]);
-    return { branch, root_dir: rootDir, preview_pid: data.preview_pid };
+    return { branch, root_dir: rootDir };
   },
 
   done() {
@@ -130,7 +123,6 @@ export const gitWorktreeEngine: WorkflowEngine = {
         return {};
       }
       case 'committed→test': {
-        // Environment setup for test stage (Storybook start etc.) — handled by prepare-environment task
         return {};
       }
       case 'finalizing→done': {

@@ -198,10 +198,12 @@ describe('workflow round-trip (real git)', () => {
           id: 'task-1',
           title: 'Create Button',
           type: 'component',
+          step: 'create-component',
+          stage: 'execute',
           files: [{ path: outputFilePath, key: 'component', validators: [] }],
         },
       ],
-      undefined,
+      { execute: { steps: ['create-component'] } },
       undefined,
       worktreePath,
       rootDir,
@@ -270,10 +272,12 @@ describe('workflow round-trip (real git)', () => {
           id: 'task-1',
           title: 'Create Card',
           type: 'component',
+          step: 'create-component',
+          stage: 'execute',
           files: [{ path: outputFilePath, key: 'component', validators: [] }],
         },
       ],
-      undefined,
+      { execute: { steps: ['create-component'] } },
       undefined,
       worktreePath,
       rootDir,
@@ -325,11 +329,13 @@ describe('workflow round-trip (real git)', () => {
           id: 'output-1',
           title: 'Create Card',
           type: 'component',
+          step: 'create-component',
+          stage: 'execute',
           files: [{ path: outputFilePath, key: 'component', validators: [] }],
         },
-        { id: 'test-1', title: 'Visual Test', type: 'test', files: [] },
+        { id: 'test-1', title: 'Visual Test', type: 'test', step: 'visual-diff', stage: 'test', files: [] },
       ],
-      undefined,
+      { execute: { steps: ['create-component'] }, test: { steps: ['visual-diff'] } },
       undefined,
       worktreePath,
       rootDir,
@@ -349,30 +355,17 @@ describe('workflow round-trip (real git)', () => {
     const ymlPath = resolve(dist, 'workflows', 'changes', name, 'tasks.yml');
     writeFileSync(ymlPath, stringifyYaml(data));
 
-    // Mark output task done — triggers commit to branch
+    // Mark output task done — stage transitions execute→test (worktree not yet committed)
     const result1 = await workflowDone(dist, name, 'output-1');
     expect(result1.archived).toBe(false);
 
-    // Worktree removed after commit
-    expect(existsSync(worktreePath)).toBe(false);
+    // Worktree still exists — committed stage comes after test stage with { execute, test } lifecycle
+    expect(existsSync(worktreePath)).toBe(true);
 
-    // Validate test task's empty files (no files = nothing to validate)
-    const data2 = readTasksYml(dist, name);
-    const testTask = data2.tasks.find((t) => t.id === 'test-1')!;
-    // test task has no files, mark directly
-    testTask.status = 'done';
-    const ymlPath2 = resolve(dist, 'workflows', 'changes', name, 'tasks.yml');
-    writeFileSync(ymlPath2, stringifyYaml(data2));
-
-    // Since we manipulated the file, call workflowDone for test task — but test task has no files so validation passes
-    // Re-write with clean state so workflowDone can mark it done
-    const data3 = readTasksYml(dist, name);
-    const testTask2 = data3.tasks.find((t) => t.id === 'test-1')!;
-    testTask2.status = 'pending'; // reset so workflowDone can mark done
-    writeFileSync(ymlPath2, stringifyYaml(data3));
-
+    // test-1 was auto-advanced to in-progress — call workflowDone on it directly
+    // No files → no validation needed; stage transitions test→committed (commit runs, worktree removed)
     const result2 = await workflowDone(dist, name, 'test-1');
-    // All done but worktree_branch set → stays in changes/, not archived
+    // All done but worktree_branch set → stays in changes/, not archived (waiting for merge_approved)
     expect(result2.archived).toBe(false);
     expect(existsSync(resolve(dist, 'workflows', 'changes', name))).toBe(true);
   });
@@ -392,10 +385,12 @@ describe('direct engine round-trip (real git)', () => {
           id: 'task-1',
           title: 'Create Button',
           type: 'component',
+          step: 'create-component',
+          stage: 'execute',
           files: [{ path: outputFilePath, key: 'component', validators: [] }],
         },
       ],
-      undefined,
+      { execute: { steps: ['create-component'] } },
       undefined,
       undefined,
       undefined,
@@ -518,8 +513,8 @@ describe('merge_available behavior (real git)', () => {
     workflowPlan(
       dist,
       name,
-      [{ id: 'task-1', title: 'T1', type: 'data' }],
-      undefined,
+      [{ id: 'task-1', title: 'T1', type: 'data', step: 'do-task', stage: 'execute' }],
+      { execute: { steps: ['do-task'] } },
       undefined,
       worktreePath,
       rootDir,
@@ -539,8 +534,8 @@ describe('merge_available behavior (real git)', () => {
     workflowPlan(
       dist,
       name,
-      [{ id: 'task-1', title: 'T1', type: 'data' }],
-      undefined,
+      [{ id: 'task-1', title: 'T1', type: 'data', step: 'do-task', stage: 'execute' }],
+      { execute: { steps: ['do-task'] } },
       undefined,
       undefined,
       undefined,
@@ -562,10 +557,10 @@ describe('merge_available behavior (real git)', () => {
       dist,
       name,
       [
-        { id: 'task-1', title: 'T1', type: 'data' },
-        { id: 'task-2', title: 'T2', type: 'data' },
+        { id: 'task-1', title: 'T1', type: 'data', step: 'do-task1', stage: 'execute' },
+        { id: 'task-2', title: 'T2', type: 'data', step: 'do-task2', stage: 'execute' },
       ],
-      undefined,
+      { execute: { steps: ['do-task1', 'do-task2'] } },
       undefined,
       worktreePath,
       rootDir,

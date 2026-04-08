@@ -19,26 +19,17 @@ reads:
 
 # Verify
 
-Re-captures the Storybook screenshot after polish and compares it against the reference to show what improved.
+Re-captures the Storybook screenshot after polish and compares it against the reference to show what improved. Uses `DeboStory` entity for check data.
 
 ## Execution
 
-1. **Resolve viewport width** from `design-tokens.yml` for this breakpoint.
+Verify compares existing screenshots (captured by the `recapture` task) — it does NOT restart Storybook or re-capture.
 
-2. **Re-capture Storybook screenshot** — overwrite the current screenshot:
-
-   Resolve the Storybook URL:
-   ```bash
-   _debo story --scene ${scene}
-   ```
-
-   Read the **selector** from `meta.yml` regions and **capture** using the method from the `playwright-capture` rule (full-page CLI or element Node API depending on region type).
-
-3. **Read both images** side by side:
+1. **Read both images** side by side:
    - Reference: `designbook/stories/${storyId}/screenshots/reference/${breakpoint}--${region}.png`
    - Current (after polish): `designbook/stories/${storyId}/screenshots/current/${breakpoint}--${region}.png`
 
-4. **Compare visually** and produce a verdict:
+2. **Compare visually** and produce a verdict:
 
    | Aspect | Before Polish | After Polish | Improved? |
    |--------|--------------|-------------|-----------|
@@ -47,13 +38,12 @@ Re-captures the Storybook screenshot after polish and compares it against the re
    | Typography | ... | ... | yes/no |
    | Spacing | ... | ... | yes/no |
 
-5. **Update `meta.yml`** with final diff result:
-   ```yaml
-   lastDiff: <estimated percentage>
-   lastResult: pass/fail
+3. **Update check result** via entity — persist the final diff result:
+   ```bash
+   _debo story check --scene ${scene} --json '{"breakpoint":"<breakpoint>","region":"<region>","status":"pass","diff":1.2,"issues":[]}'
    ```
 
-6. **Report** the final status for this breakpoint/region.
+4. **Report** the final status for this breakpoint/region.
 
 ## Output
 

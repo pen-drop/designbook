@@ -136,10 +136,12 @@ describe('write-file pipeline (direct engine)', () => {
           id: 'create-tokens',
           title: 'Create Tokens',
           type: 'tokens',
+          step: 'create-tokens',
+          stage: 'execute',
           files: [{ path: targetPath, key: 'design-tokens', validators: [] }],
         },
       ],
-      undefined,
+      { execute: { steps: ['create-tokens'] } },
       undefined,
       undefined,
       undefined,
@@ -232,15 +234,18 @@ describe('write-file pipeline (direct engine)', () => {
     // First write
     await workflowWriteFile(dist, name, 'task1', 'dm', 'version: 1', config);
     const data1 = readTasksYml(dist, name);
-    const ts1 = data1.tasks[0]!.files![0]!.validation_result!.last_validated;
+    const vr1 = data1.tasks[0]!.files![0]!.validation_result!;
+
+    // Small delay to ensure timestamp differs
+    await new Promise((r) => setTimeout(r, 5));
 
     // Second write overwrites
     await workflowWriteFile(dist, name, 'task1', 'dm', 'version: 2', config);
     const data2 = readTasksYml(dist, name);
-    const ts2 = data2.tasks[0]!.files![0]!.validation_result!.last_validated;
+    const vr2 = data2.tasks[0]!.files![0]!.validation_result!;
 
     // Timestamps should differ (re-validated)
-    expect(ts2).not.toBe(ts1);
+    expect(vr2.last_validated).not.toBe(vr1.last_validated);
   });
 
   it('write-file rejects unknown key', async () => {

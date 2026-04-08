@@ -43,7 +43,6 @@ interface WorkflowTask {
   config_rules?: string[];
   config_instructions?: string[];
   files?: TaskFile[];
-  iteration?: number;
 }
 
 interface StageLoaded {
@@ -64,7 +63,7 @@ interface WorkflowData {
   write_root?: string;
   worktree_branch?: string;
   current_stage?: string;
-  stages?: Record<string, { steps: string[]; each?: string; loop?: number }> | string[];
+  stages?: Record<string, { steps: string[]; each?: string }> | string[];
   stage_loaded?: Record<string, StageLoaded>;
   params?: Record<string, unknown>;
   started_at: string | null;
@@ -624,8 +623,6 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
 interface StageTaskGroup {
   stage: string;
   tasks: WorkflowTask[];
-  maxIteration?: number;
-  loopMax?: number;
 }
 
 function groupTasksByStage(wf: WorkflowData): StageTaskGroup[] {
@@ -634,9 +631,7 @@ function groupTasksByStage(wf: WorkflowData): StageTaskGroup[] {
     for (const [stageName, def] of Object.entries(wf.stages)) {
       const stepNames = new Set(def.steps ?? []);
       const tasks = wf.tasks.filter((t) => stepNames.has(t.step ?? '') || t.stage === stageName);
-      const maxIteration = tasks.length > 0 ? Math.max(...tasks.map((t) => t.iteration ?? 1)) : undefined;
-      const loopMax = def.loop;
-      if (tasks.length) groups.push({ stage: stageName, tasks, maxIteration, loopMax });
+      if (tasks.length) groups.push({ stage: stageName, tasks });
     }
     const assigned = new Set(groups.flatMap((g) => g.tasks.map((t) => t.id)));
     const unassigned = wf.tasks.filter((t) => !assigned.has(t.id));
@@ -660,7 +655,7 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
 
   return (
     <div>
-      {stageGroups.map(({ stage, tasks, maxIteration, loopMax }) => {
+      {stageGroups.map(({ stage, tasks }) => {
         const done = tasks.filter((t) => t.status === 'done').length;
         const total = tasks.length;
         const allDone = done === total;
@@ -681,11 +676,6 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
               <div style={S.stageHeader}>
                 <span style={S.stageHeaderLine} />
                 <span>{stage}</span>
-                {loopMax && maxIteration && maxIteration > 1 && (
-                  <ManagerBadge variant="gray">
-                    Loop {maxIteration}/{loopMax}
-                  </ManagerBadge>
-                )}
                 <ManagerBadge variant={badge.variant}>{badge.label}</ManagerBadge>
                 <span style={S.stageHeaderLine} />
               </div>
@@ -693,12 +683,7 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
             {tasks.map((task) => (
               <div key={task.id} style={getTaskRowStyle(task.status)}>
                 <StatusDot status={task.status} />
-                <span style={{ ...S.taskTitle, opacity: task.status === 'done' ? 0.7 : 1 }}>
-                  {task.title}
-                  {task.iteration && task.iteration > 1 && (
-                    <span style={{ fontSize: 10, color: '#94A3B8', marginLeft: 4 }}>#{task.iteration}</span>
-                  )}
-                </span>
+                <span style={{ ...S.taskTitle, opacity: task.status === 'done' ? 0.7 : 1 }}>{task.title}</span>
                 <LiveDuration startedAt={task.started_at} completedAt={task.completed_at} />
               </div>
             ))}

@@ -128,4 +128,4 @@ If keep: done. If update: continue as if it doesn't exist.
 
 ## Read Matched Rules
 
-Read any matched rules for this step. Origin-specific rules (e.g., `resolve-stitch-url`) may update `meta.yml` — for example, resolving a Stitch screen ID to a preview URL and setting `hasMarkup: true`.
+Read any matched rules for this step. Origin-specific rules (e.g., `provide-stitch-url`) may update `meta.yml` — for example, resolving a Stitch screen ID to a preview URL and setting `hasMarkup: true`.

@@ -11,7 +11,7 @@ params:
   region: ~
 files:
   - key: screenshot
-    path: designbook/stories/{storyId}/screenshots/reference/{breakpoint}--{region}.png
+    path: $DESIGNBOOK_DATA/stories/{storyId}/screenshots/reference/{breakpoint}--{region}.png
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
@@ -19,33 +19,47 @@ reads:
 
 # Capture Reference
 
-Captures reference screenshots by loading the source URL at each breakpoint viewport width via Playwright.
+Captures reference screenshots by loading the source URL at each breakpoint viewport width via Playwright. Uses the `DeboStoryCheck` test item for all parameters.
 
-## Params (per iteration)
+## Params (from DeboStoryCheck test item)
 
 | Param | Source | Description |
 |---|---|---|
-| `url` | `meta.yml` → `reference.source.url` | URL to screenshot |
-| `viewportWidth` | design-tokens.yml breakpoint | Pixel width for this breakpoint |
-| `outputPath` | computed | `designbook/stories/{storyId}/screenshots/reference/{breakpoint}--{region}.png` |
+| `scene` | test item | Scene reference in `group:sceneName` format |
+| `storyId` | test item | Story identifier |
+| `breakpoint` | test item | Breakpoint name |
+| `region` | test item | Region name |
 
 ## Execution
 
-1. **Resolve storyId and read meta.yml**
+1. **Resolve reference URL** from `DeboStory` entity:
    ```bash
    _debo story --scene ${scene}
    ```
-   Read `designbook/stories/{storyId}/meta.yml` → `reference.source.url` and `reference.breakpoints`.
+   Read the `reference.url` from the story JSON output. If no reference URL is available, skip with a warning.
 
-   If `source.url` is a download URL (triggers file download instead of rendering), download it to a local temp file first, then use `file:///tmp/reference-${storyId}.html` as the capture URL.
+   **Download URLs:** If the reference URL triggers a file download instead of rendering in the browser (e.g., Google Stitch `htmlCode.downloadUrl`), download it first:
+   ```bash
+   curl -sL "$URL" -o /tmp/reference-${storyId}.html
+   ```
+   Then use `file:///tmp/reference-${storyId}.html` as the capture URL.
 
-2. **Capture screenshot** for this breakpoint/region combination (from params):
+2. **Capture screenshot** for this breakpoint/region combination:
 
-   a. **Check skip condition**: If output file already exists and `source.url` has not changed, skip.
+   a. **Check skip condition**: If output file already exists and reference URL has not changed, skip.
 
-   b. **Resolve viewport width** from `design-tokens.yml` and **selector** from `meta.yml` regions.
+   b. **Resolve viewport width** from `design-tokens.yml`.
 
-   c. **Capture** using the method from the `playwright-capture` rule (full-page CLI or element Node API depending on region type).
+   c. **Select capture mode by region:**
+
+   | Region | Mode | Method |
+   |--------|------|--------|
+   | `full` (or no selector) | Full-page | `npx playwright screenshot --full-page` (CLI) |
+   | `header` | Element | Node API: `page.locator('header').first().screenshot()` |
+   | `footer` | Element | Node API: `page.locator('footer').first().screenshot()` |
+   | Other named region | Element | Node API: use selector from check's `selector` field |
+
+   For element captures the reference HTML page must contain a matching HTML element. If the selector matches nothing, skip with a warning.
 
    d. **Verify** by reading the captured image.
 

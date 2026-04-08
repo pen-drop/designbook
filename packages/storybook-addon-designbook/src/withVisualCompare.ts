@@ -14,97 +14,46 @@ interface RegionDef {
   selector: string;
 }
 
+interface StoryCheck {
+  breakpoint: string;
+  region: string;
+  selector?: string;
+}
+
+interface StoryJSON {
+  checks: StoryCheck[];
+}
+
 // Cache fetched regions keyed by storyId/breakpoint
 const regionCache = new Map<string, RegionDef[]>();
+// Cache the full story fetch to avoid multiple requests per breakpoint
+const storyCache = new Map<string, Promise<StoryJSON | null>>();
+
+function fetchStory(storyId: string): Promise<StoryJSON | null> {
+  const cached = storyCache.get(storyId);
+  if (cached) return cached;
+
+  const promise = fetch(`/__designbook/story/${encodeURIComponent(storyId)}`)
+    .then((res) => (res.ok ? (res.json() as Promise<StoryJSON>) : null))
+    .catch(() => null);
+
+  storyCache.set(storyId, promise);
+  return promise;
+}
 
 async function fetchRegions(storyId: string, breakpoint: string): Promise<RegionDef[]> {
   const cacheKey = `${storyId}/${breakpoint}`;
   const cached = regionCache.get(cacheKey);
   if (cached) return cached;
 
-  const metaUrl = `/__designbook/load?path=stories/${encodeURIComponent(storyId)}/meta.yml`;
-  try {
-    const res = await fetch(metaUrl);
-    if (!res.ok) return [];
-    const text = await res.text();
-    let content: string;
-    try {
-      const json = JSON.parse(text) as { exists?: boolean; content?: string };
-      if (!json.exists || !json.content) return [];
-      content = json.content;
-    } catch {
-      content = text;
-    }
+  const story = await fetchStory(storyId);
+  if (!story?.checks) return [];
 
-    // Parse regions for the given breakpoint from meta.yml
-    const regions = parseRegions(content, breakpoint);
-    regionCache.set(cacheKey, regions);
-    return regions;
-  } catch {
-    return [];
-  }
-}
+  const regions = story.checks
+    .filter((c) => c.breakpoint === breakpoint)
+    .map((c) => ({ name: c.region, selector: c.selector ?? c.region }));
 
-function parseRegions(yamlContent: string, targetBp: string): RegionDef[] {
-  const regions: RegionDef[] = [];
-  let inBreakpoints = false;
-  let currentBp: string | null = null;
-  let inRegions = false;
-  let currentRegion: string | null = null;
-
-  for (const line of yamlContent.split('\n')) {
-    const trimmed = line.trimStart();
-    const indent = line.length - trimmed.length;
-
-    if (trimmed.startsWith('breakpoints:')) {
-      inBreakpoints = true;
-      continue;
-    }
-    if (!inBreakpoints) continue;
-
-    // Breakpoint name (indent 4)
-    if (indent === 4 && trimmed.endsWith(':') && !trimmed.includes(' ')) {
-      currentBp = trimmed.slice(0, -1);
-      inRegions = false;
-      currentRegion = null;
-      continue;
-    }
-
-    // Only parse the target breakpoint
-    if (currentBp !== targetBp) continue;
-
-    // regions: block (indent 6)
-    if (indent === 6 && trimmed === 'regions:') {
-      inRegions = true;
-      continue;
-    }
-
-    // Exit regions block on non-region content at indent 6
-    if (indent === 6 && inRegions && trimmed !== 'regions:') {
-      inRegions = false;
-      currentRegion = null;
-    }
-
-    if (!inRegions) continue;
-
-    // Region name (indent 8, ends with colon)
-    if (indent === 8 && trimmed.endsWith(':') && !trimmed.includes(' ')) {
-      currentRegion = trimmed.slice(0, -1);
-      continue;
-    }
-
-    // Region property (indent 10)
-    if (indent === 10 && currentRegion) {
-      const match = trimmed.match(/^selector:\s*"?([^"]+)"?$/);
-      if (match) {
-        regions.push({ name: currentRegion, selector: match[1]!.trim() });
-      }
-    }
-
-    // Exit breakpoints block
-    if (indent < 4 && trimmed.length > 0) break;
-  }
-
+  regionCache.set(cacheKey, regions);
   return regions;
 }
 

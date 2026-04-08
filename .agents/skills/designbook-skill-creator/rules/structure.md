@@ -54,6 +54,21 @@ when:
 ---
 ```
 
+### Provider Rules (`provides`)
+
+A rule with `provides: <param>` declares that it can resolve a specific workflow param. The workflow execution engine runs provider rules **before** the task starts (step 2a-resolve). If the param is already set (via `--params` or a previous step), the provider rule is skipped.
+
+```markdown
+---
+provides: url
+when:
+  steps: [design-verify:intake]
+  extensions: stitch
+---
+```
+
+Use `provide-` as the filename prefix for provider rules (e.g. `provide-stitch-url.md`). Constraint rules (without `provides`) use descriptive names as before.
+
 ## `blueprints/` — When Conditions
 
 Same `when` matching as rules. Use `when.steps` to scope to a specific creation stage.

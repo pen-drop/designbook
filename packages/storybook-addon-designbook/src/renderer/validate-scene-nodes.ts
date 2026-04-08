@@ -54,7 +54,11 @@ function walkNode(node: unknown, path: string, errors: SceneValidationError[]): 
       const slotPath = `${path}.slots.${slotName}`;
       if (typeof slotValue === 'string') continue;
       if (Array.isArray(slotValue)) {
-        walkNodes(slotValue as ComponentNode[], slotPath, errors);
+        for (let j = 0; j < slotValue.length; j++) {
+          const el = slotValue[j];
+          if (typeof el === 'string') continue;
+          walkNode(el as ComponentNode, `${slotPath}[${j}]`, errors);
+        }
       } else if (typeof slotValue === 'object' && slotValue !== null) {
         walkNode(slotValue, slotPath, errors);
       }

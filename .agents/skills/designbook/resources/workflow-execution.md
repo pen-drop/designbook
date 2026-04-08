@@ -6,116 +6,160 @@ when: {}
 
 ## Scope Boundary
 
-> ⛔ **OpenSpec artifacts are out of scope.** During any `debo` workflow, never read, load, or reference OpenSpec specs — change files, delta specs, main specs, or any artifact under `.agents/changes/` or similar OpenSpec paths. Task files, rule files, and blueprint files come exclusively from `.agents/skills/*/tasks/`, `.agents/skills/*/rules/`, and `.agents/skills/*/blueprints/`.
+> **OpenSpec artifacts are out of scope.** During any `debo` workflow, never read, load, or reference OpenSpec specs — change files, delta specs, main specs, or any artifact under `.agents/changes/` or similar OpenSpec paths. Task files, rule files, and blueprint files come exclusively from `.agents/skills/*/tasks/`, `.agents/skills/*/rules/`, and `.agents/skills/*/blueprints/`.
 
 ---
 
-## Phase 0: Bootstrap
+## Core Principle: Response-Driven Execution
 
-> Run FIRST — nothing works without it. Each Bash tool call starts a **fresh shell** — no state carries over between calls.
+The AI does not decide what to do next. Every CLI command returns a JSON response that tells the AI exactly what the next action is. The AI reads the response, acts on it, and calls the next command. This loop continues until the response says `"stage": "done"`.
 
-```bash
-# Define _debo and bootstrap at the top of EVERY Bash block
-_debo() { npx storybook-addon-designbook "$@"; }
-eval "$(_debo config)"
+**The AI never:**
+- Constructs task IDs manually (they come from CLI responses)
+- Decides which stage or task comes next (the CLI decides)
+- Reads tasks.yml directly to determine workflow state (use CLI commands)
+- Treats any task specially (intake is a regular task like any other)
 
-_debo workflow list --workflow design-screen
-WF_FILE="$DESIGNBOOK_HOME/.agents/skills/designbook/design/workflows/design-screen.md"
-_debo workflow create --workflow design-screen --workflow-file "$WF_FILE"
-```
-
-> **Important:** Always use `_debo` (or `npx storybook-addon-designbook`) for CLI commands. The `DESIGNBOOK_CMD` / `designbook()` shell function from config starts the Storybook dev server — it is **not** the CLI entry point.
-
-> **Bootstrap Scope:** `DESIGNBOOK_*` variables are scoped to the current Bash block only. Every new Bash tool call is a fresh shell — the two-line bootstrap (`_debo()` definition + `eval`) must appear at the top of each block. After `eval "$(_debo config)"`, all `$DESIGNBOOK_*` variables are immediately available.
-
-If no config found → stop and ask the user.
+**The AI always:**
+- Parses the JSON response from every CLI call
+- Acts on what the response says (`next_step`, `waiting_for`, `dispatch`, `done`)
+- Loads task instructions from the paths provided in the response
 
 ---
 
 ## Untracked Workflows (`track: false`)
 
-Workflows with `track: false` in frontmatter skip the entire workflow lifecycle (no `workflow create`, no `done`). They are utility commands, not artifact-producing workflows.
+Workflows with `track: false` in frontmatter skip the entire lifecycle (no `workflow create`, no `done`). They are utility commands, not artifact-producing workflows.
 
-**Execution:**
-1. Bootstrap (`_debo` helper — same as Phase 0)
+1. Bootstrap (`_debo` helper + `eval config`)
 2. Load the workflow file and read its instructions
-3. Execute the CLI commands directly — no tracking, no tasks.yml
-
-**When to use:** Dev tooling, server management, or any command that doesn't produce designbook artifacts.
+3. Execute CLI commands directly — no tracking, no tasks.yml
 
 ---
 
-## Phase 1: Intake & Planning (Main Agent)
+## Step 1: Bootstrap
 
-### 1. Resume Check + Create (one block)
+> Run at the top of **every** Bash block. Each Bash tool call starts a fresh shell — no state carries over.
 
-Bundle resume check and create in one Bash block:
+Bootstrap includes config loading **and** workflow creation in a single block:
 
 ```bash
+_debo() { npx storybook-addon-designbook "$@"; }
+eval "$(_debo config)"
+
+# Check for existing workflow or create new one
 EXISTING=$(_debo workflow list --workflow <id>)
 if [ -n "$EXISTING" ]; then
-  # ask user: continue or fresh?
-  # continue → WORKFLOW_NAME=$EXISTING  (skip workflow create — tasks.yml already exists; go straight to Phase 1 Step 3)
-  # fresh    → _debo workflow abandon --workflow $EXISTING; then create a new one below
   echo "EXISTING:$EXISTING"
 else
-  CREATE_JSON=$(_debo workflow create --workflow <id> --workflow-file <abs-path-to-workflow.md> [--parent <name>])
-  WORKFLOW_NAME=$(echo "$CREATE_JSON" | jq -r '.name')
+  WF_FILE="$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/workflows/<id>.md"
+  CREATE_JSON=$(_debo workflow create --workflow <id> --workflow-file "$WF_FILE")
+  echo "$CREATE_JSON"
 fi
 ```
 
-**Resume path:** when continuing an existing workflow, set `WORKFLOW_NAME=$EXISTING` and skip directly to Step 3 (Load Intake Instructions). Do **not** re-run `workflow create` — it has already been executed and tasks.yml is already populated.
+> **Important:** Always use `_debo` (or `npx storybook-addon-designbook`) for CLI commands. The `DESIGNBOOK_CMD` / `designbook()` shell function from config starts the Storybook dev server — it is **not** the CLI entry point.
 
-Use the **absolute path** for `--workflow-file`. Workflow files live at `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/workflows/<workflow-id>.md` (e.g. `$DESIGNBOOK_HOME/.agents/skills/designbook/vision/workflows/vision.md`).
+**Resume path:** If `EXISTING` is non-empty, ask the user: continue or fresh? If continue, set `WORKFLOW_NAME=$EXISTING` and resume from the current task. If fresh, abandon the old one first, then create.
 
-### 2. Create Workflow (resolves ALL steps)
+### Create Response
 
-```bash
-CREATE_JSON=$(_debo workflow create --workflow <id> --workflow-file <abs-path-to-workflow.md> [--parent <name>])
-WORKFLOW_NAME=$(echo "$CREATE_JSON" | jq -r '.name')
-```
-
-The CLI resolves **every step** at create time — including intake:
-- Reads `stages:` from the workflow frontmatter (grouped format with optional `each`)
-- For each step: resolves task_file, rules, blueprints, config_rules, config_instructions
-- The `intake` stage is declared in frontmatter like any other stage — resolved via `intake--<workflow-id>.md` fallback
-- Stores everything in `stage_loaded` in tasks.yml
-- Outputs JSON with `name` + `steps` + `stages` + `step_resolved` + `expected_params`
-
-### 3. Load Intake Instructions
-
-The `intake` stage is a regular declared stage — load its instructions via CLI:
-
-```bash
-_debo workflow instructions --workflow $WORKFLOW_NAME --stage intake
-```
-
-Read the `task_file` path from the output to load the actual task content and instructions.
-
-Also load any rules and blueprints referenced by the workflow's `step_resolved` output from the create step. **Blueprints behave identically to rules** — when a task brings blueprints, they are loaded automatically into context. Same mechanism, no special handling.
-
-If the user explicitly requests no confirmation (e.g. "ohne Rücksprache", "just do it"), skip the intake confirmation and proceed directly.
-
-The intake gathers information from the user and produces **iterables** — arrays of items that stages will iterate over (e.g. components to create, scenes to build).
-
-After intake is complete, build the params JSON from intake results and mark the intake task as done. The `--params` flag triggers implicit plan logic — the CLI expands iterables into tasks before marking intake done, preventing premature archival.
-
-The `workflow create` response includes `expected_params` — a map of all params required across all stages, aggregated from task file frontmatter. Use this to map intake results to the correct param names. Each param has `required: boolean` and `from_step: string`. Params with `required: true` MUST be provided; optional params have defaults.
-
-Build iterables from intake results and pass them as named arrays in `--params`:
-
-```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task intake \
-  --params '<params_json>'
-```
-
-**Params format:**
+The `workflow create` response contains everything the AI needs:
 
 ```json
 {
+  "name": "vision-2026-04-08-a3f7",
+  "steps": ["vision:intake", "create-vision"],
+  "stages": { "intake": { "steps": ["vision:intake"] }, "create-vision": { "steps": ["create-vision"] } },
+  "engine": "direct",
+  "step_resolved": {
+    "vision:intake": { "task_file": "/abs/path/to/intake--vision.md", "rules": [], "blueprints": [] },
+    "create-vision": { "task_file": "/abs/path/to/create-vision.md", "rules": ["/abs/path/to/rule.md"] }
+  },
+  "expected_params": {
+    "product_name": { "required": true, "from_step": "create-vision" },
+    "description": { "required": true, "from_step": "create-vision" }
+  }
+}
+```
+
+Key fields:
+- **`name`** — the workflow name, used in all subsequent CLI calls
+- **`step_resolved`** — maps each step to its `task_file`, `rules`, and `blueprints` (absolute paths). The first task is already `in-progress`.
+- **`expected_params`** — all params required across all stages
+
+### Create with `--params` (Child Workflows)
+
+When `--params` is passed to `workflow create` and satisfies all required params, the first task(s) are skipped and tasks are expanded immediately:
+
+```json
+{
+  "intake_skipped": true,
+  "expanded_tasks": [
+    { "id": "create-vision-a3f7", "step": "create-vision", "stage": "create-vision", "title": "..." }
+  ]
+}
+```
+
+When `intake_skipped: true` → skip directly to Step 2 with the expanded tasks.
+
+---
+
+## Step 2: Execute Tasks
+
+After bootstrap, the first task is already `in-progress`. The AI reads its `task_file` from `step_resolved` and follows the instructions. Every task follows the same loop — no task gets special treatment.
+
+### 2a. Load Task Instructions
+
+Read the `task_file` from the `step_resolved` entry for the current step. Also read any `rules` and `blueprints` listed. Alternatively use `workflow instructions`:
+
+```bash
+_debo workflow instructions --workflow $WORKFLOW_NAME --stage <step-name>
+```
+
+Read the `task_file` and all `rules`/`blueprints`. Rules are hard constraints — apply silently, never mention to the user.
+
+### 2a-resolve. Run Provider Rules
+
+After loading rules, check each rule's frontmatter for a `provides: <param>` field. For each expected param that is **not yet set** (not in `--params` and not resolved by a previous step), find a loaded rule that provides it and execute that rule's instructions to set the param.
+
+- If a provider rule exists → execute it, set the param
+- If no provider rule exists → leave the param unset (the task will handle it, e.g. ask the user)
+- If the param is already set → skip the provider rule entirely
+
+Provider rules run **before** the task starts. The task sees provider-resolved params as already set.
+
+### 2b. Do the Work
+
+Follow the task file instructions. This could mean:
+- Gathering information from the user (for tasks that collect params)
+- Creating file content and writing it via `write-file`
+- Running commands or capturing screenshots
+- Any other work described in the task file
+
+**Writing files:**
+```bash
+cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME <task-id> --key <key>
+<file content>
+EOF
+```
+
+If `valid: false` → fix content and call `write-file` again until valid.
+
+### 2c. Mark Task Done
+
+```bash
+_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--params <json>]
+```
+
+Pass `--params` when the task produces params that expand subsequent tasks (e.g. iterables for stages with `each`). The CLI decides whether to use `plan` or `append` mode based on the workflow state.
+
+**Params format for stages with `each`:**
+```json
+{
   "component": [
-    {"component": "header", "group": "Shell", "slots": ["navigation"]},
-    {"component": "footer", "group": "Shell", "slots": ["navigation"]}
+    {"component": "header", "group": "Shell"},
+    {"component": "footer", "group": "Shell"}
   ],
   "scene": [
     {"scene": "design-system:shell"}
@@ -123,179 +167,101 @@ _debo workflow done --workflow $WORKFLOW_NAME --task intake \
 }
 ```
 
-**How the CLI expands:**
+### 2d. Follow the Response
 
-- For each stage with `each: <name>`: creates one task per step × item in `params[name]`
-- For stages without `each`: creates one singleton task per step
-- Intake steps are excluded (handled by engine convention)
+Parse the `RESPONSE:` JSON line and act accordingly:
 
-**Example expansion:**
-
-```yaml
-# Workflow declares:
-stages:
-  component:
-    each: component
-    steps: [create-component]
-  scene:
-    each: scene
-    steps: [create-scene]
-  test:
-    each: scene
-    steps: [screenshot, resolve-reference, visual-compare, polish]
-```
-
-With `params.component` (2 items) and `params.scene` (1 item):
-- `component` stage: 2 tasks (create-component × 2)
-- `scene` stage: 1 task (create-scene × 1)
-- `test` stage: 4 tasks (4 steps × 1 scene)
-- **Total: 7 tasks**, all auto-generated
-
-Display the plan summary, then proceed immediately to Phase 2.
-
-### 4. Before Hooks
-
-For each `before` entry in workflow frontmatter:
-- Check `reads:` gate on the referenced workflow's intake task file — skip if missing
-- Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
-- Resolve workflow name to file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
-- Complete the hook workflow fully before continuing
-
-### When `--params` is Required
-
-The rule is simple: if `expected_params` (from the `workflow create` response) contains any entry with `required: true`, then `--params` **must** be passed to `workflow done --task intake`. Otherwise `--params` can be omitted.
-
-```bash
-# Has required params (e.g. vision: product_name required) → --params is mandatory
-_debo workflow done --workflow $WORKFLOW_NAME --task intake \
-  --params '{"product_name": "My Product", "description": "..."}'
-
-# No required params (e.g. tokens, design-guidelines) → --params can be omitted
-_debo workflow done --workflow $WORKFLOW_NAME --task intake
-```
-
-Whether stages use `each` or not is irrelevant to this rule. Workflows without `each` that still have required params (like `vision`) must pass `--params`. Workflows without required params auto-plan with empty params `{}`, and intake results are transported via conversation context.
-
----
-
-## Phase 2: Execute
-
-### Task ID Convention
-
-Task IDs are short hashes generated by the CLI during intake expansion. They follow the pattern `<step>-<6-char-hex>` (e.g., `create-vision-a3f2b1`). Do **not** construct task IDs manually.
-
-After `workflow done --task intake`, the RESPONSE JSON includes `expanded_tasks` — an array with all generated task IDs:
-
-```json
-{
-  "stage": "create-vision",
-  "expanded_tasks": [
-    { "id": "create-vision-a3f2b1", "step": "create-vision", "stage": "create-vision", "title": "Create Vision: My Product" }
-  ]
-}
-```
-
-Always capture task IDs from `expanded_tasks` and use them for all subsequent `write-file` and `done` calls.
-
-### Execution
-
-The main agent executes all tasks sequentially. For each task:
-
-1. Load instructions: `_debo workflow instructions --workflow $WORKFLOW_NAME --stage <task-step>`
-2. Read task data from tasks.yml: `params`, `files` + top-level `params`
-3. For each file declared in the task, create the content and write it via CLI:
-   ```bash
-   cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME <task-id> --key <key>
-   <file content>
-   EOF
-   ```
-   The CLI writes the file (engine decides where), validates it immediately, and returns JSON: `{ "valid": true|false, "errors": [...], "file_path": "..." }`
-4. If `valid: false` → fix the content and call `write-file` again until all files are green
-5. **Verify against intake** — after all files for the task pass validation, compare key output values against what was confirmed during intake. If any user-confirmed value diverges (e.g., a color, font, or dimension shown in the intake summary differs from the written output), fix the content and re-run `write-file`. Only values explicitly presented to and approved by the user during intake are in scope — internally derived values are not checked.
-6. Mark task done: `_debo workflow done --workflow $WORKFLOW_NAME --task <id>`
-
-> Rules are hard constraints — apply silently, never mention to the user.
-> `write-file` validates on write. `workflow done` is a gate-check only — it rejects if any file is not green.
-
-### Stage-based Response
-
-Every `workflow done` response ends with a `RESPONSE:` JSON line. Parse it and act accordingly:
-
-**Next step in same stage:**
+**Next task in same stage:**
 ```json
 { "stage": "component", "step_completed": "create-component", "next_step": "create-component" }
 ```
-→ Continue to the next task.
+→ Continue to the next task (go to 2a).
 
 **Stage transition:**
 ```json
-{ "stage": "test", "transition_from": "committed", "next_stage": "test", "next_step": "screenshot" }
+{ "stage": "test", "transition_from": "component", "next_stage": "test", "next_step": "screenshot" }
 ```
-→ Stage changed. Continue to the next step in the new stage.
+→ New stage. Load instructions for the new step (go to 2a).
 
 **Waiting for params (user input required):**
 ```json
-{ "stage": "preview", "waiting_for": { "user_approved": { "type": "boolean", "prompt": "Preview unter http://localhost:6006 — passt alles?" } } }
+{ "stage": "preview", "waiting_for": { "user_approved": { "type": "boolean", "prompt": "Preview OK?" } } }
 ```
-→ Ask the user the prompt question. Provide the answer and re-run the transition.
+→ Ask the user the prompt. Then call `done` again with the answer as `--params`.
 
 **Workflow complete:**
 ```json
 { "stage": "done" }
 ```
-→ Workflow archived. Process after hooks.
+→ Workflow archived. Process hooks (Step 3).
 
-### Merge Flow (git-worktree engine)
+**Workflow complete with child workflow dispatch:**
+```json
+{ "stage": "done", "dispatch": [{ "workflow": "design-verify", "workflow_file": "/abs/path", "params": {...} }] }
+```
+→ Workflow archived. Create and execute child workflows (Step 4), then process hooks.
 
-When all tasks are done and the engine is `git-worktree`, the `finalizing → done` transition requires a `merge_approved` param. The response will contain `waiting_for` with a merge prompt. Ask the user, then call `_debo workflow merge --workflow $WORKFLOW_NAME`.
+---
 
-For `direct` engine workflows, `finalizing → done` happens automatically (auto-archive).
+## Step 3: Hooks
+
+### Before Hooks
+
+For each `before` entry in workflow frontmatter:
+- Check `reads:` gate — skip if missing
+- Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
+- Resolve workflow file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
+- Complete the hook workflow fully before continuing
 
 ### After Hooks
 
-When the last `workflow done` auto-archives, process `after` entries from workflow frontmatter:
+When the workflow archives (response `"stage": "done"`), process `after` entries from frontmatter:
 - Prompt: "Run `/<workflow-id>` next?"
 - If accepted → start it with `--parent $WORKFLOW_NAME`
 
-### Optimize Pass (`--optimize`)
+---
 
-Runs **after** after-hooks, only when the `--optimize` flag was set at invocation.
+## Step 4: Child Workflow Dispatch
 
-1. Collect all files written during the workflow (from `write-file` results and tasks.yml `files`)
-2. Read each file and review for:
-   - **Performance** — unnecessary DOM nesting, unoptimized selectors, redundant CSS
-   - **Maintainability** — magic values, missing token references, duplicated logic
-   - **Accessibility** — missing ARIA attributes, contrast issues, semantic HTML
-   - **Design-system consistency** — deviations from tokens, guidelines, or conventions
-3. Output a numbered list of concrete suggestions:
-   ```
-   Optimierungsvorschläge:
-   1. [file:line] — Beschreibung + konkreter Fix
-   2. …
-   ```
-4. Do **not** apply changes automatically — only suggest. The user decides which to accept.
+When a `done` response contains `dispatch`, create child workflows:
 
-### Research Pass (`--research`, internal)
+```bash
+_debo workflow create --workflow <dispatch.workflow> \
+  --workflow-file <dispatch.workflow_file> \
+  --parent $WORKFLOW_NAME \
+  --params '<dispatch.params as JSON>'
+```
 
-Runs **after** optimize pass (if both set), only when the `--research` flag was set at invocation. This is an internal diagnostic for skill development — it audits the skill execution, not the user's artifacts.
+Since `--params` satisfies all required params, the response will include `intake_skipped: true` and `expanded_tasks`. Execute each child workflow completely (Steps 1–2) before starting the next.
 
-1. **Collect execution trace** — replay the conversation and log every:
-   - CLI command that failed (non-zero exit, error messages)
-   - Retry or fallback that was needed (e.g. wrong stage name, missing param)
-   - Ambiguity where the agent had to guess or try multiple approaches
-   - Undocumented behavior (CLI did something not described in skill files)
-2. **Root-cause each issue** — for every friction point, identify the source:
-   - `workflow-execution.md` — missing/wrong instruction
-   - `SKILL.md` — dispatch logic gap
-   - `cli-reference.md` — undocumented command or option
-   - Task/rule file — missing param, wrong format, unclear instruction
-   - CLI bug — the tool itself behaved unexpectedly
-3. **Output diagnostic report:**
-   ```
-   Skill-Diagnose:
-   1. [source-file:section] — Was passiert ist → Ursache → Konkreter Fix
-   2. …
+---
 
-   Statistik: N Fehler, M Retries, K Ambiguitäten
-   ```
-4. Do **not** modify skill files automatically — only report. The developer decides which fixes to apply.
+## Merge Flow (git-worktree engine)
+
+When the engine is `git-worktree`, the `finalizing → done` transition returns `waiting_for` with a merge prompt. Ask the user, then:
+
+```bash
+_debo workflow merge --workflow $WORKFLOW_NAME
+```
+
+For `direct` engine, `finalizing → done` happens automatically (auto-archive).
+
+---
+
+## Optimize Pass (`--optimize`)
+
+Runs after hooks, only when `--optimize` flag was set at invocation.
+
+1. Collect all files written during the workflow (from `write-file` results)
+2. Review for: performance, maintainability, accessibility, design-system consistency
+3. Output numbered suggestions — do not apply, only suggest
+
+---
+
+## Research Pass (`--research`, internal)
+
+Runs after optimize pass, only when `--research` flag was set. Internal diagnostic for skill development.
+
+1. Replay conversation — log every CLI failure, retry, ambiguity, undocumented behavior
+2. Root-cause each issue (workflow-execution.md, SKILL.md, cli-reference.md, task/rule file, CLI bug)
+3. Output diagnostic report — do not modify files, only report

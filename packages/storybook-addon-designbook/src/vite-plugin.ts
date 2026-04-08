@@ -9,6 +9,7 @@ import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { scanAllWorkflows } from './workflow-utils';
+import { DeboStory } from './story-entity';
 
 /** Minimal glob matcher — supports * (no slash) and **-slash (zero or more dirs). */
 function globMatch(pattern: string, filePath: string): boolean {
@@ -303,6 +304,46 @@ export function designbookLoadPlugin(
         } catch (err: any) {
           res.statusCode = 500;
           res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/story', (req: IncomingMessage, res: any) => {
+        if (req.method !== 'GET') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          return;
+        }
+
+        try {
+          const url = new URL(req.url || '', 'http://localhost');
+          // Extract storyId from path: /__designbook/story/{storyId}
+          const pathParts = url.pathname.split('/').filter(Boolean);
+          const storyId = pathParts[0] ? decodeURIComponent(pathParts[0]) : url.searchParams.get('id');
+
+          if (!storyId) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Missing storyId — use /__designbook/story/{storyId}' }));
+            return;
+          }
+
+          const config = { data: designbookDir, technology: 'html' as const };
+          const story = DeboStory.load(config, storyId);
+
+          if (!story) {
+            res.statusCode = 404;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: `Story not found: ${storyId}` }));
+            return;
+          }
+
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify(story.toJSON()));
+        } catch (err: unknown) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
         }
       });
     },
