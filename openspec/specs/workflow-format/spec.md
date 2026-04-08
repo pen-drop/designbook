@@ -1,262 +1,240 @@
 # workflow-format Specification
 
 ## Purpose
-Defines how workflows are declared: the YAML frontmatter format, marker syntax, task/rule file discovery, and the stages-based composition model.
+Defines workflow YAML format, task/rule/blueprint schema, plan resolution, parameter expansion, and optional features (hooks, resume).
 
 ---
 
-## Requirements
+## Requirement: Workflow frontmatter uses grouped stage definitions
 
-### Requirement: YAML frontmatter workflow metadata
-
-Workflow definition files SHALL live at `<concern>/workflows/<workflow-id>.md` within the unified `designbook` skill, replacing `debo-*.md` files in `.agents/workflows/`. The frontmatter is simplified — no skill registration fields.
+Workflow files live at `<concern>/workflows/<workflow-id>.md`. Frontmatter MUST use a `stages` map where each key is a stage name with `steps`, optional `each`, `workflow`, and `params`.
 
 ```yaml
 ---
 title: Design Screen
-description: Create screens, pages, and views for a section
-stages: [design-screen:intake, create-component, design-screen:plan-entities,
-         design-screen:map-entity, design-screen:create-scene]
+description: Create screen design components for a section
+stages:
+  intake:
+    steps: [design-screen:intake]
+  component:
+    each: component
+    steps: [create-component]
+  sample-data:
+    steps: [create-sample-data]
+  entity-mapping:
+    steps: [design-screen:map-entity]
+  scene:
+    each: scene
+    steps: [design-screen:create-scene]
+  verify:
+    each: scene
+    workflow: design-verify
+engine: direct
 before:
   - workflow: css-generate
     execute: if-never-run
 ---
 ```
 
-#### Scenario: Workflow file parsed on dispatch
-- **WHEN** the `designbook` skill dispatches to `design-screen`
-- **THEN** it reads `design/workflows/design-screen.md` and extracts `title`, `description`, `stages`, and `before`
-
-#### Scenario: Frontmatter contains no registration fields
-- **WHEN** any `workflows/*.md` file is read
-- **THEN** its frontmatter does NOT contain `name:`, `id:`, or `category:`
-
-#### Scenario: description is required and used for dispatch
-- **WHEN** the skill scans `**/workflows/*.md` at dispatch time
-- **THEN** each file's `description` field is matched against the user's argument or intent to select the correct workflow
-- **AND** the description contains specific trigger phrases (e.g. "create screens, pages, views for a section") that the broad SKILL.md description does not need to repeat
-
-#### Scenario: debo-*.md files no longer exist
-- **WHEN** any system scans `.agents/workflows/debo-*.md`
-- **THEN** no files are found — replaced by `<concern>/workflows/<workflow-id>.md`
-
-#### Scenario: Frontmatter is parsed on workflow start
-- **WHEN** a debo-* workflow file contains a `workflow:` block
-- **THEN** the AI extracts the title and stages array
+- `workflow create` parses `stages` as `Record<string, StageDefinition>` with `steps?: string[]`, `each?: string`, `workflow?: string`, `params?: Record<string, StageParam>`
+- Frontmatter MUST NOT contain `name:`, `id:`, or `category:`
+- `engine: direct` uses direct engine; `engine: git-worktree` uses git worktree engine
+- `description` is required — matched against user intent at dispatch time
 
 ---
 
-### Requirement: !WORKFLOW_FILE marker
+## Requirement: Stage definition fields
 
-Workflow and skill files SHALL use `!WORKFLOW_FILE <task-id>: <path>` to declare file production.
+Each stage supports: `steps`, `each` (iterable param key), `workflow` (subworkflow ID), `params` (required parameters).
 
-#### Scenario: Marker indicates file creation point
-- **WHEN** a step contains `!WORKFLOW_FILE create-tokens: design-system/design-tokens.yml`
-- **THEN** the AI knows this step will create/modify that file and calls `workflow update --files <path>` to register it
-
-#### Scenario: Multiple files per task
-- **WHEN** a task produces multiple files
-- **THEN** each has its own `!WORKFLOW_FILE` marker and is independently registered and validated
-
-#### Scenario: Markers are declarative, not imperative
-- Markers are signals for the AI; the AI is responsible for executing the corresponding CLI commands
+- `each: component` with `component: [{...}, {...}]` in params → one task per item per step
+- `workflow: design-verify` with `each: scene` → `workflow done` returns `dispatch` with per-item child invocations
+- `params: { user_approved: { type: boolean, prompt: "..." } }` blocks stage until fulfilled → `workflow done` returns `waiting_for`
+- `workflow` and `steps` are mutually exclusive (validation error if both set); `workflow` requires `each`
 
 ---
 
-### Requirement: !WORKFLOW_DONE marker
+## Requirement: No marker syntax
 
-Workflow files SHALL use `!WORKFLOW_DONE` to signal workflow completion.
+No `!WORKFLOW_FILE` or `!WORKFLOW_DONE` markers. File production declared in task frontmatter via `files`; completion determined by lifecycle state machine.
 
-#### Scenario: Marks end of workflow
-- **WHEN** the `!WORKFLOW_DONE` marker is reached
-- **THEN** all tasks must be done and the workflow auto-archives
+- Task `files: [{ file: "<template>", key: "<key>", validators: [...] }]` → CLI resolves paths at plan time, tracks in tasks.yml
 
 ---
 
-### Requirement: Task files use filename as stage selector
+## Requirement: Task files use when.steps for stage matching
 
-A task file's filename (without extension) SHALL match the stage name it applies to.
+A task file declares applicable steps via `when.steps`. Filename is a fallback with deprecation warning.
 
-#### Scenario: Task file for create-component stage
-- **WHEN** a workflow executes stage `create-component`
-- **THEN** the AI scans all `skills/*/tasks/create-component.md` files and loads those whose `when` conditions match
-
-#### Scenario: No when — always applies
-- **WHEN** a task file has no `when` frontmatter field
-- **THEN** it is loaded for any config when the stage name matches
-
-#### Scenario: Multiple task files match same stage
-- **WHEN** two skills both have `tasks/create-component.md`
-- **THEN** both are candidates; `when` conditions disambiguate; if both match, both are loaded (additive)
+- `when: { steps: [create-component] }` → matched for step `create-component`
+- Multiple matches → `name/as` deduplication and priority sorting applied
+- No `when.steps` match but `<step>.md` exists → filename fallback with deprecation warning
+- No `when` field → unconditional match at specificity 0
 
 ---
 
-### Requirement: Task file frontmatter — when, params, files
+## Requirement: Task file frontmatter — when, params, files, reads
 
 ```yaml
-# tasks/create-component.md
 ---
 when:
-  component.framework: sdc
+  steps: [design-screen:create-scene]
 params:
-  component: page
+  section_id: ~
+  section_title: ~
+  scenes: []
+reads:
+  - path: $DESIGNBOOK_DATA/data-model.yml
+    workflow: debo-data-model
 files:
-  - components/{{ component }}/{{ component }}.component.yml
+  - file: $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+    key: section-scenes
+    validators: [scene]
 ---
 ```
 
-#### Scenario: Param substitution in files
-- **WHEN** the AI instantiates a task with `params: { component: page }`
-- **THEN** `components/{{ component }}/{{ component }}.component.yml` resolves to `components/page/page.component.yml`
+- `{{ section_id }}` and `$DESIGNBOOK_DATA` resolved from params and env map
+- `params: { component: ~ }` (null) = required; raises error if missing at expansion
+- `params: { slots: [] }` = optional with default `[]`
+- `key: section-scenes` → content written via `workflow write-file <name> <task-id> --key section-scenes`
+- `validators: [scene]` → `write-file` runs validator against content
 
 ---
 
-### Requirement: Rule files use when to scope to stages and config
+## Requirement: Rule files use when to scope to steps and config
 
-Rule files in `skills/<name>/rules/` are candidates for all stages; `when` narrows scope.
+Rules in `skills/<name>/rules/` are candidates for all steps; `when` narrows scope.
 
-#### Scenario: Rule scoped to stage
-- **WHEN** `rules/drupal-field-naming.md` declares `when: { stage: create-data-model, backend: drupal }`
-- **THEN** it is applied only during `create-data-model` when `DESIGNBOOK_BACKEND=drupal`
-
-#### Scenario: Rule without stage scope
-- **WHEN** a rule has no `when.stage`
-- **THEN** it is applied to all stages where its other `when` conditions match
-
-#### Scenario: AI applies rules as hard constraints
-- **WHEN** matching rule files are found for a task
-- **THEN** the AI applies all rule constraints during file creation (same weight as SKILL.md rules)
+- `when: { steps: [create-data-model], backend: drupal }` → applies only during that step+config combo
+- Rules without `when` (or empty) are skipped (`requireWhen=true`)
 
 ---
 
-### Requirement: Stage reference resolution — colon syntax
+## Requirement: Blueprint files use when to scope to steps and config
 
-Stage names in workflow frontmatter SHALL support two forms: plain names (shared tasks) and `<workflow-id>:<task>` (workflow-specific tasks resolved via glob).
-
-#### Scenario: Plain stage resolves to shared task
-- **WHEN** a stage is declared as `create-component` (no colon)
-- **THEN** the system scans `**/tasks/create-component.md` across all skill dirs and applies `when:` filtering
-
-#### Scenario: Colon stage resolves to qualified task file
-- **WHEN** a stage is declared as `design-screen:intake`
-- **THEN** the system resolves via glob `**/intake--design-screen.md` within the skill
-
-#### Scenario: Colon syntax extends existing skill:task pattern
-- **WHEN** `design-screen:intake` is used
-- **THEN** it resolves analogously to the old `designbook-vision:intake` — but via glob within the unified skill instead of a direct skill-dir path
+Blueprints use same `when` system as rules, deduplicated by `type`+`name` with priority-based resolution. Highest `priority` wins (default: 0); equal priority uses last match.
 
 ---
 
-### Requirement: File locations
+## Requirement: Step name resolution — colon syntax and when.steps
 
-Task, rule, and resource files SHALL follow the unified three-level skill structure:
+Step names: plain (`create-component`) or qualified (`<workflow-id>:<step>`), both matched by `when.steps`.
 
-- Skill root resources: `skills/designbook/resources/` (execution engine)
-- Concern-level shared tasks: `skills/designbook/<concern>/tasks/<task>.md`
+- Plain step → scans `skills/**/tasks/*.md` for `when.steps` matches
+- Qualified step → returns best match (highest specificity)
+- Rule matching includes plain, qualified, and `<workflow-id>:*` variants
+
+---
+
+## Requirement: File locations
+
+- Concern-level tasks: `skills/designbook/<concern>/tasks/<task>.md`
 - Workflow-specific tasks: `skills/designbook/<concern>/tasks/<task>--<workflow-id>.md`
-- Concern-level shared rules: `skills/designbook/<concern>/rules/<rule>.md`
-- Workflow-specific rules: `skills/designbook/<concern>/rules/<rule>--<workflow-id>.md`
-- Workflow definitions: `skills/designbook/<concern>/workflows/<workflow-id>.md`
-- Framework tasks/rules: `skills/designbook-css-<framework>/tasks/` and `rules/` (unchanged)
-
-#### Scenario: Workflow-specific task discovered via colon stage
-- **WHEN** stage `design-screen:create-scene` is resolved
-- **THEN** glob finds `designbook/design/tasks/create-scene--design-screen.md`
-
-#### Scenario: Shared task discovered via plain stage
-- **WHEN** stage `create-component` is resolved
-- **THEN** glob finds `designbook/design/tasks/create-component.md`
-
-#### Scenario: before workflow reference is relative
-- **WHEN** a workflow declares `before: workflow: css-generate`
-- **THEN** the system resolves to `designbook/css-generate/workflows/css-generate.md`
+- Concern-level rules: `skills/designbook/<concern>/rules/<rule>.md`
+- Workflows: `skills/designbook/<concern>/workflows/<workflow-id>.md`
+- Extensions: `skills/designbook-<ext>/tasks/` and `rules/`
 
 ---
 
-### Requirement: Tasks are collected at runtime after dialog stage
+## Requirement: tasks.yml structure
 
-Concrete task instances SHALL be determined by the AI after the dialog stage — never declared in workflow frontmatter.
-
-#### Scenario: Tasks collected after dialog
-- **WHEN** the dialog stage completes
-- **THEN** the AI determines which task files to instantiate, substitutes params from dialog result, and calls `workflow create --tasks '<json>'` before any file creation
-
-#### Scenario: Stage gate
-- **WHEN** all tasks in stage `create-component` reach status `done`
-- **THEN** the AI proceeds to stage `create-scene`
-
-#### Scenario: Within-stage order is free
-- **WHEN** stage `create-component` has multiple tasks
-- **THEN** the AI MAY execute them in any order
+Contains top-level `stages` map, `stage_loaded` map (resolved step data per step: task_file, rules, blueprints, config_rules, config_instructions), and `tasks` (flat array with `step` and `stage` per task).
 
 ---
 
-### Requirement: Extended WorkflowTask data model for resolution mode
+## Requirement: Name/as deduplication and priority sorting
 
-Each task in tasks.yml MAY store pre-resolved execution context when `workflow plan` is used in resolution mode:
+- `as: design:create-component` with higher priority → replaces core task
+- No `as` on either → both loaded (stored as array in `stage_loaded`)
+
+---
+
+## Requirement: resolveAllStages at create time
+
+Called during `workflow create`. Resolves task files, rules, blueprints, config for every step via `resolveTaskFilesRich`. Results stored in `stage_loaded`.
+
+- `expected_params` aggregated from task frontmatter; null defaults → `required: true`
+- Subworkflow stages (`workflow: design-verify`, `each: scene`) resolved and stored in `subworkflows[<stage-name>]`
+
+---
+
+## Requirement: expandTasksFromParams
+
+Computes concrete tasks from `stage_loaded` and `params`.
+
+- `each: component` with array params → per-item tasks
+- Already-expanded steps skipped; subworkflow stages skipped
+- Each task receives `task_file`, `rules`, `blueprints`, `config_rules`, `config_instructions` from `stage_loaded`, `files` from `expandFileDeclarations`
+
+---
+
+## Requirement: Task ID generation
+
+`generateTaskId` produces `<step-basename>-<6-char-hash>` from step name, params, index. Duplicates get numeric suffix.
+
+---
+
+## Requirement: Two expansion modes — plan and append
+
+- **Plan mode** (`workflow done --task intake --params <json>`): replaces tasks, preserves done tasks, sets engine fields, marks first pending as `in-progress`
+- **Append mode** (`workflow done --task <non-intake> --params <json>`): appends new tasks, merges params additively
+
+---
+
+## Requirement: checkWhen — two-source lookup
+
+Resolves each `when` key from context first, then config as fallback. Returns matched key count on success, `false` on any failure.
+
+- Context key takes precedence over config
+- Config supports dot-path traversal (`frameworks.css: tailwind`)
+- Array values use inclusion check (`extensions: canvas` matches `['canvas', 'drupal']`)
+- Empty `when` → unconditional match at specificity 0 (if `requireWhen=false`)
+
+---
+
+## Requirement: resolveFiles — unified glob-and-filter
+
+Globs markdown files, parses frontmatter, filters by `when`. With `requireWhen=true` (default), files without `when` skipped. Returns `ResolvedFile` with `specificity`, `path`, `name`, `frontmatter`.
+
+---
+
+## Requirement: validateAndMergeParams
+
+- Required param missing → expansion error
+- Item params merged with global params
+
+---
+
+## Requirement: File path expansion
+
+`expandFilePath` expands `$VAR` from env map, `{{ param }}` (strict — throws on unknown), `{param}` (lenient — leaves unknown for runtime).
+
+```
+$DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+→ /home/app/.designbook/sections/dashboard/dashboard.section.scenes.yml
+```
+
+---
+
+## Requirement: Before/after hooks
 
 ```yaml
-params:                            # global (from --params)
-  section_id: dashboard
-
-tasks:
-  - id: create-component-button
-    title: Create Button Component
-    type: component
-    status: done
-    stage: create-component
-    depends_on: []
-    params:
-      component: button
-      slots: [icon, label]
-    task_file: /abs/path/.agents/skills/designbook-drupal/components/tasks/create-component.md
-    rules:
-      - /abs/path/.agents/skills/designbook-css-daisyui/rules/daisyui-naming.md
-    config_rules:
-      - "Komponenten-Namen immer auf Englisch, kebab-case"
-    config_instructions:
-      - "Nach Erstellung prüfen ob die Komponente im Storybook ohne Fehler rendert"
-    files:
-      - path: /abs/path/components/button/button.component.yml
-        requires_validation: true
+before:
+  - workflow: debo-sample-data
+    execute: if-never-run
+after:
+  - workflow: debo-design-guideline
 ```
 
-#### Scenario: params stored at plan time (global)
-- **WHEN** `workflow plan --params '<json>'` is called
-- **THEN** the top-level `params` object is written to tasks.yml
-
-#### Scenario: params stored at plan time (per-task)
-- **WHEN** a task entry is generated from an item with params
-- **THEN** the task has a `params` object with the item's params (merged with task file defaults)
-
-#### Scenario: depends_on stored per task
-- **WHEN** the CLI computes dependencies from stage ordering
-- **THEN** each task has `depends_on: [task-id, ...]` (empty array for first-stage tasks)
-
-#### Scenario: task_file stored per task
-- **WHEN** the CLI resolves a task file for a stage
-- **THEN** the task has `task_file: /abs/path/to/task-file.md`
-
-#### Scenario: rules stored per task
-- **WHEN** the CLI matches rule files for a task's stage
-- **THEN** the task has `rules: [/abs/path/rule1.md, ...]`
-
-#### Scenario: config_rules stored per task
-- **WHEN** `designbook.config.yml` contains `workflow.rules.<stage>` entries for the task's stage
-- **THEN** the task has `config_rules: ["string", ...]`
-
-#### Scenario: config_instructions stored per task
-- **WHEN** `designbook.config.yml` contains `workflow.tasks.<stage>` entries for the task's stage
-- **THEN** the task has `config_instructions: ["string", ...]`
-
-#### Scenario: params and depends_on absent is valid (backwards compat)
-- **WHEN** `workflow plan` is called via the old interface (without `--workflow-file` and `--items`)
-- **THEN** no `params`, `depends_on`, `task_file`, or `rules` are written; existing behavior is unchanged
+- Before hooks processed after intake completes, before executing tasks
+- Execution policies: `always` (run if `reads:` satisfied), `if-never-run` (skip if workflow exists in archive), `ask` (prompt user)
+- `reads:` files act as gate — hook skipped silently if missing
+- After hooks always prompt user; user may accept or decline
+- Hook-triggered workflows pass `--parent $WORKFLOW_NAME_A`; child stores `parent: <A-name>`
 
 ---
 
-### Requirement: tasks.yml stores stages array and flat stage field per task
+## Requirement: Resume check
 
-#### Scenario: tasks.yml structure
-- **WHEN** `workflow create --tasks '<json>'` runs
-- **THEN** tasks.yml contains a top-level `stages` array and each task entry has a flat `stage` field — no nesting or parent/child relationships
+- `workflow list` returns existing workflows → AI asks "Continue or start fresh?"
+- Continue → reuse existing `$WORKFLOW_NAME`; fresh → `workflow create`

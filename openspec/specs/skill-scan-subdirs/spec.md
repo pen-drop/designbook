@@ -1,69 +1,105 @@
-## Requirements
+# Skill Structure Specification
 
-### Requirement: Recursive rule file scanning discovers files in subdirectories
+## Purpose
+Defines skill structure: file discovery globs, SKILL.md conventions, and rule/blueprint/task content requirements.
 
-`matchRuleFiles` SHALL discover all `.md` files under `designbook/<concern>/rules/` at any concern level, in addition to the existing `skills/*/rules/` scan.
+---
 
-#### Scenario: Rule file in subdirectory is discovered
+## Requirement: Rule file scanning — flat glob with when-condition matching
 
-- **WHEN** a rule file exists at `.agents/skills/designbook-drupal/data-model/rules/layout-builder/canvas.md`
-- **THEN** the file is included as a candidate for `when` condition matching
+`matchRuleFiles` scans `skills/**/rules/*.md` (single `*` after `rules/` — direct children only) and filters by `when` frontmatter.
 
-#### Scenario: Rule file in nested subdirectory is discovered
+Discovery examples:
+- `.agents/skills/designbook/design/rules/playwright-session.md` — concern-level
+- `.agents/skills/designbook/css-generate/fonts/google/rules/font-url-construction.md` — sub-concern via `**`
+- `.agents/skills/designbook-drupal/rules/some-rule.md` — extension skill
 
-- **WHEN** a rule file exists at `.agents/skills/<skill>/rules/<sub1>/<sub2>/rule.md`
-- **THEN** the file is included as a candidate for `when` condition matching
+All discovered files have `when` conditions evaluated against context and config.
 
-#### Scenario: Flat rule files continue to be discovered
+---
 
-- **WHEN** a rule file exists at `.agents/skills/<skill>/rules/rule.md` (top-level, no subdirectory)
-- **THEN** the file is included as a candidate for `when` condition matching, unchanged from current behavior
+## Requirement: Task file scanning — broad glob with when.steps matching
 
-#### Scenario: Concern-level rule discovered
+`resolveTaskFiles` scans `skills/**/tasks/*.md` (direct children of `tasks/`) and filters by `when.steps` matching the stage name.
 
-- **WHEN** a rule file exists at `.agents/skills/designbook/design/rules/scenes-constraints.md`
-- **THEN** it is included as a candidate for `when` condition matching
+- `when: { steps: [create-component] }` → matches stage `create-component`
+- `when: { steps: [design-screen:intake] }` → matches qualified stage
+- Generic stages return all matching tasks across skills (multiple skills can contribute)
+- No `when.steps` match → fallback to `skills/**/tasks/<stage>.md` by filename with deprecation warning
 
-#### Scenario: Workflow-specific rule discovered via -- qualifier
+---
 
-- **WHEN** a rule file exists at `.agents/skills/designbook/design/rules/some-rule--design-screen.md`
-- **THEN** it is included as a candidate and matched to the `design-screen` workflow via `when:` conditions
+## Requirement: Name/as deduplication and priority sorting
 
-#### Scenario: Skill root rules discovered
+Files with `as:` frontmatter override target file; `priority:` determines winner.
 
-- **WHEN** a rule file exists at `.agents/skills/designbook/rules/global-rule.md`
-- **THEN** it is included as a candidate for all stages
+- `designbook-drupal/tasks/create-component.md` with `as: design:create-component`, `priority: 10` → replaces core task
+- No `as:` on either → both returned, sorted by priority (lowest first)
 
-### Requirement: Recursive task file scanning discovers files in subdirectories (generic stage)
+---
 
-For generic stage resolution (no `skill:task` prefix), `resolveTaskFile` SHALL scan `tasks/` recursively across all skill directories, including all `<concern>/tasks/` subdirs within the unified `designbook` skill.
+## Requirement: SKILL.md is index-only
 
-#### Scenario: Task file in subdirectory is discovered for generic stage
+Every `designbook-*/SKILL.md` contains only: frontmatter (`name`, `description`), brief overview, links to task/rule/resource files, optional reference material (schemas, format diagrams, valid value lists). Body target ~40 lines.
 
-- **WHEN** a task file exists at `.agents/skills/<skill>/tasks/<subdir>/<stage>.md`
-- **THEN** the file is treated as a candidate and `when` condition filtering is applied
+SHALL NOT contain: execution instructions, procedural steps, "load X skill" directives, CLI commands.
 
-#### Scenario: Named stage resolution is unaffected
+Test: if removing a section would prevent execution, it belongs in a task or rule file. Pure reference (schema diagram, valid value table) MAY stay.
 
-- **WHEN** a stage name uses the `skill:task` format (e.g., `designbook-sections:create-section`)
-- **THEN** the CLI resolves directly to `.agents/skills/designbook-sections/tasks/create-section.md` without recursive scanning
+---
 
-#### Scenario: Concern-level task discovered
+## Requirement: Core designbook SKILL.md exception
 
-- **WHEN** a task file exists at `.agents/skills/designbook/design/tasks/create-component.md`
-- **THEN** it is a candidate for the `create-component` stage via glob `designbook/**/tasks/create-component.md`
+The core `designbook/SKILL.md` (registered as `debo`) MUST contain dispatch logic (sub-command routing, file-to-workflow mapping) and flag parsing, as these are required at skill load time before any workflow/task selection.
 
-#### Scenario: Colon stage reference resolves to qualified file via glob
+- Dispatch section routes `$ARGUMENTS[0]` to `<concern>/workflows/<id>.md`
+- Global flags table (e.g. `--optimize`, `--research`) parsed from `$ARGUMENTS`
+- Still links to `resources/workflow-execution.md`, `resources/cli-reference.md`, etc.
 
-- **WHEN** a stage is declared as `design-screen:intake`
-- **THEN** the system resolves via glob `**/intake--design-screen.md` — finding `designbook/design/tasks/intake--design-screen.md`
+---
 
-#### Scenario: Colon stage resolution does not use direct path
+## Requirement: designbook-addon-skills documents the SKILL.md contract
 
-- **WHEN** `design-screen:intake` is resolved
-- **THEN** the system uses glob `**/intake--design-screen.md`, NOT a direct path like `designbook-design-screen/tasks/intake.md`
+The `designbook-addon-skills` meta-skill documents what belongs in SKILL.md vs. task/rule/resource files, referencing the skill-creator progressive disclosure model.
 
-#### Scenario: Named stage resolution via skill:task is unaffected
+---
 
-- **WHEN** a stage uses the old `skill:task` format pointing to a still-existing skill (e.g., `designbook-drupal:create-component`)
-- **THEN** the CLI resolves directly to `.agents/skills/designbook-drupal/tasks/create-component.md` without glob
+## Requirement: Rule and blueprint examples use real patterns
+
+Examples SHALL NOT use fictional component names. Use `COMPONENT_NAMESPACE:` variable references or actual component names. Blueprints use `slots` key (not `children`).
+
+---
+
+## Requirement: Blueprints contain only overridable guidance
+
+No absolute constraints (RULE, NEVER, MUST NOT) in blueprints — those belong in rule files. Blueprints retain only overridable starting points.
+
+---
+
+## Requirement: No duplicate when.steps entries
+
+Blueprint and rule `when.steps` arrays SHALL NOT contain duplicate step names.
+
+---
+
+## Requirement: Blueprint titles match their type
+
+Data-mapping blueprints SHALL NOT use "Rule:" prefix. Use descriptive titles (e.g. "Blueprint: Canvas").
+
+---
+
+## Requirement: Link rule coherence
+
+The `link.md` rule's description and example SHALL show the same data structure consistently.
+
+---
+
+## Requirement: DevTools rule — constraints not procedures
+
+`devtools-context.md` states WHEN/WHAT to collect (computed styles, DOM snapshot, accessibility data alongside screenshots), not full implementation. JS code reduced to pseudocode or moved to reference. When DevTools MCP unavailable → visible warning to user (not silent skip).
+
+---
+
+## Requirement: Tasks declare WHAT not HOW
+
+Task files contain output declarations and constraints, not implementation instructions. Imperative guidance (e.g. "MANDATORY: Change the app css") rephrased as `files:` entries or moved to rules.

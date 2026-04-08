@@ -1,50 +1,66 @@
 # ensure-sample-data Specification
 
 ## Purpose
-Defines requirements for the `ensure-sample-data` stage in `debo-design-screen` that checks and generates missing sample data records before entity mapping begins.
+Defines requirements for the `sample-data` stage in `debo-design-screen` and the standalone `debo-sample-data` workflow that generate sample data records for a section. The `create-sample-data` step is idempotent: it checks existing records and only appends what is missing.
 
 ## Requirements
 
-### Requirement: ensure-sample-data stage runs after collect-entities
-`debo-design-screen` SHALL include an `ensure-sample-data` stage that executes after `collect-entities` and before `map-entity`. The stage SHALL check existing sample data and generate missing records based on design intent.
+### Requirement: sample-data stage runs within design-screen after component and before entity-mapping
+The `debo-design-screen` workflow SHALL include a `sample-data` stage with a `create-sample-data` step. This stage MUST execute after the `component` stage and before the `entity-mapping` stage. The standalone `debo-sample-data` workflow SHALL provide the same `create-sample-data` step with an intake stage for independent use.
 
 #### Scenario: stage runs when data.yml is missing
-- **WHEN** `collect-entities` completes and `sections/[section-id]/data.yml` does not exist
-- **THEN** the stage generates a complete `data.yml` for all entity types identified by `collect-entities`
+- **WHEN** the `sample-data` stage runs and `sections/[section-id]/data.yml` does not exist
+- **THEN** the step SHALL generate a complete `data.yml` for all entity types identified from `data-model.yml`
 
 #### Scenario: stage runs when data.yml exists but is incomplete
 - **WHEN** `sections/[section-id]/data.yml` exists but has fewer records than required
-- **THEN** the stage appends only the missing records without modifying existing ones
+- **THEN** the step SHALL append only the missing records without modifying existing ones
 
 #### Scenario: stage skips when data is sufficient
 - **WHEN** all entity types have at least the required number of records
-- **THEN** the stage completes without writing any files
+- **THEN** the step SHALL complete without writing any files
 
-### Requirement: view config entities are generated with items_per_page
-When a scene includes a view entity, the `ensure-sample-data` stage SHALL generate or extend `config.view.<bundle>` with `items_per_page` and `sort_field`.
+### Requirement: record count derives from view mode and template
+The number of content records generated per bundle SHALL depend on the view mode template configuration in `data-model.yml`.
 
-#### Scenario: view config does not exist
-- **WHEN** `config.view.<bundle>` has no records in data.yml
-- **THEN** a config record is generated with a meaningful `items_per_page` (default: 6) and `sort_field`
+#### Scenario: non-full view mode generates 6 records
+- **WHEN** a bundle has a non-full view mode (listing, teaser, card, etc.)
+- **THEN** `required_count` SHALL be 6
 
-#### Scenario: view config exists but lacks items_per_page
-- **WHEN** `config.view.<bundle>` exists but `items_per_page` is absent or zero
-- **THEN** `items_per_page` is set to the default (6) and the record is updated
+#### Scenario: full view mode with layout-builder or canvas template preserves existing and ensures minimum 3
+- **WHEN** a bundle has `view_modes.full.template: layout-builder` or `canvas`
+- **THEN** `required_count` SHALL be `max(existing_count, 3)`
 
-### Requirement: content record count derives from view items_per_page
-The number of content records generated for a view's target entity type SHALL be at least `items_per_page` from that view's config.
+#### Scenario: full view mode with other templates generates 1 record
+- **WHEN** a bundle has a full view mode with a template other than layout-builder or canvas (e.g. `field-map`)
+- **THEN** `required_count` SHALL be 1
 
-#### Scenario: fewer records than items_per_page
-- **WHEN** `config.view.docs_list.items_per_page` is 6 and `content.node.docs_page` has 2 records
-- **THEN** 4 additional `node.docs_page` records are generated to reach 6
+#### Scenario: config entity generates 1 record
+- **WHEN** a bundle is under `config:` in data-model.yml
+- **THEN** `required_count` SHALL be 1 unless the bundle already has records
 
-#### Scenario: non-view listing entity (no view config)
-- **WHEN** an entity type is used in a listing view mode but is not backed by a view config entity
-- **THEN** the stage generates at least 6 records as default
+### Requirement: content and config sections mirror data-model.yml structure
+The generated `data.yml` MUST use `content:` and `config:` as top-level section keys matching `data-model.yml`. Entity types SHALL be nested under their section. Entity types SHALL NOT appear as root-level keys.
+
+#### Scenario: content entity placed under content section
+- **WHEN** `data-model.yml` defines `content.node.article`
+- **THEN** generated records SHALL appear under `content.node.article` in `data.yml`
+
+#### Scenario: config entity placed under config section
+- **WHEN** `data-model.yml` defines `config.view.docs_list`
+- **THEN** generated records SHALL appear under `config.view.docs_list` in `data.yml`
 
 ### Requirement: existing records are never overwritten
-The `ensure-sample-data` stage SHALL only append new records. Existing records in `data.yml` SHALL remain unchanged.
+The `create-sample-data` step SHALL only append new records. Existing records in `data.yml` SHALL remain unchanged.
 
 #### Scenario: partial data exists
 - **WHEN** `node.article` has 2 records and 4 more are needed
-- **THEN** new records are appended with ids continuing from the highest existing id
+- **THEN** new records SHALL be appended with ids continuing from the highest existing id
+
+### Requirement: purpose landing-page bundles skipped when entities list excludes them
+When `entities` is provided (from `plan-entities`) and a bundle declares `purpose: landing-page` in `data-model.yml` but is NOT present in the `entities` list, the `create-sample-data` step SHALL skip it entirely.
+
+#### Scenario: landing-page bundle not in entities list
+- **WHEN** a bundle has `purpose: landing-page` in data-model.yml
+- **AND** `entities` is provided and does not include that bundle
+- **THEN** no records SHALL be generated for that bundle

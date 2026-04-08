@@ -9,7 +9,7 @@ Centralizes `designbook.config.yml` discovery and loading into a shared module w
 The addon package SHALL export a `findConfig(startDir?)` function and a `loadConfig(startDir?)` function from a dedicated `config` module.
 
 #### Scenario: Module is importable from addon package
-- **WHEN** a consumer imports from `@designbook/storybook-addon-designbook/config`
+- **WHEN** a consumer imports from `storybook-addon-designbook/config`
 - **THEN** the exported module SHALL provide `findConfig` and `loadConfig` functions
 
 ### Requirement: Walk-up directory traversal
@@ -36,19 +36,27 @@ The `findConfig` function SHALL search for `designbook.config.yml` (or `.yaml`) 
 The `loadConfig` function SHALL parse the found config file and return a config object with defaults applied for missing keys.
 
 #### Scenario: All keys present
-- **WHEN** a config file contains `dist`, `technology`, and `tmp` keys
-- **THEN** `loadConfig()` SHALL return their values
+- **WHEN** a config file contains `technology`, `workspace`, `designbook.home`, and `designbook.data` keys
+- **THEN** `loadConfig()` SHALL return their resolved values
 
 #### Scenario: Missing keys use defaults
-- **WHEN** a config file does not contain `dist`
-- **THEN** `loadConfig()` SHALL return `dist: "designbook"` as default
-- **AND** `technology` SHALL default to `"html"`
-- **AND** `tmp` SHALL default to `"tmp"`
+- **WHEN** a config file does not contain `technology`
+- **THEN** `loadConfig()` SHALL default `technology` to `"html"`
+- **AND** when no config file is found, `data` SHALL default to `resolve(cwd, "designbook")`
 
-### Requirement: Dist path resolution relative to config location
-The `loadConfig` function SHALL resolve the `dist` path relative to the directory containing the config file, not relative to `cwd()`.
+### Requirement: Path resolution hierarchy
+The `loadConfig` function SHALL resolve paths in a layered hierarchy relative to the config file location:
+1. `workspace` -- resolved relative to the config directory; defaults to the config directory itself
+2. `designbook.home` -- resolved relative to the config directory; defaults to the workspace directory
+3. `designbook.data` -- resolved relative to `designbook.home` as `home/<name>`; defaults to `home/designbook`
+4. `dirs.*` -- resolved relative to the config directory
 
-#### Scenario: Workspace-local config with relative dist
-- **WHEN** config file is at `/project/promptfoo/workspaces/test-1/designbook.config.yml`
-- **AND** config contains `dist: ./designbook`
-- **THEN** the resolved dist path SHALL be `/project/promptfoo/workspaces/test-1/designbook`
+#### Scenario: Workspace-local config with relative paths
+- **WHEN** config file is at `/project/workspaces/test-1/designbook.config.yml`
+- **AND** config contains `workspace: .` and `designbook: { data: designbook }`
+- **THEN** the resolved workspace SHALL be `/project/workspaces/test-1`
+- **AND** the resolved data path SHALL be `/project/workspaces/test-1/designbook`
+
+#### Scenario: No config file found
+- **WHEN** no config file exists in any ancestor directory
+- **THEN** `loadConfig()` SHALL return defaults with `workspace` set to `cwd`, `designbook.home` set to `cwd`, and `designbook.data` set to `resolve(cwd, "designbook")`

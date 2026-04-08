@@ -1,83 +1,30 @@
 ## ADDED Requirements
 
 ### Requirement: CLI binary entry point
-The `storybook-addon-designbook` package SHALL expose a CLI binary named `storybook-addon-designbook` via the `bin` field in `package.json`.
+The package SHALL expose a CLI binary `storybook-addon-designbook` via `bin` in `package.json`.
 
-#### Scenario: CLI is invocable via npx
-- **WHEN** a user runs `npx storybook-addon-designbook config`
-- **THEN** the CLI executes the `config` subcommand and outputs environment variable exports
-
-#### Scenario: CLI with no subcommand shows usage
-- **WHEN** a user runs `npx storybook-addon-designbook` with no arguments
-- **THEN** the CLI prints available subcommands and exits with code 1
+- `npx storybook-addon-designbook config` executes the config subcommand
+- No arguments prints usage and exits with code 1
 
 ### Requirement: Config subcommand outputs shell exports
-The `config` subcommand SHALL load `designbook.config.yml` using the existing `loadConfig()` function and output shell `export` statements to stdout.
+`config` loads `designbook.config.yml` via `loadConfig()` and outputs `export` statements to stdout.
 
-#### Scenario: Config values are exported
-- **WHEN** a user runs `npx storybook-addon-designbook config`
-- **AND** a `designbook.config.yml` exists with `backend: drupal`, `frameworks.component: sdc`, `frameworks.css: daisyui`, `dist: packages/integrations/test-integration-drupal/designbook`
-- **THEN** stdout contains lines including `export DESIGNBOOK_BACKEND='drupal'`, `export DESIGNBOOK_FRAMEWORK_COMPONENT='sdc'`, `export DESIGNBOOK_FRAMEWORK_CSS='daisyui'`, `export DESIGNBOOK_DIST='<absolute-path>'`
-
-#### Scenario: SDC provider is derived
-- **WHEN** config contains `outputs.root: packages/integrations/test-integration-drupal`
-- **THEN** stdout includes `export DESIGNBOOK_SDC_PROVIDER='test_integration_drupal'` (basename with hyphens converted to underscores)
-
-#### Scenario: Defaults applied when config is missing
-- **WHEN** no `designbook.config.yml` exists
-- **THEN** stdout includes `export DESIGNBOOK_DIST='<cwd>/designbook'` and `export DESIGNBOOK_TMP='tmp'`
-
-#### Scenario: Output is eval-compatible
-- **WHEN** a user runs `eval "$(npx storybook-addon-designbook config)"`
-- **THEN** all `DESIGNBOOK_*` environment variables are set in the current shell
+- Exports include `DESIGNBOOK_BACKEND`, `DESIGNBOOK_FRAMEWORK_COMPONENT`, `DESIGNBOOK_FRAMEWORK_CSS`, `DESIGNBOOK_DIST` (absolute path)
+- SDC provider derived from `outputs.root` basename (hyphens → underscores): `DESIGNBOOK_SDC_PROVIDER`
+- No config file: defaults applied (e.g. `DESIGNBOOK_DIST='<cwd>/designbook'`, `DESIGNBOOK_TMP='tmp'`)
+- Output is `eval`-compatible: `eval "$(npx storybook-addon-designbook config)"`
 
 ### Requirement: Environment variable naming convention
-The CLI SHALL convert config keys to environment variables using these rules:
 - Prefix: `DESIGNBOOK_`
-- Dot-separated keys become underscore-separated (e.g., `outputs.root` → `DESIGNBOOK_OUTPUTS_ROOT`)
-- The `frameworks` prefix becomes `FRAMEWORK` (singular) (e.g., `frameworks.css` → `DESIGNBOOK_FRAMEWORK_CSS`)
-- All parts are uppercased
-- Object values are skipped (only leaf values are exported)
+- Dot-separated keys → underscore-separated (`outputs.root` → `DESIGNBOOK_OUTPUTS_ROOT`)
+- `frameworks` prefix becomes `FRAMEWORK` singular (`frameworks.css` → `DESIGNBOOK_FRAMEWORK_CSS`)
+- All parts uppercased; object values skipped (leaf values only)
 
-#### Scenario: Nested key conversion
-- **WHEN** config contains `frameworks: { component: sdc, css: daisyui }`
-- **THEN** stdout includes `export DESIGNBOOK_FRAMEWORK_COMPONENT='sdc'` and `export DESIGNBOOK_FRAMEWORK_CSS='daisyui'`
-
-### Requirement: CLI is built as part of the addon build
-The CLI entry point SHALL be compiled by tsup as a node-platform ESM entry with a `#!/usr/bin/env node` shebang.
-
-#### Scenario: Build produces executable CLI
-- **WHEN** `pnpm run build` is executed in the addon package
-- **THEN** `dist/cli.js` exists and starts with `#!/usr/bin/env node`
+### Requirement: CLI build
+CLI entry point compiled by tsup as node-platform ESM with `#!/usr/bin/env node` shebang. Build produces `dist/cli.js`.
 
 ### Requirement: storybook start --force reuses existing port
-
-When `storybook start --force` is called without an explicit `--port` flag, the CLI SHALL reuse the port from the existing Storybook instance.
-
-#### Scenario: Force restart preserves port
-- **WHEN** Storybook is running on port 44073
-- **AND** `storybook start --force` is called without `--port`
-- **THEN** the new Storybook instance SHALL start on port 44073
-
-#### Scenario: Explicit port overrides existing
-- **WHEN** Storybook is running on port 44073
-- **AND** `storybook start --force --port 6006` is called
-- **THEN** the new Storybook instance SHALL start on port 6006
-
-#### Scenario: No existing instance picks free port
-- **WHEN** no Storybook instance is running
-- **AND** `storybook start` is called without `--port`
-- **THEN** the CLI SHALL pick a free port via OS port allocation
+Without explicit `--port`, `start --force` reuses the running instance's port. Explicit `--port` overrides. No existing instance picks a free port via OS allocation.
 
 ### Requirement: storybook restart reuses existing port
-
-When `storybook restart` is called without an explicit `--port` flag, the CLI SHALL reuse the port from the existing Storybook instance.
-
-#### Scenario: Restart preserves port
-- **WHEN** Storybook is running on port 44073
-- **AND** `storybook restart` is called without `--port`
-- **THEN** the new Storybook instance SHALL start on port 44073
-
-#### Scenario: Port read before stop
-- **WHEN** `restart` or `start --force` reads the existing port
-- **THEN** the port SHALL be captured from the PID file BEFORE `stop()` removes it
+Without explicit `--port`, `restart` reuses the running instance's port. Port is captured from PID file BEFORE `stop()` removes it.

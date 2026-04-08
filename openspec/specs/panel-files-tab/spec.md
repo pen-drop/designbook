@@ -1,41 +1,39 @@
 # panel-files-tab Specification
 
+## Purpose
+Files sub-tab in the workflow panel: displays all files from all tasks with status indicators and task-based filtering.
+
 ## Requirements
 
-### Requirement: Files sub-tab displays all workflow files with status coloring
-The workflow panel SHALL include a "Files" sub-tab alongside Summary, Tasks, and Context. It SHALL collect all files from all tasks in the workflow and display them as a flat list with three-state coloring.
+### Requirement: Files sub-tab with status coloring
+The workflow panel SHALL include a "Files" sub-tab showing a flat file list with status-based row coloring and status dots.
 
-#### Scenario: File with no validation result shows white
-- **WHEN** a file has no `validation_result`
-- **THEN** the file row SHALL use a neutral/white style indicating pending status
+Row background (`fileRowColor`):
+1. No `validation_result` — neutral/inherit (pending)
+2. `validation_result.valid === true` — green (`rgba(34, 197, 94, 0.12)`)
+3. Otherwise — orange (`rgba(245, 158, 11, 0.12)`)
 
-#### Scenario: File with validation result but not valid shows orange
-- **WHEN** a file has `validation_result` present but `valid !== true`
-- **THEN** the file row SHALL use an orange style indicating modified/written status
+Status dot (`fileStatusDot`), `flushed_at` is primary green indicator:
+1. `flushed_at` set — `done` (green)
+2. No `validation_result` — `pending` (gray)
+3. `validation_result.valid === true` — `done` (green)
+4. Otherwise — `in-progress` (yellow)
 
-#### Scenario: File with valid validation shows green
-- **WHEN** a file has `validation_result.valid === true`
-- **THEN** the file row SHALL use a green style indicating flushed/validated status
+Each file shows shortened path via `shortenPath()`, file key as label, and a `ContextAction` with validation result.
 
-#### Scenario: Files tab shows shortened paths
-- **WHEN** files are displayed
-- **THEN** each file SHALL show a shortened path via `shortenPath()` and optionally the file key as a label
+### Requirement: File badge variant in task summary
+`fileBadgeVariant` determines badge color, checking `flushed_at` first:
+1. `flushed_at` set — `green`
+2. No `validation_result` — `gray`
+3. `valid === true` — `green`
+4. `valid === false` — `yellow`
+5. Otherwise — `gray`
 
-### Requirement: Files tab supports task-based filtering
-The Files sub-tab SHALL provide filter badges for each task, allowing users to view files for specific tasks only.
+### Requirement: Task-based filtering
+Filter badges per task allow viewing files for specific tasks only.
 
-#### Scenario: All files shown when no filter active
-- **WHEN** no task filter badge is selected
-- **THEN** all files from all tasks SHALL be displayed
-
-#### Scenario: Filtering by task shows only that task's files
-- **WHEN** user clicks a task filter badge
-- **THEN** only files belonging to that task SHALL be displayed
-
-#### Scenario: Multiple task filters can be active
-- **WHEN** user clicks multiple task filter badges
-- **THEN** files from all selected tasks SHALL be displayed
-
-#### Scenario: Toggling a filter badge deselects it
-- **WHEN** user clicks an already-active task filter badge
-- **THEN** the filter is removed and files from all tasks are shown again (unless other filters remain)
+- No filter active: all files displayed
+- Click badge: show only that task's files
+- Click active badge: remove filter
+- Multiple badges: show files from all selected tasks
+- No files: display "No files registered yet."
