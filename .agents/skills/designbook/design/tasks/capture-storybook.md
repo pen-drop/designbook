@@ -2,7 +2,8 @@
 name: designbook:design:capture-storybook
 title: "Capture Storybook: {scene} ({breakpoint}/{region})"
 when:
-  steps: [capture, recapture]
+  steps: [recapture]
+  type: screenshot
 priority: 20
 params:
   scene: ~
@@ -19,16 +20,7 @@ reads:
 
 # Capture Storybook
 
-Captures Storybook screenshots at each breakpoint viewport width via Playwright. Uses the `DeboStoryCheck` test item for all parameters.
-
-## Params (from DeboStoryCheck test item)
-
-| Param | Source | Description |
-|---|---|---|
-| `scene` | test item | Scene reference in `group:sceneName` format |
-| `storyId` | test item | Story identifier |
-| `breakpoint` | test item | Breakpoint name |
-| `region` | test item | Region name |
+Captures a Storybook screenshot at the given breakpoint viewport width via Playwright.
 
 ## Execution
 

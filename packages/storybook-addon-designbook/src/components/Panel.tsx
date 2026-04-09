@@ -43,6 +43,8 @@ interface WorkflowTask {
   config_rules?: string[];
   config_instructions?: string[];
   files?: TaskFile[];
+  description?: string;
+  summary?: string;
 }
 
 interface StageLoaded {
@@ -258,12 +260,34 @@ const S = {
     color: 'inherit',
     flexWrap: 'wrap' as const,
   },
-  taskTitle: {
+  taskContent: {
     flex: 1,
     minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 1,
+  },
+  taskTitleText: {
     overflow: 'hidden' as const,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const,
+  },
+  taskDescription: {
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+    opacity: 0.6,
+    fontSize: '0.85em',
+  },
+  taskSummary: {
+    opacity: 0.5,
+    fontSize: '0.85em',
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+    flexShrink: 0,
+    maxWidth: '30%',
+    textAlign: 'right' as const,
   },
   taskFileBadges: { display: 'inline-flex', gap: 4, flexWrap: 'wrap' as const, alignItems: 'center' },
   overviewSection: { marginBottom: 8 },
@@ -553,11 +577,14 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
       {activeTask && (
         <DeboCollapsible
           title={
-            <span style={S.taskRow}>
+            <div style={S.taskRow}>
               <StatusDot status="in-progress" />
-              <span style={S.taskTitle}>{activeTask.title}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={S.taskTitleText}>{activeTask.title}</div>
+                {activeTask.description && <div style={S.taskDescription}>{activeTask.description}</div>}
+              </div>
               <LiveDuration startedAt={activeTask.started_at} completedAt={activeTask.completed_at} />
-            </span>
+            </div>
           }
           variant="action-inline"
           status="running"
@@ -683,7 +710,21 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
             {tasks.map((task) => (
               <div key={task.id} style={getTaskRowStyle(task.status)}>
                 <StatusDot status={task.status} />
-                <span style={{ ...S.taskTitle, opacity: task.status === 'done' ? 0.7 : 1 }}>{task.title}</span>
+                <div style={{ ...S.taskContent, opacity: task.status === 'done' ? 0.7 : 1 }}>
+                  <span style={S.taskTitleText} title={task.title}>
+                    {task.title}
+                  </span>
+                  {task.description && (
+                    <span style={S.taskDescription} title={task.description}>
+                      {task.description}
+                    </span>
+                  )}
+                </div>
+                {task.summary && task.status === 'done' && (
+                  <span title={task.summary} style={S.taskSummary}>
+                    {task.summary}
+                  </span>
+                )}
                 <LiveDuration startedAt={task.started_at} completedAt={task.completed_at} />
               </div>
             ))}

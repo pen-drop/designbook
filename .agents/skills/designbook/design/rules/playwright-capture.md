@@ -1,7 +1,7 @@
 ---
 name: designbook:design:playwright-capture
 when:
-  steps: [capture, recapture, compare, verify]
+  steps: [capture, recapture, compare, polish]
 ---
 
 # Playwright Capture

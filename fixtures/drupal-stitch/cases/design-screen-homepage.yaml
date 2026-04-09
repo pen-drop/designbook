@@ -5,7 +5,8 @@ fixtures:
   - tokens
   - css-generate
   - sections
-  - sample-data-homepage
+  - design-shell
+  - design-verify-shell
 
 prompt: |
   You are working in the directory {{workspace}}.
