@@ -215,7 +215,7 @@ export interface SceneTreeNode {
   /** Recursive slots — each slot maps to child SceneTreeNodes. */
   slots?: Record<string, SceneTreeNode[]>;
 
-  /** Direct children — only present for scene-refs (inlined at render time). */
+  /** Direct children — scene-refs (inlined at render time) or multi-node entities. */
   children?: SceneTreeNode[];
 }
 

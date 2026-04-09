@@ -37,8 +37,8 @@ export function view(tree: SceneTreeNode[]): ComponentNode[] {
   const result: ComponentNode[] = [];
 
   for (const node of tree) {
-    // Scene-refs flatten their children inline
-    if (node.kind === 'scene-ref' && node.children) {
+    // Scene-refs and multi-node entities flatten their children inline
+    if (node.children && !node.component) {
       result.push(...view(node.children));
       continue;
     }

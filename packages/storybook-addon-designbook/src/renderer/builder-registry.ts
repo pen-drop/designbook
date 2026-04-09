@@ -104,29 +104,35 @@ async function resolveSlots(
  * - ComponentNode slots → resolveSlots()
  */
 async function resolveToTree(nodes: RawNode[], meta: BuildResult['meta'], ctx: BuildContext): Promise<SceneTreeNode[]> {
-  // If the builder produced multiple nodes (e.g. entity mapping returning array),
-  // each top-level node may need further resolution.
-  const results = await Promise.all(
-    nodes.map(async (node): Promise<SceneTreeNode[]> => {
-      if (needsBuilding(node)) {
-        // Nested SceneNode ref — dispatch recursively (gets its own meta)
-        return ctx.buildNode(node);
-      }
-      // ComponentNode — wrap with the parent meta for the first node,
-      // subsequent nodes from the same builder are component-typed
+  // Resolve each raw node into SceneTreeNodes
+  const resolved: SceneTreeNode[] = [];
+  for (const node of nodes) {
+    if (needsBuilding(node)) {
+      resolved.push(...(await ctx.buildNode(node)));
+    } else {
       const cn = node as ComponentNode;
       const childSlots = cn.slots ? await resolveSlots(cn.slots, ctx) : undefined;
-      return [
-        {
-          ...meta,
-          component: cn.component,
-          props: cn.props,
-          slots: childSlots,
-        },
-      ];
-    }),
-  );
-  return results.flat();
+      resolved.push({
+        kind: 'component',
+        component: cn.component,
+        props: cn.props,
+        slots: childSlots,
+      });
+    }
+  }
+
+  // If the builder has entity/scene-ref meta and produced multiple nodes,
+  // wrap them as children of a single meta node (e.g. entity with N sections).
+  // Single-node results merge meta directly onto the node.
+  if (meta.kind === 'entity' || meta.kind === 'scene-ref') {
+    if (resolved.length === 1) {
+      return [{ ...meta, ...resolved[0] }];
+    }
+    // Multiple nodes → entity parent with children
+    return [{ ...meta, children: resolved }];
+  }
+
+  return resolved;
 }
 
 // ── Builder Registry ───────────────────────────────────────────────────

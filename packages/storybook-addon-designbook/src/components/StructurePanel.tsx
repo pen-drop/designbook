@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParameter, useChannel } from 'storybook/manager-api';
+import { AddonPanel } from 'storybook/internal/components';
 import type { SceneTreeNode } from '../renderer/types';
 import { CompositionTree } from './CompositionTree';
 import { MappingDetail } from './MappingDetail';
@@ -11,12 +12,15 @@ interface StructurePanelProps {
 
 export function StructurePanel({ active }: StructurePanelProps) {
   const sceneTree = useParameter<SceneTreeNode[] | undefined>('sceneTree');
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [selectedNode, setSelectedNode] = useState<SceneTreeNode | null>(null);
 
-  // Listen for select-node events from the canvas overlay
-  const handleSelectNode = useCallback((data: { index: number }) => {
-    setSelectedIndex(data.index);
-  }, []);
+  // Listen for select-node events from the canvas overlay (index-based)
+  const handleSelectNode = useCallback(
+    (data: { index: number }) => {
+      if (sceneTree?.[data.index]) setSelectedNode(sceneTree[data.index]!);
+    },
+    [sceneTree],
+  );
 
   useChannel({
     [EVENTS.SELECT_NODE]: handleSelectNode,
@@ -24,31 +28,20 @@ export function StructurePanel({ active }: StructurePanelProps) {
 
   // Reset selection when story changes
   useEffect(() => {
-    setSelectedIndex(null);
+    setSelectedNode(null);
   }, [sceneTree]);
 
-  if (!active) return null;
-
-  if (!sceneTree?.length) {
-    return (
-      <div
-        style={{
-          padding: 16,
-          fontFamily: 'Inter, sans-serif',
-          fontSize: 13,
-          color: '#9ca3af',
-        }}
-      >
-        No scene structure available for this story.
-      </div>
-    );
-  }
-
-  const selectedNode = selectedIndex !== null ? sceneTree[selectedIndex] : null;
-
-  if (selectedNode) {
-    return <MappingDetail node={selectedNode} onBack={() => setSelectedIndex(null)} />;
-  }
-
-  return <CompositionTree tree={sceneTree} selectedIndex={selectedIndex} onSelectNode={setSelectedIndex} />;
+  return (
+    <AddonPanel active={active ?? false}>
+      {!sceneTree?.length ? (
+        <div style={{ padding: 16, fontSize: 13, color: 'var(--textMutedColor, #9ca3af)' }}>
+          No scene structure available for this story.
+        </div>
+      ) : selectedNode ? (
+        <MappingDetail node={selectedNode} onBack={() => setSelectedNode(null)} />
+      ) : (
+        <CompositionTree tree={sceneTree} onSelectNode={setSelectedNode} />
+      )}
+    </AddonPanel>
+  );
 }

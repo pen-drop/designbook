@@ -1,24 +1,89 @@
-import React from 'react';
+/**
+ * CompositionTree — scene structure tree for the Storybook manager panel.
+ *
+ * Custom tree matching Storybook sidebar styling. Ark UI TreeView doesn't work
+ * in the manager environment (zag-js state machine fails to initialize).
+ */
+import React, { useState, useCallback } from 'react';
+import {
+  DatabaseIcon,
+  ShareIcon,
+  ComponentIcon,
+  MarkupIcon,
+  ChevronSmallDownIcon,
+  ChevronSmallRightIcon,
+} from '@storybook/icons';
 import type { SceneTreeNode } from '../renderer/types';
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CompositionTreeProps {
   tree: SceneTreeNode[];
-  selectedIndex: number | null;
-  onSelectNode: (index: number) => void;
+  onSelectNode: (node: SceneTreeNode) => void;
 }
 
-const KIND_COLORS: Record<string, string> = {
-  entity: '#3b82f6',
-  'scene-ref': '#22c55e',
-  component: '#9ca3af',
-  string: '#6b7280',
+// ─── Styles (Storybook sidebar look) ──────────────────────────────────────────
+
+const S = {
+  root: {
+    fontSize: 13,
+    padding: 4,
+  } as React.CSSProperties,
+  row: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '5px 8px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    color: 'var(--textColor, #fff)',
+    userSelect: 'none' as const,
+  } as React.CSSProperties,
+  chevron: {
+    display: 'inline-flex',
+    flexShrink: 0,
+    color: 'var(--textMutedColor, #9ca3af)',
+    width: 14,
+    height: 14,
+  } as React.CSSProperties,
+  chevronSpacer: {
+    width: 14,
+    height: 14,
+    flexShrink: 0,
+  } as React.CSSProperties,
+  icon: {
+    flexShrink: 0,
+    display: 'inline-flex',
+  } as React.CSSProperties,
+  name: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+    flex: 1,
+  } as React.CSSProperties,
+  children: {
+    marginLeft: 7,
+    paddingLeft: 4,
+  } as React.CSSProperties,
+  slotLabel: {
+    fontSize: 11,
+    color: 'var(--textMutedColor, #9ca3af)',
+    fontStyle: 'italic' as const,
+  } as React.CSSProperties,
+  empty: {
+    padding: 16,
+    color: 'var(--textMutedColor, #9ca3af)',
+    fontSize: 13,
+  } as React.CSSProperties,
 };
 
-const KIND_BG: Record<string, string> = {
-  entity: 'rgba(59, 130, 246, 0.08)',
-  'scene-ref': 'rgba(34, 197, 94, 0.08)',
-  component: 'rgba(156, 163, 175, 0.05)',
-  string: 'transparent',
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+const KIND_ICONS: Record<string, React.ReactNode> = {
+  entity: <DatabaseIcon style={{ color: '#3b82f6' }} />,
+  'scene-ref': <ShareIcon style={{ color: '#22c55e' }} />,
+  component: <ComponentIcon style={{ color: 'var(--textMutedColor, #9ca3af)' }} />,
+  string: <MarkupIcon style={{ color: 'var(--textMutedColor, #9ca3af)' }} />,
 };
 
 function nodeLabel(node: SceneTreeNode): string {
@@ -34,136 +99,114 @@ function nodeLabel(node: SceneTreeNode): string {
   }
 }
 
-function nodeKindLabel(kind: string): string {
-  switch (kind) {
-    case 'entity':
-      return 'entity';
-    case 'scene-ref':
-      return 'scene';
-    case 'component':
-      return 'component';
-    case 'string':
-      return 'text';
-    default:
-      return kind;
-  }
+function hasChildren(node: SceneTreeNode): boolean {
+  if (node.children?.length) return true;
+  if (node.slots && Object.values(node.slots).some((s) => s.filter((c) => c.kind !== 'string').length > 0))
+    return true;
+  return false;
 }
+
+// ─── Tree node ────────────────────────────────────────────────────────────────
 
 function TreeNode({
   node,
-  index,
-  depth,
-  isSelected,
   onSelect,
 }: {
   node: SceneTreeNode;
-  index: number;
-  depth: number;
-  isSelected: boolean;
-  onSelect: (index: number) => void;
+  onSelect: (node: SceneTreeNode) => void;
 }) {
-  const color = KIND_COLORS[node.kind] ?? '#9ca3af';
-  const bg = KIND_BG[node.kind] ?? 'transparent';
-  const isDeemphasized = node.kind === 'component' || node.kind === 'string';
+  const expandable = hasChildren(node);
+  const [expanded, setExpanded] = useState(true);
+
+  const handleRowClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (expandable) {
+        setExpanded((prev) => !prev);
+      } else {
+        onSelect(node);
+      }
+    },
+    [expandable, node, onSelect],
+  );
+
+  const handleNameClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onSelect(node);
+    },
+    [node, onSelect],
+  );
 
   return (
-    <div style={{ paddingLeft: depth * 16 }}>
+    <div>
       <div
-        onClick={() => onSelect(index)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '4px 8px',
-          borderRadius: 4,
-          cursor: 'pointer',
-          background: isSelected ? `${color}22` : bg,
-          borderLeft: isSelected ? `3px solid ${color}` : '3px solid transparent',
-          opacity: isDeemphasized ? 0.6 : 1,
-          fontFamily: 'Inter, sans-serif',
-          fontSize: 12,
+        role="treeitem"
+        tabIndex={0}
+        style={S.row}
+        onClick={handleRowClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onSelect(node);
+          if (e.key === 'ArrowRight' && expandable && !expanded) setExpanded(true);
+          if (e.key === 'ArrowLeft' && expandable && expanded) setExpanded(false);
         }}
       >
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color,
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            minWidth: 60,
-          }}
-        >
-          {nodeKindLabel(node.kind)}
-        </span>
-        <span style={{ color: 'var(--textColor, #333)', fontWeight: isSelected ? 600 : 400 }}>{nodeLabel(node)}</span>
+        {expandable ? (
+          <span style={S.chevron}>
+            {expanded ? <ChevronSmallDownIcon /> : <ChevronSmallRightIcon />}
+          </span>
+        ) : (
+          <span style={S.chevronSpacer} />
+        )}
+        <span style={S.icon}>{KIND_ICONS[node.kind] ?? <ComponentIcon />}</span>
+        {expandable ? (
+          <span style={S.name} onClick={handleNameClick}>{nodeLabel(node)}</span>
+        ) : (
+          <span style={S.name}>{nodeLabel(node)}</span>
+        )}
       </div>
 
-      {/* Render scene-ref children */}
-      {node.kind === 'scene-ref' &&
-        node.children?.map((child, i) => (
-          <TreeNode
-            key={`${index}-child-${i}`}
-            node={child}
-            index={index} // keep parent index for selection
-            depth={depth + 1}
-            isSelected={false}
-            onSelect={onSelect}
-          />
-        ))}
+      {expandable && expanded && (
+        <div style={S.children}>
+          {/* Direct children (entity multi-node, scene-ref) */}
+          {node.children?.map((child, i) => (
+            <TreeNode key={`child-${i}`} node={child} onSelect={onSelect} />
+          ))}
 
-      {/* Render slot children for entities that have slots */}
-      {node.slots &&
-        Object.entries(node.slots).map(([slotName, children]) => (
-          <div key={slotName} style={{ paddingLeft: (depth + 1) * 16 }}>
-            <div
-              style={{
-                fontSize: 10,
-                color: '#9ca3af',
-                fontFamily: 'Inter, sans-serif',
-                padding: '2px 8px',
-              }}
-            >
-              slot: {slotName}
-            </div>
-            {children
-              .filter((c) => c.kind !== 'string')
-              .map((child, i) => (
-                <TreeNode
-                  key={`${slotName}-${i}`}
-                  node={child}
-                  index={index}
-                  depth={depth + 2}
-                  isSelected={false}
-                  onSelect={onSelect}
-                />
-              ))}
-          </div>
-        ))}
+          {/* Slot children */}
+          {node.slots &&
+            Object.entries(node.slots).map(([slotName, children]) => {
+              const visible = children.filter((c) => c.kind !== 'string');
+              if (!visible.length) return null;
+              return (
+                <div key={slotName}>
+                  <div style={{ ...S.row, cursor: 'default' }}>
+                    <span style={S.chevronSpacer} />
+                    <span style={S.slotLabel}>slot: {slotName}</span>
+                  </div>
+                  {visible.map((child, i) => (
+                    <TreeNode key={`${slotName}-${i}`} node={child} onSelect={onSelect} />
+                  ))}
+                </div>
+              );
+            })}
+        </div>
+      )}
     </div>
   );
 }
 
-export function CompositionTree({ tree, selectedIndex, onSelectNode }: CompositionTreeProps) {
+// ─── Root ─────────────────────────────────────────────────────────────────────
+
+export function CompositionTree({ tree, onSelectNode }: CompositionTreeProps) {
   if (!tree.length) {
-    return (
-      <div style={{ padding: 16, color: '#9ca3af', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>
-        No scene structure available.
-      </div>
-    );
+    return <div style={S.empty}>No scene structure available.</div>;
   }
 
   return (
-    <div style={{ padding: '8px 0' }}>
-      {tree.map((node, index) => (
-        <TreeNode
-          key={index}
-          node={node}
-          index={index}
-          depth={0}
-          isSelected={selectedIndex === index}
-          onSelect={onSelectNode}
-        />
+    <div role="tree" style={S.root}>
+      {tree.map((node, i) => (
+        <TreeNode key={i} node={node} onSelect={onSelectNode} />
       ))}
     </div>
   );
