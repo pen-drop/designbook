@@ -215,7 +215,6 @@ export function register(program: Command): void {
           opts.parent,
           resolved.step_resolved,
           resolved.engine,
-          resolved.subworkflows,
           initialParams,
         );
 
@@ -284,32 +283,8 @@ export function register(program: Command): void {
       }
 
       const data = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
-      const stages = data.stages as Record<string, { steps?: string[]; workflow?: string; each?: string }> | undefined;
+      const stages = data.stages as Record<string, { steps?: string[]; each?: string }> | undefined;
       const stageLoaded = data.stage_loaded as Record<string, unknown> | undefined;
-
-      // Subworkflow dispatch stage — return dispatch metadata
-      const stageDef = stages?.[opts.stage];
-      if (stageDef?.workflow && stageDef?.each) {
-        const subworkflows = data.subworkflows as Record<string, { workflowFile?: string }> | undefined;
-        const subData = subworkflows?.[opts.stage];
-        const params = data.params as Record<string, unknown> | undefined;
-        const iterables = (params?.[stageDef.each] ?? []) as Array<Record<string, unknown>>;
-
-        console.log(
-          JSON.stringify(
-            {
-              stage: opts.stage,
-              dispatch: true,
-              workflow: stageDef.workflow,
-              workflow_file: subData?.workflowFile ?? '',
-              items: iterables.map((item) => ({ ...params, ...item })),
-            },
-            null,
-            2,
-          ),
-        );
-        return;
-      }
 
       // Resolve stage name: try direct key first, then look up via stages definition
       let resolvedKey = opts.stage;
@@ -428,7 +403,8 @@ export function register(program: Command): void {
       '--loaded <json>',
       'JSON payload with stage context (task_file, rules, config_rules, config_instructions) and task validation results',
     )
-    .action(async (opts: { workflow: string; task: string; params?: string; loaded?: string }) => {
+    .option('--summary <text>', 'Short human-readable result summary for the task')
+    .action(async (opts: { workflow: string; task: string; params?: string; loaded?: string; summary?: string }) => {
       const config = loadConfig();
       let loaded;
       if (opts.loaded) {
@@ -489,7 +465,7 @@ export function register(program: Command): void {
           }
         }
 
-        const result = await workflowDone(config.data, opts.workflow, opts.task, loaded);
+        const result = await workflowDone(config.data, opts.workflow, opts.task, loaded, { summary: opts.summary });
         const { data, response } = result;
 
         if (result.archived) {

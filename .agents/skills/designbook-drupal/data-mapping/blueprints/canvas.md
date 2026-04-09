@@ -30,23 +30,23 @@ The `components` field contains a nested `ComponentNode[]`. Each top-level entry
 Example structure in sample data:
 ```yaml
 components:
-  - component: "COMPONENT_NAMESPACE:section"
+  - component: "$COMPONENT_NAMESPACE:section"
     props:
       max_width: "lg"
       padding_top: "lg"
       columns: 1
     slots:
       column_1:
-        - component: "COMPONENT_NAMESPACE:hero"
+        - component: "$COMPONENT_NAMESPACE:hero"
           slots:
             content:
-              - component: "COMPONENT_NAMESPACE:rich-snippet"
+              - component: "$COMPONENT_NAMESPACE:rich-snippet"
                 props:
                   headline: "Welcome to our site"
                   headline_level: "h1"
                   text: "Get started with our platform."
             actions:
-              - component: "COMPONENT_NAMESPACE:button"
+              - component: "$COMPONENT_NAMESPACE:button"
                 props:
                   variant: "primary"
                   content: "Get started"

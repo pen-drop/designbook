@@ -28,7 +28,7 @@ Wait for their response before continuing.
 
 > ⛔ **MANDATORY**: Execute this step before any screen determination or component planning.
 
-Follow the process in [resolve-design-reference.md](partials/resolve-design-reference.md).
+Resolve the design reference from `params.reference`. Apply any matched rules for the reference source type (e.g. `provide-stitch-url` for Stitch references) to obtain the final reference URL.
 
 If a reference was loaded, use it as the primary input for all subsequent steps. When planning screens and components, **derive them from the reference** rather than asking the user speculative questions.
 
