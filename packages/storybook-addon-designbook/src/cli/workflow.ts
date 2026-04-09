@@ -231,6 +231,17 @@ export function register(program: Command): void {
           }
         }
 
+        // Build task_ids map: step name → actual task ID
+        const taskIds: Record<string, string> = {};
+        if (!skipIntake && intakeStepName) {
+          taskIds[intakeStepName] = 'intake';
+        }
+        if (expandedTasks) {
+          for (const t of expandedTasks) {
+            taskIds[t.step] = t.id;
+          }
+        }
+
         // Output JSON with workflow name + all resolved steps
         console.log(
           JSON.stringify(
@@ -241,6 +252,7 @@ export function register(program: Command): void {
               ...(resolved.engine ? { engine: resolved.engine } : {}),
               step_resolved: resolved.step_resolved,
               expected_params: resolved.expected_params,
+              ...(Object.keys(taskIds).length > 0 ? { task_ids: taskIds } : {}),
               ...(skipIntake ? { intake_skipped: true } : {}),
               ...(expandedTasks ? { expanded_tasks: expandedTasks } : {}),
             },

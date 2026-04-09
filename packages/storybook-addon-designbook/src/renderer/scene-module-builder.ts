@@ -23,7 +23,15 @@ import { buildCsfModule } from './csf-prep';
 import { view } from './view';
 import { validateSceneNodes } from './validate-scene-nodes';
 
-import type { DataModel, DesignbookConfig, SampleData, SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
+import type {
+  DataModel,
+  DesignbookConfig,
+  SampleData,
+  SceneNode,
+  SceneNodeBuilder,
+  SceneTreeNode,
+  ComponentNode,
+} from './types';
 
 // ── Default SDC import resolver ────────────────────────────────────────
 
