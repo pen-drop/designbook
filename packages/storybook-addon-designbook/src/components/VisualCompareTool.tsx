@@ -81,7 +81,7 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
         selector: c.selector ?? c.region,
         diffPercent: c.diff ?? null,
         threshold: c.threshold ?? null,
-        pass: c.result === 'pass' ? true : c.result === 'fail' ? false : null,
+        pass: c.result === 'pass' ? true : c.result === 'fail' || c.result === 'review' ? false : null,
         issues: c.issues ?? [],
       }));
 

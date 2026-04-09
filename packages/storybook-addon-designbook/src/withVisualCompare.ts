@@ -71,8 +71,8 @@ function applyOverlays(canvasElement: HTMLElement, storyId: string, state: Visua
   for (const region of filtered) {
     const src = `/__designbook/load?path=stories/${encodeURIComponent(storyId)}/screenshots/reference/${encodeURIComponent(state.breakpoint!)}--${encodeURIComponent(region.name)}.png`;
 
-    if (!region.selector) {
-      // "full" region — full-page overlay
+    if (!region.selector || region.selector === region.name) {
+      // "full" region or region without explicit CSS selector — full-page overlay
       createOverlayImg(canvasElement, src, state.opacity, {
         top: '0',
         left: '0',
