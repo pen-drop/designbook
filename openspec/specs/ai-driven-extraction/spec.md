@@ -1,6 +1,18 @@
 # AI-Driven Extraction for Markup Comparison
 
-Replaces the static, hard-coded element inspection in `compare-markup` with a three-phase approach: AI generates an extraction spec, Playwright executes it mechanically, AI evaluates the structured diff.
+Replaces the static, hard-coded element inspection in `compare-markup` with a three-phase approach: AI generates an extraction spec, Playwright executes it mechanically, AI evaluates and writes structured checks to `meta.yml`.
+
+## Changes (2026-04-09)
+
+- **Removed** `extraction-diff.json` as separate artifact — diff results written as structured issues to `meta.yml`
+- **Added** `extractions/` directory under story path for raw extraction artifacts
+- **Added** unified issue model: both `compare-screenshots` and `compare-markup` write issues to `meta.yml`
+- **Added** issue lifecycle: `status: open` → polish resolves → `status: done` with `result: pass|fail`
+- **Updated** polish: reads issues from `meta.yml`, works through all `open` issues regardless of source
+- **Updated** verify: re-compares, confirms resolution, writes final result per issue
+- **Added** CLI `story issues`: separate command for adding, reading, and updating issues
+- **Updated** CLI `story check`: gains `status` (open/done) and `result` (pass/fail) fields
+- **Separated** checks (container, breakpoint/region) from issues (individual problems) as distinct CLI concepts
 
 ## Context
 
@@ -159,56 +171,30 @@ A Playwright script SHALL read `extraction-spec.yml` and extract computed styles
 
 ---
 
-## Phase 3: Structured Diff and AI Evaluation
+## Phase 3: Diff, Evaluation, and Check Writing
 
-### Requirement: Mechanical diff before AI evaluation
+### Requirement: Mechanical diff of extraction results
 
-A deterministic diff SHALL be computed between the two extraction JSONs before the AI sees the results.
+A deterministic diff SHALL be computed between the two extraction JSONs.
 
 #### Scenario: Diff computation
 - **GIVEN** `extraction-reference.json` and `extraction-storybook.json`
 - **WHEN** the diff runs
 - **THEN** for each element (matched by `label`):
   - Each style property is compared
-  - Identical values are marked `match`
-  - Different values are marked `mismatch` with both values
-  - Missing elements are marked `missing`
-  - Count differences are marked `count_mismatch`
-- **AND** the diff is written to `extraction-diff.json`
+  - Identical values → `match`
+  - Different values → `mismatch` with both values
+  - Missing elements → `missing`
+  - Count differences → `count_mismatch`
 
-#### Scenario: Diff output format
-- **WHEN** the diff completes
-- **THEN** the output follows:
-  ```json
-  {
-    "summary": { "total": 12, "match": 9, "mismatch": 2, "missing": 1 },
-    "elements": [
-      {
-        "label": "Hero Heading",
-        "status": "mismatch",
-        "diffs": {
-          "fontSize": { "reference": "3rem", "storybook": "2.5rem", "status": "mismatch" },
-          "fontWeight": { "reference": "700", "storybook": "700", "status": "match" },
-          "color": { "reference": "rgb(17, 24, 39)", "storybook": "rgb(17, 24, 39)", "status": "match" }
-        }
-      },
-      {
-        "label": "Card Image",
-        "status": "missing",
-        "side": "storybook"
-      }
-    ]
-  }
-  ```
+### Requirement: AI evaluates the diff and classifies severity
 
-### Requirement: AI evaluates the structured diff
-
-The AI SHALL receive the structured diff (not raw extraction data) and produce a severity assessment.
+The AI SHALL receive the computed diff and produce a severity assessment.
 
 #### Scenario: AI evaluation input
 - **WHEN** the AI evaluation runs
 - **THEN** it receives:
-  1. The `extraction-diff.json`
+  1. The computed diff (in memory, not a separate file)
   2. The reference screenshot (for visual context)
   3. The Storybook screenshot (for visual context)
   4. Design tokens (if available from `design-tokens.yml`)
@@ -230,25 +216,36 @@ The AI SHALL receive the structured diff (not raw extraction data) and produce a
 - **AND** it does NOT open Playwright or extract additional data
 - **AND** its role is purely evaluative: classify severity, explain impact, suggest fixes
 
-### Requirement: AI persists check result via _debo story check
+### Requirement: Check and issues written via CLI
 
-After evaluation, the AI SHALL persist the markup comparison result to the DeboStory entity, using the same mechanism as `compare-screenshots`.
+After evaluation, the AI SHALL use the CLI to create a check and add issues. Checks and issues are separate CLI concepts.
 
-#### Scenario: Persist markup check result
+#### Scenario: Create check and add issues
 - **WHEN** the AI completes severity evaluation for a breakpoint
-- **THEN** it writes the result:
+- **THEN** it creates the check:
   ```bash
-  _debo story check --scene ${scene} --json '{"breakpoint":"<breakpoint>","region":"markup","status":"pass|fail","issues":["Hero Heading fontSize 2.5rem vs 3rem","Card Image missing"]}'
+  _debo story check --scene ${scene} --json '{"breakpoint":"<breakpoint>","region":"markup","status":"open"}'
   ```
-- **AND** `status` is `pass` if no `critical` or `major` issues exist
-- **AND** `status` is `fail` if any `critical` or `major` issue exists
-- **AND** `issues` contains a human-readable summary per mismatch/missing element, derived from `extraction-diff.json`
+- **AND** adds issues to that check:
+  ```bash
+  _debo story issues --scene ${scene} --check <breakpoint>--markup --add --json '[
+    {"source":"extraction","severity":"major","label":"Hero Heading","category":"typography","property":"fontSize","expected":"3rem","actual":"2.5rem"},
+    {"source":"extraction","severity":"critical","label":"Card Image","category":"media","property":null,"expected":"present","actual":"missing"}
+  ]'
+  ```
+- **AND** only `critical` and `major` issues are added (minor/info are dropped)
+
+#### Scenario: Check lifecycle
+- **WHEN** a check is created with `status: open`
+- **THEN** it remains `open` until verify closes it
+- **WHEN** verify completes
+- **THEN** it updates the check: `status: done`, `result: pass|fail`
 
 #### Scenario: Issues reference extraction labels
-- **WHEN** the AI writes the `issues` array
+- **WHEN** the AI writes issues
 - **THEN** each issue references the element `label` from the extraction spec
-- **AND** includes the concrete values (e.g., "Hero Heading fontSize: expected 3rem, got 2.5rem")
-- **AND** `minor` and `info` issues are excluded from the array (they don't affect pass/fail)
+- **AND** includes concrete values (`expected`, `actual`)
+- **AND** includes `category` and `severity` for prioritization
 
 ### Requirement: Iterative refinement
 
@@ -277,32 +274,158 @@ The `compare-markup` task definition SHALL orchestrate the three phases sequenti
 #### Scenario: Task execution flow
 - **WHEN** `compare-markup` runs for a scene + breakpoint
 - **THEN** it executes:
-  1. Phase 1 — AI inspects reference, writes `extraction-spec.yml`
-  2. Phase 2 — Playwright extracts from both URLs, writes JSON
-  3. Phase 3 — Diff is computed, AI evaluates, persists result via `_debo story check`
+  1. Phase 1 — AI inspects reference, writes `extractions/{bp}--spec.yml`
+  2. Phase 2 — Playwright extracts from both URLs, writes `extractions/{bp}--reference.json` and `{bp}--storybook.json`
+  3. Phase 3 — Diff is computed in memory, AI evaluates, creates check via `story check` (open), adds issues via `story issues --add`
 
 #### Scenario: Fallback without reference markup
 - **WHEN** `hasMarkup` is not `true` on the reference source
 - **THEN** `compare-markup` is skipped entirely (unchanged from current behavior)
 
-### Requirement: Output consumed by polish task
+### Requirement: Polish stage iterates over issues
 
-The structured diff and severity assessment SHALL be available to the `polish` task.
+The `design-verify` workflow SHALL use `each: issues` for the polish stage.
 
-#### Scenario: Polish reads extraction diff
-- **WHEN** the `polish` task runs after `compare-markup`
-- **THEN** it reads `extraction-diff.json` and the AI severity assessment
-- **AND** it has actionable, specific issues to fix (e.g., "Hero Heading fontSize is 2.5rem, should be 3rem")
-- **AND** it does not need to re-inspect the page to understand what's wrong
+#### Scenario: Workflow structure
+- **GIVEN** the design-verify workflow
+- **THEN** it uses:
+  ```yaml
+  test:
+    each: checks                # capture + compare per breakpoint/region
+    steps: [capture, compare]
+  polish:
+    each: issues                # polish + recapture + verify per issue
+    steps: [polish, recapture, verify]
+  ```
+- **AND** `story issues --open` provides the iteration items for the polish stage
+- **AND** each issue gets its own polish → recapture → verify cycle
+
+### Requirement: Polish consumes issues via CLI
+
+The `polish` task SHALL read issues via CLI — never by reading meta.yml directly.
+
+#### Scenario: Polish reads open issues
+- **WHEN** the `polish` task runs for a breakpoint/region
+- **THEN** it reads open issues via:
+  ```bash
+  _debo story issues --scene ${scene} --check ${breakpoint}--${region} --open
+  ```
+- **AND** the response contains structured issues with actionable details (label, property, expected, actual, severity)
+- **AND** it processes issues from all sources (screenshots, extraction) uniformly
+
+#### Scenario: Polish updates issues
+- **WHEN** the `polish` task fixes an issue
+- **THEN** it updates the issue via:
+  ```bash
+  _debo story issues --scene ${scene} --check ${breakpoint}--${region} --update <index> --json '{"status":"done"}'
+  ```
+- **WHEN** the `polish` task cannot fix an issue
+- **THEN** it leaves the issue as `status: open` for verify to evaluate
+
+### Requirement: Verify confirms issue resolution via CLI
+
+The `verify` task SHALL re-compare after polish and write final results via CLI.
+
+#### Scenario: Verify re-evaluates
+- **WHEN** the `verify` task runs after recapture
+- **THEN** it re-compares screenshots and/or re-runs extraction diff
+- **AND** for each issue, it writes the result via:
+  ```bash
+  _debo story issues --scene ${scene} --check ${breakpoint}--${region} --update <index> --json '{"status":"done","result":"pass|fail"}'
+  ```
+
+#### Scenario: Verify closes the check
+- **WHEN** all issues for a check have been evaluated
+- **THEN** verify closes the check:
+  ```bash
+  _debo story check --scene ${scene} --json '{"breakpoint":"<breakpoint>","region":"<region>","status":"done","result":"pass|fail"}'
+  ```
+- **AND** `result` is `pass` if all issues have `result: pass`
+- **AND** `result` is `fail` if any issue has `result: fail`
+
+---
+
+## Unified Issue Model
+
+Checks and issues are separate CLI concepts. A **check** is a container (breakpoint/region) with a lifecycle status. **Issues** are individual problems within a check. Both `compare-screenshots` and `compare-markup` create issues using the same format.
+
+### Check format
+
+```json
+{
+  "breakpoint": "xl",
+  "region": "header|markup",
+  "status": "open|done",
+  "result": "pass|fail (set by verify, null while open)"
+}
+```
+
+### Issue format
+
+```json
+{
+  "source": "screenshots|extraction",
+  "severity": "critical|major",
+  "description": "Human-readable summary",
+  "label": "Element label (extraction only)",
+  "category": "typography|layout|media|interactive|decoration",
+  "property": "CSS property name or null",
+  "expected": "expected value",
+  "actual": "actual value",
+  "status": "open|done",
+  "result": "pass|fail (set by verify, null while open)"
+}
+```
+
+### Lifecycle
+
+```
+compare  → story check (status: open) + story issues --add
+polish   → story issues --open (read), story issues --update (mark done)
+recapture → re-captures screenshots
+verify   → story issues --update (result: pass|fail), story check (status: done)
+```
+
+### CLI commands
+
+```bash
+# --- CHECKS ---
+# Create check (compare step)
+_debo story check --scene ${scene} --json '{"breakpoint":"xl","region":"header","status":"open"}'
+
+# List checks
+_debo story --scene ${scene} checks
+_debo story --scene ${scene} --checks-open checks
+
+# Close check (verify step)
+_debo story check --scene ${scene} --json '{"breakpoint":"xl","region":"header","status":"done","result":"pass"}'
+
+# --- ISSUES ---
+# Add issues to a check (compare step)
+_debo story issues --scene ${scene} --check xl--header --add --json '[
+  {"source":"screenshots","severity":"major","description":"Header diff 4.2% exceeds threshold 3%"},
+  {"source":"extraction","severity":"major","label":"Hero Heading","property":"fontSize","expected":"3rem","actual":"2.5rem"}
+]'
+
+# Read issues (polish step)
+_debo story issues --scene ${scene}                         # all issues
+_debo story issues --scene ${scene} --check xl--header      # for one check
+_debo story issues --scene ${scene} --open                  # only open
+
+# Update issue (polish/verify step)
+_debo story issues --scene ${scene} --check xl--header --update 0 --json '{"status":"done","result":"pass"}'
+```
 
 ---
 
 ## File Artifacts
 
-| File | Phase | Content |
-|------|-------|---------|
-| `extraction-spec.yml` | 1 | AI-generated extraction plan |
-| `extraction-reference.json` | 2 | Computed styles from reference URL |
-| `extraction-storybook.json` | 2 | Computed styles from Storybook URL |
-| `extraction-diff.json` | 3 | Structured diff with match/mismatch/missing |
-| `meta.yml` update | 3 | Pass/fail status + issues list (existing format) |
+| File | Location | Content |
+|------|----------|---------|
+| `extraction-spec.yml` | `extractions/{bp}--spec.yml` | AI-generated extraction plan |
+| `extraction-reference.json` | `extractions/{bp}--reference.json` | Computed styles from reference URL |
+| `extraction-storybook.json` | `extractions/{bp}--storybook.json` | Computed styles from Storybook URL |
+| `meta.yml` | `stories/{storyId}/meta.yml` | Issues, check status, and results |
+
+All extraction files live under `stories/{storyId}/extractions/` and are gitignored (workflow artifacts).
+Screenshots continue to live under `stories/{storyId}/screenshots/`.

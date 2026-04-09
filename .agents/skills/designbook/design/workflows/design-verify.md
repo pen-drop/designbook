@@ -7,12 +7,17 @@ params:
 stages:
   intake:
     steps: [design-verify:intake]
-  test:
+  capture:
     each: checks
-    steps: [capture, compare]
+    steps: [capture]
+  compare:
+    each: checks
+    steps: [compare]
+  triage:
+    steps: [design-verify:triage]
   polish:
-    each: checks
-    steps: [polish, recapture, verify]
+    each: issues
+    steps: [polish]
   outtake:
     steps: [design-verify:outtake]
 engine: direct

@@ -48,12 +48,12 @@ function setupFixtures() {
         },
       },
       checks: {
-        'sm--header': { status: 'pass', diff: 1.2 },
-        'sm--footer': { status: 'pass', diff: 0.8 },
-        'sm--markup': { status: 'pass' },
-        'xl--header': { status: 'pass', diff: 2.1 },
-        'xl--footer': { status: 'pass', diff: 1.0 },
-        'xl--markup': { status: 'pass' },
+        'sm--header': { status: 'done', result: 'pass', diff: 1.2 },
+        'sm--footer': { status: 'done', result: 'pass', diff: 0.8 },
+        'sm--markup': { status: 'done', result: 'pass' },
+        'xl--header': { status: 'done', result: 'pass', diff: 2.1 },
+        'xl--footer': { status: 'done', result: 'pass', diff: 1.0 },
+        'xl--markup': { status: 'done', result: 'pass' },
       },
     },
   });
@@ -80,8 +80,8 @@ function setupFixtures() {
         },
       },
       checks: {
-        'sm--full': { status: 'fail', diff: 8.3 },
-        'xl--full': { status: 'pass', diff: 1.2 },
+        'sm--full': { status: 'done', result: 'fail', diff: 8.3 },
+        'xl--full': { status: 'done', result: 'pass', diff: 1.2 },
       },
     },
   });
@@ -219,12 +219,13 @@ describe('DeboStory', () => {
       expect(story.checks()).toHaveLength(6); // 4 regions + 2 markup (hasMarkup: true)
     });
 
-    it('filters open checks', () => {
+    it('filters open checks (status !== done)', () => {
       const story = DeboStory.load(config, 'galerie--product-detail')!;
+      // Both checks are 'done', but sm--full has result 'fail'
+      // open filter now checks status !== 'done', not result !== 'pass'
       const open = story.checks({ open: true });
-      expect(open).toHaveLength(1);
-      expect(open[0]!.breakpoint).toBe('sm');
-      expect(open[0]!.result).toBe('fail');
+      // All checks are 'done', so open returns 0
+      expect(open).toHaveLength(0);
     });
 
     it('filters by breakpoints', () => {
@@ -236,10 +237,11 @@ describe('DeboStory', () => {
 
     it('combines filters', () => {
       const story = DeboStory.load(config, 'galerie--product-detail')!;
+      // All checks are done, so open filter returns 0 for both
       const openXl = story.checks({ open: true, breakpoints: ['xl'] });
-      expect(openXl).toHaveLength(0); // xl passes
+      expect(openXl).toHaveLength(0);
       const openSm = story.checks({ open: true, breakpoints: ['sm'] });
-      expect(openSm).toHaveLength(1); // sm fails
+      expect(openSm).toHaveLength(0);
     });
 
     it('includes check data', () => {
@@ -253,10 +255,10 @@ describe('DeboStory', () => {
       expect(check.reference.url).toBe('https://example.com/product');
     });
 
-    it('unchecked checks are included in open filter', () => {
+    it('unchecked checks (no status) are included in open filter', () => {
       const story = DeboStory.load(config, 'galerie--overview')!;
       const open = story.checks({ open: true });
-      expect(open).toHaveLength(1);
+      expect(open).toHaveLength(1); // status is undefined !== 'done'
     });
   });
 
@@ -306,23 +308,26 @@ describe('DeboStory', () => {
       const story = DeboStory.load(config, 'galerie--product-detail')!;
       expect(story.checks({ breakpoints: ['sm'] })[0]!.result).toBe('fail');
 
-      story.updateCheck({ breakpoint: 'sm', region: 'full', status: 'pass', diff: 0.5 });
+      story.updateCheck({ breakpoint: 'sm', region: 'full', status: 'done', result: 'pass', diff: 0.5 });
 
       // Verify in-memory update
       expect(story.checks({ breakpoints: ['sm'] })[0]!.result).toBe('pass');
+      expect(story.checks({ breakpoints: ['sm'] })[0]!.status).toBe('done');
       expect(story.checks({ breakpoints: ['sm'] })[0]!.diff).toBe(0.5);
       expect(story.status).toBe('pass');
 
       // Verify on-disk persistence
       const metaPath = resolve(tmpDir, 'stories', 'galerie--product-detail', 'meta.yml');
       const raw = parseYaml(readFileSync(metaPath, 'utf-8')) as Record<string, unknown>;
-      const checks = (raw as { reference: { checks: Record<string, { status: string; diff: number }> } }).reference
-        .checks;
-      expect(checks['sm--full']!.status).toBe('pass');
+      const checks = (
+        raw as { reference: { checks: Record<string, { status: string; result: string; diff: number }> } }
+      ).reference.checks;
+      expect(checks['sm--full']!.status).toBe('done');
+      expect(checks['sm--full']!.result).toBe('pass');
       expect(checks['sm--full']!.diff).toBe(0.5);
 
       // Restore original state
-      story.updateCheck({ breakpoint: 'sm', region: 'full', status: 'fail', diff: 8.3 });
+      story.updateCheck({ breakpoint: 'sm', region: 'full', status: 'done', result: 'fail', diff: 8.3 });
     });
   });
 
@@ -438,11 +443,11 @@ describe('DeboStory', () => {
       expect(json.reference.url).toBe('https://example.com/shell');
     });
 
-    it('filters checks with checksOpen', () => {
+    it('filters checks with checksOpen (status !== done)', () => {
       const story = DeboStory.load(config, 'galerie--product-detail')!;
       const json = story.toJSON({ checksOpen: true });
-      expect(json.checks).toHaveLength(1);
-      expect(json.checks[0]!.result).toBe('fail');
+      // All checks are 'done', so checksOpen returns 0
+      expect(json.checks).toHaveLength(0);
     });
   });
 });

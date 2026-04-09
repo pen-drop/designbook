@@ -76,25 +76,105 @@ properties:
                     nullable: true
                     enum: [pass, fail, null]
                     description: Last comparison result for this region.
-            markup:
-              type: object
+      checks:
+        type: object
+        description: >
+          Per-check results. Keys are `breakpoint--region` (e.g. `sm--header`, `xl--markup`).
+          Written by compare tasks via `_debo story check`. Issues managed via `_debo story issues`.
+        additionalProperties:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [open, done]
+              description: >
+                Check lifecycle status. `open` = created by compare, issues pending.
+                `done` = resolved by verify after polish.
+            result:
+              type: string
               nullable: true
-              description: Results from compare-markup (only present when source.hasMarkup is true).
-              properties:
-                lastResult:
-                  type: string
-                  nullable: true
-                  enum: [pass, fail, null]
-                  description: Last markup comparison result.
-                issues:
-                  type: integer
-                  nullable: true
-                  description: Total number of differences found (CSS, fonts, computed styles, content).
-                missing:
-                  type: array
-                  items:
+              enum: [pass, fail, null]
+              description: Check verdict. Set by verify. Null while status is open.
+            diff:
+              type: number
+              nullable: true
+              description: Diff percentage (screenshot checks).
+            issues:
+              type: array
+              description: Structured issues found during comparison.
+              items:
+                type: object
+                properties:
+                  source:
                     type: string
-                  description: Content elements expected but not found (e.g. logo, hero-image, nav-items). Detected by comparing reference DOM against Storybook DOM and sample-data.
+                    enum: [screenshots, extraction]
+                    description: Where the issue was detected.
+                  severity:
+                    type: string
+                    enum: [critical, major]
+                    description: Issue severity. Only critical and major are persisted.
+                  description:
+                    type: string
+                    description: Human-readable summary.
+                  label:
+                    type: string
+                    nullable: true
+                    description: Element label from extraction spec (extraction issues only).
+                  category:
+                    type: string
+                    nullable: true
+                    enum: [typography, layout, media, interactive, decoration]
+                    description: Element category.
+                  property:
+                    type: string
+                    nullable: true
+                    description: CSS property name or null.
+                  expected:
+                    type: string
+                    nullable: true
+                    description: Expected value.
+                  actual:
+                    type: string
+                    nullable: true
+                    description: Actual value.
+                  status:
+                    type: string
+                    enum: [open, done]
+                    description: Issue lifecycle status.
+                  result:
+                    type: string
+                    nullable: true
+                    enum: [pass, fail, null]
+                    description: Issue resolution result. Set by verify.
+      summary:
+        type: object
+        description: Aggregated summary. Recomputed automatically by `_debo story check`.
+        properties:
+          total:
+            type: integer
+          pass:
+            type: integer
+          fail:
+            type: integer
+          unchecked:
+            type: integer
+          maxDiff:
+            type: number
+            nullable: true
+          avgDiff:
+            type: number
+            nullable: true
+          threshold:
+            type: number
+```
+
+### Issue Lifecycle
+
+```
+compare (screenshots/extraction)  →  writes check (status: open) + issues (status: open)
+polish                             →  fixes code, updates issues (status: done)
+recapture                          →  re-captures screenshots
+verify                             →  re-evaluates, writes result per issue (pass/fail), closes check (done)
 ```
 
 ## Example
@@ -161,10 +241,16 @@ All story artifacts live under `designbook/stories/{storyId}/`:
 
 ```
 designbook/stories/{storyId}/
-  meta.yml                                  ← this file
+  meta.yml                                  ← this file (checks + issues)
   screenshots/
     reference/{breakpoint}--{region}.png    ← baseline (committed)
     current/{breakpoint}--{region}.png      ← latest capture (gitignored)
+  extractions/
+    {breakpoint}--spec.yml                  ← AI-generated extraction plan (gitignored)
+    {breakpoint}--reference.json            ← computed styles from reference URL (gitignored)
+    {breakpoint}--storybook.json            ← computed styles from Storybook URL (gitignored)
 ```
 
 Screenshots always use `{breakpoint}--{region}.png`. For screen scenes, the region is `full` (e.g. `sm--full.png`). For shell scenes, regions match element selectors (e.g. `sm--header.png`, `sm--footer.png`).
+
+Extraction files use `{breakpoint}--{name}` naming, matching the screenshot convention. Only present when `source.hasMarkup` is true.

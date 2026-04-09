@@ -47,35 +47,84 @@ List all stories in a section.
 | Option | Description |
 |---|---|
 | `--section <name>` | Section name |
-| `--checks-open` | Filter checks to only open (result != pass) |
+| `--checks-open` | Filter checks to only open (status != done) |
 
 **Response:** JSON array of story objects.
 
-## `story check` (update check result)
+## `story check` (create/update check)
 
-Write a single check result to `reference.checks` in `meta.yml`. Automatically recomputes `reference.summary`.
+Write a check entry to `reference.checks` in `meta.yml`. Automatically recomputes `reference.summary`. Preserves existing issues on the check.
 
 ```bash
- story check --scene <group>:<name> --json '{"breakpoint":"sm","region":"header","status":"pass","diff":1.2}'
- story check --scene <group>:<name> --json '{"breakpoint":"sm","region":"markup","status":"fail","issues":["missing logo","wrong font"]}'
+ story check --scene <group>:<name> --json '{"breakpoint":"sm","region":"header","status":"open"}'
+ story check --scene <group>:<name> --json '{"breakpoint":"sm","region":"header","status":"done","result":"pass"}'
 ```
 
 | Field | Type | Description |
 |---|---|---|
 | `breakpoint` | string | Breakpoint name (e.g. `sm`, `xl`) |
 | `region` | string | Region name (e.g. `header`, `full`, `markup`) |
-| `status` | `"pass"` \| `"fail"` | Check verdict |
+| `status` | `"open"` \| `"done"` | Check lifecycle status |
+| `result` | `"pass"` \| `"fail"` | Check verdict (set by verify, omit while open) |
 | `diff` | number | Diff percentage (optional, typically for screenshot checks) |
-| `issues` | string[] | List of issues found (optional, typically for markup checks) |
 
 The check key in `meta.yml` is `breakpoint--region` (e.g. `sm--header`, `xl--markup`).
 
-**Response:** `{ "ok": true, "breakpoint": "sm", "region": "header", "status": "pass", "diff": 1.2 }`
+**Response:** `{ "ok": true, "breakpoint": "sm", "region": "header", "status": "open" }`
 
 **Errors (exit 1):**
 - `--scene` not provided
 - `--json` not provided or missing required fields (`breakpoint`, `region`, `status`)
 - Scene not found or no story exists
+
+## `story issues` (manage issues on checks)
+
+Add, read, and update structured issues on checks. Issues are individual problems found during comparison.
+
+### Add issues
+
+```bash
+ story issues --scene <group>:<name> --check <check-key> --add --json '[{"source":"screenshots","severity":"major","description":"Header diff 4.2%"},{"source":"extraction","severity":"major","label":"Hero Heading","property":"fontSize","expected":"3rem","actual":"2.5rem"}]'
+```
+
+Issues are automatically created with `status: "open"` and `result: null`.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `source` | `"screenshots"` \| `"extraction"` | yes | Where the issue was found |
+| `severity` | `"critical"` \| `"major"` | yes | Issue severity |
+| `description` | string | yes | Human-readable summary |
+| `label` | string | no | Element label (extraction issues) |
+| `category` | string | no | `typography`, `layout`, `media`, `interactive`, `decoration` |
+| `property` | string \| null | no | CSS property name |
+| `expected` | string | no | Expected value |
+| `actual` | string | no | Actual value |
+
+**Response:** `{ "ok": true, "check": "xl--header", "added": 2 }`
+
+### Read issues
+
+```bash
+ story issues --scene <group>:<name>                              # all issues
+ story issues --scene <group>:<name> --check <check-key>          # for one check
+ story issues --scene <group>:<name> --checks-open                # only open issues
+```
+
+**Response:** JSON array of `{ "checkKey": "xl--header", "index": 0, "issue": {...} }` objects.
+
+### Update issue
+
+```bash
+ story issues --scene <group>:<name> --check <check-key> --update <index> --json '{"status":"done","result":"pass"}'
+```
+
+**Response:** `{ "ok": true, "check": "xl--header", "index": 0 }`
+
+**Errors (exit 1):**
+- `--scene` not provided
+- `--check` required for `--add` and `--update`
+- `--json` required for `--add` and `--update`
+- Issue not found at given index
 
 ## `story checks` (workflow-ready checks)
 
@@ -89,7 +138,7 @@ Generate a workflow-ready checks array for a scene. Validates that a reference e
 
 | Option | Description |
 |---|---|
-| `--checks-open` | Filter to only open checks (result != pass) |
+| `--checks-open` | Filter to only open checks (status != done) |
 | `--create` | Create story first if missing |
 | `--json <data>` | JSON meta seed for `--create` |
 
