@@ -3,7 +3,6 @@ name: designbook:design:compare-markup
 title: "Compare Markup: {scene}"
 when:
   steps: [compare]
-  source.hasMarkup: true
 priority: 10
 params:
   scene: ~
