@@ -1,6 +1,6 @@
 ---
 when:
-  steps: [create-component]
+  steps: [create-component, polish]
 ---
 
 # Typography Token Usage

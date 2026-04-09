@@ -149,10 +149,12 @@ If `valid: false` → fix content and call `write-file` again until valid.
 ### 2c. Mark Task Done
 
 ```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--params <json>]
+_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--params <json>] [--summary <text>]
 ```
 
 Pass `--params` when the task produces params that expand subsequent tasks (e.g. iterables for stages with `each`). The CLI decides whether to use `plan` or `append` mode based on the workflow state.
+
+Pass `--summary` with a short result description when the task outcome is not obvious from the title alone. The summary is shown in the Storybook panel next to the task title. Skip it for self-explanatory tasks (e.g. "Capture Reference: sm/header"). Use it for tasks that produce results the user would want to see at a glance (e.g. "3 issues found", "12 → 4 consolidated", "fontSize 14px → 48px").
 
 **Params format for stages with `each`:**
 ```json
@@ -195,12 +197,6 @@ Parse the `RESPONSE:` JSON line and act accordingly:
 ```
 → Workflow archived. Process hooks (Step 3).
 
-**Workflow complete with child workflow dispatch:**
-```json
-{ "stage": "done", "dispatch": [{ "workflow": "design-verify", "workflow_file": "/abs/path", "params": {...} }] }
-```
-→ Workflow archived. Create and execute child workflows (Step 4), then process hooks.
-
 ---
 
 ## Step 3: Hooks
@@ -218,21 +214,6 @@ For each `before` entry in workflow frontmatter:
 When the workflow archives (response `"stage": "done"`), process `after` entries from frontmatter:
 - Prompt: "Run `/<workflow-id>` next?"
 - If accepted → start it with `--parent $WORKFLOW_NAME`
-
----
-
-## Step 4: Child Workflow Dispatch
-
-When a `done` response contains `dispatch`, create child workflows:
-
-```bash
-_debo workflow create --workflow <dispatch.workflow> \
-  --workflow-file <dispatch.workflow_file> \
-  --parent $WORKFLOW_NAME \
-  --params '<dispatch.params as JSON>'
-```
-
-Since `--params` satisfies all required params, the response will include `intake_skipped: true` and `expanded_tasks`. Execute each child workflow completely (Steps 1–2) before starting the next.
 
 ---
 

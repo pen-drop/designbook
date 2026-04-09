@@ -156,28 +156,18 @@ describe('interpolatePrompt', () => {
   });
 });
 
-describe('getNextStage — workflow stages', () => {
-  it('includes workflow stages in lifecycle order', () => {
+describe('getNextStage — outtake stages', () => {
+  it('includes outtake stage in lifecycle order', () => {
     const stages = {
       intake: { steps: ['design-shell:intake'] },
       component: { steps: ['create-component'], each: 'component' },
       scene: { steps: ['design-shell:create-scene'], each: 'scene' },
-      verify: { steps: [] as string[], workflow: 'design-verify', each: 'scene' },
+      outtake: { steps: ['design-shell:outtake'] },
     };
 
     expect(getNextStage('intake', stages)).toBe('component');
     expect(getNextStage('component', stages)).toBe('scene');
-    expect(getNextStage('scene', stages)).toBe('verify');
-    expect(getNextStage('verify', stages)).toBe('committed');
-  });
-
-  it('workflow stage without steps but with workflow field is included', () => {
-    const stages = {
-      execute: { steps: ['intake'] },
-      verify: { steps: [] as string[], workflow: 'design-verify', each: 'scene' },
-    };
-
-    expect(getNextStage('execute', stages)).toBe('verify');
-    expect(getNextStage('verify', stages)).toBe('committed');
+    expect(getNextStage('scene', stages)).toBe('outtake');
+    expect(getNextStage('outtake', stages)).toBe('committed');
   });
 });

@@ -37,7 +37,6 @@ export interface StageParam {
 
 export interface StageDefinition {
   steps?: string[];
-  workflow?: string;
   each?: string;
   params?: Record<string, StageParam>;
 }
@@ -59,6 +58,8 @@ export interface WorkflowTask {
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[]; // produced files, each with its own validation state
+  description?: string; // detailed task description, set at completion
+  summary?: string; // short human-readable result summary, set at completion
 }
 
 export interface WorkflowTaskFile {

@@ -21,8 +21,6 @@ import {
   deriveArtifactName,
   resolveShortName,
   deduplicateByNameAs,
-  validateStageDefinitions,
-  resolveWorkflowFileById,
   type ResolvedFile,
 } from '../../workflow-resolve.js';
 import { acquireLock, releaseLock, withLock } from '../../workflow-lock.js';
@@ -1334,57 +1332,5 @@ describe('deduplicateByNameAs', () => {
     const result = deduplicateByNameAs(files, agentsDir);
     expect(result[0]!.name).toBe('designbook:basic'); // priority 0 comes first
     expect(result[1]!.name).toBe('designbook:design:advanced'); // priority 10
-  });
-});
-
-// ── Subworkflow validation ────────────────────────────────────────
-
-describe('validateStageDefinitions', () => {
-  it('accepts valid stage with steps only', () => {
-    expect(() => validateStageDefinitions({ test: { steps: ['capture', 'compare'] } })).not.toThrow();
-  });
-
-  it('accepts valid stage with workflow + each', () => {
-    expect(() =>
-      validateStageDefinitions({ verify: { steps: [], workflow: 'design-verify', each: 'scene' } }),
-    ).not.toThrow();
-  });
-
-  it('rejects workflow + steps together', () => {
-    expect(() =>
-      validateStageDefinitions({ verify: { steps: ['capture'], workflow: 'design-verify', each: 'scene' } }),
-    ).toThrow('mutually exclusive');
-  });
-
-  it('rejects workflow without each', () => {
-    expect(() => validateStageDefinitions({ verify: { steps: [], workflow: 'design-verify' } })).toThrow(
-      'requires "each"',
-    );
-  });
-});
-
-describe('resolveWorkflowFileById', () => {
-  let tmpDir: string;
-
-  beforeEach(() => {
-    tmpDir = makeTmpDir();
-  });
-
-  afterEach(() => {
-    rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it('finds workflow file by ID', () => {
-    const wfDir = resolve(tmpDir, 'skills', 'designbook', 'design', 'workflows');
-    mkdirSync(wfDir, { recursive: true });
-    writeFileSync(resolve(wfDir, 'design-verify.md'), '---\ntitle: Test\n---\n');
-
-    const result = resolveWorkflowFileById('design-verify', tmpDir);
-    expect(result).toBe(resolve(wfDir, 'design-verify.md'));
-  });
-
-  it('returns null for non-existent workflow', () => {
-    const result = resolveWorkflowFileById('nonexistent', tmpDir);
-    expect(result).toBeNull();
   });
 });

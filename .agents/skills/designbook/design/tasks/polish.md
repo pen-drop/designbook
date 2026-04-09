@@ -1,14 +1,19 @@
 ---
 name: designbook:design:polish
-title: "Polish: {scene} ({breakpoint}/{region})"
+title: "Polish {id}"
+description: "{description}"
 when:
   steps: [polish]
 priority: 50
 params:
+  id: ~
   scene: ~
   storyId: ~
-  breakpoint: ~
-  region: ~
+  checkKey: ~
+  severity: ~
+  description: ~
+  file_hint: ~
+  properties: []
 files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
@@ -17,60 +22,67 @@ reads:
     optional: true
 ---
 
-# Polishdas 
+# Polish
 
-Reads the compare reports and fixes code issues. Re-capture and re-compare are handled by the separate `recapture` and `verify` steps in the polish stage. Uses `DeboStory` entity for check data.
+Fixes a single consolidated issue from the triage stage. Each polish task receives one issue with actionable description and concrete values.
 
-## Params (from DeboStoryCheck test item)
+## Params (from `each: issues` expansion)
 
 | Param | Source | Description |
 |---|---|---|
-| `scene` | test item | Scene reference |
-| `storyId` | test item | Story identifier |
-| `breakpoint` | test item | Breakpoint name |
-| `region` | test item | Region name |
+| `id` | issue | Issue ID (e.g. `issue-001`) |
+| `scene` | issue | Scene reference |
+| `storyId` | issue | Story identifier |
+| `checkKey` | issue | Check key (e.g. `sm--header`, `xl--markup`) |
+| `severity` | issue | `critical` or `major` |
+| `description` | issue | Actionable work instruction from triage |
+| `file_hint` | issue | Primary file to edit |
+| `properties` | issue | Array of `{property, expected, actual}` (extraction issues) |
 
-## Step 1: Read Compare Reports
+## Step 1: Understand the Issue
 
-Load the story entity to get the current check result:
-```bash
-_debo story --scene ${scene}
-```
+Read the `description` — it contains:
+- Which element is affected
+- What properties need to change (with VON → NACH values)
+- Which file to edit
 
-Read this breakpoint/region's `lastDiff` and `lastResult` from the entity. Read the compare report from the previous step. If no issues were found (`lastResult: pass`), complete immediately:
+If `properties` array is present, use the concrete values directly.
+If `file_hint` is present, start there.
 
-> "No visual issues found — skipping polish."
+## Step 2: Rule Compliance Check
 
-## Change Scope
+Before applying any fix, verify it does not contradict any loaded rules for the current stage.
+
+## Step 3: Fix Code
+
+Edit the file(s) to resolve the issue. Keep changes minimal and focused.
+
+**Change scope:**
 
 | In scope | Out of scope |
 |----------|-------------|
-| Component templates (resolved via framework blueprint) | `design-tokens.yml` (requires tokens workflow) |
+| Component templates | `design-tokens.yml` (requires tokens workflow) |
 | Scene definitions (`*.scenes.yml`) | Workflow configuration |
 | Story files (`*.story.yml`) | Component schema structure |
-| CSS framework output files (resolved via CSS blueprint) | |
+| CSS framework output files | |
 
 When CSS output values are changed to match the reference, the polish report MUST include a reconciliation note: "CSS output values adjusted — reconcile with `design-tokens.yml` via tokens workflow."
 
-## Step 2: Analyze Issues
+## Step 4: Update Issue in Meta
 
-Prioritize by severity: Critical → Major → Minor. Focus on the highest-severity issues first.
+Mark the issue as done via CLI. Use `--update <index>` with the numeric index of the issue within its check:
+```bash
+_debo story issues --scene ${scene} --check ${checkKey} --update <index> --json '{"status":"done","result":"pass"}'
+```
 
-## Step 3: Rule Compliance Check
-
-Before applying any fix, verify it does not contradict any loaded rules for the current stage. Re-read active rules and check the proposed change against each constraint.
-
-## Step 4: Fix Code
-
-Edit the component files, scene definitions, or CSS to address the issues. Keep changes minimal and focused on the reported issues.
+To find the correct index, list issues first: `_debo story issues --scene ${scene} --check ${checkKey}` and match by `id`.
 
 ## Output
 
-Report what was fixed:
-
 ```
-## Polish Report
+## Polish: {description}
 
-- Fixed: Layout alignment on sm breakpoint (Critical)
-- Fixed: Font size mismatch on xl breakpoint (Major)
+Fixed: {description}
+File: {file_hint}
+Changes: fontSize 14px → 48px, fontFamily 'Nunito Sans' → 'Inter'
 ```
