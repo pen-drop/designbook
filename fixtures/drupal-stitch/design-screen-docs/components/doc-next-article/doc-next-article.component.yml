@@ -1,0 +1,22 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Doc Next Article"
+status: "experimental"
+group: "Navigation"
+description: "Navigation card linking to the next documentation article"
+provider: "test_integration_drupal"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: "object"
+  properties:
+    title:
+      type: "string"
+      title: "Title"
+      description: "The title of the next article"
+    url:
+      type: "string"
+      title: "URL"
+      description: "URL to the next article"
+  required:
+    - "title"

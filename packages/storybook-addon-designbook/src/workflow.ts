@@ -606,30 +606,24 @@ export async function workflowDone(
       throw new Error(`Task '${taskId}' is already done`);
     }
 
-    // Gate-check: assert all files are written and valid (no validation logic here)
+    // Gate-check: assert all files are written and valid
     // Skip files with unresolved {param} placeholders — these are task-level iterators
     // that couldn't be expanded at planning time (e.g. {breakpoint} from each: reference.breakpoints)
     const hasUnresolvedPlaceholder = (f: { path: string }) => /\{[a-zA-Z]\w*\}/.test(f.path);
-    // Accept files that exist on disk even without validation_result (e.g. binary files written directly by Playwright)
-    const workflowRoot = data.root_dir ?? dirname(dataDir);
-    const fileExistsOnDisk = (f: { path: string }) => existsSync(resolve(workflowRoot, f.path));
 
-    // Guard: reject if ALL files have unresolved placeholders and none are validated or on disk
     const taskFiles = task.files ?? [];
     if (
       taskFiles.length > 0 &&
       taskFiles.every((f) => hasUnresolvedPlaceholder(f)) &&
-      !taskFiles.some((f) => f.validation_result || fileExistsOnDisk(f))
+      !taskFiles.some((f) => f.validation_result)
     ) {
       throw new Error(
-        `Cannot mark '${taskId}' as done — all file paths have unresolved placeholders and no files exist on disk:\n` +
+        `Cannot mark '${taskId}' as done — all file paths have unresolved placeholders and no files were written:\n` +
           taskFiles.map((f) => `  · \`${f.path}\``).join('\n'),
       );
     }
 
-    const notWritten = taskFiles.filter(
-      (f) => !f.validation_result && !hasUnresolvedPlaceholder(f) && !fileExistsOnDisk(f),
-    );
+    const notWritten = taskFiles.filter((f) => !f.validation_result && !hasUnresolvedPlaceholder(f));
     if (notWritten.length > 0) {
       throw new Error(
         `Cannot mark '${taskId}' as done — ${notWritten.length} file(s) not yet written:\n` +

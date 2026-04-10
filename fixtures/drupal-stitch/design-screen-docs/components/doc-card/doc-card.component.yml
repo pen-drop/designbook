@@ -1,0 +1,30 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Doc Card"
+status: "experimental"
+group: "Data Display"
+description: "Teaser card for documentation article listing"
+provider: "test_integration_drupal"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: "object"
+  properties:
+    title:
+      type: "string"
+      title: "Title"
+      description: "Card title"
+    excerpt:
+      type: "string"
+      title: "Excerpt"
+      description: "Short description text"
+    url:
+      type: "string"
+      title: "URL"
+      description: "Link to the full article"
+  required:
+    - "title"
+slots:
+  topics:
+    title: "Topics"
+    description: "Topic badge components"

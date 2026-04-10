@@ -5,7 +5,10 @@ fixtures:
   - tokens
   - css-generate
   - sections
-  - sample-data-docs
+  - design-shell
+  - design-verify-shell
+  - design-screen-homepage
+  - design-verify-screen-homepage
 
 prompt: |
   You are working in the directory {{workspace}}.

@@ -1,0 +1,12 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:topic-badge",
+      "props": {
+        "label": $fields.name,
+        "url": "/topics/" & $fields.id
+      }
+    }
+  ]
+)

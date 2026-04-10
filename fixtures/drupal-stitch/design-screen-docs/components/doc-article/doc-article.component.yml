@@ -1,0 +1,35 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Doc Article"
+status: "experimental"
+group: "Data Display"
+description: "Full article layout for documentation pages with hero image, body, and navigation"
+provider: "test_integration_drupal"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: "object"
+  properties:
+    heading:
+      type: "string"
+      title: "Heading"
+      description: "Article heading text"
+    badge:
+      type: "string"
+      title: "Badge"
+      description: "Optional version or status badge text"
+  required:
+    - "heading"
+slots:
+  hero_image:
+    title: "Hero Image"
+    description: "Optional hero image at the top of the article"
+  body:
+    title: "Body"
+    description: "Rich text body content"
+  topics:
+    title: "Topics"
+    description: "Topic badge components"
+  next_article:
+    title: "Next Article"
+    description: "Next article navigation slot"

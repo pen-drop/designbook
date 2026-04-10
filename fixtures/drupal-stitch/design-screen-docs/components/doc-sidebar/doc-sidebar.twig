@@ -1,0 +1,34 @@
+{#
+/**
+ * @file
+ * Template for doc-sidebar component.
+ *
+ * Available variables:
+ * - groups: Array of navigation groups, each with label and items
+ */
+#}
+<nav{{ attributes.addClass(['w-full', 'lg:w-64', 'shrink-0']) }}>
+  {% if groups %}
+    {% for group in groups %}
+      <div class="mb-6">
+        {% if group.label %}
+          <h3 class="text-xs font-label font-bold uppercase tracking-wider text-on-surface-variant mb-3 px-3">{{ group.label }}</h3>
+        {% endif %}
+        {% if group.items %}
+          <ul class="space-y-0.5">
+            {% for item in group.items %}
+              <li>
+                <a href="{{ item.url|default('#') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-label-text font-body {{ item.active|default(false) ? 'bg-primary/10 text-primary font-medium' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface' }} transition-colors">
+                  {% if item.icon %}
+                    <span class="material-symbols-outlined text-base">{{ item.icon }}</span>
+                  {% endif %}
+                  {{ item.title }}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% endif %}
+</nav>

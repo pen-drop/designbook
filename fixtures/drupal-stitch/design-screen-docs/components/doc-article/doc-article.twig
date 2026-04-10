@@ -1,0 +1,49 @@
+{#
+/**
+ * @file
+ * Template for doc-article component.
+ *
+ * Available variables:
+ * - heading: Article heading text
+ * - badge: Optional version/status badge text
+ * - hero_image: Optional hero image slot
+ * - body: Rich text body content slot
+ * - topics: Topics slot (topic-badge components)
+ * - next_article: Next article navigation slot
+ */
+#}
+<article{{ attributes.addClass(['flex-1', 'min-w-0']) }}>
+  {% if hero_image %}
+    <div class="rounded-lg overflow-hidden mb-8">
+      {{ hero_image }}
+    </div>
+  {% endif %}
+
+  {% if badge %}
+    <div class="inline-flex items-center px-3 py-1 bg-primary/10 border border-primary/20 text-primary rounded-full mb-6">
+      <span class="text-xs font-label font-bold tracking-wider">{{ badge }}</span>
+    </div>
+  {% endif %}
+
+  {% if heading %}
+    <h1 class="text-display font-heading font-bold tracking-[-0.04em] text-on-surface mb-6">{{ heading }}</h1>
+  {% endif %}
+
+  {% if topics %}
+    <div class="flex flex-wrap gap-2 mb-8">
+      {{ topics }}
+    </div>
+  {% endif %}
+
+  {% if body %}
+    <div class="prose prose-invert max-w-none font-body text-body-text leading-relaxed text-on-surface-variant">
+      {{ body }}
+    </div>
+  {% endif %}
+
+  {% if next_article %}
+    <div class="mt-12 pt-8 border-t border-outline-variant">
+      {{ next_article }}
+    </div>
+  {% endif %}
+</article>

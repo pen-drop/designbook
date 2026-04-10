@@ -186,7 +186,7 @@ Mark a task as done. Triggers stage transitions and auto-archives when all tasks
 | `--loaded <json>` | No | Stage context payload for observability (task_file, rules, config_rules, config_instructions) |
 
 **Gate checks before marking done:**
-- All declared files must be written and valid
+- All declared files must be written via `write-file` and valid
 - Files with unresolved `{param}` placeholders are skipped
 
 **Output:**

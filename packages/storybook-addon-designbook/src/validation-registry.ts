@@ -11,6 +11,7 @@ import { validateComponent } from './validators/component.js';
 import { validateDataModel } from './validators/data-model.js';
 import { validateTokens } from './validators/tokens.js';
 import { validateData } from './validators/data.js';
+import { validateImage } from './validators/image.js';
 
 export type ValidatorFn = (file: string, config: DesignbookConfig) => Promise<ValidationFileResult>;
 
@@ -46,6 +47,7 @@ const validators: Record<string, ValidatorFn> = {
     const { validateSceneBuild } = await import('./validators/scene.js');
     return validateSceneBuild(file, config);
   },
+  image: async (file) => toFileResult(validateImage(file), file, 'image'),
 };
 
 /**

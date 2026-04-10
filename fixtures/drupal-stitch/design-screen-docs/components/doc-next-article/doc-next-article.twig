@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Template for doc-next-article component.
+ *
+ * Available variables:
+ * - title: The title of the next article
+ * - url: URL to the next article
+ */
+#}
+<a{{ attributes.addClass(['group', 'flex', 'items-center', 'justify-between', 'gap-4', 'p-4', 'rounded-lg', 'border', 'border-outline-variant', 'bg-surface-container', 'hover:bg-surface-container-high', 'transition-colors']) }} href="{{ url|default('#') }}">
+  <div>
+    <span class="text-xs font-label font-medium text-on-surface-variant uppercase tracking-wider">Next Section</span>
+    {% if title %}
+      <p class="text-body-text font-heading font-semibold text-on-surface mt-1">{{ title }}</p>
+    {% endif %}
+  </div>
+  <span class="material-symbols-outlined text-2xl text-on-surface-variant group-hover:text-primary transition-colors">arrow_forward</span>
+</a>

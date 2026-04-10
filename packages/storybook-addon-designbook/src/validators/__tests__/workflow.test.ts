@@ -459,7 +459,7 @@ describe('workflowDone', () => {
     await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow('not yet written');
   });
 
-  it('throws when all files have unresolved placeholders and none exist on disk', async () => {
+  it('throws when all files have unresolved placeholders and none were written', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
       {
         id: 'task1',

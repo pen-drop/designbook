@@ -1,0 +1,4 @@
+name: "default"
+props:
+  title: "Atmospheric Scaffolding"
+  url: "/docs/atmospheric-scaffolding"

@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Template for topic-badge component.
+ *
+ * Available variables:
+ * - label: The topic label text
+ * - url: Optional URL to the topic page
+ */
+#}
+{% if url %}
+<a{{ attributes.addClass(['inline-flex', 'items-center', 'px-2.5', 'py-0.5', 'rounded-full', 'text-xs', 'font-label', 'font-medium', 'bg-surface-container-high', 'text-on-surface-variant', 'hover:bg-surface-container-highest', 'transition-colors']) }} href="{{ url }}">
+  {{ label }}
+</a>
+{% else %}
+<span{{ attributes.addClass(['inline-flex', 'items-center', 'px-2.5', 'py-0.5', 'rounded-full', 'text-xs', 'font-label', 'font-medium', 'bg-surface-container-high', 'text-on-surface-variant']) }}>
+  {{ label }}
+</span>
+{% endif %}

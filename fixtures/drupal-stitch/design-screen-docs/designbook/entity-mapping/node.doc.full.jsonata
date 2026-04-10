@@ -1,0 +1,26 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:doc-article",
+      "props": {
+        "heading": $fields.title
+      },
+      "slots": {
+        "body": $fields.field_body,
+        "topics": $map($fields.field_topic, function($id) {
+          { "entity": "taxonomy_term.topic", "view_mode": "full", "record": $number($id) - 1 }
+        }),
+        "next_article": $fields.field_next ? [
+          {
+            "component": "test_integration_drupal:doc-next-article",
+            "props": {
+              "title": "Next Section",
+              "url": "/docs/" & $fields.field_next
+            }
+          }
+        ]
+      }
+    }
+  ]
+)
