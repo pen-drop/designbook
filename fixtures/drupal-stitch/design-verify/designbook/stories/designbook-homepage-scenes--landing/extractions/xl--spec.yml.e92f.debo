@@ -1,0 +1,200 @@
+version: 1
+story: designbook-homepage-scenes--landing
+description: >
+  CSS extraction spec for compare-markup phase.
+  Extracts computed styles from reference HTML and Storybook implementation.
+  Uses separate selector sets since DOM structures differ between reference and Storybook.
+
+selectors:
+  hero-heading:
+    label: "Hero Heading"
+    category: typography
+    file_hint: "components/hero/hero.twig"
+    reference_selector: "section h1"
+    storybook_selector: "#storybook-root h1"
+    properties:
+      - fontSize
+      - fontWeight
+      - fontFamily
+      - lineHeight
+      - color
+      - letterSpacing
+
+  hero-description:
+    label: "Hero Description"
+    category: typography
+    file_hint: "components/hero/hero.twig"
+    reference_selector: "section h1 + p"
+    storybook_selector: "#storybook-root h1 + p"
+    properties:
+      - fontSize
+      - fontWeight
+      - color
+      - lineHeight
+
+  hero-cta-primary:
+    label: "Hero Primary CTA"
+    category: interactive
+    file_hint: "components/hero/hero.twig"
+    reference_selector: "section .glow-blue"
+    storybook_selector: "#storybook-root .container-component:first-of-type .flex a:first-child"
+    properties:
+      - backgroundColor
+      - color
+      - fontSize
+      - fontWeight
+      - paddingTop
+      - paddingRight
+      - paddingBottom
+      - paddingLeft
+      - borderRadius
+
+  hero-cta-secondary:
+    label: "Hero Secondary CTA"
+    category: interactive
+    file_hint: "components/hero/hero.twig"
+    reference_selector: "main section:first-of-type .flex button:nth-child(2)"
+    storybook_selector: "#storybook-root .container-component:first-of-type .flex a:nth-child(2)"
+    properties:
+      - backgroundColor
+      - color
+      - fontSize
+      - fontWeight
+      - borderRadius
+      - borderColor
+      - borderWidth
+
+  hero-badge:
+    label: "Hero Badge / Label"
+    category: component
+    file_hint: "components/hero/hero.twig"
+    reference_selector: "section .inline-flex"
+    storybook_selector: "#storybook-root .container-component:first-of-type p.text-primary"
+    properties:
+      - color
+      - fontSize
+      - fontWeight
+
+  hero-layout:
+    label: "Hero Layout Container"
+    category: layout
+    file_hint: "components/hero/hero.twig"
+    reference_selector: "main section:first-of-type > div"
+    storybook_selector: "#storybook-root .container-component:first-of-type"
+    properties:
+      - display
+      - maxWidth
+      - paddingLeft
+      - paddingRight
+
+  features-card-grid:
+    label: "Features Card Grid"
+    category: layout
+    file_hint: "components/features/features.twig"
+    reference_selector: "section:nth-of-type(2) .grid"
+    storybook_selector: "#storybook-root .container-component:nth-of-type(2) .grid .grid"
+    properties:
+      - display
+      - gridTemplateColumns
+      - gap
+
+  features-card-heading:
+    label: "Feature Card Heading"
+    category: typography
+    file_hint: "components/features/features.twig"
+    reference_selector: "section:nth-of-type(2) .grid h3:first-of-type"
+    storybook_selector: "#storybook-root .container-component:nth-of-type(2) h3:first-of-type"
+    properties:
+      - fontSize
+      - fontWeight
+      - color
+      - lineHeight
+
+  features-card-description:
+    label: "Feature Card Description"
+    category: typography
+    file_hint: "components/features/features.twig"
+    reference_selector: "section:nth-of-type(2) .grid h3 + p"
+    storybook_selector: "#storybook-root .container-component:nth-of-type(2) h3 + p"
+    properties:
+      - fontSize
+      - color
+      - lineHeight
+
+  workflow-card-heading:
+    label: "Workflow Card Heading"
+    category: typography
+    file_hint: "components/workflow/workflow.twig"
+    reference_selector: "section:nth-of-type(3) h4:first-of-type"
+    storybook_selector: "#storybook-root .container-component:nth-of-type(3) h3:first-of-type"
+    properties:
+      - fontSize
+      - fontWeight
+      - color
+
+  cta-heading:
+    label: "CTA Section Heading"
+    category: typography
+    file_hint: "components/cta/cta.twig"
+    reference_selector: "section:last-of-type h2"
+    storybook_selector: "#storybook-root h2"
+    properties:
+      - fontSize
+      - fontWeight
+      - color
+      - letterSpacing
+      - lineHeight
+
+  cta-primary-button:
+    label: "CTA Primary Button"
+    category: interactive
+    file_hint: "components/cta/cta.twig"
+    reference_selector: "section:last-of-type button:first-of-type"
+    storybook_selector: "#storybook-root .container-component:last-of-type .flex a:first-child"
+    properties:
+      - backgroundColor
+      - color
+      - fontSize
+      - fontWeight
+      - paddingTop
+      - paddingRight
+      - paddingBottom
+      - paddingLeft
+      - borderRadius
+
+  header:
+    label: "Header"
+    category: component
+    file_hint: "components/header/header.twig"
+    reference_selector: "header"
+    storybook_selector: "#storybook-root header"
+    properties:
+      - position
+      - backgroundColor
+      - borderBottomWidth
+      - borderBottomColor
+
+  header-container:
+    label: "Header Container"
+    category: layout
+    file_hint: "components/header/header.twig"
+    reference_selector: "header > div"
+    storybook_selector: "#storybook-root header > div"
+    properties:
+      - display
+      - maxWidth
+      - paddingLeft
+      - paddingRight
+
+  footer:
+    label: "Footer"
+    category: component
+    file_hint: "components/footer/footer.twig"
+    reference_selector: "footer"
+    storybook_selector: "#storybook-root footer"
+    properties:
+      - backgroundColor
+      - borderTopWidth
+      - borderTopColor
+      - paddingTop
+      - paddingBottom

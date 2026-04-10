@@ -1,0 +1,23 @@
+fixtures:
+  - vision
+  - data-model
+  - design-guideline
+  - tokens
+  - css-generate
+  - sections
+  - design-shell
+  - design-verify-shell
+  - design-screen-homepage
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-verify workflow. Do NOT ask any questions.
+  Verify the homepage section.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['design-screen']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-screen']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

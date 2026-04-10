@@ -1,0 +1,50 @@
+[
+  {
+    "source": "screenshots",
+    "severity": "critical",
+    "check": "xl--full",
+    "description": "Hero-Section: Layout ist zentriert/einpaltig statt 2-Spalten (Text links, Code-Preview rechts) auf lg/xl. Betrifft components/hero/hero.twig — benötigt Grid-Layout mit lg:grid-cols-2",
+    "file_hint": "components/hero/hero.twig",
+    "details": "Reference zeigt split layout ab lg breakpoint, Storybook ist durchgehend zentriert"
+  },
+  {
+    "source": "screenshots",
+    "severity": "major",
+    "check": "xl--full",
+    "description": "Hero Heading: Schriftgröße deutlich zu klein — Reference nutzt ~5rem (md:8xl) mit font-black und negativem tracking, Storybook zeigt ~3.5rem. Betrifft components/hero/hero.twig",
+    "file_hint": "components/hero/hero.twig",
+    "details": "Display-Typografie im Hero entspricht nicht der Reference"
+  },
+  {
+    "source": "screenshots",
+    "severity": "major",
+    "check": "xl--full",
+    "description": "Hero Pre-headline: Reference zeigt blaues Pill-Badge mit Icon (bg-primary/10, border-primary/20, rounded-full), Storybook hat einfachen Text ohne Badge-Styling. Betrifft components/hero/hero.twig",
+    "file_hint": "components/hero/hero.twig",
+    "details": "Pre-headline Badge fehlt als visuelles Element"
+  },
+  {
+    "source": "screenshots",
+    "severity": "major",
+    "check": "xl--full",
+    "description": "Feature Cards: Reference hat dunkle surface-Karten mit rundem Icon-Container (bg-secondary-container), Storybook zeigt hellere Cards mit Border. Icon-Styling und Kartenfarben weichen ab. Betrifft components/feature-card/feature-card.twig",
+    "file_hint": "components/feature-card/feature-card.twig",
+    "details": "Card background und Icon-Container Styling stimmen nicht mit Reference überein"
+  },
+  {
+    "source": "screenshots",
+    "severity": "critical",
+    "check": "xl--full",
+    "description": "Code Preview: Reference zeigt zwei Code-Panels (CMS Blueprint + Generated Output) mit echtem Code-Content, Storybook zeigt 600x400 Placeholder-Image. Betrifft components/code-preview/code-preview.twig und sample-data",
+    "file_hint": "components/code-preview/code-preview.twig",
+    "details": "Code-Preview Content fehlt komplett — Placeholder statt echtem Code"
+  },
+  {
+    "source": "screenshots",
+    "severity": "major",
+    "check": "xl--full",
+    "description": "CTA Section: Heading 'Ready to automate?' ist deutlich kleiner als in Reference (Reference ~4xl-5xl, bold). Betrifft components/cta-block/cta-block.twig",
+    "file_hint": "components/cta-block/cta-block.twig",
+    "details": "CTA Heading Typografie entspricht nicht der Reference"
+  }
+]

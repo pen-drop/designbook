@@ -121,4 +121,23 @@ Follow the process in [structure-preview.md](partials/structure-preview.md).
 - Consider the product type when suggesting layout patterns
 - If `design-system/design-system.scenes.yml` already exists, read it first and ask: "You already have a shell design. Would you like to update it or start fresh?"
 - If page/header/footer components already exist, reuse them — only create if missing
-- The `scene` iterable items must use `group:sceneName` format matching `_debo story --scene` resolution. For shell: `{ "scene": "design-system:shell" }`
+
+## Step 7: Complete Intake
+
+Mark intake done with `--params` that populate **both** the `component` and `scene` iterables:
+
+```bash
+_debo workflow done --workflow $WORKFLOW_NAME --task intake --params '{
+  "component": [
+    { "component": "page", "slots": ["header", "content", "footer"] },
+    { "component": "header", "slots": ["logo", "navigation"] },
+    { "component": "footer", "slots": ["links", "copyright"] }
+  ],
+  "scene": [
+    { "scene": "design-system:shell" }
+  ]
+}'
+```
+
+- **`component`**: one entry per new component. Each item needs `component` (name) and `slots` (array).
+- **`scene`**: one entry per shell scene. Uses `group:sceneName` format matching `_debo story --scene` resolution. For shell: `{ "scene": "design-system:shell" }`.

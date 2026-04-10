@@ -1,0 +1,43 @@
+{#
+/**
+ * @file
+ * Template for hero component.
+ *
+ * Available variables:
+ * - preheadline: Optional preheadline/kicker text
+ * - heading: Main heading text
+ * - description: Description text
+ * - content: Content slot (alternative to heading/description)
+ * - actions: Action buttons slot
+ * - media: Media content slot (code preview, image, etc.)
+ */
+#}
+<div{{ attributes.addClass(['grid', 'grid-cols-1', 'lg:grid-cols-2', 'gap-16', 'items-center']) }}>
+  <div>
+    {% if preheadline %}
+      <div class="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 text-primary rounded-full mb-8">
+        <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+        <span class="font-label text-[10px] font-bold tracking-[0.15em] uppercase">{{ preheadline }}</span>
+      </div>
+    {% endif %}
+    {% if heading %}
+      <h1 class="text-[3rem] md:text-[6rem] font-heading font-black leading-[0.95] tracking-[-0.05em] text-on-surface mb-8">{{ heading }}</h1>
+    {% endif %}
+    {% if description %}
+      <p class="text-lg font-body leading-relaxed text-on-surface-variant max-w-xl mb-12">{{ description }}</p>
+    {% endif %}
+    {% if content %}
+      {{ content }}
+    {% endif %}
+    {% if actions %}
+      <div class="flex flex-wrap items-center gap-4">
+        {{ actions }}
+      </div>
+    {% endif %}
+  </div>
+  {% if media %}
+    <div>
+      {{ media }}
+    </div>
+  {% endif %}
+</div>

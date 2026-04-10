@@ -1,0 +1,34 @@
+{#
+/**
+ * @file
+ * Template for code-preview component.
+ *
+ * Available variables:
+ * - title: Optional title above the code block
+ * - label: Optional label/badge text
+ * - image: Optional image URL
+ * - code: Code content slot
+ */
+#}
+<div{{ attributes.addClass(['rounded-lg', 'border', 'border-outline', 'bg-surface', 'overflow-hidden']) }}>
+  {% if label or title %}
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-outline bg-surface-container">
+      {% if label %}
+        <span class="text-sm font-label font-medium text-primary">{{ label }}</span>
+      {% endif %}
+      {% if title %}
+        <span class="text-base font-body text-on-surface">{{ title }}</span>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% if code %}
+    <div class="p-4 font-mono text-sm text-on-surface leading-relaxed overflow-x-auto">
+      <pre class="whitespace-pre-wrap">{{ code }}</pre>
+    </div>
+  {% endif %}
+  {% if image %}
+    <div class="p-4">
+      <img src="{{ image }}" alt="{{ title|default('Preview') }}" class="rounded-md w-full" />
+    </div>
+  {% endif %}
+</div>
