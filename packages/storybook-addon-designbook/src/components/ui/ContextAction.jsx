@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { WithTooltip, TooltipLinkList, IconButton } from 'storybook/internal/components';
 import { EllipsisIcon } from '@storybook/icons';
 import { addons } from 'storybook/manager-api';
+import { DeboFileViewer } from './DeboFileViewer';
 
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text).catch(() => {
@@ -22,7 +23,7 @@ function shortenPath(p) {
 /**
  * ContextAction — Ellipsis (⋮) button with a click-triggered action menu.
  *
- * Provides "Copy path" and "Open in editor" for a given file path.
+ * Provides "Copy path", "Open in editor", and "View file" for a given file path.
  * Accepts optional `validation` to display status info and `extraLinks`
  * for additional menu entries.
  *
@@ -32,6 +33,8 @@ function shortenPath(p) {
  * @param {Array} [props.extraLinks] - Additional TooltipLinkList entries
  */
 export function ContextAction({ path, validation, extraLinks }) {
+  const [viewerOpen, setViewerOpen] = useState(false);
+
   const links = [];
 
   // Standard file actions
@@ -45,6 +48,12 @@ export function ContextAction({ path, validation, extraLinks }) {
     id: 'open-in-editor',
     title: 'Open in editor',
     onClick: () => openInEditor(path),
+  });
+
+  links.push({
+    id: 'view-file',
+    title: 'View file',
+    onClick: () => setViewerOpen(true),
   });
 
   // Extra links (e.g., rule files for stage context)
@@ -76,31 +85,34 @@ export function ContextAction({ path, validation, extraLinks }) {
   }
 
   return (
-    <WithTooltip
-      trigger="click"
-      closeOnOutsideClick
-      placement="bottom"
-      tooltip={({ onHide }) => (
-        <TooltipLinkList
-          links={links.map((l) => ({
-            ...l,
-            onClick: l.onClick
-              ? (e) => {
-                  l.onClick(e);
-                  onHide();
-                }
-              : undefined,
-          }))}
-        />
-      )}
-    >
-      <IconButton
-        title={shortenPath(path)}
-        style={{ padding: '2px', height: 'auto', width: 'auto' }}
-        onClick={(e) => e.stopPropagation()}
+    <>
+      <WithTooltip
+        trigger="click"
+        closeOnOutsideClick
+        placement="bottom"
+        tooltip={({ onHide }) => (
+          <TooltipLinkList
+            links={links.map((l) => ({
+              ...l,
+              onClick: l.onClick
+                ? (e) => {
+                    l.onClick(e);
+                    onHide();
+                  }
+                : undefined,
+            }))}
+          />
+        )}
       >
-        <EllipsisIcon />
-      </IconButton>
-    </WithTooltip>
+        <IconButton
+          title={shortenPath(path)}
+          style={{ padding: '2px', height: 'auto', width: 'auto' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <EllipsisIcon />
+        </IconButton>
+      </WithTooltip>
+      {viewerOpen && <DeboFileViewer path={path} onClose={() => setViewerOpen(false)} />}
+    </>
   );
 }

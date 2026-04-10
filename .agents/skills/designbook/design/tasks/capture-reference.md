@@ -44,7 +44,7 @@ Captures reference screenshots by loading the source URL at each breakpoint view
    ```
    Then use `file:///tmp/reference-${storyId}.html` as the capture URL.
 
-2. **Capture screenshot** for this breakpoint/region combination:
+2. **Capture screenshot** for this breakpoint/region combination using the `playwright-capture` rule (staged file flow):
 
    a. **Check skip condition**: If output file already exists and reference URL has not changed, skip.
 

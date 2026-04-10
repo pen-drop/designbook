@@ -2,7 +2,7 @@ import React, { memo, useCallback, useState } from 'react';
 import { useChannel, useParameter } from 'storybook/manager-api';
 import { IconButton } from 'storybook/internal/components';
 import { INSPECT_TOOL_ID, EVENTS } from '../constants';
-import { SearchIcon } from '@storybook/icons';
+import { PointerDefaultIcon } from '@storybook/icons';
 
 export const InspectTool = memo(function InspectTool() {
   const [active, setActive] = useState(false);
@@ -20,7 +20,7 @@ export const InspectTool = memo(function InspectTool() {
 
   return (
     <IconButton key={INSPECT_TOOL_ID} active={active} title="Inspect scene structure" onClick={toggle}>
-      <SearchIcon />
+      <PointerDefaultIcon />
     </IconButton>
   );
 });

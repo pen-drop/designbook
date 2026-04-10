@@ -38,7 +38,7 @@ Captures Storybook screenshots at each breakpoint viewport width via Playwright.
    ```
    Extract the Storybook iframe URL from the story JSON output.
 
-2. **Capture screenshot** for this breakpoint/region combination:
+2. **Capture screenshot** using the `playwright-capture` rule (staged file flow):
 
    a. **Resolve viewport width** from `design-tokens.yml` and **selector** from the check's `selector` field.
 

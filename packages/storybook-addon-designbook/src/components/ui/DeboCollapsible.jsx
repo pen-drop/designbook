@@ -137,9 +137,9 @@ export function DeboCollapsible({ title, count, defaultOpen = false, variant = '
 
   let containerStyle;
   if (variant === 'card') {
-    containerStyle = CONTAINER_STYLES.card;
+    containerStyle = { ...CONTAINER_STYLES.card, overflow: open ? 'visible' : 'clip' };
   } else if (variant === 'action-summary') {
-    containerStyle = CONTAINER_STYLES['action-summary']();
+    containerStyle = { ...CONTAINER_STYLES['action-summary'](), overflow: open ? 'visible' : 'clip' };
   } else if (variant === 'action-inline') {
     containerStyle = CONTAINER_STYLES['action-inline'](statusColor);
   } else {

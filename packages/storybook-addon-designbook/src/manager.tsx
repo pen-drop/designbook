@@ -1,10 +1,10 @@
 import React from 'react';
 import { addons, types } from 'storybook/manager-api';
 
-import { Panel } from './components/Panel';
+import { WorkflowPanel } from './components/panels/WorkflowPanel';
 import { VisualCompareTool } from './components/VisualCompareTool';
 import { InspectTool } from './components/InspectTool';
-import { StructurePanel } from './components/StructurePanel';
+import { StructurePanel } from './components/panels/StructurePanel';
 import { ADDON_ID, PANEL_ID, TAB_ID, INSPECT_TOOL_ID, STRUCTURE_PANEL_ID, VISUAL_TOOL_ID } from './constants';
 import { startWorkflowNotifications } from './manager-notifications';
 
@@ -18,7 +18,7 @@ addons.register(ADDON_ID, (api) => {
     type: types.PANEL,
     title: 'Designbook',
     match: () => true,
-    render: ({ active }) => <Panel active={active} />,
+    render: ({ active }) => <WorkflowPanel active={active} />,
   });
 
   // Visual Compare toolbar tool — overlay reference screenshots on scenes

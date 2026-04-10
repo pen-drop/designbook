@@ -9,7 +9,16 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import jsonata from 'jsonata';
-import type { SceneNodeBuilder, SceneNode, BuildContext, RawNode, BuildResult } from '../types';
+import type {
+  SceneNodeBuilder,
+  SceneNode,
+  BuildContext,
+  RawNode,
+  BuildResult,
+  FieldMapping,
+  EntityOrigin,
+} from '../types';
+import { extractFieldMappings } from '../jsonata-mapping-analyzer';
 
 /**
  * Placeholder ComponentNode returned when JSONata file or sample data is missing.
@@ -47,10 +56,8 @@ export const entityBuilder: SceneNodeBuilder = {
     // 1. Locate the .jsonata expression file
     const jsonataPath = resolve(ctx.designbookDir, 'entity-mapping', `${entity_type}.${bundle}.${view_mode}.jsonata`);
 
-    const meta = {
-      kind: 'entity' as const,
-      entity: { entity_type, bundle, view_mode, record, mapping: jsonataPath },
-    };
+    const entity: EntityOrigin = { entity_type, bundle, view_mode, record, mapping: jsonataPath };
+    const meta = { kind: 'entity' as const, entity };
 
     if (!existsSync(jsonataPath)) {
       console.warn(`[Designbook] JSONata expression not found: ${jsonataPath}`);
@@ -66,6 +73,17 @@ export const entityBuilder: SceneNodeBuilder = {
     const source = readFileSync(jsonataPath, 'utf-8');
     const expr = jsonata(source);
     const result = await expr.evaluate(recordData);
+
+    // 3b. Extract field mappings from the JSONata AST
+    let fieldMappings: FieldMapping[] | undefined;
+    try {
+      fieldMappings = extractFieldMappings(source);
+    } catch {
+      // Non-critical — panel just won't show mappings
+    }
+    if (fieldMappings?.length) {
+      entity.fieldMappings = fieldMappings;
+    }
 
     if (!result) {
       console.warn(`[Designbook] JSONata expression returned empty: ${jsonataPath}`);

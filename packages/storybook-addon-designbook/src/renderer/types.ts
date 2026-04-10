@@ -170,6 +170,20 @@ export interface SceneNodeBuilder {
 
 // ─── Scene Tree Types ─────────────────────────────────────────────────
 
+/** A single field mapping extracted from the JSONata expression AST. */
+export interface FieldMapping {
+  /** Entity field path, e.g. "title", "field_media.url". */
+  field: string;
+  /** Target component ID, e.g. "test_provider:card". */
+  component: string;
+  /** Prop or slot name on the target component, e.g. "title", "src". */
+  target: string;
+  /** Whether this maps to a prop or a slot. */
+  type: 'prop' | 'slot';
+  /** True when the mapping is inside a conditional expression. */
+  conditional?: boolean;
+}
+
 /** Origin metadata for entity nodes. */
 export interface EntityOrigin {
   entity_type: string;
@@ -178,6 +192,8 @@ export interface EntityOrigin {
   record?: number;
   /** Path to the .jsonata mapping file. */
   mapping: string;
+  /** Field mappings extracted from the JSONata AST at build time. */
+  fieldMappings?: FieldMapping[];
 }
 
 /** Origin metadata for scene-ref nodes. */
