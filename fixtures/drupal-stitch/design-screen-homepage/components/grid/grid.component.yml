@@ -1,0 +1,32 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "grid"
+status: "experimental"
+group: "Layout"
+description: "Responsive grid layout with column presets. Arranges items into columns that adapt to screen size."
+props:
+  type: "object"
+  properties:
+    columns:
+      title: "Columns"
+      type: "integer"
+      enum: [1, 2, 3, 4]
+      description: "Responsive column preset. 1 = 1 col everywhere. 2 = 1 mobile, 2 from md. 3 = 1 mobile, 2 md, 3 lg. 4 = 1 mobile, 2 md, 4 lg."
+    gap:
+      title: "Gap"
+      type: "string"
+      enum: ["none", "sm", "md", "lg"]
+      description: "Gap between grid items. Uses grid tokens."
+slots:
+  items:
+    title: "Grid Items"
+    description: "Items displayed as grid cells."
+  content:
+    title: "Content"
+    description: "Free-form content. Use either items or content, not both."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}

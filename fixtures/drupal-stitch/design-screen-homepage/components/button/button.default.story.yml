@@ -1,0 +1,5 @@
+name: "Default"
+props:
+  variant: "primary"
+  label: "Get Started"
+  url: "/get-started"

@@ -1,0 +1,38 @@
+{#
+/**
+ * @file
+ * Template for hero component.
+ *
+ * Available variables:
+ * - preheadline: Optional preheadline/kicker text
+ * - heading: Main heading text
+ * - description: Description text
+ * - content: Content slot (alternative to heading/description)
+ * - actions: Action buttons slot
+ * - media: Media content slot (code preview, image, etc.)
+ */
+#}
+<div{{ attributes.addClass(['text-center', 'max-w-4xl', 'mx-auto']) }}>
+  {% if preheadline %}
+    <p class="text-sm font-label font-medium text-primary mb-4">{{ preheadline }}</p>
+  {% endif %}
+  {% if heading %}
+    <h1 class="text-[3.5rem] font-heading font-bold leading-[1.1] tracking-[-0.04em] text-on-surface mb-6">{{ heading }}</h1>
+  {% endif %}
+  {% if description %}
+    <p class="text-base font-body leading-relaxed text-on-surface-variant max-w-2xl mx-auto mb-8">{{ description }}</p>
+  {% endif %}
+  {% if content %}
+    {{ content }}
+  {% endif %}
+  {% if actions %}
+    <div class="flex items-center justify-center gap-4 mb-12">
+      {{ actions }}
+    </div>
+  {% endif %}
+  {% if media %}
+    <div class="mt-8">
+      {{ media }}
+    </div>
+  {% endif %}
+</div>

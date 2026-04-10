@@ -1,0 +1,51 @@
+{#
+/**
+ * @file
+ * Section component — Layout Builder adapter.
+ * Delegates to container + grid internally.
+ *
+ * Available variables:
+ * - max_width: Container max-width (sm, md, lg, xl, full)
+ * - padding_top: Top padding (auto, none, sm, md, lg)
+ * - padding_bottom: Bottom padding (auto, none, sm, md, lg)
+ * - display_header: Whether to display the header
+ * - theme: Visual theme
+ * - columns: Number of grid columns (1-8)
+ * - gap: Gap between columns (none, sm, md, lg)
+ * - header: Header slot
+ * - background: Background slot
+ * - column_1..column_8: Column slots
+ */
+#}
+{% set columns = columns|default(1) %}
+{% set gap = gap|default('md') %}
+
+{# Collect column slots into items array #}
+{% set items = [] %}
+{% for i in 1..columns %}
+  {% set col = _context['column_' ~ i] %}
+  {% if col is not empty %}
+    {% set items = items|merge([col]) %}
+  {% endif %}
+{% endfor %}
+
+{# Build grid content #}
+{% set grid_content %}
+  {{ include('test_integration_drupal:grid', {
+    columns: columns,
+    gap: gap,
+    items: items,
+  }) }}
+{% endset %}
+
+{# Delegate to container #}
+{{ include('test_integration_drupal:container', {
+  max_width: max_width,
+  padding_top: padding_top,
+  padding_bottom: padding_bottom,
+  display_header: display_header,
+  theme: theme,
+  header: header,
+  background: background,
+  content: grid_content,
+}) }}

@@ -1,0 +1,10 @@
+name: "Default"
+props:
+  label: "AI Recommendation"
+  title: "Landing Page Hero"
+  image: "https://placehold.co/600x400"
+slots:
+  code:
+    - type: "element"
+      tag: "pre"
+      value: "{% block content %}\n  {{ include('hero', {\n    heading: heading,\n    actions: actions,\n  }) }}\n{% endblock %}"

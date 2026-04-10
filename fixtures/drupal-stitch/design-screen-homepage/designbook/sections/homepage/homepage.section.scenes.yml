@@ -1,0 +1,17 @@
+id: homepage
+title: Homepage
+description: "Main landing page showcasing Designbook's AI-powered design-to-implementation workflows, features, and call-to-action"
+status: in-progress
+order: 1
+
+group: "Designbook/Homepage"
+scenes:
+  - name: "landing"
+    section: "homepage"
+    items:
+      - scene: "design-system:shell"
+        with:
+          content:
+            - entity: "canvas_page.landing_page"
+              view_mode: "full"
+              record: 0

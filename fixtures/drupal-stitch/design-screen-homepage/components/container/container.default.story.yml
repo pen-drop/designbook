@@ -1,0 +1,18 @@
+name: "Default"
+props:
+  max_width: "md"
+  padding_top: "md"
+  padding_bottom: "md"
+slots:
+  header:
+    - type: "element"
+      tag: "h2"
+      attributes:
+        class: "text-2xl font-heading font-bold text-on-surface"
+      value: "Section Title"
+  content:
+    - type: "element"
+      tag: "div"
+      attributes:
+        class: "p-8 bg-surface-container rounded-lg"
+      value: "Container content with constrained max-width and section spacing."

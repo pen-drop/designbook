@@ -9,7 +9,19 @@ params:
   scene: ~
   storyId: ~
   breakpoint: ~
-files: []
+files:
+  - key: extraction-spec
+    path: $DESIGNBOOK_DATA/stories/{storyId}/extractions/{breakpoint}--spec.yml
+    validators: []
+  - key: extraction-reference
+    path: $DESIGNBOOK_DATA/stories/{storyId}/extractions/{breakpoint}--reference.json
+    validators: []
+  - key: extraction-storybook
+    path: $DESIGNBOOK_DATA/stories/{storyId}/extractions/{breakpoint}--storybook.json
+    validators: []
+  - key: draft-issues
+    path: $DESIGNBOOK_DATA/stories/{storyId}/issues/draft/{breakpoint}--markup.json
+    validators: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true

@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Template for stat component.
+ *
+ * Available variables:
+ * - value: Metric value (e.g. "90%")
+ * - label: Description label
+ */
+#}
+<div{{ attributes.addClass(['text-center', 'p-6']) }}>
+  {% if value %}
+    <div class="text-[3.5rem] font-heading font-bold leading-[1.1] text-primary mb-2">{{ value }}</div>
+  {% endif %}
+  {% if label %}
+    <div class="text-base font-body leading-relaxed text-on-surface-variant">{{ label }}</div>
+  {% endif %}
+</div>

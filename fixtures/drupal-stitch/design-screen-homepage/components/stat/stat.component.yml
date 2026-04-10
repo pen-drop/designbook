@@ -1,0 +1,23 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "stat"
+status: "experimental"
+group: "Data Display"
+description: "Metric display showing a prominent value with a descriptive label."
+props:
+  type: "object"
+  properties:
+    value:
+      title: "Value"
+      type: "string"
+      description: "Metric value (e.g. 90%, 1.2k)."
+    label:
+      title: "Label"
+      type: "string"
+      description: "Description label for the metric."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}

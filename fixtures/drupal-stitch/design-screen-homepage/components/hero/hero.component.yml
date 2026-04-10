@@ -1,0 +1,37 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "hero"
+status: "experimental"
+group: "Data Display"
+description: "Landing page hero block with heading, description, action buttons, and optional media content."
+props:
+  type: "object"
+  properties:
+    preheadline:
+      title: "Preheadline"
+      type: "string"
+      description: "Optional kicker text above the heading."
+    heading:
+      title: "Heading"
+      type: "string"
+      description: "Main heading text."
+    description:
+      title: "Description"
+      type: "string"
+      description: "Description text below the heading."
+slots:
+  content:
+    title: "Content"
+    description: "Alternative content slot (replaces heading/description props)."
+  actions:
+    title: "Actions"
+    description: "Action buttons (primary and secondary CTAs)."
+  media:
+    title: "Media"
+    description: "Optional media content (code preview, image, video)."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}

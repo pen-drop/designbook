@@ -1,0 +1,5 @@
+name: "Default"
+props:
+  icon: "token"
+  title: "Figma Plugin"
+  description: "Import designs directly from Figma with automatic component detection and token extraction."

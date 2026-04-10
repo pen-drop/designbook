@@ -1,0 +1,5 @@
+name: "Secondary"
+props:
+  variant: "secondary"
+  label: "View API Docs"
+  url: "/docs"
