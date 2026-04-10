@@ -141,6 +141,14 @@ Follow the task file instructions. This could mean:
 - Running commands or capturing screenshots
 - Any other work described in the task file
 
+**Before asking the user a question**, set the workflow to waiting so the Storybook panel shows the question:
+
+```bash
+_debo workflow wait --workflow $WORKFLOW_NAME --message "<the question for the user>"
+```
+
+This transitions the workflow from `running` → `waiting`, shows an amber pulse in the panel, and auto-focuses the Designbook tab. The next CLI call (`done`, `write-file`, or `instructions`) automatically clears the waiting state back to `running`.
+
 **Writing files:**
 ```bash
 cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME <task-id> --key <key>
@@ -193,7 +201,13 @@ Parse the `RESPONSE:` JSON line and act accordingly:
 ```json
 { "stage": "preview", "waiting_for": { "user_approved": { "type": "boolean", "prompt": "Preview OK?" } } }
 ```
-→ Ask the user the prompt. Then call `done` again with the answer as `--params`.
+→ Set the workflow to waiting, then ask the user:
+
+```bash
+_debo workflow wait --workflow $WORKFLOW_NAME --message "Preview OK?"
+```
+
+Then ask the user the prompt. When the user answers, call `done` again with the answer as `--params`. The next CLI call (`done`, `write-file`, or `instructions`) automatically transitions the workflow back to `running`.
 
 **Workflow complete:**
 ```json

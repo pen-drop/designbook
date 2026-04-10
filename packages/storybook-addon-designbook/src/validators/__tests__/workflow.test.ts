@@ -53,7 +53,7 @@ describe('workflowCreate', () => {
     const data = readWorkflowFile(dist, name);
     expect(data.title).toBe('My Vision');
     expect(data.workflow).toBe('debo-vision');
-    expect(data.status).toBe('planning');
+    expect(data.status).toBe('running');
   });
 
   it('creates first task with in-progress status and started_at', () => {
@@ -116,10 +116,10 @@ describe('workflowCreate', () => {
     expect(data.parent).toBeUndefined();
   });
 
-  it('creates planning workflow with empty tasks', () => {
+  it('creates running workflow with empty tasks', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
     const data = readWorkflowFile(dist, name);
-    expect(data.status).toBe('planning');
+    expect(data.status).toBe('running');
     expect(data.tasks).toHaveLength(0);
   });
 });
@@ -219,7 +219,7 @@ describe('workflowPlan', () => {
     dist = mkdtempSync(resolve(tmpdir(), 'wf-plan-'));
   });
 
-  it('adds tasks to a planning-status workflow and sets first to in-progress', () => {
+  it('adds tasks to a running workflow and sets first to in-progress', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
     workflowPlan(dist, name, [{ id: 'task1', title: 'Task 1', type: 'data' }]);
     const data = readWorkflowFile(dist, name);
@@ -235,11 +235,11 @@ describe('workflowPlan', () => {
     expect(data.stages).toEqual({ execute: { steps: ['dialog', 'create-tokens'] } });
   });
 
-  it('keeps status as planning', () => {
+  it('keeps status as running after plan', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
     workflowPlan(dist, name, [{ id: 'task1', title: 'T1', type: 'data' }]);
     const data = readWorkflowFile(dist, name);
-    expect(data.status).toBe('planning');
+    expect(data.status).toBe('running');
   });
 
   it('stores write_root and root_dir when provided', () => {

@@ -232,6 +232,21 @@ Parse the `RESPONSE:` JSON line — it drives all subsequent actions.
 { "stage": "create-vision", "transition_from": "...", "next_stage": "create-vision", "next_step": "create-vision", "expanded_tasks": [{ "id": "...", "step": "...", "stage": "...", "title": "..." }] }
 ```
 
+## `workflow wait`
+
+Set workflow status to `waiting`. Use before asking the user a question. The Storybook panel shows an amber pulse animation and the optional message.
+
+```bash
+_debo workflow wait --workflow <name> [--message "<question for the user>"]
+```
+
+| Option | Description |
+|--------|------------|
+| `--workflow` | Workflow name (required) |
+| `--message` | Question or prompt to display in the workflow panel (optional) |
+
+The workflow transitions `running → waiting`. The next CLI call (`done`, `write-file`, or `instructions`) automatically transitions back to `running` and clears the message.
+
 ## `workflow abandon`
 
 Archive a workflow as incomplete.

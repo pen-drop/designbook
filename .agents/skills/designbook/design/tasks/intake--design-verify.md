@@ -1,6 +1,6 @@
 ---
 when:
-  steps: [intake]
+  steps: [design-verify:intake]
 params:
   scene: ~
   reference: []

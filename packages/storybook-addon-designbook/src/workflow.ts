@@ -74,7 +74,8 @@ export interface WorkflowTask {
 export interface WorkflowFile {
   title: string;
   workflow: string;
-  status?: 'planning' | 'running' | 'completed' | 'incomplete';
+  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
+  waiting_message?: string; // question/prompt shown when status is 'waiting'
   /** Write isolation engine: 'git-worktree' or 'direct'. Stored at plan time. */
   engine?: 'git-worktree' | 'direct';
   parent?: string;
@@ -165,6 +166,24 @@ export function workflowAbandon(dataDir: string, name: string): WorkflowFile {
   return data;
 }
 
+export function workflowWait(dataDir: string, name: string, message?: string): void {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+  const data = readWorkflow(filePath);
+
+  if (data.status !== 'running') {
+    throw new Error(`Cannot set waiting: workflow "${name}" is ${data.status}, expected running`);
+  }
+
+  data.status = 'waiting';
+  if (message) {
+    data.waiting_message = message;
+  } else {
+    delete data.waiting_message;
+  }
+  writeFileSync(filePath, stringifyYaml(data));
+}
+
 function normalizeFilePath(_dataDir: string, p: string): string {
   return p; // Paths must always be absolute — stored as-is
 }
@@ -245,7 +264,7 @@ export function workflowCreate(
     title,
     workflow: workflowId,
     workflow_id: wfId,
-    status: 'planning',
+    status: 'running',
     ...(engine ? { engine: engine as WorkflowFile['engine'] } : {}),
     ...(parent ? { parent } : {}),
     ...(initialParams && Object.keys(initialParams).length > 0 ? { params: initialParams } : {}),
@@ -432,8 +451,8 @@ export function expandTasksFromParams(
 }
 
 /**
- * Add stages and tasks to a planning workflow.
- * Errors with exit code 1 if the workflow is not in planning status.
+ * Add stages and tasks to a waiting workflow.
+ * Errors with exit code 1 if the workflow is not in waiting status.
  */
 export function workflowPlan(
   dataDir: string,
@@ -464,7 +483,7 @@ export function workflowPlan(
   const filePath = resolve(changesDir, 'tasks.yml');
   const data = readWorkflow(filePath);
 
-  if (data.status === 'running' || data.status === 'completed' || data.status === 'incomplete') {
+  if (data.status === 'completed' || data.status === 'incomplete') {
     process.stderr.write(`Error: workflow "${name}" cannot be planned (current status: ${data.status})\n`);
     process.exit(1);
   }
@@ -643,8 +662,9 @@ export async function workflowDone(
     task.completed_at = timestamp();
     if (options?.summary) task.summary = options.summary;
 
-    if (data.status === 'planning' || data.status === 'running') {
+    if (data.status === 'waiting') {
       data.status = 'running';
+      delete data.waiting_message;
     }
 
     if (loaded) {
@@ -876,8 +896,11 @@ export async function workflowWriteFile(
     const validationResult = await validateByKeys(fileEntry.validators, writtenPath, config);
     fileEntry.validation_result = { ...validationResult, file: fileEntry.path };
 
-    // Transition to running on first write
-    if (data.status === 'planning') data.status = 'running';
+    // Transition from waiting back to running on first write
+    if (data.status === 'waiting') {
+      data.status = 'running';
+      delete data.waiting_message;
+    }
 
     writeWorkflowAtomic(filePath, data);
 

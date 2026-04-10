@@ -65,7 +65,8 @@ export interface WorkflowTask {
 export interface WorkflowTaskFile {
   title: string;
   workflow: string;
-  status?: 'planning' | 'running' | 'completed' | 'incomplete';
+  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
+  waiting_message?: string; // question/prompt shown when status is 'waiting'
   parent?: string;
   params?: Record<string, unknown>; // global intake params (accessible to all subagents)
   current_stage?: string; // current lifecycle stage (planned, execute, committed, test, preview, finalizing, done)

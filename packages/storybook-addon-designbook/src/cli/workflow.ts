@@ -1,5 +1,5 @@
 import { resolve, dirname } from 'node:path';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
 import {
@@ -12,6 +12,7 @@ import {
   workflowList,
   workflowDone,
   workflowAbandon,
+  workflowWait,
   workflowMerge,
   isGitRepo,
   resolveEngine,
@@ -20,7 +21,7 @@ import {
 } from '../workflow.js';
 import type { StageDefinition } from '../workflow-types.js';
 import { engines as engineRegistry } from '../engines/index.js';
-import { load as parseYaml } from 'js-yaml';
+import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
 import { resolveAllStages, parseFrontmatter, buildEnvMap, type ResolvedStep } from '../workflow-resolve.js';
 
 /**
@@ -283,6 +284,14 @@ export function register(program: Command): void {
       }
 
       const data = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
+
+      // Transition from waiting back to running when AI resumes work
+      if (data.status === 'waiting') {
+        data.status = 'running';
+        delete (data as Record<string, unknown>).waiting_message;
+        writeFileSync(tasksYmlPath, stringifyYaml(data));
+      }
+
       const stages = data.stages as Record<string, { steps?: string[]; each?: string }> | undefined;
       const stageLoaded = data.stage_loaded as Record<string, unknown> | undefined;
 
@@ -494,6 +503,28 @@ export function register(program: Command): void {
         if (responseObj) {
           console.log(`\nRESPONSE: ${JSON.stringify(responseObj)}`);
         }
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('wait')
+    .description('Set workflow status to waiting (AI needs user input).')
+    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+    .option('--message <text>', 'Question or prompt to display in the workflow panel')
+    .action((opts: { workflow: string; message?: string }) => {
+      const config = loadConfig();
+      try {
+        workflowWait(config.data, opts.workflow, opts.message);
+        console.log(
+          JSON.stringify({
+            status: 'waiting',
+            workflow: opts.workflow,
+            ...(opts.message ? { message: opts.message } : {}),
+          }),
+        );
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;

@@ -61,7 +61,7 @@ interface WorkflowData {
   changeName: string;
   title: string;
   workflow: string;
-  status?: 'planning' | 'running' | 'completed' | 'incomplete';
+  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
   parent?: string;
   engine?: 'git-worktree' | 'direct';
   write_root?: string;
@@ -73,6 +73,7 @@ interface WorkflowData {
   started_at: string | null;
   completed_at: string | null;
   summary?: string;
+  waiting_message?: string;
   root_dir?: string;
   tasks: WorkflowTask[];
   source: 'active' | 'archived';
@@ -568,6 +569,23 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
         {wf.started_at && <span>({formatDuration(wf.started_at, wf.completed_at ?? null)})</span>}
       </div>
 
+      {/* Waiting message */}
+      {wf.status === 'waiting' && wf.waiting_message && (
+        <div
+          style={{
+            fontSize: 12,
+            color: '#f59e0b',
+            background: 'rgba(245,158,11,0.1)',
+            borderRadius: 4,
+            padding: '6px 10px',
+            marginBottom: 8,
+            border: '1px solid rgba(245,158,11,0.3)',
+          }}
+        >
+          {wf.waiting_message}
+        </div>
+      )}
+
       {/* Summary text */}
       {wf.summary && (
         <div style={{ fontSize: 12, color: '#475569', marginBottom: 10, whiteSpace: 'pre-wrap' as const }}>
@@ -1011,8 +1029,8 @@ function WorkflowTabs({ wf }: { wf: WorkflowData }) {
 }
 
 function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[]; designbookDir: string }) {
-  const hasRunning = workflows.some((wf) => wf.status === 'running');
-  useTick(hasRunning);
+  const hasActive = workflows.some((wf) => wf.status === 'running' || wf.status === 'waiting');
+  useTick(hasActive);
 
   if (workflows.length === 0) {
     return <div style={S.empty}>No workflow activity yet. Run a /debo * command to see progress here.</div>;
@@ -1023,7 +1041,7 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
       {workflows.map((wf) => {
         const done = wf.tasks.filter((t) => t.status === 'done').length;
         const total = wf.tasks.length;
-        const isOpen = wf.status === 'running' || wf.status === 'planning';
+        const isOpen = wf.status === 'running' || wf.status === 'waiting';
 
         const activeTask = wf.tasks.find((t) => t.status === 'in-progress');
         const wfSummary = (
@@ -1039,7 +1057,13 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
         );
 
         return (
-          <DeboRainbowBorder key={wf.changeName} active={wf.status === 'running'} borderRadius={8} borderWidth={2}>
+          <DeboRainbowBorder
+            key={wf.changeName}
+            active={wf.status === 'running' || wf.status === 'waiting'}
+            variant={wf.status === 'waiting' ? 'waiting' : 'running'}
+            borderRadius={8}
+            borderWidth={2}
+          >
             <DeboCollapsible
               title={wfSummary}
               variant="action-summary"
