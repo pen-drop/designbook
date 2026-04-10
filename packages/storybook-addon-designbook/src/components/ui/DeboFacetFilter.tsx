@@ -202,10 +202,6 @@ export function DeboFacetFilter({ facets, state, onToggle, onClear }: DeboFacetF
 // useFacetFilter — dependent facet logic
 // ---------------------------------------------------------------------------
 
-export interface FacetableItem {
-  [facetId: string]: string | string[] | undefined;
-}
-
 /**
  * Generic hook for dependent faceted filtering.
  *
@@ -213,7 +209,8 @@ export interface FacetableItem {
  * other facets' available options are narrowed to only values that co-occur
  * with the current selection.
  */
-export function useFacetFilter<T extends FacetableItem>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function useFacetFilter<T extends Record<string, any>>(
   items: T[],
   facetIds: string[],
   labelFns?: Partial<Record<string, (value: string) => string>>,
@@ -242,9 +239,10 @@ export function useFacetFilter<T extends FacetableItem>(
   // Helper: get values for a facet from an item
   const getValues = (item: T, facetId: string): string[] => {
     const val = item[facetId];
-    if (val === undefined) return [];
-    if (Array.isArray(val)) return val;
-    return [val];
+    if (val === undefined || val === null) return [];
+    if (Array.isArray(val)) return val as string[];
+    if (typeof val === 'string') return [val];
+    return [];
   };
 
   // Filter items by all selected facets

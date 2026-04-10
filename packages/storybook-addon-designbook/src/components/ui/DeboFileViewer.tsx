@@ -213,7 +213,7 @@ function MarkdownBody({ content }: { content: string }) {
 
 function CodeBody({ content, language }: { content: string; language?: string }) {
   return (
-    <SyntaxHighlighter language={language ?? 'text'} copyable padded showLineNumbers>
+    <SyntaxHighlighter language={(language ?? 'text') as 'text'} copyable padded showLineNumbers>
       {content}
     </SyntaxHighlighter>
   );

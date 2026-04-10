@@ -709,7 +709,6 @@ interface ContextEntry {
   stage: string[];
   fullPath: string;
   isLoaded: boolean;
-  [key: string]: unknown;
 }
 
 /** Build a step→stage lookup from the workflow's stages definition. */
@@ -850,7 +849,6 @@ interface FileEntry {
   step: string;
   taskTitle: string;
   file: TaskFile;
-  [key: string]: unknown;
 }
 
 function collectAllFiles(wf: WorkflowData): FileEntry[] {
