@@ -239,7 +239,7 @@ export function register(program: Command): void {
         }
         if (expandedTasks) {
           for (const t of expandedTasks) {
-            taskIds[t.step] = t.id;
+            if (t.step) taskIds[t.step] = t.id;
           }
         }
 

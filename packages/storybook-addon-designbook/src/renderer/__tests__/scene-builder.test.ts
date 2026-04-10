@@ -86,11 +86,15 @@ describe('sceneBuilder', () => {
     const page = result.resolvedChildren![0]!;
     expect(page.component).toBe('test_provider:page');
 
-    // Content slot should now have the article SceneTreeNodes
+    // Content slot should now have the article entity SceneTreeNode
     const content = page.slots?.content as SceneTreeNode[];
     expect(Array.isArray(content)).toBe(true);
     expect(content.length).toBeGreaterThan(0);
-    expect(content.some((n) => n.component === 'figure' || n.component === 'heading')).toBe(true);
+    // The entity node wraps component children (figure, heading, text-block)
+    const entityNode = content[0]!;
+    expect(entityNode.kind).toBe('entity');
+    const children = entityNode.children ?? [];
+    expect(children.some((n) => n.component === 'figure' || n.component === 'heading')).toBe(true);
   });
 
   it('returns empty resolvedChildren and warns for invalid ref format', async () => {

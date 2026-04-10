@@ -6,6 +6,12 @@ function makeModule(render: ComponentModule['render']): ComponentModule {
   return { render };
 }
 
+/** Strip <!--db:s:...--> / <!--db:e:...--> comment markers from rendered HTML. */
+function stripMarkers(html: unknown): unknown {
+  if (typeof html !== 'string') return html;
+  return html.replace(/<!--db:[se]:[^>]*-->/g, '');
+}
+
 describe('renderComponent', () => {
   it('renders a single ComponentNode', () => {
     const imports = {
@@ -14,7 +20,7 @@ describe('renderComponent', () => {
     const node: ComponentNode = { component: 'test:heading', props: { level: '1' } };
 
     const result = renderComponent(node, imports);
-    expect(result).toBe('<h1>');
+    expect(stripMarkers(result)).toBe('<h1>');
   });
 
   it('renders an array of ComponentNodes — joins strings', () => {
@@ -26,7 +32,7 @@ describe('renderComponent', () => {
     const result = renderComponent([{ component: 'test:a' }, { component: 'test:b' }], imports);
 
     // Multiple string results are concatenated (html framework compatibility)
-    expect(result).toBe('AB');
+    expect(stripMarkers(result)).toBe('AB');
   });
 
   it('resolves slots recursively — array slot is passed as array', () => {
@@ -50,7 +56,9 @@ describe('renderComponent', () => {
     expect(childSpy).toHaveBeenCalledOnce();
     const [, resolvedSlots] = parentSpy.mock.calls[0]!;
     // Array slot stays as array so Twig templates can iterate with {% for item in items %}
-    expect((resolvedSlots as Record<string, unknown>).items).toEqual(['CHILD']);
+    const items = (resolvedSlots as Record<string, unknown[]>).items;
+    expect(items).toHaveLength(1);
+    expect(stripMarkers(items![0])).toBe('CHILD');
   });
 
   it('resolves single ComponentNode slot', () => {
@@ -70,7 +78,7 @@ describe('renderComponent', () => {
     };
 
     const result = renderComponent(node, imports);
-    expect(result).toBe('badge');
+    expect(stripMarkers(result)).toBe('badge');
   });
 
   it('passes string slots through unchanged', () => {
@@ -83,7 +91,7 @@ describe('renderComponent', () => {
     };
 
     const result = renderComponent(node, imports);
-    expect(result).toBe('Hello World');
+    expect(stripMarkers(result)).toBe('Hello World');
   });
 
   it('passes props as first argument and slots as second — no cross-contamination', () => {

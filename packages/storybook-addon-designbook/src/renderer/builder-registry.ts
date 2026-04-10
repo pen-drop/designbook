@@ -126,7 +126,7 @@ async function resolveToTree(nodes: RawNode[], meta: BuildResult['meta'], ctx: B
   // Single-node results merge meta directly onto the node.
   if (meta.kind === 'entity' || meta.kind === 'scene-ref') {
     if (resolved.length === 1) {
-      return [{ ...meta, ...resolved[0] }];
+      return [{ ...resolved[0], ...meta }];
     }
     // Multiple nodes → entity parent with children
     return [{ ...meta, children: resolved }];
