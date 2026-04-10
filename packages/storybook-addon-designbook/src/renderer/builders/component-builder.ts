@@ -5,7 +5,7 @@
  * resolveEntityRefs() will recurse into slots afterward if they contain SceneNode refs.
  */
 
-import type { SceneNodeBuilder, SceneNode, BuildContext, RawNode } from '../types';
+import type { SceneNodeBuilder, SceneNode, BuildContext, BuildResult } from '../types';
 
 export const componentBuilder: SceneNodeBuilder = {
   appliesTo(node: SceneNode): boolean {
@@ -13,9 +13,12 @@ export const componentBuilder: SceneNodeBuilder = {
   },
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async build(node: SceneNode, _ctx: BuildContext): Promise<RawNode[]> {
+  async build(node: SceneNode, _ctx: BuildContext): Promise<BuildResult> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { type, story, ...rest } = node as SceneNode & { type?: string; story?: string };
-    return [rest as unknown as RawNode];
+    return {
+      nodes: [rest as unknown as import('../types').RawNode],
+      meta: { kind: 'component' },
+    };
   },
 };

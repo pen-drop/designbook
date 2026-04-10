@@ -9,18 +9,25 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import jsonata from 'jsonata';
-import type { SceneNodeBuilder, SceneNode, BuildContext, RawNode } from '../types';
+import type {
+  SceneNodeBuilder,
+  SceneNode,
+  BuildContext,
+  RawNode,
+  BuildResult,
+  FieldMapping,
+  EntityOrigin,
+} from '../types';
+import { extractFieldMappings } from '../jsonata-mapping-analyzer';
 
 /**
  * Placeholder ComponentNode returned when JSONata file or sample data is missing.
  */
-function missingPlaceholder(message: string): RawNode[] {
-  return [
-    {
-      component: 'designbook:placeholder',
-      props: { message },
-    },
-  ];
+function missingPlaceholder(message: string): RawNode {
+  return {
+    component: 'designbook:placeholder',
+    props: { message },
+  };
 }
 
 export const entityBuilder: SceneNodeBuilder = {
@@ -30,7 +37,7 @@ export const entityBuilder: SceneNodeBuilder = {
     return ('entity' in node && typeof node['entity'] === 'string') || node.type === 'entity';
   },
 
-  async build(node: SceneNode, ctx: BuildContext): Promise<RawNode[]> {
+  async build(node: SceneNode, ctx: BuildContext): Promise<BuildResult> {
     // Support raw YAML format: { entity: "node.article", view_mode, record }
     // as well as normalized format: { entity_type, bundle, view_mode, record }
     let entity_type: string;
@@ -49,9 +56,12 @@ export const entityBuilder: SceneNodeBuilder = {
     // 1. Locate the .jsonata expression file
     const jsonataPath = resolve(ctx.designbookDir, 'entity-mapping', `${entity_type}.${bundle}.${view_mode}.jsonata`);
 
+    const entity: EntityOrigin = { entity_type, bundle, view_mode, record, mapping: jsonataPath };
+    const meta = { kind: 'entity' as const, entity };
+
     if (!existsSync(jsonataPath)) {
       console.warn(`[Designbook] JSONata expression not found: ${jsonataPath}`);
-      return missingPlaceholder(`missing expression: ${entity_type}.${bundle}.${view_mode}.jsonata`);
+      return { nodes: [missingPlaceholder(`missing expression: ${entity_type}.${bundle}.${view_mode}.jsonata`)], meta };
     }
 
     // 2. Get sample data record — content entities from content namespace, config entities (e.g. view.*) from config namespace
@@ -64,14 +74,29 @@ export const entityBuilder: SceneNodeBuilder = {
     const expr = jsonata(source);
     const result = await expr.evaluate(recordData);
 
+    // 3b. Extract field mappings from the JSONata AST
+    let fieldMappings: FieldMapping[] | undefined;
+    try {
+      fieldMappings = extractFieldMappings(source);
+    } catch {
+      // Non-critical — panel just won't show mappings
+    }
+    if (fieldMappings?.length) {
+      entity.fieldMappings = fieldMappings;
+    }
+
     if (!result) {
       console.warn(`[Designbook] JSONata expression returned empty: ${jsonataPath}`);
-      return missingPlaceholder(`expression returned empty: ${entity_type}.${bundle}.${view_mode}.jsonata`);
+      return {
+        nodes: [missingPlaceholder(`expression returned empty: ${entity_type}.${bundle}.${view_mode}.jsonata`)],
+        meta,
+      };
     }
 
     // 4. Return raw result — may contain type:'component' and type:'entity' entries.
     //    resolveEntityRefs() in the registry will recursively resolve type:'entity' entries.
     //    Wrap single objects (e.g. view entity JSONata) in an array.
-    return (Array.isArray(result) ? result : [result]) as RawNode[];
+    const nodes = (Array.isArray(result) ? result : [result]) as RawNode[];
+    return { nodes, meta };
   },
 };

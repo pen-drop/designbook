@@ -76,6 +76,9 @@ The `workflow create` response contains everything the AI needs:
     "vision:intake": { "task_file": "/abs/path/to/intake--vision.md", "rules": [], "blueprints": [] },
     "create-vision": { "task_file": "/abs/path/to/create-vision.md", "rules": ["/abs/path/to/rule.md"] }
   },
+  "task_ids": {
+    "vision:intake": "intake"
+  },
   "expected_params": {
     "product_name": { "required": true, "from_step": "create-vision" },
     "description": { "required": true, "from_step": "create-vision" }
@@ -86,6 +89,7 @@ The `workflow create` response contains everything the AI needs:
 Key fields:
 - **`name`** — the workflow name, used in all subsequent CLI calls
 - **`step_resolved`** — maps each step to its `task_file`, `rules`, and `blueprints` (absolute paths). The first task is already `in-progress`.
+- **`task_ids`** — maps step names to actual task IDs. **Always use these IDs** in `workflow done --task <id>` calls — step names (e.g. `vision:intake`) are NOT valid task IDs.
 - **`expected_params`** — all params required across all stages
 
 ### Create with `--params` (Child Workflows)

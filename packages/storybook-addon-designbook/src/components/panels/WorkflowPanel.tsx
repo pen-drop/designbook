@@ -1,10 +1,12 @@
 import React, { memo, useState, useEffect } from 'react';
 import { AddonPanel, TabsView } from 'storybook/internal/components';
 import { addons } from 'storybook/manager-api';
-import { ManagerBadge } from './manager-utils.js';
-import { DeboCollapsible } from './ui/DeboCollapsible.jsx';
-import { ContextAction } from './ui/ContextAction.jsx';
-import { useUrlState } from '../hooks/useUrlState.js';
+import { ManagerBadge } from '../manager-utils.js';
+import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
+import { ContextAction } from '../ui/ContextAction.jsx';
+import { DeboFacetFilter, useFacetFilter } from '../ui/DeboFacetFilter';
+import { DeboRainbowBorder } from '../ui/DeboRainbowBorder';
+import { useUrlState } from '../../hooks/useUrlState.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,7 +66,7 @@ interface WorkflowData {
   worktree_branch?: string;
   current_stage?: string;
   stages?: Record<string, { steps: string[]; each?: string }> | string[];
-  stage_loaded?: Record<string, StageLoaded>;
+  stage_loaded?: Record<string, StageLoaded | StageLoaded[]>;
   params?: Record<string, unknown>;
   started_at: string | null;
   completed_at: string | null;
@@ -681,11 +683,13 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
               </div>
             )}
             {tasks.map((task) => (
-              <div key={task.id} style={getTaskRowStyle(task.status)}>
-                <StatusDot status={task.status} />
-                <span style={{ ...S.taskTitle, opacity: task.status === 'done' ? 0.7 : 1 }}>{task.title}</span>
-                <LiveDuration startedAt={task.started_at} completedAt={task.completed_at} />
-              </div>
+              <DeboRainbowBorder key={task.id} active={task.status === 'in-progress'} borderRadius={4} borderWidth={2}>
+                <div style={getTaskRowStyle(task.status)}>
+                  <StatusDot status={task.status} />
+                  <span style={{ ...S.taskTitle, opacity: task.status === 'done' ? 0.7 : 1 }}>{task.title}</span>
+                  <LiveDuration startedAt={task.started_at} completedAt={task.completed_at} />
+                </div>
+              </DeboRainbowBorder>
             ))}
           </div>
         );
@@ -701,45 +705,28 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
 interface ContextEntry {
   type: string;
   name: string;
-  step: string;
+  step: string[];
+  stage: string[];
   fullPath: string;
+  isLoaded: boolean;
 }
 
-function collectAllContext(wf: WorkflowData): ContextEntry[] {
-  const entries: ContextEntry[] = [];
-  for (const [step, loaded] of Object.entries(wf.stage_loaded ?? {})) {
-    if (loaded.task_file) {
-      entries.push({ type: 'task', name: shortenPath(loaded.task_file), step, fullPath: loaded.task_file });
-    }
-    for (const r of loaded.rules ?? []) {
-      entries.push({ type: 'rule', name: shortenPath(r), step, fullPath: r });
-    }
-    for (const b of loaded.blueprints ?? []) {
-      entries.push({ type: 'blueprint', name: shortenPath(b), step, fullPath: b });
-    }
-    for (const cr of loaded.config_rules ?? []) {
-      entries.push({ type: 'config', name: shortenPath(cr), step, fullPath: cr });
-    }
-    for (const ci of loaded.config_instructions ?? []) {
-      entries.push({ type: 'instruction', name: shortenPath(ci), step, fullPath: ci });
+/** Build a step→stage lookup from the workflow's stages definition. */
+function buildStepToStage(wf: WorkflowData): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (wf.stages && !Array.isArray(wf.stages)) {
+    for (const [stageName, def] of Object.entries(wf.stages)) {
+      for (const s of def.steps ?? []) {
+        map[s] = stageName;
+      }
     }
   }
-  // Deduplicate by fullPath + step
-  const seen = new Set<string>();
-  return entries.filter((e) => {
-    const key = `${e.fullPath}::${e.step}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return map;
 }
 
-function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
-  const allEntries = collectAllContext(wf);
-  const allSteps = [...new Set(allEntries.map((e) => e.step))];
-  const [selectedSteps, setSelectedSteps] = useState<Set<string>>(new Set());
+function collectGroupedContext(wf: WorkflowData): ContextEntry[] {
+  const stepToStage = buildStepToStage(wf);
 
-  // Derive loaded steps from task statuses
   const loadedSteps = new Set<string>();
   for (const task of wf.tasks) {
     if ((task.status === 'done' || task.status === 'in-progress') && task.step) {
@@ -747,63 +734,89 @@ function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
     }
   }
 
-  const toggleStep = (step: string) => {
-    setSelectedSteps((prev) => {
-      const next = new Set(prev);
-      if (next.has(step)) next.delete(step);
-      else next.add(step);
-      return next;
-    });
-  };
+  const grouped = new Map<
+    string,
+    { type: string; name: string; fullPath: string; steps: Set<string>; stages: Set<string>; loaded: boolean }
+  >();
 
-  const filtered = selectedSteps.size === 0 ? allEntries : allEntries.filter((e) => selectedSteps.has(e.step));
-  const loaded = filtered.filter((e) => loadedSteps.has(e.step));
-  const pending = filtered.filter((e) => !loadedSteps.has(e.step));
+  function addEntry(type: string, path: string, stepName: string) {
+    const existing = grouped.get(path);
+    const stageName = stepToStage[stepName] ?? stepName;
+    const isLoaded = loadedSteps.has(stepName);
+    if (existing) {
+      existing.steps.add(stepName);
+      existing.stages.add(stageName);
+      if (isLoaded) existing.loaded = true;
+    } else {
+      grouped.set(path, {
+        type,
+        name: shortenPath(path),
+        fullPath: path,
+        steps: new Set([stepName]),
+        stages: new Set([stageName]),
+        loaded: isLoaded,
+      });
+    }
+  }
+
+  for (const [stepName, rawLoaded] of Object.entries(wf.stage_loaded ?? {})) {
+    const loadedArr = Array.isArray(rawLoaded) ? rawLoaded : [rawLoaded];
+    for (const loaded of loadedArr) {
+      if (loaded.task_file) addEntry('task', loaded.task_file, stepName);
+      for (const r of loaded.rules ?? []) addEntry('rule', r, stepName);
+      for (const b of loaded.blueprints ?? []) addEntry('blueprint', b, stepName);
+      for (const cr of loaded.config_rules ?? []) addEntry('config', cr, stepName);
+      for (const ci of loaded.config_instructions ?? []) addEntry('instruction', ci, stepName);
+    }
+  }
+
+  return [...grouped.values()].map((g) => ({
+    type: g.type,
+    name: g.name,
+    fullPath: g.fullPath,
+    step: [...g.steps],
+    stage: [...g.stages],
+    isLoaded: g.loaded,
+  }));
+}
+
+function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
+  const allEntries = collectGroupedContext(wf);
+  const { facets, filtered, state, toggle, clear } = useFacetFilter(allEntries, ['stage', 'step', 'type']);
+
+  const loaded = filtered.filter((e) => e.isLoaded);
+  const pending = filtered.filter((e) => !e.isLoaded);
 
   if (allEntries.length === 0) {
     return <div style={{ ...S.empty, padding: '1rem' }}>No context loaded yet.</div>;
   }
 
   const renderRows = (entries: ContextEntry[], dimmed: boolean) =>
-    entries.map((entry, i) => (
-      <tr
-        key={`${entry.fullPath}-${entry.step}-${i}`}
-        title={entry.fullPath}
-        style={dimmed ? { opacity: 0.5 } : undefined}
-      >
+    entries.map((entry) => (
+      <tr key={entry.fullPath} title={entry.fullPath} style={dimmed ? { opacity: 0.5 } : undefined}>
         <td style={S.contextTd}>{entry.name}</td>
         <td style={S.contextTd}>
           <ManagerBadge variant="gray">{entry.type}</ManagerBadge>
         </td>
-        <td style={{ ...S.contextTd, color: '#64748B', fontSize: 10 }}>{entry.step}</td>
+        <td style={{ ...S.contextTd, color: '#64748B', fontSize: 10 }}>{entry.stage.join(', ')}</td>
+        <td style={{ ...S.contextTd, color: '#64748B', fontSize: 10 }}>{entry.step.join(', ')}</td>
+        <td style={{ ...S.contextTd, width: 28, textAlign: 'center' as const }}>
+          <ContextAction path={entry.fullPath} />
+        </td>
       </tr>
     ));
 
   return (
     <div>
-      {/* Step filter badges */}
-      <div style={S.filterBadgeRow}>
-        {allSteps.map((step) => {
-          const isActive = selectedSteps.has(step);
-          return (
-            <button
-              key={step}
-              style={{ ...S.filterBadge, ...(isActive ? S.filterBadgeActive : {}) }}
-              onClick={() => toggleStep(step)}
-            >
-              {step}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Context table */}
+      <DeboFacetFilter facets={facets} state={state} onToggle={toggle} onClear={clear} />
       <table style={S.contextTable}>
         <thead>
           <tr>
             <th style={S.contextTh}>Name</th>
             <th style={S.contextTh}>Type</th>
-            <th style={S.contextTh}>Step</th>
+            <th style={S.contextTh}>Stage</th>
+            <th style={S.contextTh}>Steps</th>
+            <th style={{ ...S.contextTh, width: 28 }}></th>
           </tr>
         </thead>
         <tbody>
@@ -811,7 +824,7 @@ function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
           {pending.length > 0 && (
             <>
               <tr>
-                <td colSpan={3} style={{ ...S.contextTh, paddingTop: 10, borderBottom: 'none' }}>
+                <td colSpan={5} style={{ ...S.contextTh, paddingTop: 10, borderBottom: 'none' }}>
                   Pending
                 </td>
               </tr>
@@ -831,7 +844,9 @@ function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
 interface FileEntry {
   path: string;
   key: string;
-  taskId: string;
+  task: string;
+  stage: string;
+  step: string;
   taskTitle: string;
   file: TaskFile;
 }
@@ -840,7 +855,15 @@ function collectAllFiles(wf: WorkflowData): FileEntry[] {
   const entries: FileEntry[] = [];
   for (const task of wf.tasks) {
     for (const f of task.files ?? []) {
-      entries.push({ path: f.path, key: f.key, taskId: task.id, taskTitle: task.title, file: f });
+      entries.push({
+        path: f.path,
+        key: f.key,
+        task: task.id,
+        stage: task.stage ?? '',
+        step: task.step ?? '',
+        taskTitle: task.title,
+        file: f,
+      });
     }
   }
   return entries;
@@ -861,20 +884,10 @@ const fileStatusDot = (f: TaskFile): string => {
 
 function WorkflowFilesTab({ wf }: { wf: WorkflowData }) {
   const allFiles = collectAllFiles(wf);
-  const allTasks = [...new Set(allFiles.map((e) => e.taskId))];
   const taskTitles = Object.fromEntries(wf.tasks.map((t) => [t.id, t.title]));
-  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
-
-  const toggleTask = (taskId: string) => {
-    setSelectedTasks((prev) => {
-      const next = new Set(prev);
-      if (next.has(taskId)) next.delete(taskId);
-      else next.add(taskId);
-      return next;
-    });
-  };
-
-  const filtered = selectedTasks.size === 0 ? allFiles : allFiles.filter((e) => selectedTasks.has(e.taskId));
+  const { facets, filtered, state, toggle, clear } = useFacetFilter(allFiles, ['stage', 'step', 'task'], {
+    task: (v) => taskTitles[v] ?? v,
+  });
 
   if (allFiles.length === 0) {
     return <div style={{ ...S.empty, padding: '1rem' }}>No files registered yet.</div>;
@@ -882,29 +895,13 @@ function WorkflowFilesTab({ wf }: { wf: WorkflowData }) {
 
   return (
     <div>
-      {/* Task filter badges */}
-      <div style={S.filterBadgeRow}>
-        {allTasks.map((taskId) => {
-          const isActive = selectedTasks.has(taskId);
-          return (
-            <button
-              key={taskId}
-              style={{ ...S.filterBadge, ...(isActive ? S.filterBadgeActive : {}) }}
-              onClick={() => toggleTask(taskId)}
-            >
-              {taskTitles[taskId] ?? taskId}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* File list */}
+      <DeboFacetFilter facets={facets} state={state} onToggle={toggle} onClear={clear} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {filtered.map((entry, i) => {
           const absPath = resolvePath(entry.path, wf.root_dir);
           return (
             <div
-              key={`${entry.path}-${entry.taskId}-${i}`}
+              key={`${entry.path}-${entry.task}-${i}`}
               title={absPath}
               style={{
                 display: 'flex',
@@ -1001,16 +998,17 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
         );
 
         return (
-          <DeboCollapsible
-            key={wf.changeName}
-            title={wfSummary}
-            variant="action-summary"
-            status={collapsibleStatus(wf.status)}
-            progress={{ done, total }}
-            defaultOpen={isOpen}
-          >
-            <WorkflowTabs wf={wf} />
-          </DeboCollapsible>
+          <DeboRainbowBorder key={wf.changeName} active={wf.status === 'running'} borderRadius={8} borderWidth={2}>
+            <DeboCollapsible
+              title={wfSummary}
+              variant="action-summary"
+              status={collapsibleStatus(wf.status)}
+              progress={{ done, total }}
+              defaultOpen={isOpen}
+            >
+              <WorkflowTabs wf={wf} />
+            </DeboCollapsible>
+          </DeboRainbowBorder>
         );
       })}
     </div>
@@ -1109,7 +1107,7 @@ function StatusTab({ status }: { status: StatusData | null }) {
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line react/prop-types
-export const Panel: React.FC<PanelProps> = memo(function DesignbookPanel({ active }) {
+export const WorkflowPanel: React.FC<PanelProps> = memo(function WorkflowPanel({ active }) {
   const [workflows, setWorkflows] = useState<WorkflowData[]>([]);
   const [status, setStatus] = useState<StatusData | null>(null);
   const [designbookDir, setDesignbookDir] = useState<string>('');

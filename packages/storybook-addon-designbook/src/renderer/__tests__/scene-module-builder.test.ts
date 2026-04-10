@@ -257,4 +257,36 @@ describe('buildSceneModule integration', () => {
     expect(module).toContain("title: 'Test/Scenes'");
     expect(module).toContain("tags: ['scene']");
   });
+
+  it('emits sceneTree parameter alongside __scene for entity nodes', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    // sceneTree should be present in the generated module
+    expect(module).toContain('sceneTree:');
+
+    // Extract sceneTree for the Flat scene (entity: node.article teaser)
+    const flatExport = module.indexOf('export const Flat');
+    expect(flatExport).toBeGreaterThan(-1);
+
+    const treeStart = module.indexOf('sceneTree:', flatExport);
+    expect(treeStart).toBeGreaterThan(-1);
+
+    // The sceneTree should contain kind: 'entity' markers
+    const treeSection = module.slice(treeStart, module.indexOf('export const', treeStart + 100) || undefined);
+    expect(treeSection).toContain('"kind"');
+    expect(treeSection).toContain('"entity"');
+  });
+
+  it('emits sceneTree with component kind for direct component nodes', async () => {
+    const module = await buildFixtureModule('test.scenes.yml');
+
+    // ComponentDirect scene should have kind: 'component' in sceneTree
+    const exportStart = module.indexOf('export const ComponentDirect');
+    const treeStart = module.indexOf('sceneTree:', exportStart);
+    const nextExport = module.indexOf('export const', treeStart + 100);
+    const treeSection = module.slice(treeStart, nextExport > -1 ? nextExport : undefined);
+
+    expect(treeSection).toContain('"component"');
+    expect(treeSection).toContain('"test_provider:heading"');
+  });
 });

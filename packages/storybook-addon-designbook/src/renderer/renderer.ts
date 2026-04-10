@@ -24,7 +24,7 @@ export function renderComponent(
 ): unknown {
   const nodeArray = Array.isArray(nodes) ? nodes : [nodes];
 
-  const rendered = nodeArray.map((node) => renderNode(node, imports));
+  const rendered = nodeArray.map((node) => renderNode(node, imports, ''));
 
   if (rendered.length === 1) return rendered[0];
 
@@ -36,7 +36,7 @@ export function renderComponent(
   return rendered;
 }
 
-function renderNode(node: ComponentNode, imports: Record<string, ComponentModule>): unknown {
+function renderNode(node: ComponentNode, imports: Record<string, ComponentModule>, path: string): unknown {
   const mod = imports[node.component];
 
   if (!mod) {
@@ -45,18 +45,29 @@ function renderNode(node: ComponentNode, imports: Record<string, ComponentModule
   }
 
   const props = node.props ?? {};
-  const slots = resolveSlots(node.slots ?? {}, imports);
+  const slots = resolveSlots(node.slots ?? {}, imports, path);
 
-  return mod.render(props, slots);
+  const result = mod.render(props, slots);
+
+  // Wrap HTML output with comment markers for inspect-overlay lookup
+  if (typeof result === 'string') {
+    const marker = path ? `${node.component}@${path}` : node.component;
+    return `<!--db:s:${marker}-->${result}<!--db:e:${marker}-->`;
+  }
+
+  return result;
 }
 
 function resolveSlots(
   slots: Record<string, ComponentNode | ComponentNode[] | string>,
   imports: Record<string, ComponentModule>,
+  parentPath: string,
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(slots)) {
+    const slotPath = parentPath ? `${parentPath}.${key}` : key;
+
     if (typeof value === 'string') {
       // Render unresolved $variable placeholders as a visible grey box
       if (/^\$\w+$/.test(value)) {
@@ -66,9 +77,12 @@ function resolveSlots(
         resolved[key] = value;
       }
     } else if (Array.isArray(value)) {
-      resolved[key] = value.map((item) => renderNode(item, imports));
+      resolved[key] = value.map((item, i) => {
+        const itemPath = value.length > 1 ? `${slotPath}.${i}` : slotPath;
+        return renderNode(item, imports, itemPath);
+      });
     } else {
-      resolved[key] = renderNode(value, imports);
+      resolved[key] = renderNode(value, imports, slotPath);
     }
   }
 

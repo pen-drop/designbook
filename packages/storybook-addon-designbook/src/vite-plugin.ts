@@ -307,6 +307,69 @@ export function designbookLoadPlugin(
         }
       });
 
+      // Serve workspace files by absolute path (for file viewer modal).
+      // Restricted to files under baseDir to prevent directory traversal.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/file', (req: IncomingMessage, res: any) => {
+        if (req.method !== 'GET') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          return;
+        }
+
+        try {
+          const url = new URL(req.url || '', 'http://localhost');
+          const absPath = url.searchParams.get('path');
+
+          if (!absPath) {
+            res.statusCode = 400;
+            res.end(JSON.stringify({ error: 'Missing path parameter' }));
+            return;
+          }
+
+          // Security: resolve and verify the path is under baseDir
+          const resolved = resolve(absPath);
+          if (!resolved.startsWith(baseDir)) {
+            res.statusCode = 403;
+            res.end(JSON.stringify({ error: 'Path outside workspace' }));
+            return;
+          }
+
+          if (!existsSync(resolved)) {
+            res.statusCode = 404;
+            res.end(JSON.stringify({ error: 'File not found' }));
+            return;
+          }
+
+          const ext = resolved.split('.').pop()?.toLowerCase();
+          const mimeTypes: Record<string, string> = {
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            gif: 'image/gif',
+            webp: 'image/webp',
+            svg: 'image/svg+xml',
+          };
+
+          if (ext && mimeTypes[ext]) {
+            const binaryContent = readFileSync(resolved);
+            res.setHeader('Content-Type', mimeTypes[ext]);
+            res.statusCode = 200;
+            res.end(binaryContent);
+            return;
+          }
+
+          const content = readFileSync(resolved, 'utf-8');
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify({ content, path: resolved }));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       server.middlewares.use('/__designbook/story', (req: IncomingMessage, res: any) => {
         if (req.method !== 'GET') {

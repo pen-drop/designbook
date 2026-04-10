@@ -28,13 +28,20 @@ export function createGitWorktree(worktreePath: string, branchName: string, root
 }
 
 export const gitWorktreeEngine: WorkflowEngine = {
-  writeFile(_data: WorkflowFile, task: WorkflowTask, key: string, content: string): { path: string } {
+  writeFile(_data: WorkflowFile, task: WorkflowTask, key: string, content: string | Buffer): { path: string } {
     const fileEntry = (task.files ?? []).find((f) => f.key === key);
     if (!fileEntry) throw new Error(`No file entry with key '${key}' in task '${task.id}'`);
     // Write directly to the WORKTREE target path (already isolated)
     mkdirSync(dirname(fileEntry.path), { recursive: true });
     writeFileSync(fileEntry.path, content);
     return { path: fileEntry.path };
+  },
+
+  getStagedPath(_data: WorkflowFile, task: WorkflowTask, key: string): string {
+    const fileEntry = (task.files ?? []).find((f) => f.key === key);
+    if (!fileEntry) throw new Error(`No file entry with key '${key}' in task '${task.id}'`);
+    // git-worktree writes directly to target — no staging suffix
+    return fileEntry.path;
   },
 
   flush(): void {

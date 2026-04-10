@@ -8,6 +8,7 @@ import {
   workflowAppendTasks,
   expandTasksFromParams,
   workflowWriteFile,
+  workflowGetFile,
   workflowList,
   workflowDone,
   workflowAbandon,
@@ -231,6 +232,17 @@ export function register(program: Command): void {
           }
         }
 
+        // Build task_ids map: step name → actual task ID
+        const taskIds: Record<string, string> = {};
+        if (!skipIntake && intakeStepName) {
+          taskIds[intakeStepName] = 'intake';
+        }
+        if (expandedTasks) {
+          for (const t of expandedTasks) {
+            if (t.step) taskIds[t.step] = t.id;
+          }
+        }
+
         // Output JSON with workflow name + all resolved steps
         console.log(
           JSON.stringify(
@@ -241,6 +253,7 @@ export function register(program: Command): void {
               ...(resolved.engine ? { engine: resolved.engine } : {}),
               step_resolved: resolved.step_resolved,
               expected_params: resolved.expected_params,
+              ...(Object.keys(taskIds).length > 0 ? { task_ids: taskIds } : {}),
               ...(skipIntake ? { intake_skipped: true } : {}),
               ...(expandedTasks ? { expanded_tasks: expandedTasks } : {}),
             },
@@ -350,22 +363,47 @@ export function register(program: Command): void {
     });
 
   workflow
-    .command('write-file <workflow-name> <task-id>')
-    .description('Write file content from stdin, validate, and update task state')
+    .command('get-file <workflow-name> <task-id>')
+    .description('Return the staged path for a file key (for external writers like Playwright)')
     .requiredOption('--key <key>', 'File key as declared in task frontmatter')
-    .action(async (workflowName: string, taskId: string, opts: { key: string }) => {
+    .action((workflowName: string, taskId: string, opts: { key: string }) => {
       const config = loadConfig();
       try {
-        // Read stdin
-        const chunks: Buffer[] = [];
-        for await (const chunk of process.stdin) {
-          chunks.push(chunk as Buffer);
-        }
-        const content = Buffer.concat(chunks).toString('utf-8');
-        if (!content.trim()) {
-          console.error('Error: No content provided on stdin');
-          process.exitCode = 1;
-          return;
+        const result = workflowGetFile(config.data, workflowName, taskId, opts.key);
+        console.log(JSON.stringify(result));
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('write-file <workflow-name> <task-id>')
+    .description(
+      'Write file content from stdin (or register external file with --external), validate, and update task state',
+    )
+    .requiredOption('--key <key>', 'File key as declared in task frontmatter')
+    .option('--external', 'Register an already-written file (skip stdin, just validate and track)')
+    .action(async (workflowName: string, taskId: string, opts: { key: string; external?: boolean }) => {
+      const config = loadConfig();
+      try {
+        let content: string | Buffer | null;
+        if (opts.external) {
+          // External mode: file already written to staged path (e.g. by Playwright)
+          content = null;
+        } else {
+          // Read stdin
+          const chunks: Buffer[] = [];
+          for await (const chunk of process.stdin) {
+            chunks.push(chunk as Buffer);
+          }
+          const buf = Buffer.concat(chunks);
+          if (buf.length === 0) {
+            console.error('Error: No content provided on stdin');
+            process.exitCode = 1;
+            return;
+          }
+          content = buf;
         }
 
         const result = await workflowWriteFile(config.data, workflowName, taskId, opts.key, content, config);

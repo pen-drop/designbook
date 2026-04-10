@@ -4,7 +4,7 @@ import { sceneBuilder } from '../builders/scene-builder';
 import { entityBuilder } from '../builders/entity-builder';
 import { componentBuilder } from '../builders/component-builder';
 import { BuilderRegistry } from '../builder-registry';
-import type { ComponentNode } from '../types';
+import type { SceneTreeNode } from '../types';
 
 const FIXTURES_DIR = resolve(__dirname, 'fixtures');
 
@@ -38,7 +38,7 @@ describe('sceneBuilder', () => {
     expect(sceneBuilder.appliesTo({ component: 'test:card' })).toBe(false);
   });
 
-  it('loads shell scene and returns page component with nav and footer slots', async () => {
+  it('loads shell scene and returns resolvedChildren with page component', async () => {
     const registry = makeRegistry();
     const ctx = registry.createContext({
       dataModel: { content: {} },
@@ -49,8 +49,11 @@ describe('sceneBuilder', () => {
     const node = { scene: 'shell:shell', slots: {} };
     const result = await sceneBuilder.build(node, ctx);
 
-    expect(result.length).toBeGreaterThan(0);
-    const page = result[0] as ComponentNode;
+    expect(result.meta.kind).toBe('scene-ref');
+    expect(result.resolvedChildren).toBeDefined();
+    expect(result.resolvedChildren!.length).toBeGreaterThan(0);
+
+    const page = result.resolvedChildren![0] as SceneTreeNode;
     expect(page.component).toBe('test_provider:page');
     expect(page.slots?.header).toBeDefined();
     expect(page.slots?.footer).toBeDefined();
@@ -79,18 +82,22 @@ describe('sceneBuilder', () => {
 
     const result = await sceneBuilder.build(node, ctx);
 
-    expect(result.length).toBe(1);
-    const page = result[0] as ComponentNode;
+    expect(result.resolvedChildren!.length).toBe(1);
+    const page = result.resolvedChildren![0]!;
     expect(page.component).toBe('test_provider:page');
 
-    // Content slot should now have the article nodes
-    const content = page.slots?.content as ComponentNode[];
+    // Content slot should now have the article entity SceneTreeNode
+    const content = page.slots?.content as SceneTreeNode[];
     expect(Array.isArray(content)).toBe(true);
     expect(content.length).toBeGreaterThan(0);
-    expect(content.some((n) => n.component === 'figure' || n.component === 'heading')).toBe(true);
+    // The entity node wraps component children (figure, heading, text-block)
+    const entityNode = content[0]!;
+    expect(entityNode.kind).toBe('entity');
+    const children = entityNode.children ?? [];
+    expect(children.some((n) => n.component === 'figure' || n.component === 'heading')).toBe(true);
   });
 
-  it('returns [] and warns for invalid ref format', async () => {
+  it('returns empty resolvedChildren and warns for invalid ref format', async () => {
     const registry = makeRegistry();
     const ctx = registry.createContext({
       dataModel: { content: {} },
@@ -102,6 +109,7 @@ describe('sceneBuilder', () => {
     const result = await sceneBuilder.build({ scene: 'nocolon' }, ctx);
     warnSpy.mockRestore();
 
-    expect(result).toEqual([]);
+    expect(result.meta.kind).toBe('scene-ref');
+    expect(result.resolvedChildren).toEqual([]);
   });
 });

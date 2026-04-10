@@ -798,6 +798,40 @@ export async function workflowDone(
 }
 
 /**
+ * Return the staged path for a file key.
+ * Called by `workflow get-file` CLI command so external tools (Playwright) can write directly.
+ */
+export function workflowGetFile(
+  dataDir: string,
+  name: string,
+  taskId: string,
+  key: string,
+): { staged_path: string; final_path: string } {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+
+  const data = readWorkflow(filePath);
+  const task = data.tasks.find((t) => t.id === taskId);
+  if (!task) {
+    throw new Error(`Task not found: ${taskId} (available: ${data.tasks.map((t) => t.id).join(', ')})`);
+  }
+
+  const fileEntry = (task.files ?? []).find((f) => f.key === key);
+  if (!fileEntry) {
+    const validKeys = (task.files ?? []).map((f) => f.key).join(', ');
+    throw new Error(`Unknown key '${key}' for task '${taskId}'. Valid keys: ${validKeys}`);
+  }
+
+  const engine = resolveWorkflowEngine(data);
+  const dataWithDir = data as WorkflowFile & { _changesDir?: string };
+  dataWithDir._changesDir = changesDir;
+
+  const staged_path = engine?.getStagedPath ? engine.getStagedPath(dataWithDir, task, key) : fileEntry.path;
+
+  return { staged_path, final_path: fileEntry.path };
+}
+
+/**
  * Write file content via engine, validate centrally, update task state.
  * Called by the `workflow write-file` CLI command.
  */
@@ -806,7 +840,7 @@ export async function workflowWriteFile(
   name: string,
   taskId: string,
   key: string,
-  content: string,
+  content: string | Buffer | null,
   config: import('./config.js').DesignbookConfig,
 ): Promise<{ valid: boolean; errors: string[]; file_path: string }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
@@ -834,7 +868,17 @@ export async function workflowWriteFile(
     dataWithDir._changesDir = changesDir;
 
     let writtenPath: string;
-    if (engine?.writeFile) {
+    if (content === null) {
+      // External mode: file was already written to the staged path (e.g. by Playwright)
+      if (engine?.getStagedPath) {
+        writtenPath = engine.getStagedPath(dataWithDir, task, key);
+      } else {
+        writtenPath = fileEntry.path;
+      }
+      if (!existsSync(writtenPath)) {
+        throw new Error(`External file not found at staged path: ${writtenPath}`);
+      }
+    } else if (engine?.writeFile) {
       const result = engine.writeFile(dataWithDir, task, key, content);
       writtenPath = result.path;
     } else {

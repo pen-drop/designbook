@@ -23,6 +23,10 @@ export type {
   BuildContext,
   SceneNodeBuilder,
   ComponentModule,
+  SceneTreeNode,
+  BuildResult,
+  EntityOrigin,
+  SceneRefOrigin,
 } from './types';
 
 // Expression cache
@@ -32,7 +36,10 @@ export { ExpressionCache } from './expression-cache';
 export { renderComponent } from './renderer';
 
 // Builder registry
-export { BuilderRegistry, resolveEntityRefs } from './builder-registry';
+export { BuilderRegistry } from './builder-registry';
+
+// View projection (SceneTree → RenderTree)
+export { view } from './view';
 
 // Built-in builders
 export { componentBuilder } from './builders/component-builder';

@@ -51,8 +51,8 @@ describe('imageStyleBuilder', () => {
       const node: SceneNode = { image: 'hero', alt: 'Building' };
       const result = await imageStyleBuilder.build(node, ctx);
 
-      expect(result).toHaveLength(1);
-      const cn = result[0] as ComponentNode;
+      expect(result.nodes).toHaveLength(1);
+      const cn = result.nodes![0] as ComponentNode;
       expect(cn.component).toBe('designbook:image');
 
       const props = cn.props!;
@@ -77,7 +77,7 @@ describe('imageStyleBuilder', () => {
       const node: SceneNode = { image: 'avatar', alt: 'Profile' };
       const result = await imageStyleBuilder.build(node, ctx);
 
-      const cn = result[0] as ComponentNode;
+      const cn = result.nodes![0] as ComponentNode;
       const sources = cn.props!.sources as unknown[];
       expect(sources).toHaveLength(0);
 
@@ -96,7 +96,7 @@ describe('imageStyleBuilder', () => {
       const node: SceneNode = { image: 'hero', src: '/images/hero.jpg', alt: 'Hero' };
       const result = await imageStyleBuilder.build(node, ctx);
 
-      const cn = result[0] as ComponentNode;
+      const cn = result.nodes![0] as ComponentNode;
       expect(cn.component).toBe('designbook:image');
       expect(cn.props!.src).toBe('/images/hero.jpg');
       expect(cn.props!.alt).toBe('Hero');
@@ -120,7 +120,7 @@ describe('imageStyleBuilder', () => {
       const node: SceneNode = { image: 'hero', src: '/img/hero.jpg', alt: 'Hero' };
       const result = await imageStyleBuilder.build(node, ctx);
 
-      const cn = result[0] as ComponentNode;
+      const cn = result.nodes![0] as ComponentNode;
       const responsive = cn.props!.responsiveStyles as Array<{ media: string; aspectRatio: string }>;
       expect(responsive).toHaveLength(2);
       expect(responsive[0]!.media).toBe('(max-width: 768px)');
@@ -137,7 +137,7 @@ describe('imageStyleBuilder', () => {
       const node: SceneNode = { image: 'nonexistent', alt: 'Test' };
       const result = await imageStyleBuilder.build(node, ctx);
 
-      const cn = result[0] as ComponentNode;
+      const cn = result.nodes![0] as ComponentNode;
       expect(cn.component).toBe('designbook:placeholder');
       expect(cn.props!.message as string).toContain('nonexistent');
     });
@@ -148,7 +148,7 @@ describe('imageStyleBuilder', () => {
       const node: SceneNode = { image: '', alt: 'Test' };
       const result = await imageStyleBuilder.build(node, ctx);
 
-      const cn = result[0] as ComponentNode;
+      const cn = result.nodes![0] as ComponentNode;
       expect(cn.component).toBe('designbook:placeholder');
       expect(cn.props!.message as string).toContain('missing style name');
     });

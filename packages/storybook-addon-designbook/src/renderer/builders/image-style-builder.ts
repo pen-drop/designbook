@@ -6,39 +6,47 @@
  * and returns a `designbook:image` ComponentNode.
  */
 
-import type { SceneNodeBuilder, SceneNode, BuildContext, RawNode, ImageStyleDef } from '../types';
+import type { SceneNodeBuilder, SceneNode, BuildContext, BuildResult, ImageStyleDef } from '../types';
 import { parseAspectRatio, calcHeight } from '../image-utils';
 import { createProvider } from '../image-providers';
 
 const DEFAULT_WIDTH = 800;
+
+const META = { kind: 'component' as const };
 
 export const imageStyleBuilder: SceneNodeBuilder = {
   appliesTo(node: SceneNode): boolean {
     return 'image' in node && typeof node.image === 'string';
   },
 
-  async build(node: SceneNode, ctx: BuildContext): Promise<RawNode[]> {
+  async build(node: SceneNode, ctx: BuildContext): Promise<BuildResult> {
     const styleName = node['image'] as string | undefined;
     const alt = (node['alt'] as string) ?? '';
     const src = node['src'] as string | undefined;
 
     if (!styleName) {
-      return [
-        {
-          component: 'designbook:placeholder',
-          props: { message: 'image node missing style name' },
-        },
-      ];
+      return {
+        nodes: [
+          {
+            component: 'designbook:placeholder',
+            props: { message: 'image node missing style name' },
+          },
+        ],
+        meta: META,
+      };
     }
 
     const styleDef = ctx.dataModel.config?.['image_style']?.[styleName] as unknown as ImageStyleDef | undefined;
     if (!styleDef) {
-      return [
-        {
-          component: 'designbook:placeholder',
-          props: { message: `unknown image style: ${styleName}` },
-        },
-      ];
+      return {
+        nodes: [
+          {
+            component: 'designbook:placeholder',
+            props: { message: `unknown image style: ${styleName}` },
+          },
+        ],
+        meta: META,
+      };
     }
 
     const defaultRatio = parseAspectRatio(styleDef.aspect_ratio);
@@ -52,12 +60,15 @@ export const imageStyleBuilder: SceneNodeBuilder = {
 
       const responsiveStyles = buildResponsiveStyles(styleDef.breakpoints);
 
-      return [
-        {
-          component: 'designbook:image',
-          props: { src, alt, style, responsiveStyles },
-        },
-      ];
+      return {
+        nodes: [
+          {
+            component: 'designbook:image',
+            props: { src, alt, style, responsiveStyles },
+          },
+        ],
+        meta: META,
+      };
     }
 
     // Provider mode: no src — generate URLs via provider
@@ -91,12 +102,15 @@ export const imageStyleBuilder: SceneNodeBuilder = {
       objectFit: 'cover',
     };
 
-    return [
-      {
-        component: 'designbook:image',
-        props: { sources, fallback, style },
-      },
-    ];
+    return {
+      nodes: [
+        {
+          component: 'designbook:image',
+          props: { sources, fallback, style },
+        },
+      ],
+      meta: META,
+    };
   },
 };
 

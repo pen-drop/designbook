@@ -8,7 +8,7 @@
  * 4. Emit CSF module: default export + story exports with args.__scene + renderComponent
  */
 
-import type { ComponentNode } from './types';
+import type { ComponentNode, SceneTreeNode } from './types';
 import { builtInComponents } from './built-in-components';
 
 // ── Options ────────────────────────────────────────────────────────────
@@ -18,6 +18,7 @@ export interface CsfPrepScene {
   exportName: string;
   nodes: ComponentNode[];
   theme?: string;
+  tree?: SceneTreeNode[];
 }
 
 export interface CsfPrepOptions {
@@ -131,14 +132,24 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
       .map((line, i) => (i === 0 ? line : '    ' + line))
       .join('\n');
 
-    const parameters = [`designbook: { order: ${100 + index} }`];
+    const treeJson = scene.tree
+      ? JSON.stringify(scene.tree, null, 4)
+          .split('\n')
+          .map((line, i) => (i === 0 ? line : '    ' + line))
+          .join('\n')
+      : undefined;
+
+    const parametersEntries = [`designbook: { order: ${100 + index} }`];
     if (scene.theme) {
-      parameters.push(`themes: { themeOverride: '${scene.theme.replace(/'/g, "\\'")}' }`);
+      parametersEntries.push(`themes: { themeOverride: '${scene.theme.replace(/'/g, "\\'")}' }`);
+    }
+    if (treeJson) {
+      parametersEntries.push(`sceneTree: ${treeJson}`);
     }
 
     return [
       `export const ${scene.exportName} = {`,
-      `  parameters: { ${parameters.join(', ')} },`,
+      `  parameters: { ${parametersEntries.join(', ')} },`,
       '  args: {',
       `    __scene: ${nodesJson},`,
       '  },',

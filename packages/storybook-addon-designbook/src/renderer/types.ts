@@ -147,10 +147,10 @@ export interface BuildContext {
   config?: DesignbookConfig;
 
   /**
-   * Dispatch a node through the registry + resolveEntityRefs.
-   * Always returns clean ComponentNode[].
+   * Dispatch a node through the registry.
+   * Returns SceneTreeNode[] — the annotated intermediate representation.
    */
-  buildNode: (node: SceneNode) => Promise<ComponentNode[]>;
+  buildNode: (node: SceneNode) => Promise<SceneTreeNode[]>;
 }
 
 /**
@@ -162,10 +162,91 @@ export interface SceneNodeBuilder {
   appliesTo: (node: SceneNode) => boolean;
 
   /**
-   * Build the node into raw output — may contain entity/config refs at top level or in slots.
+   * Build the node into raw output with origin metadata.
    * resolveEntityRefs() in the registry will walk the result afterward.
    */
-  build: (node: SceneNode, ctx: BuildContext) => Promise<RawNode[]>;
+  build: (node: SceneNode, ctx: BuildContext) => Promise<BuildResult>;
+}
+
+// ─── Scene Tree Types ─────────────────────────────────────────────────
+
+/** A single field mapping extracted from the JSONata expression AST. */
+export interface FieldMapping {
+  /** Entity field path, e.g. "title", "field_media.url". */
+  field: string;
+  /** Target component ID, e.g. "test_provider:card". */
+  component: string;
+  /** Prop or slot name on the target component, e.g. "title", "src". */
+  target: string;
+  /** Whether this maps to a prop or a slot. */
+  type: 'prop' | 'slot';
+  /** True when the mapping is inside a conditional expression. */
+  conditional?: boolean;
+}
+
+/** Origin metadata for entity nodes. */
+export interface EntityOrigin {
+  entity_type: string;
+  bundle: string;
+  view_mode: string;
+  record?: number;
+  /** Path to the .jsonata mapping file. */
+  mapping: string;
+  /** Field mappings extracted from the JSONata AST at build time. */
+  fieldMappings?: FieldMapping[];
+}
+
+/** Origin metadata for scene-ref nodes. */
+export interface SceneRefOrigin {
+  /** Scene reference string, e.g. "shared:footer". */
+  source: string;
+  with?: Record<string, unknown>;
+}
+
+/**
+ * SceneTreeNode — the annotated intermediate representation.
+ *
+ * Produced by build(), consumed by view() to project into ComponentNode[].
+ * Carries origin metadata (kind, entity/ref info) alongside resolved output.
+ * Analogous to Drupal's render array between entity->build() and entity->view().
+ */
+export interface SceneTreeNode {
+  kind: 'component' | 'entity' | 'scene-ref' | 'string';
+
+  /** Resolved component ID (all kinds except 'string'). */
+  component?: string;
+
+  /** Entity origin — only present when kind is 'entity'. */
+  entity?: EntityOrigin;
+
+  /** Scene-ref origin — only present when kind is 'scene-ref'. */
+  ref?: SceneRefOrigin;
+
+  /** String value — only present when kind is 'string'. */
+  value?: string;
+
+  /** Resolved props from the build. */
+  props?: Record<string, unknown>;
+
+  /** Recursive slots — each slot maps to child SceneTreeNodes. */
+  slots?: Record<string, SceneTreeNode[]>;
+
+  /** Direct children — scene-refs (inlined at render time) or multi-node entities. */
+  children?: SceneTreeNode[];
+}
+
+/**
+ * Result returned by SceneNodeBuilder.build().
+ * Contains the resolved nodes plus origin metadata for SceneTree assembly.
+ *
+ * `nodes` contains RawNode[] that still need resolution (entity/component builders).
+ * `resolvedChildren` contains already-built SceneTreeNode[] (scene builder).
+ * Only one of the two should be set.
+ */
+export interface BuildResult {
+  nodes?: RawNode[];
+  resolvedChildren?: SceneTreeNode[];
+  meta: { kind: 'component' } | { kind: 'entity'; entity: EntityOrigin } | { kind: 'scene-ref'; ref: SceneRefOrigin };
 }
 
 // ─── Runtime Types ────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ export const directEngine: WorkflowEngine = {
     return { envMap: ctx.envMap };
   },
 
-  writeFile(data: WorkflowFile, task: WorkflowTask, key: string, content: string): { path: string } {
+  writeFile(data: WorkflowFile, task: WorkflowTask, key: string, content: string | Buffer): { path: string } {
     const fileEntry = (task.files ?? []).find((f) => f.key === key);
     if (!fileEntry) throw new Error(`No file entry with key '${key}' in task '${task.id}'`);
 
@@ -26,6 +26,12 @@ export const directEngine: WorkflowEngine = {
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, content);
     return { path };
+  },
+
+  getStagedPath(data: WorkflowFile, task: WorkflowTask, key: string): string {
+    const fileEntry = (task.files ?? []).find((f) => f.key === key);
+    if (!fileEntry) throw new Error(`No file entry with key '${key}' in task '${task.id}'`);
+    return stashPath(data, fileEntry);
   },
 
   async flush(data: WorkflowFile, tasks: WorkflowTask[]): Promise<void> {

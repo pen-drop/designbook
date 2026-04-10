@@ -115,14 +115,12 @@ Stage name resolution: tries direct key first, then looks up via the stage's fir
 }
 ```
 
-## `workflow write-file`
+## `workflow get-file`
 
-Write file content from stdin, validate, and update task state.
+Return the staged and final path for a file key. Used by external tools (e.g. Playwright) that write files directly.
 
 ```bash
-cat <<'EOF' | workflow write-file <workflow-name> <task-id> --key <key>
-<file content>
-EOF
+ workflow get-file <workflow-name> <task-id> --key <key>
 ```
 
 | Argument/Option | Required | Description |
@@ -131,7 +129,39 @@ EOF
 | `<task-id>` | Yes | Positional — task ID from `expanded_tasks` |
 | `--key <key>` | Yes | File key as declared in task frontmatter |
 
-Content is read from stdin. The CLI writes via the engine (git-worktree or direct) and validates against the task's declared validators.
+**Response:**
+```json
+{ "staged_path": "/abs/path/to/file.png.wf-id.debo", "final_path": "/abs/path/to/file.png" }
+```
+
+The `staged_path` is where external tools should write. After writing, call `write-file --external` to register.
+
+## `workflow write-file`
+
+Write file content from stdin (or register an externally-written file), validate, and update task state.
+
+### Standard mode (content from stdin)
+
+```bash
+cat <<'EOF' | workflow write-file <workflow-name> <task-id> --key <key>
+<file content>
+EOF
+```
+
+### External mode (file already written to staged path)
+
+```bash
+ workflow write-file <workflow-name> <task-id> --key <key> --external
+```
+
+Use `--external` when the file was already written to the staged path by an external tool (e.g. Playwright). Skips stdin, validates the existing file, and updates task state.
+
+| Argument/Option | Required | Description |
+|---|---|---|
+| `<workflow-name>` | Yes | Positional — workflow name |
+| `<task-id>` | Yes | Positional — task ID from `expanded_tasks` |
+| `--key <key>` | Yes | File key as declared in task frontmatter |
+| `--external` | No | Register an already-written file (skip stdin) |
 
 **Response:**
 ```json
@@ -158,7 +188,6 @@ Mark a task as done. Triggers stage transitions and auto-archives when all tasks
 **Gate checks before marking done:**
 - All declared files must be written and valid
 - Files with unresolved `{param}` placeholders are skipped
-- Files that exist on disk (e.g. binary screenshots) are accepted without validation_result
 
 **Output:**
 ```
