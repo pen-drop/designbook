@@ -113,7 +113,7 @@ function shortId(): string {
   return randomBytes(2).toString('hex');
 }
 
-function readWorkflow(filePath: string): WorkflowFile {
+export function readWorkflow(filePath: string): WorkflowFile {
   if (!existsSync(filePath)) {
     const name = filePath.split('/').at(-2) ?? filePath;
     throw new Error(`Workflow not found: ${name}`);
@@ -129,7 +129,7 @@ function readWorkflow(filePath: string): WorkflowFile {
   return data;
 }
 
-function writeWorkflowAtomic(filePath: string, data: WorkflowFile): void {
+export function writeWorkflowAtomic(filePath: string, data: WorkflowFile): void {
   const toWrite = relativizeWorkflowPaths(data);
   const tmpPath = filePath + '.tmp';
   writeFileSync(tmpPath, stringifyYaml(toWrite));
@@ -208,14 +208,14 @@ function relativizePath(root: string, p: string): string {
 }
 
 /** Resolve a stored (possibly relative) path to absolute. Already-absolute paths pass through. */
-export function resolveStoredPath(root: string, p: string): string {
+function resolveStoredPath(root: string, p: string): string {
   if (!p || !root) return p;
   if (p.startsWith('/')) return p; // already absolute (backward compat)
   return resolve(root, p);
 }
 
 /** Mutate a WorkflowFile in-place: resolve all relative paths to absolute using workspace_root. */
-export function resolveWorkflowPaths(data: WorkflowFile): void {
+function resolveWorkflowPaths(data: WorkflowFile): void {
   const root = data.workspace_root;
   if (!root) return;
 

@@ -1,5 +1,5 @@
 import { resolve, dirname } from 'node:path';
-import { readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
 import {
@@ -16,13 +16,13 @@ import {
   workflowMerge,
   isGitRepo,
   resolveEngine,
-  resolveStoredPath,
+  readWorkflow,
+  writeWorkflowAtomic,
   type WorkflowFile,
   type WorkflowTask,
 } from '../workflow.js';
-import type { StageDefinition } from '../workflow-types.js';
 import { engines as engineRegistry } from '../engines/index.js';
-import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
+import { load as parseYaml } from 'js-yaml';
 import { resolveAllStages, parseFrontmatter, buildEnvMap, type ResolvedStep } from '../workflow-resolve.js';
 
 /**
@@ -47,21 +47,8 @@ function expandWorkflowTasks(
     return null;
   }
 
-  const existing = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
-  const workspaceRoot = existing.workspace_root as string | undefined;
+  const existing = readWorkflow(tasksYmlPath);
   const stageLoaded = existing.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]> | undefined;
-
-  // Resolve relative paths in stage_loaded (stored relative to workspace_root)
-  if (workspaceRoot && stageLoaded) {
-    for (const entry of Object.values(stageLoaded)) {
-      const entries = Array.isArray(entry) ? entry : [entry];
-      for (const sl of entries) {
-        if (sl.task_file) sl.task_file = resolveStoredPath(workspaceRoot, sl.task_file);
-        if (sl.rules) sl.rules = sl.rules.map((r) => resolveStoredPath(workspaceRoot, r));
-        if (sl.blueprints) sl.blueprints = sl.blueprints.map((b) => resolveStoredPath(workspaceRoot, b));
-      }
-    }
-  }
 
   if (!stageLoaded) {
     if (mode === 'plan')
@@ -69,24 +56,23 @@ function expandWorkflowTasks(
     return null;
   }
 
-  const rawStages = existing.stages;
-  if (!rawStages || Array.isArray(rawStages)) {
+  if (!existing.stages) {
     if (mode === 'plan') throw new Error('No stages in tasks.yml');
     return null;
   }
-  const stageDefinitions = rawStages as Record<string, StageDefinition>;
+  const stageDefinitions = existing.stages;
 
   const allSteps: string[] = [];
   for (const def of Object.values(stageDefinitions)) {
     allSteps.push(...(def.steps ?? []));
   }
 
-  const existingTasks = (existing.tasks as WorkflowTask[]) ?? [];
+  const existingTasks = existing.tasks;
 
   // Engine setup for file path expansion
   const rootDir = (config.workspace as string | undefined) ?? dirname(config.data);
   const envMap = buildEnvMap(config);
-  const frontmatterEngine = existing.engine as string | undefined;
+  const frontmatterEngine = existing.engine;
   const resolvedEngine = resolveEngine(undefined, frontmatterEngine, isGitRepo(rootDir));
   const workspacesBase = process.env['DESIGNBOOK_WORKSPACES'] ?? resolve(config.data, 'workspaces');
   const worktreePath = resolve(workspacesBase, workflowName);
@@ -106,8 +92,7 @@ function expandWorkflowTasks(
   });
 
   // Merge params: in plan mode use newParams directly, in append mode merge with existing
-  const globalParams =
-    mode === 'append' ? { ...((existing.params as Record<string, unknown>) ?? {}), ...newParams } : newParams;
+  const globalParams = mode === 'append' ? { ...(existing.params ?? {}), ...newParams } : newParams;
 
   const tasks = expandTasksFromParams(stageLoaded, stageDefinitions, globalParams, existingTasks, engineResult.envMap);
 
@@ -300,44 +285,40 @@ export function register(program: Command): void {
         return;
       }
 
-      const data = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
-      const instrWorkspaceRoot = data.workspace_root as string | undefined;
+      const data = readWorkflow(tasksYmlPath);
 
       // Transition from waiting back to running when AI resumes work
       if (data.status === 'waiting') {
         data.status = 'running';
-        delete (data as Record<string, unknown>).waiting_message;
-        writeFileSync(tasksYmlPath, stringifyYaml(data));
+        delete data.waiting_message;
+        writeWorkflowAtomic(tasksYmlPath, data);
       }
-
-      const stages = data.stages as Record<string, { steps?: string[]; each?: string }> | undefined;
-      const stageLoaded = data.stage_loaded as Record<string, unknown> | undefined;
 
       // Resolve stage name: try direct key first, then look up via stages definition
       let resolvedKey = opts.stage;
-      if (stageLoaded && !stageLoaded[resolvedKey]) {
-        const stageEntry = stages?.[opts.stage];
-        if (stageEntry?.steps?.[0] && stageLoaded[stageEntry.steps[0]]) {
+      if (data.stage_loaded && !data.stage_loaded[resolvedKey]) {
+        const stageEntry = data.stages?.[opts.stage];
+        if (stageEntry?.steps?.[0] && data.stage_loaded[stageEntry.steps[0]]) {
           resolvedKey = stageEntry.steps[0];
         }
       }
 
-      if (!stageLoaded || !stageLoaded[resolvedKey]) {
+      if (!data.stage_loaded || !data.stage_loaded[resolvedKey]) {
         console.error(
           `Error: no resolved data for stage "${opts.stage}". ` +
-            `Available stages: ${stageLoaded ? Object.keys(stageLoaded).join(', ') : 'none'}. ` +
+            `Available stages: ${data.stage_loaded ? Object.keys(data.stage_loaded).join(', ') : 'none'}. ` +
             `Was the workflow created with --workflow-file?`,
         );
         process.exitCode = 1;
         return;
       }
 
-      const stage = stageLoaded[resolvedKey] as Record<string, unknown>;
-      // Resolve stored paths (may be relative to workspace_root)
-      const resolvePath = (p: string) => (instrWorkspaceRoot ? resolveStoredPath(instrWorkspaceRoot, p) : p);
-      const taskFile = stage.task_file ? resolvePath(stage.task_file as string) : undefined;
-      const rules = ((stage.rules ?? []) as string[]).map(resolvePath);
-      const blueprints = ((stage.blueprints ?? []) as string[]).map(resolvePath);
+      // Paths already resolved by readWorkflow
+      const rawStage = data.stage_loaded[resolvedKey]!;
+      const stage = Array.isArray(rawStage) ? rawStage[0]! : rawStage;
+      const taskFile = stage.task_file || undefined;
+      const rules = stage.rules ?? [];
+      const blueprints = stage.blueprints ?? [];
 
       // Read expected_params from task file frontmatter
       const expectedParams: Record<string, { required: boolean; default?: unknown }> = {};

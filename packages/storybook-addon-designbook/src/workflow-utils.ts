@@ -9,7 +9,9 @@ import type { WorkflowTaskFile, WorkflowTaskFileWithMeta, StageLoaded } from './
  */
 export function parseTaskFile(filePath: string): WorkflowTaskFile {
   const content = readFileSync(filePath, 'utf-8');
-  return parseYaml(content) as WorkflowTaskFile;
+  const data = parseYaml(content) as WorkflowTaskFile;
+  resolveAllPaths(data);
+  return data;
 }
 
 /**
@@ -95,37 +97,25 @@ function resolvePath(root: string, p: string): string {
   return resolve(root, p);
 }
 
-function resolveStageLoaded(root: string, sl: StageLoaded): StageLoaded {
-  return {
-    task_file: resolvePath(root, sl.task_file),
-    rules: (sl.rules ?? []).map((r) => resolvePath(root, r)),
-    blueprints: (sl.blueprints ?? []).map((b) => resolvePath(root, b)),
-    config_rules: (sl.config_rules ?? []).map((c) => resolvePath(root, c)),
-    config_instructions: (sl.config_instructions ?? []).map((c) => resolvePath(root, c)),
-  };
-}
+/** Resolve all relative paths in a parsed workflow to absolute using its workspace_root. */
+function resolveAllPaths(data: WorkflowTaskFile): void {
+  const root = data.workspace_root;
+  if (!root) return;
 
-/**
- * Resolve all relative paths in a workflow object to absolute using workspaceRoot.
- * Used by the Vite endpoint so the panel always receives absolute paths.
- */
-export function resolveWorkflowPathsForPanel(
-  wf: WorkflowTaskFileWithMeta,
-  workspaceRoot: string,
-): WorkflowTaskFileWithMeta {
-  const root = workspaceRoot;
-
-  // stage_loaded
-  if (wf.stage_loaded) {
-    const resolved: Record<string, StageLoaded> = {};
-    for (const [step, entry] of Object.entries(wf.stage_loaded)) {
-      resolved[step] = resolveStageLoaded(root, entry);
+  if (data.stage_loaded) {
+    for (const entry of Object.values(data.stage_loaded)) {
+      const items = (Array.isArray(entry) ? entry : [entry]) as StageLoaded[];
+      for (const sl of items) {
+        sl.task_file = resolvePath(root, sl.task_file);
+        sl.rules = (sl.rules ?? []).map((r) => resolvePath(root, r));
+        sl.blueprints = (sl.blueprints ?? []).map((b) => resolvePath(root, b));
+        sl.config_rules = (sl.config_rules ?? []).map((c) => resolvePath(root, c));
+        sl.config_instructions = (sl.config_instructions ?? []).map((c) => resolvePath(root, c));
+      }
     }
-    wf.stage_loaded = resolved;
   }
 
-  // tasks
-  for (const task of wf.tasks) {
+  for (const task of data.tasks) {
     if (task.task_file) task.task_file = resolvePath(root, task.task_file);
     if (task.rules) task.rules = task.rules.map((r) => resolvePath(root, r));
     if (task.blueprints) task.blueprints = task.blueprints.map((b) => resolvePath(root, b));
@@ -135,6 +125,4 @@ export function resolveWorkflowPathsForPanel(
       }
     }
   }
-
-  return wf;
 }
