@@ -7,6 +7,7 @@
  * share the same animation.
  */
 import React, { useRef, useEffect } from 'react';
+import { useTheme } from 'storybook/theming';
 
 const KEYFRAMES_ID = 'debo-rainbow-spin';
 
@@ -35,7 +36,7 @@ function ensureKeyframes() {
 const RAINBOW_GRADIENT =
   'conic-gradient(from var(--debo-rainbow-angle), #f87171, #fb923c, #facc15, #4ade80, #38bdf8, #a78bfa, #f472b6, #f87171)';
 
-const WAITING_GRADIENT = 'linear-gradient(135deg, #f59e0b, #fbbf24, #f59e0b)';
+/* WAITING_GRADIENT is resolved per-render via theme — see DeboRainbowBorder */
 
 interface DeboRainbowBorderProps {
   active: boolean;
@@ -54,6 +55,7 @@ export function DeboRainbowBorder({
   style,
   children,
 }: DeboRainbowBorderProps) {
+  const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,6 +67,7 @@ export function DeboRainbowBorder({
   }
 
   const isWaiting = variant === 'waiting';
+  const waitingGradient = `linear-gradient(135deg, ${theme.color.warning}, #fbbf24, ${theme.color.warning})`;
 
   return (
     <div
@@ -73,7 +76,7 @@ export function DeboRainbowBorder({
         position: 'relative',
         borderRadius,
         padding: borderWidth,
-        background: isWaiting ? WAITING_GRADIENT : RAINBOW_GRADIENT,
+        background: isWaiting ? waitingGradient : RAINBOW_GRADIENT,
         animation: isWaiting ? 'debo-waiting-pulse 2s ease-in-out infinite' : 'debo-rainbow-spin 3s linear infinite',
         ...style,
       }}
@@ -81,7 +84,7 @@ export function DeboRainbowBorder({
       <div
         style={{
           borderRadius: borderRadius - 1,
-          background: 'var(--appContentBg, #1a1a2e)',
+          background: theme.background.content,
           position: 'relative',
         }}
       >

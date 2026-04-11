@@ -1,5 +1,5 @@
 import React from 'react';
-import { styled } from 'storybook/theming';
+import { styled, useTheme } from 'storybook/theming';
 
 export function relativeTime(iso: string | null): string {
   if (!iso) return '';
@@ -31,12 +31,12 @@ export function timeRange(started: string | null, ended: string | null): string 
 }
 
 export const ManagerBadge = styled.span<{ variant?: 'green' | 'yellow' | 'gray' | 'white' }>(
-  ({ variant = 'green' }) => {
+  ({ variant = 'green', theme }) => {
     const colors = {
-      green: { background: 'rgb(102, 191, 60)', color: '#FFFFFF' },
-      yellow: { background: '#FEF3C7', color: '#1E293B' },
-      gray: { background: '#F1F5F9', color: '#1E293B' },
-      white: { background: '#FFFFFF', color: '#1E293B' },
+      green: { background: theme.color.positive, color: theme.color.inverseText },
+      yellow: { background: theme.background.warning, color: theme.color.defaultText },
+      gray: { background: theme.background.hoverable, color: theme.color.defaultText },
+      white: { background: theme.background.content, color: theme.color.defaultText },
     };
     const c = colors[variant] || colors.green;
     return {
@@ -55,7 +55,7 @@ export const ManagerBadge = styled.span<{ variant?: 'green' | 'yellow' | 'gray' 
   },
 );
 
-const ActivityDot = styled.div<{ done: boolean }>(({ done }) => ({
+const ActivityDot = styled.div<{ done: boolean }>(({ done, theme }) => ({
   width: 14,
   height: 14,
   borderRadius: '50%',
@@ -63,7 +63,9 @@ const ActivityDot = styled.div<{ done: boolean }>(({ done }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  ...(done ? { background: 'rgb(102, 191, 60)' } : { border: '2px solid #94A3B8', background: 'transparent' }),
+  ...(done
+    ? { background: theme.color.positive }
+    : { border: `2px solid ${theme.textMutedColor}`, background: 'transparent' }),
 }));
 
 const ActivityRow = styled.div({
@@ -73,17 +75,17 @@ const ActivityRow = styled.div({
   padding: '4px 0',
 });
 
-const ActivityTitle = styled.span<{ done: boolean }>(({ done }) => ({
+const ActivityTitle = styled.span<{ done: boolean }>(({ done, theme }) => ({
   fontSize: 12,
-  color: done ? 'rgb(102, 191, 60)' : '#64748B',
+  color: done ? theme.color.positive : theme.textMutedColor,
   flex: 1,
 }));
 
-const ActivityTimestamp = styled.span({
+const ActivityTimestamp = styled.span(({ theme }) => ({
   fontSize: 10,
-  color: '#94A3B8',
+  color: theme.textMutedColor,
   flexShrink: 0,
-});
+}));
 
 export function ManagerActivityItem({
   title,
@@ -95,11 +97,12 @@ export function ManagerActivityItem({
   timestamp?: string;
 }) {
   const isDone = status === 'done';
+  const theme = useTheme();
   return (
     <ActivityRow>
       <ActivityDot done={isDone}>
         {isDone && (
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgb(102, 191, 60)" strokeWidth="3">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={theme.color.positive} strokeWidth="3">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         )}

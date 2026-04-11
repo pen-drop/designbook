@@ -1,5 +1,5 @@
 import React from 'react';
-import { styled } from 'storybook/theming';
+import { styled, useTheme } from 'storybook/theming';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -97,17 +97,18 @@ const SwatchHex = styled.span(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: 11,
   lineHeight: '16.5px',
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
 }));
 
 function DeboColorSwatch({ name, value }) {
+  const theme = useTheme();
   const light = isLightColor(value);
   return (
     <SwatchWrapper>
       <SwatchBox
         style={{
           backgroundColor: value,
-          ...(light ? { border: '1px solid #E2E8F0' } : {}),
+          ...(light ? { border: `1px solid ${theme.appBorderColor}` } : {}),
         }}
         title={value}
       />
@@ -144,8 +145,9 @@ const SwatchRow = styled.div({
 });
 
 function DeboColorCategoryRow({ category, tokens, isLast }) {
+  const theme = useTheme();
   return (
-    <CategoryRow style={!isLast ? { borderBottom: '1px solid #F1F5F9' } : {}}>
+    <CategoryRow style={!isLast ? { borderBottom: `1px solid ${theme.background.hoverable}` } : {}}>
       <CategoryLabel>{category.charAt(0).toUpperCase() + category.slice(1)}</CategoryLabel>
       <SwatchRow>
         {tokens.map(({ key, token }) => (
@@ -202,7 +204,7 @@ function isMono(tokenKey, value) {
 const FontCardWrapper = styled.div(({ theme }) => ({
   flex: 1,
   minWidth: 0,
-  background: theme.background?.content || '#ffffff',
+  background: theme.background.content,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 16,
   boxShadow: '0px 1px 2px -1px rgba(0,0,0,0.1), 0px 1px 3px 0px rgba(0,0,0,0.1)',
@@ -235,7 +237,7 @@ const FontLabel = styled.p(({ theme }) => ({
   fontSize: 15,
   fontWeight: 500,
   lineHeight: 1.5,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   margin: 0,
 }));
 
@@ -256,6 +258,7 @@ const CharPreview = styled.div(({ theme }) => ({
 }));
 
 function DeboFontCard({ tokenKey, value }) {
+  const theme = useTheme();
   const meta = FONT_TOKEN_META[tokenKey] || { label: tokenKey, aaWeight: 500 };
   const mono = isMono(tokenKey, value);
   const preview = mono ? '0 1 2 3 4 5 6 7 8 9 { }' : 'A B C D E F G H I J K L';
@@ -266,7 +269,7 @@ function DeboFontCard({ tokenKey, value }) {
   return (
     <FontCardWrapper>
       <FontPreview>
-        <span style={{ fontFamily: value, fontSize: 56, fontWeight: meta.aaWeight, display: 'block', lineHeight: 1, color: '#1D293D' }}>
+        <span style={{ fontFamily: value, fontSize: 56, fontWeight: meta.aaWeight, display: 'block', lineHeight: 1, color: theme.color.defaultText }}>
           Aa
         </span>
       </FontPreview>
@@ -278,7 +281,7 @@ function DeboFontCard({ tokenKey, value }) {
         <FontTypeBadge style={badgeStyle}>{mono ? 'Mono' : 'Sans'}</FontTypeBadge>
       </FontInfo>
       <CharPreview>
-        <span style={{ fontFamily: value, fontSize: 16, fontWeight: 500, lineHeight: 1.625, color: '#90A1B9' }}>
+        <span style={{ fontFamily: value, fontSize: 16, fontWeight: 500, lineHeight: 1.625, color: theme.textMutedColor }}>
           {preview}
         </span>
       </CharPreview>
@@ -287,7 +290,7 @@ function DeboFontCard({ tokenKey, value }) {
 }
 
 const TypeScaleWrapper = styled.div(({ theme }) => ({
-  background: theme.background?.content || '#ffffff',
+  background: theme.background.content,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 16,
   boxShadow: '0px 1px 2px -1px rgba(0,0,0,0.1), 0px 1px 3px 0px rgba(0,0,0,0.1)',
@@ -297,7 +300,7 @@ const TypeScaleWrapper = styled.div(({ theme }) => ({
 const TypeScaleHeader = styled.div(({ theme }) => ({
   display: 'grid',
   gridTemplateColumns: '104px 1fr 130px',
-  background: theme.background?.hoverable || '#F8FAFC',
+  background: theme.background.hoverable,
   borderBottom: `1px solid ${theme.appBorderColor}`,
   padding: '12px 24px',
 }));
@@ -308,7 +311,7 @@ const TypeScaleHeaderLabel = styled.span(({ theme }) => ({
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.57px',
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
 }));
 
 const TypeScaleRow = styled.div(({ theme }) => ({
@@ -322,14 +325,14 @@ const StyleName = styled.span(({ theme }) => ({
   fontFamily: theme.typography.fonts.base,
   fontSize: 15,
   fontWeight: 700,
-  color: '#90A1B9',
+  color: theme.textMutedColor,
 }));
 
 const SizeBadge = styled.span(({ theme }) => ({
   display: 'inline-flex',
   alignItems: 'center',
   gap: 4,
-  background: '#F1F5F9',
+  background: theme.background.hoverable,
   borderRadius: 8,
   padding: '4px 10px',
   fontFamily: theme.typography.fonts.mono,
@@ -338,6 +341,7 @@ const SizeBadge = styled.span(({ theme }) => ({
 }));
 
 function DeboTypeScale({ headingFont }) {
+  const theme = useTheme();
   return (
     <TypeScaleWrapper>
       <TypeScaleHeader>
@@ -346,14 +350,14 @@ function DeboTypeScale({ headingFont }) {
         <TypeScaleHeaderLabel style={{ textAlign: 'right' }}>Size / LH</TypeScaleHeaderLabel>
       </TypeScaleHeader>
       {TYPE_SCALE.map(({ style, fontSize, lineHeight, weight }, i) => (
-        <TypeScaleRow key={style} style={i < TYPE_SCALE.length - 1 ? { borderBottom: '1px solid #F1F5F9' } : {}}>
+        <TypeScaleRow key={style} style={i < TYPE_SCALE.length - 1 ? { borderBottom: `1px solid ${theme.background.hoverable}` } : {}}>
           <StyleName>{style}</StyleName>
           <span style={{
             fontFamily: headingFont,
             fontSize,
             fontWeight: weight,
             lineHeight: `${lineHeight}px`,
-            color: '#1D293D',
+            color: theme.color.defaultText,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -363,9 +367,9 @@ function DeboTypeScale({ headingFont }) {
           </span>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <SizeBadge>
-              <span style={{ color: '#45556C' }}>{fontSize}px</span>
-              <span style={{ color: '#90A1B9' }}>/</span>
-              <span style={{ color: '#62748E' }}>{lineHeight}px</span>
+              <span style={{ color: theme.color.defaultText }}>{fontSize}px</span>
+              <span style={{ color: theme.textMutedColor }}>/</span>
+              <span style={{ color: theme.color.defaultText }}>{lineHeight}px</span>
             </SizeBadge>
           </div>
         </TypeScaleRow>
@@ -474,7 +478,7 @@ const DimLabel = styled.span(({ theme }) => ({
 const DimValue = styled.span(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: 12,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   width: 64,
   flexShrink: 0,
   textAlign: 'right',
@@ -483,7 +487,7 @@ const DimValue = styled.span(({ theme }) => ({
 const DimBarTrack = styled.div(({ theme }) => ({
   flex: 1,
   height: 8,
-  background: theme.background?.hoverable || '#F1F5F9',
+  background: theme.background.hoverable,
   borderRadius: 4,
   overflow: 'hidden',
 }));
@@ -516,6 +520,7 @@ function BarRenderer({ tokens, fillColor = '#2563EB' }) {
 }
 
 function ContainerRenderer({ tokens }) {
+  const theme = useTheme();
   const max = Math.max(...tokens.map(([, v]) => parseToPixels(v.$value)), 1);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '8px 0' }}>
@@ -529,7 +534,7 @@ function ContainerRenderer({ tokens }) {
               width: `${pct}%`,
               minWidth: 80,
               height: 40,
-              border: '2px solid #2563EB',
+              border: `2px solid ${theme.color.secondary}`,
               borderRadius: 8,
               background: 'rgba(37, 99, 235, 0.04)',
               display: 'flex',
@@ -538,8 +543,8 @@ function ContainerRenderer({ tokens }) {
               padding: '0 12px',
             }}
           >
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#2563EB' }}>{k}</span>
-            <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: theme.color.secondary }}>{k}</span>
+            <span style={{ fontSize: 11, fontFamily: 'monospace', color: theme.textMutedColor }}>{v.$value}</span>
           </div>
         );
       })}
@@ -548,6 +553,7 @@ function ContainerRenderer({ tokens }) {
 }
 
 function SpacingRenderer({ tokens }) {
+  const theme = useTheme();
   return (
     <div style={{ display: 'flex', gap: 32, alignItems: 'flex-end', padding: '8px 0' }}>
       {tokens.map(([k, v]) => {
@@ -561,8 +567,8 @@ function SpacingRenderer({ tokens }) {
               borderRadius: 4,
               border: '1px solid rgba(37,99,235,0.2)',
             }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>{k}</span>
-            <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: theme.color.defaultText }}>{k}</span>
+            <span style={{ fontSize: 11, fontFamily: 'monospace', color: theme.textMutedColor }}>{v.$value}</span>
           </div>
         );
       })}
@@ -571,17 +577,18 @@ function SpacingRenderer({ tokens }) {
 }
 
 function GapRenderer({ tokens }) {
+  const theme = useTheme();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
       {tokens.map(([k, v]) => (
         <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', width: 40, flexShrink: 0 }}>{k}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: theme.color.defaultText, width: 40, flexShrink: 0 }}>{k}</span>
           <div style={{ display: 'flex', gap: v.$value }}>
             {[0, 1, 2].map(i => (
-              <div key={i} style={{ width: 32, height: 32, borderRadius: 6, background: '#2563EB' }} />
+              <div key={i} style={{ width: 32, height: 32, borderRadius: 6, background: theme.color.secondary }} />
             ))}
           </div>
-          <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: theme.textMutedColor }}>{v.$value}</span>
         </div>
       ))}
     </div>
@@ -589,6 +596,7 @@ function GapRenderer({ tokens }) {
 }
 
 function RadiusRenderer({ tokens }) {
+  const theme = useTheme();
   return (
     <div style={{ display: 'flex', gap: 24, padding: '8px 0' }}>
       {tokens.map(([k, v]) => (
@@ -596,12 +604,12 @@ function RadiusRenderer({ tokens }) {
           <div style={{
             width: 56,
             height: 56,
-            border: '2px solid #2563EB',
+            border: `2px solid ${theme.color.secondary}`,
             background: 'rgba(37,99,235,0.06)',
             borderRadius: v.$value,
           }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>{k}</span>
-          <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: theme.color.defaultText }}>{k}</span>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: theme.textMutedColor }}>{v.$value}</span>
         </div>
       ))}
     </div>
@@ -609,14 +617,15 @@ function RadiusRenderer({ tokens }) {
 }
 
 function ScreenRenderer({ tokens }) {
+  const theme = useTheme();
   const devices = { sm: '📱', md: '📱', lg: '💻', xl: '🖥️', '2xl': '🖥️' };
   return (
     <div style={{ display: 'flex', gap: 32, alignItems: 'flex-end', padding: '8px 0' }}>
       {tokens.map(([k, v]) => (
         <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 32 }}>{devices[k] || '📺'}</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#1E293B' }}>{k}</span>
-          <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748B' }}>{v.$value}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: theme.color.defaultText }}>{k}</span>
+          <span style={{ fontSize: 11, fontFamily: 'monospace', color: theme.textMutedColor }}>{v.$value}</span>
         </div>
       ))}
     </div>
@@ -732,7 +741,7 @@ const SectionLabel = styled.p(({ theme }) => ({
   textTransform: 'uppercase',
   letterSpacing: '0.6px',
   lineHeight: '16px',
-  color: '#90A1B9',
+  color: theme.textMutedColor,
 }));
 
 const TokensWrapper = styled.div({

@@ -37,25 +37,25 @@ const Title = styled.h2(({ theme }) => ({
 
 const Description = styled.p(({ theme }) => ({
   fontSize: theme.typography.size.s2,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   marginTop: 4,
   marginBottom: 16,
 }));
 
 const EntityPath = styled.code(({ theme }) => ({
   fontSize: theme.typography.size.s1,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   fontFamily: theme.typography.fonts.mono,
 }));
 
 const SubRow = styled.div(({ theme }) => ({
   fontSize: theme.typography.size.s1,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   marginTop: 4,
 }));
 
 const ViewModeCard = styled.div(({ theme }) => ({
-  background: theme.background?.content || theme.background?.app,
+  background: theme.background.content,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 8,
   padding: 16,
@@ -71,7 +71,7 @@ const ViewModeTitle = styled.h4(({ theme }) => ({
 
 const MetaLine = styled.div(({ theme }) => ({
   fontSize: theme.typography.size.s1,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   marginBottom: 4,
 }));
 

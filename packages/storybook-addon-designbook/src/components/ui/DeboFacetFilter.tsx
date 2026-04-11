@@ -4,7 +4,8 @@
  * Each facet is a dropdown that shows available options based on the current
  * selection of other facets (dependent filtering).
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useTheme } from 'storybook/theming';
 
 export interface FacetOption {
   value: string;
@@ -24,93 +25,101 @@ interface FacetDropdownProps {
   onClear: () => void;
 }
 
-const S = {
-  bar: {
-    display: 'flex',
-    gap: 6,
-    padding: '6px 8px',
-    flexWrap: 'wrap' as const,
-  },
-  trigger: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    padding: '3px 8px',
-    fontSize: 11,
-    fontFamily: 'inherit',
-    color: 'var(--textMutedColor, #999)',
-    background: 'transparent',
-    border: '1px solid var(--appBorderColor, #444)',
-    borderRadius: 4,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
-  },
-  triggerActive: {
-    color: 'var(--textColor, #fff)',
-    borderColor: 'var(--barSelectedColor, #6366f1)',
-    background: 'rgba(99, 102, 241, 0.1)',
-  },
-  count: {
-    fontSize: 9,
-    fontWeight: 700,
-    background: 'var(--barSelectedColor, #6366f1)',
-    color: '#fff',
-    borderRadius: 8,
-    padding: '1px 5px',
-    marginLeft: 2,
-  },
-  dropdown: {
-    position: 'absolute' as const,
-    top: '100%',
-    left: 0,
-    marginTop: 4,
-    background: 'var(--appContentBg, #1a1a2e)',
-    border: '1px solid var(--appBorderColor, #444)',
-    borderRadius: 6,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-    zIndex: 100,
-    minWidth: 180,
-    maxHeight: 240,
-    overflow: 'auto',
-  },
-  option: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '5px 10px',
-    fontSize: 11,
-    cursor: 'pointer',
-    color: 'var(--textColor, #fff)',
-  },
-  optionHover: {
-    background: 'rgba(255,255,255,0.05)',
-  },
-  checkbox: {
-    width: 14,
-    height: 14,
-    accentColor: 'var(--barSelectedColor, #6366f1)',
-    cursor: 'pointer',
-    flexShrink: 0,
-  },
-  clearBtn: {
-    display: 'block',
-    width: '100%',
-    padding: '5px 10px',
-    fontSize: 10,
-    color: 'var(--textMutedColor, #999)',
-    background: 'none',
-    border: 'none',
-    borderTop: '1px solid var(--appBorderColor, #333)',
-    cursor: 'pointer',
-    textAlign: 'left' as const,
-  },
-  arrow: {
-    fontSize: 8,
-    marginLeft: 2,
-  },
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useStyles(theme: any) {
+  return useMemo(
+    () => ({
+      bar: {
+        display: 'flex',
+        gap: 6,
+        padding: '6px 8px',
+        flexWrap: 'wrap' as const,
+      },
+      trigger: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '3px 8px',
+        fontSize: 11,
+        fontFamily: 'inherit',
+        color: theme.textMutedColor,
+        background: 'transparent',
+        border: `1px solid ${theme.appBorderColor}`,
+        borderRadius: 4,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap' as const,
+      },
+      triggerActive: {
+        color: theme.color.defaultText,
+        borderColor: theme.barSelectedColor,
+        background: 'rgba(99, 102, 241, 0.1)',
+      },
+      count: {
+        fontSize: 9,
+        fontWeight: 700,
+        background: theme.barSelectedColor,
+        color: theme.background.content,
+        borderRadius: 8,
+        padding: '1px 5px',
+        marginLeft: 2,
+      },
+      dropdown: {
+        position: 'absolute' as const,
+        top: '100%',
+        left: 0,
+        marginTop: 4,
+        background: theme.background.content,
+        border: `1px solid ${theme.appBorderColor}`,
+        borderRadius: 6,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        zIndex: 100,
+        minWidth: 180,
+        maxHeight: 240,
+        overflow: 'auto',
+      },
+      option: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '5px 10px',
+        fontSize: 11,
+        cursor: 'pointer',
+        color: theme.color.defaultText,
+      },
+      optionHover: {
+        background: 'rgba(255,255,255,0.05)',
+      },
+      checkbox: {
+        width: 14,
+        height: 14,
+        accentColor: theme.barSelectedColor,
+        cursor: 'pointer',
+        flexShrink: 0,
+      },
+      clearBtn: {
+        display: 'block',
+        width: '100%',
+        padding: '5px 10px',
+        fontSize: 10,
+        color: theme.textMutedColor,
+        background: 'none',
+        border: 'none',
+        borderTop: `1px solid ${theme.appBorderColor}`,
+        cursor: 'pointer',
+        textAlign: 'left' as const,
+      },
+      arrow: {
+        fontSize: 8,
+        marginLeft: 2,
+      },
+    }),
+    [theme],
+  );
+}
 
 function FacetDropdown({ facet, selected, onToggle, onClear }: FacetDropdownProps) {
+  const theme = useTheme();
+  const S = useStyles(theme);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -183,6 +192,8 @@ interface DeboFacetFilterProps {
 }
 
 export function DeboFacetFilter({ facets, state, onToggle, onClear }: DeboFacetFilterProps) {
+  const theme = useTheme();
+  const S = useStyles(theme);
   return (
     <div style={S.bar}>
       {facets.map((f) => (

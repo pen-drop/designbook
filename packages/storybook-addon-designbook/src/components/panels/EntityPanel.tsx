@@ -4,7 +4,8 @@
  * Primary focus: show the JSONata mapping from entity fields to component props/slots.
  * Split view: composition tree on the left, mapping table on the right.
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { useTheme } from 'storybook/theming';
 import type { SceneTreeNode, FieldMapping } from '../../renderer/types';
 import { CompositionTree } from '../CompositionTree';
 
@@ -13,101 +14,111 @@ interface EntityPanelProps {
   highlightedPath?: string | null;
 }
 
-const S = {
-  container: {
-    display: 'flex',
-    height: '100%',
-  } as React.CSSProperties,
-  treePane: {
-    width: '40%',
-    minWidth: 200,
-    borderRight: '1px solid var(--borderColor, #e5e7eb)',
-    overflow: 'auto',
-  } as React.CSSProperties,
-  detailPane: {
-    flex: 1,
-    overflow: 'auto',
-  } as React.CSSProperties,
-  hint: {
-    padding: 16,
-    fontSize: 12,
-    color: 'var(--textMutedColor, #9ca3af)',
-  } as React.CSSProperties,
-  header: {
-    padding: '8px 12px',
-    fontSize: 11,
-    fontWeight: 600,
-    color: 'var(--textMutedColor, #9ca3af)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-    borderBottom: '1px solid var(--borderColor, #e5e7eb)',
-  } as React.CSSProperties,
-  entityLabel: {
-    padding: '8px 12px',
-    fontSize: 12,
-    color: 'var(--textColor, #fff)',
-    borderBottom: '1px solid var(--borderColor, #e5e7eb)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  } as React.CSSProperties,
-  badge: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: 'white',
-    background: '#3b82f6',
-    padding: '2px 8px',
-    borderRadius: 10,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-  } as React.CSSProperties,
-  mappingFile: {
-    fontSize: 11,
-    color: 'var(--textMutedColor, #9ca3af)',
-    fontFamily: 'monospace',
-    padding: '4px 12px 8px',
-  } as React.CSSProperties,
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse' as const,
-    fontSize: 12,
-  } as React.CSSProperties,
-  th: {
-    padding: '6px 12px',
-    textAlign: 'left' as const,
-    fontSize: 10,
-    fontWeight: 600,
-    color: 'var(--textMutedColor, #9ca3af)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-    borderBottom: '1px solid var(--borderColor, #e5e7eb)',
-    background: 'var(--barBg, rgba(255,255,255,0.03))',
-  } as React.CSSProperties,
-  td: {
-    padding: '5px 12px',
-    borderBottom: '1px solid var(--borderColor, rgba(255,255,255,0.05))',
-    fontFamily: 'monospace',
-    fontSize: 11,
-    color: 'var(--textColor, #fff)',
-  } as React.CSSProperties,
-  arrow: {
-    color: 'var(--textMutedColor, #9ca3af)',
-    textAlign: 'center' as const,
-    padding: '5px 4px',
-    fontSize: 12,
-  } as React.CSSProperties,
-  conditional: {
-    fontSize: 9,
-    color: '#f59e0b',
-    marginLeft: 4,
-  } as React.CSSProperties,
-  typeBadge: (type: 'prop' | 'slot') => ({
-    fontSize: 9,
-    fontWeight: 600,
-    color: type === 'prop' ? '#3b82f6' : '#22c55e',
-    marginRight: 4,
-  }),
-};
+function useStyles() {
+  const theme = useTheme();
+  return useMemo(
+    () => ({
+      container: {
+        display: 'flex',
+        height: '100%',
+      } as React.CSSProperties,
+      treePane: {
+        width: '40%',
+        minWidth: 200,
+        borderRight: `1px solid ${theme.appBorderColor}`,
+        overflow: 'auto',
+      } as React.CSSProperties,
+      detailPane: {
+        flex: 1,
+        overflow: 'auto',
+      } as React.CSSProperties,
+      hint: {
+        padding: 16,
+        fontSize: 12,
+        color: theme.textMutedColor,
+      } as React.CSSProperties,
+      header: {
+        padding: '8px 12px',
+        fontSize: 11,
+        fontWeight: 600,
+        color: theme.textMutedColor,
+        textTransform: 'uppercase' as const,
+        letterSpacing: '0.5px',
+        borderBottom: `1px solid ${theme.appBorderColor}`,
+      } as React.CSSProperties,
+      entityLabel: {
+        padding: '8px 12px',
+        fontSize: 12,
+        color: theme.color.defaultText,
+        borderBottom: `1px solid ${theme.appBorderColor}`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+      } as React.CSSProperties,
+      badge: {
+        fontSize: 10,
+        fontWeight: 600,
+        color: theme.color.inverseText,
+        background: theme.color.secondary,
+        padding: '2px 8px',
+        borderRadius: 10,
+        textTransform: 'uppercase' as const,
+        letterSpacing: '0.5px',
+      } as React.CSSProperties,
+      mappingFile: {
+        fontSize: 11,
+        color: theme.textMutedColor,
+        fontFamily: 'monospace',
+        padding: '4px 12px 8px',
+      } as React.CSSProperties,
+      table: {
+        width: '100%',
+        borderCollapse: 'collapse' as const,
+        fontSize: 12,
+      } as React.CSSProperties,
+      th: {
+        padding: '6px 12px',
+        textAlign: 'left' as const,
+        fontSize: 10,
+        fontWeight: 600,
+        color: theme.textMutedColor,
+        textTransform: 'uppercase' as const,
+        letterSpacing: '0.5px',
+        borderBottom: `1px solid ${theme.appBorderColor}`,
+        background: theme.background.hoverable,
+      } as React.CSSProperties,
+      td: {
+        padding: '5px 12px',
+        borderBottom: `1px solid ${theme.appBorderColor}`,
+        fontFamily: 'monospace',
+        fontSize: 11,
+        color: theme.color.defaultText,
+      } as React.CSSProperties,
+      arrow: {
+        color: theme.textMutedColor,
+        textAlign: 'center' as const,
+        padding: '5px 4px',
+        fontSize: 12,
+      } as React.CSSProperties,
+      conditional: {
+        fontSize: 9,
+        color: '#f59e0b',
+        marginLeft: 4,
+      } as React.CSSProperties,
+      typeBadge: (type: 'prop' | 'slot') => ({
+        fontSize: 9,
+        fontWeight: 600,
+        color: type === 'prop' ? theme.color.secondary : '#22c55e',
+        marginRight: 4,
+      }),
+      viewMode: {
+        color: theme.textMutedColor,
+        fontSize: 11,
+      } as React.CSSProperties,
+    }),
+    [theme],
+  );
+}
 
 /** Collect all entity nodes from the tree. */
 function collectEntityNodes(tree: SceneTreeNode[]): SceneTreeNode[] {
@@ -130,6 +141,7 @@ function collectEntityNodes(tree: SceneTreeNode[]): SceneTreeNode[] {
 }
 
 function MappingTable({ mappings }: { mappings: FieldMapping[] }) {
+  const S = useStyles();
   return (
     <table style={S.table}>
       <thead>
@@ -161,6 +173,7 @@ function MappingTable({ mappings }: { mappings: FieldMapping[] }) {
 }
 
 function EntityMappingDetail({ node }: { node: SceneTreeNode }) {
+  const S = useStyles();
   const entity = node.entity;
   if (!entity) return null;
 
@@ -173,7 +186,7 @@ function EntityMappingDetail({ node }: { node: SceneTreeNode }) {
         <span>
           {entity.entity_type}/{entity.bundle}
         </span>
-        <span style={{ color: 'var(--textMutedColor, #9ca3af)', fontSize: 11 }}>({entity.view_mode})</span>
+        <span style={S.viewMode}>({entity.view_mode})</span>
       </div>
       <div style={S.mappingFile}>{mappingShort}</div>
       {entity.fieldMappings?.length ? (
@@ -186,6 +199,7 @@ function EntityMappingDetail({ node }: { node: SceneTreeNode }) {
 }
 
 export function EntityPanel({ tree, highlightedPath }: EntityPanelProps) {
+  const S = useStyles();
   const [selectedNode, setSelectedNode] = useState<SceneTreeNode | null>(null);
 
   const handleSelect = useCallback((node: SceneTreeNode) => {

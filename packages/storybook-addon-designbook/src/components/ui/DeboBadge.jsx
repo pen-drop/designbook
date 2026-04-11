@@ -1,21 +1,21 @@
 import React from 'react';
 import { styled, useTheme } from 'storybook/theming';
 
-const lightColors = {
-  green: { background: 'rgb(102, 191, 60)', color: '#FFFFFF' },
-  yellow: { background: '#FEF3C7', color: '#92400E' },
+const lightColors = (theme) => ({
+  green: { background: theme.color.positive, color: theme.background.content },
+  yellow: { background: theme.background.warning, color: theme.fgColor.warning },
   red: { background: '#FFE4E6', color: '#C70036' },
   purple: { background: '#f3e8ff', color: '#8200db' },
-  gray: { background: '#F1F5F9', color: '#94A3B8' },
-};
+  gray: { background: theme.background.hoverable, color: theme.textMutedColor },
+});
 
-const darkColors = {
+const darkColors = (theme) => ({
   green: { background: '#064E3B', color: '#6EE7B7' },
   yellow: { background: '#78350F', color: '#FCD34D' },
   red: { background: '#7F1D1D', color: '#FCA5A5' },
   purple: { background: '#4C1D95', color: '#C4B5FD' },
-  gray: { background: '#334155', color: '#94A3B8' },
-};
+  gray: { background: '#334155', color: theme.textMutedColor },
+});
 
 const StyledBadge = styled.span(({ theme }) => ({
   display: 'inline-block',
@@ -34,7 +34,7 @@ const StyledBadge = styled.span(({ theme }) => ({
 export function DeboBadge({ children, color = 'green' }) {
   const theme = useTheme();
   const isDark = theme.base === 'dark';
-  const palette = isDark ? darkColors : lightColors;
+  const palette = isDark ? darkColors(theme) : lightColors(theme);
   const c = palette[color] || palette.green;
   return (
     <StyledBadge style={{ background: c.background, color: c.color }}>

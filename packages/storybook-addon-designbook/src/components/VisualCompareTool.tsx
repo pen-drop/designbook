@@ -1,4 +1,5 @@
 import React, { memo, useState, useEffect, useCallback } from 'react';
+import { useTheme } from 'storybook/theming';
 import { useGlobals, useParameter, useStorybookApi } from 'storybook/manager-api';
 import { IconButton, WithTooltip } from 'storybook/internal/components';
 import { PhotoIcon } from '@storybook/icons';
@@ -101,8 +102,9 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
 }
 
 function DiffBadge({ diff, pass }: { diff: number | null; pass: boolean | null }) {
+  const theme = useTheme();
   if (diff === null || pass === null) {
-    return <span style={{ fontSize: 10, color: '#aaa' }}>—</span>;
+    return <span style={{ fontSize: 10, color: theme.textMutedColor }}>—</span>;
   }
   return (
     <span
@@ -112,7 +114,7 @@ function DiffBadge({ diff, pass }: { diff: number | null; pass: boolean | null }
         padding: '1px 6px',
         borderRadius: 9999,
         background: pass ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-        color: pass ? '#16a34a' : '#dc2626',
+        color: pass ? theme.color.positive : theme.color.negative,
       }}
     >
       {diff.toFixed(1)}%
@@ -131,6 +133,7 @@ const DropdownContent = memo(function DropdownContent({
   onSelect: (bp: string | null, region: string | null) => void;
   onOpacityChange: (opacity: number) => void;
 }) {
+  const theme = useTheme();
   const [breakpoints, setBreakpoints] = useState<BreakpointInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -143,11 +146,11 @@ const DropdownContent = memo(function DropdownContent({
   }, [storyId]);
 
   if (loading) {
-    return <div style={{ padding: 12, fontSize: 12, color: '#888' }}>Loading…</div>;
+    return <div style={{ padding: 12, fontSize: 12, color: theme.textMutedColor }}>Loading…</div>;
   }
 
   if (breakpoints.length === 0) {
-    return <div style={{ padding: 12, fontSize: 12, color: '#888' }}>No references found</div>;
+    return <div style={{ padding: 12, fontSize: 12, color: theme.textMutedColor }}>No references found</div>;
   }
 
   return (
@@ -180,7 +183,7 @@ const DropdownContent = memo(function DropdownContent({
               }}
             >
               <span style={{ fontWeight: isBpActive ? 600 : 400 }}>
-                {bp.name} <span style={{ color: '#888' }}>{bp.width}px</span>
+                {bp.name} <span style={{ color: theme.textMutedColor }}>{bp.width}px</span>
               </span>
               <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 {bp.regions.some((r) => r.pass !== null) && (
@@ -193,7 +196,7 @@ const DropdownContent = memo(function DropdownContent({
                       background: bp.regions.every((r) => r.pass !== false)
                         ? 'rgba(34, 197, 94, 0.15)'
                         : 'rgba(239, 68, 68, 0.15)',
-                      color: bp.regions.every((r) => r.pass !== false) ? '#16a34a' : '#dc2626',
+                      color: bp.regions.every((r) => r.pass !== false) ? theme.color.positive : theme.color.negative,
                     }}
                   >
                     {bp.regions.filter((r) => r.pass === true).length}/{bp.regions.length}
@@ -227,7 +230,7 @@ const DropdownContent = memo(function DropdownContent({
                     cursor: 'pointer',
                     fontSize: 11,
                     textAlign: 'left',
-                    color: isBpActive ? 'inherit' : '#888',
+                    color: isBpActive ? 'inherit' : theme.textMutedColor,
                   }}
                 >
                   <span style={{ fontWeight: isRegionActive ? 600 : 400 }}>
@@ -246,7 +249,12 @@ const DropdownContent = memo(function DropdownContent({
                             : region.pass
                               ? 'rgba(34, 197, 94, 0.15)'
                               : 'rgba(239, 68, 68, 0.15)',
-                        color: region.pass === null ? '#aaa' : region.pass ? '#16a34a' : '#dc2626',
+                        color:
+                          region.pass === null
+                            ? theme.textMutedColor
+                            : region.pass
+                              ? theme.color.positive
+                              : theme.color.negative,
                       }}
                     >
                       {region.pass === null ? '—' : region.issues.length > 0 ? `${region.issues.length} issues` : 'ok'}
@@ -261,9 +269,9 @@ const DropdownContent = memo(function DropdownContent({
         );
       })}
 
-      <div style={{ borderTop: '1px solid #eee', marginTop: 8, paddingTop: 8 }}>
+      <div style={{ borderTop: `1px solid ${theme.appBorderColor}`, marginTop: 8, paddingTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
-          <span style={{ fontSize: 11, color: '#888', whiteSpace: 'nowrap' }}>Opacity</span>
+          <span style={{ fontSize: 11, color: theme.textMutedColor, whiteSpace: 'nowrap' }}>Opacity</span>
           <input
             type="range"
             min={0}
@@ -273,7 +281,9 @@ const DropdownContent = memo(function DropdownContent({
             onChange={(e) => onOpacityChange(Number(e.target.value))}
             style={{ flex: 1 }}
           />
-          <span style={{ fontSize: 11, color: '#888', minWidth: 30, textAlign: 'right' }}>{state.opacity}%</span>
+          <span style={{ fontSize: 11, color: theme.textMutedColor, minWidth: 30, textAlign: 'right' }}>
+            {state.opacity}%
+          </span>
         </div>
       </div>
     </div>

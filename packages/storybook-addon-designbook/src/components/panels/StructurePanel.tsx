@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTheme } from 'storybook/theming';
 import { useParameter, useChannel } from 'storybook/manager-api';
 import { AddonPanel } from 'storybook/internal/components';
 import type { SceneTreeNode } from '../../renderer/types';
@@ -19,6 +20,7 @@ function detectSceneType(tree: SceneTreeNode[]): SceneTreeNode['kind'] {
 }
 
 export function StructurePanel({ active }: StructurePanelProps) {
+  const theme = useTheme();
   const sceneTree = useParameter<SceneTreeNode[] | undefined>('sceneTree');
   const [highlightedPath, setHighlightedPath] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ export function StructurePanel({ active }: StructurePanelProps) {
   }, [sceneTree]);
 
   const empty = (
-    <div style={{ padding: 16, fontSize: 13, color: 'var(--textMutedColor, #9ca3af)' }}>
+    <div style={{ padding: 16, fontSize: 13, color: theme.textMutedColor }}>
       No scene structure available for this story.
     </div>
   );

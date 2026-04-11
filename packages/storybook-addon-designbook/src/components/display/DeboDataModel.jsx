@@ -11,15 +11,15 @@ const ClickableCard = styled.div({
   '&:hover': { opacity: 0.85 },
 });
 
-const SectionHeading = styled.h3({
+const SectionHeading = styled.h3(({ theme }) => ({
   fontSize: '13px',
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: 'var(--sb-color-mediumdark, #999)',
+  color: theme.textMutedColor,
   margin: 0,
   paddingTop: '8px',
-});
+}));
 
 function EntityGroup({ type, bundles, onSelect }) {
   const bundleEntries = Object.entries(bundles || {});

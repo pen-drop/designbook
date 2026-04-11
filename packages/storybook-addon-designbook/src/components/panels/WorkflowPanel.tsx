@@ -1,5 +1,6 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { AddonPanel, TabsView } from 'storybook/internal/components';
+import { useTheme } from 'storybook/theming';
 import { addons } from 'storybook/manager-api';
 import { ManagerBadge } from '../manager-utils.js';
 import { DeboCollapsible } from '../ui/DeboCollapsible.jsx';
@@ -172,14 +173,19 @@ const collapsibleStatus = (status?: string): 'done' | 'running' | 'pending' => {
   return 'pending';
 };
 
-const STATUS_DOT: Record<string, { bg: string; border?: string; icon?: 'check' | 'x' | 'dot' }> = {
-  done: { bg: 'rgb(102, 191, 60)', icon: 'check' },
-  incomplete: { bg: '#DC2626', icon: 'x' },
-  'in-progress': { bg: '#FEF3C7', icon: 'dot' },
-  pending: { bg: 'transparent', border: '#CBD5E1' },
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createStatusDot(theme: any): Record<string, { bg: string; border?: string; icon?: 'check' | 'x' | 'dot' }> {
+  return {
+    done: { bg: theme.color.positive, icon: 'check' },
+    incomplete: { bg: theme.color.negative, icon: 'x' },
+    'in-progress': { bg: theme.background.warning, icon: 'dot' },
+    pending: { bg: 'transparent', border: theme.appBorderColor },
+  };
+}
 
 function StatusDot({ status }: { status: string }) {
+  const theme = useTheme();
+  const STATUS_DOT = useMemo(() => createStatusDot(theme), [theme]);
   const s = STATUS_DOT[status] ?? STATUS_DOT.pending!;
   return (
     <span
@@ -196,16 +202,26 @@ function StatusDot({ status }: { status: string }) {
       }}
     >
       {s.icon === 'check' && (
-        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={theme.color.inverseText} strokeWidth="3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       )}
       {s.icon === 'x' && (
-        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={theme.color.inverseText} strokeWidth="3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
         </svg>
       )}
-      {s.icon === 'dot' && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#92400E' }} />}
+      {s.icon === 'dot' && (
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            background: (theme as any).fgColor?.warning ?? '#92400E',
+          }}
+        />
+      )}
     </span>
   );
 }
@@ -229,270 +245,250 @@ function getActiveTask(wf: WorkflowData): WorkflowTask | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// Inline Styles (manager components must not use styled/theme)
+// Inline Styles (theme-aware)
 // ---------------------------------------------------------------------------
 
-const S = {
-  container: {
-    padding: '0.75rem',
-    fontFamily: 'inherit',
-    fontSize: 13,
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 4,
-  },
-  empty: { padding: '2rem 1rem', textAlign: 'center' as const, color: '#7B8794' },
-  badgeRow: { display: 'flex', flexWrap: 'wrap' as const, gap: 6, padding: '8px 0' },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-    color: '#7B8794',
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  summaryRow: { display: 'inline-flex', alignItems: 'center', gap: 6, flex: 1, overflow: 'hidden' as const },
-  summaryTitle: { overflow: 'hidden' as const, textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 },
-  taskRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '3px 0',
-    fontSize: 12,
-    color: 'inherit',
-    flexWrap: 'wrap' as const,
-  },
-  taskContent: {
-    flex: 1,
-    minWidth: 0,
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: 1,
-  },
-  taskTitleText: {
-    overflow: 'hidden' as const,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
-  },
-  taskDescription: {
-    overflow: 'hidden' as const,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
-    opacity: 0.6,
-    fontSize: '0.85em',
-  },
-  taskSummary: {
-    opacity: 0.5,
-    fontSize: '0.85em',
-    overflow: 'hidden' as const,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
-    flexShrink: 0,
-    maxWidth: '30%',
-    textAlign: 'right' as const,
-  },
-  taskFileBadges: { display: 'inline-flex', gap: 4, flexWrap: 'wrap' as const, alignItems: 'center' },
-  overviewSection: { marginBottom: 8 },
-  overviewLabel: {
-    fontSize: 10,
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-    color: '#7B8794',
-    marginBottom: 6,
-    marginTop: 6,
-  },
-  overviewRow: { display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', fontSize: 12, color: 'inherit' },
-  overviewValue: { color: '#7B8794', fontSize: 11 },
-  badgeWrap: { display: 'flex', flexWrap: 'wrap' as const, gap: 4, alignItems: 'center' },
-  contextFileRow: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    padding: '2px 0',
-  },
-  durationLabel: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#94A3B8',
-    flexShrink: 0,
-    fontFamily: 'monospace',
-  },
-  durationRunning: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#92400E',
-    flexShrink: 0,
-    fontFamily: 'monospace',
-  },
-  activeTaskHint: {
-    fontSize: 10,
-    color: '#64748B',
-    overflow: 'hidden' as const,
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
-    maxWidth: 180,
-    flexShrink: 0,
-  },
-  worktreeTag: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    fontSize: 10,
-    fontFamily: 'monospace',
-    color: '#7C3AED',
-    background: '#F5F3FF',
-    padding: '2px 8px',
-    borderRadius: 9999,
-    fontWeight: 600,
-  },
-  stepHeading: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    fontSize: 11,
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-    color: '#7B8794',
-    marginTop: 10,
-    marginBottom: 4,
-    padding: '2px 0',
-  },
-  intakeRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '4px 0',
-    fontSize: 12,
-    color: '#7C3AED',
-    fontStyle: 'italic' as const,
-  },
-  // -- Workflow sub-tabs --
-  tabBar: {
-    display: 'flex',
-    gap: 0,
-    borderBottom: '1px solid #E2E8F0',
-    marginBottom: 8,
-  },
-  tabButton: {
-    padding: '6px 12px',
-    fontSize: 11,
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-    color: '#64748B',
-    background: 'transparent',
-    border: 'none',
-    borderBottom: '2px solid transparent',
-    cursor: 'pointer',
-  },
-  tabButtonActive: {
-    color: '#FFFFFF',
-    borderBottomColor: '#66BF3C',
-  },
-  // -- Tasks tab --
-  stageHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '8px 0 4px',
-    fontSize: 11,
-    fontWeight: 700,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-    color: '#64748B',
-  },
-  stageHeaderLine: {
-    flex: 1,
-    height: 1,
-    background: '#E2E8F0',
-  },
-  taskRowDone: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '4px 6px',
-    fontSize: 12,
-    borderRadius: 4,
-    background: 'rgba(34, 197, 94, 0.08)',
-  },
-  taskRowRunning: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '4px 6px',
-    fontSize: 12,
-    borderRadius: 4,
-    background: 'rgba(245, 158, 11, 0.10)',
-  },
-  taskRowPending: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '4px 6px',
-    fontSize: 12,
-    borderRadius: 4,
-    background: 'transparent',
-  },
-  // -- Context tab --
-  filterBadgeRow: {
-    display: 'flex',
-    flexWrap: 'wrap' as const,
-    gap: 4,
-    marginBottom: 8,
-  },
-  filterBadge: {
-    padding: '2px 8px',
-    fontSize: 10,
-    fontWeight: 600,
-    borderRadius: 9999,
-    border: '1px solid #CBD5E1',
-    background: 'transparent',
-    color: '#64748B',
-    cursor: 'pointer',
-  },
-  filterBadgeActive: {
-    background: '#3B82F6',
-    borderColor: '#3B82F6',
-    color: '#fff',
-  },
-  contextTable: {
-    width: '100%',
-    fontSize: 11,
-    borderCollapse: 'collapse' as const,
-  },
-  contextTh: {
-    textAlign: 'left' as const,
-    padding: '4px 8px',
-    fontSize: 10,
-    fontWeight: 700,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-    color: '#94A3B8',
-    borderBottom: '1px solid #E2E8F0',
-  },
-  contextTd: {
-    padding: '3px 8px',
-    borderBottom: '1px solid #F1F5F9',
-    color: 'inherit',
-  },
-  // -- Summary tab --
-  progressBarOuter: {
-    flex: 1,
-    height: 6,
-    background: '#E2E8F0',
-    borderRadius: 3,
-    overflow: 'hidden' as const,
-  },
-  progressBarInner: {
-    height: '100%',
-    background: 'rgb(102, 191, 60)',
-    borderRadius: 3,
-    transition: 'width 0.3s ease',
-  },
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function createStyles(theme: any) {
+  return {
+    container: {
+      padding: '0.75rem',
+      fontFamily: 'inherit',
+      fontSize: 13,
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: 4,
+    },
+    empty: { padding: '2rem 1rem', textAlign: 'center' as const, color: theme.textMutedColor },
+    badgeRow: { display: 'flex', flexWrap: 'wrap' as const, gap: 6, padding: '8px 0' },
+    sectionLabel: {
+      fontSize: 10,
+      fontWeight: 600,
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.5px',
+      color: theme.textMutedColor,
+      marginTop: 12,
+      marginBottom: 6,
+    },
+    summaryRow: { display: 'inline-flex', alignItems: 'center', gap: 6, flex: 1, overflow: 'hidden' as const },
+    summaryTitle: { overflow: 'hidden' as const, textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, flex: 1 },
+    taskRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '3px 0',
+      fontSize: 12,
+      color: 'inherit',
+      flexWrap: 'wrap' as const,
+    },
+    taskContent: {
+      flex: 1,
+      minWidth: 0,
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: 1,
+    },
+    taskTitleText: {
+      overflow: 'hidden' as const,
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+    },
+    taskDescription: {
+      overflow: 'hidden' as const,
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+      opacity: 0.6,
+      fontSize: '0.85em',
+    },
+    taskSummary: {
+      opacity: 0.5,
+      fontSize: '0.85em',
+      overflow: 'hidden' as const,
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+      flexShrink: 0,
+      maxWidth: '30%',
+      textAlign: 'right' as const,
+    },
+    taskFileBadges: { display: 'inline-flex', gap: 4, flexWrap: 'wrap' as const, alignItems: 'center' },
+    overviewSection: { marginBottom: 8 },
+    overviewLabel: {
+      fontSize: 10,
+      fontWeight: 600,
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.5px',
+      color: theme.textMutedColor,
+      marginBottom: 6,
+      marginTop: 6,
+    },
+    overviewRow: { display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', fontSize: 12, color: 'inherit' },
+    overviewValue: { color: theme.textMutedColor, fontSize: 11 },
+    badgeWrap: { display: 'flex', flexWrap: 'wrap' as const, gap: 4, alignItems: 'center' },
+    contextFileRow: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 4,
+      padding: '2px 0',
+    },
+    durationLabel: {
+      fontSize: 10,
+      fontWeight: 600,
+      color: theme.textMutedColor,
+      flexShrink: 0,
+      fontFamily: 'monospace',
+    },
+    durationRunning: {
+      fontSize: 10,
+      fontWeight: 600,
+      color: theme.fgColor?.warning ?? '#92400E',
+      flexShrink: 0,
+      fontFamily: 'monospace',
+    },
+    activeTaskHint: {
+      fontSize: 10,
+      color: theme.color.defaultText,
+      overflow: 'hidden' as const,
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+      maxWidth: 180,
+      flexShrink: 0,
+    },
+    worktreeTag: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 4,
+      fontSize: 10,
+      fontFamily: 'monospace',
+      color: '#7C3AED',
+      background: theme.base === 'dark' ? 'rgba(124,58,237,0.15)' : '#F5F3FF',
+      padding: '2px 8px',
+      borderRadius: 9999,
+      fontWeight: 600,
+    },
+    stepHeading: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      fontSize: 11,
+      fontWeight: 600,
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.5px',
+      color: theme.textMutedColor,
+      marginTop: 10,
+      marginBottom: 4,
+      padding: '2px 0',
+    },
+    intakeRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '4px 0',
+      fontSize: 12,
+      color: '#7C3AED',
+      fontStyle: 'italic' as const,
+    },
+    // -- Tasks tab --
+    stageHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '8px 0 4px',
+      fontSize: 11,
+      fontWeight: 700,
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.5px',
+      color: theme.color.defaultText,
+    },
+    stageHeaderLine: {
+      flex: 1,
+      height: 1,
+      background: theme.appBorderColor,
+    },
+    taskRowDone: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '4px 6px',
+      fontSize: 12,
+      borderRadius: 4,
+      background: 'rgba(34, 197, 94, 0.08)',
+    },
+    taskRowRunning: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '4px 6px',
+      fontSize: 12,
+      borderRadius: 4,
+      background: 'rgba(245, 158, 11, 0.10)',
+    },
+    taskRowPending: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '4px 6px',
+      fontSize: 12,
+      borderRadius: 4,
+      background: 'transparent',
+    },
+    // -- Context tab --
+    filterBadgeRow: {
+      display: 'flex',
+      flexWrap: 'wrap' as const,
+      gap: 4,
+      marginBottom: 8,
+    },
+    filterBadge: {
+      padding: '2px 8px',
+      fontSize: 10,
+      fontWeight: 600,
+      borderRadius: 9999,
+      border: `1px solid ${theme.appBorderColor}`,
+      background: 'transparent',
+      color: theme.color.defaultText,
+      cursor: 'pointer',
+    },
+    filterBadgeActive: {
+      background: theme.color.secondary,
+      borderColor: theme.color.secondary,
+      color: theme.color.inverseText,
+    },
+    contextTable: {
+      width: '100%',
+      fontSize: 11,
+      borderCollapse: 'collapse' as const,
+    },
+    contextTh: {
+      textAlign: 'left' as const,
+      padding: '4px 8px',
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.5px',
+      color: theme.textMutedColor,
+      borderBottom: `1px solid ${theme.appBorderColor}`,
+    },
+    contextTd: {
+      padding: '3px 8px',
+      borderBottom: `1px solid ${theme.background.hoverable}`,
+      color: 'inherit',
+    },
+    // -- Summary tab --
+    progressBarOuter: {
+      flex: 1,
+      height: 6,
+      background: theme.appBorderColor,
+      borderRadius: 3,
+      overflow: 'hidden' as const,
+    },
+    progressBarInner: {
+      height: '100%',
+      background: theme.color.positive,
+      borderRadius: 3,
+      transition: 'width 0.3s ease',
+    },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // FileBadge — badge with ContextAction inside dropdown
@@ -511,6 +507,8 @@ function FileBadge({
   variant?: 'green' | 'yellow' | 'gray' | 'white';
   validation?: ValidationFileResult;
 }) {
+  const theme = useTheme();
+  const S = useMemo(() => createStyles(theme), [theme]);
   return (
     <span style={S.contextFileRow}>
       <ManagerBadge variant={variant} title={path}>
@@ -526,6 +524,8 @@ function FileBadge({
 // ---------------------------------------------------------------------------
 
 function LiveDuration({ startedAt, completedAt }: { startedAt: string | null; completedAt: string | null }) {
+  const theme = useTheme();
+  const S = useMemo(() => createStyles(theme), [theme]);
   const isRunning = !!startedAt && !completedAt;
   useTick(isRunning);
 
@@ -545,6 +545,8 @@ function LiveDuration({ startedAt, completedAt }: { startedAt: string | null; co
 // ---------------------------------------------------------------------------
 
 function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
+  const theme = useTheme();
+  const S = useMemo(() => createStyles(theme), [theme]);
   const done = wf.tasks.filter((t) => t.status === 'done').length;
   const total = wf.tasks.length;
   const pct = total > 0 ? (done / total) * 100 : 0;
@@ -564,7 +566,7 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
       </div>
 
       {/* Timestamps */}
-      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#64748B', marginBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: theme.color.defaultText, marginBottom: 8 }}>
         {wf.started_at && <span>{formatTimestampRange(wf.started_at, wf.completed_at ?? null)}</span>}
         {wf.started_at && <span>({formatDuration(wf.started_at, wf.completed_at ?? null)})</span>}
       </div>
@@ -574,7 +576,7 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
         <div
           style={{
             fontSize: 12,
-            color: '#f59e0b',
+            color: theme.color.warning,
             background: 'rgba(245,158,11,0.1)',
             borderRadius: 4,
             padding: '6px 10px',
@@ -588,7 +590,9 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
 
       {/* Summary text */}
       {wf.summary && (
-        <div style={{ fontSize: 12, color: '#475569', marginBottom: 10, whiteSpace: 'pre-wrap' as const }}>
+        <div
+          style={{ fontSize: 12, color: theme.color.defaultText, marginBottom: 10, whiteSpace: 'pre-wrap' as const }}
+        >
           {wf.summary}
         </div>
       )}
@@ -610,7 +614,7 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
           status="running"
           defaultOpen={true}
         >
-          <div style={{ fontSize: 11, color: '#64748B', display: 'flex', gap: 8, marginBottom: 4 }}>
+          <div style={{ fontSize: 11, color: theme.color.defaultText, display: 'flex', gap: 8, marginBottom: 4 }}>
             {activeTask.stage && <span>Stage: {activeTask.stage}</span>}
             {activeTask.step && <span>Step: {activeTask.step}</span>}
           </div>
@@ -689,13 +693,15 @@ function groupTasksByStage(wf: WorkflowData): StageTaskGroup[] {
   return [{ stage: '', tasks: wf.tasks }];
 }
 
-function getTaskRowStyle(status: string): React.CSSProperties {
+function getTaskRowStyle(status: string, S: ReturnType<typeof createStyles>): React.CSSProperties {
   if (status === 'done') return S.taskRowDone;
   if (status === 'in-progress') return S.taskRowRunning;
   return S.taskRowPending;
 }
 
 function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
+  const theme = useTheme();
+  const S = useMemo(() => createStyles(theme), [theme]);
   const stageGroups = groupTasksByStage(wf);
   const hasRunning = wf.tasks.some((t) => t.status === 'in-progress');
   useTick(hasRunning);
@@ -729,7 +735,7 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
             )}
             {tasks.map((task) => (
               <DeboRainbowBorder key={task.id} active={task.status === 'in-progress'} borderRadius={4} borderWidth={2}>
-                <div style={getTaskRowStyle(task.status)}>
+                <div style={getTaskRowStyle(task.status, S)}>
                   <StatusDot status={task.status} />
                   <div style={{ ...S.taskContent, opacity: task.status === 'done' ? 0.7 : 1 }}>
                     <span style={S.taskTitleText} title={task.title}>
@@ -840,6 +846,8 @@ function collectGroupedContext(wf: WorkflowData): ContextEntry[] {
 }
 
 function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
+  const theme = useTheme();
+  const S = useMemo(() => createStyles(theme), [theme]);
   const allEntries = collectGroupedContext(wf);
   const { facets, filtered, state, toggle, clear } = useFacetFilter(allEntries, ['stage', 'step', 'type']);
 
@@ -857,8 +865,8 @@ function WorkflowContextTab({ wf }: { wf: WorkflowData }) {
         <td style={S.contextTd}>
           <ManagerBadge variant="gray">{entry.type}</ManagerBadge>
         </td>
-        <td style={{ ...S.contextTd, color: '#64748B', fontSize: 10 }}>{entry.stage.join(', ')}</td>
-        <td style={{ ...S.contextTd, color: '#64748B', fontSize: 10 }}>{entry.step.join(', ')}</td>
+        <td style={{ ...S.contextTd, color: theme.color.defaultText, fontSize: 10 }}>{entry.stage.join(', ')}</td>
+        <td style={{ ...S.contextTd, color: theme.color.defaultText, fontSize: 10 }}>{entry.step.join(', ')}</td>
         <td style={{ ...S.contextTd, width: 28, textAlign: 'center' as const }}>
           <ContextAction path={entry.fullPath} />
         </td>
@@ -942,6 +950,8 @@ const fileStatusDot = (f: TaskFile): string => {
 };
 
 function WorkflowFilesTab({ wf }: { wf: WorkflowData }) {
+  const theme = useTheme();
+  const S = useMemo(() => createStyles(theme), [theme]);
   const allFiles = collectAllFiles(wf);
   const taskTitles = Object.fromEntries(wf.tasks.map((t) => [t.id, t.title]));
   const { facets, filtered, state, toggle, clear } = useFacetFilter(allFiles, ['stage', 'step', 'task'], {
@@ -976,7 +986,9 @@ function WorkflowFilesTab({ wf }: { wf: WorkflowData }) {
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {shortenPath(entry.path)}
               </span>
-              {entry.key && <span style={{ fontSize: 10, color: '#94A3B8', flexShrink: 0 }}>{entry.key}</span>}
+              {entry.key && (
+                <span style={{ fontSize: 10, color: theme.textMutedColor, flexShrink: 0 }}>{entry.key}</span>
+              )}
               <ContextAction path={absPath} validation={entry.file.validation_result ?? undefined} />
             </div>
           );
@@ -1000,35 +1012,23 @@ function WorkflowTabs({ wf }: { wf: WorkflowData }) {
     ? (rawTab as WorkflowSubTab)
     : 'summary';
 
-  const tabs: { id: WorkflowSubTab; label: string }[] = [
-    { id: 'summary', label: 'Summary' },
-    { id: 'tasks', label: 'Tasks' },
-    { id: 'context', label: 'Context' },
-    { id: 'files', label: 'Files' },
-  ];
-
   return (
-    <div>
-      <div style={S.tabBar}>
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            style={{ ...S.tabButton, ...(tab === t.id ? S.tabButtonActive : {}) }}
-            onClick={() => setRawTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      {tab === 'summary' && <WorkflowSummaryTab wf={wf} />}
-      {tab === 'tasks' && <WorkflowTasksTab wf={wf} />}
-      {tab === 'context' && <WorkflowContextTab wf={wf} />}
-      {tab === 'files' && <WorkflowFilesTab wf={wf} />}
-    </div>
+    <TabsView
+      selected={tab}
+      onSelectionChange={(id) => setRawTab(id)}
+      tabs={[
+        { id: 'summary', title: 'Summary', children: () => <WorkflowSummaryTab wf={wf} /> },
+        { id: 'tasks', title: 'Tasks', children: () => <WorkflowTasksTab wf={wf} /> },
+        { id: 'context', title: 'Context', children: () => <WorkflowContextTab wf={wf} /> },
+        { id: 'files', title: 'Files', children: () => <WorkflowFilesTab wf={wf} /> },
+      ]}
+    />
   );
 }
 
 function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[]; designbookDir: string }) {
+  const theme = useTheme();
+  const S = useMemo(() => createStyles(theme), [theme]);
   const hasActive = workflows.some((wf) => wf.status === 'running' || wf.status === 'waiting');
   useTick(hasActive);
 
@@ -1122,6 +1122,8 @@ const STATUS_COMMANDS: Record<string, string> = {
 };
 
 function StatusTab({ status }: { status: StatusData | null }) {
+  const theme = useTheme();
+  const S = useMemo(() => createStyles(theme), [theme]);
   if (!status) {
     return <div style={S.empty}>Loading status...</div>;
   }

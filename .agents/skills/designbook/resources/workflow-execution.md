@@ -37,6 +37,26 @@ Workflows with `track: false` in frontmatter skip the entire lifecycle (no `work
 
 ---
 
+## Step 0: Precondition Check
+
+**Before creating a workflow**, verify that all required inputs exist. Do not call `workflow create` until all preconditions pass.
+
+1. **Bootstrap config only** — run `eval "$(_debo config)"` to get `$DESIGNBOOK_HOME` and `$DESIGNBOOK_DATA`
+2. **Read the workflow file** to identify the first step (the intake step)
+3. **Locate the first task file** by convention:
+   - Step `<workflow>:intake` → `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/tasks/intake--<workflow>.md`
+   - Step `create-<name>` → `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/tasks/create-<name>.md`
+4. **Read the task file's frontmatter** and check each `reads:` entry:
+   - **Non-optional reads**: Check the file/directory exists. If missing:
+     - Has `workflow:` → tell the user which workflow to run first (e.g. "Run `/designbook vision` first")
+     - No `workflow:` → report the missing file
+   - **Optional reads** (`optional: true`): Skip — missing is fine
+5. **Scan rules** for the first step in `<concern>/rules/` and any cross-cutting rules referenced. Check file-existence preconditions (e.g. guidelines-context requires `guidelines.yml`)
+6. **If any precondition fails** → report all missing prerequisites to the user in one message. Do **not** create the workflow. Suggest the workflows or actions needed to satisfy them.
+7. **If all preconditions pass** → proceed to Step 1.
+
+---
+
 ## Step 1: Bootstrap
 
 > Run at the top of **every** Bash block. Each Bash tool call starts a fresh shell — no state carries over.
