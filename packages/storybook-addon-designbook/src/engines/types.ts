@@ -59,7 +59,7 @@ export interface WorkflowEngine {
   /** Seal outputs after last non-test task. Called from workflowDone. */
   commit(data: WorkflowFile): void;
   /** Integrate outputs back. Called from workflowMerge. */
-  merge(data: WorkflowFile): { branch: string; root_dir: string };
+  merge(data: WorkflowFile): { branch: string; workspace_root: string };
   /** Hook called when all tasks are done. Returns action to take. */
   done(data: WorkflowFile): { archive: boolean };
   /** Tear down isolation on abandon. Called from workflowAbandon. */

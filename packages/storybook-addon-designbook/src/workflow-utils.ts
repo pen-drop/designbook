@@ -1,54 +1,35 @@
-import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
-import { readFileSync, writeFileSync, renameSync, mkdirSync, readdirSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { tmpdir } from 'os';
-import type { WorkflowTaskFile, WorkflowTaskFileWithMeta } from './workflow-types';
+import { existsSync, readdirSync } from 'fs';
+import { resolve } from 'path';
+import { readWorkflow, type WorkflowFile } from './workflow.js';
 
-/**
- * Parse a tasks.yml file into a WorkflowTaskFile object.
- */
-export function parseTaskFile(filePath: string): WorkflowTaskFile {
-  const content = readFileSync(filePath, 'utf-8');
-  return parseYaml(content) as WorkflowTaskFile;
+export interface WorkflowFileWithMeta extends WorkflowFile {
+  changeName: string;
+  source: 'active' | 'archived';
 }
 
 /**
- * Write a WorkflowTaskFile to disk atomically (write to temp, then rename).
+ * Check if all tasks in a WorkflowFile are done.
  */
-export function writeTaskFile(filePath: string, data: WorkflowTaskFile): void {
-  const yaml = stringifyYaml(data);
-  const tmpFile = resolve(tmpdir(), `designbook-tasks-${Date.now()}.yml`);
-  writeFileSync(tmpFile, yaml, 'utf-8');
-  const dir = dirname(filePath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-  renameSync(tmpFile, filePath);
-}
-
-/**
- * Check if all tasks in a WorkflowTaskFile are done.
- */
-export function isWorkflowComplete(data: WorkflowTaskFile): boolean {
+export function isWorkflowComplete(data: WorkflowFile): boolean {
   return data.tasks.length > 0 && data.tasks.every((t) => t.status === 'done');
 }
 
 /**
  * Scan a single directory for workflow task files.
  */
-function scanDir(dir: string, source: 'active' | 'archived'): WorkflowTaskFileWithMeta[] {
+function scanDir(dir: string, source: 'active' | 'archived'): WorkflowFileWithMeta[] {
   if (!existsSync(dir)) return [];
 
   const entries: string[] = readdirSync(dir, { withFileTypes: true })
     .filter((d: { isDirectory: () => boolean }) => d.isDirectory())
     .map((d: { name: string }) => d.name);
 
-  const results: WorkflowTaskFileWithMeta[] = [];
+  const results: WorkflowFileWithMeta[] = [];
   for (const entry of entries) {
     const taskPath = resolve(dir, entry, 'tasks.yml');
     if (existsSync(taskPath)) {
       try {
-        const data = parseTaskFile(taskPath);
+        const data = readWorkflow(taskPath);
         if (!Array.isArray(data?.tasks)) continue;
         results.push({ ...data, changeName: entry, source });
       } catch {
@@ -62,7 +43,7 @@ function scanDir(dir: string, source: 'active' | 'archived'): WorkflowTaskFileWi
 /**
  * Scan changes/ directory for active workflows.
  */
-export function scanActiveWorkflows(changesDir: string): WorkflowTaskFileWithMeta[] {
+export function scanActiveWorkflows(changesDir: string): WorkflowFileWithMeta[] {
   return scanDir(changesDir, 'active');
 }
 
@@ -70,7 +51,7 @@ export function scanActiveWorkflows(changesDir: string): WorkflowTaskFileWithMet
  * Scan both changes/ and archive/ for recent workflows.
  * Returns up to `limit` entries sorted by most recent activity.
  */
-export function scanAllWorkflows(workflowsDir: string, limit = 10): WorkflowTaskFileWithMeta[] {
+export function scanAllWorkflows(workflowsDir: string, limit = 10): WorkflowFileWithMeta[] {
   const changesDir = resolve(workflowsDir, 'changes');
   const archiveDir = resolve(workflowsDir, 'archive');
 

@@ -241,7 +241,7 @@ describe('workflow round-trip (real git)', () => {
     // 7. workflowMerge squash-merges branch and archives
     const mergeResult = workflowMerge(dist, name);
     expect(mergeResult.branch).toBe(branchName);
-    expect(mergeResult.root_dir).toBe(rootDir);
+    expect(mergeResult.workspace_root).toBe(rootDir);
 
     // Branch deleted
     const branchesAfterMerge = execFileSync('git', ['branch'], { cwd: rootDir, encoding: 'utf-8' });

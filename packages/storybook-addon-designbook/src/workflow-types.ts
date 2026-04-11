@@ -15,7 +15,7 @@ export interface ValidationFileResult {
 }
 
 export interface TaskFile {
-  path: string; // resolved absolute target path
+  path: string; // target path — stored relative to workspace_root, resolved to absolute at load time
   key: string; // stable identifier used by write-file --key
   validators: string[]; // validator keys (e.g. ['tokens', 'component'])
   validation_result?: ValidationFileResult; // absent = not yet written; present = written + validated
@@ -52,37 +52,12 @@ export interface WorkflowTask {
   completed_at: string | null;
   depends_on?: string[]; // task IDs this task depends on (computed from step ordering)
   params?: Record<string, unknown>; // per-task params from intake (e.g. component name, slots)
-  task_file?: string; // absolute path to resolved skill task file
-  rules?: string[]; // absolute paths to matched skill rule files
-  blueprints?: string[]; // absolute paths to matched skill blueprint files
+  task_file?: string; // resolved skill task file — stored relative to workspace_root
+  rules?: string[]; // matched skill rule files — stored relative to workspace_root
+  blueprints?: string[]; // matched skill blueprint files — stored relative to workspace_root
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[]; // produced files, each with its own validation state
   description?: string; // detailed task description, set at completion
   summary?: string; // short human-readable result summary, set at completion
-}
-
-export interface WorkflowTaskFile {
-  title: string;
-  workflow: string;
-  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
-  waiting_message?: string; // question/prompt shown when status is 'waiting'
-  parent?: string;
-  params?: Record<string, unknown>; // global intake params (accessible to all subagents)
-  current_stage?: string; // current lifecycle stage (planned, execute, committed, test, preview, finalizing, done)
-  stages?: Record<string, StageDefinition>; // keyed by stage name (execute, test, preview)
-  stage_loaded?: Record<string, StageLoaded>; // keyed by step name, populated via workflow done --loaded
-  started_at: string | null;
-  completed_at: string | null;
-  summary?: string;
-  /** Absolute path to the isolated WORKTREE directory for this workflow run. Set at workflow plan time. */
-  write_root?: string;
-  /** Absolute path to DESIGNBOOK_HOME (theme/Storybook app dir). Stored so workflowDone can copy WORKTREE → home. */
-  root_dir?: string;
-  tasks: WorkflowTask[];
-}
-
-export interface WorkflowTaskFileWithMeta extends WorkflowTaskFile {
-  changeName: string;
-  source: 'active' | 'archived';
 }

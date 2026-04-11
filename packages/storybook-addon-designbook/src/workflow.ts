@@ -6,7 +6,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve, relative, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
 import type { ValidationFileResult, StageParam, StageDefinition, TaskFile } from './workflow-types.js';
@@ -88,12 +88,12 @@ export interface WorkflowFile {
   summary?: string;
   /** Absolute path to the isolated WORKTREE directory for this workflow run. */
   write_root?: string;
-  /** Absolute path to DESIGNBOOK_HOME (theme/Storybook app dir). Used by workflowDone to copy WORKTREE → home. */
-  root_dir?: string;
   /** Git branch name created for this workflow run (e.g. workflow/<name>). Set when git worktree is used. */
   worktree_branch?: string;
   /** Short hex ID extracted from the workflow name suffix. Used by direct engine for stash-at-target file naming. */
   workflow_id?: string;
+  /** Absolute path to the workspace root. Used by engines for git operations and as anchor for relative path resolution. */
+  workspace_root?: string;
   tasks: WorkflowTask[];
 }
 
@@ -113,17 +113,26 @@ function shortId(): string {
   return randomBytes(2).toString('hex');
 }
 
-function readWorkflow(filePath: string): WorkflowFile {
+export function readWorkflow(filePath: string): WorkflowFile {
   if (!existsSync(filePath)) {
     const name = filePath.split('/').at(-2) ?? filePath;
     throw new Error(`Workflow not found: ${name}`);
   }
-  return parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
+  const data = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
+  // Migrate legacy root_dir → workspace_root
+  const legacy = data as WorkflowFile & { root_dir?: string };
+  if (!data.workspace_root && legacy.root_dir) {
+    data.workspace_root = legacy.root_dir;
+  }
+  delete legacy.root_dir;
+  resolveWorkflowPaths(data);
+  return data;
 }
 
-function writeWorkflowAtomic(filePath: string, data: WorkflowFile): void {
+export function writeWorkflowAtomic(filePath: string, data: WorkflowFile): void {
+  const toWrite = relativizeWorkflowPaths(data);
   const tmpPath = filePath + '.tmp';
-  writeFileSync(tmpPath, stringifyYaml(data));
+  writeFileSync(tmpPath, stringifyYaml(toWrite));
   renameSync(tmpPath, filePath);
 }
 
@@ -134,7 +143,7 @@ function archiveWorkflow(dataDir: string, name: string, wf: WorkflowFile): void 
 
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
-  writeFileSync(filePath, stringifyYaml(wf));
+  writeWorkflowAtomic(filePath, wf);
 
   const archiveDir = resolve(dataDir, 'workflows', 'archive', name);
   mkdirSync(dirname(archiveDir), { recursive: true });
@@ -157,7 +166,7 @@ export function workflowAbandon(dataDir: string, name: string): WorkflowFile {
   data.completed_at = timestamp();
   data.summary = data.tasks.map((t) => `${t.title} (${t.type})`).join(', ');
 
-  writeFileSync(filePath, stringifyYaml(data));
+  writeWorkflowAtomic(filePath, data);
 
   const archiveDir = resolve(dataDir, 'workflows', 'archive', name);
   mkdirSync(dirname(archiveDir), { recursive: true });
@@ -181,18 +190,78 @@ export function workflowWait(dataDir: string, name: string, message?: string): v
   } else {
     delete data.waiting_message;
   }
-  writeFileSync(filePath, stringifyYaml(data));
+  writeWorkflowAtomic(filePath, data);
 }
 
-function normalizeFilePath(_dataDir: string, p: string): string {
-  return p; // Paths must always be absolute — stored as-is
+// ── Path normalization ──────────────────────────────────────────────
+// Workflow YAML stores paths relative to workspace_root.
+// On read (readWorkflow) they are resolved back to absolute;
+// on write (writeWorkflowAtomic) they are relativized again.
+
+/** Convert an absolute path to workspace-relative. Paths outside the workspace stay absolute. */
+function relativizePath(root: string, p: string): string {
+  if (!p || !root) return p;
+  if (!p.startsWith('/')) return p; // already relative
+  const rel = relative(root, p);
+  if (rel.startsWith('..')) return p; // outside workspace — keep absolute
+  return rel;
+}
+
+/** Resolve a stored (possibly relative) path to absolute. Already-absolute paths pass through. */
+function resolveStoredPath(root: string, p: string): string {
+  if (!p || !root) return p;
+  if (p.startsWith('/')) return p; // already absolute (backward compat)
+  return resolve(root, p);
+}
+
+type PathFn = (root: string, p: string) => string;
+
+/** Apply a path transform to every path field in a WorkflowFile, returning a shallow copy. */
+function transformWorkflowPaths(data: WorkflowFile, fn: PathFn): WorkflowFile {
+  const root = data.workspace_root;
+  if (!root) return data;
+
+  return {
+    ...data,
+    tasks: data.tasks.map((task) => ({
+      ...task,
+      task_file: task.task_file ? fn(root, task.task_file) : undefined,
+      rules: task.rules?.map((r) => fn(root, r)),
+      blueprints: task.blueprints?.map((b) => fn(root, b)),
+      files: task.files?.map((f) => ({ ...f, path: fn(root, f.path) })),
+    })),
+    stage_loaded: data.stage_loaded
+      ? (Object.fromEntries(
+          Object.entries(data.stage_loaded).map(([key, entry]) => {
+            const entries = Array.isArray(entry) ? entry : [entry];
+            const mapped = entries.map((sl) => ({
+              ...sl,
+              task_file: fn(root, sl.task_file),
+              rules: sl.rules.map((r) => fn(root, r)),
+              blueprints: sl.blueprints.map((b) => fn(root, b)),
+            }));
+            return [key, Array.isArray(entry) ? mapped : mapped[0]] as const;
+          }),
+        ) as Record<string, StageLoadedEntry>)
+      : undefined,
+  };
+}
+
+/** Mutate a WorkflowFile in-place: resolve all relative paths to absolute using workspace_root. */
+function resolveWorkflowPaths(data: WorkflowFile): void {
+  Object.assign(data, transformWorkflowPaths(data, resolveStoredPath));
+}
+
+/** Return a shallow copy with all paths relativized for serialization. Original data is not mutated. */
+function relativizeWorkflowPaths(data: WorkflowFile): WorkflowFile {
+  return transformWorkflowPaths(data, relativizePath);
 }
 
 /**
  * Squash-merge a workflow branch back into the working tree and archive the workflow.
  * Dispatches to the engine registered for this workflow's engine type.
  */
-export function workflowMerge(dataDir: string, name: string): { branch: string; root_dir: string } {
+export function workflowMerge(dataDir: string, name: string): { branch: string; workspace_root: string } {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
   const data = readWorkflow(filePath);
@@ -255,6 +324,7 @@ export function workflowCreate(
   stageLoaded?: Record<string, StageLoadedEntry>,
   engine?: string,
   initialParams?: Record<string, unknown>,
+  workspaceRoot?: string,
 ): string {
   const date = new Date().toISOString().slice(0, 10);
   const wfId = shortId();
@@ -273,6 +343,7 @@ export function workflowCreate(
     ...(stages && Object.keys(stages).length > 0 ? { current_stage: Object.keys(stages)[0] } : {}),
     started_at: timestamp(),
     completed_at: undefined,
+    ...(workspaceRoot ? { workspace_root: workspaceRoot } : {}),
     tasks: tasks.map((t, i) => ({
       id: t.id,
       title: t.title,
@@ -289,7 +360,7 @@ export function workflowCreate(
         ? { config_instructions: t.config_instructions }
         : {}),
       files: (t.files ?? []).map((f) => ({
-        path: normalizeFilePath(dataDir, f.path),
+        path: f.path,
         key: f.key,
         validators: f.validators,
       })),
@@ -298,7 +369,7 @@ export function workflowCreate(
 
   const dir = resolve(dataDir, 'workflows', 'changes', name);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(resolve(dir, 'tasks.yml'), stringifyYaml(data));
+  writeWorkflowAtomic(resolve(dir, 'tasks.yml'), data);
 
   return name;
 }
@@ -494,7 +565,7 @@ export function workflowPlan(
   // Deferred until after tasks are assembled — see below.
   if (globalParams && Object.keys(globalParams).length > 0) data.params = globalParams;
   if (writeRoot) data.write_root = writeRoot;
-  if (rootDir) data.root_dir = rootDir;
+  if (rootDir && !data.workspace_root) data.workspace_root = rootDir;
   if (worktreeBranch) data.worktree_branch = worktreeBranch;
   if (engine) data.engine = engine as WorkflowFile['engine'];
 
@@ -522,7 +593,7 @@ export function workflowPlan(
       ? { config_instructions: t.config_instructions }
       : {}),
     files: (t.files ?? []).map((f) => ({
-      path: normalizeFilePath(dataDir, f.path),
+      path: f.path,
       key: f.key,
       validators: f.validators,
     })),

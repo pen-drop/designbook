@@ -67,7 +67,7 @@ export const gitWorktreeEngine: WorkflowEngine = {
   },
 
   commit(data) {
-    if (!data.write_root || !data.worktree_branch || !data.root_dir) return;
+    if (!data.write_root || !data.worktree_branch || !data.workspace_root) return;
     if (!existsSync(data.write_root)) return;
     const outputTasks = data.tasks.filter((t) => t.type !== 'test');
     const outputPaths = outputTasks.flatMap((t) => (t.files ?? []).map((f) => f.path));
@@ -78,18 +78,18 @@ export const gitWorktreeEngine: WorkflowEngine = {
       }
     }
     execFileSync('git', ['-C', data.write_root!, 'commit', '--allow-empty', '-m', `workflow: ${data.worktree_branch}`]);
-    execFileSync('git', ['worktree', 'remove', data.write_root!, '--force'], { cwd: data.root_dir });
+    execFileSync('git', ['worktree', 'remove', data.write_root!, '--force'], { cwd: data.workspace_root });
   },
 
   merge(data) {
     const branch = data.worktree_branch;
-    const rootDir = data.root_dir;
+    const rootDir = data.workspace_root;
     if (!branch) throw new Error('Workflow has no worktree_branch — nothing to merge');
-    if (!rootDir) throw new Error('Workflow has no root_dir');
+    if (!rootDir) throw new Error('Workflow has no workspace_root');
     execFileSync('git', ['-C', rootDir, 'merge', '--squash', branch]);
     execFileSync('git', ['-C', rootDir, 'commit', '-m', `workflow: ${data.workflow}`]);
     execFileSync('git', ['-C', rootDir, 'branch', '-D', branch]);
-    return { branch, root_dir: rootDir };
+    return { branch, workspace_root: rootDir };
   },
 
   done() {
@@ -99,14 +99,14 @@ export const gitWorktreeEngine: WorkflowEngine = {
   cleanup(data) {
     if (data.write_root && existsSync(data.write_root)) {
       try {
-        execFileSync('git', ['worktree', 'remove', data.write_root, '--force'], { cwd: data.root_dir });
+        execFileSync('git', ['worktree', 'remove', data.write_root, '--force'], { cwd: data.workspace_root });
       } catch {
         /* ignore */
       }
     }
-    if (data.worktree_branch && data.root_dir) {
+    if (data.worktree_branch && data.workspace_root) {
       try {
-        execFileSync('git', ['-C', data.root_dir, 'branch', '-D', data.worktree_branch]);
+        execFileSync('git', ['-C', data.workspace_root, 'branch', '-D', data.worktree_branch]);
       } catch {
         /* ignore */
       }
