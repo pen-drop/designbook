@@ -12,7 +12,7 @@ Imports design token values from a Stitch design system during tokens intake. Pr
 
 ### 1. Get the Stitch Project
 
-Extract the project ID from `guidelines.yml` → `design_reference.url`. Call `mcp__stitch__get_project` with the project resource name. If the call fails, skip silently.
+Extract the project ID from `vision.md` → `## Design Reference` section → `url`. Call `mcp__stitch__get_project` with the project resource name. If the call fails, skip silently.
 
 ### 2. Select Design System
 

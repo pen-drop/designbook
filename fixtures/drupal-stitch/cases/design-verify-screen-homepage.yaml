@@ -1,7 +1,6 @@
 fixtures:
   - vision
   - data-model
-  - design-guideline
   - tokens
   - css-generate
   - sections

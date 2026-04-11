@@ -5,7 +5,7 @@ TBD - created by archiving change stitch-design-import. Update Purpose after arc
 ## Requirements
 ### Requirement: stitch-tokens rule imports designTheme during tokens intake
 
-The `designbook-stitch` skill SHALL provide `rules/stitch-tokens.md` with `when: steps: [tokens:intake], extensions: stitch` that fetches the Stitch project's designTheme and proposes token values. The Stitch project ID is read from `guidelines.yml` → `design_reference.url` (e.g. `stitch://project-id/screen-id`).
+The `designbook-stitch` skill SHALL provide `rules/stitch-tokens.md` with `when: steps: [tokens:intake], extensions: stitch` that fetches the Stitch project's designTheme and proposes token values. The Stitch project ID is read from `vision.md` → `design_reference.url` (e.g. `stitch://project-id/screen-id`).
 
 #### Scenario: Full designTheme available
 - **WHEN** the tokens intake loads the stitch-tokens rule

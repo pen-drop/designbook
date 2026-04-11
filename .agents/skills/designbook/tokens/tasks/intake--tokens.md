@@ -5,8 +5,6 @@ files: []
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
     workflow: /debo-vision
-  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
-    optional: true
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
 ---
@@ -25,7 +23,7 @@ Wait for their response.
 
 ## Step 2: Choose Colors
 
-Guide the user through choosing colors. Suggest values based on the product vision and design guidelines reference.
+Guide the user through choosing colors. Suggest values based on the product vision and design reference.
 
 These become `primitive.color.*` values, with `semantic.color.*` aliases pointing to them.
 
@@ -39,7 +37,7 @@ Also collect a typography scale with semantic roles (e.g., display, headline, ti
 
 Read `required_tokens` from each blueprint already loaded for this stage. For each blueprint that declares `required_tokens`, extract its token groups and present them to the user with their default values.
 
-Suggest adjusted values based on the product's design guidelines. Let the user confirm or override each group. Include the final values in the `intake` param under their respective `component.*` keys.
+Suggest adjusted values based on the product's design reference. Let the user confirm or override each group. Include the final values in the `intake` param under their respective `component.*` keys.
 
 ## Step 5: Optional — Additional Token Groups
 

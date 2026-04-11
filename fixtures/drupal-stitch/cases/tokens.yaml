@@ -1,12 +1,11 @@
 fixtures:
   - vision
   - data-model
-  - design-guideline
 
 prompt: |
   You are working in the directory {{workspace}}.
   Run the /debo tokens workflow. Do NOT ask any questions.
-  Use the design reference from guidelines.yml to derive all colors, typography, and other tokens.
+  Use the design reference from vision.md to derive all colors, typography, and other tokens.
   When asked to select a design system, choose "Hyperstructure" as the default (base) design system.
   When offered theme selection, select "Technical Blueprint" as a light theme (mark Hyperstructure's dark mode as default, Technical Blueprint as the light theme).
   Skip the after-hook (css-generate).

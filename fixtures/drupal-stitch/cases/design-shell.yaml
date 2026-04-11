@@ -1,14 +1,13 @@
 fixtures:
   - vision
   - data-model
-  - design-guideline
   - tokens
   - css-generate
 
 prompt: |
   You are working in the directory {{workspace}}.
   Run the /debo design-shell workflow. Do NOT ask any questions.
-  Use the design reference from guidelines.yml.
+  Use the design reference from vision.md.
   The landing page screen on Stitch is the primary reference for the shell design:
   projects/5626339350367683412/screens/c0b358251f844f5da0313176267819de
   Use breakpoints sm and xl.

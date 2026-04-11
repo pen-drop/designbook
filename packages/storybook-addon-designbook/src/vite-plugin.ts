@@ -143,7 +143,6 @@ export function designbookLoadPlugin(
         tokens: 'tokens/**/*.yml',
         designTokens: 'design-system/design-tokens.yml',
         dataModel: 'data-model.yml',
-        guidelines: 'design-system/guidelines.yml',
       };
 
       const resolveFileType = (relPath: string): string | null => {
@@ -233,7 +232,6 @@ export function designbookLoadPlugin(
           const status = {
             vision: { exists: existsSync(resolve(designbookDir, 'vision.md')) },
             designSystem: {
-              guidelines: existsSync(resolve(designbookDir, 'design-system/guidelines.yml')),
               tokens: existsSync(resolve(designbookDir, 'design-system/design-tokens.yml')),
             },
             dataModel: { exists: existsSync(resolve(designbookDir, 'data-model.yml')) },

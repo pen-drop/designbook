@@ -12,7 +12,7 @@ All Debo components that use `styled()` already reference `theme.*` properties f
 
 - **Panels**: WorkflowPanel (37), EntityPanel (15) — biggest impact
 - **UI components**: DeboFileViewer (17), DeboFacetFilter (12), DeboBadge (10), DeboSourceFooter (9), DeboActionList (7), DeboCollapsible (6), and 8 more
-- **Display components**: DeboDesignTokens (33), DeboDesignGuidelines (10)
+- **Display components**: DeboDesignTokens (33)
 - **Other**: MappingDetail (20), VisualCompareTool (11), CompositionTree (4), manager-utils (7)
 
 ## Capabilities

@@ -22,7 +22,6 @@ All `Debo*` manager components use `styled()` from `storybook/theming`, accessin
 | **DeboDesignTokens** | `components/display/DeboDesignTokens.jsx` | Color swatches + typography in collapsible sections. Exports `resolveTokenReferences`. |
 | **DeboDataModel** | `components/display/DeboDataModel.jsx` | Entity display with selection. Props: `data`, `selectedEntity`, `onSelectEntity`. |
 | **DeboProductOverview** | `components/display/DeboProductOverview.jsx` | Wraps `DeboSection`, loads `vision.md`, parses into `DeboCollapsible`+`DeboProse` sections. First open by default. |
-| **DeboDesignGuidelines** | `components/display/DeboDesignGuidelines.jsx` | Renders guidelines.yml: references, principles, patterns, naming conventions, MCP card, auto-load skills. `styled()` only. |
 
 ### Requirement: useDesignbookData hook
 `useDesignbookData(path, parser)` returns `{ data, loading, error, reload }`. Fetches via `GET /__designbook/load?path=<path>`. Reacts to file-change channel events for auto-refresh.

@@ -6,6 +6,8 @@ params:
   description: ~
   problems: []
   features: []
+  design_reference: ~
+  references: []
 files:
   - file: $DESIGNBOOK_DATA/vision.md
     key: vision
@@ -39,4 +41,21 @@ Write the approved product vision from the dialog via stdin to the CLI:
 - [Feature 1]
 - [Feature 2]
 - [Feature 3]
+
+## Design Reference
+type: [url | image | stitch | ...]
+url: [URL or integration-specific identifier]
+label: [Short description]
+
+## References
+- type: [url | folder | ...]
+  url: [URL or path]
+  label: [Short description]
 ```
+
+## Rules
+
+- `## Design Reference` and `## References` are optional — only include them if the user provided values
+- Reference types are extensible — integration skills (e.g. stitch) can add their own types
+- Folder references use `path:` instead of `url:` to point to local directories
+- Keep the section order: Description → Problems & Solutions → Key Features → Design Reference → References

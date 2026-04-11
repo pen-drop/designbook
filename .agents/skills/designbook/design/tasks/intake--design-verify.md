@@ -6,8 +6,6 @@ params:
   reference: []
 files: []
 reads:
-  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
-    optional: true
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
 ---
@@ -68,9 +66,8 @@ From `params.reference` (array) and resolved breakpoints, build the meta seed.
 - **All other scenes**: `"full": {}`
 
 **Resolve breakpoints** (independent of reference source):
-1. Read `guidelines.yml` → `visual_diff.breakpoints` — if set, use only those
-2. If standalone mode: use breakpoints from user input (Step 1)
-3. Fallback: read ALL breakpoints from `design-tokens.yml`
+1. If standalone mode: use breakpoints from user input (Step 1)
+2. Fallback: read ALL breakpoints from `design-tokens.yml`
 
 Build the full breakpoints × regions matrix:
 

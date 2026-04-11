@@ -5,7 +5,7 @@ files: []
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
   - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
-  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
+  - path: $DESIGNBOOK_DATA/vision.md
   - path: $DESIGNBOOK_DATA/sections/[section-id]/[section-id].section.scenes.yml
     workflow: debo-shape-section
 ---
@@ -104,10 +104,9 @@ Ask the user to confirm. Wait for confirmation.
 
 ## Step 5: Plan Components
 
-Based on the confirmed screens, entities, section spec, data model, guidelines, and **loaded design reference** (if available):
+Based on the confirmed screens, entities, section spec, data model, and **loaded design reference** (if available):
 
-1. Read `guidelines.yml` for component patterns and naming conventions
-2. Scan existing components (location provided by framework rules)
+1. Scan existing components (location provided by framework rules)
 3. Identify which UI components are needed for the planned screens beyond entities and shell (cards, filter bars, badges, stat displays, empty states, pagination, etc.)
 
 **If a design reference is available**, analyze its structure to derive the component list. Extract components from the HTML structure rather than asking the user to describe them from scratch.
