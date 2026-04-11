@@ -81,7 +81,7 @@ interface WorkflowData {
 
 interface StatusData {
   vision: { exists: boolean };
-  designSystem: { guidelines: boolean; tokens: boolean };
+  designSystem: { tokens: boolean };
   dataModel: { exists: boolean };
   shell: { exists: boolean };
   sections: Array<{ id: string; title: string; hasScenes: boolean }>;
@@ -1107,7 +1107,6 @@ function CopyBadge({ label, command, variant }: { label: string; command: string
 
 const STATUS_COMMANDS: Record<string, string> = {
   vision: '/designbook vision',
-  guidelines: '/designbook design-guidelines',
   tokens: '/designbook tokens',
   'data-model': '/designbook data-model',
   shell: '/designbook design-shell',
@@ -1124,11 +1123,6 @@ function StatusTab({ status }: { status: StatusData | null }) {
     <div style={S.container}>
       <div style={S.badgeRow}>
         <CopyBadge label="vision" command={STATUS_COMMANDS.vision!} variant={status.vision.exists ? 'green' : 'gray'} />
-        <CopyBadge
-          label="guidelines"
-          command={STATUS_COMMANDS.guidelines!}
-          variant={status.designSystem.guidelines ? 'green' : 'gray'}
-        />
         <CopyBadge
           label="tokens"
           command={STATUS_COMMANDS.tokens!}

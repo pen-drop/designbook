@@ -5,7 +5,6 @@ files: []
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
 ---
 
 # Intake: Design Shell
@@ -16,7 +15,7 @@ Help the user design the application shell — a `page` component with `header`,
 
 > ⛔ **MANDATORY**: Execute this step before any layout analysis or component planning.
 
-1. Check `guidelines.yml` → `design_reference` for a configured reference source.
+1. Check `vision.md` → `## Design Reference` section for a configured reference source.
 2. If no configured source, ask the user:
    > "Do you have a design reference? (Stitch screen ID, URL, or 'skip')"
 3. If a **Stitch screen ID** is provided, resolve it via MCP (`mcp__stitch__get_screen`) to get the preview URL. Store as `reference: [{type: "url", url: "<resolved-url>", threshold: 3, title: "<screen-title>"}]`.
@@ -60,8 +59,7 @@ Wait for their response.
 ## Step 3: Plan Components
 
 Follow the component planning process:
-1. Read guidelines.yml for component patterns and naming conventions
-2. Scan existing components (location provided by framework rules)
+1. Scan existing components (location provided by framework rules)
 3. Determine which shell components exist (reuse) vs. need creation (page, header, footer, navigation, etc.)
 
 **If a design reference is available**, derive the component list from the reference HTML structure rather than guessing.

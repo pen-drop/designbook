@@ -24,11 +24,10 @@ Renders as `DeboTabs` with two tabs:
 `DeboProductOverview` wraps `DeboSection` internally, parsing vision.md into sections rendered as `DeboCollapsible` with `DeboProse`. Entity selection resets to null on tab switch.
 
 ### Requirement: DeboDesignSystemPage
-Renders as `DeboTabs` with three tabs (in order):
+Renders as `DeboTabs` with two tabs (in order):
 
 | Tab | id | Component | dataPath | Command |
 |-----|----|----|----------|---------|
-| Guidelines | `guidelines` | `DeboDesignGuidelines` | `design-system/guidelines.yml` | `/debo design-guideline` |
 | Tokens | `tokens` | `DeboDesignTokens` | `design-system/design-tokens.yml` | `/debo tokens` |
 | Shell | `shell` | `DeboSceneGrid` | `design-system/design-system.scenes.yml` | `/debo design-shell` |
 
@@ -46,5 +45,3 @@ Renders as `DeboTabs` with four tabs:
 
 Scenes parser returns `null` for empty/missing `scenes` array.
 
-### Requirement: Guidelines dependency
-Tasks for `debo-design-tokens`, `debo-design-component`, `debo-design-screen`, `debo-design-shell` SHALL declare `reads: design-system/guidelines.yml`. Missing -> stop and tell user to run `/debo-design-guideline`. Present -> apply naming/principles silently.

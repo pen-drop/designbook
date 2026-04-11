@@ -14,8 +14,6 @@ files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
-  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
-    optional: true
 ---
 
 # Compare Screenshots
@@ -48,7 +46,7 @@ Captures the Storybook screenshot, compares it with the reference, and writes dr
 
 2. **Collect context:**
    - Design tokens from `design-tokens.yml`
-   - Guidelines from `guidelines.yml`
+   - Design reference from `vision.md` (if available)
 
 3. **Compare visually** using multimodal capabilities. Evaluate layout, colors, typography, spacing. Focus on the specific element for named regions.
 

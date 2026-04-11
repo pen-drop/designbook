@@ -18,7 +18,7 @@
 ## 3. Display Components
 
 - [x] 3.1 Convert `DeboDesignTokens.jsx` to theme properties (33 hex values)
-- [x] 3.2 Convert `DeboDesignGuidelines.jsx` to theme properties (10 hex values)
+- [x] 3.2 ~~Convert `DeboDesignGuidelines.jsx` to theme properties (10 hex values)~~ (removed — component deleted)
 - [x] 3.3 Convert `DeboDataModel.jsx` and `DeboDataModelDetail.jsx` to theme properties
 
 ## 4. Other Components

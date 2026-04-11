@@ -1,13 +1,13 @@
 ---
 name: debo
-argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|design-guidelines|sections|shape-section|sample-data|css-generate|import|sb] [--optimize]"
+argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|sections|shape-section|sample-data|css-generate|import|sb] [--optimize]"
 description: >
   Designbook design system. Use ALWAYS when creating, modifying, or
   deleting components, screens, scenes, design tokens, CSS, or any
   design system artifact — whether the user asks directly or the need
   arises during other work. Never create component files without this
   skill. Sub-commands: vision, tokens, data-model, design-component,
-  design-screen, design-shell, design-guidelines, sections,
+  design-screen, design-shell, sections,
   shape-section, sample-data, css-generate, import.
 ---
 
@@ -47,7 +47,6 @@ When the user references one of these files or topics in conversation, start the
 | vision | `vision` | `$DESIGNBOOK_DATA/vision.md` |
 | data-model | `data-model` | `$DESIGNBOOK_DATA/data-model.yml` |
 | tokens | `tokens` | `$DESIGNBOOK_DATA/design-system/design-tokens.yml` |
-| guidelines, design-guidelines | `design-guidelines` | `$DESIGNBOOK_DATA/design-system/guidelines.yml` |
 | sections | `sections` | `$DESIGNBOOK_DATA/sections/**/*.section.scenes.yml` |
 | sample-data | `sample-data` | `$DESIGNBOOK_DATA/sections/**/data.yml` |
 | css, css-generate | `css-generate` | `$DESIGNBOOK_DIRS_CSS/*.src.css` + `$DESIGNBOOK_DATA/designbook-css-*/*.jsonata` |
@@ -59,7 +58,7 @@ When the user references one of these files or topics in conversation, start the
 **Detection rules:**
 - Match by keyword in user message (e.g. "in der vision", "data-model anpassen", "tokens ändern")
 - Match by file path if the user references a specific file under `$DESIGNBOOK_DATA/`
-- If ambiguous, prefer the more specific workflow (e.g. "guidelines" → `design-guidelines`, not `design-shell`)
+- If ambiguous, prefer the more specific workflow
 - **Never auto-dispatch for components** — always require explicit `design-component` or `design-screen` sub-command
 
 **If `$ARGUMENTS[0]` is an unknown or fuzzy argument**, or when user intent matches the design system domain:

@@ -18,8 +18,6 @@ files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
-  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
-    optional: true
 ---
 
 # Polish

@@ -1,7 +1,6 @@
 import React from 'react';
 import { DeboSection } from '../DeboSection.jsx';
 import { DeboDesignTokens, resolveTokenReferences } from '../display/DeboDesignTokens.jsx';
-import { DeboDesignGuidelines } from '../display/DeboDesignGuidelines.jsx';
 import { DeboProse } from '../ui/DeboTypography.jsx';
 import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
 import { load as parseYaml } from 'js-yaml';
@@ -13,19 +12,6 @@ const scenesParser = (text) => {
     return data?.scenes?.length ? data : null;
   } catch { return null; }
 };
-
-function GuidelinesTab() {
-  return (
-    <DeboSection
-      title="Design Guidelines"
-      dataPath="design-system/guidelines.yml"
-      parser={(content) => parseYaml(content)}
-      command="/debo design-guideline"
-      emptyMessage="No design guidelines defined yet"
-      renderContent={(data) => <DeboDesignGuidelines data={data} />}
-    />
-  );
-}
 
 function TokensTab() {
   return (
@@ -66,7 +52,6 @@ export function DeboDesignSystemPage() {
   return (
     <DeboTabs
       tabs={[
-        { id: 'guidelines', title: 'Guidelines', children: () => <GuidelinesTab /> },
         { id: 'tokens', title: 'Tokens', children: () => <TokensTab /> },
         { id: 'shell', title: 'Shell', children: () => <ShellTab /> },
       ]}

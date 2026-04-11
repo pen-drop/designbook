@@ -42,7 +42,7 @@ The screen resource name from `list_screens` maps directly to the `url` field us
 
 ### 4. Map to Sub-Workflow Params
 
-- **design-guidelines** params: `{ "design_reference": { "type": "stitch", "url": "<project-url>" } }`
+- **vision** params: `{ "design_reference": { "type": "stitch", "url": "<project-url>" } }`
 - **design-shell** params: `{ "reference": [<first screen reference>] }`
 - **design-screen** params (per screen): `{ "section": "<screen-name>", "reference": [<screen reference>] }`
 

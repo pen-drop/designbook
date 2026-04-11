@@ -3,8 +3,6 @@ when:
   steps: [import:intake]
 files: []
 reads:
-  - path: $DESIGNBOOK_DATA/design-system/guidelines.yml
-    workflow: design-guidelines
   - path: $DESIGNBOOK_DATA/vision.md
     workflow: vision
 ---
@@ -15,10 +13,10 @@ Orchestrates importing a full design system from a design reference. Resolves th
 
 ## Step 1: Resolve design reference
 
-Read `guidelines.yml`. Check for `design_reference`.
+Read `vision.md`. Check for the `## Design Reference` section.
 
-- If `design_reference` is present, announce the reference type and continue.
-- If `design_reference` is missing, ask the user:
+- If a design reference is present, announce the reference type and continue.
+- If no design reference is found, ask the user:
 
 > "No design reference configured. Please provide a design reference URL or describe your design source."
 
@@ -60,14 +58,13 @@ Wait for response.
 
 Build the `workflow` iterable. The order is fixed and matches the dependency chain:
 
-1. **vision** — `{ "workflow": "vision", "params": { "product_name": "<name>", "description": "<desc>" } }`
-2. **design-guidelines** — `{ "workflow": "design-guidelines", "params": { "design_reference": { "type": "<type>", "url": "<url>" } } }`
-3. **tokens** — `{ "workflow": "tokens", "params": {} }`
+1. **vision** — `{ "workflow": "vision", "params": { "product_name": "<name>", "description": "<desc>", "design_reference": { "type": "<type>", "url": "<url>" } } }`
+2. **tokens** — `{ "workflow": "tokens", "params": {} }`
 4. **css-generate** — `{ "workflow": "css-generate", "params": {} }`
 5. **design-shell** — `{ "workflow": "design-shell", "params": { "reference": "<first selected screen reference>" } }`
 6. **design-screen** (one per selected screen) — `{ "workflow": "design-screen", "params": { "section": "<screen-name>", "reference": "<screen reference>" } }`
 
-If `vision.md` already exists, skip the vision entry. If `guidelines.yml` already exists with a valid `design_reference`, skip design-guidelines.
+If `vision.md` already exists with a design reference, skip the vision entry.
 
 ## Step 5: Present summary for confirmation
 
@@ -77,13 +74,12 @@ If `vision.md` already exists, skip the vision entry. If `guidelines.yml` alread
 > **Screens:** [list of selected screen names]
 >
 > **Workflows to execute (in order):**
-> 1. Vision — define product name and description
-> 2. Design Guidelines — set up design reference
-> 3. Tokens — import design tokens (colors, typography, spacing)
-> 4. CSS Generate — generate CSS from tokens
-> 5. Design Shell — build application shell
-> 6. Design Screen: [screen-1] — build screen components
-> 7. Design Screen: [screen-2] — build screen components
+> 1. Vision — define product name, description, and design reference
+> 2. Tokens — import design tokens (colors, typography, spacing)
+> 3. CSS Generate — generate CSS from tokens
+> 4. Design Shell — build application shell
+> 5. Design Screen: [screen-1] — build screen components
+> 6. Design Screen: [screen-2] — build screen components
 > ...
 >
 > Shall I proceed?"

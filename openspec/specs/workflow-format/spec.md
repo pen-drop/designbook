@@ -223,7 +223,7 @@ before:
   - workflow: debo-sample-data
     execute: if-never-run
 after:
-  - workflow: debo-design-guideline
+  - workflow: debo-vision
 ```
 
 - Before hooks processed after intake completes, before executing tasks

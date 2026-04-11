@@ -16,11 +16,6 @@
       "sourceType": "github",
       "computedHash": "b122f4d1e91aa1d83027e050b5b37c3156203ee85458d7b1360bc48167c9e02a"
     },
-    "web-design-guidelines": {
-      "source": "vercel-labs/agent-skills",
-      "sourceType": "github",
-      "computedHash": "a6a44d5498f7e8f68289902f3dedfc6f38ae0cee1e96527c80724cf27f727c2a"
-    },
     "writing-skills": {
       "source": "obra/superpowers",
       "sourceType": "github",

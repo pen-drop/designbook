@@ -41,14 +41,14 @@ Each file must stay within its domain. Check:
 
 - **Core skill files** (`designbook/`) — Must be integration-agnostic. Flag if they contain framework-specific logic (Tailwind classes, Drupal schemas, Stitch API calls).
 - **Integration skill files** (`designbook-drupal/`, `designbook-css-tailwind/`, `designbook-stitch/`) — Must handle their specific concern. Flag if they duplicate core logic or reach into another integration's domain.
-- **Cross-cutting references** — If a core task references external data (e.g., `design_reference` from guidelines.yml), verify that the integration skill responsible for that data source has a matching rule loaded. If not, flag it as a missing dependency.
+- **Cross-cutting references** — If a core task references external data (e.g., `design_reference` from vision.md), verify that the integration skill responsible for that data source has a matching rule loaded. If not, flag it as a missing dependency.
 
 #### 3c. Loading correctness
 
 For each stage, verify:
 
 - Were all relevant integration rules loaded? Cross-reference `when:` conditions (steps, backend, frameworks, extensions) against the active config (`DESIGNBOOK_*` variables).
-- Were rules that **should** have been loaded actually loaded? Check if context implies a dependency (e.g., guidelines.yml references Stitch → stitch extension rules should be active).
+- Were rules that **should** have been loaded actually loaded? Check if context implies a dependency (e.g., vision.md references Stitch → stitch extension rules should be active).
 - Were rules loaded that **shouldn't** have been? (wrong `when` scope, outdated step names)
 
 #### 3d. Duplication

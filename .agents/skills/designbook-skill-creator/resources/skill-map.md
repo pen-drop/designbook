@@ -11,7 +11,7 @@ Main skill at `.agents/skills/designbook/`. Contains all user-facing workflows.
 
 | Concern | Workflows |
 |---------|-----------|
-| `design` | `design-component`, `design-screen`, `design-shell`, `design-guidelines`, `design-verify` |
+| `design` | `design-component`, `design-screen`, `design-shell`, `design-verify` |
 | `data-model` | `data-model` |
 | `tokens` | `tokens` |
 | `css-generate` | `css-generate` |
