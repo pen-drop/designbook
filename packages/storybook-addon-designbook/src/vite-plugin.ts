@@ -8,7 +8,7 @@ import { load as parseYaml } from 'js-yaml';
 import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
-import { scanAllWorkflows } from './workflow-utils';
+import { scanAllWorkflows, resolveWorkflowPathsForPanel } from './workflow-utils';
 import { DeboStory } from './story-entity';
 
 /** Minimal glob matcher — supports * (no slash) and **-slash (zero or more dirs). */
@@ -193,7 +193,7 @@ export function designbookLoadPlugin(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       server.middlewares.use('/__designbook/workflows', (_req: IncomingMessage, res: any) => {
         try {
-          const workflows = scanAllWorkflows(workflowsDir, 10);
+          const workflows = scanAllWorkflows(workflowsDir, 10).map((wf) => resolveWorkflowPathsForPanel(wf, baseDir));
           res.setHeader('Content-Type', 'application/json');
           res.statusCode = 200;
           res.end(JSON.stringify({ designbookDir, workflows }));

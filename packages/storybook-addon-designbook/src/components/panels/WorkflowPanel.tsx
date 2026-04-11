@@ -75,7 +75,6 @@ interface WorkflowData {
   completed_at: string | null;
   summary?: string;
   waiting_message?: string;
-  root_dir?: string;
   tasks: WorkflowTask[];
   source: 'active' | 'archived';
 }
@@ -112,13 +111,6 @@ function useTick(active: boolean, intervalMs = 1000): number {
 // ---------------------------------------------------------------------------
 
 const MAX_LOG_ENTRIES = 10;
-
-/** Resolve a potentially relative path to absolute using root_dir. */
-const resolvePath = (p: string, rootDir?: string): string => {
-  if (!p || p.startsWith('/')) return p;
-  if (rootDir) return `${rootDir}/${p}`;
-  return p;
-};
 
 const shortenPath = (p: string): string => {
   const parts = p.replace(/\\/g, '/').split('/').filter(Boolean);
@@ -651,7 +643,7 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
                 {activeTask.files.map((f) => (
                   <FileBadge
                     key={f.path}
-                    path={resolvePath(f.path, wf.root_dir)}
+                    path={f.path}
                     isAbsolute={true}
                     label={f.key}
                     variant={fileBadgeVariant(f)}
@@ -967,7 +959,7 @@ function WorkflowFilesTab({ wf }: { wf: WorkflowData }) {
       <DeboFacetFilter facets={facets} state={state} onToggle={toggle} onClear={clear} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {filtered.map((entry, i) => {
-          const absPath = resolvePath(entry.path, wf.root_dir);
+          const absPath = entry.path;
           return (
             <div
               key={`${entry.path}-${entry.task}-${i}`}

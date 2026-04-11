@@ -16,6 +16,7 @@ import {
   workflowMerge,
   isGitRepo,
   resolveEngine,
+  resolveStoredPath,
   type WorkflowFile,
   type WorkflowTask,
 } from '../workflow.js';
@@ -47,7 +48,21 @@ function expandWorkflowTasks(
   }
 
   const existing = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
+  const workspaceRoot = existing.workspace_root as string | undefined;
   const stageLoaded = existing.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]> | undefined;
+
+  // Resolve relative paths in stage_loaded (stored relative to workspace_root)
+  if (workspaceRoot && stageLoaded) {
+    for (const entry of Object.values(stageLoaded)) {
+      const entries = Array.isArray(entry) ? entry : [entry];
+      for (const sl of entries) {
+        if (sl.task_file) sl.task_file = resolveStoredPath(workspaceRoot, sl.task_file);
+        if (sl.rules) sl.rules = sl.rules.map((r) => resolveStoredPath(workspaceRoot, r));
+        if (sl.blueprints) sl.blueprints = sl.blueprints.map((b) => resolveStoredPath(workspaceRoot, b));
+      }
+    }
+  }
+
   if (!stageLoaded) {
     if (mode === 'plan')
       throw new Error(`No stage_loaded in tasks.yml. Was the workflow created with --workflow-file?`);
@@ -207,6 +222,7 @@ export function register(program: Command): void {
 
         const tasksForCreate = skipIntake ? [] : intakeTask;
 
+        const workspaceRoot = (config.workspace as string | undefined) ?? configDir;
         const name = workflowCreate(
           config.data,
           opts.workflow,
@@ -217,6 +233,7 @@ export function register(program: Command): void {
           resolved.step_resolved,
           resolved.engine,
           initialParams,
+          workspaceRoot,
         );
 
         // If intake was skipped, immediately expand tasks
@@ -284,6 +301,7 @@ export function register(program: Command): void {
       }
 
       const data = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
+      const instrWorkspaceRoot = data.workspace_root as string | undefined;
 
       // Transition from waiting back to running when AI resumes work
       if (data.status === 'waiting') {
@@ -315,7 +333,11 @@ export function register(program: Command): void {
       }
 
       const stage = stageLoaded[resolvedKey] as Record<string, unknown>;
-      const taskFile = stage.task_file as string | undefined;
+      // Resolve stored paths (may be relative to workspace_root)
+      const resolvePath = (p: string) => (instrWorkspaceRoot ? resolveStoredPath(instrWorkspaceRoot, p) : p);
+      const taskFile = stage.task_file ? resolvePath(stage.task_file as string) : undefined;
+      const rules = ((stage.rules ?? []) as string[]).map(resolvePath);
+      const blueprints = ((stage.blueprints ?? []) as string[]).map(resolvePath);
 
       // Read expected_params from task file frontmatter
       const expectedParams: Record<string, { required: boolean; default?: unknown }> = {};
@@ -334,8 +356,8 @@ export function register(program: Command): void {
           {
             stage: opts.stage,
             task_file: taskFile,
-            rules: stage.rules ?? [],
-            blueprints: stage.blueprints ?? [],
+            rules,
+            blueprints,
             config_rules: stage.config_rules ?? [],
             config_instructions: stage.config_instructions ?? [],
             expected_params: expectedParams,

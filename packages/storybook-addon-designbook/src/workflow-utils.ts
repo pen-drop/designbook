@@ -2,7 +2,7 @@ import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
 import { readFileSync, writeFileSync, renameSync, mkdirSync, readdirSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { tmpdir } from 'os';
-import type { WorkflowTaskFile, WorkflowTaskFileWithMeta } from './workflow-types';
+import type { WorkflowTaskFile, WorkflowTaskFileWithMeta, StageLoaded } from './workflow-types';
 
 /**
  * Parse a tasks.yml file into a WorkflowTaskFile object.
@@ -87,4 +87,54 @@ export function scanAllWorkflows(workflowsDir: string, limit = 10): WorkflowTask
   });
 
   return all.slice(0, limit);
+}
+
+/** Resolve a single stored path: relative → absolute, already-absolute → pass through. */
+function resolvePath(root: string, p: string): string {
+  if (!p || p.startsWith('/')) return p;
+  return resolve(root, p);
+}
+
+function resolveStageLoaded(root: string, sl: StageLoaded): StageLoaded {
+  return {
+    task_file: resolvePath(root, sl.task_file),
+    rules: (sl.rules ?? []).map((r) => resolvePath(root, r)),
+    blueprints: (sl.blueprints ?? []).map((b) => resolvePath(root, b)),
+    config_rules: (sl.config_rules ?? []).map((c) => resolvePath(root, c)),
+    config_instructions: (sl.config_instructions ?? []).map((c) => resolvePath(root, c)),
+  };
+}
+
+/**
+ * Resolve all relative paths in a workflow object to absolute using workspaceRoot.
+ * Used by the Vite endpoint so the panel always receives absolute paths.
+ */
+export function resolveWorkflowPathsForPanel(
+  wf: WorkflowTaskFileWithMeta,
+  workspaceRoot: string,
+): WorkflowTaskFileWithMeta {
+  const root = workspaceRoot;
+
+  // stage_loaded
+  if (wf.stage_loaded) {
+    const resolved: Record<string, StageLoaded> = {};
+    for (const [step, entry] of Object.entries(wf.stage_loaded)) {
+      resolved[step] = resolveStageLoaded(root, entry);
+    }
+    wf.stage_loaded = resolved;
+  }
+
+  // tasks
+  for (const task of wf.tasks) {
+    if (task.task_file) task.task_file = resolvePath(root, task.task_file);
+    if (task.rules) task.rules = task.rules.map((r) => resolvePath(root, r));
+    if (task.blueprints) task.blueprints = task.blueprints.map((b) => resolvePath(root, b));
+    if (task.files) {
+      for (const f of task.files) {
+        f.path = resolvePath(root, f.path);
+      }
+    }
+  }
+
+  return wf;
 }

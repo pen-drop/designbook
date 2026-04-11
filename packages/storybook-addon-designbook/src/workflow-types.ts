@@ -15,7 +15,7 @@ export interface ValidationFileResult {
 }
 
 export interface TaskFile {
-  path: string; // resolved absolute target path
+  path: string; // target path — stored relative to workspace_root, resolved to absolute at load time
   key: string; // stable identifier used by write-file --key
   validators: string[]; // validator keys (e.g. ['tokens', 'component'])
   validation_result?: ValidationFileResult; // absent = not yet written; present = written + validated
@@ -52,9 +52,9 @@ export interface WorkflowTask {
   completed_at: string | null;
   depends_on?: string[]; // task IDs this task depends on (computed from step ordering)
   params?: Record<string, unknown>; // per-task params from intake (e.g. component name, slots)
-  task_file?: string; // absolute path to resolved skill task file
-  rules?: string[]; // absolute paths to matched skill rule files
-  blueprints?: string[]; // absolute paths to matched skill blueprint files
+  task_file?: string; // resolved skill task file — stored relative to workspace_root
+  rules?: string[]; // matched skill rule files — stored relative to workspace_root
+  blueprints?: string[]; // matched skill blueprint files — stored relative to workspace_root
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[]; // produced files, each with its own validation state
@@ -77,8 +77,8 @@ export interface WorkflowTaskFile {
   summary?: string;
   /** Absolute path to the isolated WORKTREE directory for this workflow run. Set at workflow plan time. */
   write_root?: string;
-  /** Absolute path to DESIGNBOOK_HOME (theme/Storybook app dir). Stored so workflowDone can copy WORKTREE → home. */
-  root_dir?: string;
+  /** Absolute path to the workspace root. All task/skill paths are stored relative to this. */
+  workspace_root?: string;
   tasks: WorkflowTask[];
 }
 

@@ -1,5 +1,5 @@
 import { designbookLoadPlugin } from './vite-plugin';
-import { loadConfig } from './config';
+import { loadConfig, findConfig } from './config';
 import { buildExportName, extractScenes } from './renderer/scene-metadata';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 
@@ -31,8 +31,10 @@ export const viteFinal = async (config: any, options: any) => {
     provider = options.designbook.provider;
   }
 
+  const configPath = findConfig();
+  const configDir = configPath ? dirname(configPath) : process.cwd();
   plugins.push(
-    designbookLoadPlugin(process.cwd(), {
+    designbookLoadPlugin(configDir, {
       fsRoot,
       provider,
     }),

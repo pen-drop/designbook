@@ -242,14 +242,14 @@ describe('workflowPlan', () => {
     expect(data.status).toBe('running');
   });
 
-  it('stores write_root and root_dir when provided', () => {
+  it('stores write_root and workspace_root when provided', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
     const writeRoot = join(dist, 'worktree');
     const rootDir = join(dist, 'root');
     workflowPlan(dist, name, [], undefined, undefined, writeRoot, rootDir);
     const data = readWorkflowFile(dist, name);
     expect(data.write_root).toBe(writeRoot);
-    expect(data.root_dir).toBe(rootDir);
+    expect(data.workspace_root).toBe(rootDir);
   });
 
   it('does not write write_root when not provided', () => {
@@ -257,7 +257,7 @@ describe('workflowPlan', () => {
     workflowPlan(dist, name, []);
     const data = readWorkflowFile(dist, name);
     expect(data.write_root).toBeUndefined();
-    expect(data.root_dir).toBeUndefined();
+    expect(data.workspace_root).toBeUndefined();
   });
 });
 
@@ -831,11 +831,11 @@ describe('workflowMerge', () => {
     expect(() => workflowMerge(dist, name)).toThrow('does not support merge');
   });
 
-  it('returns branch and root_dir', () => {
+  it('returns branch and workspace_root', () => {
     const name = makeWorkflow('workflow/test');
     const result = workflowMerge(dist, name);
     expect(result.branch).toBe('workflow/test');
-    expect(result.root_dir).toBe(rootDir);
+    expect(result.workspace_root).toBe(rootDir);
   });
 });
 
