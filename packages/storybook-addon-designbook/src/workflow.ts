@@ -214,34 +214,10 @@ function resolveStoredPath(root: string, p: string): string {
   return resolve(root, p);
 }
 
-/** Mutate a WorkflowFile in-place: resolve all relative paths to absolute using workspace_root. */
-function resolveWorkflowPaths(data: WorkflowFile): void {
-  const root = data.workspace_root;
-  if (!root) return;
+type PathFn = (root: string, p: string) => string;
 
-  for (const task of data.tasks) {
-    if (task.task_file) task.task_file = resolveStoredPath(root, task.task_file);
-    if (task.rules) task.rules = task.rules.map((r) => resolveStoredPath(root, r));
-    if (task.blueprints) task.blueprints = task.blueprints.map((b) => resolveStoredPath(root, b));
-    for (const f of task.files ?? []) {
-      f.path = resolveStoredPath(root, f.path);
-    }
-  }
-
-  if (data.stage_loaded) {
-    for (const entry of Object.values(data.stage_loaded)) {
-      const entries = Array.isArray(entry) ? entry : [entry];
-      for (const sl of entries) {
-        if (sl.task_file) sl.task_file = resolveStoredPath(root, sl.task_file);
-        if (sl.rules) sl.rules = sl.rules.map((r) => resolveStoredPath(root, r));
-        if (sl.blueprints) sl.blueprints = sl.blueprints.map((b) => resolveStoredPath(root, b));
-      }
-    }
-  }
-}
-
-/** Return a shallow copy with all paths relativized for serialization. Original data is not mutated. */
-function relativizeWorkflowPaths(data: WorkflowFile): WorkflowFile {
+/** Apply a path transform to every path field in a WorkflowFile, returning a shallow copy. */
+function transformWorkflowPaths(data: WorkflowFile, fn: PathFn): WorkflowFile {
   const root = data.workspace_root;
   if (!root) return data;
 
@@ -249,13 +225,10 @@ function relativizeWorkflowPaths(data: WorkflowFile): WorkflowFile {
     ...data,
     tasks: data.tasks.map((task) => ({
       ...task,
-      task_file: task.task_file ? relativizePath(root, task.task_file) : undefined,
-      rules: task.rules?.map((r) => relativizePath(root, r)),
-      blueprints: task.blueprints?.map((b) => relativizePath(root, b)),
-      files: task.files?.map((f) => ({
-        ...f,
-        path: relativizePath(root, f.path),
-      })),
+      task_file: task.task_file ? fn(root, task.task_file) : undefined,
+      rules: task.rules?.map((r) => fn(root, r)),
+      blueprints: task.blueprints?.map((b) => fn(root, b)),
+      files: task.files?.map((f) => ({ ...f, path: fn(root, f.path) })),
     })),
     stage_loaded: data.stage_loaded
       ? (Object.fromEntries(
@@ -263,15 +236,25 @@ function relativizeWorkflowPaths(data: WorkflowFile): WorkflowFile {
             const entries = Array.isArray(entry) ? entry : [entry];
             const mapped = entries.map((sl) => ({
               ...sl,
-              task_file: relativizePath(root, sl.task_file),
-              rules: sl.rules.map((r) => relativizePath(root, r)),
-              blueprints: sl.blueprints.map((b) => relativizePath(root, b)),
+              task_file: fn(root, sl.task_file),
+              rules: sl.rules.map((r) => fn(root, r)),
+              blueprints: sl.blueprints.map((b) => fn(root, b)),
             }));
             return [key, Array.isArray(entry) ? mapped : mapped[0]] as const;
           }),
         ) as Record<string, StageLoadedEntry>)
       : undefined,
   };
+}
+
+/** Mutate a WorkflowFile in-place: resolve all relative paths to absolute using workspace_root. */
+function resolveWorkflowPaths(data: WorkflowFile): void {
+  Object.assign(data, transformWorkflowPaths(data, resolveStoredPath));
+}
+
+/** Return a shallow copy with all paths relativized for serialization. Original data is not mutated. */
+function relativizeWorkflowPaths(data: WorkflowFile): WorkflowFile {
+  return transformWorkflowPaths(data, relativizePath);
 }
 
 /**
