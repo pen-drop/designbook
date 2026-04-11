@@ -1,0 +1,15 @@
+name: "default"
+props:
+  title: "Introduction to Hyperstructure Dynamics"
+  excerpt: "Learn how the kinetic monolith approach prioritizes structural integrity over decorative layering for high-performance applications."
+  url: "/docs/introduction"
+slots:
+  topics:
+    - type: "component"
+      component: "test_integration_drupal:topic-badge"
+      props:
+        label: "Framework Docs"
+    - type: "component"
+      component: "test_integration_drupal:topic-badge"
+      props:
+        label: "Architecture"

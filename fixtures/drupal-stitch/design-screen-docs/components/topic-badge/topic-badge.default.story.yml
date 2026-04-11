@@ -1,0 +1,4 @@
+name: "default"
+props:
+  label: "Framework Docs"
+  url: "/topics/framework-docs"

@@ -1,0 +1,43 @@
+{#
+/**
+ * @file
+ * Grid component — responsive column layout.
+ *
+ * Available variables:
+ * - columns: Number of columns (1, 2, 3, 4)
+ * - gap: Gap between items (none, sm, md, lg)
+ * - items: Grid items slot
+ * - content: Free-form content slot
+ */
+#}
+{% set columns = columns|default(1) %}
+{% set gap = gap|default('md') %}
+
+{# Responsive column presets #}
+{% set column_classes = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-1 md:grid-cols-2',
+  3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+  4: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
+} %}
+
+{# Gap mapping to grid tokens #}
+{% set gap_classes = {
+  'none': 'gap-0',
+  'sm': 'gap-[var(--grid-sm)]',
+  'md': 'gap-[var(--grid-md)]',
+  'lg': 'gap-[var(--grid-lg)]',
+} %}
+
+{% set grid_class = column_classes[columns]|default('grid-cols-1') %}
+{% set gap_class = gap_classes[gap]|default('gap-4') %}
+
+{% if items is iterable and items|length > 0 %}
+<div{{ attributes.addClass(['grid', grid_class, gap_class]) }}>
+  {% for item in items %}
+    {{ item }}
+  {% endfor %}
+</div>
+{% else %}
+  {{ content }}
+{% endif %}

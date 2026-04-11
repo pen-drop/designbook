@@ -1,0 +1,4 @@
+name: "Default"
+props:
+  value: "90%"
+  label: "Faster Handoff"

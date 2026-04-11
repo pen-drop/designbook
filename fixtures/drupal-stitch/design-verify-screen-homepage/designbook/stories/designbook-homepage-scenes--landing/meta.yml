@@ -1,0 +1,76 @@
+reference:
+  source:
+    url: https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzRiMzA0ODhjYTk5MzQxYThiZmY3ZTM0NWNiZjc2NTQ0EgsSBxD5qaPr1h0YAZIBIwoKcHJvamVjdF9pZBIVQhM1NjI2MzM5MzUwMzY3NjgzNDEy&filename=&opi=89354086
+    origin: stitch
+    hasMarkup: true
+  breakpoints:
+    sm:
+      threshold: 3
+      regions:
+        full: {}
+    md:
+      threshold: 3
+      regions:
+        full: {}
+    lg:
+      threshold: 3
+      regions:
+        full: {}
+    xl:
+      threshold: 3
+      regions:
+        full: {}
+  checks:
+    sm--markup:
+      status: open
+      issues:
+        - id: issue-001
+          source: consolidated
+          severity: critical
+          description: 'Hero Layout: display block (zentriert) → grid lg:grid-cols-2 (split layout Text + Code-Preview). Reference zeigt 2-Spalten ab lg. Datei: components/hero/hero.twig. Breakpoints: sm, md, lg, xl.'
+          status: open
+          result: null
+        - id: issue-002
+          source: consolidated
+          severity: critical
+          description: 'Hero Heading: fontSize 3.5rem → 3rem (sm) / 6rem (md+), fontWeight 700 → 900 (font-black), letterSpacing -0.04em → -0.05em (tracking-tighter), lineHeight 1.1 → 0.95. Datei: components/hero/hero.twig. Breakpoints: sm, md, lg, xl.'
+          status: open
+          result: null
+        - id: issue-003
+          source: consolidated
+          severity: major
+          description: 'Hero Badge: fehlend → inline-flex mit rounded-full, bg-primary/10, border border-primary/20, Icon auto_awesome + uppercase Label. Datei: components/hero/hero.twig. Breakpoints: sm, md, lg, xl.'
+          status: open
+          result: null
+        - id: issue-004
+          source: consolidated
+          severity: major
+          description: 'Hero Primary CTA: box-shadow fehlt → 0 0 20px rgba(0,112,243,0.3) (glow-blue), padding zu klein → px-8 py-3. Datei: components/button/button.twig. Breakpoints: sm, md, lg, xl.'
+          status: open
+          result: null
+        - id: issue-005
+          source: consolidated
+          severity: major
+          description: 'Feature Cards: backgroundColor surface-container → surface (#111111), border outline-variant → outline (#333333), Icon-Container fehlt bg-secondary-container Kreis. Datei: components/feature-card/feature-card.twig. Breakpoints: sm, md, lg, xl.'
+          status: open
+          result: null
+        - id: issue-006
+          source: consolidated
+          severity: critical
+          description: 'Code Preview: Placeholder 600x400 Image → zwei Code-Panels (CMS Blueprint + Generated Output) mit echtem Code-Content. Sample-Data muss Code-Snippets enthalten. Datei: components/code-preview/code-preview.twig + designbook/sections/homepage/data.yml. Breakpoints: sm, md, lg, xl.'
+          status: open
+          result: null
+        - id: issue-007
+          source: consolidated
+          severity: major
+          description: 'CTA Heading: fontSize zu klein → text-4xl (sm) / text-5xl (md+), fontWeight → font-bold. Datei: components/cta-block/cta-block.twig. Breakpoints: sm, md, lg, xl.'
+          status: open
+          result: null
+  summary:
+    total: 8
+    pass: 0
+    fail: 0
+    unchecked: 8
+    maxDiff: null
+    avgDiff: null
+    threshold: 3

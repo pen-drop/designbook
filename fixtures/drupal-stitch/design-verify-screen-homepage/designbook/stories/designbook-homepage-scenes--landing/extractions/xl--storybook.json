@@ -1,0 +1,191 @@
+{
+  "hero-heading": {
+    "label": "Hero Heading",
+    "category": "typography",
+    "file_hint": "components/hero/hero.twig",
+    "selector": "#storybook-root h1",
+    "styles": {
+      "fontSize": "96px",
+      "fontWeight": "900",
+      "fontFamily": "Inter",
+      "lineHeight": "91.2px",
+      "color": "rgb(229, 229, 229)",
+      "letterSpacing": "-4.8px"
+    }
+  },
+  "hero-description": {
+    "label": "Hero Description",
+    "category": "typography",
+    "file_hint": "components/hero/hero.twig",
+    "selector": "#storybook-root h1 + p",
+    "styles": {
+      "fontSize": "18px",
+      "fontWeight": "400",
+      "color": "rgb(171, 171, 171)",
+      "lineHeight": "29.25px"
+    }
+  },
+  "hero-cta-primary": {
+    "label": "Hero Primary CTA",
+    "category": "interactive",
+    "file_hint": "components/hero/hero.twig",
+    "selector": "#storybook-root .container-component:first-of-type .flex a:first-child",
+    "styles": {
+      "backgroundColor": "rgb(229, 229, 229)",
+      "color": "rgb(14, 14, 14)",
+      "fontSize": "14px",
+      "fontWeight": "500",
+      "paddingTop": "12px",
+      "paddingRight": "24px",
+      "paddingBottom": "12px",
+      "paddingLeft": "24px",
+      "borderRadius": "4px"
+    }
+  },
+  "hero-cta-secondary": {
+    "label": "Hero Secondary CTA",
+    "category": "interactive",
+    "file_hint": "components/hero/hero.twig",
+    "selector": "#storybook-root .container-component:first-of-type .flex a:nth-child(2)",
+    "styles": {
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "color": "rgb(229, 229, 229)",
+      "fontSize": "14px",
+      "fontWeight": "500",
+      "borderRadius": "4px",
+      "borderColor": "rgb(72, 72, 72)",
+      "borderWidth": "1px"
+    }
+  },
+  "hero-badge": {
+    "label": "Hero Badge / Label",
+    "category": "component",
+    "file_hint": "components/hero/hero.twig",
+    "selector": "#storybook-root .container-component:first-of-type p.text-primary",
+    "styles": null
+  },
+  "hero-layout": {
+    "label": "Hero Layout Container",
+    "category": "layout",
+    "file_hint": "components/hero/hero.twig",
+    "selector": "#storybook-root .container-component:first-of-type",
+    "styles": {
+      "display": "block",
+      "maxWidth": "none",
+      "paddingLeft": "32px",
+      "paddingRight": "32px"
+    }
+  },
+  "features-card-grid": {
+    "label": "Features Card Grid",
+    "category": "layout",
+    "file_hint": "components/features/features.twig",
+    "selector": "#storybook-root .container-component:nth-of-type(2) .grid .grid",
+    "styles": {
+      "display": "grid",
+      "gridTemplateColumns": "389.328px 389.328px 389.344px",
+      "gap": "24px"
+    }
+  },
+  "features-card-heading": {
+    "label": "Feature Card Heading",
+    "category": "typography",
+    "file_hint": "components/features/features.twig",
+    "selector": "#storybook-root .container-component:nth-of-type(2) h3:first-of-type",
+    "styles": {
+      "fontSize": "24px",
+      "fontWeight": "600",
+      "color": "rgb(229, 229, 229)",
+      "lineHeight": "31.2px"
+    }
+  },
+  "features-card-description": {
+    "label": "Feature Card Description",
+    "category": "typography",
+    "file_hint": "components/features/features.twig",
+    "selector": "#storybook-root .container-component:nth-of-type(2) h3 + p",
+    "styles": {
+      "fontSize": "16px",
+      "color": "rgb(171, 171, 171)",
+      "lineHeight": "26px"
+    }
+  },
+  "workflow-card-heading": {
+    "label": "Workflow Card Heading",
+    "category": "typography",
+    "file_hint": "components/workflow/workflow.twig",
+    "selector": "#storybook-root .container-component:nth-of-type(3) h3:first-of-type",
+    "styles": {
+      "fontSize": "24px",
+      "fontWeight": "600",
+      "color": "rgb(229, 229, 229)"
+    }
+  },
+  "cta-heading": {
+    "label": "CTA Section Heading",
+    "category": "typography",
+    "file_hint": "components/cta/cta.twig",
+    "selector": "#storybook-root h2",
+    "styles": {
+      "fontSize": "36px",
+      "fontWeight": "700",
+      "color": "rgb(229, 229, 229)",
+      "letterSpacing": "-0.72px",
+      "lineHeight": "43.2px"
+    }
+  },
+  "cta-primary-button": {
+    "label": "CTA Primary Button",
+    "category": "interactive",
+    "file_hint": "components/cta/cta.twig",
+    "selector": "#storybook-root .container-component:last-of-type .flex a:first-child",
+    "styles": {
+      "backgroundColor": "rgb(229, 229, 229)",
+      "color": "rgb(14, 14, 14)",
+      "fontSize": "14px",
+      "fontWeight": "500",
+      "paddingTop": "12px",
+      "paddingRight": "24px",
+      "paddingBottom": "12px",
+      "paddingLeft": "24px",
+      "borderRadius": "4px"
+    }
+  },
+  "header": {
+    "label": "Header",
+    "category": "component",
+    "file_hint": "components/header/header.twig",
+    "selector": "#storybook-root header",
+    "styles": {
+      "position": "sticky",
+      "backgroundColor": "oklab(0.163757 0.00000747293 0.00000327826 / 0.8)",
+      "borderBottomWidth": "1px",
+      "borderBottomColor": "oklab(0.401664 0.0000182688 0.00000804663 / 0.2)"
+    }
+  },
+  "header-container": {
+    "label": "Header Container",
+    "category": "layout",
+    "file_hint": "components/header/header.twig",
+    "selector": "#storybook-root header > div",
+    "styles": {
+      "display": "flex",
+      "maxWidth": "1280px",
+      "paddingLeft": "24px",
+      "paddingRight": "24px"
+    }
+  },
+  "footer": {
+    "label": "Footer",
+    "category": "component",
+    "file_hint": "components/footer/footer.twig",
+    "selector": "#storybook-root footer",
+    "styles": {
+      "backgroundColor": "rgb(14, 14, 14)",
+      "borderTopWidth": "1px",
+      "borderTopColor": "oklab(0.401664 0.0000182688 0.00000804663 / 0.2)",
+      "paddingTop": "80px",
+      "paddingBottom": "80px"
+    }
+  }
+}

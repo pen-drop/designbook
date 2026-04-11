@@ -1,0 +1,31 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "code-preview"
+status: "experimental"
+group: "Data Display"
+description: "Code block display with optional title bar, label badge, preview image, and syntax content."
+props:
+  type: "object"
+  properties:
+    title:
+      title: "Title"
+      type: "string"
+      description: "Optional title displayed in the header bar."
+    label:
+      title: "Label"
+      type: "string"
+      description: "Optional label/badge displayed in the header bar."
+    image:
+      title: "Image"
+      type: "string"
+      description: "Optional preview image URL."
+slots:
+  code:
+    title: "Code"
+    description: "Code content to display."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}

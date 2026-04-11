@@ -42,6 +42,22 @@ Uses a three-level concern-based structure:
 
 **Filename = stage name.** `tasks/create-component.md` applies to stage `create-component`. The AI discovers tasks by scanning all skill directories for `tasks/<stage>.md`. No explicit stage declaration in frontmatter.
 
+### Workflow-qualified tasks (`<step>--<workflow>.md`)
+
+Task files scoped to a specific workflow use `<step>--<workflow>.md` naming (e.g. `intake--design-verify.md`). Their `when.steps` **MUST** use the fully qualified step name including the workflow prefix:
+
+```yaml
+# ✅ CORRECT — matches workflow step "design-verify:intake"
+when:
+  steps: [design-verify:intake]
+
+# ❌ WRONG — bare step name will NOT match, task gets skipped
+when:
+  steps: [intake]
+```
+
+The CLI matches `when.steps` values literally against the step name from the workflow definition. A workflow that declares `steps: [design-verify:intake]` will only find task files whose `when.steps` contains the exact string `design-verify:intake`.
+
 ## `rules/` — When Conditions
 
 Rules require an explicit `when:` block. Without `when.steps`, the rule applies to all steps.

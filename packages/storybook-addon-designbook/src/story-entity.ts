@@ -62,14 +62,30 @@ export interface DeboStoryCheckReference {
   data?: unknown;
 }
 
+export interface StoryIssue {
+  id?: string;
+  source: 'screenshots' | 'extraction';
+  severity: 'critical' | 'major';
+  description: string;
+  label?: string;
+  category?: 'typography' | 'layout' | 'media' | 'interactive' | 'decoration';
+  property?: string | null;
+  expected?: string;
+  actual?: string;
+  status: 'open' | 'done';
+  result?: 'pass' | 'fail' | null;
+}
+
 export interface DeboStoryCheck {
   storyId: string;
+  type: 'screenshot' | 'markup';
   breakpoint: string;
   region: string;
   selector?: string;
+  status?: 'open' | 'done';
   result?: 'pass' | 'fail';
   diff?: number;
-  issues?: string[];
+  issues?: StoryIssue[];
   threshold: number;
   current: DeboStoryCheckCurrent;
   reference: DeboStoryCheckReference;
@@ -104,9 +120,9 @@ export interface ScreenshotsFilter {
 export interface CheckUpdate {
   breakpoint: string;
   region: string;
-  status: 'pass' | 'fail';
+  status: 'open' | 'done';
+  result?: 'pass' | 'fail';
   diff?: number;
-  issues?: string[];
 }
 
 export interface DeboStoryJSON {
@@ -135,9 +151,10 @@ interface MetaBreakpoint {
 }
 
 interface MetaCheckResult {
-  status: 'pass' | 'fail';
+  status: 'open' | 'done';
+  result?: 'pass' | 'fail';
   diff?: number;
-  issues?: string[];
+  issues?: StoryIssue[];
 }
 
 interface MetaSummary {
@@ -399,10 +416,10 @@ export class DeboStory {
 
   get status(): StoryStatus {
     if (this._allChecks.length === 0) return 'unchecked';
-    const hasResult = this._allChecks.some((c) => c.result !== undefined);
-    if (!hasResult) return 'unchecked';
-    const allPass = this._allChecks.every((c) => c.result === 'pass');
-    if (allPass) return 'pass';
+    const hasStatus = this._allChecks.some((c) => c.status !== undefined);
+    if (!hasStatus) return 'unchecked';
+    const allDonePass = this._allChecks.every((c) => c.status === 'done' && c.result === 'pass');
+    if (allDonePass) return 'pass';
     return 'failing';
   }
 
@@ -423,7 +440,7 @@ export class DeboStory {
     let result = this._allChecks;
 
     if (filter?.open) {
-      result = result.filter((c) => c.result !== 'pass');
+      result = result.filter((c) => c.status !== 'done');
     }
     if (filter?.breakpoints) {
       const bps = new Set(filter.breakpoints);
@@ -470,9 +487,12 @@ export class DeboStory {
 
       const key = `${update.breakpoint}--${update.region}`;
       if (!meta.reference.checks) meta.reference.checks = {};
+      const existing = meta.reference.checks[key];
       const entry: MetaCheckResult = { status: update.status };
+      if (update.result != null) entry.result = update.result;
       if (update.diff != null) entry.diff = update.diff;
-      if (update.issues?.length) entry.issues = update.issues;
+      // Preserve existing issues when updating check status
+      if (existing?.issues?.length) entry.issues = existing.issues;
       meta.reference.checks[key] = entry;
 
       // Recompute summary from all checks + expected checks from breakpoints
@@ -483,6 +503,90 @@ export class DeboStory {
     });
 
     // Rebuild in-memory state
+    if (existsSync(this._metaPath)) {
+      const content = readFileSync(this._metaPath, 'utf-8');
+      this._meta = (parseYaml(content) as MetaYml) ?? {};
+      this._allChecks = this._buildChecks();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Issues
+  // -------------------------------------------------------------------------
+
+  /**
+   * Add issues to a check. Creates the check entry if it doesn't exist.
+   */
+  addIssues(checkKey: string, issues: StoryIssue[]): void {
+    withLock(this._metaPath, () => {
+      let meta: MetaYml = {};
+      if (existsSync(this._metaPath)) {
+        meta = (parseYaml(readFileSync(this._metaPath, 'utf-8')) as MetaYml) ?? {};
+      }
+      if (!meta.reference) return;
+
+      if (!meta.reference.checks) meta.reference.checks = {};
+      const existing = meta.reference.checks[checkKey];
+      if (!existing) {
+        meta.reference.checks[checkKey] = { status: 'open', issues };
+      } else {
+        existing.issues = [...(existing.issues ?? []), ...issues];
+      }
+
+      meta.reference.summary = this._computeSummary(meta);
+      mkdirSync(resolve(this.storyDir), { recursive: true });
+      writeFileSync(this._metaPath, dumpYaml(meta, { lineWidth: -1 }), 'utf-8');
+    });
+
+    this._reloadMeta();
+  }
+
+  /**
+   * Get issues, optionally filtered by check key and/or open status.
+   */
+  getIssues(filter?: {
+    checkKey?: string;
+    open?: boolean;
+  }): Array<{ checkKey: string; index: number; issue: StoryIssue }> {
+    const checks = this._meta.reference?.checks ?? {};
+    const result: Array<{ checkKey: string; index: number; issue: StoryIssue }> = [];
+
+    for (const [key, check] of Object.entries(checks)) {
+      if (filter?.checkKey && key !== filter.checkKey) continue;
+      for (let i = 0; i < (check.issues?.length ?? 0); i++) {
+        const issue = check.issues![i]!;
+        if (filter?.open && issue.status !== 'open') continue;
+        result.push({ checkKey: key, index: i, issue });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Update a single issue by check key and index.
+   */
+  updateIssue(checkKey: string, index: number, update: Partial<StoryIssue>): void {
+    withLock(this._metaPath, () => {
+      let meta: MetaYml = {};
+      if (existsSync(this._metaPath)) {
+        meta = (parseYaml(readFileSync(this._metaPath, 'utf-8')) as MetaYml) ?? {};
+      }
+      const check = meta.reference?.checks?.[checkKey];
+      if (!check?.issues?.[index]) {
+        throw new Error(`Issue not found: check "${checkKey}", index ${index}`);
+      }
+
+      Object.assign(check.issues[index], update);
+
+      meta.reference!.summary = this._computeSummary(meta);
+      writeFileSync(this._metaPath, dumpYaml(meta, { lineWidth: -1 }), 'utf-8');
+    });
+
+    this._reloadMeta();
+  }
+
+  private _reloadMeta(): void {
     if (existsSync(this._metaPath)) {
       const content = readFileSync(this._metaPath, 'utf-8');
       this._meta = (parseYaml(content) as MetaYml) ?? {};
@@ -510,8 +614,8 @@ export class DeboStory {
     const diffs: number[] = [];
 
     for (const c of entries) {
-      if (c.status === 'pass') pass++;
-      else if (c.status === 'fail') fail++;
+      if (c.status === 'done' && c.result === 'pass') pass++;
+      else if (c.status === 'done' && c.result === 'fail') fail++;
       if (c.diff != null) diffs.push(c.diff);
     }
 
@@ -611,25 +715,50 @@ export class DeboStory {
     const checkResults = this._meta.reference?.checks ?? {};
     const screenshotsDir = resolve(this.storyDir, 'screenshots');
 
+    // Markup checks first (ordered before screenshot checks)
+    if (hasMarkup) {
+      for (const [bp, bpConfig] of Object.entries(breakpoints)) {
+        const bpThreshold = bpConfig.threshold ?? 3;
+        const key = `${bp}--markup`;
+        const checkResult = checkResults[key];
+        checks.push({
+          storyId: this.storyId,
+          type: 'markup',
+          breakpoint: bp,
+          region: 'markup',
+          status: checkResult?.status,
+          result: checkResult?.result,
+          diff: checkResult?.diff,
+          issues: checkResult?.issues,
+          threshold: bpThreshold,
+          current: { screenshot: '', markup: '' },
+          reference: { url: sourceUrl, markup: sourceUrl },
+        });
+      }
+    }
+
+    // Screenshot checks
     for (const [bp, bpConfig] of Object.entries(breakpoints)) {
       const regions = bpConfig.regions ?? {};
       const bpThreshold = bpConfig.threshold ?? 3;
 
       for (const [regionName, regionConfig] of Object.entries(regions)) {
         const key = `${bp}--${regionName}`;
-        const result = checkResults[key];
+        const checkResult = checkResults[key];
         const fileSlug = `${key}.png`;
         const refScreenshot = resolve(screenshotsDir, 'reference', fileSlug);
         const curScreenshot = resolve(screenshotsDir, 'current', fileSlug);
 
         checks.push({
           storyId: this.storyId,
+          type: 'screenshot',
           breakpoint: bp,
           region: regionName,
           selector: regionConfig.selector,
-          result: result?.status,
-          diff: result?.diff,
-          issues: result?.issues,
+          status: checkResult?.status,
+          result: checkResult?.result,
+          diff: checkResult?.diff,
+          issues: checkResult?.issues,
           threshold: regionConfig.threshold ?? bpThreshold,
           current: {
             screenshot: curScreenshot,
@@ -640,23 +769,6 @@ export class DeboStory {
             url: sourceUrl,
             markup: hasMarkup ? sourceUrl : undefined,
           },
-        });
-      }
-
-      // Markup check per breakpoint (if hasMarkup)
-      if (hasMarkup) {
-        const key = `${bp}--markup`;
-        const result = checkResults[key];
-        checks.push({
-          storyId: this.storyId,
-          breakpoint: bp,
-          region: 'markup',
-          result: result?.status,
-          diff: result?.diff,
-          issues: result?.issues,
-          threshold: bpThreshold,
-          current: { screenshot: '', markup: '' },
-          reference: { url: sourceUrl, markup: sourceUrl },
         });
       }
     }

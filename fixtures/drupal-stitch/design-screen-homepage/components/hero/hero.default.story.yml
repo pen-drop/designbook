@@ -1,0 +1,30 @@
+name: "Default"
+props:
+  preheadline: "AI-Driven Architecture"
+  heading: "Structure your design for CMS."
+  description: "Bridge the gap between visual intent and technical reality. Designbook analyzes your designs and generates production-ready component schemas."
+slots:
+  actions:
+    - type: "component"
+      component: "test_integration_drupal:button"
+      props:
+        variant: "primary"
+        label: "Get Started"
+        url: "/get-started"
+    - type: "component"
+      component: "test_integration_drupal:button"
+      props:
+        variant: "secondary"
+        label: "View API Docs"
+        url: "/docs"
+  media:
+    - type: "component"
+      component: "test_integration_drupal:code-preview"
+      props:
+        label: "schema.yml"
+        title: "Component Schema"
+      slots:
+        code:
+          - type: "element"
+            tag: "pre"
+            value: "name: hero\ngroup: Content\nslots:\n  content:\n    title: Content\n  actions:\n    title: Actions"

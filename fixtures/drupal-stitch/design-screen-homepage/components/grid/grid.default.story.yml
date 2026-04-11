@@ -1,0 +1,21 @@
+name: "Default"
+props:
+  columns: 3
+  gap: "md"
+slots:
+  items:
+    - type: "element"
+      tag: "div"
+      attributes:
+        class: "p-6 bg-surface-container rounded-lg text-center text-on-surface"
+      value: "Item 1"
+    - type: "element"
+      tag: "div"
+      attributes:
+        class: "p-6 bg-surface-container rounded-lg text-center text-on-surface"
+      value: "Item 2"
+    - type: "element"
+      tag: "div"
+      attributes:
+        class: "p-6 bg-surface-container rounded-lg text-center text-on-surface"
+      value: "Item 3"

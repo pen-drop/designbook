@@ -45,6 +45,8 @@ interface WorkflowTask {
   config_rules?: string[];
   config_instructions?: string[];
   files?: TaskFile[];
+  description?: string;
+  summary?: string;
 }
 
 interface StageLoaded {
@@ -59,7 +61,7 @@ interface WorkflowData {
   changeName: string;
   title: string;
   workflow: string;
-  status?: 'planning' | 'running' | 'completed' | 'incomplete';
+  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
   parent?: string;
   engine?: 'git-worktree' | 'direct';
   write_root?: string;
@@ -71,6 +73,7 @@ interface WorkflowData {
   started_at: string | null;
   completed_at: string | null;
   summary?: string;
+  waiting_message?: string;
   root_dir?: string;
   tasks: WorkflowTask[];
   source: 'active' | 'archived';
@@ -260,12 +263,34 @@ const S = {
     color: 'inherit',
     flexWrap: 'wrap' as const,
   },
-  taskTitle: {
+  taskContent: {
     flex: 1,
     minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 1,
+  },
+  taskTitleText: {
     overflow: 'hidden' as const,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const,
+  },
+  taskDescription: {
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+    opacity: 0.6,
+    fontSize: '0.85em',
+  },
+  taskSummary: {
+    opacity: 0.5,
+    fontSize: '0.85em',
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+    flexShrink: 0,
+    maxWidth: '30%',
+    textAlign: 'right' as const,
   },
   taskFileBadges: { display: 'inline-flex', gap: 4, flexWrap: 'wrap' as const, alignItems: 'center' },
   overviewSection: { marginBottom: 8 },
@@ -544,6 +569,23 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
         {wf.started_at && <span>({formatDuration(wf.started_at, wf.completed_at ?? null)})</span>}
       </div>
 
+      {/* Waiting message */}
+      {wf.status === 'waiting' && wf.waiting_message && (
+        <div
+          style={{
+            fontSize: 12,
+            color: '#f59e0b',
+            background: 'rgba(245,158,11,0.1)',
+            borderRadius: 4,
+            padding: '6px 10px',
+            marginBottom: 8,
+            border: '1px solid rgba(245,158,11,0.3)',
+          }}
+        >
+          {wf.waiting_message}
+        </div>
+      )}
+
       {/* Summary text */}
       {wf.summary && (
         <div style={{ fontSize: 12, color: '#475569', marginBottom: 10, whiteSpace: 'pre-wrap' as const }}>
@@ -555,11 +597,14 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
       {activeTask && (
         <DeboCollapsible
           title={
-            <span style={S.taskRow}>
+            <div style={S.taskRow}>
               <StatusDot status="in-progress" />
-              <span style={S.taskTitle}>{activeTask.title}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={S.taskTitleText}>{activeTask.title}</div>
+                {activeTask.description && <div style={S.taskDescription}>{activeTask.description}</div>}
+              </div>
               <LiveDuration startedAt={activeTask.started_at} completedAt={activeTask.completed_at} />
-            </span>
+            </div>
           }
           variant="action-inline"
           status="running"
@@ -686,7 +731,21 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
               <DeboRainbowBorder key={task.id} active={task.status === 'in-progress'} borderRadius={4} borderWidth={2}>
                 <div style={getTaskRowStyle(task.status)}>
                   <StatusDot status={task.status} />
-                  <span style={{ ...S.taskTitle, opacity: task.status === 'done' ? 0.7 : 1 }}>{task.title}</span>
+                  <div style={{ ...S.taskContent, opacity: task.status === 'done' ? 0.7 : 1 }}>
+                    <span style={S.taskTitleText} title={task.title}>
+                      {task.title}
+                    </span>
+                    {task.description && (
+                      <span style={S.taskDescription} title={task.description}>
+                        {task.description}
+                      </span>
+                    )}
+                  </div>
+                  {task.summary && task.status === 'done' && (
+                    <span title={task.summary} style={S.taskSummary}>
+                      {task.summary}
+                    </span>
+                  )}
                   <LiveDuration startedAt={task.started_at} completedAt={task.completed_at} />
                 </div>
               </DeboRainbowBorder>
@@ -970,8 +1029,8 @@ function WorkflowTabs({ wf }: { wf: WorkflowData }) {
 }
 
 function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[]; designbookDir: string }) {
-  const hasRunning = workflows.some((wf) => wf.status === 'running');
-  useTick(hasRunning);
+  const hasActive = workflows.some((wf) => wf.status === 'running' || wf.status === 'waiting');
+  useTick(hasActive);
 
   if (workflows.length === 0) {
     return <div style={S.empty}>No workflow activity yet. Run a /debo * command to see progress here.</div>;
@@ -982,7 +1041,7 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
       {workflows.map((wf) => {
         const done = wf.tasks.filter((t) => t.status === 'done').length;
         const total = wf.tasks.length;
-        const isOpen = wf.status === 'running' || wf.status === 'planning';
+        const isOpen = wf.status === 'running' || wf.status === 'waiting';
 
         const activeTask = wf.tasks.find((t) => t.status === 'in-progress');
         const wfSummary = (
@@ -998,7 +1057,13 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
         );
 
         return (
-          <DeboRainbowBorder key={wf.changeName} active={wf.status === 'running'} borderRadius={8} borderWidth={2}>
+          <DeboRainbowBorder
+            key={wf.changeName}
+            active={wf.status === 'running' || wf.status === 'waiting'}
+            variant={wf.status === 'waiting' ? 'waiting' : 'running'}
+            borderRadius={8}
+            borderWidth={2}
+          >
             <DeboCollapsible
               title={wfSummary}
               variant="action-summary"

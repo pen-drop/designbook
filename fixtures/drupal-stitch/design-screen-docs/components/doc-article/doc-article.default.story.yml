@@ -1,0 +1,29 @@
+name: "default"
+props:
+  heading: "Hyperstructure Dynamics"
+  badge: "v4.2.0 Stable / Core Architecture"
+slots:
+  hero_image:
+    - type: "image"
+      uri: "https://placehold.co/1200x400/191919/e5e5e5?text=Documentation+Hero"
+  topics:
+    - type: "component"
+      component: "test_integration_drupal:topic-badge"
+      props:
+        label: "Framework Docs"
+        url: "/topics/framework-docs"
+    - type: "component"
+      component: "test_integration_drupal:topic-badge"
+      props:
+        label: "Architecture"
+        url: "/topics/architecture"
+  body:
+    - type: "element"
+      tag: "div"
+      value: "<h2>Fundamental Principles</h2><p>The kinetic monolith approach prioritizes structural integrity over decorative layering. Every surface, every interaction, every transition serves a functional purpose.</p><h3>Spatial Density</h3><p>Hyperstructure uses absolute blacks and surface tints to create depth without visual noise. The interface breathes through calculated negative space.</p><h3>Kinetic Feedback</h3><p>Every interaction provides instant feedback at the hardware level. Animations are physics-based, not decorative — they communicate state changes and spatial relationships.</p><h2>Technical Implementation</h2><p>The monolithic engine configuration provides a single entry point for all rendering operations.</p><pre><code>const engine = createMonolith({\n  density: 'maximum',\n  feedback: 'kinetic',\n  surfaces: ['primary', 'elevated']\n});\n\nengine.render('#root', {\n  theme: 'hyperstructure',\n  responsive: true\n});</code></pre>"
+  next_article:
+    - type: "component"
+      component: "test_integration_drupal:doc-next-article"
+      props:
+        title: "Atmospheric Scaffolding"
+        url: "/docs/atmospheric-scaffolding"

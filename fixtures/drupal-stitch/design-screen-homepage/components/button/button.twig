@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * Template for button component.
+ *
+ * Available variables:
+ * - variant: Button variant (primary, secondary)
+ * - label: Button text
+ * - url: Optional link URL
+ */
+#}
+{% set variant = variant|default('primary') %}
+
+{% set variant_classes = {
+  'primary': 'bg-on-surface text-surface hover:bg-on-surface/90',
+  'secondary': 'border border-outline-variant text-on-surface hover:bg-surface-container',
+} %}
+
+{% set base_classes = ['inline-flex', 'items-center', 'justify-center', 'px-6', 'py-3', 'rounded-md', 'font-label', 'text-sm', 'font-medium', 'transition-colors'] %}
+
+{% if url %}
+<a{{ attributes.addClass(base_classes).addClass(variant_classes[variant]|default('')) }} href="{{ url }}">
+  {{ label }}
+</a>
+{% else %}
+<button{{ attributes.addClass(base_classes).addClass(variant_classes[variant]|default('')) }} type="button">
+  {{ label }}
+</button>
+{% endif %}

@@ -1,0 +1,26 @@
+name: "default"
+props:
+  groups:
+    - label: "Framework Docs"
+      items:
+        - title: "Introduction"
+          icon: "description"
+          url: "/docs/introduction"
+          active: true
+        - title: "Installation"
+          icon: "download"
+          url: "/docs/installation"
+        - title: "Components"
+          icon: "extension"
+          url: "/docs/components"
+        - title: "Deployment"
+          icon: "rocket_launch"
+          url: "/docs/deployment"
+    - label: "Advanced"
+      items:
+        - title: "CLI Reference"
+          icon: "terminal"
+          url: "/docs/cli-reference"
+        - title: "Security Audits"
+          icon: "security"
+          url: "/docs/security-audits"

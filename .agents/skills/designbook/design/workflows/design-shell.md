@@ -10,9 +10,8 @@ stages:
   scene:
     each: scene
     steps: [design-shell:create-scene]
-  verify:
-    each: scene
-    workflow: design-verify
+  outtake:
+    steps: [design-shell:outtake]
 engine: direct
 before:
   - workflow: css-generate

@@ -1,0 +1,67 @@
+content:
+  node:
+    doc:
+      - id: "1"
+        title: "Introduction to Hyperstructure Dynamics"
+        field_body: "<h2>Fundamental Principles</h2><p>The kinetic monolith approach prioritizes structural integrity over decorative layering. Every surface, every interaction, every transition serves a functional purpose within the hyperstructure framework.</p><h3>Spatial Density</h3><p>Hyperstructure uses absolute blacks and surface tints to create depth without visual noise. The interface breathes through calculated negative space, allowing each element room to communicate its purpose.</p><h3>Kinetic Feedback</h3><p>Every interaction provides instant feedback at the hardware level. Animations are physics-based, not decorative — they communicate state changes and spatial relationships between interface elements.</p><h2>Technical Implementation</h2><p>The monolithic engine configuration provides a single entry point for all rendering operations, ensuring consistency across the entire application surface.</p>"
+        field_topic:
+          - "1"
+          - "2"
+        field_next: "2"
+      - id: "2"
+        title: "Atmospheric Scaffolding"
+        field_body: "<h2>Building Ambient Interfaces</h2><p>Atmospheric scaffolding creates layered environments where content exists within a spatial hierarchy. Each layer communicates depth, importance, and interactivity through tonal variation.</p><h3>Surface Tinting</h3><p>Rather than using borders or shadows, atmospheric scaffolding achieves separation through subtle background color shifts. Surfaces stack from darkest (background) to lightest (elevated content).</p><h3>Blur and Transparency</h3><p>Glass-morphism effects create a sense of depth without hard boundaries. Navigation bars use backdrop blur to maintain context while focusing attention on content.</p>"
+        field_topic:
+          - "1"
+        field_next: "3"
+      - id: "3"
+        title: "Component Architecture"
+        field_body: "<h2>Modular Design System</h2><p>Components are the atomic units of the hyperstructure framework. Each component encapsulates its own visual logic, responsive behavior, and interaction patterns.</p><h3>Composition Patterns</h3><p>Components compose through well-defined slots and props. A section component wraps a container, which wraps a grid, which holds content components. This nesting provides predictable layout at every scale.</p><h3>Variant System</h3><p>Rather than creating duplicate components, variants express visual differences through conditional styling. A single card component can render vertically or horizontally based on its variant prop.</p>"
+        field_topic:
+          - "1"
+          - "3"
+        field_next: "4"
+      - id: "4"
+        title: "Deployment Guide"
+        field_body: "<h2>Production Setup</h2><p>Deploying a hyperstructure application requires careful consideration of performance budgets, asset optimization, and caching strategies.</p><h3>Build Pipeline</h3><p>The build process compiles design tokens into CSS custom properties, tree-shakes unused utilities, and generates optimized asset bundles for each deployment target.</p><h3>Performance Monitoring</h3><p>Monitor Core Web Vitals — LCP, FID, and CLS — to ensure the deployed application meets performance standards. The hyperstructure framework is optimized for sub-second initial renders.</p>"
+        field_topic:
+          - "1"
+          - "4"
+        field_next: "5"
+      - id: "5"
+        title: "CLI Reference"
+        field_body: "<h2>Command Line Interface</h2><p>The hyperstructure CLI provides commands for scaffolding, building, testing, and deploying applications.</p><h3>Core Commands</h3><p><code>hs init</code> — Initialize a new project with the hyperstructure template.</p><p><code>hs dev</code> — Start the development server with hot module replacement.</p><p><code>hs build</code> — Create an optimized production build.</p><p><code>hs test</code> — Run the component test suite.</p>"
+        field_topic:
+          - "2"
+        field_next: "6"
+      - id: "6"
+        title: "Security Audits"
+        field_body: "<h2>Security Framework</h2><p>The hyperstructure security model enforces content security policies, input sanitization, and secure rendering practices throughout the component lifecycle.</p><h3>CSP Configuration</h3><p>Strict Content Security Policies prevent XSS attacks by controlling which sources can load scripts, styles, and media. The framework generates nonces for inline styles automatically.</p><h3>Dependency Auditing</h3><p>Regular dependency audits identify and patch vulnerable packages. The CI pipeline includes automated security scanning on every pull request.</p>"
+        field_topic:
+          - "2"
+
+  taxonomy_term:
+    topic:
+      - id: "1"
+        name: "Framework Docs"
+      - id: "2"
+        name: "Advanced"
+      - id: "3"
+        name: "Architecture"
+      - id: "4"
+        name: "DevOps"
+
+  media:
+    image:
+      - id: "1"
+        field_media_image:
+          alt: "Abstract geometric pattern representing hyperstructure dynamics"
+      - id: "2"
+        field_media_image:
+          alt: "Dark atmospheric layers showing depth and transparency effects"
+      - id: "3"
+        field_media_image:
+          alt: "Component architecture diagram with nested modules"
+    video:
+      - id: "1"
+        field_media_video: "https://www.youtube.com/embed/dQw4w9WgXcQ"

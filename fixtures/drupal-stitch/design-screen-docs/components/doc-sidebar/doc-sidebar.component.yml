@@ -1,0 +1,16 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Doc Sidebar"
+status: "experimental"
+group: "Navigation"
+description: "Sidebar navigation with grouped topics and icons for documentation pages"
+provider: "test_integration_drupal"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: "object"
+  properties:
+    groups:
+      type: "array"
+      title: "Groups"
+      description: "Array of navigation groups, each with label and items"

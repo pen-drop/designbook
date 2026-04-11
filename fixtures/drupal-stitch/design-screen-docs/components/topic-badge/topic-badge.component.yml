@@ -1,0 +1,22 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Topic Badge"
+status: "experimental"
+group: "Data Display"
+description: "A small badge/tag for displaying topic or category labels"
+provider: "test_integration_drupal"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: "object"
+  properties:
+    label:
+      type: "string"
+      title: "Label"
+      description: "The topic label text"
+    url:
+      type: "string"
+      title: "URL"
+      description: "Optional URL to the topic page"
+  required:
+    - "label"

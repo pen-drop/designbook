@@ -1,0 +1,27 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "feature-card"
+status: "experimental"
+group: "Data Display"
+description: "Compact card displaying a Material icon, title, and description for feature showcases."
+props:
+  type: "object"
+  properties:
+    icon:
+      title: "Icon"
+      type: "string"
+      description: "Material Symbols Outlined icon name."
+    title:
+      title: "Title"
+      type: "string"
+      description: "Card title."
+    description:
+      title: "Description"
+      type: "string"
+      description: "Card description text."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}

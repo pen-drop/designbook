@@ -1,7 +1,8 @@
 /**
- * DeboRainbowBorder — animated rainbow border wrapper.
+ * DeboRainbowBorder — animated border wrapper with two variants:
+ * - "running" (default): rotating rainbow conic-gradient
+ * - "waiting": pulsing amber glow
  *
- * Wraps children in a container with a rotating conic-gradient border.
  * Uses a single injected <style> for the @keyframes, so multiple instances
  * share the same animation.
  */
@@ -23,15 +24,22 @@ function ensureKeyframes() {
       initial-value: 0deg;
       inherits: false;
     }
+    @keyframes debo-waiting-pulse {
+      0%, 100% { opacity: 0.5; }
+      50%      { opacity: 1; }
+    }
   `;
   document.head.appendChild(style);
 }
 
-const GRADIENT =
+const RAINBOW_GRADIENT =
   'conic-gradient(from var(--debo-rainbow-angle), #f87171, #fb923c, #facc15, #4ade80, #38bdf8, #a78bfa, #f472b6, #f87171)';
+
+const WAITING_GRADIENT = 'linear-gradient(135deg, #f59e0b, #fbbf24, #f59e0b)';
 
 interface DeboRainbowBorderProps {
   active: boolean;
+  variant?: 'running' | 'waiting';
   borderRadius?: number;
   borderWidth?: number;
   style?: React.CSSProperties;
@@ -40,6 +48,7 @@ interface DeboRainbowBorderProps {
 
 export function DeboRainbowBorder({
   active,
+  variant = 'running',
   borderRadius = 8,
   borderWidth = 2,
   style,
@@ -55,6 +64,8 @@ export function DeboRainbowBorder({
     return <div style={style}>{children}</div>;
   }
 
+  const isWaiting = variant === 'waiting';
+
   return (
     <div
       ref={ref}
@@ -62,8 +73,8 @@ export function DeboRainbowBorder({
         position: 'relative',
         borderRadius,
         padding: borderWidth,
-        background: GRADIENT,
-        animation: 'debo-rainbow-spin 3s linear infinite',
+        background: isWaiting ? WAITING_GRADIENT : RAINBOW_GRADIENT,
+        animation: isWaiting ? 'debo-waiting-pulse 2s ease-in-out infinite' : 'debo-rainbow-spin 3s linear infinite',
         ...style,
       }}
     >

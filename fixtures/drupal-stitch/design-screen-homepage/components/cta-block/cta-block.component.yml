@@ -1,0 +1,27 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "cta-block"
+status: "experimental"
+group: "Data Display"
+description: "Centered call-to-action block with heading, description, and action buttons."
+props:
+  type: "object"
+  properties:
+    heading:
+      title: "Heading"
+      type: "string"
+      description: "CTA heading text."
+    description:
+      title: "Description"
+      type: "string"
+      description: "Optional description below the heading."
+slots:
+  actions:
+    title: "Actions"
+    description: "Action buttons (primary and secondary CTAs)."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}

@@ -12,8 +12,10 @@ import {
   isGitRepo,
   createGitWorktree,
   checkPreflightClean,
+  expandTasksFromParams,
   type WorkflowFile,
 } from '../../workflow.js';
+import type { ResolvedStep } from '../../workflow-resolve.js';
 
 vi.mock('node:child_process', () => ({
   execFileSync: vi.fn(),
@@ -51,7 +53,7 @@ describe('workflowCreate', () => {
     const data = readWorkflowFile(dist, name);
     expect(data.title).toBe('My Vision');
     expect(data.workflow).toBe('debo-vision');
-    expect(data.status).toBe('planning');
+    expect(data.status).toBe('running');
   });
 
   it('creates first task with in-progress status and started_at', () => {
@@ -114,10 +116,10 @@ describe('workflowCreate', () => {
     expect(data.parent).toBeUndefined();
   });
 
-  it('creates planning workflow with empty tasks', () => {
+  it('creates running workflow with empty tasks', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
     const data = readWorkflowFile(dist, name);
-    expect(data.status).toBe('planning');
+    expect(data.status).toBe('running');
     expect(data.tasks).toHaveLength(0);
   });
 });
@@ -217,7 +219,7 @@ describe('workflowPlan', () => {
     dist = mkdtempSync(resolve(tmpdir(), 'wf-plan-'));
   });
 
-  it('adds tasks to a planning-status workflow and sets first to in-progress', () => {
+  it('adds tasks to a running workflow and sets first to in-progress', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
     workflowPlan(dist, name, [{ id: 'task1', title: 'Task 1', type: 'data' }]);
     const data = readWorkflowFile(dist, name);
@@ -233,11 +235,11 @@ describe('workflowPlan', () => {
     expect(data.stages).toEqual({ execute: { steps: ['dialog', 'create-tokens'] } });
   });
 
-  it('keeps status as planning', () => {
+  it('keeps status as running after plan', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
     workflowPlan(dist, name, [{ id: 'task1', title: 'T1', type: 'data' }]);
     const data = readWorkflowFile(dist, name);
-    expect(data.status).toBe('planning');
+    expect(data.status).toBe('running');
   });
 
   it('stores write_root and root_dir when provided', () => {
@@ -457,7 +459,7 @@ describe('workflowDone', () => {
     await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow('not yet written');
   });
 
-  it('throws when all files have unresolved placeholders and none exist on disk', async () => {
+  it('throws when all files have unresolved placeholders and none were written', async () => {
     name = workflowCreate(dist, 'debo-vision', 'Vision', [
       {
         id: 'task1',
@@ -1091,5 +1093,160 @@ describe('workflowDone stage-based response', () => {
     expect(result.archived).toBe(true);
     expect(result.response).toBeDefined();
     expect(result.response!.stage).toBe('done');
+  });
+});
+
+// ── expandTasksFromParams: when.type filtering ─────────────────────────────
+
+describe('expandTasksFromParams when-condition filtering', () => {
+  let taskDir: string;
+
+  beforeEach(() => {
+    taskDir = mkdtempSync(resolve(tmpdir(), 'wf-when-type-'));
+
+    // Task file with when.type: screenshot
+    writeFileSync(
+      resolve(taskDir, 'capture.md'),
+      [
+        '---',
+        'when:',
+        '  steps: [capture]',
+        '  type: screenshot',
+        'params:',
+        '  scene: ~',
+        '  breakpoint: ~',
+        '  region: ~',
+        '  type: ~',
+        'files: []',
+        '---',
+        '# Capture',
+      ].join('\n'),
+    );
+
+    // Task file with when.type: markup
+    writeFileSync(
+      resolve(taskDir, 'compare-markup.md'),
+      [
+        '---',
+        'when:',
+        '  steps: [compare]',
+        '  type: markup',
+        'params:',
+        '  scene: ~',
+        '  breakpoint: ~',
+        '  type: ~',
+        'files: []',
+        '---',
+        '# Compare Markup',
+      ].join('\n'),
+    );
+
+    // Task file with when.type: screenshot
+    writeFileSync(
+      resolve(taskDir, 'compare-screenshots.md'),
+      [
+        '---',
+        'when:',
+        '  steps: [compare]',
+        '  type: screenshot',
+        'params:',
+        '  scene: ~',
+        '  breakpoint: ~',
+        '  region: ~',
+        '  type: ~',
+        'files: []',
+        '---',
+        '# Compare Screenshots',
+      ].join('\n'),
+    );
+  });
+
+  function makeStageLoaded(): Record<string, ResolvedStep | ResolvedStep[]> {
+    return {
+      capture: {
+        task_file: resolve(taskDir, 'capture.md'),
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+      },
+      compare: [
+        {
+          task_file: resolve(taskDir, 'compare-markup.md'),
+          rules: [],
+          blueprints: [],
+          config_rules: [],
+          config_instructions: [],
+        },
+        {
+          task_file: resolve(taskDir, 'compare-screenshots.md'),
+          rules: [],
+          blueprints: [],
+          config_rules: [],
+          config_instructions: [],
+        },
+      ],
+    };
+  }
+
+  it('filters tasks by when.type — screenshot items only get screenshot tasks', () => {
+    const stages = { test: { each: 'checks', steps: ['capture', 'compare'] } };
+    const params = {
+      scene: 'design-system:shell',
+      checks: [
+        { scene: 'design-system:shell', breakpoint: 'xl', region: 'header', type: 'screenshot' },
+        { scene: 'design-system:shell', breakpoint: 'xl', region: 'markup', type: 'markup' },
+      ],
+    };
+
+    const tasks = expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
+
+    // Screenshot check should get: capture + compare-screenshots (2 tasks)
+    // Markup check should get: compare-markup only (1 task, no capture)
+    const screenshotTasks = tasks.filter((t) => t.params?.type === 'screenshot');
+    const markupTasks = tasks.filter((t) => t.params?.type === 'markup');
+
+    expect(screenshotTasks).toHaveLength(2);
+    expect(screenshotTasks.map((t) => t.step)).toEqual(['capture', 'compare']);
+
+    expect(markupTasks).toHaveLength(1);
+    expect(markupTasks[0]!.step).toBe('compare');
+    expect(markupTasks[0]!.task_file).toContain('compare-markup.md');
+  });
+
+  it('screenshot compare resolves to compare-screenshots task file', () => {
+    const stages = { test: { each: 'checks', steps: ['compare'] } };
+    const params = {
+      scene: 'design-system:shell',
+      checks: [{ scene: 'design-system:shell', breakpoint: 'xl', region: 'header', type: 'screenshot' }],
+    };
+
+    const tasks = expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.task_file).toContain('compare-screenshots.md');
+  });
+
+  it('markup compare resolves to compare-markup task file', () => {
+    const stages = { test: { each: 'checks', steps: ['compare'] } };
+    const params = {
+      scene: 'design-system:shell',
+      checks: [{ scene: 'design-system:shell', breakpoint: 'xl', region: 'markup', type: 'markup' }],
+    };
+
+    const tasks = expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.task_file).toContain('compare-markup.md');
+  });
+
+  it('when.type filters before param validation — mismatched type skips task entirely', () => {
+    const stages = { test: { each: 'checks', steps: ['capture'] } };
+    const params = {
+      scene: 'design-system:shell',
+      checks: [{ scene: 'design-system:shell', breakpoint: 'xl', region: 'markup', type: 'markup' }],
+    };
+
+    // capture has when.type: screenshot — markup item should produce zero capture tasks
+    const tasks = expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
+    expect(tasks).toHaveLength(0);
   });
 });

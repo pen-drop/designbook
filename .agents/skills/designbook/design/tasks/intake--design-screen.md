@@ -28,7 +28,7 @@ Wait for their response before continuing.
 
 > ⛔ **MANDATORY**: Execute this step before any screen determination or component planning.
 
-Follow the process in [resolve-design-reference.md](partials/resolve-design-reference.md).
+Resolve the design reference from `params.reference`. Apply any matched rules for the reference source type (e.g. `provide-stitch-url` for Stitch references) to obtain the final reference URL.
 
 If a reference was loaded, use it as the primary input for all subsequent steps. When planning screens and components, **derive them from the reference** rather than asking the user speculative questions.
 
@@ -179,4 +179,22 @@ Follow the process in [structure-preview.md](partials/structure-preview.md).
 - Reference the shell for navigation context
 - Each screen should address specific user flows from the section spec
 - Consider responsive behavior for all screens
-- The `scene` iterable items must use `group:sceneName` format matching `_debo story --scene` resolution. E.g. `{ "scene": "homepage:landing" }`, `{ "scene": "blog:overview" }`
+
+## Step 8: Complete Intake
+
+Mark intake done with `--params` that populate **both** the `component` and `scene` iterables:
+
+```bash
+_debo workflow done --workflow $WORKFLOW_NAME --task intake --params '{
+  "component": [
+    { "component": "hero", "slots": ["preheadline", "heading", "description", "actions", "media"] },
+    { "component": "feature-card", "slots": ["icon", "title", "description"] }
+  ],
+  "scene": [
+    { "scene": "homepage:landing" }
+  ]
+}'
+```
+
+- **`component`**: one entry per new component from Step 5. Each item needs `component` (name) and `slots` (array).
+- **`scene`**: one entry per screen from Step 3. Each item uses `group:sceneName` format matching `_debo story --scene` resolution. E.g. `{ "scene": "homepage:landing" }`, `{ "scene": "blog:overview" }`.

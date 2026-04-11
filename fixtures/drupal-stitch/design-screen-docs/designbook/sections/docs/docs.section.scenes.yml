@@ -1,0 +1,113 @@
+id: "docs"
+title: "Documentation"
+description: "Documentation section with articles, topic navigation, and rich text content for guides and tutorials"
+status: "in-progress"
+order: 2
+
+group: "Designbook/Sections/Documentation"
+scenes:
+  - name: "detail"
+    section: "docs"
+    items:
+      - scene: "design-system:shell"
+        with:
+          content:
+            - component: "test_integration_drupal:container"
+              props:
+                max_width: "xl"
+                padding_top: "md"
+                padding_bottom: "md"
+              slots:
+                content:
+                  - component: "test_integration_drupal:doc-sidebar"
+                    props:
+                      groups:
+                        - label: "Framework Docs"
+                          items:
+                            - title: "Introduction"
+                              icon: "description"
+                              url: "/docs/introduction"
+                              active: true
+                            - title: "Atmospheric Scaffolding"
+                              icon: "layers"
+                              url: "/docs/atmospheric-scaffolding"
+                            - title: "Components"
+                              icon: "extension"
+                              url: "/docs/components"
+                            - title: "Deployment"
+                              icon: "rocket_launch"
+                              url: "/docs/deployment"
+                        - label: "Advanced"
+                          items:
+                            - title: "CLI Reference"
+                              icon: "terminal"
+                              url: "/docs/cli-reference"
+                            - title: "Security Audits"
+                              icon: "security"
+                              url: "/docs/security-audits"
+                  - entity: "node.doc"
+                    view_mode: "full"
+                    record: 0
+
+  - name: "overview"
+    section: "docs"
+    items:
+      - scene: "design-system:shell"
+        with:
+          content:
+            - component: "test_integration_drupal:container"
+              props:
+                max_width: "xl"
+                padding_top: "md"
+                padding_bottom: "md"
+              slots:
+                content:
+                  - component: "test_integration_drupal:doc-sidebar"
+                    props:
+                      groups:
+                        - label: "Framework Docs"
+                          items:
+                            - title: "Introduction"
+                              icon: "description"
+                              url: "/docs/introduction"
+                            - title: "Atmospheric Scaffolding"
+                              icon: "layers"
+                              url: "/docs/atmospheric-scaffolding"
+                            - title: "Components"
+                              icon: "extension"
+                              url: "/docs/components"
+                            - title: "Deployment"
+                              icon: "rocket_launch"
+                              url: "/docs/deployment"
+                        - label: "Advanced"
+                          items:
+                            - title: "CLI Reference"
+                              icon: "terminal"
+                              url: "/docs/cli-reference"
+                            - title: "Security Audits"
+                              icon: "security"
+                              url: "/docs/security-audits"
+                  - component: "test_integration_drupal:grid"
+                    props:
+                      columns: 3
+                      gap: "md"
+                    slots:
+                      items:
+                        - entity: "node.doc"
+                          view_mode: "teaser"
+                          record: 0
+                        - entity: "node.doc"
+                          view_mode: "teaser"
+                          record: 1
+                        - entity: "node.doc"
+                          view_mode: "teaser"
+                          record: 2
+                        - entity: "node.doc"
+                          view_mode: "teaser"
+                          record: 3
+                        - entity: "node.doc"
+                          view_mode: "teaser"
+                          record: 4
+                        - entity: "node.doc"
+                          view_mode: "teaser"
+                          record: 5

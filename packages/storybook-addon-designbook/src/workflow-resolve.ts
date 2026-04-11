@@ -225,6 +225,8 @@ export function checkWhen(
 ): number | false {
   for (const [key, value] of Object.entries(when)) {
     const actual = lookup(key, context, config);
+    // Key not found in context or config → skip (deferred to expansion time)
+    if (actual === undefined) continue;
     if (Array.isArray(value)) {
       if (!value.map(String).includes(String(actual ?? ''))) return false;
     } else if (Array.isArray(actual)) {
@@ -843,14 +845,6 @@ export interface ExpectedParam {
   default?: unknown;
 }
 
-export interface SubworkflowResolved {
-  workflowFile: string;
-  title: string;
-  steps: string[];
-  stages?: Record<string, StageDefinitionFm>;
-  step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
-}
-
 export interface ResolvedSteps {
   title: string;
   steps: string[];
@@ -858,32 +852,6 @@ export interface ResolvedSteps {
   engine?: string;
   step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
   expected_params: Record<string, ExpectedParam>;
-  subworkflows?: Record<string, SubworkflowResolved>;
-}
-
-/**
- * Validate stage definitions: workflow/steps mutual exclusivity,
- * workflow requires each.
- */
-export function validateStageDefinitions(stages: Record<string, StageDefinitionFm>): void {
-  for (const [name, def] of Object.entries(stages)) {
-    if (def.workflow && def.steps && def.steps.length > 0) {
-      throw new Error(`Stage "${name}": "workflow" and "steps" are mutually exclusive`);
-    }
-    if (def.workflow && !def.each) {
-      throw new Error(`Stage "${name}": "workflow" requires "each"`);
-    }
-  }
-}
-
-/**
- * Resolve a workflow ID to a file path by scanning skill directories.
- * Searches for `workflows/<id>.md` files in all skill subdirectories.
- */
-export function resolveWorkflowFileById(workflowId: string, agentsDir: string): string | null {
-  const pattern = resolve(agentsDir, 'skills', '**', 'workflows', `${workflowId}.md`);
-  const matches = globSync(pattern);
-  return matches.length > 0 ? matches[0]! : null;
 }
 
 /**
@@ -898,11 +866,6 @@ export function resolveAllStages(
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
   const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
 
-  // Validate stage definitions
-  if (stageDefs) {
-    validateStageDefinitions(stageDefs);
-  }
-
   const allSteps = wfFm ? getWorkflowSteps(wfFm) : undefined;
   if (!allSteps && !stageDefs) {
     throw new Error(`No steps found in frontmatter of ${workflowFilePath}`);
@@ -914,26 +877,6 @@ export function resolveAllStages(
   const stepResolved: Record<string, ResolvedStep | ResolvedStep[]> = {};
   const resolvedSteps: string[] = [];
   const expectedParams: Record<string, ExpectedParam> = {};
-
-  // Resolve subworkflow stages: stages with `workflow:` instead of `steps:`
-  const subworkflows: Record<string, SubworkflowResolved> = {};
-  if (stageDefs) {
-    for (const [stageName, def] of Object.entries(stageDefs)) {
-      if (!def.workflow) continue;
-      const subWorkflowFile = resolveWorkflowFileById(def.workflow, agentsDir);
-      if (!subWorkflowFile) {
-        throw new Error(`Stage "${stageName}": subworkflow "${def.workflow}" not found`);
-      }
-      const subResolved = resolveAllStages(subWorkflowFile, config, rawConfig, agentsDir);
-      subworkflows[stageName] = {
-        workflowFile: subWorkflowFile,
-        title: subResolved.title,
-        steps: subResolved.steps,
-        stages: subResolved.stages,
-        step_resolved: subResolved.step_resolved,
-      };
-    }
-  }
 
   for (const step of allSteps ?? []) {
     const resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir);
@@ -1019,7 +962,6 @@ export function resolveAllStages(
     ...(wfFm?.engine ? { engine: wfFm.engine } : {}),
     step_resolved: stepResolved,
     expected_params: expectedParams,
-    ...(Object.keys(subworkflows).length > 0 ? { subworkflows } : {}),
   };
 }
 

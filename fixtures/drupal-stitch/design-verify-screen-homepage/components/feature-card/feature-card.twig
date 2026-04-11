@@ -1,0 +1,24 @@
+{#
+/**
+ * @file
+ * Template for feature-card component.
+ *
+ * Available variables:
+ * - icon: Material icon name
+ * - title: Card title
+ * - description: Card description text
+ */
+#}
+<div{{ attributes.addClass(['rounded-lg', 'border', 'border-outline', 'bg-surface', 'p-6', 'text-center']) }}>
+  {% if icon %}
+    <div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center mx-auto mb-4">
+      <span class="material-symbols-outlined text-on-secondary-container text-2xl">{{ icon }}</span>
+    </div>
+  {% endif %}
+  {% if title %}
+    <h3 class="text-2xl font-heading font-semibold leading-[1.3] text-on-surface mb-2">{{ title }}</h3>
+  {% endif %}
+  {% if description %}
+    <p class="text-base font-body leading-relaxed text-on-surface-variant">{{ description }}</p>
+  {% endif %}
+</div>

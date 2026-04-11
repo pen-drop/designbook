@@ -19,43 +19,54 @@ reads:
 
 # Verify
 
-Re-captures the Storybook screenshot after polish and compares it against the reference to show what improved. Uses `DeboStory` entity for check data.
+Re-evaluates after polish + recapture. Determines if issues are resolved and writes final results via CLI.
 
 ## Execution
 
 Verify compares existing screenshots (captured by the `recapture` task) — it does NOT restart Storybook or re-capture.
 
-1. **Read both images** side by side:
+1. **Read issues** for this check:
+   ```bash
+   _debo story issues --scene ${scene} --check ${breakpoint}--${region}
+   ```
+
+2. **Re-compare** based on issue source:
+
+   **For screenshot issues** — read both images side by side:
    - Reference: `designbook/stories/${storyId}/screenshots/reference/${breakpoint}--${region}.png`
    - Current (after polish): `designbook/stories/${storyId}/screenshots/current/${breakpoint}--${region}.png`
 
-2. **Compare visually** and produce a verdict:
+   Compare visually and determine if the issue is resolved.
 
-   | Aspect | Before Polish | After Polish | Improved? |
-   |--------|--------------|-------------|-----------|
-   | Layout | ... | ... | yes/no |
-   | Colors | ... | ... | yes/no |
-   | Typography | ... | ... | yes/no |
-   | Spacing | ... | ... | yes/no |
+   **For extraction issues** — if extraction files exist, re-diff the specific properties mentioned in the issue. Otherwise evaluate visually from screenshots.
 
-3. **Update check result** via entity — persist the final diff result:
+3. **Update each issue** with the result:
    ```bash
-   _debo story check --scene ${scene} --json '{"breakpoint":"<breakpoint>","region":"<region>","status":"pass","diff":1.2,"issues":[]}'
+   _debo story issues --scene ${scene} --check ${breakpoint}--${region} --update <index> --json '{"status":"done","result":"pass"}'
+   ```
+   Or if still present:
+   ```bash
+   _debo story issues --scene ${scene} --check ${breakpoint}--${region} --update <index> --json '{"status":"done","result":"fail"}'
    ```
 
-4. **Report** the final status for this breakpoint/region.
+4. **Close the check** with overall verdict:
+   ```bash
+   _debo story check --scene ${scene} --json '{"breakpoint":"${breakpoint}","region":"${region}","status":"done","result":"pass|fail"}'
+   ```
+   - `result: "pass"` if ALL issues have `result: "pass"`
+   - `result: "fail"` if ANY issue has `result: "fail"`
 
 ## Output
 
 ```
 ## Verify: {scene} ({breakpoint}/{region})
 
-**Result:** PASS (1.2% diff, threshold 3%)
+**Result:** PASS
 
-| Aspect | Before | After | Status |
-|--------|--------|-------|--------|
-| Header layout | Misaligned logo | Fixed | PASS |
-| Footer links | Wrong order | Fixed | PASS |
+| Issue | Before | After | Result |
+|-------|--------|-------|--------|
+| Hero Heading fontSize (3rem) | 2.5rem | 3rem | PASS |
+| Header diff (threshold 3%) | 4.2% | 1.8% | PASS |
 ```
 
-If all regions pass, the scene is verified. If any fail, report remaining issues for manual review.
+If all issues pass, the check is verified. If any fail, report remaining issues for manual review.

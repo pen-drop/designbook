@@ -14,9 +14,8 @@ stages:
   scene:
     each: scene
     steps: [design-screen:create-scene]
-  verify:
-    each: scene
-    workflow: design-verify
+  outtake:
+    steps: [design-screen:outtake]
 engine: direct
 before:
   - workflow: css-generate

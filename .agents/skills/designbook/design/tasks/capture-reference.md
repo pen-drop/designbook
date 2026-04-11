@@ -3,6 +3,7 @@ name: designbook:design:capture-reference
 title: "Capture Reference: {scene} ({breakpoint}/{region})"
 when:
   steps: [capture]
+  type: screenshot
 priority: 10
 params:
   scene: ~
@@ -19,16 +20,7 @@ reads:
 
 # Capture Reference
 
-Captures reference screenshots by loading the source URL at each breakpoint viewport width via Playwright. Uses the `DeboStoryCheck` test item for all parameters.
-
-## Params (from DeboStoryCheck test item)
-
-| Param | Source | Description |
-|---|---|---|
-| `scene` | test item | Scene reference in `group:sceneName` format |
-| `storyId` | test item | Story identifier |
-| `breakpoint` | test item | Breakpoint name |
-| `region` | test item | Region name |
+Captures a reference screenshot by loading the source URL at the given breakpoint viewport width via Playwright.
 
 ## Execution
 
@@ -38,7 +30,7 @@ Captures reference screenshots by loading the source URL at each breakpoint view
    ```
    Read the `reference.url` from the story JSON output. If no reference URL is available, skip with a warning.
 
-   **Download URLs:** If the reference URL triggers a file download instead of rendering in the browser (e.g., Google Stitch `htmlCode.downloadUrl`), download it first:
+   **Download URLs:** If the reference URL triggers a file download instead of rendering in the browser (e.g., a provider-specific download endpoint), download it first:
    ```bash
    curl -sL "$URL" -o /tmp/reference-${storyId}.html
    ```

@@ -30,9 +30,22 @@ Summarizes all check results and determines whether the workflow is complete or 
    | sm | markup | FAIL | — | missing logo |
    | xl | footer | FAIL | 4.8% | color mismatch |
 
-4. **Verdict:**
-   - **All pass** → "All checks passed. Workflow complete."
-   - **Failures remain** → List remaining issues and output: "Re-run `/debo design-verify` to continue polishing. Reference screenshots and passing checks will be preserved."
+4. **List all issues with status:**
+   ```bash
+   _debo story issues --scene ${scene}
+   ```
+
+   Show each issue with its ID, severity, description, and result (pass/fail/open):
+
+   | ID | Severity | Description | Result |
+   |----|----------|-------------|--------|
+   | issue-001 | critical | Hero Heading: fontSize 14px → 48px, ... | pass |
+   | issue-002 | major | Navigation: gap 8px → 16px, ... | pass |
+   | issue-003 | major | Footer Copyright: color ... | fail |
+
+5. **Verdict:**
+   - **All issues resolved** → "All issues fixed. Workflow complete."
+   - **Open/failed issues remain** → List them and output: "Re-run `/debo design-verify` to continue polishing. Reference screenshots and passing checks will be preserved."
 
 ## Output
 
@@ -44,6 +57,12 @@ Summarizes all check results and determines whether the workflow is complete or 
 
 | Breakpoint | Region | Status | Details |
 |-----------|--------|--------|---------|
+| ... | ... | ... | ... |
+
+### Issues
+
+| ID | Severity | Description | Result |
+|----|----------|-------------|--------|
 | ... | ... | ... | ... |
 
 {verdict}

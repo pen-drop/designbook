@@ -1,6 +1,6 @@
 ---
 when:
-  steps: [intake]
+  steps: [design-verify:intake]
 params:
   scene: ~
   reference: []
@@ -79,7 +79,8 @@ Build the full breakpoints × regions matrix:
   "reference": {
     "source": {
       "url": "<reference[0].url>",
-      "origin": "<reference[0].type>"
+      "origin": "<reference[0].type>",
+      "hasMarkup": true
     },
     "breakpoints": {
       "<bp1>": { "threshold": <threshold>, "regions": { "<region>": {}, ... } },
@@ -105,14 +106,13 @@ If the command fails (no reference, no checks), report the error and pause.
 
 ### 3c. Apply matched rules (before story creation)
 
-Before calling `_debo story checks`, check loaded rules that modify the reference:
-- **`provide-stitch-url`**: If reference origin is `stitch`, call the Stitch MCP server (`mcp__stitch__get_screen`) to resolve the screen ID. Extract `htmlCode.downloadUrl` as the reference URL and set `origin: stitch` in the meta-seed.
+Before calling `_debo story checks`, apply all loaded rules for this stage that modify the reference. Rules may resolve provider-specific URLs, set additional fields on `reference.source` (e.g. `hasMarkup`), or transform the meta-seed.
 
-Apply rule modifications to the meta-seed JSON before passing it to the CLI.
+Apply rule modifications to the meta-seed JSON before passing it to the CLI. The `reference.source` object in the meta-seed must include all fields returned by provider rules — not just `url` and `origin`.
 
 ## Step 4: Complete with Checks
 
-Pass the checks array and `scene` param to `workflow done`. The `scene` param is required by capture/compare/polish tasks — it must be a top-level param alongside `checks`.
+Pass the checks array and `scene` param to `workflow done`. The checks array includes `type` (`"markup"` or `"screenshot"`) on each check, with markup checks ordered first.
 
 ```bash
 _debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID \

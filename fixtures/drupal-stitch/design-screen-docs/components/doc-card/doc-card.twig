@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Template for doc-card component.
+ *
+ * Available variables:
+ * - title: Card title
+ * - excerpt: Short description text
+ * - topics: Topics slot (topic-badge components)
+ * - url: Link to the full article
+ */
+#}
+<a{{ attributes.addClass(['block', 'group', 'rounded-lg', 'border', 'border-outline-variant', 'bg-surface-container', 'p-6', 'hover:border-outline', 'hover:bg-surface-container-high', 'transition-colors']) }} href="{{ url|default('#') }}">
+  {% if title %}
+    <h3 class="text-title font-heading font-semibold text-on-surface group-hover:text-primary transition-colors mb-2">{{ title }}</h3>
+  {% endif %}
+  {% if excerpt %}
+    <p class="text-label-text font-body text-on-surface-variant leading-relaxed mb-4">{{ excerpt }}</p>
+  {% endif %}
+  {% if topics %}
+    <div class="flex flex-wrap gap-2">
+      {{ topics }}
+    </div>
+  {% endif %}
+</a>

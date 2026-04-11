@@ -186,7 +186,7 @@ Mark a task as done. Triggers stage transitions and auto-archives when all tasks
 | `--loaded <json>` | No | Stage context payload for observability (task_file, rules, config_rules, config_instructions) |
 
 **Gate checks before marking done:**
-- All declared files must be written and valid
+- All declared files must be written via `write-file` and valid
 - Files with unresolved `{param}` placeholders are skipped
 
 **Output:**
@@ -231,6 +231,21 @@ Parse the `RESPONSE:` JSON line — it drives all subsequent actions.
 ```json
 { "stage": "create-vision", "transition_from": "...", "next_stage": "create-vision", "next_step": "create-vision", "expanded_tasks": [{ "id": "...", "step": "...", "stage": "...", "title": "..." }] }
 ```
+
+## `workflow wait`
+
+Set workflow status to `waiting`. Use before asking the user a question. The Storybook panel shows an amber pulse animation and the optional message.
+
+```bash
+_debo workflow wait --workflow <name> [--message "<question for the user>"]
+```
+
+| Option | Description |
+|--------|------------|
+| `--workflow` | Workflow name (required) |
+| `--message` | Question or prompt to display in the workflow panel (optional) |
+
+The workflow transitions `running → waiting`. The next CLI call (`done`, `write-file`, or `instructions`) automatically transitions back to `running` and clears the message.
 
 ## `workflow abandon`
 

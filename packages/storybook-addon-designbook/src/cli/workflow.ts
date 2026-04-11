@@ -1,5 +1,5 @@
 import { resolve, dirname } from 'node:path';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
 import {
@@ -12,6 +12,7 @@ import {
   workflowList,
   workflowDone,
   workflowAbandon,
+  workflowWait,
   workflowMerge,
   isGitRepo,
   resolveEngine,
@@ -20,7 +21,7 @@ import {
 } from '../workflow.js';
 import type { StageDefinition } from '../workflow-types.js';
 import { engines as engineRegistry } from '../engines/index.js';
-import { load as parseYaml } from 'js-yaml';
+import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
 import { resolveAllStages, parseFrontmatter, buildEnvMap, type ResolvedStep } from '../workflow-resolve.js';
 
 /**
@@ -215,7 +216,6 @@ export function register(program: Command): void {
           opts.parent,
           resolved.step_resolved,
           resolved.engine,
-          resolved.subworkflows,
           initialParams,
         );
 
@@ -284,32 +284,16 @@ export function register(program: Command): void {
       }
 
       const data = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as Record<string, unknown>;
-      const stages = data.stages as Record<string, { steps?: string[]; workflow?: string; each?: string }> | undefined;
-      const stageLoaded = data.stage_loaded as Record<string, unknown> | undefined;
 
-      // Subworkflow dispatch stage — return dispatch metadata
-      const stageDef = stages?.[opts.stage];
-      if (stageDef?.workflow && stageDef?.each) {
-        const subworkflows = data.subworkflows as Record<string, { workflowFile?: string }> | undefined;
-        const subData = subworkflows?.[opts.stage];
-        const params = data.params as Record<string, unknown> | undefined;
-        const iterables = (params?.[stageDef.each] ?? []) as Array<Record<string, unknown>>;
-
-        console.log(
-          JSON.stringify(
-            {
-              stage: opts.stage,
-              dispatch: true,
-              workflow: stageDef.workflow,
-              workflow_file: subData?.workflowFile ?? '',
-              items: iterables.map((item) => ({ ...params, ...item })),
-            },
-            null,
-            2,
-          ),
-        );
-        return;
+      // Transition from waiting back to running when AI resumes work
+      if (data.status === 'waiting') {
+        data.status = 'running';
+        delete (data as Record<string, unknown>).waiting_message;
+        writeFileSync(tasksYmlPath, stringifyYaml(data));
       }
+
+      const stages = data.stages as Record<string, { steps?: string[]; each?: string }> | undefined;
+      const stageLoaded = data.stage_loaded as Record<string, unknown> | undefined;
 
       // Resolve stage name: try direct key first, then look up via stages definition
       let resolvedKey = opts.stage;
@@ -428,7 +412,8 @@ export function register(program: Command): void {
       '--loaded <json>',
       'JSON payload with stage context (task_file, rules, config_rules, config_instructions) and task validation results',
     )
-    .action(async (opts: { workflow: string; task: string; params?: string; loaded?: string }) => {
+    .option('--summary <text>', 'Short human-readable result summary for the task')
+    .action(async (opts: { workflow: string; task: string; params?: string; loaded?: string; summary?: string }) => {
       const config = loadConfig();
       let loaded;
       if (opts.loaded) {
@@ -489,7 +474,7 @@ export function register(program: Command): void {
           }
         }
 
-        const result = await workflowDone(config.data, opts.workflow, opts.task, loaded);
+        const result = await workflowDone(config.data, opts.workflow, opts.task, loaded, { summary: opts.summary });
         const { data, response } = result;
 
         if (result.archived) {
@@ -518,6 +503,28 @@ export function register(program: Command): void {
         if (responseObj) {
           console.log(`\nRESPONSE: ${JSON.stringify(responseObj)}`);
         }
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('wait')
+    .description('Set workflow status to waiting (AI needs user input).')
+    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+    .option('--message <text>', 'Question or prompt to display in the workflow panel')
+    .action((opts: { workflow: string; message?: string }) => {
+      const config = loadConfig();
+      try {
+        workflowWait(config.data, opts.workflow, opts.message);
+        console.log(
+          JSON.stringify({
+            status: 'waiting',
+            workflow: opts.workflow,
+            ...(opts.message ? { message: opts.message } : {}),
+          }),
+        );
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;

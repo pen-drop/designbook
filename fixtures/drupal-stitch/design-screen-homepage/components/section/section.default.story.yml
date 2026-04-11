@@ -1,0 +1,29 @@
+name: "Default"
+props:
+  max_width: "lg"
+  padding_top: "md"
+  padding_bottom: "md"
+  columns: 3
+  gap: "md"
+slots:
+  column_1:
+    - type: "component"
+      component: "test_integration_drupal:feature-card"
+      props:
+        icon: "token"
+        title: "Figma Plugin"
+        description: "Import designs directly from Figma."
+  column_2:
+    - type: "component"
+      component: "test_integration_drupal:feature-card"
+      props:
+        icon: "grid_view"
+        title: "Stitch Weaver"
+        description: "Visual design-to-code workflows."
+  column_3:
+    - type: "component"
+      component: "test_integration_drupal:feature-card"
+      props:
+        icon: "upload_file"
+        title: "Schema Import"
+        description: "Import existing component schemas."

@@ -1,0 +1,18 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:doc-card",
+      "props": {
+        "title": $fields.title,
+        "excerpt": $substring($fields.field_body, 0, 150) & "...",
+        "url": "/docs/" & $fields.id
+      },
+      "slots": {
+        "topics": $map($fields.field_topic, function($id) {
+          { "entity": "taxonomy_term.topic", "view_mode": "full", "record": $number($id) - 1 }
+        })
+      }
+    }
+  ]
+)

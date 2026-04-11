@@ -63,7 +63,7 @@ After the workflow completes:
 2. Run `git diff --name-only` and `git ls-files --others --exclude-standard` to find changed/new files
 3. Exclude `.agents/`, `.claude/`, `openspec/`, `.storybook/`, `node_modules/` from the list
 4. Display the list of changed files to the user
-5. Ask: "Save as fixture? Enter name (default: <workflow-name>) or 'n' to skip"
+5. Ask: "Save as fixture? Enter name (default: <case>) or 'n' to skip"
 6. If the user provides a name (or accepts default):
    - For each changed/new file, copy it to `fixtures/<suite>/<fixture-name>/` preserving the workspace-relative path
    - Report: "✓ Fixture saved to fixtures/<suite>/<fixture-name>/"

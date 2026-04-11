@@ -37,7 +37,6 @@ export interface StageParam {
 
 export interface StageDefinition {
   steps?: string[];
-  workflow?: string;
   each?: string;
   params?: Record<string, StageParam>;
 }
@@ -59,12 +58,15 @@ export interface WorkflowTask {
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[]; // produced files, each with its own validation state
+  description?: string; // detailed task description, set at completion
+  summary?: string; // short human-readable result summary, set at completion
 }
 
 export interface WorkflowTaskFile {
   title: string;
   workflow: string;
-  status?: 'planning' | 'running' | 'completed' | 'incomplete';
+  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
+  waiting_message?: string; // question/prompt shown when status is 'waiting'
   parent?: string;
   params?: Record<string, unknown>; // global intake params (accessible to all subagents)
   current_stage?: string; // current lifecycle stage (planned, execute, committed, test, preview, finalizing, done)

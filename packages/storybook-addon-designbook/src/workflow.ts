@@ -17,6 +17,7 @@ import {
   parseFrontmatter,
   validateAndMergeParams,
   generateTaskId,
+  expandParams,
   generateTaskTitle,
   inferTaskType,
   expandFileDeclarations,
@@ -66,12 +67,15 @@ export interface WorkflowTask {
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[];
   iteration?: number; // loop iteration (1-based), absent = iteration 1
+  description?: string; // detailed task description, set at completion
+  summary?: string; // short human-readable result summary, set at completion
 }
 
 export interface WorkflowFile {
   title: string;
   workflow: string;
-  status?: 'planning' | 'running' | 'completed' | 'incomplete';
+  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
+  waiting_message?: string; // question/prompt shown when status is 'waiting'
   /** Write isolation engine: 'git-worktree' or 'direct'. Stored at plan time. */
   engine?: 'git-worktree' | 'direct';
   parent?: string;
@@ -79,7 +83,6 @@ export interface WorkflowFile {
   current_stage?: string; // current lifecycle stage (planned, execute, committed, test, preview, finalizing, done)
   stages?: Record<string, StageDefinition>; // keyed by stage name (execute, test, preview)
   stage_loaded?: Record<string, StageLoadedEntry>; // keyed by step name, populated via workflow done --loaded
-  subworkflows?: Record<string, unknown>; // keyed by stage name, stores resolved subworkflow data
   started_at: string;
   completed_at?: string;
   summary?: string;
@@ -163,6 +166,24 @@ export function workflowAbandon(dataDir: string, name: string): WorkflowFile {
   return data;
 }
 
+export function workflowWait(dataDir: string, name: string, message?: string): void {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+  const data = readWorkflow(filePath);
+
+  if (data.status !== 'running') {
+    throw new Error(`Cannot set waiting: workflow "${name}" is ${data.status}, expected running`);
+  }
+
+  data.status = 'waiting';
+  if (message) {
+    data.waiting_message = message;
+  } else {
+    delete data.waiting_message;
+  }
+  writeFileSync(filePath, stringifyYaml(data));
+}
+
 function normalizeFilePath(_dataDir: string, p: string): string {
   return p; // Paths must always be absolute — stored as-is
 }
@@ -233,7 +254,6 @@ export function workflowCreate(
   parent?: string,
   stageLoaded?: Record<string, StageLoadedEntry>,
   engine?: string,
-  subworkflows?: Record<string, unknown>,
   initialParams?: Record<string, unknown>,
 ): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -244,13 +264,12 @@ export function workflowCreate(
     title,
     workflow: workflowId,
     workflow_id: wfId,
-    status: 'planning',
+    status: 'running',
     ...(engine ? { engine: engine as WorkflowFile['engine'] } : {}),
     ...(parent ? { parent } : {}),
     ...(initialParams && Object.keys(initialParams).length > 0 ? { params: initialParams } : {}),
     ...(stages && Object.keys(stages).length > 0 ? { stages } : {}),
     ...(stageLoaded ? { stage_loaded: stageLoaded } : {}),
-    ...(subworkflows && Object.keys(subworkflows).length > 0 ? { subworkflows } : {}),
     ...(stages && Object.keys(stages).length > 0 ? { current_stage: Object.keys(stages)[0] } : {}),
     started_at: timestamp(),
     completed_at: undefined,
@@ -294,8 +313,7 @@ export function workflowCreate(
  * Logic:
  * 1. For each stage with `each: <name>`, look up `params[name]`
  * 2. If iterables exist and stage has no tasks yet → expand
- * 3. Skip `workflow:` stages (subworkflow dispatch)
- * 4. For stages without `each` and no tasks yet → create singleton task
+ * 3. For stages without `each` and no tasks yet → create singleton task
  * 5. Deduplicate IDs against existing tasks
  */
 export function expandTasksFromParams(
@@ -324,7 +342,7 @@ export function expandTasksFromParams(
   // Expand each-based items from params
   const items: Array<{ step: string; params?: Record<string, unknown> }> = [];
   for (const [, def] of Object.entries(stages)) {
-    if (!def.each || def.workflow) continue;
+    if (!def.each) continue;
     const iterables = params[def.each] as Array<Record<string, unknown>> | undefined;
     if (!iterables || !Array.isArray(iterables)) continue;
 
@@ -367,11 +385,27 @@ export function expandTasksFromParams(
       const taskFm = parseFrontmatter(resolved.task_file);
       const schemaParams = (taskFm?.params ?? {}) as Record<string, unknown>;
       const taskTitle = taskFm?.title as string | undefined;
+      const taskDescription = taskFm?.description as string | undefined;
       const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
+      const whenConditions = (taskFm?.when ?? {}) as Record<string, unknown>;
 
       for (let itemIdx = 0; itemIdx < stepItems.length; itemIdx++) {
         const item = stepItems[itemIdx]!;
-        const mergedParams = validateAndMergeParams({ ...params, ...item.params }, schemaParams, step);
+
+        // Check when-conditions (beyond steps/stages) against item params
+        const itemParams = { ...params, ...item.params };
+        const extraWhen = Object.entries(whenConditions).filter(([k]) => k !== 'steps' && k !== 'stages');
+        if (extraWhen.length > 0) {
+          const mismatch = extraWhen.some(([k, v]) => {
+            const actual = itemParams[k];
+            if (actual === undefined) return false; // param not present → don't filter
+            if (Array.isArray(v)) return !v.map(String).includes(String(actual));
+            return String(actual) !== String(v);
+          });
+          if (mismatch) continue;
+        }
+
+        const mergedParams = validateAndMergeParams(itemParams, schemaParams, step);
         let taskId = generateTaskId(step, mergedParams, schemaParams, itemIdx);
 
         // Deduplicate against existing IDs
@@ -385,12 +419,14 @@ export function expandTasksFromParams(
         const title = taskTitle
           ? generateTaskTitle(step, mergedParams, schemaParams, taskTitle)
           : generateTaskTitle(step, mergedParams, schemaParams);
+        const description = taskDescription ? expandParams(taskDescription, mergedParams) : undefined;
         const type = inferTaskType(step);
         const files = expandFileDeclarations(fileDeclarations, mergedParams, envMap, knownValidators);
 
         tasks.push({
           id: taskId,
           title,
+          ...(description && { description }),
           type,
           step,
           stage: stepToStage.get(step) ?? 'execute',
@@ -401,7 +437,11 @@ export function expandTasksFromParams(
           blueprints: resolved.blueprints ?? [],
           config_rules: resolved.config_rules ?? [],
           config_instructions: resolved.config_instructions ?? [],
-          files: files.map((f) => ({ path: f.path, key: f.key, validators: f.validators })),
+          files: files.map((f) => ({
+            path: f.path,
+            key: f.key,
+            validators: f.validators,
+          })),
         });
       }
     }
@@ -411,8 +451,8 @@ export function expandTasksFromParams(
 }
 
 /**
- * Add stages and tasks to a planning workflow.
- * Errors with exit code 1 if the workflow is not in planning status.
+ * Add stages and tasks to a waiting workflow.
+ * Errors with exit code 1 if the workflow is not in waiting status.
  */
 export function workflowPlan(
   dataDir: string,
@@ -443,7 +483,7 @@ export function workflowPlan(
   const filePath = resolve(changesDir, 'tasks.yml');
   const data = readWorkflow(filePath);
 
-  if (data.status === 'running' || data.status === 'completed' || data.status === 'incomplete') {
+  if (data.status === 'completed' || data.status === 'incomplete') {
     process.stderr.write(`Error: workflow "${name}" cannot be planned (current status: ${data.status})\n`);
     process.exit(1);
   }
@@ -547,11 +587,6 @@ export interface StageResponse {
   transition_from?: string;
   next_stage?: string | null;
   waiting_for?: Record<string, StageParam>;
-  dispatch?: Array<{
-    workflow: string;
-    workflow_file: string;
-    params: Record<string, unknown>;
-  }>;
 }
 
 export interface LoadedPayload {
@@ -573,6 +608,7 @@ export async function workflowDone(
   name: string,
   taskId: string,
   loaded?: LoadedPayload,
+  options?: { summary?: string },
 ): Promise<{ archived: boolean; data: WorkflowFile; response?: StageResponse }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -589,30 +625,24 @@ export async function workflowDone(
       throw new Error(`Task '${taskId}' is already done`);
     }
 
-    // Gate-check: assert all files are written and valid (no validation logic here)
+    // Gate-check: assert all files are written and valid
     // Skip files with unresolved {param} placeholders — these are task-level iterators
     // that couldn't be expanded at planning time (e.g. {breakpoint} from each: reference.breakpoints)
     const hasUnresolvedPlaceholder = (f: { path: string }) => /\{[a-zA-Z]\w*\}/.test(f.path);
-    // Accept files that exist on disk even without validation_result (e.g. binary files written directly by Playwright)
-    const workflowRoot = data.root_dir ?? dirname(dataDir);
-    const fileExistsOnDisk = (f: { path: string }) => existsSync(resolve(workflowRoot, f.path));
 
-    // Guard: reject if ALL files have unresolved placeholders and none are validated or on disk
     const taskFiles = task.files ?? [];
     if (
       taskFiles.length > 0 &&
       taskFiles.every((f) => hasUnresolvedPlaceholder(f)) &&
-      !taskFiles.some((f) => f.validation_result || fileExistsOnDisk(f))
+      !taskFiles.some((f) => f.validation_result)
     ) {
       throw new Error(
-        `Cannot mark '${taskId}' as done — all file paths have unresolved placeholders and no files exist on disk:\n` +
+        `Cannot mark '${taskId}' as done — all file paths have unresolved placeholders and no files were written:\n` +
           taskFiles.map((f) => `  · \`${f.path}\``).join('\n'),
       );
     }
 
-    const notWritten = taskFiles.filter(
-      (f) => !f.validation_result && !hasUnresolvedPlaceholder(f) && !fileExistsOnDisk(f),
-    );
+    const notWritten = taskFiles.filter((f) => !f.validation_result && !hasUnresolvedPlaceholder(f));
     if (notWritten.length > 0) {
       throw new Error(
         `Cannot mark '${taskId}' as done — ${notWritten.length} file(s) not yet written:\n` +
@@ -630,9 +660,11 @@ export async function workflowDone(
     task.status = 'done';
     if (!task.started_at) task.started_at = timestamp();
     task.completed_at = timestamp();
+    if (options?.summary) task.summary = options.summary;
 
-    if (data.status === 'planning' || data.status === 'running') {
+    if (data.status === 'waiting') {
       data.status = 'running';
+      delete data.waiting_message;
     }
 
     if (loaded) {
@@ -722,36 +754,6 @@ export async function workflowDone(
           }
           writeWorkflowAtomic(filePath, data);
           return { archived: false, data, response: { stage: nextStage, waiting_for: interpolated } };
-        }
-
-        // Subworkflow stages have no tasks — collect dispatch info and keep walking
-        const nextStageDef = stages[nextStage];
-        if (nextStageDef?.workflow && nextStageDef?.each) {
-          const iterables = (data.params?.[nextStageDef.each] ?? []) as Array<Record<string, unknown>>;
-          const subData = (data.subworkflows?.[nextStage] ?? {}) as { workflowFile?: string };
-          const subFile = subData.workflowFile ?? '';
-          if (subFile && iterables.length > 0) {
-            const dispatches = iterables.map((item) => ({
-              workflow: nextStageDef.workflow!,
-              workflow_file: subFile,
-              params: { ...data.params, ...item },
-            }));
-            // Workflow is done from engine perspective — collect dispatches
-            data.current_stage = 'done';
-            if (engine) {
-              const doneResult = engine.done(data);
-              if (doneResult.archive) {
-                archiveWorkflow(dataDir, name, data);
-                return { archived: true, data, response: { stage: 'done', dispatch: dispatches } };
-              }
-            }
-            writeWorkflowAtomic(filePath, data);
-            return { archived: false, data, response: { stage: 'done', dispatch: dispatches } };
-          }
-          // No iterables or no subFile — keep walking
-          fromStage = nextStage;
-          nextStage = getNextStage(fromStage, stages);
-          continue;
         }
 
         // If this stage has pending tasks, stop here
@@ -894,8 +896,11 @@ export async function workflowWriteFile(
     const validationResult = await validateByKeys(fileEntry.validators, writtenPath, config);
     fileEntry.validation_result = { ...validationResult, file: fileEntry.path };
 
-    // Transition to running on first write
-    if (data.status === 'planning') data.status = 'running';
+    // Transition from waiting back to running on first write
+    if (data.status === 'waiting') {
+      data.status = 'running';
+      delete data.waiting_message;
+    }
 
     writeWorkflowAtomic(filePath, data);
 

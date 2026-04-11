@@ -39,7 +39,7 @@ Slot values in `components` are either plain strings (for text/HTML content) or 
 slots:
   header: "Section heading text"
   content:
-    - component: "COMPONENT_NAMESPACE:child_component"
+    - component: "$COMPONENT_NAMESPACE:child_component"
       props: {}
       slots: {}
 ```
@@ -50,7 +50,7 @@ Using the components available from the Step 0 scan (e.g. `section`, `hero`, `fe
 
 ```yaml
 components:
-  - component: "COMPONENT_NAMESPACE:section"
+  - component: "$COMPONENT_NAMESPACE:section"
     props:
       max_width: "lg"
       padding_top: "lg"
@@ -58,16 +58,16 @@ components:
       columns: 1
     slots:
       column_1:
-        - component: "COMPONENT_NAMESPACE:hero"
+        - component: "$COMPONENT_NAMESPACE:hero"
           slots:
             content:
-              - component: "COMPONENT_NAMESPACE:rich-snippet"
+              - component: "$COMPONENT_NAMESPACE:rich-snippet"
                 props:
                   headline: "Quality Nutrition for Happy Pets"
                   headline_level: "h1"
                   text: "Curated, quality-verified products for dogs, cats, birds, and more."
 
-  - component: "COMPONENT_NAMESPACE:section"
+  - component: "$COMPONENT_NAMESPACE:section"
     props:
       max_width: "lg"
       padding_top: "md"
@@ -75,19 +75,19 @@ components:
       columns: 2
     slots:
       column_1:
-        - component: "COMPONENT_NAMESPACE:feature-card"
+        - component: "$COMPONENT_NAMESPACE:feature-card"
           slots:
             content:
-              - component: "COMPONENT_NAMESPACE:rich-snippet"
+              - component: "$COMPONENT_NAMESPACE:rich-snippet"
                 props:
                   headline: "Premium Dog Food"
                   headline_level: "h3"
                   text: "High-protein formula for adult dogs"
       column_2:
-        - component: "COMPONENT_NAMESPACE:feature-card"
+        - component: "$COMPONENT_NAMESPACE:feature-card"
           slots:
             content:
-              - component: "COMPONENT_NAMESPACE:rich-snippet"
+              - component: "$COMPONENT_NAMESPACE:rich-snippet"
                 props:
                   headline: "Cat Treats"
                   headline_level: "h3"

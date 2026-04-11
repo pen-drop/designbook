@@ -1,0 +1,30 @@
+$schema: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "button"
+status: "experimental"
+group: "Action"
+description: "Reusable CTA button with primary and secondary visual variants."
+variants:
+  primary:
+    title: "Primary"
+    description: "Solid filled button for primary actions."
+  secondary:
+    title: "Secondary"
+    description: "Outlined button for secondary actions."
+props:
+  type: "object"
+  properties:
+    label:
+      title: "Label"
+      type: "string"
+      description: "Button text content."
+    url:
+      title: "URL"
+      type: "string"
+      description: "Optional link URL. When set, renders as anchor element."
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+libraryOverrides:
+  css:
+    component:
+      css/utilities.src.css: {}
