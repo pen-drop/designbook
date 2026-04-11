@@ -61,28 +61,3 @@ export interface WorkflowTask {
   description?: string; // detailed task description, set at completion
   summary?: string; // short human-readable result summary, set at completion
 }
-
-export interface WorkflowTaskFile {
-  title: string;
-  workflow: string;
-  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
-  waiting_message?: string; // question/prompt shown when status is 'waiting'
-  parent?: string;
-  params?: Record<string, unknown>; // global intake params (accessible to all subagents)
-  current_stage?: string; // current lifecycle stage (planned, execute, committed, test, preview, finalizing, done)
-  stages?: Record<string, StageDefinition>; // keyed by stage name (execute, test, preview)
-  stage_loaded?: Record<string, StageLoaded>; // keyed by step name, populated via workflow done --loaded
-  started_at: string | null;
-  completed_at: string | null;
-  summary?: string;
-  /** Absolute path to the isolated WORKTREE directory for this workflow run. Set at workflow plan time. */
-  write_root?: string;
-  /** Absolute path to the workspace root. All task/skill paths are stored relative to this. */
-  workspace_root?: string;
-  tasks: WorkflowTask[];
-}
-
-export interface WorkflowTaskFileWithMeta extends WorkflowTaskFile {
-  changeName: string;
-  source: 'active' | 'archived';
-}
