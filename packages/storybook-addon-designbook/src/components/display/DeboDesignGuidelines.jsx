@@ -16,7 +16,7 @@ const SectionLabel = styled.h3(({ theme }) => ({
   textTransform: 'uppercase',
   letterSpacing: '0.6px',
   lineHeight: '16px',
-  color: '#90A1B9',
+  color: theme.textMutedColor,
   margin: 0,
 }));
 
@@ -36,7 +36,7 @@ const Chip = styled.span(({ theme }) => ({
   fontWeight: 500,
   padding: '3px 10px',
   borderRadius: 6,
-  background: theme.background?.hoverable || '#F8FAFC',
+  background: theme.background.hoverable,
   border: `1px solid ${theme.appBorderColor}`,
   color: theme.color.defaultText,
 }));
@@ -56,14 +56,14 @@ const LinkCard = styled.a(({ theme }) => ({
   padding: '10px 14px',
   borderRadius: 10,
   border: `1px solid ${theme.appBorderColor}`,
-  background: theme.background?.content || '#fff',
+  background: theme.background.content,
   color: theme.color.defaultText,
   textDecoration: 'none',
   fontFamily: theme.typography.fonts.base,
   fontSize: 14,
   fontWeight: 500,
   '&:hover': {
-    background: theme.background?.hoverable || '#F8FAFC',
+    background: theme.background.hoverable,
   },
 }));
 
@@ -90,7 +90,7 @@ const LinkLabel = styled.span({
 const LinkUrl = styled.span(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: 11,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
@@ -133,7 +133,7 @@ const McpCard = styled.div(({ theme }) => ({
   padding: '10px 14px',
   borderRadius: 10,
   border: `1px solid ${theme.appBorderColor}`,
-  background: theme.background?.content || '#fff',
+  background: theme.background.content,
   fontFamily: theme.typography.fonts.base,
   fontSize: 14,
 }));
@@ -146,7 +146,7 @@ const McpName = styled.span(({ theme }) => ({
 const McpUrl = styled.span(({ theme }) => ({
   fontFamily: theme.typography.fonts.mono,
   fontSize: 12,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
 }));
 
 // ─── Skills ───────────────────────────────────────────────────────────────────

@@ -4,8 +4,9 @@
  * Renders a collapsible tree with icons, labels, groups, and path-based
  * highlighting. Framework-agnostic data model via DeboTreeItem.
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { ChevronSmallDownIcon, ChevronSmallRightIcon } from '@storybook/icons';
+import { useTheme } from 'storybook/theming';
 
 // ─── Data model ──────────────────────────────────────────────────────────────
 
@@ -35,58 +36,64 @@ export interface DeboTreeProps {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const S = {
-  root: {
-    fontSize: 13,
-    padding: 4,
-  } as React.CSSProperties,
-  row: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-    padding: '5px 8px',
-    borderRadius: 4,
-    cursor: 'pointer',
-    color: 'var(--textColor, #fff)',
-    userSelect: 'none' as const,
-  } as React.CSSProperties,
-  chevron: {
-    display: 'inline-flex',
-    flexShrink: 0,
-    color: 'var(--textMutedColor, #9ca3af)',
-    width: 14,
-    height: 14,
-  } as React.CSSProperties,
-  chevronSpacer: {
-    width: 14,
-    height: 14,
-    flexShrink: 0,
-  } as React.CSSProperties,
-  icon: {
-    flexShrink: 0,
-    display: 'inline-flex',
-  } as React.CSSProperties,
-  name: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap' as const,
-    flex: 1,
-  } as React.CSSProperties,
-  children: {
-    marginLeft: 7,
-    paddingLeft: 4,
-  } as React.CSSProperties,
-  groupLabel: {
-    fontSize: 11,
-    color: 'var(--textMutedColor, #9ca3af)',
-    fontStyle: 'italic' as const,
-  } as React.CSSProperties,
-  empty: {
-    padding: 16,
-    color: 'var(--textMutedColor, #9ca3af)',
-    fontSize: 13,
-  } as React.CSSProperties,
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useStyles(theme: any) {
+  return useMemo(
+    () => ({
+      root: {
+        fontSize: 13,
+        padding: 4,
+      } as React.CSSProperties,
+      row: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '5px 8px',
+        borderRadius: 4,
+        cursor: 'pointer',
+        color: theme.color.defaultText,
+        userSelect: 'none' as const,
+      } as React.CSSProperties,
+      chevron: {
+        display: 'inline-flex',
+        flexShrink: 0,
+        color: theme.textMutedColor,
+        width: 14,
+        height: 14,
+      } as React.CSSProperties,
+      chevronSpacer: {
+        width: 14,
+        height: 14,
+        flexShrink: 0,
+      } as React.CSSProperties,
+      icon: {
+        flexShrink: 0,
+        display: 'inline-flex',
+      } as React.CSSProperties,
+      name: {
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap' as const,
+        flex: 1,
+      } as React.CSSProperties,
+      children: {
+        marginLeft: 7,
+        paddingLeft: 4,
+      } as React.CSSProperties,
+      groupLabel: {
+        fontSize: 11,
+        color: theme.textMutedColor,
+        fontStyle: 'italic' as const,
+      } as React.CSSProperties,
+      empty: {
+        padding: 16,
+        color: theme.textMutedColor,
+        fontSize: 13,
+      } as React.CSSProperties,
+    }),
+    [theme],
+  );
+}
 
 // ─── Tree node ───────────────────────────────────────────────────────────────
 
@@ -99,6 +106,8 @@ function TreeNode({
   onSelect?: (item: DeboTreeItem) => void;
   highlightedId?: string | null;
 }) {
+  const theme = useTheme();
+  const S = useStyles(theme);
   const hasKids = !!(item.children?.length || (item.groups && Object.values(item.groups).some((g) => g.length > 0)));
   const [expanded, setExpanded] = useState(true);
   const isHighlighted = !!(highlightedId && item.id === highlightedId);
@@ -185,6 +194,9 @@ function TreeNode({
 // ─── Root ────────────────────────────────────────────────────────────────────
 
 export function DeboTree({ items, onSelect, highlightedId, emptyText }: DeboTreeProps) {
+  const theme = useTheme();
+  const S = useStyles(theme);
+
   if (!items.length) {
     return <div style={S.empty}>{emptyText ?? 'No items.'}</div>;
   }

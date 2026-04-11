@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconButton, WithTooltip } from 'storybook/internal/components';
-import { styled } from 'storybook/theming';
+import { styled, useTheme } from 'storybook/theming';
 import { ManagerBadge, ManagerActivityItem, timeRange } from '../manager-utils.tsx';
 
 const POLL_INTERVAL = 3000;
@@ -17,14 +17,14 @@ const BadgeRow = styled.div({
   marginBottom: 10,
 });
 
-const SectionLabel = styled.div({
+const SectionLabel = styled.div(({ theme }) => ({
   fontSize: 10,
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.5px',
-  color: '#94A3B8',
+  color: theme.textMutedColor,
   marginBottom: 6,
-});
+}));
 
 const SectionBlock = styled.div({
   marginBottom: 10,
@@ -35,17 +35,17 @@ const ActivityScroll = styled.div({
   overflowY: 'auto',
 });
 
-const NoActivity = styled.div({
+const NoActivity = styled.div(({ theme }) => ({
   fontSize: 12,
-  color: '#94A3B8',
+  color: theme.textMutedColor,
   padding: '4px 0',
-});
+}));
 
-const CountBadge = styled.span(({ complete }) => ({
+const CountBadge = styled.span(({ complete, theme }) => ({
   fontSize: 10,
   fontWeight: 700,
-  background: complete ? 'rgb(102, 191, 60)' : '#F1F5F9',
-  color: complete ? '#FFFFFF' : '#94A3B8',
+  background: complete ? theme.color.positive : theme.background.hoverable,
+  color: complete ? theme.background.content : theme.textMutedColor,
   padding: '1px 5px',
   borderRadius: 9999,
   marginLeft: 4,

@@ -6,20 +6,20 @@ const Kbd = styled.kbd(({ theme }) => ({
   display: 'inline-block',
   fontFamily: theme.typography.fonts.mono,
   fontSize: theme.typography.size.s2,
-  background: theme.background?.hoverable || '#F1F5F9',
+  background: theme.background.hoverable,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 6,
   padding: '6px 12px',
   cursor: 'pointer',
   userSelect: 'none',
   '&:hover': {
-    background: theme.background?.app || '#E8EDF2',
+    background: theme.background.app,
   },
 }));
 
 const Hint = styled.p(({ theme }) => ({
   fontSize: theme.typography.size.s1,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   marginTop: 8,
 }));
 

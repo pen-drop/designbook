@@ -6,7 +6,7 @@ const List = styled.ul(({ theme }) => ({
   listStyle: 'none',
   padding: 0,
   margin: 0,
-  background: theme.background?.content || '#ffffff',
+  background: theme.background.content,
   borderRadius: 12,
 }));
 
@@ -17,7 +17,7 @@ const ItemRow = styled.li(({ theme }) => ({
   padding: '10px 12px',
   borderRadius: 8,
   '&:hover': {
-    background: theme.background?.hoverable || '#F8FAFC',
+    background: theme.background.hoverable,
   },
 }));
 
@@ -30,8 +30,8 @@ const NumberBadge = styled.span(({ theme }) => ({
   borderRadius: 6,
   fontSize: theme.typography.size.s1,
   fontWeight: 500,
-  background: theme.background?.hoverable || '#F1F5F9',
-  color: theme.color.mediumdark,
+  background: theme.background.hoverable,
+  color: theme.textMutedColor,
   flexShrink: 0,
 }));
 
@@ -47,7 +47,7 @@ const ItemTitle = styled.span(({ theme }) => ({
 
 const ItemDescription = styled.p(({ theme }) => ({
   fontSize: theme.typography.size.s1,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   marginTop: 2,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -57,7 +57,7 @@ const ItemDescription = styled.p(({ theme }) => ({
 const ArrowIcon = styled.svg(({ theme }) => ({
   width: 16,
   height: 16,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   opacity: 0.3,
   flexShrink: 0,
 }));

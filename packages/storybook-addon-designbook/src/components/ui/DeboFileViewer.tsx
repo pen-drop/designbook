@@ -7,6 +7,7 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SyntaxHighlighter } from 'storybook/internal/components';
+import { useTheme } from 'storybook/theming';
 import { parseMarkdown } from '../parsers';
 
 interface DeboFileViewerProps {
@@ -36,99 +37,105 @@ function getExtension(path: string): string {
   return path.split('.').pop()?.toLowerCase() ?? '';
 }
 
-const S = {
-  overlay: {
-    position: 'fixed' as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.6)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10000,
-  },
-  modal: {
-    background: 'var(--appContentBg, #1a1a2e)',
-    border: '1px solid var(--appBorderColor, #333)',
-    borderRadius: 8,
-    width: '80vw',
-    maxWidth: 900,
-    maxHeight: '90vh',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    overflow: 'hidden',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '8px 12px',
-    borderBottom: '1px solid var(--appBorderColor, #333)',
-    fontSize: 12,
-    fontFamily: 'monospace',
-    color: 'var(--textMutedColor, #999)',
-    flexShrink: 0,
-  },
-  closeBtn: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--textMutedColor, #999)',
-    cursor: 'pointer',
-    fontSize: 16,
-    padding: '0 4px',
-    lineHeight: 1,
-  },
-  body: {
-    overflow: 'auto',
-    flex: 1,
-    textAlign: 'left' as const,
-  },
-  image: {
-    maxWidth: '100%',
-    maxHeight: '80vh',
-    display: 'block',
-    margin: '16px auto',
-  },
-  error: {
-    padding: 16,
-    fontSize: 12,
-    color: '#f87171',
-  },
-  loading: {
-    padding: 16,
-    fontSize: 12,
-    color: 'var(--textMutedColor, #999)',
-  },
-  markdown: {
-    padding: '16px 24px',
-    fontSize: 13,
-    lineHeight: 1.7,
-    color: 'var(--textColor, #fff)',
-    textAlign: 'left' as const,
-  },
-  frontmatter: {
-    margin: '12px 24px 0',
-    padding: '10px 14px',
-    background: 'var(--barBg, rgba(255,255,255,0.03))',
-    border: '1px solid var(--appBorderColor, #333)',
-    borderRadius: 6,
-    fontSize: 12,
-    fontFamily: 'monospace',
-    display: 'grid' as const,
-    gridTemplateColumns: 'auto 1fr',
-    gap: '4px 12px',
-  },
-  fmKey: {
-    color: 'var(--textMutedColor, #999)',
-    fontWeight: 600,
-  },
-  fmValue: {
-    color: 'var(--textColor, #fff)',
-    wordBreak: 'break-word' as const,
-  },
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useStyles(theme: any) {
+  return useMemo(
+    () => ({
+      overlay: {
+        position: 'fixed' as const,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10000,
+      },
+      modal: {
+        background: theme.background.content,
+        border: `1px solid ${theme.appBorderColor}`,
+        borderRadius: 8,
+        width: '80vw',
+        maxWidth: 900,
+        maxHeight: '90vh',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        overflow: 'hidden',
+      },
+      header: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '8px 12px',
+        borderBottom: `1px solid ${theme.appBorderColor}`,
+        fontSize: 12,
+        fontFamily: 'monospace',
+        color: theme.textMutedColor,
+        flexShrink: 0,
+      },
+      closeBtn: {
+        background: 'none',
+        border: 'none',
+        color: theme.textMutedColor,
+        cursor: 'pointer',
+        fontSize: 16,
+        padding: '0 4px',
+        lineHeight: 1,
+      },
+      body: {
+        overflow: 'auto',
+        flex: 1,
+        textAlign: 'left' as const,
+      },
+      image: {
+        maxWidth: '100%',
+        maxHeight: '80vh',
+        display: 'block',
+        margin: '16px auto',
+      },
+      error: {
+        padding: 16,
+        fontSize: 12,
+        color: theme.color.negative,
+      },
+      loading: {
+        padding: 16,
+        fontSize: 12,
+        color: theme.textMutedColor,
+      },
+      markdown: {
+        padding: '16px 24px',
+        fontSize: 13,
+        lineHeight: 1.7,
+        color: theme.color.defaultText,
+        textAlign: 'left' as const,
+      },
+      frontmatter: {
+        margin: '12px 24px 0',
+        padding: '10px 14px',
+        background: theme.background.hoverable,
+        border: `1px solid ${theme.appBorderColor}`,
+        borderRadius: 6,
+        fontSize: 12,
+        fontFamily: 'monospace',
+        display: 'grid' as const,
+        gridTemplateColumns: 'auto 1fr',
+        gap: '4px 12px',
+      },
+      fmKey: {
+        color: theme.textMutedColor,
+        fontWeight: 600,
+      },
+      fmValue: {
+        color: theme.color.defaultText,
+        wordBreak: 'break-word' as const,
+      },
+    }),
+    [theme],
+  );
+}
 
 function parseFrontmatter(raw: string): { frontmatter: Record<string, unknown> | null; body: string } {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
@@ -156,6 +163,8 @@ function formatFmValue(value: unknown): string {
 }
 
 function FrontmatterBlock({ data }: { data: Record<string, unknown> }) {
+  const theme = useTheme();
+  const S = useStyles(theme);
   return (
     <div style={S.frontmatter}>
       {Object.entries(data).map(([key, val]) => (
@@ -200,6 +209,8 @@ const MD_SCOPED_CSS = `
 `;
 
 function MarkdownBody({ content }: { content: string }) {
+  const theme = useTheme();
+  const S = useStyles(theme);
   const { frontmatter, body } = useMemo(() => parseFrontmatter(content), [content]);
   const html = useMemo(() => parseMarkdown(body) as string, [body]);
   return (
@@ -220,6 +231,8 @@ function CodeBody({ content, language }: { content: string; language?: string })
 }
 
 export function DeboFileViewer({ path, onClose }: DeboFileViewerProps) {
+  const theme = useTheme();
+  const S = useStyles(theme);
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

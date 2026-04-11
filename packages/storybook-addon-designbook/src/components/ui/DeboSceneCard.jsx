@@ -20,7 +20,7 @@ function relativeTime(dateStr) {
 }
 
 const CardWrapper = styled.div(({ theme }) => ({
-  background: theme.background?.content || '#ffffff',
+  background: theme.background.content,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 14,
   boxShadow: '0px 2px 8px -4px rgba(0,0,0,0.05)',
@@ -31,26 +31,26 @@ const CardWrapper = styled.div(({ theme }) => ({
   transition: 'border-color 0.15s',
 }));
 
-const ClickableCard = styled(CardWrapper)({
+const ClickableCard = styled(CardWrapper)(({ theme }) => ({
   cursor: 'pointer',
   '&:hover': {
-    borderColor: '#CBD5E1',
+    borderColor: theme.appBorderColor,
   },
-});
+}));
 
-const LetterCircle = styled.div({
+const LetterCircle = styled.div(({ theme }) => ({
   width: 40,
   height: 40,
   borderRadius: 8,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  background: '#3B82F6',
-  color: '#FFFFFF',
+  background: theme.color.secondary,
+  color: theme.background.content,
   fontSize: 16,
   fontWeight: 600,
   flexShrink: 0,
-});
+}));
 
 const CardContent = styled.div({
   minWidth: 0,
@@ -68,7 +68,7 @@ const CardTitle = styled.div(({ theme }) => ({
 
 const CardDate = styled.div(({ theme }) => ({
   fontSize: 12,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   marginTop: 2,
 }));
 

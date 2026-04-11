@@ -1,5 +1,5 @@
 import React from 'react';
-import { styled } from 'storybook/theming';
+import { styled, useTheme } from 'storybook/theming';
 
 const StepWrapper = styled.div({
   marginBottom: 24,
@@ -12,11 +12,7 @@ const StepHeader = styled.div({
   marginBottom: 12,
 });
 
-const statusCircleStyles = {
-  completed: { background: 'rgba(22,163,74,0.15)', color: '#16A34A' },
-  current: { background: '#3B82F6', color: '#FFFFFF', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' },
-  upcoming: { background: '#E2E8F0', color: '#94A3B8' },
-};
+/* statusCircleStyles are resolved per-render via theme — see DeboStepIndicator */
 
 const StepCircle = styled.div({
   width: 28,
@@ -37,22 +33,28 @@ const StepTitle = styled.h3(({ theme }) => ({
   margin: 0,
 }));
 
-const CompleteBadge = styled.span({
+const CompleteBadge = styled.span(({ theme }) => ({
   display: 'inline-block',
   fontSize: 10,
   fontWeight: 600,
   lineHeight: '15px',
   padding: '2px 8px',
   borderRadius: 9999,
-  background: 'rgba(22,163,74,0.15)',
-  color: '#16A34A',
-});
+  background: `${theme.color.positive}26`,
+  color: theme.color.positive,
+}));
 
 const StepContent = styled.div({
   paddingLeft: 40,
 });
 
 export function DeboStepIndicator({ step, title, status, children }) {
+  const theme = useTheme();
+  const statusCircleStyles = {
+    completed: { background: `${theme.color.positive}26`, color: theme.color.positive },
+    current: { background: theme.color.secondary, color: theme.background.content, boxShadow: '0 1px 3px rgba(0,0,0,0.15)' },
+    upcoming: { background: theme.appBorderColor, color: theme.textMutedColor },
+  };
   const circleStyle = statusCircleStyles[status] || statusCircleStyles.upcoming;
   return (
     <StepWrapper>

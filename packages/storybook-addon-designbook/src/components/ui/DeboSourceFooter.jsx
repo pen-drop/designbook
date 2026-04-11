@@ -28,11 +28,11 @@ const HintRow = styled.div({
 const HintText = styled.span(({ theme }) => ({
   fontSize: 13,
   lineHeight: 1.5,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
 }));
 
 const CodeTag = styled.code(({ theme, $clickable }) => ({
-  background: theme.background?.hoverable || '#F8FAFC',
+  background: theme.background.hoverable,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 4,
   padding: '2px 6px',
@@ -42,7 +42,7 @@ const CodeTag = styled.code(({ theme, $clickable }) => ({
     cursor: 'pointer',
     userSelect: 'none',
     '&:hover': {
-      background: theme.background?.app || '#E8EDF2',
+      background: theme.background.app,
     },
   }),
 }));
@@ -50,7 +50,7 @@ const CodeTag = styled.code(({ theme, $clickable }) => ({
 const SourceText = styled.p(({ theme }) => ({
   fontSize: 14,
   lineHeight: 1.5,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   margin: 0,
 }));
 
@@ -58,7 +58,7 @@ const RefreshButton = styled.button(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: 8,
-  background: theme.background?.content || '#ffffff',
+  background: theme.background.content,
   border: `1px solid ${theme.appBorderColor}`,
   boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
   borderRadius: 10,
@@ -70,7 +70,7 @@ const RefreshButton = styled.button(({ theme }) => ({
   flexShrink: 0,
   cursor: 'pointer',
   '&:hover': {
-    background: theme.background?.hoverable || '#F8FAFC',
+    background: theme.background.hoverable,
   },
 }));
 

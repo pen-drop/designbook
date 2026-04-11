@@ -27,7 +27,7 @@ const screenshotsParser = (md) => {
 };
 
 const ContentCard = styled.div(({ theme }) => ({
-  background: theme.background?.content || '#ffffff',
+  background: theme.background.content,
   border: `1px solid ${theme.appBorderColor}`,
   borderRadius: 12,
   overflow: 'hidden',
@@ -52,7 +52,7 @@ const ScreenshotImage = styled.img({
 
 const ScreenshotCaption = styled.p(({ theme }) => ({
   fontSize: theme.typography.size.s1,
-  color: theme.color.mediumdark,
+  color: theme.textMutedColor,
   padding: 8,
   textAlign: 'center',
   margin: 0,

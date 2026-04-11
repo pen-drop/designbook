@@ -1,7 +1,8 @@
 import type { ProjectAnnotations, Renderer, StoryContext } from 'storybook/internal/types';
 
+import React from 'react';
 import { useGlobals, addons } from 'storybook/preview-api';
-import { themes as sbThemes, ensure } from 'storybook/theming';
+import { themes as sbThemes, ensure, ThemeProvider } from 'storybook/theming';
 import { withThemeByDataAttribute } from '@storybook/addon-themes';
 
 import { themes as designbookThemes, defaultTheme } from 'virtual:designbook-themes';
@@ -29,9 +30,26 @@ if (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function withDeboTheme(Story: any, context: StoryContext) {
   const [globals] = useGlobals();
-  const base = ensure(globals?.theme === 'dark' ? sbThemes.dark : sbThemes.light);
+  const prefersDark =
+    globals?.theme === 'dark' ||
+    (globals?.theme == null &&
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const base = ensure(prefersDark ? sbThemes.dark : sbThemes.light);
   setActiveTheme(base);
-  return Story(context);
+  if (typeof document !== 'undefined') {
+    document.body.style.backgroundColor = base.background.content;
+    document.body.style.color = base.color.defaultText;
+  }
+  const result = Story(context);
+  // HTML-framework stories return DOM nodes or strings — pass through as-is.
+  // React-framework stories return React elements — wrap with ThemeProvider.
+  if (result instanceof Node || typeof result === 'string') {
+    return result;
+  }
+  return React.createElement(ThemeProvider, { theme: base, children: result } as React.ComponentProps<
+    typeof ThemeProvider
+  >);
 }
 
 const withDesignbookTheme = withThemeByDataAttribute({
