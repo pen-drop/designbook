@@ -37,6 +37,18 @@ Fixes a single consolidated issue from the triage stage. Each polish task receiv
 | `file_hint` | issue | Primary file to edit |
 | `properties` | issue | Array of `{property, expected, actual}` (extraction issues) |
 
+## Step 0: Inspection (Before Any Fix)
+
+Before applying any fix, inspect what exists:
+
+1. **Read the component files** referenced by `file_hint` and any related templates
+2. **Read the scene YAML** for the affected scene (`scene` param)
+3. **Open the Storybook URL** and verify current rendering state — understand what the issue looks like before changing code
+
+If `design_hint` is available in params (passed via `each: issues` expansion from intake), cross-reference the hint's styles, fonts, and interactive patterns when evaluating fixes. Prefer hint values over guessing.
+
+Only proceed to the fix after completing the inspection.
+
 ## Step 1: Understand the Issue
 
 Read the `description` — it contains:
@@ -66,14 +78,9 @@ Edit the file(s) to resolve the issue. Keep changes minimal and focused.
 
 When CSS output values are changed to match the reference, the polish report MUST include a reconciliation note: "CSS output values adjusted — reconcile with `design-tokens.yml` via tokens workflow."
 
-## Step 4: Update Issue in Meta
+## Step 4: Mark Task Done
 
-Mark the issue as done via CLI. Use `--update <index>` with the numeric index of the issue within its check:
-```bash
-_debo story issues --scene ${scene} --check ${checkKey} --update <index> --json '{"status":"done","result":"pass"}'
-```
-
-To find the correct index, list issues first: `_debo story issues --scene ${scene} --check ${checkKey}` and match by `id`.
+Mark the workflow task as done. The task status IS the issue status — no separate issue tracking needed.
 
 ## Output
 

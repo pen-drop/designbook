@@ -1,0 +1,21 @@
+@theme {
+  --color-primary: var(--color-navy-600);
+  --color-primary-hover: var(--color-navy-700);
+  --color-primary-active: var(--color-navy-800);
+  --color-secondary: var(--color-green-600);
+  --color-secondary-hover: var(--color-green-700);
+  --color-accent: var(--color-lime-500);
+  --color-accent-hover: var(--color-lime-600);
+  --color-highlight: var(--color-purple-500);
+  --color-highlight-hover: var(--color-purple-600);
+  --color-link: var(--color-blue-600);
+  --color-link-hover: var(--color-blue-500);
+  --color-foreground: var(--color-neutral-800);
+  --color-foreground-muted: var(--color-neutral-500);
+  --color-background: var(--color-neutral-50);
+  --color-surface: var(--color-neutral-100);
+  --color-surface-alt: var(--color-neutral-200);
+  --color-outline: var(--color-neutral-300);
+  --color-inverse-foreground: var(--color-neutral-50);
+  --color-inverse-background: var(--color-navy-600);
+}

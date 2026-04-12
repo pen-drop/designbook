@@ -1,0 +1,12 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/primitive-typography.src.css"
+ }
+ */
+(
+  $entries := $each($$.primitive.typography, function($v, $k) {
+    $substring($k, 0, 1) != "$" and $v."$type" = "fontFamily" ? "  --text-" & $k & ": \"" & $v."$value" & "\";"
+  });
+  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)

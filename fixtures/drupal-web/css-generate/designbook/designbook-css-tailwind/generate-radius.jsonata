@@ -1,0 +1,12 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/radius.src.css"
+ }
+ */
+(
+  $entries := $each($$.semantic.radius, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "  --radius-" & $k & ": " & $v."$value" & ";"
+  });
+  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)

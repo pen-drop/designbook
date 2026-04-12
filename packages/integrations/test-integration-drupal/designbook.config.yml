@@ -2,11 +2,6 @@ backend: drupal
 frameworks:
   component: sdc
   css: tailwind
-extensions:
-  - id: canvas
-    url: https://www.drupal.org/project/canvas
-  - id: stitch
-  - id: google-fonts
 designbook:
   cmd: npx storybook dev
   home: .

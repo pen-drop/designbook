@@ -92,16 +92,7 @@ if [[ ! -d "$TARGET_DIR" ]]; then
   exit 1
 fi
 
-# 1. Copy suite base config (or config override if specified in case)
-CONFIG_OVERRIDE=$(sed -n 's/^config: *//p' "$CASE_FILE")
-if [[ -n "$CONFIG_OVERRIDE" && -f "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" ]]; then
-  echo "  Config override: $CONFIG_OVERRIDE"
-  cp "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" "$TARGET_DIR/designbook.config.yml"
-elif [[ -f "$FIXTURES_DIR/designbook.config.yml" ]]; then
-  cp "$FIXTURES_DIR/designbook.config.yml" "$TARGET_DIR/"
-fi
-
-# 2. Reset workspace to init commit (clean slate for re-runs)
+# 1. Reset workspace to init commit (clean slate for re-runs)
 cd "$TARGET_DIR"
 INIT_COMMIT=$(git log --reverse --format='%H' | head -1)
 if [[ -n "$INIT_COMMIT" ]]; then
@@ -109,6 +100,15 @@ if [[ -n "$INIT_COMMIT" ]]; then
   git clean -fd --quiet
 fi
 cd - > /dev/null
+
+# 2. Copy suite base config (or config override if specified in case)
+CONFIG_OVERRIDE=$(sed -n 's/^config: *//p' "$CASE_FILE")
+if [[ -n "$CONFIG_OVERRIDE" && -f "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" ]]; then
+  echo "  Config override: $CONFIG_OVERRIDE"
+  cp "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" "$TARGET_DIR/designbook.config.yml"
+elif [[ -f "$FIXTURES_DIR/designbook.config.yml" ]]; then
+  cp "$FIXTURES_DIR/designbook.config.yml" "$TARGET_DIR/"
+fi
 
 # 3. Parse fixtures list from case YAML and layer them
 # Uses a simple grep+sed approach to avoid yq dependency

@@ -393,7 +393,6 @@ export function register(program: Command): void {
         try {
           // Path mode: write directly without file key lookup
           if (opts.path) {
-            let content: Buffer;
             if (opts.external) {
               if (!existsSync(opts.path)) {
                 console.error(`Error: File not found at path: ${opts.path}`);
@@ -407,7 +406,7 @@ export function register(program: Command): void {
             for await (const chunk of process.stdin) {
               chunks.push(chunk as Buffer);
             }
-            content = Buffer.concat(chunks);
+            const content = Buffer.concat(chunks);
             if (content.length === 0) {
               console.error('Error: No content provided on stdin');
               process.exitCode = 1;

@@ -1,0 +1,20 @@
+fixtures:
+  - vision
+  - data-model
+  - sections
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo sample-data workflow. Do NOT ask any questions.
+  Generate sample data for the homepage section.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['sample-data']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['sample-data']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('sections/homepage/data.yml'))

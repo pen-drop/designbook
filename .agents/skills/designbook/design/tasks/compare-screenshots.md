@@ -3,8 +3,6 @@ name: designbook:design:compare-screenshots
 title: "Compare Screenshots: {scene} ({breakpoint}/{region})"
 when:
   steps: [compare]
-  type: screenshot
-priority: 20
 params:
   scene: ~
   storyId: ~
@@ -67,18 +65,18 @@ Format:
     "source": "screenshots",
     "severity": "major",
     "check": "${breakpoint}--${region}",
-    "description": "Header: Hintergrundfarbe weicht ab — erwartet helles Grau (#F5F5F5), aktuell weiß (#FFFFFF). Betrifft components/header/header.twig",
+    "description": "Header: background-color mismatch — expected light gray (#F5F5F5), actual white (#FFFFFF). File: components/header/header.twig",
     "file_hint": "components/header/header.twig",
-    "details": "Visueller Vergleich zeigt abweichende Hintergrundfarbe im Header-Bereich"
+    "details": "Visual comparison shows divergent background color in header region"
   }
 ]
 ```
 
-**Issue-Beschreibungen müssen actionable sein:**
-- WAS weicht ab (konkretes Element + Property)
-- Erwarteter vs. aktueller Wert (soweit erkennbar)
-- WELCHE Datei betroffen ist (`file_hint`)
-- Kurze Begründung warum es ein Issue ist
+**Issue descriptions must be actionable:**
+- WHAT deviates (concrete element + property)
+- Expected vs. actual value (where discernible)
+- WHICH file is affected (`file_hint`)
+- Brief reasoning why it is an issue
 
 If no issues found, write an empty array `[]`.
 

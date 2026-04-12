@@ -1,0 +1,31 @@
+fixtures:
+  - vision
+  - data-model
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo tokens workflow. Do NOT ask any questions.
+  Use the design reference from vision.md to derive all colors, typography, and other tokens.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.includes('designbook/design-system/design-tokens.yml')
+  - type: javascript
+    value: output.archivedWorkflows['tokens']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['tokens']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/design-system/design-tokens.yml']?.content;
+      return c?.primitive?.color != null;
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/design-system/design-tokens.yml']?.content;
+      return c?.semantic?.color?.primary != null;
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/design-system/design-tokens.yml']?.content;
+      return c?.semantic?.typography?.heading != null;

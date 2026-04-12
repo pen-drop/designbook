@@ -653,15 +653,29 @@ export function matchBlueprintFiles(
 export function expandParams(template: string, params: Record<string, unknown>): string {
   let result = template;
 
+  const stringifyParam = (value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value !== 'object') return String(value);
+    if (Array.isArray(value)) {
+      const first = value[0];
+      if (first && typeof first === 'object') {
+        if ('scene' in first) return String(first.scene);
+        if ('storyId' in first) return String(first.storyId);
+      }
+      return JSON.stringify(value);
+    }
+    return JSON.stringify(value);
+  };
+
   // Expand {{ param }} patterns (strict — throws on unknown)
   result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, paramName) => {
-    if (params[paramName] !== undefined) return String(params[paramName]);
+    if (params[paramName] !== undefined) return stringifyParam(params[paramName]);
     throw new Error(`Unknown param: {{ ${paramName} }} in "${template}"`);
   });
 
   // Expand {param} patterns (lenient — leaves unknown as-is for runtime resolution)
   result = result.replace(/\{(\w+)\}/g, (match, paramName) => {
-    if (params[paramName] !== undefined) return String(params[paramName]);
+    if (params[paramName] !== undefined) return stringifyParam(params[paramName]);
     return match;
   });
 
@@ -879,7 +893,11 @@ export function resolveAllStages(
   const expectedParams: Record<string, ExpectedParam> = {};
 
   for (const step of allSteps ?? []) {
-    const resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir);
+    let resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir);
+    // If plain step didn't match, try workflow-qualified name (e.g. "intake" → "design-shell:intake")
+    if (resolvedTaskFiles.length === 0 && !step.includes(':') && workflowId) {
+      resolvedTaskFiles = resolveTaskFilesRich(`${workflowId}:${step}`, config, agentsDir);
+    }
     if (resolvedTaskFiles.length === 0) {
       console.debug(`[Designbook] workflow: step "${step}" skipped — no matching task file`);
       continue;

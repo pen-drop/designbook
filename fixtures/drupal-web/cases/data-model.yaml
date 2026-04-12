@@ -1,0 +1,44 @@
+fixtures:
+  - vision
+  - data-model
+
+prompt: >
+  You are working in the directory {{workspace}}.
+  Run the /debo data-model workflow. Do NOT ask any questions.
+  The product is "LEANDO". Read the product overview at designbook/vision.md.
+  A data model already exists at designbook/data-model.yml — it was extracted from the existing Drupal installation.
+  Review and validate the existing data model. Ensure it is complete and consistent with the vision.
+  Do not remove existing entity types or fields — only add missing ones if needed.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['data-model']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['data-model']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/data-model.yml']?.content;
+      return c?.node && Object.keys(c.node).length >= 5;
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/data-model.yml']?.content;
+      return c?.node?.landing_page != null;
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/data-model.yml']?.content;
+      return c?.node?.event != null;
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/data-model.yml']?.content;
+      return c?.node?.topic != null;
+  - type: javascript
+    value: |
+      const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
+      return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('drupal-data-model.md')));
+  - type: javascript
+    value: |
+      const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
+      return !Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('canvas.md') || r.endsWith('layout-builder.md')));
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

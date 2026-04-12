@@ -1,0 +1,396 @@
+title: Generate CSS
+workflow: css-generate
+workflow_id: 873e
+status: completed
+engine: direct
+stages:
+  intake:
+    steps:
+      - css-generate:intake
+  prepare:
+    steps:
+      - prepare-fonts
+      - prepare-icons
+  generate:
+    each: group
+    steps:
+      - generate-jsonata
+  transform:
+    steps:
+      - generate-css
+  index:
+    steps:
+      - generate-index
+stage_loaded:
+  css-generate:intake:
+    task_file: .claude/skills/designbook/css-generate/tasks/intake--css-generate.md
+    rules: []
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  prepare-fonts:
+    task_file: .claude/skills/designbook/css-generate/fonts/google/tasks/prepare-fonts.md
+    rules:
+      - >-
+        .claude/skills/designbook/css-generate/fonts/google/rules/font-url-construction.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+  generate-jsonata:
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    rules: []
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    config_rules: []
+    config_instructions: []
+  generate-css:
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-css.md
+    rules: []
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    config_rules: []
+    config_instructions: []
+  generate-index:
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-index.md
+    rules: []
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+current_stage: done
+started_at: '2026-04-12T18:23:36'
+workspace_root: /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web
+tasks:
+  - id: intake
+    title: 'Intake: Generate CSS'
+    type: data
+    step: css-generate:intake
+    stage: intake
+    status: done
+    started_at: '2026-04-12T18:23:36'
+    task_file: .claude/skills/designbook/css-generate/tasks/intake--css-generate.md
+    files: []
+    completed_at: '2026-04-12T18:23:42'
+  - id: prepare-fonts-e2bd8f
+    title: Prepare Fonts
+    type: data
+    step: prepare-fonts
+    stage: prepare
+    status: done
+    params:
+      group: &ref_1
+        - primitive-color
+        - color
+        - radius
+        - layout-width
+        - layout-spacing
+        - grid
+        - typography
+        - primitive-typography
+        - typography-scale
+    task_file: .claude/skills/designbook/css-generate/fonts/google/tasks/prepare-fonts.md
+    rules:
+      - >-
+        .claude/skills/designbook/css-generate/fonts/google/rules/font-url-construction.md
+    files:
+      - path: css/tokens/google-fonts.src.css
+        key: google-fonts-css
+        validators: []
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/css/tokens/google-fonts.src.css
+          type: unknown
+          valid: true
+          skipped: true
+          last_validated: '2026-04-12T16:23:56.302Z'
+        flushed_at: '2026-04-12T16:24:02.585Z'
+    started_at: '2026-04-12T18:23:42'
+    completed_at: '2026-04-12T18:24:02'
+  - id: generate-jsonata-22bcc0
+    title: 'Generate Jsonata: primitive-color'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: primitive-color
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: designbook/designbook-css-tailwind/generate-primitive-color.jsonata
+        key: generate-jsonata
+        validators: &ref_0
+          - cmd:npx jsonata-w transform --dry-run {{ file }}
+          - >-
+            cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint
+            --stdin-filename output.css
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/designbook-css-tailwind/generate-primitive-color.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-12T16:24:21.009Z'
+          last_passed: '2026-04-12T16:24:21.009Z'
+        flushed_at: '2026-04-12T16:26:41.221Z'
+    started_at: '2026-04-12T18:24:02'
+    completed_at: '2026-04-12T18:26:38'
+  - id: generate-jsonata-6ab5e1
+    title: 'Generate Jsonata: color'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: color
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: designbook/designbook-css-tailwind/generate-color.jsonata
+        key: generate-jsonata
+        validators: *ref_0
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/designbook-css-tailwind/generate-color.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-12T16:24:45.405Z'
+          last_passed: '2026-04-12T16:24:45.405Z'
+        flushed_at: '2026-04-12T16:26:41.221Z'
+    started_at: '2026-04-12T18:26:38'
+    completed_at: '2026-04-12T18:26:38'
+  - id: generate-jsonata-b90e34
+    title: 'Generate Jsonata: radius'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: radius
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: designbook/designbook-css-tailwind/generate-radius.jsonata
+        key: generate-jsonata
+        validators: *ref_0
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/designbook-css-tailwind/generate-radius.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-12T16:24:57.916Z'
+          last_passed: '2026-04-12T16:24:57.916Z'
+        flushed_at: '2026-04-12T16:26:41.221Z'
+    started_at: '2026-04-12T18:26:38'
+    completed_at: '2026-04-12T18:26:39'
+  - id: generate-jsonata-797573
+    title: 'Generate Jsonata: layout-width'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: layout-width
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: designbook/designbook-css-tailwind/generate-layout-width.jsonata
+        key: generate-jsonata
+        validators: *ref_0
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/designbook-css-tailwind/generate-layout-width.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-12T16:25:13.025Z'
+          last_passed: '2026-04-12T16:25:13.025Z'
+        flushed_at: '2026-04-12T16:26:41.221Z'
+    started_at: '2026-04-12T18:26:39'
+    completed_at: '2026-04-12T18:26:39'
+  - id: generate-jsonata-6263bf
+    title: 'Generate Jsonata: layout-spacing'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: layout-spacing
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: designbook/designbook-css-tailwind/generate-layout-spacing.jsonata
+        key: generate-jsonata
+        validators: *ref_0
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/designbook-css-tailwind/generate-layout-spacing.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-12T16:25:27.306Z'
+          last_passed: '2026-04-12T16:25:27.306Z'
+        flushed_at: '2026-04-12T16:26:41.221Z'
+    started_at: '2026-04-12T18:26:39'
+    completed_at: '2026-04-12T18:26:39'
+  - id: generate-jsonata-16dc06
+    title: 'Generate Jsonata: grid'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: grid
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: designbook/designbook-css-tailwind/generate-grid.jsonata
+        key: generate-jsonata
+        validators: *ref_0
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/designbook-css-tailwind/generate-grid.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-12T16:25:41.555Z'
+          last_passed: '2026-04-12T16:25:41.555Z'
+        flushed_at: '2026-04-12T16:26:41.221Z'
+    started_at: '2026-04-12T18:26:39'
+    completed_at: '2026-04-12T18:26:40'
+  - id: generate-jsonata-63f98e
+    title: 'Generate Jsonata: typography'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: typography
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: designbook/designbook-css-tailwind/generate-typography.jsonata
+        key: generate-jsonata
+        validators: *ref_0
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/designbook-css-tailwind/generate-typography.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-12T16:25:55.238Z'
+          last_passed: '2026-04-12T16:25:55.238Z'
+        flushed_at: '2026-04-12T16:26:41.221Z'
+    started_at: '2026-04-12T18:26:40'
+    completed_at: '2026-04-12T18:26:40'
+  - id: generate-jsonata-755fd2
+    title: 'Generate Jsonata: primitive-typography'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: primitive-typography
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: >-
+          designbook/designbook-css-tailwind/generate-primitive-typography.jsonata
+        key: generate-jsonata
+        validators: *ref_0
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/designbook-css-tailwind/generate-primitive-typography.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-12T16:26:10.712Z'
+          last_passed: '2026-04-12T16:26:10.712Z'
+        flushed_at: '2026-04-12T16:26:41.221Z'
+    started_at: '2026-04-12T18:26:40'
+    completed_at: '2026-04-12T18:26:40'
+  - id: generate-jsonata-d587cf
+    title: 'Generate Jsonata: typography-scale'
+    type: css
+    step: generate-jsonata
+    stage: generate
+    status: done
+    params:
+      group: typography-scale
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-jsonata.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/jsonata-template.md
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files:
+      - path: designbook/designbook-css-tailwind/generate-typography-scale.jsonata
+        key: generate-jsonata
+        validators: *ref_0
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/designbook-css-tailwind/generate-typography-scale.jsonata
+          type: cmd
+          valid: true
+          last_validated: '2026-04-12T16:26:24.327Z'
+          last_passed: '2026-04-12T16:26:24.327Z'
+        flushed_at: '2026-04-12T16:26:41.221Z'
+    started_at: '2026-04-12T18:26:40'
+    completed_at: '2026-04-12T18:26:41'
+  - id: generate-css-cda509
+    title: Generate Css
+    type: css
+    step: generate-css
+    stage: transform
+    status: done
+    params:
+      group: *ref_1
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-css.md
+    blueprints:
+      - .claude/skills/designbook-css-tailwind/blueprints/css-mapping.md
+    files: []
+    started_at: '2026-04-12T18:26:41'
+    completed_at: '2026-04-12T18:27:56'
+  - id: generate-index-09ca18
+    title: Generate Index
+    type: css
+    step: generate-index
+    stage: index
+    status: done
+    params:
+      group: *ref_1
+    task_file: .claude/skills/designbook/css-generate/tasks/generate-index.md
+    files:
+      - path: css/tokens/index.src.css
+        key: index-css
+        validators: []
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/css/tokens/index.src.css
+          type: unknown
+          valid: true
+          skipped: true
+          last_validated: '2026-04-12T16:28:02.570Z'
+        flushed_at: '2026-04-12T16:28:07.831Z'
+    started_at: '2026-04-12T18:27:56'
+    completed_at: '2026-04-12T18:28:07'
+params:
+  group: *ref_1
+_changesDir: >-
+  /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/workflows/changes/css-generate-2026-04-12-873e
+completed_at: '2026-04-12T18:28:08'
+summary: >-
+  Intake: Generate CSS (data), Prepare Fonts (data), Generate Jsonata:
+  primitive-color (css), Generate Jsonata: color (css), Generate Jsonata: radius
+  (css), Generate Jsonata: layout-width (css), Generate Jsonata: layout-spacing
+  (css), Generate Jsonata: grid (css), Generate Jsonata: typography (css),
+  Generate Jsonata: primitive-typography (css), Generate Jsonata:
+  typography-scale (css), Generate Css (css), Generate Index (css)

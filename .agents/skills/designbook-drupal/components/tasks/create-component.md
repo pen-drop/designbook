@@ -30,9 +30,9 @@ reads:
 
 Creates three files per component. All files share the same kebab-case base name as the directory. Write each file via stdin to the CLI:
 ```
-designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-yml
-designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-twig
-designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-story
+_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key component-yml
+_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key component-twig
+_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key component-story
 ```
 
 ## Variant Story Files
@@ -45,6 +45,28 @@ designbook workflow write-file $WORKFLOW_NAME $TASK_ID --key component-story
 > navigation.main.story.yml      ← written directly to disk
 > navigation.footer.story.yml    ← written directly to disk
 > ```
+
+## Design Hint
+
+When `design_hint` is present in params (passed via `each: component` expansion from intake), use it as the primary design input for template generation. The hint contains landmark-specific data:
+
+- **`rows`**: Array of `{bg, height}` objects describing visual rows/sections
+- **`fonts`**: Per-element font specifications (e.g. `{nav: "Reef 22px", cta: "Reef 22px"}`)
+- **`interactive`**: Array of `{element, color, radius}` objects for interactive patterns
+
+Prefer hint values over generic defaults. When `design_hint` is absent, fall back to other params (`description`, `styles`, `fonts`).
+
+## Inspection Phase (Before Generation)
+
+Before generating any files, inspect the existing codebase:
+
+1. **Read existing components** that this component will embed or include (check slots, props, and template patterns of dependencies)
+2. **Identify composition relationships** — which components will be used via `{% embed %}`, `{% include %}`, or `{{ include() }}`
+
+After all files are generated:
+
+3. **Verify Storybook renders** the component — open the Storybook URL and confirm the default story renders without errors
+4. If rendering fails, diagnose and fix before declaring the task done
 
 ## File Generation Order
 
@@ -84,4 +106,4 @@ Read the relevant resource file at the start of each phase:
 
 ## App CSS Update
 
-After creating a component, add a `@source` directive for the new component directory to `$DESIGNBOOK_CSS_APP` so Tailwind picks up its utility classes. This file is declared in `files:` as `app-css`.
+> This section applies only when a CSS framework integration (e.g. `designbook-css-tailwind`) is active. The framework's rules handle the specifics of how to register component directories for class scanning.

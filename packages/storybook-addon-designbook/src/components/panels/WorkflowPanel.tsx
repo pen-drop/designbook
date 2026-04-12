@@ -536,6 +536,14 @@ function LiveDuration({ startedAt, completedAt }: { startedAt: string | null; co
 // WorkflowSummaryTab
 // ---------------------------------------------------------------------------
 
+/** Self-updating parenthesized duration so the parent doesn't need to tick. */
+function LiveDurationParens({ startedAt, completedAt }: { startedAt: string; completedAt: string | null }) {
+  useTick(!completedAt);
+  const dur = formatDuration(startedAt, completedAt);
+  if (!dur || dur === '0s') return null;
+  return <>({dur})</>;
+}
+
 function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
   const theme = useTheme();
   const S = useMemo(() => createStyles(theme), [theme]);
@@ -560,7 +568,11 @@ function WorkflowSummaryTab({ wf }: { wf: WorkflowData }) {
       {/* Timestamps */}
       <div style={{ display: 'flex', gap: 12, fontSize: 11, color: theme.color.defaultText, marginBottom: 8 }}>
         {wf.started_at && <span>{formatTimestampRange(wf.started_at, wf.completed_at ?? null)}</span>}
-        {wf.started_at && <span>({formatDuration(wf.started_at, wf.completed_at ?? null)})</span>}
+        {wf.started_at && (
+          <span>
+            <LiveDurationParens startedAt={wf.started_at} completedAt={wf.completed_at ?? null} />
+          </span>
+        )}
       </div>
 
       {/* Waiting message */}
@@ -695,8 +707,6 @@ function WorkflowTasksTab({ wf }: { wf: WorkflowData }) {
   const theme = useTheme();
   const S = useMemo(() => createStyles(theme), [theme]);
   const stageGroups = groupTasksByStage(wf);
-  const hasRunning = wf.tasks.some((t) => t.status === 'in-progress');
-  useTick(hasRunning);
 
   return (
     <div>
@@ -1021,8 +1031,6 @@ function WorkflowTabs({ wf }: { wf: WorkflowData }) {
 function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[]; designbookDir: string }) {
   const theme = useTheme();
   const S = useMemo(() => createStyles(theme), [theme]);
-  const hasActive = workflows.some((wf) => wf.status === 'running' || wf.status === 'waiting');
-  useTick(hasActive);
 
   if (workflows.length === 0) {
     return <div style={S.empty}>No workflow activity yet. Run a /debo * command to see progress here.</div>;

@@ -21,5 +21,11 @@ Site footer that composes brand area, navigation, and copyright.
 - copyright: string (optional)
 
 ## Slots
-- brand — logo or brand area
 - navigation — footer navigation component (required)
+- Additional slots as determined by the design reference
+
+## Multi-Section Structure
+
+Footers often consist of multiple distinct visual sections, each with its own background color. Each section wraps its content in a `container` embed to maintain consistent edge spacing. The outer section `<div>` carries its own background color and optional border.
+
+The number of sections, their background colors, slots, and content are determined by the design reference — not prescribed here.

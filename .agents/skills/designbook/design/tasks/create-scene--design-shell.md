@@ -2,7 +2,6 @@
 when:
   steps: [design-shell:create-scene]
 params:
-  provider: ~
   reference: []
 files:
   - file: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
@@ -57,6 +56,6 @@ After writing the scene file, ensure `meta.yml` is created for the story via the
 - **Discover, don't assume** — read actual components to determine slots and props
 - **`$content` injection point** — exactly one slot in the root component must be `$content`
 - **Inline everything** — all sub-component slots fully expanded with props and content. Never `story: default` alone
-- **Provider prefix** — every `component:` value uses `{{ provider }}:name`
+- **Provider prefix** — every `component:` value uses `$COMPONENT_NAMESPACE:name`
 - **No `type: element`** — plain strings for text content
 - **`group:`** must be `"Designbook/Design System"`

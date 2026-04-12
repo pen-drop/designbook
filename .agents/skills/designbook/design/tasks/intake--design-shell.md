@@ -4,6 +4,8 @@ when:
 files: []
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
+  - path: $STORY_DIR/design-reference.md
+    optional: true
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
 ---
 
@@ -11,26 +13,28 @@ reads:
 
 Help the user design the application shell — a `page` component with `header`, `content`, and `footer` slots, composed as a scene named `shell` in `design-system.scenes.yml`.
 
-## Step 1: Resolve Design Reference
+## Step 1: Extract Design Reference
 
-> ⛔ **MANDATORY**: Execute this step before any layout analysis or component planning.
+Resolve `$STORY_DIR` by creating the story directory:
+```bash
+mkdir -p $DESIGNBOOK_DATA/stories/designbook-design-system-scenes--shell
+```
 
-1. Check `vision.md` → `## Design Reference` section for a configured reference source.
-2. If no configured source, ask the user:
-   > "Do you have a design reference? (Stitch screen ID, URL, or 'skip')"
-3. If a **Stitch screen ID** is provided, resolve it via MCP (`mcp__stitch__get_screen`) to get the preview URL. Store as `reference: [{type: "url", url: "<resolved-url>", threshold: 3, title: "<screen-title>"}]`.
-4. If a **URL** is provided, store as `reference: [{type: "url", url: "<url>", threshold: 3, title: "<label>"}]`.
-5. If **skipped**, proceed without reference.
+If `$STORY_DIR/design-reference.md` already exists (from a prior run), read it and use as-is.
 
-Reference entries describe the design source only — no `breakpoint` field. Breakpoints are resolved separately in design-verify intake.
+Otherwise, apply the `extract-reference` rule to the design reference URL from `vision.md`. Write the result directly to `$STORY_DIR/design-reference.md`.
 
-If a reference was loaded, use it as the primary input for all subsequent steps. When proposing layouts and components, **derive them from the reference** rather than asking the user speculative questions.
+Use its fonts, colors, layout, landmark structure, and interactive patterns as the primary input for all subsequent steps.
+
+If no design reference URL is available, fall back to `vision.md` context only.
+
+Reference entries for design-verify are stored on the scene (`reference` field) — the reference URL comes from `design-reference.md → Source:`.
 
 ## Step 2: Analyze and Propose Layout
 
 Review the product and sections, then present navigation options:
 
-**If a design reference is available**, analyze its structure (header, nav, footer, content area) and propose the layout pattern that matches the reference. Skip hypothetical options and present the derived layout directly.
+**If a design reference is available**, analyze the landmark structure from `design-reference.md` (header rows, footer sections, layout dimensions) and propose the layout pattern that matches the reference. Skip hypothetical options and present the derived layout directly.
 
 **If no design reference**, present options:
 
@@ -62,13 +66,25 @@ Follow the component planning process:
 1. Scan existing components (location provided by framework rules)
 3. Determine which shell components exist (reuse) vs. need creation (page, header, footer, navigation, etc.)
 
-**If a design reference is available**, derive the component list from the reference HTML structure rather than guessing.
+**If a design reference is available**, derive the component list from the landmark structure and interactive patterns in `design-reference.md` rather than guessing.
+
+### Component Extraction Criteria
+
+Identify atomic UI elements as separate components when they meet either condition:
+- **Appears 2+ times** across the shell (e.g. a button style used in header and footer)
+- **Is interactive** — receives user input or triggers navigation (e.g. search field, CTA button, nav link with hover states)
+
+Common atomic components to extract: `button`, `badge`, `icon`, `search`, `link` (when styled distinctly from plain text).
+
+Single-use decorative elements remain inline in the parent component's template.
+
+The `container` component MUST always be included as a shell component — it is the structural wrapper used by header and footer via `{% embed %}`.
 
 4. Present the component plan and get user confirmation before proceeding
 
 ## Step 4: Gather Shell Details
 
-**If a design reference is available**, extract details from the reference and present them for confirmation rather than asking open-ended questions.
+**If a design reference is available**, pre-fill navigation items, footer links, and other details from `design-reference.md`. Present them for confirmation rather than asking open-ended questions.
 
 **If no design reference**, ask clarifying questions:
 
@@ -127,9 +143,16 @@ Mark intake done with `--params` that populate **both** the `component` and `sce
 ```bash
 _debo workflow done --workflow $WORKFLOW_NAME --task intake --params '{
   "component": [
-    { "component": "page", "slots": ["header", "content", "footer"] },
-    { "component": "header", "slots": ["logo", "navigation"] },
-    { "component": "footer", "slots": ["links", "copyright"] }
+    { "component": "page", "slots": ["header", "content", "footer"], "group": "Shell" },
+    {
+      "component": "<name>",
+      "slots": ["<slot1>", "<slot2>"],
+      "group": "Shell",
+      "description": "ref=<landmark> — <visual description from design-reference.md>",
+      "styles": { "<extracted styles from design-reference.md>" },
+      "fonts": { "<extracted fonts from design-reference.md>" },
+      "design_hint": { "<landmark-specific extraction: rows, fonts, interactive patterns>" }
+    }
   ],
   "scene": [
     { "scene": "design-system:shell" }
@@ -139,3 +162,15 @@ _debo workflow done --workflow $WORKFLOW_NAME --task intake --params '{
 
 - **`component`**: one entry per new component. Each item needs `component` (name) and `slots` (array).
 - **`scene`**: one entry per shell scene. Uses `group:sceneName` format matching `_debo story --scene` resolution. For shell: `{ "scene": "design-system:shell" }`.
+
+### Rich component params (when design reference is available)
+
+When a design reference was extracted in Step 1, pass the extracted design data directly as additional fields on each component param object. The `create-component` task receives all fields as params — no declaration changes needed.
+
+- **`description`**: Start with `ref=<landmark>` to link the component to its reference landmark, followed by a short visual description
+- **`styles`**: Concrete CSS values extracted from the reference (colors, dimensions, spacing, borders)
+- **`fonts`**: Font families and weights used by this component
+- **Additional content fields**: Navigation items, link lists, or other content extracted from the reference (e.g. `nav_items`, `footer_links`)
+- **`design_hint`**: Structured landmark-specific extraction from `design-reference.md`. Contains `rows` (background colors, heights), `fonts` (per-element font specs), and `interactive` patterns (element types, colors, border-radius). The workflow engine merges each component item into the task's params via `each: component` expansion, so `design_hint` is available directly on the `create-component` task's params — scoped to the correct landmark with no key lookup.
+
+When no design reference is available, emit only the standard fields (`component`, `slots`, `group`) — omit `design_hint` or set it to `null`.

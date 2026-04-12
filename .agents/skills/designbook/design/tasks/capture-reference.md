@@ -36,24 +36,9 @@ Captures a reference screenshot by loading the source URL at the given breakpoin
    ```
    Then use `file:///tmp/reference-${storyId}.html` as the capture URL.
 
-2. **Capture screenshot** for this breakpoint/region combination using the `playwright-capture` rule (staged file flow):
+2. **Capture screenshot** for this breakpoint/region combination using the `playwright-capture` rule.
 
-   a. **Check skip condition**: If output file already exists and reference URL has not changed, skip.
-
-   b. **Resolve viewport width** from `design-tokens.yml`.
-
-   c. **Select capture mode by region:**
-
-   | Region | Mode | Method |
-   |--------|------|--------|
-   | `full` (or no selector) | Full-page | `npx playwright screenshot --full-page` (CLI) |
-   | `header` | Element | Node API: `page.locator('header').first().screenshot()` |
-   | `footer` | Element | Node API: `page.locator('footer').first().screenshot()` |
-   | Other named region | Element | Node API: use selector from check's `selector` field |
-
-   For element captures the reference HTML page must contain a matching HTML element. If the selector matches nothing, skip with a warning.
-
-   d. **Verify** by reading the captured image.
+   Follow the capture protocol defined in `playwright-capture.md` — it handles viewport resolution, region-based capture mode selection, and the staged file flow.
 
 ## Output
 

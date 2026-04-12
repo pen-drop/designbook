@@ -1,0 +1,542 @@
+config:
+  image_style:
+    ratio_16_9:
+      aspect_ratio: "16:9"
+    ratio_4_3:
+      aspect_ratio: "4:3"
+    ratio_1_1:
+      aspect_ratio: "1:1"
+
+content:
+  node:
+    landing_page:
+      title: Landing Page
+      description: Flexible landing pages with paragraph-based sections
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+      fields:
+        field_short_title:
+          type: string
+          title: Kurztitel
+        field_banner_headline:
+          type: string
+          title: Banner Überschrift
+        field_banner_text:
+          type: text
+          title: Banner Text
+        field_banner_image:
+          type: reference
+          title: Banner Bild
+          settings:
+            target_type: media
+            target_bundle: image
+        field_banner_link:
+          type: link
+          title: Banner Link
+        field_banner_enabled:
+          type: boolean
+          title: Banner aktiv
+        field_landing_page_image:
+          type: image
+          title: Seitenbild
+        field_landing_page_section:
+          type: reference
+          title: Sektionen
+          multiple: true
+          settings:
+            target_type: paragraph
+            target_bundle:
+              - banner_typ2
+              - content_teaser
+        field_landing_page_type:
+          type: reference
+          title: Seitentyp
+          required: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: landing_page_types
+        field_topics:
+          type: reference
+          title: Themen
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: topics
+        field_professions:
+          type: reference
+          title: Berufe
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: professions
+        field_target_groups:
+          type: reference
+          title: Zielgruppen
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: target_groups
+        field_hashtags:
+          type: reference
+          title: Hashtags
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: hashtags
+        field_areas_of_responsility:
+          type: reference
+          title: Zuständigkeitsbereiche
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: areas_of_responsibility
+
+    event:
+      title: Veranstaltung
+      description: Events with registration, scheduling, and video conferencing integration
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+        card:
+          template: field-map
+      fields:
+        body:
+          type: formatted_text
+          title: Beschreibung
+          required: true
+        field_event_date:
+          type: datetime
+          title: Startdatum
+          required: true
+        field_event_date_end:
+          type: datetime
+          title: Enddatum
+        field_event_all_day:
+          type: boolean
+          title: Ganztägig
+        field_event_location:
+          type: string
+          title: Veranstaltungsort
+        field_event_address:
+          type: address
+          title: Adresse
+        field_event_image:
+          type: image
+          title: Veranstaltungsbild
+        field_event_image_media:
+          type: reference
+          title: Veranstaltungsbild (Media)
+          settings:
+            target_type: media
+            target_bundle: image
+        field_event_enroll:
+          type: boolean
+          title: Anmeldung aktivieren
+        field_event_max_enroll:
+          type: boolean
+          title: Teilnehmerlimit aktivieren
+        field_event_max_enroll_num:
+          type: integer
+          title: Maximale Teilnehmeranzahl
+        field_event_managers:
+          type: reference
+          title: Veranstaltungsleitung
+          multiple: true
+          settings:
+            target_type: user
+        field_event_type:
+          type: reference
+          title: Veranstaltungstyp
+          settings:
+            target_type: taxonomy_term
+            target_bundle: event_types
+        field_files:
+          type: file
+          title: Dateien
+          multiple: true
+        field_files_media:
+          type: reference
+          title: Dateien (Media)
+          multiple: true
+          settings:
+            target_type: media
+            target_bundle: document
+        field_topics:
+          type: reference
+          title: Themen
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: topics
+        field_professions:
+          type: reference
+          title: Berufe
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: professions
+        field_target_groups:
+          type: reference
+          title: Zielgruppen
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: target_groups
+        field_hashtags:
+          type: reference
+          title: Hashtags
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: hashtags
+        field_areas_of_responsility:
+          type: reference
+          title: Zuständigkeitsbereiche
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: areas_of_responsibility
+
+    topic:
+      title: Inhalt
+      description: General content pages with media and taxonomy classification
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+        card:
+          template: field-map
+      fields:
+        body:
+          type: formatted_text
+          title: Beschreibung
+          required: true
+        field_topic_image:
+          type: image
+          title: Bild
+        field_topic_type:
+          type: reference
+          title: Inhaltstyp
+          required: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: topic_types
+        field_files:
+          type: file
+          title: Dateien
+          multiple: true
+        field_topics:
+          type: reference
+          title: Themen
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: topics
+        field_professions:
+          type: reference
+          title: Berufe
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: professions
+        field_target_groups:
+          type: reference
+          title: Zielgruppen
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: target_groups
+        field_hashtags:
+          type: reference
+          title: Hashtags
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: hashtags
+        field_areas_of_responsility:
+          type: reference
+          title: Zuständigkeitsbereiche
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: areas_of_responsibility
+        rel_landing_page:
+          type: reference
+          title: Zugeordnete Landing Page
+          settings:
+            target_type: node
+            target_bundle: landing_page
+
+    learning_nugget:
+      title: Lernpaket
+      description: Structured learning units with SCORM integration
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+        card:
+          template: field-map
+      fields:
+        field_description:
+          type: text
+          title: Beschreibung
+        field_teaser_text:
+          type: text
+          title: Teasertext
+        field_short_title:
+          type: string
+          title: Kurztitel
+        field_icon:
+          type: image
+          title: Icon (SVG)
+        field_learning_duration:
+          type: string
+          title: Lerndauer
+        field_external_link:
+          type: link
+          title: Externer Link
+        field_learning_nugget_files:
+          type: reference
+          title: Mediendateien
+          multiple: true
+          settings:
+            target_type: media
+        field_parent:
+          type: reference
+          title: Übergeordnetes Lernpaket
+          settings:
+            target_type: node
+            target_bundle: learning_nugget
+        field_map_row:
+          type: integer
+          title: Reihe in der Lernkarte
+        field_nugget_position:
+          type: integer
+          title: Position in der Reihe
+        field_is_inactive:
+          type: boolean
+          title: Deaktiviert
+        field_topics:
+          type: reference
+          title: Themen
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: topics
+
+    book:
+      title: Handbuch
+      description: Hierarchical book pages for documentation and handbooks
+      view_modes:
+        full:
+          template: field-map
+      fields:
+        body:
+          type: formatted_text
+          title: Inhalt
+        field_book_image:
+          type: image
+          title: Bild
+        field_book_image_media:
+          type: reference
+          title: Bild (Media)
+          settings:
+            target_type: media
+            target_bundle: image
+        field_files:
+          type: file
+          title: Dateien
+          multiple: true
+        field_files_media:
+          type: reference
+          title: Dateien (Media)
+          multiple: true
+          settings:
+            target_type: media
+            target_bundle: document
+
+    page:
+      title: Seite
+      description: Simple static pages
+      view_modes:
+        full:
+          template: field-map
+      fields:
+        body:
+          type: formatted_text
+          title: Inhalt
+          required: true
+        field_page_image:
+          type: image
+          title: Seitenbild
+        field_page_image_media:
+          type: reference
+          title: Seitenbild (Media)
+          settings:
+            target_type: media
+            target_bundle: image
+        field_topics:
+          type: reference
+          title: Themen
+          multiple: true
+          settings:
+            target_type: taxonomy_term
+            target_bundle: topics
+
+    video:
+      title: Video
+      description: Video content with transcription
+      view_modes:
+        full:
+          template: field-map
+        teaser:
+          template: field-map
+      fields:
+        field_description:
+          type: text
+          title: Beschreibung
+        field_transcription:
+          type: text
+          title: Transkription
+        field_teaser_image:
+          type: reference
+          title: Vorschaubild
+          settings:
+            target_type: media
+            target_bundle: image
+        field_video:
+          type: reference
+          title: Video
+          settings:
+            target_type: media
+            target_bundle:
+              - remote_video
+              - video
+
+    location:
+      title: Standort
+      description: Location directory based on BIBB registry
+      view_modes:
+        full:
+          template: field-map
+
+    profession:
+      title: Beruf
+      description: Profession database with examination instruments
+      view_modes:
+        full:
+          template: field-map
+
+    stage_teaser:
+      title: Bühnen Teaser
+      description: Teaser tiles for the homepage stage area
+      view_modes:
+        full:
+          template: field-map
+
+  taxonomy_term:
+    topics:
+      title: Themen
+      description: Main content categories
+    professions:
+      title: Berufe
+      description: Professional classification
+    event_types:
+      title: Veranstaltungstypen
+      description: Event classification
+    target_groups:
+      title: Zielgruppen
+      description: Target group classification
+    expertise:
+      title: Expertise
+      description: Skills and competency levels
+    interests:
+      title: Interessen
+      description: User interests
+    hashtags:
+      title: Hashtags
+      description: Free-form tags
+    areas_of_responsibility:
+      title: Zuständigkeitsbereiche
+      description: Regional and subject area responsibilities
+    federal_states:
+      title: Bundesländer
+      description: German federal states
+    domains:
+      title: Domänen
+      description: Content domains
+    topic_types:
+      title: Inhaltstypen
+      description: Content type classification
+    landing_page_types:
+      title: Seitentypen
+      description: Landing page type classification
+
+  media:
+    image:
+      title: Bild
+      description: Image media
+      view_modes:
+        ratio_16_9:
+          template: field-map
+        ratio_4_3:
+          template: field-map
+        ratio_1_1:
+          template: field-map
+    document:
+      title: Dokument
+      description: Documents (PDF, Office)
+    audio:
+      title: Audio
+      description: Audio files
+    video:
+      title: Video
+      description: Video files
+    remote_video:
+      title: Remote Video
+      description: Embedded videos (YouTube, Vimeo)
+
+  paragraph:
+    banner_typ2:
+      title: Banner
+      description: Banner section with image, headline, and link
+      fields:
+        field_cms_headline:
+          type: string
+          title: Überschrift
+        field_cms_text:
+          type: text
+          title: Beschreibungstext
+        field_cms_image:
+          type: image
+          title: Bannerbild
+          required: true
+        field_cms_link:
+          type: link
+          title: Banner-Link
+        field_cms_copyright:
+          type: string
+          title: Copyright
+        field_aspect_ratio:
+          type: boolean
+          title: Automatische Höhe
+    content_teaser:
+      title: Inhalts-Teaser
+      description: Reference to existing content as teaser
+      fields:
+        content_ref:
+          type: reference
+          title: Inhaltsreferenz
+          settings:
+            target_type: node
+            target_bundle:
+              - page
+              - landing_page
+              - topic

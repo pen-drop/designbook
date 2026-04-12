@@ -1,7 +1,7 @@
 ---
 name: designbook:design:extract-reference
 when:
-  steps: [design-shell:intake, design-screen:intake, tokens:intake, compare-markup]
+  steps: [design-shell:intake, design-screen:intake, tokens:intake]
 ---
 
 # Design Extraction
@@ -33,61 +33,79 @@ If multiple capabilities exist, prefer Playwright over API over vision.
 
 ## Playwright Extraction (hasMarkup: true)
 
-**Important:** Write extraction scripts to the workspace root directory (where `node_modules/` is located), not to `/tmp`.
+All browser interaction uses `playwright-cli` — no Node API scripts. See [cli-playwright.md](../../resources/cli-playwright.md) for the full command reference.
 
-### Phase 1: DOM Reconnaissance
+### Phase 1: Open Session and Screenshot
 
-1. **Open Playwright session on reference URL** using the Node API:
-   ```javascript
-   const { chromium } = require('playwright');
-   const browser = await chromium.launch();
-   const page = await browser.newPage({ viewport: { width: 1440, height: 1600 } });
-   await page.goto(referenceUrl, { waitUntil: 'networkidle' });
-   await page.waitForTimeout(3000);
-   ```
+```bash
+npx playwright-cli open
+npx playwright-cli goto "<referenceUrl>"
+npx playwright-cli resize 1440 1600
+npx playwright-cli run-code "async (page) => { await page.waitForTimeout(3000) }"
+npx playwright-cli screenshot --full-page --filename "$STORY_DIR/reference-full.png"
+```
 
-2. **Retrieve DOM summary**: tag names, class names, landmark roles, nesting depth.
-
-3. **Inspect reference screenshot** visually to understand the page layout.
+Inspect the screenshot visually to understand the page layout.
 
 ### Phase 2: Extract All Design Characteristics
 
-Extract everything needed for the design reference in a single pass:
+Use `playwright-cli eval` to extract DOM data. Run multiple eval calls — one per concern — to keep each extraction focused and readable.
 
 #### Fonts
-- Enumerate all unique `fontFamily` values from computed styles across the page
-- For each non-system font:
-  - Scan `<style>` and `<link rel="stylesheet">` sources for `@font-face` declarations
-  - Extract: `font-family`, `src` URLs (woff2/woff), `font-weight`, `font-style`, `font-display`
-  - Check for Google Fonts `<link>` imports — extract the full import URL
+```bash
+npx playwright-cli eval "() => {
+  const fonts = new Set();
+  document.querySelectorAll('*').forEach(el => {
+    const ff = getComputedStyle(el).fontFamily;
+    if (ff) fonts.add(ff.split(',')[0].trim().replace(/['\"]/g, ''));
+  });
+  return JSON.stringify([...fonts]);
+}"
+```
+- For each non-system font: extract `@font-face` declarations, Google Fonts `<link>` imports
+- Extract: `font-family`, `src` URLs (woff2/woff), `font-weight`, `font-style`
 
 #### Color Palette
-- Collect every unique `backgroundColor` from all elements with a non-transparent background
-- Collect every unique `color` from all text-bearing elements
-- Collect every unique `borderColor` from elements with visible borders
+```bash
+npx playwright-cli eval "() => {
+  const bgs = new Set(); const texts = new Set();
+  document.querySelectorAll('*').forEach(el => {
+    const cs = getComputedStyle(el);
+    if (cs.backgroundColor !== 'rgba(0, 0, 0, 0)') bgs.add(cs.backgroundColor);
+    texts.add(cs.color);
+  });
+  return JSON.stringify({ backgrounds: [...bgs], text: [...texts] });
+}"
+```
 - Deduplicate and convert all values to hex format
-- Note where each color appears (body bg, header, footer section, text, links, buttons, etc.)
-
-#### Layout
-- Measure the actual content max-width from the innermost width-constraining ancestor
-- Measure edge padding at different viewport widths (mobile, tablet, desktop, wide)
-- Measure vertical spacing between major sections
+- Note where each color appears (body bg, header bg, primary text, links, buttons, etc.)
 
 #### Landmark Structure
-- For each direct child of `<header>`, `<footer>`, `<main>`:
-  - `backgroundColor`, `height`, `padding`, `borderTop`/`borderBottom`
-  - Content summary (what kind of elements are inside: text, images, links, form elements, icons)
+```bash
+npx playwright-cli eval "() => {
+  function getProps(el) {
+    const cs = getComputedStyle(el);
+    return { bg: cs.backgroundColor, height: el.offsetHeight + 'px', padding: cs.padding, borderBottom: cs.borderBottom };
+  }
+  const header = document.querySelector('header');
+  const rows = header ? [...header.children].map(c => ({ tag: c.tagName, ...getProps(c), text: c.textContent?.substring(0, 100).trim() })) : [];
+  const footer = document.querySelector('footer');
+  const sections = footer ? [...footer.children].map(c => ({ tag: c.tagName, ...getProps(c), text: c.textContent?.substring(0, 100).trim() })) : [];
+  return JSON.stringify({ header: rows, footer: sections });
+}"
+```
+
+#### Layout
+- Measure container max-width, edge padding, section spacing via `eval`
 
 #### Interactive Patterns
-- For each `<a>`, `<button>`, or `[role="button"]` within landmarks:
-  - Tag name, computed styles (`backgroundColor`, `color`, `borderRadius`, `padding`, `fontWeight`)
-  - Text content, and any child icon elements (tag, class name, text content)
+- For each `<a>`, `<button>`, or `[role="button"]` within landmarks: extract computed styles via `eval`
 
-#### Selector rules
-- Prefer class-based or landmark-based selectors over tag-only selectors
-- Scope selectors to visible content area
-- Skip generic wrapper divs with no visual styling
-- For repeated identical elements, extract one representative and note count
+#### Close Session
+
+```bash
+npx playwright-cli close
+```
 
 ### Phase 3: Write design-reference.md
 
@@ -101,7 +119,7 @@ EOF
 
 The `--path` mode writes directly to the given path without requiring a file key declaration. `--flush` ensures the file is available immediately for subsequent reads within the same task.
 
-If the calling task declares a file key for the output (e.g. `design-storybook` in compare-markup), use `--key` instead:
+If the calling task declares a file key for the output, use `--key` instead:
 
 ```bash
 cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME $TASK_ID --key design-storybook --flush

@@ -424,7 +424,9 @@ export function expandTasksFromParams(
 
     for (const step of stageSteps) {
       for (const iterableItem of iterables) {
-        items.push({ step, params: iterableItem });
+        const itemParams =
+          typeof iterableItem === 'object' && iterableItem !== null ? iterableItem : { [def.each]: iterableItem };
+        items.push({ step, params: itemParams });
       }
     }
   }

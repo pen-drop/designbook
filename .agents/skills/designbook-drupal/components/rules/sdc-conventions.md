@@ -37,6 +37,22 @@ Slots are rendered directly — no wrapper unless the slot content requires it:
 {% if content %}{{ content }}{% endif %}
 ```
 
+### `{% block %}` Wrapping for Layout Components
+
+Layout components (`container`, `section`, `grid`) MUST wrap each slot output in `{% block <slotname> %}` tags. This is required for `{% embed %}` compatibility — without `{% block %}` tags, child templates that use `{% embed %}` cannot override slot content, causing it to silently disappear.
+
+```twig
+{# CORRECT — slot wrapped in block, embeddable #}
+{% block content %}
+  {% if content %}{{ content }}{% endif %}
+{% endblock %}
+
+{# WRONG — slot without block, embed overrides are silently ignored #}
+{% if content %}{{ content }}{% endif %}
+```
+
+This applies to all slots on layout components, including optional slots like `background` and `header`.
+
 ## No Hardcoded Colors
 
 Do not hardcode color values in Twig. Use design token CSS custom properties (e.g. `color: var(--color-primary)`, `background: var(--color-surface)`) or utility classes derived from them.
