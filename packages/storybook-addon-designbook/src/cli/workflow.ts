@@ -1,5 +1,5 @@
 import { resolve, dirname } from 'node:path';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
 import {
@@ -369,38 +369,93 @@ export function register(program: Command): void {
     .description(
       'Write file content from stdin (or register external file with --external), validate, and update task state',
     )
-    .requiredOption('--key <key>', 'File key as declared in task frontmatter')
+    .option('--key <key>', 'File key as declared in task frontmatter')
+    .option('--path <path>', 'Direct file path (bypasses file key lookup, no gate check)')
     .option('--external', 'Register an already-written file (skip stdin, just validate and track)')
-    .action(async (workflowName: string, taskId: string, opts: { key: string; external?: boolean }) => {
-      const config = loadConfig();
-      try {
-        let content: string | Buffer | null;
-        if (opts.external) {
-          // External mode: file already written to staged path (e.g. by Playwright)
-          content = null;
-        } else {
-          // Read stdin
-          const chunks: Buffer[] = [];
-          for await (const chunk of process.stdin) {
-            chunks.push(chunk as Buffer);
-          }
-          const buf = Buffer.concat(chunks);
-          if (buf.length === 0) {
-            console.error('Error: No content provided on stdin');
-            process.exitCode = 1;
+    .option('--flush', 'Immediately move file to final path (skip waiting for stage transition)')
+    .action(
+      async (
+        workflowName: string,
+        taskId: string,
+        opts: { key?: string; path?: string; external?: boolean; flush?: boolean },
+      ) => {
+        if (!opts.key && !opts.path) {
+          console.error('Error: Either --key or --path is required');
+          process.exitCode = 1;
+          return;
+        }
+        if (opts.key && opts.path) {
+          console.error('Error: --key and --path are mutually exclusive');
+          process.exitCode = 1;
+          return;
+        }
+        const config = loadConfig();
+        try {
+          // Path mode: write directly without file key lookup
+          if (opts.path) {
+            let content: Buffer;
+            if (opts.external) {
+              if (!existsSync(opts.path)) {
+                console.error(`Error: File not found at path: ${opts.path}`);
+                process.exitCode = 1;
+                return;
+              }
+              console.log(JSON.stringify({ valid: true, errors: [], file_path: opts.path }));
+              return;
+            }
+            const chunks: Buffer[] = [];
+            for await (const chunk of process.stdin) {
+              chunks.push(chunk as Buffer);
+            }
+            content = Buffer.concat(chunks);
+            if (content.length === 0) {
+              console.error('Error: No content provided on stdin');
+              process.exitCode = 1;
+              return;
+            }
+            mkdirSync(dirname(opts.path), { recursive: true });
+            writeFileSync(opts.path, content);
+            console.log(JSON.stringify({ valid: true, errors: [], file_path: opts.path }));
             return;
           }
-          content = buf;
-        }
 
-        const result = await workflowWriteFile(config.data, workflowName, taskId, opts.key, content, config);
-        console.log(JSON.stringify(result));
-        if (!result.valid) process.exitCode = 1;
-      } catch (err) {
-        console.error(`Error: ${(err as Error).message}`);
-        process.exitCode = 1;
-      }
-    });
+          // Key mode: existing behavior
+          let content: string | Buffer | null;
+          if (opts.external) {
+            // External mode: file already written to staged path (e.g. by Playwright)
+            content = null;
+          } else {
+            // Read stdin
+            const chunks: Buffer[] = [];
+            for await (const chunk of process.stdin) {
+              chunks.push(chunk as Buffer);
+            }
+            const buf = Buffer.concat(chunks);
+            if (buf.length === 0) {
+              console.error('Error: No content provided on stdin');
+              process.exitCode = 1;
+              return;
+            }
+            content = buf;
+          }
+
+          const result = await workflowWriteFile(
+            config.data,
+            workflowName,
+            taskId,
+            opts.key!,
+            content,
+            config,
+            opts.flush,
+          );
+          console.log(JSON.stringify(result));
+          if (!result.valid) process.exitCode = 1;
+        } catch (err) {
+          console.error(`Error: ${(err as Error).message}`);
+          process.exitCode = 1;
+        }
+      },
+    );
 
   workflow
     .command('done')

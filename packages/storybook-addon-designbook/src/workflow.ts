@@ -915,6 +915,7 @@ export async function workflowWriteFile(
   key: string,
   content: string | Buffer | null,
   config: import('./config.js').DesignbookConfig,
+  flush?: boolean,
 ): Promise<{ valid: boolean; errors: string[]; file_path: string }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -966,6 +967,14 @@ export async function workflowWriteFile(
     const { validateByKeys } = await import('./validation-registry.js');
     const validationResult = await validateByKeys(fileEntry.validators, writtenPath, config);
     fileEntry.validation_result = { ...validationResult, file: fileEntry.path };
+
+    // Flush immediately: rename stashed file to final path so subsequent reads see it
+    if (flush && writtenPath !== fileEntry.path) {
+      mkdirSync(dirname(fileEntry.path), { recursive: true });
+      renameSync(writtenPath, fileEntry.path);
+      fileEntry.flushed_at = new Date().toISOString();
+      writtenPath = fileEntry.path;
+    }
 
     // Transition from waiting back to running on first write
     if (data.status === 'waiting') {

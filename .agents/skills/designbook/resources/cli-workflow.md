@@ -140,7 +140,9 @@ The `staged_path` is where external tools should write. After writing, call `wri
 
 Write file content from stdin (or register an externally-written file), validate, and update task state.
 
-### Standard mode (content from stdin)
+Two modes: **key mode** (tracked file from task frontmatter) and **path mode** (direct file path, no gate check).
+
+### Key mode — standard (content from stdin)
 
 ```bash
 cat <<'EOF' | workflow write-file <workflow-name> <task-id> --key <key>
@@ -148,7 +150,7 @@ cat <<'EOF' | workflow write-file <workflow-name> <task-id> --key <key>
 EOF
 ```
 
-### External mode (file already written to staged path)
+### Key mode — external (file already written to staged path)
 
 ```bash
  workflow write-file <workflow-name> <task-id> --key <key> --external
@@ -156,12 +158,38 @@ EOF
 
 Use `--external` when the file was already written to the staged path by an external tool (e.g. Playwright). Skips stdin, validates the existing file, and updates task state.
 
+### Key mode — with flush
+
+```bash
+cat <<'EOF' | workflow write-file <workflow-name> <task-id> --key <key> --flush
+<file content>
+EOF
+```
+
+`--flush` immediately moves the file from its staged path to the final path. Use when the file must be readable by subsequent steps within the same task (e.g. extract-reference writes a file that the same intake task reads next).
+
+Without `--flush`, files remain staged (with `.debo` suffix) until the stage completes.
+
+### Path mode — direct write
+
+```bash
+cat <<'EOF' | workflow write-file <workflow-name> <task-id> --path <absolute-path> --flush
+<file content>
+EOF
+```
+
+`--path` writes directly to the given path without requiring a file key declaration in the task frontmatter. The file is **not** tracked in the task's gate check — use for auxiliary reference files (e.g. `design-reference.md`) that rules produce but that aren't task deliverables.
+
+`--path` and `--key` are mutually exclusive.
+
 | Argument/Option | Required | Description |
 |---|---|---|
 | `<workflow-name>` | Yes | Positional — workflow name |
 | `<task-id>` | Yes | Positional — task ID from `expanded_tasks` |
-| `--key <key>` | Yes | File key as declared in task frontmatter |
+| `--key <key>` | One of key/path | File key as declared in task frontmatter |
+| `--path <path>` | One of key/path | Direct file path (bypasses file key lookup) |
 | `--external` | No | Register an already-written file (skip stdin) |
+| `--flush` | No | Immediately move file to final path |
 
 **Response:**
 ```json
