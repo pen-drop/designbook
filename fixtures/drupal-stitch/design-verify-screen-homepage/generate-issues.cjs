@@ -222,7 +222,7 @@ function main() {
 
   // Write issues
   fs.mkdirSync(ISSUES_DIR, { recursive: true });
-  const issuesPath = path.join(ISSUES_DIR, `${bp}--markup.json`);
+  const issuesPath = path.join(ISSUES_DIR, `${bp}--diff.json`);
   fs.writeFileSync(issuesPath, JSON.stringify(issues, null, 2));
 
   console.log(`${bp}: ${issues.length} issues found`);

@@ -11,7 +11,7 @@ files:
     path: designbook/stories/{storyId}/design-storybook.md
     validators: []
   - key: draft-issues
-    path: designbook/stories/{storyId}/issues/draft/markup.json
+    path: designbook/stories/{storyId}/issues/draft/diff.json
     validators: []
 reads:
   - path: designbook/stories/{storyId}/design-reference.md
@@ -71,7 +71,7 @@ cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME $TASK_ID --key draft-issu
 EOF
 ```
 
-Format of `$STORY_DIR/issues/draft/markup.json`:
+Format of `$STORY_DIR/issues/draft/diff.json`:
 
 ```json
 [

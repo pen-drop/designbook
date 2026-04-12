@@ -9,7 +9,7 @@ Compare tasks (both markup and screenshot) SHALL write issues exclusively to dra
 
 #### Scenario: Compare markup writes draft only
 - **WHEN** a compare-markup task completes with extraction diffs found
-- **THEN** it writes a JSON array to `issues/draft/${breakpoint}--markup.json` and does NOT call any `_debo story issues` or `_debo story check` CLI commands
+- **THEN** it writes a JSON array to `issues/draft/${breakpoint}--diff.json` and does NOT call any `_debo story issues` or `_debo story check` CLI commands
 
 ### Requirement: Triage consolidation produces one issue per distinct fix
 The triage stage SHALL create one issue per distinct actionable fix. Two problems that require separate code changes MUST NOT be merged into a single issue, even if they appear in the same component region or check.
