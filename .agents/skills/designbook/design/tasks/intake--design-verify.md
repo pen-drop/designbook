@@ -5,7 +5,6 @@ params:
   scene: ~
   reference: []
   breakpoints: []
-files: []
 ---
 
 # Intake: Design Verify

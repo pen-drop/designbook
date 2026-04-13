@@ -21,7 +21,9 @@ import {
   generateTaskTitle,
   inferTaskType,
   expandFileDeclarations,
+  expandResultDeclarations,
   type TaskFileDeclaration,
+  type ResultDeclaration,
   type ResolvedStep,
 } from './workflow-resolve.js';
 import { getValidatorKeys } from './validation-registry.js';
@@ -66,9 +68,31 @@ export interface WorkflowTask {
   config_rules?: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions?: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   files?: TaskFile[];
+  /** Unified result map. Keys are result identifiers. File results have `path`, data results have `value`. */
+  result?: Record<string, TaskResult>;
   iteration?: number; // loop iteration (1-based), absent = iteration 1
   description?: string; // detailed task description, set at completion
   summary?: string; // short human-readable result summary, set at completion
+}
+
+/** A single result entry on a task — either a file result (has path) or a data result (has value). */
+export interface TaskResult {
+  /** Target file path — present for file results, absent for data results. */
+  path?: string;
+  /** JSON Schema $ref — resolved at create time. Used for validation. */
+  schema?: object;
+  /** Semantic validator keys (e.g. ['component', 'scene']). */
+  validators?: string[];
+  /** Inline data value — stored for data results (no path). */
+  value?: unknown;
+  /** Whether the result has been written and validated. */
+  valid?: boolean;
+  /** Validation error message, if any. */
+  error?: string;
+  /** ISO timestamp of last validation. */
+  last_validated?: string;
+  /** ISO timestamp when file was flushed to final path (direct engine). */
+  flushed_at?: string;
 }
 
 export interface WorkflowFile {
@@ -94,6 +118,10 @@ export interface WorkflowFile {
   workflow_id?: string;
   /** Absolute path to the workspace root. Used by engines for git operations and as anchor for relative path resolution. */
   workspace_root?: string;
+  /** Engine-managed shared data namespace. Data results flow in at stage completion. */
+  scope?: Record<string, unknown>;
+  /** Resolved JSON Schemas, inlined from $ref at create time. Keyed by PascalCase type name. */
+  schemas?: Record<string, object>;
   tasks: WorkflowTask[];
 }
 
@@ -393,7 +421,11 @@ export function expandTasksFromParams(
   params: Record<string, unknown>,
   existingTasks: WorkflowTask[],
   envMap: Record<string, string>,
+  scope?: Record<string, unknown>,
 ): WorkflowTask[] {
+  // Merge scope into lookup — scope takes precedence for each: arrays
+  const lookup = { ...params, ...(scope ?? {}) };
+
   // Build step lists and mappings
   const allSteps: string[] = [];
   const stepToStage = new Map<string, string>();
@@ -410,22 +442,53 @@ export function expandTasksFromParams(
   const existingSteps = new Set(existingTasks.map((t) => t.step).filter(Boolean));
   const existingIds = new Set(existingTasks.map((t) => t.id).filter(Boolean) as string[]);
 
-  // Expand each-based items from params
+  // Resolve task-level each: from frontmatter (Task 5.1)
+  // Build a map: step → each key (task-level overrides stage-level)
+  const stepToTaskEach = new Map<string, string>();
+  for (const step of allSteps) {
+    const preResolved = stageLoaded[step];
+    if (!preResolved) continue;
+    const resolved = Array.isArray(preResolved) ? preResolved[0] : preResolved;
+    if (!resolved) continue;
+    const taskFm = parseFrontmatter(resolved.task_file);
+    if (taskFm?.each && typeof taskFm.each === 'object') {
+      // Task-level each: { <scope-key>: <schema> } — use the first key
+      const eachKey = Object.keys(taskFm.each as Record<string, unknown>)[0];
+      if (eachKey) stepToTaskEach.set(step, eachKey);
+    }
+  }
+
+  // Expand each-based items from lookup (scope + params)
   const items: Array<{ step: string; params?: Record<string, unknown> }> = [];
   for (const [, def] of Object.entries(stages)) {
-    if (!def.each) continue;
-    const iterables = params[def.each] as Array<Record<string, unknown>> | undefined;
-    if (!iterables || !Array.isArray(iterables)) continue;
-
     const stageSteps = def.steps ?? [];
     const stageHasTasks = stageSteps.some((s) => existingSteps.has(s));
-
     if (stageHasTasks) continue; // Already expanded — skip
 
     for (const step of stageSteps) {
+      // Resolve each key: task-level (5.1) with stage-level fallback (5.2)
+      const taskEachKey = stepToTaskEach.get(step);
+      const stageEachKey = def.each;
+      let eachKey: string | undefined;
+      if (taskEachKey) {
+        eachKey = taskEachKey;
+      } else if (stageEachKey) {
+        eachKey = stageEachKey;
+        if (taskEachKey === undefined && stageEachKey) {
+          console.warn(
+            `[designbook] stage-level each: "${stageEachKey}" is deprecated — move each: to task frontmatter for step "${step}"`,
+          );
+        }
+      }
+
+      if (!eachKey) continue;
+
+      const iterables = lookup[eachKey] as Array<Record<string, unknown>> | undefined;
+      if (!iterables || !Array.isArray(iterables)) continue;
+
       for (const iterableItem of iterables) {
         const itemParams =
-          typeof iterableItem === 'object' && iterableItem !== null ? iterableItem : { [def.each]: iterableItem };
+          typeof iterableItem === 'object' && iterableItem !== null ? iterableItem : { [eachKey]: iterableItem };
         items.push({ step, params: itemParams });
       }
     }
@@ -435,7 +498,7 @@ export function expandTasksFromParams(
   for (const step of allSteps) {
     if (existingSteps.has(step)) continue;
     if (items.some((i) => i.step === step)) continue;
-    if (stepToEach.has(step)) continue;
+    if (stepToEach.has(step) || stepToTaskEach.has(step)) continue;
     items.push({ step, params: {} });
   }
 
@@ -460,13 +523,14 @@ export function expandTasksFromParams(
       const taskTitle = taskFm?.title as string | undefined;
       const taskDescription = taskFm?.description as string | undefined;
       const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
+      const resultDeclarations = taskFm?.result as Record<string, ResultDeclaration> | undefined;
       const whenConditions = (taskFm?.when ?? {}) as Record<string, unknown>;
 
       for (let itemIdx = 0; itemIdx < stepItems.length; itemIdx++) {
         const item = stepItems[itemIdx]!;
 
         // Check when-conditions (beyond steps/stages) against item params
-        const itemParams = { ...params, ...item.params };
+        const itemParams = { ...lookup, ...item.params };
         const extraWhen = Object.entries(whenConditions).filter(([k]) => k !== 'steps' && k !== 'stages');
         if (extraWhen.length > 0) {
           const mismatch = extraWhen.some(([k, v]) => {
@@ -495,6 +559,13 @@ export function expandTasksFromParams(
         const description = taskDescription ? expandParams(taskDescription, mergedParams) : undefined;
         const type = inferTaskType(step);
         const files = expandFileDeclarations(fileDeclarations, mergedParams, envMap, knownValidators);
+        const result = expandResultDeclarations(
+          resultDeclarations,
+          fileDeclarations,
+          mergedParams,
+          envMap,
+          knownValidators,
+        );
 
         tasks.push({
           id: taskId,
@@ -515,6 +586,7 @@ export function expandTasksFromParams(
             key: f.key,
             validators: f.validators,
           })),
+          ...(result ? { result } : {}),
         });
       }
     }
@@ -537,6 +609,7 @@ export function workflowPlan(
     step?: string;
     stage?: string;
     files?: Array<{ path: string; key: string; validators: string[] }>;
+    result?: Record<string, { path?: string; schema?: object; validators?: string[] }>;
     depends_on?: string[];
     params?: Record<string, unknown>;
     task_file?: string;
@@ -551,6 +624,7 @@ export function workflowPlan(
   rootDir?: string,
   worktreeBranch?: string,
   engine?: string,
+  schemas?: Record<string, object>,
 ): WorkflowFile {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -599,9 +673,15 @@ export function workflowPlan(
       key: f.key,
       validators: f.validators,
     })),
+    ...(t.result ? { result: t.result } : {}),
   }));
 
   data.tasks = [...preserved, ...newTasks];
+
+  // Store resolved schemas (from $ref resolution at create time)
+  if (schemas && Object.keys(schemas).length > 0) {
+    data.schemas = { ...(data.schemas ?? {}), ...schemas };
+  }
 
   // Set first pending task to in-progress
   const firstPending = data.tasks.find((t) => t.status === 'pending');
@@ -660,6 +740,14 @@ export interface StageResponse {
   transition_from?: string;
   next_stage?: string | null;
   waiting_for?: Record<string, StageParam>;
+  /** Progress within current stage: "2/4" */
+  stage_progress?: string;
+  /** Whether all tasks in the stage are done */
+  stage_complete?: boolean;
+  /** Scope keys updated at stage completion (data results collected) */
+  scope_update?: Record<string, unknown>;
+  /** Tasks expanded from scope for next stage(s) */
+  expanded_tasks?: Array<{ id: string; step?: string; stage?: string; title: string }>;
 }
 
 export interface LoadedPayload {
@@ -730,6 +818,35 @@ export async function workflowDone(
       );
     }
 
+    // Gate-check: assert all result entries are written and valid (new result: model)
+    if (task.result) {
+      const missingResults = Object.entries(task.result).filter(
+        ([, r]) => r.valid === undefined && r.path !== undefined,
+      );
+      if (missingResults.length > 0) {
+        throw new Error(
+          `Cannot mark '${taskId}' as done — ${missingResults.length} result(s) not yet written:\n` +
+            missingResults.map(([k]) => `  · result \`${k}\` not yet written`).join('\n'),
+        );
+      }
+      const missingDataResults = Object.entries(task.result).filter(
+        ([, r]) => r.valid === undefined && r.path === undefined,
+      );
+      if (missingDataResults.length > 0) {
+        throw new Error(
+          `Cannot mark '${taskId}' as done — ${missingDataResults.length} data result(s) not yet written:\n` +
+            missingDataResults.map(([k]) => `  · result \`${k}\` not yet written`).join('\n'),
+        );
+      }
+      const failedResults = Object.entries(task.result).filter(([, r]) => r.valid === false);
+      if (failedResults.length > 0) {
+        throw new Error(
+          `Cannot mark '${taskId}' as done — ${failedResults.length} result(s) have errors:\n` +
+            failedResults.map(([k, r]) => `  · result \`${k}\` has errors: ${r.error ?? 'invalid'}`).join('\n'),
+        );
+      }
+    }
+
     task.status = 'done';
     if (!task.started_at) task.started_at = timestamp();
     task.completed_at = timestamp();
@@ -767,6 +884,11 @@ export async function workflowDone(
 
       const nextStepInStage = getNextStep(currentStage, task.step ?? '', data.tasks);
 
+      // Compute stage progress
+      const stageTasks = data.tasks.filter((t) => t.stage === currentStage);
+      const stageDone = stageTasks.filter((t) => t.status === 'done').length;
+      const stageTotal = stageTasks.length;
+
       let response: StageResponse;
 
       if (nextStepInStage) {
@@ -780,9 +902,17 @@ export async function workflowDone(
           stage: currentStage,
           step_completed: task.step,
           next_step: nextStepInStage,
+          stage_progress: `${stageDone}/${stageTotal}`,
+          stage_complete: false,
         };
         writeWorkflowAtomic(filePath, data);
         return { archived: false, data, response };
+      }
+
+      // ── Stage complete — collect data results into scope ──────────────
+      const scopeUpdate = collectStageResults(stageTasks);
+      if (Object.keys(scopeUpdate).length > 0) {
+        data.scope = { ...(data.scope ?? {}), ...scopeUpdate };
       }
 
       // Current stage complete — walk through transitions until we find the next actionable stage
@@ -810,7 +940,16 @@ export async function workflowDone(
           if (transitionResult.archive) {
             data.current_stage = 'done';
             archiveWorkflow(dataDir, name, data);
-            return { archived: true, data, response: { stage: 'done' } };
+            return {
+              archived: true,
+              data,
+              response: {
+                stage: 'done',
+                stage_progress: `${stageDone}/${stageTotal}`,
+                stage_complete: true,
+                ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
+              },
+            };
           }
         }
 
@@ -829,6 +968,35 @@ export async function workflowDone(
           return { archived: false, data, response: { stage: nextStage, waiting_for: interpolated } };
         }
 
+        // Scope-driven expansion: if this stage has no tasks yet, try expanding from scope
+        let expandedFromScope: Array<{ id: string; step?: string; stage?: string; title: string }> | undefined;
+        const hasTasksForStage = data.tasks.some((t) => t.stage === nextStage);
+        if (!hasTasksForStage && data.stage_loaded && data.scope) {
+          const stageLoaded = data.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]>;
+          const scopeEnvMap: Record<string, string> = {};
+          if (data.write_root) scopeEnvMap['DESIGNBOOK_WORKSPACE'] = data.write_root;
+          if (data.workspace_root) scopeEnvMap['DESIGNBOOK_HOME'] = data.workspace_root;
+          const expanded = expandTasksFromParams(
+            stageLoaded,
+            stages,
+            data.params ?? {},
+            data.tasks,
+            scopeEnvMap,
+            data.scope,
+          );
+          // Only add tasks that belong to this stage
+          const stageTasks2 = expanded.filter((t) => t.stage === nextStage);
+          if (stageTasks2.length > 0) {
+            data.tasks.push(...stageTasks2);
+            expandedFromScope = stageTasks2.map((t) => ({
+              id: t.id,
+              step: t.step,
+              stage: t.stage,
+              title: t.title,
+            }));
+          }
+        }
+
         // If this stage has pending tasks, stop here
         const nextStepInNewStage = data.tasks.find((t) => t.stage === nextStage && t.status !== 'done');
         if (nextStepInNewStage) {
@@ -843,6 +1011,10 @@ export async function workflowDone(
             transition_from: currentStage,
             next_stage: nextStage,
             next_step: nextStepInNewStage.step ?? null,
+            stage_progress: `${stageDone}/${stageTotal}`,
+            stage_complete: true,
+            ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
+            ...(expandedFromScope && { expanded_tasks: expandedFromScope }),
           };
           writeWorkflowAtomic(filePath, data);
           return { archived: false, data, response };
@@ -855,16 +1027,22 @@ export async function workflowDone(
 
       // No more stages — workflow complete
       data.current_stage = 'done';
+      const completionResponse: StageResponse = {
+        stage: 'done',
+        stage_progress: `${stageDone}/${stageTotal}`,
+        stage_complete: true,
+        ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
+      };
       if (engine) {
         const doneResult = engine.done(data);
         if (doneResult.archive) {
           archiveWorkflow(dataDir, name, data);
-          return { archived: true, data, response: { stage: 'done' } };
+          return { archived: true, data, response: completionResponse };
         }
       }
       writeWorkflowAtomic(filePath, data);
 
-      return { archived: false, data, response: { stage: 'done' } };
+      return { archived: false, data, response: completionResponse };
     }
 
     // All workflows must use grouped stages
@@ -992,4 +1170,292 @@ export async function workflowWriteFile(
       file_path: writtenPath,
     };
   });
+}
+
+// ── collectStageResults ─────────────────────────────────────────────────────
+
+/**
+ * Collect data results from all tasks in a completed stage.
+ * For each:-stages: concatenates array-valued data results across all task instances.
+ * For single-task stages: writes data result directly.
+ * File results (with path) are NOT collected — they live on disk.
+ *
+ * @returns scope update map (key → collected value)
+ */
+function collectStageResults(stageTasks: WorkflowTask[]): Record<string, unknown> {
+  const scopeUpdate: Record<string, unknown> = {};
+
+  for (const t of stageTasks) {
+    if (!t.result) continue;
+    for (const [key, r] of Object.entries(t.result)) {
+      // Skip file results — they're on disk, not in scope
+      if (r.path) continue;
+      // Skip results that haven't been written
+      if (r.value === undefined) continue;
+
+      if (key in scopeUpdate) {
+        // Concatenate arrays (fan-in from each: stages)
+        const existing = scopeUpdate[key];
+        if (Array.isArray(existing) && Array.isArray(r.value)) {
+          scopeUpdate[key] = [...existing, ...r.value];
+        } else {
+          // Last writer wins for non-array values
+          scopeUpdate[key] = r.value;
+        }
+      } else {
+        scopeUpdate[key] = r.value;
+      }
+    }
+  }
+
+  return scopeUpdate;
+}
+
+// ── workflowResult ──────────────────────────────────────────────────────────
+
+/**
+ * Write a task result — either a file result (content written to disk) or a data result (stored inline in tasks.yml).
+ * Validates against JSON Schema (from resolved schemas in tasks.yml) and semantic validators.
+ * Replaces `workflowWriteFile` for new `result:` declarations.
+ *
+ * For file results (result entry has `path:`):
+ *   - content is string|Buffer|null (null = external, e.g. Playwright screenshots)
+ *   - file is written via engine (stash for direct, direct for git-worktree)
+ *   - flush option moves stash to final path immediately
+ *
+ * For data results (result entry has no `path:`):
+ *   - content is parsed JSON (object/array/primitive)
+ *   - stored as `result[key].value` in tasks.yml
+ */
+export async function workflowResult(
+  dataDir: string,
+  name: string,
+  taskId: string,
+  key: string,
+  content: string | Buffer | unknown | null,
+  config: import('./config.js').DesignbookConfig,
+  options?: { flush?: boolean },
+): Promise<{ valid: boolean; errors: string[]; file_path?: string }> {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+
+  return withLockAsync(filePath, async () => {
+    const data = readWorkflow(filePath);
+
+    const task = data.tasks.find((t) => t.id === taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId} (available: ${data.tasks.map((t) => t.id).join(', ')})`);
+    }
+
+    if (!task.result) {
+      throw new Error(`Task '${taskId}' has no result declarations`);
+    }
+
+    const resultEntry = task.result[key];
+    if (!resultEntry) {
+      const validKeys = Object.keys(task.result).join(', ');
+      throw new Error(`Unknown result key '${key}' for task '${taskId}'. Valid keys: ${validKeys}`);
+    }
+
+    const isFileResult = !!resultEntry.path;
+    const errors: string[] = [];
+
+    // ── File result: write to disk via engine ────────────────────────────────
+    if (isFileResult) {
+      const engine = resolveWorkflowEngine(data);
+      const dataWithDir = data as WorkflowFile & { _changesDir?: string };
+      dataWithDir._changesDir = changesDir;
+
+      // Ensure task.files[] has an entry for engine compatibility (stash paths, flush)
+      if (!task.files?.some((f) => f.key === key)) {
+        task.files = task.files ?? [];
+        task.files.push({
+          path: resultEntry.path!,
+          key,
+          validators: resultEntry.validators ?? [],
+        });
+      }
+
+      let writtenPath: string;
+      if (content === null) {
+        // External mode: file already written (e.g. by Playwright)
+        // Try staged path first (engine may have a stash), fall back to actual path
+        if (engine?.getStagedPath) {
+          const staged = engine.getStagedPath(dataWithDir, task, key);
+          writtenPath = existsSync(staged) ? staged : resultEntry.path!;
+        } else {
+          writtenPath = resultEntry.path!;
+        }
+        if (!existsSync(writtenPath)) {
+          throw new Error(`External file not found at path: ${writtenPath}`);
+        }
+      } else if (engine?.writeFile) {
+        const result = engine.writeFile(dataWithDir, task, key, content as string | Buffer);
+        writtenPath = result.path;
+      } else {
+        // Fallback: write directly
+        const dir = dirname(resultEntry.path!);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(resultEntry.path!, content as string | Buffer);
+        writtenPath = resultEntry.path!;
+      }
+
+      // Validate file content
+      const validationErrors = await validateResultEntry(resultEntry, writtenPath, data.schemas, config, 'file');
+
+      if (validationErrors.length > 0) {
+        errors.push(...validationErrors);
+        resultEntry.valid = false;
+        resultEntry.error = validationErrors.join('; ');
+      } else {
+        resultEntry.valid = true;
+        delete resultEntry.error;
+      }
+      resultEntry.last_validated = new Date().toISOString();
+
+      // Also update task.files[] validation_result for engine flush compatibility
+      const fileEntry = task.files?.find((f) => f.key === key);
+      if (fileEntry) {
+        fileEntry.validation_result = {
+          file: resultEntry.path!,
+          type: key,
+          valid: resultEntry.valid!,
+          error: resultEntry.error,
+          last_validated: resultEntry.last_validated!,
+          last_passed: resultEntry.valid ? resultEntry.last_validated : undefined,
+          last_failed: !resultEntry.valid ? resultEntry.last_validated : undefined,
+        };
+      }
+
+      // Flush immediately if requested
+      if (options?.flush && writtenPath !== resultEntry.path) {
+        mkdirSync(dirname(resultEntry.path!), { recursive: true });
+        renameSync(writtenPath, resultEntry.path!);
+        resultEntry.flushed_at = new Date().toISOString();
+        if (fileEntry) fileEntry.flushed_at = resultEntry.flushed_at;
+        writtenPath = resultEntry.path!;
+      }
+
+      // Transition from waiting back to running
+      if (data.status === 'waiting') {
+        data.status = 'running';
+        delete data.waiting_message;
+      }
+
+      writeWorkflowAtomic(filePath, data);
+
+      return {
+        valid: errors.length === 0,
+        errors,
+        file_path: writtenPath,
+      };
+    }
+
+    // ── Data result: store inline in tasks.yml ───────────────────────────────
+    let dataValue: unknown;
+    if (typeof content === 'string') {
+      try {
+        dataValue = JSON.parse(content);
+      } catch {
+        throw new Error(`Data result '${key}' requires valid JSON, got: ${(content as string).slice(0, 100)}`);
+      }
+    } else {
+      dataValue = content;
+    }
+
+    // Validate data content
+    const validationErrors = await validateResultEntry(resultEntry, dataValue, data.schemas, config, 'data');
+
+    if (validationErrors.length > 0) {
+      errors.push(...validationErrors);
+      resultEntry.valid = false;
+      resultEntry.error = validationErrors.join('; ');
+    } else {
+      resultEntry.value = dataValue;
+      resultEntry.valid = true;
+      delete resultEntry.error;
+    }
+    resultEntry.last_validated = new Date().toISOString();
+
+    // Transition from waiting back to running
+    if (data.status === 'waiting') {
+      data.status = 'running';
+      delete data.waiting_message;
+    }
+
+    writeWorkflowAtomic(filePath, data);
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  });
+}
+
+/**
+ * Validate a result entry against its JSON Schema and semantic validators.
+ * @param entry - The result declaration
+ * @param content - For file results: the written file path. For data results: the parsed value.
+ * @param schemas - Resolved schemas from tasks.yml
+ * @param config - Designbook config for semantic validators
+ * @param mode - 'file' or 'data'
+ */
+async function validateResultEntry(
+  entry: TaskResult,
+  content: unknown,
+  schemas: Record<string, object> | undefined,
+  config: import('./config.js').DesignbookConfig,
+  mode: 'file' | 'data',
+): Promise<string[]> {
+  const errors: string[] = [];
+
+  // 1. JSON Schema validation
+  if (entry.schema) {
+    const Ajv = (await import('ajv')).default;
+    const ajv = new Ajv({ allErrors: true });
+
+    // Register all resolved schemas so cross-references work
+    if (schemas) {
+      for (const [typeName, schemaDef] of Object.entries(schemas)) {
+        try {
+          ajv.addSchema(schemaDef, `#/${typeName}`);
+        } catch {
+          // Schema already added — skip
+        }
+      }
+    }
+
+    let dataToValidate: unknown;
+    if (mode === 'file') {
+      // Read and parse file content for validation
+      const filePath = content as string;
+      try {
+        const raw = readFileSync(filePath, 'utf-8');
+        const { load: parseYaml } = await import('js-yaml');
+        dataToValidate = parseYaml(raw);
+      } catch (err) {
+        errors.push(`Failed to parse file for schema validation: ${(err as Error).message}`);
+        return errors;
+      }
+    } else {
+      dataToValidate = content;
+    }
+
+    const validate = ajv.compile(entry.schema);
+    if (!validate(dataToValidate)) {
+      const schemaErrors = (validate.errors ?? []).map((e) => `${e.instancePath || '/'} ${e.message}`);
+      errors.push(...schemaErrors);
+    }
+  }
+
+  // 2. Semantic validators (only for file results)
+  if (mode === 'file' && entry.validators && entry.validators.length > 0) {
+    const { validateByKeys } = await import('./validation-registry.js');
+    const result = await validateByKeys(entry.validators, content as string, config);
+    if (!result.valid && result.error) {
+      errors.push(result.error);
+    }
+  }
+
+  return errors;
 }

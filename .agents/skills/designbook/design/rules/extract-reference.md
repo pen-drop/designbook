@@ -109,20 +109,18 @@ npx playwright-cli close
 
 ### Phase 3: Write design-reference.md
 
-Write the extracted data via the workflow CLI with `--flush` so the calling task can read it immediately:
+Write the extracted data via the workflow CLI:
 
 ```bash
-cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME $TASK_ID --path $STORY_DIR/design-reference.md --flush
+cat <<'EOF' | _debo workflow result --task $TASK_ID --key design-reference
 <markdown content>
 EOF
 ```
 
-The `--path` mode writes directly to the given path without requiring a file key declaration. `--flush` ensures the file is available immediately for subsequent reads within the same task.
-
-If the calling task declares a file key for the output, use `--key` instead:
+If the calling task declares a different file key for the output, use that key:
 
 ```bash
-cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME $TASK_ID --key design-storybook --flush
+cat <<'EOF' | _debo workflow result --task $TASK_ID --key design-storybook
 <markdown content>
 EOF
 ```

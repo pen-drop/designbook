@@ -8,17 +8,16 @@ params:
   features: []
   design_reference: ~
   references: []
-files:
-  - file: $DESIGNBOOK_DATA/vision.md
-    key: vision
-    validators: []
+result:
+  vision:
+    path: $DESIGNBOOK_DATA/vision.md
 ---
 
 # Create Product Vision
 
 Write the approved product vision from the dialog via stdin to the CLI:
 ```
- write-file $WORKFLOW_NAME $TASK_ID --key vision
+ workflow result --task $TASK_ID --key vision
 ```
 
 ## File Format

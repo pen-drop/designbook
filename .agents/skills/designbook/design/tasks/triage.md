@@ -7,7 +7,8 @@ priority: 10
 params:
   scene: ~
   storyId: ~
-files: []
+  issues:
+    type: array
 ---
 
 # Triage
@@ -16,14 +17,9 @@ Reads all draft issues from the compare stage, consolidates duplicates and overl
 
 ## Step 1: Read All Draft Issues
 
-Glob all draft files:
-```
-designbook/stories/${storyId}/issues/draft/*.json
-```
+Read the `issues` array from scope — it contains all issues collected from the compare tasks via their `result: issues` declarations.
 
-Parse each file and collect all issues into a flat list. Tag each issue with its source file for traceability.
-
-If no draft files exist or all are empty arrays, skip to Step 4 (no issues).
+If the `issues` array is empty, complete the task (no issues to consolidate).
 
 ## Step 2: Consolidate and Rewrite
 
@@ -58,9 +54,9 @@ Review the full issue list across all checks and breakpoints:
 
 5. **Assign priority** — `critical` before `major`. Within same severity, group by file (so one polish task can fix multiple properties in one file).
 
-## Step 3: Pass Issues as Workflow Params
+## Step 3: Report Consolidated Issues
 
-The polish stage uses `each: issues`. Pass the consolidated issues array as workflow params so the engine can expand them.
+The polish stage uses `each: issues`. Report the consolidated issues array as a task result so the engine can expand them.
 
 Each issue object must contain `id` and the params that `polish.md` needs:
 
@@ -80,14 +76,11 @@ Each issue object must contain `id` and the params that `polish.md` needs:
 }
 ```
 
-Pass the `issues` array as params when marking this task done. The workflow engine expands polish tasks from it via `each: issues`.
-
-## Step 4: Clean Up
-
-Delete the draft directory:
+```bash
+_debo workflow result --task $TASK_ID --key issues --json '<consolidated-issues-array>'
 ```
-designbook/stories/${storyId}/issues/draft/
-```
+
+The workflow engine expands polish tasks from the `issues` result via `each: issues`.
 
 ## Output
 

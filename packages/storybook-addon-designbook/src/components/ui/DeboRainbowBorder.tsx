@@ -62,31 +62,37 @@ export function DeboRainbowBorder({
     if (active) ensureKeyframes();
   }, [active]);
 
-  if (!active) {
-    return <div style={style}>{children}</div>;
-  }
-
   const isWaiting = variant === 'waiting';
   const waitingGradient = `linear-gradient(135deg, ${theme.color.warning}, #fbbf24, ${theme.color.warning})`;
 
   return (
     <div
       ref={ref}
-      style={{
-        position: 'relative',
-        borderRadius,
-        padding: borderWidth,
-        background: isWaiting ? waitingGradient : RAINBOW_GRADIENT,
-        animation: isWaiting ? 'debo-waiting-pulse 2s ease-in-out infinite' : 'debo-rainbow-spin 3s linear infinite',
-        ...style,
-      }}
+      style={
+        active
+          ? {
+              position: 'relative',
+              borderRadius,
+              padding: borderWidth,
+              background: isWaiting ? waitingGradient : RAINBOW_GRADIENT,
+              animation: isWaiting
+                ? 'debo-waiting-pulse 2s ease-in-out infinite'
+                : 'debo-rainbow-spin 3s linear infinite',
+              ...style,
+            }
+          : style
+      }
     >
       <div
-        style={{
-          borderRadius: borderRadius - 1,
-          background: theme.background.content,
-          position: 'relative',
-        }}
+        style={
+          active
+            ? {
+                borderRadius: borderRadius - 1,
+                background: theme.background.content,
+                position: 'relative',
+              }
+            : undefined
+        }
       >
         {children}
       </div>

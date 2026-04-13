@@ -6,8 +6,8 @@ when:
 each: story
 params:
   storyId: ~
-files:
-  - key: meta
+result:
+  meta:
     path: designbook/stories/{storyId}/meta.yml
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
@@ -78,7 +78,7 @@ If keep: done. If update: continue as if it doesn't exist.
 
    **Shell scene (element regions):**
    ```bash
-   cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME $TASK_ID --key meta
+   cat <<'EOF' | _debo workflow result --task $TASK_ID --key meta
    reference:
      source:
        url: "<resolved-url>"
@@ -102,7 +102,7 @@ If keep: done. If update: continue as if it doesn't exist.
 
    **Screen scene (full-page region):**
    ```bash
-   cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME $TASK_ID --key meta
+   cat <<'EOF' | _debo workflow result --task $TASK_ID --key meta
    reference:
      source:
        url: "<resolved-url>"

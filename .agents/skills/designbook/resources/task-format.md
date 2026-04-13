@@ -14,10 +14,17 @@ when:                                         # optional: conditions for matchin
   frameworks.css: tailwind
 params:                                       # task-specific: declared parameters
   scene: ~
-files:                                        # task-specific: output file declarations
-  - file: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
-    key: component
-    validators: [component]
+each:                                         # task-specific: iteration declaration
+  checks:
+    $ref: ../schemas.yml#/Check
+result:                                       # task-specific: output declarations
+  component-yml:                              # file result (has path:)
+    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+    validators: [data]
+  issues:                                     # data result (no path:)
+    type: array
+    items:
+      $ref: ../schemas.yml#/Issue
 ---
 ```
 
@@ -25,9 +32,43 @@ files:                                        # task-specific: output file decla
 - `as` — override target. Replaces the named artifact if this artifact's `priority` is higher.
 - `priority` — integer (default 0). Lower runs first. Higher wins in `as` conflicts.
 - `when` — conditions checked against runtime context (step name) and project config.
-- `file` — path template (supports `$ENV` and `{{ param }}`)
-- `key` — stable identifier used by `write-file --key`
-- `validators` — validator keys (`component`, `data-model`, `tokens`, `data`, `entity-mapping`, `scene`). Empty = auto-pass.
+- `each` — declares what this task iterates over. Keys reference scope entries; values are JSON Schema (inline or `$ref`). The engine expands one task instance per array item.
+- `result` — declares all task outputs. Each key is a stable identifier used by `workflow result --key <key>`. File results include a `path:` template (supports `$ENV` and `{{ param }}`). Data results declare a JSON Schema type (inline or `$ref`). Both support optional `validators:` for semantic validation.
+- `validators` — semantic validator keys: `data`, `entity-mapping`, `scene`, `image`, or `cmd:<command>` prefix for arbitrary command validators. Empty = auto-pass.
+
+### `$ref` syntax
+
+Task frontmatter references schemas in `schemas.yml` files using `$ref`:
+
+```yaml
+$ref: ../schemas.yml#/TypeName
+```
+
+The path is relative to the task file. The fragment (`#/TypeName`) selects a PascalCase key from the schemas file. All `$ref` values are resolved and inlined at `workflow create` time -- unresolvable references cause a hard error.
+
+### `schemas.yml` file format
+
+Each skill concern can define a `schemas.yml` file with reusable JSON Schema (draft-07) definitions:
+
+```yaml
+# .agents/skills/<skill>/<concern>/schemas.yml
+Check:
+  type: object
+  required: [storyId, breakpoint, region]
+  properties:
+    storyId: { type: string }
+    breakpoint: { type: string }
+    region: { type: string, enum: [full, header, footer] }
+
+Issue:
+  type: object
+  required: [severity, description]
+  properties:
+    severity: { type: string, enum: [critical, major, minor] }
+    description: { type: string }
+```
+
+Keys are PascalCase. Values are standard JSON Schema objects. Referenced from task frontmatter via `$ref: ../schemas.yml#/Check`.
 
 ## tasks.yml Format
 
@@ -66,23 +107,30 @@ tasks:
       - "Nach Erstellung prüfen ob die Komponente im Storybook ohne Fehler rendert"
     started_at:
     completed_at:
-    files:
-      - path: /tmp/designbook-{name}/packages/.../components/button/button.component.yml
-        key: component
-        validators: [component]
-        # validation_result absent = file not yet written
-        # validation_result present = file written + validated
+    result:
+      component-yml:
+        path: /tmp/designbook-{name}/packages/.../components/button/button.component.yml
+        validators: [data]
+        # valid absent = result not yet written
+        # valid: true = written + validated + OK
+        # valid: false = written + validated + errors
+      issues:
+        type: array
+        items: { ... }
+        value: [...]                 # populated after workflow result --json
 ```
 
-**`files:` vs `reads:` in task files:**
+**`result:` vs `reads:` in task files:**
 
-- `files:` — output declarations with `key` and `validators`. The AI writes content via `workflow write-file --key <key>` (stdin). The engine decides where to write (stash for direct, WORKTREE for git-worktree). Validation runs immediately on write.
+- `result:` — output declarations. Each key is used by `workflow result --key <key>`. File results (with `path:`) are written via stdin. Data results (without `path:`) are written via `--json`. The engine validates immediately on write (JSON Schema + semantic validators). Data results flow into scope at stage completion.
 - `reads:` — input paths using real `DESIGNBOOK_DATA`-relative vars. Never remapped — always point to the actual filesystem so subagents can read pre-existing files.
 
-**File state is derived from `validation_result`:**
-- absent → not yet written
+**Result state:**
+- `valid` absent → not yet written
 - `valid: true` → written + validated + OK
 - `valid: false` → written + validated + errors (AI must fix and re-write)
+
+> **Deprecated:** `files:` still works as a legacy alias -- internally converted to `result:` entries with `path:`.
 
 ## Directory Structure
 

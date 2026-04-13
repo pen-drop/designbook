@@ -7,9 +7,10 @@
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve, relative } from 'node:path';
+import { resolve, relative, dirname } from 'node:path';
 import fm from 'front-matter';
 import { globSync } from 'glob';
+import { load as parseYaml } from 'js-yaml';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -32,12 +33,14 @@ export interface ResolvedTask {
   config_rules: string[];
   config_instructions: string[];
   files: Array<{ path: string; key: string; validators: string[] }>;
+  result?: Record<string, { path?: string; schema?: object; validators?: string[] }>;
 }
 
 export interface ResolvedPlan {
   params: Record<string, unknown>;
   steps: string[]; // ordered step names — was: stages
   tasks: ResolvedTask[];
+  schemas?: Record<string, object>; // resolved JSON Schema definitions from $ref
 }
 
 export interface ResolvedFile {
@@ -54,10 +57,22 @@ export interface TaskFileDeclaration {
   validators?: string[]; // validator keys (e.g. ['tokens']); defaults to []
 }
 
+/** Result declaration entry in task frontmatter — file results have `path:`, data results don't. */
+export interface ResultDeclaration {
+  path?: string; // file result path template
+  $ref?: string; // schema reference (e.g. ../schemas.yml#/Check)
+  validators?: string[]; // semantic validator keys
+  type?: string; // inline JSON Schema type
+  items?: unknown; // inline JSON Schema items (for arrays)
+  [key: string]: unknown; // additional JSON Schema properties
+}
+
 interface TaskFileFrontmatter {
   when?: Record<string, unknown>;
   params?: Record<string, unknown>;
   files?: TaskFileDeclaration[];
+  result?: Record<string, ResultDeclaration>; // unified result declarations (replaces files:)
+  each?: Record<string, unknown>; // iteration declaration { <scope-key>: <schema> }
   reads?: Array<{ path: string; workflow?: string }>;
 }
 
@@ -79,6 +94,131 @@ interface WorkflowFrontmatter {
     stages?: string[];
   };
 }
+
+// ── Schema Infrastructure ─────────────────────────────────────────────
+
+/**
+ * Load a schemas.yml file and return a map of PascalCase type names to JSON Schema definitions.
+ * Validates that all keys are PascalCase and all values are objects.
+ */
+export function loadSchemaFile(schemaFilePath: string): Record<string, object> {
+  if (!existsSync(schemaFilePath)) {
+    throw new Error(`Schema file not found: ${schemaFilePath}`);
+  }
+  const raw = readFileSync(schemaFilePath, 'utf-8');
+  const parsed = parseYaml(raw) as Record<string, unknown>;
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error(`Schema file is not a valid YAML map: ${schemaFilePath}`);
+  }
+  const schemas: Record<string, object> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (!/^[A-Z][a-zA-Z0-9]*$/.test(key)) {
+      throw new Error(`Schema key '${key}' in ${schemaFilePath} must be PascalCase`);
+    }
+    if (!value || typeof value !== 'object') {
+      throw new Error(`Schema '${key}' in ${schemaFilePath} must be a JSON Schema object`);
+    }
+    schemas[key] = value as object;
+  }
+  return schemas;
+}
+
+/**
+ * Resolve a $ref path to a schema definition.
+ * Supports two forms:
+ *   - Relative: `../schemas.yml#/Check` — resolved from the task file's directory
+ *   - Skill-qualified: `designbook/design/schemas.yml#/Check` — resolved from skills root
+ *
+ * @param ref - The $ref string (e.g. "../schemas.yml#/Check")
+ * @param taskFilePath - Absolute path to the task file containing the $ref
+ * @param skillsRoot - Absolute path to the skills root directory (.agents/skills/)
+ * @returns The resolved JSON Schema object
+ */
+export function resolveSchemaRef(
+  ref: string,
+  taskFilePath: string,
+  skillsRoot: string,
+): { typeName: string; schema: object } {
+  const hashIdx = ref.indexOf('#/');
+  if (hashIdx === -1) {
+    throw new Error(`Invalid $ref '${ref}' — must contain '#/' fragment (e.g. ../schemas.yml#/TypeName)`);
+  }
+  const filePart = ref.slice(0, hashIdx);
+  const typeName = ref.slice(hashIdx + 2);
+
+  // Resolve file path: relative (starts with . or /) vs skill-qualified
+  let schemaFilePath: string;
+  if (filePart.startsWith('.') || filePart.startsWith('/')) {
+    schemaFilePath = resolve(dirname(taskFilePath), filePart);
+  } else {
+    schemaFilePath = resolve(skillsRoot, filePart);
+  }
+
+  const schemas = loadSchemaFile(schemaFilePath);
+  if (!(typeName in schemas)) {
+    const available = Object.keys(schemas).join(', ');
+    throw new Error(`Type '${typeName}' not found in ${schemaFilePath}. Available: ${available}`);
+  }
+  return { typeName, schema: schemas[typeName]! };
+}
+
+/**
+ * Collect all $ref entries from resolved tasks and resolve them into a schemas map.
+ * Called at workflow create time to inline all schemas into tasks.yml.
+ */
+export function collectAndResolveSchemas(tasks: ResolvedTask[], skillsRoot: string): Record<string, object> {
+  const schemas: Record<string, object> = {};
+
+  for (const task of tasks) {
+    if (!task.result) continue;
+    const taskFilePath = task.task_file;
+
+    // Re-read frontmatter to get the original $ref strings
+    const taskFm = parseFrontmatter(taskFilePath) as TaskFileFrontmatter | null;
+    if (!taskFm?.result) continue;
+
+    for (const [key, resultDecl] of Object.entries(taskFm.result)) {
+      resolveRefsInDeclaration(resultDecl, taskFilePath, skillsRoot, schemas);
+      if (task.result[key] && resultDecl.$ref) {
+        const { typeName, schema } = resolveSchemaRef(resultDecl.$ref, taskFilePath, skillsRoot);
+        schemas[typeName] = schema;
+        task.result[key]!.schema = schema;
+      }
+    }
+
+    // Collect $ref from each: declaration
+    if (taskFm.each) {
+      for (const eachValue of Object.values(taskFm.each)) {
+        if (eachValue && typeof eachValue === 'object') {
+          resolveRefsInDeclaration(eachValue as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
+        }
+      }
+    }
+  }
+
+  return schemas;
+}
+
+/** Recursively resolve $ref entries in a declaration object. */
+function resolveRefsInDeclaration(
+  obj: Record<string, unknown>,
+  taskFilePath: string,
+  skillsRoot: string,
+  schemas: Record<string, object>,
+): void {
+  if (obj.$ref && typeof obj.$ref === 'string') {
+    const { typeName, schema } = resolveSchemaRef(obj.$ref, taskFilePath, skillsRoot);
+    schemas[typeName] = schema;
+  }
+  // Check nested objects (e.g. items: { $ref: ... })
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      resolveRefsInDeclaration(value as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
+    }
+  }
+}
+
+// ── Workflow Steps ────────────────────────────────────────────────────
 
 /**
  * Extract steps from workflow frontmatter.
@@ -744,6 +884,72 @@ export function expandFileDeclarations(
   });
 }
 
+/**
+ * Expand result declarations from task frontmatter.
+ * Converts `result:` map entries to TaskResult-compatible objects.
+ * File results (with path:) get expanded paths. Data results pass through.
+ *
+ * Also handles `files:` → `result:` fallback for backwards compatibility.
+ */
+export function expandResultDeclarations(
+  resultDecl: Record<string, ResultDeclaration> | undefined,
+  filesDecl: TaskFileDeclaration[] | undefined,
+  params: Record<string, unknown>,
+  envMap: Record<string, string>,
+  validatorKeys?: Set<string>,
+): Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined {
+  // Prefer result: over files:
+  if (resultDecl) {
+    const result: Record<string, { path?: string; schema?: object; validators?: string[] }> = {};
+    for (const [key, decl] of Object.entries(resultDecl)) {
+      const validators = decl.validators ?? [];
+      if (validatorKeys) {
+        for (const v of validators) {
+          if (v.startsWith('cmd:')) continue;
+          if (!validatorKeys.has(v)) {
+            throw new Error(
+              `Unknown validator key '${v}' in result '${key}'. Available: ${[...validatorKeys].join(', ')}`,
+            );
+          }
+        }
+      }
+
+      // Build inline schema from declaration (exclude path, validators, $ref)
+      let schema: object | undefined;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { path: _path, validators: _validators, $ref: _ref, ...schemaProps } = decl;
+      if (Object.keys(schemaProps).length > 0) {
+        schema = schemaProps as object;
+      }
+
+      const entry: { path?: string; schema?: object; validators?: string[] } = {};
+      if (decl.path) {
+        entry.path = expandFilePath(decl.path, params, envMap);
+      }
+      if (schema) entry.schema = schema;
+      if (validators.length > 0) entry.validators = validators;
+
+      result[key] = entry;
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  // Fallback: convert files: to result: format (deprecated)
+  if (filesDecl && filesDecl.length > 0) {
+    const result: Record<string, { path?: string; schema?: object; validators?: string[] }> = {};
+    const expanded = expandFileDeclarations(filesDecl, params, envMap, validatorKeys);
+    for (const f of expanded) {
+      result[f.key] = {
+        path: f.path,
+        ...(f.validators.length > 0 && { validators: f.validators }),
+      };
+    }
+    return result;
+  }
+
+  return undefined;
+}
+
 // ── Config Resolution ───────────────────────────────────────────────
 
 /**
@@ -1116,6 +1322,9 @@ export function resolveWorkflowPlan(
         const type = inferTaskType(step);
         const files = expandFileDeclarations(fileDeclarations, mergedParams, envMap);
 
+        // Expand result: declarations (new model), with files: fallback
+        const result = expandResultDeclarations(taskFm?.result, taskFm?.files, mergedParams, envMap);
+
         tasks.push({
           id: taskId,
           title,
@@ -1129,6 +1338,7 @@ export function resolveWorkflowPlan(
           config_rules: resolved.config_rules,
           config_instructions: resolved.config_instructions,
           files,
+          ...(result && { result }),
         });
       }
     }
@@ -1136,9 +1346,14 @@ export function resolveWorkflowPlan(
 
   deduplicateTaskIds(tasks);
 
+  // Resolve $ref schemas from all tasks (Task 1.3 — fail-fast on unresolvable $ref)
+  const skillsRoot = resolve(agentsDir, 'skills');
+  const schemas = collectAndResolveSchemas(tasks, skillsRoot);
+
   return {
     params: globalParams,
     steps: allSteps,
     tasks,
+    ...(Object.keys(schemas).length > 0 && { schemas }),
   };
 }

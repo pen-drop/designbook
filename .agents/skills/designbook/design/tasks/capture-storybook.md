@@ -10,8 +10,8 @@ params:
   storyId: ~
   breakpoint: ~
   region: ~
-files:
-  - key: screenshot
+result:
+  screenshot:
     path: designbook/stories/{storyId}/screenshots/current/{breakpoint}--{region}.png
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml

@@ -34,11 +34,25 @@ stages:
   intake:
     steps: [intake]
   component:
-    each: component
     steps: [create-component]
 ```
 
-The `intake` stage is a regular declared stage — its task file is resolved via the `intake--<workflow-id>.md` fallback convention. It runs first, gathering user input and producing iterables for subsequent stages.
+Tasks declare their iteration requirements via `each:` in their own frontmatter (not in the workflow stage definition):
+
+```yaml
+# task frontmatter (create-component.md)
+each:
+  component:
+    $ref: ../schemas.yml#/Component
+result:
+  component-yml:
+    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+    validators: [data]
+```
+
+The engine expands one task instance per item in the `component` scope array. Scope is populated when the preceding stage completes and its data results are collected.
+
+The `intake` stage is a regular declared stage — its task file is resolved via the `intake--<workflow-id>.md` fallback convention. It runs first, gathering user input and producing data results that flow into scope for subsequent stages.
 
 ## CLI-Side Resolution
 
@@ -49,14 +63,16 @@ AI builds items array → CLI resolves:
   ├─ task files (scan + when-filter + name/as dedup + priority sort)
   ├─ multiple tasks per step (ordered by priority, lowest first)
   ├─ WORKTREE creation ($DESIGNBOOK_WORKSPACES/designbook-{name}/)
-  ├─ file path expansion — files: use WORKTREE-remapped DESIGNBOOK_DIRS_* vars
+  ├─ result path expansion — result: entries with path: use WORKTREE-remapped DESIGNBOOK_DIRS_* vars
+  ├─ $ref resolution — all schema references inlined from schemas.yml files
+  ├─ each: extraction from task frontmatter (scope key + schema)
   ├─ reads: use real DESIGNBOOK_HOME paths (not remapped)
   ├─ params validation (required/optional/defaults)
   ├─ depends_on computation (from stage ordering)
   ├─ rule file matching (stages + config conditions)
   ├─ blueprint file matching (stages + config conditions)
   └─ config rules/instructions per stage
-→ writes tasks.yml with fully-resolved paths + write_root/root_dir
+→ writes tasks.yml with fully-resolved paths + write_root/root_dir + scope
 → outputs JSON plan to stdout
 ```
 
@@ -70,7 +86,7 @@ Each `workflow plan` creates an isolated write workspace under `$DESIGNBOOK_WORK
 workflow plan
   → create /tmp/designbook-{name}/             ← WORKTREE
   → remap DESIGNBOOK_DIRS_* → WORKTREE paths
-  → expand files: with remapped env → stored as WORKTREE absolute paths
+  → expand result: path entries with remapped env → stored as WORKTREE absolute paths
   → store write_root + root_dir in tasks.yml
 
 workflow done (each task)
@@ -111,9 +127,9 @@ After planning, the main agent becomes a DAG orchestrator:
 ```
 
 Each subagent executes in isolation:
-- Reads its task from tasks.yml (task_file, params, rules, files)
+- Reads its task from tasks.yml (task_file, params, rules, result declarations)
 - Reads rule files directly (no scanning)
-- Creates files → validate → fix loop → done
+- Writes results → validate → fix loop → done
 
 ## Task File Format (skills)
 
@@ -126,15 +142,22 @@ when:
 params:
   component: ~               # ~ means required (from intake)
   slots: []
-files:
-  - ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component }}/{{ component }}.component.yml
-  - ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component }}/{{ component }}.twig
+each:
+  component:
+    $ref: ../schemas.yml#/Component
+result:
+  component-yml:
+    path: ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component }}/{{ component }}.component.yml
+    validators: [data]
+  component-twig:
+    path: ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component }}/{{ component }}.twig
 ---
 # Task instructions go here
 ```
 
 - `when` conditions filter which task file applies
-- `files` paths are always absolute — using env vars with `{{ param }}` substitution (resolved by CLI at plan time)
+- `each` declares iteration: keys reference scope entries, values are JSON Schema (inline or `$ref`)
+- `result` declares task outputs: file results (with `path:`) and data results (inline schema or `$ref`). Paths are always absolute — using env vars with `{{ param }}` substitution (resolved by CLI at plan time)
 - A task file with no `when` block applies universally
 
 **`when` condition keys:**

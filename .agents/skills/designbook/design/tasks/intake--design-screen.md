@@ -1,7 +1,15 @@
 ---
 when:
   steps: [design-screen:intake]
-files: []
+result:
+  component:
+    type: array
+    items:
+      $ref: ../schemas.yml#/Component
+  scene:
+    type: array
+    items:
+      $ref: ../schemas.yml#/Scene
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
   - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
@@ -185,18 +193,23 @@ Follow the process in [structure-preview.md](partials/structure-preview.md).
 
 ## Step 8: Complete Intake
 
-Mark intake done with `--params` that populate **both** the `component` and `scene` iterables:
+Store the `component` and `scene` iterables as task results, then mark intake done:
 
 ```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task intake --params '{
-  "component": [
-    { "component": "hero", "slots": ["preheadline", "heading", "description", "actions", "media"] },
-    { "component": "feature-card", "slots": ["icon", "title", "description"] }
-  ],
-  "scene": [
-    { "scene": "homepage:landing" }
-  ]
-}'
+_debo workflow result --workflow $WORKFLOW_NAME --task $TASK_ID --key component --json '[
+  { "component": "hero", "slots": ["preheadline", "heading", "description", "actions", "media"] },
+  { "component": "feature-card", "slots": ["icon", "title", "description"] }
+]'
+```
+
+```bash
+_debo workflow result --workflow $WORKFLOW_NAME --task $TASK_ID --key scene --json '[
+  { "scene": "homepage:landing" }
+]'
+```
+
+```bash
+_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID
 ```
 
 - **`component`**: one entry per new component from Step 5. Each item needs `component` (name) and `slots` (array).

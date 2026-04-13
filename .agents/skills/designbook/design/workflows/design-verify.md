@@ -9,18 +9,12 @@ stages:
   setup-compare:
     steps: [setup-compare]
   capture:
-    each: checks
     steps: [capture]
-  compare-markup:
-    each: checks
-    steps: [compare-markup]
-  compare:
-    each: checks
-    steps: [compare]
   triage:
     steps: [triage]
+  compare:
+    steps: [compare]
   polish:
-    each: issues
     steps: [polish]
   outtake:
     steps: [outtake]

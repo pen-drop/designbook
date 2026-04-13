@@ -8,6 +8,7 @@ import {
   workflowAppendTasks,
   expandTasksFromParams,
   workflowWriteFile,
+  workflowResult,
   workflowGetFile,
   workflowList,
   workflowDone,
@@ -94,7 +95,14 @@ function expandWorkflowTasks(
   // Merge params: in plan mode use newParams directly, in append mode merge with existing
   const globalParams = mode === 'append' ? { ...(existing.params ?? {}), ...newParams } : newParams;
 
-  const tasks = expandTasksFromParams(stageLoaded, stageDefinitions, globalParams, existingTasks, engineResult.envMap);
+  const tasks = expandTasksFromParams(
+    stageLoaded,
+    stageDefinitions,
+    globalParams,
+    existingTasks,
+    engineResult.envMap,
+    existing.scope,
+  );
 
   if (tasks.length === 0) return mode === 'plan' ? { tasks: [], steps: allSteps, engine: resolvedEngine } : null;
 
@@ -364,11 +372,74 @@ export function register(program: Command): void {
       }
     });
 
+  // ── workflow result ─────────────────────────────────────────────────────────
+  workflow
+    .command('result')
+    .description(
+      'Write a task result — file (stdin) or data (--json). Validates against schema and semantic validators.',
+    )
+    .requiredOption('--workflow <name>', 'Workflow name')
+    .requiredOption('--task <id>', 'Task id')
+    .requiredOption('--key <key>', 'Result key as declared in task result: frontmatter')
+    .option('--json <data>', 'Data result value (inline JSON). Omit for file results (reads stdin).')
+    .option('--external', 'Register an already-written file (skip stdin, just validate and track)')
+    .option('--flush', 'Immediately move file to final path (skip waiting for stage transition)')
+    .action(
+      async (opts: {
+        workflow: string;
+        task: string;
+        key: string;
+        json?: string;
+        external?: boolean;
+        flush?: boolean;
+      }) => {
+        const config = loadConfig();
+        try {
+          let content: string | Buffer | unknown | null;
+          if (opts.json !== undefined) {
+            // Data result via --json
+            try {
+              content = JSON.parse(opts.json);
+            } catch (err) {
+              console.error(`Error parsing --json: ${(err as Error).message}`);
+              process.exitCode = 1;
+              return;
+            }
+          } else if (opts.external) {
+            // External file: already written
+            content = null;
+          } else {
+            // File result: read stdin
+            const chunks: Buffer[] = [];
+            for await (const chunk of process.stdin) {
+              chunks.push(chunk as Buffer);
+            }
+            const buf = Buffer.concat(chunks);
+            if (buf.length === 0) {
+              console.error('Error: No content provided on stdin (use --json for data results)');
+              process.exitCode = 1;
+              return;
+            }
+            content = buf;
+          }
+
+          const result = await workflowResult(config.data, opts.workflow, opts.task, opts.key, content, config, {
+            flush: opts.flush,
+          });
+          console.log(JSON.stringify(result));
+          if (!result.valid) process.exitCode = 1;
+        } catch (err) {
+          console.error(`Error: ${(err as Error).message}`);
+          process.exitCode = 1;
+        }
+      },
+    );
+
+  // ── workflow write-file (deprecated — use workflow result) ─────────────────
   workflow
     .command('write-file <workflow-name> <task-id>')
-    .description(
-      'Write file content from stdin (or register external file with --external), validate, and update task state',
-    )
+    .description('[Deprecated: use "workflow result"] Write file content from stdin, validate, and update task state')
+
     .option('--key <key>', 'File key as declared in task frontmatter')
     .option('--path <path>', 'Direct file path (bypasses file key lookup, no gate check)')
     .option('--external', 'Register an already-written file (skip stdin, just validate and track)')
@@ -463,7 +534,7 @@ export function register(program: Command): void {
     .requiredOption('--task <id>', 'Task id to mark done')
     .option(
       '--params <json>',
-      'Params JSON — expands tasks from params (intake uses plan mode, other tasks use append mode)',
+      '[Deprecated: use "workflow result" for data passing] Params JSON — expands tasks from params',
     )
     .option(
       '--loaded <json>',
@@ -483,9 +554,10 @@ export function register(program: Command): void {
         }
       }
       try {
-        // If --params provided, expand tasks (works for intake and non-intake alike)
+        // If --params provided, expand tasks (deprecated — use workflow result for data passing)
         let expandedTasks: WorkflowTask[] | null = null;
         if (opts.params) {
+          console.warn('[designbook] --params on workflow done is deprecated — use "workflow result" for data passing');
           let newParams: Record<string, unknown> = {};
           try {
             newParams = JSON.parse(opts.params);

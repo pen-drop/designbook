@@ -1,7 +1,6 @@
 ---
 when:
   steps: [css-generate:intake]
-files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
 ---

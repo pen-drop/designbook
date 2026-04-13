@@ -7,9 +7,6 @@ import { resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 import type { DesignbookConfig } from './config.js';
 import type { ValidationFileResult } from './workflow-types.js';
-import { validateComponent } from './validators/component.js';
-import { validateDataModel } from './validators/data-model.js';
-import { validateTokens } from './validators/tokens.js';
 import { validateData } from './validators/data.js';
 import { validateImage } from './validators/image.js';
 
@@ -35,9 +32,8 @@ function toFileResult(result: ValidatorResult, file: string, type: string): Vali
 // ── Validator Key Registry ──────────────────────────────────────────────────
 
 const validators: Record<string, ValidatorFn> = {
-  component: async (file) => toFileResult(validateComponent(file), file, 'component'),
-  'data-model': async (file) => toFileResult(validateDataModel(file), file, 'data-model'),
-  tokens: async (file) => toFileResult(validateTokens(file), file, 'tokens'),
+  // JSON-Schema-only validators (component, data-model, tokens) removed —
+  // schema validation now happens via $ref on result: declarations (see workflowResult).
   data: async (file, config) => toFileResult(validateData(resolve(config.data, 'data-model.yml'), file), file, 'data'),
   'entity-mapping': async (file, config) => {
     const { validateEntityMapping } = await import('./validators/entity-mapping.js');

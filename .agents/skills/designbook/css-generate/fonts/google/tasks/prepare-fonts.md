@@ -5,10 +5,9 @@ when:
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: tokens
-files:
-  - file: $DESIGNBOOK_DIRS_CSS_TOKENS/google-fonts.src.css
-    key: google-fonts-css
-    validators: []
+result:
+  google-fonts-css:
+    path: $DESIGNBOOK_DIRS_CSS_TOKENS/google-fonts.src.css
 ---
 
 # Prepare Fonts: Download Google Fonts CSS

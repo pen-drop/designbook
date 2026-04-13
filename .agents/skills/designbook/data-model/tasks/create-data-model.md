@@ -3,17 +3,16 @@ when:
   steps: [create-data-model]
 params:
   content: {}
-files:
-  - file: $DESIGNBOOK_DATA/data-model.yml
-    key: data-model
-    validators: [data-model]
+result:
+  data-model:
+    path: $DESIGNBOOK_DATA/data-model.yml
 ---
 
 # Create Data Model
 
 Write the approved data model in YAML format via stdin to the CLI:
 ```
-_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key data-model
+_debo workflow result --task $TASK_ID --key data-model
 ```
 
 ## Format

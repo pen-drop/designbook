@@ -157,7 +157,7 @@ Provider rules run **before** the task starts. The task sees provider-resolved p
 
 Follow the task file instructions. This could mean:
 - Gathering information from the user (for tasks that collect params)
-- Creating file content and writing it via `write-file`
+- Creating file/data results via `workflow result`
 - Running commands or capturing screenshots
 - Any other work described in the task file
 
@@ -167,55 +167,55 @@ Follow the task file instructions. This could mean:
 _debo workflow wait --workflow $WORKFLOW_NAME --message "<the question for the user>"
 ```
 
-This transitions the workflow from `running` → `waiting`, shows an amber pulse in the panel, and auto-focuses the Designbook tab. The next CLI call (`done`, `write-file`, or `instructions`) automatically clears the waiting state back to `running`.
+This transitions the workflow from `running` → `waiting`, shows an amber pulse in the panel, and auto-focuses the Designbook tab. The next CLI call (`done`, `result`, or `instructions`) automatically clears the waiting state back to `running`.
 
-**Writing files:**
+**Writing results:**
+
+File results (content from stdin):
 ```bash
-cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME <task-id> --key <key>
+cat <<'EOF' | _debo workflow result --task <task-id> --key <key>
 <file content>
 EOF
 ```
 
-If `valid: false` → fix content and call `write-file` again until valid.
+Data results (JSON inline):
+```bash
+_debo workflow result --task <task-id> --key <key> --json '<json-data>'
+```
+
+If `valid: false` → fix content and call `workflow result` again until valid.
+
+> **Deprecated:** `workflow write-file` still works as an alias for `workflow result` but should not be used in new code.
 
 ### 2c. Mark Task Done
 
 ```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--params <json>] [--summary <text>]
+_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--summary <text>]
 ```
-
-Pass `--params` when the task produces params that expand subsequent tasks (e.g. iterables for stages with `each`). The CLI decides whether to use `plan` or `append` mode based on the workflow state.
 
 Pass `--summary` with a short result description when the task outcome is not obvious from the title alone. The summary is shown in the Storybook panel next to the task title. Skip it for self-explanatory tasks (e.g. "Capture Reference: sm/header"). Use it for tasks that produce results the user would want to see at a glance (e.g. "3 issues found", "12 → 4 consolidated", "fontSize 14px → 48px").
 
-**Params format for stages with `each`:**
-```json
-{
-  "component": [
-    {"component": "header", "group": "Shell"},
-    {"component": "footer", "group": "Shell"}
-  ],
-  "scene": [
-    {"scene": "design-system:shell"}
-  ]
-}
-```
+> **Deprecated:** `--params` on `workflow done` still works but is deprecated. Use `workflow result --key <key> --json '<data>'` to write data results instead. Data results declared in `result:` flow into scope at stage completion and automatically expand subsequent stages that declare `each:` on matching keys.
+
+**Data flow model:** Tasks declare their outputs via `result:` in frontmatter. File results are written via `workflow result --key <key>` (stdin). Data results are written via `workflow result --key <key> --json '<data>'`. When all tasks in a stage complete, the engine collects data results into the workflow scope and expands pending stages whose `each:` keys are now available.
 
 ### 2d. Follow the Response
 
-Parse the `RESPONSE:` JSON line and act accordingly:
+Parse the `RESPONSE:` JSON line and act accordingly. All responses now include `stage_progress` and `stage_complete` fields:
 
 **Next task in same stage:**
 ```json
-{ "stage": "component", "step_completed": "create-component", "next_step": "create-component" }
+{ "stage": "component", "step_completed": "create-component", "next_step": "create-component", "stage_progress": "1/3", "stage_complete": false }
 ```
 → Continue to the next task (go to 2a).
 
-**Stage transition:**
+**Stage transition (stage complete, scope updated):**
 ```json
-{ "stage": "test", "transition_from": "component", "next_stage": "test", "next_step": "screenshot" }
+{ "stage": "test", "transition_from": "component", "next_stage": "test", "next_step": "screenshot", "stage_progress": "3/3", "stage_complete": true, "scope_update": { "issues": [...] } }
 ```
-→ New stage. Load instructions for the new step (go to 2a).
+→ Stage complete. Data results from the completed stage have been collected into scope (`scope_update` shows what was added). Load instructions for the new step (go to 2a).
+
+When `scope_update` is present, it means the engine collected data results from all tasks in the completed stage and wrote them to the workflow scope. Subsequent stages with `each:` on those keys will be expanded automatically (visible in `expanded_tasks` if present).
 
 **Waiting for params (user input required):**
 ```json
@@ -227,7 +227,7 @@ Parse the `RESPONSE:` JSON line and act accordingly:
 _debo workflow wait --workflow $WORKFLOW_NAME --message "Preview OK?"
 ```
 
-Then ask the user the prompt. When the user answers, call `done` again with the answer as `--params`. The next CLI call (`done`, `write-file`, or `instructions`) automatically transitions the workflow back to `running`.
+Then ask the user the prompt. When the user answers, call `done` again with the answer as `--params`. The next CLI call (`done`, `result`, or `instructions`) automatically transitions the workflow back to `running`.
 
 **Workflow complete:**
 ```json
@@ -271,7 +271,7 @@ For `direct` engine, `finalizing → done` happens automatically (auto-archive).
 
 Runs after hooks, only when `--optimize` flag was set at invocation.
 
-1. Collect all files written during the workflow (from `write-file` results)
+1. Collect all files written during the workflow (from `workflow result` calls)
 2. Review for: performance, maintainability, accessibility, design-system consistency
 3. Output numbered suggestions — do not apply, only suggest
 

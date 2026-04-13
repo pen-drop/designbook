@@ -20,9 +20,9 @@ Screenshots MUST go through the workflow staging pipeline. Before capturing:
 
 2. **Capture to the staged path** (see Capture Modes below).
 
-3. **Register the file** so it gets validation_result and proper tracking:
+3. **Register the result** so the file gets tracked and validated:
    ```bash
-   _debo workflow write-file $WORKFLOW_NAME $TASK_ID --key screenshot --external
+   _debo workflow result --task $TASK_ID --key screenshot
    ```
 
 ## Capture Modes

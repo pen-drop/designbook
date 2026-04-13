@@ -8,7 +8,14 @@ params:
   storyId: ~
   breakpoint: ~
   region: ~
-files: []
+each:
+  checks:
+    $ref: ../schemas.yml#/Check
+result:
+  issues:
+    type: array
+    items:
+      $ref: ../schemas.yml#/Issue
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
@@ -50,17 +57,12 @@ Captures the Storybook screenshot, compares it with the reference, and writes dr
 
    Severity: **Critical** (structure wrong), **Major** (colors/fonts off), **Minor** (spacing/opacity).
 
-## Phase 3: Write Draft Issues
+## Phase 3: Report Issues
 
-Write the issues as a draft JSON file — they are **not** published to meta yet. Triage will consolidate and publish them.
+Report the issues as a task result — they are **not** published to meta yet. Triage will consolidate and publish them.
 
-```
-designbook/stories/${storyId}/issues/draft/${breakpoint}--${region}.json
-```
-
-Format:
-```json
-[
+```bash
+_debo workflow result --task $TASK_ID --key issues --json '[
   {
     "source": "screenshots",
     "severity": "major",
@@ -69,7 +71,7 @@ Format:
     "file_hint": "components/header/header.twig",
     "details": "Visual comparison shows divergent background color in header region"
   }
-]
+]'
 ```
 
 **Issue descriptions must be actionable:**
@@ -78,7 +80,7 @@ Format:
 - WHICH file is affected (`file_hint`)
 - Brief reasoning why it is an issue
 
-If no issues found, write an empty array `[]`.
+If no issues found, report an empty array `[]`.
 
 ## Output
 

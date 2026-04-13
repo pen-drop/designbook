@@ -8,19 +8,17 @@ params:
   props: []
   group: ~
   variants: []
-files:
-  - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.component.yml
-    key: component-yml
-    validators: [component]
-  - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.twig
-    key: component-twig
-    validators: []
-  - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.default.story.yml
-    key: component-story
-    validators: []
-  - file: ${DESIGNBOOK_CSS_APP}
-    key: app-css
-    validators: []
+result:
+  component-yml:
+    path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.component.yml
+    $ref: designbook-drupal/components/schemas.yml#/ComponentYml
+  component-twig:
+    path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.twig
+  component-story:
+    path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.default.story.yml
+    $ref: designbook-drupal/components/schemas.yml#/StoryYml
+  app-css:
+    path: ${DESIGNBOOK_CSS_APP}
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: debo-design-tokens
@@ -30,9 +28,9 @@ reads:
 
 Creates three files per component. All files share the same kebab-case base name as the directory. Write each file via stdin to the CLI:
 ```
-_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key component-yml
-_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key component-twig
-_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key component-story
+workflow result --task $TASK_ID --key component-yml
+workflow result --task $TASK_ID --key component-twig
+workflow result --task $TASK_ID --key component-story
 ```
 
 ## Variant Story Files

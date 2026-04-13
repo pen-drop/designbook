@@ -5,22 +5,18 @@ stages:
   intake:
     steps: [intake]
   component:
-    each: component
     steps: [create-component]
   scene:
     steps: [create-scene]
   setup-compare:
     steps: [setup-compare]
   capture:
-    each: checks
     steps: [capture]
   compare:
-    each: checks
     steps: [compare]
   triage:
     steps: [triage]
   polish:
-    each: issues
     steps: [polish]
   outtake:
     steps: [outtake]

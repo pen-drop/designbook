@@ -3,9 +3,9 @@ when:
   steps: [generate-jsonata]
 params:
   group: ~
-files:
-  - file: $DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group }}.jsonata
-    key: generate-jsonata
+result:
+  generate-jsonata:
+    path: $DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group }}.jsonata
     validators:
       - "cmd:npx jsonata-w transform --dry-run {{ file }}"
       - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"

@@ -3,9 +3,9 @@ when:
   steps: [design-shell:create-scene]
 params:
   reference: []
-files:
-  - file: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
-    key: shell-scenes
+result:
+  shell-scenes:
+    path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
     validators: [scene]
 reads:
   - path: $DESIGNBOOK_DIRS_COMPONENTS
@@ -16,7 +16,7 @@ reads:
 
 Creates the base layout scene that section scenes inherit via `scene: design-system:shell`. Write the result via stdin to the CLI:
 ```
- write-file $WORKFLOW_NAME $TASK_ID --key shell-scenes
+workflow result --task $TASK_ID --key shell-scenes
 ```
 
 ## Output

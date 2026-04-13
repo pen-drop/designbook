@@ -8,29 +8,24 @@ params:
   scene: ~
   reference: []
   storyId: ~
-files: []
+  issues:
+    type: array
 ---
 
 # Outtake — Score & Verify
 
 Displays the visual comparison results from the inline capture/compare stages, then offers to run design-verify.
 
-## Step 1: Read Draft Issues and Compute Score
+## Step 1: Read Issues and Compute Score
 
-Read all draft issue JSON files from the compare stage:
-
-```
-designbook/stories/${storyId}/issues/draft/${breakpoint}--${region}.json
-```
-
-Each file contains an array of issues with `severity` (critical, major, minor).
+Read the `issues` array from scope — it contains all issues collected from the compare tasks via their `result: issues` declarations. Each issue has `severity` (critical, major, minor) and `check` (breakpoint--region).
 
 **Score formula per region:**
 ```
 score = (critical_count × 3) + (major_count × 2) + (minor_count × 1)
 ```
 
-If no draft files exist (compare was skipped or found no issues), skip to Step 2.
+If the `issues` array is empty (compare found no issues), skip to Step 2.
 
 ## Step 2: Display Score Table
 

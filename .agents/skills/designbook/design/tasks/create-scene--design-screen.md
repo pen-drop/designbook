@@ -12,9 +12,9 @@ reads:
     workflow: debo-data-model
   - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
     workflow: debo-design-shell
-files:
-  - file: $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
-    key: section-scenes
+result:
+  section-scenes:
+    path: $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
     validators: [scene]
 ---
 
@@ -22,7 +22,7 @@ files:
 
 Creates page scenes for a section, inheriting the shell layout. Write the result via stdin to the CLI:
 ```
- write-file $WORKFLOW_NAME $TASK_ID --key section-scenes
+workflow result --task $TASK_ID --key section-scenes
 ```
 
 ## Input

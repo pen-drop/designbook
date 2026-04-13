@@ -12,7 +12,7 @@ const mockConfig: DesignbookConfig = {
 
 describe('getValidator', () => {
   it('returns a function for a known key', () => {
-    const fn = getValidator('component');
+    const fn = getValidator('data');
     expect(fn).toBeTypeOf('function');
   });
 
@@ -20,15 +20,25 @@ describe('getValidator', () => {
     const fn = getValidator('nonexistent-validator');
     expect(fn).toBeUndefined();
   });
+
+  it('returns undefined for removed JSON-Schema-only validators', () => {
+    expect(getValidator('component')).toBeUndefined();
+    expect(getValidator('data-model')).toBeUndefined();
+    expect(getValidator('tokens')).toBeUndefined();
+  });
 });
 
 describe('getValidatorKeys', () => {
   it('returns an array of registered keys', () => {
     const keys = getValidatorKeys();
-    expect(keys).toContain('component');
-    expect(keys).toContain('data-model');
-    expect(keys).toContain('tokens');
     expect(keys).toContain('data');
+    expect(keys).toContain('entity-mapping');
+    expect(keys).toContain('scene');
+    expect(keys).toContain('image');
+    // JSON-Schema-only validators removed
+    expect(keys).not.toContain('component');
+    expect(keys).not.toContain('data-model');
+    expect(keys).not.toContain('tokens');
   });
 });
 

@@ -9,7 +9,6 @@ params:
   storyId: ~
   breakpoint: ~
   region: ~
-files: []
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true

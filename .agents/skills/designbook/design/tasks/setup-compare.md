@@ -5,7 +5,11 @@ params:
   scene: ~
   reference: []
   breakpoints: []
-files: []
+result:
+  checks:
+    type: array
+    items:
+      $ref: ../schemas.yml#/Check
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
@@ -72,8 +76,11 @@ If the command fails, report the error and pause.
 ## Step 4: Complete with checks
 
 ```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID \
-  --params "{\"scene\": \"${scene}\", \"checks\": $CHECKS}"
+_debo workflow result --task $TASK_ID --key checks --json "$CHECKS"
+```
+
+```bash
+_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID
 ```
 
 The `checks` array flows into the `capture` and `compare` stages via the `each: checks` iterables.

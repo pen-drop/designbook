@@ -1,7 +1,6 @@
 ---
 when:
   steps: [design-component:intake]
-files: []
 ---
 
 # Intake: Design Component

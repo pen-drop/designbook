@@ -1,7 +1,6 @@
 ---
 when:
   steps: [import:intake]
-files: []
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
     workflow: vision

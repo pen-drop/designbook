@@ -7,7 +7,6 @@ stages:
   prepare:
     steps: [prepare-fonts, prepare-icons]
   generate:
-    each: group
     steps: [generate-jsonata]
   transform:
     steps: [generate-css]

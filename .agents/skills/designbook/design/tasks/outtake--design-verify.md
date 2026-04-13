@@ -7,7 +7,6 @@ priority: 50
 params:
   scene: ~
   storyId: ~
-files: []
 ---
 
 # Outtake — Design Verify

@@ -14,7 +14,9 @@ params:
   description: ~
   file_hint: ~
   properties: []
-files: []
+each:
+  issues:
+    $ref: ../schemas.yml#/Issue
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true

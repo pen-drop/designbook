@@ -3,17 +3,16 @@ when:
   steps: [create-tokens]
 params:
   intake: {}
-files:
-  - file: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    key: design-tokens
-    validators: [tokens]
+result:
+  design-tokens:
+    path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
 ---
 
 # Create Design Tokens
 
 Write the result in W3C Design Token YAML format via stdin to the CLI:
 ```
-write-file $WORKFLOW_NAME $TASK_ID --key design-tokens
+workflow result --task $TASK_ID --key design-tokens
 ```
 
 ## Token Hierarchy

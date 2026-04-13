@@ -67,15 +67,15 @@ describe('expandFileDeclarations', () => {
 
   it('rejects unknown validator keys when validatorKeys provided', () => {
     const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test', validators: ['nonexistent'] }];
-    const knownKeys = new Set(['tokens', 'component']);
+    const knownKeys = new Set(['data', 'scene']);
     expect(() => expandFileDeclarations(declarations, {}, {}, knownKeys)).toThrow(
       "Unknown validator key 'nonexistent'",
     );
   });
 
   it('accepts known validator keys', () => {
-    const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test', validators: ['tokens'] }];
-    const knownKeys = new Set(['tokens', 'component']);
+    const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test', validators: ['data'] }];
+    const knownKeys = new Set(['data', 'scene']);
     expect(() => expandFileDeclarations(declarations, {}, {}, knownKeys)).not.toThrow();
   });
 });
@@ -85,16 +85,18 @@ describe('expandFileDeclarations', () => {
 describe('validator key lookup', () => {
   it('getValidatorKeys returns all registered keys', () => {
     const keys = getValidatorKeys();
-    expect(keys).toContain('component');
-    expect(keys).toContain('tokens');
-    expect(keys).toContain('data-model');
     expect(keys).toContain('data');
     expect(keys).toContain('entity-mapping');
     expect(keys).toContain('scene');
+    expect(keys).toContain('image');
+    // JSON-Schema-only validators removed (component, data-model, tokens)
+    expect(keys).not.toContain('component');
+    expect(keys).not.toContain('data-model');
+    expect(keys).not.toContain('tokens');
   });
 
   it('getValidator returns function for known key', () => {
-    expect(getValidator('tokens')).toBeTypeOf('function');
+    expect(getValidator('data')).toBeTypeOf('function');
   });
 
   it('getValidator returns undefined for unknown key', () => {
@@ -185,7 +187,7 @@ describe('write-file pipeline (direct engine)', () => {
           id: 'create-dm',
           title: 'Create Data Model',
           type: 'data',
-          files: [{ path: targetPath, key: 'data-model', validators: ['data-model'] }],
+          files: [{ path: targetPath, key: 'data-model', validators: ['cmd:exit 1'] }],
         },
       ],
       undefined,
@@ -196,7 +198,7 @@ describe('write-file pipeline (direct engine)', () => {
       'direct',
     );
 
-    // Write invalid content (data-model validator expects specific structure)
+    // Write content — cmd:exit 1 validator always fails
     const result = await workflowWriteFile(dist, name, 'create-dm', 'data-model', 'invalid: true', config);
 
     expect(result.valid).toBe(false);
