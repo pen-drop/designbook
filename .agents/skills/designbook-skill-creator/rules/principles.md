@@ -103,6 +103,37 @@ Use BEM class naming: `.block__element--modifier`.
 
 Both rules and blueprints can live in an integration skill's layer (`designbook-drupal/rules/`, `designbook-css-tailwind/blueprints/`). The layer determines scope; the file type (rule vs blueprint) determines overridability.
 
+## Skills Are Site-Agnostic
+
+Tasks, rules, and blueprints must **never reference a specific site, brand, or project**. They describe generic patterns and constraints — the concrete appearance, colors, fonts, section names, and slot inventories always come from analyzing the design reference at runtime.
+
+**Wrong** (site-specific slots in a blueprint):
+```markdown
+## Slots
+- newsletter — newsletter signup section
+- social — social media links
+- logos — partner logos
+```
+
+**Correct** (generic):
+```markdown
+## Slots
+- navigation — footer navigation component (required)
+- Additional slots as determined by the design reference
+```
+
+**Wrong** (site-specific examples in a rule):
+```markdown
+Extract the BIBB brand bar above the navigation.
+```
+
+**Correct** (generic):
+```markdown
+For each direct child of a landmark, extract: backgroundColor, height, padding, and a content summary.
+```
+
+Blueprints describe **structural patterns** (multi-row headers, multi-section footers, container usage for background sections). Rules describe **technical constraints** (embed behavior, CSS property syntax, inline styles). Neither may prescribe site-specific visual details — those are discovered from the reference.
+
 ## Stages Flush After Completion
 
 After each stage completes, all output files are **flushed** — renamed from their temporary working names to their final canonical names. This flush is what makes outputs referenceable by later stages.
@@ -121,6 +152,30 @@ reads:
 ```
 
 Never reference unflushed (in-progress) file names from another stage — the file will not exist at that path until the producing stage has completed and flushed.
+
+## Workflow Steps Are Plain Names
+
+In workflow definitions (`stages.*.steps`), step names are always plain — never prefixed with the workflow name:
+
+**Correct:**
+```yaml
+stages:
+  intake:
+    steps: [intake]
+  outtake:
+    steps: [outtake]
+```
+
+**Wrong:**
+```yaml
+stages:
+  intake:
+    steps: [design-screen:intake]
+  outtake:
+    steps: [design-screen:outtake]
+```
+
+The workflow prefix belongs in task files' `when.steps` for disambiguation (e.g. `when: steps: [design-screen:intake]`), not in the workflow definition itself. The resolver combines the workflow name with the step name automatically.
 
 ## Stage = Filename, No Duplication
 

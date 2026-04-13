@@ -1,0 +1,12 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/primitive-color.src.css"
+ }
+ */
+(
+  $entries := $each($$.primitive.color, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "  --color-" & $k & ": " & $v."$value" & ";"
+  });
+  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)

@@ -1,0 +1,37 @@
+fixtures:
+  - vision
+  - data-model
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-guidelines workflow. Do NOT ask any questions — use the following inputs directly:
+
+  1. References: none
+  2. Design reference: https://leando.de/ (label: "LEANDO Portal")
+  3. Principles:
+     - "Section-based layout — every page consists of stacked full-width sections"
+     - "Container components for max-width — never apply max-width directly to content elements"
+     - "Tile navigation for main areas (training, examination, networking)"
+  4. Component patterns:
+     - "Slider/carousel for content teasers and current topics"
+     - "Card components for events, topics, and learning packages"
+     - "Accordion for FAQ and structured content"
+  5. MCP server: none
+  6. Visual diff: none
+  7. Skills: none
+
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.includes('designbook/design-system/guidelines.yml')
+  - type: javascript
+    value: output.archivedWorkflows['design-guidelines']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-guidelines']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/design-system/guidelines.yml']?.content;
+      return c?.design_reference?.url?.includes('leando.de');

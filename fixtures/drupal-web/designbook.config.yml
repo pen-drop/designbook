@@ -1,0 +1,20 @@
+workspace: .
+
+backend: drupal
+frameworks:
+  component: sdc
+  css: tailwind
+designbook:
+  cmd: npx storybook dev
+  home: .
+  url: "http://localhost:6009"
+dirs:
+  components: components
+  css:
+    tokens: css/tokens
+    themes: css/themes
+css:
+  app: css/app.src.css
+component:
+  namespace: 'test_integration_drupal'
+  src: components

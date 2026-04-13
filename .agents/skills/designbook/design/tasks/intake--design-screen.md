@@ -6,6 +6,8 @@ reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
   - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
   - path: $DESIGNBOOK_DATA/vision.md
+  - path: $STORY_DIR/design-reference.md
+    optional: true
   - path: $DESIGNBOOK_DATA/sections/[section-id]/[section-id].section.scenes.yml
     workflow: debo-shape-section
 ---
@@ -24,13 +26,15 @@ If no section was provided, ask:
 
 Wait for their response before continuing.
 
-## Step 2: Resolve Design Reference
+## Step 2: Extract Design Reference
 
-> ⛔ **MANDATORY**: Execute this step before any screen determination or component planning.
+If `$STORY_DIR/design-reference.md` already exists (from a prior run), read it and use as-is.
 
-Resolve the design reference from `params.reference`. Apply any matched rules for the reference source type (e.g. `provide-stitch-url` for Stitch references) to obtain the final reference URL.
+Otherwise, apply the `extract-reference` rule to the design reference URL from `vision.md`. Write the result directly to `$STORY_DIR/design-reference.md`.
 
-If a reference was loaded, use it as the primary input for all subsequent steps. When planning screens and components, **derive them from the reference** rather than asking the user speculative questions.
+Use its layout, landmark structure, and interactive patterns as the primary input for all subsequent steps.
+
+If no design reference URL is available, fall back to `vision.md` context and ask the user speculative questions as needed.
 
 ## Step 3: Determine Screens
 
@@ -109,7 +113,7 @@ Based on the confirmed screens, entities, section spec, data model, and **loaded
 1. Scan existing components (location provided by framework rules)
 3. Identify which UI components are needed for the planned screens beyond entities and shell (cards, filter bars, badges, stat displays, empty states, pagination, etc.)
 
-**If a design reference is available**, analyze its structure to derive the component list. Extract components from the HTML structure rather than asking the user to describe them from scratch.
+**If a design reference is available**, analyze the landmark structure and interactive patterns from `design-reference.md` to derive the component list rather than asking the user to describe components from scratch.
 
 Present the component plan **grouped per entity** — list which components are needed to render each entity view mode, then list any screen-level components that are not tied to a specific entity:
 

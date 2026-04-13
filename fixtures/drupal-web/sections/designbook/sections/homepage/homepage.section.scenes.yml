@@ -1,0 +1,7 @@
+id: homepage
+group: "Designbook/Sections/Homepage"
+title: "Homepage"
+description: "Landing page with stage area, topic navigation tiles for training/examination/networking, current topics slider, learning world section, and communities overview."
+status: planned
+order: 1
+scenes: []

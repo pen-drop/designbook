@@ -1,7 +1,6 @@
 import type { Command } from 'commander';
 import { loadConfig } from '../config.js';
 import { DeboStory } from '../story-entity.js';
-import type { StoryIssue } from '../story-entity.js';
 
 export function register(program: Command): void {
   program
@@ -10,12 +9,9 @@ export function register(program: Command): void {
     .argument('[subcommand]', 'Subcommand: "checks" returns workflow-ready checks array')
     .option('--scene <ref>', 'Scene reference (e.g. design-system:shell)')
     .option('--section <name>', 'Section name — returns array of stories')
-    .option('--checks-open', 'Filter checks/issues to only open (status != done)')
+    .option('--checks-open', 'Filter checks to only open (status != done)')
     .option('--create', 'Create story dir + meta.yml if missing (triggers ensureMeta)')
     .option('--json <data>', 'JSON data (context-dependent)')
-    .option('--check <key>', 'Check key for issues (e.g. xl--header)')
-    .option('--add', 'Add issues to a check (use with --json)')
-    .option('--update <index>', 'Update issue at index (use with --json)', parseInt)
     .action(
       async (
         subcommand: string | undefined,
@@ -25,9 +21,6 @@ export function register(program: Command): void {
           checksOpen?: boolean;
           create?: boolean;
           json?: string;
-          check?: string;
-          add?: boolean;
-          update?: number;
         },
       ) => {
         const config = loadConfig();
@@ -72,88 +65,6 @@ export function register(program: Command): void {
               diff: data.diff,
             });
             console.log(JSON.stringify({ ok: true, ...data }));
-            return;
-          }
-
-          // ── subcommand: issues ─────────────────────────────────────────────
-          if (subcommand === 'issues') {
-            if (!opts.scene) {
-              console.error('Error: --scene is required for issues');
-              process.exitCode = 1;
-              return;
-            }
-            const story = DeboStory.loadByScene(config, opts.scene);
-            if (!story) {
-              console.error(`Error: scene "${opts.scene}" not found or no story exists`);
-              process.exitCode = 1;
-              return;
-            }
-
-            // --add: add issues to a check
-            if (opts.add) {
-              if (!opts.check) {
-                console.error('Error: --check is required for --add');
-                process.exitCode = 1;
-                return;
-              }
-              if (!opts.json) {
-                console.error('Error: --json is required for --add (array of issues)');
-                process.exitCode = 1;
-                return;
-              }
-              const raw = JSON.parse(opts.json) as Partial<StoryIssue>[];
-              // Auto-assign IDs: count existing issues across all checks for next sequence number
-              const existingIssues = story.getIssues();
-              let nextSeq = existingIssues.length + 1;
-              const issues: StoryIssue[] = raw.map((i) => ({
-                id: i.id ?? `issue-${String(nextSeq++).padStart(3, '0')}`,
-                source: i.source ?? 'screenshots',
-                severity: i.severity ?? 'major',
-                description: i.description ?? '',
-                label: i.label,
-                category: i.category,
-                property: i.property,
-                expected: i.expected,
-                actual: i.actual,
-                status: 'open' as const,
-                result: null,
-              }));
-              story.addIssues(opts.check, issues);
-              console.log(
-                JSON.stringify({
-                  ok: true,
-                  check: opts.check,
-                  added: issues.length,
-                  issues: issues.map((i) => ({ id: i.id, description: i.description })),
-                }),
-              );
-              return;
-            }
-
-            // --update: update a single issue
-            if (opts.update != null) {
-              if (!opts.check) {
-                console.error('Error: --check is required for --update');
-                process.exitCode = 1;
-                return;
-              }
-              if (!opts.json) {
-                console.error('Error: --json is required for --update');
-                process.exitCode = 1;
-                return;
-              }
-              const updateData = JSON.parse(opts.json) as Partial<StoryIssue>;
-              story.updateIssue(opts.check, opts.update, updateData);
-              console.log(JSON.stringify({ ok: true, check: opts.check, index: opts.update }));
-              return;
-            }
-
-            // Read issues
-            const filter: { checkKey?: string; open?: boolean } = {};
-            if (opts.check) filter.checkKey = opts.check;
-            if (opts.checksOpen) filter.open = true;
-            const issues = story.getIssues(filter);
-            console.log(JSON.stringify(issues, null, 2));
             return;
           }
 

@@ -14,3 +14,4 @@ eval "$(_debo config)"
 - [cli-story.md](cli-story.md) — `story` — Story entity loading, creation, and checks
 - [cli-workflow.md](cli-workflow.md) — `workflow` — Workflow lifecycle (create, done, write-file, get-file, instructions, list, abandon, merge)
 - [cli-validate.md](cli-validate.md) — `validate` — Schema validation for data, tokens, components, data-model, entity-mapping
+- [cli-playwright.md](cli-playwright.md) — `playwright-cli` — Browser automation for screenshots, DOM extraction, and element interaction

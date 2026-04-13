@@ -1,0 +1,21 @@
+fixtures:
+  - vision
+  - data-model
+  - tokens
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo css-generate workflow. Do NOT ask any questions.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['css-generate']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['css-generate']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.newFiles.includes('css/tokens/color.src.css')
+  - type: javascript
+    value: output.newFiles.includes('css/tokens/typography-scale.src.css')

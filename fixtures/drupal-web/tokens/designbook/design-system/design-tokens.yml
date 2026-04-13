@@ -1,0 +1,275 @@
+primitive:
+  color:
+    navy-600:
+      $value: "#00336a"
+      $type: color
+    navy-700:
+      $value: "#002952"
+      $type: color
+    navy-800:
+      $value: "#001f3d"
+      $type: color
+    blue-500:
+      $value: "#124e9b"
+      $type: color
+    blue-600:
+      $value: "#0d6efd"
+      $type: color
+    green-600:
+      $value: "#056336"
+      $type: color
+    green-700:
+      $value: "#044a29"
+      $type: color
+    lime-500:
+      $value: "#95c11f"
+      $type: color
+    lime-600:
+      $value: "#7da319"
+      $type: color
+    purple-500:
+      $value: "#6d4f9b"
+      $type: color
+    purple-600:
+      $value: "#5a3f82"
+      $type: color
+    neutral-50:
+      $value: "#ffffff"
+      $type: color
+    neutral-100:
+      $value: "#f8f9fa"
+      $type: color
+    neutral-200:
+      $value: "#ececec"
+      $type: color
+    neutral-300:
+      $value: "#dee2e6"
+      $type: color
+    neutral-500:
+      $value: "#6b6a6a"
+      $type: color
+    neutral-800:
+      $value: "#212529"
+      $type: color
+    neutral-900:
+      $value: "#000000"
+      $type: color
+  typography:
+    reef:
+      $value: "Reef"
+      $type: fontFamily
+    sarabun:
+      $value: "Sarabun"
+      $type: fontFamily
+    sarabun-light:
+      $value: "Sarabun Light"
+      $type: fontFamily
+
+semantic:
+  color:
+    primary:
+      $value: "{primitive.color.navy-600}"
+      $type: color
+    primary-hover:
+      $value: "{primitive.color.navy-700}"
+      $type: color
+    primary-active:
+      $value: "{primitive.color.navy-800}"
+      $type: color
+    secondary:
+      $value: "{primitive.color.green-600}"
+      $type: color
+    secondary-hover:
+      $value: "{primitive.color.green-700}"
+      $type: color
+    accent:
+      $value: "{primitive.color.lime-500}"
+      $type: color
+    accent-hover:
+      $value: "{primitive.color.lime-600}"
+      $type: color
+    highlight:
+      $value: "{primitive.color.purple-500}"
+      $type: color
+    highlight-hover:
+      $value: "{primitive.color.purple-600}"
+      $type: color
+    link:
+      $value: "{primitive.color.blue-600}"
+      $type: color
+    link-hover:
+      $value: "{primitive.color.blue-500}"
+      $type: color
+    foreground:
+      $value: "{primitive.color.neutral-800}"
+      $type: color
+    foreground-muted:
+      $value: "{primitive.color.neutral-500}"
+      $type: color
+    background:
+      $value: "{primitive.color.neutral-50}"
+      $type: color
+    surface:
+      $value: "{primitive.color.neutral-100}"
+      $type: color
+    surface-alt:
+      $value: "{primitive.color.neutral-200}"
+      $type: color
+    outline:
+      $value: "{primitive.color.neutral-300}"
+      $type: color
+    inverse-foreground:
+      $value: "{primitive.color.neutral-50}"
+      $type: color
+    inverse-background:
+      $value: "{primitive.color.navy-600}"
+      $type: color
+  typography:
+    heading:
+      $value: "{primitive.typography.reef}"
+      $type: fontFamily
+    body:
+      $value: "{primitive.typography.sarabun}"
+      $type: fontFamily
+    body-light:
+      $value: "{primitive.typography.sarabun-light}"
+      $type: fontFamily
+  typescale:
+    display:
+      $value:
+        fontFamily: "{primitive.typography.reef}"
+        fontSize: "44px"
+        fontWeight: "100"
+        lineHeight: "1.2"
+      $type: typography
+    headline:
+      $value:
+        fontFamily: "{primitive.typography.reef}"
+        fontSize: "40px"
+        fontWeight: "100"
+        lineHeight: "1.3"
+      $type: typography
+    title:
+      $value:
+        fontFamily: "{primitive.typography.reef}"
+        fontSize: "34px"
+        fontWeight: "500"
+        lineHeight: "1.2"
+      $type: typography
+    subtitle:
+      $value:
+        fontFamily: "{primitive.typography.reef}"
+        fontSize: "28px"
+        fontWeight: "500"
+        lineHeight: "1.3"
+      $type: typography
+    body-lg:
+      $value:
+        fontFamily: "{primitive.typography.sarabun}"
+        fontSize: "20px"
+        fontWeight: "400"
+        lineHeight: "1.5"
+      $type: typography
+    body-md:
+      $value:
+        fontFamily: "{primitive.typography.sarabun}"
+        fontSize: "16px"
+        fontWeight: "400"
+        lineHeight: "1.5"
+      $type: typography
+    body-sm:
+      $value:
+        fontFamily: "{primitive.typography.sarabun}"
+        fontSize: "14px"
+        fontWeight: "400"
+        lineHeight: "1.5"
+      $type: typography
+    label:
+      $value:
+        fontFamily: "{primitive.typography.sarabun}"
+        fontSize: "12px"
+        fontWeight: "400"
+        lineHeight: "1.4"
+      $type: typography
+  breakpoints:
+    $extensions:
+      designbook:
+        renderer: screen
+    sm:
+      $value: "640px"
+      $type: dimension
+    md:
+      $value: "768px"
+      $type: dimension
+    lg:
+      $value: "1024px"
+      $type: dimension
+    xl:
+      $value: "1280px"
+      $type: dimension
+    2xl:
+      $value: "1536px"
+      $type: dimension
+  radius:
+    $extensions:
+      designbook:
+        renderer: radius
+    sm:
+      $value: "0.25rem"
+      $type: dimension
+    md:
+      $value: "0.4375rem"
+      $type: dimension
+    lg:
+      $value: "0.75rem"
+      $type: dimension
+    full:
+      $value: "9999px"
+      $type: dimension
+
+component:
+  container:
+    max-width:
+      $extensions:
+        designbook:
+          renderer: container
+      sm:
+        $value: "640px"
+        $type: dimension
+      md:
+        $value: "768px"
+        $type: dimension
+      lg:
+        $value: "1024px"
+        $type: dimension
+      xl:
+        $value: "1280px"
+        $type: dimension
+  grid:
+    gap:
+      $extensions:
+        designbook:
+          renderer: gap
+      sm:
+        $value: "1rem"
+        $type: dimension
+      md:
+        $value: "1.5rem"
+        $type: dimension
+      lg:
+        $value: "2rem"
+        $type: dimension
+  section:
+    padding-y:
+      $extensions:
+        designbook:
+          renderer: spacing
+      sm:
+        $value: "2rem"
+        $type: dimension
+      md:
+        $value: "4rem"
+        $type: dimension
+      lg:
+        $value: "6rem"
+        $type: dimension

@@ -26,9 +26,10 @@ This rule triggers during `design-verify:intake` when the user provides a Stitch
 
 4. Extract the preview URL from the response.
 
-5. Return to `design-verify:intake`:
+5. Return to the calling intake:
    - `url`: the resolved preview URL
    - `hasMarkup: true` — Stitch screens serve inspectable HTML (CSS properties, fonts, DOM)
+   - `hasAPI: true` — Stitch provides an MCP API for screen/project data
 
 ## Error Handling
 

@@ -1,0 +1,12 @@
+/** @config
+ {
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/grid.src.css"
+ }
+ */
+(
+  $entries := $each($$.component.grid.gap, function($v, $k) {
+    $substring($k, 0, 1) != "$" ? "  --grid-" & $k & ": " & $v."$value" & ";"
+  });
+  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+)

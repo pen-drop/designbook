@@ -80,7 +80,7 @@ properties:
         type: object
         description: >
           Per-check results. Keys are `breakpoint--region` (e.g. `sm--header`, `xl--markup`).
-          Written by compare tasks via `_debo story check`. Issues managed via `_debo story issues`.
+          Written by compare tasks via `_debo story check`.
         additionalProperties:
           type: object
           properties:

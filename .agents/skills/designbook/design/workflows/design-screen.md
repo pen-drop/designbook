@@ -3,19 +3,27 @@ title: Design Screen
 description: Create screen design components for a section
 stages:
   intake:
-    steps: [design-screen:intake]
+    steps: [intake]
   component:
     each: component
     steps: [create-component]
   sample-data:
     steps: [create-sample-data]
   entity-mapping:
-    steps: [design-screen:map-entity]
+    steps: [map-entity]
   scene:
     each: scene
-    steps: [design-screen:create-scene]
+    steps: [create-scene]
+  setup-compare:
+    steps: [setup-compare]
+  capture:
+    each: checks
+    steps: [capture]
+  compare:
+    each: checks
+    steps: [compare]
   outtake:
-    steps: [design-screen:outtake]
+    steps: [outtake]
 engine: direct
 before:
   - workflow: css-generate

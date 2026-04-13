@@ -6,7 +6,7 @@ when:
 
 # Playwright Capture
 
-Hard constraints for capturing screenshots via Playwright.
+Hard constraints for capturing screenshots via Playwright. All browser interaction uses `playwright-cli` — see [cli-playwright.md](../../resources/cli-playwright.md) for the full command reference.
 
 ## Staged File Flow
 
@@ -29,37 +29,39 @@ Screenshots MUST go through the workflow staging pipeline. Before capturing:
 
 ### Full-page capture (region `full` or empty selector)
 
-Use the Playwright CLI:
-
 ```bash
-npx playwright screenshot --full-page \
-  --viewport-size "${viewportWidth},1600" \
-  --wait-for-timeout 3000 \
-  "${url}" "${STAGED}"
+npx playwright-cli open
+npx playwright-cli goto "${url}"
+npx playwright-cli resize ${viewportWidth} 1600
+npx playwright-cli run-code "async (page) => { await page.waitForTimeout(3000) }"
+npx playwright-cli screenshot --full-page --filename "${STAGED}"
+npx playwright-cli close
 ```
 
 ### Element capture (region with CSS selector)
 
-The Playwright CLI does **not** support element-level screenshots. Use the Node API:
+Use `snapshot` to get element refs, then `screenshot` with the ref:
 
-```javascript
-const { chromium } = require('playwright');
-const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: viewportWidth, height: 1600 } });
-await page.goto(url, { waitUntil: 'networkidle' });
-await page.waitForTimeout(3000);
-await page.locator(selector).first().screenshot({ path: STAGED });
-await page.close();
-await browser.close();
+```bash
+npx playwright-cli open
+npx playwright-cli goto "${url}"
+npx playwright-cli resize ${viewportWidth} 1600
+npx playwright-cli run-code "async (page) => { await page.waitForTimeout(3000) }"
+npx playwright-cli snapshot
+# Find the ref for the target element (e.g. header, footer)
+npx playwright-cli screenshot <ref> --filename "${STAGED}"
+npx playwright-cli close
 ```
+
+If the element is best identified by CSS selector, use `eval` to confirm it exists, then `snapshot` to get its ref.
 
 ## Constraints
 
 - Viewport height MUST be 1600px for consistency across captures
-- `--wait-for-timeout 3000` (or `page.waitForTimeout(3000)`) MUST be used to allow rendering to settle
-- For element captures, always use `.first()` on the locator to avoid ambiguous matches
+- `run-code "(page) => { await page.waitForTimeout(3000) }"` MUST be used to allow rendering to settle
 - If a selector matches no elements, skip with a warning — do NOT fail the task
 - Output directories MUST be created before capture (`mkdir -p`)
+- Reuse an open session across multiple captures for the same URL — only `open`/`close` once
 
 ## Storybook Restart
 

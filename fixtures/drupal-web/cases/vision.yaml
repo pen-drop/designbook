@@ -1,0 +1,41 @@
+fixtures: []
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo vision workflow. Do NOT ask any questions — use the following inputs directly:
+
+  Product name: LEANDO
+  Description: The portal for vocational training practice — a platform by BIBB (Federal Institute for Vocational Education and Training) for trainers, examiners, and vocational education professionals
+  Problems & Solutions:
+  1. Training personnel cannot find relevant materials and information in one place → Curated portal with topic, profession, and target group navigation
+  2. Networking and exchange among vocational training practitioners is lacking → Community features with events, groups, and discussions
+  3. Learning materials are scattered and not interactive → Structured learning packages with SCORM and H5P integration
+  Key Features:
+  - Topic and profession-based content navigation
+  - Event management with registration and BBB video conferencing
+  - Learning packages (Learning Nuggets) with interactive content
+  - Handbook system (Book) for structured documentation
+  - Landing pages with flexible paragraph-based sections
+  - Location and profession database
+
+  Design reference: https://leando.de/
+
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f === 'designbook/vision.md')
+  - type: javascript
+    value: output.archivedWorkflows['vision']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['vision']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: |
+      const md = output.fileContents['designbook/vision.md'] || '';
+      return md.includes('LEANDO');
+  - type: javascript
+    value: |
+      const md = output.fileContents['designbook/vision.md'] || '';
+      return md.includes('## Description') || md.includes('## Problems') || md.includes('## Key Features');

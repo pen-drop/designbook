@@ -1,0 +1,5 @@
+@theme {
+  --font-heading: "{primitive.typography.reef}";
+  --font-body: "{primitive.typography.sarabun}";
+  --font-body-light: "{primitive.typography.sarabun-light}";
+}

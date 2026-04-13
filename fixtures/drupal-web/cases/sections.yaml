@@ -1,0 +1,25 @@
+fixtures:
+  - vision
+  - data-model
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo sections workflow. Do NOT ask any questions.
+  The product is "LEANDO" — the portal for vocational training practice. Read the product overview at designbook/vision.md.
+  Use the design reference https://leando.de/ to understand the site structure.
+  Define the following sections:
+  1. Homepage — Landing page with stage area, topic tiles (training/examination/networking), current topics slider, learning world, and communities
+  2. Ausbildung — Structured article/topic pages about vocational training (e.g. creating a company training plan)
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('sections/homepage/'))
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('sections/ausbildung/'))
+  - type: javascript
+    value: output.archivedWorkflows['sections']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['sections']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

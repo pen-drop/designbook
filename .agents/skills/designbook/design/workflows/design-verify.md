@@ -2,23 +2,27 @@
 title: Design Verify
 description: Visual testing — verify existing screens against design references
 params:
-  scene: ~
   reference: []
 stages:
   intake:
-    steps: [design-verify:intake]
+    steps: [intake]
+  setup-compare:
+    steps: [setup-compare]
   capture:
     each: checks
     steps: [capture]
+  compare-markup:
+    each: checks
+    steps: [compare-markup]
   compare:
     each: checks
     steps: [compare]
   triage:
-    steps: [design-verify:triage]
+    steps: [triage]
   polish:
     each: issues
     steps: [polish]
   outtake:
-    steps: [design-verify:outtake]
+    steps: [outtake]
 engine: direct
 ---

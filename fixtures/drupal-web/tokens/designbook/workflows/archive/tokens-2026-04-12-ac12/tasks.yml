@@ -1,0 +1,195 @@
+title: Design Tokens
+workflow: tokens
+workflow_id: ac12
+status: completed
+engine: direct
+stages:
+  intake:
+    steps:
+      - tokens:intake
+  execute:
+    steps:
+      - create-tokens
+stage_loaded:
+  tokens:intake:
+    task_file: >-
+      /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook/tokens/tasks/intake--tokens.md
+    rules: &ref_0
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook/vision/rules/vision-context.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook/tokens/rules/renderer-hints.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook/design/rules/extract-reference.md
+    blueprints: &ref_1
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook-drupal/components/blueprints/section.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook-drupal/components/blueprints/grid.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook-drupal/components/blueprints/container.md
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook-css-tailwind/blueprints/css-naming.md
+    config_rules: []
+    config_instructions: []
+  create-tokens:
+    task_file: >-
+      /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook/tokens/tasks/create-tokens.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook/tokens/rules/renderer-hints.md
+    blueprints:
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook-css-tailwind/blueprints/css-naming.md
+    config_rules: []
+    config_instructions: []
+current_stage: done
+started_at: '2026-04-12T02:10:57'
+tasks:
+  - id: intake
+    title: 'Intake: Design Tokens'
+    type: data
+    step: tokens:intake
+    stage: intake
+    status: done
+    started_at: '2026-04-12T02:10:57'
+    task_file: >-
+      /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook/tokens/tasks/intake--tokens.md
+    rules: *ref_0
+    blueprints: *ref_1
+    files: []
+    completed_at: '2026-04-12T02:13:16'
+  - id: create-tokens-f4f55a
+    title: Create Tokens
+    type: tokens
+    step: create-tokens
+    stage: execute
+    status: done
+    params:
+      intake: &ref_2
+        colors:
+          navy-600: '#00336a'
+          navy-700: '#002952'
+          navy-800: '#001f3d'
+          blue-500: '#124e9b'
+          blue-600: '#0d6efd'
+          green-600: '#056336'
+          green-700: '#044a29'
+          lime-500: '#95c11f'
+          lime-600: '#7da319'
+          purple-500: '#6d4f9b'
+          purple-600: '#5a3f82'
+          neutral-50: '#ffffff'
+          neutral-100: '#f8f9fa'
+          neutral-200: '#ececec'
+          neutral-300: '#dee2e6'
+          neutral-500: '#6b6a6a'
+          neutral-800: '#212529'
+          neutral-900: '#000000'
+        semantic_colors:
+          primary: navy-600
+          primary-hover: navy-700
+          primary-active: navy-800
+          secondary: green-600
+          secondary-hover: green-700
+          accent: lime-500
+          accent-hover: lime-600
+          highlight: purple-500
+          highlight-hover: purple-600
+          link: blue-600
+          link-hover: blue-500
+          foreground: neutral-800
+          foreground-muted: neutral-500
+          background: neutral-50
+          surface: neutral-100
+          surface-alt: neutral-200
+          outline: neutral-300
+          inverse-foreground: neutral-50
+          inverse-background: navy-600
+        typography:
+          heading: Reef
+          body: Sarabun
+          body_light: Sarabun Light
+        type_scale:
+          display:
+            fontFamily: Reef
+            fontSize: 44px
+            fontWeight: '100'
+            lineHeight: '1.2'
+          headline:
+            fontFamily: Reef
+            fontSize: 40px
+            fontWeight: '100'
+            lineHeight: '1.3'
+          title:
+            fontFamily: Reef
+            fontSize: 34px
+            fontWeight: '500'
+            lineHeight: '1.2'
+          subtitle:
+            fontFamily: Reef
+            fontSize: 28px
+            fontWeight: '500'
+            lineHeight: '1.3'
+          body-lg:
+            fontFamily: Sarabun
+            fontSize: 20px
+            fontWeight: '400'
+            lineHeight: '1.5'
+          body-md:
+            fontFamily: Sarabun
+            fontSize: 16px
+            fontWeight: '400'
+            lineHeight: '1.5'
+          body-sm:
+            fontFamily: Sarabun
+            fontSize: 14px
+            fontWeight: '400'
+            lineHeight: '1.5'
+          label:
+            fontFamily: Sarabun
+            fontSize: 12px
+            fontWeight: '400'
+            lineHeight: '1.4'
+        breakpoints:
+          sm: 640px
+          md: 768px
+          lg: 1024px
+          xl: 1280px
+          2xl: 1536px
+        radius:
+          sm: 0.25rem
+          md: 0.4375rem
+          lg: 0.75rem
+          full: 9999px
+    task_file: >-
+      /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook/tokens/tasks/create-tokens.md
+    rules:
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook/tokens/rules/renderer-hints.md
+    blueprints:
+      - >-
+        /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/.claude/skills/designbook-css-tailwind/blueprints/css-naming.md
+    files:
+      - path: >-
+          /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/design-system/design-tokens.yml
+        key: design-tokens
+        validators:
+          - tokens
+        validation_result:
+          file: >-
+            /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/design-system/design-tokens.yml
+          type: tokens
+          valid: true
+          last_validated: '2026-04-12T00:13:37.912Z'
+          last_passed: '2026-04-12T00:13:37.912Z'
+        flushed_at: '2026-04-12T00:13:42.907Z'
+    started_at: '2026-04-12T02:13:16'
+    completed_at: '2026-04-12T02:13:42'
+params:
+  intake: *ref_2
+root_dir: /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web
+_changesDir: >-
+  /home/cw/projects/designbook/.claude/worktrees/leando/workspaces/drupal-web/designbook/workflows/changes/tokens-2026-04-12-ac12
+completed_at: '2026-04-12T02:13:43'
+summary: 'Intake: Design Tokens (data), Create Tokens (tokens)'
