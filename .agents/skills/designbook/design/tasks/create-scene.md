@@ -7,6 +7,7 @@ params:
   section_id: { type: string }
   section_title: { type: string }
   reference: { type: array, default: [] }
+  reference_dir: { type: string, default: "" }
 result:
   scene-file:
     path: "{{ output_path }}"
@@ -15,8 +16,6 @@ reads:
   - path: $DESIGNBOOK_DIRS_COMPONENTS
     description: Components -- location resolved by the active framework skill
   - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
-    optional: true
-  - path: $STORY_DIR/design-reference.json
     optional: true
   - path: $DESIGNBOOK_DATA/data-model.yml
     optional: true
@@ -30,7 +29,7 @@ Creates a scene file at `{{ output_path }}`. The exact structure depends on the 
 
 - `$DESIGNBOOK_DIRS_COMPONENTS` — available components and their slot/prop signatures; location resolved by the active framework skill
 - `design-system.scenes.yml` — the shell scene (required for screen scenes that inherit via `scene:`)
-- `design-reference.json` — optional design source; provides source URL for scene `reference:` entries
+- `$reference_dir` — optional path to a hash-based cache directory; if non-empty, read `$reference_dir/extract.json` which provides source URL for scene `reference:` entries
 - `data-model.yml` — available entity types, bundles, and image styles (required for screen scenes)
 
 ## Output
@@ -61,7 +60,7 @@ scenes:
 
 ## Reference Resolution
 
-If `$STORY_DIR/design-reference.json` exists, read its `source` field to extract the reference URL. Use this URL to populate the scene's `reference:` array (type: url, threshold: 3). If the `{{ reference }}` param is empty but design-reference.json exists, construct the reference entry from the JSON `source` field.
+If `$reference_dir` is non-empty, read `$reference_dir/extract.json` and use its `source` field to extract the reference URL. Use this URL to populate the scene's `reference:` array (type: url, threshold: 3). If the `{{ reference }}` param is empty but `$reference_dir` is non-empty, construct the reference entry from the `source` field of `$reference_dir/extract.json`.
 
 ## Scene Node Types
 
