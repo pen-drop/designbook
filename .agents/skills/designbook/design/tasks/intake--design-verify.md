@@ -2,72 +2,89 @@
 when:
   steps: [design-verify:intake]
 params:
-  scene: { type: string }
+  scene_id: { type: string }
+  component_id: { type: string }
   reference: { type: array, default: [] }
-  breakpoints: { type: array, default: [] }
 result:
-  scene:
+  scene_id:
     type: string
-    title: Scene
+  component_id:
+    type: string
   reference:
     type: array
-    title: Design Reference
-    default: []
     items:
       $ref: ../schemas.yml#/Reference
   breakpoints:
     type: array
-    title: Breakpoints
-    default: []
     items: { type: string }
+reads:
+  - path: $STORY_DIR/design-reference.md
+    optional: true
 ---
 
 # Intake: Design Verify
 
-Visual testing for a single scene. Called once per scene — either as subworkflow (from design-shell/design-screen) or standalone.
+Visual testing for a single scene or component. Works in two modes:
+
+- **Scene mode**: `params.scene` is set -- verify a scene (shell or section screen)
+- **Component mode**: `params.component` is set -- verify a single component
+
+Can be called as a subworkflow (from design-shell/screen/component after-hook) or standalone.
 
 ## Context Detection
 
-- **`params.scene` is set:** Subworkflow — skip dialog, go to Step 2.
-- **`params.scene` is NOT set:** Standalone — proceed with Step 1.
+- **`params.scene_id` is set:** Scene mode. The `extract-reference` stage has already resolved `$STORY_DIR`.
+- **`params.component_id` is set:** Component mode. The `extract-reference` stage has already resolved `$STORY_DIR`.
+- **Neither is set:** Standalone -- proceed with Step 1.
 
-## Step 1: Identify Scene and Reference (standalone only)
+## Step 1: Identify Target (standalone only)
 
-Ask the user which scene to verify and how:
+Ask the user what to verify:
 
-> "Which scene should I verify? (e.g. `design-system:shell`, `homepage:landing`)"
+> "What should I verify?
+> - A scene (e.g. `design-system:shell`, `homepage:landing`)
+> - A component (e.g. `card`, `header`)
+>
+> Enter the scene name or component name:"
 
-Then ask for the reference:
+Set `params.scene_id` or `params.component_id` from the answer.
+
+## Step 2: Resolve Reference
+
+If `$STORY_DIR/design-reference.md` exists (from a prior build workflow or the extract-reference stage):
+- Read the `Source:` line to get the reference URL
+- Build the `reference` array: `[{"type": "url", "url": "<url>", "threshold": 3, "title": "<label>"}]`
+- Skip asking the user for a reference
+
+If no `design-reference.md` and `params.reference` is empty:
 
 > "What is the design reference?
-> - Stitch screen ID (e.g. `projects/123/screens/abc`)
-> - URL to a design screenshot
-> - Or 'skip' to verify without reference"
+> - A URL to the design source
+> - 'skip' to verify without reference"
 
-Then ask for breakpoints:
+Set `params.reference` from the answer.
 
-> "Which breakpoints to test? (default: all from design-tokens)"
+## Step 3: Select Breakpoints
 
-Set `params.scene` and `params.reference` from the answers. `reference` is an array:
-```json
-[{"type": "stitch", "url": "projects/...", "threshold": 3, "title": "Screen Name"}]
-```
+Breakpoints are collected as a required result -- the workflow engine triggers `waiting_for` automatically, prompting the user to select which breakpoints to test.
 
-Reference entries describe the design source only — no `breakpoint` field. Breakpoints are resolved separately in Step 3a.
+List available breakpoints from `design-tokens.yml` with pixel values.
 
-## Step 2: Ensure Storybook is running
+## Step 4: Ensure Storybook is running
 
 ```bash
 _debo storybook status
 ```
 
-- **If running:** check freshness — if component files are newer than `started_at`, restart with `_debo storybook start --force`.
+- **If running:** check freshness -- if component files are newer than `started_at`, restart with `_debo storybook start --force`.
 - **If not running:** `_debo storybook start`. Wait for `{ ready: true }`.
 - **If startup fails:** report errors from `_debo storybook logs` and pause.
 
-## Step 3: Write Results and Complete
+## Step 5: Write Results and Complete
 
-Pass `scene`, `reference`, and `breakpoints` to the next stage via data results. The `setup-compare` stage handles story creation and checks resolution.
+Pass `scene_id`, `component_id`, `reference`, and `breakpoints` to the next stage via data results.
 
-- `reference`: the array from Step 1 (or `params.reference` in subworkflow mode)
-- `breakpoints`: from user input (standalone) or empty array (subworkflow — setup-compare resolves from design-tokens)
+- `scene_id`: from params (or empty string if component mode)
+- `component_id`: from params (or empty string if scene mode)
+- `reference`: the array from Step 2
+- `breakpoints`: from user input (Step 3)

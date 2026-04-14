@@ -2,14 +2,23 @@
 when:
   steps: [setup-compare]
 params:
-  scene: { type: string }
+  scene_id: { type: string }
+  component_id: { type: string }
   reference: { type: array, default: [] }
-  breakpoints: { type: array, default: [] }
+  breakpoints: { type: array }
 result:
   checks:
     type: array
     items:
-      $ref: ../schemas.yml#/Check
+      type: object
+      required: [story_id, breakpoint, region]
+      properties:
+        story_id: { type: string }
+        breakpoint: { type: string }
+        region: { type: string }
+        threshold: { type: number, default: 0 }
+        selector: { type: string }
+        type: { type: string }
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
@@ -17,7 +26,7 @@ reads:
 
 # Setup Compare
 
-Creates the story entity and returns the `checks` array for the inline capture and compare stages. This is a lightweight version of the design-verify intake — it only creates the story and resolves checks.
+Creates the story entity and returns the `checks` array for the inline capture and compare stages.
 
 ## Step 1: Restart Storybook
 
@@ -29,17 +38,22 @@ _debo storybook start --force
 
 Wait for `{ ready: true }`. If startup fails, report errors from `_debo storybook logs` and pause.
 
-This is mandatory — the Storybook watcher may serve stale compiled output for recently generated or modified components, making screenshot comparison unreliable.
+## Step 2: Determine Mode and Regions
 
-## Step 2: Build meta-seed JSON
+**Component mode** (`component_id` param is set):
+- Regions: always `["full"]`
+- Story resolution: `_debo story --component ${component_id}`
 
-From `params.reference` (array from the scene definition) and resolved breakpoints, build the meta-seed.
+**Scene mode** (`scene_id` param is set):
+- Shell scenes (`scene_id` ends with `:shell`): regions `["header", "footer"]`
+- All other scenes: regions `["full"]`
+- Story resolution: `_debo story --scene ${scene_id}`
 
-**Determine regions** from the scene name:
-- **Shell scenes** (`scene` ends with `:shell`): `"header": {}`, `"footer": {}`
-- **All other scenes**: `"full": {}`
+## Step 3: Build meta-seed JSON
 
-Build the full breakpoints × regions matrix:
+From `params.reference` and resolved breakpoints + regions, build the meta-seed.
+
+Build the full breakpoints x regions matrix:
 
 ```json
 {
@@ -63,16 +77,24 @@ If `reference` is empty or null: skip compare by completing with an empty `check
 
 Before calling the CLI, apply all loaded rules for this stage that modify the reference. Rules may resolve provider-specific URLs, set additional fields on `reference.source` (e.g. `hasMarkup`), or transform the meta-seed.
 
-## Step 3: Create story and get checks
+## Step 4: Create story and get checks
 
+Use the appropriate CLI command based on mode:
+
+**Scene mode:**
 ```bash
-CHECKS=$(_debo story --scene ${scene} --create --json '<meta-seed-json>' checks)
+CHECKS=$(_debo story --scene ${scene_id} --create --json '<meta-seed-json>' checks)
 ```
 
-This creates the story directory + `meta.yml`, validates the reference exists, and returns the checks as a JSON array. Each check has: `storyId`, `breakpoint`, `region`, `threshold`.
+**Component mode:**
+```bash
+CHECKS=$(_debo story --component ${component_id} --create --json '<meta-seed-json>' checks)
+```
+
+This creates the story directory + `meta.yml`, validates the reference exists, and returns the checks as a JSON array. Each check has: `story_id`, `breakpoint`, `region`, `threshold`.
 
 If the command fails, report the error and pause.
 
-## Step 4: Complete with checks
+## Step 5: Complete with checks
 
 The `checks` array flows into the `capture` and `compare` stages via the `each: checks` iterables.
