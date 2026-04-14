@@ -6,16 +6,15 @@ Manages workflow lifecycle — create, execute tasks, track stage transitions.
 
 ## `workflow create`
 
-Create a new workflow tracking file from a workflow `.md` file.
+Create a new workflow tracking file. The workflow `.md` file is resolved automatically from the workflow ID via `skills/**/workflows/<id>.md`.
 
 ```bash
- workflow create --workflow <id> --workflow-file <path> [--parent <name>] [--params <json>]
+ workflow create --workflow <id> [--parent <name>] [--params <json>]
 ```
 
 | Option | Required | Description |
 |---|---|---|
 | `--workflow <id>` | Yes | Workflow identifier (e.g. `vision`, `design-screen`) |
-| `--workflow-file <path>` | Yes | Absolute path to workflow `.md` file |
 | `--title <title>` | No | Human-readable workflow title |
 | `--parent <name>` | No | Parent workflow name (traceability for child workflows) |
 | `--params <json>` | No | Initial params JSON. If all required params are satisfied, intake is skipped and tasks are expanded immediately. |
@@ -110,7 +109,6 @@ Stage name resolution: tries direct key first, then looks up via the stage's fir
   "stage": "verify",
   "dispatch": true,
   "workflow": "design-verify",
-  "workflow_file": "/abs/path/design-verify.md",
   "items": [{ "scene": "shell", "product_name": "My Product" }]
 }
 ```
@@ -186,7 +184,7 @@ cat <<'EOF' | workflow result --task <task-id> --path <absolute-path> --flush
 EOF
 ```
 
-`--path` writes directly to the given path without requiring a result key declaration in the task frontmatter. The file is **not** tracked in the task's gate check — use for auxiliary reference files (e.g. `design-reference.md`) that rules produce but that aren't task deliverables.
+`--path` writes directly to the given path without requiring a result key declaration in the task frontmatter. The file is **not** tracked in the task's gate check — use for auxiliary reference files (e.g. `design-reference.json`) that rules produce but that aren't task deliverables.
 
 `--path` and `--key` are mutually exclusive.
 
@@ -278,7 +276,7 @@ When `stage_complete: true`, the engine has collected all data results from the 
 
 **Response: workflow complete with child dispatch**
 ```json
-{ "stage": "done", "dispatch": [{ "workflow": "design-verify", "workflow_file": "/abs/path", "params": { "..." } }] }
+{ "stage": "done", "dispatch": [{ "workflow": "design-verify", "params": { "..." } }] }
 ```
 
 ## `workflow wait`
