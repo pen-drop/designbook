@@ -10,12 +10,36 @@
 
 ---
 
-### Task 1: Add EntityMapping schema
+### Task 1: Update schemas.yml — add EntityMapping, rename storyId to story_id
 
 **Files:**
 - Modify: `.agents/skills/designbook/design/schemas.yml`
 
-- [ ] **Step 1: Add EntityMapping to schemas.yml**
+- [ ] **Step 1: Rename storyId to story_id in Check schema**
+
+In the `Check` schema (line 4), change:
+```yaml
+# Old:
+    storyId: { type: string }
+# New:
+    story_id: { type: string }
+```
+
+Also update `required:` from `[storyId, breakpoint, region]` to `[story_id, breakpoint, region]`.
+
+- [ ] **Step 2: Rename storyId to story_id and scene to scene_id in Issue schema**
+
+In the `Issue` schema, change:
+```yaml
+# Old:
+    storyId: { type: string }
+    scene: { type: string }
+# New:
+    story_id: { type: string }
+    scene_id: { type: string }
+```
+
+- [ ] **Step 3: Add EntityMapping schema**
 
 Append after the existing `Scene` schema (after line 53):
 
@@ -30,16 +54,16 @@ EntityMapping:
     view_mode: { type: string }
 ```
 
-- [ ] **Step 2: Verify YAML validity**
+- [ ] **Step 4: Verify YAML validity**
 
 Run: `python3 -c "import yaml; yaml.safe_load(open('.agents/skills/designbook/design/schemas.yml'))" && echo OK`
 Expected: `OK`
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add .agents/skills/designbook/design/schemas.yml
-git commit -m "feat: add EntityMapping schema to design schemas.yml"
+git commit -m "feat: add EntityMapping schema, rename storyId to story_id in Check/Issue"
 ```
 
 ---
@@ -61,7 +85,7 @@ Replace the entire file with:
 title: Design Component
 description: Create a new UI component from a design reference
 params:
-  component: { type: string }
+  component_id: { type: string }
 stages:
   reference:
     steps: [extract-reference]
@@ -78,7 +102,7 @@ after:
 ---
 ```
 
-Key changes: removed `test` stage (replaced by design-verify after-hook), added `reference` stage, added `params.component`.
+Key changes: removed `test` stage (replaced by design-verify after-hook), added `reference` stage, added `params.component_id`.
 
 - [ ] **Step 2: Rewrite design-shell.md**
 
@@ -89,7 +113,7 @@ Replace the entire file with:
 title: Design Shell
 description: Design the application shell -- page component with header, content, and footer slots
 params:
-  scene: { type: string, default: "design-system:shell" }
+  scene_id: { type: string, default: "design-system:shell" }
 stages:
   reference:
     steps: [extract-reference]
@@ -108,7 +132,7 @@ after:
 ---
 ```
 
-Key changes: added `reference` stage, added `params.scene` with default, added design-verify after-hook.
+Key changes: added `reference` stage, added `params.scene_id` with default, added design-verify after-hook.
 
 - [ ] **Step 3: Rewrite design-screen.md**
 
@@ -119,7 +143,7 @@ Replace the entire file with:
 title: Design Screen
 description: Create screen design components for a section (one scene per run)
 params:
-  scene: { type: string }
+  scene_id: { type: string }
 stages:
   reference:
     steps: [extract-reference]
@@ -142,7 +166,7 @@ after:
 ---
 ```
 
-Key changes: added `reference` stage, added `params.scene`, added design-verify after-hook.
+Key changes: added `reference` stage, added `params.scene_id`, added design-verify after-hook.
 
 - [ ] **Step 4: Rewrite design-verify.md**
 
@@ -153,8 +177,8 @@ Replace the entire file with:
 title: Design Verify
 description: Visual testing -- verify screens or components against design references
 params:
-  scene: { type: string }
-  component: { type: string }
+  scene_id: { type: string }
+  component_id: { type: string }
 stages:
   reference:
     steps: [extract-reference]
@@ -176,7 +200,7 @@ engine: direct
 ---
 ```
 
-Key changes: added `reference` stage, added `params.scene` + `params.component` (both optional), removed `params: reference: []`.
+Key changes: added `reference` stage, added `params.scene_id` + `params.component_id` (both optional), removed `params: reference: []`.
 
 - [ ] **Step 5: Verify YAML validity for all four**
 
@@ -220,8 +244,8 @@ Create `.agents/skills/designbook/design/tasks/extract-reference.md` with this c
 when:
   steps: [extract-reference]
 params:
-  scene: { type: string }
-  component: { type: string }
+  scene_id: { type: string }
+  component_id: { type: string }
 result:
   design-reference:
     path: $STORY_DIR/design-reference.md
@@ -243,10 +267,10 @@ Standalone task that resolves and extracts a design reference. First stage in al
 
 ## Step 1: Resolve $STORY_DIR
 
-Resolve the story directory using the CLI. Exactly one of `scene` or `component` will be set:
+Resolve the story directory using the CLI. Exactly one of `scene_id` or `component_id` will be set:
 
-- If `scene` is set: `STORY_DIR=$(_debo story --scene ${scene} --create | jq -r '.storyDir')`
-- If `component` is set: `STORY_DIR=$(_debo story --component ${component} --create | jq -r '.storyDir')`
+- If `scene_id` is set: `STORY_DIR=$(_debo story --scene ${scene_id} --create | jq -r '.storyDir')`
+- If `component_id` is set: `STORY_DIR=$(_debo story --component ${component_id} --create | jq -r '.storyDir')`
 
 ## Step 2: Reuse Check
 
@@ -483,7 +507,7 @@ when:
   steps: [create-scene]
 params:
   output_path: { type: string }
-  scene: { type: string }
+  scene_id: { type: string }
   section_id: { type: string }
   section_title: { type: string }
   reference: { type: array, default: [] }
@@ -727,10 +751,10 @@ params:
 # New:
 params:
   $ref: ../schemas.yml#/Check
-  scene: { type: string }
+  scene_id: { type: string }
 ```
 
-The `scene` param is not part of `Check` schema but is needed by the task, so it stays as an explicit sibling.
+The `scene_id` param is not part of `Check` schema but is needed by the task, so it stays as an explicit sibling. Note: `Check` schema now has `story_id` (not `storyId`) from Task 1.
 
 - [ ] **Step 3: Update compare-screenshots.md frontmatter**
 
@@ -747,10 +771,10 @@ params:
 # New:
 params:
   $ref: ../schemas.yml#/Check
-  scene: { type: string }
+  scene_id: { type: string }
 ```
 
-Same pattern as capture-reference: `Check` schema provides the core fields, `scene` is an extra sibling.
+Same pattern as capture-reference: `Check` schema provides the core fields (`story_id`, `breakpoint`, `region`), `scene_id` is an extra sibling.
 
 - [ ] **Step 4: Update polish.md frontmatter**
 
@@ -773,7 +797,7 @@ params:
   $ref: ../schemas.yml#/Issue
 ```
 
-All fields are part of the `Issue` schema.
+All fields are part of the `Issue` schema. Note: `Issue` schema has `story_id` (not `storyId`) and `scene` remains `scene` in the Issue schema as it refers to the scene name within an issue context (not an identifier param). However, for consistency, also rename `scene` to `scene_id` in the Issue schema (Task 1 should include this rename).
 
 - [ ] **Step 5: Update create-component.md (drupal skill) frontmatter**
 
@@ -799,15 +823,34 @@ params:
 
 Note: the `$ref` path uses the skill-qualified form `designbook/design/schemas.yml#/Component` since this file is in the `designbook-drupal` skill, not the `designbook` skill.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Rename scene/storyId params in remaining verify tasks**
+
+The following tasks also use `scene` and `storyId` params that must be renamed to `scene_id` and `story_id`. For each file, update the `params:` section in the frontmatter:
+
+- `.agents/skills/designbook/design/tasks/triage.md`: `scene` → `scene_id`, `storyId` → `story_id` (in params AND in the inline issue schema within params and result)
+- `.agents/skills/designbook/design/tasks/outtake--design-verify.md`: `scene` → `scene_id`, `storyId` → `story_id`
+- `.agents/skills/designbook/design/tasks/outtake--design.md`: `scene` → `scene_id`, `storyId` → `story_id`
+- `.agents/skills/designbook/design/tasks/verify.md`: `scene` → `scene_id`, `storyId` → `story_id`
+- `.agents/skills/designbook/design/tasks/capture-storybook.md`: `scene` → `scene_id`, `storyId` → `story_id`
+- `.agents/skills/designbook/design/tasks/configure-meta.md`: `storyId` → `story_id`
+
+Also update all inline `storyId`/`scene` references in result schemas within these files (e.g. triage has `storyId` in both params and result issue objects).
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add .agents/skills/designbook/design/tasks/map-entity--design-screen.md \
         .agents/skills/designbook/design/tasks/capture-reference.md \
         .agents/skills/designbook/design/tasks/compare-screenshots.md \
         .agents/skills/designbook/design/tasks/polish.md \
+        .agents/skills/designbook/design/tasks/triage.md \
+        .agents/skills/designbook/design/tasks/outtake--design-verify.md \
+        .agents/skills/designbook/design/tasks/outtake--design.md \
+        .agents/skills/designbook/design/tasks/verify.md \
+        .agents/skills/designbook/design/tasks/capture-storybook.md \
+        .agents/skills/designbook/design/tasks/configure-meta.md \
         .agents/skills/designbook-drupal/components/tasks/create-component.md
-git commit -m "feat: update task params to use \$ref for schema consistency with each"
+git commit -m "feat: update task params to use \$ref, rename storyId to story_id and scene to scene_id"
 ```
 
 ---
@@ -1377,13 +1420,13 @@ Replace the entire file. Key changes: add `component` param, reuse `design-refer
 when:
   steps: [design-verify:intake]
 params:
-  scene: { type: string }
-  component: { type: string }
+  scene_id: { type: string }
+  component_id: { type: string }
   reference: { type: array, default: [] }
 result:
-  scene:
+  scene_id:
     type: string
-  component:
+  component_id:
     type: string
   reference:
     type: array
@@ -1408,8 +1451,8 @@ Can be called as a subworkflow (from design-shell/screen/component after-hook) o
 
 ## Context Detection
 
-- **`params.scene` is set:** Scene mode. The `extract-reference` stage has already resolved `$STORY_DIR`.
-- **`params.component` is set:** Component mode. The `extract-reference` stage has already resolved `$STORY_DIR`.
+- **`params.scene_id` is set:** Scene mode. The `extract-reference` stage has already resolved `$STORY_DIR`.
+- **`params.component_id` is set:** Component mode. The `extract-reference` stage has already resolved `$STORY_DIR`.
 - **Neither is set:** Standalone -- proceed with Step 1.
 
 ## Step 1: Identify Target (standalone only)
@@ -1422,7 +1465,7 @@ Ask the user what to verify:
 >
 > Enter the scene name or component name:"
 
-Set `params.scene` or `params.component` from the answer.
+Set `params.scene_id` or `params.component_id` from the answer.
 
 ## Step 2: Resolve Reference
 
@@ -1457,10 +1500,10 @@ _debo storybook status
 
 ## Step 5: Write Results and Complete
 
-Pass `scene`, `component`, `reference`, and `breakpoints` to the next stage via data results.
+Pass `scene_id`, `component_id`, `reference`, and `breakpoints` to the next stage via data results.
 
-- `scene`: from params (or empty string if component mode)
-- `component`: from params (or empty string if scene mode)
+- `scene_id`: from params (or empty string if component mode)
+- `component_id`: from params (or empty string if scene mode)
 - `reference`: the array from Step 2
 - `breakpoints`: from user input (Step 3)
 ```
@@ -1474,8 +1517,8 @@ Replace the entire file. Key change: support `component` param alongside `scene`
 when:
   steps: [setup-compare]
 params:
-  scene: { type: string }
-  component: { type: string }
+  scene_id: { type: string }
+  component_id: { type: string }
   reference: { type: array, default: [] }
   breakpoints: { type: array }
 result:
@@ -1483,9 +1526,9 @@ result:
     type: array
     items:
       type: object
-      required: [storyId, breakpoint, region]
+      required: [story_id, breakpoint, region]
       properties:
-        storyId: { type: string }
+        story_id: { type: string }
         breakpoint: { type: string }
         region: { type: string }
         threshold: { type: number, default: 0 }
@@ -1512,14 +1555,14 @@ Wait for `{ ready: true }`. If startup fails, report errors from `_debo storyboo
 
 ## Step 2: Determine Mode and Regions
 
-**Component mode** (`component` param is set):
+**Component mode** (`component_id` param is set):
 - Regions: always `["full"]`
-- Story resolution: `_debo story --component ${component}`
+- Story resolution: `_debo story --component ${component_id}`
 
-**Scene mode** (`scene` param is set):
-- Shell scenes (scene ends with `:shell`): regions `["header", "footer"]`
+**Scene mode** (`scene_id` param is set):
+- Shell scenes (`scene_id` ends with `:shell`): regions `["header", "footer"]`
 - All other scenes: regions `["full"]`
-- Story resolution: `_debo story --scene ${scene}`
+- Story resolution: `_debo story --scene ${scene_id}`
 
 ## Step 3: Build meta-seed JSON
 
@@ -1555,15 +1598,15 @@ Use the appropriate CLI command based on mode:
 
 **Scene mode:**
 ```bash
-CHECKS=$(_debo story --scene ${scene} --create --json '<meta-seed-json>' checks)
+CHECKS=$(_debo story --scene ${scene_id} --create --json '<meta-seed-json>' checks)
 ```
 
 **Component mode:**
 ```bash
-CHECKS=$(_debo story --component ${component} --create --json '<meta-seed-json>' checks)
+CHECKS=$(_debo story --component ${component_id} --create --json '<meta-seed-json>' checks)
 ```
 
-This creates the story directory + `meta.yml`, validates the reference exists, and returns the checks as a JSON array. Each check has: `storyId`, `breakpoint`, `region`, `threshold`.
+This creates the story directory + `meta.yml`, validates the reference exists, and returns the checks as a JSON array. Each check has: `story_id`, `breakpoint`, `region`, `threshold`.
 
 If the command fails, report the error and pause.
 

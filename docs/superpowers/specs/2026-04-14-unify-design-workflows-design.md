@@ -80,8 +80,8 @@ Eigenstaendiger Task als erste Stage in allen Workflows. Ersetzt die bisherige R
 when:
   steps: [extract-reference]
 params:
-  scene: { type: string }      # optional
-  component: { type: string }  # optional
+  scene_id: { type: string }      # optional
+  component_id: { type: string }  # optional
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
   - path: $STORY_DIR/design-reference.md
@@ -127,7 +127,7 @@ when:
   steps: [create-scene]
 params:
   output_path: { type: string }
-  scene: { type: string }
+  scene_id: { type: string }
   section_id: { type: string }      # optional, nur Screen
   section_title: { type: string }   # optional, nur Screen
   reference: { type: array, default: [] }
@@ -181,7 +181,12 @@ EntityMapping:
     view_mode: { type: string }
 ```
 
-Bestehende Schemas bleiben unveraendert: `Component`, `Scene`, `Reference`, `Check`, `Issue`.
+Bestehende Schemas werden umbenannt wo noetig:
+
+- `Check`: `storyId` -> `story_id`
+- `Issue`: `storyId` -> `story_id`
+
+Alle uebrigen Schemas bleiben unveraendert: `Component`, `Scene`, `Reference`.
 
 ## `$ref` in params -- Konsistenz mit `each`
 
@@ -279,8 +284,8 @@ result:
 
 ```yaml
 params:
-  scene: { type: string }      # optional
-  component: { type: string }  # optional
+  scene_id: { type: string }      # optional
+  component_id: { type: string }  # optional
 ```
 
 ### `intake--design-verify`
@@ -288,9 +293,9 @@ params:
 **Results:**
 ```yaml
 result:
-  scene:
+  scene_id:
     type: string
-  component:
+  component_id:
     type: string
   reference:
     type: array
@@ -302,7 +307,7 @@ result:
 ```
 
 **Ablauf:**
-1. Pruefe ob `scene` oder `component` gesetzt -- Modus ableiten
+1. Pruefe ob `scene_id` oder `component_id` gesetzt -- Modus ableiten
 2. Wenn keins gesetzt: User fragen
 3. Wenn `design-reference.md` existiert: Reference uebernehmen, nicht nochmal fragen
 4. Breakpoints abfragen
@@ -310,19 +315,21 @@ result:
 
 ### Modus-Unterschiede
 
-| Aspekt | Scene-Modus | Component-Modus |
+| Aspekt | Scene-Modus (`scene_id` gesetzt) | Component-Modus (`component_id` gesetzt) |
 |--------|-------------|-----------------|
-| Story-Aufloesung | `_debo story --scene <id>` | `_debo story --component <id>` |
+| Story-Aufloesung | `_debo story --scene <scene_id>` | `_debo story --component <component_id>` |
 | Regions | Shell: `header`, `footer`. Screen: `full` | `full` |
 | Reference-Source | `design-reference.md` aus Build-Workflow | `design-reference.md` aus Build-Workflow |
 | Polish-Scope | Scene-YAML + Component-Templates | Nur Component-Templates |
 
 ### `setup-compare` Anpassung
 
+Params: `scene_id`, `component_id` (einer gesetzt), `reference[]`, `breakpoints[]`.
+
 Regions-Logik wird erweitert:
-- Component → immer `full`
-- Scene + Shell → `header`/`footer`
-- Scene + Screen → `full`
+- `component_id` gesetzt → immer `full`
+- `scene_id` + Shell → `header`/`footer`
+- `scene_id` + Screen → `full`
 
 Story-Aufloesung ueber den passenden CLI-Befehl je nach gesetztem Param.
 
@@ -330,7 +337,7 @@ Story-Aufloesung ueber den passenden CLI-Befehl je nach gesetztem Param.
 
 ```
 design-component
-  extract-reference(component=X)
+  extract-reference(component_id=X)
     → design-reference.md, reference-full.png, reference[]
   intake--design-component
     → component[]
@@ -338,17 +345,17 @@ design-component
     → component-yml, component-twig, component-story
 
 design-shell
-  extract-reference(scene=design-system:shell)
+  extract-reference(scene_id=design-system:shell)
     → design-reference.md, reference-full.png, reference[]
   intake--design-shell
     → component[], output_path
   create-component (each: component)
     → component-yml, component-twig, component-story
-  create-scene(output_path, scene, reference[])
+  create-scene(output_path, scene_id, reference[])
     → scene-file
 
 design-screen
-  extract-reference(scene=<section>:<screen>)
+  extract-reference(scene_id=<section>:<screen>)
     → design-reference.md, reference-full.png, reference[]
   intake--design-screen
     → component[], output_path, entity_mappings[], section_id, section_title
@@ -358,20 +365,20 @@ design-screen
     → sample-data files
   map-entity (each: entity_mappings)
     → entity-mapping jsonata files
-  create-scene(output_path, scene, reference[], section_id, section_title)
+  create-scene(output_path, scene_id, reference[], section_id, section_title)
     → scene-file
 
 design-verify
-  extract-reference(scene=X or component=X)
+  extract-reference(scene_id=X or component_id=X)
     → design-reference.md, reference-full.png, reference[]
   intake--design-verify
-    → reference[], breakpoints[]
-  setup-compare
-    → checks[]
+    → scene_id, component_id, reference[], breakpoints[]
+  setup-compare(scene_id or component_id)
+    → checks[] (each check has story_id, breakpoint, region)
   capture-reference (each: checks)
     → screenshot files
   compare-screenshots (each: checks)
-    → issues[]
+    → issues[] (each issue has story_id)
   triage
     → issues[] (consolidated)
   polish (each: issues)
@@ -398,6 +405,12 @@ design-verify
 | **UPDATE** | `tasks/capture-reference.md` (params per $ref auf Check) |
 | **UPDATE** | `tasks/compare-screenshots.md` (params per $ref auf Check) |
 | **UPDATE** | `tasks/polish.md` (params per $ref auf Issue) |
+| **UPDATE** | `tasks/triage.md` (scene -> scene_id, storyId -> story_id) |
+| **UPDATE** | `tasks/outtake--design-verify.md` (scene -> scene_id, storyId -> story_id) |
+| **UPDATE** | `tasks/outtake--design.md` (scene -> scene_id, storyId -> story_id) |
+| **UPDATE** | `tasks/verify.md` (scene -> scene_id, storyId -> story_id) |
+| **UPDATE** | `tasks/capture-storybook.md` (scene -> scene_id, storyId -> story_id) |
+| **UPDATE** | `tasks/configure-meta.md` (storyId -> story_id) |
 | **UPDATE** | `tasks/create-component` (params per $ref auf Component) |
 | **UPDATE** | `workflows/design-component.md` (reference-Stage, after-Hook, Test-Stage entfernt) |
 | **UPDATE** | `workflows/design-shell.md` (reference-Stage) |
@@ -417,13 +430,13 @@ Alle Workflows bekommen `scene` oder `component` als Workflow-Level-Params, die 
 # design-component
 debo design-component --component card
 
-# design-shell (scene ist implizit)
+# design-shell (scene_id ist implizit)
 debo design-shell
-# → engine setzt scene=design-system:shell automatisch
+# → engine setzt scene_id=design-system:shell automatisch
 
 # design-screen
 debo design-screen --section blog --screen overview
-# → engine setzt scene=blog:overview
+# → engine setzt scene_id=blog:overview
 
 # design-verify
 debo design-verify --scene design-system:shell
@@ -435,18 +448,30 @@ Die Workflow-Frontmatter deklariert die Params:
 ```yaml
 # design-component
 params:
-  component: { type: string }
+  component_id: { type: string }
 
 # design-shell
 params:
-  scene: { type: string, default: "design-system:shell" }
+  scene_id: { type: string, default: "design-system:shell" }
 
 # design-screen
 params:
-  scene: { type: string }    # aus --section + --screen abgeleitet
+  scene_id: { type: string }    # aus --section + --screen abgeleitet
 
 # design-verify
 params:
-  scene: { type: string }      # optional
-  component: { type: string }  # optional
+  scene_id: { type: string }      # optional
+  component_id: { type: string }  # optional
 ```
+
+## Namenskonvention
+
+| Param | Bedeutung | Beispiel |
+|-------|-----------|---------|
+| `scene_id` | Scene-ID (group:name) | `design-system:shell`, `blog:overview` |
+| `component_id` | Component-Name als Identifier | `card`, `header` |
+| `story_id` | Storybook Story-Identifier (aus CLI aufgeloest) | `designbook-design-system-scenes--shell` |
+
+- `scene_id` und `component_id` sind Workflow-/Task-Params fuer "welches Target"
+- `story_id` wird nie manuell gesetzt — immer per `_debo story` CLI aufgeloest
+- `component` (ohne `_id`) bleibt als Feldname im `Component`-Schema und als `each:`-Key fuer die Iteration ueber Component-Objekte
