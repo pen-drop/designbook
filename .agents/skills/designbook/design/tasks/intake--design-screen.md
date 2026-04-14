@@ -6,15 +6,23 @@ result:
     type: array
     items:
       $ref: ../schemas.yml#/Component
-  scene:
+  output_path:
+    type: string
+  entity_mappings:
     type: array
     items:
-      $ref: ../schemas.yml#/Scene
+      $ref: ../schemas.yml#/EntityMapping
+  section_id:
+    type: string
+  section_title:
+    type: string
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
   - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
   - path: $DESIGNBOOK_DATA/vision.md
   - path: $STORY_DIR/design-reference.md
+    optional: true
+  - path: $STORY_DIR/reference-full.png
     optional: true
   - path: $DESIGNBOOK_DATA/sections/[section-id]/[section-id].section.scenes.yml
     workflow: debo-shape-section
@@ -22,7 +30,7 @@ reads:
 
 # Intake: Design Screen
 
-Gather all information needed to design screens for a section. The result feeds `create-component`, `create-sample-data`, `map-entity`, and `create-scene` stages.
+Gather all information needed to design one screen for a section. This workflow builds one scene per run. The `extract-reference` stage has already run -- if a design reference exists, it is available in `$STORY_DIR/design-reference.md`.
 
 ## Step 1: Confirm Section
 
@@ -30,46 +38,23 @@ If the user provided a section name or id, use it directly.
 
 If no section was provided, ask:
 
-> "Which section would you like to design screens for?"
+> "Which section would you like to design a screen for?"
 
 Wait for their response before continuing.
 
-## Step 2: Extract Design Reference
-
-If `$STORY_DIR/design-reference.md` already exists (from a prior run), read it and use as-is.
-
-Otherwise, apply the `extract-reference` rule to the design reference URL from `vision.md`. Write the result directly to `$STORY_DIR/design-reference.md`.
-
-Use its layout, landmark structure, and interactive patterns as the primary input for all subsequent steps.
-
-If no design reference URL is available, fall back to `vision.md` context and ask the user speculative questions as needed.
-
-## Step 3: Determine Screens
+## Step 2: Determine Screen
 
 Read `data-model.yml` to understand the entities and structure of the selected section.
 
-Based on the section name, data model, and **loaded design reference** (if available), determine which screens make sense:
+Based on the section name, data model, and **loaded design reference** (if available), determine which screen to build in this run:
 
-- **Homepage / landing section** → suggest a single **landing page** only
-- **All other sections** → suggest an **overview page** and a **detail page**
-
-If a design reference was loaded, use the reference structure to inform the screen suggestion (e.g. if the reference shows a landing page with embedded lists, suggest that pattern).
-
-### Overview page type (non-homepage sections only)
-
-Before presenting the screen suggestion, determine the overview page type:
-
-1. Check `data-model.yml` for the section's entities — look for any bundle whose `view_modes.full.template` is `layout-builder`
-2. Ask the user:
-
-> "For the **[section]** overview page, should this be:
+> "Which screen would you like to build for the **[section]** section?
 >
-> - **List page** — shows a filterable/sortable list of [entities] (e.g. blog index, product catalog)
-> - **Landing page** — a curated, editorial layout (e.g. section homepage, campaign page)
+> - **Landing page** -- a curated, editorial layout (e.g. section homepage, campaign page)
+> - **Overview page** -- shows a filterable/sortable list of [entities] (e.g. blog index, product catalog)
+> - **Detail page** -- full view of a single [entity]
 >
-> [If a layout-builder bundle exists: "Your data model includes a layout-builder page type (`[bundle]`) — that's typically used for landing pages."]
->
-> Which fits better?"
+> [If a layout-builder bundle exists: "Your data model includes a layout-builder page type (`[bundle]`) -- that's typically used for landing pages."]"
 
 Wait for the user's answer before continuing.
 
@@ -77,32 +62,21 @@ Wait for the user's answer before continuing.
 
 > "Should the landing page include any embedded lists (e.g. a teaser list of recent [entities], featured items)?
 >
-> If yes — which entities, and how many items?"
+> If yes -- which entities, and how many items?"
 
 This determines whether list-related components and entity mappings (e.g. teaser view modes) need to be planned alongside the landing page.
 
 Wait for the user's answer before continuing.
 
-Present the full screen suggestion and ask the user to confirm or adjust:
+## Step 3: Plan Entities
 
-> "For the **[section]** section I suggest building these screens:
->
-> 1. **Overview page** ([list page / landing page]) — [one-line description based on chosen type]
-> 2. **Detail page** — full view of a single [entity]
->
-> Does that work, or do you want to add/remove/rename screens?"
+Based on the confirmed screen and the section spec scenes, build the authoritative entity mapping work list:
 
-Wait for confirmation before continuing.
-
-## Step 4: Plan Entities
-
-Based on the confirmed screens and the section spec scenes, build the authoritative entity mapping work list:
-
-1. Collect every `entity:` node across all planned screens and the section spec scenes
-2. Deduplicate — same `entity.view_mode` pair may appear in multiple screens
-3. Traverse `type: reference` fields in `data-model.yml` recursively — add referenced entities with their implied view_mode
+1. Collect every `entity:` node for the planned screen and the section spec scenes
+2. Deduplicate -- same `entity.view_mode` pair may appear in multiple contexts
+3. Traverse `type: reference` fields in `data-model.yml` recursively -- add referenced entities with their implied view_mode
 4. For landing pages with embedded lists: include teaser view modes for the embedded entities
-5. Verify each template has a matching rule file (`skills/*/rules/*.md` with `when: template: {name}`) — stop and report if any is missing
+5. Verify each template has a matching rule file (`skills/*/rules/*.md` with `when: template: {name}`) -- stop and report if any is missing
 6. Order leaf entities first (no outgoing refs), then parents
 
 Present the entity work list:
@@ -114,27 +88,22 @@ Present the entity work list:
 
 Ask the user to confirm. Wait for confirmation.
 
-## Step 5: Plan Components
+## Step 4: Plan Components
 
-Based on the confirmed screens, entities, section spec, data model, and **loaded design reference** (if available):
+Based on the confirmed screen, entities, section spec, data model, and **loaded design reference** (if available):
 
 1. Scan existing components (location provided by framework rules)
-3. Identify which UI components are needed for the planned screens beyond entities and shell (cards, filter bars, badges, stat displays, empty states, pagination, etc.)
+3. Identify which UI components are needed for the planned screen beyond entities and shell (cards, filter bars, badges, stat displays, empty states, pagination, etc.)
 
-**If a design reference is available**, analyze the landmark structure and interactive patterns from `design-reference.md` to derive the component list rather than asking the user to describe components from scratch.
+**If `design-reference.md` exists**, analyze the landmark structure and interactive patterns to derive the component list rather than asking the user to describe components from scratch.
 
-Present the component plan **grouped per entity** — list which components are needed to render each entity view mode, then list any screen-level components that are not tied to a specific entity:
+Present the component plan **grouped per entity** -- list which components are needed to render each entity view mode, then list any screen-level components that are not tied to a specific entity:
 
 **`[entity_type].[bundle]` (full)**
 | Category | Component | Slots              | Purpose      |
 | -------- | --------- | ------------------ | ------------ |
 | Existing | heading   | text               | Reuse        |
 | New      | card      | image, title, body | Content card |
-
-**`[entity_type].[bundle]` (teaser)**
-| Category | Component | Slots | Purpose |
-| -------- | --------- | ----- | ------- |
-| ...      | ...       | ...   | ...     |
 
 **Screen-level (not entity-specific)**
 | Category | Component | Slots | Purpose |
@@ -144,43 +113,38 @@ Present the component plan **grouped per entity** — list which components are 
 Ask the user to confirm or adjust. Wait for confirmation.
 
 The following fields are **auto-set from context** (do NOT ask the user):
-- `status` → `experimental`
-- `provider` → from `$COMPONENT_NAMESPACE` or `designbook.config.yml`
-- `description` → auto-generated from section context
+- `status` -> `experimental`
+- `provider` -> from `$DESIGNBOOK_COMPONENT_NAMESPACE` or `designbook.config.yml`
+- `description` -> auto-generated from section context
 
-## Step 6: Summary
+## Step 5: Summary
 
-Present a complete summary of everything that will be built before any files are written:
+Present a complete summary of everything that will be built:
 
-> "Here is what I will build for the **[section]** section:
->
-> **Screens**
-> - [screen 1 name] — [brief description]
-> - [screen 2 name] — [brief description]
+> "Here is what I will build for the **[section]** section (**[screen type]**):
 >
 > **Entity Mappings** ([n] total)
-> - `[entity_type].[bundle].[view_mode]` — [template]
+> - `[entity_type].[bundle].[view_mode]` -- [template]
 >
 > **New Components** ([n] total, grouped by entity)
-> - `[entity_type].[bundle]` (full): `[component-name]` — [purpose]
-> - Screen-level: `[component-name]` — [purpose]
+> - `[entity_type].[bundle]` (full): `[component-name]` -- [purpose]
+> - Screen-level: `[component-name]` -- [purpose]
 >
 > Ready to proceed?"
 
 Wait for confirmation before proceeding to the structure preview.
 
-## Step 7: Structure Preview
+## Step 6: Structure Preview
 
-Display a full recursive ASCII tree for every screen so the user can verify the complete component structure before building starts.
+Display a full recursive ASCII tree for the screen so the user can verify the complete component structure before building starts.
 
 Follow the process in [structure-preview.md](partials/structure-preview.md).
 
-**Input for the trees:**
-- One tree per screen
-- Each tree starts from `scene: design-system:shell` with `content` injection point
+**Input for the tree:**
+- One tree for the single screen
+- Tree starts from `scene: design-system:shell` with `content` injection point
 - Show entity mappings and view modes where applicable
-- Title each tree: "Screen Structure: [Screen Name]"
-- After all trees, show combined summary across all screens
+- Title: "Screen Structure: [Screen Name]"
 
 **Guardrails**
 
@@ -188,12 +152,14 @@ Follow the process in [structure-preview.md](partials/structure-preview.md).
 - Reference the sample data for what content is available to display
 - Reference design tokens for colors and typography
 - Reference the shell for navigation context
-- Each screen should address specific user flows from the section spec
-- Consider responsive behavior for all screens
+- Consider responsive behavior
 
-## Step 8: Complete Intake
+## Step 7: Complete Intake
 
-Store the `component` and `scene` iterables as task results.
+Store all results as task data:
 
-- **`component`**: one entry per new component from Step 5. Each item needs `component` (name) and `slots` (array).
-- **`scene`**: one entry per screen from Step 3. Each item uses `group:sceneName` format matching `_debo story --scene` resolution. E.g. `{ "scene": "homepage:landing" }`, `{ "scene": "blog:overview" }`.
+- **`component`**: one entry per new component from Step 4. Each item needs `component` (name) and `slots` (array). When `design-reference.md` exists, also include `reference_screenshot` (absolute path to `$STORY_DIR/reference-full.png`) and `design_hint` on each component item.
+- **`output_path`**: `$DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml`
+- **`entity_mappings`**: one entry per entity mapping from Step 3. Each item has `entity_type`, `bundle`, `view_mode`.
+- **`section_id`**: the confirmed section ID
+- **`section_title`**: the confirmed section title
