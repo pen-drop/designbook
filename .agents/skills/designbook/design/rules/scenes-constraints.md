@@ -1,6 +1,6 @@
 ---
 when:
-  steps: [design-shell:create-scene, design-screen:create-scene, design-screen:map-entity]
+  steps: [create-scene, map-entity]
 ---
 
 # Scenes Critical Constraints
@@ -8,15 +8,15 @@ when:
 > Full `*.scenes.yml` format and `ComponentNode` output schema: see [scenes-schema](../resources/scenes-schema.md).
 
 > ⛔ **`component:` values MUST always use `provider:component` format.**
-> Write `$COMPONENT_NAMESPACE:header`, NEVER just `header`.
-> `COMPONENT_NAMESPACE` is set by the workflow bootstrap (Rule 0).
+> Write `$DESIGNBOOK_COMPONENT_NAMESPACE:header`, NEVER just `header`.
+> `DESIGNBOOK_COMPONENT_NAMESPACE` is set by the workflow bootstrap (Rule 0).
 
 ```yaml
 # ✅ Correct — provider prefix on every component, including nested slots
-- component: "$COMPONENT_NAMESPACE:card"
+- component: "$DESIGNBOOK_COMPONENT_NAMESPACE:card"
   slots:
     media:
-      - component: "$COMPONENT_NAMESPACE:image"
+      - component: "$DESIGNBOOK_COMPONENT_NAMESPACE:image"
         props:
           src: https://placehold.co/400x300
 
@@ -36,27 +36,27 @@ Slots accept three value types:
 
 ```yaml
 # ✅ Correct — plain string in slot
-- component: "$COMPONENT_NAMESPACE:heading"
+- component: "$DESIGNBOOK_COMPONENT_NAMESPACE:heading"
   slots:
     text: "Welcome to the Blog"
 
 # ✅ Correct — string as array element in slot
-- component: "$COMPONENT_NAMESPACE:header"
+- component: "$DESIGNBOOK_COMPONENT_NAMESPACE:header"
   slots:
     logo:
       - "Designbook"
 
 # ✅ Correct — mixed array with strings and components
-- component: "$COMPONENT_NAMESPACE:nav"
+- component: "$DESIGNBOOK_COMPONENT_NAMESPACE:nav"
   slots:
     items:
       - "Home"
-      - component: "$COMPONENT_NAMESPACE:link"
+      - component: "$DESIGNBOOK_COMPONENT_NAMESPACE:link"
         props:
           href: "/about"
 
 # ❌ Wrong — type: element is story-only
-- component: "$COMPONENT_NAMESPACE:heading"
+- component: "$DESIGNBOOK_COMPONENT_NAMESPACE:heading"
   slots:
     text:
       - type: element
