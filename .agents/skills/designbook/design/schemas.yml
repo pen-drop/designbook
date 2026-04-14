@@ -44,7 +44,8 @@ Component:
       default: []
     group: { type: string }
     description: { type: string }
-    design_hint: { type: object }
+    design_hint:
+      $ref: "#/DesignHint"
 
 Scene:
   type: object
@@ -69,3 +70,144 @@ EntityMapping:
     entity_type: { type: string }
     bundle: { type: string }
     view_mode: { type: string }
+
+DesignReference:
+  type: object
+  required: [source, extracted, strategy]
+  properties:
+    source: { type: string }
+    extracted: { type: string }
+    strategy: { type: string, enum: [vision, playwright+vision] }
+    fonts:
+      type: array
+      items:
+        type: object
+        properties:
+          family: { type: string }
+          source: { type: string }
+          weights: { type: array, items: { type: number } }
+          styles: { type: array, items: { type: string } }
+    typography:
+      type: array
+      items:
+        type: object
+        properties:
+          element: { type: string }
+          font_family: { type: string }
+          font_size: { type: string }
+          line_height: { type: string }
+          letter_spacing: { type: string }
+          font_weight: { type: number }
+          color: { type: string }
+    colors:
+      type: array
+      items:
+        type: object
+        properties:
+          hex: { type: string }
+          usage: { type: array, items: { type: string } }
+    css_variables:
+      type: array
+      items:
+        type: object
+        properties:
+          name: { type: string }
+          value: { type: string }
+    spacing:
+      type: object
+      properties:
+        container_max_width: { type: string }
+        edge_padding: { type: string }
+        section_gap: { type: string }
+        values: { type: array, items: { type: string } }
+    landmarks:
+      type: object
+      properties:
+        header:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  tag: { type: string }
+                  bg: { type: string }
+                  height: { type: string }
+                  padding: { type: string }
+                  content: { type: string }
+                  layout: { type: string }
+                  gap: { type: string }
+        footer:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  tag: { type: string }
+                  bg: { type: string }
+                  height: { type: string }
+                  padding: { type: string }
+                  content: { type: string }
+                  layout: { type: string }
+                  gap: { type: string }
+    interactive:
+      type: array
+      items:
+        type: object
+        properties:
+          element: { type: string }
+          selector: { type: string }
+          bg: { type: string }
+          color: { type: string }
+          border_radius: { type: string }
+          padding: { type: string }
+          font: { type: string }
+          box_shadow: { type: string }
+          border: { type: string }
+    tokens:
+      type: object
+      properties:
+        colors:
+          type: object
+        fonts:
+          type: object
+        spacing:
+          type: array
+          items: { type: string }
+        radii:
+          type: array
+          items: { type: string }
+
+DesignHint:
+  type: object
+  properties:
+    landmark: { type: string }
+    rows:
+      type: array
+      items:
+        type: object
+        properties:
+          bg: { type: string }
+          height: { type: string }
+          layout: { type: string }
+          gap: { type: string }
+          padding: { type: string }
+          content: { type: string }
+    fonts:
+      type: object
+    interactive:
+      type: array
+      items:
+        type: object
+        properties:
+          element: { type: string }
+          bg: { type: string }
+          color: { type: string }
+          border_radius: { type: string }
+          padding: { type: string }
+          box_shadow: { type: string }
+    tokens:
+      type: object
