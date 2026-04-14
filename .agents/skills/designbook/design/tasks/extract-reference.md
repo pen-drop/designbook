@@ -6,7 +6,7 @@ params:
   component_id: { type: string }
 result:
   design-reference:
-    path: $STORY_DIR/design-reference.md
+    path: $STORY_DIR/design-reference.json
   reference:
     type: array
     items:
@@ -15,13 +15,18 @@ result:
     path: $STORY_DIR/reference-full.png
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
-  - path: $STORY_DIR/design-reference.md
+  - path: $STORY_DIR/design-reference.json
     optional: true
 ---
 
 # Extract Reference
 
 Standalone task that resolves and extracts a design reference. First stage in all design workflows (design-component, design-shell, design-screen, design-verify).
+
+Output is structured JSON (`design-reference.json`) conforming to the `DesignReference` schema. Two strategies, both always include vision:
+
+- **`playwright+vision`** -- Playwright extracts exact DOM values, Vision provides semantic understanding. Best quality.
+- **`vision`** -- Screenshot only, all values estimated by AI. Fallback when no markup is available.
 
 ## Step 1: Resolve $STORY_DIR
 
@@ -32,15 +37,15 @@ Resolve the story directory using the CLI. Exactly one of `scene_id` or `compone
 
 ## Step 2: Reuse Check
 
-If `$STORY_DIR/design-reference.md` already exists (from a prior workflow run):
+If `$STORY_DIR/design-reference.json` already exists (from a prior workflow run):
 
 > "A design reference already exists for this target:
 >
-> [show first 10 lines of existing file]
+> [show source, strategy, and token summary from existing JSON]
 >
 > Use existing reference or extract fresh?"
 
-If the user chooses to reuse, read the existing file and skip to Step 5.
+If the user chooses to reuse, read the existing file and skip to Step 6.
 
 ## Step 3: Find Reference URL
 
@@ -65,7 +70,7 @@ Wait for response. The user may:
 
 Wait for response.
 
-If the user says "skip", complete the task with empty results (no design-reference.md, empty reference array, no screenshot).
+If the user says "skip", complete the task with empty results (no design-reference.json, empty reference array, no screenshot).
 
 ## Step 4: Extract Structure
 
@@ -73,11 +78,8 @@ If the user says "skip", complete the task with empty results (no design-referen
 
 Select strategy based on provider capabilities:
 
-1. **`hasMarkup: true`** → Playwright extraction
-2. **`hasMarkup: false` + `hasAPI: true`** → Provider MCP API (future)
-3. **`hasMarkup: false` + `hasAPI: false`** → AI vision analysis of screenshot
-
-If multiple capabilities exist, prefer Playwright over API over vision.
+1. **`hasMarkup: true`** -- Playwright extraction + Vision (`playwright+vision`)
+2. **`hasMarkup: false`** -- Vision only (`vision`)
 
 ### Storybook URL Resolution
 
@@ -87,15 +89,13 @@ When capturing from Storybook (not an external reference URL), obtain the URL dy
 _debo storybook status
 ```
 
-Extract the `url` field from the JSON response (e.g. `http://localhost:34757`). Do not use `$DESIGNBOOK_URL` from config — the port is dynamic.
+Extract the `url` field from the JSON response (e.g. `http://localhost:34757`). Do not use `$DESIGNBOOK_URL` from config -- the port is dynamic.
 
 If `storybook status` returns `{ "running": false }`, start it first with `_debo storybook start` and re-check status.
 
-### Playwright Extraction (hasMarkup: true)
+### Phase 1 -- Screenshot (always)
 
-All browser interaction uses `playwright-cli` — no Node API scripts. See [cli-playwright.md](../../resources/cli-playwright.md) for the full command reference.
-
-#### Phase 1: Open Session and Screenshot
+All browser interaction uses `playwright-cli`. See [cli-playwright.md](../../resources/cli-playwright.md) for the full command reference.
 
 ```bash
 npx playwright-cli open
@@ -107,59 +107,206 @@ npx playwright-cli screenshot --full-page --filename "$STORY_DIR/reference-full.
 
 Inspect the screenshot visually to understand the page layout.
 
-#### Phase 2: Extract All Design Characteristics
+Take a snapshot to identify landmark refs, then capture region screenshots:
 
-Use `playwright-cli eval` to extract DOM data. Run multiple eval calls — one per concern — to keep each extraction focused and readable.
+```bash
+npx playwright-cli snapshot
+```
 
-##### Fonts
+From the snapshot, identify header and footer element refs. If they exist:
+
+```bash
+npx playwright-cli screenshot <header-ref> --filename "$STORY_DIR/reference-header.png"
+npx playwright-cli screenshot <footer-ref> --filename "$STORY_DIR/reference-footer.png"
+```
+
+### Phase 2 -- Playwright eval calls (when hasMarkup: true)
+
+Run individual focused eval calls. Each returns JSON.
+
+#### eval 1: Fonts
+
 ```bash
 npx playwright-cli eval "() => {
-  const fonts = new Set();
+  const fonts = new Map();
   document.querySelectorAll('*').forEach(el => {
-    const ff = getComputedStyle(el).fontFamily;
-    if (ff) fonts.add(ff.split(',')[0].trim().replace(/['\"]/g, ''));
+    const ff = getComputedStyle(el).fontFamily.split(',')[0].trim().replace(/['\x22]/g, '');
+    if (!fonts.has(ff)) fonts.set(ff, { weights: new Set(), styles: new Set() });
+    const entry = fonts.get(ff);
+    entry.weights.add(parseInt(getComputedStyle(el).fontWeight));
+    entry.styles.add(getComputedStyle(el).fontStyle);
   });
-  return JSON.stringify([...fonts]);
+  return JSON.stringify([...fonts.entries()].map(([f, d]) => ({
+    family: f,
+    weights: [...d.weights].sort(),
+    styles: [...d.styles]
+  })));
 }"
 ```
-- For each non-system font: extract `@font-face` declarations, Google Fonts `<link>` imports
-- Extract: `font-family`, `src` URLs (woff2/woff), `font-weight`, `font-style`
 
-##### Color Palette
+For each non-system font: extract `@font-face` declarations and Google Fonts `<link>` imports to get the `source` URL.
+
+#### eval 2: Typography
+
 ```bash
 npx playwright-cli eval "() => {
-  const bgs = new Set(); const texts = new Set();
-  document.querySelectorAll('*').forEach(el => {
+  const elements = ['h1','h2','h3','h4','h5','h6','p','a','button','li','span','label','figcaption'];
+  const results = [];
+  for (const tag of elements) {
+    const el = document.querySelector(tag);
+    if (!el) continue;
     const cs = getComputedStyle(el);
-    if (cs.backgroundColor !== 'rgba(0, 0, 0, 0)') bgs.add(cs.backgroundColor);
-    texts.add(cs.color);
-  });
-  return JSON.stringify({ backgrounds: [...bgs], text: [...texts] });
+    results.push({
+      element: tag,
+      font_family: cs.fontFamily.split(',')[0].trim().replace(/['\x22]/g, ''),
+      font_size: cs.fontSize,
+      line_height: cs.lineHeight,
+      letter_spacing: cs.letterSpacing,
+      font_weight: parseInt(cs.fontWeight),
+      color: cs.color
+    });
+  }
+  return JSON.stringify(results);
 }"
 ```
-- Deduplicate and convert all values to hex format
-- Note where each color appears (body bg, header bg, primary text, links, buttons, etc.)
 
-##### Landmark Structure
+#### eval 3: Colors
+
 ```bash
 npx playwright-cli eval "() => {
-  function getProps(el) {
+  const colors = new Map();
+  function addColor(hex, usage) {
+    if (!colors.has(hex)) colors.set(hex, new Set());
+    colors.get(hex).add(usage);
+  }
+  function rgbToHex(rgb) {
+    const m = rgb.match(/\d+/g);
+    if (!m || m.length < 3) return null;
+    return '#' + m.slice(0,3).map(x => parseInt(x).toString(16).padStart(2,'0')).join('');
+  }
+  document.querySelectorAll('*').forEach(el => {
     const cs = getComputedStyle(el);
-    return { bg: cs.backgroundColor, height: el.offsetHeight + 'px', padding: cs.padding, borderBottom: cs.borderBottom };
+    const bg = cs.backgroundColor;
+    if (bg !== 'rgba(0, 0, 0, 0)') { const h = rgbToHex(bg); if (h) addColor(h, 'background'); }
+    const c = cs.color; { const h = rgbToHex(c); if (h) addColor(h, 'text'); }
+    const bc = cs.borderColor; if (bc && bc !== cs.color) { const h = rgbToHex(bc); if (h) addColor(h, 'border'); }
+    const bs = cs.boxShadow; if (bs && bs !== 'none') {
+      const m2 = bs.match(/rgba?\([^)]+\)/); if (m2) { const h = rgbToHex(m2[0]); if (h) addColor(h, 'shadow'); }
+    }
+  });
+  return JSON.stringify([...colors.entries()].map(([hex, usage]) => ({ hex, usage: [...usage] })));
+}"
+```
+
+#### eval 4: CSS Variables
+
+```bash
+npx playwright-cli eval "() => {
+  const vars = [];
+  for (const sheet of document.styleSheets) {
+    try {
+      for (const rule of sheet.cssRules) {
+        if (rule.selectorText === ':root' || rule.selectorText === ':host') {
+          for (const prop of rule.style) {
+            if (prop.startsWith('--')) {
+              vars.push({ name: prop, value: rule.style.getPropertyValue(prop).trim() });
+            }
+          }
+        }
+      }
+    } catch(e) { /* cross-origin sheet */ }
+  }
+  return JSON.stringify(vars);
+}"
+```
+
+#### eval 5: Spacing
+
+```bash
+npx playwright-cli eval "() => {
+  const spacings = new Set();
+  const body = document.body;
+  const bodyCs = getComputedStyle(body);
+  const main = document.querySelector('main') || document.querySelector('[role=main]') || body.children[0];
+  const mainCs = main ? getComputedStyle(main) : {};
+  document.querySelectorAll('section, article, [class*=container], [class*=wrapper], main > *').forEach(el => {
+    const cs = getComputedStyle(el);
+    ['marginTop','marginBottom','paddingTop','paddingBottom','paddingLeft','paddingRight','gap'].forEach(p => {
+      const v = cs[p]; if (v && v !== '0px' && v !== 'normal') spacings.add(v);
+    });
+  });
+  return JSON.stringify({
+    container_max_width: mainCs.maxWidth || 'none',
+    edge_padding: bodyCs.paddingLeft || '0px',
+    section_gap: mainCs.gap || 'auto',
+    values: [...spacings].sort((a,b) => parseInt(a) - parseInt(b))
+  });
+}"
+```
+
+#### eval 6: Landmarks
+
+```bash
+npx playwright-cli eval "() => {
+  function getRow(el) {
+    const cs = getComputedStyle(el);
+    return {
+      tag: el.tagName.toLowerCase(),
+      bg: cs.backgroundColor,
+      height: el.offsetHeight + 'px',
+      padding: cs.padding,
+      content: el.textContent?.substring(0, 200).trim(),
+      layout: cs.display + (cs.flexDirection ? ' ' + cs.flexDirection : '') + (cs.gridTemplateColumns ? ' grid' : ''),
+      gap: cs.gap || 'none'
+    };
   }
   const header = document.querySelector('header');
-  const rows = header ? [...header.children].map(c => ({ tag: c.tagName, ...getProps(c), text: c.textContent?.substring(0, 100).trim() })) : [];
+  const headerRows = header ? [...header.children].map(getRow) : [];
   const footer = document.querySelector('footer');
-  const sections = footer ? [...footer.children].map(c => ({ tag: c.tagName, ...getProps(c), text: c.textContent?.substring(0, 100).trim() })) : [];
-  return JSON.stringify({ header: rows, footer: sections });
+  const footerRows = footer ? [...footer.children].map(getRow) : [];
+  return JSON.stringify({ header: { rows: headerRows }, footer: { rows: footerRows } });
 }"
 ```
 
-##### Layout
-- Measure container max-width, edge padding, section spacing via `eval`
+#### eval 7: Interactive
 
-##### Interactive Patterns
-- For each `<a>`, `<button>`, or `[role="button"]` within landmarks: extract computed styles via `eval`
+```bash
+npx playwright-cli eval "() => {
+  const items = [];
+  document.querySelectorAll('a, button, [role=button], input[type=submit]').forEach(el => {
+    const cs = getComputedStyle(el);
+    const text = el.textContent?.trim().substring(0, 50);
+    if (!text) return;
+    items.push({
+      element: text,
+      selector: el.tagName.toLowerCase() + (el.className ? '.' + el.className.split(' ')[0] : ''),
+      bg: cs.backgroundColor,
+      color: cs.color,
+      border_radius: cs.borderRadius,
+      padding: cs.padding,
+      font: cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily.split(',')[0].trim().replace(/['\x22]/g, ''),
+      box_shadow: cs.boxShadow !== 'none' ? cs.boxShadow : '',
+      border: cs.border !== 'none' ? cs.border : ''
+    });
+  });
+  return JSON.stringify(items);
+}"
+```
+
+#### eval 8: Box Model
+
+```bash
+npx playwright-cli eval "() => {
+  const radii = new Set();
+  const shadows = new Set();
+  document.querySelectorAll('*').forEach(el => {
+    const cs = getComputedStyle(el);
+    if (cs.borderRadius && cs.borderRadius !== '0px') radii.add(cs.borderRadius);
+    if (cs.boxShadow && cs.boxShadow !== 'none') shadows.add(cs.boxShadow);
+  });
+  return JSON.stringify({ radii: [...radii], shadows: [...shadows] });
+}"
+```
 
 #### Close Session
 
@@ -167,73 +314,59 @@ npx playwright-cli eval "() => {
 npx playwright-cli close
 ```
 
-#### Phase 3: Write design-reference.md
+### Phase 3 -- Vision + Merge (always)
 
-Write the extracted data via the workflow CLI with `--flush` so the calling task can read it immediately:
+The AI receives:
+- All screenshots (`reference-full.png`, and region screenshots if they exist)
+- All Playwright JSON results from Phase 2 (if available)
 
-```bash
-cat <<'EOF' | _debo workflow result --task $TASK_ID --key design-reference --flush
-<markdown content>
-EOF
+The AI analyzes the screenshots visually and performs semantic assignment:
+
+1. **Token assignment**: Map extracted colors to semantic roles (primary, secondary, accent, surface, on-surface, error, etc.)
+2. **Font assignment**: Map extracted fonts to roles (heading, body, mono)
+3. **Spacing rhythm**: Identify the base spacing unit (e.g. 4px or 8px system) from the deduplicated spacing values
+4. **Radii tokens**: Deduplicate border-radius values into a token set (sm, md, lg, full)
+5. **UI pattern recognition**: Note high-level patterns visible in the screenshot (card grids, hero banners, sticky navs, etc.) -- store as `content` descriptions on landmark rows
+
+When Playwright data is available (`playwright+vision`): use exact values, Vision provides only semantic names and pattern recognition.
+
+When no Playwright data (`vision`): Vision estimates all values from the screenshots.
+
+### Phase 4 -- Write output
+
+Assemble the `DesignReference` JSON object from the merged data and write it to `$STORY_DIR/design-reference.json`.
+
+The JSON conforms to the `DesignReference` schema in `schemas.yml`. All fields populated from Phase 2 (exact) or Phase 3 (estimated). The `tokens` block contains semantically assigned values:
+
+```json
+{
+  "source": "<reference URL>",
+  "extracted": "<ISO date>",
+  "strategy": "<vision|playwright+vision>",
+  "fonts": [...],
+  "typography": [...],
+  "colors": [...],
+  "css_variables": [...],
+  "spacing": {...},
+  "landmarks": {...},
+  "interactive": [...],
+  "tokens": {
+    "colors": { "primary": "#...", "secondary": "#...", "accent": "#...", "surface": "#...", ... },
+    "fonts": { "heading": "...", "body": "...", "mono": "..." },
+    "spacing": ["4px", "8px", "16px", "24px", "32px", "48px"],
+    "radii": ["4px", "8px", "9999px"]
+  }
+}
 ```
 
-`--flush` ensures the file is available immediately for subsequent reads within the same task.
+### Vision Fallback (hasMarkup: false)
 
-### Vision Fallback (hasMarkup: false, hasAPI: false)
-
-1. Take a screenshot of the reference (or use existing screenshot)
+1. Take a screenshot of the reference (or use existing screenshot path provided by the user)
 2. AI analyzes the screenshot visually
-3. Produce the same Markdown format with AI-estimated values
-4. Add a note: `Strategy: vision (estimated values)`
+3. Produce the same JSON structure with AI-estimated values
+4. Set `strategy: "vision"`
 
 ## Step 5: Write Results
-
-### design-reference.md
-
-Write the extracted data to `$STORY_DIR/design-reference.md` using the output format below.
-
-**Output format:**
-
-```markdown
-# Design Reference
-
-Source: [reference URL]
-Extracted: [date]
-
-## Fonts
-
-| Family | Source | Weights | Style |
-|--------|--------|---------|-------|
-| [name] | [URL or Google Fonts import] | [weights] | [normal/italic] |
-
-## Color Palette
-
-| Hex | Usage |
-|-----|-------|
-| #... | [where it appears: body bg, header bg, primary text, ...] |
-
-## Layout
-
-- Container max-width: [value]
-- Edge padding: [mobile] → [tablet] → [desktop] → [wide]
-- Section spacing: [value]
-
-## Landmark Structure
-
-### Header
-- Row 1: [bg color], [height] — [content summary]
-- Row 2: [bg color], [height] — [content summary]
-
-### Footer
-- Section 1: [bg color] — [content summary]
-- Section 2: [bg color] — [content summary]
-
-## Interactive Patterns
-
-| Element | Styles | Description |
-|---------|--------|-------------|
-| [button/link] | bg: ..., color: ..., radius: ... | [what it does] |
-```
 
 ### reference[] Array
 
@@ -248,6 +381,6 @@ If the source was a screenshot (not URL), use `type: "image"`.
 
 The full-page screenshot at `$STORY_DIR/reference-full.png`.
 
-## Reuse
+## Step 6: Reuse
 
-If the target file already exists and the user chose to reuse (Step 2), read it and reconstruct the `reference[]` array from the `Source:` line. The screenshot file should already exist alongside it.
+If the target file already exists and the user chose to reuse (Step 2), read the existing JSON and reconstruct the `reference[]` array from the `source` field. The screenshot files should already exist alongside it.
