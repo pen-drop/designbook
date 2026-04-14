@@ -7,7 +7,7 @@ result:
     items:
       $ref: ../schemas.yml#/Component
 reads:
-  - path: $STORY_DIR/design-reference.md
+  - path: $STORY_DIR/design-reference.json
     optional: true
   - path: $STORY_DIR/reference-full.png
     optional: true
@@ -15,11 +15,11 @@ reads:
 
 # Intake: Design Component
 
-Help the user design a new UI component by gathering requirements. The `extract-reference` stage has already run — if a design reference exists, it is available in `$STORY_DIR/design-reference.md` and `$STORY_DIR/reference-full.png`.
+Help the user design a new UI component by gathering requirements. The `extract-reference` stage has already run — if a design reference exists, it is available in `$STORY_DIR/design-reference.json` and `$STORY_DIR/reference-full.png`.
 
 ## Step 1: Choose Input Mode
 
-**If `design-reference.md` exists**, skip this step — go directly to Step 2 (Quick Description) and use the reference to auto-generate the component definition. Present the derived definition for confirmation.
+**If `design-reference.json` exists**, skip this step — go directly to Step 2 (Quick Description) and use the reference to auto-generate the component definition. Present the derived definition for confirmation.
 
 **If no design reference:**
 
@@ -41,7 +41,7 @@ Wait for response.
 
 ## Step 2: Quick Description Mode
 
-**If `design-reference.md` exists**, analyze the reference and extract the component structure. Present the derived definition directly:
+**If `design-reference.json` exists**, analyze the reference and extract the component structure. Present the derived definition directly:
 
 > "Based on the design reference, I've identified this component:
 >
@@ -136,7 +136,7 @@ Wait for response. If no, go back to relevant step.
 Store the `component` iterable as task result.
 
 - **`component`**: one entry with `component` (name), `slots` (array), and `group` (set to component name as default group).
-- When a design reference was extracted, also include `design_hint` (structured data from `design-reference.md`) and `reference_screenshot` (absolute path to `$STORY_DIR/reference-full.png`) on the component item.
+- When a design reference was extracted, also include `design_hint` (structured data from `design-reference.json`) and `reference_screenshot` (absolute path to `$STORY_DIR/reference-full.png`) on the component item.
 
 **Auto-set fields** (do NOT ask the user):
 - `status` -> `experimental`

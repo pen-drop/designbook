@@ -20,7 +20,7 @@ reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
   - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
   - path: $DESIGNBOOK_DATA/vision.md
-  - path: $STORY_DIR/design-reference.md
+  - path: $STORY_DIR/design-reference.json
     optional: true
   - path: $STORY_DIR/reference-full.png
     optional: true
@@ -30,7 +30,7 @@ reads:
 
 # Intake: Design Screen
 
-Gather all information needed to design one screen for a section. This workflow builds one scene per run. The `extract-reference` stage has already run -- if a design reference exists, it is available in `$STORY_DIR/design-reference.md`.
+Gather all information needed to design one screen for a section. This workflow builds one scene per run. The `extract-reference` stage has already run -- if a design reference exists, it is available in `$STORY_DIR/design-reference.json`.
 
 ## Step 1: Confirm Section
 
@@ -95,7 +95,7 @@ Based on the confirmed screen, entities, section spec, data model, and **loaded 
 1. Scan existing components (location provided by framework rules)
 3. Identify which UI components are needed for the planned screen beyond entities and shell (cards, filter bars, badges, stat displays, empty states, pagination, etc.)
 
-**If `design-reference.md` exists**, analyze the landmark structure and interactive patterns to derive the component list rather than asking the user to describe components from scratch.
+**If `design-reference.json` exists**, analyze the landmark structure and interactive patterns to derive the component list rather than asking the user to describe components from scratch.
 
 Present the component plan **grouped per entity** -- list which components are needed to render each entity view mode, then list any screen-level components that are not tied to a specific entity:
 
@@ -158,7 +158,7 @@ Follow the process in [structure-preview.md](partials/structure-preview.md).
 
 Store all results as task data:
 
-- **`component`**: one entry per new component from Step 4. Each item needs `component` (name) and `slots` (array). When `design-reference.md` exists, also include `reference_screenshot` (absolute path to `$STORY_DIR/reference-full.png`) and `design_hint` on each component item.
+- **`component`**: one entry per new component from Step 4. Each item needs `component` (name) and `slots` (array). When `design-reference.json` exists, also include `reference_screenshot` (absolute path to `$STORY_DIR/reference-full.png`) and `design_hint` on each component item.
 - **`output_path`**: `$DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml`
 - **`entity_mappings`**: one entry per entity mapping from Step 3. Each item has `entity_type`, `bundle`, `view_mode`.
 - **`section_id`**: the confirmed section ID
