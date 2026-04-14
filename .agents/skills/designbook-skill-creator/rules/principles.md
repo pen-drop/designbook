@@ -13,9 +13,11 @@ Task files declare **what outputs to produce** — file paths, required params, 
 ```markdown
 ---
 params:
-  component: ~
-files:
-  - $DESIGNBOOK_HOME/components/{{ component }}/{{ component }}.component.yml
+  component: { type: string }
+result:
+  component-yml:
+    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+    validators: [data]
 ---
 ```
 
@@ -23,12 +25,66 @@ files:
 ```markdown
 ---
 params:
-  component: ~
+  component: { type: string }
 ---
 Use snake_case for the component name. Create the YAML file with these required fields: ...
 ```
 
 Implementation guidance belongs in blueprints (overridable) or rules (hard constraints) — never in task files.
+
+## Results Declare Schema, Not Just Paths
+
+Task results are declared in the `result:` frontmatter field with a JSON Schema. Two types:
+
+- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `validators:` for semantic validation. Optional JSON Schema type (inline or `$ref`).
+- **Data results** (without `path:`) — structured data returned via `--data`. JSON Schema type required (inline or `$ref`).
+
+Both support `$ref` to `schemas.yml` definitions (see [`resources/schemas.md`](../resources/schemas.md)).
+
+```yaml
+result:
+  component-yml:                              # file result
+    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+    validators: [data]
+    $ref: ../schemas.yml#/ComponentYml
+  issues:                                     # data result
+    type: array
+    items:
+      $ref: ../schemas.yml#/Issue
+```
+
+The schema in frontmatter is the source of truth — the engine validates automatically.
+
+## Tasks Declare Results in Schema, Not in Body
+
+The `result:` schema in frontmatter defines shape and type of all outputs. The task body never explains *how* results are returned (writing files vs. `--data`), but may explain *what* goes into a result when the semantics aren't obvious from the schema type alone.
+
+Use `## Result: <key>` sections in the task body for results that need semantic explanation. Keys whose schema is self-explanatory need no section.
+
+```markdown
+---
+result:
+  issues:
+    type: array
+    items:
+      $ref: ../schemas.yml#/Issue
+  scene:
+    type: string
+---
+# Compare Screenshots
+
+Compare each screenshot against its design reference.
+
+## Result: issues
+
+Collect all visual deviations between screenshot and reference.
+Each issue needs a `severity`:
+- `critical` — layout broken, content missing
+- `major` — clearly visible deviation
+- `minor` — cosmetic, only noticeable on close inspection
+```
+
+No `## Result: scene` needed — the schema type `string` is self-explanatory.
 
 ## Blueprints Are Overridable Starting Points
 
@@ -138,17 +194,17 @@ Blueprints describe **structural patterns** (multi-row headers, multi-section fo
 
 After each stage completes, all output files are **flushed** — renamed from their temporary working names to their final canonical names. This flush is what makes outputs referenceable by later stages.
 
-Consequence: a task file must declare the **final flushed paths** in `files:`, not temporary names. If stage B needs to read a file produced by stage A, it references the flushed name via `reads:`.
+Consequence: a task file must declare the **final flushed paths** in `result:`, not temporary names. If stage B needs to read a file produced by stage A, it references the flushed name via `reads:`.
 
 ```markdown
 # Stage A task — produces flushed output
-files:
-  - $DESIGNBOOK_HOME/components/{{ component }}/{{ component }}.component.yml
+result:
+  component-yml:
+    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
 
 # Stage B task — reads the flushed output from stage A
 reads:
-  - path: $DESIGNBOOK_HOME/components/{{ component }}/{{ component }}.component.yml
-    workflow: _debo-design-component
+  - path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
 ```
 
 Never reference unflushed (in-progress) file names from another stage — the file will not exist at that path until the producing stage has completed and flushed.
@@ -183,4 +239,6 @@ A task file's filename IS its stage assignment. `tasks/create-component.md` appl
 
 ## Validation Is Automatic
 
-Validation runs automatically via `workflow validate --task`. Never add validation steps or instructions inside task files.
+Validation runs automatically when results are written and when tasks complete. Never add validation steps or instructions inside task files.
+
+Results support semantic `validators:` in addition to JSON Schema validation: `data`, `entity-mapping`, `scene`, `image`, or `cmd:<command>` for arbitrary command validators.
