@@ -2,12 +2,12 @@
 name: designbook:design:outtake--verify-scenes
 title: "Outtake: Verify Scenes"
 when:
-  steps: [design-screen:outtake, design-shell:outtake, design-verify:outtake]
+  steps: [design-verify:outtake]
 priority: 50
 params:
-  scene: { type: string }
+  scene_id: { type: string }
   reference: { type: array, default: [] }
-  storyId: { type: string }
+  story_id: { type: string }
   issues:
     type: array
 ---

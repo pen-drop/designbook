@@ -6,14 +6,7 @@ when:
   steps: [polish]
 priority: 50
 params:
-  id: { type: string }
-  scene: { type: string }
-  storyId: { type: string }
-  checkKey: { type: string }
-  severity: { type: string }
-  description: { type: string }
-  file_hint: { type: string }
-  properties: { type: array, default: [] }
+  $ref: ../schemas.yml#/Issue
 each:
   issues:
     $ref: ../schemas.yml#/Issue
@@ -46,8 +39,6 @@ Before applying any fix, inspect what exists:
 1. **Read the component files** referenced by `file_hint` and any related templates
 2. **Read the scene YAML** for the affected scene (`scene` param)
 3. **Open the Storybook URL** and verify current rendering state — understand what the issue looks like before changing code
-
-If `design_hint` is available in params (passed via `each: issues` expansion from intake), cross-reference the hint's styles, fonts, and interactive patterns when evaluating fixes. Prefer hint values over guessing.
 
 Only proceed to the fix after completing the inspection.
 

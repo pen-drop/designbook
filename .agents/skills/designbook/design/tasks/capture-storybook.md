@@ -1,18 +1,18 @@
 ---
 name: designbook:design:capture-storybook
-title: "Capture Storybook: {scene} ({breakpoint}/{region})"
+title: "Capture Storybook: {scene_id} ({breakpoint}/{region})"
 when:
   steps: [recapture]
   type: screenshot
 priority: 20
 params:
-  scene: { type: string }
-  storyId: { type: string }
+  scene_id: { type: string }
+  story_id: { type: string }
   breakpoint: { type: string }
   region: { type: string }
 result:
   screenshot:
-    path: designbook/stories/{storyId}/screenshots/current/{breakpoint}--{region}.png
+    path: designbook/stories/{story_id}/screenshots/current/{breakpoint}--{region}.png
 each:
   checks:
     $ref: ../schemas.yml#/Check

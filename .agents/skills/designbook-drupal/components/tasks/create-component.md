@@ -3,10 +3,8 @@ when:
   steps: [create-component]
   frameworks.component: sdc
 params:
-  component: { type: string }
-  slots: { type: array, default: [] }
+  $ref: designbook/design/schemas.yml#/Component
   props: { type: array, default: [] }
-  group: { type: string }
   variants: { type: array, default: [] }
 result:
   component-yml:
@@ -50,6 +48,8 @@ When `design_hint` is present in params (passed via `each: component` expansion 
 - **`fonts`**: Per-element font specifications (e.g. `{nav: "Reef 22px", cta: "Reef 22px"}`)
 - **`interactive`**: Array of `{element, color, radius}` objects for interactive patterns
 
+When `reference_screenshot` is present in params, read the image file at that path as additional visual context. Use it to verify spacing, proportions, and visual weight alongside the structured `design_hint` data. The screenshot shows the full reference page — focus on the landmark relevant to this component.
+
 Prefer hint values over generic defaults. When `design_hint` is absent, fall back to other params (`description`, `styles`, `fonts`).
 
 ## Inspection Phase (Before Generation)
@@ -61,7 +61,7 @@ Before generating any files, inspect the existing codebase:
 
 After all files are generated:
 
-3. **Verify Storybook renders** the component — open the Storybook URL and confirm the default story renders without errors
+3. **Verify Storybook renders** the component — obtain the Storybook URL via `_debo storybook status` (use the `url` field from the JSON response), open it, and confirm the default story renders without errors
 4. If rendering fails, diagnose and fix before declaring the task done
 
 ## File Generation Order
@@ -70,7 +70,7 @@ Generate in three phases across **all components** before moving to the next pha
 
 **Build order within each phase:** Scan each component's `.twig` file for Twig include/embed directives — `{% include %}`, `{% embed %}`, and `{{ component() }}`, and and `{{ include() }}` calls that reference other project components. Build components with no such dependencies first (leaf components), then components that include them. This ensures that when a composing component's Twig is written, all included components already exist.
 
-1. **Phase 1 — ALL `.twig` files** — read `resources/twig.md` + `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` once
+1. **Phase 1 — ALL `.twig` files** — read `resources/twig.md` + `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` once (SKILL.md provides the CSS framework's token namespace and class conventions)
 2. **Phase 2 — ALL `.story.yml` files** — read `resources/story-yml.md` once
 3. **Phase 3 — Each `.component.yml` + validate** — read `resources/component-yml.md` once; validate each component immediately after writing
 

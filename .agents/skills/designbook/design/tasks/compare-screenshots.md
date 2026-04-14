@@ -1,13 +1,11 @@
 ---
 name: designbook:design:compare-screenshots
-title: "Compare Screenshots: {scene} ({breakpoint}/{region})"
+title: "Compare Screenshots: {scene_id} ({breakpoint}/{region})"
 when:
   steps: [compare]
 params:
-  scene: { type: string }
-  storyId: { type: string }
-  breakpoint: { type: string }
-  region: { type: string }
+  $ref: ../schemas.yml#/Check
+  scene_id: { type: string }
 each:
   checks:
     $ref: ../schemas.yml#/Check
@@ -15,7 +13,24 @@ result:
   issues:
     type: array
     items:
-      $ref: ../schemas.yml#/Issue
+      type: object
+      required: [severity, description]
+      properties:
+        id: { type: string }
+        story_id: { type: string }
+        checkKey: { type: string }
+        scene_id: { type: string }
+        severity: { type: string, enum: [critical, major, minor] }
+        description: { type: string }
+        file_hint: { type: string }
+        properties:
+          type: array
+          items:
+            type: object
+            properties:
+              property: { type: string }
+              expected: { type: string }
+              actual: { type: string }
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true

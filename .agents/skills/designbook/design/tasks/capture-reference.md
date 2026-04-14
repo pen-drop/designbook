@@ -1,18 +1,16 @@
 ---
 name: designbook:design:capture-reference
-title: "Capture Reference: {scene} ({breakpoint}/{region})"
+title: "Capture Reference: {scene_id} ({breakpoint}/{region})"
 when:
   steps: [capture]
   type: screenshot
 priority: 10
 params:
-  scene: ~
-  storyId: ~
-  breakpoint: ~
-  region: ~
+  $ref: ../schemas.yml#/Check
+  scene_id: { type: string }
 result:
   screenshot:
-    path: $DESIGNBOOK_DATA/stories/{storyId}/screenshots/reference/{breakpoint}--{region}.png
+    path: $DESIGNBOOK_DATA/stories/{story_id}/screenshots/reference/{breakpoint}--{region}.png
 each:
   checks:
     $ref: ../schemas.yml#/Check

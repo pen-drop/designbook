@@ -1,14 +1,16 @@
 ---
 name: designbook:design:triage--design-verify
-title: "Triage: {scene}"
+title: "Triage: {scene_id}"
 when:
   steps: [triage]
 priority: 10
 params:
-  scene: { type: string }
-  storyId: { type: string }
+  scene_id: { type: string }
+  story_id: { type: string }
   issues:
     type: array
+    items:
+      $ref: ../schemas.yml#/Issue
 result:
   issues:
     type: array

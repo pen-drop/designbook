@@ -5,8 +5,8 @@ when:
   steps: [verify]
 priority: 60
 params:
-  scene: { type: string }
-  storyId: { type: string }
+  scene_id: { type: string }
+  story_id: { type: string }
   breakpoint: { type: string }
   region: { type: string }
 reads:

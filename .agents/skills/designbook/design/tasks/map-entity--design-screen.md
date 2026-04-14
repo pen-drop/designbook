@@ -1,11 +1,11 @@
 ---
 when:
   steps: [design-screen:map-entity]
-stage: map-entity
 params:
-  entity_type: { type: string }
-  bundle: { type: string }
-  view_mode: { type: string }
+  $ref: ../schemas.yml#/EntityMapping
+each:
+  entity_mappings:
+    $ref: ../schemas.yml#/EntityMapping
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
     workflow: debo-data-model

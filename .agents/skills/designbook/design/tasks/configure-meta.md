@@ -5,10 +5,10 @@ when:
   steps: [configure-meta]
 each: story
 params:
-  storyId: { type: string }
+  story_id: { type: string }
 result:
   meta:
-    path: designbook/stories/{storyId}/meta.yml
+    path: designbook/stories/{story_id}/meta.yml
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
