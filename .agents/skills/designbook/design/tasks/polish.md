@@ -6,14 +6,14 @@ when:
   steps: [polish]
 priority: 50
 params:
-  id: ~
-  scene: ~
-  storyId: ~
-  checkKey: ~
-  severity: ~
-  description: ~
-  file_hint: ~
-  properties: []
+  id: { type: string }
+  scene: { type: string }
+  storyId: { type: string }
+  checkKey: { type: string }
+  severity: { type: string }
+  description: { type: string }
+  file_hint: { type: string }
+  properties: { type: array, default: [] }
 each:
   issues:
     $ref: ../schemas.yml#/Issue

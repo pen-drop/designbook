@@ -1,7 +1,7 @@
 ---
 when:
   extensions: layout_builder
-  steps: [data-model:intake, create-data-model]
+  steps: [create-data-model]
 ---
 
 # Rule: Layout Builder Extension

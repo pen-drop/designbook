@@ -12,6 +12,7 @@ import fm from 'front-matter';
 import { globSync } from 'glob';
 import { load as parseYaml } from 'js-yaml';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
+import { computeMergedSchema } from './workflow-schema-merge.js';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -986,6 +987,48 @@ export function resolveConfigForStep(
  * Required params (value is null/~) must be provided.
  * Optional params (value is a default) are filled from schema if absent.
  */
+/**
+ * Check whether a param value is a valid inline JSON Schema object.
+ * Valid: object with a `type` property (e.g. `{ type: 'string' }`, `{ type: 'array', default: [] }`).
+ * Invalid (old format): null, bare array, bare object without `type`, scalar.
+ */
+export function isJsonSchemaParam(value: unknown): value is Record<string, unknown> & { type: string } {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) && 'type' in value;
+}
+
+/**
+ * Validate that all params in a task file use inline JSON Schema format.
+ * Throws with descriptive error on old-format params.
+ */
+export function validateParamFormats(params: Record<string, unknown>, taskFile: string): void {
+  for (const [key, value] of Object.entries(params)) {
+    if (isJsonSchemaParam(value)) continue;
+
+    const got =
+      value === null
+        ? 'null'
+        : Array.isArray(value)
+          ? 'array'
+          : typeof value === 'object'
+            ? 'object without "type"'
+            : typeof value;
+    throw new Error(
+      `Invalid param "${key}" in ${taskFile}: expected JSON Schema object with "type" property, got ${got}. ` +
+        `Migrate to inline JSON Schema (e.g. { type: string } or { type: array, default: [] }).`,
+    );
+  }
+}
+
+/**
+ * Extract the default value from a JSON Schema param, or undefined if required.
+ */
+function extractParamDefault(schema: Record<string, unknown>): { hasDefault: boolean; default?: unknown } {
+  if ('default' in schema) {
+    return { hasDefault: true, default: schema.default };
+  }
+  return { hasDefault: false };
+}
+
 export function validateAndMergeParams(
   itemParams: Record<string, unknown>,
   schemaParams: Record<string, unknown>,
@@ -994,19 +1037,27 @@ export function validateAndMergeParams(
   const merged: Record<string, unknown> = { ...itemParams };
 
   const missing: string[] = [];
-  for (const [key, defaultValue] of Object.entries(schemaParams)) {
+  for (const [key, value] of Object.entries(schemaParams)) {
     if (merged[key] !== undefined) continue;
 
-    if (defaultValue === null) {
-      missing.push(key);
+    if (isJsonSchemaParam(value)) {
+      const def = extractParamDefault(value);
+      if (def.hasDefault) {
+        merged[key] = def.default;
+      } else {
+        missing.push(key);
+      }
     } else {
-      merged[key] = defaultValue;
+      missing.push(key);
     }
   }
 
   if (missing.length > 0) {
     const paramList = Object.entries(schemaParams)
-      .map(([k, v]) => `${k} (${v === null ? 'required' : 'optional'})`)
+      .map(([k, v]) => {
+        if (isJsonSchemaParam(v)) return `${k} (${'default' in v ? 'optional' : 'required'})`;
+        return `${k} (required)`;
+      })
       .join(', ');
     throw new Error(`Missing required param '${missing[0]}' for step '${step}'. Expected params: ${paramList}`);
   }
@@ -1057,6 +1108,8 @@ export interface ResolvedStep {
   blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
+  /** Merged result schema (base + blueprint/rule extensions). Only present if extensions exist. */
+  merged_schema?: Record<string, object>;
 }
 
 export interface ExpectedParam {
@@ -1097,6 +1150,7 @@ export function resolveAllStages(
   const stepResolved: Record<string, ResolvedStep | ResolvedStep[]> = {};
   const resolvedSteps: string[] = [];
   const expectedParams: Record<string, ExpectedParam> = {};
+  const collectedSchemas: Record<string, object> = {};
 
   for (const step of allSteps ?? []) {
     let resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir);
@@ -1136,6 +1190,33 @@ export function resolveAllStages(
     }
     const { config_rules, config_instructions } = resolveConfigForStep(step, rawConfig);
 
+    // Schema composition: merge base result schemas with rule/blueprint extensions
+    let mergedSchema: Record<string, object> | undefined;
+    if (ruleFiles.length > 0 || blueprintFiles.length > 0) {
+      // Read base result schemas from the first task file
+      const primaryTaskFile = taskFilePaths[0]!;
+      const taskFmForSchema = parseFrontmatter(primaryTaskFile) as TaskFileFrontmatter | null;
+      if (taskFmForSchema?.result) {
+        const baseResult: Record<string, { schema?: object }> = {};
+        for (const [rk, rv] of Object.entries(taskFmForSchema.result)) {
+          // Build inline schema from result declaration (excluding path/$ref/validators)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { path: _path, $ref: _ref, validators: _validators, ...schemaProps } = rv;
+          if (Object.keys(schemaProps).length > 0) {
+            baseResult[rk] = { schema: schemaProps };
+          }
+        }
+        if (Object.keys(baseResult).length > 0) {
+          mergedSchema = computeMergedSchema(baseResult, {
+            blueprintFiles,
+            ruleFiles,
+            skillsRoot: resolve(agentsDir, 'skills'),
+            schemas: collectedSchemas,
+          });
+        }
+      }
+    }
+
     if (taskFilePaths.length === 1) {
       stepResolved[step] = {
         task_file: taskFilePaths[0]!,
@@ -1143,6 +1224,7 @@ export function resolveAllStages(
         blueprints: blueprintFiles,
         config_rules,
         config_instructions,
+        ...(mergedSchema ? { merged_schema: mergedSchema } : {}),
       };
     } else {
       // Multiple tasks per step: ordered by priority (from deduplicateByNameAs)
@@ -1152,6 +1234,7 @@ export function resolveAllStages(
         blueprints: blueprintFiles,
         config_rules,
         config_instructions,
+        ...(mergedSchema ? { merged_schema: mergedSchema } : {}),
       }));
     }
     resolvedSteps.push(step);
@@ -1161,8 +1244,15 @@ export function resolveAllStages(
       const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
       const params = taskFm?.params as Record<string, unknown> | undefined;
       if (!params) continue;
+
+      // Validate all params use inline JSON Schema format
+      validateParamFormats(params, taskFile);
+
       for (const [key, value] of Object.entries(params)) {
-        const isRequired = value === null;
+        const schema = value as Record<string, unknown>;
+        const def = extractParamDefault(schema);
+        const isRequired = !def.hasDefault;
+
         if (key in expectedParams) {
           // If ANY step marks it required, it stays required
           if (isRequired && !expectedParams[key]!.required) {
@@ -1172,7 +1262,7 @@ export function resolveAllStages(
           expectedParams[key] = {
             required: isRequired,
             from_step: step,
-            ...(isRequired ? {} : { default: value }),
+            ...(def.hasDefault ? { default: def.default } : {}),
           };
         }
       }

@@ -1,0 +1,752 @@
+/**
+ * Integration tests for JSON Schema params migration.
+ *
+ * Covers:
+ * - resolveAllStages rejecting old-format params (null, array, bare object, scalar)
+ * - resolveAllStages building correct expected_params from JSON Schema
+ * - expandTasksFromParams applying JSON Schema defaults and required validation
+ * - Full workflow round-trip with JSON Schema params
+ *
+ * Uses real temp directories and task files, no mocks.
+ */
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { randomBytes } from 'node:crypto';
+import { resolveAllStages, type ResolvedStep } from '../../workflow-resolve.js';
+import { expandTasksFromParams } from '../../workflow.js';
+import type { DesignbookConfig } from '../../config.js';
+import type { StageDefinition } from '../../workflow-types.js';
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+
+function makeTmpDir(): string {
+  const dir = resolve(tmpdir(), `wf-params-${randomBytes(4).toString('hex')}`);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function writeWorkflow(dir: string, frontmatter: string): string {
+  const wfDir = resolve(dir, 'workflows');
+  mkdirSync(wfDir, { recursive: true });
+  const path = resolve(wfDir, 'test.md');
+  writeFileSync(path, `---\n${frontmatter}\n---\n# Test Workflow`);
+  return path;
+}
+
+function writeTask(agentsDir: string, skillName: string, taskName: string, frontmatter: string, body = ''): string {
+  const dir = resolve(agentsDir, 'skills', skillName, 'tasks');
+  mkdirSync(dir, { recursive: true });
+  const path = resolve(dir, `${taskName}.md`);
+  writeFileSync(path, `---\n${frontmatter}\n---\n${body}`);
+  return path;
+}
+
+const baseConfig: DesignbookConfig = {
+  data: '/test/dist',
+  technology: 'drupal',
+  backend: 'drupal',
+  'frameworks.component': 'sdc',
+  'frameworks.css': 'tailwind',
+  workspace: '/test',
+  'designbook.home': '/test/theme',
+  'designbook.data': '/test/dist',
+  'css.app': '/test/css/app.src.css',
+};
+
+// ── setup / teardown ────────────────────────────────────────────────────────
+
+let tmpDir: string;
+
+beforeEach(() => {
+  tmpDir = makeTmpDir();
+});
+
+afterEach(() => {
+  if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true });
+});
+
+// ── resolveAllStages: old-format rejection ──────────────────────────────────
+
+describe('resolveAllStages rejects old-format params', () => {
+  function setupAndResolve(paramLine: string): () => void {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(agentsDir, 'test-skill', 'do-thing', `when:\n  steps: [do-thing]\nparams:\n  ${paramLine}`);
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
+    return () => resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+  }
+
+  it('rejects null param (old required format)', () => {
+    const fn = setupAndResolve('name: ~');
+    expect(fn).toThrow(/Invalid param "name".*got null/);
+  });
+
+  it('rejects bare array param (old optional format)', () => {
+    const fn = setupAndResolve('items: []');
+    expect(fn).toThrow(/Invalid param "items".*got array/);
+  });
+
+  it('rejects bare object without type', () => {
+    const fn = setupAndResolve('data: { foo: bar }');
+    expect(fn).toThrow(/Invalid param "data".*got object without "type"/);
+  });
+
+  it('rejects string scalar', () => {
+    const fn = setupAndResolve('mode: fast');
+    expect(fn).toThrow(/Invalid param "mode".*got string/);
+  });
+
+  it('rejects number scalar', () => {
+    const fn = setupAndResolve('count: 5');
+    expect(fn).toThrow(/Invalid param "count".*got number/);
+  });
+
+  it('rejects boolean scalar', () => {
+    const fn = setupAndResolve('enabled: true');
+    expect(fn).toThrow(/Invalid param "enabled".*got boolean/);
+  });
+
+  it('rejects mixed params (first invalid triggers error)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'do-thing',
+      ['when:', '  steps: [do-thing]', 'params:', '  valid_param: { type: string }', '  bad_param: ~'].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
+    expect(() => resolveAllStages(wfPath, baseConfig, {}, agentsDir)).toThrow(/Invalid param "bad_param"/);
+  });
+});
+
+// ── resolveAllStages: expected_params from JSON Schema ──────────────────────
+
+describe('resolveAllStages builds correct expected_params', () => {
+  it('marks param without default as required', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'do-thing',
+      ['when:', '  steps: [do-thing]', 'params:', '  product_name: { type: string }'].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
+    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+
+    expect(result.expected_params.product_name).toBeDefined();
+    expect(result.expected_params.product_name!.required).toBe(true);
+    expect(result.expected_params.product_name!.default).toBeUndefined();
+  });
+
+  it('marks param with default as optional and stores default', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'do-thing',
+      ['when:', '  steps: [do-thing]', 'params:', '  items: { type: array, default: [] }'].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
+    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+
+    expect(result.expected_params.items).toBeDefined();
+    expect(result.expected_params.items!.required).toBe(false);
+    expect(result.expected_params.items!.default).toEqual([]);
+  });
+
+  it('handles default: null as optional', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'do-thing',
+      [
+        'when:',
+        '  steps: [do-thing]',
+        'params:',
+        '  ref:',
+        '    type: object',
+        '    default: null',
+        '    properties:',
+        '      url: { type: string }',
+      ].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
+    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+
+    expect(result.expected_params.ref).toBeDefined();
+    expect(result.expected_params.ref!.required).toBe(false);
+    expect(result.expected_params.ref!.default).toBeNull();
+  });
+
+  it('handles default: {} as optional with empty object default', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'do-thing',
+      ['when:', '  steps: [do-thing]', 'params:', '  config: { type: object, default: {} }'].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
+    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+
+    expect(result.expected_params.config!.required).toBe(false);
+    expect(result.expected_params.config!.default).toEqual({});
+  });
+
+  it('aggregates params from multiple steps', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'step-a',
+      ['when:', '  steps: [step-a]', 'params:', '  name: { type: string }'].join('\n'),
+    );
+    writeTask(
+      agentsDir,
+      'test-skill-b',
+      'step-b',
+      [
+        'when:',
+        '  steps: [step-b]',
+        'params:',
+        '  items: { type: array, default: [] }',
+        '  mode: { type: string }',
+      ].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [step-a, step-b]');
+    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+
+    expect(Object.keys(result.expected_params)).toHaveLength(3);
+    expect(result.expected_params.name!.required).toBe(true);
+    expect(result.expected_params.items!.required).toBe(false);
+    expect(result.expected_params.mode!.required).toBe(true);
+  });
+
+  it('if any step marks a param required, it stays required', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // step-a declares name as optional (has default)
+    writeTask(
+      agentsDir,
+      'skill-a',
+      'step-a',
+      ['when:', '  steps: [step-a]', 'params:', '  shared: { type: string, default: "fallback" }'].join('\n'),
+    );
+    // step-b declares same param as required (no default)
+    writeTask(
+      agentsDir,
+      'skill-b',
+      'step-b',
+      ['when:', '  steps: [step-b]', 'params:', '  shared: { type: string }'].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [step-a, step-b]');
+    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+
+    expect(result.expected_params.shared!.required).toBe(true);
+  });
+
+  it('records from_step for each param', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'create-vision',
+      [
+        'when:',
+        '  steps: [create-vision]',
+        'params:',
+        '  product_name: { type: string }',
+        '  features: { type: array, default: [] }',
+      ].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [create-vision]');
+    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+
+    expect(result.expected_params.product_name!.from_step).toBe('create-vision');
+    expect(result.expected_params.features!.from_step).toBe('create-vision');
+  });
+
+  it('complex param with properties parsed correctly', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'do-thing',
+      [
+        'when:',
+        '  steps: [do-thing]',
+        'params:',
+        '  design_reference:',
+        '    type: object',
+        '    default: null',
+        '    properties:',
+        '      type: { type: string }',
+        '      url: { type: string }',
+        '      label: { type: string }',
+      ].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
+    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+
+    expect(result.expected_params.design_reference!.required).toBe(false);
+    expect(result.expected_params.design_reference!.default).toBeNull();
+  });
+
+  it('integer type is valid JSON Schema', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'do-thing',
+      ['when:', '  steps: [do-thing]', 'params:', '  order: { type: integer }'].join('\n'),
+    );
+    const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
+    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+
+    expect(result.expected_params.order!.required).toBe(true);
+  });
+});
+
+// ── expandTasksFromParams: JSON Schema defaults and required ────────────────
+
+describe('expandTasksFromParams with JSON Schema params', () => {
+  let taskDir: string;
+
+  beforeEach(() => {
+    taskDir = resolve(tmpDir, 'task-files');
+    mkdirSync(taskDir, { recursive: true });
+  });
+
+  function writeTaskFile(name: string, frontmatter: string): string {
+    const path = resolve(taskDir, `${name}.md`);
+    writeFileSync(path, `---\n${frontmatter}\n---\n# ${name}`);
+    return path;
+  }
+
+  function makeStageLoaded(steps: Record<string, string>): Record<string, ResolvedStep> {
+    const result: Record<string, ResolvedStep> = {};
+    for (const [step, taskFile] of Object.entries(steps)) {
+      result[step] = {
+        task_file: taskFile,
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+      };
+    }
+    return result;
+  }
+
+  it('applies defaults for optional JSON Schema params', () => {
+    const taskFile = writeTaskFile(
+      'create-vision',
+      [
+        'when:',
+        '  steps: [create-vision]',
+        'params:',
+        '  product_name: { type: string }',
+        '  features: { type: array, default: [] }',
+        '  references: { type: array, default: [] }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-vision'] },
+    };
+    const params = { product_name: 'My Product' };
+
+    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {});
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.params!.product_name).toBe('My Product');
+    expect(tasks[0]!.params!.features).toEqual([]);
+    expect(tasks[0]!.params!.references).toEqual([]);
+  });
+
+  it('throws on missing required JSON Schema param', () => {
+    const taskFile = writeTaskFile(
+      'create-vision',
+      [
+        'when:',
+        '  steps: [create-vision]',
+        'params:',
+        '  product_name: { type: string }',
+        '  description: { type: string }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-vision'] },
+    };
+    // Only provide one of two required params
+    const params = { product_name: 'My Product' };
+
+    expect(() => expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {})).toThrow(
+      /Missing required param 'description'/,
+    );
+  });
+
+  it('applies default: null for optional object param', () => {
+    const taskFile = writeTaskFile(
+      'create-vision',
+      [
+        'when:',
+        '  steps: [create-vision]',
+        'params:',
+        '  name: { type: string }',
+        '  design_reference:',
+        '    type: object',
+        '    default: null',
+        '    properties:',
+        '      url: { type: string }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-vision'] },
+    };
+    const params = { name: 'Test' };
+
+    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {});
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.params!.design_reference).toBeNull();
+  });
+
+  it('applies default: {} for optional object param', () => {
+    const taskFile = writeTaskFile(
+      'run-workflow',
+      [
+        'when:',
+        '  steps: [run-workflow]',
+        'params:',
+        '  workflow: { type: string }',
+        '  params: { type: object, default: {} }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['run-workflow'] },
+    };
+    const params = { workflow: 'debo-tokens' };
+
+    const tasks = expandTasksFromParams(makeStageLoaded({ 'run-workflow': taskFile }), stages, params, [], {});
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.params!.params).toEqual({});
+  });
+
+  it('item params override JSON Schema defaults', () => {
+    const taskFile = writeTaskFile(
+      'create-section',
+      [
+        'when:',
+        '  steps: [create-section]',
+        'params:',
+        '  section_id: { type: string }',
+        '  order: { type: integer, default: 0 }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-section'] },
+    };
+    const params = { section_id: 'hero', order: 5 };
+
+    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-section': taskFile }), stages, params, [], {});
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.params!.order).toBe(5);
+  });
+
+  it('expands each-based items with JSON Schema defaults', () => {
+    const taskFile = writeTaskFile(
+      'create-component',
+      [
+        'when:',
+        '  steps: [create-component]',
+        'params:',
+        '  component: { type: string }',
+        '  slots: { type: array, default: [] }',
+        '  props: { type: array, default: [] }',
+        '  group: { type: string }',
+        'each:',
+        '  component:',
+        '    type: object',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-component'] },
+    };
+    const params = {
+      group: 'atoms',
+      component: [{ component: 'button', slots: ['default'] }, { component: 'icon' }],
+    };
+
+    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-component': taskFile }), stages, params, [], {});
+
+    expect(tasks).toHaveLength(2);
+
+    // First component: explicit slots override default
+    expect(tasks[0]!.params!.component).toBe('button');
+    expect(tasks[0]!.params!.slots).toEqual(['default']);
+    expect(tasks[0]!.params!.props).toEqual([]); // default applied
+    expect(tasks[0]!.params!.group).toBe('atoms');
+
+    // Second component: all defaults applied
+    expect(tasks[1]!.params!.component).toBe('icon');
+    expect(tasks[1]!.params!.slots).toEqual([]); // default
+    expect(tasks[1]!.params!.props).toEqual([]); // default
+    expect(tasks[1]!.params!.group).toBe('atoms');
+  });
+
+  it('all params provided — no defaults needed', () => {
+    const taskFile = writeTaskFile(
+      'create-vision',
+      [
+        'when:',
+        '  steps: [create-vision]',
+        'params:',
+        '  product_name: { type: string }',
+        '  description: { type: string }',
+        '  features: { type: array, default: [] }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-vision'] },
+    };
+    const params = {
+      product_name: 'Pet Shop',
+      description: 'A pet shop website',
+      features: ['search', 'cart'],
+    };
+
+    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {});
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.params!.product_name).toBe('Pet Shop');
+    expect(tasks[0]!.params!.description).toBe('A pet shop website');
+    expect(tasks[0]!.params!.features).toEqual(['search', 'cart']);
+  });
+
+  it('multiple steps — each gets correct param resolution', () => {
+    const taskA = writeTaskFile(
+      'step-a',
+      [
+        'when:',
+        '  steps: [step-a]',
+        'params:',
+        '  name: { type: string }',
+        '  optional_a: { type: string, default: "default-a" }',
+      ].join('\n'),
+    );
+
+    const taskB = writeTaskFile(
+      'step-b',
+      [
+        'when:',
+        '  steps: [step-b]',
+        'params:',
+        '  name: { type: string }',
+        '  optional_b: { type: array, default: [] }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['step-a', 'step-b'] },
+    };
+    const params = { name: 'test' };
+
+    const tasks = expandTasksFromParams(makeStageLoaded({ 'step-a': taskA, 'step-b': taskB }), stages, params, [], {});
+
+    expect(tasks).toHaveLength(2);
+    expect(tasks[0]!.params!.optional_a).toBe('default-a');
+    expect(tasks[1]!.params!.optional_b).toEqual([]);
+  });
+});
+
+// ── real-world param shapes from migrated task files ────────────────────────
+
+describe('real-world JSON Schema param shapes', () => {
+  let taskDir: string;
+
+  beforeEach(() => {
+    taskDir = resolve(tmpDir, 'real-tasks');
+    mkdirSync(taskDir, { recursive: true });
+  });
+
+  function writeTaskFile(name: string, frontmatter: string): string {
+    const path = resolve(taskDir, `${name}.md`);
+    writeFileSync(path, `---\n${frontmatter}\n---\n# ${name}`);
+    return path;
+  }
+
+  function makeStageLoaded(steps: Record<string, string>): Record<string, ResolvedStep> {
+    const result: Record<string, ResolvedStep> = {};
+    for (const [step, taskFile] of Object.entries(steps)) {
+      result[step] = {
+        task_file: taskFile,
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+      };
+    }
+    return result;
+  }
+
+  it('create-vision shape — all required + mixed optionals', () => {
+    const taskFile = writeTaskFile(
+      'create-vision',
+      [
+        'when:',
+        '  steps: [create-vision]',
+        'params:',
+        '  product_name: { type: string }',
+        '  description: { type: string }',
+        '  problems: { type: array, default: [] }',
+        '  features: { type: array, default: [] }',
+        '  design_reference:',
+        '    type: object',
+        '    default: null',
+        '    properties:',
+        '      type: { type: string }',
+        '      url: { type: string }',
+        '      label: { type: string }',
+        '  references: { type: array, default: [] }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-vision'] },
+    };
+
+    // Minimal required params only
+    const tasks = expandTasksFromParams(
+      makeStageLoaded({ 'create-vision': taskFile }),
+      stages,
+      { product_name: 'Pet Shop', description: 'Online pet shop' },
+      [],
+      {},
+    );
+
+    expect(tasks).toHaveLength(1);
+    const p = tasks[0]!.params!;
+    expect(p.product_name).toBe('Pet Shop');
+    expect(p.description).toBe('Online pet shop');
+    expect(p.problems).toEqual([]);
+    expect(p.features).toEqual([]);
+    expect(p.design_reference).toBeNull();
+    expect(p.references).toEqual([]);
+  });
+
+  it('create-vision shape — with optional params provided', () => {
+    const taskFile = writeTaskFile(
+      'create-vision',
+      [
+        'when:',
+        '  steps: [create-vision]',
+        'params:',
+        '  product_name: { type: string }',
+        '  description: { type: string }',
+        '  problems: { type: array, default: [] }',
+        '  features: { type: array, default: [] }',
+        '  design_reference:',
+        '    type: object',
+        '    default: null',
+        '    properties:',
+        '      type: { type: string }',
+        '      url: { type: string }',
+        '      label: { type: string }',
+        '  references: { type: array, default: [] }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-vision'] },
+    };
+
+    const tasks = expandTasksFromParams(
+      makeStageLoaded({ 'create-vision': taskFile }),
+      stages,
+      {
+        product_name: 'Pet Shop',
+        description: 'Online pet shop',
+        design_reference: { type: 'stitch', url: 'proj-123', label: 'Main Design' },
+        features: ['search', 'cart', 'checkout'],
+      },
+      [],
+      {},
+    );
+
+    expect(tasks).toHaveLength(1);
+    const p = tasks[0]!.params!;
+    expect(p.design_reference).toEqual({ type: 'stitch', url: 'proj-123', label: 'Main Design' });
+    expect(p.features).toEqual(['search', 'cart', 'checkout']);
+    expect(p.problems).toEqual([]); // still default
+    expect(p.references).toEqual([]); // still default
+  });
+
+  it('create-section shape — required strings + integer with default', () => {
+    const taskFile = writeTaskFile(
+      'create-section',
+      [
+        'when:',
+        '  steps: [create-section]',
+        'params:',
+        '  section_id: { type: string }',
+        '  section_title: { type: string }',
+        '  section_description: { type: string }',
+        '  order: { type: integer, default: 0 }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-section'] },
+    };
+
+    const tasks = expandTasksFromParams(
+      makeStageLoaded({ 'create-section': taskFile }),
+      stages,
+      { section_id: 'hero', section_title: 'Hero', section_description: 'Landing page hero' },
+      [],
+      {},
+    );
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.params!.order).toBe(0);
+  });
+
+  it('run-workflow shape — string + object default {}', () => {
+    const taskFile = writeTaskFile(
+      'run-workflow',
+      [
+        'when:',
+        '  steps: [run-workflow]',
+        'params:',
+        '  workflow: { type: string }',
+        '  params: { type: object, default: {} }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['run-workflow'] },
+    };
+
+    const tasks = expandTasksFromParams(
+      makeStageLoaded({ 'run-workflow': taskFile }),
+      stages,
+      { workflow: 'debo-tokens' },
+      [],
+      {},
+    );
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.params!.workflow).toBe('debo-tokens');
+    expect(tasks[0]!.params!.params).toEqual({});
+  });
+});

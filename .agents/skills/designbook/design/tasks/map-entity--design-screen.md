@@ -3,9 +3,9 @@ when:
   steps: [design-screen:map-entity]
 stage: map-entity
 params:
-  entity_type: ~
-  bundle: ~
-  view_mode: ~
+  entity_type: { type: string }
+  bundle: { type: string }
+  view_mode: { type: string }
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
     workflow: debo-data-model
@@ -25,10 +25,7 @@ Creates a JSONata expression file that maps an entity's data to `ComponentNode[]
 
 ## Output
 
-A pure JSONata expression returning `ComponentNode[]`. See [jsonata-reference](../resources/jsonata-reference.md) for output format. Write the result via stdin to the CLI:
-```
- workflow result --task $TASK_ID --key entity-mapping
-```
+A pure JSONata expression returning `ComponentNode[]`. See [jsonata-reference](../resources/jsonata-reference.md) for output format.
 
 ## Data Mapping Pattern
 

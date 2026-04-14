@@ -1,6 +1,19 @@
 ---
 when:
-  steps: [tokens:intake, create-tokens]
+  steps: [create-tokens]
+constrains:
+  design-tokens:
+    properties:
+      semantic:
+        properties:
+          spacing:
+            additionalProperties:
+              properties:
+                $extensions:
+                  properties:
+                    designbook:
+                      properties:
+                        renderer: { pattern: "^(margin|padding|gap)" }
 ---
 
 # Renderer Hints ($extensions.designbook.renderer)

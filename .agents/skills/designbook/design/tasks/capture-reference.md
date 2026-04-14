@@ -13,6 +13,9 @@ params:
 result:
   screenshot:
     path: $DESIGNBOOK_DATA/stories/{storyId}/screenshots/reference/{breakpoint}--{region}.png
+each:
+  checks:
+    $ref: ../schemas.yml#/Check
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true

@@ -193,24 +193,7 @@ Follow the process in [structure-preview.md](partials/structure-preview.md).
 
 ## Step 8: Complete Intake
 
-Store the `component` and `scene` iterables as task results, then mark intake done:
-
-```bash
-_debo workflow result --workflow $WORKFLOW_NAME --task $TASK_ID --key component --json '[
-  { "component": "hero", "slots": ["preheadline", "heading", "description", "actions", "media"] },
-  { "component": "feature-card", "slots": ["icon", "title", "description"] }
-]'
-```
-
-```bash
-_debo workflow result --workflow $WORKFLOW_NAME --task $TASK_ID --key scene --json '[
-  { "scene": "homepage:landing" }
-]'
-```
-
-```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID
-```
+Store the `component` and `scene` iterables as task results.
 
 - **`component`**: one entry per new component from Step 5. Each item needs `component` (name) and `slots` (array).
 - **`scene`**: one entry per screen from Step 3. Each item uses `group:sceneName` format matching `_debo story --scene` resolution. E.g. `{ "scene": "homepage:landing" }`, `{ "scene": "blog:overview" }`.

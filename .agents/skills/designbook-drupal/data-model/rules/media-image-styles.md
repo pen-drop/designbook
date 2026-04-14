@@ -1,7 +1,7 @@
 ---
 when:
   backend: drupal
-  steps: [data-model:intake, create-data-model]
+  steps: [create-data-model]
 ---
 
 # Rule: Media View Modes Match Image Styles

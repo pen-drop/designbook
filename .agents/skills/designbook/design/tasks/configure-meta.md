@@ -5,7 +5,7 @@ when:
   steps: [configure-meta]
 each: story
 params:
-  storyId: ~
+  storyId: { type: string }
 result:
   meta:
     path: designbook/stories/{storyId}/meta.yml
@@ -74,11 +74,10 @@ If keep: done. If update: continue as if it doesn't exist.
 
    Every breakpoint always has at least one region.
 
-5. **Write `meta.yml`** via write-file:
+5. **Write `meta.yml`:**
 
    **Shell scene (element regions):**
-   ```bash
-   cat <<'EOF' | _debo workflow result --task $TASK_ID --key meta
+   ```yaml
    reference:
      source:
        url: "<resolved-url>"
@@ -97,12 +96,10 @@ If keep: done. If update: continue as if it doesn't exist.
              selector: "footer"
              lastDiff: null
              lastResult: null
-   EOF
    ```
 
    **Screen scene (full-page region):**
-   ```bash
-   cat <<'EOF' | _debo workflow result --task $TASK_ID --key meta
+   ```yaml
    reference:
      source:
        url: "<resolved-url>"
@@ -117,7 +114,6 @@ If keep: done. If update: continue as if it doesn't exist.
              selector: ""
              lastDiff: null
              lastResult: null
-   EOF
    ```
 
 6. **Ensure `.gitignore` entries** exist in workspace root:

@@ -1,0 +1,11 @@
+# Data model concern schemas
+
+DataModel:
+  type: object
+  properties:
+    config:
+      type: object
+      additionalProperties: true
+    content:
+      type: object
+      additionalProperties: true

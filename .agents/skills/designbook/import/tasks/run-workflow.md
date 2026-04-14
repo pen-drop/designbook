@@ -2,8 +2,11 @@
 when:
   steps: [run-workflow]
 params:
-  workflow: ~
-  params: {}
+  workflow: { type: string }
+  params: { type: object, default: {} }
+each:
+  workflow:
+    $ref: ../schemas.yml#/ImportWorkflow
 ---
 
 # Task: Run Sub-Workflow
@@ -16,17 +19,13 @@ Executes a sub-workflow as part of the import orchestration. The parent import w
 
    > "Starting sub-workflow: **{{ workflow }}**"
 
-2. **Start the sub-workflow** using standard workflow execution (Phase 0 → Phase 1 → Phase 2):
-
-   - Bootstrap: `_debo() { npx storybook-addon-designbook "$@"; }` + `eval "$(_debo config)"`
-   - Create the workflow: `_debo workflow create --workflow {{ workflow }} --workflow-file <path-to-workflow-file>`
-   - Load intake instructions: `_debo workflow instructions --workflow {{ workflow }} --stage intake`
+2. **Start the sub-workflow** using standard workflow execution (Phase 0 → Phase 1 → Phase 2).
 
 3. **Pre-fill intake params** from `{{ params }}`. When the sub-workflow's intake asks for information that is already provided in the pre-filled params, use those values as defaults. Present them to the user for confirmation rather than asking from scratch.
 
 4. **Execute the sub-workflow normally** — follow all standard execution rules (Rules 0–7 from `workflow-execution.md`). The sub-workflow has its own lifecycle, its own `tasks.yml`, and its own task tracking.
 
-5. **On completion** of the sub-workflow, return control to the parent import workflow. The CLI marks this task as done when `workflow done` is called for the final task of the sub-workflow.
+5. **On completion** of the sub-workflow, return control to the parent import workflow.
 
 ## Constraints
 

@@ -2,9 +2,7 @@
 title: Design Tokens
 description: Choose colors and typography for your product
 stages:
-  intake:
-    steps: [tokens:intake]
-  execute:
+  create-tokens:
     steps: [create-tokens]
 engine: direct
 after:

@@ -9,6 +9,8 @@ import {
   matchRuleFiles,
   resolveConfigForStep,
   validateAndMergeParams,
+  isJsonSchemaParam,
+  validateParamFormats,
   generateTaskId,
   resolveWorkflowPlan,
   buildEnvMap,
@@ -130,7 +132,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-sections',
       'create-section',
-      'when:\n  steps: [designbook-sections:create-section]\nparams:\n  section_id: ~',
+      'when:\n  steps: [designbook-sections:create-section]\nparams:\n  section_id: { type: string }',
     );
 
     const result = resolveTaskFiles('designbook-sections:create-section', baseConfig, agentsDir);
@@ -143,7 +145,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-tokens',
       'create-tokens',
-      'when:\n  steps: [create-tokens]\nparams:\n  colors: {}',
+      'when:\n  steps: [create-tokens]\nparams:\n  colors: { type: object }',
     );
 
     const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
@@ -157,14 +159,14 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'generic-comp',
       'create-component',
-      'when:\n  steps: [create-component]\nparams:\n  component: ~',
+      'when:\n  steps: [create-component]\nparams:\n  component: { type: string }',
     );
     // Specific match (when frameworks.component: sdc + steps)
     const specificPath = writeSkillTaskFile(
       agentsDir,
       'sdc-comp',
       'create-component',
-      'when:\n  steps: [create-component]\n  frameworks.component: sdc\nparams:\n  component: ~',
+      'when:\n  steps: [create-component]\n  frameworks.component: sdc\nparams:\n  component: { type: string }',
     );
 
     const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
@@ -188,7 +190,7 @@ describe('resolveTaskFiles', () => {
       'designbook-sdc',
       'components',
       'create-component',
-      'when:\n  steps: [create-component]\nparams:\n  component: ~',
+      'when:\n  steps: [create-component]\nparams:\n  component: { type: string }',
     );
 
     const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
@@ -201,7 +203,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-tokens',
       'create-tokens',
-      'when:\n  steps: [create-tokens]\nparams:\n  colors: {}',
+      'when:\n  steps: [create-tokens]\nparams:\n  colors: { type: object }',
     );
 
     const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
@@ -306,31 +308,132 @@ describe('expandFilePath', () => {
 });
 
 // 5.4: Params validation
+describe('isJsonSchemaParam', () => {
+  it('accepts object with type property', () => {
+    expect(isJsonSchemaParam({ type: 'string' })).toBe(true);
+  });
+
+  it('accepts complex object with type and properties', () => {
+    expect(isJsonSchemaParam({ type: 'object', properties: { name: { type: 'string' } } })).toBe(true);
+  });
+
+  it('accepts object with type and default', () => {
+    expect(isJsonSchemaParam({ type: 'array', default: [] })).toBe(true);
+  });
+
+  it('rejects null', () => {
+    expect(isJsonSchemaParam(null)).toBe(false);
+  });
+
+  it('rejects bare array', () => {
+    expect(isJsonSchemaParam([])).toBe(false);
+  });
+
+  it('rejects bare object without type', () => {
+    expect(isJsonSchemaParam({})).toBe(false);
+  });
+
+  it('rejects string scalar', () => {
+    expect(isJsonSchemaParam('hello')).toBe(false);
+  });
+
+  it('rejects number scalar', () => {
+    expect(isJsonSchemaParam(42)).toBe(false);
+  });
+
+  it('rejects boolean scalar', () => {
+    expect(isJsonSchemaParam(true)).toBe(false);
+  });
+});
+
+describe('validateParamFormats', () => {
+  it('passes with valid JSON Schema params', () => {
+    expect(() =>
+      validateParamFormats({ name: { type: 'string' }, items: { type: 'array', default: [] } }, 'test.md'),
+    ).not.toThrow();
+  });
+
+  it('rejects null param', () => {
+    expect(() => validateParamFormats({ name: null }, 'test.md')).toThrow(
+      /Invalid param "name" in test\.md: expected JSON Schema object with "type" property, got null/,
+    );
+  });
+
+  it('rejects bare array param', () => {
+    expect(() => validateParamFormats({ items: [] }, 'test.md')).toThrow(
+      /Invalid param "items" in test\.md:.*got array/,
+    );
+  });
+
+  it('rejects bare object without type', () => {
+    expect(() => validateParamFormats({ data: {} }, 'test.md')).toThrow(
+      /Invalid param "data" in test\.md:.*got object without "type"/,
+    );
+  });
+
+  it('rejects string scalar', () => {
+    expect(() => validateParamFormats({ name: 'hello' }, 'test.md')).toThrow(
+      /Invalid param "name" in test\.md:.*got string/,
+    );
+  });
+
+  it('rejects number scalar', () => {
+    expect(() => validateParamFormats({ count: 0 }, 'test.md')).toThrow(
+      /Invalid param "count" in test\.md:.*got number/,
+    );
+  });
+
+  it('rejects boolean scalar', () => {
+    expect(() => validateParamFormats({ flag: true }, 'test.md')).toThrow(
+      /Invalid param "flag" in test\.md:.*got boolean/,
+    );
+  });
+});
+
 describe('validateAndMergeParams', () => {
-  it('passes with all required params provided', () => {
-    const result = validateAndMergeParams({ component: 'button' }, { component: null, slots: [] }, 'create-component');
+  it('passes with all required JSON Schema params provided', () => {
+    const result = validateAndMergeParams(
+      { component: 'button' },
+      { component: { type: 'string' }, slots: { type: 'array', default: [] } },
+      'create-component',
+    );
     expect(result).toEqual({ component: 'button', slots: [] });
   });
 
-  it('throws on missing required param with expected params list', () => {
-    expect(() => validateAndMergeParams({}, { component: null, slots: [] }, 'create-component')).toThrow(
+  it('throws on missing required JSON Schema param', () => {
+    expect(() =>
+      validateAndMergeParams(
+        {},
+        { component: { type: 'string' }, slots: { type: 'array', default: [] } },
+        'create-component',
+      ),
+    ).toThrow(
       /Missing required param 'component' for step 'create-component'. Expected params: component \(required\), slots \(optional\)/,
     );
   });
 
-  it('uses default for optional params', () => {
+  it('uses default from JSON Schema for optional params', () => {
     const result = validateAndMergeParams(
       { component: 'button' },
-      { component: null, slots: ['default'], count: 0 },
+      { component: { type: 'string' }, slots: { type: 'array', default: ['default'] } },
       'create-component',
     );
-    expect(result).toEqual({ component: 'button', slots: ['default'], count: 0 });
+    expect(result).toEqual({ component: 'button', slots: ['default'] });
   });
 
-  it('item params override defaults', () => {
+  it('handles null default in JSON Schema (optional, default is null)', () => {
+    const result = validateAndMergeParams(
+      { name: 'test' },
+      { name: { type: 'string' }, ref: { type: 'object', default: null } },
+      'create-vision',
+    );
+    expect(result).toEqual({ name: 'test', ref: null });
+  });
+
+  it('item params override JSON Schema defaults', () => {
     const result = validateAndMergeParams(
       { component: 'card', slots: ['header'] },
-      { component: null, slots: [] },
+      { component: { type: 'string' }, slots: { type: 'array', default: [] } },
       'create-component',
     );
     expect(result).toEqual({ component: 'card', slots: ['header'] });
@@ -479,13 +582,13 @@ describe('resolveWorkflowPlan', () => {
       agentsDir,
       'designbook-components',
       'create-component',
-      'params:\n  component: ~\n  slots: []\nfiles:\n  - file: $DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml\n    key: component\n    validators: [component]',
+      'params:\n  component: { type: string }\n  slots: { type: array, default: [] }\nfiles:\n  - file: $DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml\n    key: component\n    validators: [component]',
     );
     writeSkillTaskFile(
       agentsDir,
       'designbook-scenes',
       'create-scene',
-      'params:\n  section_id: ~\nfiles:\n  - file: $DESIGNBOOK_DATA/scenes/{{ section_id }}.yml\n    key: scene\n    validators: [scene]',
+      'params:\n  section_id: { type: string }\nfiles:\n  - file: $DESIGNBOOK_DATA/scenes/{{ section_id }}.yml\n    key: scene\n    validators: [scene]',
     );
 
     // Create workflow file

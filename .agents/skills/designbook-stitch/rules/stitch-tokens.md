@@ -1,7 +1,16 @@
 ---
 when:
-  steps: [tokens:intake]
+  steps: [create-tokens]
   extensions: stitch
+provides:
+  design-tokens:
+    properties:
+      primitive:
+        properties:
+          color: { type: object, title: Imported Stitch Colors }
+      semantic:
+        properties:
+          color: { type: object, title: Imported Stitch Semantic Colors }
 ---
 
 # Stitch Token Import

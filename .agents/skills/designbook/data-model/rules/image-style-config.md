@@ -1,6 +1,16 @@
 ---
 when:
-  steps: [data-model:intake, create-data-model]
+  steps: [create-data-model]
+constrains:
+  data-model:
+    properties:
+      config:
+        properties:
+          image_style:
+            additionalProperties:
+              required: [aspect_ratio]
+              properties:
+                aspect_ratio: { type: string, pattern: "^\\d+:\\d+$" }
 ---
 
 # Rule: image_style Config Entity

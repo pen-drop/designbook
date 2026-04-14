@@ -4,10 +4,10 @@ title: "Compare Screenshots: {scene} ({breakpoint}/{region})"
 when:
   steps: [compare]
 params:
-  scene: ~
-  storyId: ~
-  breakpoint: ~
-  region: ~
+  scene: { type: string }
+  storyId: { type: string }
+  breakpoint: { type: string }
+  region: { type: string }
 each:
   checks:
     $ref: ../schemas.yml#/Check
@@ -60,19 +60,6 @@ Captures the Storybook screenshot, compares it with the reference, and writes dr
 ## Phase 3: Report Issues
 
 Report the issues as a task result — they are **not** published to meta yet. Triage will consolidate and publish them.
-
-```bash
-_debo workflow result --task $TASK_ID --key issues --json '[
-  {
-    "source": "screenshots",
-    "severity": "major",
-    "check": "${breakpoint}--${region}",
-    "description": "Header: background-color mismatch — expected light gray (#F5F5F5), actual white (#FFFFFF). File: components/header/header.twig",
-    "file_hint": "components/header/header.twig",
-    "details": "Visual comparison shows divergent background color in header region"
-  }
-]'
-```
 
 **Issue descriptions must be actionable:**
 - WHAT deviates (concrete element + property)

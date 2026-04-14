@@ -1,6 +1,17 @@
 ---
 when:
-  steps: [data-model:intake, create-data-model]
+  steps: [create-data-model]
+provides:
+  data-model:
+    properties:
+      content:
+        additionalProperties:
+          additionalProperties:
+            properties:
+              fields:
+                additionalProperties:
+                  properties:
+                    sample_template: { type: object }
 ---
 
 # Rule: Auto-assign sample_template from Config

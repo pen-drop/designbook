@@ -1,0 +1,9 @@
+# Design tokens concern schemas
+
+DesignTokens:
+  type: object
+  properties:
+    primitive: { type: object }
+    semantic: { type: object }
+    component: { type: object }
+    themes: { type: object }

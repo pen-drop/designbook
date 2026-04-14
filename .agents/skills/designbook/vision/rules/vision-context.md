@@ -1,6 +1,6 @@
 ---
 when:
-  steps: [tokens:intake, design-component:intake, design-screen:intake, design-shell:intake, sample-data:intake, sections:intake, shape-section:intake, create-component, create-section, design-screen:create-scene, design-shell:create-scene, create-sample-data, capture, recapture, compare, polish]
+  steps: [create-tokens, design-component:intake, design-screen:intake, design-shell:intake, sections:intake, create-component, create-section, design-screen:create-scene, design-shell:create-scene, create-sample-data, capture, recapture, compare, polish]
 ---
 
 # Vision Context

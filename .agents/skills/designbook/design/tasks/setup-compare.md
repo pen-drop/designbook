@@ -2,9 +2,9 @@
 when:
   steps: [setup-compare]
 params:
-  scene: ~
-  reference: []
-  breakpoints: []
+  scene: { type: string }
+  reference: { type: array, default: [] }
+  breakpoints: { type: array, default: [] }
 result:
   checks:
     type: array
@@ -74,13 +74,5 @@ This creates the story directory + `meta.yml`, validates the reference exists, a
 If the command fails, report the error and pause.
 
 ## Step 4: Complete with checks
-
-```bash
-_debo workflow result --task $TASK_ID --key checks --json "$CHECKS"
-```
-
-```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID
-```
 
 The `checks` array flows into the `capture` and `compare` stages via the `each: checks` iterables.

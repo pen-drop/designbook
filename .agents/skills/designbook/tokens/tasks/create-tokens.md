@@ -1,19 +1,83 @@
 ---
 when:
   steps: [create-tokens]
-params:
-  intake: {}
+reads:
+  - path: $DESIGNBOOK_DATA/vision.md
+    workflow: /debo-vision
+  - path: $STORY_DIR/design-reference.md
+    optional: true
+  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+    optional: true
 result:
   design-tokens:
     path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+    type: object
+    required: [primitive, semantic]
+    properties:
+      primitive: { type: object, title: Primitive Tokens }
+      semantic: { type: object, title: Semantic Tokens }
+      component: { type: object, title: Component Tokens, default: {} }
 ---
 
-# Create Design Tokens
+# Design Tokens
 
-Write the result in W3C Design Token YAML format via stdin to the CLI:
-```
-workflow result --task $TASK_ID --key design-tokens
-```
+Guide the user through choosing colors and typography. Result is W3C Design Token YAML.
+
+## Gathering
+
+### Step 1: Extract Design Reference
+
+If `$STORY_DIR/design-reference.md` already exists (from a prior run), read it and use as-is.
+
+Otherwise, apply the `extract-reference` rule to the design reference URL from `vision.md`. Write the result directly to `$STORY_DIR/design-reference.md`.
+
+Use its **Fonts** and **Color Palette** sections as the starting point for token creation.
+
+If no design reference URL is available, fall back to `vision.md` context and user input.
+
+### Step 2: Explain and Gather Preferences
+
+Introduce the token setup to the user: primitive tokens (raw values) and semantic tokens (purpose-based aliases).
+
+**If design reference is available**, present the fonts and colors from `design-reference.md` as the starting point and ask the user to confirm or adjust.
+
+**If no design reference**, ask whether they have colors and typography in mind or would like suggestions.
+
+Wait for their response.
+
+### Step 3: Choose Colors
+
+Guide the user through choosing colors.
+
+**If design reference is available**, present the color palette from `design-reference.md` grouped by hue similarity as the starting primitive palette. Let the user confirm, adjust, or add colors.
+
+**If no design reference**, suggest values based on the product vision.
+
+These become `primitive.color.*` values, with `semantic.color.*` aliases pointing to them.
+
+### Step 4: Choose Typography
+
+Guide the user through choosing fonts from Google Fonts for heading, body, and mono roles.
+
+**If design reference is available**, present the font families from `design-reference.md` as heading/body/mono candidates. Let the user confirm or override.
+
+**If no design reference**, suggest options based on the product vision.
+
+Also collect a typography scale with semantic roles (e.g., display, headline, title, body, label). Each role SHALL have a font size, font weight, and line height. Concrete role names and values come from the design reference at runtime — do not hardcode specific roles or sizes in this task.
+
+### Step 5: Check Layout Blueprints
+
+Read `required_tokens` from each blueprint already loaded for this stage. For each blueprint that declares `required_tokens`, extract its token groups and present them to the user with their default values.
+
+Suggest adjusted values based on the product's design reference. Let the user confirm or override each group.
+
+### Step 6: Optional — Additional Token Groups
+
+Depending on the design, the user may want to define additional groups (breakpoints, spacing scale, radius, shadows, etc.). Ask if they need any of these.
+
+### Step 7: Present Final Choices and Confirm
+
+Summarize all chosen tokens before saving and wait for user approval.
 
 ## Token Hierarchy
 
@@ -38,36 +102,13 @@ component:        # Component-specific tokens from blueprint required_tokens
       lg: { $value: "1024px", $type: dimension }
 ```
 
-## Instructions
-
-1. **Read naming conventions** — read the css-naming blueprint from `task.blueprints[]` filtered by `type: css-naming` for token group names, sub-key conventions, and CSS variable mapping
-2. **Primitive tokens** — for each group in `intake`, write raw values under `primitive.<group>`. Sub-key naming follows the css-naming blueprint loaded in step 1.
-3. **Semantic tokens** — create purpose-based aliases referencing primitives (e.g., `color` → `primary`/`secondary`, `typography` → `heading`/`body`/`mono`). Semantic tokens MUST reference primitives via `{primitive.<group>.<key>}` — no raw values in semantics.
-4. **Component tokens** — read `required_tokens` from each matched blueprint file and write them under `component.<group>`. These are defaults — if `component.<group>` already exists in a prior `design-tokens.yml`, keep existing values and only add missing keys
-5. Apply renderer hints per the `renderer-hints` rule
-
-## Intake Param
-
-The `intake` param is a free-form object whose keys are token groups gathered during intake (e.g., `colors`, `typography`, `breakpoints`, `type_scale`). The set of groups is not fixed — process whatever the intake provides.
-
-## Component Tokens from Blueprints
-
-Each matched blueprint declares `required_tokens` in its frontmatter. Read these and write under `component.*`.
-
-Component tokens may reference primitives or semantics:
-```yaml
-component:
-  grid:
-    gap:
-      md: { $value: "{primitive.spacing.4}", $type: dimension }
-```
-
-## Typography Composite Tokens
-
-When `intake` contains a `type_scale` group, generate `$type: typography` composite tokens in `semantic.typography` alongside any `fontFamily` tokens.
-
-## Constraints
+## Format Constraints
 
 - Every leaf token must have `$value` and `$type`
 - Colors must be hex codes
+- Fonts must be exact Google Fonts names
 - Valid `$type` values: `color`, `fontFamily`, `dimension`, `number`, `fontWeight`, `duration`, `cubicBezier`, `shadow`, `gradient`, `transition`, `border`, `strokeStyle`, `typography`
+- Three levels: primitive (raw) → semantic (aliases) → component (blueprint-derived)
+- Semantic tokens MUST reference primitives via `{primitive.<group>.<key>}` — no raw values in semantics
+- Read the css-naming blueprint from `task.blueprints[]` filtered by `type: css-naming` for token group names and CSS variable mapping
+- Apply renderer hints per the `renderer-hints` rule

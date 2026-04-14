@@ -2,11 +2,14 @@
 when:
   steps: [design-screen:create-scene]
 params:
-  section_id: ~
-  section_title: ~
-  section_description: ~
-  scenes: []
-  reference: []
+  section_id: { type: string }
+  section_title: { type: string }
+  section_description: { type: string }
+  scenes: { type: array, default: [] }
+  reference: { type: array, default: [] }
+each:
+  scene:
+    $ref: ../schemas.yml#/Scene
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
     workflow: debo-data-model
@@ -20,10 +23,7 @@ result:
 
 # Create Section Scene
 
-Creates page scenes for a section, inheriting the shell layout. Write the result via stdin to the CLI:
-```
-workflow result --task $TASK_ID --key section-scenes
-```
+Creates page scenes for a section, inheriting the shell layout.
 
 ## Input
 

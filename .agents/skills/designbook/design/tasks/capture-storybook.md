@@ -6,13 +6,16 @@ when:
   type: screenshot
 priority: 20
 params:
-  scene: ~
-  storyId: ~
-  breakpoint: ~
-  region: ~
+  scene: { type: string }
+  storyId: { type: string }
+  breakpoint: { type: string }
+  region: { type: string }
 result:
   screenshot:
     path: designbook/stories/{storyId}/screenshots/current/{breakpoint}--{region}.png
+each:
+  checks:
+    $ref: ../schemas.yml#/Check
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true

@@ -2,7 +2,7 @@
 when:
   steps: [design-shell:create-scene]
 params:
-  reference: []
+  reference: { type: array, default: [] }
 result:
   shell-scenes:
     path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
@@ -14,10 +14,7 @@ reads:
 
 # Create Shell Scene
 
-Creates the base layout scene that section scenes inherit via `scene: design-system:shell`. Write the result via stdin to the CLI:
-```
-workflow result --task $TASK_ID --key shell-scenes
-```
+Creates the base layout scene that section scenes inherit via `scene: design-system:shell`.
 
 ## Output
 

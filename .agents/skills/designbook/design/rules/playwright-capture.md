@@ -22,7 +22,7 @@ Screenshots MUST go through the workflow staging pipeline. Before capturing:
 
 3. **Register the result** so the file gets tracked and validated:
    ```bash
-   _debo workflow result --task $TASK_ID --key screenshot
+   _debo workflow result --task $TASK_ID --key screenshot --external
    ```
 
 ## Capture Modes

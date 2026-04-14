@@ -2,13 +2,16 @@
 when:
   steps: [generate-jsonata]
 params:
-  group: ~
+  group: { type: string }
 result:
   generate-jsonata:
     path: $DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group }}.jsonata
     validators:
       - "cmd:npx jsonata-w transform --dry-run {{ file }}"
       - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
+each:
+  group:
+    $ref: ../schemas.yml#/CssGroup
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: tokens

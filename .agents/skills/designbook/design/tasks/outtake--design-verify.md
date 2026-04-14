@@ -5,8 +5,8 @@ when:
   steps: [design-verify:outtake]
 priority: 50
 params:
-  scene: ~
-  storyId: ~
+  scene: { type: string }
+  storyId: { type: string }
 ---
 
 # Outtake — Design Verify

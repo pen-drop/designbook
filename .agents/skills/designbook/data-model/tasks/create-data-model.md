@@ -1,19 +1,62 @@
 ---
 when:
   steps: [create-data-model]
-params:
-  content: {}
+reads:
+  - path: $DESIGNBOOK_DATA/vision.md
+    workflow: /debo-vision
+  - path: $DESIGNBOOK_DATA/data-model.yml
+    optional: true
 result:
   data-model:
     path: $DESIGNBOOK_DATA/data-model.yml
+    type: object
+    required: [content]
+    properties:
+      content: { type: object, title: Content Entities }
+      config: { type: object, title: Config Entities, default: {} }
 ---
 
-# Create Data Model
+# Data Model
 
-Write the approved data model in YAML format via stdin to the CLI:
-```
-_debo workflow result --task $TASK_ID --key data-model
-```
+Define content and config entities through dialog.
+Read vision.md for product context. If data-model.yml exists, extend it.
+
+## Gathering
+
+### Step 1: Propose and Discuss
+
+Analyze the product vision. Propose entity types, bundles, and fields:
+
+> "Based on your product vision, I suggest the following data model:
+>
+> **[Entity Type]**
+> - `[bundle]` — [description]
+>   - `[field]` ([type]): [purpose]
+>
+> Does this match what you need? Anything to add, change, or remove?"
+
+Iterate until the user approves. Keep the conversation focused — avoid technical schema details unless the user asks.
+
+**Purpose assignment:** For each bundle, infer its semantic purpose from the name and description. Assign a `purpose` value when the bundle has a clear role. Known purposes from active extension rules:
+
+- `landing-page` — a page assembled via Layout Builder or Canvas (suggest when bundle name implies a landing/home/campaign page)
+
+When assigning purpose, check active extension rules for their purpose-conditional logic and set the appropriate `view_modes.full.template` accordingly. If no extension is active or the purpose doesn't match any rule, default view_modes to `template: field-map`.
+
+### Step 2: Check for referenced entities
+
+Calculate referenced entity types like media and provide them also to the user.
+
+### Step 3: Present Final Model
+
+Show the complete approved structure once more before saving:
+
+> "Here's the final data model:
+> [summary table or YAML preview]
+>
+> Ready to save?"
+
+Once confirmed, the result is saved automatically.
 
 ## Format
 
@@ -49,7 +92,6 @@ content:
           description: ~
           required: false
           multiple: false
-
 ```
 
 ## `view_modes` and `template`

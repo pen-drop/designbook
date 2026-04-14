@@ -19,12 +19,19 @@ import {
   resolveEngine,
   readWorkflow,
   writeWorkflowAtomic,
-  type WorkflowFile,
   type WorkflowTask,
 } from '../workflow.js';
 import { engines as engineRegistry } from '../engines/index.js';
 import { load as parseYaml } from 'js-yaml';
-import { resolveAllStages, parseFrontmatter, buildEnvMap, type ResolvedStep } from '../workflow-resolve.js';
+import {
+  resolveAllStages,
+  parseFrontmatter,
+  buildEnvMap,
+  expandResultDeclarations,
+  resolveSchemaRef,
+  type ResolvedStep,
+  type ResultDeclaration,
+} from '../workflow-resolve.js';
 
 /**
  * Unified task expansion for the CLI.
@@ -118,6 +125,8 @@ function expandWorkflowTasks(
       rootDir,
       engineResult.worktree_branch,
       resolvedEngine,
+      undefined, // schemas
+      engineResult.envMap,
     );
   } else {
     workflowAppendTasks(config.data, workflowName, tasks, newParams);
@@ -185,6 +194,39 @@ export function register(program: Command): void {
         const intakeStepName = intakeStage?.steps?.[0] ?? (intakeStage ? 'intake' : undefined);
         const intakeRaw = intakeStepName ? resolved.step_resolved[intakeStepName] : undefined;
         const intakeResolved = intakeRaw && !Array.isArray(intakeRaw) ? intakeRaw : undefined;
+        // Build result declarations for intake task from frontmatter, resolving $ref schemas
+        let intakeResult: Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined;
+        const intakeSchemas: Record<string, object> = {};
+        if (intakeResolved) {
+          const intakeFm = parseFrontmatter(intakeResolved.task_file);
+          const resultDecl = intakeFm?.result as Record<string, ResultDeclaration> | undefined;
+          const envMap = buildEnvMap(config);
+          intakeResult = expandResultDeclarations(resultDecl, undefined, initialParams ?? {}, envMap);
+
+          // Resolve $ref in result schemas inline
+          if (intakeResult && resultDecl) {
+            const skillsRoot = resolve(agentsDir, 'skills');
+            for (const [key, decl] of Object.entries(resultDecl)) {
+              if (decl.$ref && intakeResult[key]) {
+                const { typeName, schema } = resolveSchemaRef(decl.$ref, intakeResolved.task_file, skillsRoot);
+                intakeSchemas[typeName] = schema;
+                intakeResult[key]!.schema = schema;
+              }
+              // Resolve nested $ref in items
+              if (decl.items && typeof decl.items === 'object') {
+                const items = decl.items as Record<string, unknown>;
+                if (items.$ref && typeof items.$ref === 'string') {
+                  const { typeName, schema } = resolveSchemaRef(items.$ref, intakeResolved.task_file, skillsRoot);
+                  intakeSchemas[typeName] = schema;
+                  if (intakeResult[key]?.schema) {
+                    (intakeResult[key]!.schema as Record<string, unknown>).items = schema;
+                  }
+                }
+              }
+            }
+          }
+        }
+
         const intakeTask =
           intakeStepName && intakeResolved
             ? [
@@ -195,6 +237,7 @@ export function register(program: Command): void {
                   step: intakeStepName,
                   stage: 'intake' as const,
                   files: [] as Array<{ path: string; key: string; validators: string[] }>,
+                  ...(intakeResult ? { result: intakeResult } : {}),
                   task_file: intakeResolved.task_file,
                   rules: intakeResolved.rules,
                   blueprints: intakeResolved.blueprints,
@@ -216,6 +259,7 @@ export function register(program: Command): void {
         const tasksForCreate = skipIntake ? [] : intakeTask;
 
         const workspaceRoot = (config.workspace as string | undefined) ?? configDir;
+        const envMap = buildEnvMap(config);
         const name = workflowCreate(
           config.data,
           opts.workflow,
@@ -227,13 +271,15 @@ export function register(program: Command): void {
           resolved.engine,
           initialParams,
           workspaceRoot,
+          intakeSchemas,
+          envMap,
         );
 
-        // If intake was skipped, immediately expand tasks
+        // If intake was skipped or no intake stage exists, immediately expand tasks
         let expandedTasks: WorkflowTask[] | undefined;
-        if (skipIntake) {
+        if (skipIntake || !intakeStepName) {
           try {
-            const result = expandWorkflowTasks(config, name, initialParams!, 'plan');
+            const result = expandWorkflowTasks(config, name, initialParams ?? {}, 'plan');
             expandedTasks = result?.tasks;
           } catch (err) {
             console.error(`Error expanding tasks: ${(err as Error).message}`);
@@ -340,6 +386,9 @@ export function register(program: Command): void {
         }
       }
 
+      // Include merged_schema if present (from schema composition at resolution time)
+      const mergedSchema = (stage as unknown as Record<string, unknown>).merged_schema ?? undefined;
+
       console.log(
         JSON.stringify(
           {
@@ -350,6 +399,7 @@ export function register(program: Command): void {
             config_rules: stage.config_rules ?? [],
             config_instructions: stage.config_instructions ?? [],
             expected_params: expectedParams,
+            ...(mergedSchema ? { merged_schema: mergedSchema } : {}),
           },
           null,
           2,
@@ -533,15 +583,12 @@ export function register(program: Command): void {
     .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
     .requiredOption('--task <id>', 'Task id to mark done')
     .option(
-      '--params <json>',
-      '[Deprecated: use "workflow result" for data passing] Params JSON — expands tasks from params',
-    )
-    .option(
       '--loaded <json>',
       'JSON payload with stage context (task_file, rules, config_rules, config_instructions) and task validation results',
     )
     .option('--summary <text>', 'Short human-readable result summary for the task')
-    .action(async (opts: { workflow: string; task: string; params?: string; loaded?: string; summary?: string }) => {
+    .option('--data <json>', 'JSON object with data results — keys must match declared result entries')
+    .action(async (opts: { workflow: string; task: string; loaded?: string; summary?: string; data?: string }) => {
       const config = loadConfig();
       let loaded;
       if (opts.loaded) {
@@ -553,57 +600,27 @@ export function register(program: Command): void {
           return;
         }
       }
-      try {
-        // If --params provided, expand tasks (deprecated — use workflow result for data passing)
-        let expandedTasks: WorkflowTask[] | null = null;
-        if (opts.params) {
-          console.warn('[designbook] --params on workflow done is deprecated — use "workflow result" for data passing');
-          let newParams: Record<string, unknown> = {};
-          try {
-            newParams = JSON.parse(opts.params);
-          } catch (err) {
-            console.error(`Error parsing --params JSON: ${(err as Error).message}`);
+      let dataPayload: Record<string, unknown> | undefined;
+      if (opts.data) {
+        try {
+          dataPayload = JSON.parse(opts.data);
+          if (typeof dataPayload !== 'object' || dataPayload === null || Array.isArray(dataPayload)) {
+            console.error('Error: --data must be a JSON object');
             process.exitCode = 1;
             return;
           }
-          if (Object.keys(newParams).length > 0) {
-            // Use 'plan' mode for intake (first expansion — sets engine fields),
-            // 'append' mode for subsequent tasks (adds to existing tasks)
-            const mode = opts.task === 'intake' ? 'plan' : 'append';
-            const result = expandWorkflowTasks(config, opts.workflow, newParams, mode);
-            expandedTasks = result?.tasks ?? null;
-            if (expandedTasks && expandedTasks.length > 0) {
-              console.log(`Expanded ${expandedTasks.length} tasks`);
-            }
-          }
+        } catch {
+          console.error('Error: --data must be valid JSON');
+          process.exitCode = 1;
+          return;
         }
-
-        // If task is already done and --params were provided, skip workflowDone —
-        // the expansion already happened above and that's the intended side-effect.
-        if (opts.params && expandedTasks) {
-          const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
-          const wfPath = resolve(changesDir, 'tasks.yml');
-          if (existsSync(wfPath)) {
-            const wfData = parseYaml(readFileSync(wfPath, 'utf-8')) as WorkflowFile;
-            const targetTask = wfData.tasks.find((t) => t.id === opts.task);
-            if (targetTask?.status === 'done') {
-              console.log(`Task ${opts.task} already done — expanded ${expandedTasks.length} tasks`);
-              const responseObj = {
-                stage: targetTask.stage ?? 'unknown',
-                expanded_tasks: expandedTasks.map((t) => ({
-                  id: t.id,
-                  step: t.step,
-                  stage: t.stage,
-                  title: t.title,
-                })),
-              };
-              console.log(`\nRESPONSE: ${JSON.stringify(responseObj)}`);
-              return;
-            }
-          }
-        }
-
-        const result = await workflowDone(config.data, opts.workflow, opts.task, loaded, { summary: opts.summary });
+      }
+      try {
+        const result = await workflowDone(config.data, opts.workflow, opts.task, loaded, {
+          summary: opts.summary,
+          data: dataPayload,
+          config,
+        });
         const { data, response } = result;
 
         if (result.archived) {
@@ -620,17 +637,8 @@ export function register(program: Command): void {
         }
 
         // Output stage-based response (replaces FLAGS)
-        const responseObj = response ? { ...response } : null;
-        if (expandedTasks && responseObj) {
-          (responseObj as Record<string, unknown>).expanded_tasks = expandedTasks.map((t) => ({
-            id: t.id,
-            step: t.step,
-            stage: t.stage,
-            title: t.title,
-          }));
-        }
-        if (responseObj) {
-          console.log(`\nRESPONSE: ${JSON.stringify(responseObj)}`);
+        if (response) {
+          console.log(`\nRESPONSE: ${JSON.stringify(response)}`);
         }
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);

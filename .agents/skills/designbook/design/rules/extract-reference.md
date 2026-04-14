@@ -1,7 +1,7 @@
 ---
 name: designbook:design:extract-reference
 when:
-  steps: [design-shell:intake, design-screen:intake, tokens:intake]
+  steps: [design-shell:intake, design-screen:intake, create-tokens]
 ---
 
 # Design Extraction
@@ -109,18 +109,20 @@ npx playwright-cli close
 
 ### Phase 3: Write design-reference.md
 
-Write the extracted data via the workflow CLI:
+Write the extracted data via the workflow CLI with `--flush` so the calling task can read it immediately:
 
 ```bash
-cat <<'EOF' | _debo workflow result --task $TASK_ID --key design-reference
+cat <<'EOF' | _debo workflow result --task $TASK_ID --key design-reference --flush
 <markdown content>
 EOF
 ```
 
+`--flush` ensures the file is available immediately for subsequent reads within the same task.
+
 If the calling task declares a different file key for the output, use that key:
 
 ```bash
-cat <<'EOF' | _debo workflow result --task $TASK_ID --key design-storybook
+cat <<'EOF' | _debo workflow result --task $TASK_ID --key design-storybook --flush
 <markdown content>
 EOF
 ```

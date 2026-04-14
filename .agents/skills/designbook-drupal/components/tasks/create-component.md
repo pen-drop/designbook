@@ -3,11 +3,11 @@ when:
   steps: [create-component]
   frameworks.component: sdc
 params:
-  component: ~
-  slots: []
-  props: []
-  group: ~
-  variants: []
+  component: { type: string }
+  slots: { type: array, default: [] }
+  props: { type: array, default: [] }
+  group: { type: string }
+  variants: { type: array, default: [] }
 result:
   component-yml:
     path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.component.yml
@@ -19,6 +19,9 @@ result:
     $ref: designbook-drupal/components/schemas.yml#/StoryYml
   app-css:
     path: ${DESIGNBOOK_CSS_APP}
+each:
+  component:
+    $ref: designbook/design/schemas.yml#/Component
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: debo-design-tokens
@@ -26,12 +29,7 @@ reads:
 
 # Create SDC Component
 
-Creates three files per component. All files share the same kebab-case base name as the directory. Write each file via stdin to the CLI:
-```
-workflow result --task $TASK_ID --key component-yml
-workflow result --task $TASK_ID --key component-twig
-workflow result --task $TASK_ID --key component-story
-```
+Creates three files per component. All files share the same kebab-case base name as the directory.
 
 ## Variant Story Files
 
@@ -76,7 +74,7 @@ Generate in three phases across **all components** before moving to the next pha
 2. **Phase 2 — ALL `.story.yml` files** — read `resources/story-yml.md` once
 3. **Phase 3 — Each `.component.yml` + validate** — read `resources/component-yml.md` once; validate each component immediately after writing
 
-The CSS skill is only needed in Phase 1. Validation runs after each component YAML via `workflow validate --task`.
+The CSS skill is only needed in Phase 1.
 
 ## YAML Quoting Rule
 

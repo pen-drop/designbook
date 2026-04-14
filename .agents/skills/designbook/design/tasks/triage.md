@@ -5,10 +5,15 @@ when:
   steps: [triage]
 priority: 10
 params:
-  scene: ~
-  storyId: ~
+  scene: { type: string }
+  storyId: { type: string }
   issues:
     type: array
+result:
+  issues:
+    type: array
+    items:
+      $ref: ../schemas.yml#/Issue
 ---
 
 # Triage
@@ -74,10 +79,6 @@ Each issue object must contain `id` and the params that `polish.md` needs:
     {"property": "fontFamily", "expected": "Inter", "actual": "Nunito Sans"}
   ]
 }
-```
-
-```bash
-_debo workflow result --task $TASK_ID --key issues --json '<consolidated-issues-array>'
 ```
 
 The workflow engine expands polish tasks from the `issues` result via `each: issues`.

@@ -1,0 +1,48 @@
+# Drupal SDC component schemas
+
+ComponentYml:
+  description: SDC .component.yml metadata file
+  type: object
+  required: [name, status, group]
+  properties:
+    $schema: { type: string }
+    name: { type: string }
+    status: { type: string, enum: [stable, experimental, deprecated] }
+    group: { type: string }
+    description: { type: string }
+    provider: { type: string }
+    props:
+      type: object
+      properties:
+        type: { type: string, const: object }
+        properties: { type: object }
+        required:
+          type: array
+          items: { type: string }
+    slots: { type: object }
+    variants: { type: object }
+    thirdPartySettings:
+      type: object
+      properties:
+        sdcStorybook:
+          type: object
+          properties:
+            disableBasicStory: { type: boolean }
+
+StoryYml:
+  description: SDC .story.yml file
+  type: object
+  required: [component]
+  properties:
+    component: { type: string }
+    variant: { type: string }
+    stories:
+      type: array
+      items:
+        type: object
+        required: [name]
+        properties:
+          name: { type: string }
+          description: { type: string }
+          props: { type: object }
+          slots: { type: object }

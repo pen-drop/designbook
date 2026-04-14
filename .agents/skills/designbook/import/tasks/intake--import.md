@@ -4,6 +4,11 @@ when:
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
     workflow: vision
+result:
+  workflow:
+    type: array
+    items:
+      $ref: ../schemas.yml#/ImportWorkflow
 ---
 
 # Intake: Import Design System

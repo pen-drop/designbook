@@ -1,12 +1,16 @@
 ---
 when:
   steps: [sections:intake]
-files: []
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
     workflow: /debo-vision
   - path: $DESIGNBOOK_DATA/sections
     optional: true
+result:
+  section:
+    type: array
+    items:
+      $ref: ../schemas.yml#/Section
 ---
 
 # Intake: Sections

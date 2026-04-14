@@ -2,9 +2,24 @@
 when:
   steps: [design-verify:intake]
 params:
-  scene: ~
-  reference: []
-  breakpoints: []
+  scene: { type: string }
+  reference: { type: array, default: [] }
+  breakpoints: { type: array, default: [] }
+result:
+  scene:
+    type: string
+    title: Scene
+  reference:
+    type: array
+    title: Design Reference
+    default: []
+    items:
+      $ref: ../schemas.yml#/Reference
+  breakpoints:
+    type: array
+    title: Breakpoints
+    default: []
+    items: { type: string }
 ---
 
 # Intake: Design Verify
@@ -50,14 +65,9 @@ _debo storybook status
 - **If not running:** `_debo storybook start`. Wait for `{ ready: true }`.
 - **If startup fails:** report errors from `_debo storybook logs` and pause.
 
-## Step 3: Complete with Params
+## Step 3: Write Results and Complete
 
-Pass `scene`, `reference`, and `breakpoints` to the next stage. The `setup-compare` stage handles story creation and checks resolution.
-
-```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID \
-  --params "{\"scene\": \"${scene}\", \"reference\": $REFERENCE, \"breakpoints\": $BREAKPOINTS}"
-```
+Pass `scene`, `reference`, and `breakpoints` to the next stage via data results. The `setup-compare` stage handles story creation and checks resolution.
 
 - `reference`: the array from Step 1 (or `params.reference` in subworkflow mode)
 - `breakpoints`: from user input (standalone) or empty array (subworkflow — setup-compare resolves from design-tokens)

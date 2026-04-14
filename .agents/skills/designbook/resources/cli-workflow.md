@@ -238,8 +238,6 @@ Mark a task as done. Triggers stage transitions, scope collection, and auto-arch
 | `--loaded <json>` | No | Stage context payload for observability (task_file, rules, config_rules, config_instructions) |
 | `--summary <text>` | No | Short human-readable result summary for the task |
 
-> **Deprecated:** `--params <json>` still works but is deprecated. Use `workflow result --key <key> --json` to write data results instead. Data results flow into scope automatically at stage completion.
-
 **Gate checks before marking done:**
 - All declared results must be written via `workflow result` and valid
 - Results with unresolved `{param}` placeholders are skipped

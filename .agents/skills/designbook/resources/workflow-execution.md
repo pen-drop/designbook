@@ -171,33 +171,37 @@ This transitions the workflow from `running` → `waiting`, shows an amber pulse
 
 **Writing results:**
 
-File results (content from stdin):
+Task results are driven by the `result:` schema in the task's frontmatter. The merged schema (from `workflow instructions`) is the single source of truth for what to fill.
+
+**File results** (result keys with `path:`):
+Write each file to its declared path using the Write tool. The engine auto-detects files at declared paths when `done` is called — no explicit `workflow result` needed.
+
+**Data results** (result keys without `path:`):
+Pass all data results as a single JSON object via `--data` on `workflow done`:
 ```bash
-cat <<'EOF' | _debo workflow result --task <task-id> --key <key>
-<file content>
-EOF
+_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> --data '{"scene": "shell", "reference": []}'
 ```
 
-Data results (JSON inline):
+**External file results** (written by Playwright or other external tools):
+Register via `workflow result --external`, then call `done`:
 ```bash
-_debo workflow result --task <task-id> --key <key> --json '<json-data>'
+_debo workflow result --task <task-id> --key <key> --external
 ```
 
-If `valid: false` → fix content and call `workflow result` again until valid.
-
-> **Deprecated:** `workflow write-file` still works as an alias for `workflow result` but should not be used in new code.
+**Legacy path:** `workflow result --key <key>` (stdin) and `workflow result --key <key> --json` still work for mid-task writes that need `--flush` or for backward compatibility, but new tasks should prefer the schema-driven approach above.
 
 ### 2c. Mark Task Done
 
 ```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--summary <text>]
+_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--data '<json>'] [--summary <text>]
 ```
 
-Pass `--summary` with a short result description when the task outcome is not obvious from the title alone. The summary is shown in the Storybook panel next to the task title. Skip it for self-explanatory tasks (e.g. "Capture Reference: sm/header"). Use it for tasks that produce results the user would want to see at a glance (e.g. "3 issues found", "12 → 4 consolidated", "fontSize 14px → 48px").
+- `--data '<json>'` — pass all data results (result keys without `path:`) as a single JSON object. The engine distributes keys to declared results, validates each against the merged schema, and marks the task done.
+- `--summary` — short result description shown in Storybook panel. Skip for self-explanatory tasks.
+- Results with `default:` in the merged schema are auto-filled if not provided.
+- File results at declared `path:` locations are auto-collected — no explicit registration needed.
 
-> **Deprecated:** `--params` on `workflow done` still works but is deprecated. Use `workflow result --key <key> --json '<data>'` to write data results instead. Data results declared in `result:` flow into scope at stage completion and automatically expand subsequent stages that declare `each:` on matching keys.
-
-**Data flow model:** Tasks declare their outputs via `result:` in frontmatter. File results are written via `workflow result --key <key>` (stdin). Data results are written via `workflow result --key <key> --json '<data>'`. When all tasks in a stage complete, the engine collects data results into the workflow scope and expands pending stages whose `each:` keys are now available.
+**Data flow model:** Tasks declare their outputs via `result:` in frontmatter with a JSON Schema. The engine validates results against the merged schema (base + blueprint extensions + rule constraints). When all tasks in a stage complete, the engine collects data results into the workflow scope and expands pending stages whose `each:` keys are now available.
 
 ### 2d. Follow the Response
 
@@ -227,7 +231,7 @@ When `scope_update` is present, it means the engine collected data results from 
 _debo workflow wait --workflow $WORKFLOW_NAME --message "Preview OK?"
 ```
 
-Then ask the user the prompt. When the user answers, call `done` again with the answer as `--params`. The next CLI call (`done`, `result`, or `instructions`) automatically transitions the workflow back to `running`.
+Then ask the user the prompt. When the user answers, write the answer via `workflow result --key <key> --json '<data>'`, then call `done`. The next CLI call (`done`, `result`, or `instructions`) automatically transitions the workflow back to `running`.
 
 **Workflow complete:**
 ```json

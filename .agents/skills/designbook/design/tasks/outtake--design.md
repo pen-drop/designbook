@@ -5,9 +5,9 @@ when:
   steps: [design-screen:outtake, design-shell:outtake, design-verify:outtake]
 priority: 50
 params:
-  scene: ~
-  reference: []
-  storyId: ~
+  scene: { type: string }
+  reference: { type: array, default: [] }
+  storyId: { type: string }
   issues:
     type: array
 ---
@@ -62,14 +62,7 @@ Ask the user:
 
 > "Start design-verify?"
 
-- **If yes** → create and run the design-verify workflow:
-
-  ```bash
-  _debo workflow create --workflow design-verify \
-    --workflow-file <resolve design-verify.md from skills> \
-    --parent $WORKFLOW_NAME \
-    --params '{"scene": "${scene}", "reference": <params.reference>}'
-  ```
+- **If yes** → create and run the design-verify workflow as a child workflow with params `{"scene": "${scene}", "reference": <params.reference>}`.
 
   Execute the child workflow completely. Since screenshots already exist from the inline capture, the capture tasks will auto-skip.
 
