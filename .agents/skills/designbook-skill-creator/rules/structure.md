@@ -20,7 +20,7 @@ Use a flat structure:
 │   └── [name].md         # frontmatter: when: { steps: [create-component] }
 ├── resources/            # Reference docs, split by concern
 │   └── [topic].md
-└── *.schema.json         # JSON Schemas bundled in skill dir (not downloaded)
+└── schemas.yml            # Reusable JSON Schema definitions (PascalCase keys)
 ```
 
 ## Core Skill (Part 1 — `designbook`)
@@ -35,8 +35,15 @@ Uses a three-level concern-based structure:
     ├── tasks/            # Shared tasks + workflow-specific (intake--<id>.md)
     ├── rules/            # Concern-level rules
     ├── resources/        # Concern-level reference docs
-    └── workflows/        # Workflow definitions (<workflow-id>.md)
+    ├── workflows/        # Workflow definitions (<workflow-id>.md)
+    └── schemas.yml       # Concern-level JSON Schema definitions
 ```
+
+## `schemas.yml` — Schema Definitions
+
+Each concern directory (core) or skill root (integration) can contain a `schemas.yml` file with reusable JSON Schema definitions. Tasks, rules, and blueprints reference these via `$ref`.
+
+See [`resources/schemas.md`](../resources/schemas.md) for format conventions and `$ref` syntax.
 
 ## `tasks/` — Naming Rule
 
@@ -85,6 +92,40 @@ when:
 
 Use `provide-` as the filename prefix for provider rules (e.g. `provide-stitch-url.md`). Constraint rules (without `provides`) use descriptive names as before.
 
+### Schema Extension Fields
+
+Rules can extend the merged result schema of a task. Three operations:
+
+| Field | Effect | Allowed in |
+|-------|--------|------------|
+| `extends:` | Add new properties (error on duplicates) | Rule, Blueprint |
+| `provides:` (object) | Set default values (last writer wins) | Rule, Blueprint |
+| `constrains:` | Intersect enum values | Rule only |
+
+```yaml
+---
+when:
+  steps: [create-tokens]
+constrains:
+  design-tokens:
+    properties:
+      semantic:
+        properties:
+          spacing:
+            additionalProperties:
+              properties:
+                $extensions:
+                  properties:
+                    designbook:
+                      properties:
+                        renderer: { enum: [margin, padding] }
+---
+```
+
+**Note:** `provides: <param>` (string — Provider Rule) and `provides:` (object — Schema Defaults) are different concepts. Provider Rules resolve workflow params; schema `provides:` sets default values on result properties.
+
+See [`resources/schema-composition.md`](../resources/schema-composition.md) for the full merge model.
+
 ## `blueprints/` — When Conditions
 
 Same `when` matching as rules. Use `when.steps` to scope to a specific creation stage.
@@ -95,6 +136,10 @@ when:
   steps: [create-component]
 ---
 ```
+
+### Schema Extension Fields
+
+Blueprints support `extends:` and `provides:` (object form) to contribute to the merged result schema. **`constrains:` is forbidden in blueprints** — only rules may constrain enum values.
 
 ## `SKILL.md` — Index Only
 
