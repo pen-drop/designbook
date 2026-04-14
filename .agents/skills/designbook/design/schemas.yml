@@ -2,9 +2,9 @@
 
 Check:
   type: object
-  required: [storyId, breakpoint, region]
+  required: [story_id, breakpoint, region]
   properties:
-    storyId: { type: string }
+    story_id: { type: string }
     breakpoint: { type: string }
     region: { type: string, enum: [full, header, footer] }
     threshold: { type: number, default: 0 }
@@ -14,6 +14,10 @@ Issue:
   type: object
   required: [severity, description]
   properties:
+    id: { type: string }
+    story_id: { type: string }
+    checkKey: { type: string }
+    scene_id: { type: string }
     severity: { type: string, enum: [critical, major, minor] }
     description: { type: string }
     file_hint: { type: string }
@@ -57,3 +61,11 @@ Reference:
     breakpoint: { type: string }
     threshold: { type: number }
     title: { type: string }
+
+EntityMapping:
+  type: object
+  required: [entity_type, bundle, view_mode]
+  properties:
+    entity_type: { type: string }
+    bundle: { type: string }
+    view_mode: { type: string }
