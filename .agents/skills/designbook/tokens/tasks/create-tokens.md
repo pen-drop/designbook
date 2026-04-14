@@ -1,11 +1,11 @@
 ---
 when:
   steps: [create-tokens]
+params:
+  reference_dir: { type: string, default: "" }
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
     workflow: /debo-vision
-  - path: $STORY_DIR/design-reference.json
-    optional: true
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
 result:
@@ -27,9 +27,9 @@ Guide the user through choosing colors and typography. Result is W3C Design Toke
 
 ### Step 1: Extract Design Reference
 
-If `$STORY_DIR/design-reference.json` already exists (from a prior run), read it and use as-is.
+If `$reference_dir` is non-empty and `$reference_dir/extract.json` exists (from a prior run), read it and use as-is.
 
-Otherwise, apply the `extract-reference` rule to the design reference URL from `vision.md`. Write the result directly to `$STORY_DIR/design-reference.json`.
+Otherwise, apply the `extract-reference` rule to the design reference URL from `vision.md`.
 
 Use its `fonts`, `colors`, and `tokens` fields as the starting point for token creation.
 
@@ -39,7 +39,7 @@ If no design reference URL is available, fall back to `vision.md` context and us
 
 Introduce the token setup to the user: primitive tokens (raw values) and semantic tokens (purpose-based aliases).
 
-**If design reference is available**, present the fonts and colors from `design-reference.json` as the starting point and ask the user to confirm or adjust.
+**If design reference is available**, present the fonts and colors from `$reference_dir/extract.json` as the starting point and ask the user to confirm or adjust.
 
 **If no design reference**, ask whether they have colors and typography in mind or would like suggestions.
 
@@ -49,7 +49,7 @@ Wait for their response.
 
 Guide the user through choosing colors.
 
-**If design reference is available**, present the color palette from design-reference.json (use the `tokens.colors` field for semantic grouping, `colors` array for the full palette). Let the user confirm, adjust, or add colors.
+**If design reference is available**, present the color palette from `$reference_dir/extract.json` (use the `tokens.colors` field for semantic grouping, `colors` array for the full palette). Let the user confirm, adjust, or add colors.
 
 **If no design reference**, suggest values based on the product vision.
 
@@ -59,7 +59,7 @@ These become `primitive.color.*` values, with `semantic.color.*` aliases pointin
 
 Guide the user through choosing fonts from Google Fonts for heading, body, and mono roles.
 
-**If design reference is available**, present the font families from design-reference.json (use the `tokens.fonts` field for role assignment). Let the user confirm or override.
+**If design reference is available**, present the font families from `$reference_dir/extract.json` (use the `tokens.fonts` field for role assignment). Let the user confirm or override.
 
 **If no design reference**, suggest options based on the product vision.
 
