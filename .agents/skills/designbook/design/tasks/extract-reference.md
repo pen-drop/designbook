@@ -5,49 +5,44 @@ params:
   scene_id: { type: string }
   component_id: { type: string }
 result:
-  design-reference:
-    path: $STORY_DIR/design-reference.json
+  reference_dir:
+    type: string
   reference:
     type: array
     items:
       $ref: ../schemas.yml#/Reference
   screenshot:
-    path: $STORY_DIR/reference-full.png
+    type: string
+    default: ""
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
-  - path: $STORY_DIR/design-reference.json
-    optional: true
 ---
 
 # Extract Reference
 
 Standalone task that resolves and extracts a design reference. First stage in all design workflows (design-component, design-shell, design-screen, design-verify).
 
-Output is structured JSON (`design-reference.json`) conforming to the `DesignReference` schema. Two strategies, both always include vision:
+Output is a `DesignReference` JSON object saved to `$DESIGNBOOK_DATA/references/<hash>/extract.json`. Screenshots are saved alongside it. Two strategies, both always include vision:
 
 - **`playwright+vision`** -- Playwright extracts exact DOM values, Vision provides semantic understanding. Best quality.
 - **`vision`** -- Screenshot only, all values estimated by AI. Fallback when no markup is available.
 
-## Step 1: Resolve $STORY_DIR
+## Resolve Reference Directory
 
-Resolve the story directory using the CLI. Exactly one of `scene_id` or `component_id` will be set:
+Each URL gets a persistent directory identified by a truncated SHA-256 hash:
 
-- If `scene_id` is set: `STORY_DIR=$(_debo story --scene ${scene_id} --create | jq -r '.storyDir')`
-- If `component_id` is set: `STORY_DIR=$(_debo story --component ${component_id} --create | jq -r '.storyDir')`
+1. **Normalize the URL**: lowercase, remove trailing slash. Keep query strings.
+2. **Compute hash**:
+   ```bash
+   HASH=$(echo -n "<normalized-url>" | sha256sum | cut -c1-12)
+   ```
+3. **Set reference directory**:
+   ```bash
+   REF_DIR="$DESIGNBOOK_DATA/references/$HASH"
+   mkdir -p "$REF_DIR"
+   ```
 
-## Step 2: Reuse Check
-
-If `$STORY_DIR/design-reference.json` already exists (from a prior workflow run):
-
-> "A design reference already exists for this target:
->
-> [show source, strategy, and token summary from existing JSON]
->
-> Use existing reference or extract fresh?"
-
-If the user chooses to reuse, read the existing file and skip to Step 6.
-
-## Step 3: Find Reference URL
+## Step 1: Find Reference URL
 
 Read `vision.md` and look for a design reference URL.
 
@@ -71,6 +66,26 @@ Wait for response. The user may:
 Wait for response.
 
 If the user says "skip", complete the task with empty results (no design-reference.json, empty reference array, no screenshot).
+
+## Step 2: Reuse Check
+
+After resolving the URL and computing the hash, check if an extraction already exists:
+
+```bash
+test -f "$REF_DIR/extract.json"
+```
+
+**If `extract.json` exists:**
+
+Read the `extracted` field from the JSON to show the extraction date:
+
+> "Extraktion von `<url>` existiert bereits (extrahiert am `<date>`). Wiederverwenden oder neu extrahieren?"
+
+Wait for response. The user may:
+- **Reuse**: Read `extract.json`, build results from it, skip to Step 5
+- **Re-extract**: Continue to Step 4
+
+**If `extract.json` does not exist:** Continue to Step 4.
 
 ## Step 4: Extract Structure
 
@@ -98,11 +113,11 @@ If `storybook status` returns `{ "running": false }`, start it first with `_debo
 All browser interaction uses `playwright-cli`. See [cli-playwright.md](../../resources/cli-playwright.md) for the full command reference.
 
 ```bash
-npx playwright-cli open
-npx playwright-cli goto "<referenceUrl>"
-npx playwright-cli resize 1440 1600
-npx playwright-cli run-code "async (page) => { await page.waitForTimeout(3000) }"
-npx playwright-cli screenshot --full-page --filename "$STORY_DIR/reference-full.png"
+npx @playwright/cli open
+npx @playwright/cli goto "<referenceUrl>"
+npx @playwright/cli resize 1440 1600
+npx @playwright/cli run-code "async (page) => { await page.waitForTimeout(3000) }"
+npx @playwright/cli screenshot --full-page --filename "$REF_DIR/reference-full.png"
 ```
 
 Inspect the screenshot visually to understand the page layout.
@@ -110,14 +125,14 @@ Inspect the screenshot visually to understand the page layout.
 Take a snapshot to identify landmark refs, then capture region screenshots:
 
 ```bash
-npx playwright-cli snapshot
+npx @playwright/cli snapshot
 ```
 
 From the snapshot, identify header and footer element refs. If they exist:
 
 ```bash
-npx playwright-cli screenshot <header-ref> --filename "$STORY_DIR/reference-header.png"
-npx playwright-cli screenshot <footer-ref> --filename "$STORY_DIR/reference-footer.png"
+npx @playwright/cli screenshot <header-ref> --filename "$REF_DIR/reference-header.png"
+npx @playwright/cli screenshot <footer-ref> --filename "$REF_DIR/reference-footer.png"
 ```
 
 ### Phase 2 -- Playwright eval calls (when hasMarkup: true)
@@ -127,7 +142,7 @@ Run individual focused eval calls. Each returns JSON.
 #### eval 1: Fonts
 
 ```bash
-npx playwright-cli eval "() => {
+npx @playwright/cli eval "() => {
   const fonts = new Map();
   document.querySelectorAll('*').forEach(el => {
     const ff = getComputedStyle(el).fontFamily.split(',')[0].trim().replace(/['\x22]/g, '');
@@ -149,7 +164,7 @@ For each non-system font: extract `@font-face` declarations and Google Fonts `<l
 #### eval 2: Typography
 
 ```bash
-npx playwright-cli eval "() => {
+npx @playwright/cli eval "() => {
   const elements = ['h1','h2','h3','h4','h5','h6','p','a','button','li','span','label','figcaption'];
   const results = [];
   for (const tag of elements) {
@@ -173,7 +188,7 @@ npx playwright-cli eval "() => {
 #### eval 3: Colors
 
 ```bash
-npx playwright-cli eval "() => {
+npx @playwright/cli eval "() => {
   const colors = new Map();
   function addColor(hex, usage) {
     if (!colors.has(hex)) colors.set(hex, new Set());
@@ -201,7 +216,7 @@ npx playwright-cli eval "() => {
 #### eval 4: CSS Variables
 
 ```bash
-npx playwright-cli eval "() => {
+npx @playwright/cli eval "() => {
   const vars = [];
   for (const sheet of document.styleSheets) {
     try {
@@ -223,7 +238,7 @@ npx playwright-cli eval "() => {
 #### eval 5: Spacing
 
 ```bash
-npx playwright-cli eval "() => {
+npx @playwright/cli eval "() => {
   const spacings = new Set();
   const body = document.body;
   const bodyCs = getComputedStyle(body);
@@ -247,7 +262,7 @@ npx playwright-cli eval "() => {
 #### eval 6: Landmarks
 
 ```bash
-npx playwright-cli eval "() => {
+npx @playwright/cli eval "() => {
   function getRow(el) {
     const cs = getComputedStyle(el);
     return {
@@ -271,7 +286,7 @@ npx playwright-cli eval "() => {
 #### eval 7: Interactive
 
 ```bash
-npx playwright-cli eval "() => {
+npx @playwright/cli eval "() => {
   const items = [];
   document.querySelectorAll('a, button, [role=button], input[type=submit]').forEach(el => {
     const cs = getComputedStyle(el);
@@ -296,7 +311,7 @@ npx playwright-cli eval "() => {
 #### eval 8: Box Model
 
 ```bash
-npx playwright-cli eval "() => {
+npx @playwright/cli eval "() => {
   const radii = new Set();
   const shadows = new Set();
   document.querySelectorAll('*').forEach(el => {
@@ -311,7 +326,7 @@ npx playwright-cli eval "() => {
 #### Close Session
 
 ```bash
-npx playwright-cli close
+npx @playwright/cli close
 ```
 
 ### Phase 3 -- Vision + Merge (always)
@@ -334,30 +349,16 @@ When no Playwright data (`vision`): Vision estimates all values from the screens
 
 ### Phase 4 -- Write output
 
-Assemble the `DesignReference` JSON object from the merged data and write it to `$STORY_DIR/design-reference.json`.
+Write the assembled `DesignReference` JSON to the reference directory:
 
-The JSON conforms to the `DesignReference` schema in `schemas.yml`. All fields populated from Phase 2 (exact) or Phase 3 (estimated). The `tokens` block contains semantically assigned values:
-
-```json
-{
-  "source": "<reference URL>",
-  "extracted": "<ISO date>",
-  "strategy": "<vision|playwright+vision>",
-  "fonts": [...],
-  "typography": [...],
-  "colors": [...],
-  "css_variables": [...],
-  "spacing": {...},
-  "landmarks": {...},
-  "interactive": [...],
-  "tokens": {
-    "colors": { "primary": "#...", "secondary": "#...", "accent": "#...", "surface": "#...", ... },
-    "fonts": { "heading": "...", "body": "...", "mono": "..." },
-    "spacing": ["4px", "8px", "16px", "24px", "32px", "48px"],
-    "radii": ["4px", "8px", "9999px"]
-  }
-}
+```bash
+# Write extract.json
+cat > "$REF_DIR/extract.json" << 'EOF'
+<assembled DesignReference JSON>
+EOF
 ```
+
+The JSON conforms to the `DesignReference` schema in `schemas.yml`. All fields populated from Phase 2 (exact) or Phase 3 (estimated). The `tokens` block contains semantically assigned values.
 
 ### Vision Fallback (hasMarkup: false)
 
@@ -366,7 +367,13 @@ The JSON conforms to the `DesignReference` schema in `schemas.yml`. All fields p
 3. Produce the same JSON structure with AI-estimated values
 4. Set `strategy: "vision"`
 
-## Step 5: Write Results
+## Step 5: Return Results
+
+All results are returned as data results via `workflow done --data`.
+
+### reference_dir
+
+The absolute path to the hash directory: `$REF_DIR` (e.g. `$DESIGNBOOK_DATA/references/a1b2c3d4e5f6`).
 
 ### reference[] Array
 
@@ -379,8 +386,8 @@ If the source was a screenshot (not URL), use `type: "image"`.
 
 ### screenshot
 
-The full-page screenshot at `$STORY_DIR/reference-full.png`.
+The full-page screenshot at `$REF_DIR/reference-full.png`.
 
 ## Step 6: Reuse
 
-If the target file already exists and the user chose to reuse (Step 2), read the existing JSON and reconstruct the `reference[]` array from the `source` field. The screenshot files should already exist alongside it.
+If the user chose to reuse in Step 2, read `$REF_DIR/extract.json` and reconstruct the `reference[]` array from the `source` field. The screenshot files already exist in `$REF_DIR/`.
