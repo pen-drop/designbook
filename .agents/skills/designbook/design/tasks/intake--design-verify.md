@@ -17,9 +17,9 @@ result:
   breakpoints:
     type: array
     items: { type: string }
-reads:
-  - path: $STORY_DIR/design-reference.json
-    optional: true
+params:
+  reference_dir: { type: string, default: "" }
+reads: []
 ---
 
 # Intake: Design Verify
@@ -51,12 +51,12 @@ Set `params.scene_id` or `params.component_id` from the answer.
 
 ## Step 2: Resolve Reference
 
-If `$STORY_DIR/design-reference.json` exists (from a prior build workflow or the extract-reference stage):
-- Read the `Source:` line to get the reference URL
+If `$reference_dir` is non-empty and `$reference_dir/extract.json` exists (from a prior build workflow or the extract-reference stage):
+- Read the `source` field from `extract.json` to get the reference URL
 - Build the `reference` array: `[{"type": "url", "url": "<url>", "threshold": 3, "title": "<label>"}]`
 - Skip asking the user for a reference
 
-If no `design-reference.json` and `params.reference` is empty:
+If no `$reference_dir` and `params.reference` is empty:
 
 > "What is the design reference?
 > - A URL to the design source

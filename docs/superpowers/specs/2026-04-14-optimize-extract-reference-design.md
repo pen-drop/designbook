@@ -62,10 +62,10 @@ Phase 3 — Vision + Merge (always)
   When no Playwright data: estimated values + semantic names
 
 Phase 4 — Write output
-  → $STORY_DIR/design-reference.json (primary output)
-  → $STORY_DIR/reference-full.png
-  → $STORY_DIR/reference-header.png
-  → $STORY_DIR/reference-footer.png
+  → $DESIGNBOOK_DATA/references/<hash>/extract.json (primary output)
+  → $DESIGNBOOK_DATA/references/<hash>/reference-full.png
+  → $DESIGNBOOK_DATA/references/<hash>/reference-header.png
+  → $DESIGNBOOK_DATA/references/<hash>/reference-footer.png
 ```
 
 All Playwright interaction uses `npx playwright-cli` commands (eval, screenshot, snapshot). Individual focused eval calls, not a single monolithic script.
@@ -274,13 +274,12 @@ The `Component` schema's `design_hint` field changes from `{ type: object }` to 
 
 ```
 extract-reference
-  ├─ design-reference.json  ──→  intake--design-* (reads JSON, builds design_hint per component)
-  │                          ──→  create-tokens (reads tokens block)
-  │                          ──→  intake--design-verify (reads source URL)
-  ├─ reference[]             ──→  create-scene, setup-compare (reference URLs)
-  ├─ reference-full.png      ──→  intake (visual context)
-  ├─ reference-header.png    ──→  intake (region screenshot for header component)
-  └─ reference-footer.png    ──→  intake (region screenshot for footer component)
+  ├─ reference_dir             ──→  intake--design-* (reads extract.json from dir)
+  │                            ──→  create-tokens (reads tokens block from extract.json)
+  │                            ──→  intake--design-verify (reads source URL from extract.json)
+  │                            ──→  create-scene (reads source URL from extract.json)
+  ├─ reference[]               ──→  create-scene, setup-compare (reference URLs)
+  └─ screenshot                ──→  intake (visual context, points to reference_dir/reference-full.png)
 
 intake
   └─ component[] with design_hint (DesignHint)  ──→  create-component (primary design input)

@@ -65,7 +65,7 @@ Wait for response. The user may:
 
 Wait for response.
 
-If the user says "skip", complete the task with empty results (no design-reference.json, empty reference array, no screenshot).
+If the user says "skip", complete the task with empty results (no extract.json, empty reference array, no screenshot).
 
 ## Step 2: Reuse Check
 
