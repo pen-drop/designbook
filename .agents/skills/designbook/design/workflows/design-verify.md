@@ -1,19 +1,22 @@
 ---
 title: Design Verify
-description: Visual testing — verify existing screens against design references
+description: Visual testing -- verify screens or components against design references
 params:
-  reference: []
+  scene_id: { type: string }
+  component_id: { type: string }
 stages:
+  reference:
+    steps: [extract-reference]
   intake:
     steps: [intake]
   setup-compare:
     steps: [setup-compare]
   capture:
     steps: [capture]
-  triage:
-    steps: [triage]
   compare:
     steps: [compare]
+  triage:
+    steps: [triage]
   polish:
     steps: [polish]
   outtake:

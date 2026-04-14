@@ -1,7 +1,11 @@
 ---
 title: Design Screen
-description: Create screen design components for a section
+description: Create screen design components for a section (one scene per run)
+params:
+  scene_id: { type: string }
 stages:
+  reference:
+    steps: [extract-reference]
   intake:
     steps: [intake]
   component:
@@ -12,16 +16,10 @@ stages:
     steps: [map-entity]
   scene:
     steps: [create-scene]
-  setup-compare:
-    steps: [setup-compare]
-  capture:
-    steps: [capture]
-  compare:
-    steps: [compare]
-  outtake:
-    steps: [outtake]
 engine: direct
 before:
   - workflow: css-generate
     execute: if-never-run
+after:
+  - workflow: design-verify
 ---
