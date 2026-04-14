@@ -1,6 +1,8 @@
 ---
 when:
   steps: [design-shell:intake]
+params:
+  reference_dir: { type: string, default: "" }
 result:
   component:
     type: array
@@ -10,10 +12,6 @@ result:
     type: string
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
-  - path: $STORY_DIR/design-reference.json
-    optional: true
-  - path: $STORY_DIR/reference-full.png
-    optional: true
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
 ---
 
@@ -21,15 +19,15 @@ reads:
 
 Help the user design the application shell -- a `page` component with `header`, `content`, and `footer` slots, composed as a scene named `shell` in `design-system.scenes.yml`.
 
-The `extract-reference` stage has already run -- if a design reference exists, it is available in `$STORY_DIR/design-reference.json`.
+The `extract-reference` stage runs before intake. If a design reference was extracted, it is available at `$reference_dir/extract.json`. If `$reference_dir` is empty, no reference was extracted.
 
 ## Step 1: Analyze and Propose Layout
 
 Review the product and sections, then present navigation options:
 
-**If `design-reference.json` exists**, analyze the landmark structure (header rows, footer sections, layout dimensions) and propose the layout pattern that matches the reference. Skip hypothetical options and present the derived layout directly.
+**If `$reference_dir` is non-empty and `$reference_dir/extract.json` exists**, analyze the landmark structure (header rows, footer sections, layout dimensions) and propose the layout pattern that matches the reference. Skip hypothetical options and present the derived layout directly.
 
-**If no design reference**, present options:
+**If `$reference_dir` is empty**, present options:
 
 > "I'm designing the shell for **[Product Name]**. Based on your sections:
 >
@@ -59,8 +57,6 @@ Follow the component planning process:
 1. Scan existing components (location provided by framework rules)
 3. Determine which shell components exist (reuse) vs. need creation (page, header, footer, navigation, etc.)
 
-**If `design-reference.json` exists**, derive the component list from the landmark structure and interactive patterns rather than guessing.
-
 ### Component Extraction Criteria
 
 Identify atomic UI elements as separate components when they meet either condition:
@@ -84,9 +80,7 @@ Present the component plan and get user confirmation before proceeding.
 
 ## Step 3: Gather Shell Details
 
-**If `design-reference.json` exists**, pre-fill navigation items, footer links, and other details from the reference. Present them for confirmation rather than asking open-ended questions.
-
-**If no design reference**, ask clarifying questions:
+Ask clarifying questions:
 
 - "What navigation items should appear? (Based on your sections, I suggest: [list])"
 - "Where should the user menu / contact info appear? (Top right is common)"
@@ -143,12 +137,4 @@ Store the `component` and `output_path` as task results.
 - **`component`**: one entry per new component. Each item needs `component` (name) and `slots` (array).
 - **`output_path`**: `$DESIGNBOOK_DATA/design-system/design-system.scenes.yml`
 
-### Rich component params (when design reference is available)
-
-When `design-reference.json` exists, pass the extracted design data directly as additional fields on each component param object:
-
-- **`description`**: Start with `ref=<landmark>` to link the component to its reference landmark, followed by a short visual description
-- **`design_hint`**: Structured landmark-specific extraction from `design-reference.json`. Contains `rows` (background colors, heights), `fonts` (per-element font specs), and `interactive` patterns (element types, colors, border-radius).
-- **`reference_screenshot`**: Absolute path to `$STORY_DIR/reference-full.png`
-
-When no design reference is available, emit only the standard fields (`component`, `slots`, `group`) -- omit `design_hint` and `reference_screenshot`.
+Design reference data (`design_hint`, `reference_screenshot`) is not available during intake -- the `extract-reference` stage runs after intake and writes design data to `$reference_dir/extract.json` for downstream tasks.
