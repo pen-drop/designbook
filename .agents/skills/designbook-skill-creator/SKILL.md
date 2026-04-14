@@ -52,7 +52,8 @@ workflow
 
 See [`rules/principles.md`](rules/principles.md) for detailed principles with examples.
 
-- **Tasks say WHAT, never HOW** — task files declare output files and params; never contain style or implementation instructions
+- **Tasks say WHAT, never HOW** — task files declare result schemas and params; never contain style or implementation instructions
+- **Results declare schema** — file results with `path:`, data results with JSON Schema; `$ref` to `schemas.yml`
 - **Blueprints are overridable** — provide a starting point; integrations may deviate
 - **Rules are absolute** — apply unconditionally once their `when` conditions match; integrations cannot override
 
@@ -60,10 +61,16 @@ See [`rules/principles.md`](rules/principles.md) for detailed principles with ex
 
 See [`rules/structure.md`](rules/structure.md) for full conventions.
 
+## Schema Reference
+
+See [`resources/schemas.md`](resources/schemas.md) for `schemas.yml` format, `$ref` syntax, and result conventions.
+
+See [`resources/schema-composition.md`](resources/schema-composition.md) for the schema merge model (extends/provides/constrains).
+
 ## Skill Map
 
 See [`resources/skill-map.md`](resources/skill-map.md) for a full listing of all skills.
 
 ## Research Flag
 
-See [`resources/research.md`](resources/research.md) for the `--research` flag convention.
+See [`resources/research.md`](resources/research.md) for the `--research` post-workflow review (Superpowers-based).
