@@ -1,6 +1,6 @@
 ---
+domain: components.layout
 when:
-  steps: [create-component, design-shell:intake, design-screen:intake]
   backend: drupal
 ---
 

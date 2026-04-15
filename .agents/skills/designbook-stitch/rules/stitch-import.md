@@ -1,6 +1,6 @@
 ---
+domain: design.intake
 when:
-  steps: [import:intake]
   extensions: stitch
 ---
 

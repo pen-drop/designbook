@@ -1,6 +1,7 @@
 ---
+domain: scenes
 when:
-  steps: [create-scene, design-shell:intake, design-screen:intake]
+  backend: drupal
 ---
 
 # Drupal Scene Constraints

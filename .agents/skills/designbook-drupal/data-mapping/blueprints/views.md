@@ -2,8 +2,7 @@
 type: data-mapping
 name: views
 priority: 10
-when:
-  steps: [map-entity]
+domain: data-mapping
 ---
 
 # Blueprint: List View — Wrapper Mapping

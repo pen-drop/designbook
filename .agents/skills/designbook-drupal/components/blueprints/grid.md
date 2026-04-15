@@ -2,8 +2,7 @@
 type: component
 name: grid
 priority: 10
-when:
-  steps: [design-shell:intake, design-screen:intake, tokens:intake]
+domain: components.layout
 required_tokens:
   grid:
     gap:

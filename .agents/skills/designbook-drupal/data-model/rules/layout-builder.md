@@ -1,7 +1,7 @@
 ---
+domain: data-model
 when:
   extensions: layout_builder
-  steps: [create-data-model]
 ---
 
 # Rule: Layout Builder Extension

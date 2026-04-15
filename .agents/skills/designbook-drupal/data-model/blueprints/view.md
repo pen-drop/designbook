@@ -2,9 +2,9 @@
 type: entity-type
 name: view
 priority: 10
+domain: data-model
 when:
   backend: drupal
-  steps: [design-token:intake, data-model:intake]
 ---
 
 # Entity Type: view

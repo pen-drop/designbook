@@ -2,8 +2,7 @@
 type: component
 name: container
 priority: 10
-when:
-  steps: [design-shell:intake, design-screen:intake, tokens:intake]
+domain: components.layout
 required_tokens:
   container:
     max-width:

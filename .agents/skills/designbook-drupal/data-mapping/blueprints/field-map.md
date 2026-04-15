@@ -2,8 +2,7 @@
 type: data-mapping
 name: field-map
 priority: 10
-when:
-  steps: [map-entity]
+domain: data-mapping
 ---
 
 # Blueprint: Field Map

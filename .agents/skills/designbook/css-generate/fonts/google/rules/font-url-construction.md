@@ -1,7 +1,7 @@
 ---
+domain: css
 when:
   extensions: google-fonts
-  steps: [prepare-fonts]
 ---
 
 # Google Fonts URL Construction

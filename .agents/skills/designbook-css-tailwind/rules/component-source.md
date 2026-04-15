@@ -1,6 +1,7 @@
 ---
+domain: components
 when:
-  steps: [create-component]
+  frameworks.style: tailwind
 ---
 
 # Tailwind Component Source Registration

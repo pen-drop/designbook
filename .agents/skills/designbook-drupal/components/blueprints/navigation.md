@@ -2,8 +2,7 @@
 type: component
 name: navigation
 priority: 10
-when:
-  steps: [design-shell:intake, design-screen:intake]
+domain: components
 ---
 
 # Blueprint: Navigation

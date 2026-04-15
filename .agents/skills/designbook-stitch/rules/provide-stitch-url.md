@@ -1,7 +1,7 @@
 ---
+domain: design.intake
 provides: reference.url
 when:
-  steps: [design-verify:intake, design-screen:intake, design-shell:intake]
   extensions: stitch
 ---
 

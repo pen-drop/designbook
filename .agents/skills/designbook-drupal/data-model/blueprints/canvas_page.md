@@ -2,10 +2,10 @@
 type: entity-type
 name: canvas_page
 priority: 10
+domain: data-model
 when:
   backend: drupal
   extensions: canvas
-  steps: [design-token:intake, data-model:intake]
 ---
 
 # Entity Type: canvas_page

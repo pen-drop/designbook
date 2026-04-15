@@ -2,8 +2,7 @@
 type: component
 name: footer
 priority: 10
-when:
-  steps: [design-shell:intake]
+domain: components.shell
 ---
 
 # Blueprint: Footer

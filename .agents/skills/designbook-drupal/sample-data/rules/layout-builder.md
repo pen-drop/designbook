@@ -1,6 +1,6 @@
 ---
+domain: sample-data
 when:
-  steps: [create-sample-data]
   backend: drupal
   extensions: layout_builder
 ---

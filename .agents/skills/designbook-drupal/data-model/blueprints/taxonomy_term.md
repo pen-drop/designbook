@@ -2,9 +2,9 @@
 type: entity-type
 name: taxonomy_term
 priority: 10
+domain: data-model
 when:
   backend: drupal
-  steps: [design-token:intake, data-model:intake]
 ---
 
 # Entity Type: taxonomy_term

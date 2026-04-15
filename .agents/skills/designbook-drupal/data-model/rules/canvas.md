@@ -1,7 +1,7 @@
 ---
+domain: data-model
 when:
   extensions: canvas
-  steps: [create-data-model]
 ---
 
 # Rule: Canvas Extension

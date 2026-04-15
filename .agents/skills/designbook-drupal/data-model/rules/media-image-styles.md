@@ -1,7 +1,7 @@
 ---
+domain: data-model
 when:
   backend: drupal
-  steps: [create-data-model]
 ---
 
 # Rule: Media View Modes Match Image Styles

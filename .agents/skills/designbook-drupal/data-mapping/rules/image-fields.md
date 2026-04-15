@@ -1,6 +1,5 @@
 ---
-when:
-  steps: [map-entity]
+domain: data-mapping
 ---
 
 # Rule: Image Field Mapping

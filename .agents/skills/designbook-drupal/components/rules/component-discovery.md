@@ -1,6 +1,6 @@
 ---
+domain: components.discovery
 when:
-  steps: [designbook-design-shell:intake, designbook-design-screen:intake, designbook-design-component:intake]
   frameworks.component: sdc
 ---
 

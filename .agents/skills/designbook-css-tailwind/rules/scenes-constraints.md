@@ -1,6 +1,7 @@
 ---
+domain: scenes
 when:
-  steps: [create-scene]
+  frameworks.style: tailwind
 ---
 
 # Tailwind Scene Constraints

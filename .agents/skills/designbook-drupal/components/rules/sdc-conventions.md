@@ -1,6 +1,6 @@
 ---
+domain: components
 when:
-  steps: [create-component]
   frameworks.component: sdc
 ---
 

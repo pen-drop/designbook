@@ -1,6 +1,6 @@
 ---
+domain: tokens
 when:
-  steps: [create-tokens]
   extensions: stitch
 provides:
   design-tokens:

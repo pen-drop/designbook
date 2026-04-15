@@ -1,7 +1,7 @@
 ---
+domain: data-model
 when:
   backend: drupal
-  steps: [create-data-model]
 ---
 
 # Rule: Drupal Views Config Entities

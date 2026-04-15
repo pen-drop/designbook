@@ -13,8 +13,7 @@ embeds:
   - checkboxes
   - radios
   - submit
-when:
-  steps: [design-shell:intake, design-component:intake, design-screen:intake]
+domain: components
 ---
 
 # Blueprint: Form

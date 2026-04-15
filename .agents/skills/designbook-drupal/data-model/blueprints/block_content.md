@@ -2,10 +2,10 @@
 type: entity-type
 name: block_content
 priority: 10
+domain: data-model
 when:
   backend: drupal
   extensions: layout_builder
-  steps: [design-token:intake, data-model:intake]
 ---
 
 # Entity Type: block_content
