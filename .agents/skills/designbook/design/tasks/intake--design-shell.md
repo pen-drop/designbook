@@ -1,6 +1,7 @@
 ---
 when:
   steps: [design-shell:intake]
+domain: [components, components.shell]
 params:
   reference_dir: { type: string, default: "" }
 result:

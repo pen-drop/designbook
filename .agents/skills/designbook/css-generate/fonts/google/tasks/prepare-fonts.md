@@ -2,6 +2,7 @@
 when:
   steps: [prepare-fonts]
   extensions: google-fonts
+domain: [css]
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: tokens

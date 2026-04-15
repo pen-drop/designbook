@@ -1,6 +1,7 @@
 ---
 when:
   steps: [design-screen:intake]
+domain: [components, components.layout]
 params:
   reference_dir: { type: string, default: "" }
 result:

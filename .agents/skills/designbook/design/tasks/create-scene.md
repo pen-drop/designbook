@@ -1,6 +1,7 @@
 ---
 when:
   steps: [create-scene]
+domain: [components, scenes]
 params:
   output_path: { type: string }
   scene_id: { type: string }

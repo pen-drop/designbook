@@ -1,6 +1,7 @@
 ---
 when:
   steps: [create-sample-data]
+domain: [sample-data]
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
     workflow: /debo-data-model

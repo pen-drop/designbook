@@ -1,6 +1,7 @@
 ---
 when:
   steps: [create-data-model]
+domain: [data-model]
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
     workflow: /debo-vision

@@ -1,6 +1,7 @@
 ---
 when:
   steps: [generate-jsonata]
+domain: [css]
 params:
   group: { type: string }
 result:

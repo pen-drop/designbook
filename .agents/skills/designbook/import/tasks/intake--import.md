@@ -1,6 +1,7 @@
 ---
 when:
   steps: [import:intake]
+domain: [design.intake]
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
     workflow: vision

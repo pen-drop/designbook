@@ -1,6 +1,7 @@
 ---
 when:
   steps: [design-verify:intake]
+domain: [design.verify]
 params:
   story_id: { type: string }
   reference: { type: array, default: [] }

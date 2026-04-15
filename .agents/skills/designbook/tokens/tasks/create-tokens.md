@@ -1,6 +1,7 @@
 ---
 when:
   steps: [create-tokens]
+domain: [tokens]
 params:
   reference_dir: { type: string, default: "" }
 reads:
