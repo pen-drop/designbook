@@ -243,13 +243,24 @@ All story artifacts live under `designbook/stories/{storyId}/`:
 designbook/stories/{storyId}/
   meta.yml                                  ← this file (checks + issues)
   screenshots/
-    reference/{breakpoint}--{region}.png    ← baseline (committed)
-    current/{breakpoint}--{region}.png      ← latest capture (gitignored)
+    {breakpoint}--{region}.png              ← Storybook captures (gitignored)
   extractions/
     {breakpoint}--spec.yml                  ← AI-generated extraction plan (gitignored)
     {breakpoint}--reference.json            ← computed styles from reference URL (gitignored)
     {breakpoint}--storybook.json            ← computed styles from Storybook URL (gitignored)
 ```
+
+Reference screenshots live under `designbook/references/{hash}/`:
+
+```
+designbook/references/{hash}/
+  extract.json                              ← extracted design data
+  reference-full.png                        ← full-page screenshot
+  reference-header.png                      ← region screenshot (optional)
+  {breakpoint}--{region}.png                ← breakpoint screenshots
+```
+
+The `{hash}` is computed deterministically from the reference URL by the `reference_folder` resolver. Multiple stories sharing the same reference URL share the same hash directory.
 
 Screenshots always use `{breakpoint}--{region}.png`. For screen scenes, the region is `full` (e.g. `sm--full.png`). For shell scenes, regions match element selectors (e.g. `sm--header.png`, `sm--footer.png`).
 

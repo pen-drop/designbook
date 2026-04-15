@@ -7,6 +7,14 @@ params:
     resolve: story_id
     sources: [scenes]
   scene_id: { type: string }
+  reference_url: { type: string, default: "" }
+  reference_folder:
+    type: string
+    resolve: reference_folder
+    from: reference_url
+  breakpoints:
+    type: string
+    resolve: breakpoints
 stages:
   reference:
     steps: [extract-reference]

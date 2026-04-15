@@ -3,6 +3,14 @@ title: Design Component
 description: Create a new UI component from a design reference
 params:
   component_id: { type: string }
+  reference_url: { type: string, default: "" }
+  reference_folder:
+    type: string
+    resolve: reference_folder
+    from: reference_url
+  breakpoints:
+    type: string
+    resolve: breakpoints
 stages:
   reference:
     steps: [extract-reference]

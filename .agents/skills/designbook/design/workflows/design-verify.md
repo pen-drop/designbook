@@ -12,6 +12,9 @@ params:
     type: string
     resolve: reference_folder
     from: reference_url
+  breakpoints:
+    type: string
+    resolve: breakpoints
 stages:
   reference:
     steps: [extract-reference]

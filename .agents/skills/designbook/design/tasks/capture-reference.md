@@ -8,9 +8,8 @@ priority: 10
 params:
   $ref: ../schemas.yml#/Check
   scene_id: { type: string }
-result:
-  screenshot:
-    path: $DESIGNBOOK_DATA/stories/{story_id}/screenshots/reference/{breakpoint}--{region}.png
+  reference_folder: { type: string }
+  breakpoints: { type: string }
 each:
   checks:
     $ref: ../schemas.yml#/Check
@@ -43,8 +42,10 @@ Captures a reference screenshot by loading the source URL at the given breakpoin
 
 ## Output
 
+Screenshots are written to the reference folder:
+
 | Breakpoint | Region | Path |
 |-----------|--------|------|
-| sm | header | `screenshots/reference/sm--header.png` |
-| sm | footer | `screenshots/reference/sm--footer.png` |
-| xl | full | `screenshots/reference/xl--full.png` |
+| sm | header | `{reference_folder}/sm--header.png` |
+| sm | footer | `{reference_folder}/sm--footer.png` |
+| xl | full | `{reference_folder}/xl--full.png` |

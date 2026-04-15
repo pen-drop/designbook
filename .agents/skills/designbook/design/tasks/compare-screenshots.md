@@ -6,6 +6,7 @@ when:
 params:
   $ref: ../schemas.yml#/Check
   scene_id: { type: string }
+  reference_folder: { type: string }
 each:
   checks:
     $ref: ../schemas.yml#/Check
@@ -52,15 +53,15 @@ Captures the Storybook screenshot, compares it with the reference, and writes dr
    - Resolve viewport width from `design-tokens.yml`
    - Use selector from the check's `selector` field
    - Full-page CLI for `full` region, element Node API for named regions (header, footer)
-   - Save to `designbook/stories/${storyId}/screenshots/current/${breakpoint}--${region}.png`
+   - Save to `designbook/stories/${storyId}/screenshots/${breakpoint}--${region}.png`
 
 3. **Verify** by reading the captured image.
 
 ## Phase 2: Compare
 
 1. **Read both images:**
-   - Reference: `${DESIGNBOOK_DATA}/stories/${storyId}/screenshots/reference/${breakpoint}--${region}.png`
-   - Current: `${DESIGNBOOK_DATA}/stories/${storyId}/screenshots/current/${breakpoint}--${region}.png`
+   - Reference: `${reference_folder}/${breakpoint}--${region}.png`
+   - Storybook: `${DESIGNBOOK_DATA}/stories/${storyId}/screenshots/${breakpoint}--${region}.png`
 
    If either image is missing, skip with a warning.
 

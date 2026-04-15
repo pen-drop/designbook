@@ -12,7 +12,7 @@ params:
   region: { type: string }
 result:
   screenshot:
-    path: designbook/stories/{story_id}/screenshots/current/{breakpoint}--{region}.png
+    path: designbook/stories/{story_id}/screenshots/{breakpoint}--{region}.png
 each:
   checks:
     $ref: ../schemas.yml#/Check
@@ -45,6 +45,6 @@ Captures a Storybook screenshot at the given breakpoint viewport width via Playw
 
 | Breakpoint | Region | Path |
 |-----------|--------|------|
-| sm | header | `screenshots/current/sm--header.png` |
-| sm | footer | `screenshots/current/sm--footer.png` |
-| xl | full | `screenshots/current/xl--full.png` |
+| sm | header | `screenshots/sm--header.png` |
+| sm | footer | `screenshots/sm--footer.png` |
+| xl | full | `screenshots/xl--full.png` |

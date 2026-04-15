@@ -9,6 +9,7 @@ params:
   story_id: { type: string }
   breakpoint: { type: string }
   region: { type: string }
+  reference_folder: { type: string }
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
@@ -30,8 +31,8 @@ Verify compares existing screenshots (captured by the `recapture` task) — it d
 2. **Re-compare** based on issue source:
 
    **For screenshot issues** — read both images side by side:
-   - Reference: `designbook/stories/${storyId}/screenshots/reference/${breakpoint}--${region}.png`
-   - Current (after polish): `designbook/stories/${storyId}/screenshots/current/${breakpoint}--${region}.png`
+   - Reference: `${reference_folder}/${breakpoint}--${region}.png`
+   - Storybook (after polish): `designbook/stories/${storyId}/screenshots/${breakpoint}--${region}.png`
 
    Compare visually and determine if the issue is resolved.
 
