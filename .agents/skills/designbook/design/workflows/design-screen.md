@@ -2,6 +2,10 @@
 title: Design Screen
 description: Create screen design components for a section (one scene per run)
 params:
+  story_id:
+    type: string
+    resolve: story_id
+    sources: [scenes]
   scene_id: { type: string }
 stages:
   reference:

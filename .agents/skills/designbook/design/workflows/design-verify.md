@@ -2,8 +2,16 @@
 title: Design Verify
 description: Visual testing -- verify screens or components against design references
 params:
-  scene_id: { type: string }
-  component_id: { type: string }
+  story_id:
+    type: string
+    resolve: story_id
+  scene_id: { type: string, default: "" }
+  component_id: { type: string, default: "" }
+  reference_url: { type: string, default: "" }
+  reference_folder:
+    type: string
+    resolve: reference_folder
+    from: reference_url
 stages:
   reference:
     steps: [extract-reference]
