@@ -1058,32 +1058,33 @@ git commit -m "docs: update CLI references and workflow execution rules for para
 
 - [ ] **Step 1: Simplify intake--design-verify.md**
 
-Remove the story resolution logic from Step 1 (Identify Target). The `story_id` is now resolved before the workflow starts. The intake only handles:
-- Reference URL (if not provided)
+Remove Step 1 (Identify Target) entirely — the resolver handles this before the workflow starts. Remove the Context Detection section that checks for `scene_id`/`component_id`. The intake now only handles:
 - Breakpoint selection
 - Storybook startup check
 
-Update the params frontmatter to include `story_id`:
+Update the params frontmatter — `story_id` is the primary identifier:
 
 ```yaml
 params:
-  story_id: { type: string, default: "" }
-  scene_id: { type: string, default: "" }
-  component_id: { type: string, default: "" }
+  story_id: { type: string }
   reference: { type: array, default: [] }
   reference_dir: { type: string, default: "" }
 ```
 
-Remove Step 1 (Identify Target) — the resolver handles this now. Renumber remaining steps.
-
-In the Context Detection section, add:
-```markdown
-- **`params.story_id` is set:** Story already identified. Skip target identification.
-```
+`scene_id` and `component_id` are no longer intake params — the resolver resolved them into `story_id`.
 
 - [ ] **Step 2: Update setup-compare.md**
 
-Change the CLI calls from `--scene` to positional argument:
+Use `story_id` directly. Remove all scene/component resolution logic:
+
+```yaml
+params:
+  story_id: { type: string }
+  reference: { type: array, default: [] }
+  breakpoints: { type: array }
+```
+
+Change CLI calls:
 
 ```bash
 # Vorher:
@@ -1093,43 +1094,29 @@ CHECKS=$(_debo story --scene ${scene_id} --create --json '<meta-seed-json>' chec
 CHECKS=$(_debo story ${story_id} --create --json '<meta-seed-json>' checks)
 ```
 
-Add `story_id` to the params frontmatter:
-
-```yaml
-params:
-  story_id: { type: string }
-  scene_id: { type: string }
-  component_id: { type: string }
-  reference: { type: array, default: [] }
-  breakpoints: { type: array }
-```
+Remove the "Determine Mode and Regions" step that checked `scene_id` vs `component_id` — derive regions from the story metadata instead.
 
 - [ ] **Step 3: Update extract-reference.md**
 
-Add `reference_folder` to params (it may be pre-resolved):
+`reference_folder` is now a resolved param — remove the manual hash computation section entirely. The task just uses `$reference_folder` directly:
 
 ```yaml
 params:
-  scene_id: { type: string, default: "" }
-  component_id: { type: string, default: "" }
+  story_id: { type: string, default: "" }
   reference_folder: { type: string, default: "" }
 ```
 
-In the "Resolve Reference Directory" section, add a check:
+Remove "Resolve Reference Directory" section (Step 2 in current file). Replace with:
 
 ```markdown
-If `params.reference_folder` is already set (pre-resolved by the workflow engine):
-- Use it directly as `$REF_DIR`
-- Skip the URL normalization and hash computation
-
-Otherwise, compute as before: ...
+`$REF_DIR` is `params.reference_folder` (pre-resolved by the workflow engine).
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add .agents/skills/designbook/design/tasks/intake--design-verify.md .agents/skills/designbook/design/tasks/setup-compare.md .agents/skills/designbook/design/tasks/extract-reference.md
-git commit -m "feat(tasks): use story_id and reference_folder from resolvers"
+git commit -m "feat(tasks): remove manual resolution logic, use resolver params directly"
 ```
 
 ---
