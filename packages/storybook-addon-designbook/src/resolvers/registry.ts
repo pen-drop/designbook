@@ -85,6 +85,11 @@ export function resolveParams(schema: Record<string, ParamDeclaration>, context:
     const input = outputParams[key];
     // Skip if no input and no from: dependency — nothing to resolve
     if (input === undefined && !decl.from) return;
+    // Skip dependent params when the from-param is also empty — resolve opportunistically
+    if (decl.from) {
+      const fromValue = outputParams[decl.from];
+      if ((!input || input === '') && (!fromValue || fromValue === '')) return;
+    }
 
     const config = buildConfig(decl);
     const ctx: ResolverContext = {
