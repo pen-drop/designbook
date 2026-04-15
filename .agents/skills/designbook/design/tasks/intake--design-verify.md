@@ -2,14 +2,10 @@
 when:
   steps: [design-verify:intake]
 params:
-  scene_id: { type: string }
-  component_id: { type: string }
+  story_id: { type: string }
   reference: { type: array, default: [] }
+  reference_dir: { type: string, default: "" }
 result:
-  scene_id:
-    type: string
-  component_id:
-    type: string
   reference:
     type: array
     items:
@@ -17,39 +13,16 @@ result:
   breakpoints:
     type: array
     items: { type: string }
-params:
-  reference_dir: { type: string, default: "" }
 reads: []
 ---
 
 # Intake: Design Verify
 
-Visual testing for a single scene or component. Works in two modes:
-
-- **Scene mode**: `params.scene` is set -- verify a scene (shell or section screen)
-- **Component mode**: `params.component` is set -- verify a single component
+Visual testing for a single story. The `story_id` is pre-resolved by the workflow engine's param resolver before this task runs.
 
 Can be called as a subworkflow (from design-shell/screen/component after-hook) or standalone.
 
-## Context Detection
-
-- **`params.scene_id` is set:** Scene mode. The `extract-reference` stage has already resolved `$STORY_DIR`.
-- **`params.component_id` is set:** Component mode. The `extract-reference` stage has already resolved `$STORY_DIR`.
-- **Neither is set:** Standalone -- proceed with Step 1.
-
-## Step 1: Identify Target (standalone only)
-
-Ask the user what to verify:
-
-> "What should I verify?
-> - A scene (e.g. `design-system:shell`, `homepage:landing`)
-> - A component (e.g. `card`, `header`)
->
-> Enter the scene name or component name:"
-
-Set `params.scene_id` or `params.component_id` from the answer.
-
-## Step 2: Resolve Reference
+## Step 1: Resolve Reference
 
 If `$reference_dir` is non-empty and `$reference_dir/extract.json` exists (from a prior build workflow or the extract-reference stage):
 - Read the `source` field from `extract.json` to get the reference URL
@@ -64,13 +37,13 @@ If no `$reference_dir` and `params.reference` is empty:
 
 Set `params.reference` from the answer.
 
-## Step 3: Select Breakpoints
+## Step 2: Select Breakpoints
 
 Breakpoints are collected as a required result -- the workflow engine triggers `waiting_for` automatically, prompting the user to select which breakpoints to test.
 
 List available breakpoints from `design-tokens.yml` with pixel values.
 
-## Step 4: Ensure Storybook is running
+## Step 3: Ensure Storybook is running
 
 ```bash
 _debo storybook status
@@ -80,11 +53,9 @@ _debo storybook status
 - **If not running:** `_debo storybook start`. Wait for `{ ready: true }`.
 - **If startup fails:** report errors from `_debo storybook logs` and pause.
 
-## Step 5: Write Results and Complete
+## Step 4: Write Results and Complete
 
-Pass `scene_id`, `component_id`, `reference`, and `breakpoints` to the next stage via data results.
+Pass `reference` and `breakpoints` to the next stage via data results.
 
-- `scene_id`: from params (or empty string if component mode)
-- `component_id`: from params (or empty string if scene mode)
-- `reference`: the array from Step 2
-- `breakpoints`: from user input (Step 3)
+- `reference`: the array from Step 1
+- `breakpoints`: from user input (Step 2)
