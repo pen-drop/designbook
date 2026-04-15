@@ -16,11 +16,7 @@ function listStoryIds(dataDir: string): string[] {
 export const storyIdResolver: ParamResolver = {
   name: 'story_id',
 
-  resolve(
-    input: string,
-    _config: Record<string, unknown>,
-    context: ResolverContext,
-  ): ResolverResult {
+  resolve(input: string, _config: Record<string, unknown>, context: ResolverContext): ResolverResult {
     if (!input) {
       return {
         resolved: false,
@@ -38,9 +34,7 @@ export const storyIdResolver: ParamResolver = {
 
     // Substring match (case-insensitive)
     const lowerInput = input.toLowerCase();
-    const matches = storyIds.filter((id) =>
-      id.toLowerCase().includes(lowerInput),
-    );
+    const matches = storyIds.filter((id) => id.toLowerCase().includes(lowerInput));
 
     if (matches.length === 1) {
       return { resolved: true, value: matches[0], input };
@@ -56,9 +50,7 @@ export const storyIdResolver: ParamResolver = {
     }
 
     // Multiple matches — ambiguous
-    const candidates = matches
-      .sort()
-      .map((id) => ({ label: id, value: id, source: 'story' }));
+    const candidates = matches.sort().map((id) => ({ label: id, value: id, source: 'story' }));
 
     return {
       resolved: false,

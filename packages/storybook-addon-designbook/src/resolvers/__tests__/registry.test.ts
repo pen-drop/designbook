@@ -2,9 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { resolverRegistry, resolveParams } from '../registry.js';
 import type { ResolverContext } from '../types.js';
 
-function makeContext(
-  params: Record<string, unknown> = {},
-): ResolverContext {
+function makeContext(params: Record<string, unknown> = {}): ResolverContext {
   return { config: { data: '/tmp/test', technology: 'html' }, params };
 }
 
@@ -69,9 +67,7 @@ describe('resolveParams', () => {
 
     // reference_folder resolver runs (may fail due to /tmp/test not existing,
     // but the ordering logic ensures it ran with reference_url available)
-    const hasEntry =
-      'reference_folder' in result.resolved ||
-      'reference_folder' in result.unresolved;
+    const hasEntry = 'reference_folder' in result.resolved || 'reference_folder' in result.unresolved;
     expect(hasEntry).toBe(true);
   });
 });

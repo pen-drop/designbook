@@ -31,11 +31,7 @@ describe('referenceFolderResolver', () => {
 
   it('resolves URL to hash-based folder path', () => {
     const url = 'https://example.com/design';
-    const result = referenceFolderResolver.resolve(
-      '',
-      { from: 'reference_url' },
-      makeContext({ reference_url: url }),
-    );
+    const result = referenceFolderResolver.resolve('', { from: 'reference_url' }, makeContext({ reference_url: url }));
     const hash = expectedHash(url);
     expect(result.resolved).toBe(true);
     expect(result.value).toBe(resolve(tmpDir, 'references', hash));
@@ -43,11 +39,7 @@ describe('referenceFolderResolver', () => {
 
   it('creates directory if not exists', () => {
     const url = 'https://example.com/new-dir-test';
-    const result = referenceFolderResolver.resolve(
-      '',
-      { from: 'reference_url' },
-      makeContext({ reference_url: url }),
-    );
+    const result = referenceFolderResolver.resolve('', { from: 'reference_url' }, makeContext({ reference_url: url }));
     expect(result.resolved).toBe(true);
     expect(existsSync(result.value!)).toBe(true);
   });
@@ -101,30 +93,18 @@ describe('referenceFolderResolver', () => {
   });
 
   it('returns unresolved when from-param missing', () => {
-    const result = referenceFolderResolver.resolve(
-      '',
-      { from: 'reference_url' },
-      makeContext({}),
-    );
+    const result = referenceFolderResolver.resolve('', { from: 'reference_url' }, makeContext({}));
     expect(result.resolved).toBe(false);
     expect(result.error).toContain('reference_url');
   });
 
   it('returns unresolved when from-param is empty string', () => {
-    const result = referenceFolderResolver.resolve(
-      '',
-      { from: 'reference_url' },
-      makeContext({ reference_url: '' }),
-    );
+    const result = referenceFolderResolver.resolve('', { from: 'reference_url' }, makeContext({ reference_url: '' }));
     expect(result.resolved).toBe(false);
   });
 
   it('returns unresolved when "from" config missing', () => {
-    const result = referenceFolderResolver.resolve(
-      '',
-      {},
-      makeContext({ reference_url: 'https://example.com' }),
-    );
+    const result = referenceFolderResolver.resolve('', {}, makeContext({ reference_url: 'https://example.com' }));
     expect(result.resolved).toBe(false);
     expect(result.error).toContain('from');
   });

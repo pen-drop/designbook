@@ -174,7 +174,7 @@ export function register(program: Command): void {
           }
 
           // Positional arg is the identifier (not a subcommand), or fall back to --scene
-          const identifier = isSubcommand ? undefined : subcommandOrId ?? opts.scene;
+          const identifier = isSubcommand ? undefined : (subcommandOrId ?? opts.scene);
           if (!identifier) {
             console.error('Error: story identifier, --scene, or --section is required');
             process.exitCode = 1;

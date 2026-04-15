@@ -40,10 +40,7 @@ export const resolverRegistry = {
 /*  resolveParams                                                     */
 /* ------------------------------------------------------------------ */
 
-export function resolveParams(
-  schema: Record<string, ParamDeclaration>,
-  context: ResolverContext,
-): ResolveParamsResult {
+export function resolveParams(schema: Record<string, ParamDeclaration>, context: ResolverContext): ResolveParamsResult {
   const resolved: Record<string, ResolverResult> = {};
   const unresolved: Record<string, ResolverResult> = {};
   const outputParams: Record<string, unknown> = { ...context.params };
@@ -95,11 +92,7 @@ export function resolveParams(
       params: { ...outputParams },
     };
 
-    const result = resolver.resolve(
-      typeof input === 'string' ? input : '',
-      config,
-      ctx,
-    );
+    const result = resolver.resolve(typeof input === 'string' ? input : '', config, ctx);
 
     if (result.resolved) {
       resolved[key] = result;

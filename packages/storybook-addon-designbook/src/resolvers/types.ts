@@ -21,9 +21,5 @@ export interface ResolverContext {
 
 export interface ParamResolver {
   name: string;
-  resolve(
-    input: string,
-    config: Record<string, unknown>,
-    context: ResolverContext,
-  ): ResolverResult;
+  resolve(input: string, config: Record<string, unknown>, context: ResolverContext): ResolverResult;
 }

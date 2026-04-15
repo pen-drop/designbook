@@ -38,11 +38,7 @@ describe('storyIdResolver', () => {
   });
 
   it('resolves an exact match', () => {
-    const result = storyIdResolver.resolve(
-      'designbook-design-system-scenes--shell',
-      {},
-      makeContext(),
-    );
+    const result = storyIdResolver.resolve('designbook-design-system-scenes--shell', {}, makeContext());
     expect(result.resolved).toBe(true);
     expect(result.value).toBe('designbook-design-system-scenes--shell');
   });

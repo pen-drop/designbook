@@ -15,11 +15,7 @@ function hashUrl(url: string): string {
 export const referenceFolderResolver: ParamResolver = {
   name: 'reference_folder',
 
-  resolve(
-    _input: string,
-    config: Record<string, unknown>,
-    context: ResolverContext,
-  ): ResolverResult {
+  resolve(_input: string, config: Record<string, unknown>, context: ResolverContext): ResolverResult {
     const fromParam = config.from as string | undefined;
     if (!fromParam) {
       return {

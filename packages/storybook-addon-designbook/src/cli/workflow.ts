@@ -100,9 +100,15 @@ export function register(program: Command): void {
             const resolveResult = resolveParams(wfParams, resolverContext);
 
             if (!resolveResult.allResolved) {
-              console.log(JSON.stringify({
-                unresolved: resolveResult.unresolved,
-              }, null, 2));
+              console.log(
+                JSON.stringify(
+                  {
+                    unresolved: resolveResult.unresolved,
+                  },
+                  null,
+                  2,
+                ),
+              );
               return;
             }
 
