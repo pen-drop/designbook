@@ -37,23 +37,17 @@ Workflows with `track: false` in frontmatter skip the entire lifecycle (no `work
 
 ---
 
-## Step 0: Precondition Check
+## Step 0.5: Param Resolution
 
-**Before creating a workflow**, verify that all required inputs exist. Do not call `workflow create` until all preconditions pass.
+After `workflow create`, check the response for an `unresolved` field. If present:
 
-1. **Bootstrap config only** — run `eval "$(_debo config)"` to get `$DESIGNBOOK_HOME` and `$DESIGNBOOK_DATA`
-2. **Read the workflow file** to identify the first step (the intake step)
-3. **Locate the first task file** by convention:
-   - Step `<workflow>:intake` → `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/tasks/intake--<workflow>.md`
-   - Step `create-<name>` → `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/tasks/create-<name>.md`
-4. **Read the task file's frontmatter** and check each `reads:` entry:
-   - **Non-optional reads**: Check the file/directory exists. If missing:
-     - Has `workflow:` → tell the user which workflow to run first (e.g. "Run `/designbook vision` first")
-     - No `workflow:` → report the missing file
-   - **Optional reads** (`optional: true`): Skip — missing is fine
-5. **Scan rules** for the first step in `<concern>/rules/` and any cross-cutting rules referenced. Check file-existence preconditions (e.g. vision-context requires `vision.md`)
-6. **If any precondition fails** → report all missing prerequisites to the user in one message. Do **not** create the workflow. Suggest the workflows or actions needed to satisfy them.
-7. **If all preconditions pass** → proceed to Step 1.
+1. Read the `candidates` array for each unresolved param
+2. If candidates exist: present them to the user and ask which one is correct
+3. If no candidates: ask the user for a more specific identifier
+4. Call `_debo workflow create` again with the corrected params
+5. Repeat until all params resolve, then continue with normal workflow execution
+
+If no `unresolved` field: all params were resolved automatically, proceed with Step 1.
 
 ---
 
@@ -72,8 +66,7 @@ EXISTING=$(_debo workflow list --workflow <id>)
 if [ -n "$EXISTING" ]; then
   echo "EXISTING:$EXISTING"
 else
-  WF_FILE="$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/workflows/<id>.md"
-  CREATE_JSON=$(_debo workflow create --workflow <id> --workflow-file "$WF_FILE")
+  CREATE_JSON=$(_debo workflow create --workflow <id>)
   echo "$CREATE_JSON"
 fi
 ```
@@ -174,21 +167,23 @@ This transitions the workflow from `running` → `waiting`, shows an amber pulse
 Task results are driven by the `result:` schema in the task's frontmatter. The merged schema (from `workflow instructions`) is the single source of truth for what to fill.
 
 **File results** (result keys with `path:`):
-Write each file to its declared path using the Write tool. The engine auto-detects files at declared paths when `done` is called — no explicit `workflow result` needed.
+Pass all results — both file and data — as a single JSON object via `--data` on `workflow done`.
+The CLI serializes to the target format, writes a staging file (`.debo` suffix), validates the
+schema on the raw data, and runs semantic validators on the staging file. On stage transition,
+the engine flushes all staging files to their final paths atomically.
 
-**Data results** (result keys without `path:`):
-Pass all data results as a single JSON object via `--data` on `workflow done`:
+To skip staging and write directly to the final path, add `--flush`:
+
 ```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> --data '{"scene": "shell", "reference": []}'
+_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> \
+  --data '{"vision": {"product_name": "...", "description": "..."}}' --flush
 ```
 
-**External file results** (written by Playwright or other external tools):
-Register via `workflow result --external`, then call `done`:
-```bash
-_debo workflow result --task <task-id> --key <key> --external
-```
+**External file results** (result declaration has `external: true`):
+For files that cannot be written through the CLI (e.g. Playwright screenshots).
+The AI writes the file directly, then registers via `workflow result --external`.
 
-**Legacy path:** `workflow result --key <key>` (stdin) and `workflow result --key <key> --json` still work for mid-task writes that need `--flush` or for backward compatibility, but new tasks should prefer the schema-driven approach above.
+**Never** write file results directly with the Write tool — always use `--data` or `--data --flush`.
 
 ### 2c. Mark Task Done
 
@@ -196,10 +191,12 @@ _debo workflow result --task <task-id> --key <key> --external
 _debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--data '<json>'] [--summary <text>]
 ```
 
-- `--data '<json>'` — pass all data results (result keys without `path:`) as a single JSON object. The engine distributes keys to declared results, validates each against the merged schema, and marks the task done.
+- `--data '<json>'` — pass all results (file and data) as a single JSON object.
+  The engine serializes file results to disk, validates all results against the
+  merged schema, and marks the task done.
+- `--flush` — write file results directly to the final path instead of staging.
 - `--summary` — short result description shown in Storybook panel. Skip for self-explanatory tasks.
 - Results with `default:` in the merged schema are auto-filled if not provided.
-- File results at declared `path:` locations are auto-collected — no explicit registration needed.
 
 **Data flow model:** Tasks declare their outputs via `result:` in frontmatter with a JSON Schema. The engine validates results against the merged schema (base + blueprint extensions + rule constraints). When all tasks in a stage complete, the engine collects data results into the workflow scope and expands pending stages whose `each:` keys are now available.
 
@@ -248,7 +245,7 @@ Then ask the user the prompt. When the user answers, write the answer via `workf
 For each `before` entry in workflow frontmatter:
 - Check `reads:` gate — skip if missing
 - Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
-- Resolve workflow file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
+- Start the hook workflow: `_debo workflow create --workflow css-generate`
 - Complete the hook workflow fully before continuing
 
 ### After Hooks

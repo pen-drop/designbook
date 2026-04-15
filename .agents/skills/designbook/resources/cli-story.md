@@ -2,15 +2,20 @@
 
 Manages story entities — load, create, list stories, and generate workflow-ready checks.
 
-## `story` (load by scene)
+## `story <identifier>` (load by identifier)
 
-Load a story entity by scene reference.
+Load a story entity by resolving an identifier. The identifier can be:
+- A short name: `shell`, `landing`, `card`
+- An exact storyId: `designbook-design-system-scenes--shell`
+
+The resolver searches the story index (`stories/` directories), returning the story or candidates if ambiguous.
 
 ```bash
- story --scene <group>:<name>
+ story shell
+ story designbook-design-system-scenes--shell
 ```
 
-**Response:**
+**Response (resolved):**
 ```json
 {
   "storyId": "designbook-design-system-scenes--shell",
@@ -21,9 +26,23 @@ Load a story entity by scene reference.
 }
 ```
 
+**Response (ambiguous):**
+```json
+{
+  "resolved": false,
+  "input": "landing",
+  "candidates": [
+    { "label": "designbook-homepage-scenes--landing", "value": "designbook-homepage-scenes--landing", "source": "story" },
+    { "label": "designbook-galerie-scenes--landing", "value": "designbook-galerie-scenes--landing", "source": "story" }
+  ]
+}
+```
+
+> **Deprecated:** `--scene <ref>` still works but will be removed in a future version. Use the positional argument instead.
+
 ## `story --create` (create by scene)
 
-Create story directory + `meta.yml` if missing, then load.
+Create story directory + `meta.yml` if missing, then load. Requires `--scene` (scene reference needed for creation).
 
 ```bash
  story --scene <group>:<name> --create [--json '<meta-seed>']
@@ -56,7 +75,7 @@ List all stories in a section.
 Write a check entry to `reference.checks` in `meta.yml`. Automatically recomputes `reference.summary`. Preserves existing issues on the check.
 
 ```bash
- story check --scene <group>:<name> --json '{"breakpoint":"sm","region":"header","status":"open"}'
+ story check <identifier> --json '{"breakpoint":"sm","region":"header","status":"open"}'
  story check --scene <group>:<name> --json '{"breakpoint":"sm","region":"header","status":"done","result":"pass"}'
 ```
 
@@ -73,24 +92,24 @@ The check key in `meta.yml` is `breakpoint--region` (e.g. `sm--header`, `xl--mar
 **Response:** `{ "ok": true, "breakpoint": "sm", "region": "header", "status": "open" }`
 
 **Errors (exit 1):**
-- `--scene` not provided
+- Story identifier or `--scene` not provided
 - `--json` not provided or missing required fields (`breakpoint`, `region`, `status`)
-- Scene not found or no story exists
+- Story not found
 
 ## `story checks` (workflow-ready checks)
 
-Generate a workflow-ready checks array for a scene. Validates that a reference exists.
+Generate a workflow-ready checks array for a story. Validates that a reference exists.
 
 ```bash
- story --scene <group>:<name> checks
- story --scene <group>:<name> --create --json '<meta-seed>' checks
- story --scene <group>:<name> --checks-open checks
+ story checks <identifier>
+ story checks --scene <group>:<name> --create --json '<meta-seed>'
+ story checks <identifier> --checks-open
 ```
 
 | Option | Description |
 |---|---|
 | `--checks-open` | Filter to only open checks (status != done) |
-| `--create` | Create story first if missing |
+| `--create` | Create story first if missing (requires `--scene`) |
 | `--json <data>` | JSON meta seed for `--create` |
 
 **Response:**
@@ -102,7 +121,7 @@ Generate a workflow-ready checks array for a scene. Validates that a reference e
 ```
 
 **Errors (exit 1):**
-- `--scene` not provided
-- Scene not found or story could not be created
+- Story identifier or `--scene` not provided
+- Story not found or could not be created
 - No reference configured (provide via `--create --json`)
 - No checks generated (check breakpoints/regions in meta.yml)
