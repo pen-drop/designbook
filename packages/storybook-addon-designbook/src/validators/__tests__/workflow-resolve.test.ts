@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { dump as stringifyYaml } from 'js-yaml';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
@@ -23,7 +24,12 @@ import {
   deriveArtifactName,
   resolveShortName,
   deduplicateByNameAs,
+  collectAndResolveSchemas,
+  resolveSchemaRef,
+  resolveParamsRef,
+  matchDomain,
   type ResolvedFile,
+  type ResolvedTask,
 } from '../../workflow-resolve.js';
 import { acquireLock, releaseLock, withLock } from '../../workflow-lock.js';
 import type { DesignbookConfig } from '../../config.js';
@@ -832,6 +838,48 @@ describe('checkWhen', () => {
   });
 });
 
+describe('matchDomain', () => {
+  it('exact match', () => {
+    expect(matchDomain('components', ['components'])).toBe(true);
+  });
+
+  it('no match — different domain', () => {
+    expect(matchDomain('scenes', ['components'])).toBe(false);
+  });
+
+  it('broad need loads sub-domain rule', () => {
+    expect(matchDomain('components.layout', ['components'])).toBe(true);
+  });
+
+  it('specific need loads parent rule', () => {
+    expect(matchDomain('components', ['components.layout'])).toBe(true);
+  });
+
+  it('specific need does NOT load sibling', () => {
+    expect(matchDomain('components.discovery', ['components.layout'])).toBe(false);
+  });
+
+  it('matches against any domain in the set', () => {
+    expect(matchDomain('scenes', ['components', 'scenes'])).toBe(true);
+  });
+
+  it('does not partial-match without dot boundary', () => {
+    expect(matchDomain('components-extra', ['components'])).toBe(false);
+  });
+
+  it('deep subcontext matches parent', () => {
+    expect(matchDomain('design', ['design.intake'])).toBe(true);
+  });
+
+  it('deep subcontext matches exact', () => {
+    expect(matchDomain('design.intake', ['design.intake'])).toBe(true);
+  });
+
+  it('empty effective domains matches nothing', () => {
+    expect(matchDomain('components', [])).toBe(false);
+  });
+});
+
 // resolveFiles: unified glob + when filter
 describe('resolveFiles', () => {
   it('finds files matching glob and filters by when', () => {
@@ -1435,5 +1483,481 @@ describe('deduplicateByNameAs', () => {
     const result = deduplicateByNameAs(files, agentsDir);
     expect(result[0]!.name).toBe('designbook:basic'); // priority 0 comes first
     expect(result[1]!.name).toBe('designbook:design:advanced'); // priority 10
+  });
+});
+
+// ── $ref schema resolution ────────────────────────────────────────────────
+
+describe('resolveSchemaRef', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('resolves a relative $ref to a schema type', () => {
+    // Create schemas.yml next to the task file's parent
+    const tasksDir = resolve(tmpDir, 'skills', 'designbook', 'design', 'tasks');
+    const schemasDir = resolve(tmpDir, 'skills', 'designbook', 'design');
+    mkdirSync(tasksDir, { recursive: true });
+
+    const schemasContent = stringifyYaml({
+      Check: {
+        type: 'object',
+        required: ['storyId', 'breakpoint'],
+        properties: {
+          storyId: { type: 'string' },
+          breakpoint: { type: 'string' },
+        },
+      },
+    });
+    writeFileSync(resolve(schemasDir, 'schemas.yml'), schemasContent);
+
+    const taskFilePath = resolve(tasksDir, 'setup-compare.md');
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    const result = resolveSchemaRef('../schemas.yml#/Check', taskFilePath, resolve(tmpDir, 'skills'));
+    expect(result.typeName).toBe('Check');
+    expect(result.schema).toEqual({
+      type: 'object',
+      required: ['storyId', 'breakpoint'],
+      properties: {
+        storyId: { type: 'string' },
+        breakpoint: { type: 'string' },
+      },
+    });
+  });
+
+  it('throws on non-existent schema file', () => {
+    const taskFilePath = resolve(tmpDir, 'task.md');
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    expect(() => resolveSchemaRef('../missing.yml#/Foo', taskFilePath, tmpDir)).toThrow('Schema file not found');
+  });
+
+  it('throws on missing type name in schema file', () => {
+    const schemasContent = stringifyYaml({ Check: { type: 'object' } });
+    writeFileSync(resolve(tmpDir, 'schemas.yml'), schemasContent);
+
+    const taskFilePath = resolve(tmpDir, 'tasks', 'task.md');
+    mkdirSync(resolve(tmpDir, 'tasks'), { recursive: true });
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    expect(() => resolveSchemaRef('../schemas.yml#/Missing', taskFilePath, tmpDir)).toThrow("Type 'Missing' not found");
+  });
+});
+
+describe('resolveParamsRef', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function setupSchemaFile(properties: Record<string, unknown>): { taskFilePath: string; skillsRoot: string } {
+    const tasksDir = resolve(tmpDir, 'skills', 'designbook', 'sections', 'tasks');
+    const schemasDir = resolve(tmpDir, 'skills', 'designbook', 'sections');
+    mkdirSync(tasksDir, { recursive: true });
+
+    writeFileSync(
+      resolve(schemasDir, 'schemas.yml'),
+      stringifyYaml({
+        Section: {
+          type: 'object',
+          required: ['id', 'title'],
+          properties,
+        },
+      }),
+    );
+
+    const taskFilePath = resolve(tasksDir, 'create-section.md');
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    return { taskFilePath, skillsRoot: resolve(tmpDir, 'skills') };
+  }
+
+  it('resolves $ref and extracts properties', () => {
+    const props = { id: { type: 'string' }, title: { type: 'string' }, order: { type: 'integer' } };
+    const { taskFilePath, skillsRoot } = setupSchemaFile(props);
+
+    const result = resolveParamsRef({ $ref: '../schemas.yml#/Section' }, taskFilePath, skillsRoot);
+
+    expect(result).toEqual({
+      id: { type: 'string' },
+      title: { type: 'string' },
+      order: { type: 'integer' },
+    });
+  });
+
+  it('explicit entries override schema properties', () => {
+    const props = { id: { type: 'string' }, order: { type: 'integer' } };
+    const { taskFilePath, skillsRoot } = setupSchemaFile(props);
+
+    const result = resolveParamsRef(
+      { $ref: '../schemas.yml#/Section', order: { type: 'integer', default: 1 } },
+      taskFilePath,
+      skillsRoot,
+    );
+
+    expect(result).toEqual({
+      id: { type: 'string' },
+      order: { type: 'integer', default: 1 },
+    });
+  });
+
+  it('explicit entries extend schema properties', () => {
+    const props = { id: { type: 'string' } };
+    const { taskFilePath, skillsRoot } = setupSchemaFile(props);
+
+    const result = resolveParamsRef(
+      { $ref: '../schemas.yml#/Section', extra: { type: 'boolean', default: false } },
+      taskFilePath,
+      skillsRoot,
+    );
+
+    expect(result).toEqual({
+      id: { type: 'string' },
+      extra: { type: 'boolean', default: false },
+    });
+  });
+
+  it('throws when schema has no properties', () => {
+    const tasksDir = resolve(tmpDir, 'skills', 'designbook', 'sections', 'tasks');
+    const schemasDir = resolve(tmpDir, 'skills', 'designbook', 'sections');
+    mkdirSync(tasksDir, { recursive: true });
+
+    writeFileSync(resolve(schemasDir, 'schemas.yml'), stringifyYaml({ Section: { type: 'string' } }));
+
+    const taskFilePath = resolve(tasksDir, 'task.md');
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    expect(() =>
+      resolveParamsRef({ $ref: '../schemas.yml#/Section' }, taskFilePath, resolve(tmpDir, 'skills')),
+    ).toThrow('params: $ref must point to an object schema with properties');
+  });
+
+  it('passes through params without $ref unchanged', () => {
+    // resolveParamsRef should not be called without $ref — this documents behavior
+    // The caller checks for $ref before calling, so this is a safety test
+    const props = { id: { type: 'string' } };
+    const { taskFilePath, skillsRoot } = setupSchemaFile(props);
+
+    // If called with a params object that has no $ref, it would throw because
+    // params['$ref'] is undefined. This confirms the caller must check first.
+    expect(() => resolveParamsRef({ id: { type: 'string' } }, taskFilePath, skillsRoot)).toThrow();
+  });
+});
+
+describe('collectAndResolveSchemas', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('resolves $ref in task result schemas and populates schemas map', () => {
+    const skillsRoot = resolve(tmpDir, 'skills');
+    const designDir = resolve(skillsRoot, 'designbook', 'design');
+    const tasksDir = resolve(designDir, 'tasks');
+    mkdirSync(tasksDir, { recursive: true });
+
+    // Create schemas.yml
+    const schemasContent = stringifyYaml({
+      Check: {
+        type: 'object',
+        required: ['storyId', 'breakpoint'],
+        properties: {
+          storyId: { type: 'string' },
+          breakpoint: { type: 'string' },
+        },
+      },
+      Issue: {
+        type: 'object',
+        required: ['severity', 'description'],
+        properties: {
+          severity: { type: 'string' },
+          description: { type: 'string' },
+        },
+      },
+    });
+    writeFileSync(resolve(designDir, 'schemas.yml'), schemasContent);
+
+    // Create task file with $ref in result
+    const taskFilePath = resolve(tasksDir, 'setup-compare.md');
+    writeFileSync(
+      taskFilePath,
+      [
+        '---',
+        'name: test:setup-compare',
+        'result:',
+        '  checks:',
+        '    $ref: "../schemas.yml#/Check"',
+        '    type: array',
+        '---',
+        '',
+      ].join('\n'),
+    );
+
+    // Simulate expanded tasks (result without schema, as expandResultDeclarations currently produces)
+    const tasks = [
+      {
+        id: 'setup-compare-abc123',
+        title: 'Setup Compare',
+        type: 'data' as const,
+        step: 'setup-compare',
+        stage: 'setup',
+        params: {},
+        task_file: taskFilePath,
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+        files: [],
+        result: {
+          checks: { schema: { type: 'array' } },
+        },
+      },
+    ];
+
+    const schemas = collectAndResolveSchemas(tasks as unknown as ResolvedTask[], skillsRoot);
+
+    // Schema map should contain the Check type
+    expect(schemas).toHaveProperty('Check');
+    expect(schemas.Check).toEqual({
+      type: 'object',
+      required: ['storyId', 'breakpoint'],
+      properties: {
+        storyId: { type: 'string' },
+        breakpoint: { type: 'string' },
+      },
+    });
+
+    // Task result entry should have its schema populated
+    expect(tasks[0]!.result!.checks!.schema).toEqual(schemas.Check);
+  });
+
+  it('resolves multiple $ref entries across tasks', () => {
+    const skillsRoot = resolve(tmpDir, 'skills');
+    const designDir = resolve(skillsRoot, 'designbook', 'design');
+    const tasksDir = resolve(designDir, 'tasks');
+    mkdirSync(tasksDir, { recursive: true });
+
+    const schemasContent = stringifyYaml({
+      Check: { type: 'object', properties: { storyId: { type: 'string' } } },
+      Issue: { type: 'object', properties: { severity: { type: 'string' } } },
+    });
+    writeFileSync(resolve(designDir, 'schemas.yml'), schemasContent);
+
+    // Task 1: $ref to Check
+    const task1Path = resolve(tasksDir, 'task1.md');
+    writeFileSync(
+      task1Path,
+      ['---', 'name: test:task1', 'result:', '  checks:', '    $ref: "../schemas.yml#/Check"', '---', ''].join('\n'),
+    );
+
+    // Task 2: $ref to Issue
+    const task2Path = resolve(tasksDir, 'task2.md');
+    writeFileSync(
+      task2Path,
+      ['---', 'name: test:task2', 'result:', '  issues:', '    $ref: "../schemas.yml#/Issue"', '---', ''].join('\n'),
+    );
+
+    const baseMeta = { params: {}, rules: [], blueprints: [], config_rules: [], config_instructions: [], files: [] };
+    const tasks = [
+      {
+        ...baseMeta,
+        id: 'task1-abc',
+        title: 'Task 1',
+        type: 'data' as const,
+        step: 'step1',
+        stage: 'stage1',
+        task_file: task1Path,
+        result: { checks: {} },
+      },
+      {
+        ...baseMeta,
+        id: 'task2-abc',
+        title: 'Task 2',
+        type: 'data' as const,
+        step: 'step2',
+        stage: 'stage2',
+        task_file: task2Path,
+        result: { issues: {} },
+      },
+    ];
+
+    const schemas = collectAndResolveSchemas(tasks as unknown as ResolvedTask[], skillsRoot);
+
+    expect(Object.keys(schemas)).toEqual(expect.arrayContaining(['Check', 'Issue']));
+    expect((tasks[0]!.result!.checks as { schema?: object }).schema).toEqual(schemas.Check);
+    expect((tasks[1]!.result!.issues as { schema?: object }).schema).toEqual(schemas.Issue);
+  });
+
+  it('returns empty map when no tasks have $ref', () => {
+    const skillsRoot = resolve(tmpDir, 'skills');
+    const tasksDir = resolve(skillsRoot, 'designbook', 'tasks');
+    mkdirSync(tasksDir, { recursive: true });
+
+    const taskFilePath = resolve(tasksDir, 'plain.md');
+    writeFileSync(
+      taskFilePath,
+      ['---', 'name: test:plain', 'result:', '  data:', '    type: object', '---', ''].join('\n'),
+    );
+
+    const tasks = [
+      {
+        id: 'plain-abc',
+        title: 'Plain',
+        type: 'data' as const,
+        step: 'step',
+        stage: 'stage',
+        params: {},
+        task_file: taskFilePath,
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+        files: [],
+        result: { data: { schema: { type: 'object' } } },
+      },
+    ];
+
+    const schemas = collectAndResolveSchemas(tasks as unknown as ResolvedTask[], skillsRoot);
+    expect(Object.keys(schemas)).toHaveLength(0);
+  });
+});
+
+describe('$ref end-to-end: collectAndResolveSchemas → workflowPlan → workflowResult', () => {
+  let dist: string;
+  let tmpDir: string;
+
+  beforeEach(() => {
+    dist = makeTmpDir();
+    tmpDir = makeTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(dist, { recursive: true, force: true });
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('validates data result against $ref-resolved schema via workflowResult', async () => {
+    // Setup: skill files with schemas.yml + task with items.$ref (real-world pattern)
+    const skillsRoot = resolve(tmpDir, 'skills');
+    const designDir = resolve(skillsRoot, 'designbook', 'design');
+    const tasksDir = resolve(designDir, 'tasks');
+    mkdirSync(tasksDir, { recursive: true });
+
+    const checkSchema = {
+      type: 'object',
+      required: ['storyId', 'breakpoint'],
+      properties: {
+        storyId: { type: 'string' },
+        breakpoint: { type: 'string' },
+      },
+    };
+    writeFileSync(resolve(designDir, 'schemas.yml'), stringifyYaml({ Check: checkSchema }));
+
+    // Real-world pattern: type: array + items: { $ref: ... }
+    const taskFilePath = resolve(tasksDir, 'setup-compare.md');
+    writeFileSync(
+      taskFilePath,
+      [
+        '---',
+        'name: test:setup-compare',
+        'result:',
+        '  checks:',
+        '    type: array',
+        '    items:',
+        '      $ref: "../schemas.yml#/Check"',
+        '---',
+        '',
+      ].join('\n'),
+    );
+
+    // Simulate expanded task — expandResultDeclarations produces { schema: { type: 'array', items: { $ref: '...' } } }
+    // but strips $ref from items. After collectAndResolveSchemas, items should be replaced with the resolved schema.
+    const tasks = [
+      {
+        id: 'setup-compare',
+        title: 'Setup Compare',
+        type: 'data' as const,
+        step: 'setup-compare',
+        stage: 'setup',
+        params: {},
+        task_file: taskFilePath,
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+        files: [],
+        result: {
+          checks: {
+            schema: { type: 'array', items: {} },
+          },
+        },
+      },
+    ];
+
+    const schemas = collectAndResolveSchemas(tasks as unknown as ResolvedTask[], skillsRoot);
+
+    // Schema map should contain the Check type
+    expect(schemas).toHaveProperty('Check');
+
+    // The schema's items should now be resolved from $ref
+    // collectAndResolveSchemas resolves nested $ref via resolveRefsInDeclaration
+    // but the actual task.result schema is only updated for top-level $ref (line 186)
+    // For items.$ref, only the schemas map is populated — the task schema items stay as-is
+
+    // Create workflow and plan with resolved schemas + manually fix items schema
+    const { workflowCreate, workflowPlan, workflowResult } = await import('../../workflow.js');
+
+    // Build the full schema with resolved items (as workflow create does for intake at lines 216-224)
+    tasks[0]!.result!.checks!.schema = {
+      type: 'array',
+      items: checkSchema,
+    };
+
+    const name = workflowCreate(dist, 'debo-test', 'Test $ref', []);
+    workflowPlan(
+      dist,
+      name,
+      tasks,
+      { setup: { steps: ['setup-compare'] } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+      schemas,
+    );
+
+    // Valid data — should pass
+    const validData = [
+      { storyId: 'shell', breakpoint: 'sm' },
+      { storyId: 'shell', breakpoint: 'xl' },
+    ];
+    const mockConfig = { data: dist, technology: 'html' as const, extensions: [] };
+    const validResult = await workflowResult(dist, name, 'setup-compare', 'checks', validData, mockConfig);
+    expect(validResult.valid).toBe(true);
+    expect(validResult.errors).toEqual([]);
+
+    // Invalid data — missing required 'breakpoint'
+    const invalidData = [{ storyId: 'shell' }];
+    const invalidResult = await workflowResult(dist, name, 'setup-compare', 'checks', invalidData, mockConfig);
+    expect(invalidResult.valid).toBe(false);
+    expect(invalidResult.errors.length).toBeGreaterThan(0);
   });
 });

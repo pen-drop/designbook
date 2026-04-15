@@ -179,11 +179,21 @@ export function collectAndResolveSchemas(tasks: ResolvedTask[], skillsRoot: stri
     if (!taskFm?.result) continue;
 
     for (const [key, resultDecl] of Object.entries(taskFm.result)) {
+      // Resolve $ref in the frontmatter copy (populates schemas map)
       resolveRefsInDeclaration(resultDecl, taskFilePath, skillsRoot, schemas);
+
+      // Update the task's actual result schema:
+      // For top-level $ref, replace schema with the resolved definition
       if (task.result[key] && resultDecl.$ref) {
         const { typeName, schema } = resolveSchemaRef(resultDecl.$ref, taskFilePath, skillsRoot);
         schemas[typeName] = schema;
         task.result[key]!.schema = schema;
+      }
+
+      // For nested $ref (e.g. items.$ref, properties.foo.$ref at any depth),
+      // rewrite file-system refs to AJV-compatible local refs in the task's schema
+      if (task.result[key]?.schema && typeof task.result[key]!.schema === 'object') {
+        rewriteRefsInSchema(task.result[key]!.schema as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
       }
     }
 
@@ -195,12 +205,21 @@ export function collectAndResolveSchemas(tasks: ResolvedTask[], skillsRoot: stri
         }
       }
     }
+
+    // Collect $ref from params: declaration
+    if (taskFm.params && typeof taskFm.params === 'object' && '$ref' in taskFm.params) {
+      const ref = (taskFm.params as Record<string, unknown>)['$ref'] as string;
+      const { typeName, schema: refSchema } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+      schemas[typeName] = refSchema;
+    }
   }
 
   return schemas;
 }
 
-/** Recursively resolve $ref entries in a declaration object. */
+/** Recursively resolve $ref entries in a declaration object.
+ * Replaces file-system $ref (e.g. ../schemas.yml#/Component) with
+ * local AJV-compatible $ref (e.g. #/Component) so validation works. */
 function resolveRefsInDeclaration(
   obj: Record<string, unknown>,
   taskFilePath: string,
@@ -210,11 +229,44 @@ function resolveRefsInDeclaration(
   if (obj.$ref && typeof obj.$ref === 'string') {
     const { typeName, schema } = resolveSchemaRef(obj.$ref, taskFilePath, skillsRoot);
     schemas[typeName] = schema;
+    // Replace file-system $ref with local AJV reference
+    obj.$ref = `#/${typeName}`;
   }
   // Check nested objects (e.g. items: { $ref: ... })
   for (const value of Object.values(obj)) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       resolveRefsInDeclaration(value as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
+    }
+  }
+}
+
+/**
+ * Rewrite file-system $ref strings to AJV-compatible local refs in a schema object.
+ * Walks the schema tree at any depth, converting e.g. `../schemas.yml#/Component`
+ * to `#/Component` (matching the key used in `ajv.addSchema`).
+ *
+ * Unlike `resolveRefsInDeclaration`, this does NOT load schema files — it relies
+ * on the schemas map being already populated. Any $ref not matching an existing
+ * schema key is resolved from disk and added.
+ */
+export function rewriteRefsInSchema(
+  obj: Record<string, unknown>,
+  taskFilePath: string,
+  skillsRoot: string,
+  schemas: Record<string, object>,
+): void {
+  if (obj.$ref && typeof obj.$ref === 'string') {
+    const ref = obj.$ref as string;
+    // Only rewrite file-system $ref (contains '#/'); skip already-local refs like '#/TypeName'
+    if (ref.includes('#/') && !ref.startsWith('#/')) {
+      const { typeName, schema } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+      schemas[typeName] = schema;
+      obj.$ref = `#/${typeName}`;
+    }
+  }
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      rewriteRefsInSchema(value as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
     }
   }
 }
@@ -377,6 +429,24 @@ export function checkWhen(
     }
   }
   return Object.keys(when).length;
+}
+
+/**
+ * Check whether a rule's domain matches any of the effective domains.
+ *
+ * Matching rules (dot-delimited prefix matching):
+ * - Exact: "components" matches "components"
+ * - Rule is child of need: need "components" matches rule "components.layout"
+ * - Rule is parent of need: need "components.layout" matches rule "components"
+ * - No partial segment: "components" does NOT match "components-extra"
+ */
+export function matchDomain(ruleDomain: string, effectiveDomains: string[]): boolean {
+  for (const need of effectiveDomains) {
+    if (ruleDomain === need) return true;
+    if (ruleDomain.startsWith(need + '.')) return true;
+    if (need.startsWith(ruleDomain + '.')) return true;
+  }
+  return false;
 }
 
 /**
@@ -827,16 +897,20 @@ export function expandFilePath(
   template: string,
   params: Record<string, unknown>,
   envMap: Record<string, string>,
+  /** When true, leave unknown $VARS in place instead of throwing. */
+  lenient?: boolean,
 ): string {
   let result = template;
 
   // Expand ${VAR} and $VAR patterns (env vars)
-  result = result.replace(/\$\{(\w+)\}/g, (_match, varName) => {
+  result = result.replace(/\$\{(\w+)\}/g, (match, varName) => {
     if (envMap[varName] !== undefined) return envMap[varName];
+    if (lenient) return match;
     throw new Error(`Unknown environment variable: \${${varName}} in path "${template}"`);
   });
-  result = result.replace(/\$([A-Z_][A-Z0-9_]*)/g, (_match, varName) => {
+  result = result.replace(/\$([A-Z_][A-Z0-9_]*)/g, (match, varName) => {
     if (envMap[varName] !== undefined) return envMap[varName];
+    if (lenient) return match;
     throw new Error(`Unknown environment variable: $${varName} in path "${template}"`);
   });
 
@@ -898,6 +972,8 @@ export function expandResultDeclarations(
   params: Record<string, unknown>,
   envMap: Record<string, string>,
   validatorKeys?: Set<string>,
+  /** When true, leave unknown $VARS in paths instead of throwing. */
+  lenient?: boolean,
 ): Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined {
   // Prefer result: over files:
   if (resultDecl) {
@@ -925,7 +1001,7 @@ export function expandResultDeclarations(
 
       const entry: { path?: string; schema?: object; validators?: string[] } = {};
       if (decl.path) {
-        entry.path = expandFilePath(decl.path, params, envMap);
+        entry.path = expandFilePath(decl.path, params, envMap, lenient);
       }
       if (schema) entry.schema = schema;
       if (validators.length > 0) entry.validators = validators;
@@ -987,6 +1063,37 @@ export function resolveConfigForStep(
  * Required params (value is null/~) must be provided.
  * Optional params (value is a default) are filled from schema if absent.
  */
+/**
+ * Resolve a `$ref` in a `params:` declaration.
+ * Extracts `properties` from the referenced schema and merges with explicit entries (explicit wins).
+ */
+export function resolveParamsRef(
+  params: Record<string, unknown>,
+  taskFilePath: string,
+  skillsRoot: string,
+): Record<string, unknown> {
+  const ref = params['$ref'] as string;
+  const { schema } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+
+  const schemaObj = schema as Record<string, unknown>;
+  const properties = schemaObj.properties as Record<string, unknown> | undefined;
+  if (!properties) {
+    throw new Error(
+      `$ref '${ref}' in params: resolved to a schema without 'properties'. ` +
+        `params: $ref must point to an object schema with properties.`,
+    );
+  }
+
+  // Merge: resolved properties first, then explicit overrides
+  const resolved: Record<string, unknown> = { ...properties };
+  for (const [key, value] of Object.entries(params)) {
+    if (key === '$ref') continue;
+    resolved[key] = value; // explicit entry wins
+  }
+
+  return resolved;
+}
+
 /**
  * Check whether a param value is a valid inline JSON Schema object.
  * Valid: object with a `type` property (e.g. `{ type: 'string' }`, `{ type: 'array', default: [] }`).
@@ -1240,10 +1347,16 @@ export function resolveAllStages(
     resolvedSteps.push(step);
 
     // Aggregate expected_params from task file frontmatter
+    const skillsRoot = resolve(agentsDir, 'skills');
     for (const taskFile of taskFilePaths) {
       const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
-      const params = taskFm?.params as Record<string, unknown> | undefined;
+      let params = taskFm?.params as Record<string, unknown> | undefined;
       if (!params) continue;
+
+      // Resolve $ref in params before validation
+      if ('$ref' in params) {
+        params = resolveParamsRef(params, taskFile, skillsRoot);
+      }
 
       // Validate all params use inline JSON Schema format
       validateParamFormats(params, taskFile);
