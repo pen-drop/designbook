@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Consolidate all reference data (screenshots, extract.json) into a single hash-based `references/{hash}/` directory, add a `breakpoints` resolver, and simplify the story screenshot structure.
+**Goal:** Consolidate all reference data (screenshots, extract.json) into a single hash-based `references/{hash}/` directory, add a `breakpoints` resolver, add an intake rule for extract reference context, and simplify the story screenshot structure.
 
 **Architecture:** All reference-related data is stored per URL hash under `$DESIGNBOOK_DATA/references/{hash}/`. A new `breakpoints` resolver reads breakpoint names from `design-tokens.yml`. All design workflows declare the same resolver-backed params (`story_id`, `reference_folder`, `breakpoints`). Tasks receive `reference_folder` as a param and build paths themselves — no more result-based path passing.
 
@@ -18,6 +18,7 @@
 | Create | `src/resolvers/__tests__/breakpoints.test.ts` | Unit tests for breakpoints resolver |
 | Modify | `src/resolvers/registry.ts:29` | Register breakpoints resolver |
 | Modify | `src/resolvers/index.ts:1-5` | Export breakpoints resolver |
+| Create | `.agents/skills/designbook/design/rules/extract-reference-context.md` | Intake rule: read extract.json from reference_folder |
 | Modify | `.agents/skills/designbook/design/workflows/design-verify.md:1-33` | Add `breakpoints` param with resolver |
 | Modify | `.agents/skills/designbook/design/workflows/design-screen.md:1-29` | Add `reference_url`, `reference_folder`, `breakpoints` params |
 | Modify | `.agents/skills/designbook/design/workflows/design-component.md:1-19` | Add `reference_url`, `reference_folder`, `breakpoints` params |
@@ -374,7 +375,53 @@ git commit -m "feat(workflows): unify resolver params across all design workflow
 
 ---
 
-### Task 4: Update capture-reference Task
+### Task 4: Intake Rule for Extract Reference Data
+
+**Files:**
+- Create: `.agents/skills/designbook/design/rules/extract-reference-context.md`
+
+- [ ] **Step 1: Create the rule file**
+
+Create `.agents/skills/designbook/design/rules/extract-reference-context.md`:
+
+```markdown
+---
+name: designbook:design:extract-reference-context
+when:
+  steps: [intake]
+---
+
+# Extract Reference Context
+
+When `reference_folder` is available as a workflow param and `extract.json` exists in that directory, read it and use the extracted design data as context for the intake.
+
+## Execution
+
+1. Check if `reference_folder` is set (non-empty) in the workflow params.
+2. If set, check if `{reference_folder}/extract.json` exists.
+3. If it exists, read it and use the extracted design reference data (tokens, fonts, colors, spacing, landmarks) as context when making intake decisions.
+
+This data was produced by the `extract-reference` stage and contains:
+- Semantic color tokens (primary, secondary, accent, surface, etc.)
+- Typography (fonts, sizes, weights)
+- Spacing rhythm (base unit, common values)
+- Border radii tokens
+- Landmark descriptions (header, footer, hero, etc.)
+- Full-page and region screenshots
+
+Use this context to make informed decisions about component structure, token usage, and design alignment during intake.
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add .agents/skills/designbook/design/rules/extract-reference-context.md
+git commit -m "feat(rules): add intake rule for extract reference context"
+```
+
+---
+
+### Task 5: Update capture-reference Task
 
 **Files:**
 - Modify: `.agents/skills/designbook/design/tasks/capture-reference.md`
@@ -436,7 +483,7 @@ git commit -m "feat(tasks): capture-reference uses reference_folder param"
 
 ---
 
-### Task 5: Update compare-screenshots Task
+### Task 6: Update compare-screenshots Task
 
 **Files:**
 - Modify: `.agents/skills/designbook/design/tasks/compare-screenshots.md`
@@ -482,7 +529,7 @@ git commit -m "feat(tasks): compare-screenshots reads reference from reference_f
 
 ---
 
-### Task 6: Update capture-storybook Task
+### Task 7: Update capture-storybook Task
 
 **Files:**
 - Modify: `.agents/skills/designbook/design/tasks/capture-storybook.md`
@@ -526,7 +573,7 @@ git commit -m "feat(tasks): capture-storybook writes to screenshots/ directly"
 
 ---
 
-### Task 7: Update verify Task
+### Task 8: Update verify Task
 
 **Files:**
 - Modify: `.agents/skills/designbook/design/tasks/verify.md`
@@ -561,7 +608,7 @@ git commit -m "feat(tasks): verify reads reference from reference_folder param"
 
 ---
 
-### Task 8: Update story-meta-schema Path Convention
+### Task 9: Update story-meta-schema Path Convention
 
 **Files:**
 - Modify: `.agents/skills/designbook/design/resources/story-meta-schema.md`
@@ -612,7 +659,7 @@ git commit -m "docs: update story-meta-schema path convention for consolidated r
 
 ---
 
-### Task 9: Final Validation
+### Task 10: Final Validation
 
 - [ ] **Step 1: Run full check**
 
