@@ -4,9 +4,6 @@ import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
 import {
   workflowCreate,
-  workflowPlan,
-  workflowAppendTasks,
-  expandTasksFromParams,
   workflowWriteFile,
   workflowResult,
   workflowGetFile,
@@ -15,129 +12,31 @@ import {
   workflowAbandon,
   workflowWait,
   workflowMerge,
-  isGitRepo,
-  resolveEngine,
   readWorkflow,
   writeWorkflowAtomic,
-  type WorkflowTask,
 } from '../workflow.js';
-import { engines as engineRegistry } from '../engines/index.js';
 import { load as parseYaml } from 'js-yaml';
+import { globSync } from 'glob';
 import {
   resolveAllStages,
   parseFrontmatter,
   buildEnvMap,
   expandResultDeclarations,
   resolveSchemaRef,
+  rewriteRefsInSchema,
   type ResolvedStep,
   type ResultDeclaration,
 } from '../workflow-resolve.js';
+import { resolveParams } from '../resolvers/registry.js';
+import type { ResolverContext } from '../resolvers/types.js';
 
-/**
- * Unified task expansion for the CLI.
- * Reads tasks.yml, sets up engine, expands tasks via expandTasksFromParams, and persists.
- *
- * In 'plan' mode (initial expansion after intake or skip-intake):
- *   Uses workflowPlan to replace tasks and set engine fields.
- * In 'append' mode (deferred expansion on subsequent done calls):
- *   Uses workflowAppendTasks to append new tasks.
- */
-function expandWorkflowTasks(
-  config: ReturnType<typeof loadConfig>,
-  workflowName: string,
-  newParams: Record<string, unknown>,
-  mode: 'plan' | 'append',
-): { tasks: WorkflowTask[]; steps: string[]; engine: string; worktree_branch?: string } | null {
-  const changesDir = resolve(config.data, 'workflows', 'changes', workflowName);
-  const tasksYmlPath = resolve(changesDir, 'tasks.yml');
-  if (!existsSync(tasksYmlPath)) {
-    if (mode === 'plan') throw new Error(`Workflow not found: ${workflowName}`);
-    return null;
+// Resolve a workflow .md file from a workflow ID by scanning skills directories (same glob mechanism as tasks/rules).
+function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
+  const matches = globSync(`skills/**/workflows/${workflowId}.md`, { cwd: agentsDir, absolute: true });
+  if (matches.length === 0) {
+    throw new Error(`Workflow file not found for "${workflowId}". No match for skills/**/workflows/${workflowId}.md`);
   }
-
-  const existing = readWorkflow(tasksYmlPath);
-  const stageLoaded = existing.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]> | undefined;
-
-  if (!stageLoaded) {
-    if (mode === 'plan')
-      throw new Error(`No stage_loaded in tasks.yml. Was the workflow created with --workflow-file?`);
-    return null;
-  }
-
-  if (!existing.stages) {
-    if (mode === 'plan') throw new Error('No stages in tasks.yml');
-    return null;
-  }
-  const stageDefinitions = existing.stages;
-
-  const allSteps: string[] = [];
-  for (const def of Object.values(stageDefinitions)) {
-    allSteps.push(...(def.steps ?? []));
-  }
-
-  const existingTasks = existing.tasks;
-
-  // Engine setup for file path expansion
-  const rootDir = (config.workspace as string | undefined) ?? dirname(config.data);
-  const envMap = buildEnvMap(config);
-  const frontmatterEngine = existing.engine;
-  const resolvedEngine = resolveEngine(undefined, frontmatterEngine, isGitRepo(rootDir));
-  const workspacesBase = process.env['DESIGNBOOK_WORKSPACES'] ?? resolve(config.data, 'workspaces');
-  const worktreePath = resolve(workspacesBase, workflowName);
-  const workspace = (config['workspace'] as string | undefined) ?? rootDir;
-  const engine = engineRegistry[resolvedEngine];
-  if (!engine) {
-    if (mode === 'plan') throw new Error(`Unknown engine: "${resolvedEngine}"`);
-    return null;
-  }
-  const engineResult = engine.setup({
-    envMap,
-    worktreePath,
-    rootDir,
-    workflowName,
-    workspace,
-    dryRun: false,
-  });
-
-  // Merge params: in plan mode use newParams directly, in append mode merge with existing
-  const globalParams = mode === 'append' ? { ...(existing.params ?? {}), ...newParams } : newParams;
-
-  const tasks = expandTasksFromParams(
-    stageLoaded,
-    stageDefinitions,
-    globalParams,
-    existingTasks,
-    engineResult.envMap,
-    existing.scope,
-  );
-
-  if (tasks.length === 0) return mode === 'plan' ? { tasks: [], steps: allSteps, engine: resolvedEngine } : null;
-
-  // Persist
-  if (mode === 'plan') {
-    workflowPlan(
-      config.data,
-      workflowName,
-      tasks,
-      undefined,
-      globalParams,
-      engineResult.write_root,
-      rootDir,
-      engineResult.worktree_branch,
-      resolvedEngine,
-      undefined, // schemas
-      engineResult.envMap,
-    );
-  } else {
-    workflowAppendTasks(config.data, workflowName, tasks, newParams);
-  }
-
-  return {
-    tasks,
-    steps: allSteps,
-    engine: resolvedEngine,
-    ...(engineResult.worktree_branch ? { worktree_branch: engineResult.worktree_branch } : {}),
-  };
+  return matches[0]!;
 }
 
 export function register(program: Command): void {
@@ -156,13 +55,12 @@ export function register(program: Command): void {
 
   workflow
     .command('create')
-    .description('Create a new workflow tracking file from a workflow .md file.')
+    .description('Create a new workflow tracking file.')
     .requiredOption('--workflow <id>', 'Workflow identifier (e.g., vision)')
-    .requiredOption('--workflow-file <path>', 'Path to workflow .md file (resolves intake task + stages)')
     .option('--title <title>', 'Human-readable workflow title')
     .option('--parent <name>', 'Triggering workflow name when started via a hook')
     .option('--params <json>', 'JSON object of initial params (e.g. from parent dispatch)')
-    .action((opts: { workflow: string; workflowFile: string; title?: string; parent?: string; params?: string }) => {
+    .action((opts: { workflow: string; title?: string; parent?: string; params?: string }) => {
       const config = loadConfig();
 
       // Parse initial params if provided
@@ -185,78 +83,106 @@ export function register(program: Command): void {
       const agentsDir = resolveSkillsRoot(configDir);
 
       try {
-        const resolved = resolveAllStages(resolve(opts.workflowFile), config, rawConfig, agentsDir);
+        const workflowFilePath = resolveWorkflowFile(opts.workflow, agentsDir);
+        const resolved = resolveAllStages(workflowFilePath, config, rawConfig, agentsDir);
+
+        // ── Resolve phase: run param resolvers ────────────────────────
+        const wfFm = parseFrontmatter(workflowFilePath) as Record<string, unknown> | null;
+        const wfParams = wfFm?.params as Record<string, Record<string, unknown>> | undefined;
+
+        if (initialParams && wfParams) {
+          const hasResolvers = Object.values(wfParams).some(
+            (decl) => decl && typeof decl === 'object' && 'resolve' in decl,
+          );
+
+          if (hasResolvers) {
+            const resolverContext: ResolverContext = { config, params: initialParams };
+            const resolveResult = resolveParams(wfParams, resolverContext);
+
+            if (!resolveResult.allResolved) {
+              console.log(JSON.stringify({
+                unresolved: resolveResult.unresolved,
+              }, null, 2));
+              return;
+            }
+
+            initialParams = resolveResult.params as Record<string, unknown>;
+          }
+        }
 
         const title = opts.title ?? resolved.title;
 
-        // Find intake stage (if declared in stages frontmatter)
-        const intakeStage = resolved.stages?.intake as { steps?: string[] } | undefined;
-        const intakeStepName = intakeStage?.steps?.[0] ?? (intakeStage ? 'intake' : undefined);
-        const intakeRaw = intakeStepName ? resolved.step_resolved[intakeStepName] : undefined;
-        const intakeResolved = intakeRaw && !Array.isArray(intakeRaw) ? intakeRaw : undefined;
-        // Build result declarations for intake task from frontmatter, resolving $ref schemas
-        let intakeResult: Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined;
-        const intakeSchemas: Record<string, object> = {};
-        if (intakeResolved) {
-          const intakeFm = parseFrontmatter(intakeResolved.task_file);
-          const resultDecl = intakeFm?.result as Record<string, ResultDeclaration> | undefined;
+        // Find first stage with a resolved step
+        let firstStepName: string | undefined;
+        let firstStageName: string | undefined;
+        let firstResolved: ResolvedStep | undefined;
+        if (resolved.stages) {
+          for (const [stageName, stageDef] of Object.entries(resolved.stages)) {
+            const step = (stageDef as { steps?: string[] }).steps?.[0];
+            if (!step) continue;
+            const raw = resolved.step_resolved[step];
+            const res = raw && !Array.isArray(raw) ? raw : undefined;
+            if (res) {
+              firstStepName = step;
+              firstStageName = stageName;
+              firstResolved = res;
+              break;
+            }
+          }
+        }
+        // Build result declarations from first task's frontmatter, resolving $ref schemas
+        let firstResult: Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined;
+        const firstSchemas: Record<string, object> = {};
+        if (firstResolved) {
+          const firstFm = parseFrontmatter(firstResolved.task_file);
+          const resultDecl = firstFm?.result as Record<string, ResultDeclaration> | undefined;
           const envMap = buildEnvMap(config);
-          intakeResult = expandResultDeclarations(resultDecl, undefined, initialParams ?? {}, envMap);
+          firstResult = expandResultDeclarations(resultDecl, undefined, initialParams ?? {}, envMap, undefined, true);
 
           // Resolve $ref in result schemas inline
-          if (intakeResult && resultDecl) {
+          if (firstResult && resultDecl) {
             const skillsRoot = resolve(agentsDir, 'skills');
             for (const [key, decl] of Object.entries(resultDecl)) {
-              if (decl.$ref && intakeResult[key]) {
-                const { typeName, schema } = resolveSchemaRef(decl.$ref, intakeResolved.task_file, skillsRoot);
-                intakeSchemas[typeName] = schema;
-                intakeResult[key]!.schema = schema;
+              // Top-level $ref: replace schema with the resolved definition
+              if (decl.$ref && firstResult[key]) {
+                const { typeName, schema } = resolveSchemaRef(decl.$ref, firstResolved.task_file, skillsRoot);
+                firstSchemas[typeName] = schema;
+                firstResult[key]!.schema = schema;
               }
-              // Resolve nested $ref in items
-              if (decl.items && typeof decl.items === 'object') {
-                const items = decl.items as Record<string, unknown>;
-                if (items.$ref && typeof items.$ref === 'string') {
-                  const { typeName, schema } = resolveSchemaRef(items.$ref, intakeResolved.task_file, skillsRoot);
-                  intakeSchemas[typeName] = schema;
-                  if (intakeResult[key]?.schema) {
-                    (intakeResult[key]!.schema as Record<string, unknown>).items = schema;
-                  }
-                }
+              // Nested $ref at any depth (e.g. items.$ref, properties.foo.$ref):
+              // rewrite file-system refs to AJV-compatible local refs
+              if (firstResult[key]?.schema && typeof firstResult[key]!.schema === 'object') {
+                rewriteRefsInSchema(
+                  firstResult[key]!.schema as Record<string, unknown>,
+                  firstResolved.task_file,
+                  skillsRoot,
+                  firstSchemas,
+                );
               }
             }
           }
         }
 
-        const intakeTask =
-          intakeStepName && intakeResolved
+        const firstTaskId = firstStepName ?? 'task-1';
+        const firstTask =
+          firstStepName && firstStageName && firstResolved
             ? [
                 {
-                  id: 'intake',
-                  title: `Intake: ${title}`,
+                  id: firstTaskId,
+                  title: `${title}: ${firstStepName}`,
                   type: 'data' as const,
-                  step: intakeStepName,
-                  stage: 'intake' as const,
+                  step: firstStepName,
+                  stage: firstStageName,
                   files: [] as Array<{ path: string; key: string; validators: string[] }>,
-                  ...(intakeResult ? { result: intakeResult } : {}),
-                  task_file: intakeResolved.task_file,
-                  rules: intakeResolved.rules,
-                  blueprints: intakeResolved.blueprints,
-                  config_rules: intakeResolved.config_rules,
-                  config_instructions: intakeResolved.config_instructions,
+                  ...(firstResult ? { result: firstResult } : {}),
+                  task_file: firstResolved.task_file,
+                  rules: firstResolved.rules,
+                  blueprints: firstResolved.blueprints,
+                  config_rules: firstResolved.config_rules,
+                  config_instructions: firstResolved.config_instructions,
                 },
               ]
             : [];
-
-        // Check if --params satisfies all required params → skip intake
-        const skipIntake =
-          initialParams &&
-          resolved.expected_params &&
-          Object.entries(resolved.expected_params).every(([key, meta]) => {
-            const m = meta as { required?: boolean };
-            return !m.required || initialParams[key] !== undefined;
-          });
-
-        const tasksForCreate = skipIntake ? [] : intakeTask;
 
         const workspaceRoot = (config.workspace as string | undefined) ?? configDir;
         const envMap = buildEnvMap(config);
@@ -264,39 +190,21 @@ export function register(program: Command): void {
           config.data,
           opts.workflow,
           title,
-          tasksForCreate,
+          firstTask,
           resolved.stages,
           opts.parent,
           resolved.step_resolved,
           resolved.engine,
           initialParams,
           workspaceRoot,
-          intakeSchemas,
+          firstSchemas,
           envMap,
         );
 
-        // If intake was skipped or no intake stage exists, immediately expand tasks
-        let expandedTasks: WorkflowTask[] | undefined;
-        if (skipIntake || !intakeStepName) {
-          try {
-            const result = expandWorkflowTasks(config, name, initialParams ?? {}, 'plan');
-            expandedTasks = result?.tasks;
-          } catch (err) {
-            console.error(`Error expanding tasks: ${(err as Error).message}`);
-            process.exitCode = 1;
-            return;
-          }
-        }
-
         // Build task_ids map: step name → actual task ID
         const taskIds: Record<string, string> = {};
-        if (!skipIntake && intakeStepName) {
-          taskIds[intakeStepName] = 'intake';
-        }
-        if (expandedTasks) {
-          for (const t of expandedTasks) {
-            if (t.step) taskIds[t.step] = t.id;
-          }
+        if (firstStepName) {
+          taskIds[firstStepName] = firstTaskId;
         }
 
         // Output JSON with workflow name + all resolved steps
@@ -310,8 +218,6 @@ export function register(program: Command): void {
               step_resolved: resolved.step_resolved,
               expected_params: resolved.expected_params,
               ...(Object.keys(taskIds).length > 0 ? { task_ids: taskIds } : {}),
-              ...(skipIntake ? { intake_skipped: true } : {}),
-              ...(expandedTasks ? { expanded_tasks: expandedTasks } : {}),
             },
             null,
             2,
@@ -319,6 +225,7 @@ export function register(program: Command): void {
         );
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
+        console.error((err as Error).stack);
         process.exitCode = 1;
       }
     });
@@ -360,8 +267,7 @@ export function register(program: Command): void {
       if (!data.stage_loaded || !data.stage_loaded[resolvedKey]) {
         console.error(
           `Error: no resolved data for stage "${opts.stage}". ` +
-            `Available stages: ${data.stage_loaded ? Object.keys(data.stage_loaded).join(', ') : 'none'}. ` +
-            `Was the workflow created with --workflow-file?`,
+            `Available stages: ${data.stage_loaded ? Object.keys(data.stage_loaded).join(', ') : 'none'}.`,
         );
         process.exitCode = 1;
         return;
