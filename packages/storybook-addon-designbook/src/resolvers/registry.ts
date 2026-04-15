@@ -1,6 +1,7 @@
 import type { ParamResolver, ResolverResult, ResolverContext } from './types.js';
 import { storyIdResolver } from './story-id.js';
 import { referenceFolderResolver } from './reference-folder.js';
+import { breakpointsResolver } from './breakpoints.js';
 
 interface ParamDeclaration {
   type?: string;
@@ -28,6 +29,7 @@ function register(resolver: ParamResolver): void {
 
 register(storyIdResolver);
 register(referenceFolderResolver);
+register(breakpointsResolver);
 
 export const resolverRegistry = {
   get(name: string): ParamResolver | undefined {
