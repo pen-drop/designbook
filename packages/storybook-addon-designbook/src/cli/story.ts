@@ -1,20 +1,50 @@
 import type { Command } from 'commander';
 import { loadConfig } from '../config.js';
 import { DeboStory } from '../story-entity.js';
+import { storyIdResolver } from '../resolvers/story-id.js';
+import type { ResolverContext } from '../resolvers/types.js';
 
 export function register(program: Command): void {
+  function resolveStoryArg(identifier: string, config: ReturnType<typeof loadConfig>): string | null {
+    const ctx: ResolverContext = { config, params: {} };
+    const result = storyIdResolver.resolve(identifier, {}, ctx);
+
+    if (result.resolved) return result.value!;
+
+    if (result.candidates && result.candidates.length > 0) {
+      console.log(
+        JSON.stringify(
+          {
+            resolved: false,
+            input: identifier,
+            candidates: result.candidates,
+          },
+          null,
+          2,
+        ),
+      );
+      return null;
+    }
+
+    console.error(`Error: no match for "${identifier}"`);
+    process.exitCode = 1;
+    return null;
+  }
+
   program
     .command('story')
     .description('Load DeboStory entity — returns complete story data as JSON')
-    .argument('[subcommand]', 'Subcommand: "checks" returns workflow-ready checks array')
-    .option('--scene <ref>', 'Scene reference (e.g. design-system:shell)')
+    .argument('[subcommandOrId]', 'Subcommand (check, checks) or story identifier')
+    .argument('[storyId]', 'Story identifier when first arg is a subcommand')
+    .option('--scene <ref>', 'Scene reference (e.g. design-system:shell) [deprecated: use positional arg]')
     .option('--section <name>', 'Section name — returns array of stories')
     .option('--checks-open', 'Filter checks to only open (status != done)')
     .option('--create', 'Create story dir + meta.yml if missing (triggers ensureMeta)')
     .option('--json <data>', 'JSON data (context-dependent)')
     .action(
       async (
-        subcommand: string | undefined,
+        subcommandOrId: string | undefined,
+        storyIdArg: string | undefined,
         opts: {
           scene?: string;
           section?: string;
@@ -24,11 +54,14 @@ export function register(program: Command): void {
         },
       ) => {
         const config = loadConfig();
+        const isSubcommand = subcommandOrId === 'check' || subcommandOrId === 'checks';
+
         try {
           // ── subcommand: check (update a single check result) ───────────────
-          if (subcommand === 'check') {
-            if (!opts.scene) {
-              console.error('Error: --scene is required for check');
+          if (subcommandOrId === 'check') {
+            const identifier = storyIdArg ?? opts.scene;
+            if (!identifier) {
+              console.error('Error: story identifier or --scene is required for check');
               process.exitCode = 1;
               return;
             }
@@ -39,9 +72,17 @@ export function register(program: Command): void {
               process.exitCode = 1;
               return;
             }
-            const story = DeboStory.loadByScene(config, opts.scene);
+
+            let story: DeboStory | null = null;
+            if (storyIdArg) {
+              const resolved = resolveStoryArg(storyIdArg, config);
+              if (!resolved) return;
+              story = DeboStory.load(config, resolved);
+            } else {
+              story = DeboStory.loadByScene(config, opts.scene!);
+            }
             if (!story) {
-              console.error(`Error: scene "${opts.scene}" not found or no story exists`);
+              console.error(`Error: story not found for "${identifier}"`);
               process.exitCode = 1;
               return;
             }
@@ -69,22 +110,33 @@ export function register(program: Command): void {
           }
 
           // ── subcommand: checks ────────────────────────────────────────────
-          if (subcommand === 'checks') {
-            if (!opts.scene) {
-              console.error('Error: --scene is required for checks');
+          if (subcommandOrId === 'checks') {
+            const identifier = storyIdArg ?? opts.scene;
+            if (!identifier) {
+              console.error('Error: story identifier or --scene is required for checks');
               process.exitCode = 1;
               return;
             }
             // Create story if --create is set, otherwise load
             let story: DeboStory | null = null;
             if (opts.create) {
+              // --create requires scene ref for createByScene (no storyId-based create)
+              if (!opts.scene) {
+                console.error('Error: --create requires --scene');
+                process.exitCode = 1;
+                return;
+              }
               const metaData = opts.json ? JSON.parse(opts.json) : undefined;
               story = DeboStory.createByScene(config, opts.scene, metaData);
+            } else if (storyIdArg) {
+              const resolved = resolveStoryArg(storyIdArg, config);
+              if (!resolved) return;
+              story = DeboStory.load(config, resolved);
             } else {
-              story = DeboStory.loadByScene(config, opts.scene);
+              story = DeboStory.loadByScene(config, opts.scene!);
             }
             if (!story) {
-              console.error('Error: could not resolve scene or create story');
+              console.error('Error: could not resolve story or create story');
               process.exitCode = 1;
               return;
             }
@@ -112,41 +164,38 @@ export function register(program: Command): void {
             return;
           }
 
+          // ── default path (no subcommand) ──────────────────────────────────
           if (opts.section) {
             // Return array of DeboStory objects for all stories in section
             const stories = DeboStory.list(config, { section: opts.section });
             const json = stories.map((s) => s.toJSON({ checksOpen: opts.checksOpen }));
             console.log(JSON.stringify(json, null, 2));
-          } else if (opts.scene) {
-            // --create: ensure story directory and meta.yml exist
-            if (opts.create) {
-              const metaData = opts.json ? JSON.parse(opts.json) : undefined;
-              const story = DeboStory.createByScene(config, opts.scene, metaData);
-              if (!story) {
-                console.error('Error: could not resolve scene or create story');
-                process.exitCode = 1;
-                return;
-              }
-              const json = story.toJSON({ checksOpen: opts.checksOpen });
-              const storybookUrl = config['designbook.url'] as string | undefined;
-              const output = {
-                ...json,
-                url: storybookUrl ? `${storybookUrl}/iframe.html?id=${story.storyId}&viewMode=story` : undefined,
-                filePath: json.storyDir,
-              };
-              console.log(JSON.stringify(output, null, 2));
+            return;
+          }
+
+          // Positional arg is the identifier (not a subcommand), or fall back to --scene
+          const identifier = isSubcommand ? undefined : subcommandOrId ?? opts.scene;
+          if (!identifier) {
+            console.error('Error: story identifier, --scene, or --section is required');
+            process.exitCode = 1;
+            return;
+          }
+
+          // --create requires scene ref for createByScene
+          if (opts.create) {
+            if (!opts.scene) {
+              console.error('Error: --create requires --scene');
+              process.exitCode = 1;
               return;
             }
-
-            // Load DeboStory by scene reference
-            const story = DeboStory.loadByScene(config, opts.scene);
+            const metaData = opts.json ? JSON.parse(opts.json) : undefined;
+            const story = DeboStory.createByScene(config, opts.scene, metaData);
             if (!story) {
-              console.error(`Error: scene "${opts.scene}" not found or no story exists`);
+              console.error('Error: could not resolve scene or create story');
               process.exitCode = 1;
               return;
             }
             const json = story.toJSON({ checksOpen: opts.checksOpen });
-            // Include backwards-compatible fields
             const storybookUrl = config['designbook.url'] as string | undefined;
             const output = {
               ...json,
@@ -154,10 +203,32 @@ export function register(program: Command): void {
               filePath: json.storyDir,
             };
             console.log(JSON.stringify(output, null, 2));
-          } else {
-            console.error('Error: --scene or --section is required');
-            process.exitCode = 1;
+            return;
           }
+
+          // Load story: positional arg goes through resolver, --scene uses loadByScene
+          let story: DeboStory | null = null;
+          if (subcommandOrId && !isSubcommand) {
+            const resolved = resolveStoryArg(subcommandOrId, config);
+            if (!resolved) return;
+            story = DeboStory.load(config, resolved);
+          } else {
+            story = DeboStory.loadByScene(config, opts.scene!);
+          }
+          if (!story) {
+            console.error(`Error: story not found for "${identifier}"`);
+            process.exitCode = 1;
+            return;
+          }
+          const json = story.toJSON({ checksOpen: opts.checksOpen });
+          // Include backwards-compatible fields
+          const storybookUrl = config['designbook.url'] as string | undefined;
+          const output = {
+            ...json,
+            url: storybookUrl ? `${storybookUrl}/iframe.html?id=${story.storyId}&viewMode=story` : undefined,
+            filePath: json.storyDir,
+          };
+          console.log(JSON.stringify(output, null, 2));
         } catch (err) {
           console.error(`Error: ${(err as Error).message}`);
           process.exitCode = 1;
