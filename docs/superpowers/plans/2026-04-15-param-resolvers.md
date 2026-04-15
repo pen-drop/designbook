@@ -16,7 +16,7 @@
 |---|---|
 | `src/resolvers/types.ts` | Shared types: `ParamResolver`, `ResolverResult`, `Candidate`, `ResolverConfig` |
 | `src/resolvers/registry.ts` | Resolver registry: register, lookup, run resolvers on params |
-| `src/resolvers/story-id.ts` | `story_id` resolver: scene/component scanning, fuzzy match |
+| `src/resolvers/story-id.ts` | `story_id` resolver: substring match against story index (`stories/` dirs) |
 | `src/resolvers/reference-folder.ts` | `reference_folder` resolver: URL hashing, folder creation |
 | `src/resolvers/__tests__/story-id.test.ts` | Tests for story_id resolver |
 | `src/resolvers/__tests__/reference-folder.test.ts` | Tests for reference_folder resolver |
@@ -99,14 +99,13 @@ git commit -m "feat(resolvers): add resolver type definitions"
 
 - [ ] **Step 1: Write test file with fixture setup**
 
-The test needs scenes.yml fixtures and a component directory to simulate both sources.
+The resolver simply lists story directories under `stories/` and does a substring match against their names. No scene files or component files needed — just directories.
 
 ```typescript
 // packages/storybook-addon-designbook/src/resolvers/__tests__/story-id.test.ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolve } from 'node:path';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { dump as dumpYaml } from 'js-yaml';
+import { mkdirSync, rmSync } from 'node:fs';
 import { storyIdResolver } from '../story-id.js';
 import type { ResolverContext } from '../types.js';
 
@@ -118,69 +117,21 @@ function makeContext(): ResolverContext {
 
 function setupFixtures() {
   rmSync(tmpDir, { recursive: true, force: true });
+  const storiesDir = resolve(tmpDir, 'stories');
 
-  // design-system scenes with group field
-  const dsDir = resolve(tmpDir, 'design-system');
-  mkdirSync(dsDir, { recursive: true });
-  writeFileSync(
-    resolve(dsDir, 'design-system.scenes.yml'),
-    dumpYaml({
-      id: 'designbook-design-system-scenes',
-      title: 'Design System',
-      group: 'Designbook/Design System/Scenes',
-      scenes: [
-        { name: 'shell', items: [] },
-        { name: 'navigation', items: [] },
-      ],
-    }),
-  );
-
-  // section scenes — galerie
-  const galerieDir = resolve(tmpDir, 'sections', 'galerie');
-  mkdirSync(galerieDir, { recursive: true });
-  writeFileSync(
-    resolve(galerieDir, 'galerie.section.scenes.yml'),
-    dumpYaml({
-      id: 'designbook-galerie-scenes',
-      title: 'Galerie',
-      group: 'Designbook/Galerie/Scenes',
-      scenes: [
-        { name: 'landing', items: [] },
-        { name: 'product-detail', items: [] },
-      ],
-    }),
-  );
-
-  // section scenes — homepage (has 'landing' too for ambiguity test)
-  const homepageDir = resolve(tmpDir, 'sections', 'homepage');
-  mkdirSync(homepageDir, { recursive: true });
-  writeFileSync(
-    resolve(homepageDir, 'homepage.section.scenes.yml'),
-    dumpYaml({
-      id: 'designbook-homepage-scenes',
-      title: 'Homepage',
-      group: 'Designbook/Homepage/Scenes',
-      scenes: [
-        { name: 'landing', items: [] },
-        { name: 'hero', items: [] },
-      ],
-    }),
-  );
-
-  // Existing story directory (for exact storyId match)
-  mkdirSync(resolve(tmpDir, 'stories', 'designbook-design-system-scenes--shell'), { recursive: true });
-
-  // Component directory (for component source)
-  const compDir = resolve(tmpDir, 'design-system', 'components');
-  mkdirSync(compDir, { recursive: true });
-  writeFileSync(
-    resolve(compDir, 'card.component.yml'),
-    dumpYaml({ name: 'card', status: 'ready' }),
-  );
-  writeFileSync(
-    resolve(compDir, 'hero.component.yml'),
-    dumpYaml({ name: 'hero', status: 'ready' }),
-  );
+  // Create story directories (the index)
+  const storyIds = [
+    'designbook-design-system-scenes--shell',
+    'designbook-design-system-scenes--navigation',
+    'designbook-galerie-scenes--landing',
+    'designbook-galerie-scenes--product-detail',
+    'designbook-homepage-scenes--landing',
+    'designbook-homepage-scenes--hero',
+    'components--card',
+  ];
+  for (const id of storyIds) {
+    mkdirSync(resolve(storiesDir, id), { recursive: true });
+  }
 }
 
 describe('storyIdResolver', () => {
@@ -193,7 +144,7 @@ describe('storyIdResolver', () => {
 
   // --- Exact storyId match ---
 
-  it('resolves exact storyId when story directory exists', () => {
+  it('resolves exact storyId', () => {
     const result = storyIdResolver.resolve(
       'designbook-design-system-scenes--shell',
       {},
@@ -203,80 +154,49 @@ describe('storyIdResolver', () => {
     expect(result.value).toBe('designbook-design-system-scenes--shell');
   });
 
-  // --- Qualified scene match (contains ":") ---
+  // --- Unique substring match ---
 
-  it('resolves qualified scene reference', () => {
-    const result = storyIdResolver.resolve('design-system:shell', {}, makeContext());
-    expect(result.resolved).toBe(true);
-    expect(result.value).toContain('shell');
-    expect(result.input).toBe('design-system:shell');
-  });
-
-  it('returns error for qualified scene that does not exist', () => {
-    const result = storyIdResolver.resolve('design-system:nonexistent', {}, makeContext());
-    expect(result.resolved).toBe(false);
-    expect(result.candidates).toEqual([]);
-  });
-
-  // --- Short name: unique scene match ---
-
-  it('resolves unique short scene name', () => {
+  it('resolves unique substring "shell"', () => {
     const result = storyIdResolver.resolve('shell', {}, makeContext());
     expect(result.resolved).toBe(true);
-    expect(result.value).toContain('shell');
+    expect(result.value).toBe('designbook-design-system-scenes--shell');
   });
 
-  it('resolves unique short scene name "product-detail"', () => {
+  it('resolves unique substring "product-detail"', () => {
     const result = storyIdResolver.resolve('product-detail', {}, makeContext());
     expect(result.resolved).toBe(true);
-    expect(result.value).toContain('product-detail');
+    expect(result.value).toBe('designbook-galerie-scenes--product-detail');
   });
 
-  // --- Short name: ambiguous scene match ---
+  it('resolves unique substring "navigation"', () => {
+    const result = storyIdResolver.resolve('navigation', {}, makeContext());
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('designbook-design-system-scenes--navigation');
+  });
 
-  it('returns candidates when short name matches multiple scenes', () => {
+  it('resolves unique substring "card"', () => {
+    const result = storyIdResolver.resolve('card', {}, makeContext());
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('components--card');
+  });
+
+  // --- Ambiguous substring match ---
+
+  it('returns candidates when substring matches multiple stories', () => {
     const result = storyIdResolver.resolve('landing', {}, makeContext());
     expect(result.resolved).toBe(false);
     expect(result.candidates).toHaveLength(2);
-    expect(result.candidates!.map((c) => c.source)).toEqual(['scene', 'scene']);
-    const labels = result.candidates!.map((c) => c.label).sort();
-    expect(labels).toContain('galerie:landing');
-    expect(labels).toContain('homepage:landing');
+    const values = result.candidates!.map((c) => c.value).sort();
+    expect(values).toEqual([
+      'designbook-galerie-scenes--landing',
+      'designbook-homepage-scenes--landing',
+    ]);
   });
 
-  // --- Short name: scene + component collision ---
-
-  it('returns candidates when short name matches scene AND component', () => {
-    const result = storyIdResolver.resolve('hero', {}, makeContext());
+  it('returns candidates when substring matches broadly (e.g. "galerie")', () => {
+    const result = storyIdResolver.resolve('galerie', {}, makeContext());
     expect(result.resolved).toBe(false);
-    expect(result.candidates!.length).toBeGreaterThanOrEqual(2);
-    const sources = result.candidates!.map((c) => c.source);
-    expect(sources).toContain('scene');
-    expect(sources).toContain('component');
-  });
-
-  // --- sources config: restrict to scenes only ---
-
-  it('resolves only from scenes when sources: [scenes]', () => {
-    const result = storyIdResolver.resolve('hero', { sources: ['scenes'] }, makeContext());
-    // hero exists as scene (homepage:hero) — unique scene match
-    expect(result.resolved).toBe(true);
-    expect(result.candidates).toBeUndefined();
-  });
-
-  it('ignores components when sources: [scenes]', () => {
-    const result = storyIdResolver.resolve('card', { sources: ['scenes'] }, makeContext());
-    // card only exists as component, not as scene
-    expect(result.resolved).toBe(false);
-    expect(result.candidates).toEqual([]);
-  });
-
-  // --- sources config: restrict to components only ---
-
-  it('resolves only from components when sources: [components]', () => {
-    const result = storyIdResolver.resolve('card', { sources: ['components'] }, makeContext());
-    expect(result.resolved).toBe(true);
-    expect(result.source).toBe(undefined); // source is on candidate, not result
+    expect(result.candidates).toHaveLength(2);
   });
 
   // --- No match ---
@@ -292,6 +212,15 @@ describe('storyIdResolver', () => {
   it('returns unresolved for empty input', () => {
     const result = storyIdResolver.resolve('', {}, makeContext());
     expect(result.resolved).toBe(false);
+  });
+
+  // --- No stories directory ---
+
+  it('returns unresolved when stories directory does not exist', () => {
+    const ctx: ResolverContext = { config: { data: '/tmp/nonexistent', technology: 'html' }, params: {} };
+    const result = storyIdResolver.resolve('shell', {}, ctx);
+    expect(result.resolved).toBe(false);
+    expect(result.candidates).toEqual([]);
   });
 });
 ```
@@ -317,196 +246,63 @@ git commit -m "test(resolvers): add story_id resolver tests"
 
 - [ ] **Step 1: Implement the resolver**
 
+Simple approach: read directory names from `stories/`, substring match against the input.
+
 ```typescript
 // packages/storybook-addon-designbook/src/resolvers/story-id.ts
 import { resolve } from 'node:path';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { load as parseYaml } from 'js-yaml';
-import { glob } from 'glob';
-import { resolveScene } from '../story-entity.js';
-import { buildExportName } from '../renderer/scene-metadata.js';
+import { existsSync, readdirSync } from 'node:fs';
 import type { ParamResolver, ResolverResult, ResolverContext, Candidate } from './types.js';
 
-// Mirrors story-entity.ts sanitize + toStoryId
-function sanitize(str: string): string {
-  return str
-    .toLowerCase()
-    .replace(/[ '–—―′¿'`~!@#$%^&*()_|+\-=?;:'",.<>{}[\]\\/]/gi, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+/, '')
-    .replace(/-+$/, '');
-}
-
-function toStoryId(title: string, exportName: string): string {
-  return `${sanitize(title)}--${sanitize(exportName)}`;
-}
-
-type Source = 'scenes' | 'components';
-const DEFAULT_SOURCES: Source[] = ['scenes', 'components'];
-
-interface ScenesFile {
-  id?: string;
-  group?: string;
-  scenes?: Array<{ name: string }>;
-}
-
-function scanScenes(dataDir: string, sceneName: string): Candidate[] {
-  const candidates: Candidate[] = [];
-
-  // Scan all scenes.yml files
-  const patterns = [
-    resolve(dataDir, 'design-system', '*.scenes.yml'),
-    resolve(dataDir, '**', '*.scenes.yml'),
-    resolve(dataDir, 'sections', '**', '*.section.scenes.yml'),
-  ];
-
-  const seen = new Set<string>();
-  for (const pattern of patterns) {
-    const files = glob.sync(pattern);
-    for (const filePath of files) {
-      if (seen.has(filePath)) continue;
-      seen.add(filePath);
-
-      const content = readFileSync(filePath, 'utf-8');
-      const parsed = parseYaml(content) as ScenesFile;
-      const scenes = parsed.scenes ?? [];
-
-      for (const scene of scenes) {
-        if (scene.name !== sceneName) continue;
-
-        // Derive the group label (e.g. "design-system", "galerie")
-        const group = parsed.group;
-        const groupLabel = deriveGroupLabel(filePath, dataDir);
-        const sceneRef = `${groupLabel}:${sceneName}`;
-
-        // Derive storyId
-        let storyId: string;
-        if (group) {
-          storyId = toStoryId(group, buildExportName(sceneName));
-        } else {
-          const prefix = parsed.id ?? 'unknown';
-          storyId = `${sanitize(prefix)}--${sanitize(sceneName)}`;
-        }
-
-        candidates.push({ label: sceneRef, value: storyId, source: 'scene' });
-      }
-    }
-  }
-
-  return candidates;
-}
-
-function deriveGroupLabel(filePath: string, dataDir: string): string {
-  const rel = filePath.replace(dataDir + '/', '');
-  // design-system/design-system.scenes.yml → "design-system"
-  // sections/galerie/galerie.section.scenes.yml → "galerie"
-  const parts = rel.split('/');
-  if (parts[0] === 'sections' && parts.length >= 2) return parts[1]!;
-  if (parts[0] === 'design-system') return 'design-system';
-  return parts[0]!;
-}
-
-function scanComponents(dataDir: string, name: string): Candidate[] {
-  const candidates: Candidate[] = [];
-
-  // Scan for component.yml files matching the name
-  const pattern = resolve(dataDir, '**', `${name}.component.yml`);
-  const files = glob.sync(pattern);
-
-  for (const filePath of files) {
-    const content = readFileSync(filePath, 'utf-8');
-    const parsed = parseYaml(content) as { name?: string };
-    const compName = parsed.name ?? name;
-
-    // Component storyId: components are typically at "Components/<Name>"
-    const storyId = `components--${sanitize(compName)}`;
-
-    candidates.push({ label: `${compName} (component)`, value: storyId, source: 'component' });
-  }
-
-  return candidates;
+/**
+ * List all story directory names under `stories/`.
+ */
+function listStoryIds(dataDir: string): string[] {
+  const storiesDir = resolve(dataDir, 'stories');
+  if (!existsSync(storiesDir)) return [];
+  return readdirSync(storiesDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
 }
 
 export const storyIdResolver: ParamResolver = {
   name: 'story_id',
 
-  resolve(input: string, config: Record<string, unknown>, context: ResolverContext): ResolverResult {
+  resolve(input: string, _config: Record<string, unknown>, context: ResolverContext): ResolverResult {
     if (!input || input.trim() === '') {
       return { resolved: false, input, error: 'Empty input', candidates: [] };
     }
 
     const dataDir = context.config.data;
-    const sources = (config.sources as Source[] | undefined) ?? DEFAULT_SOURCES;
+    const allIds = listStoryIds(dataDir);
 
-    // 1. Exact storyId match: check if story directory exists
-    const storyDir = resolve(dataDir, 'stories', input);
-    if (existsSync(storyDir)) {
+    // 1. Exact match
+    if (allIds.includes(input)) {
       return { resolved: true, value: input, input };
     }
 
-    // 2. Qualified scene match: input contains ":"
-    if (input.includes(':')) {
-      if (!sources.includes('scenes')) {
-        return { resolved: false, input, error: 'Scene source not enabled', candidates: [] };
-      }
-      try {
-        const { scenes, allScenes } = resolveScene(dataDir, input);
-        if (scenes.length > 0) {
-          const sceneName = scenes[0]!.name;
-          const group = (allScenes as ScenesFile).group;
-          let storyId: string;
-          if (group) {
-            storyId = toStoryId(group, buildExportName(sceneName));
-          } else {
-            const prefix = (allScenes as ScenesFile).id ?? 'unknown';
-            storyId = `${sanitize(prefix)}--${sanitize(sceneName)}`;
-          }
-          return { resolved: true, value: storyId, input };
-        }
-      } catch {
-        // Scene not found — fall through to return empty candidates
-      }
-      return { resolved: false, input, error: `Scene "${input}" not found`, candidates: [] };
+    // 2. Substring match (case-insensitive)
+    const needle = input.toLowerCase();
+    const matches = allIds.filter((id) => id.toLowerCase().includes(needle));
+
+    if (matches.length === 1) {
+      return { resolved: true, value: matches[0]!, input };
     }
 
-    // 3. Short name: scan all sources
-    const allCandidates: Candidate[] = [];
-
-    if (sources.includes('scenes')) {
-      allCandidates.push(...scanScenes(dataDir, input));
-    }
-
-    if (sources.includes('components')) {
-      allCandidates.push(...scanComponents(dataDir, input));
-    }
-
-    // Deduplicate by value
-    const seen = new Map<string, Candidate>();
-    for (const c of allCandidates) {
-      if (!seen.has(c.value)) seen.set(c.value, c);
-    }
-    const unique = [...seen.values()];
-
-    if (unique.length === 1) {
-      return { resolved: true, value: unique[0]!.value, input };
-    }
-
-    if (unique.length === 0) {
+    if (matches.length === 0) {
       return { resolved: false, input, error: `No match found for "${input}"`, candidates: [] };
     }
 
-    // Multiple matches — return candidates sorted: scenes first, then components
-    unique.sort((a, b) => {
-      if (a.source === 'scene' && b.source !== 'scene') return -1;
-      if (a.source !== 'scene' && b.source === 'scene') return 1;
-      return a.label.localeCompare(b.label);
-    });
+    // Multiple matches — return as candidates
+    const candidates: Candidate[] = matches
+      .sort()
+      .map((id) => ({ label: id, value: id, source: 'story' }));
 
     return {
       resolved: false,
       input,
-      error: `Ambiguous: ${unique.length} matches found`,
-      candidates: unique,
+      error: `Ambiguous: ${matches.length} matches found`,
+      candidates,
     };
   },
 };
@@ -1195,19 +991,10 @@ To:
 
 - [ ] **Step 2: Add resolver-based ID resolution helper**
 
-Add a helper function at the top of the `register` function:
+Add a helper function at the top of the `register` function. The resolver does a simple substring match against `stories/` directory names:
 
 ```typescript
 function resolveStoryArg(identifier: string, config: ReturnType<typeof loadConfig>): string | null {
-  // If --scene was used (deprecated), pass through to resolveScene
-  if (identifier.includes(':')) {
-    // Qualified — try resolver directly
-    const ctx: ResolverContext = { config, params: {} };
-    const result = storyIdResolver.resolve(identifier, {}, ctx);
-    if (result.resolved) return result.value!;
-    // Fall through to error
-  }
-
   const ctx: ResolverContext = { config, params: {} };
   const result = storyIdResolver.resolve(identifier, {}, ctx);
 
@@ -1219,7 +1006,7 @@ function resolveStoryArg(identifier: string, config: ReturnType<typeof loadConfi
       input: identifier,
       candidates: result.candidates,
     }, null, 2));
-    return null;  // signal: output already written
+    return null;  // signal: output already written, caller should return
   }
 
   console.error(`Error: no match for "${identifier}"`);
