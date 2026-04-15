@@ -118,8 +118,7 @@ If keep: done. If update: continue as if it doesn't exist.
 
 6. **Ensure `.gitignore` entries** exist in workspace root:
    ```
-   designbook/stories/*/screenshots/current/
-   designbook/stories/*/screenshots/diff/
+   designbook/stories/*/screenshots/
    ```
 
 ## Read Matched Rules
