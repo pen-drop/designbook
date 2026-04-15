@@ -8,10 +8,12 @@ stages:
     steps: [extract-reference]
   intake:
     steps: [intake]
+    domain: [data-model]
   component:
     steps: [create-component]
   scene:
     steps: [create-scene]
+    domain: [data-model]
 engine: direct
 before:
   - workflow: css-generate

@@ -17,6 +17,7 @@ stages:
     steps: [extract-reference]
   intake:
     steps: [intake]
+    domain: [design.intake]
   setup-compare:
     steps: [setup-compare]
   capture:
