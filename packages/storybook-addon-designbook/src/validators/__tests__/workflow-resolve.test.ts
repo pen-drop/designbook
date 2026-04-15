@@ -8,6 +8,7 @@ import {
   resolveTaskFiles,
   expandFilePath,
   matchRuleFiles,
+  matchBlueprintFiles,
   resolveConfigForStep,
   validateAndMergeParams,
   isJsonSchemaParam,
@@ -96,6 +97,20 @@ function writeSkillTaskFileInSubdir(
   const dir = resolve(agentsDir, 'skills', skillName, subdir, 'tasks');
   mkdirSync(dir, { recursive: true });
   const path = resolve(dir, `${taskName}.md`);
+  writeFileSync(path, `---\n${frontmatter}\n---\n${body}`);
+  return path;
+}
+
+function writeSkillBlueprintFile(
+  agentsDir: string,
+  skillName: string,
+  blueprintName: string,
+  frontmatter: string,
+  body = '',
+): string {
+  const dir = resolve(agentsDir, 'skills', skillName, 'blueprints');
+  mkdirSync(dir, { recursive: true });
+  const path = resolve(dir, `${blueprintName}.md`);
   writeFileSync(path, `---\n${frontmatter}\n---\n${body}`);
   return path;
 }
@@ -573,6 +588,98 @@ describe('matchRuleFiles', () => {
 
     const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
     expect(result).toContain(rulePath);
+  });
+});
+
+// Task 3: matchRuleFiles with domain
+describe('matchRuleFiles with domain', () => {
+  it('matches domain-tagged rule when effectiveDomains provided', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-domain-rule', 'domain: components');
+
+    const result = matchRuleFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toContain(rulePath);
+  });
+
+  it('does NOT match domain-tagged rule when wrong effectiveDomains', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'scene-domain-rule', 'domain: scenes');
+
+    const result = matchRuleFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toEqual([]);
+  });
+
+  it('does NOT match domain-tagged rule when effectiveDomains not provided', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-domain-rule', 'domain: components');
+
+    const result = matchRuleFiles('create-component', baseConfig, agentsDir);
+    expect(result).toEqual([]);
+  });
+
+  it('legacy when.steps rule still works when no effectiveDomains', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'scene-legacy-rule',
+      'when:\n  stages: [create-scene]',
+    );
+
+    const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
+    expect(result).toContain(rulePath);
+  });
+
+  it('legacy when.steps rule still works alongside domain rules', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const legacyPath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'legacy-rule',
+      'when:\n  stages: [create-component]',
+    );
+    const domainPath = writeSkillRuleFile(agentsDir, 'designbook-sdc', 'domain-rule', 'domain: components');
+
+    const result = matchRuleFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toContain(legacyPath);
+    expect(result).toContain(domainPath);
+  });
+});
+
+// Task 3: matchBlueprintFiles with domain
+describe('matchBlueprintFiles with domain', () => {
+  it('matches domain-tagged blueprint when effectiveDomains provided', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const blueprintPath = writeSkillBlueprintFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-bp',
+      'type: component\nname: section\ndomain: components',
+    );
+
+    const result = matchBlueprintFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toContain(blueprintPath);
+  });
+
+  it('does NOT match domain-tagged blueprint when effectiveDomains not provided', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillBlueprintFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-bp',
+      'type: component\nname: section\ndomain: components',
+    );
+
+    const result = matchBlueprintFiles('create-component', baseConfig, agentsDir);
+    expect(result).toEqual([]);
+  });
+
+  it('does NOT match domain-tagged blueprint when wrong effectiveDomains', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillBlueprintFile(agentsDir, 'designbook-sdc', 'scene-bp', 'type: scene\nname: hero\ndomain: scenes');
+
+    const result = matchBlueprintFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toEqual([]);
   });
 });
 

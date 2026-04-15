@@ -81,6 +81,7 @@ interface StageDefinitionFm {
   steps?: string[];
   workflow?: string;
   each?: string;
+  domain?: string[];
   params?: Record<string, { type: string; prompt: string }>;
 }
 
@@ -852,16 +853,20 @@ export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, ag
 
 /**
  * Scan all rule files and return paths matching the given stage and config.
+ *
+ * When `effectiveDomains` is provided, domain-tagged rule files are matched
+ * via `matchDomain()` in addition to the legacy `when.steps` path.
  */
 export function matchRuleFiles(
   stage: string,
   config: DesignbookConfig,
   agentsDir: string,
   extraConditions?: Record<string, string>,
+  effectiveDomains?: string[],
 ): string[] {
   const context = buildRuntimeContext(stage, extraConditions);
   const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+  const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, effectiveDomains);
   return matches.map((m) => m.path);
 }
 
@@ -875,16 +880,20 @@ export function matchRuleFiles(
  * If multiple skills define the same type+name blueprint, the one with the
  * highest `priority` frontmatter field wins (default: 0). Equal priority
  * uses last-match-wins (skills are globbed alphabetically).
+ *
+ * When `effectiveDomains` is provided, domain-tagged blueprint files are matched
+ * via `matchDomain()` in addition to the legacy `when.steps` path.
  */
 export function matchBlueprintFiles(
   stage: string,
   config: DesignbookConfig,
   agentsDir: string,
   extraConditions?: Record<string, string>,
+  effectiveDomains?: string[],
 ): string[] {
   const context = buildRuntimeContext(stage, extraConditions);
   const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir);
+  const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir, true, effectiveDomains);
 
   // Deduplicate by type+name — highest priority wins, equal priority = last match wins
   const byKey = new Map<string, { path: string; priority: number }>();
@@ -1323,6 +1332,31 @@ export function resolveAllStages(
     }
     const taskFilePaths = resolvedTaskFiles.map((r) => r.path);
 
+    // Compute effectiveDomains: union of domain: from task files + stage definition
+    const effectiveDomains: string[] = [];
+    for (const taskFile of taskFilePaths) {
+      const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
+      const taskDomain = taskFm?.domain;
+      if (taskDomain !== undefined) {
+        const domains: string[] = Array.isArray(taskDomain)
+          ? (taskDomain as string[]).map(String)
+          : [String(taskDomain)];
+        for (const d of domains) {
+          if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
+        }
+      }
+    }
+    // Also include domain from the stage definition (if any)
+    if (stageDefs) {
+      for (const [, stageDef] of Object.entries(stageDefs)) {
+        if (stageDef.steps?.includes(step) && stageDef.domain) {
+          for (const d of stageDef.domain) {
+            if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
+          }
+        }
+      }
+    }
+
     // Match rules/blueprints for the step name AND variant names:
     // - If step is plain (e.g. "intake"), also try workflow-qualified ("vision:intake")
     // - If step is already qualified (e.g. "design-screen:map-entity"), also try base ("map-entity")
@@ -1335,15 +1369,16 @@ export function resolveAllStages(
     if (isQualified && baseStep !== step) stepsToMatch.push(baseStep);
     if (qualifiedStep && qualifiedStep !== step) stepsToMatch.push(qualifiedStep);
 
+    const effectiveDomainsArg = effectiveDomains.length > 0 ? effectiveDomains : undefined;
     const ruleFiles: string[] = [];
     for (const s of stepsToMatch) {
-      for (const r of matchRuleFiles(s, config, agentsDir)) {
+      for (const r of matchRuleFiles(s, config, agentsDir, undefined, effectiveDomainsArg)) {
         if (!ruleFiles.includes(r)) ruleFiles.push(r);
       }
     }
     const blueprintFiles: string[] = [];
     for (const s of stepsToMatch) {
-      for (const b of matchBlueprintFiles(s, config, agentsDir)) {
+      for (const b of matchBlueprintFiles(s, config, agentsDir, undefined, effectiveDomainsArg)) {
         if (!blueprintFiles.includes(b)) blueprintFiles.push(b);
       }
     }
