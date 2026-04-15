@@ -2,8 +2,7 @@
 type: entity-type
 name: image_style
 priority: 5
-when:
-  steps: [design-token:intake]
+domain: data-model
 ---
 
 # Entity Type: image_style
