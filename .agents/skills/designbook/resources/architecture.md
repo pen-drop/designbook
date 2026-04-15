@@ -168,32 +168,32 @@ result:
 
 ## Rule File Format (skills)
 
-Rule files live at `.agents/skills/<skill-name>/rules/<name>.md`. They define constraints scoped to one or more stages:
+Rule files live at `.agents/skills/<skill-name>/rules/<name>.md`. They define constraints scoped to knowledge domains:
 
 ```markdown
 ---
+domain: components
 when:
-  steps: [create-component, create-shell-scene]   # one or more canonical stages
-  frameworks.component: sdc                         # optional additional condition
+  frameworks.component: sdc    # optional config condition
 ---
 # Rule constraints go here (prose — never execution steps)
 ```
 
-- `steps:` accepts a single value or an array
-- Without `when.steps`: rule applies to all steps
-- To scope a rule to a specific workflow's intake, use `intake` in `steps:` combined with additional `when` conditions
+- `domain:` matches against the effective domains of the current step (union of task + stage domains)
+- Config conditions in `when:` (`backend`, `frameworks.*`, `extensions`) filter further
+- Without `domain:` and without `when.steps:`: rule never matches
+- `when.steps:` is deprecated for rules but still supported during migration
 
 ## Blueprint File Format (skills)
 
-Blueprint files live at `.agents/skills/<skill-name>/blueprints/<name>.md`. They provide starting points for component creation — required tokens, props, slots, and markup guidance. Blueprints use the same `when` frontmatter matching as rules:
+Blueprint files live at `.agents/skills/<skill-name>/blueprints/<name>.md`. They provide starting points for component creation — required tokens, props, slots, and markup guidance. Blueprints use the same `domain:` frontmatter matching as rules:
 
 ```yaml
 ---
 type: component          # blueprint type (currently: component)
 name: section            # unique name within the type
+domain: components.layout
 priority: 10             # higher wins (default: 0)
-when:
-  steps: [create-component]
 ---
 ```
 
@@ -205,8 +205,7 @@ when:
 ---
 type: component
 name: section
-when:
-  steps: [create-component]
+domain: components.layout
 ---
 # Blueprint: Section
 
@@ -230,6 +229,57 @@ section:
 
 - Blueprints say "what to build" (starting points); rules say "how to build" (constraints)
 - Loaded alongside rules via `skills/**/blueprints/*.md` glob
-- Same `when` conditions as rules (`steps`, config keys)
+- Same `domain:` and config conditions as rules
 - Deduplicated by `type`+`name` — highest `priority` wins (equal priority: last match wins)
+
+## Domain-Based Matching (Rules & Blueprints)
+
+Rules and blueprints use `domain:` instead of `when.steps:` for step matching.
+
+### Declaration
+
+**On rules/blueprints (supply side):**
+```yaml
+domain: scenes
+when:
+  backend: drupal
+```
+
+**On tasks (demand side):**
+```yaml
+domain: [components, scenes]
+```
+
+**On workflow stages (additive):**
+```yaml
+stages:
+  scene:
+    steps: [create-scene]
+    domain: [data-model]
+```
+
+### Subcontexts
+
+Domains use dot-notation for hierarchy: `components.layout`, `scenes.shell`.
+
+Matching: a match occurs when one is a dot-delimited prefix of the other, or they are equal.
+- `components` in task → loads rules with `components` and `components.*`
+- `components.layout` in task → loads rules with `components` (parent) and `components.layout` (exact)
+
+### Domain Taxonomy
+
+| Domain | Subcontexts | Description |
+|---|---|---|
+| `components` | `.layout`, `.discovery`, `.shell` | Component structure and conventions |
+| `scenes` | `.shell`, `.screen` | Scene file authoring constraints |
+| `data-model` | — | Entity types, field conventions |
+| `data-mapping` | — | Entity-to-component mapping |
+| `tokens` | — | Design token structure |
+| `sample-data` | — | Sample data generation |
+| `css` | — | CSS generation, fonts |
+| `design` | `.intake`, `.verify` | Design workflow rules |
+
+### Legacy
+
+`when.steps` in rules/blueprints is deprecated but still supported. New rules must use `domain:`. Task files keep `when.steps` permanently for task resolution.
 
