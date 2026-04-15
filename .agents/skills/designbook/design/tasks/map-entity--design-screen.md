@@ -35,5 +35,5 @@ Read the data-mapping blueprint from `task.blueprints[]` filtered by `type: data
 
 - One file per `entity_type.bundle.view_mode` combination
 - Provider prefix resolved at generation time (never leave as placeholder)
-- Reference fields emit `{ "type": "entity", ... }` nodes — resolved recursively at build time
+- Reference fields emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": N }` nodes — resolved recursively at build time
 - If no matching data-mapping blueprint found for the template, stop and report the error
