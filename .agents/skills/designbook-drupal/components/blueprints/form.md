@@ -52,7 +52,7 @@ Universal wrapper around label and form input. Provides consistent structure for
 - errors — error message
 - children — the actual input
 
-#### Composition Rules
+#### Composition
 - Type determines CSS pattern: text-like → form-input wrapper, check-like → form-check wrapper
 - label_display controls order: before/invisible → label before children, after → label after children
 - Error display after the input with alert role
@@ -194,6 +194,10 @@ Submit button for forms.
 #### Composition
 - Stands alone, not wrapped in form_element
 
+## Twig Slot Pattern
+
+All slots MUST be wrapped in `{% block %}` tags — see `sdc-conventions.md` for the full constraint and examples.
+
 ## Covered Drupal Form Element Types
 
 | Drupal type | Blueprint component | Notes |
@@ -207,3 +211,5 @@ Submit button for forms.
 | checkboxes | checkboxes + form_element | groups checkbox instances |
 | radios | radios + form_element | groups radio instances |
 | submit | submit | without form_element wrapper |
+
+> Specialized admin types (machine_name, password_confirm, path_element, vertical_tabs, item) are not covered — these require project-specific solutions.
