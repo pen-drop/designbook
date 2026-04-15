@@ -21,9 +21,9 @@
 | `src/resolvers/__tests__/story-id.test.ts` | Tests for story_id resolver |
 | `src/resolvers/__tests__/reference-folder.test.ts` | Tests for reference_folder resolver |
 | `src/resolvers/__tests__/registry.test.ts` | Tests for resolver registry + workflow param integration |
-| `src/cli/workflow.ts` | Modify: add resolve phase to `workflow create`, add `workflow resolve` command |
+| `src/cli/workflow.ts` | Modify: add resolve phase to `workflow create` |
 | `src/cli/story.ts` | Modify: replace `--scene` flag with positional argument through resolver |
-| `src/workflow-resolve.ts` | Modify: parse `resolve:` from workflow param frontmatter |
+
 
 Skill files to update after engine work is done (separate tasks):
 
@@ -35,7 +35,7 @@ Skill files to update after engine work is done (separate tasks):
 | `.agents/skills/designbook/design/tasks/setup-compare.md` | Use `story_id` directly |
 | `.agents/skills/designbook/design/tasks/extract-reference.md` | Use `reference_folder` param |
 | `.agents/skills/designbook/resources/cli-story.md` | Document new positional argument API |
-| `.agents/skills/designbook/resources/cli-workflow.md` | Document `workflow resolve` command |
+| `.agents/skills/designbook/resources/cli-workflow.md` | Document `unresolved` response in `workflow create` |
 | `.agents/skills/designbook/resources/workflow-execution.md` | Document resolver phase |
 
 ---
@@ -760,106 +760,12 @@ git commit -m "feat(resolvers): implement registry and resolveParams"
 
 ---
 
-### Task 8: Parse `resolve:` from Workflow Frontmatter
-
-**Files:**
-- Modify: `packages/storybook-addon-designbook/src/workflow-resolve.ts`
-
-The workflow frontmatter currently doesn't parse `resolve:` from workflow-level params. The `resolveAllStages` function reads task-level params but not workflow-level params. We need to:
-1. Parse workflow-level `params:` from the workflow `.md` frontmatter
-2. Extract `resolve:` declarations
-3. Return them in the `ResolvedSteps` result
-
-- [ ] **Step 1: Add `param_resolvers` to `ResolvedSteps` interface**
-
-In `packages/storybook-addon-designbook/src/workflow-resolve.ts`, find the `ResolvedSteps` interface (around line 1207) and add the field:
-
-```typescript
-// Find this interface:
-export interface ResolvedSteps {
-  title: string;
-  steps: string[];
-  stages?: Record<string, StageDefinitionFm>;
-  engine?: string;
-  step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
-  expected_params: Record<string, ExpectedParam>;
-}
-
-// Add param_resolvers:
-export interface ResolvedSteps {
-  title: string;
-  steps: string[];
-  stages?: Record<string, StageDefinitionFm>;
-  engine?: string;
-  step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
-  expected_params: Record<string, ExpectedParam>;
-  param_resolvers: Record<string, ParamResolverDecl>;
-}
-
-export interface ParamResolverDecl {
-  resolve: string;
-  [key: string]: unknown;
-}
-```
-
-- [ ] **Step 2: Parse workflow-level params in `resolveAllStages`**
-
-In the `resolveAllStages` function (around line 1222), after parsing the workflow frontmatter, extract `params:` and build the `param_resolvers` map:
-
-```typescript
-// After: const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
-// Add:
-const paramResolvers: Record<string, ParamResolverDecl> = {};
-if (wfFm) {
-  const wfParams = (wfFm as Record<string, unknown>).params as Record<string, Record<string, unknown>> | undefined;
-  if (wfParams) {
-    for (const [key, decl] of Object.entries(wfParams)) {
-      if (decl && typeof decl === 'object' && 'resolve' in decl && typeof decl.resolve === 'string') {
-        const { type: _type, ...rest } = decl;
-        paramResolvers[key] = rest as ParamResolverDecl;
-      }
-    }
-  }
-}
-```
-
-And include it in the return value:
-
-```typescript
-return {
-  title: wfFm ? getWorkflowTitle(wfFm) : '',
-  steps: resolvedSteps,
-  ...(stageDefs ? { stages: stageDefs } : {}),
-  ...(wfFm?.engine ? { engine: wfFm.engine } : {}),
-  step_resolved: stepResolved,
-  expected_params: expectedParams,
-  param_resolvers: paramResolvers,
-};
-```
-
-- [ ] **Step 3: Run typecheck**
-
-Run: `cd packages/storybook-addon-designbook && npx tsc --noEmit`
-Expected: No errors (may need to fix callers of `resolveAllStages` if they destructure the result)
-
-- [ ] **Step 4: Run existing tests**
-
-Run: `cd packages/storybook-addon-designbook && npx vitest run`
-Expected: All existing tests pass
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add packages/storybook-addon-designbook/src/workflow-resolve.ts
-git commit -m "feat(resolvers): parse resolve declarations from workflow frontmatter"
-```
-
----
-
-### Task 9: Integrate Resolvers into `workflow create`
+### Task 8: Integrate Resolvers into `workflow create`
 
 **Files:**
 - Modify: `packages/storybook-addon-designbook/src/cli/workflow.ts` (lines 54-205)
+
+No changes to `workflow-resolve.ts` needed — `parseFrontmatter()` already returns the full YAML frontmatter including `params:` with any `resolve:` fields. We just read it directly in `workflow create`.
 
 - [ ] **Step 1: Import resolver modules**
 
@@ -872,9 +778,10 @@ import type { ResolverContext } from '../resolvers/types.js';
 
 - [ ] **Step 2: Add resolve phase to `workflow create` action**
 
-In the `workflow create` action handler, after `resolveAllStages` returns and before building the first task, add the resolve phase. Find this block (around line 85):
+In the `workflow create` action handler, after `resolveAllStages` returns and before building the first task, read `params:` from the workflow frontmatter and run resolvers. Find this block (around line 84-85):
 
 ```typescript
+const workflowFilePath = resolveWorkflowFile(opts.workflow, agentsDir);
 const resolved = resolveAllStages(workflowFilePath, config, rawConfig, agentsDir);
 ```
 
@@ -882,88 +789,55 @@ After it, add:
 
 ```typescript
 // ── Resolve phase: run param resolvers ────────────────────────
-if (initialParams && Object.keys(resolved.param_resolvers).length > 0) {
-  const resolverContext: ResolverContext = { config, params: initialParams };
-  const resolveResult = resolveParams(resolved.param_resolvers, initialParams, resolverContext);
+const wfFm = parseFrontmatter(workflowFilePath) as Record<string, unknown> | null;
+const wfParams = wfFm?.params as Record<string, Record<string, unknown>> | undefined;
 
-  if (!resolveResult.allResolved) {
-    // Return unresolved response — workflow is created but paused
-    const name = workflowCreate(
-      config.data, opts.workflow, title, [],
-      resolved.stages, opts.parent, resolved.step_resolved,
-      resolved.engine, initialParams, workspaceRoot,
-      {}, buildEnvMap(config),
-    );
-    console.log(JSON.stringify({
-      name,
-      unresolved: resolveResult.unresolved,
-      steps: resolved.steps,
-      ...(resolved.stages ? { stages: resolved.stages } : {}),
-      expected_params: resolved.expected_params,
-    }, null, 2));
-    return;
-  }
+if (initialParams && wfParams) {
+  // Check if any param has a resolve: field
+  const hasResolvers = Object.values(wfParams).some(
+    (decl) => decl && typeof decl === 'object' && 'resolve' in decl,
+  );
 
-  // Replace params with resolved values
-  initialParams = resolveResult.params as Record<string, unknown>;
-}
-```
+  if (hasResolvers) {
+    const resolverContext: ResolverContext = { config, params: initialParams };
+    const resolveResult = resolveParams(wfParams, initialParams, resolverContext);
 
-- [ ] **Step 3: Add `workflow resolve` subcommand**
-
-After the `workflow create` command registration, add the new `resolve` command:
-
-```typescript
-workflow
-  .command('resolve')
-  .description('Resolve a single param after ambiguity. Re-runs the resolver and starts the workflow if all params resolved.')
-  .requiredOption('--workflow <name>', 'Workflow name')
-  .requiredOption('--param <key>', 'Param name to resolve')
-  .requiredOption('--value <value>', 'Resolved value')
-  .action((opts: { workflow: string; param: string; value: string }) => {
-    const config = loadConfig();
-    const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
-    const tasksYmlPath = resolve(changesDir, 'tasks.yml');
-
-    if (!existsSync(tasksYmlPath)) {
-      console.error(`Error: workflow not found: ${opts.workflow}`);
-      process.exitCode = 1;
+    if (!resolveResult.allResolved) {
+      // Return unresolved response — workflow NOT created, AI should ask user and retry
+      console.log(JSON.stringify({
+        unresolved: resolveResult.unresolved,
+      }, null, 2));
       return;
     }
 
-    const data = readWorkflow(tasksYmlPath);
-    if (!data.params) data.params = {};
-    data.params[opts.param] = opts.value;
-    writeWorkflowAtomic(tasksYmlPath, data);
-
-    // Re-run resolve phase with updated params to check if all resolved now.
-    // If all resolved, expand tasks via expandTasksFromParams and update tasks.yml.
-    // For the initial implementation, return success — task expansion on re-resolve
-    // will be handled as a follow-up when the full workflow resume flow is tested.
-    console.log(JSON.stringify({ ok: true, param: opts.param, value: opts.value }));
-  });
+    // Replace params with resolved values
+    initialParams = resolveResult.params as Record<string, unknown>;
+  }
+}
 ```
 
-- [ ] **Step 4: Run typecheck**
+Note: No `workflow resolve` command needed. If resolution fails, `workflow create` does NOT create the workflow — it just returns `unresolved` with candidates. The AI asks the user, then calls `workflow create` again with the corrected value.
+
+- [ ] **Step 3: Run typecheck**
 
 Run: `cd packages/storybook-addon-designbook && npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 5: Run all tests**
+- [ ] **Step 4: Run all tests**
 
 Run: `cd packages/storybook-addon-designbook && npx vitest run`
 Expected: All tests pass
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add packages/storybook-addon-designbook/src/cli/workflow.ts
-git commit -m "feat(resolvers): integrate resolve phase into workflow create + add workflow resolve command"
+git commit -m "feat(resolvers): integrate resolve phase into workflow create"
 ```
 
 ---
 
-### Task 10: Update `_debo story` to Use Positional Argument + Resolver
+### Task 9: Update `_debo story` to Use Positional Argument + Resolver
 
 **Files:**
 - Modify: `packages/storybook-addon-designbook/src/cli/story.ts`
@@ -1038,7 +912,7 @@ git commit -m "feat(story): use resolver for positional argument, deprecate --sc
 
 ---
 
-### Task 11: Update Workflow Markdown Files
+### Task 10: Update Workflow Markdown Files
 
 **Files:**
 - Modify: `.agents/skills/designbook/design/workflows/design-verify.md`
@@ -1105,11 +979,10 @@ git commit -m "feat(workflows): add resolve declarations for story_id and refere
 
 ---
 
-### Task 12: Update Skill Documentation
+### Task 11: Update Skill Documentation
 
 **Files:**
 - Modify: `.agents/skills/designbook/resources/cli-story.md`
-- Modify: `.agents/skills/designbook/resources/cli-workflow.md`
 - Modify: `.agents/skills/designbook/resources/workflow-execution.md`
 
 - [ ] **Step 1: Update cli-story.md**
@@ -1149,32 +1022,7 @@ The resolver searches scenes and components, returning the story or candidates i
 > **Deprecated:** `--scene <ref>` still works but will be removed in a future version. Use the positional argument instead.
 ```
 
-- [ ] **Step 2: Update cli-workflow.md**
-
-Add `workflow resolve` documentation:
-
-```markdown
-## `workflow resolve`
-
-Resolve a single param after ambiguity from `workflow create`.
-
-\`\`\`bash
- workflow resolve --workflow <name> --param <key> --value "<resolved-value>"
-\`\`\`
-
-| Option | Required | Description |
-|---|---|---|
-| `--workflow <name>` | Yes | Workflow name |
-| `--param <key>` | Yes | Param name to resolve |
-| `--value <value>` | Yes | The chosen resolved value |
-
-**Response:**
-\`\`\`json
-{ "ok": true, "param": "story_id", "value": "designbook-design-system-scenes--shell" }
-\`\`\`
-```
-
-- [ ] **Step 3: Update workflow-execution.md**
+- [ ] **Step 2: Update workflow-execution.md**
 
 Add a new rule section between Rule 0 (bootstrap) and Rule 1, documenting the resolve phase:
 
@@ -1186,22 +1034,22 @@ After `workflow create`, check the response for an `unresolved` field. If presen
 1. Read the `candidates` array for each unresolved param
 2. If candidates exist: present them to the user and ask which one is correct
 3. If no candidates: ask the user for a more specific identifier
-4. Call `_debo workflow resolve --workflow $NAME --param <key> --value "<chosen>"` for each resolved param
-5. Continue with the normal workflow execution
+4. Call `_debo workflow create` again with the corrected params
+5. Repeat until all params resolve, then continue with normal workflow execution
 
 If no `unresolved` field: all params were resolved automatically, proceed normally.
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add .agents/skills/designbook/resources/cli-story.md .agents/skills/designbook/resources/cli-workflow.md .agents/skills/designbook/resources/workflow-execution.md
+git add .agents/skills/designbook/resources/cli-story.md .agents/skills/designbook/resources/workflow-execution.md
 git commit -m "docs: update CLI references and workflow execution rules for param resolvers"
 ```
 
 ---
 
-### Task 13: Update Intake and Task Files
+### Task 12: Update Intake and Task Files
 
 **Files:**
 - Modify: `.agents/skills/designbook/design/tasks/intake--design-verify.md`
@@ -1286,7 +1134,7 @@ git commit -m "feat(tasks): use story_id and reference_folder from resolvers"
 
 ---
 
-### Task 14: Final Integration Test
+### Task 13: Final Integration Test
 
 **Files:**
 - No new files — verify everything works together
