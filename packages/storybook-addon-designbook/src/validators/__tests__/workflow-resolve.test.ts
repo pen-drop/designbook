@@ -925,6 +925,162 @@ describe('resolveFiles', () => {
   });
 });
 
+// Task 2: Domain-aware resolveFiles()
+describe('resolveFiles with domain', () => {
+  it('matches rule by domain when effectiveDomains provided', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'domain: components');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+
+  it('domain rule NOT matched when effectiveDomains empty', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'domain: components');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, []);
+
+    expect(matches).toHaveLength(0);
+  });
+
+  it('domain rule excluded when effectiveDomains not passed', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'domain: components');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+
+    expect(matches).toHaveLength(0);
+  });
+
+  it('domain rule excluded when config condition fails', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // Rule requires daisyui but config has tailwind
+    writeSkillRuleFile(
+      agentsDir,
+      'designbook-css',
+      'daisyui-component-rules',
+      'domain: components\nwhen:\n  frameworks.css: daisyui',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+
+    expect(matches).toHaveLength(0);
+  });
+
+  it('domain rule included when config condition passes', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-css',
+      'tailwind-component-rules',
+      'domain: components\nwhen:\n  frameworks.css: tailwind',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+
+  it('broad need loads sub-domain rule via prefix matching', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // Rule domain is "components.layout" (child of "components")
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'layout-component-rules',
+      'domain: components.layout',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    // effectiveDomains has "components" (parent) → should match "components.layout" (child)
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+
+  it('domain rule NOT matched when domain does not overlap', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'scene-rules', 'domain: scenes');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+
+    expect(matches).toHaveLength(0);
+  });
+
+  it('legacy when.steps still works when no domain in frontmatter', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'scene-rules',
+      'when:\n  stages: [create-scene]',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext('create-scene');
+    // Pass effectiveDomains — legacy file has no domain: so it still uses when.steps
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+
+  it('domain takes precedence over when.steps when both domain and when.steps present', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // File has BOTH domain: and when.steps: — domain matching path is used
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'mixed-rules',
+      'domain: components\nwhen:\n  steps: [create-scene]',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    // context has create-component step (NOT create-scene), but domain matches
+    const context = buildRuntimeContext('create-component');
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+
+    // Should match via domain — when.steps is ignored for domain-tagged files
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+
+  it('domain as array: matches when any rule domain matches effective domain', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'multi-domain-rules',
+      'domain:\n  - scenes\n  - components',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+});
+
 // buildRuntimeContext
 describe('buildRuntimeContext', () => {
   it('builds empty context without args', () => {

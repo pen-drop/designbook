@@ -567,6 +567,10 @@ export function buildWorktreeEnvMap(
  * When `requireWhen` is true (default), files without `when` (or empty `when`)
  * are skipped — at least one `when` condition is required. Set to false for
  * task files where unconditional matching is expected.
+ *
+ * When `effectiveDomains` is provided (non-empty), domain-tagged files are matched
+ * via `matchDomain()` instead of `when.steps`. Files with `domain:` but no
+ * `effectiveDomains` are skipped. Files without `domain:` use the legacy `when.steps` path.
  */
 export function resolveFiles(
   globPattern: string,
@@ -574,6 +578,7 @@ export function resolveFiles(
   config: Record<string, unknown>,
   agentsDir: string,
   requireWhen = true,
+  effectiveDomains?: string[],
 ): ResolvedFile[] {
   const results: ResolvedFile[] = [];
   const paths = globSync(globPattern, { cwd: agentsDir, absolute: true });
@@ -583,6 +588,53 @@ export function resolveFiles(
     const when = frontmatter?.when as Record<string, unknown> | undefined;
     const name = deriveArtifactName(filePath, agentsDir, frontmatter);
 
+    // ── Domain-tagged files ──────────────────────────────────────────
+    const rawDomain = frontmatter?.domain;
+    if (rawDomain !== undefined) {
+      // Normalise domain: string or string[] → string[]
+      const ruleDomains: string[] = Array.isArray(rawDomain)
+        ? (rawDomain as string[]).map(String)
+        : [String(rawDomain)];
+
+      // Domain files require effectiveDomains to be provided and non-empty
+      if (!effectiveDomains || effectiveDomains.length === 0) {
+        continue;
+      }
+
+      // Check if at least one rule domain matches any effective domain
+      const domainMatched = ruleDomains.some((rd) => matchDomain(rd, effectiveDomains));
+      if (!domainMatched) {
+        continue;
+      }
+
+      // Also check remaining `when:` conditions (excluding steps/stages) against config
+      if (when && Object.keys(when).length > 0) {
+        // Build a filtered `when` without steps/stages keys (those are replaced by domain matching)
+        const configWhen: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(when)) {
+          if (k !== 'steps' && k !== 'stages') {
+            configWhen[k] = v;
+          }
+        }
+        if (Object.keys(configWhen).length > 0) {
+          const configSpecificity = checkWhen(configWhen, {}, config);
+          if (configSpecificity === false) {
+            continue;
+          }
+        }
+      }
+
+      // Count matched conditions: each matched domain counts as 1, plus config conditions
+      const domainCount = ruleDomains.filter((rd) => matchDomain(rd, effectiveDomains)).length;
+      const configConditions =
+        when && Object.keys(when).length > 0
+          ? Object.keys(when).filter((k) => k !== 'steps' && k !== 'stages').length
+          : 0;
+      results.push({ path: filePath, name, specificity: domainCount + configConditions, frontmatter });
+      continue;
+    }
+
+    // ── Legacy when.steps path ───────────────────────────────────────
     if (!when || Object.keys(when).length === 0) {
       if (requireWhen) {
         continue;
