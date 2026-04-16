@@ -87,20 +87,26 @@ The `$ref` must point to an object schema with `properties`.
 
 ## File-Input Params (with `path:`)
 
-Tasks declare file inputs as params with a `path:` extension field. These are read from disk by the AI agent, not provided via CLI.
+Tasks declare file inputs as params with a `path:` extension field. The engine resolves these at instruction time — before the AI receives the task.
+
+Resolution steps performed by the engine:
+
+1. Expands environment variables in `path:` (e.g. `$DESIGNBOOK_DATA`)
+2. Checks file existence (missing required file = hard error)
+3. Parses file content (YAML or JSON)
+4. Resolves any `$ref:` schema into `schema.definitions`
+5. Delivers resolved content in `schema.params` to the AI
+
+The AI receives resolved content directly — task body text never references filenames. Params and result entries use identical resolution logic.
 
 ```yaml
 params:
   type: object
-  required: [reference_dir, vision]
   properties:
-    reference_dir: { type: string }
     vision:
-      path: $DESIGNBOOK_DATA/vision.md
-      workflow: /debo-vision
-      type: object
-    design_tokens:
-      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      path: $DESIGNBOOK_DATA/vision.yml
+      workflow: vision
+      $ref: ../schemas.yml#/Vision
       type: object
 ```
 
@@ -109,7 +115,7 @@ Two param classes, distinguished by `path:`:
 | | CLI Params | File-Input Params |
 |---|---|---|
 | `path:` | absent | present |
-| Source | `--params` / engine | AI reads from disk |
+| Source | `--params` / engine | Engine resolves at instruction time |
 | Required | in `required:` = must be provided | in `required:` = file must exist |
 | Optional | not in `required:`, has `default:` | not in `required:` = file may not exist |
 
@@ -117,9 +123,9 @@ Two param classes, distinguished by `path:`:
 
 | Field | Purpose |
 |-------|---------|
-| `path:` | File/directory input path |
+| `path:` | File/directory input path — engine resolves and reads |
 | `workflow:` | Inter-workflow dependency tracking |
-| `description:` | Semantic description for AI |
+| `$ref:` | Schema reference — resolved into `schema.definitions` |
 
 ### Directory Inputs
 
