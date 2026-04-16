@@ -70,11 +70,22 @@ export interface ResultDeclaration {
 
 interface TaskFileFrontmatter {
   when?: Record<string, unknown>;
-  params?: Record<string, unknown>;
+  params?: {
+    type?: string; // always 'object'
+    required?: string[];
+    properties?: Record<string, unknown>;
+    $ref?: string;
+    [key: string]: unknown;
+  };
   files?: TaskFileDeclaration[];
-  result?: Record<string, ResultDeclaration>; // unified result declarations (replaces files:)
+  result?: {
+    type?: string; // always 'object'
+    required?: string[];
+    properties?: Record<string, ResultDeclaration>;
+    [key: string]: unknown;
+  };
   each?: Record<string, unknown>; // iteration declaration { <scope-key>: <schema> }
-  reads?: Array<{ path: string; workflow?: string }>;
+  reads?: Array<{ path: string; workflow?: string; optional?: boolean }>;
 }
 
 interface StageDefinitionFm {
