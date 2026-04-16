@@ -1,10 +1,9 @@
 import { resolve, dirname } from 'node:path';
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
 import {
   workflowCreate,
-  workflowWriteFile,
   workflowResult,
   workflowGetFile,
   workflowList,
@@ -29,6 +28,7 @@ import {
 } from '../workflow-resolve.js';
 import { resolveParams } from '../resolvers/registry.js';
 import type { ResolverContext } from '../resolvers/types.js';
+import { initLogger, log } from '../logger.js';
 
 // Resolve a workflow .md file from a workflow ID by scanning skills directories (same glob mechanism as tasks/rules).
 function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
@@ -42,6 +42,15 @@ function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
 export function register(program: Command): void {
   const workflow = program.command('workflow').description('Manage workflow tracking');
 
+  workflow.option('--research', 'Enable research mode — tags all log entries for post-workflow audit');
+
+  // Initialize logger before every subcommand
+  workflow.hook('preAction', () => {
+    const config = loadConfig();
+    const research = !!(workflow.opts() as { research?: boolean }).research;
+    initLogger(config.data, research);
+  });
+
   workflow
     .command('list')
     .description('List workflows for a given workflow id')
@@ -50,6 +59,7 @@ export function register(program: Command): void {
     .action((opts: { workflow: string; includeArchived?: boolean }) => {
       const config = loadConfig();
       const names = workflowList(config.data, opts.workflow, opts.includeArchived);
+      log({ cmd: 'workflow list', args: { workflow: opts.workflow }, result: names });
       for (const n of names) console.log(n);
     });
 
@@ -215,22 +225,19 @@ export function register(program: Command): void {
         }
 
         // Output JSON with workflow name + all resolved steps
-        console.log(
-          JSON.stringify(
-            {
-              name,
-              steps: resolved.steps,
-              ...(resolved.stages ? { stages: resolved.stages } : {}),
-              ...(resolved.engine ? { engine: resolved.engine } : {}),
-              step_resolved: resolved.step_resolved,
-              expected_params: resolved.expected_params,
-              ...(Object.keys(taskIds).length > 0 ? { task_ids: taskIds } : {}),
-            },
-            null,
-            2,
-          ),
-        );
+        const createResult = {
+          name,
+          steps: resolved.steps,
+          ...(resolved.stages ? { stages: resolved.stages } : {}),
+          ...(resolved.engine ? { engine: resolved.engine } : {}),
+          step_resolved: resolved.step_resolved,
+          expected_params: resolved.expected_params,
+          ...(Object.keys(taskIds).length > 0 ? { task_ids: taskIds } : {}),
+        };
+        log({ cmd: 'workflow create', args: { workflow: opts.workflow, title }, result: { name } });
+        console.log(JSON.stringify(createResult, null, 2));
       } catch (err) {
+        log({ cmd: 'workflow create', args: { workflow: opts.workflow }, error: (err as Error).message });
         console.error(`Error: ${(err as Error).message}`);
         console.error((err as Error).stack);
         process.exitCode = 1;
@@ -299,25 +306,25 @@ export function register(program: Command): void {
         }
       }
 
-      // Include merged_schema if present (from schema composition at resolution time)
-      const mergedSchema = (stage as unknown as Record<string, unknown>).merged_schema ?? undefined;
+      // Include schema if present (unified schema block from resolution time)
+      const schema = (stage as unknown as Record<string, unknown>).schema ?? undefined;
 
-      console.log(
-        JSON.stringify(
-          {
-            stage: opts.stage,
-            task_file: taskFile,
-            rules,
-            blueprints,
-            config_rules: stage.config_rules ?? [],
-            config_instructions: stage.config_instructions ?? [],
-            expected_params: expectedParams,
-            ...(mergedSchema ? { merged_schema: mergedSchema } : {}),
-          },
-          null,
-          2,
-        ),
-      );
+      const instructionsResult = {
+        stage: opts.stage,
+        task_file: taskFile,
+        rules,
+        blueprints,
+        config_rules: stage.config_rules ?? [],
+        config_instructions: stage.config_instructions ?? [],
+        expected_params: expectedParams,
+        ...(schema ? { schema } : {}),
+      };
+      log({
+        cmd: 'workflow instructions',
+        args: { workflow: opts.workflow, stage: opts.stage },
+        result: { stage: opts.stage, rules: rules.length, blueprints: blueprints.length },
+      });
+      console.log(JSON.stringify(instructionsResult, null, 2));
     });
 
   workflow
@@ -328,8 +335,14 @@ export function register(program: Command): void {
       const config = loadConfig();
       try {
         const result = workflowGetFile(config.data, workflowName, taskId, opts.key);
+        log({ cmd: 'workflow get-file', args: { workflow: workflowName, task: taskId, key: opts.key }, result });
         console.log(JSON.stringify(result));
       } catch (err) {
+        log({
+          cmd: 'workflow get-file',
+          args: { workflow: workflowName, task: taskId, key: opts.key },
+          error: (err as Error).message,
+        });
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;
       }
@@ -346,149 +359,55 @@ export function register(program: Command): void {
     .requiredOption('--key <key>', 'Result key as declared in task result: frontmatter')
     .option('--json <data>', 'Data result value (inline JSON). Omit for file results (reads stdin).')
     .option('--external', 'Register an already-written file (skip stdin, just validate and track)')
-    .option('--flush', 'Immediately move file to final path (skip waiting for stage transition)')
-    .action(
-      async (opts: {
-        workflow: string;
-        task: string;
-        key: string;
-        json?: string;
-        external?: boolean;
-        flush?: boolean;
-      }) => {
-        const config = loadConfig();
-        try {
-          let content: string | Buffer | unknown | null;
-          if (opts.json !== undefined) {
-            // Data result via --json
-            try {
-              content = JSON.parse(opts.json);
-            } catch (err) {
-              console.error(`Error parsing --json: ${(err as Error).message}`);
-              process.exitCode = 1;
-              return;
-            }
-          } else if (opts.external) {
-            // External file: already written
-            content = null;
-          } else {
-            // File result: read stdin
-            const chunks: Buffer[] = [];
-            for await (const chunk of process.stdin) {
-              chunks.push(chunk as Buffer);
-            }
-            const buf = Buffer.concat(chunks);
-            if (buf.length === 0) {
-              console.error('Error: No content provided on stdin (use --json for data results)');
-              process.exitCode = 1;
-              return;
-            }
-            content = buf;
-          }
-
-          const result = await workflowResult(config.data, opts.workflow, opts.task, opts.key, content, config, {
-            flush: opts.flush,
-          });
-          console.log(JSON.stringify(result));
-          if (!result.valid) process.exitCode = 1;
-        } catch (err) {
-          console.error(`Error: ${(err as Error).message}`);
-          process.exitCode = 1;
-        }
-      },
-    );
-
-  // ── workflow write-file (deprecated — use workflow result) ─────────────────
-  workflow
-    .command('write-file <workflow-name> <task-id>')
-    .description('[Deprecated: use "workflow result"] Write file content from stdin, validate, and update task state')
-
-    .option('--key <key>', 'File key as declared in task frontmatter')
-    .option('--path <path>', 'Direct file path (bypasses file key lookup, no gate check)')
-    .option('--external', 'Register an already-written file (skip stdin, just validate and track)')
-    .option('--flush', 'Immediately move file to final path (skip waiting for stage transition)')
-    .action(
-      async (
-        workflowName: string,
-        taskId: string,
-        opts: { key?: string; path?: string; external?: boolean; flush?: boolean },
-      ) => {
-        if (!opts.key && !opts.path) {
-          console.error('Error: Either --key or --path is required');
-          process.exitCode = 1;
-          return;
-        }
-        if (opts.key && opts.path) {
-          console.error('Error: --key and --path are mutually exclusive');
-          process.exitCode = 1;
-          return;
-        }
-        const config = loadConfig();
-        try {
-          // Path mode: write directly without file key lookup
-          if (opts.path) {
-            if (opts.external) {
-              if (!existsSync(opts.path)) {
-                console.error(`Error: File not found at path: ${opts.path}`);
-                process.exitCode = 1;
-                return;
-              }
-              console.log(JSON.stringify({ valid: true, errors: [], file_path: opts.path }));
-              return;
-            }
-            const chunks: Buffer[] = [];
-            for await (const chunk of process.stdin) {
-              chunks.push(chunk as Buffer);
-            }
-            const content = Buffer.concat(chunks);
-            if (content.length === 0) {
-              console.error('Error: No content provided on stdin');
-              process.exitCode = 1;
-              return;
-            }
-            mkdirSync(dirname(opts.path), { recursive: true });
-            writeFileSync(opts.path, content);
-            console.log(JSON.stringify({ valid: true, errors: [], file_path: opts.path }));
+    .action(async (opts: { workflow: string; task: string; key: string; json?: string; external?: boolean }) => {
+      const config = loadConfig();
+      try {
+        let content: string | Buffer | unknown | null;
+        if (opts.json !== undefined) {
+          // Data result via --json
+          try {
+            content = JSON.parse(opts.json);
+          } catch (err) {
+            console.error(`Error parsing --json: ${(err as Error).message}`);
+            process.exitCode = 1;
             return;
           }
-
-          // Key mode: existing behavior
-          let content: string | Buffer | null;
-          if (opts.external) {
-            // External mode: file already written to staged path (e.g. by Playwright)
-            content = null;
-          } else {
-            // Read stdin
-            const chunks: Buffer[] = [];
-            for await (const chunk of process.stdin) {
-              chunks.push(chunk as Buffer);
-            }
-            const buf = Buffer.concat(chunks);
-            if (buf.length === 0) {
-              console.error('Error: No content provided on stdin');
-              process.exitCode = 1;
-              return;
-            }
-            content = buf;
+        } else if (opts.external) {
+          // External file: already written
+          content = null;
+        } else {
+          // File result: read stdin
+          const chunks: Buffer[] = [];
+          for await (const chunk of process.stdin) {
+            chunks.push(chunk as Buffer);
           }
-
-          const result = await workflowWriteFile(
-            config.data,
-            workflowName,
-            taskId,
-            opts.key!,
-            content,
-            config,
-            opts.flush,
-          );
-          console.log(JSON.stringify(result));
-          if (!result.valid) process.exitCode = 1;
-        } catch (err) {
-          console.error(`Error: ${(err as Error).message}`);
-          process.exitCode = 1;
+          const buf = Buffer.concat(chunks);
+          if (buf.length === 0) {
+            console.error('Error: No content provided on stdin (use --json for data results)');
+            process.exitCode = 1;
+            return;
+          }
+          content = buf;
         }
-      },
-    );
+
+        const result = await workflowResult(config.data, opts.workflow, opts.task, opts.key, content, config);
+        log({
+          cmd: 'workflow result',
+          args: { workflow: opts.workflow, task: opts.task, key: opts.key },
+          result: { valid: result.valid },
+        });
+        console.log(JSON.stringify(result));
+        if (!result.valid) process.exitCode = 1;
+      } catch (err) {
+        log({
+          cmd: 'workflow result',
+          args: { workflow: opts.workflow, task: opts.task, key: opts.key },
+          error: (err as Error).message,
+        });
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
 
   workflow
     .command('done')
@@ -536,6 +455,12 @@ export function register(program: Command): void {
         });
         const { data, response } = result;
 
+        log({
+          cmd: 'workflow done',
+          args: { workflow: opts.workflow, task: opts.task },
+          result: { archived: result.archived, stage_complete: response?.stage_complete },
+        });
+
         if (result.archived) {
           console.log(`Workflow ${opts.workflow} archived (all tasks done)`);
           console.log(`  Completed: ${data.completed_at}`);
@@ -554,6 +479,11 @@ export function register(program: Command): void {
           console.log(`\nRESPONSE: ${JSON.stringify(response)}`);
         }
       } catch (err) {
+        log({
+          cmd: 'workflow done',
+          args: { workflow: opts.workflow, task: opts.task },
+          error: (err as Error).message,
+        });
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;
       }
@@ -568,6 +498,7 @@ export function register(program: Command): void {
       const config = loadConfig();
       try {
         workflowWait(config.data, opts.workflow, opts.message);
+        log({ cmd: 'workflow wait', args: { workflow: opts.workflow } });
         console.log(
           JSON.stringify({
             status: 'waiting',
@@ -589,6 +520,7 @@ export function register(program: Command): void {
       const config = loadConfig();
       try {
         const data = workflowAbandon(config.data, opts.workflow);
+        log({ cmd: 'workflow abandon', args: { workflow: opts.workflow } });
         console.log(`Workflow ${opts.workflow} archived as incomplete`);
         console.log(`  Summary: ${data.summary}`);
       } catch (err) {
@@ -605,6 +537,7 @@ export function register(program: Command): void {
       const config = loadConfig();
       try {
         const result = workflowMerge(config.data, opts.workflow);
+        log({ cmd: 'workflow merge', args: { workflow: opts.workflow }, result: { branch: result.branch } });
         console.log(`✓ Workflow ${opts.workflow} merged and archived`);
         console.log(`  Branch:  ${result.branch} (deleted)`);
         console.log(`  Commit:  workflow: ${opts.workflow}`);

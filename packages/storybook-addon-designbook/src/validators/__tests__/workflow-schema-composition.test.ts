@@ -313,23 +313,23 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
   return { resolved, name, created, afterSteps };
 }
 
-// ── Test 1: resolveAllStages produces merged_schema ─────────────────────────
+// ── Test 1: resolveAllStages produces schema with definitions ───────────────
 
 describe('resolveAllStages with schema composition', () => {
-  it('produces merged_schema from extends + provides + constrains', () => {
+  it('produces schema.definitions from extends + provides + constrains', () => {
     const { workflowPath } = setupSchemaCompositionFixtures();
     const resolved = resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
 
-    // The create-thing step should have merged_schema
+    // The create-thing step should have schema with definitions
     const createThingStep = resolved.step_resolved['create-thing'];
     expect(createThingStep).toBeDefined();
     expect(Array.isArray(createThingStep)).toBe(false);
 
     const step = createThingStep as ResolvedStep;
-    expect(step.merged_schema).toBeDefined();
-    expect(step.merged_schema!.thing).toBeDefined();
+    expect(step.schema).toBeDefined();
+    expect(step.schema!.definitions.thing).toBeDefined();
 
-    const thingSchema = step.merged_schema!.thing as Record<string, unknown>;
+    const thingSchema = step.schema!.definitions.thing as Record<string, unknown>;
     const properties = thingSchema.properties as Record<string, Record<string, unknown>>;
 
     // extends added 'extra' property
@@ -352,7 +352,7 @@ describe('resolveAllStages with schema composition', () => {
     expect(step.blueprints.some((b) => b.includes('thing-bp.md'))).toBe(true);
   });
 
-  it('intake step has no merged_schema', () => {
+  it('intake step has no composed definitions', () => {
     const { workflowPath } = setupSchemaCompositionFixtures();
     const resolved = resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
 
@@ -361,15 +361,16 @@ describe('resolveAllStages with schema composition', () => {
     expect(Array.isArray(intakeStep)).toBe(false);
 
     const step = intakeStep as ResolvedStep;
-    // Intake has no matching rules/blueprints with extends/provides/constrains
-    expect(step.merged_schema).toBeUndefined();
+    // Intake has result (items) so schema is present, but no composed definitions
+    expect(step.schema).toBeDefined();
+    expect(Object.keys(step.schema!.definitions)).toHaveLength(0);
   });
 });
 
-// ── Test 2: workflowCreate stores merged_schema in stage_loaded ─────────────
+// ── Test 2: workflowCreate stores schema in stage_loaded ────────────────────
 
 describe('workflowCreate with schema composition', () => {
-  it('stores merged_schema in stage_loaded', async () => {
+  it('stores schema in stage_loaded', async () => {
     setupSchemaCompositionFixtures();
 
     const { created } = await runWorkflow(resolve(agentsDir, 'skills', 'test-compose', 'workflows', 'test-compose.md'));
@@ -378,21 +379,22 @@ describe('workflowCreate with schema composition', () => {
     expect(created.status).toBe('running');
     expect(created.current_stage).toBe('intake');
 
-    // stage_loaded should have create-thing with merged_schema
+    // stage_loaded should have create-thing with schema
     expect(created.stage_loaded).toBeDefined();
     expect(created.stage_loaded!['create-thing']).toBeDefined();
 
     const createThingLoaded = created.stage_loaded!['create-thing'] as {
-      merged_schema?: Record<string, object>;
+      schema?: { definitions: Record<string, object> };
       rules: string[];
       blueprints: string[];
     };
-    expect(createThingLoaded.merged_schema).toBeDefined();
+    expect(createThingLoaded.schema).toBeDefined();
+    expect(createThingLoaded.schema!.definitions.thing).toBeDefined();
 
-    const thingSchema = createThingLoaded.merged_schema!.thing as Record<string, unknown>;
+    const thingSchema = createThingLoaded.schema!.definitions.thing as Record<string, unknown>;
     const properties = thingSchema.properties as Record<string, Record<string, unknown>>;
 
-    // Verify merged schema in stored state
+    // Verify composed schema in stored state
     expect(properties.name!.type).toBe('string');
     expect(properties.name!.enum).toEqual(['b', 'c', 'd']);
     expect(properties.name!.default).toBe('untitled');
@@ -455,12 +457,13 @@ describe('full lifecycle with schema composition', () => {
     const thingResultSchema = createThingTask!.result!.thing!.schema as Record<string, unknown>;
     expect(thingResultSchema.type).toBe('object');
 
-    // stage_loaded still has merged_schema
+    // stage_loaded still has schema with definitions
     expect(afterIntake.stage_loaded).toBeDefined();
     const createThingLoaded = afterIntake.stage_loaded!['create-thing'] as {
-      merged_schema?: Record<string, object>;
+      schema?: { definitions: Record<string, object> };
     };
-    expect(createThingLoaded.merged_schema).toBeDefined();
+    expect(createThingLoaded.schema).toBeDefined();
+    expect(createThingLoaded.schema!.definitions.thing).toBeDefined();
   });
 
   it('intake done with multiple items expands one task per item', async () => {

@@ -46,7 +46,7 @@ export interface StageLoaded {
   blueprints: string[]; // absolute paths to skill blueprint files
   config_rules: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
-  merged_schema?: Record<string, object>; // merged result schema (base + blueprint/rule extensions)
+  schema?: import('./schema-block.js').SchemaBlock; // unified schema block (params, result, definitions)
 }
 
 export type StageLoadedEntry = StageLoaded | StageLoaded[];
@@ -83,6 +83,8 @@ export interface TaskResult {
   schema?: object;
   /** Semantic validator keys (e.g. ['component', 'scene']). */
   validators?: string[];
+  /** Flush policy — 'immediately' writes to final path on result write instead of staging. */
+  flush?: string;
   /** Inline data value — stored for data results (no path). */
   value?: unknown;
   /** Whether the result has been written and validated. */
@@ -343,7 +345,7 @@ export function workflowCreate(
     step?: string;
     stage?: string;
     files?: Array<{ path: string; key: string; validators: string[] }>;
-    result?: Record<string, { path?: string; schema?: object; validators?: string[] }>;
+    result?: Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }>;
     task_file?: string;
     rules?: string[];
     blueprints?: string[];
@@ -890,6 +892,14 @@ export async function workflowDone(
               last_failed: !resultEntry.valid ? resultEntry.last_validated : undefined,
             };
           }
+
+          // Flush immediately if declared in result schema
+          if (resultEntry.flush === 'immediately' && writtenPath !== resultEntry.path) {
+            mkdirSync(dirname(resultEntry.path), { recursive: true });
+            renameSync(writtenPath, resultEntry.path);
+            resultEntry.flushed_at = new Date().toISOString();
+            if (fileEntry) fileEntry.flushed_at = resultEntry.flushed_at;
+          }
         } else {
           // Data result: store inline
           const config = options.config ?? { data: dataDir, technology: 'html' as const, extensions: [] };
@@ -1286,7 +1296,6 @@ export async function workflowWriteFile(
   key: string,
   content: string | Buffer | null,
   config: import('./config.js').DesignbookConfig,
-  flush?: boolean,
 ): Promise<{ valid: boolean; errors: string[]; file_path: string }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -1339,8 +1348,9 @@ export async function workflowWriteFile(
     const validationResult = await validateByKeys(fileEntry.validators, writtenPath, config);
     fileEntry.validation_result = { ...validationResult, file: fileEntry.path };
 
-    // Flush immediately: rename stashed file to final path so subsequent reads see it
-    if (flush && writtenPath !== fileEntry.path) {
+    // Flush immediately if declared in result schema
+    const resultEntry = task.result?.[key];
+    if (resultEntry?.flush === 'immediately' && writtenPath !== fileEntry.path) {
       mkdirSync(dirname(fileEntry.path), { recursive: true });
       renameSync(writtenPath, fileEntry.path);
       fileEntry.flushed_at = new Date().toISOString();
@@ -1412,7 +1422,7 @@ function collectStageResults(stageTasks: WorkflowTask[]): Record<string, unknown
  * For file results (result entry has `path:`):
  *   - content is string|Buffer|null (null = external, e.g. Playwright screenshots)
  *   - file is written via engine (stash for direct, direct for git-worktree)
- *   - flush option moves stash to final path immediately
+ *   - results with `flush: 'immediately'` are moved to final path after write
  *
  * For data results (result entry has no `path:`):
  *   - content is parsed JSON (object/array/primitive)
@@ -1425,7 +1435,6 @@ export async function workflowResult(
   key: string,
   content: string | Buffer | unknown | null,
   config: import('./config.js').DesignbookConfig,
-  options?: { flush?: boolean },
 ): Promise<{ valid: boolean; errors: string[]; file_path?: string }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
@@ -1518,8 +1527,8 @@ export async function workflowResult(
         };
       }
 
-      // Flush immediately if requested
-      if (options?.flush && writtenPath !== resultEntry.path) {
+      // Flush immediately if declared in result schema
+      if (resultEntry.flush === 'immediately' && writtenPath !== resultEntry.path) {
         mkdirSync(dirname(resultEntry.path!), { recursive: true });
         renameSync(writtenPath, resultEntry.path!);
         resultEntry.flushed_at = new Date().toISOString();

@@ -90,14 +90,15 @@ export function buildSchemaBlock(input: BuildSchemaBlockInput): SchemaBlock {
 
   const paramProps = (input.params?.properties ?? {}) as Record<string, Record<string, unknown>>;
   for (const [key, decl] of Object.entries(paramProps)) {
+    if (decl == null || typeof decl !== 'object') continue; // skip invalid declarations (e.g. null, scalar)
     params[key] = resolveEntry(decl, definitions, input);
   }
 
   const resultProps = (input.result?.properties ?? {}) as Record<string, Record<string, unknown>>;
   for (const [key, decl] of Object.entries(resultProps)) {
+    if (decl == null || typeof decl !== 'object') continue; // skip invalid declarations
     result[key] = resolveEntry(decl, definitions, input);
   }
 
   return { definitions, params, result };
 }
-

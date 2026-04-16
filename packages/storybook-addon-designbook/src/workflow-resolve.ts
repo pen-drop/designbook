@@ -12,6 +12,8 @@ import fm from 'front-matter';
 import { globSync } from 'glob';
 import { load as parseYaml } from 'js-yaml';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
+import { buildSchemaBlock } from './schema-block.js';
+import type { SchemaBlock } from './schema-block.js';
 import { computeMergedSchema } from './workflow-schema-merge.js';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -63,6 +65,7 @@ export interface ResultDeclaration {
   path?: string; // file result path template
   $ref?: string; // schema reference (e.g. ../schemas.yml#/Check)
   validators?: string[]; // semantic validator keys
+  flush?: 'immediately'; // flush policy: 'immediately' writes to final path on result write
   type?: string; // inline JSON Schema type
   items?: unknown; // inline JSON Schema items (for arrays)
   [key: string]: unknown; // additional JSON Schema properties
@@ -609,16 +612,11 @@ export function resolveFiles(
 
     // ── Domain-tagged files ──────────────────────────────────────────
     const rawDomain = frontmatter?.domain;
-    if (rawDomain !== undefined) {
+    if (rawDomain !== undefined && effectiveDomains && effectiveDomains.length > 0) {
       // Normalise domain: string or string[] → string[]
       const ruleDomains: string[] = Array.isArray(rawDomain)
         ? (rawDomain as string[]).map(String)
         : [String(rawDomain)];
-
-      // Domain files require effectiveDomains to be provided and non-empty
-      if (!effectiveDomains || effectiveDomains.length === 0) {
-        continue;
-      }
 
       // Check if at least one rule domain matches any effective domain
       const domainMatched = ruleDomains.some((rd) => matchDomain(rd, effectiveDomains));
@@ -652,6 +650,8 @@ export function resolveFiles(
       results.push({ path: filePath, name, specificity: domainCount + configConditions, frontmatter });
       continue;
     }
+    // When domain: is present but effectiveDomains is not provided,
+    // fall through to when.steps matching (domain is informational in task resolution)
 
     // ── Legacy when.steps path ───────────────────────────────────────
     if (!when || Object.keys(when).length === 0) {
@@ -1053,7 +1053,7 @@ export function expandResultDeclarations(
   validatorKeys?: Set<string>,
   /** When true, leave unknown $VARS in paths instead of throwing. */
   lenient?: boolean,
-): Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined {
+): Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }> | undefined {
   // Prefer result: over files:
   if (resultDecl) {
     const properties = (resultDecl as Record<string, unknown>).properties as
@@ -1061,7 +1061,7 @@ export function expandResultDeclarations(
       | undefined;
     if (!properties) return undefined;
 
-    const result: Record<string, { path?: string; schema?: object; validators?: string[] }> = {};
+    const result: Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }> = {};
     for (const [key, decl] of Object.entries(properties)) {
       const validators = decl.validators ?? [];
       if (validatorKeys) {
@@ -1075,20 +1075,21 @@ export function expandResultDeclarations(
         }
       }
 
-      // Build inline schema from declaration (exclude path, validators, $ref)
+      // Build inline schema from declaration (exclude path, validators, $ref, flush)
       let schema: object | undefined;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { path: _path, validators: _validators, $ref: _ref, ...schemaProps } = decl;
+      const { path: _path, validators: _validators, $ref: _ref, flush: _flush, ...schemaProps } = decl;
       if (Object.keys(schemaProps).length > 0) {
         schema = schemaProps as object;
       }
 
-      const entry: { path?: string; schema?: object; validators?: string[] } = {};
+      const entry: { path?: string; schema?: object; validators?: string[]; flush?: string } = {};
       if (decl.path) {
         entry.path = expandFilePath(decl.path, params, envMap, lenient);
       }
       if (schema) entry.schema = schema;
       if (validators.length > 0) entry.validators = validators;
+      if (decl.flush) entry.flush = decl.flush;
 
       result[key] = entry;
     }
@@ -1322,8 +1323,8 @@ export interface ResolvedStep {
   blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
-  /** Merged result schema (base + blueprint/rule extensions). Only present if extensions exist. */
-  merged_schema?: Record<string, object>;
+  /** Unified schema block (params, result, definitions). Only present when the task declares params/result. */
+  schema?: SchemaBlock;
 }
 
 export interface ExpectedParam {
@@ -1430,12 +1431,13 @@ export function resolveAllStages(
     }
     const { config_rules, config_instructions } = resolveConfigForStep(step, rawConfig);
 
+    // Read frontmatter from primary task file for schema block
+    const primaryTaskFile = taskFilePaths[0]!;
+    const taskFmForSchema = parseFrontmatter(primaryTaskFile) as TaskFileFrontmatter | null;
+
     // Schema composition: merge base result schemas with rule/blueprint extensions
     let mergedSchema: Record<string, object> | undefined;
     if (ruleFiles.length > 0 || blueprintFiles.length > 0) {
-      // Read base result schemas from the first task file
-      const primaryTaskFile = taskFilePaths[0]!;
-      const taskFmForSchema = parseFrontmatter(primaryTaskFile) as TaskFileFrontmatter | null;
       if (taskFmForSchema?.result) {
         const resultProps = (taskFmForSchema.result as Record<string, unknown>).properties as
           | Record<string, Record<string, unknown>>
@@ -1462,6 +1464,38 @@ export function resolveAllStages(
       }
     }
 
+    // Build unified schema block from task frontmatter
+    const envMap = buildEnvMap(config);
+    const schemaBlock = buildSchemaBlock({
+      params: taskFmForSchema?.params as Record<string, unknown> | undefined,
+      result: taskFmForSchema?.result as Record<string, unknown> | undefined,
+      taskFilePath: primaryTaskFile,
+      skillsRoot: resolve(agentsDir, 'skills'),
+      envMap,
+    });
+
+    // Merge schema composition results into schema block definitions
+    if (mergedSchema) {
+      for (const [resultKey, composedSchema] of Object.entries(mergedSchema)) {
+        const resultEntry = schemaBlock.result[resultKey];
+        if (resultEntry?.$ref) {
+          // Result references a definition — merge into that definition
+          const defName = resultEntry.$ref.replace('#/definitions/', '');
+          if (schemaBlock.definitions[defName]) {
+            Object.assign(schemaBlock.definitions[defName], composedSchema);
+          }
+        } else {
+          // Inline result — store composed schema in definitions keyed by result key
+          schemaBlock.definitions[resultKey] = composedSchema;
+        }
+      }
+    }
+
+    const hasSchema =
+      Object.keys(schemaBlock.definitions).length > 0 ||
+      Object.keys(schemaBlock.params).length > 0 ||
+      Object.keys(schemaBlock.result).length > 0;
+
     if (taskFilePaths.length === 1) {
       stepResolved[step] = {
         task_file: taskFilePaths[0]!,
@@ -1469,7 +1503,7 @@ export function resolveAllStages(
         blueprints: blueprintFiles,
         config_rules,
         config_instructions,
-        ...(mergedSchema ? { merged_schema: mergedSchema } : {}),
+        ...(hasSchema ? { schema: schemaBlock } : {}),
       };
     } else {
       // Multiple tasks per step: ordered by priority (from deduplicateByNameAs)
@@ -1479,7 +1513,7 @@ export function resolveAllStages(
         blueprints: blueprintFiles,
         config_rules,
         config_instructions,
-        ...(mergedSchema ? { merged_schema: mergedSchema } : {}),
+        ...(hasSchema ? { schema: schemaBlock } : {}),
       }));
     }
     resolvedSteps.push(step);
