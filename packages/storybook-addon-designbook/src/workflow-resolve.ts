@@ -1039,7 +1039,7 @@ export function expandFileDeclarations(
  * Also handles `files:` → `result:` fallback for backwards compatibility.
  */
 export function expandResultDeclarations(
-  resultDecl: Record<string, ResultDeclaration> | undefined,
+  resultDecl: Record<string, unknown> | undefined,
   filesDecl: TaskFileDeclaration[] | undefined,
   params: Record<string, unknown>,
   envMap: Record<string, string>,
@@ -1049,8 +1049,13 @@ export function expandResultDeclarations(
 ): Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined {
   // Prefer result: over files:
   if (resultDecl) {
+    const properties = (resultDecl as Record<string, unknown>).properties as
+      | Record<string, ResultDeclaration>
+      | undefined;
+    if (!properties) return undefined;
+
     const result: Record<string, { path?: string; schema?: object; validators?: string[] }> = {};
-    for (const [key, decl] of Object.entries(resultDecl)) {
+    for (const [key, decl] of Object.entries(properties)) {
       const validators = decl.validators ?? [];
       if (validatorKeys) {
         for (const v of validators) {

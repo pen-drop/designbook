@@ -141,14 +141,15 @@ export function register(program: Command): void {
         const firstSchemas: Record<string, object> = {};
         if (firstResolved) {
           const firstFm = parseFrontmatter(firstResolved.task_file);
-          const resultDecl = firstFm?.result as Record<string, ResultDeclaration> | undefined;
+          const resultDecl = firstFm?.result as Record<string, unknown> | undefined;
+          const resultDeclProperties = (resultDecl?.properties as Record<string, ResultDeclaration> | undefined);
           const envMap = buildEnvMap(config);
           firstResult = expandResultDeclarations(resultDecl, undefined, initialParams ?? {}, envMap, undefined, true);
 
           // Resolve $ref in result schemas inline
-          if (firstResult && resultDecl) {
+          if (firstResult && resultDeclProperties) {
             const skillsRoot = resolve(agentsDir, 'skills');
-            for (const [key, decl] of Object.entries(resultDecl)) {
+            for (const [key, decl] of Object.entries(resultDeclProperties)) {
               // Top-level $ref: replace schema with the resolved definition
               if (decl.$ref && firstResult[key]) {
                 const { typeName, schema } = resolveSchemaRef(decl.$ref, firstResolved.task_file, skillsRoot);

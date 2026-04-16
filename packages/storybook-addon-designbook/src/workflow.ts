@@ -532,7 +532,7 @@ export function expandTasksFromParams(
       const taskTitle = taskFm?.title as string | undefined;
       const taskDescription = taskFm?.description as string | undefined;
       const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
-      const resultDeclarations = taskFm?.result as Record<string, ResultDeclaration> | undefined;
+      const resultDeclarations = taskFm?.result as Record<string, unknown> | undefined;
       const whenConditions = (taskFm?.when ?? {}) as Record<string, unknown>;
 
       for (let itemIdx = 0; itemIdx < stepItems.length; itemIdx++) {
