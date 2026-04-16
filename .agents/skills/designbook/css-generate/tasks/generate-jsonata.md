@@ -4,9 +4,13 @@ when:
 domain: [css]
 params:
   type: object
-  required: [group]
+  required: [group, design_tokens]
   properties:
     group: { type: string }
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      workflow: tokens
+      type: object
 result:
   type: object
   required: [generate-jsonata]
@@ -19,9 +23,6 @@ result:
 each:
   group:
     $ref: ../schemas.yml#/CssGroup
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    workflow: tokens
 ---
 
 # Generate JSONata Expression

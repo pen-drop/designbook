@@ -1,9 +1,14 @@
 ---
 when:
   steps: [css-generate:intake]
-domain: [css]
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+domain: [css, tokens]
+params:
+  type: object
+  required: [design_tokens]
+  properties:
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 ---
 
 # Intake: CSS Generate

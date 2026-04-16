@@ -2,9 +2,14 @@
 when:
   steps: [generate-css]
 domain: [css]
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    workflow: tokens
+params:
+  type: object
+  required: [design_tokens]
+  properties:
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      workflow: tokens
+      type: object
 ---
 
 # Generate CSS — Execute JSONata

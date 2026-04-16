@@ -3,9 +3,14 @@ when:
   steps: [prepare-fonts]
   extensions: google-fonts
 domain: [css]
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    workflow: tokens
+params:
+  type: object
+  required: [design_tokens]
+  properties:
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      workflow: tokens
+      type: object
 result:
   type: object
   required: [google-fonts-css]

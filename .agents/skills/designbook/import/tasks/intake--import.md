@@ -2,9 +2,14 @@
 when:
   steps: [import:intake]
 domain: [design.intake]
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-    workflow: vision
+params:
+  type: object
+  required: [vision]
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.md
+      workflow: vision
+      type: object
 result:
   type: object
   required: [workflow]
