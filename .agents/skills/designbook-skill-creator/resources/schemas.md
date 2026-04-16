@@ -71,20 +71,34 @@ Cross-skill paths are resolved relative to the `.agents/skills/` root.
 
 ### `$ref` in `params:`
 
-A top-level `$ref` in `params:` resolves a schema and uses its `properties` as param declarations. Explicit sibling entries override or extend the resolved properties:
+A `$ref` at the top level of `params:` resolves a schema and merges its `properties` into the param declarations. Explicit sibling properties override or extend the resolved ones:
 
 ```yaml
 params:
-  $ref: ../schemas.yml#/Section       # Section.properties become params
-  order: { type: integer, default: 1 } # override: add default to existing property
-  scene: { type: string }              # extend: add param not in schema
+  $ref: ../schemas.yml#/Section       # Section.properties are merged in
+  type: object
+  required: [scene]
+  properties:
+    order: { type: integer, default: 1 } # override: add default to existing property
+    scene: { type: string }              # extend: add param not in schema
 ```
 
 The `$ref` must point to an object schema with `properties`.
 
 ## `result:` Declarations
 
-Task frontmatter declares all outputs in the `result:` field. Each key is a stable identifier.
+Task frontmatter declares all outputs in the `result:` field as a JSON Schema object. Each property is a stable identifier for one output.
+
+```yaml
+result:
+  type: object
+  required: [component-yml]
+  properties:
+    component-yml:
+      ...
+    issues:
+      ...
+```
 
 ### File Results (with `path:`)
 
@@ -92,10 +106,13 @@ Files written to disk. The engine auto-collects them from declared paths on `wor
 
 ```yaml
 result:
-  component-yml:
-    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
-    validators: [data]
-    $ref: ../schemas.yml#/ComponentYml
+  type: object
+  required: [component-yml]
+  properties:
+    component-yml:
+      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+      validators: [data]
+      $ref: ../schemas.yml#/ComponentYml
 ```
 
 - `path:` — template with `$ENV` vars and `{{ param }}` substitution (resolved at plan time)
@@ -108,13 +125,16 @@ Structured data returned via `--data` on `workflow done`. Flow into workflow sco
 
 ```yaml
 result:
-  issues:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Issue
-  scene:
-    type: string
-    title: Scene
+  type: object
+  required: [issues]
+  properties:
+    issues:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
+    scene:
+      type: string
+      title: Scene
 ```
 
 - JSON Schema type required (inline or `$ref`)
@@ -143,14 +163,20 @@ When a result's semantics aren't obvious from the schema type alone, use a `## R
 ```markdown
 ---
 params:
-  scene: { type: string }
+  type: object
+  required: [scene]
+  properties:
+    scene: { type: string }
 result:
-  issues:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Issue
-  scene:
-    type: string
+  type: object
+  required: [issues]
+  properties:
+    issues:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
+    scene:
+      type: string
 ---
 # Compare Screenshots
 

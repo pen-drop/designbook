@@ -13,11 +13,17 @@ Task files declare **what outputs to produce** — file paths, required params, 
 ```markdown
 ---
 params:
-  component: { type: string }
+  type: object
+  required: [component]
+  properties:
+    component: { type: string }
 result:
-  component-yml:
-    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
-    validators: [data]
+  type: object
+  required: [component-yml]
+  properties:
+    component-yml:
+      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+      validators: [data]
 ---
 ```
 
@@ -25,7 +31,10 @@ result:
 ```markdown
 ---
 params:
-  component: { type: string }
+  type: object
+  required: [component]
+  properties:
+    component: { type: string }
 ---
 Use snake_case for the component name. Create the YAML file with these required fields: ...
 ```
@@ -43,14 +52,17 @@ Both support `$ref` to `schemas.yml` definitions (see [`resources/schemas.md`](.
 
 ```yaml
 result:
-  component-yml:                              # file result
-    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
-    validators: [data]
-    $ref: ../schemas.yml#/ComponentYml
-  issues:                                     # data result
-    type: array
-    items:
-      $ref: ../schemas.yml#/Issue
+  type: object
+  required: [component-yml]
+  properties:
+    component-yml:                              # file result
+      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+      validators: [data]
+      $ref: ../schemas.yml#/ComponentYml
+    issues:                                     # data result
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
 ```
 
 The schema in frontmatter is the source of truth — the engine validates automatically.
@@ -64,12 +76,15 @@ Use `## Result: <key>` sections in the task body for results that need semantic 
 ```markdown
 ---
 result:
-  issues:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Issue
-  scene:
-    type: string
+  type: object
+  required: [issues]
+  properties:
+    issues:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
+    scene:
+      type: string
 ---
 # Compare Screenshots
 
@@ -92,8 +107,7 @@ Blueprints provide an example of what a good output looks like: required tokens,
 
 ```markdown
 ---
-when:
-  steps: [create-component]
+domain: components
 ---
 # Blueprint: Card
 
@@ -111,9 +125,9 @@ Rules enforce constraints that must hold regardless of integration, framework, o
 
 ```markdown
 ---
+domain: components
 when:
   backend: drupal
-  steps: [create-component]
 ---
 All component files must include a `$schema` field pointing to the JSON schema.
 ```
@@ -140,8 +154,7 @@ Tasks and rules must be **as abstract as possible**. They describe structure, re
 **Wrong** (concrete implementation in a rule):
 ```markdown
 ---
-when:
-  steps: [create-component]
+domain: components
 ---
 Use BEM class naming: `.block__element--modifier`.
 ```
@@ -149,8 +162,7 @@ Use BEM class naming: `.block__element--modifier`.
 **Correct** (move naming conventions to a blueprint):
 ```markdown
 ---
-when:
-  steps: [create-component]
+domain: components
 ---
 # Blueprint: Component Naming
 
@@ -199,8 +211,11 @@ Consequence: a task file must declare the **final flushed paths** in `result:`, 
 ```markdown
 # Stage A task — produces flushed output
 result:
-  component-yml:
-    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+  type: object
+  required: [component-yml]
+  properties:
+    component-yml:
+      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
 
 # Stage B task — reads the flushed output from stage A
 reads:
@@ -232,6 +247,8 @@ stages:
 ```
 
 The workflow prefix belongs in task files' `when.steps` for disambiguation (e.g. `when: steps: [design-screen:intake]`), not in the workflow definition itself. The resolver combines the workflow name with the step name automatically.
+
+**Note:** `when.steps` is only used in **task files** for step matching. Rules and blueprints use `domain:` instead — see [`structure.md`](./structure.md) for the domain matching model.
 
 ## Stage = Filename, No Duplication
 

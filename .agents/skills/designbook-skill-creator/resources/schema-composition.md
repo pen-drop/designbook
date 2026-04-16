@@ -27,8 +27,8 @@ Declare extension fields in blueprint or rule frontmatter, keyed by result name:
 
 ```yaml
 ---
+domain: tokens
 when:
-  steps: [create-tokens]
   extensions: stitch
 extends:
   design-tokens:
@@ -48,8 +48,7 @@ Error if a property already exists in the base schema. Use `provides:` to modify
 
 ```yaml
 ---
-when:
-  steps: [create-data-model]
+domain: data-model
 provides:
   data-model:
     properties:
@@ -70,8 +69,7 @@ Last writer wins — if multiple rules/blueprints provide defaults for the same 
 
 ```yaml
 ---
-when:
-  steps: [create-tokens]
+domain: tokens
 constrains:
   design-tokens:
     properties:
@@ -123,12 +121,15 @@ References are resolved at `workflow create` time, same as in task frontmatter.
 **Base task** (`tasks/create-tokens.md`):
 ```yaml
 result:
-  design-tokens:
-    path: $DESIGNBOOK_DATA/design-tokens.yml
-    type: object
-    properties:
-      primitive: { type: object }
-      semantic: { type: object }
+  type: object
+  required: [design-tokens]
+  properties:
+    design-tokens:
+      path: $DESIGNBOOK_DATA/design-tokens.yml
+      type: object
+      properties:
+        primitive: { type: object }
+        semantic: { type: object }
 ```
 
 **Blueprint extends** (`blueprints/stitch-tokens.md`):
