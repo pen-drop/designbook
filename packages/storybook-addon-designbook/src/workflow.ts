@@ -23,7 +23,6 @@ import {
   expandFileDeclarations,
   expandResultDeclarations,
   type TaskFileDeclaration,
-  type ResultDeclaration,
   type ResolvedStep,
 } from './workflow-resolve.js';
 import { getValidatorKeys } from './validation-registry.js';

@@ -190,14 +190,22 @@ export function collectAndResolveSchemas(tasks: ResolvedTask[], skillsRoot: stri
     const taskFm = parseFrontmatter(taskFilePath) as TaskFileFrontmatter | null;
     if (!taskFm?.result) continue;
 
-    for (const [key, resultDecl] of Object.entries(taskFm.result)) {
+    const resultProperties = (taskFm.result as Record<string, unknown>).properties as
+      | Record<string, Record<string, unknown>>
+      | undefined;
+    if (!resultProperties) continue;
+
+    for (const [key, resultDecl] of Object.entries(resultProperties)) {
+      // Save original $ref before resolveRefsInDeclaration rewrites it to AJV-local form
+      const originalRef = resultDecl.$ref as string | undefined;
+
       // Resolve $ref in the frontmatter copy (populates schemas map)
       resolveRefsInDeclaration(resultDecl, taskFilePath, skillsRoot, schemas);
 
       // Update the task's actual result schema:
       // For top-level $ref, replace schema with the resolved definition
-      if (task.result[key] && resultDecl.$ref) {
-        const { typeName, schema } = resolveSchemaRef(resultDecl.$ref, taskFilePath, skillsRoot);
+      if (task.result[key] && originalRef) {
+        const { typeName, schema } = resolveSchemaRef(originalRef, taskFilePath, skillsRoot);
         schemas[typeName] = schema;
         task.result[key]!.schema = schema;
       }
@@ -1426,13 +1434,18 @@ export function resolveAllStages(
       const primaryTaskFile = taskFilePaths[0]!;
       const taskFmForSchema = parseFrontmatter(primaryTaskFile) as TaskFileFrontmatter | null;
       if (taskFmForSchema?.result) {
+        const resultProps = (taskFmForSchema.result as Record<string, unknown>).properties as
+          | Record<string, Record<string, unknown>>
+          | undefined;
         const baseResult: Record<string, { schema?: object }> = {};
-        for (const [rk, rv] of Object.entries(taskFmForSchema.result)) {
-          // Build inline schema from result declaration (excluding path/$ref/validators)
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { path: _path, $ref: _ref, validators: _validators, ...schemaProps } = rv;
-          if (Object.keys(schemaProps).length > 0) {
-            baseResult[rk] = { schema: schemaProps };
+        if (resultProps) {
+          for (const [rk, rv] of Object.entries(resultProps)) {
+            // Build inline schema from result declaration (excluding path/$ref/validators)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { path: _path, $ref: _ref, validators: _validators, ...schemaProps } = rv;
+            if (Object.keys(schemaProps).length > 0) {
+              baseResult[rk] = { schema: schemaProps };
+            }
           }
         }
         if (Object.keys(baseResult).length > 0) {
@@ -1483,10 +1496,13 @@ export function resolveAllStages(
       // Validate all params use inline JSON Schema format
       validateParamFormats(params, taskFile);
 
-      for (const [key, value] of Object.entries(params)) {
+      const properties = (params.properties ?? {}) as Record<string, unknown>;
+      const requiredKeys = new Set((params.required ?? []) as string[]);
+
+      for (const [key, value] of Object.entries(properties)) {
         const schema = value as Record<string, unknown>;
         const def = extractParamDefault(schema);
-        const isRequired = !def.hasDefault;
+        const isRequired = requiredKeys.has(key) || !def.hasDefault;
 
         if (key in expectedParams) {
           // If ANY step marks it required, it stays required

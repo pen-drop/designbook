@@ -70,10 +70,15 @@ afterEach(() => {
 
 // ── resolveAllStages: old-format rejection ──────────────────────────────────
 
-describe('resolveAllStages rejects old-format params', () => {
-  function setupAndResolve(paramLine: string): () => void {
+describe('resolveAllStages rejects old-format params in properties', () => {
+  function setupAndResolve(propertyLine: string): () => void {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeTask(agentsDir, 'test-skill', 'do-thing', `when:\n  steps: [do-thing]\nparams:\n  ${paramLine}`);
+    writeTask(
+      agentsDir,
+      'test-skill',
+      'do-thing',
+      ['when:', '  steps: [do-thing]', 'params:', '  type: object', '  properties:', `    ${propertyLine}`].join('\n'),
+    );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
     return () => resolveAllStages(wfPath, baseConfig, {}, agentsDir);
   }
@@ -114,7 +119,15 @@ describe('resolveAllStages rejects old-format params', () => {
       agentsDir,
       'test-skill',
       'do-thing',
-      ['when:', '  steps: [do-thing]', 'params:', '  valid_param: { type: string }', '  bad_param: ~'].join('\n'),
+      [
+        'when:',
+        '  steps: [do-thing]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    valid_param: { type: string }',
+        '    bad_param: ~',
+      ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
     expect(() => resolveAllStages(wfPath, baseConfig, {}, agentsDir)).toThrow(/Invalid param "bad_param"/);
@@ -130,7 +143,15 @@ describe('resolveAllStages builds correct expected_params', () => {
       agentsDir,
       'test-skill',
       'do-thing',
-      ['when:', '  steps: [do-thing]', 'params:', '  product_name: { type: string }'].join('\n'),
+      [
+        'when:',
+        '  steps: [do-thing]',
+        'params:',
+        '  type: object',
+        '  required: [product_name]',
+        '  properties:',
+        '    product_name: { type: string }',
+      ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
     const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
@@ -146,7 +167,14 @@ describe('resolveAllStages builds correct expected_params', () => {
       agentsDir,
       'test-skill',
       'do-thing',
-      ['when:', '  steps: [do-thing]', 'params:', '  items: { type: array, default: [] }'].join('\n'),
+      [
+        'when:',
+        '  steps: [do-thing]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    items: { type: array, default: [] }',
+      ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
     const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
@@ -166,11 +194,13 @@ describe('resolveAllStages builds correct expected_params', () => {
         'when:',
         '  steps: [do-thing]',
         'params:',
-        '  ref:',
-        '    type: object',
-        '    default: null',
-        '    properties:',
-        '      url: { type: string }',
+        '  type: object',
+        '  properties:',
+        '    ref:',
+        '      type: object',
+        '      default: null',
+        '      properties:',
+        '        url: { type: string }',
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
@@ -187,7 +217,14 @@ describe('resolveAllStages builds correct expected_params', () => {
       agentsDir,
       'test-skill',
       'do-thing',
-      ['when:', '  steps: [do-thing]', 'params:', '  config: { type: object, default: {} }'].join('\n'),
+      [
+        'when:',
+        '  steps: [do-thing]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    config: { type: object, default: {} }',
+      ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
     const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
@@ -202,7 +239,15 @@ describe('resolveAllStages builds correct expected_params', () => {
       agentsDir,
       'test-skill',
       'step-a',
-      ['when:', '  steps: [step-a]', 'params:', '  name: { type: string }'].join('\n'),
+      [
+        'when:',
+        '  steps: [step-a]',
+        'params:',
+        '  type: object',
+        '  required: [name]',
+        '  properties:',
+        '    name: { type: string }',
+      ].join('\n'),
     );
     writeTask(
       agentsDir,
@@ -212,8 +257,11 @@ describe('resolveAllStages builds correct expected_params', () => {
         'when:',
         '  steps: [step-b]',
         'params:',
-        '  items: { type: array, default: [] }',
-        '  mode: { type: string }',
+        '  type: object',
+        '  required: [mode]',
+        '  properties:',
+        '    items: { type: array, default: [] }',
+        '    mode: { type: string }',
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [step-a, step-b]');
@@ -227,19 +275,34 @@ describe('resolveAllStages builds correct expected_params', () => {
 
   it('if any step marks a param required, it stays required', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    // step-a declares name as optional (has default)
+    // step-a declares shared as optional (has default)
     writeTask(
       agentsDir,
       'skill-a',
       'step-a',
-      ['when:', '  steps: [step-a]', 'params:', '  shared: { type: string, default: "fallback" }'].join('\n'),
+      [
+        'when:',
+        '  steps: [step-a]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    shared: { type: string, default: "fallback" }',
+      ].join('\n'),
     );
     // step-b declares same param as required (no default)
     writeTask(
       agentsDir,
       'skill-b',
       'step-b',
-      ['when:', '  steps: [step-b]', 'params:', '  shared: { type: string }'].join('\n'),
+      [
+        'when:',
+        '  steps: [step-b]',
+        'params:',
+        '  type: object',
+        '  required: [shared]',
+        '  properties:',
+        '    shared: { type: string }',
+      ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [step-a, step-b]');
     const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
@@ -257,8 +320,11 @@ describe('resolveAllStages builds correct expected_params', () => {
         'when:',
         '  steps: [create-vision]',
         'params:',
-        '  product_name: { type: string }',
-        '  features: { type: array, default: [] }',
+        '  type: object',
+        '  required: [product_name]',
+        '  properties:',
+        '    product_name: { type: string }',
+        '    features: { type: array, default: [] }',
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [create-vision]');
@@ -278,13 +344,15 @@ describe('resolveAllStages builds correct expected_params', () => {
         'when:',
         '  steps: [do-thing]',
         'params:',
-        '  design_reference:',
-        '    type: object',
-        '    default: null',
-        '    properties:',
-        '      type: { type: string }',
-        '      url: { type: string }',
-        '      label: { type: string }',
+        '  type: object',
+        '  properties:',
+        '    design_reference:',
+        '      type: object',
+        '      default: null',
+        '      properties:',
+        '        type: { type: string }',
+        '        url: { type: string }',
+        '        label: { type: string }',
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
@@ -300,7 +368,15 @@ describe('resolveAllStages builds correct expected_params', () => {
       agentsDir,
       'test-skill',
       'do-thing',
-      ['when:', '  steps: [do-thing]', 'params:', '  order: { type: integer }'].join('\n'),
+      [
+        'when:',
+        '  steps: [do-thing]',
+        'params:',
+        '  type: object',
+        '  required: [order]',
+        '  properties:',
+        '    order: { type: integer }',
+      ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
     const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
@@ -346,9 +422,12 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'when:',
         '  steps: [create-vision]',
         'params:',
-        '  product_name: { type: string }',
-        '  features: { type: array, default: [] }',
-        '  references: { type: array, default: [] }',
+        '  type: object',
+        '  required: [product_name]',
+        '  properties:',
+        '    product_name: { type: string }',
+        '    features: { type: array, default: [] }',
+        '    references: { type: array, default: [] }',
       ].join('\n'),
     );
 
@@ -372,8 +451,11 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'when:',
         '  steps: [create-vision]',
         'params:',
-        '  product_name: { type: string }',
-        '  description: { type: string }',
+        '  type: object',
+        '  required: [product_name, description]',
+        '  properties:',
+        '    product_name: { type: string }',
+        '    description: { type: string }',
       ].join('\n'),
     );
 
@@ -395,12 +477,15 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'when:',
         '  steps: [create-vision]',
         'params:',
-        '  name: { type: string }',
-        '  design_reference:',
-        '    type: object',
-        '    default: null',
-        '    properties:',
-        '      url: { type: string }',
+        '  type: object',
+        '  required: [name]',
+        '  properties:',
+        '    name: { type: string }',
+        '    design_reference:',
+        '      type: object',
+        '      default: null',
+        '      properties:',
+        '        url: { type: string }',
       ].join('\n'),
     );
 
@@ -422,8 +507,11 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'when:',
         '  steps: [run-workflow]',
         'params:',
-        '  workflow: { type: string }',
-        '  params: { type: object, default: {} }',
+        '  type: object',
+        '  required: [workflow]',
+        '  properties:',
+        '    workflow: { type: string }',
+        '    params: { type: object, default: {} }',
       ].join('\n'),
     );
 
@@ -445,8 +533,11 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'when:',
         '  steps: [create-section]',
         'params:',
-        '  section_id: { type: string }',
-        '  order: { type: integer, default: 0 }',
+        '  type: object',
+        '  required: [section_id]',
+        '  properties:',
+        '    section_id: { type: string }',
+        '    order: { type: integer, default: 0 }',
       ].join('\n'),
     );
 
@@ -468,10 +559,13 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'when:',
         '  steps: [create-component]',
         'params:',
-        '  component: { type: string }',
-        '  slots: { type: array, default: [] }',
-        '  props: { type: array, default: [] }',
-        '  group: { type: string }',
+        '  type: object',
+        '  required: [component, group]',
+        '  properties:',
+        '    component: { type: string }',
+        '    slots: { type: array, default: [] }',
+        '    props: { type: array, default: [] }',
+        '    group: { type: string }',
         'each:',
         '  component:',
         '    type: object',
@@ -510,9 +604,12 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'when:',
         '  steps: [create-vision]',
         'params:',
-        '  product_name: { type: string }',
-        '  description: { type: string }',
-        '  features: { type: array, default: [] }',
+        '  type: object',
+        '  required: [product_name, description]',
+        '  properties:',
+        '    product_name: { type: string }',
+        '    description: { type: string }',
+        '    features: { type: array, default: [] }',
       ].join('\n'),
     );
 
@@ -540,8 +637,11 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'when:',
         '  steps: [step-a]',
         'params:',
-        '  name: { type: string }',
-        '  optional_a: { type: string, default: "default-a" }',
+        '  type: object',
+        '  required: [name]',
+        '  properties:',
+        '    name: { type: string }',
+        '    optional_a: { type: string, default: "default-a" }',
       ].join('\n'),
     );
 
@@ -551,8 +651,11 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'when:',
         '  steps: [step-b]',
         'params:',
-        '  name: { type: string }',
-        '  optional_b: { type: array, default: [] }',
+        '  type: object',
+        '  required: [name]',
+        '  properties:',
+        '    name: { type: string }',
+        '    optional_b: { type: array, default: [] }',
       ].join('\n'),
     );
 
@@ -606,18 +709,21 @@ describe('real-world JSON Schema param shapes', () => {
         'when:',
         '  steps: [create-vision]',
         'params:',
-        '  product_name: { type: string }',
-        '  description: { type: string }',
-        '  problems: { type: array, default: [] }',
-        '  features: { type: array, default: [] }',
-        '  design_reference:',
-        '    type: object',
-        '    default: null',
-        '    properties:',
-        '      type: { type: string }',
-        '      url: { type: string }',
-        '      label: { type: string }',
-        '  references: { type: array, default: [] }',
+        '  type: object',
+        '  required: [product_name, description]',
+        '  properties:',
+        '    product_name: { type: string }',
+        '    description: { type: string }',
+        '    problems: { type: array, default: [] }',
+        '    features: { type: array, default: [] }',
+        '    design_reference:',
+        '      type: object',
+        '      default: null',
+        '      properties:',
+        '        type: { type: string }',
+        '        url: { type: string }',
+        '        label: { type: string }',
+        '    references: { type: array, default: [] }',
       ].join('\n'),
     );
 
@@ -651,18 +757,21 @@ describe('real-world JSON Schema param shapes', () => {
         'when:',
         '  steps: [create-vision]',
         'params:',
-        '  product_name: { type: string }',
-        '  description: { type: string }',
-        '  problems: { type: array, default: [] }',
-        '  features: { type: array, default: [] }',
-        '  design_reference:',
-        '    type: object',
-        '    default: null',
-        '    properties:',
-        '      type: { type: string }',
-        '      url: { type: string }',
-        '      label: { type: string }',
-        '  references: { type: array, default: [] }',
+        '  type: object',
+        '  required: [product_name, description]',
+        '  properties:',
+        '    product_name: { type: string }',
+        '    description: { type: string }',
+        '    problems: { type: array, default: [] }',
+        '    features: { type: array, default: [] }',
+        '    design_reference:',
+        '      type: object',
+        '      default: null',
+        '      properties:',
+        '        type: { type: string }',
+        '        url: { type: string }',
+        '        label: { type: string }',
+        '    references: { type: array, default: [] }',
       ].join('\n'),
     );
 
@@ -698,10 +807,13 @@ describe('real-world JSON Schema param shapes', () => {
         'when:',
         '  steps: [create-section]',
         'params:',
-        '  section_id: { type: string }',
-        '  section_title: { type: string }',
-        '  section_description: { type: string }',
-        '  order: { type: integer, default: 0 }',
+        '  type: object',
+        '  required: [section_id, section_title, section_description]',
+        '  properties:',
+        '    section_id: { type: string }',
+        '    section_title: { type: string }',
+        '    section_description: { type: string }',
+        '    order: { type: integer, default: 0 }',
       ].join('\n'),
     );
 
@@ -728,8 +840,11 @@ describe('real-world JSON Schema param shapes', () => {
         'when:',
         '  steps: [run-workflow]',
         'params:',
-        '  workflow: { type: string }',
-        '  params: { type: object, default: {} }',
+        '  type: object',
+        '  required: [workflow]',
+        '  properties:',
+        '    workflow: { type: string }',
+        '    params: { type: object, default: {} }',
       ].join('\n'),
     );
 

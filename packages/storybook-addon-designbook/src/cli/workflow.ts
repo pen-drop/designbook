@@ -142,7 +142,7 @@ export function register(program: Command): void {
         if (firstResolved) {
           const firstFm = parseFrontmatter(firstResolved.task_file);
           const resultDecl = firstFm?.result as Record<string, unknown> | undefined;
-          const resultDeclProperties = (resultDecl?.properties as Record<string, ResultDeclaration> | undefined);
+          const resultDeclProperties = resultDecl?.properties as Record<string, ResultDeclaration> | undefined;
           const envMap = buildEnvMap(config);
           firstResult = expandResultDeclarations(resultDecl, undefined, initialParams ?? {}, envMap, undefined, true);
 

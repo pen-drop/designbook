@@ -378,18 +378,13 @@ describe('validateParamFormats', () => {
   });
 
   it('throws on non-JSON-Schema property', () => {
-    expect(() =>
-      validateParamFormats(
-        { type: 'object', properties: { bad: null } },
-        'test.md',
-      ),
-    ).toThrow(/Invalid param "bad"/);
+    expect(() => validateParamFormats({ type: 'object', properties: { bad: null } }, 'test.md')).toThrow(
+      /Invalid param "bad"/,
+    );
   });
 
   it('accepts params with no properties', () => {
-    expect(() =>
-      validateParamFormats({ type: 'object' }, 'test.md'),
-    ).not.toThrow();
+    expect(() => validateParamFormats({ type: 'object' }, 'test.md')).not.toThrow();
   });
 });
 
@@ -1862,7 +1857,7 @@ describe('resolveParamsRef', () => {
       },
     };
     const resolved = resolveParamsRef(params, taskFilePath, skillsRoot);
-    expect((resolved.properties as any).order).toEqual({ type: 'integer', default: 1 });
+    expect((resolved.properties as Record<string, unknown>).order).toEqual({ type: 'integer', default: 1 });
   });
 
   it('throws if $ref target has no properties', () => {
@@ -1876,11 +1871,7 @@ describe('resolveParamsRef', () => {
     writeFileSync(taskFilePath, '---\nname: test\n---\n');
 
     expect(() =>
-      resolveParamsRef(
-        { type: 'object', $ref: '../schemas.yml#/Section' },
-        taskFilePath,
-        resolve(tmpDir, 'skills'),
-      ),
+      resolveParamsRef({ type: 'object', $ref: '../schemas.yml#/Section' }, taskFilePath, resolve(tmpDir, 'skills')),
     ).toThrow(/without 'properties'/);
   });
 });
@@ -1923,7 +1914,7 @@ describe('collectAndResolveSchemas', () => {
     });
     writeFileSync(resolve(designDir, 'schemas.yml'), schemasContent);
 
-    // Create task file with $ref in result
+    // Create task file with $ref in result (new JSON Schema object format)
     const taskFilePath = resolve(tasksDir, 'setup-compare.md');
     writeFileSync(
       taskFilePath,
@@ -1931,9 +1922,11 @@ describe('collectAndResolveSchemas', () => {
         '---',
         'name: test:setup-compare',
         'result:',
-        '  checks:',
-        '    $ref: "../schemas.yml#/Check"',
-        '    type: array',
+        '  type: object',
+        '  properties:',
+        '    checks:',
+        '      $ref: "../schemas.yml#/Check"',
+        '      type: array',
         '---',
         '',
       ].join('\n'),
@@ -1989,18 +1982,38 @@ describe('collectAndResolveSchemas', () => {
     });
     writeFileSync(resolve(designDir, 'schemas.yml'), schemasContent);
 
-    // Task 1: $ref to Check
+    // Task 1: $ref to Check (new JSON Schema object format)
     const task1Path = resolve(tasksDir, 'task1.md');
     writeFileSync(
       task1Path,
-      ['---', 'name: test:task1', 'result:', '  checks:', '    $ref: "../schemas.yml#/Check"', '---', ''].join('\n'),
+      [
+        '---',
+        'name: test:task1',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    checks:',
+        '      $ref: "../schemas.yml#/Check"',
+        '---',
+        '',
+      ].join('\n'),
     );
 
-    // Task 2: $ref to Issue
+    // Task 2: $ref to Issue (new JSON Schema object format)
     const task2Path = resolve(tasksDir, 'task2.md');
     writeFileSync(
       task2Path,
-      ['---', 'name: test:task2', 'result:', '  issues:', '    $ref: "../schemas.yml#/Issue"', '---', ''].join('\n'),
+      [
+        '---',
+        'name: test:task2',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    issues:',
+        '      $ref: "../schemas.yml#/Issue"',
+        '---',
+        '',
+      ].join('\n'),
     );
 
     const baseMeta = { params: {}, rules: [], blueprints: [], config_rules: [], config_instructions: [], files: [] };
@@ -2042,7 +2055,17 @@ describe('collectAndResolveSchemas', () => {
     const taskFilePath = resolve(tasksDir, 'plain.md');
     writeFileSync(
       taskFilePath,
-      ['---', 'name: test:plain', 'result:', '  data:', '    type: object', '---', ''].join('\n'),
+      [
+        '---',
+        'name: test:plain',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    data:',
+        '      type: object',
+        '---',
+        '',
+      ].join('\n'),
     );
 
     const tasks = [
@@ -2099,7 +2122,7 @@ describe('$ref end-to-end: collectAndResolveSchemas → workflowPlan → workflo
     };
     writeFileSync(resolve(designDir, 'schemas.yml'), stringifyYaml({ Check: checkSchema }));
 
-    // Real-world pattern: type: array + items: { $ref: ... }
+    // Real-world pattern: type: array + items: { $ref: ... } (new JSON Schema object format)
     const taskFilePath = resolve(tasksDir, 'setup-compare.md');
     writeFileSync(
       taskFilePath,
@@ -2107,10 +2130,12 @@ describe('$ref end-to-end: collectAndResolveSchemas → workflowPlan → workflo
         '---',
         'name: test:setup-compare',
         'result:',
-        '  checks:',
-        '    type: array',
-        '    items:',
-        '      $ref: "../schemas.yml#/Check"',
+        '  type: object',
+        '  properties:',
+        '    checks:',
+        '      type: array',
+        '      items:',
+        '        $ref: "../schemas.yml#/Check"',
         '---',
         '',
       ].join('\n'),
