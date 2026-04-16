@@ -1148,19 +1148,32 @@ export function resolveParamsRef(
   const { schema } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
 
   const schemaObj = schema as Record<string, unknown>;
-  const properties = schemaObj.properties as Record<string, unknown> | undefined;
-  if (!properties) {
+  const schemaProps = schemaObj.properties as Record<string, unknown> | undefined;
+  if (!schemaProps) {
     throw new Error(
       `$ref '${ref}' in params: resolved to a schema without 'properties'. ` +
         `params: $ref must point to an object schema with properties.`,
     );
   }
 
-  // Merge: resolved properties first, then explicit overrides
-  const resolved: Record<string, unknown> = { ...properties };
+  // Merge properties: $ref first, explicit overrides
+  const explicitProps = (params.properties ?? {}) as Record<string, unknown>;
+  const mergedProperties: Record<string, unknown> = { ...schemaProps, ...explicitProps };
+
+  // Concatenate required arrays
+  const schemaRequired = (schemaObj.required ?? []) as string[];
+  const explicitRequired = (params.required ?? []) as string[];
+  const mergedRequired = [...schemaRequired, ...explicitRequired];
+
+  // Build merged result: copy all non-special keys, then set merged values
+  const resolved: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(params)) {
-    if (key === '$ref') continue;
-    resolved[key] = value; // explicit entry wins
+    if (key === '$ref' || key === 'properties' || key === 'required') continue;
+    resolved[key] = value;
+  }
+  resolved.properties = mergedProperties;
+  if (mergedRequired.length > 0) {
+    resolved.required = mergedRequired;
   }
 
   return resolved;
@@ -1180,7 +1193,10 @@ export function isJsonSchemaParam(value: unknown): value is Record<string, unkno
  * Throws with descriptive error on old-format params.
  */
 export function validateParamFormats(params: Record<string, unknown>, taskFile: string): void {
-  for (const [key, value] of Object.entries(params)) {
+  const properties = params.properties as Record<string, unknown> | undefined;
+  if (!properties) return; // No properties declared — nothing to validate
+
+  for (const [key, value] of Object.entries(properties)) {
     if (isJsonSchemaParam(value)) continue;
 
     const got =
@@ -1214,28 +1230,31 @@ export function validateAndMergeParams(
   step: string,
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...itemParams };
+  const properties = (schemaParams.properties ?? {}) as Record<string, unknown>;
+  const requiredKeys = new Set((schemaParams.required ?? []) as string[]);
 
   const missing: string[] = [];
-  for (const [key, value] of Object.entries(schemaParams)) {
+  for (const [key, value] of Object.entries(properties)) {
     if (merged[key] !== undefined) continue;
 
     if (isJsonSchemaParam(value)) {
       const def = extractParamDefault(value);
       if (def.hasDefault) {
         merged[key] = def.default;
-      } else {
+      } else if (requiredKeys.has(key)) {
         missing.push(key);
       }
-    } else {
+      // Not required and no default → skip (optional, caller didn't provide)
+    } else if (requiredKeys.has(key)) {
       missing.push(key);
     }
   }
 
   if (missing.length > 0) {
-    const paramList = Object.entries(schemaParams)
-      .map(([k, v]) => {
-        if (isJsonSchemaParam(v)) return `${k} (${'default' in v ? 'optional' : 'required'})`;
-        return `${k} (required)`;
+    const paramList = Object.entries(properties)
+      .map(([k]) => {
+        const isRequired = requiredKeys.has(k);
+        return `${k} (${isRequired ? 'required' : 'optional'})`;
       })
       .join(', ');
     throw new Error(`Missing required param '${missing[0]}' for step '${step}'. Expected params: ${paramList}`);

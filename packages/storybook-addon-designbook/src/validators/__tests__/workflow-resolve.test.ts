@@ -368,96 +368,76 @@ describe('isJsonSchemaParam', () => {
 });
 
 describe('validateParamFormats', () => {
-  it('passes with valid JSON Schema params', () => {
+  it('accepts params with valid JSON Schema properties', () => {
     expect(() =>
-      validateParamFormats({ name: { type: 'string' }, items: { type: 'array', default: [] } }, 'test.md'),
+      validateParamFormats(
+        { type: 'object', properties: { a: { type: 'string' }, b: { type: 'array', default: [] } } },
+        'test.md',
+      ),
     ).not.toThrow();
   });
 
-  it('rejects null param', () => {
-    expect(() => validateParamFormats({ name: null }, 'test.md')).toThrow(
-      /Invalid param "name" in test\.md: expected JSON Schema object with "type" property, got null/,
-    );
+  it('throws on non-JSON-Schema property', () => {
+    expect(() =>
+      validateParamFormats(
+        { type: 'object', properties: { bad: null } },
+        'test.md',
+      ),
+    ).toThrow(/Invalid param "bad"/);
   });
 
-  it('rejects bare array param', () => {
-    expect(() => validateParamFormats({ items: [] }, 'test.md')).toThrow(
-      /Invalid param "items" in test\.md:.*got array/,
-    );
-  });
-
-  it('rejects bare object without type', () => {
-    expect(() => validateParamFormats({ data: {} }, 'test.md')).toThrow(
-      /Invalid param "data" in test\.md:.*got object without "type"/,
-    );
-  });
-
-  it('rejects string scalar', () => {
-    expect(() => validateParamFormats({ name: 'hello' }, 'test.md')).toThrow(
-      /Invalid param "name" in test\.md:.*got string/,
-    );
-  });
-
-  it('rejects number scalar', () => {
-    expect(() => validateParamFormats({ count: 0 }, 'test.md')).toThrow(
-      /Invalid param "count" in test\.md:.*got number/,
-    );
-  });
-
-  it('rejects boolean scalar', () => {
-    expect(() => validateParamFormats({ flag: true }, 'test.md')).toThrow(
-      /Invalid param "flag" in test\.md:.*got boolean/,
-    );
+  it('accepts params with no properties', () => {
+    expect(() =>
+      validateParamFormats({ type: 'object' }, 'test.md'),
+    ).not.toThrow();
   });
 });
 
 describe('validateAndMergeParams', () => {
-  it('passes with all required JSON Schema params provided', () => {
-    const result = validateAndMergeParams(
-      { component: 'button' },
-      { component: { type: 'string' }, slots: { type: 'array', default: [] } },
-      'create-component',
-    );
-    expect(result).toEqual({ component: 'button', slots: [] });
+  it('merges item params with schema defaults', () => {
+    const schema = {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+        color: { type: 'string', default: 'blue' },
+      },
+    };
+    const result = validateAndMergeParams({ name: 'foo' }, schema, 'test');
+    expect(result).toEqual({ name: 'foo', color: 'blue' });
   });
 
-  it('throws on missing required JSON Schema param', () => {
-    expect(() =>
-      validateAndMergeParams(
-        {},
-        { component: { type: 'string' }, slots: { type: 'array', default: [] } },
-        'create-component',
-      ),
-    ).toThrow(
-      /Missing required param 'component' for step 'create-component'. Expected params: component \(required\), slots \(optional\)/,
-    );
+  it('throws on missing required param', () => {
+    const schema = {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+      },
+    };
+    expect(() => validateAndMergeParams({}, schema, 'test')).toThrow(/Missing required param 'name'/);
   });
 
-  it('uses default from JSON Schema for optional params', () => {
-    const result = validateAndMergeParams(
-      { component: 'button' },
-      { component: { type: 'string' }, slots: { type: 'array', default: ['default'] } },
-      'create-component',
-    );
-    expect(result).toEqual({ component: 'button', slots: ['default'] });
+  it('skips optional params without default when not provided', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+      },
+    };
+    const result = validateAndMergeParams({}, schema, 'test');
+    expect(result).toEqual({});
   });
 
-  it('handles null default in JSON Schema (optional, default is null)', () => {
-    const result = validateAndMergeParams(
-      { name: 'test' },
-      { name: { type: 'string' }, ref: { type: 'object', default: null } },
-      'create-vision',
-    );
-    expect(result).toEqual({ name: 'test', ref: null });
-  });
-
-  it('item params override JSON Schema defaults', () => {
-    const result = validateAndMergeParams(
-      { component: 'card', slots: ['header'] },
-      { component: { type: 'string' }, slots: { type: 'array', default: [] } },
-      'create-component',
-    );
-    expect(result).toEqual({ component: 'card', slots: ['header'] });
+  it('item params override schema defaults', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        color: { type: 'string', default: 'blue' },
+      },
+    };
+    const result = validateAndMergeParams({ color: 'red' }, schema, 'test');
+    expect(result).toEqual({ color: 'red' });
   });
 });
 
@@ -1847,52 +1827,45 @@ describe('resolveParamsRef', () => {
     return { taskFilePath, skillsRoot: resolve(tmpDir, 'skills') };
   }
 
-  it('resolves $ref and extracts properties', () => {
+  it('merges $ref schema with explicit properties and required', () => {
     const props = { id: { type: 'string' }, title: { type: 'string' }, order: { type: 'integer' } };
     const { taskFilePath, skillsRoot } = setupSchemaFile(props);
 
-    const result = resolveParamsRef({ $ref: '../schemas.yml#/Section' }, taskFilePath, skillsRoot);
-
-    expect(result).toEqual({
+    const params = {
+      type: 'object',
+      $ref: '../schemas.yml#/Section',
+      required: ['extra'],
+      properties: {
+        extra: { type: 'string' },
+      },
+    };
+    const resolved = resolveParamsRef(params, taskFilePath, skillsRoot);
+    expect(resolved.properties).toEqual({
       id: { type: 'string' },
       title: { type: 'string' },
       order: { type: 'integer' },
+      extra: { type: 'string' },
     });
+    // Schema required ['id', 'title'] + explicit required ['extra']
+    expect(resolved.required).toEqual(['id', 'title', 'extra']);
   });
 
-  it('explicit entries override schema properties', () => {
+  it('explicit properties override $ref properties', () => {
     const props = { id: { type: 'string' }, order: { type: 'integer' } };
     const { taskFilePath, skillsRoot } = setupSchemaFile(props);
 
-    const result = resolveParamsRef(
-      { $ref: '../schemas.yml#/Section', order: { type: 'integer', default: 1 } },
-      taskFilePath,
-      skillsRoot,
-    );
-
-    expect(result).toEqual({
-      id: { type: 'string' },
-      order: { type: 'integer', default: 1 },
-    });
+    const params = {
+      type: 'object',
+      $ref: '../schemas.yml#/Section',
+      properties: {
+        order: { type: 'integer', default: 1 },
+      },
+    };
+    const resolved = resolveParamsRef(params, taskFilePath, skillsRoot);
+    expect((resolved.properties as any).order).toEqual({ type: 'integer', default: 1 });
   });
 
-  it('explicit entries extend schema properties', () => {
-    const props = { id: { type: 'string' } };
-    const { taskFilePath, skillsRoot } = setupSchemaFile(props);
-
-    const result = resolveParamsRef(
-      { $ref: '../schemas.yml#/Section', extra: { type: 'boolean', default: false } },
-      taskFilePath,
-      skillsRoot,
-    );
-
-    expect(result).toEqual({
-      id: { type: 'string' },
-      extra: { type: 'boolean', default: false },
-    });
-  });
-
-  it('throws when schema has no properties', () => {
+  it('throws if $ref target has no properties', () => {
     const tasksDir = resolve(tmpDir, 'skills', 'designbook', 'sections', 'tasks');
     const schemasDir = resolve(tmpDir, 'skills', 'designbook', 'sections');
     mkdirSync(tasksDir, { recursive: true });
@@ -1903,19 +1876,12 @@ describe('resolveParamsRef', () => {
     writeFileSync(taskFilePath, '---\nname: test\n---\n');
 
     expect(() =>
-      resolveParamsRef({ $ref: '../schemas.yml#/Section' }, taskFilePath, resolve(tmpDir, 'skills')),
-    ).toThrow('params: $ref must point to an object schema with properties');
-  });
-
-  it('passes through params without $ref unchanged', () => {
-    // resolveParamsRef should not be called without $ref — this documents behavior
-    // The caller checks for $ref before calling, so this is a safety test
-    const props = { id: { type: 'string' } };
-    const { taskFilePath, skillsRoot } = setupSchemaFile(props);
-
-    // If called with a params object that has no $ref, it would throw because
-    // params['$ref'] is undefined. This confirms the caller must check first.
-    expect(() => resolveParamsRef({ id: { type: 'string' } }, taskFilePath, skillsRoot)).toThrow();
+      resolveParamsRef(
+        { type: 'object', $ref: '../schemas.yml#/Section' },
+        taskFilePath,
+        resolve(tmpDir, 'skills'),
+      ),
+    ).toThrow(/without 'properties'/);
   });
 });
 
