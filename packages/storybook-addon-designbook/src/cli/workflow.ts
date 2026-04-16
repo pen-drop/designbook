@@ -294,18 +294,6 @@ export function register(program: Command): void {
       const rules = stage.rules ?? [];
       const blueprints = stage.blueprints ?? [];
 
-      // Read expected_params from task file frontmatter
-      const expectedParams: Record<string, { required: boolean; default?: unknown }> = {};
-      if (taskFile && existsSync(taskFile)) {
-        const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
-        const params = taskFm?.params as Record<string, unknown> | undefined;
-        if (params) {
-          for (const [key, value] of Object.entries(params)) {
-            expectedParams[key] = value === null ? { required: true } : { required: false, default: value };
-          }
-        }
-      }
-
       // Include schema if present (unified schema block from resolution time)
       const schema = (stage as unknown as Record<string, unknown>).schema ?? undefined;
 
@@ -316,7 +304,6 @@ export function register(program: Command): void {
         blueprints,
         config_rules: stage.config_rules ?? [],
         config_instructions: stage.config_instructions ?? [],
-        expected_params: expectedParams,
         ...(schema ? { schema } : {}),
       };
       log({
