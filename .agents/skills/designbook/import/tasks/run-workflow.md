@@ -2,8 +2,11 @@
 when:
   steps: [run-workflow]
 params:
-  workflow: { type: string }
-  params: { type: object, default: {} }
+  type: object
+  required: [workflow]
+  properties:
+    workflow: { type: string }
+    params: { type: object, default: {} }
 each:
   workflow:
     $ref: ../schemas.yml#/ImportWorkflow

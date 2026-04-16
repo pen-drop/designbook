@@ -6,6 +6,7 @@ when:
   steps: [polish]
 priority: 50
 params:
+  type: object
   $ref: ../schemas.yml#/Issue
 each:
   issues:

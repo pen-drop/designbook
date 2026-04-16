@@ -5,17 +5,23 @@ when:
   steps: [triage]
 priority: 10
 params:
-  scene_id: { type: string }
-  story_id: { type: string }
-  issues:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Issue
+  type: object
+  required: [scene_id, story_id, issues]
+  properties:
+    scene_id: { type: string }
+    story_id: { type: string }
+    issues:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
 result:
-  issues:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Issue
+  type: object
+  required: [issues]
+  properties:
+    issues:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
 ---
 
 # Triage

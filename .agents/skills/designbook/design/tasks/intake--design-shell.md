@@ -3,14 +3,19 @@ when:
   steps: [design-shell:intake]
 domain: [components, components.shell]
 params:
-  reference_dir: { type: string, default: "" }
+  type: object
+  properties:
+    reference_dir: { type: string, default: "" }
 result:
-  component:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Component
-  output_path:
-    type: string
+  type: object
+  required: [component, output_path]
+  properties:
+    component:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Component
+    output_path:
+      type: string
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml

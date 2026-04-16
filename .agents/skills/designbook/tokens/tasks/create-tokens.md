@@ -3,21 +3,27 @@ when:
   steps: [create-tokens]
 domain: [tokens]
 params:
-  reference_dir: { type: string, default: "" }
+  type: object
+  required: [reference_dir]
+  properties:
+    reference_dir: { type: string }
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
     workflow: /debo-vision
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true
 result:
-  design-tokens:
-    path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    type: object
-    required: [primitive, semantic]
-    properties:
-      primitive: { type: object, title: Primitive Tokens }
-      semantic: { type: object, title: Semantic Tokens }
-      component: { type: object, title: Component Tokens, default: {} }
+  type: object
+  required: [design-tokens]
+  properties:
+    design-tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
+      required: [primitive, semantic]
+      properties:
+        primitive: { type: object, title: Primitive Tokens }
+        semantic: { type: object, title: Semantic Tokens }
+        component: { type: object, title: Component Tokens, default: {} }
 ---
 
 # Design Tokens

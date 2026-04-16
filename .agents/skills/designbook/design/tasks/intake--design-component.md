@@ -3,12 +3,17 @@ when:
   steps: [design-component:intake]
 domain: [components]
 params:
-  reference_dir: { type: string, default: "" }
+  type: object
+  properties:
+    reference_dir: { type: string, default: "" }
 result:
-  component:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Component
+  type: object
+  required: [component]
+  properties:
+    component:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Component
 reads: []
 ---
 

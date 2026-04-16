@@ -2,18 +2,23 @@
 when:
   steps: [extract-reference]
 params:
-  story_id: { type: string, default: "" }
-  reference_folder: { type: string, default: "" }
+  type: object
+  properties:
+    story_id: { type: string, default: "" }
+    reference_folder: { type: string, default: "" }
 result:
-  reference_dir:
-    type: string
-  reference:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Reference
-  screenshot:
-    type: string
-    default: ""
+  type: object
+  required: [reference_dir, reference]
+  properties:
+    reference_dir:
+      type: string
+    reference:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Reference
+    screenshot:
+      type: string
+      default: ""
 reads:
   - path: $DESIGNBOOK_DATA/vision.md
 ---

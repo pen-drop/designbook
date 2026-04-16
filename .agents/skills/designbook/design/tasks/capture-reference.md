@@ -6,10 +6,13 @@ when:
   type: screenshot
 priority: 10
 params:
+  type: object
   $ref: ../schemas.yml#/Check
-  scene_id: { type: string }
-  reference_folder: { type: string }
-  breakpoints: { type: string }
+  required: [scene_id, reference_folder, breakpoints]
+  properties:
+    scene_id: { type: string }
+    reference_folder: { type: string }
+    breakpoints: { type: string }
 each:
   checks:
     $ref: ../schemas.yml#/Check

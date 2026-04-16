@@ -5,11 +5,14 @@ when:
   steps: [verify]
 priority: 60
 params:
-  scene_id: { type: string }
-  story_id: { type: string }
-  breakpoint: { type: string }
-  region: { type: string }
-  reference_folder: { type: string }
+  type: object
+  required: [scene_id, story_id, breakpoint, region, reference_folder]
+  properties:
+    scene_id: { type: string }
+    story_id: { type: string }
+    breakpoint: { type: string }
+    region: { type: string }
+    reference_folder: { type: string }
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true

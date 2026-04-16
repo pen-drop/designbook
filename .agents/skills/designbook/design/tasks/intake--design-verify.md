@@ -3,17 +3,23 @@ when:
   steps: [design-verify:intake]
 domain: [design.verify]
 params:
-  story_id: { type: string }
-  reference: { type: array, default: [] }
-  reference_dir: { type: string, default: "" }
+  type: object
+  required: [story_id]
+  properties:
+    story_id: { type: string }
+    reference: { type: array, default: [] }
+    reference_dir: { type: string, default: "" }
 result:
-  reference:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Reference
-  breakpoints:
-    type: array
-    items: { type: string }
+  type: object
+  required: [reference, breakpoints]
+  properties:
+    reference:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Reference
+    breakpoints:
+      type: array
+      items: { type: string }
 reads: []
 ---
 

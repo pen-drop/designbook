@@ -10,13 +10,19 @@ reads:
   - path: $DESIGNBOOK_DIRS_COMPONENTS
     description: Available components — required for canvas bundle generation (rule canvas.md)
 params:
-  section_id: { type: string }
-  entities: { type: array, default: [] }
+  type: object
+  required: [section_id]
+  properties:
+    section_id: { type: string }
+    entities: { type: array, default: [] }
 result:
-  sample-data:
-    path: $DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml
-    type: object
-    validators: [data]
+  type: object
+  required: [sample-data]
+  properties:
+    sample-data:
+      path: $DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml
+      type: object
+      validators: [data]
 ---
 
 # Sample Data

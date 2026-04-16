@@ -7,8 +7,11 @@ reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     workflow: tokens
 result:
-  google-fonts-css:
-    path: $DESIGNBOOK_DIRS_CSS_TOKENS/google-fonts.src.css
+  type: object
+  required: [google-fonts-css]
+  properties:
+    google-fonts-css:
+      path: $DESIGNBOOK_DIRS_CSS_TOKENS/google-fonts.src.css
 ---
 
 # Prepare Fonts: Download Google Fonts CSS

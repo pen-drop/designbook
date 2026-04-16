@@ -5,11 +5,14 @@ when:
   steps: [design-verify:outtake]
 priority: 50
 params:
-  scene_id: { type: string }
-  reference: { type: array, default: [] }
-  story_id: { type: string }
-  issues:
-    type: array
+  type: object
+  required: [scene_id, story_id, issues]
+  properties:
+    scene_id: { type: string }
+    reference: { type: array, default: [] }
+    story_id: { type: string }
+    issues:
+      type: array
 ---
 
 # Outtake — Score & Verify

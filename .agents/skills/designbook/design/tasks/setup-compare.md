@@ -2,22 +2,28 @@
 when:
   steps: [setup-compare]
 params:
-  story_id: { type: string }
-  reference: { type: array, default: [] }
-  breakpoints: { type: array }
+  type: object
+  required: [story_id, breakpoints]
+  properties:
+    story_id: { type: string }
+    reference: { type: array, default: [] }
+    breakpoints: { type: array }
 result:
-  checks:
-    type: array
-    items:
-      type: object
-      required: [story_id, breakpoint, region]
-      properties:
-        story_id: { type: string }
-        breakpoint: { type: string }
-        region: { type: string }
-        threshold: { type: number, default: 0 }
-        selector: { type: string }
-        type: { type: string }
+  type: object
+  required: [checks]
+  properties:
+    checks:
+      type: array
+      items:
+        type: object
+        required: [story_id, breakpoint, region]
+        properties:
+          story_id: { type: string }
+          breakpoint: { type: string }
+          region: { type: string }
+          threshold: { type: number, default: 0 }
+          selector: { type: string }
+          type: { type: string }
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true

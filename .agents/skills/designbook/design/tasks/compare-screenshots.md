@@ -4,34 +4,39 @@ title: "Compare Screenshots: {scene_id} ({breakpoint}/{region})"
 when:
   steps: [compare]
 params:
+  type: object
   $ref: ../schemas.yml#/Check
-  scene_id: { type: string }
-  reference_folder: { type: string }
+  required: [scene_id, reference_folder]
+  properties:
+    scene_id: { type: string }
+    reference_folder: { type: string }
 each:
   checks:
     $ref: ../schemas.yml#/Check
 result:
-  issues:
-    type: array
-    items:
-      type: object
-      required: [severity, description]
-      properties:
-        id: { type: string }
-        story_id: { type: string }
-        checkKey: { type: string }
-        scene_id: { type: string }
-        severity: { type: string, enum: [critical, major, minor] }
-        description: { type: string }
-        file_hint: { type: string }
+  type: object
+  properties:
+    issues:
+      type: array
+      items:
+        type: object
+        required: [severity, description]
         properties:
-          type: array
-          items:
-            type: object
-            properties:
-              property: { type: string }
-              expected: { type: string }
-              actual: { type: string }
+          id: { type: string }
+          story_id: { type: string }
+          checkKey: { type: string }
+          scene_id: { type: string }
+          severity: { type: string, enum: [critical, major, minor] }
+          description: { type: string }
+          file_hint: { type: string }
+          properties:
+            type: array
+            items:
+              type: object
+              properties:
+                property: { type: string }
+                expected: { type: string }
+                actual: { type: string }
 reads:
   - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
     optional: true

@@ -1,20 +1,21 @@
 ---
 when:
   steps: [create-data-model]
-domain: [data-model]
+domain: [data-model, vision]
 reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-    workflow: /debo-vision
   - path: $DESIGNBOOK_DATA/data-model.yml
     optional: true
 result:
-  data-model:
-    path: $DESIGNBOOK_DATA/data-model.yml
-    type: object
-    required: [content]
-    properties:
-      content: { type: object, title: Content Entities }
-      config: { type: object, title: Config Entities, default: {} }
+  type: object
+  required: [data-model]
+  properties:
+    data-model:
+      path: $DESIGNBOOK_DATA/data-model.yml
+      type: object
+      required: [content]
+      properties:
+        content: { type: object, title: Content Entities }
+        config: { type: object, title: Config Entities, default: {} }
 ---
 
 # Data Model

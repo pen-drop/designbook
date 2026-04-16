@@ -3,13 +3,19 @@ when:
   steps: [generate-jsonata]
 domain: [css]
 params:
-  group: { type: string }
+  type: object
+  required: [group]
+  properties:
+    group: { type: string }
 result:
-  generate-jsonata:
-    path: $DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group }}.jsonata
-    validators:
-      - "cmd:npx jsonata-w transform --dry-run {{ file }}"
-      - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
+  type: object
+  required: [generate-jsonata]
+  properties:
+    generate-jsonata:
+      path: $DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group }}.jsonata
+      validators:
+        - "cmd:npx jsonata-w transform --dry-run {{ file }}"
+        - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
 each:
   group:
     $ref: ../schemas.yml#/CssGroup

@@ -3,8 +3,11 @@ when:
   steps: [generate-index]
 domain: [css]
 result:
-  index-css:
-    path: $DESIGNBOOK_DIRS_CSS_TOKENS/index.src.css
+  type: object
+  required: [index-css]
+  properties:
+    index-css:
+      path: $DESIGNBOOK_DIRS_CSS_TOKENS/index.src.css
 ---
 
 # Generate CSS Token Index

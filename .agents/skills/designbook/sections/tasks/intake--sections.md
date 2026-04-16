@@ -7,10 +7,13 @@ reads:
   - path: $DESIGNBOOK_DATA/sections
     optional: true
 result:
-  section:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Section
+  type: object
+  required: [section]
+  properties:
+    section:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Section
 ---
 
 # Intake: Sections

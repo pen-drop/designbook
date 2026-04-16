@@ -3,22 +3,27 @@ when:
   steps: [design-screen:intake]
 domain: [components, components.layout]
 params:
-  reference_dir: { type: string, default: "" }
+  type: object
+  properties:
+    reference_dir: { type: string, default: "" }
 result:
-  component:
-    type: array
-    items:
-      $ref: ../schemas.yml#/Component
-  output_path:
-    type: string
-  entity_mappings:
-    type: array
-    items:
-      $ref: ../schemas.yml#/EntityMapping
-  section_id:
-    type: string
-  section_title:
-    type: string
+  type: object
+  required: [component, output_path, entity_mappings, section_id, section_title]
+  properties:
+    component:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Component
+    output_path:
+      type: string
+    entity_mappings:
+      type: array
+      items:
+        $ref: ../schemas.yml#/EntityMapping
+    section_id:
+      type: string
+    section_title:
+      type: string
 reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
   - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml

@@ -7,15 +7,21 @@ reads:
   - path: $DESIGNBOOK_DATA/sections/
     optional: true
 params:
-  section_id: { type: string, title: Section ID }
-  section_title: { type: string, title: Section Title }
-  description: { type: string, title: Description }
-  order: { type: integer, title: Order }
+  type: object
+  required: [section_id, section_title, description, order]
+  properties:
+    section_id: { type: string, title: Section ID }
+    section_title: { type: string, title: Section Title }
+    description: { type: string, title: Description }
+    order: { type: integer, title: Order }
 result:
-  section-scenes:
-    path: $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
-    type: object
-    validators: [scene]
+  type: object
+  required: [section-scenes]
+  properties:
+    section-scenes:
+      path: $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+      type: object
+      validators: [scene]
 each:
   section:
     $ref: ../schemas.yml#/Section

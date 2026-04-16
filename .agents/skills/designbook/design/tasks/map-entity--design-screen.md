@@ -2,6 +2,7 @@
 when:
   steps: [design-screen:map-entity]
 params:
+  type: object
   $ref: ../schemas.yml#/EntityMapping
 each:
   entity_mappings:
@@ -10,9 +11,12 @@ reads:
   - path: $DESIGNBOOK_DATA/data-model.yml
     workflow: debo-data-model
 result:
-  entity-mapping:
-    path: $DESIGNBOOK_DATA/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
-    validators: [entity-mapping]
+  type: object
+  required: [entity-mapping]
+  properties:
+    entity-mapping:
+      path: $DESIGNBOOK_DATA/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
+      validators: [entity-mapping]
 ---
 
 # Map Entity

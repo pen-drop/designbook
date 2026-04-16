@@ -6,13 +6,19 @@ when:
   type: screenshot
 priority: 20
 params:
-  scene_id: { type: string }
-  story_id: { type: string }
-  breakpoint: { type: string }
-  region: { type: string }
+  type: object
+  required: [scene_id, story_id, breakpoint, region]
+  properties:
+    scene_id: { type: string }
+    story_id: { type: string }
+    breakpoint: { type: string }
+    region: { type: string }
 result:
-  screenshot:
-    path: designbook/stories/{story_id}/screenshots/{breakpoint}--{region}.png
+  type: object
+  required: [screenshot]
+  properties:
+    screenshot:
+      path: designbook/stories/{story_id}/screenshots/{breakpoint}--{region}.png
 each:
   checks:
     $ref: ../schemas.yml#/Check
