@@ -290,9 +290,7 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
   for (const action of steps) {
     // Read the latest state: after previous steps or from initial create
     const current = afterSteps.length > 0 ? afterSteps[afterSteps.length - 1]! : created;
-    const taskToComplete = current.tasks.find(
-      (t) => t.step === action.done && t.status === 'in-progress',
-    );
+    const taskToComplete = current.tasks.find((t) => t.step === action.done && t.status === 'in-progress');
 
     if (!taskToComplete) {
       throw new Error(
