@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Restructure `params:` and `result:` as proper JSON Schema objects, absorb `reads:` into `params:` with `path:` extension field.
+**Goal:** Restructure `params:` and `result:` as proper JSON Schema objects with `type: object`, `required:`, and `properties:`.
 
-**Architecture:** Breaking change to task frontmatter format. Update TypeScript interfaces and resolver functions (TDD), then migrate all 30 task files, then update skill-creator documentation.
+**Architecture:** Breaking change to task frontmatter format. Update TypeScript interfaces and resolver functions (TDD), then migrate all 30 task files, then update skill-creator documentation. `reads:` stays unchanged — separate follow-up.
 
 **Tech Stack:** TypeScript, Vitest, YAML frontmatter in Markdown files
 
@@ -37,13 +37,14 @@ interface TaskFileFrontmatter {
     [key: string]: unknown;
   };
   each?: Record<string, unknown>;
+  reads?: Array<{ path: string; workflow?: string; optional?: boolean }>;
 }
 ```
 
 Key changes:
 - `params` — from `Record<string, unknown>` to structured object with `properties`, `required`, `$ref`
 - `result` — from `Record<string, ResultDeclaration>` to structured object with `properties`, `required`
-- `reads` — removed entirely
+- `reads` — unchanged
 
 - [ ] **Step 2: Run typecheck**
 
@@ -265,9 +266,8 @@ export function validateAndMergeParams(
 
   if (missing.length > 0) {
     const paramList = Object.entries(properties)
-      .map(([k, v]) => {
+      .map(([k]) => {
         const isRequired = requiredKeys.has(k);
-        if (isJsonSchemaParam(v)) return `${k} (${isRequired ? 'required' : 'optional'})`;
         return `${k} (${isRequired ? 'required' : 'optional'})`;
       })
       .join(', ');
@@ -363,15 +363,13 @@ export function expandResultDeclarations(
   lenient?: boolean,
 ): Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined {
   if (resultDecl) {
-    const properties = (resultDecl.properties ?? resultDecl) as Record<string, ResultDeclaration>;
-    // If the result has `properties` key, use it. Otherwise fall back to treating
-    // the whole object as a flat map (temporary compat during migration).
+    const properties = (resultDecl as Record<string, unknown>).properties as
+      | Record<string, ResultDeclaration>
+      | undefined;
+    if (!properties) return undefined;
 
     const result: Record<string, { path?: string; schema?: object; validators?: string[] }> = {};
     for (const [key, decl] of Object.entries(properties)) {
-      // Skip JSON Schema meta-keys at result level
-      if (key === 'type' || key === 'required' || key === '$ref') continue;
-
       const validators = decl.validators ?? [];
       if (validatorKeys) {
         for (const v of validators) {
@@ -418,61 +416,27 @@ export function expandResultDeclarations(
 }
 ```
 
-Note: During migration, both old and new format are supported — old format has no `properties` key, new format does. After all task files are migrated (Task 5), remove the fallback.
-
-- [ ] **Step 2: Update the function signature type**
-
-The `resultDecl` parameter type changes from `Record<string, ResultDeclaration> | undefined` to `Record<string, unknown> | undefined` to accommodate both the new `{ type, required, properties }` structure and the old flat format during migration.
-
-- [ ] **Step 3: Run tests**
+- [ ] **Step 2: Run tests**
 
 Run: `cd packages/storybook-addon-designbook && npx vitest run --reporter=verbose -- workflow-resolve 2>&1 | tail -30`
 
-Expected: Existing result tests still pass (old format falls through). New format will be tested after migration.
+Expected: Some result-related tests may fail — they still pass old-format result objects. These are fixed in Task 5.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add packages/storybook-addon-designbook/src/workflow-resolve.ts packages/storybook-addon-designbook/src/validators/__tests__/workflow-resolve.test.ts
+git add packages/storybook-addon-designbook/src/workflow-resolve.ts
 git commit -m "feat: update expandResultDeclarations for JSON Schema object format"
 ```
 
 ---
 
-### Task 4: Remove `reads:` from interfaces
-
-**Files:**
-- Modify: `packages/storybook-addon-designbook/src/workflow-resolve.ts:71-78`
-
-- [ ] **Step 1: Remove `reads` from `TaskFileFrontmatter`**
-
-Delete the `reads` field from the interface. It's only a type definition — no runtime code accesses it.
-
-- [ ] **Step 2: Run typecheck**
-
-Run: `cd packages/storybook-addon-designbook && npx tsc --noEmit 2>&1 | head -20`
-
-Expected: Clean — no code references `reads` at runtime.
-
-- [ ] **Step 3: Remove the reads-related test**
-
-In `workflow-resolve.test.ts`, remove or update the test at approximately line 861: `'files: paths using remapped env differ from reads: paths using original env'`. This test mentions `reads` in its description but only tests `expandFilePath` — update the description to remove the `reads` reference.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add packages/storybook-addon-designbook/src/workflow-resolve.ts packages/storybook-addon-designbook/src/validators/__tests__/workflow-resolve.test.ts
-git commit -m "refactor: remove reads: from TaskFileFrontmatter interface"
-```
-
----
-
-### Task 5: Migrate all 30 task files
+### Task 4: Migrate all 30 task files
 
 **Files:**
 - Modify: All `.md` files under `.agents/skills/designbook/*/tasks/`
 
-The migration follows a mechanical pattern for each file:
+The migration follows a mechanical pattern for each file. `reads:` stays unchanged.
 
 **params migration:**
 1. Wrap existing params in `properties:`
@@ -484,59 +448,56 @@ The migration follows a mechanical pattern for each file:
 2. Add `type: object`
 3. Add `required: [...]` for all result keys (default: all required, unless semantically optional like `issues`)
 
-**reads migration:**
-1. Move each `reads:` entry into `params.properties` with its `path:` and `workflow:` fields
-2. Use a snake_case param name derived from the file being read
-3. Entries with `optional: true` are NOT added to `required`; entries without `optional` ARE added to `required`
-4. Remove the `reads:` field entirely
-
-- [ ] **Step 1: Migrate vision concern**
-
-File: `.agents/skills/designbook/vision/tasks/create-vision.md`
+**Example — create-data-model.md:**
 
 Before:
 ```yaml
-when:
-  steps: [create-vision]
 reads:
-  - path: $DESIGNBOOK_DATA/vision.md
+  - path: $DESIGNBOOK_DATA/data-model.yml
     optional: true
+params:
+  reference_dir: { type: string, default: "" }
 result:
-  vision:
-    path: $DESIGNBOOK_DATA/vision.md
+  data-model:
+    path: $DESIGNBOOK_DATA/data-model.yml
     type: object
-    required: [product_name, description]
+    required: [content]
     properties:
-      ...
+      content: { type: object, title: Content Entities }
+      config: { type: object, title: Config Entities, default: {} }
 ```
 
 After:
 ```yaml
-when:
-  steps: [create-vision]
+reads:
+  - path: $DESIGNBOOK_DATA/data-model.yml
+    optional: true
 params:
   type: object
   properties:
-    existing_vision:
-      path: $DESIGNBOOK_DATA/vision.md
-      type: object
+    reference_dir: { type: string, default: "" }
 result:
   type: object
-  required: [vision]
+  required: [data-model]
   properties:
-    vision:
-      path: $DESIGNBOOK_DATA/vision.md
+    data-model:
+      path: $DESIGNBOOK_DATA/data-model.yml
       type: object
-      required: [product_name, description]
+      required: [content]
       properties:
-        ...
+        content: { type: object, title: Content Entities }
+        config: { type: object, title: Config Entities, default: {} }
 ```
 
-- [ ] **Step 2: Migrate data-model concern**
+- [ ] **Step 1: Migrate vision concern (1 file)**
+
+File: `.agents/skills/designbook/vision/tasks/create-vision.md`
+
+- [ ] **Step 2: Migrate data-model concern (1 file)**
 
 File: `.agents/skills/designbook/data-model/tasks/create-data-model.md`
 
-- [ ] **Step 3: Migrate tokens concern**
+- [ ] **Step 3: Migrate tokens concern (1 file)**
 
 File: `.agents/skills/designbook/tokens/tasks/create-tokens.md`
 
@@ -610,45 +571,12 @@ File: `.agents/skills/designbook/sample-data/tasks/create-sample-data.md`
 git add .agents/skills/designbook/
 git commit -m "refactor: migrate all task files to JSON Schema object format
 
-params: and result: wrapped in type/required/properties.
-reads: absorbed into params with path: extension field."
+params: and result: wrapped in type/required/properties."
 ```
 
 ---
 
-### Task 6: Remove old-format fallback from `expandResultDeclarations`
-
-**Files:**
-- Modify: `packages/storybook-addon-designbook/src/workflow-resolve.ts`
-
-- [ ] **Step 1: Remove fallback logic**
-
-Now that all task files use the new format, remove the `resultDecl.properties ?? resultDecl` fallback added in Task 3. The function should now require `resultDecl.properties`:
-
-```typescript
-if (resultDecl) {
-  const properties = resultDecl.properties as Record<string, ResultDeclaration> | undefined;
-  if (!properties) return undefined;
-  // ... rest of function using properties
-}
-```
-
-- [ ] **Step 2: Run full test suite**
-
-Run: `cd packages/storybook-addon-designbook && npx vitest run --reporter=verbose 2>&1 | tail -30`
-
-Expected: All tests pass.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add packages/storybook-addon-designbook/src/workflow-resolve.ts
-git commit -m "refactor: remove old-format fallback from expandResultDeclarations"
-```
-
----
-
-### Task 7: Update test fixtures to new format
+### Task 5: Update test fixtures to new format
 
 **Files:**
 - Modify: `packages/storybook-addon-designbook/src/validators/__tests__/workflow-resolve.test.ts`
@@ -682,7 +610,7 @@ git commit -m "test: update all test fixtures to new JSON Schema object format"
 
 ---
 
-### Task 8: Run full quality check
+### Task 6: Run full quality check
 
 **Files:** None (verification only)
 
@@ -705,7 +633,7 @@ git commit -m "fix: lint and type fixes after schema migration"
 
 ---
 
-### Task 9: Update skill-creator documentation
+### Task 7: Update skill-creator documentation
 
 **Files:**
 - Modify: `.agents/skills/designbook-skill-creator/resources/schemas.md`
@@ -737,22 +665,6 @@ params:
     scene_id: { type: string }
 ```
 
-Add documentation for file input params (replaces `reads:`):
-
-```yaml
-params:
-  type: object
-  required: [vision]
-  properties:
-    vision:
-      path: $DESIGNBOOK_DATA/vision.md
-      workflow: /debo-vision
-      type: object
-    design_tokens:
-      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-      type: object
-```
-
 - [ ] **Step 2: Update `schemas.md` — result section**
 
 Replace the `result:` documentation section with the new format:
@@ -771,15 +683,11 @@ result:
         semantic: { type: object }
 ```
 
-- [ ] **Step 3: Remove `reads:` documentation from `schemas.md`**
-
-If there is any `reads:` documentation, remove it. Add a note that file inputs are now declared as params with `path:`.
-
-- [ ] **Step 4: Update `schema-composition.md` examples**
+- [ ] **Step 3: Update `schema-composition.md` examples**
 
 Update the "Full Merge" example to show the new result format with `type: object`, `required:`, `properties:` wrapper.
 
-- [ ] **Step 5: Update `principles.md`**
+- [ ] **Step 4: Update `principles.md`**
 
 Update the "Tasks Say WHAT" example (lines 13-21) to show new format:
 
@@ -800,48 +708,43 @@ result:
 
 Update "Results Declare Schema" section (lines 37-56) with new format examples.
 
-Update "Stages Flush After Completion" section (lines 190-207) — replace `reads:` reference with params `path:` reference.
+Update "Stages Flush After Completion" section (lines 190-207) — example still uses `reads:` (unchanged) but update `result:` format.
 
-- [ ] **Step 6: Update `structure.md`**
+- [ ] **Step 5: Update `structure.md`**
 
-No structural changes needed — `structure.md` describes directory layout, not frontmatter format. Verify no inline examples use old format.
+Verify no inline examples use old params/result format. Update if found.
 
-- [ ] **Step 7: Update `validate.md`**
+- [ ] **Step 6: Update `validate.md`**
 
-Update check `E02` description to reflect that tasks with outputs need `result:` with `properties:`. Remove any references to `reads:` validation.
+Update check `E02` description to reflect that tasks with outputs need `result:` with `properties:`.
 
-- [ ] **Step 8: Commit documentation changes**
+- [ ] **Step 7: Commit documentation changes**
 
 ```bash
 git add .agents/skills/designbook-skill-creator/
 git commit -m "docs(skill-creator): update all references to new JSON Schema task format
 
-params/result use type/required/properties wrappers.
-reads: replaced by params with path: extension field."
+params/result use type/required/properties wrappers."
 ```
 
 ---
 
-### Task 10: Final verification
+### Task 8: Final verification
 
-- [ ] **Step 1: Run full quality check again**
+- [ ] **Step 1: Run full quality check**
 
 Run: `pnpm check`
 
 Expected: All checks pass.
 
-- [ ] **Step 2: Verify no stale `reads:` references remain**
+- [ ] **Step 2: Verify all task files have new format**
 
-Run: `grep -r 'reads:' .agents/skills/designbook/ --include='*.md' -l`
+Run: `grep -rn '^params:' .agents/skills/designbook/*/tasks/*.md .agents/skills/designbook/*/*/tasks/*.md 2>/dev/null`
 
-Expected: No matches (all `reads:` removed from task files).
+For each match, the next non-empty line should be `  type: object` — NOT a direct attribute like `  scene_id:`.
 
-Run: `grep -r 'reads:' .agents/skills/designbook-skill-creator/ --include='*.md'`
+- [ ] **Step 3: Verify all result blocks have new format**
 
-Expected: No matches (all documentation updated).
+Run: `grep -rn '^result:' .agents/skills/designbook/*/tasks/*.md .agents/skills/designbook/*/*/tasks/*.md 2>/dev/null`
 
-- [ ] **Step 3: Verify all task files have new format**
-
-Run: `grep -rL 'properties:' .agents/skills/designbook/*/tasks/*.md .agents/skills/designbook/*/*/tasks/*.md 2>/dev/null`
-
-Any file listed here is missing the new `properties:` wrapper. Files without `params:` or `result:` (like `generate-css.md` which only has `reads:` → now has `params:`) may be expected — verify manually.
+For each match, the next non-empty line should be `  type: object` — NOT a direct result key.

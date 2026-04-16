@@ -2,15 +2,10 @@
 
 ## Problem
 
-`params:`, `result:`, and `reads:` in task frontmatter have inconsistent structures. `params:` and `result:` start directly with attributes (flat key maps), preventing JSON Schema's `required` keyword. `reads:` is a separate array of file inputs with its own format. The overall model is non-standard and asymmetric.
+`params:` and `result:` in task frontmatter start directly with attributes (flat key maps). This prevents using JSON Schema's `required` keyword at the params/result level. The format is non-standard and not validatable with standard JSON Schema tools.
 
-**Current format:**
+**Current format (flat):**
 ```yaml
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-    workflow: /debo-vision
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
 params:
   scene_id: { type: string }
   reference_dir: { type: string, default: "" }
@@ -26,41 +21,29 @@ result:
 
 ## Decision
 
-1. Restructure `params:` and `result:` as proper JSON Schema object schemas with `type: object`, `required:`, and `properties:`.
-2. Absorb `reads:` into `params:` — file inputs become params with a `path:` extension field, symmetric to file outputs in `result:`.
-3. Breaking change — all task files are migrated, no backwards compatibility.
+Restructure `params:` and `result:` as proper JSON Schema object schemas with `type: object`, `required:`, and `properties:`. Breaking change — all task files are migrated, no backwards compatibility.
+
+`reads:` stays unchanged — absorption into `params:` is a separate follow-up change.
 
 `each:` stays flat — it's a control directive, not a data schema.
 
 ## New Format
 
-### params (value inputs + file inputs)
+### params
 
 ```yaml
 params:
   type: object
-  required: [scene_id, vision]
+  required: [scene_id]
   properties:
-    # Value inputs (passed by caller)
     scene_id: { type: string }
     reference_dir: { type: string, default: "" }
-    # File inputs (loaded from disk — replaces reads:)
-    vision:
-      path: $DESIGNBOOK_DATA/vision.md
-      workflow: /debo-vision
-      type: object
-    design_tokens:
-      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-      type: object
 ```
 
 - `type: object` always present (explicit per standard)
-- `required:` array is the source of truth — replaces both implicit "no default = required" for value params and `optional: true` for file inputs
+- `required:` array is the source of truth for required/optional
 - `default:` on properties remains as fallback value (standard JSON Schema)
-- `path:` on a param = file input (engine loads from disk). Without `path:` = value input (provided by caller)
-- `workflow:` extension field for dependency tracking (which workflow produces this file)
-
-**Symmetry with result:** `result` has outputs with `path:` (file outputs) and without (data outputs). `params` now has inputs with `path:` (file inputs) and without (value inputs).
+- Params with no `required` entry and no `default` → engine warns (consistency check)
 
 ### result
 
@@ -98,12 +81,11 @@ Stays flat. No `required` use-case for iteration.
 
 ## Extension Fields
 
-Both `params` and `result` entries are JSON Schema objects with additional engine-specific fields. These are stripped before schema validation:
+Result entries are JSON Schema objects with additional engine-specific fields. These are stripped before schema validation:
 
 | Field | Where | Purpose |
 |-------|-------|---------|
-| `path:` | params, result | File path (disk I/O) |
-| `workflow:` | params | Dependency — which workflow produces this file |
+| `path:` | result | File output path (disk I/O) |
 | `validators:` | result | Semantic validators run after schema validation |
 
 ## $ref Handling
@@ -164,27 +146,18 @@ These paths start at the result key level, not the `result:` wrapper level. No c
 - After: iterates `resultDecl.properties` (each key = result entry)
 - Evaluates `required` array for validation at `workflow done`
 
-**reads: handling removed:**
-- Remove `reads:` parsing and the `files:` fallback path
-- File inputs are now discovered from `params.properties` entries that have `path:`
-- `workflow:` field extracted for dependency tracking
-- `optional` logic replaced by checking `required` array membership
-
 ### workflow-schema-merge.ts
 
 No changes. `extends:`/`provides:`/`constrains:` already operate on result keys, not the `result:` wrapper.
 
 ## Migration
 
-### Task files (~25 files)
+### Task files (~30 files)
 
-All tasks under `.agents/skills/designbook/*/tasks/` are rewritten. `reads:` entries become params with `path:`. Example:
+All tasks under `.agents/skills/designbook/*/tasks/` are rewritten. `reads:` stays unchanged. Example:
 
 ```yaml
 # Before
-reads:
-  - path: $DESIGNBOOK_DATA/data-model.yml
-    optional: true
 params:
   reference_dir: { type: string, default: "" }
 result:
@@ -200,9 +173,6 @@ result:
 params:
   type: object
   properties:
-    data_model:
-      path: $DESIGNBOOK_DATA/data-model.yml
-      type: object
     reference_dir: { type: string, default: "" }
 result:
   type: object
@@ -219,7 +189,7 @@ result:
 
 ### Skill-Creator documentation
 
-- `resources/schemas.md` — update `params:` and `result:` format sections, remove `reads:` documentation, add `path:` on params
+- `resources/schemas.md` — update `params:` and `result:` format sections and examples
 - `resources/schema-composition.md` — update examples to new format
 - `rules/structure.md` — update frontmatter structure if referenced
 - `rules/principles.md` — update format rules if referenced
@@ -230,11 +200,10 @@ result:
 - Existing tests in `workflow-resolve.test.ts` break → update to new format
 - New test: `required` validation at `workflow done` (missing required result key → error)
 - New test: `required` concatenation when merging params with `$ref`
-- New test: file input params (with `path:`) are loaded from disk
-- Remove: tests for `reads:` parsing
 
 ## Out of Scope
 
+- `reads:` absorption into `params:` with `path:` extension field — planned as follow-up change
 - `extends:`/`provides:`/`constrains:` as separate file type ("extensions") — planned as follow-up change
 - `each:` format change — stays flat
 - Structured-data-only I/O (vision.yml, eliminate directory reads) — planned as follow-up change
