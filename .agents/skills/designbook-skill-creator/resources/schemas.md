@@ -85,6 +85,64 @@ params:
 
 The `$ref` must point to an object schema with `properties`.
 
+## File-Input Params (with `path:`)
+
+Tasks declare file inputs as params with a `path:` extension field. These are read from disk by the AI agent, not provided via CLI.
+
+```yaml
+params:
+  type: object
+  required: [reference_dir, vision]
+  properties:
+    reference_dir: { type: string }
+    vision:
+      path: $DESIGNBOOK_DATA/vision.md
+      workflow: /debo-vision
+      type: object
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
+```
+
+Two param classes, distinguished by `path:`:
+
+| | CLI Params | File-Input Params |
+|---|---|---|
+| `path:` | absent | present |
+| Source | `--params` / engine | AI reads from disk |
+| Required | in `required:` = must be provided | in `required:` = file must exist |
+| Optional | not in `required:`, has `default:` | not in `required:` = file may not exist |
+
+### Extension Fields on Params
+
+| Field | Purpose |
+|-------|---------|
+| `path:` | File/directory input path |
+| `workflow:` | Inter-workflow dependency tracking |
+| `description:` | Semantic description for AI |
+
+### Directory Inputs
+
+Use `type: string` for directory paths:
+
+```yaml
+components_dir:
+  path: $DESIGNBOOK_DIRS_COMPONENTS
+  type: string
+  description: Available components — location resolved by the active framework skill
+```
+
+### Pattern Paths
+
+Paths with placeholders stay as-is — the AI resolves the concrete path from context:
+
+```yaml
+section_scenes:
+  path: $DESIGNBOOK_DATA/sections/[section-id]/[section-id].section.scenes.yml
+  workflow: debo-shape-section
+  type: object
+```
+
 ## `result:` Declarations
 
 Task frontmatter declares all outputs in the `result:` field as a JSON Schema object. Each property is a stable identifier for one output.

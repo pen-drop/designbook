@@ -29,7 +29,7 @@ For **each file**, check:
 
 | File type | Must contain | Must NOT contain |
 |-----------|-------------|-----------------|
-| **Task** | Output declarations (`result:`, `params:`, `reads:`) | Style guidance, implementation details, framework-specific logic |
+| **Task** | Output declarations (`result:`, `params:`) | Style guidance, implementation details, framework-specific logic |
 | **Rule** | Hard constraints, `when:` conditions, optional `extends:`/`provides:`/`constrains:` | Overridable suggestions, examples that could vary by integration |
 | **Blueprint** | Overridable starting points, optional `extends:`/`provides:` | `constrains:`, absolute constraints that should be rules |
 
@@ -55,7 +55,7 @@ For **each file**, check:
 
 - Does the file reference CLI commands or params that exist?
 - Does it describe manual steps that the CLI handles automatically?
-- Are `when.steps` values current? (no stale step names)
+- Are `domain:` values current? (valid domain from taxonomy, no stale domains)
 - Do `result:` schemas match the actual outputs being produced?
 
 Output the audit as a table:

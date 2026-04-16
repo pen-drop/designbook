@@ -7,7 +7,7 @@ description: Core design principles for all Designbook skill authoring
 
 ## Tasks Say WHAT, Never HOW
 
-Task files declare **what outputs to produce** — file paths, required params, prerequisite reads. They never contain style guidelines, implementation instructions, or format prescriptions.
+Task files declare **what outputs to produce** — file paths, required params, file-input dependencies. They never contain style guidelines, implementation instructions, or format prescriptions.
 
 **Correct:**
 ```markdown
@@ -206,7 +206,7 @@ Blueprints describe **structural patterns** (multi-row headers, multi-section fo
 
 After each stage completes, all output files are **flushed** — renamed from their temporary working names to their final canonical names. This flush is what makes outputs referenceable by later stages.
 
-Consequence: a task file must declare the **final flushed paths** in `result:`, not temporary names. If stage B needs to read a file produced by stage A, it references the flushed name via `reads:`.
+Consequence: a task file must declare the **final flushed paths** in `result:`, not temporary names. If stage B needs to read a file produced by stage A, it references the flushed name as a file-input param (with `path:` extension field).
 
 ```markdown
 # Stage A task — produces flushed output
@@ -217,9 +217,14 @@ result:
     component-yml:
       path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
 
-# Stage B task — reads the flushed output from stage A
-reads:
-  - path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+# Stage B task — declares file-input param for flushed output
+params:
+  type: object
+  required: [component_yml]
+  properties:
+    component_yml:
+      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+      type: object
 ```
 
 Never reference unflushed (in-progress) file names from another stage — the file will not exist at that path until the producing stage has completed and flushed.
