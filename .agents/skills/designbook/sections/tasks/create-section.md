@@ -1,19 +1,21 @@
 ---
 when:
   steps: [create-section]
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-    workflow: /debo-vision
-  - path: $DESIGNBOOK_DATA/sections/
-    optional: true
 params:
   type: object
-  required: [section_id, section_title, description, order]
+  required: [section_id, section_title, description, order, vision]
   properties:
     section_id: { type: string, title: Section ID }
     section_title: { type: string, title: Section Title }
     description: { type: string, title: Description }
     order: { type: integer, title: Order }
+    vision:
+      path: $DESIGNBOOK_DATA/vision.md
+      workflow: /debo-vision
+      type: object
+    sections_dir:
+      path: $DESIGNBOOK_DATA/sections/
+      type: string
 result:
   type: object
   required: [section-scenes]

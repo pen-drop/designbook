@@ -1,11 +1,17 @@
 ---
 when:
   steps: [sections:intake]
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-    workflow: /debo-vision
-  - path: $DESIGNBOOK_DATA/sections
-    optional: true
+params:
+  type: object
+  required: [vision]
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.md
+      workflow: /debo-vision
+      type: object
+    sections_dir:
+      path: $DESIGNBOOK_DATA/sections
+      type: string
 result:
   type: object
   required: [section]

@@ -2,9 +2,12 @@
 when:
   steps: [create-data-model]
 domain: [data-model, vision]
-reads:
-  - path: $DESIGNBOOK_DATA/data-model.yml
-    optional: true
+params:
+  type: object
+  properties:
+    data_model:
+      path: $DESIGNBOOK_DATA/data-model.yml
+      type: object
 result:
   type: object
   required: [data-model]

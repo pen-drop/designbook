@@ -2,19 +2,23 @@
 when:
   steps: [create-sample-data]
 domain: [sample-data]
-reads:
-  - path: $DESIGNBOOK_DATA/data-model.yml
-    workflow: /debo-data-model
-  - path: $DESIGNBOOK_DATA/sections/
-    optional: true
-  - path: $DESIGNBOOK_DIRS_COMPONENTS
-    description: Available components — required for canvas bundle generation (rule canvas.md)
 params:
   type: object
-  required: [section_id]
+  required: [section_id, data_model, components_dir]
   properties:
     section_id: { type: string }
     entities: { type: array, default: [] }
+    data_model:
+      path: $DESIGNBOOK_DATA/data-model.yml
+      workflow: /debo-data-model
+      type: object
+    sections_dir:
+      path: $DESIGNBOOK_DATA/sections/
+      type: string
+    components_dir:
+      path: $DESIGNBOOK_DIRS_COMPONENTS
+      type: string
+      description: Available components — required for canvas bundle generation (rule canvas.md)
 result:
   type: object
   required: [sample-data]

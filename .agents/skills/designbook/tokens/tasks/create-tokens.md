@@ -4,14 +4,16 @@ when:
 domain: [tokens]
 params:
   type: object
-  required: [reference_dir]
+  required: [reference_dir, vision]
   properties:
     reference_dir: { type: string }
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-    workflow: /debo-vision
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
+    vision:
+      path: $DESIGNBOOK_DATA/vision.md
+      workflow: /debo-vision
+      type: object
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 result:
   type: object
   required: [design-tokens]

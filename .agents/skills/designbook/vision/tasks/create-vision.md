@@ -1,9 +1,12 @@
 ---
 when:
   steps: [create-vision]
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-    optional: true
+params:
+  type: object
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.md
+      type: object
 result:
   type: object
   required: [vision]
