@@ -136,15 +136,28 @@ _debo workflow instructions --workflow $WORKFLOW_NAME --stage <step-name>
 
 Read the `task_file` and all `rules`/`blueprints`. Rules are hard constraints — apply silently, never mention to the user.
 
-### 2a-resolve. Run Provider Rules
+The response includes a `schema` field that contains all inputs and outputs for the task:
 
-After loading rules, check each rule's frontmatter for a `provides: <param>` field. For each expected param that is **not yet set** (not in `--params` and not resolved by a previous step), find a loaded rule that provides it and execute that rule's instructions to set the param.
+- `schema.definitions` — resolved schemas from `schemas.yml`, deduplicated across all loaded files (task, blueprints, rules)
+- `schema.params` — file inputs with resolved `path`, `exists`, `content` (parsed YAML/JSON or null), and `$ref` to definitions
+- `schema.result` — expected outputs with the same resolution: resolved `path`, `exists`, `content`, and `$ref` to definitions
 
+Params and result use identical resolution logic. The AI uses param/result content directly from the response. File names and paths are never mentioned in task body text. If an entry has `exists: true`, its `content` is the parsed file. If `exists: false`, the file does not exist yet and `content` is null.
+
+Some result properties are intentionally open in the base schema and only gain structure through extensions — e.g. `config` in the data model is `{ type: object }` in the base, but blueprints/rules add type-specific properties like `image_style.aspect_ratio`. Always use `schema` (from `workflow instructions`) over the base task schema when both are available.
+
+### 2a-resolve. Param Resolution
+
+Most params are resolved automatically by **code resolvers** at `workflow create` time (Step 0.5). Params with `resolve:` in the workflow definition are handled by the CLI before any task runs.
+
+For remaining unresolved params, check loaded rules for a `provides: <param>` field (legacy provider rules). For each expected param that is **not yet set** (not in `--params` and not resolved by a code resolver or previous step), find a loaded rule that provides it and execute that rule's instructions to set the param.
+
+- If a code resolver handled it → param is already set, skip
 - If a provider rule exists → execute it, set the param
 - If no provider rule exists → leave the param unset (the task will handle it, e.g. ask the user)
 - If the param is already set → skip the provider rule entirely
 
-Provider rules run **before** the task starts. The task sees provider-resolved params as already set.
+**Prefer code resolvers** for new params. Provider rules are a legacy mechanism — use `resolve:` in workflow params instead.
 
 ### 2b. Do the Work
 
@@ -164,26 +177,24 @@ This transitions the workflow from `running` → `waiting`, shows an amber pulse
 
 **Writing results:**
 
-Task results are driven by the `result:` schema in the task's frontmatter. The merged schema (from `workflow instructions`) is the single source of truth for what to fill.
+Task results are driven by the `result:` schema in the task's frontmatter. The `schema.result` field (from `workflow instructions`) is the single source of truth for what to fill.
 
 **File results** (result keys with `path:`):
 Pass all results — both file and data — as a single JSON object via `--data` on `workflow done`.
-The CLI serializes to the target format, writes a staging file (`.debo` suffix), validates the
-schema on the raw data, and runs semantic validators on the staging file. On stage transition,
-the engine flushes all staging files to their final paths atomically.
+The CLI serializes to the target format, validates the schema on the raw data, and runs semantic validators.
 
-To skip staging and write directly to the final path, add `--flush`:
+By default, file results are staged (written to a `.debo` suffix path) and flushed atomically on stage transition. Results declared with `flush: immediately` in the task's result schema are written to their final path directly — the AI does not need to pass any flush flag.
 
 ```bash
 _debo workflow done --workflow $WORKFLOW_NAME --task <task-id> \
-  --data '{"vision": {"product_name": "...", "description": "..."}}' --flush
+  --data '{"vision": {"product_name": "...", "description": "..."}}'
 ```
 
 **External file results** (result declaration has `external: true`):
 For files that cannot be written through the CLI (e.g. Playwright screenshots).
 The AI writes the file directly, then registers via `workflow result --external`.
 
-**Never** write file results directly with the Write tool — always use `--data` or `--data --flush`.
+**Never** write file results directly with the Write tool — always use `--data` on `workflow done`.
 
 ### 2c. Mark Task Done
 
@@ -193,12 +204,11 @@ _debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--data '<json>']
 
 - `--data '<json>'` — pass all results (file and data) as a single JSON object.
   The engine serializes file results to disk, validates all results against the
-  merged schema, and marks the task done.
-- `--flush` — write file results directly to the final path instead of staging.
+  `schema.definitions`, and marks the task done.
 - `--summary` — short result description shown in Storybook panel. Skip for self-explanatory tasks.
-- Results with `default:` in the merged schema are auto-filled if not provided.
+- Results with `default:` in `schema.result` are auto-filled if not provided.
 
-**Data flow model:** Tasks declare their outputs via `result:` in frontmatter with a JSON Schema. The engine validates results against the merged schema (base + blueprint extensions + rule constraints). When all tasks in a stage complete, the engine collects data results into the workflow scope and expands pending stages whose `each:` keys are now available.
+**Data flow model:** Tasks declare their outputs via `result:` in frontmatter with a JSON Schema. The engine validates results against `schema` (base + blueprint extensions + rule constraints). When all tasks in a stage complete, the engine collects data results into the workflow scope and expands pending stages whose `each:` keys are now available.
 
 ### 2d. Follow the Response
 
@@ -228,7 +238,7 @@ When `scope_update` is present, it means the engine collected data results from 
 _debo workflow wait --workflow $WORKFLOW_NAME --message "Preview OK?"
 ```
 
-Then ask the user the prompt. When the user answers, write the answer via `workflow result --key <key> --json '<data>'`, then call `done`. The next CLI call (`done`, `result`, or `instructions`) automatically transitions the workflow back to `running`.
+Then ask the user the prompt. When the user answers, pass the answer via `--data` on the next `workflow done` call. The next CLI call (`done`, `result`, or `instructions`) automatically transitions the workflow back to `running`.
 
 **Workflow complete:**
 ```json
