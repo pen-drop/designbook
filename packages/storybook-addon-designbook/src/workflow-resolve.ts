@@ -85,7 +85,6 @@ interface TaskFileFrontmatter {
     [key: string]: unknown;
   };
   each?: Record<string, unknown>; // iteration declaration { <scope-key>: <schema> }
-  reads?: Array<{ path: string; workflow?: string; optional?: boolean }>;
 }
 
 interface StageDefinitionFm {
@@ -1250,6 +1249,9 @@ export function validateAndMergeParams(
   for (const [key, value] of Object.entries(properties)) {
     if (merged[key] !== undefined) continue;
 
+    // Skip file-input params — they're read from disk by the AI, not provided via CLI
+    if (isJsonSchemaParam(value) && 'path' in value) continue;
+
     if (isJsonSchemaParam(value)) {
       const def = extractParamDefault(value);
       if (def.hasDefault) {
@@ -1265,6 +1267,7 @@ export function validateAndMergeParams(
 
   if (missing.length > 0) {
     const paramList = Object.entries(properties)
+      .filter(([, v]) => !(isJsonSchemaParam(v as Record<string, unknown>) && 'path' in (v as Record<string, unknown>)))
       .map(([k]) => {
         const isRequired = requiredKeys.has(k);
         return `${k} (${isRequired ? 'required' : 'optional'})`;

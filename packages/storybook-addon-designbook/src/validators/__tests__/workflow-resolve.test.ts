@@ -434,6 +434,44 @@ describe('validateAndMergeParams', () => {
     const result = validateAndMergeParams({ color: 'red' }, schema, 'test');
     expect(result).toEqual({ color: 'red' });
   });
+
+  it('skips file-input params (with path:) during validation', () => {
+    const schema = {
+      type: 'object',
+      required: ['name', 'vision'],
+      properties: {
+        name: { type: 'string' },
+        vision: { type: 'object', path: '$DESIGNBOOK_DATA/vision.md' },
+      },
+    };
+    // Only provide 'name' — 'vision' has path: so it should be skipped
+    const result = validateAndMergeParams({ name: 'foo' }, schema, 'test');
+    expect(result).toEqual({ name: 'foo' });
+  });
+
+  it('skips file-input params with path: and workflow: during validation', () => {
+    const schema = {
+      type: 'object',
+      required: ['design_tokens'],
+      properties: {
+        design_tokens: { type: 'object', path: '$DESIGNBOOK_DATA/design-tokens.yml', workflow: 'tokens' },
+      },
+    };
+    const result = validateAndMergeParams({}, schema, 'test');
+    expect(result).toEqual({});
+  });
+
+  it('still validates CLI params without path:', () => {
+    const schema = {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+        vision: { type: 'object', path: '$DESIGNBOOK_DATA/vision.md' },
+      },
+    };
+    expect(() => validateAndMergeParams({}, schema, 'test')).toThrow(/Missing required param 'name'/);
+  });
 });
 
 // 5.5: Config resolution
@@ -833,7 +871,7 @@ describe('buildWorktreeEnvMap', () => {
     expect(remapped.DESIGNBOOK_TECHNOLOGY).toBe('drupal');
   });
 
-  it('files: paths using remapped env differ from reads: paths using original env', () => {
+  it('files: paths using remapped env differ from file-input param paths using original env', () => {
     const rootDir = '/home/user/project';
     const envMap = {
       DESIGNBOOK_WORKSPACE: rootDir,
@@ -847,9 +885,9 @@ describe('buildWorktreeEnvMap', () => {
     const filesPath = expandFilePath(fileTemplate, {}, remappedEnvMap);
     expect(filesPath).toBe('/tmp/wt-123/designbook/data-model.yml');
 
-    // reads: path (uses original env) → real path
-    const readsPath = expandFilePath(fileTemplate, {}, envMap);
-    expect(readsPath).toBe('/home/user/project/designbook/data-model.yml');
+    // file-input param path (uses original env) → real path
+    const paramPath = expandFilePath(fileTemplate, {}, envMap);
+    expect(paramPath).toBe('/home/user/project/designbook/data-model.yml');
   });
 });
 
