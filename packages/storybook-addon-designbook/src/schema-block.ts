@@ -5,7 +5,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
-import { resolveSchemaRef } from './workflow-resolve.js';
+import { expandFilePath, resolveSchemaRef } from './workflow-resolve.js';
 
 export interface SchemaEntry {
   path?: string;
@@ -52,7 +52,7 @@ function resolveEntry(
 
   // Resolve path: expand env vars, check existence, read content
   if (typeof decl.path === 'string') {
-    const resolved = expandEnvVars(decl.path, input.envMap);
+    const resolved = expandFilePath(decl.path, {}, input.envMap, true);
 
     // Pattern paths (containing [placeholder]) — pass through unresolved
     if (/\[.+\]/.test(resolved)) {
@@ -101,9 +101,3 @@ export function buildSchemaBlock(input: BuildSchemaBlockInput): SchemaBlock {
   return { definitions, params, result };
 }
 
-function expandEnvVars(template: string, envMap: Record<string, string>): string {
-  let result = template;
-  result = result.replace(/\$\{(\w+)\}/g, (match, varName: string) => envMap[varName] ?? match);
-  result = result.replace(/\$([A-Z_][A-Z0-9_]*)/g, (match, varName: string) => envMap[varName] ?? match);
-  return result;
-}
