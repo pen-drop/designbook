@@ -2,8 +2,9 @@
 type: entity-type
 name: node
 priority: 10
-domain: data-model
-when:
+trigger:
+  domain: data-model
+filter:
   backend: drupal
 ---
 

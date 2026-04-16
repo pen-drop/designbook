@@ -2,7 +2,8 @@
 type: component
 name: navigation
 priority: 10
-domain: components
+trigger:
+  domain: components
 ---
 
 # Blueprint: Navigation

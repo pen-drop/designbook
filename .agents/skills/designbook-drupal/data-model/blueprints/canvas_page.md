@@ -2,8 +2,9 @@
 type: entity-type
 name: canvas_page
 priority: 10
-domain: data-model
-when:
+trigger:
+  domain: data-model
+filter:
   backend: drupal
   extensions: canvas
 ---

@@ -13,7 +13,8 @@ embeds:
   - checkboxes
   - radios
   - submit
-domain: components
+trigger:
+  domain: components
 ---
 
 # Blueprint: Form

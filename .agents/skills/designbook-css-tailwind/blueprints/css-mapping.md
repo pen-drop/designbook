@@ -2,8 +2,9 @@
 type: css-mapping
 name: tailwind
 priority: 10
-domain: css
-when:
+trigger:
+  domain: css
+filter:
   frameworks.style: tailwind
 ---
 

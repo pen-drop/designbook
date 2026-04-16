@@ -18,7 +18,7 @@ import {
   buildEnvMap,
   buildWorktreeEnvMap,
   lookup,
-  checkWhen,
+  checkConditions,
   resolveFiles,
   buildRuntimeContext,
   buildEnrichedConfig,
@@ -153,7 +153,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-sections',
       'create-section',
-      'when:\n  steps: [designbook-sections:create-section]\nparams:\n  section_id: { type: string }',
+      'trigger:\n  steps: [designbook-sections:create-section]\nparams:\n  section_id: { type: string }',
     );
 
     const result = resolveTaskFiles('designbook-sections:create-section', baseConfig, agentsDir);
@@ -166,7 +166,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-tokens',
       'create-tokens',
-      'when:\n  steps: [create-tokens]\nparams:\n  colors: { type: object }',
+      'trigger:\n  steps: [create-tokens]\nparams:\n  colors: { type: object }',
     );
 
     const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
@@ -180,14 +180,14 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'generic-comp',
       'create-component',
-      'when:\n  steps: [create-component]\nparams:\n  component: { type: string }',
+      'trigger:\n  steps: [create-component]\nparams:\n  component: { type: string }',
     );
     // Specific match (when frameworks.component: sdc + steps)
     const specificPath = writeSkillTaskFile(
       agentsDir,
       'sdc-comp',
       'create-component',
-      'when:\n  steps: [create-component]\n  frameworks.component: sdc\nparams:\n  component: { type: string }',
+      'trigger:\n  steps: [create-component]\nfilter:\n  frameworks.component: sdc\nparams:\n  component: { type: string }',
     );
 
     const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
@@ -211,7 +211,7 @@ describe('resolveTaskFiles', () => {
       'designbook-sdc',
       'components',
       'create-component',
-      'when:\n  steps: [create-component]\nparams:\n  component: { type: string }',
+      'trigger:\n  steps: [create-component]\nparams:\n  component: { type: string }',
     );
 
     const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
@@ -224,7 +224,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-tokens',
       'create-tokens',
-      'when:\n  steps: [create-tokens]\nparams:\n  colors: { type: object }',
+      'trigger:\n  steps: [create-tokens]\nparams:\n  colors: { type: object }',
     );
 
     const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
@@ -238,7 +238,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-devtools',
       'inspect-storybook',
-      'when:\n  steps: [inspect]',
+      'trigger:\n  steps: [inspect]',
     );
 
     const result = resolveTaskFiles('inspect', baseConfig, agentsDir);
@@ -260,8 +260,8 @@ describe('resolveTaskFiles', () => {
   // 3.3: multiple tasks from different skills match one step via when.steps
   it('returns tasks from multiple skills matching the same step via when.steps', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const path1 = writeSkillTaskFile(agentsDir, 'skill-a', 'do-thing', 'when:\n  steps: [shared-step]');
-    const path2 = writeSkillTaskFile(agentsDir, 'skill-b', 'do-thing-alt', 'when:\n  steps: [shared-step]');
+    const path1 = writeSkillTaskFile(agentsDir, 'skill-a', 'do-thing', 'trigger:\n  steps: [shared-step]');
+    const path2 = writeSkillTaskFile(agentsDir, 'skill-b', 'do-thing-alt', 'trigger:\n  steps: [shared-step]');
 
     const result = resolveTaskFiles('shared-step', baseConfig, agentsDir);
     expect(result).toHaveLength(2);
@@ -288,7 +288,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook',
       'intake--design-shell',
-      'when:\n  steps: [design-shell:intake]',
+      'trigger:\n  steps: [design-shell:intake]',
     );
 
     const result = resolveTaskFiles('design-shell:intake', baseConfig, agentsDir);
@@ -538,7 +538,7 @@ describe('matchRuleFiles', () => {
       agentsDir,
       'designbook-scenes',
       'scene-rules',
-      'when:\n  stages: [create-scene]',
+      'trigger:\n  stages: [create-scene]',
     );
 
     const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
@@ -547,7 +547,7 @@ describe('matchRuleFiles', () => {
 
   it('excludes rule file for non-matching stage', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-scenes', 'scene-rules', 'when:\n  stages: [create-scene]');
+    writeSkillRuleFile(agentsDir, 'designbook-scenes', 'scene-rules', 'trigger:\n  stages: [create-scene]');
 
     const result = matchRuleFiles('create-component', baseConfig, agentsDir);
     expect(result).toEqual([]);
@@ -559,7 +559,7 @@ describe('matchRuleFiles', () => {
       agentsDir,
       'designbook-css',
       'tailwind-rules',
-      'when:\n  frameworks.css: tailwind\n  stages: [create-tokens]',
+      'trigger:\n  stages: [create-tokens]\nfilter:\n  frameworks.css: tailwind',
     );
 
     const result = matchRuleFiles('create-tokens', baseConfig, agentsDir);
@@ -572,7 +572,7 @@ describe('matchRuleFiles', () => {
       agentsDir,
       'designbook-css',
       'daisyui-rules',
-      'when:\n  frameworks.css: daisyui\n  stages: [create-tokens]',
+      'trigger:\n  stages: [create-tokens]\nfilter:\n  frameworks.css: daisyui',
     );
 
     // Config has tailwind, not daisyui
@@ -582,7 +582,7 @@ describe('matchRuleFiles', () => {
 
   it('excludes rule file with empty when', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', 'when: {}');
+    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', '');
 
     const result = matchRuleFiles('any-stage', baseConfig, agentsDir);
     expect(result).toEqual([]);
@@ -596,7 +596,7 @@ describe('matchRuleFiles', () => {
       'designbook-drupal',
       'scenes',
       'canvas-rule',
-      'when:\n  stages: [create-scene]',
+      'trigger:\n  stages: [create-scene]',
     );
 
     const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
@@ -606,7 +606,12 @@ describe('matchRuleFiles', () => {
   it('flat structure still discovered after glob change', () => {
     // skills/<skill>/rules/rule.md continues to work
     const agentsDir = resolve(tmpDir, '.agents');
-    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-scenes', 'flat-rule', 'when:\n  stages: [create-scene]');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'flat-rule',
+      'trigger:\n  stages: [create-scene]',
+    );
 
     const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
     expect(result).toContain(rulePath);
@@ -615,28 +620,39 @@ describe('matchRuleFiles', () => {
 
 // Task 3: matchRuleFiles with domain
 describe('matchRuleFiles with domain', () => {
-  it('matches domain-tagged rule when effectiveDomains provided', () => {
+  it('matches domain rule when effectiveDomains provided', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-domain-rule', 'domain: components');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-domain-rule',
+      'trigger:\n  domain: components',
+    );
 
     const result = matchRuleFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
     expect(result).toContain(rulePath);
   });
 
-  it('does NOT match domain-tagged rule when wrong effectiveDomains', () => {
+  it('does NOT match domain rule when wrong effectiveDomains', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'scene-domain-rule', 'domain: scenes');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'scene-domain-rule', 'trigger:\n  domain: scenes');
 
     const result = matchRuleFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
     expect(result).toEqual([]);
   });
 
-  it('does NOT match domain-tagged rule when effectiveDomains not provided', () => {
+  it('domain rule does NOT match without effectiveDomains (strict trigger)', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-domain-rule', 'domain: components');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-domain-rule',
+      'trigger:\n  domain: components',
+    );
 
+    // No effectiveDomains → domain trigger cannot match → rule excluded (strict semantics)
     const result = matchRuleFiles('create-component', baseConfig, agentsDir);
-    expect(result).toEqual([]);
+    expect(result).not.toContain(rulePath);
   });
 
   it('legacy when.steps rule still works when no effectiveDomains', () => {
@@ -645,7 +661,7 @@ describe('matchRuleFiles with domain', () => {
       agentsDir,
       'designbook-scenes',
       'scene-legacy-rule',
-      'when:\n  stages: [create-scene]',
+      'trigger:\n  stages: [create-scene]',
     );
 
     const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
@@ -658,9 +674,9 @@ describe('matchRuleFiles with domain', () => {
       agentsDir,
       'designbook-scenes',
       'legacy-rule',
-      'when:\n  stages: [create-component]',
+      'trigger:\n  stages: [create-component]',
     );
-    const domainPath = writeSkillRuleFile(agentsDir, 'designbook-sdc', 'domain-rule', 'domain: components');
+    const domainPath = writeSkillRuleFile(agentsDir, 'designbook-sdc', 'domain-rule', 'trigger:\n  domain: components');
 
     const result = matchRuleFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
     expect(result).toContain(legacyPath);
@@ -670,35 +686,41 @@ describe('matchRuleFiles with domain', () => {
 
 // Task 3: matchBlueprintFiles with domain
 describe('matchBlueprintFiles with domain', () => {
-  it('matches domain-tagged blueprint when effectiveDomains provided', () => {
+  it('matches domain blueprint when effectiveDomains provided', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     const blueprintPath = writeSkillBlueprintFile(
       agentsDir,
       'designbook-sdc',
       'component-bp',
-      'type: component\nname: section\ndomain: components',
+      'type: component\nname: section\ntrigger:\n  domain: components',
     );
 
     const result = matchBlueprintFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
     expect(result).toContain(blueprintPath);
   });
 
-  it('does NOT match domain-tagged blueprint when effectiveDomains not provided', () => {
+  it('domain blueprint does NOT match without effectiveDomains (strict trigger)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const blueprintPath = writeSkillBlueprintFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-bp',
+      'type: component\nname: section\ntrigger:\n  domain: components',
+    );
+
+    // No effectiveDomains → domain trigger cannot match → blueprint excluded (strict semantics)
+    const result = matchBlueprintFiles('create-component', baseConfig, agentsDir);
+    expect(result).not.toContain(blueprintPath);
+  });
+
+  it('does NOT match domain blueprint when wrong effectiveDomains', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeSkillBlueprintFile(
       agentsDir,
       'designbook-sdc',
-      'component-bp',
-      'type: component\nname: section\ndomain: components',
+      'scene-bp',
+      'type: scene\nname: hero\ntrigger:\n  domain: scenes',
     );
-
-    const result = matchBlueprintFiles('create-component', baseConfig, agentsDir);
-    expect(result).toEqual([]);
-  });
-
-  it('does NOT match domain-tagged blueprint when wrong effectiveDomains', () => {
-    const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillBlueprintFile(agentsDir, 'designbook-sdc', 'scene-bp', 'type: scene\nname: hero\ndomain: scenes');
 
     const result = matchBlueprintFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
     expect(result).toEqual([]);
@@ -926,42 +948,76 @@ describe('lookup', () => {
   });
 });
 
-// checkWhen: dual-source (context + config)
-describe('checkWhen', () => {
-  it('matches scalar from config', () => {
-    expect(checkWhen({ backend: 'drupal' }, {}, { backend: 'drupal' })).toBe(1);
+// checkConditions: dual-source (context + config), OR-triggers + AND-filters
+describe('checkConditions', () => {
+  it('matches filter scalar from config', () => {
+    expect(checkConditions(undefined, { backend: 'drupal' }, {}, { backend: 'drupal' })).toBe(1);
   });
 
-  it('matches scalar from context (takes priority)', () => {
-    expect(checkWhen({ template: 'canvas' }, { template: 'canvas' }, {})).toBe(1);
+  it('matches trigger scalar from context (takes priority)', () => {
+    expect(checkConditions({ template: 'canvas' }, undefined, { template: 'canvas' }, {})).toBe(1);
   });
 
-  it('matches array when value — stage in list', () => {
-    expect(checkWhen({ stages: ['create-scene', 'create-tokens'] }, { stages: 'create-scene' }, {})).toBe(1);
+  it('matches array trigger value — stage in list', () => {
+    expect(
+      checkConditions({ stages: ['create-scene', 'create-tokens'] }, undefined, { stages: 'create-scene' }, {}),
+    ).toBe(1);
   });
 
-  it('matches array context value — extension inclusion', () => {
-    expect(checkWhen({ extensions: 'canvas' }, {}, { extensions: ['canvas', 'drupal'] })).toBe(1);
+  it('matches array context value — extension inclusion via filter', () => {
+    expect(checkConditions(undefined, { extensions: 'canvas' }, {}, { extensions: ['canvas', 'drupal'] })).toBe(1);
   });
 
-  it('returns false on mismatch', () => {
-    expect(checkWhen({ backend: 'drupal' }, {}, { backend: 'html' })).toBe(false);
+  it('returns false on filter mismatch', () => {
+    expect(checkConditions(undefined, { backend: 'drupal' }, {}, { backend: 'html' })).toBe(false);
   });
 
-  it('returns specificity count', () => {
-    const result = checkWhen(
-      { stages: ['create-component'], 'frameworks.css': 'tailwind', backend: 'drupal' },
+  it('returns specificity count (trigger keys + filter keys)', () => {
+    const result = checkConditions(
+      { stages: ['create-component'] },
+      { 'frameworks.css': 'tailwind', backend: 'drupal' },
       { stages: 'create-component' },
       { 'frameworks.css': 'tailwind', backend: 'drupal' },
     );
     expect(result).toBe(3);
   });
 
-  it('returns false if any condition fails', () => {
-    const result = checkWhen(
-      { stages: ['create-component'], 'frameworks.css': 'daisyui' },
+  it('returns false if any filter fails (AND)', () => {
+    const result = checkConditions(
+      { stages: ['create-component'] },
+      { 'frameworks.css': 'daisyui' },
       { stages: 'create-component' },
       { 'frameworks.css': 'tailwind' },
+    );
+    expect(result).toBe(false);
+  });
+
+  it('OR-matches triggers — domain matches even if steps does not', () => {
+    const result = checkConditions(
+      { domain: 'components', steps: ['create-scene'] },
+      undefined,
+      { domain: ['components'], steps: 'create-tokens' },
+      {},
+    );
+    expect(result).toBe(2);
+  });
+
+  it('OR-matches triggers — steps matches even if domain does not', () => {
+    const result = checkConditions(
+      { domain: 'scenes', steps: ['create-tokens'] },
+      undefined,
+      { domain: ['components'], steps: 'create-tokens' },
+      {},
+    );
+    expect(result).toBe(2);
+  });
+
+  it('returns false when all triggers mismatch', () => {
+    const result = checkConditions(
+      { domain: 'scenes', steps: ['create-scene'] },
+      undefined,
+      { domain: ['components'], steps: 'create-tokens' },
+      {},
     );
     expect(result).toBe(false);
   });
@@ -1013,8 +1069,8 @@ describe('matchDomain', () => {
 describe('resolveFiles', () => {
   it('finds files matching glob and filters by when', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'when:\n  frameworks.css: tailwind');
-    writeSkillRuleFile(agentsDir, 'designbook-css', 'daisyui-rule', 'when:\n  frameworks.css: daisyui');
+    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'filter:\n  frameworks.css: tailwind');
+    writeSkillRuleFile(agentsDir, 'designbook-css', 'daisyui-rule', 'filter:\n  frameworks.css: daisyui');
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
@@ -1027,7 +1083,7 @@ describe('resolveFiles', () => {
 
   it('skips files without when or with empty when', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', 'when: {}');
+    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', '');
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
@@ -1042,7 +1098,7 @@ describe('resolveFiles', () => {
       agentsDir,
       'designbook-css',
       'tailwind-tokens',
-      'when:\n  stages: [create-tokens]\n  frameworks.css: tailwind',
+      'trigger:\n  stages: [create-tokens]\nfilter:\n  frameworks.css: tailwind',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1056,35 +1112,44 @@ describe('resolveFiles', () => {
 
 // Task 2: Domain-aware resolveFiles()
 describe('resolveFiles with domain', () => {
-  it('matches rule by domain when effectiveDomains provided', () => {
+  it('matches rule by domain when context.domain provided', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'domain: components');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-rules',
+      'trigger:\n  domain: components',
+    );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
-    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
 
     expect(matches).toHaveLength(1);
     expect(matches[0]!.path).toBe(rulePath);
   });
 
-  it('domain rule NOT matched when effectiveDomains empty', () => {
+  it('domain rule NOT matched when context.domain empty (strict trigger)', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'domain: components');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'trigger:\n  domain: components');
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
-    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, []);
+    // Strict trigger semantics: trigger.domain needs an explicit match against context.domain.
+    // Without a domain in context, the only trigger key cannot match → rule excluded.
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
 
     expect(matches).toHaveLength(0);
   });
 
-  it('domain rule excluded when effectiveDomains not passed', () => {
+  it('domain rule excluded when context.domain does not overlap', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'domain: components');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'trigger:\n  domain: components');
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
+    context['domain'] = ['tokens'];
     const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
 
     expect(matches).toHaveLength(0);
@@ -1097,12 +1162,13 @@ describe('resolveFiles with domain', () => {
       agentsDir,
       'designbook-css',
       'daisyui-component-rules',
-      'domain: components\nwhen:\n  frameworks.css: daisyui',
+      'trigger:\n  domain: components\nfilter:\n  frameworks.css: daisyui',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
-    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
 
     expect(matches).toHaveLength(0);
   });
@@ -1113,12 +1179,13 @@ describe('resolveFiles with domain', () => {
       agentsDir,
       'designbook-css',
       'tailwind-component-rules',
-      'domain: components\nwhen:\n  frameworks.css: tailwind',
+      'trigger:\n  domain: components\nfilter:\n  frameworks.css: tailwind',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
-    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
 
     expect(matches).toHaveLength(1);
     expect(matches[0]!.path).toBe(rulePath);
@@ -1131,13 +1198,14 @@ describe('resolveFiles with domain', () => {
       agentsDir,
       'designbook-sdc',
       'layout-component-rules',
-      'domain: components.layout',
+      'trigger:\n  domain: components.layout',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
-    // effectiveDomains has "components" (parent) → should match "components.layout" (child)
-    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+    // context.domain has "components" (parent) → should match "components.layout" (child)
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
 
     expect(matches).toHaveLength(1);
     expect(matches[0]!.path).toBe(rulePath);
@@ -1145,11 +1213,12 @@ describe('resolveFiles with domain', () => {
 
   it('domain rule NOT matched when domain does not overlap', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'scene-rules', 'domain: scenes');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'scene-rules', 'trigger:\n  domain: scenes');
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
-    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
 
     expect(matches).toHaveLength(0);
   });
@@ -1160,50 +1229,52 @@ describe('resolveFiles with domain', () => {
       agentsDir,
       'designbook-scenes',
       'scene-rules',
-      'when:\n  stages: [create-scene]',
+      'trigger:\n  stages: [create-scene]',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext('create-scene');
-    // Pass effectiveDomains — legacy file has no domain: so it still uses when.steps
-    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+    // context.domain set — legacy file has no when.domain so it still matches via when.stages
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
 
     expect(matches).toHaveLength(1);
     expect(matches[0]!.path).toBe(rulePath);
   });
 
-  it('domain takes precedence over when.steps when both domain and when.steps present', () => {
+  it('domain match OR steps match is sufficient (both present in when)', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    // File has BOTH domain: and when.steps: — domain matching path is used
-    const rulePath = writeSkillRuleFile(
+    // File has BOTH when.domain and when.steps — domain matches, steps don't
+    writeSkillRuleFile(
       agentsDir,
       'designbook-sdc',
       'mixed-rules',
-      'domain: components\nwhen:\n  steps: [create-scene]',
+      'trigger:\n  domain: components\n  steps: [create-scene]',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     // context has create-component step (NOT create-scene), but domain matches
     const context = buildRuntimeContext('create-component');
-    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
 
-    // Should match via domain — when.steps is ignored for domain-tagged files
+    // trigger keys are OR-connected: domain matches → rule matches even though steps doesn't.
     expect(matches).toHaveLength(1);
-    expect(matches[0]!.path).toBe(rulePath);
   });
 
-  it('domain as array: matches when any rule domain matches effective domain', () => {
+  it('domain as array in trigger: matches when any rule domain matches context domain', () => {
     const agentsDir = resolve(tmpDir, '.agents');
     const rulePath = writeSkillRuleFile(
       agentsDir,
       'designbook-sdc',
       'multi-domain-rules',
-      'domain:\n  - scenes\n  - components',
+      'trigger:\n  domain:\n    - scenes\n    - components',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
-    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, ['components']);
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
 
     expect(matches).toHaveLength(1);
     expect(matches[0]!.path).toBe(rulePath);
@@ -1397,7 +1468,7 @@ describe('resolveShortName', () => {
 describe('resolveFiles with name', () => {
   it('includes derived name in resolved files', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'when:\n  frameworks.css: tailwind');
+    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'filter:\n  frameworks.css: tailwind');
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
@@ -1409,7 +1480,13 @@ describe('resolveFiles with name', () => {
 
   it('includes derived name for nested skill files', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFileInSubdir(agentsDir, 'designbook', 'design', 'screenshot-rule', 'when:\n  stages: [screenshot]');
+    writeSkillRuleFileInSubdir(
+      agentsDir,
+      'designbook',
+      'design',
+      'screenshot-rule',
+      'trigger:\n  stages: [screenshot]',
+    );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext('screenshot');
@@ -1425,7 +1502,7 @@ describe('resolveFiles with name', () => {
       agentsDir,
       'designbook-css',
       'tailwind-rule',
-      'name: designbook-css:tokens:tailwind-rule\nwhen:\n  frameworks.css: tailwind',
+      'name: designbook-css:tokens:tailwind-rule\nfilter:\n  frameworks.css: tailwind',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1455,7 +1532,7 @@ describe('resolveFiles with name', () => {
       'designbook',
       'design',
       'screenshot-storybook',
-      'when:\n  stages: [screenshot]\npriority: 10',
+      'trigger:\n  stages: [screenshot]\npriority: 10',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1477,20 +1554,20 @@ describe('when conditions with named artifacts', () => {
       'designbook',
       'design',
       'inspect-storybook',
-      'name: designbook:design:inspect-storybook\nwhen:\n  stages: [inspect]\npriority: 10',
+      'name: designbook:design:inspect-storybook\ntrigger:\n  stages: [inspect]\npriority: 10',
     );
     writeSkillTaskFileInSubdir(
       agentsDir,
       'designbook',
       'design',
       'inspect-reference',
-      'name: designbook:design:inspect-reference\nwhen:\n  stages: [inspect]\npriority: 20',
+      'name: designbook:design:inspect-reference\ntrigger:\n  stages: [inspect]\npriority: 20',
     );
     writeSkillTaskFile(
       agentsDir,
       'designbook-stitch',
       'inspect-stitch',
-      'name: designbook-stitch:inspect-stitch\nwhen:\n  stages: [inspect]\n  backend: drupal\npriority: 30',
+      'name: designbook-stitch:inspect-stitch\ntrigger:\n  stages: [inspect]\nfilter:\n  backend: drupal\npriority: 30',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1513,7 +1590,7 @@ describe('when conditions with named artifacts', () => {
       agentsDir,
       'designbook-stitch',
       'inspect-stitch',
-      'name: designbook-stitch:inspect-stitch\nwhen:\n  stages: [inspect]\n  backend: html\npriority: 30',
+      'name: designbook-stitch:inspect-stitch\ntrigger:\n  stages: [inspect]\nfilter:\n  backend: html\npriority: 30',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1531,14 +1608,14 @@ describe('when conditions with named artifacts', () => {
       'designbook',
       'design',
       'ensure-storybook',
-      'name: designbook:design:ensure-storybook\nwhen:\n  stages: [screenshot]\npriority: 5',
+      'name: designbook:design:ensure-storybook\ntrigger:\n  stages: [screenshot]\npriority: 5',
     );
     writeSkillTaskFileInSubdir(
       agentsDir,
       'designbook',
       'design',
       'screenshot-storybook',
-      'name: designbook:design:screenshot-storybook\nwhen:\n  stages: [screenshot]\npriority: 10',
+      'name: designbook:design:screenshot-storybook\ntrigger:\n  stages: [screenshot]\npriority: 10',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1563,13 +1640,13 @@ describe('when conditions with named artifacts', () => {
       'designbook',
       'design',
       'playwright-session',
-      'name: designbook:design:playwright-session\nwhen:\n  stages: [inspect]',
+      'name: designbook:design:playwright-session\ntrigger:\n  stages: [inspect]',
     );
     writeSkillRuleFile(
       agentsDir,
       'designbook-css',
       'inspect-tokens',
-      'name: designbook-css:inspect-tokens\nwhen:\n  stages: [inspect]\n  frameworks.css: tailwind',
+      'name: designbook-css:inspect-tokens\ntrigger:\n  stages: [inspect]\nfilter:\n  frameworks.css: tailwind',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);

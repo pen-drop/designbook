@@ -1,6 +1,7 @@
 ---
-domain: css
-when:
+trigger:
+  domain: css
+filter:
   extensions: google-fonts
 ---
 

@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [css-generate:intake]
 domain: [css, tokens]
 params:

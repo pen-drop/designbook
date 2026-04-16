@@ -9,8 +9,9 @@ Every task, rule, and blueprint file supports these frontmatter fields:
 name: designbook:design:screenshot           # namespaced identity (<skill>:<concern>:<artifact>)
 as: designbook:design:resolve-reference      # optional: override the named artifact
 priority: 10                                  # optional: execution order + override strength (default: 0)
-when:                                         # optional: conditions for matching
+trigger:                                      # optional: WHEN (OR-connected). Keys: steps, domain.
   steps: [screenshot]
+filter:                                       # optional: WHERE (AND-connected). Keys: backend, frameworks.*, extensions, type.
   frameworks.css: tailwind
 params:                                       # task-specific: declared parameters
   scene: ~
@@ -31,9 +32,14 @@ result:                                       # task-specific: output declaratio
 - `name` — unique namespaced identity. Convention: `<skill>:<concern>:<artifact>`. Derived from filesystem path if omitted.
 - `as` — override target. Replaces the named artifact if this artifact's `priority` is higher.
 - `priority` — integer (default 0). Lower runs first. Higher wins in `as` conflicts.
-- `when` — conditions checked against runtime context (step name) and project config.
+- `trigger` — conditions that declare WHEN the artifact becomes active. Keys `steps` and `domain`
+  are OR-connected (at least one must match). Evaluated against runtime context (step name,
+  effective domains).
+- `filter` — conditions that declare WHERE the artifact is applicable. Keys like `backend`,
+  `frameworks.*`, `extensions`, `type` are AND-connected (every key must match). Evaluated against
+  project config.
 - `each` — declares what this task iterates over. Keys reference scope entries; values are JSON Schema (inline or `$ref`). The engine expands one task instance per array item.
-- `result` — declares all task outputs. Each key is a stable identifier used by `workflow result --key <key>`. File results include a `path:` template (supports `$ENV` and `{{ param }}`). Data results declare a JSON Schema type (inline or `$ref`). Both support optional `validators:` for semantic validation.
+- `result` — declares all task outputs. Each key is a stable identifier. File results include a `path:` template (supports `$ENV` and `{{ param }}`). Optional `flush: immediately` writes to final path on result write instead of staging. Data results declare a JSON Schema type (inline or `$ref`). Both support optional `validators:` for semantic validation.
 - `validators` — semantic validator keys: `data`, `entity-mapping`, `scene`, `image`, or `cmd:<command>` prefix for arbitrary command validators. Empty = auto-pass.
 
 ### `$ref` syntax
@@ -122,7 +128,7 @@ tasks:
 
 **`result:` vs `reads:` in task files:**
 
-- `result:` — output declarations. Each key is used by `workflow result --key <key>`. File results (with `path:`) are written via stdin. Data results (without `path:`) are written via `--json`. The engine validates immediately on write (JSON Schema + semantic validators). Data results flow into scope at stage completion.
+- `result:` — output declarations. File results (with `path:`) are written to disk; optional `flush: immediately` bypasses staging. Data results (without `path:`) are passed inline via `--data` on `workflow done`. The engine validates immediately on write (JSON Schema + semantic validators). Data results flow into scope at stage completion.
 - `reads:` — input paths using real `DESIGNBOOK_DATA`-relative vars. Never remapped — always point to the actual filesystem so subagents can read pre-existing files.
 
 **Result state:**

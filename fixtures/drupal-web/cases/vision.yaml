@@ -20,11 +20,15 @@ prompt: |
 
   Design reference: https://leando.de/
 
+  Source code locations (consult these to gain a deeper understanding of the app — its architecture, domain model, and existing features — before drafting the vision):
+  - Angular frontend: ~/projects/leando/frontend
+  - Drupal backend: ~/projects/leando/leando-community/drupal
+
   Execute the workflow now.
 
 assert:
   - type: javascript
-    value: output.newFiles.some(f => f === 'designbook/vision.md')
+    value: output.newFiles.some(f => f === 'designbook/vision.yml')
   - type: javascript
     value: output.archivedWorkflows['vision']?.status === 'completed'
   - type: javascript

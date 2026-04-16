@@ -2,7 +2,7 @@
 name: designbook:design:polish
 title: "Polish {id}"
 description: "{description}"
-when:
+trigger:
   steps: [polish]
 priority: 50
 params:

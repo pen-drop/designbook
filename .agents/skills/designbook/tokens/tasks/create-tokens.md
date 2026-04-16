@@ -1,7 +1,8 @@
 ---
-when:
+trigger:
   steps: [create-tokens]
 domain: [tokens]
+title: Create Design Tokens
 params:
   type: object
   required: [reference_dir, vision]
@@ -11,6 +12,10 @@ params:
       path: $DESIGNBOOK_DATA/vision.yml
       workflow: /debo-vision
       type: object
+    extract:
+      path: "{reference_dir}/extract.json"
+      $ref: ../../design/schemas.yml#/DesignReference
+      type: object
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
@@ -18,7 +23,7 @@ result:
   type: object
   required: [design-tokens]
   properties:
-    design-tokens:
+    design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       $ref: ../schemas.yml#/DesignTokens
 ---
@@ -27,7 +32,7 @@ result:
 
 Guide the user through choosing colors, typography, and additional token groups. Result is W3C Design Token YAML.
 
-If `$reference_dir/extract.json` exists, use its `fonts`, `colors`, and `tokens` fields as the starting point. Otherwise apply the `extract-reference` rule to the design reference URL from the vision. Fall back to vision context and user input if neither is available.
+Use `extract` param (`fonts`, `colors`, `tokens` fields) as the starting point. Fall back to vision context and user input if the extract is unavailable.
 
 Present choices to the user, let them confirm or adjust, and summarize all tokens before saving.
 

@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [run-workflow]
 params:
   type: object

@@ -1,12 +1,12 @@
 ---
-when:
+trigger:
   steps: [sections:intake]
 params:
   type: object
   required: [vision]
   properties:
     vision:
-      path: $DESIGNBOOK_DATA/vision.md
+      path: $DESIGNBOOK_DATA/vision.yml
       workflow: /debo-vision
       type: object
     sections_dir:

@@ -1,7 +1,7 @@
 ---
 name: designbook:design:triage--design-verify
 title: "Triage: {scene_id}"
-when:
+trigger:
   steps: [triage]
 priority: 10
 params:

@@ -1,6 +1,6 @@
 ---
 name: designbook:design:playwright-capture
-when:
+trigger:
   steps: [capture, recapture, compare, polish]
 ---
 

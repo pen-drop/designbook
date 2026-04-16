@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [create-section]
 params:
   type: object
@@ -10,7 +10,7 @@ params:
     description: { type: string, title: Description }
     order: { type: integer, title: Order }
     vision:
-      path: $DESIGNBOOK_DATA/vision.md
+      path: $DESIGNBOOK_DATA/vision.yml
       workflow: /debo-vision
       type: object
     sections_dir:

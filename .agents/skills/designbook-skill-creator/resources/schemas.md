@@ -110,6 +110,8 @@ params:
       type: object
 ```
 
+> **`type:` is always required** — even when `$ref:` is present. The engine's `isJsonSchemaParam()` checks `'type' in value` for param validation and file-input detection. Without `type:`, `validateParamFormats` rejects the param and `validateAndMergeParams` fails to skip file inputs.
+
 Two param classes, distinguished by `path:`:
 
 | | CLI Params | File-Input Params |

@@ -72,7 +72,8 @@ export interface ResultDeclaration {
 }
 
 interface TaskFileFrontmatter {
-  when?: Record<string, unknown>;
+  trigger?: Record<string, unknown>;
+  filter?: Record<string, unknown>;
   params?: {
     type?: string; // always 'object'
     required?: string[];
@@ -422,35 +423,82 @@ export function lookup(key: string, context: Record<string, unknown>, config: Re
     );
 }
 
+type MatchOutcome = 'match' | 'nomatch' | 'defer';
+
+function matchConditionKey(
+  key: string,
+  value: unknown,
+  context: Record<string, unknown>,
+  config: Record<string, unknown>,
+): MatchOutcome {
+  if (key === 'domain') {
+    const domains = context['domain'];
+    if (domains === undefined) return 'defer';
+    const effectiveDomains: string[] = Array.isArray(domains) ? domains.map(String) : [String(domains)];
+    const ruleDomains: string[] = Array.isArray(value) ? (value as string[]).map(String) : [String(value)];
+    return ruleDomains.some((rd) => matchDomain(rd, effectiveDomains)) ? 'match' : 'nomatch';
+  }
+
+  const actual = lookup(key, context, config);
+  if (actual === undefined) return 'defer';
+  if (Array.isArray(value)) {
+    return value.map(String).includes(String(actual ?? '')) ? 'match' : 'nomatch';
+  }
+  if (Array.isArray(actual)) {
+    return actual.map(String).includes(String(value)) ? 'match' : 'nomatch';
+  }
+  return String(actual ?? '') === String(value) ? 'match' : 'nomatch';
+}
+
 /**
- * Check whether all `when` conditions match against context + config.
+ * Check whether a `trigger:` + `filter:` pair matches against context + config.
+ *
+ * - `trigger:` keys (`steps`, `domain`) declare WHEN the rule/blueprint becomes active.
+ *   They are OR-connected and STRICT: at least one trigger must explicitly match.
+ *   A trigger key whose context value is undefined does NOT pass — strict semantics
+ *   ensure that e.g. `trigger.domain: components` never matches a task that did not
+ *   declare a domain.
+ * - `filter:` keys (`backend`, `frameworks.*`, `extensions`, `type`, …) declare
+ *   WHERE (project config) the rule/blueprint is applicable. They are AND-connected
+ *   and deferring: an undefined config/context value is treated as a pass.
  *
  * Lookup order per key: context first, config fallback (with dot-path traversal).
  * Matching rules:
- * - Array value in `when` → looked-up value must be one of those values
- * - Array looked-up value → `when` value must be present in that array
+ * - Array value → looked-up value must be one of those values
+ * - Array looked-up value → condition value must be present in that array
  * - Scalar vs scalar → exact string match
+ * - `domain` → prefix matching via matchDomain()
  *
- * Returns specificity count (number of matched keys) on success, or `false` if any key fails.
+ * Returns specificity count (number of declared keys) on success, or `false` on mismatch.
  */
-export function checkWhen(
-  when: Record<string, unknown>,
+export function checkConditions(
+  trigger: Record<string, unknown> | undefined,
+  filter: Record<string, unknown> | undefined,
   context: Record<string, unknown>,
   config: Record<string, unknown>,
 ): number | false {
-  for (const [key, value] of Object.entries(when)) {
-    const actual = lookup(key, context, config);
-    // Key not found in context or config → skip (deferred to expansion time)
-    if (actual === undefined) continue;
-    if (Array.isArray(value)) {
-      if (!value.map(String).includes(String(actual ?? ''))) return false;
-    } else if (Array.isArray(actual)) {
-      if (!actual.map(String).includes(String(value))) return false;
-    } else {
-      if (String(actual ?? '') !== String(value)) return false;
+  if (filter) {
+    for (const [key, value] of Object.entries(filter)) {
+      const outcome = matchConditionKey(key, value, context, config);
+      if (outcome === 'nomatch') return false;
     }
   }
-  return Object.keys(when).length;
+
+  if (trigger && Object.keys(trigger).length > 0) {
+    let anyMatch = false;
+    for (const [key, value] of Object.entries(trigger)) {
+      const outcome = matchConditionKey(key, value, context, config);
+      if (outcome === 'match') {
+        anyMatch = true;
+        break;
+      }
+    }
+    if (!anyMatch) return false;
+  }
+
+  const triggerCount = trigger ? Object.keys(trigger).length : 0;
+  const filterCount = filter ? Object.keys(filter).length : 0;
+  return triggerCount + filterCount;
 }
 
 /**
@@ -472,9 +520,9 @@ export function matchDomain(ruleDomain: string, effectiveDomains: string[]): boo
 }
 
 /**
- * Build runtime context for `when` evaluation (step-specific, not config).
- * Sets both `steps` (new) and `stages` (legacy) keys for backwards compatibility
- * with existing rule files that use `when: stages:`.
+ * Build runtime context for trigger/filter evaluation (step-specific, not config).
+ * Sets both `steps` (canonical) and `stages` (legacy alias) keys so rule files
+ * declaring `trigger.stages:` continue to match during migration.
  */
 export function buildRuntimeContext(step?: string, extraConditions?: Record<string, string>): Record<string, unknown> {
   const context: Record<string, unknown> = {};
@@ -581,18 +629,22 @@ export function buildWorktreeEnvMap(
 // ── Unified File Resolution ─────────────────────────────────────────
 
 /**
- * Find markdown files matching a glob pattern and filter by `when` frontmatter
- * conditions against context (runtime) and config (project).
+ * Find markdown files matching a glob pattern and filter by `trigger:` +
+ * `filter:` frontmatter conditions against context (runtime) and config (project).
  *
- * Returns all matches with their specificity (number of `when` keys matched).
+ * Returns all matches with their specificity (number of declared keys matched).
  *
- * When `requireWhen` is true (default), files without `when` (or empty `when`)
- * are skipped — at least one `when` condition is required. Set to false for
- * task files where unconditional matching is expected.
+ * When `requireConditions` is true (default), files without any conditions are
+ * skipped — at least one declared key across `trigger:` or `filter:` is required.
+ * Set to false for task files where unconditional matching is expected.
  *
- * When `effectiveDomains` is provided (non-empty), domain-tagged files are matched
- * via `matchDomain()` instead of `when.steps`. Files with `domain:` but no
- * `effectiveDomains` are skipped. Files without `domain:` use the legacy `when.steps` path.
+ * Semantics:
+ * - `trigger:` keys (`steps`, `domain`) are OR-connected — at least one must match.
+ * - `filter:` keys (`backend`, `frameworks.*`, `extensions`, `type`) are AND-connected.
+ *
+ * Domain matching is handled inside `checkConditions()` via the `domain` key in
+ * context (set to the effective domains array). Rule/blueprint files declare
+ * `trigger.domain:` and `checkConditions` uses `matchDomain()` prefix logic.
  */
 export function resolveFiles(
   globPattern: string,
@@ -600,61 +652,19 @@ export function resolveFiles(
   config: Record<string, unknown>,
   agentsDir: string,
   requireWhen = true,
-  effectiveDomains?: string[],
 ): ResolvedFile[] {
   const results: ResolvedFile[] = [];
   const paths = globSync(globPattern, { cwd: agentsDir, absolute: true });
 
   for (const filePath of paths) {
     const frontmatter = parseFrontmatter(filePath);
-    const when = frontmatter?.when as Record<string, unknown> | undefined;
+    const trigger = frontmatter?.trigger as Record<string, unknown> | undefined;
+    const filter = frontmatter?.filter as Record<string, unknown> | undefined;
     const name = deriveArtifactName(filePath, agentsDir, frontmatter);
 
-    // ── Domain-tagged files ──────────────────────────────────────────
-    const rawDomain = frontmatter?.domain;
-    if (rawDomain !== undefined && effectiveDomains && effectiveDomains.length > 0) {
-      // Normalise domain: string or string[] → string[]
-      const ruleDomains: string[] = Array.isArray(rawDomain)
-        ? (rawDomain as string[]).map(String)
-        : [String(rawDomain)];
-
-      // Check if at least one rule domain matches any effective domain
-      const domainMatched = ruleDomains.some((rd) => matchDomain(rd, effectiveDomains));
-      if (!domainMatched) {
-        continue;
-      }
-
-      // Also check remaining `when:` conditions (excluding steps/stages) against config
-      if (when && Object.keys(when).length > 0) {
-        // Build a filtered `when` without steps/stages keys (those are replaced by domain matching)
-        const configWhen: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(when)) {
-          if (k !== 'steps' && k !== 'stages') {
-            configWhen[k] = v;
-          }
-        }
-        if (Object.keys(configWhen).length > 0) {
-          const configSpecificity = checkWhen(configWhen, {}, config);
-          if (configSpecificity === false) {
-            continue;
-          }
-        }
-      }
-
-      // Count matched conditions: each matched domain counts as 1, plus config conditions
-      const domainCount = ruleDomains.filter((rd) => matchDomain(rd, effectiveDomains)).length;
-      const configConditions =
-        when && Object.keys(when).length > 0
-          ? Object.keys(when).filter((k) => k !== 'steps' && k !== 'stages').length
-          : 0;
-      results.push({ path: filePath, name, specificity: domainCount + configConditions, frontmatter });
-      continue;
-    }
-    // When domain: is present but effectiveDomains is not provided,
-    // fall through to when.steps matching (domain is informational in task resolution)
-
-    // ── Legacy when.steps path ───────────────────────────────────────
-    if (!when || Object.keys(when).length === 0) {
+    const triggerCount = trigger ? Object.keys(trigger).length : 0;
+    const filterCount = filter ? Object.keys(filter).length : 0;
+    if (triggerCount + filterCount === 0) {
       if (requireWhen) {
         continue;
       }
@@ -662,7 +672,7 @@ export function resolveFiles(
       continue;
     }
 
-    const specificity = checkWhen(when, context, config);
+    const specificity = checkConditions(trigger, filter, context, config);
     if (specificity !== false) {
       results.push({ path: filePath, name, specificity, frontmatter });
     }
@@ -781,7 +791,7 @@ export function resolveTaskFiles(stage: string, config: DesignbookConfig, agents
   const context = buildRuntimeContext(stage);
   const enrichedConfig = buildEnrichedConfig(config);
 
-  // Primary: broad scan — find all tasks with when.steps matching this stage
+  // Primary: broad scan — find all tasks with trigger.steps matching this stage
   const broadMatches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, true);
 
   // Named stage (skill:task format): return single best match
@@ -796,7 +806,9 @@ export function resolveTaskFiles(stage: string, config: DesignbookConfig, agents
     const taskName = parts[1] ?? '';
     const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
     if (existsSync(taskPath)) {
-      console.warn(`[designbook] task "${taskPath}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+      console.warn(
+        `[designbook] task "${taskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
+      );
       return [taskPath];
     }
     return [];
@@ -811,7 +823,7 @@ export function resolveTaskFiles(stage: string, config: DesignbookConfig, agents
   const filenameMatches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir, false);
   if (filenameMatches.length > 0) {
     for (const m of filenameMatches) {
-      console.warn(`[designbook] task "${m.path}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+      console.warn(`[designbook] task "${m.path}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`);
     }
     return filenameMatches.map((m) => m.path);
   }
@@ -827,7 +839,7 @@ export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, ag
   const context = buildRuntimeContext(stage);
   const enrichedConfig = buildEnrichedConfig(config);
 
-  // Primary: broad scan — find all tasks with when.steps matching this stage
+  // Primary: broad scan — find all tasks with trigger.steps matching this stage
   const broadMatches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, true);
 
   // Named stage (skill:task format): return single best match, no dedup needed
@@ -842,7 +854,9 @@ export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, ag
     const taskName = parts[1] ?? '';
     const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
     if (existsSync(taskPath)) {
-      console.warn(`[designbook] task "${taskPath}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+      console.warn(
+        `[designbook] task "${taskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
+      );
       const frontmatter = parseFrontmatter(taskPath);
       const name = deriveArtifactName(taskPath, agentsDir, frontmatter);
       return [{ path: taskPath, name, specificity: 0, frontmatter }];
@@ -859,7 +873,7 @@ export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, ag
   const filenameMatches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir, false);
   if (filenameMatches.length > 0) {
     for (const m of filenameMatches) {
-      console.warn(`[designbook] task "${m.path}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+      console.warn(`[designbook] task "${m.path}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`);
     }
     return deduplicateByNameAs(filenameMatches, agentsDir);
   }
@@ -872,8 +886,9 @@ export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, ag
 /**
  * Scan all rule files and return paths matching the given stage and config.
  *
- * When `effectiveDomains` is provided, domain-tagged rule files are matched
- * via `matchDomain()` in addition to the legacy `when.steps` path.
+ * Domain matching is handled via `trigger.domain` in each rule file, evaluated
+ * by `checkConditions()` using `matchDomain()` prefix logic. The `effectiveDomains`
+ * are injected into the runtime context as `context.domain`.
  */
 export function matchRuleFiles(
   stage: string,
@@ -883,8 +898,11 @@ export function matchRuleFiles(
   effectiveDomains?: string[],
 ): string[] {
   const context = buildRuntimeContext(stage, extraConditions);
+  if (effectiveDomains && effectiveDomains.length > 0) {
+    context['domain'] = effectiveDomains;
+  }
   const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true, effectiveDomains);
+  const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
   return matches.map((m) => m.path);
 }
 
@@ -892,15 +910,15 @@ export function matchRuleFiles(
 
 /**
  * Scan all blueprint files and return paths matching the given stage and config.
- * Blueprints use the same when-frontmatter matching as rules.
+ * Blueprints use the same trigger/filter frontmatter matching as rules.
  *
  * Unlike rules (which are additive), blueprints are unique per `type`+`name`.
  * If multiple skills define the same type+name blueprint, the one with the
  * highest `priority` frontmatter field wins (default: 0). Equal priority
  * uses last-match-wins (skills are globbed alphabetically).
  *
- * When `effectiveDomains` is provided, domain-tagged blueprint files are matched
- * via `matchDomain()` in addition to the legacy `when.steps` path.
+ * Domain matching is handled via `trigger.domain` in each blueprint file, evaluated
+ * by `checkConditions()` using `matchDomain()` prefix logic.
  */
 export function matchBlueprintFiles(
   stage: string,
@@ -910,8 +928,11 @@ export function matchBlueprintFiles(
   effectiveDomains?: string[],
 ): string[] {
   const context = buildRuntimeContext(stage, extraConditions);
+  if (effectiveDomains && effectiveDomains.length > 0) {
+    context['domain'] = effectiveDomains;
+  }
   const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir, true, effectiveDomains);
+  const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir, true);
 
   // Deduplicate by type+name — highest priority wins, equal priority = last match wins
   const byKey = new Map<string, { path: string; priority: number }>();
@@ -1455,13 +1476,19 @@ export function resolveAllStages(
           | Record<string, Record<string, unknown>>
           | undefined;
         const baseResult: Record<string, { schema?: object }> = {};
+        const refMap: Record<string, string> = {};
         if (resultProps) {
           for (const [rk, rv] of Object.entries(resultProps)) {
             // Build inline schema from result declaration (excluding path/$ref/validators)
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { path: _path, $ref: _ref, validators: _validators, ...schemaProps } = rv;
-            if (Object.keys(schemaProps).length > 0) {
-              baseResult[rk] = { schema: schemaProps };
+            const { path: _path, $ref: ref, validators: _validators, ...schemaProps } = rv;
+            // Always include the result key — even $ref-only entries need a merge target
+            // so that blueprint extends can contribute properties (e.g. component tokens)
+            baseResult[rk] = { schema: Object.keys(schemaProps).length > 0 ? schemaProps : {} };
+            // Map result key → definition name for schema-name-based matching
+            if (typeof ref === 'string') {
+              const defName = String(ref).split('#/').pop()?.split('/').pop();
+              if (defName) refMap[rk] = defName;
             }
           }
         }
@@ -1471,6 +1498,7 @@ export function resolveAllStages(
             ruleFiles,
             skillsRoot: resolve(agentsDir, 'skills'),
             schemas: collectedSchemas,
+            refMap,
           });
         }
       }
@@ -1688,12 +1716,21 @@ export function resolveWorkflowPlan(
       ? Array.isArray(preResolved)
         ? preResolved
         : [preResolved]
-      : resolveTaskFiles(step, config, agentsDir).map((taskFile) => ({
-          task_file: taskFile,
-          rules: matchRuleFiles(step, config, agentsDir),
-          blueprints: matchBlueprintFiles(step, config, agentsDir),
-          ...resolveConfigForStep(step, rawConfig),
-        }));
+      : resolveTaskFiles(step, config, agentsDir).map((taskFile) => {
+          // Compute effectiveDomains from the task file's domain: declaration
+          const taskFmDomain = parseFrontmatter(taskFile)?.domain;
+          const ed: string[] = taskFmDomain
+            ? Array.isArray(taskFmDomain)
+              ? (taskFmDomain as string[]).map(String)
+              : [String(taskFmDomain)]
+            : [];
+          return {
+            task_file: taskFile,
+            rules: matchRuleFiles(step, config, agentsDir, undefined, ed.length > 0 ? ed : undefined),
+            blueprints: matchBlueprintFiles(step, config, agentsDir, undefined, ed.length > 0 ? ed : undefined),
+            ...resolveConfigForStep(step, rawConfig),
+          };
+        });
 
     if (resolvedEntries.length === 0) {
       console.debug(`[Designbook] workflow plan: step "${step}" skipped — no matching task file`);

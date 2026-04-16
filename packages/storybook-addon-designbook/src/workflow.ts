@@ -534,16 +534,16 @@ export function expandTasksFromParams(
       const taskDescription = taskFm?.description as string | undefined;
       const fileDeclarations = (taskFm?.files ?? []) as TaskFileDeclaration[];
       const resultDeclarations = taskFm?.result as Record<string, unknown> | undefined;
-      const whenConditions = (taskFm?.when ?? {}) as Record<string, unknown>;
+      const filterConditions = (taskFm?.filter ?? {}) as Record<string, unknown>;
 
       for (let itemIdx = 0; itemIdx < stepItems.length; itemIdx++) {
         const item = stepItems[itemIdx]!;
 
-        // Check when-conditions (beyond steps/stages) against item params
+        // Filter items by `filter:` conditions against item params (task-level AND).
         const itemParams = { ...lookup, ...item.params };
-        const extraWhen = Object.entries(whenConditions).filter(([k]) => k !== 'steps' && k !== 'stages');
-        if (extraWhen.length > 0) {
-          const mismatch = extraWhen.some(([k, v]) => {
+        const filterEntries = Object.entries(filterConditions);
+        if (filterEntries.length > 0) {
+          const mismatch = filterEntries.some(([k, v]) => {
             const actual = itemParams[k];
             if (actual === undefined) return false; // param not present → don't filter
             if (Array.isArray(v)) return !v.map(String).includes(String(actual));

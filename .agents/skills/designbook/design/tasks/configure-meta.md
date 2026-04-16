@@ -1,7 +1,7 @@
 ---
 name: designbook:design:configure-meta
 title: Configure Meta
-when:
+trigger:
   steps: [configure-meta]
 each: story
 params:

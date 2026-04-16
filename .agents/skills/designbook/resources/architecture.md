@@ -37,6 +37,34 @@ stages:
     steps: [create-component]
 ```
 
+### Workflow Params and Resolvers
+
+Workflows declare `params:` in frontmatter. Params with a `resolve:` field are automatically resolved by the CLI at `workflow create` time using registered code resolvers:
+
+```yaml
+params:
+  story_id:
+    type: string
+    resolve: story_id           # resolved by story_id resolver
+  reference_folder:
+    type: string
+    resolve: reference_folder   # resolved by reference_folder resolver
+    from: reference_url         # depends on another param
+  breakpoints:
+    type: string
+    resolve: breakpoints        # resolved by breakpoints resolver
+```
+
+- `resolve: <name>` — names a registered resolver (code, not AI-executed)
+- `from: <param>` — declares a dependency on another param (resolved after independent params)
+- Resolvers run deterministically at `workflow create` time
+- If a resolver can't resolve (ambiguous input), it returns `candidates` for the AI to present to the user (see Step 0.5 in workflow-execution)
+- Params without `resolve:` are passed through as-is from `--params`
+
+**Available resolvers:** `story_id`, `reference_folder`, `breakpoints`
+
+This replaces the older "provider rules" pattern (`provides: <param>` on rule files). Provider rules were AI-executed; resolvers are deterministic code. Some provider rules may still exist during migration but new param resolution should use code resolvers.
+
 Tasks declare their iteration requirements via `each:` in their own frontmatter (not in the workflow stage definition):
 
 ```yaml
@@ -137,8 +165,10 @@ Task files live at `.agents/skills/<skill-name>/tasks/<stage-name>.md`. The file
 
 ```markdown
 ---
-when:
-  frameworks.component: sdc   # optional — filter condition
+trigger:
+  steps: [create-component]  # activate the task when this step runs
+filter:
+  frameworks.component: sdc  # only when the project uses this framework
 params:
   component: ~               # ~ means required (from intake)
   slots: []
@@ -155,16 +185,17 @@ result:
 # Task instructions go here
 ```
 
-- `when` conditions filter which task file applies
+- `trigger` declares WHEN the task activates. Keys `steps` and `domain` are OR-connected — at least one must match.
+- `filter` declares WHERE the task applies. Keys (`backend`, `frameworks.*`, `extensions`, `type`) are AND-connected — every key must match.
 - `each` declares iteration: keys reference scope entries, values are JSON Schema (inline or `$ref`)
 - `result` declares task outputs: file results (with `path:`) and data results (inline schema or `$ref`). Paths are always absolute — using env vars with `{{ param }}` substitution (resolved by CLI at plan time)
-- A task file with no `when` block applies universally
+- A task file with no `trigger:` and no `filter:` never matches
 
-**`when` condition keys:**
+**`filter` condition keys:**
 - `frameworks.component` → `$DESIGNBOOK_FRAMEWORK_COMPONENT`
 - `backend` → `$DESIGNBOOK_BACKEND`
 - `frameworks.css` → `$DESIGNBOOK_FRAMEWORK_CSS`
-- `extensions` → checks if value is present in `$DESIGNBOOK_EXTENSIONS` (comma-separated list). E.g. `when: extensions: canvas` matches when `canvas` is in the active extensions list.
+- `extensions` → checks if value is present in `$DESIGNBOOK_EXTENSIONS` (comma-separated list). E.g. `filter: extensions: canvas` matches when `canvas` is in the active extensions list.
 
 ## Rule File Format (skills)
 
@@ -172,17 +203,18 @@ Rule files live at `.agents/skills/<skill-name>/rules/<name>.md`. They define co
 
 ```markdown
 ---
-domain: components
-when:
+trigger:
+  domain: components           # activate when current step touches this domain
+filter:
   frameworks.component: sdc    # optional config condition
 ---
 # Rule constraints go here (prose — never execution steps)
 ```
 
-- `domain:` matches against the effective domains of the current step (union of task + stage domains)
-- Config conditions in `when:` (`backend`, `frameworks.*`, `extensions`) filter further
-- Without `domain:` and without `when.steps:`: rule never matches
-- `when.steps:` is deprecated for rules but still supported during migration
+- `trigger.domain:` matches against the effective domains of the current step (union of task + stage domains). OR-connected with `trigger.steps:`.
+- `trigger.steps:` activates the rule when the given step name runs. OR-connected with `trigger.domain:`.
+- `filter:` keys (`backend`, `frameworks.*`, `extensions`, `type`) further restrict applicability — all must match (AND).
+- Without any `trigger:` key a rule never matches.
 
 ## Blueprint File Format (skills)
 
@@ -192,7 +224,8 @@ Blueprint files live at `.agents/skills/<skill-name>/blueprints/<name>.md`. They
 ---
 type: component          # blueprint type (currently: component)
 name: section            # unique name within the type
-domain: components.layout
+trigger:
+  domain: components.layout
 priority: 10             # higher wins (default: 0)
 ---
 ```
@@ -205,7 +238,8 @@ priority: 10             # higher wins (default: 0)
 ---
 type: component
 name: section
-domain: components.layout
+trigger:
+  domain: components.layout
 ---
 # Blueprint: Section
 
@@ -229,25 +263,27 @@ section:
 
 - Blueprints say "what to build" (starting points); rules say "how to build" (constraints)
 - Loaded alongside rules via `skills/**/blueprints/*.md` glob
-- Same `domain:` and config conditions as rules
+- Same `trigger:` / `filter:` semantics as rules
 - Deduplicated by `type`+`name` — highest `priority` wins (equal priority: last match wins)
 
 ## Domain-Based Matching (Rules & Blueprints)
 
-Rules and blueprints use `domain:` instead of `when.steps:` for step matching.
+Rules and blueprints use `trigger.domain:` for step matching.
 
 ### Declaration
 
 **On rules/blueprints (supply side):**
 ```yaml
-domain: scenes
-when:
+trigger:
+  domain: scenes
+filter:
   backend: drupal
 ```
 
 **On tasks (demand side):**
 ```yaml
-domain: [components, scenes]
+trigger:
+  domain: [components, scenes]
 ```
 
 **On workflow stages (additive):**

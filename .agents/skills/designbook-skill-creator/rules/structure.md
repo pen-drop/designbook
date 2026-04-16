@@ -14,10 +14,10 @@ Use a flat structure:
 ├── SKILL.md              # Index only (required); no implementation detail
 ├── tasks/                # One file per stage; filename = stage name
 │   └── [stage-name].md
-├── rules/                # Constraints loaded when `when` conditions match
-│   └── [rule-name].md    # frontmatter: when: { backend: drupal }
+├── rules/                # Constraints loaded when `domain` matches
+│   └── [rule-name].md    # frontmatter: domain: components; when: { backend: drupal }
 ├── blueprints/           # Overridable starting points for creation stages
-│   └── [name].md         # frontmatter: when: { steps: [create-component] }
+│   └── [name].md         # frontmatter: domain: components; when: { backend: drupal }
 ├── resources/            # Reference docs, split by concern
 │   └── [topic].md
 └── schemas.yml            # Reusable JSON Schema definitions (PascalCase keys)
@@ -65,27 +65,35 @@ when:
 
 The CLI matches `when.steps` values literally against the step name from the workflow definition. A workflow that declares `steps: [design-verify:intake]` will only find task files whose `when.steps` contains the exact string `design-verify:intake`.
 
-## `rules/` — When Conditions
+## `rules/` — Domain Matching
 
-Rules require an explicit `when:` block. Without `when.steps`, the rule applies to all steps.
+Rules use `when.domain:` to declare which knowledge domain they belong to. The resolver loads a rule when its domain matches the effective domains of the current step (union of task `domain:` + stage `domain:`).
 
 ```markdown
 ---
 when:
-  backend: drupal          # config condition
-  steps: [create-component]  # stage filter (optional)
+  domain: components
+  backend: drupal          # optional config condition
 ---
 ```
 
-### Provider Rules (`provides`)
+Config conditions in `when:` (`backend`, `frameworks.*`, `extensions`) still apply as additional filters. `when.steps` is deprecated for rules — use `when.domain:` instead.
 
-A rule with `provides: <param>` declares that it can resolve a specific workflow param. The workflow execution engine runs provider rules **before** the task starts (step 2a-resolve). If the param is already set (via `--params` or a previous step), the provider rule is skipped.
+### Domain Subcontexts
+
+Use dot-notation for finer scoping: `components.layout`, `scenes.shell`. A task with `domain: [components]` loads rules with `domain: components` and `domain: components.*`. A task with `domain: [components.layout]` loads `domain: components` (parent) and `domain: components.layout` (exact), but not `domain: components.discovery` (sibling).
+
+### Provider Rules (`provides`) — Legacy
+
+> **Prefer code resolvers.** New param resolution should use `resolve:` in workflow param declarations (see architecture.md). Provider rules are a legacy mechanism kept for backwards compatibility.
+
+A rule with `provides: <param>` declares that it can resolve a specific workflow param via AI execution. The workflow engine runs provider rules **before** the task starts (step 2a-resolve), but only for params not already resolved by a code resolver or `--params`.
 
 ```markdown
 ---
 provides: url
 when:
-  steps: [design-verify:intake]
+  domain: design.intake
   extensions: stitch
 ---
 ```
@@ -105,7 +113,7 @@ Rules can extend the merged result schema of a task. Three operations:
 ```yaml
 ---
 when:
-  steps: [create-tokens]
+  domain: tokens
 constrains:
   design-tokens:
     properties:
@@ -126,16 +134,19 @@ constrains:
 
 See [`resources/schema-composition.md`](../resources/schema-composition.md) for the full merge model.
 
-## `blueprints/` — When Conditions
+## `blueprints/` — Domain Matching
 
-Same `when` matching as rules. Use `when.steps` to scope to a specific creation stage.
+Same `when.domain:` matching as rules. Blueprints declare which knowledge domain they belong to; the resolver loads them when a step's effective domains match.
 
 ```markdown
 ---
 when:
-  steps: [create-component]
+  domain: components
+  backend: drupal          # optional config condition
 ---
 ```
+
+All conditions in `when:` apply as filters — `domain` uses prefix matching, other keys use exact matching against config.
 
 ### Schema Extension Fields
 

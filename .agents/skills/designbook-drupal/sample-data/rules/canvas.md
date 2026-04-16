@@ -1,6 +1,7 @@
 ---
-domain: sample-data
-when:
+trigger:
+  domain: sample-data
+filter:
   extensions: canvas
   backend: drupal
 ---

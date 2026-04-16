@@ -93,7 +93,9 @@ export function resolveRefsInExtension(
 // ── Deep Merge ───────────────────────────────────────────────────────────────
 
 /**
- * Deep-merge for extends: add new properties. Error on duplicate property names at any level.
+ * Deep-merge for extends: add new properties. When a property already exists and both
+ * sides are objects, recursively merge instead of erroring. This allows multiple
+ * blueprints to contribute sub-properties to the same parent (e.g. component tokens).
  */
 export function deepMergeExtends(target: JsonSchema, source: Record<string, unknown>, sourcePath: string): void {
   for (const [key, value] of Object.entries(source)) {
@@ -101,6 +103,20 @@ export function deepMergeExtends(target: JsonSchema, source: Record<string, unkn
       target.properties = target.properties ?? {};
       for (const [propName, propSchema] of Object.entries(value as Record<string, unknown>)) {
         if (propName in target.properties) {
+          const existing = target.properties[propName];
+          const incoming = propSchema as Record<string, unknown> | null;
+          // Recurse into structural schemas (have properties or required) — allows
+          // multiple blueprints to contribute sub-properties to the same parent.
+          if (
+            existing &&
+            typeof existing === 'object' &&
+            incoming &&
+            typeof incoming === 'object' &&
+            ('properties' in existing || 'properties' in incoming || 'required' in incoming)
+          ) {
+            deepMergeExtends(existing, incoming, sourcePath);
+            continue;
+          }
           throw new Error(
             `Schema extends conflict: property '${propName}' already exists in base schema. Source: ${sourcePath}`,
           );
@@ -181,6 +197,8 @@ export interface MergeInput {
   ruleFiles: string[];
   skillsRoot: string;
   schemas: Record<string, object>;
+  /** Maps result key → definition name (from $ref). Used to match extensions by schema name. */
+  refMap?: Record<string, string>;
 }
 
 /**
@@ -240,6 +258,21 @@ export function computeMergedSchema(
     return undefined;
   }
 
+  // Build lookup: extensions can reference by definition name (DesignTokens) or result key (design-tokens)
+  const refMap = input.refMap ?? {};
+
+  /** Find extension value by definition name first, then result key (backwards compat). */
+  function findExtEntry(extObj: Record<string, unknown>, resultKey: string): Record<string, unknown> | undefined {
+    const defName = refMap[resultKey];
+    if (defName && extObj[defName] && typeof extObj[defName] === 'object') {
+      return extObj[defName] as Record<string, unknown>;
+    }
+    if (extObj[resultKey] && typeof extObj[resultKey] === 'object') {
+      return extObj[resultKey] as Record<string, unknown>;
+    }
+    return undefined;
+  }
+
   const merged: Record<string, object> = {};
 
   for (const [resultKey, resultDecl] of Object.entries(baseResult)) {
@@ -252,16 +285,18 @@ export function computeMergedSchema(
 
     // 1. Blueprint extends
     for (const { path, ext } of blueprintExts) {
-      if (ext.extends?.[resultKey] && typeof ext.extends[resultKey] === 'object') {
-        deepMergeExtends(baseSchema, ext.extends[resultKey] as Record<string, unknown>, path);
+      const entry = ext.extends && findExtEntry(ext.extends, resultKey);
+      if (entry) {
+        deepMergeExtends(baseSchema, entry, path);
         wasModified = true;
       }
     }
 
     // 2. Rule extends
     for (const { path, ext } of ruleExts) {
-      if (ext.extends?.[resultKey] && typeof ext.extends[resultKey] === 'object') {
-        deepMergeExtends(baseSchema, ext.extends[resultKey] as Record<string, unknown>, path);
+      const entry = ext.extends && findExtEntry(ext.extends, resultKey);
+      if (entry) {
+        deepMergeExtends(baseSchema, entry, path);
         wasModified = true;
       }
     }
@@ -269,9 +304,9 @@ export function computeMergedSchema(
     // 3. Blueprint provides
     for (const { ext } of blueprintExts) {
       if (ext.provides && typeof ext.provides === 'object') {
-        const provides = ext.provides as Record<string, unknown>;
-        if (provides[resultKey] && typeof provides[resultKey] === 'object') {
-          mergeProvides(baseSchema, provides[resultKey] as Record<string, unknown>);
+        const entry = findExtEntry(ext.provides as Record<string, unknown>, resultKey);
+        if (entry) {
+          mergeProvides(baseSchema, entry);
           wasModified = true;
         }
       }
@@ -280,9 +315,9 @@ export function computeMergedSchema(
     // 4. Rule provides
     for (const { ext } of ruleExts) {
       if (ext.provides && typeof ext.provides === 'object') {
-        const provides = ext.provides as Record<string, unknown>;
-        if (provides[resultKey] && typeof provides[resultKey] === 'object') {
-          mergeProvides(baseSchema, provides[resultKey] as Record<string, unknown>);
+        const entry = findExtEntry(ext.provides as Record<string, unknown>, resultKey);
+        if (entry) {
+          mergeProvides(baseSchema, entry);
           wasModified = true;
         }
       }
@@ -290,8 +325,9 @@ export function computeMergedSchema(
 
     // 5. Rule constrains
     for (const { ext } of ruleExts) {
-      if (ext.constrains?.[resultKey] && typeof ext.constrains[resultKey] === 'object') {
-        mergeConstrains(baseSchema, ext.constrains[resultKey] as Record<string, unknown>);
+      const entry = ext.constrains && findExtEntry(ext.constrains, resultKey);
+      if (entry) {
+        mergeConstrains(baseSchema, entry);
         wasModified = true;
       }
     }

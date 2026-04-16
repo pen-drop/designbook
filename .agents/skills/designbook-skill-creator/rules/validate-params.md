@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [validate]
 priority: 10
 ---

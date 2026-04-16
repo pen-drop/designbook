@@ -1,5 +1,5 @@
 ---
-when: {}
+
 ---
 
 # Workflow Execution Rules

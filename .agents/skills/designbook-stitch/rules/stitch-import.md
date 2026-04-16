@@ -1,6 +1,7 @@
 ---
-domain: design.intake
-when:
+trigger:
+  domain: design.intake
+filter:
   extensions: stitch
 ---
 
@@ -16,7 +17,7 @@ If `design_reference.type` is `stitch`, or if the user provides a Stitch project
 
 1. Extract the project resource name from the URL
 2. Call `mcp__stitch__get_project` to get project metadata
-3. Use the project name as default for `product_name` if vision.md does not exist
+3. Use the project name as default for `product_name` if vision.yml does not exist
 
 If `mcp__stitch__get_project` fails, warn and fall back to manual input.
 

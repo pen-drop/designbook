@@ -1,7 +1,7 @@
 ---
 name: designbook:design:outtake--design-verify
 title: "Outtake: Design Verify"
-when:
+trigger:
   steps: [design-verify:outtake]
 priority: 50
 params:

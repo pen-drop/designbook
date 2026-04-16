@@ -1,8 +1,9 @@
 ---
 name: designbook:design:capture-reference
 title: "Capture Reference: {scene_id} ({breakpoint}/{region})"
-when:
+trigger:
   steps: [capture]
+filter:
   type: screenshot
 priority: 10
 params:

@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [design-screen:map-entity]
 params:
   type: object

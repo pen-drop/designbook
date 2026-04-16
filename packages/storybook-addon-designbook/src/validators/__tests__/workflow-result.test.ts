@@ -242,7 +242,7 @@ describe('workflow result: file result', () => {
     expect(data.scope?.['design-tokens']).toBeUndefined();
   });
 
-  it('flushes immediately when flush=true', async () => {
+  it('flushes immediately when flush=immediately in result declaration', async () => {
     const targetPath = resolve(dist, 'output', 'ref.md');
     const name = setupWorkflow(
       dist,
@@ -255,16 +255,14 @@ describe('workflow result: file result', () => {
           stage: 'execute',
           status: 'pending',
           result: {
-            reference: { path: targetPath },
+            reference: { path: targetPath, flush: 'immediately' },
           },
         } as WorkflowTask,
       ],
       { execute: { steps: ['do-task'] } },
     );
 
-    const result = await workflowResult(dist, name, 'task1', 'reference', '# Design Reference', config, {
-      flush: true,
-    });
+    const result = await workflowResult(dist, name, 'task1', 'reference', '# Design Reference', config);
 
     expect(result.valid).toBe(true);
     // Flushed immediately — file at final path
@@ -307,7 +305,7 @@ describe('workflow result: file result', () => {
 
     // Valid content
     const validContent = 'name: Button\nstatus: stable\n';
-    const result = await workflowResult(dist, name, 'task1', 'component-yml', validContent, config, { flush: true });
+    const result = await workflowResult(dist, name, 'task1', 'component-yml', validContent, config);
     expect(result.valid).toBe(true);
   });
 
@@ -345,7 +343,7 @@ describe('workflow result: file result', () => {
 
     // Invalid — missing required 'status' field
     const invalidContent = 'name: Button\n';
-    const result = await workflowResult(dist, name, 'task1', 'component-yml', invalidContent, config, { flush: true });
+    const result = await workflowResult(dist, name, 'task1', 'component-yml', invalidContent, config);
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('status'))).toBe(true);
   });
@@ -606,7 +604,7 @@ describe('workflow result: mixed file + data results', () => {
           stage: 'execute',
           status: 'pending',
           result: {
-            'component-yml': { path: filePath },
+            'component-yml': { path: filePath, flush: 'immediately' },
             metadata: { schema: { type: 'object' } },
           },
         } as WorkflowTask,
@@ -615,7 +613,7 @@ describe('workflow result: mixed file + data results', () => {
     );
 
     // Write file result
-    await workflowResult(dist, name, 'task1', 'component-yml', 'name: Button', config, { flush: true });
+    await workflowResult(dist, name, 'task1', 'component-yml', 'name: Button', config);
 
     // Write data result
     await workflowResult(dist, name, 'task1', 'metadata', { name: 'Button', slots: ['content'] }, config);
@@ -883,7 +881,7 @@ describe('workflow done --data', () => {
   });
 
   it('implicitly collects files already written at declared paths', async () => {
-    const targetPath = resolve(dist, 'output', 'vision.md');
+    const targetPath = resolve(dist, 'output', 'vision.yml');
     // Pre-write the file
     mkdirSync(resolve(dist, 'output'), { recursive: true });
     writeFileSync(targetPath, '# My Product\n\nA great product.\n');

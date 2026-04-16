@@ -1,15 +1,15 @@
 ---
-when:
-  steps: [create-tokens, design-component:intake, design-screen:intake, design-shell:intake, sections:intake, create-component, create-section, design-screen:create-scene, design-shell:create-scene, create-sample-data, capture, recapture, compare, polish]
+trigger:
+  domain: vision
 ---
 
 # Vision Context
 
 **Before starting this stage**, load the product vision:
 
-1. Resolve path: `$DESIGNBOOK_DATA/vision.md`
+1. Resolve path: `$DESIGNBOOK_DATA/vision.yml`
 2. **If the file does not exist** → stop immediately and tell the user:
-   > ❌ `vision.md` not found. Run `/designbook vision` first.
+   > ❌ `vision.yml` not found. Run `/designbook vision` first.
 3. **If the file exists** → read it and apply the design reference and references as context throughout this stage.
 
 ## How to apply

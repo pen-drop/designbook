@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [generate-jsonata]
 domain: [css]
 params:

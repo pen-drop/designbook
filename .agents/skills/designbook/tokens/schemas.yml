@@ -2,8 +2,38 @@
 
 DesignTokens:
   type: object
+  required: [primitive, semantic]
   properties:
-    primitive: { type: object }
-    semantic: { type: object }
-    component: { type: object }
+    primitive:
+      type: object
+      title: Primitive Tokens
+      description: >
+        Raw values only — no references. Common groups: color (hex codes),
+        fontFamily (exact Google Fonts names), fontSize, fontWeight, lineHeight, spacing.
+        Each leaf is a TokenLeaf.
+    semantic:
+      type: object
+      title: Semantic Tokens
+      description: >
+        Purpose-based aliases. Values MUST reference primitives
+        via {primitive.<group>.<key>} — no raw values allowed.
+        Common groups: color (primary, secondary, …), typography
+        (roles with font size, weight, line height per role).
+    component:
+      type: object
+      title: Component Tokens
+      description: Component-specific tokens derived from blueprint required_tokens
+      default: {}
     themes: { type: object }
+
+TokenLeaf:
+  type: object
+  required: [$value, $type]
+  description: W3C Design Token Format leaf node
+  properties:
+    $value:
+      type: [string, number, object]
+      description: Concrete value or {primitive.<group>.<key>} reference
+    $type:
+      type: string
+      enum: [color, fontFamily, dimension, number, fontWeight, duration, cubicBezier, shadow, gradient, transition, border, strokeStyle, typography]

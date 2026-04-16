@@ -2,16 +2,24 @@
 type: component
 name: grid
 priority: 10
-domain: components.layout
-required_tokens:
-  grid:
-    gap:
-      $extensions:
-        designbook:
-          renderer: gap
-      sm: { $value: "1rem", $type: dimension }
-      md: { $value: "1.5rem", $type: dimension }
-      lg: { $value: "2rem", $type: dimension }
+trigger:
+  domain: components.layout
+  steps: [create-tokens]
+extends:
+  DesignTokens:
+    properties:
+      component:
+        required: [grid]
+        properties:
+          grid:
+            type: object
+            required: [gap]
+            properties:
+              gap:
+                type: object
+                $extensions:
+                  designbook:
+                    renderer: gap
 ---
 
 # Blueprint: Grid

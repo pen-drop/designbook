@@ -1,7 +1,8 @@
 ---
-domain: design.intake
 provides: reference.url
-when:
+trigger:
+  domain: design.intake
+filter:
   extensions: stitch
 ---
 

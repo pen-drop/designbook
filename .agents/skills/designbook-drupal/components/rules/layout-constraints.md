@@ -1,6 +1,7 @@
 ---
-domain: components.layout
-when:
+trigger:
+  domain: components.layout
+filter:
   backend: drupal
 ---
 

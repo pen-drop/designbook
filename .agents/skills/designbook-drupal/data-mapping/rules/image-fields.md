@@ -1,5 +1,6 @@
 ---
-domain: data-mapping
+trigger:
+  domain: data-mapping
 ---
 
 # Rule: Image Field Mapping

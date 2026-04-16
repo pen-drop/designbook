@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [setup-compare]
 params:
   type: object
@@ -18,15 +18,7 @@ result:
     checks:
       type: array
       items:
-        type: object
-        required: [story_id, breakpoint, region]
-        properties:
-          story_id: { type: string }
-          breakpoint: { type: string }
-          region: { type: string }
-          threshold: { type: number, default: 0 }
-          selector: { type: string }
-          type: { type: string }
+        $ref: ../schemas.yml#/Check
 ---
 
 # Setup Compare

@@ -114,7 +114,7 @@ function setupSchemaCompositionFixtures(): { workflowPath: string } {
 
   // Task: intake--test-compose
   writeTask(agentsDir, 'test-compose', 'intake--test-compose', {
-    when: { steps: ['intake'] },
+    trigger: { steps: ['intake'] },
     result: {
       type: 'object',
       required: ['items'],
@@ -129,7 +129,7 @@ function setupSchemaCompositionFixtures(): { workflowPath: string } {
 
   // Task: create-thing
   writeTask(agentsDir, 'test-compose', 'create-thing', {
-    when: { steps: ['create-thing'] },
+    trigger: { steps: ['create-thing'] },
     domain: ['data-model'],
     each: {
       items: { type: 'object' },
@@ -151,7 +151,7 @@ function setupSchemaCompositionFixtures(): { workflowPath: string } {
 
   // Rule: extend-thing — adds extra property via extends
   writeRule(agentsDir, 'test-compose', 'extend-thing', {
-    domain: 'data-model',
+    trigger: { domain: 'data-model' },
     extends: {
       thing: {
         properties: {
@@ -163,7 +163,7 @@ function setupSchemaCompositionFixtures(): { workflowPath: string } {
 
   // Rule: constrain-thing — narrows enum via constrains
   writeRule(agentsDir, 'test-compose', 'constrain-thing', {
-    domain: 'data-model',
+    trigger: { domain: 'data-model' },
     constrains: {
       thing: {
         properties: {
@@ -177,7 +177,7 @@ function setupSchemaCompositionFixtures(): { workflowPath: string } {
   writeBlueprint(agentsDir, 'test-compose', 'thing-bp', {
     type: 'component',
     name: 'thing',
-    domain: 'data-model',
+    trigger: { domain: 'data-model' },
     provides: {
       thing: {
         properties: {

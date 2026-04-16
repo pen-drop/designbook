@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [generate-css]
 domain: [css]
 params:

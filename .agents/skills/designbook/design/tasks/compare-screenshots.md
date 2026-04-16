@@ -1,7 +1,7 @@
 ---
 name: designbook:design:compare-screenshots
 title: "Compare Screenshots: {scene_id} ({breakpoint}/{region})"
-when:
+trigger:
   steps: [compare]
 params:
   type: object
@@ -72,7 +72,7 @@ Captures the Storybook screenshot, compares it with the reference, and writes dr
 
 2. **Collect context:**
    - Design tokens from `design-tokens.yml`
-   - Design reference from `vision.md` (if available)
+   - Design reference from `vision.yml` (if available)
 
 3. **Compare visually** using multimodal capabilities. Evaluate layout, colors, typography, spacing. Focus on the specific element for named regions.
 

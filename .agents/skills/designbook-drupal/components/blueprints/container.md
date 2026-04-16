@@ -2,17 +2,25 @@
 type: component
 name: container
 priority: 10
-domain: components.layout
-required_tokens:
-  container:
-    max-width:
-      $extensions:
-        designbook:
-          renderer: container
-      sm: { $value: "640px", $type: dimension }
-      md: { $value: "768px", $type: dimension }
-      lg: { $value: "1024px", $type: dimension }
-      xl: { $value: "1280px", $type: dimension }
+trigger:
+  domain: components
+  steps: [create-tokens]
+extends:
+  DesignTokens:
+    required: [component]
+    properties:
+      component:
+        required: [container]
+        properties:
+          container:
+            type: object
+            required: [max-width]
+            properties:
+              max-width:
+                type: object
+                $extensions:
+                  designbook:
+                    renderer: container
 ---
 
 # Blueprint: Container

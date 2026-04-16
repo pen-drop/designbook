@@ -9,6 +9,7 @@ Check:
     region: { type: string, enum: [full, header, footer] }
     threshold: { type: number, default: 0 }
     selector: { type: string }
+    type: { type: string }
 
 Issue:
   type: object

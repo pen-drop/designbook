@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [create-scene, map-entity]
 ---
 

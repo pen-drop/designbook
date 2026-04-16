@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [design-shell:intake]
 domain: [components, components.shell]
 params:
@@ -8,7 +8,7 @@ params:
   properties:
     reference_dir: { type: string, default: "" }
     vision:
-      path: $DESIGNBOOK_DATA/vision.md
+      path: $DESIGNBOOK_DATA/vision.yml
       type: object
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml

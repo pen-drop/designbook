@@ -1,6 +1,7 @@
 ---
-domain: components.discovery
-when:
+trigger:
+  domain: components.discovery
+filter:
   frameworks.component: sdc
 ---
 

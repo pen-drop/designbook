@@ -2,9 +2,10 @@
 type: css-naming
 name: tailwind
 priority: 10
-when:
-  frameworks.css: tailwind
+trigger:
   steps: [tokens:intake, create-tokens]
+filter:
+  frameworks.css: tailwind
 ---
 
 # Tailwind Token Naming Rules

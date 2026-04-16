@@ -2,7 +2,8 @@
 type: component
 name: header
 priority: 10
-domain: components.shell
+trigger:
+  domain: components.shell
 ---
 
 # Blueprint: Header

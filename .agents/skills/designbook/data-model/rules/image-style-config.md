@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [create-data-model]
 constrains:
   data-model:

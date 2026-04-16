@@ -2,7 +2,8 @@
 type: data-mapping
 name: field-map
 priority: 10
-domain: data-mapping
+trigger:
+  domain: data-mapping
 ---
 
 # Blueprint: Field Map

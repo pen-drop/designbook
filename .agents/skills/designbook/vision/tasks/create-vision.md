@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [create-vision]
 params:
   type: object

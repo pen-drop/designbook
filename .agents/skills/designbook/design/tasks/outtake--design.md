@@ -1,7 +1,7 @@
 ---
 name: designbook:design:outtake--verify-scenes
 title: "Outtake: Verify Scenes"
-when:
+trigger:
   steps: [design-verify:outtake]
 priority: 50
 params:

@@ -2,7 +2,8 @@
 type: entity-type
 name: image_style
 priority: 5
-domain: data-model
+trigger:
+  domain: data-model
 ---
 
 # Entity Type: image_style

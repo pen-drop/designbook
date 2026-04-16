@@ -1,8 +1,9 @@
 ---
 name: designbook:design:capture-storybook
 title: "Capture Storybook: {scene_id} ({breakpoint}/{region})"
-when:
+trigger:
   steps: [recapture]
+filter:
   type: screenshot
 priority: 20
 params:

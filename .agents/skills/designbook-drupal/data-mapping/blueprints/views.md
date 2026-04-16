@@ -2,7 +2,8 @@
 type: data-mapping
 name: views
 priority: 10
-domain: data-mapping
+trigger:
+  domain: data-mapping
 ---
 
 # Blueprint: List View — Wrapper Mapping

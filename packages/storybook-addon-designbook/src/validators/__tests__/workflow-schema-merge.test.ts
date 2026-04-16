@@ -39,6 +39,51 @@ describe('deepMergeExtends', () => {
     deepMergeExtends(target, { description: 'Extended schema' }, 'test.md');
     expect(target.description).toBe('Extended schema');
   });
+
+  it('recursively merges when both sides are structural schemas', () => {
+    const target = {
+      type: 'object',
+      properties: {
+        component: { type: 'object', properties: { container: { type: 'object' } } },
+      },
+    };
+    deepMergeExtends(target, { properties: { component: { properties: { grid: { type: 'object' } } } } }, 'grid.md');
+    const component = target.properties.component as Record<string, unknown>;
+    const props = component.properties as Record<string, unknown>;
+    expect(props).toHaveProperty('container');
+    expect(props).toHaveProperty('grid');
+  });
+
+  it('merges required arrays during recursive merge', () => {
+    const target = {
+      type: 'object',
+      properties: {
+        component: { type: 'object', default: {} },
+      },
+    };
+    deepMergeExtends(
+      target,
+      { properties: { component: { required: ['container'], properties: { container: { type: 'object' } } } } },
+      'container.md',
+    );
+    deepMergeExtends(
+      target,
+      { properties: { component: { required: ['grid'], properties: { grid: { type: 'object' } } } } },
+      'grid.md',
+    );
+    const component = target.properties.component as Record<string, unknown>;
+    expect(component.required).toEqual(['container', 'grid']);
+    const props = component.properties as Record<string, unknown>;
+    expect(props).toHaveProperty('container');
+    expect(props).toHaveProperty('grid');
+  });
+
+  it('still errors on duplicate leaf properties', () => {
+    const target = { type: 'object', properties: { name: { type: 'string' } } };
+    expect(() => {
+      deepMergeExtends(target, { properties: { name: { type: 'number' } } }, 'test.md');
+    }).toThrow('already exists');
+  });
 });
 
 // ── mergeProvides ────────────────────────────────────────────────────────────

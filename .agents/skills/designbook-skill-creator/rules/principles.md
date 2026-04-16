@@ -45,7 +45,7 @@ Implementation guidance belongs in blueprints (overridable) or rules (hard const
 
 Task results are declared in the `result:` frontmatter field with a JSON Schema. Two types:
 
-- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `validators:` for semantic validation. Optional JSON Schema type (inline or `$ref`).
+- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `validators:` for semantic validation. Optional `flush: immediately` to write to final path on result write instead of staging. Optional JSON Schema type (inline or `$ref`).
 - **Data results** (without `path:`) — structured data returned via `--data`. JSON Schema type required (inline or `$ref`).
 
 Both support `$ref` to `schemas.yml` definitions (see [`resources/schemas.md`](../resources/schemas.md)).
@@ -66,6 +66,32 @@ result:
 ```
 
 The schema in frontmatter is the source of truth — the engine validates automatically.
+
+**Result schemas must use `$ref` to `schemas.yml`.** Never inline a schema definition in task frontmatter when a matching type exists in the concern's `schemas.yml`. The `schemas.yml` is the single source of truth for schema shape — task results reference it, they don't duplicate it. If no matching type exists yet, create one in `schemas.yml` first, then `$ref` it.
+
+```yaml
+# ✅ CORRECT — schema defined in schemas.yml, referenced from task
+result:
+  type: object
+  required: [vision]
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      $ref: ../schemas.yml#/Vision
+
+# ❌ WRONG — schema duplicated inline in task frontmatter
+result:
+  type: object
+  required: [vision]
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      type: object
+      required: [product_name, description]
+      properties:
+        product_name: { type: string }
+        description: { type: string }
+```
 
 ## Tasks Declare Results in Schema, Not in Body
 
@@ -107,7 +133,8 @@ Blueprints provide an example of what a good output looks like: required tokens,
 
 ```markdown
 ---
-domain: components
+when:
+  domain: components
 ---
 # Blueprint: Card
 
@@ -125,8 +152,8 @@ Rules enforce constraints that must hold regardless of integration, framework, o
 
 ```markdown
 ---
-domain: components
 when:
+  domain: components
   backend: drupal
 ---
 All component files must include a `$schema` field pointing to the JSON schema.
@@ -154,7 +181,8 @@ Tasks and rules must be **as abstract as possible**. They describe structure, re
 **Wrong** (concrete implementation in a rule):
 ```markdown
 ---
-domain: components
+when:
+  domain: components
 ---
 Use BEM class naming: `.block__element--modifier`.
 ```
@@ -162,7 +190,8 @@ Use BEM class naming: `.block__element--modifier`.
 **Correct** (move naming conventions to a blueprint):
 ```markdown
 ---
-domain: components
+when:
+  domain: components
 ---
 # Blueprint: Component Naming
 

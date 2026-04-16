@@ -4,6 +4,14 @@ Manages workflow lifecycle — create, execute tasks, track stage transitions.
 
 > This is the **complete command list** — do not attempt `status`, `tasks`, or other subcommands.
 
+## Global options
+
+| Option | Description |
+|---|---|
+| `--research` | Enable research mode. Tags all log entries with `research: true` for post-workflow audit. |
+
+All `workflow` subcommands write structured JSONL log entries to `$DESIGNBOOK_DATA/dbo.log`. Each line is a JSON object with `ts`, `cmd`, `args`, and `result` or `error`. When `--research` is set, entries include `research: true`.
+
 ## `workflow create`
 
 Create a new workflow tracking file. The workflow `.md` file is resolved automatically from the workflow ID via `skills/**/workflows/<id>.md`.
@@ -136,7 +144,7 @@ The `staged_path` is where external tools should write. After writing, call `wor
 
 ## `workflow result`
 
-Write a task result (file or data), validate, and update task state. Replaces `workflow write-file`.
+Write a task result (file or data), validate, and update task state.
 
 ### File result (content from stdin)
 
@@ -164,22 +172,28 @@ workflow result --task <task-id> --key <key> --external
 
 Use `--external` when the file was already written to the staged path by an external tool (e.g. Playwright). Skips stdin, validates the existing file, and updates task state.
 
-### File result — with flush
+### File result — with immediate flush
 
-```bash
-cat <<'EOF' | workflow result --task <task-id> --key <key> --flush
-<file content>
-EOF
+Files with `flush: immediately` in their result declaration are written directly to the final path instead of being staged. This is declared in the task frontmatter, not as a CLI argument:
+
+```yaml
+result:
+  type: object
+  required: [design-reference]
+  properties:
+    design-reference:
+      path: $DESIGNBOOK_DATA/design-reference.md
+      flush: immediately
 ```
 
-`--flush` immediately moves the file from its staged path to the final path. Use when the file must be readable by subsequent steps within the same task (e.g. extract-reference writes a file that the same intake task reads next).
+Use `flush: immediately` when the file must be readable by subsequent steps within the same task (e.g. extract-reference writes a file that the same intake task reads next).
 
-Without `--flush`, files remain staged (with `.debo` suffix) until the stage completes.
+Without `flush: immediately`, files remain staged until the stage completes.
 
 ### Path mode — direct write
 
 ```bash
-cat <<'EOF' | workflow result --task <task-id> --path <absolute-path> --flush
+cat <<'EOF' | workflow result --task <task-id> --path <absolute-path>
 <file content>
 EOF
 ```
@@ -195,7 +209,6 @@ EOF
 | `--path <path>` | One of key/path | Direct file path (bypasses result key lookup) |
 | `--json <data>` | No | JSON data for data results (mutually exclusive with stdin) |
 | `--external` | No | Register an already-written file (skip stdin) |
-| `--flush` | No | Immediately move file to final path |
 
 **Response (file result):**
 ```json
@@ -208,18 +221,6 @@ EOF
 ```
 
 If `valid: false`, fix content and call again.
-
-## `workflow write-file` (deprecated)
-
-> **Deprecated alias** for `workflow result`. Existing calls still work but new code should use `workflow result`.
-
-```bash
-cat <<'EOF' | workflow write-file <workflow-name> <task-id> --key <key>
-<file content>
-EOF
-```
-
-Delegates to `workflow result` internally. Positional arguments (`<workflow-name> <task-id>`) are mapped to `--workflow` and `--task` options.
 
 ## `workflow done`
 

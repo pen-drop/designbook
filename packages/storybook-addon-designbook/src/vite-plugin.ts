@@ -139,7 +139,7 @@ export function designbookLoadPlugin(
       const FILE_TYPES: Record<string, string> = {
         task: 'workflows/**/*.yml',
         scene: '**/*.scenes.yml',
-        vision: 'vision.md',
+        vision: 'vision.yml',
         tokens: 'tokens/**/*.yml',
         designTokens: 'design-system/design-tokens.yml',
         dataModel: 'data-model.yml',
@@ -154,7 +154,7 @@ export function designbookLoadPlugin(
 
       server.watcher.add(resolve(designbookDir, 'data-model.yml'));
       server.watcher.add(resolve(designbookDir, 'design-system'));
-      server.watcher.add(resolve(designbookDir, 'vision.md'));
+      server.watcher.add(resolve(designbookDir, 'vision.yml'));
       server.watcher.add(resolve(designbookDir, 'sections'));
       server.watcher.add(resolve(designbookDir, 'tokens'));
       server.watcher.add(resolve(designbookDir, 'workflows'));
@@ -230,7 +230,7 @@ export function designbookLoadPlugin(
           }
 
           const status = {
-            vision: { exists: existsSync(resolve(designbookDir, 'vision.md')) },
+            vision: { exists: existsSync(resolve(designbookDir, 'vision.yml')) },
             designSystem: {
               tokens: existsSync(resolve(designbookDir, 'design-system/design-tokens.yml')),
             },

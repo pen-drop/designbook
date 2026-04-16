@@ -1,6 +1,7 @@
 ---
-domain: scenes
-when:
+trigger:
+  domain: scenes
+filter:
   backend: drupal
 ---
 

@@ -1,7 +1,7 @@
 ---
 type: blueprint
 name: static-assets
-when:
+trigger:
   steps: [create-scene, create-component, design-shell:intake, design-screen:intake]
 ---
 

@@ -1,11 +1,48 @@
 # Data model concern schemas
+# Content has a fixed schema (entity_type → bundle → purpose, view_modes, fields).
+# Config stays open — each config type brings its own schema via extends/constrains.
 
 DataModel:
   type: object
+  required: [content]
   properties:
-    config:
-      type: object
-      additionalProperties: true
     content:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties:
+          type: object
+          properties:
+            purpose: { type: string }
+            view_modes:
+              type: object
+              additionalProperties:
+                type: object
+                required: [template]
+                properties:
+                  template: { type: string }
+                  settings: { type: object, additionalProperties: true }
+                additionalProperties: false
+            fields:
+              type: object
+              additionalProperties:
+                type: object
+                required: [type]
+                properties:
+                  type: { type: string }
+                  title: { type: string }
+                  description: { type: string }
+                  required: { type: boolean }
+                  multiple: { type: boolean }
+                  settings: { type: object, additionalProperties: true }
+                  sample_template:
+                    type: object
+                    required: [template]
+                    properties:
+                      template: { type: string }
+                      settings: { type: object, additionalProperties: true }
+                    additionalProperties: false
+          additionalProperties: true
+    config:
       type: object
       additionalProperties: true

@@ -2,9 +2,10 @@
 type: jsonata-template
 name: tailwind
 priority: 10
-when:
-  frameworks.css: tailwind
+trigger:
   steps: [generate-jsonata]
+filter:
+  frameworks.css: tailwind
 ---
 
 # JSONata Expression Template — Tailwind v4

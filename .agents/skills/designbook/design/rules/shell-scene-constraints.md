@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [design-shell:create-scene]
 ---
 

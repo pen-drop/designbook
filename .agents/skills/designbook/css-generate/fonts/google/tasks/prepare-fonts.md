@@ -1,6 +1,7 @@
 ---
-when:
+trigger:
   steps: [prepare-fonts]
+filter:
   extensions: google-fonts
 domain: [css]
 params:

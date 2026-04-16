@@ -44,7 +44,7 @@ When the user references one of these files or topics in conversation, start the
 
 | File / Artifact | Workflow | Path Pattern |
 |---|---|---|
-| vision | `vision` | `$DESIGNBOOK_DATA/vision.md` |
+| vision | `vision` | `$DESIGNBOOK_DATA/vision.yml` |
 | data-model | `data-model` | `$DESIGNBOOK_DATA/data-model.yml` |
 | tokens | `tokens` | `$DESIGNBOOK_DATA/design-system/design-tokens.yml` |
 | sections | `sections` | `$DESIGNBOOK_DATA/sections/**/*.section.scenes.yml` |

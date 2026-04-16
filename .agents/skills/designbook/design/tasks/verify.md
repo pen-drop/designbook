@@ -1,7 +1,7 @@
 ---
 name: designbook:design:verify
 title: "Verify: {scene} ({breakpoint}/{region})"
-when:
+trigger:
   steps: [verify]
 priority: 60
 params:

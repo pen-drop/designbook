@@ -1,6 +1,7 @@
 ---
-when:
+trigger:
   steps: [create-component]
+filter:
   frameworks.component: sdc
 params:
   type: object

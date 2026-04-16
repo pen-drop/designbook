@@ -1,5 +1,5 @@
 ---
-when:
+trigger:
   steps: [design-component:intake]
 domain: [components]
 params:
