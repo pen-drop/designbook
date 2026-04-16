@@ -89,7 +89,9 @@ result:
     },
     "result": {
       "data-model": {
-        "path": "$DESIGNBOOK_DATA/data-model.yml",
+        "path": "/abs/resolved/designbook/data-model.yml",
+        "exists": false,
+        "content": null,
         "$ref": "#/definitions/DataModel"
       }
     }
@@ -102,18 +104,20 @@ result:
 | Field | Location | Purpose |
 |-------|----------|---------|
 | `definitions` | `schema.definitions` | All resolved schemas from `schemas.yml`, deduplicated. Referenced by `$ref` from params and result. |
-| `params` | `schema.params` | One entry per declared param. File params include `path` (resolved), `exists`, `content` (parsed YAML/JSON or null). |
-| `result` | `schema.result` | One entry per declared result. Includes `path` template and `$ref` to schema. |
+| `params` | `schema.params` | One entry per declared param. File entries include `path` (resolved), `exists`, `content` (parsed YAML/JSON or null). |
+| `result` | `schema.result` | One entry per declared result. Same resolution logic as params: `path` (resolved), `exists`, `content`. |
 | `$ref` | On any param or result entry | Points into `definitions`. Format: `#/definitions/TypeName`. |
 
 ### Behavior
+
+Params and result entries use identical resolution logic (`resolveEntry()`):
 
 - `path:` values are resolved: `$DESIGNBOOK_DATA` etc. expanded to absolute paths
 - `exists: true` → file parsed (YAML/JSON) and delivered as `content`
 - `exists: false` → `content: null`, no error (file may not exist yet)
 - `$ref` from task frontmatter resolved once into `definitions`; param/result entries reference the definition
 - If a schema is used by both a param and a result, it appears once in `definitions`
-- Directory params (`type: string`, path ends with `/`) → `exists` check only, no `content`
+- Directory entries (`type: string`, path ends with `/`) → `exists` check only, no `content`
 - Pattern paths (containing `[placeholder]`) → not resolved at instruction time (runtime)
 
 ### Replaces
@@ -227,21 +231,21 @@ Output as a numbered list of findings with severity (error/warn) and suggested f
   - If `$ref:` present: resolve, add to `definitions`
 - Attach `schema: { definitions, params, result }` to each `ResolvedStep`
 
-**`ResolvedStep` interface** — add `schema` field:
+**`ResolvedStep` interface** — add `schema` field. Uses `SchemaBlock` from `schema-block.ts`:
 ```typescript
+import type { SchemaBlock } from './schema-block.js';
+
 export interface ResolvedStep {
   task_file: string;
   rules: string[];
   blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
-  schema?: {
-    definitions: Record<string, object>;
-    params: Record<string, { path?: string; exists?: boolean; content?: unknown; $ref?: string }>;
-    result: Record<string, { path?: string; $ref?: string }>;
-  };
+  schema?: SchemaBlock;
 }
 ```
+
+Params and result share a single `SchemaEntry` type with identical fields (`path`, `exists`, `content`, `$ref`, plus any JSON Schema fields).
 
 Remove `merged_schema` from `ResolvedStep`.
 

@@ -16,7 +16,7 @@
 - Create: `packages/storybook-addon-designbook/src/schema-block.ts`
 - Create: `packages/storybook-addon-designbook/src/validators/__tests__/schema-block.test.ts`
 
-This is the core new function. It takes a task's params and result declarations, resolves `$ref` values, reads file contents for `path:` params, and returns a unified schema block.
+This is the core new function. It takes a task's params and result declarations, resolves `$ref` values, reads file contents for `path:` entries, and returns a unified schema block. Params and result use identical resolution logic via a shared `resolveEntry()` function.
 
 - [ ] **Step 1: Write the type definitions**
 
@@ -27,7 +27,7 @@ import { resolve, dirname } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 import { resolveSchemaRef } from './workflow-resolve.js';
 
-export interface SchemaParamEntry {
+export interface SchemaEntry {
   path?: string;
   exists?: boolean;
   content?: unknown;
@@ -36,17 +36,10 @@ export interface SchemaParamEntry {
   [key: string]: unknown;
 }
 
-export interface SchemaResultEntry {
-  path?: string;
-  $ref?: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
 export interface SchemaBlock {
   definitions: Record<string, object>;
-  params: Record<string, SchemaParamEntry>;
-  result: Record<string, SchemaResultEntry>;
+  params: Record<string, SchemaEntry>;
+  result: Record<string, SchemaEntry>;
 }
 ```
 
@@ -105,6 +98,9 @@ Expected: FAIL — `buildSchemaBlock` not found
 ```typescript
 // src/schema-block.ts (add below the type definitions)
 
+/** Fields copied from the declaration to the entry are everything except these reserved keys. */
+const RESERVED_KEYS = new Set(['path', '$ref', 'workflow']);
+
 export interface BuildSchemaBlockInput {
   params: Record<string, unknown> | undefined;
   result: Record<string, unknown> | undefined;
@@ -113,74 +109,69 @@ export interface BuildSchemaBlockInput {
   envMap: Record<string, string>;
 }
 
-export function buildSchemaBlock(input: BuildSchemaBlockInput): SchemaBlock {
-  const definitions: Record<string, object> = {};
-  const params: Record<string, SchemaParamEntry> = {};
-  const result: Record<string, SchemaResultEntry> = {};
+/**
+ * Resolve a single property declaration into a SchemaEntry.
+ * Used identically for both params and result entries.
+ */
+function resolveEntry(
+  decl: Record<string, unknown>,
+  definitions: Record<string, object>,
+  input: BuildSchemaBlockInput,
+): SchemaEntry {
+  const entry: SchemaEntry = {};
 
-  // Process params
-  const paramProps = (input.params?.properties ?? {}) as Record<string, Record<string, unknown>>;
-  for (const [key, decl] of Object.entries(paramProps)) {
-    const entry: SchemaParamEntry = {};
-
-    // Copy type and other JSON Schema fields (except path, $ref, workflow)
-    for (const [dk, dv] of Object.entries(decl)) {
-      if (dk === 'path' || dk === '$ref' || dk === 'workflow') continue;
-      entry[dk] = dv;
-    }
-
-    // Resolve path: expand env vars, check existence, read content
-    if (typeof decl.path === 'string') {
-      const resolved = expandEnvVars(decl.path, input.envMap);
-
-      // Pattern paths (containing [placeholder]) — pass through unresolved
-      if (/\[.+\]/.test(resolved)) {
-        entry.path = resolved;
-      } else {
-        entry.path = resolved;
-        entry.exists = existsSync(resolved);
-        if (entry.exists && !resolved.endsWith('/')) {
-          try {
-            const raw = readFileSync(resolved, 'utf-8');
-            entry.content = parseYaml(raw) as unknown;
-          } catch {
-            entry.content = null;
-          }
-        } else if (!resolved.endsWith('/')) {
-          entry.content = null;
-        }
-      }
-    }
-
-    // Resolve $ref into definitions
-    if (typeof decl.$ref === 'string') {
-      const { typeName, schema } = resolveSchemaRef(decl.$ref, input.taskFilePath, input.skillsRoot);
-      definitions[typeName] = schema;
-      entry.$ref = `#/definitions/${typeName}`;
-    }
-
-    params[key] = entry;
+  // Copy all fields except reserved keys
+  for (const [dk, dv] of Object.entries(decl)) {
+    if (RESERVED_KEYS.has(dk)) continue;
+    entry[dk] = dv;
   }
 
-  // Process result
+  // Resolve path: expand env vars, check existence, read content
+  if (typeof decl.path === 'string') {
+    const resolved = expandEnvVars(decl.path, input.envMap);
+
+    // Pattern paths (containing [placeholder]) — pass through unresolved
+    if (/\[.+\]/.test(resolved)) {
+      entry.path = resolved;
+    } else {
+      entry.path = resolved;
+      entry.exists = existsSync(resolved);
+      if (entry.exists && !resolved.endsWith('/')) {
+        try {
+          const raw = readFileSync(resolved, 'utf-8');
+          entry.content = parseYaml(raw) as unknown;
+        } catch {
+          entry.content = null;
+        }
+      } else if (!resolved.endsWith('/')) {
+        entry.content = null;
+      }
+    }
+  }
+
+  // Resolve $ref into definitions
+  if (typeof decl.$ref === 'string') {
+    const { typeName, schema } = resolveSchemaRef(decl.$ref, input.taskFilePath, input.skillsRoot);
+    definitions[typeName] = schema;
+    entry.$ref = `#/definitions/${typeName}`;
+  }
+
+  return entry;
+}
+
+export function buildSchemaBlock(input: BuildSchemaBlockInput): SchemaBlock {
+  const definitions: Record<string, object> = {};
+  const params: Record<string, SchemaEntry> = {};
+  const result: Record<string, SchemaEntry> = {};
+
+  const paramProps = (input.params?.properties ?? {}) as Record<string, Record<string, unknown>>;
+  for (const [key, decl] of Object.entries(paramProps)) {
+    params[key] = resolveEntry(decl, definitions, input);
+  }
+
   const resultProps = (input.result?.properties ?? {}) as Record<string, Record<string, unknown>>;
   for (const [key, decl] of Object.entries(resultProps)) {
-    const entry: SchemaResultEntry = {};
-
-    // Copy all fields except $ref
-    for (const [dk, dv] of Object.entries(decl)) {
-      if (dk === '$ref') continue;
-      entry[dk] = dv;
-    }
-
-    // Resolve $ref into definitions
-    if (typeof decl.$ref === 'string') {
-      const { typeName, schema } = resolveSchemaRef(decl.$ref, input.taskFilePath, input.skillsRoot);
-      definitions[typeName] = schema;
-      entry.$ref = `#/definitions/${typeName}`;
-    }
-
-    result[key] = entry;
+    result[key] = resolveEntry(decl, definitions, input);
   }
 
   return { definitions, params, result };
@@ -281,11 +272,15 @@ Add these test cases to the same test file:
     });
   });
 
-  it('resolves $ref into definitions for result', () => {
+  it('resolves $ref, path, exists, and content for result entries (same logic as params)', () => {
     setup();
     const schemaDir = resolve(tmp, 'data-model');
     mkdirSync(schemaDir, { recursive: true });
     writeFileSync(resolve(schemaDir, 'schemas.yml'), 'DataModel:\n  type: object\n  required: [entities]\n  properties:\n    entities: { type: array }\n');
+
+    const dataDir = resolve(tmp, 'designbook');
+    mkdirSync(dataDir, { recursive: true });
+    writeFileSync(resolve(dataDir, 'data-model.yml'), 'entities:\n  - name: Page\n');
 
     const taskFile = resolve(schemaDir, 'tasks', 'task.md');
     mkdirSync(dirname(taskFile), { recursive: true });
@@ -301,11 +296,41 @@ Add these test cases to the same test file:
       },
       taskFilePath: taskFile,
       skillsRoot: tmp,
-      envMap: {},
+      envMap: { DESIGNBOOK_DATA: dataDir },
     });
 
     expect(result.result['data-model']!.$ref).toBe('#/definitions/DataModel');
+    expect(result.result['data-model']!.path).toBe(resolve(dataDir, 'data-model.yml'));
+    expect(result.result['data-model']!.exists).toBe(true);
+    expect(result.result['data-model']!.content).toEqual({ entities: [{ name: 'Page' }] });
     expect(result.definitions.DataModel).toBeDefined();
+  });
+
+  it('result entry with missing file gets exists: false and content: null', () => {
+    setup();
+    const schemaDir = resolve(tmp, 'data-model');
+    mkdirSync(schemaDir, { recursive: true });
+    writeFileSync(resolve(schemaDir, 'schemas.yml'), 'DataModel:\n  type: object\n  properties:\n    entities: { type: array }\n');
+
+    const taskFile = resolve(schemaDir, 'tasks', 'task.md');
+    mkdirSync(dirname(taskFile), { recursive: true });
+    writeFileSync(taskFile, '---\n---\n');
+
+    const result = buildSchemaBlock({
+      params: {},
+      result: {
+        type: 'object',
+        properties: {
+          'data-model': { path: resolve(tmp, 'not-yet.yml'), $ref: '../schemas.yml#/DataModel' },
+        },
+      },
+      taskFilePath: taskFile,
+      skillsRoot: tmp,
+      envMap: {},
+    });
+
+    expect(result.result['data-model']!.exists).toBe(false);
+    expect(result.result['data-model']!.content).toBeNull();
   });
 
   it('deduplicates definitions when same schema used in param and result', () => {
@@ -443,17 +468,15 @@ Replace `merged_schema` with the new `schema` field in `ResolvedStep` and call `
 In `workflow-resolve.ts`, replace the interface at line 1318:
 
 ```typescript
+import type { SchemaBlock } from './schema-block.js';
+
 export interface ResolvedStep {
   task_file: string;
   rules: string[];
   blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
-  schema?: {
-    definitions: Record<string, object>;
-    params: Record<string, { path?: string; exists?: boolean; content?: unknown; $ref?: string; [key: string]: unknown }>;
-    result: Record<string, { path?: string; $ref?: string; [key: string]: unknown }>;
-  };
+  schema?: SchemaBlock;
 }
 ```
 
