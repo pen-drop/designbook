@@ -1207,7 +1207,19 @@ export function isJsonSchemaParam(value: unknown): value is Record<string, unkno
  */
 export function validateParamFormats(params: Record<string, unknown>, taskFile: string): void {
   const properties = params.properties as Record<string, unknown> | undefined;
-  if (!properties) return; // No properties declared — nothing to validate
+  if (!properties) {
+    // Check if this looks like a flat map (has keys that look like param names)
+    const hasParamLikeKeys = Object.keys(params).some(
+      (k) => k !== 'type' && k !== 'required' && k !== 'properties' && k !== '$ref',
+    );
+    if (hasParamLikeKeys) {
+      throw new Error(
+        `Params in ${taskFile} must use wrapper format: { type: object, properties: { ... } }. ` +
+          `Found flat map keys: ${Object.keys(params).join(', ')}.`,
+      );
+    }
+    return; // Truly empty params — OK
+  }
 
   for (const [key, value] of Object.entries(properties)) {
     if (isJsonSchemaParam(value)) continue;

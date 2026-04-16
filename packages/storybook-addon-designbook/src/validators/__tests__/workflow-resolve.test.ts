@@ -386,6 +386,15 @@ describe('validateParamFormats', () => {
   it('accepts params with no properties', () => {
     expect(() => validateParamFormats({ type: 'object' }, 'test.md')).not.toThrow();
   });
+
+  it('rejects flat map params without type: object and properties:', () => {
+    expect(() =>
+      validateParamFormats(
+        { vision: { path: '$DATA/vision.yml', type: 'object' } } as Record<string, unknown>,
+        'test.md',
+      ),
+    ).toThrow(/must use wrapper format/);
+  });
 });
 
 describe('validateAndMergeParams', () => {
@@ -441,7 +450,7 @@ describe('validateAndMergeParams', () => {
       required: ['name', 'vision'],
       properties: {
         name: { type: 'string' },
-        vision: { type: 'object', path: '$DESIGNBOOK_DATA/vision.md' },
+        vision: { type: 'object', path: '$DESIGNBOOK_DATA/vision.yml' },
       },
     };
     // Only provide 'name' — 'vision' has path: so it should be skipped
@@ -467,7 +476,7 @@ describe('validateAndMergeParams', () => {
       required: ['name'],
       properties: {
         name: { type: 'string' },
-        vision: { type: 'object', path: '$DESIGNBOOK_DATA/vision.md' },
+        vision: { type: 'object', path: '$DESIGNBOOK_DATA/vision.yml' },
       },
     };
     expect(() => validateAndMergeParams({}, schema, 'test')).toThrow(/Missing required param 'name'/);
