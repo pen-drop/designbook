@@ -74,3 +74,7 @@ See [`resources/skill-map.md`](resources/skill-map.md) for a full listing of all
 ## Research Flag
 
 See [`resources/research.md`](resources/research.md) for the `--research` post-workflow review (Superpowers-based).
+
+## Skill Validation
+
+See [`resources/validate.md`](resources/validate.md) for static analysis of skill files (principles compliance, metrics, scoring).
