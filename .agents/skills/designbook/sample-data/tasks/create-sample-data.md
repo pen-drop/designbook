@@ -37,7 +37,7 @@ Generate sample data for a section. Idempotent — reads existing data.yml, pres
 
 ### Select Section
 
-If `section_id` is not provided, list all directories under `${DESIGNBOOK_DATA}/sections/`. Present the available sections:
+If `section_id` is not provided, list all directories under the sections directory. Present the available sections:
 
 > "Which section should get sample data?
 >
@@ -50,7 +50,7 @@ Wait for response. Set `section_id` to the selected section's directory name.
 
 ### Analyze Data Needs
 
-Read `data-model.yml`. Enumerate all bundles defined under `content:` and `config:`. Present the analysis:
+Analyze the data model. Enumerate all bundles defined under `content:` and `config:`. Present the analysis:
 
 > **Content entities for [Section Title]:**
 > - `[entity_type].[bundle]` — [brief description]
@@ -61,7 +61,7 @@ Read `data-model.yml`. Enumerate all bundles defined under `content:` and `confi
 > **Proposed records:**
 > - `[entity_type].[bundle]`: 6 records
 >
-> Any entities not yet in data-model.yml? → Run `/debo data-model` first.
+> Any entities not yet in the data model? → Run `/debo data-model` first.
 
 Wait for response. Iterate until approved.
 
@@ -79,10 +79,10 @@ If the file does not exist, treat all counts as 0.
 
 ### Step 2: Determine required record counts
 
-If `entities` is provided (populated by `plan-entities`), use it to determine per-bundle requirements. Otherwise read all bundles from `data-model.yml` (`content:` and `config:` sections).
+If `entities` is provided (populated by `plan-entities`), use it to determine per-bundle requirements. Otherwise read all bundles from the data model (`content:` and `config:` sections).
 
 **Skip rule — `purpose: landing-page` bundles:**
-If a bundle declares `purpose: landing-page` in `data-model.yml` AND `entities` is provided AND that bundle is NOT present in the `entities` list → skip it entirely.
+If a bundle declares `purpose: landing-page` in the data model AND `entities` is provided AND that bundle is NOT present in the `entities` list → skip it entirely.
 
 For each entity type/bundle (after applying the skip rule):
 
@@ -100,7 +100,7 @@ For each entity type/bundle (after applying the skip rule):
 
 ### Step 3: Generate — Pass 1 (content entities)
 
-Iterate all bundles under `data-model.yml → content:`.
+Iterate all bundles from the data model under `content:`.
 
 For each bundle where `existing_count < required_count`:
 - Generate `required_count - existing_count` new records
@@ -110,14 +110,14 @@ For each bundle where `existing_count < required_count`:
 
 ### Step 4: Generate — Pass 2 (config entities)
 
-Iterate all bundles under `data-model.yml → config:`.
+Iterate all bundles from the data model under `config:`.
 
 For each bundle where `existing_count < required_count`:
 - Generate records using the same field value generation rules
 
 ## Output Format
 
-`data.yml` MUST use `content:` and `config:` as top-level section keys — mirroring the structure of `data-model.yml`:
+`data.yml` MUST use `content:` and `config:` as top-level section keys — mirroring the data model structure:
 
 ```yaml
 content:
@@ -133,15 +133,15 @@ config:
         {field}: {value}
 ```
 
-- Content entities from `data-model.yml → content:` → write under `content:` in `data.yml`
-- Config entities from `data-model.yml → config:` → write under `config:` in `data.yml`
+- Content entities from the data model `content:` section → write under `content:` in `data.yml`
+- Config entities from the data model `config:` section → write under `config:` in `data.yml`
 - Omit `config:` entirely if there are no config entities
 
 ## Field Value Generation
 
 For each field in a record, determine value structure using this precedence:
 
-1. **Explicit `sample_template`** — field has `sample_template.template: <name>` in `data-model.yml`
+1. **Explicit `sample_template`** — field has `sample_template.template: <name>` in the data model
    → Load rules matching `when: template: <name>`
    → Apply `sample_template.settings` as context
 
@@ -174,15 +174,15 @@ rows:
 
 ## Validation
 
-Check against `$DESIGNBOOK_DATA/data-model.yml` before writing:
+Check against the data model before writing:
 
 ### Hard Errors (stop — fix before writing)
 
-1. **Missing entity type** — top-level key not in `data-model.yml`
-2. **Missing bundle** — second-level key not in `data-model.yml`
+1. **Missing entity type** — top-level key not in the data model
+2. **Missing bundle** — second-level key not in the data model
 
 ### Warnings (continue but report)
 
-1. **Unknown field** — field not defined in `data-model.yml` for this bundle
+1. **Unknown field** — field not defined in the data model for this bundle
 2. **Missing required field** — `required: true` field absent from a record
 3. **Broken reference** — reference field value doesn't match any `id` in the target bundle's records

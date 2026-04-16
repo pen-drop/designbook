@@ -5,6 +5,10 @@ domain: [data-model, vision]
 params:
   type: object
   properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      workflow: vision
+      type: object
     data_model:
       path: $DESIGNBOOK_DATA/data-model.yml
       type: object
@@ -14,17 +18,13 @@ result:
   properties:
     data-model:
       path: $DESIGNBOOK_DATA/data-model.yml
-      type: object
-      required: [content]
-      properties:
-        content: { type: object, title: Content Entities }
-        config: { type: object, title: Config Entities, default: {} }
+      $ref: ../schemas.yml#/DataModel
 ---
 
 # Data Model
 
 Define content and config entities through dialog.
-Read vision.md for product context. If data-model.yml exists, extend it.
+If an existing data model is provided, extend it.
 
 ## Gathering
 

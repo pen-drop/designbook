@@ -9,6 +9,9 @@ params:
     story_id: { type: string }
     reference: { type: array, default: [] }
     reference_dir: { type: string, default: "" }
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 result:
   type: object
   required: [reference, breakpoints]
@@ -47,7 +50,7 @@ Set `params.reference` from the answer.
 
 Breakpoints are collected as a required result -- the workflow engine triggers `waiting_for` automatically, prompting the user to select which breakpoints to test.
 
-List available breakpoints from `design-tokens.yml` with pixel values.
+List available breakpoints from the design tokens with pixel values.
 
 ## Step 3: Ensure Storybook is running
 
