@@ -13,6 +13,9 @@ params:
     story_id: { type: string }
     breakpoint: { type: string }
     region: { type: string }
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 result:
   type: object
   required: [screenshot]
@@ -22,9 +25,6 @@ result:
 each:
   checks:
     $ref: ../schemas.yml#/Check
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
 ---
 
 # Capture Storybook

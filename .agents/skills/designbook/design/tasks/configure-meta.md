@@ -9,15 +9,15 @@ params:
   required: [story_id]
   properties:
     story_id: { type: string }
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 result:
   type: object
   required: [meta]
   properties:
     meta:
       path: designbook/stories/{story_id}/meta.yml
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
 ---
 
 # Configure Meta

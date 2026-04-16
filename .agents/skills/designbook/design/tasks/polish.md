@@ -8,12 +8,13 @@ priority: 50
 params:
   type: object
   $ref: ../schemas.yml#/Issue
+  properties:
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 each:
   issues:
     $ref: ../schemas.yml#/Issue
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
 ---
 
 # Polish

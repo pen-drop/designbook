@@ -10,6 +10,9 @@ params:
   properties:
     scene_id: { type: string }
     reference_folder: { type: string }
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 each:
   checks:
     $ref: ../schemas.yml#/Check
@@ -37,9 +40,6 @@ result:
                 property: { type: string }
                 expected: { type: string }
                 actual: { type: string }
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
 ---
 
 # Compare Screenshots

@@ -4,12 +4,15 @@ when:
 params:
   type: object
   $ref: ../schemas.yml#/EntityMapping
+  required: [data_model]
+  properties:
+    data_model:
+      path: $DESIGNBOOK_DATA/data-model.yml
+      workflow: debo-data-model
+      type: object
 each:
   entity_mappings:
     $ref: ../schemas.yml#/EntityMapping
-reads:
-  - path: $DESIGNBOOK_DATA/data-model.yml
-    workflow: debo-data-model
 result:
   type: object
   required: [entity-mapping]

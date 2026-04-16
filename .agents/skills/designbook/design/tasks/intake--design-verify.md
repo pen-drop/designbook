@@ -20,7 +20,6 @@ result:
     breakpoints:
       type: array
       items: { type: string }
-reads: []
 ---
 
 # Intake: Design Verify

@@ -13,12 +13,12 @@ params:
     scene_id: { type: string }
     reference_folder: { type: string }
     breakpoints: { type: string }
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 each:
   checks:
     $ref: ../schemas.yml#/Check
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
 ---
 
 # Capture Reference

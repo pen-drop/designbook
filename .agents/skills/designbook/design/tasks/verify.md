@@ -13,9 +13,9 @@ params:
     breakpoint: { type: string }
     region: { type: string }
     reference_folder: { type: string }
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 ---
 
 # Verify

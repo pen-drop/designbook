@@ -4,8 +4,15 @@ when:
 domain: [components, components.shell]
 params:
   type: object
+  required: [vision, design_tokens]
   properties:
     reference_dir: { type: string, default: "" }
+    vision:
+      path: $DESIGNBOOK_DATA/vision.md
+      type: object
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 result:
   type: object
   required: [component, output_path]
@@ -16,9 +23,6 @@ result:
         $ref: ../schemas.yml#/Component
     output_path:
       type: string
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
 ---
 
 # Intake: Design Shell

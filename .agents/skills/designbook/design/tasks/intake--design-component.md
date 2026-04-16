@@ -14,7 +14,6 @@ result:
       type: array
       items:
         $ref: ../schemas.yml#/Component
-reads: []
 ---
 
 # Intake: Design Component

@@ -4,8 +4,22 @@ when:
 domain: [components, components.layout]
 params:
   type: object
+  required: [data_model, design_scenes, vision, section_scenes]
   properties:
     reference_dir: { type: string, default: "" }
+    data_model:
+      path: $DESIGNBOOK_DATA/data-model.yml
+      type: object
+    design_scenes:
+      path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
+      type: object
+    vision:
+      path: $DESIGNBOOK_DATA/vision.md
+      type: object
+    section_scenes:
+      path: $DESIGNBOOK_DATA/sections/[section-id]/[section-id].section.scenes.yml
+      workflow: debo-shape-section
+      type: object
 result:
   type: object
   required: [component, output_path, entity_mappings, section_id, section_title]
@@ -24,12 +38,6 @@ result:
       type: string
     section_title:
       type: string
-reads:
-  - path: $DESIGNBOOK_DATA/data-model.yml
-  - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
-  - path: $DESIGNBOOK_DATA/vision.md
-  - path: $DESIGNBOOK_DATA/sections/[section-id]/[section-id].section.scenes.yml
-    workflow: debo-shape-section
 ---
 
 # Intake: Design Screen

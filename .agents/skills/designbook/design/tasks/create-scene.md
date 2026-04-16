@@ -4,7 +4,7 @@ when:
 domain: [components, scenes]
 params:
   type: object
-  required: [output_path, scene_id, section_id, section_title]
+  required: [output_path, scene_id, section_id, section_title, components_dir]
   properties:
     output_path: { type: string }
     scene_id: { type: string }
@@ -12,6 +12,16 @@ params:
     section_title: { type: string }
     reference: { type: array, default: [] }
     reference_dir: { type: string, default: "" }
+    components_dir:
+      path: $DESIGNBOOK_DIRS_COMPONENTS
+      type: string
+      description: Components -- location resolved by the active framework skill
+    design_scenes:
+      path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
+      type: object
+    data_model:
+      path: $DESIGNBOOK_DATA/data-model.yml
+      type: object
 result:
   type: object
   required: [scene-file]
@@ -19,13 +29,6 @@ result:
     scene-file:
       path: "{{ output_path }}"
       validators: [scene]
-reads:
-  - path: $DESIGNBOOK_DIRS_COMPONENTS
-    description: Components -- location resolved by the active framework skill
-  - path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
-    optional: true
-  - path: $DESIGNBOOK_DATA/data-model.yml
-    optional: true
 ---
 
 # Create Scene

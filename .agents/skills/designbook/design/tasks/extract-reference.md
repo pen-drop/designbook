@@ -3,9 +3,13 @@ when:
   steps: [extract-reference]
 params:
   type: object
+  required: [vision]
   properties:
     story_id: { type: string, default: "" }
     reference_folder: { type: string, default: "" }
+    vision:
+      path: $DESIGNBOOK_DATA/vision.md
+      type: object
 result:
   type: object
   required: [reference_dir, reference]
@@ -19,8 +23,6 @@ result:
     screenshot:
       type: string
       default: ""
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
 ---
 
 # Extract Reference

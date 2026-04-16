@@ -8,6 +8,9 @@ params:
     story_id: { type: string }
     reference: { type: array, default: [] }
     breakpoints: { type: array }
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
 result:
   type: object
   required: [checks]
@@ -24,9 +27,6 @@ result:
           threshold: { type: number, default: 0 }
           selector: { type: string }
           type: { type: string }
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
 ---
 
 # Setup Compare
