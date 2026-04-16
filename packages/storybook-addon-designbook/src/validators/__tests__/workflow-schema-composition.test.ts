@@ -235,12 +235,11 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
   }
 
   // Build result declarations from first task's frontmatter
+  const envMap = buildEnvMap(baseConfig);
   let firstResult: Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined;
-  const firstSchemas: Record<string, object> = {};
   if (firstResolved) {
     const firstFm = parseFrontmatter(firstResolved.task_file);
     const resultDecl = firstFm?.result as Record<string, unknown> | undefined;
-    const envMap = buildEnvMap(baseConfig);
     firstResult = expandResultDeclarations(resultDecl, undefined, {}, envMap, undefined, true);
   }
 
@@ -266,7 +265,6 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
         ]
       : [];
 
-  const envMap = buildEnvMap(baseConfig);
   const name = workflowCreate(
     baseConfig.data,
     'test-compose',
@@ -278,7 +276,7 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
     resolved.engine,
     undefined,
     tmpDir,
-    firstSchemas,
+    {},
     envMap,
   );
 
@@ -290,20 +288,21 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
   // Execute step actions
   const afterSteps: WorkflowFile[] = [];
   for (const action of steps) {
-    // Find the task ID for this step
-    const taskToComplete =
-      (created.tasks.find((t) => t.step === action.done && t.status === 'in-progress') ?? afterSteps.length > 0)
-        ? readWorkflow(tasksPath).tasks.find((t) => t.step === action.done && t.status === 'in-progress')
-        : undefined;
+    // Read the latest state: after previous steps or from initial create
+    const current = afterSteps.length > 0 ? afterSteps[afterSteps.length - 1]! : created;
+    const taskToComplete = current.tasks.find(
+      (t) => t.step === action.done && t.status === 'in-progress',
+    );
 
-    const taskId = taskToComplete?.id;
-    if (!taskId) {
+    if (!taskToComplete) {
       throw new Error(
-        `No in-progress task found for step "${action.done}". Available: ${readWorkflow(tasksPath)
-          .tasks.map((t) => `${t.step}(${t.status})`)
+        `No in-progress task found for step "${action.done}". Available: ${current.tasks
+          .map((t) => `${t.step}(${t.status})`)
           .join(', ')}`,
       );
     }
+
+    const taskId = taskToComplete.id;
 
     await workflowDone(baseConfig.data, name, taskId, undefined, {
       ...(action.data ? { data: action.data } : {}),
