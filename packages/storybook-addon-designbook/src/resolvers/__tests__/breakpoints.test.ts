@@ -88,10 +88,7 @@ describe('breakpointsResolver', () => {
   it('falls back to design-tokens when meta has no breakpoints', async () => {
     const storiesDir = join(tmpDir, 'stories', 'empty--meta');
     mkdirSync(storiesDir, { recursive: true });
-    writeFileSync(
-      join(storiesDir, 'meta.yml'),
-      `reference:\n  source: { url: "https://example.com" }\n`,
-    );
+    writeFileSync(join(storiesDir, 'meta.yml'), `reference:\n  source: { url: "https://example.com" }\n`);
 
     const ctx = makeContext({ story_id: 'empty--meta' });
     const result = await breakpointsResolver.resolve('', { from: 'story_id' }, ctx);
