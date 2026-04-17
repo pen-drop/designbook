@@ -289,7 +289,7 @@ export class StoryMeta {
     this._allChecks = this._buildChecks();
   }
 
-  get data(): StoryMetaData {
+  get data(): Readonly<StoryMetaData> {
     return this._meta;
   }
 

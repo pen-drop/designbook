@@ -104,4 +104,11 @@ describe('breakpointsResolver', () => {
     expect(result.resolved).toBe(true);
     expect(result.value).toBe('sm,xl');
   });
+
+  it('falls back to design-tokens when story_id param is not a string', async () => {
+    const ctx = makeContext({ story_id: 42 });
+    const result = await breakpointsResolver.resolve('', { from: 'story_id' }, ctx);
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('sm,xl');
+  });
 });
