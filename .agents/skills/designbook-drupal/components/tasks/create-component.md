@@ -1,15 +1,15 @@
 ---
-title: "Create Component {{ component }}"
+title: "Create Component {{ component.component }}"
 trigger:
   steps: [create-component]
 filter:
   frameworks.component: sdc
 params:
   type: object
-  $ref: designbook/design/schemas.yml#/Component
+  required: [component]
   properties:
-    props: { type: array, default: [] }
-    variants: { type: array, default: [] }
+    component:
+      $ref: designbook/design/schemas.yml#/Component
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       workflow: debo-design-tokens
@@ -19,18 +19,19 @@ result:
   required: [component-yml, component-twig, component-story, app-css]
   properties:
     component-yml:
-      path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.component.yml
+      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.component.yml"
       $ref: designbook-drupal/components/schemas.yml#/SdcComponent
     component-twig:
-      path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.twig
+      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.twig"
     component-story:
-      path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.default.story.yml
+      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.default.story.yml"
       $ref: designbook-drupal/components/schemas.yml#/SdcStory
     app-css:
       path: ${DESIGNBOOK_CSS_APP}
 each:
   component:
-    $ref: designbook/design/schemas.yml#/Component
+    expr: "component"
+    schema: { $ref: designbook/design/schemas.yml#/Component }
 ---
 
 
