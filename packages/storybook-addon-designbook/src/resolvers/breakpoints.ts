@@ -2,13 +2,41 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { load } from 'js-yaml';
 import type { ParamResolver, ResolverContext, ResolverResult } from './types.js';
+import { StoryMeta } from '../story-entity.js';
 
 const TOKENS_PATH = 'design-system/design-tokens.yml';
+
+function breakpointsFromMeta(context: ResolverContext, config: Record<string, unknown>): string[] | null {
+  const fromParam = typeof config.from === 'string' ? config.from : undefined;
+  if (!fromParam) return null;
+
+  const storyId = context.params[fromParam];
+  if (typeof storyId !== 'string' || storyId === '') return null;
+
+  const story = StoryMeta.load(context.config, storyId);
+  if (!story) return null;
+
+  const meta = story.data;
+  const bps = meta.reference?.breakpoints;
+  if (!bps) return null;
+
+  const keys = Object.keys(bps).filter((k) => !k.startsWith('$'));
+  return keys.length > 0 ? keys : null;
+}
 
 export const breakpointsResolver: ParamResolver = {
   name: 'breakpoints',
 
-  resolve(_input: string, _config: Record<string, unknown>, context: ResolverContext): ResolverResult {
+  resolve(_input: string, config: Record<string, unknown>, context: ResolverContext): ResolverResult {
+    const metaBreakpoints = breakpointsFromMeta(context, config);
+    if (metaBreakpoints) {
+      return {
+        resolved: true,
+        value: metaBreakpoints.join(','),
+        input: '',
+      };
+    }
+
     const tokensFile = join(context.config.data, TOKENS_PATH);
 
     if (!existsSync(tokensFile)) {

@@ -289,6 +289,10 @@ export class StoryMeta {
     this._allChecks = this._buildChecks();
   }
 
+  get data(): StoryMetaData {
+    return this._meta;
+  }
+
   // -------------------------------------------------------------------------
   // Static loaders
   // -------------------------------------------------------------------------
