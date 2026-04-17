@@ -14,6 +14,10 @@ params:
       $ref: ../../scenes/schemas.yml#/SceneId
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
+    story_url:
+      type: string
+      resolve: story_url
+      from: story_id
     breakpoint:
       $ref: ../schemas.yml#/BreakpointId
     region:
@@ -38,11 +42,7 @@ Captures a Storybook screenshot at the given breakpoint viewport width via Playw
 
 ## Execution
 
-1. **Resolve Storybook URL** from `StoryMeta` entity:
-   ```bash
-   _debo story --scene ${scene}
-   ```
-   Extract the Storybook iframe URL from the story JSON output.
+1. **Use the Storybook URL from the resolved param**: the `story_url` param is pre-resolved to the iframe URL (`http://localhost:<port>/iframe.html?id=<storyId>&viewMode=story`).
 
 2. **Capture screenshot** using the `playwright-capture` rule (staged file flow):
 
