@@ -16,12 +16,16 @@ params:
     sections_dir:
       path: $DESIGNBOOK_DATA/sections/
       type: string
+    scene_path:
+      type: string
+      resolve: scene_path
+      from: section_id
 result:
   type: object
   required: [section-scenes]
   properties:
     section-scenes:
-      path: $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
+      path: $DESIGNBOOK_DATA/{scene_path}
       type: object
       validators: [scene]
       $ref: ../../scenes/schemas.yml#/SceneFile
