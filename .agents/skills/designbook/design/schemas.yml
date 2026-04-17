@@ -49,6 +49,76 @@ Check:
       type: string
       description: Check type (e.g. `screenshot`, `dom`). Determines the capture strategy.
 
+StoryMeta:
+  type: object
+  title: Story Meta
+  description: >
+    On-disk format of `stories/{storyId}/meta.yml` — the single source of truth
+    for per-story verification settings (reference source, breakpoints, regions,
+    check results, summary). Written/read exclusively by the `StoryMeta` entity.
+  properties:
+    reference:
+      type: object
+      properties:
+        source:
+          type: object
+          description: Origin of the design reference for this story.
+          properties:
+            url: { type: string }
+            origin: { type: string, description: "Provenance tag (e.g. `figma`, `manual`, `url`)." }
+            screenId: { type: string }
+            hasMarkup: { type: boolean }
+        breakpoints:
+          type: object
+          description: >
+            Map of breakpoint id → per-breakpoint configuration. Keys must match
+            identifiers from `design-tokens.yml` (see `#/BreakpointId`).
+          additionalProperties:
+            type: object
+            properties:
+              threshold:
+                type: number
+                description: Default maximum percentage deviation for regions of this breakpoint.
+              regions:
+                type: object
+                description: Map of region id → capture configuration.
+                additionalProperties:
+                  type: object
+                  properties:
+                    selector:
+                      type: string
+                      description: CSS selector for this region. Empty = full viewport.
+                    threshold:
+                      type: number
+                      description: Per-region override of the breakpoint threshold.
+        checks:
+          type: object
+          description: >
+            Map of `{breakpoint}--{region}` key → persisted check result.
+          additionalProperties:
+            type: object
+            required: [status]
+            properties:
+              status: { type: string, enum: [open, done] }
+              result: { type: string, enum: [pass, fail] }
+              diff: { type: number }
+              issues:
+                type: array
+                items:
+                  $ref: "#/Issue"
+        summary:
+          type: object
+          description: Aggregated verification status persisted with the story.
+          required: [total, pass, fail, unchecked, maxDiff, avgDiff, threshold]
+          properties:
+            total: { type: integer }
+            pass: { type: integer }
+            fail: { type: integer }
+            unchecked: { type: integer }
+            maxDiff: { type: [number, "null"] }
+            avgDiff: { type: [number, "null"] }
+            threshold: { type: number }
+
 Issue:
   type: object
   required: [severity, description]
