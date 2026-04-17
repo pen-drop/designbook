@@ -298,40 +298,58 @@ Each issue needs a `severity`:
 
 ## `each:` — Iteration Declaration
 
-Tasks declare iteration over scope arrays via `each:` in frontmatter:
+Tasks declare iteration over scope arrays via `each:` in frontmatter. Every `each:` names one or more **bindings**. The value is a JSONata expression evaluated against task scope. Each array item is bound to the scope under the binding name, and one task instance is emitted per item.
+
+**Short form** (no schema):
+
+```yaml
+each:
+  component: "component"
+```
+
+**Long form** (with schema):
 
 ```yaml
 each:
   component:
-    $ref: ../schemas.yml#/Component
+    expr: "component"
+    schema: { $ref: ../schemas.yml#/Component }
 ```
 
-The engine expands one task instance per item in the scope array. Scope is populated when the preceding stage completes and its data results are collected.
+- Binding names are **singular** (`component`, `variant`, `check`, `issue`)
+- Values are JSONata expressions evaluated against task scope — plain identifiers (`"issues"`), dotted paths (`"component.variants"`), filters (`"variants[published = true]"`), and functions (`"$filter(variants, function($v) { $v.order > 0 })"`) all work
+- Optional `schema:` describes the item shape for validation/documentation
+- Templates inside the task address iteration state through the binding: `{{ component.component }}`, `{{ variant.id }}`, **never** `{{ component }}` (which is the whole object)
 
-- Keys reference scope entries from completed stages
-- Values are JSON Schema (inline or `$ref`) describing the expected item shape
-- Only the **first key** of the `each:` map is used for expansion — declare a single iteration axis per task
+### Dependent axes — cross-products
 
-### Dotpath expansion — iterate a nested array per outer item
-
-To expand one task per `(outer, inner)` pair where the inner array lives on each outer item, use a dotpath key:
+Inner bindings evaluate against the scope enriched with earlier bindings. This replaces dotpath-with-singularization:
 
 ```yaml
 each:
-  component.variants:
-    $ref: ../schemas.yml#/Variant
+  component:
+    expr: "component"
+    schema: { $ref: ../schemas.yml#/Component }
+  variant:
+    expr: "component.variants"
+    schema: { $ref: ../schemas.yml#/Variant }
 ```
 
 Semantics:
 
-- Outer scope (`component`) is resolved from scope/params as usual — an array of objects
-- For each outer item, the path after the first dot (`variants`) is descended to find the inner array
-- Each inner item produces one task instance; params are `{ ...outerItem, [innerKey]: innerItem }`
-- `innerKey` is the last dotpath segment singularized (`variants` → `variant`, `stories` → `story`, `categories` → `category`)
-- Outer items with a missing or empty inner array produce zero tasks
-- Template vars inside result paths can reference both axes:
+- Each axis evaluates its expression against scope extended with previously bound axes
+- The engine emits one task per `(component, variant)` pair
+- Independent axes (no reference to earlier bindings) produce the full cross-product
+- Templates reference both axes:
   ```yaml
   result:
     variant-story:
-      path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.{{ variant.id }}.story.yml
+      path: ${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.{{ variant.id }}.story.yml
   ```
+
+### Iteration helpers
+
+Inside each expanded task, two helpers are available in JSONata expressions:
+
+- `$i` — zero-based iteration index across the cross-product
+- `$total` — total number of emitted task instances

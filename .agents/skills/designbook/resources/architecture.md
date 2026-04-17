@@ -65,34 +65,39 @@ params:
 
 This replaces the older "provider rules" pattern (`provides: <param>` on rule files). Provider rules were AI-executed; resolvers are deterministic code. Some provider rules may still exist during migration but new param resolution should use code resolvers.
 
-Tasks declare their iteration requirements via `each:` in their own frontmatter (not in the workflow stage definition):
+Tasks declare their iteration requirements via `each:` in their own frontmatter (not in the workflow stage definition). Every `each:` names one or more **bindings**; the value is a JSONata expression evaluated against task scope. Each array item is bound under the binding name, and one task instance is expanded per item.
 
 ```yaml
 # task frontmatter (create-component.md)
 each:
   component:
-    $ref: ../schemas.yml#/Component
+    expr: "component"
+    schema: { $ref: ../schemas.yml#/Component }
 result:
   component-yml:
-    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+    path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component.component }}/{{ component.component }}.component.yml
     validators: [data]
 ```
 
-The engine expands one task instance per item in the `component` scope array. Scope is populated when the preceding stage completes and its data results are collected.
+The engine evaluates the expression, binds every array item under `component`, and expands one task per item. Scope is populated when the preceding stage completes and its data results are collected.
 
-**Dotpath expansion** — for `(outer × nested inner)` cross-products, use a dotpath key. The engine resolves the outer scope, descends the remaining path on each outer item, and emits one task per inner item. Params are `{ ...outerItem, [singularInnerKey]: innerItem }`:
+**Dependent axes** — inner bindings can reference previously bound axes. The expression evaluates lazily against the scope enriched with earlier bindings, so `component.variants` resolves to the variants of the *current* component item:
 
 ```yaml
 # task frontmatter (create-variant-story.md)
 each:
-  component.variants:
-    $ref: ../schemas.yml#/Variant
+  component:
+    expr: "component"
+    schema: { $ref: ../schemas.yml#/Component }
+  variant:
+    expr: "component.variants"
+    schema: { $ref: ../schemas.yml#/Variant }
 result:
   variant-story:
-    path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.{{ variant.id }}.story.yml
+    path: ${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.{{ variant.id }}.story.yml
 ```
 
-The last dotpath segment is singularized to form the inner accessor (`variants` → `variant`). See `designbook-skill-creator/resources/schemas.md#each-iteration-declaration` for the full rules.
+Multiple independent bindings produce the cross-product. JSONata filters (`component.variants[published=true]`) and array functions are available inside the expression. See `designbook-skill-creator/resources/schemas.md#each-iteration-declaration` for the full rules.
 
 The `intake` stage is a regular declared stage — its task file is resolved via the `intake--<workflow-id>.md` fallback convention. It runs first, gathering user input and producing data results that flow into scope for subsequent stages.
 
@@ -185,23 +190,23 @@ filter:
   frameworks.component: sdc  # only when the project uses this framework
 params:
   component: ~               # ~ means required (from intake)
-  slots: []
 each:
   component:
-    $ref: ../schemas.yml#/Component
+    expr: "component"
+    schema: { $ref: ../schemas.yml#/Component }
 result:
   component-yml:
-    path: ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component }}/{{ component }}.component.yml
+    path: ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component.component }}/{{ component.component }}.component.yml
     validators: [data]
   component-twig:
-    path: ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component }}/{{ component }}.twig
+    path: ${DESIGNBOOK_DIRS_COMPONENTS}/{{ component.component }}/{{ component.component }}.twig
 ---
 # Task instructions go here
 ```
 
 - `trigger` declares WHEN the task activates. Keys `steps` and `domain` are OR-connected — at least one must match.
 - `filter` declares WHERE the task applies. Keys (`backend`, `frameworks.*`, `extensions`, `type`) are AND-connected — every key must match.
-- `each` declares iteration: keys reference scope entries, values are JSON Schema (inline or `$ref`)
+- `each` declares iteration: keys are binding names, values are JSONata expressions evaluated against task scope (short form: string; long form: `{ expr, schema }`). Inner bindings can reference earlier ones for dependent axes. Helpers `$i` and `$total` are exposed inside each expanded task.
 - `result` declares task outputs: file results (with `path:`) and data results (inline schema or `$ref`). Paths are always absolute — using env vars with `{{ param }}` substitution (resolved by CLI at plan time)
 - A task file with no `trigger:` and no `filter:` never matches
 

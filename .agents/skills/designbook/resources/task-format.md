@@ -16,8 +16,9 @@ filter:                                       # optional: WHERE (AND-connected).
 params:                                       # task-specific: declared parameters
   scene: ~
 each:                                         # task-specific: iteration declaration
-  checks:
-    $ref: ../schemas.yml#/Check
+  check:
+    expr: "checks"                            # JSONata expression against task scope
+    schema: { $ref: ../schemas.yml#/Check }   # optional schema for the bound item
 result:                                       # task-specific: output declarations
   component-yml:                              # file result (has path:)
     path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
@@ -38,9 +39,28 @@ result:                                       # task-specific: output declaratio
 - `filter` — conditions that declare WHERE the artifact is applicable. Keys like `backend`,
   `frameworks.*`, `extensions`, `type` are AND-connected (every key must match). Evaluated against
   project config.
-- `each` — declares what this task iterates over. Keys reference scope entries; values are JSON Schema (inline or `$ref`). The engine expands one task instance per array item.
+- `each` — declares what this task iterates over. Each key is a **binding name** (singular, e.g. `check`, `variant`). Each value is a JSONata expression against task scope, either as a short-form string (`check: "checks"`) or long form `{ expr: "<jsonata>", schema: { $ref: … } }`. The engine evaluates the expression, binds every array item to the scope under the binding name, and expands one task instance per item. Multiple bindings produce the cross-product; inner axes can reference earlier bindings (e.g. `variant: "component.variants"`). Helpers `$i` and `$total` are available inside each expanded task.
 - `result` — declares all task outputs. Each key is a stable identifier. File results include a `path:` template (supports `$ENV` and `{{ param }}`). Optional `flush: immediately` writes to final path on result write instead of staging. Data results declare a JSON Schema type (inline or `$ref`). Both support optional `validators:` for semantic validation.
 - `validators` — semantic validator keys: `data`, `entity-mapping`, `scene`, `image`, or `cmd:<command>` prefix for arbitrary command validators. Empty = auto-pass.
+
+### JSONata interpolation in `{{ … }}` templates
+
+Every `{{ … }}` placeholder in `path:`, `title:`, `description:`, and other string fields is evaluated as a JSONata expression against the task scope (merged params + each-bindings). The same evaluator handles `${VAR}` / `$VAR` env-var lookups via `$env`.
+
+```yaml
+path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.{{ variant.id }}.story.yml"
+title: "Polish {{ $uppercase(issue.severity) }}: {{ issue.description }}"
+```
+
+Available features:
+
+- **Dotted paths** — `{{ variant.id }}`, `{{ issue.file_hint }}`
+- **Array filters** — `{{ variants[published = true].id }}`
+- **Built-in functions** — `$lowercase`, `$uppercase`, `$join`, `$count`, `$filter`, `$map`, `$sort`
+- **`$env.VAR`** — environment variable lookup (equivalent to `${VAR}` / `$VAR`)
+- **`$i` / `$total`** — iteration index / total count inside `each`-expanded tasks
+
+Unknown paths throw at evaluation time (loud failure at workflow run). Compiled expressions are cached, so repeated templates cost one parse.
 
 ### `$ref` syntax
 
