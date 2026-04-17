@@ -12,7 +12,6 @@ export const componentBuilder: SceneNodeBuilder = {
     return 'component' in node && typeof node['component'] === 'string';
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async build(node: SceneNode, _ctx: BuildContext): Promise<BuildResult> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { type, story, ...rest } = node as SceneNode & { type?: string; story?: string };

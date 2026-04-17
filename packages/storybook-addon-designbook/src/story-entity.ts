@@ -357,7 +357,11 @@ export class StoryMeta {
    * missing, optionally seeds meta.yml with provided data, then runs ensureMeta
    * to derive breakpoints/regions from design tokens.
    */
-  static createByScene(config: DesignbookConfig, sceneRef: string, metaSeed?: Partial<StoryMetaData>): StoryMeta | null {
+  static createByScene(
+    config: DesignbookConfig,
+    sceneRef: string,
+    metaSeed?: Partial<StoryMetaData>,
+  ): StoryMeta | null {
     const { scenes, allScenes } = resolveScene(config.data, sceneRef);
     if (scenes.length === 0) return null;
 
@@ -829,7 +833,6 @@ export class StoryMeta {
     return Object.keys(bpObj).filter((k) => !k.startsWith('$'));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private _deriveRegions(_config: DesignbookConfig): Array<{ name: string; selector: string }> {
     // Default: single full-page region. Shell scenes (header/footer) are
     // configured explicitly by the intake task via --create --json.

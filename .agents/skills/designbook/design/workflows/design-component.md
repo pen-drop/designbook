@@ -11,6 +11,7 @@ params:
   breakpoints:
     type: string
     resolve: breakpoints
+    from: story_id
 stages:
   reference:
     steps: [extract-reference]

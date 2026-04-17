@@ -1174,7 +1174,6 @@ export function expandResultDeclarations(
 
       // Build inline schema from declaration (exclude path, validators, $ref, flush)
       let schema: object | undefined;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { path: _path, validators: _validators, $ref: _ref, flush: _flush, ...schemaProps } = decl;
       if (Object.keys(schemaProps).length > 0) {
         schema = schemaProps as object;
@@ -1560,7 +1559,6 @@ export function resolveAllStages(
         if (resultProps) {
           for (const [rk, rv] of Object.entries(resultProps)) {
             // Build inline schema from result declaration (excluding path/$ref/validators)
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { path: _path, $ref: ref, validators: _validators, ...schemaProps } = rv;
             // Always include the result key — even $ref-only entries need a merge target
             // so that blueprint extends can contribute properties (e.g. component tokens)

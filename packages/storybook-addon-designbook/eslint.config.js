@@ -34,6 +34,14 @@ export default [
     },
   },
   ...tseslint.configs.recommended,
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+    },
+  },
   ...storybook.configs['flat/recommended'],
   prettierRecommended,
 ];
