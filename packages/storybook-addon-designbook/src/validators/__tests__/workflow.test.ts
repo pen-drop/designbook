@@ -1104,7 +1104,7 @@ describe('expandTasksFromParams filter-condition filtering', () => {
   beforeEach(() => {
     taskDir = mkdtempSync(resolve(tmpdir(), 'wf-filter-type-'));
 
-    // Task file with filter.type: screenshot
+    // Task file with filter.check.type: screenshot
     writeFileSync(
       resolve(taskDir, 'capture.md'),
       [
@@ -1112,19 +1112,20 @@ describe('expandTasksFromParams filter-condition filtering', () => {
         'trigger:',
         '  steps: [capture]',
         'filter:',
-        '  type: screenshot',
+        '  check.type: screenshot',
+        'each:',
+        '  check:',
+        '    expr: "checks"',
         'params:',
         '  scene: { type: string }',
-        '  breakpoint: { type: string }',
-        '  region: { type: string }',
-        '  type: { type: string }',
+        '  check: { type: object }',
         'files: []',
         '---',
         '# Capture',
       ].join('\n'),
     );
 
-    // Task file with filter.type: markup
+    // Task file with filter.check.type: markup
     writeFileSync(
       resolve(taskDir, 'compare-markup.md'),
       [
@@ -1132,18 +1133,20 @@ describe('expandTasksFromParams filter-condition filtering', () => {
         'trigger:',
         '  steps: [compare]',
         'filter:',
-        '  type: markup',
+        '  check.type: markup',
+        'each:',
+        '  check:',
+        '    expr: "checks"',
         'params:',
         '  scene: { type: string }',
-        '  breakpoint: { type: string }',
-        '  type: { type: string }',
+        '  check: { type: object }',
         'files: []',
         '---',
         '# Compare Markup',
       ].join('\n'),
     );
 
-    // Task file with filter.type: screenshot
+    // Task file with filter.check.type: screenshot
     writeFileSync(
       resolve(taskDir, 'compare-screenshots.md'),
       [
@@ -1151,12 +1154,13 @@ describe('expandTasksFromParams filter-condition filtering', () => {
         'trigger:',
         '  steps: [compare]',
         'filter:',
-        '  type: screenshot',
+        '  check.type: screenshot',
+        'each:',
+        '  check:',
+        '    expr: "checks"',
         'params:',
         '  scene: { type: string }',
-        '  breakpoint: { type: string }',
-        '  region: { type: string }',
-        '  type: { type: string }',
+        '  check: { type: object }',
         'files: []',
         '---',
         '# Compare Screenshots',
@@ -1192,8 +1196,8 @@ describe('expandTasksFromParams filter-condition filtering', () => {
     };
   }
 
-  it('filters tasks by filter.type — screenshot items only get screenshot tasks', async () => {
-    const stages = { test: { each: 'checks', steps: ['capture', 'compare'] } };
+  it('filters tasks by filter.check.type — screenshot items only get screenshot tasks', async () => {
+    const stages = { test: { steps: ['capture', 'compare'] } };
     const params = {
       scene: 'design-system:shell',
       checks: [
@@ -1206,8 +1210,8 @@ describe('expandTasksFromParams filter-condition filtering', () => {
 
     // Screenshot check should get: capture + compare-screenshots (2 tasks)
     // Markup check should get: compare-markup only (1 task, no capture)
-    const screenshotTasks = tasks.filter((t) => t.params?.type === 'screenshot');
-    const markupTasks = tasks.filter((t) => t.params?.type === 'markup');
+    const screenshotTasks = tasks.filter((t) => (t.params?.check as { type: string })?.type === 'screenshot');
+    const markupTasks = tasks.filter((t) => (t.params?.check as { type: string })?.type === 'markup');
 
     expect(screenshotTasks).toHaveLength(2);
     expect(screenshotTasks.map((t) => t.step)).toEqual(['capture', 'compare']);
@@ -1218,7 +1222,7 @@ describe('expandTasksFromParams filter-condition filtering', () => {
   });
 
   it('screenshot compare resolves to compare-screenshots task file', async () => {
-    const stages = { test: { each: 'checks', steps: ['compare'] } };
+    const stages = { test: { steps: ['compare'] } };
     const params = {
       scene: 'design-system:shell',
       checks: [{ scene: 'design-system:shell', breakpoint: 'xl', region: 'header', type: 'screenshot' }],
@@ -1230,7 +1234,7 @@ describe('expandTasksFromParams filter-condition filtering', () => {
   });
 
   it('markup compare resolves to compare-markup task file', async () => {
-    const stages = { test: { each: 'checks', steps: ['compare'] } };
+    const stages = { test: { steps: ['compare'] } };
     const params = {
       scene: 'design-system:shell',
       checks: [{ scene: 'design-system:shell', breakpoint: 'xl', region: 'markup', type: 'markup' }],
@@ -1241,14 +1245,14 @@ describe('expandTasksFromParams filter-condition filtering', () => {
     expect(tasks[0]!.task_file).toContain('compare-markup.md');
   });
 
-  it('filter.type filters before param validation — mismatched type skips task entirely', async () => {
-    const stages = { test: { each: 'checks', steps: ['capture'] } };
+  it('filter.check.type filters before param validation — mismatched type skips task entirely', async () => {
+    const stages = { test: { steps: ['capture'] } };
     const params = {
       scene: 'design-system:shell',
       checks: [{ scene: 'design-system:shell', breakpoint: 'xl', region: 'markup', type: 'markup' }],
     };
 
-    // capture has filter.type: screenshot — markup item should produce zero capture tasks
+    // capture has filter.check.type: screenshot — markup item should produce zero capture tasks
     const tasks = await expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
     expect(tasks).toHaveLength(0);
   });

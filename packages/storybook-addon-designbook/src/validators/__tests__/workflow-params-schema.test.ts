@@ -556,7 +556,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     expect(tasks[0]!.params!.order).toBe(5);
   });
 
-  it('expands each-based items with JSON Schema defaults', async () => {
+  it('expands each-based items via explicit binding', async () => {
     const taskFile = writeTaskFile(
       'create-component',
       [
@@ -566,13 +566,11 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         '  type: object',
         '  required: [component, group]',
         '  properties:',
-        '    component: { type: string }',
-        '    slots: { type: array, default: [] }',
-        '    props: { type: array, default: [] }',
+        '    component: { type: object }',
         '    group: { type: string }',
         'each:',
         '  component:',
-        '    type: object',
+        '    expr: "components"',
       ].join('\n'),
     );
 
@@ -581,7 +579,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     };
     const params = {
       group: 'atoms',
-      component: [{ component: 'button', slots: ['default'] }, { component: 'icon' }],
+      components: [{ component_id: 'button', slots: ['default'] }, { component_id: 'icon' }],
     };
 
     const tasks = await expandTasksFromParams(
@@ -594,20 +592,16 @@ describe('expandTasksFromParams with JSON Schema params', () => {
 
     expect(tasks).toHaveLength(2);
 
-    // First component: explicit slots override default
-    expect(tasks[0]!.params!.component).toBe('button');
-    expect(tasks[0]!.params!.slots).toEqual(['default']);
-    expect(tasks[0]!.params!.props).toEqual([]); // default applied
+    // First component — whole object bound under `component`
+    expect(tasks[0]!.params!.component).toEqual({ component_id: 'button', slots: ['default'] });
     expect(tasks[0]!.params!.group).toBe('atoms');
 
-    // Second component: all defaults applied
-    expect(tasks[1]!.params!.component).toBe('icon');
-    expect(tasks[1]!.params!.slots).toEqual([]); // default
-    expect(tasks[1]!.params!.props).toEqual([]); // default
+    // Second component — just id, no slots
+    expect(tasks[1]!.params!.component).toEqual({ component_id: 'icon' });
     expect(tasks[1]!.params!.group).toBe('atoms');
   });
 
-  it('expands each: dotpath as cross-product of outer scope × nested inner array', async () => {
+  it('expands each: nested jsonata expression flattens variants across components', async () => {
     const taskFile = writeTaskFile(
       'create-variant-story',
       [
@@ -615,13 +609,12 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         '  steps: [create-variant-story]',
         'params:',
         '  type: object',
-        '  required: [component, variant]',
+        '  required: [variant]',
         '  properties:',
-        '    component: { type: string }',
         '    variant: { type: object }',
         'each:',
-        '  component.variants:',
-        '    type: object',
+        '  variant:',
+        '    expr: "components.variants"',
       ].join('\n'),
     );
 
@@ -629,7 +622,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
       execute: { steps: ['create-variant-story'] },
     };
     const params = {
-      component: [
+      components: [
         { component: 'navigation', variants: [{ id: 'main' }, { id: 'footer' }] },
         { component: 'page', variants: [] },
         { component: 'card', variants: [{ id: 'horizontal' }] },
@@ -644,19 +637,13 @@ describe('expandTasksFromParams with JSON Schema params', () => {
       {},
     );
 
-    // navigation × 2 variants + card × 1 variant = 3 tasks (page has no variants)
+    // JSONata components.variants flattens to 3 variants (page has none)
     expect(tasks).toHaveLength(3);
-
-    expect(tasks[0]!.params!.component).toBe('navigation');
     expect(tasks[0]!.params!.variant).toEqual({ id: 'main' });
-
-    expect(tasks[1]!.params!.component).toBe('navigation');
     expect(tasks[1]!.params!.variant).toEqual({ id: 'footer' });
-
-    expect(tasks[2]!.params!.component).toBe('card');
     expect(tasks[2]!.params!.variant).toEqual({ id: 'horizontal' });
 
-    // Task IDs are unique per (component, variant) pair
+    // Task IDs are unique per variant
     const ids = tasks.map((t) => t.id);
     expect(new Set(ids).size).toBe(3);
   });
@@ -671,10 +658,10 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         '  type: object',
         '  required: [component]',
         '  properties:',
-        '    component: { type: string }',
+        '    component: { type: object }',
         'each:',
         '  component:',
-        '    type: object',
+        '    expr: "components"',
       ].join('\n'),
     );
 
@@ -687,13 +674,12 @@ describe('expandTasksFromParams with JSON Schema params', () => {
         'priority: 10',
         'params:',
         '  type: object',
-        '  required: [component, variant]',
+        '  required: [variant]',
         '  properties:',
-        '    component: { type: string }',
         '    variant: { type: object }',
         'each:',
-        '  component.variants:',
-        '    type: object',
+        '  variant:',
+        '    expr: "components.variants"',
       ].join('\n'),
     );
 
@@ -709,7 +695,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     };
 
     const params = {
-      component: [
+      components: [
         { component: 'navigation', variants: [{ id: 'main' }, { id: 'footer' }] },
         { component: 'page', variants: [] },
       ],
@@ -723,12 +709,14 @@ describe('expandTasksFromParams with JSON Schema params', () => {
 
     const componentTasks = tasks.filter((t) => t.task_file === componentTask);
     expect(componentTasks).toHaveLength(2);
-    expect(componentTasks.map((t) => t.params!.component).sort()).toEqual(['navigation', 'page']);
+    expect(componentTasks.map((t) => (t.params!.component as { component: string }).component).sort()).toEqual([
+      'navigation',
+      'page',
+    ]);
     componentTasks.forEach((t) => expect(t.params!.variant).toBeUndefined());
 
     const variantTasks = tasks.filter((t) => t.task_file === variantTask);
     expect(variantTasks).toHaveLength(2);
-    variantTasks.forEach((t) => expect(t.params!.component).toBe('navigation'));
     expect(variantTasks.map((t) => (t.params!.variant as Record<string, unknown>).id).sort()).toEqual([
       'footer',
       'main',

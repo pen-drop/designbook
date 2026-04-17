@@ -105,7 +105,6 @@ function setupSchemaCompositionFixtures(): { workflowPath: string } {
       },
       execute: {
         steps: ['create-thing'],
-        each: 'items',
         domain: ['data-model'],
       },
     },
@@ -132,7 +131,7 @@ function setupSchemaCompositionFixtures(): { workflowPath: string } {
     trigger: { steps: ['create-thing'] },
     domain: ['data-model'],
     each: {
-      items: { type: 'object' },
+      item: { expr: 'items' },
     },
     result: {
       type: 'object',

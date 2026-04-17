@@ -52,8 +52,6 @@ describe('resolveEach', () => {
   });
 
   it('wraps scalar result into a single-item axis (JSONata singleton unwrapping)', async () => {
-    expect(await resolveEach({ x: 'scalar' }, { scalar: 'hi' })).toEqual([
-      { x: 'hi', $i: 0, $total: 1 },
-    ]);
+    expect(await resolveEach({ x: 'scalar' }, { scalar: 'hi' })).toEqual([{ x: 'hi', $i: 0, $total: 1 }]);
   });
 });

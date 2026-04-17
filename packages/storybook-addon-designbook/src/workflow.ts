@@ -27,7 +27,9 @@ import {
   type TaskFileDeclaration,
   type ResolvedStep,
 } from './workflow-resolve.js';
+import jsonata from 'jsonata';
 import { interpolate } from './template/interpolate.js';
+import { resolveEach, type EachDeclaration } from './template/each.js';
 import { getValidatorKeys } from './validation-registry.js';
 
 export type {
@@ -416,58 +418,6 @@ export function workflowCreate(
 }
 
 /**
- * Resolve an `each:` key to a flat array of per-task param objects.
- *
- * - Flat key (`component`): returns `lookup[component]` directly, spreading
- *   each item into params.
- * - Dotpath (`component.variants`): iterates `lookup[component]` as the outer
- *   scope, then descends the remaining path per outer item. Each inner item
- *   produces a params object that spreads the outer item and attaches the
- *   inner item under the dotpath's last segment, singularized (`variants` →
- *   `variant`). This gives tasks both parent context (`{{ component }}`) and
- *   the current inner item (`{{ variant.id }}`).
- */
-function singularize(word: string): string {
-  if (word.endsWith('ies') && word.length > 3) return `${word.slice(0, -3)}y`;
-  if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
-  return word;
-}
-
-function resolveEachIterables(eachKey: string, lookup: Record<string, unknown>): Array<Record<string, unknown>> {
-  const segments = eachKey.split('.');
-  if (segments.length === 1) {
-    const iterables = lookup[eachKey];
-    if (!Array.isArray(iterables)) return [];
-    return iterables.map((item) =>
-      typeof item === 'object' && item !== null ? (item as Record<string, unknown>) : { [eachKey]: item },
-    );
-  }
-  const outerKey = segments[0]!;
-  const innerPath = segments.slice(1);
-  const innerKey = singularize(innerPath[innerPath.length - 1]!);
-  const outerItems = lookup[outerKey];
-  if (!Array.isArray(outerItems)) return [];
-  const results: Array<Record<string, unknown>> = [];
-  for (const outerItem of outerItems) {
-    let innerArray: unknown = outerItem;
-    for (const seg of innerPath) {
-      if (innerArray && typeof innerArray === 'object') {
-        innerArray = (innerArray as Record<string, unknown>)[seg];
-      } else {
-        innerArray = undefined;
-        break;
-      }
-    }
-    if (!Array.isArray(innerArray)) continue;
-    const outerObj = typeof outerItem === 'object' && outerItem !== null ? (outerItem as Record<string, unknown>) : {};
-    for (const innerItem of innerArray) {
-      results.push({ ...outerObj, [innerKey]: innerItem });
-    }
-  }
-  return results;
-}
-
-/**
  * Unified task expansion: compute tasks from stages × params.
  *
  * Called from both `workflow create` (when initial params provide iterables)
@@ -494,12 +444,16 @@ export async function expandTasksFromParams(
   // Build step lists and mappings
   const allSteps: string[] = [];
   const stepToStage = new Map<string, string>();
-  const stepToEach = new Map<string, string>();
+  const stepToEach = new Map<string, EachDeclaration>();
   for (const [stageName, def] of Object.entries(stages)) {
     for (const step of def.steps ?? []) {
       allSteps.push(step);
       stepToStage.set(step, stageName);
-      if (def.each) stepToEach.set(step, def.each);
+      if (def.each) {
+        // Stage-level each: legacy single-string form — wrap as { [key]: key } so the
+        // key doubles as binding and expression. Prefer task-level each: declarations.
+        stepToEach.set(step, { [def.each]: def.each });
+      }
     }
   }
 
@@ -507,11 +461,10 @@ export async function expandTasksFromParams(
   const existingSteps = new Set(existingTasks.map((t) => t.step).filter(Boolean));
   const existingIds = new Set(existingTasks.map((t) => t.id).filter(Boolean) as string[]);
 
-  // Resolve task-level each: from frontmatter (Task 5.1)
-  // Each task file carries its own each key — multiple tasks on the same step
-  // may iterate over different scopes (e.g. create-component: each: component,
-  // create-variant-story: each: component.variants).
-  const taskFileToEach = new Map<string, string>();
+  // Resolve task-level each: from frontmatter.
+  // Each task file carries its own each declaration — multiple tasks on the same
+  // step may iterate over different scopes.
+  const taskFileToEach = new Map<string, EachDeclaration>();
   const stepHasAnyTaskEach = new Map<string, boolean>();
   for (const step of allSteps) {
     const preResolved = stageLoaded[step];
@@ -521,11 +474,8 @@ export async function expandTasksFromParams(
     for (const resolved of resolvedEntries) {
       const taskFm = parseFrontmatter(resolved.task_file);
       if (taskFm?.each && typeof taskFm.each === 'object') {
-        const eachKey = Object.keys(taskFm.each as Record<string, unknown>)[0];
-        if (eachKey) {
-          taskFileToEach.set(resolved.task_file, eachKey);
-          anyEach = true;
-        }
+        taskFileToEach.set(resolved.task_file, taskFm.each as EachDeclaration);
+        anyEach = true;
       }
     }
     stepHasAnyTaskEach.set(step, anyEach);
@@ -544,22 +494,22 @@ export async function expandTasksFromParams(
       const resolvedEntries = Array.isArray(preResolved) ? preResolved : [preResolved];
 
       for (const resolved of resolvedEntries) {
-        // Resolve each key: task-level (per task file) with stage-level fallback (5.2)
-        const taskEachKey = taskFileToEach.get(resolved.task_file);
-        const stageEachKey = def.each;
-        let eachKey: string | undefined;
-        if (taskEachKey) {
-          eachKey = taskEachKey;
-        } else if (stageEachKey) {
-          eachKey = stageEachKey;
+        // Resolve each: task-level (per task file) with stage-level fallback.
+        const taskEach = taskFileToEach.get(resolved.task_file);
+        const stageEach = stepToEach.get(step);
+        let eachDecl: EachDeclaration | undefined;
+        if (taskEach) {
+          eachDecl = taskEach;
+        } else if (stageEach) {
+          eachDecl = stageEach;
           console.warn(
-            `[designbook] stage-level each: "${stageEachKey}" is deprecated — move each: to task frontmatter for step "${step}"`,
+            `[designbook] stage-level each is deprecated — move each: to task frontmatter for step "${step}"`,
           );
         }
 
-        if (!eachKey) continue;
+        if (!eachDecl) continue;
 
-        const expanded = resolveEachIterables(eachKey, lookup);
+        const expanded = await resolveEach(eachDecl, lookup);
         for (const itemParams of expanded) {
           items.push({ step, taskFile: resolved.task_file, params: itemParams });
         }
@@ -612,15 +562,25 @@ export async function expandTasksFromParams(
         const item = taskItems[itemIdx]!;
 
         // Filter items by `filter:` conditions against item params (task-level AND).
+        // Keys are evaluated as JSONata expressions, so `filter: { check.type: screenshot }`
+        // reaches a binding-nested field while a plain key works unchanged.
         const itemParams = { ...lookup, ...item.params };
         const filterEntries = Object.entries(filterConditions);
         if (filterEntries.length > 0) {
-          const mismatch = filterEntries.some(([k, v]) => {
-            const actual = itemParams[k];
-            if (actual === undefined) return false; // param not present → don't filter
-            if (Array.isArray(v)) return !v.map(String).includes(String(actual));
-            return String(actual) !== String(v);
-          });
+          let mismatch = false;
+          for (const [k, v] of filterEntries) {
+            const actual = await jsonata(k).evaluate(itemParams);
+            if (actual === undefined || actual === null) continue; // value not present → don't filter
+            if (Array.isArray(v)) {
+              if (!v.map(String).includes(String(actual))) {
+                mismatch = true;
+                break;
+              }
+            } else if (String(actual) !== String(v)) {
+              mismatch = true;
+              break;
+            }
+          }
           if (mismatch) continue;
         }
 
