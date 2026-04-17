@@ -3,22 +3,25 @@ trigger:
   steps: [design-screen:map-entity]
 params:
   type: object
-  $ref: ../schemas.yml#/EntityMapping
-  required: [data_model]
+  required: [mapping, data_model]
   properties:
+    mapping:
+      type: object
+      $ref: ../schemas.yml#/EntityMapping
     data_model:
       path: $DESIGNBOOK_DATA/data-model.yml
       workflow: debo-data-model
       type: object
 each:
-  entity_mappings:
-    $ref: ../schemas.yml#/EntityMapping
+  mapping:
+    expr: "entity_mappings"
+    schema: { $ref: ../schemas.yml#/EntityMapping }
 result:
   type: object
   required: [entity-mapping]
   properties:
     entity-mapping:
-      path: $DESIGNBOOK_DATA/entity-mapping/{{ entity_type }}.{{ bundle }}.{{ view_mode }}.jsonata
+      path: "$DESIGNBOOK_DATA/entity-mapping/{{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.view_mode }}.jsonata"
       validators: [entity-mapping]
 ---
 
@@ -28,7 +31,7 @@ Creates a JSONata expression file that maps an entity's data to `ComponentNode[]
 
 ## Input
 
-- `data-model.yml` → `content.{entity_type}.{bundle}.view_modes.{view_mode}` for template name and settings
+- `data-model.yml` → `content.{{ mapping.entity_type }}.{{ mapping.bundle }}.view_modes.{{ mapping.view_mode }}` for template name and settings
 
 ## Output
 

@@ -6,7 +6,9 @@ params:
   type: object
   required: [group, design_tokens]
   properties:
-    group: { type: string }
+    group:
+      type: object
+      $ref: ../schemas.yml#/CssGroup
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       workflow: tokens
@@ -16,13 +18,14 @@ result:
   required: [generate-jsonata]
   properties:
     generate-jsonata:
-      path: $DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group }}.jsonata
+      path: "$DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group.group }}.jsonata"
       validators:
         - "cmd:npx jsonata-w transform --dry-run {{ file }}"
         - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
 each:
   group:
-    $ref: ../schemas.yml#/CssGroup
+    expr: "groups"
+    schema: { $ref: ../schemas.yml#/CssGroup }
 ---
 
 # Generate JSONata Expression
