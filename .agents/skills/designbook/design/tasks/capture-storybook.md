@@ -38,7 +38,7 @@ Captures a Storybook screenshot at the given breakpoint viewport width via Playw
 
 ## Execution
 
-1. **Resolve Storybook URL** from `DeboStory` entity:
+1. **Resolve Storybook URL** from `StoryMeta` entity:
    ```bash
    _debo story --scene ${scene}
    ```

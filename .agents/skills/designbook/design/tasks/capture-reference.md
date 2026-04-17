@@ -30,7 +30,7 @@ Captures a reference screenshot by loading the source URL at the given breakpoin
 
 ## Execution
 
-1. **Resolve reference URL** from `DeboStory` entity:
+1. **Resolve reference URL** from `StoryMeta` entity:
    ```bash
    _debo story --scene ${scene}
    ```

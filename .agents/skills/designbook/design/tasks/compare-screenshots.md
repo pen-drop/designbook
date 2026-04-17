@@ -33,7 +33,7 @@ Captures the Storybook screenshot, compares it with the reference, and writes dr
 
 ## Phase 1: Capture Storybook Screenshot
 
-1. **Resolve Storybook URL** from `DeboStory` entity:
+1. **Resolve Storybook URL** from `StoryMeta` entity:
    ```bash
    _debo story --scene ${scene}
    ```
