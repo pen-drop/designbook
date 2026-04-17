@@ -3,12 +3,11 @@ trigger:
   steps: [create-section]
 params:
   type: object
-  required: [section_id, section_title, description, order, vision]
+  required: [section, vision]
   properties:
-    section_id: { type: string, title: Section ID }
-    section_title: { type: string, title: Section Title }
-    description: { type: string, title: Description }
-    order: { type: integer, title: Order }
+    section:
+      type: object
+      $ref: ../schemas.yml#/Section
     vision:
       path: $DESIGNBOOK_DATA/vision.yml
       workflow: /debo-vision
@@ -19,19 +18,20 @@ params:
     scene_path:
       type: string
       resolve: scene_path
-      from: section_id
+      from: section.section_id
 result:
   type: object
   required: [section-scenes]
   properties:
     section-scenes:
-      path: $DESIGNBOOK_DATA/{scene_path}
+      path: "$DESIGNBOOK_DATA/{{ scene_path }}"
       type: object
       validators: [scene]
       $ref: ../../scenes/schemas.yml#/SceneFile
 each:
   section:
-    $ref: ../schemas.yml#/Section
+    expr: "section"
+    schema: { $ref: ../schemas.yml#/Section }
 ---
 
 # Section
@@ -70,24 +70,24 @@ Show the specification and iterate until satisfied.
 **For the `sections` workflow** (intake only provides `section_id`, `section_title`, `description`, `order`):
 
 ```yaml
-id: {{ section_id }}
-group: "Designbook/Sections/{{ section_title }}"
-title: "{{ section_title }}"
-description: "{{ description }}"
+id: {{ section.section_id }}
+group: "Designbook/Sections/{{ section.section_title }}"
+title: "{{ section.section_title }}"
+description: "{{ section.description }}"
 status: planned
-order: {{ order }}
+order: {{ section.order }}
 scenes: []
 ```
 
 **For the `shape-section` workflow** (also provides `user_flows`, `ui_requirements`, `use_shell`):
 
 ```yaml
-id: {{ section_id }}
-group: "Designbook/Sections/{{ section_title }}"
-title: "{{ section_title }}"
-description: "{{ description }}"
+id: {{ section.section_id }}
+group: "Designbook/Sections/{{ section.section_title }}"
+title: "{{ section.section_title }}"
+description: "{{ section.description }}"
 status: shaped
-order: {{ order }}
+order: {{ section.order }}
 scenes: []
 ```
 
@@ -98,7 +98,7 @@ scenes: []
 - If `user_flows` and `ui_requirements` are provided (non-empty), include them
 - If `order` is not provided, omit it
 - `scenes` starts as empty array — populated later by `/debo design-screen`
-- **`group:`** must always be `"Designbook/Sections/{{ section_title }}"` — required in both workflows
+- **`group:`** must always be `"Designbook/Sections/{{ section.section_title }}"` — required in both workflows
 
 ## Constraints
 
