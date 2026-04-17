@@ -190,11 +190,15 @@ _debo workflow done --workflow $WORKFLOW_NAME --task <task-id> \
   --data '{"vision": {"product_name": "...", "description": "..."}}'
 ```
 
-**External file results** (result declaration has `external: true`):
+**External file results** (result declaration has `flush: external`):
 For files that cannot be written through the CLI (e.g. Playwright screenshots).
-The AI writes the file directly, then registers via `workflow result --external`.
+The AI writes the file directly, then registers via `workflow result` (no `--external` flag needed — the declaration controls this).
 
-**Never** write file results directly with the Write tool — always use `--data` on `workflow done`.
+> ⛔ **GLOBAL RULE — no exceptions:**
+> File results declared in `result:` frontmatter MUST be submitted via `workflow done --data`.
+> Writing a result file directly with the Write tool or any other mechanism is **forbidden**.
+> `workflow done` will fail if it detects a file at a declared result path that was not submitted through the workflow.
+> The only exception is `flush: external` — results with this declaration are written by an external tool (e.g. Playwright) and registered via `workflow result`.
 
 ### 2c. Mark Task Done
 

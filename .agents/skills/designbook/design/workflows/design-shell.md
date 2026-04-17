@@ -18,12 +18,10 @@ stages:
     steps: [extract-reference]
   intake:
     steps: [intake]
-    domain: [data-model]
   component:
     steps: [create-component]
   scene:
-    steps: [create-scene]
-    domain: [data-model]
+    steps: [create-scene]  
   validate:
     steps: [validate]
 engine: direct

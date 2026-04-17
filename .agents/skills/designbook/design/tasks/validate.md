@@ -8,6 +8,7 @@ params:
     story_url:
       type: string
       resolve: story_url
+      from: scene_id
 ---
 
 # Validate Story

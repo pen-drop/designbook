@@ -65,7 +65,7 @@ export interface ResultDeclaration {
   path?: string; // file result path template
   $ref?: string; // schema reference (e.g. ../schemas.yml#/Check)
   validators?: string[]; // semantic validator keys
-  flush?: 'immediately'; // flush policy: 'immediately' writes to final path on result write
+  flush?: 'immediately' | 'external'; // flush policy: 'immediately' writes directly; 'external' = written by external tool, register via `workflow result`
   type?: string; // inline JSON Schema type
   items?: unknown; // inline JSON Schema items (for arrays)
   [key: string]: unknown; // additional JSON Schema properties

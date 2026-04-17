@@ -143,20 +143,6 @@ export function register(program: Command): void {
           if (hasResolvers) {
             const resolverContext: ResolverContext = { config, params: initialParams };
             const resolveResult = await resolveParams(wfParams, resolverContext);
-
-            if (!resolveResult.allResolved) {
-              console.log(
-                JSON.stringify(
-                  {
-                    unresolved: resolveResult.unresolved,
-                  },
-                  null,
-                  2,
-                ),
-              );
-              return;
-            }
-
             initialParams = resolveResult.params as Record<string, unknown>;
           }
         }
@@ -374,17 +360,16 @@ export function register(program: Command): void {
   workflow
     .command('result')
     .description(
-      'Write a task result — file (stdin) or data (--json). Validates against schema and semantic validators.',
+      'Register an externally-written file result (flush: external). For data results use --json. All other file results go via workflow done --data.',
     )
     .requiredOption('--workflow <name>', 'Workflow name')
     .requiredOption('--task <id>', 'Task id')
     .requiredOption('--key <key>', 'Result key as declared in task result: frontmatter')
-    .option('--json <data>', 'Data result value (inline JSON). Omit for file results (reads stdin).')
-    .option('--external', 'Register an already-written file (skip stdin, just validate and track)')
-    .action(async (opts: { workflow: string; task: string; key: string; json?: string; external?: boolean }) => {
+    .option('--json <data>', 'Data result value (inline JSON).')
+    .action(async (opts: { workflow: string; task: string; key: string; json?: string }) => {
       const config = loadConfig();
       try {
-        let content: string | Buffer | unknown | null;
+        let content: unknown | null;
         if (opts.json !== undefined) {
           // Data result via --json
           try {
@@ -394,22 +379,9 @@ export function register(program: Command): void {
             process.exitCode = 1;
             return;
           }
-        } else if (opts.external) {
-          // External file: already written
-          content = null;
         } else {
-          // File result: read stdin
-          const chunks: Buffer[] = [];
-          for await (const chunk of process.stdin) {
-            chunks.push(chunk as Buffer);
-          }
-          const buf = Buffer.concat(chunks);
-          if (buf.length === 0) {
-            console.error('Error: No content provided on stdin (use --json for data results)');
-            process.exitCode = 1;
-            return;
-          }
-          content = buf;
+          // External file result: already written by external tool
+          content = null;
         }
 
         const result = await workflowResult(config.data, opts.workflow, opts.task, opts.key, content, config);

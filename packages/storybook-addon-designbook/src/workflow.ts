@@ -86,7 +86,7 @@ export interface TaskResult {
   schema?: object;
   /** Semantic validator keys (e.g. ['component', 'scene']). */
   validators?: string[];
-  /** Flush policy — 'immediately' writes to final path on result write instead of staging. */
+  /** Flush policy: 'immediately' writes to final path on result write; 'external' = written by external tool, register via `workflow result`. */
   flush?: string;
   /** Inline data value — stored for data results (no path). */
   value?: unknown;
@@ -1005,45 +1005,26 @@ export async function workflowDone(
       }
     }
 
-    // ── 1.2: Implicit file collection — auto-detect files at declared paths ──
+    // ── 1.2: Reject direct file writes — file results must be submitted via workflow done --data ──
     if (task.result) {
+      const directWrites: string[] = [];
       for (const [key, resultEntry] of Object.entries(task.result)) {
         if (!resultEntry.path) continue;
-        if (resultEntry.valid !== undefined) continue; // already processed
+        if (resultEntry.valid !== undefined) continue; // already submitted through workflow
+        if (resultEntry.flush === 'external') continue; // flush: external results are written by external tools
         if (/\{[a-zA-Z]\w*\}/.test(resultEntry.path)) continue; // unresolved placeholders
 
-        // Check if file exists at declared path
         if (existsSync(resultEntry.path)) {
-          const config = options?.config ?? { data: dataDir, technology: 'html' as const, extensions: [] };
-          const errors = await validateResultEntry(resultEntry, resultEntry.path, data.schemas, config, 'file');
-
-          if (errors.length > 0) {
-            resultEntry.valid = false;
-            resultEntry.error = errors.join('; ');
-          } else {
-            resultEntry.valid = true;
-            delete resultEntry.error;
-          }
-          resultEntry.last_validated = new Date().toISOString();
-
-          // Ensure task.files[] entry
-          if (!task.files?.some((f) => f.key === key)) {
-            task.files = task.files ?? [];
-            task.files.push({ path: resultEntry.path, key, validators: resultEntry.validators ?? [] });
-          }
-          const fileEntry = task.files?.find((f) => f.key === key);
-          if (fileEntry) {
-            fileEntry.validation_result = {
-              file: resultEntry.path,
-              type: key,
-              valid: resultEntry.valid!,
-              error: resultEntry.error,
-              last_validated: resultEntry.last_validated!,
-              last_passed: resultEntry.valid ? resultEntry.last_validated : undefined,
-              last_failed: !resultEntry.valid ? resultEntry.last_validated : undefined,
-            };
-          }
+          directWrites.push(`  · result \`${key}\` at \`${resultEntry.path}\``);
         }
+      }
+      if (directWrites.length > 0) {
+        throw new Error(
+          `Cannot mark '${taskId}' as done — ${directWrites.length} file result(s) were written directly instead of via \`workflow done --data\`:\n` +
+            directWrites.join('\n') +
+            '\n\nSubmit file results through the workflow:\n' +
+            '  workflow done --workflow <name> --task <id> --data \'{"<key>": <content>}\'',
+        );
       }
     }
 
@@ -1519,9 +1500,9 @@ function collectStageResults(stageTasks: WorkflowTask[]): Record<string, unknown
  * Replaces `workflowWriteFile` for new `result:` declarations.
  *
  * For file results (result entry has `path:`):
- *   - content is string|Buffer|null (null = external, e.g. Playwright screenshots)
- *   - file is written via engine (stash for direct, direct for git-worktree)
- *   - results with `flush: 'immediately'` are moved to final path after write
+ *   - Only accepted when result is declared with `flush: external`
+ *   - File must already exist at the declared path (written by external tool, e.g. Playwright)
+ *   - All other file results must be submitted via `workflow done --data`
  *
  * For data results (result entry has no `path:`):
  *   - content is parsed JSON (object/array/primitive)
@@ -1559,8 +1540,17 @@ export async function workflowResult(
     const isFileResult = !!resultEntry.path;
     const errors: string[] = [];
 
-    // ── File result: write to disk via engine ────────────────────────────────
+    // ── File result: only accepted for flush: external declarations ──────────
     if (isFileResult) {
+      if (resultEntry.flush !== 'external') {
+        throw new Error(
+          `Result '${key}' is not declared as \`flush: external\`. ` +
+            'Submit file results via `workflow done --data \'{"' +
+            key +
+            '": ...}\'` instead.',
+        );
+      }
+
       const engine = resolveWorkflowEngine(data);
       const dataWithDir = data as WorkflowFile & { _changesDir?: string };
       dataWithDir._changesDir = changesDir;
@@ -1575,28 +1565,16 @@ export async function workflowResult(
         });
       }
 
+      // File already written by external tool (e.g. Playwright) — locate it
       let writtenPath: string;
-      if (content === null) {
-        // External mode: file already written (e.g. by Playwright)
-        // Try staged path first (engine may have a stash), fall back to actual path
-        if (engine?.getStagedPath) {
-          const staged = engine.getStagedPath(dataWithDir, task, key);
-          writtenPath = existsSync(staged) ? staged : resultEntry.path!;
-        } else {
-          writtenPath = resultEntry.path!;
-        }
-        if (!existsSync(writtenPath)) {
-          throw new Error(`External file not found at path: ${writtenPath}`);
-        }
-      } else if (engine?.writeFile) {
-        const result = engine.writeFile(dataWithDir, task, key, content as string | Buffer);
-        writtenPath = result.path;
+      if (engine?.getStagedPath) {
+        const staged = engine.getStagedPath(dataWithDir, task, key);
+        writtenPath = existsSync(staged) ? staged : resultEntry.path!;
       } else {
-        // Fallback: write directly
-        const dir = dirname(resultEntry.path!);
-        mkdirSync(dir, { recursive: true });
-        writeFileSync(resultEntry.path!, content as string | Buffer);
         writtenPath = resultEntry.path!;
+      }
+      if (!existsSync(writtenPath)) {
+        throw new Error(`External file not found at path: ${writtenPath}`);
       }
 
       // Validate file content
@@ -1627,7 +1605,7 @@ export async function workflowResult(
       }
 
       // Flush immediately if declared in result schema
-      if (resultEntry.flush === 'immediately' && writtenPath !== resultEntry.path) {
+      if ((resultEntry.flush as string) === 'immediately' && writtenPath !== resultEntry.path) {
         mkdirSync(dirname(resultEntry.path!), { recursive: true });
         renameSync(writtenPath, resultEntry.path!);
         resultEntry.flushed_at = new Date().toISOString();

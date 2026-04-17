@@ -194,7 +194,7 @@ describe('workflow result: single-task data result', () => {
 
 // ── file result with flush ─────────────────────────────────────────────────
 
-describe('workflow result: file result', () => {
+describe('workflow result: file result via workflow done --data', () => {
   let dist: string;
   let config: DesignbookConfig;
 
@@ -203,7 +203,7 @@ describe('workflow result: file result', () => {
     config = { data: dist, technology: 'html', extensions: [] };
   });
 
-  it('writes file result to disk and validates', async () => {
+  it('writes file result to disk via workflow done --data', async () => {
     const targetPath = resolve(dist, 'output', 'tokens.yml');
     const name = setupWorkflow(
       dist,
@@ -216,29 +216,24 @@ describe('workflow result: file result', () => {
           stage: 'execute',
           status: 'pending',
           result: {
-            'design-tokens': {
-              path: targetPath,
-              // No schema — untyped file result
-            },
+            'design-tokens': { path: targetPath },
           },
         } as WorkflowTask,
       ],
       { execute: { steps: ['create-tokens'] } },
     );
 
-    const content = 'color:\n  primary:\n    $value: "#ff0000"\n    $type: color\n';
-    const result = await workflowResult(dist, name, 'create-tokens', 'design-tokens', content, config);
+    const value = { color: { primary: { $value: '#ff0000', $type: 'color' } } };
+    const doneResult = await workflowDone(dist, name, 'create-tokens', undefined, {
+      data: { 'design-tokens': value },
+      config,
+    });
 
-    expect(result.valid).toBe(true);
-    expect(result.file_path).toBeTruthy();
-    // Direct engine stashes at .debo path
-    expect(result.file_path).toMatch(/\.debo$/);
-    expect(existsSync(result.file_path!)).toBe(true);
+    expect(doneResult.data.tasks[0]!.result!['design-tokens']!.valid).toBe(true);
+    expect(existsSync(targetPath)).toBe(true);
 
     // File result does NOT flow to scope
-    await workflowDone(dist, name, 'create-tokens');
     const data = readTasksYml(dist, name);
-    // Scope should not contain file results
     expect(data.scope?.['design-tokens']).toBeUndefined();
   });
 
@@ -262,16 +257,14 @@ describe('workflow result: file result', () => {
       { execute: { steps: ['do-task'] } },
     );
 
-    const result = await workflowResult(dist, name, 'task1', 'reference', '# Design Reference', config);
+    await workflowDone(dist, name, 'task1', undefined, { data: { reference: '# Design Reference' }, config });
 
-    expect(result.valid).toBe(true);
     // Flushed immediately — file at final path
-    expect(result.file_path).toBe(targetPath);
     expect(existsSync(targetPath)).toBe(true);
     expect(readFileSync(targetPath, 'utf-8')).toBe('# Design Reference');
   });
 
-  it('validates file result against JSON Schema', async () => {
+  it('validates file result against JSON Schema via workflow done --data', async () => {
     const targetPath = resolve(dist, 'output', 'component.yml');
     const componentSchema = {
       type: 'object',
@@ -293,23 +286,21 @@ describe('workflow result: file result', () => {
           stage: 'execute',
           status: 'pending',
           result: {
-            'component-yml': {
-              path: targetPath,
-              schema: componentSchema,
-            },
+            'component-yml': { path: targetPath, schema: componentSchema },
           },
         } as WorkflowTask,
       ],
       { execute: { steps: ['create-component'] } },
     );
 
-    // Valid content
-    const validContent = 'name: Button\nstatus: stable\n';
-    const result = await workflowResult(dist, name, 'task1', 'component-yml', validContent, config);
-    expect(result.valid).toBe(true);
+    const doneResult = await workflowDone(dist, name, 'task1', undefined, {
+      data: { 'component-yml': { name: 'Button', status: 'stable' } },
+      config,
+    });
+    expect(doneResult.data.tasks[0]!.result!['component-yml']!.valid).toBe(true);
   });
 
-  it('rejects file result that fails JSON Schema validation', async () => {
+  it('rejects file result that fails JSON Schema validation via workflow done --data', async () => {
     const targetPath = resolve(dist, 'output', 'component.yml');
     const componentSchema = {
       type: 'object',
@@ -331,10 +322,7 @@ describe('workflow result: file result', () => {
           stage: 'execute',
           status: 'pending',
           result: {
-            'component-yml': {
-              path: targetPath,
-              schema: componentSchema,
-            },
+            'component-yml': { path: targetPath, schema: componentSchema },
           },
         } as WorkflowTask,
       ],
@@ -342,10 +330,36 @@ describe('workflow result: file result', () => {
     );
 
     // Invalid — missing required 'status' field
-    const invalidContent = 'name: Button\n';
-    const result = await workflowResult(dist, name, 'task1', 'component-yml', invalidContent, config);
-    expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.includes('status'))).toBe(true);
+    const doneResult = await workflowDone(dist, name, 'task1', undefined, {
+      data: { 'component-yml': { name: 'Button' } },
+      config,
+    });
+    expect(doneResult.response?.validation_errors?.some((e: string) => e.includes('status'))).toBe(true);
+  });
+
+  it('rejects workflow result for non-external file result', async () => {
+    const targetPath = resolve(dist, 'output', 'tokens.yml');
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'tokens',
+          step: 'create-tokens',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            'design-tokens': { path: targetPath },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['create-tokens'] } },
+    );
+
+    await expect(workflowResult(dist, name, 'task1', 'design-tokens', null, config)).rejects.toThrow(
+      'is not declared as `flush: external`',
+    );
   });
 });
 
@@ -604,7 +618,7 @@ describe('workflow result: mixed file + data results', () => {
           stage: 'execute',
           status: 'pending',
           result: {
-            'component-yml': { path: filePath, flush: 'immediately' },
+            'component-yml': { path: filePath },
             metadata: { schema: { type: 'object' } },
           },
         } as WorkflowTask,
@@ -612,14 +626,14 @@ describe('workflow result: mixed file + data results', () => {
       { execute: { steps: ['create-component'] } },
     );
 
-    // Write file result
-    await workflowResult(dist, name, 'task1', 'component-yml', 'name: Button', config);
-
-    // Write data result
-    await workflowResult(dist, name, 'task1', 'metadata', { name: 'Button', slots: ['content'] }, config);
-
-    // Done
-    const doneResult = await workflowDone(dist, name, 'task1');
+    // Submit both file and data results via workflow done --data
+    const doneResult = await workflowDone(dist, name, 'task1', undefined, {
+      data: {
+        'component-yml': { name: 'Button' },
+        metadata: { name: 'Button', slots: ['content'] },
+      },
+      config,
+    });
     expect(doneResult.response?.stage_complete).toBe(true);
 
     // Scope: only data result, not file result
@@ -654,7 +668,7 @@ describe('workflow result: external file (screenshot)', () => {
           stage: 'capture',
           status: 'pending',
           result: {
-            screenshot: { path: screenshotPath },
+            screenshot: { path: screenshotPath, flush: 'external' },
           },
         } as WorkflowTask,
       ],
@@ -880,9 +894,9 @@ describe('workflow done --data', () => {
     expect(result.data.tasks[0]!.result!['design-tokens']!.valid).toBe(true);
   });
 
-  it('implicitly collects files already written at declared paths', async () => {
+  it('rejects files written directly at declared paths', async () => {
     const targetPath = resolve(dist, 'output', 'vision.yml');
-    // Pre-write the file
+    // Pre-write the file directly (bypassing workflow done --data)
     mkdirSync(resolve(dist, 'output'), { recursive: true });
     writeFileSync(targetPath, '# My Product\n\nA great product.\n');
 
@@ -904,10 +918,9 @@ describe('workflow done --data', () => {
       { execute: { steps: ['create-vision'] } },
     );
 
-    // Call done WITHOUT writing the result — should auto-detect file
-    const result = await workflowDone(dist, name, 'task1');
-
-    expect(result.data.tasks[0]!.status).toBe('done');
-    expect(result.data.tasks[0]!.result!.vision!.valid).toBe(true);
+    // Call done WITHOUT submitting via --data — should fail because file was written directly
+    await expect(workflowDone(dist, name, 'task1')).rejects.toThrow(
+      'were written directly instead of via `workflow done --data`',
+    );
   });
 });
