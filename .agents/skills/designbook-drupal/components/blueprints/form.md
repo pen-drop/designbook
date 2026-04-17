@@ -186,7 +186,7 @@ Submit button for forms.
 
 ## Twig Slot Pattern
 
-All slots MUST be wrapped in `{% block %}` tags — see `sdc-conventions.md` for the full constraint and examples.
+All slots MUST be wrapped in `{% block %}` tags — see the `SdcTemplate` schema in `components/schemas.yml` for the full constraint and examples.
 
 ## Covered Drupal Form Element Types
 

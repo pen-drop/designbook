@@ -19,16 +19,9 @@ result:
   properties:
     variant-story:
       path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.{{ variant.id }}.story.yml
-      $ref: designbook-drupal/components/schemas.yml#/StoryYml
+      $ref: designbook-drupal/components/schemas.yml#/SdcStory
 each:
   component.variants:
     $ref: designbook/design/schemas.yml#/Variant
 ---
 
-# Create SDC Variant Story
-
-Produce one `.story.yml` file for a single variant of a component. Runs once per `(component, variant)` pair alongside `create-component`, which handles the `.component.yml`, `.twig`, and `.default.story.yml`.
-
-## Result: variant-story
-
-The variant story file (`<component>.<variant.id>.story.yml`). Must declare `component: <provider>:<component>` and `variant: <variant.id>` so the SDC Storybook addon pairs it with the matching variant entry in `.component.yml`.
