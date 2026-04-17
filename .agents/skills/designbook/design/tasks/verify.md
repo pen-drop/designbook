@@ -12,6 +12,14 @@ params:
       $ref: ../../scenes/schemas.yml#/SceneId
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
+    story_meta:
+      path: designbook/stories/{story_id}/meta.yml
+      type: object
+      $ref: ../schemas.yml#/StoryMeta
+    issues:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
     breakpoint:
       $ref: ../schemas.yml#/BreakpointId
     region:
@@ -21,58 +29,42 @@ params:
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
+result:
+  type: object
+  required: [verified-issues]
+  properties:
+    verified-issues:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
 ---
 
 # Verify
 
-Re-evaluates after polish + recapture. Determines if issues are resolved and writes final results via CLI.
+Re-evaluates after polish + recapture. Emits `verified-issues` as a data result for downstream consumption. Does not write to `meta.yml`.
 
 ## Execution
 
 Verify compares existing screenshots (captured by the `recapture` task) — it does NOT restart Storybook or re-capture.
 
-1. **Read issues** for this check:
-   ```bash
-   _debo story issues --scene ${scene} --check ${breakpoint}--${region}
-   ```
+1. **Read issues for this check** from the `issues` param (pre-filtered via workflow scope + `each: checks`).
 
-2. **Re-compare** based on issue source:
+2. **Re-compare based on issue source:**
 
    **For screenshot issues** — read both images side by side:
-   - Reference: `${reference_folder}/${breakpoint}--${region}.png`
-   - Storybook (after polish): `designbook/stories/${storyId}/screenshots/${breakpoint}--${region}.png`
+   - Reference: `{reference_folder}/{breakpoint}--{region}.png`
+   - Storybook (after polish): `designbook/stories/{story_id}/screenshots/{breakpoint}--{region}.png`
 
-   Compare visually and determine if the issue is resolved.
+   Compare visually and determine if the issue is resolved. Use per-region threshold from `story_meta.reference.breakpoints.<bp>.regions.<region>.threshold`.
 
    **For extraction issues** — if extraction files exist, re-diff the specific properties mentioned in the issue. Otherwise evaluate visually from screenshots.
 
-3. **Update each issue** with the result:
-   ```bash
-   _debo story issues --scene ${scene} --check ${breakpoint}--${region} --update <index> --json '{"status":"done","result":"pass"}'
-   ```
-   Or if still present:
-   ```bash
-   _debo story issues --scene ${scene} --check ${breakpoint}--${region} --update <index> --json '{"status":"done","result":"fail"}'
-   ```
+3. **Emit `verified-issues`** — each input issue copied over with `status: "done"` and `result: "pass" | "fail"` set.
 
-4. **Close the check** with overall verdict:
-   ```bash
-   _debo story check --scene ${scene} --json '{"breakpoint":"${breakpoint}","region":"${region}","status":"done","result":"pass|fail"}'
-   ```
-   - `result: "pass"` if ALL issues have `result: "pass"`
-   - `result: "fail"` if ANY issue has `result: "fail"`
+Complete the task with `workflow done --data` passing the verified-issues array:
 
-## Output
-
-```
-## Verify: {scene} ({breakpoint}/{region})
-
-**Result:** PASS
-
-| Issue | Before | After | Result |
-|-------|--------|-------|--------|
-| Hero Heading fontSize (3rem) | 2.5rem | 3rem | PASS |
-| Header diff (threshold 3%) | 4.2% | 1.8% | PASS |
+```bash
+workflow done --data '{"verified-issues": [ ... ]}'
 ```
 
-If all issues pass, the check is verified. If any fail, report remaining issues for manual review.
+The overall check verdict (pass/fail) is derived by downstream tooling from the verified-issues array: `fail` if any issue has `result: "fail"`, else `pass`. No `meta.yml` write.
