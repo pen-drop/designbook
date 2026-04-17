@@ -10,7 +10,7 @@
  * Uses real temp directories and task files, no mocks.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -995,5 +995,302 @@ describe('real-world JSON Schema param shapes', () => {
     expect(tasks).toHaveLength(1);
     expect(tasks[0]!.params!.workflow).toBe('debo-tokens');
     expect(tasks[0]!.params!.params).toEqual({});
+  });
+});
+
+// ── each-expansion edge cases (JSONata migration regressions) ───────────────
+
+describe('each-expansion edge cases', () => {
+  let taskDir: string;
+
+  beforeEach(() => {
+    taskDir = resolve(tmpDir, 'each-edge');
+    mkdirSync(taskDir, { recursive: true });
+  });
+
+  function writeTaskFile(name: string, frontmatter: string): string {
+    const path = resolve(taskDir, `${name}.md`);
+    writeFileSync(path, `---\n${frontmatter}\n---\n# ${name}`);
+    return path;
+  }
+
+  function makeStageLoaded(steps: Record<string, string>): Record<string, ResolvedStep> {
+    const out: Record<string, ResolvedStep> = {};
+    for (const [step, taskFile] of Object.entries(steps)) {
+      out[step] = { task_file: taskFile, rules: [], blueprints: [], config_rules: [], config_instructions: [] };
+    }
+    return out;
+  }
+
+  // #30 — the original bug this JSONata migration fixed
+  it('result.path interpolates each-bound fields (regression: no literal {{ variant.id }})', async () => {
+    const taskFile = writeTaskFile(
+      'create-variant-story',
+      [
+        'trigger:',
+        '  steps: [create-variant-story]',
+        'params:',
+        '  type: object',
+        '  required: [component, variant]',
+        '  properties:',
+        '    component: { type: object }',
+        '    variant: { type: object }',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    variant-story:',
+        '      path: "components/{{ component.component }}/{{ component.component }}.{{ variant.id }}.story.yml"',
+        'each:',
+        '  component:',
+        '    expr: "components"',
+        '  variant:',
+        '    expr: "component.variants"',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = { execute: { steps: ['create-variant-story'] } };
+    const params = {
+      components: [{ component: 'navigation', variants: [{ id: 'main' }, { id: 'footer' }] }],
+    };
+
+    const tasks = await expandTasksFromParams(
+      makeStageLoaded({ 'create-variant-story': taskFile }),
+      stages,
+      params,
+      [],
+      {},
+    );
+
+    expect(tasks).toHaveLength(2);
+
+    const paths = tasks.map((t) => t.result!['variant-story']!.path);
+    expect(paths).toEqual([
+      'components/navigation/navigation.main.story.yml',
+      'components/navigation/navigation.footer.story.yml',
+    ]);
+    // Regression: literal placeholders must not leak through
+    for (const p of paths) {
+      expect(p).not.toMatch(/\{\{/);
+      expect(p).not.toMatch(/\}\}/);
+    }
+  });
+
+  // #31 — empty array produces zero tasks, not a crash
+  it('each axis yielding an empty array emits zero tasks', async () => {
+    const taskFile = writeTaskFile(
+      'process-item',
+      [
+        'trigger:',
+        '  steps: [process-item]',
+        'params:',
+        '  type: object',
+        '  required: [item]',
+        '  properties:',
+        '    item: { type: object }',
+        'each:',
+        '  item:',
+        '    expr: "items"',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = { execute: { steps: ['process-item'] } };
+    const tasks = await expandTasksFromParams(
+      makeStageLoaded({ 'process-item': taskFile }),
+      stages,
+      { items: [] },
+      [],
+      {},
+    );
+    expect(tasks).toEqual([]);
+  });
+
+  // #32 — stage-level legacy each: fallback
+  it('stage-level each: (legacy) still expands when no task-level each is declared', async () => {
+    const taskFile = writeTaskFile(
+      'legacy-task',
+      [
+        'trigger:',
+        '  steps: [legacy-task]',
+        'params:',
+        '  type: object',
+        '  required: [items]',
+        '  properties:',
+        '    items: { type: object }',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['legacy-task'], each: 'items' },
+    };
+    const params = { items: [{ id: 'a' }, { id: 'b' }] };
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const tasks = await expandTasksFromParams(makeStageLoaded({ 'legacy-task': taskFile }), stages, params, [], {});
+      expect(tasks).toHaveLength(2);
+      expect((tasks[0]!.params!.items as { id: string }).id).toBe('a');
+      expect((tasks[1]!.params!.items as { id: string }).id).toBe('b');
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/stage-level each is deprecated/));
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  // #33 — one step, two task files: one task-level each, one singleton
+  it('mixed each: one task iterates, sibling task without each emits singleton', async () => {
+    const iterTask = writeTaskFile(
+      'iter-task',
+      [
+        'name: skill:concern:iter',
+        'trigger:',
+        '  steps: [shared-step]',
+        'params:',
+        '  type: object',
+        '  required: [item]',
+        '  properties:',
+        '    item: { type: object }',
+        'each:',
+        '  item:',
+        '    expr: "items"',
+      ].join('\n'),
+    );
+
+    const singletonTask = writeTaskFile(
+      'singleton-task',
+      [
+        'name: skill:concern:singleton',
+        'trigger:',
+        '  steps: [shared-step]',
+        'priority: 10',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    items: { type: array, default: [] }',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, ResolvedStep[]> = {
+      'shared-step': [
+        { task_file: iterTask, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+        { task_file: singletonTask, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+      ],
+    };
+    const stages: Record<string, StageDefinition> = { execute: { steps: ['shared-step'] } };
+    const params = { items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] };
+
+    const tasks = await expandTasksFromParams(stageLoaded, stages, params, [], {});
+
+    const iterTasks = tasks.filter((t) => t.task_file === iterTask);
+    const singletonTasks = tasks.filter((t) => t.task_file === singletonTask);
+
+    expect(iterTasks).toHaveLength(3);
+    expect(singletonTasks).toHaveLength(1);
+    expect(singletonTasks[0]!.params!.items).toEqual([{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
+  });
+
+  // #34 — $i / $total accessible in templates
+  it('$i and $total are interpolated in title and result path', async () => {
+    const taskFile = writeTaskFile(
+      'numbered-task',
+      [
+        'title: "Step {{ $i + 1 }} of {{ $total }}: {{ item.label }}"',
+        'trigger:',
+        '  steps: [numbered-task]',
+        'params:',
+        '  type: object',
+        '  required: [item]',
+        '  properties:',
+        '    item: { type: object }',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    out:',
+        '      path: "out/{{ $i }}-of-{{ $total }}.yml"',
+        'each:',
+        '  item:',
+        '    expr: "items"',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = { execute: { steps: ['numbered-task'] } };
+    const params = { items: [{ label: 'alpha' }, { label: 'beta' }, { label: 'gamma' }] };
+
+    const tasks = await expandTasksFromParams(makeStageLoaded({ 'numbered-task': taskFile }), stages, params, [], {});
+
+    expect(tasks).toHaveLength(3);
+    expect(tasks[0]!.title).toBe('Step 1 of 3: alpha');
+    expect(tasks[1]!.title).toBe('Step 2 of 3: beta');
+    expect(tasks[2]!.title).toBe('Step 3 of 3: gamma');
+    expect(tasks[0]!.result!.out!.path).toBe('out/0-of-3.yml');
+    expect(tasks[2]!.result!.out!.path).toBe('out/2-of-3.yml');
+  });
+
+  // #35 — filter: with dotted JSONata key reaches into each-bound object
+  it('filter: with dotted key narrows each-expanded items', async () => {
+    const taskFile = writeTaskFile(
+      'filter-check',
+      [
+        'trigger:',
+        '  steps: [filter-check]',
+        'filter:',
+        '  check.type: screenshot',
+        'params:',
+        '  type: object',
+        '  required: [check]',
+        '  properties:',
+        '    check: { type: object }',
+        'each:',
+        '  check:',
+        '    expr: "checks"',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = { execute: { steps: ['filter-check'] } };
+    const params = {
+      checks: [
+        { id: 'a', type: 'screenshot' },
+        { id: 'b', type: 'dom' },
+        { id: 'c', type: 'screenshot' },
+      ],
+    };
+
+    const tasks = await expandTasksFromParams(makeStageLoaded({ 'filter-check': taskFile }), stages, params, [], {});
+    expect(tasks).toHaveLength(2);
+    expect((tasks[0]!.params!.check as { id: string }).id).toBe('a');
+    expect((tasks[1]!.params!.check as { id: string }).id).toBe('c');
+  });
+
+  // #36 — $env + each-binding both interpolate in one path
+  it('$ENV variable and each-bound field interpolate together in result path', async () => {
+    const taskFile = writeTaskFile(
+      'env-task',
+      [
+        'trigger:',
+        '  steps: [env-task]',
+        'params:',
+        '  type: object',
+        '  required: [section]',
+        '  properties:',
+        '    section: { type: object }',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    section-yml:',
+        '      path: "$DESIGNBOOK_DATA/sections/{{ section.id }}/{{ section.id }}.section.yml"',
+        'each:',
+        '  section:',
+        '    expr: "sections"',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = { execute: { steps: ['env-task'] } };
+    const params = { sections: [{ id: 'hero' }, { id: 'footer' }] };
+    const envMap = { DESIGNBOOK_DATA: '/abs/data' };
+
+    const tasks = await expandTasksFromParams(makeStageLoaded({ 'env-task': taskFile }), stages, params, [], envMap);
+
+    expect(tasks).toHaveLength(2);
+    expect(tasks[0]!.result!['section-yml']!.path).toBe('/abs/data/sections/hero/hero.section.yml');
+    expect(tasks[1]!.result!['section-yml']!.path).toBe('/abs/data/sections/footer/footer.section.yml');
   });
 });

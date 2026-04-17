@@ -52,6 +52,12 @@ export async function interpolate(
 
   const bindings: Record<string, unknown> = {};
   if (envMap) bindings.env = envMap;
+  // Scope keys starting with `$` become JSONata variables (e.g. `$i`, `$total`
+  // from each-expansion helpers). JSONata resolves `$foo` against bindings,
+  // not the input scope, so we have to hoist these out.
+  for (const key of Object.keys(scope)) {
+    if (key.startsWith('$')) bindings[key.slice(1)] = scope[key];
+  }
 
   const parts = prepared.split(/(\{\{[^}]*\}\})/);
   const resolved = await Promise.all(
