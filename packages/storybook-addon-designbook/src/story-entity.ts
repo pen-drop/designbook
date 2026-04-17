@@ -1,5 +1,5 @@
 /**
- * DeboStory entity — single model for all story-related data.
+ * StoryMeta entity — single model for all story-related data.
  *
  * Provides access to story metadata, checks (breakpoint×region verification),
  * and screenshots. Used by both CLI and addon.
@@ -39,7 +39,7 @@ function toStoryId(title: string, exportName: string): string {
 
 export type StoryStatus = 'pass' | 'failing' | 'unchecked';
 
-export interface DeboStorySummary {
+export interface StoryMetaSummary {
   total: number;
   pass: number;
   fail: number;
@@ -49,12 +49,12 @@ export interface DeboStorySummary {
   threshold: number;
 }
 
-export interface DeboStoryCheckCurrent {
+export interface StoryMetaCheckCurrent {
   screenshot: string;
   markup: string;
 }
 
-export interface DeboStoryCheckReference {
+export interface StoryMetaCheckReference {
   screenshot?: string;
   url?: string;
   markup?: string;
@@ -76,7 +76,7 @@ export interface StoryIssue {
   result?: 'pass' | 'fail' | null;
 }
 
-export interface DeboStoryCheck {
+export interface StoryMetaCheck {
   storyId: string;
   type: 'screenshot' | 'markup';
   breakpoint: string;
@@ -87,11 +87,11 @@ export interface DeboStoryCheck {
   diff?: number;
   issues?: StoryIssue[];
   threshold: number;
-  current: DeboStoryCheckCurrent;
-  reference: DeboStoryCheckReference;
+  current: StoryMetaCheckCurrent;
+  reference: StoryMetaCheckReference;
 }
 
-export interface DeboStoryScreenshot {
+export interface StoryMetaScreenshot {
   storyId: string;
   breakpoint: string;
   region: string;
@@ -100,7 +100,7 @@ export interface DeboStoryScreenshot {
   url?: string;
 }
 
-export interface DeboStoryReference {
+export interface StoryMetaReference {
   url?: string;
   origin?: string;
   screenId?: string;
@@ -125,15 +125,15 @@ export interface CheckUpdate {
   diff?: number;
 }
 
-export interface DeboStoryJSON {
+export interface StoryMetaJSON {
   storyId: string;
   section: string;
   storyDir: string;
-  reference: DeboStoryReference;
+  reference: StoryMetaReference;
   status: StoryStatus;
-  summary: DeboStorySummary;
-  checks: DeboStoryCheck[];
-  screenshots: DeboStoryScreenshot[];
+  summary: StoryMetaSummary;
+  checks: StoryMetaCheck[];
+  screenshots: StoryMetaScreenshot[];
 }
 
 // ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ interface MetaSource {
   hasMarkup?: boolean;
 }
 
-interface MetaYml {
+export interface StoryMetaData {
   reference?: {
     source?: MetaSource;
     breakpoints?: Record<string, MetaBreakpoint>;
@@ -260,21 +260,21 @@ export function resolveScene(
 }
 
 // ---------------------------------------------------------------------------
-// DeboStory
+// StoryMeta
 // ---------------------------------------------------------------------------
 
-export class DeboStory {
+export class StoryMeta {
   readonly storyId: string;
   readonly section: string;
   readonly storyDir: string;
-  reference: DeboStoryReference;
+  reference: StoryMetaReference;
 
-  private _meta: MetaYml;
+  private _meta: StoryMetaData;
   private readonly _metaPath: string;
-  private _allChecks: DeboStoryCheck[];
-  private _allScreenshots: DeboStoryScreenshot[] | null = null;
+  private _allChecks: StoryMetaCheck[];
+  private _allScreenshots: StoryMetaScreenshot[] | null = null;
 
-  private constructor(storyId: string, section: string, storyDir: string, meta: MetaYml, metaPath: string) {
+  private constructor(storyId: string, section: string, storyDir: string, meta: StoryMetaData, metaPath: string) {
     this.storyId = storyId;
     this.section = section;
     this.storyDir = storyDir;
@@ -294,38 +294,38 @@ export class DeboStory {
   // -------------------------------------------------------------------------
 
   /**
-   * Load a DeboStory from a storyId. Returns null if story directory doesn't exist.
+   * Load a StoryMeta from a storyId. Returns null if story directory doesn't exist.
    */
-  static load(config: DesignbookConfig, storyId: string): DeboStory | null {
+  static load(config: DesignbookConfig, storyId: string): StoryMeta | null {
     const storyDir = resolve(config.data, 'stories', storyId);
     if (!existsSync(storyDir)) return null;
 
     const metaPath = resolve(storyDir, 'meta.yml');
-    let meta: MetaYml = {};
+    let meta: StoryMetaData = {};
 
     if (existsSync(metaPath)) {
       const content = readFileSync(metaPath, 'utf-8');
-      meta = (parseYaml(content) as MetaYml) ?? {};
+      meta = (parseYaml(content) as StoryMetaData) ?? {};
     }
 
-    const section = DeboStory._deriveSection(storyId);
+    const section = StoryMeta._deriveSection(storyId);
 
-    return new DeboStory(storyId, section, storyDir, meta, metaPath);
+    return new StoryMeta(storyId, section, storyDir, meta, metaPath);
   }
 
   /**
    * List stories, optionally filtered by section.
    */
-  static list(config: DesignbookConfig, filter?: { section?: string }): DeboStory[] {
+  static list(config: DesignbookConfig, filter?: { section?: string }): StoryMeta[] {
     const storiesDir = resolve(config.data, 'stories');
     if (!existsSync(storiesDir)) return [];
 
     const entries = readdirSync(storiesDir, { withFileTypes: true });
-    const stories: DeboStory[] = [];
+    const stories: StoryMeta[] = [];
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
-      const story = DeboStory.load(config, entry.name);
+      const story = StoryMeta.load(config, entry.name);
       if (!story) continue;
       if (filter?.section && story.section !== filter.section) continue;
       stories.push(story);
@@ -338,14 +338,14 @@ export class DeboStory {
    * Load a story by scene reference (group:sceneName format).
    * Resolves the scene to a storyId first.
    */
-  static loadByScene(config: DesignbookConfig, sceneRef: string): DeboStory | null {
+  static loadByScene(config: DesignbookConfig, sceneRef: string): StoryMeta | null {
     const { scenes, allScenes } = resolveScene(config.data, sceneRef);
     if (scenes.length === 0) return null;
 
     const sceneName = scenes[0]!.name;
-    const storyId = DeboStory._deriveStoryIdFromScene(allScenes, sceneName);
+    const storyId = StoryMeta._deriveStoryIdFromScene(allScenes, sceneName);
 
-    return DeboStory.load(config, storyId);
+    return StoryMeta.load(config, storyId);
   }
 
   /**
@@ -353,12 +353,12 @@ export class DeboStory {
    * missing, optionally seeds meta.yml with provided data, then runs ensureMeta
    * to derive breakpoints/regions from design tokens.
    */
-  static createByScene(config: DesignbookConfig, sceneRef: string, metaSeed?: Partial<MetaYml>): DeboStory | null {
+  static createByScene(config: DesignbookConfig, sceneRef: string, metaSeed?: Partial<StoryMetaData>): StoryMeta | null {
     const { scenes, allScenes } = resolveScene(config.data, sceneRef);
     if (scenes.length === 0) return null;
 
     const sceneName = scenes[0]!.name;
-    const storyId = DeboStory._deriveStoryIdFromScene(allScenes, sceneName);
+    const storyId = StoryMeta._deriveStoryIdFromScene(allScenes, sceneName);
 
     const storyDir = resolve(config.data, 'stories', storyId);
     mkdirSync(storyDir, { recursive: true });
@@ -366,10 +366,10 @@ export class DeboStory {
     const metaPath = resolve(storyDir, 'meta.yml');
 
     // Build meta: start from existing or seed, then fill in breakpoints/regions
-    let meta: MetaYml = {};
+    let meta: StoryMetaData = {};
     if (existsSync(metaPath)) {
       const content = readFileSync(metaPath, 'utf-8');
-      meta = (parseYaml(content) as MetaYml) ?? {};
+      meta = (parseYaml(content) as StoryMetaData) ?? {};
     }
 
     // Merge seed data (e.g. reference.source from --json)
@@ -385,8 +385,8 @@ export class DeboStory {
 
     // Fill in breakpoints/regions from design tokens if not already present
     if (!meta.reference?.breakpoints || Object.keys(meta.reference.breakpoints).length === 0) {
-      const section = DeboStory._deriveSection(storyId);
-      const tmpStory = new DeboStory(storyId, section, storyDir, meta, metaPath);
+      const section = StoryMeta._deriveSection(storyId);
+      const tmpStory = new StoryMeta(storyId, section, storyDir, meta, metaPath);
       const breakpoints = tmpStory._getBreakpoints(config);
       const regions = tmpStory._deriveRegions(config);
 
@@ -407,7 +407,7 @@ export class DeboStory {
     writeFileSync(metaPath, dumpYaml(meta, { lineWidth: -1 }), 'utf-8');
 
     // Load the story from disk (now with full meta)
-    return DeboStory.load(config, storyId);
+    return StoryMeta.load(config, storyId);
   }
 
   // -------------------------------------------------------------------------
@@ -423,7 +423,7 @@ export class DeboStory {
     return 'failing';
   }
 
-  get summary(): DeboStorySummary {
+  get summary(): StoryMetaSummary {
     // Use persisted summary from meta.yml if available
     const metaSummary = this._meta.reference?.summary;
     if (metaSummary) return metaSummary;
@@ -436,7 +436,7 @@ export class DeboStory {
   // Checks
   // -------------------------------------------------------------------------
 
-  checks(filter?: ChecksFilter): DeboStoryCheck[] {
+  checks(filter?: ChecksFilter): StoryMetaCheck[] {
     let result = this._allChecks;
 
     if (filter?.open) {
@@ -454,7 +454,7 @@ export class DeboStory {
   // Screenshots
   // -------------------------------------------------------------------------
 
-  screenshots(filter?: ScreenshotsFilter): DeboStoryScreenshot[] {
+  screenshots(filter?: ScreenshotsFilter): StoryMetaScreenshot[] {
     if (this._allScreenshots === null) {
       this._allScreenshots = this._scanScreenshots();
     }
@@ -479,9 +479,9 @@ export class DeboStory {
    */
   updateCheck(update: CheckUpdate): void {
     withLock(this._metaPath, () => {
-      let meta: MetaYml = {};
+      let meta: StoryMetaData = {};
       if (existsSync(this._metaPath)) {
-        meta = (parseYaml(readFileSync(this._metaPath, 'utf-8')) as MetaYml) ?? {};
+        meta = (parseYaml(readFileSync(this._metaPath, 'utf-8')) as StoryMetaData) ?? {};
       }
       if (!meta.reference) return;
 
@@ -505,7 +505,7 @@ export class DeboStory {
     // Rebuild in-memory state
     if (existsSync(this._metaPath)) {
       const content = readFileSync(this._metaPath, 'utf-8');
-      this._meta = (parseYaml(content) as MetaYml) ?? {};
+      this._meta = (parseYaml(content) as StoryMetaData) ?? {};
       this._allChecks = this._buildChecks();
     }
   }
@@ -513,12 +513,12 @@ export class DeboStory {
   private _reloadMeta(): void {
     if (existsSync(this._metaPath)) {
       const content = readFileSync(this._metaPath, 'utf-8');
-      this._meta = (parseYaml(content) as MetaYml) ?? {};
+      this._meta = (parseYaml(content) as StoryMetaData) ?? {};
       this._allChecks = this._buildChecks();
     }
   }
 
-  private _computeSummary(meta: MetaYml): MetaSummary {
+  private _computeSummary(meta: StoryMetaData): MetaSummary {
     const checks = meta.reference?.checks ?? {};
     const breakpoints = meta.reference?.breakpoints ?? {};
 
@@ -570,7 +570,7 @@ export class DeboStory {
     const regions = this._deriveRegions(config);
 
     // Build meta
-    const meta: MetaYml = {
+    const meta: StoryMetaData = {
       reference: {
         source,
         breakpoints: {},
@@ -610,7 +610,7 @@ export class DeboStory {
   // Serialization
   // -------------------------------------------------------------------------
 
-  toJSON(filter?: { checksOpen?: boolean }): DeboStoryJSON {
+  toJSON(filter?: { checksOpen?: boolean }): StoryMetaJSON {
     const checksFilter: ChecksFilter | undefined = filter?.checksOpen ? { open: true } : undefined;
 
     return {
@@ -629,8 +629,8 @@ export class DeboStory {
   // Private helpers
   // -------------------------------------------------------------------------
 
-  private _buildChecks(): DeboStoryCheck[] {
-    const checks: DeboStoryCheck[] = [];
+  private _buildChecks(): StoryMetaCheck[] {
+    const checks: StoryMetaCheck[] = [];
     const breakpoints = this._meta.reference?.breakpoints;
     if (!breakpoints) return checks;
 
@@ -700,8 +700,8 @@ export class DeboStory {
     return checks;
   }
 
-  private _scanScreenshots(): DeboStoryScreenshot[] {
-    const shots: DeboStoryScreenshot[] = [];
+  private _scanScreenshots(): StoryMetaScreenshot[] {
+    const shots: StoryMetaScreenshot[] = [];
     const screenshotsDir = resolve(this.storyDir, 'screenshots');
     const sourceUrl = this._meta.reference?.source?.url;
 
@@ -754,7 +754,7 @@ export class DeboStory {
     return idx > 0 ? storyId.substring(0, idx) : storyId;
   }
 
-  private _mergeMeta(seed: Partial<MetaYml>): void {
+  private _mergeMeta(seed: Partial<StoryMetaData>): void {
     if (seed.reference) {
       if (!this._meta.reference) this._meta.reference = {};
       if (seed.reference.source) {

@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { loadConfig } from '../config.js';
-import { DeboStory } from '../story-entity.js';
+import { StoryMeta } from '../story-entity.js';
 import { storyIdResolver } from '../resolvers/story-id.js';
 import type { ResolverContext } from '../resolvers/types.js';
 
@@ -33,7 +33,7 @@ export function register(program: Command): void {
 
   program
     .command('story')
-    .description('Load DeboStory entity — returns complete story data as JSON')
+    .description('Load StoryMeta entity — returns complete story data as JSON')
     .argument('[subcommandOrId]', 'Subcommand (check, checks) or story identifier')
     .argument('[storyId]', 'Story identifier when first arg is a subcommand')
     .option('--scene <ref>', 'Scene reference (e.g. design-system:shell) [deprecated: use positional arg]')
@@ -73,13 +73,13 @@ export function register(program: Command): void {
               return;
             }
 
-            let story: DeboStory | null = null;
+            let story: StoryMeta | null = null;
             if (storyIdArg) {
               const resolved = await resolveStoryArg(storyIdArg, config);
               if (!resolved) return;
-              story = DeboStory.load(config, resolved);
+              story = StoryMeta.load(config, resolved);
             } else {
-              story = DeboStory.loadByScene(config, opts.scene!);
+              story = StoryMeta.loadByScene(config, opts.scene!);
             }
             if (!story) {
               console.error(`Error: story not found for "${identifier}"`);
@@ -118,7 +118,7 @@ export function register(program: Command): void {
               return;
             }
             // Create story if --create is set, otherwise load
-            let story: DeboStory | null = null;
+            let story: StoryMeta | null = null;
             if (opts.create) {
               // --create requires scene ref for createByScene (no storyId-based create)
               if (!opts.scene) {
@@ -127,13 +127,13 @@ export function register(program: Command): void {
                 return;
               }
               const metaData = opts.json ? JSON.parse(opts.json) : undefined;
-              story = DeboStory.createByScene(config, opts.scene, metaData);
+              story = StoryMeta.createByScene(config, opts.scene, metaData);
             } else if (storyIdArg) {
               const resolved = await resolveStoryArg(storyIdArg, config);
               if (!resolved) return;
-              story = DeboStory.load(config, resolved);
+              story = StoryMeta.load(config, resolved);
             } else {
-              story = DeboStory.loadByScene(config, opts.scene!);
+              story = StoryMeta.loadByScene(config, opts.scene!);
             }
             if (!story) {
               console.error('Error: could not resolve story or create story');
@@ -166,8 +166,8 @@ export function register(program: Command): void {
 
           // ── default path (no subcommand) ──────────────────────────────────
           if (opts.section) {
-            // Return array of DeboStory objects for all stories in section
-            const stories = DeboStory.list(config, { section: opts.section });
+            // Return array of StoryMeta objects for all stories in section
+            const stories = StoryMeta.list(config, { section: opts.section });
             const json = stories.map((s) => s.toJSON({ checksOpen: opts.checksOpen }));
             console.log(JSON.stringify(json, null, 2));
             return;
@@ -189,7 +189,7 @@ export function register(program: Command): void {
               return;
             }
             const metaData = opts.json ? JSON.parse(opts.json) : undefined;
-            const story = DeboStory.createByScene(config, opts.scene, metaData);
+            const story = StoryMeta.createByScene(config, opts.scene, metaData);
             if (!story) {
               console.error('Error: could not resolve scene or create story');
               process.exitCode = 1;
@@ -207,13 +207,13 @@ export function register(program: Command): void {
           }
 
           // Load story: positional arg goes through resolver, --scene uses loadByScene
-          let story: DeboStory | null = null;
+          let story: StoryMeta | null = null;
           if (subcommandOrId && !isSubcommand) {
             const resolved = await resolveStoryArg(subcommandOrId, config);
             if (!resolved) return;
-            story = DeboStory.load(config, resolved);
+            story = StoryMeta.load(config, resolved);
           } else {
-            story = DeboStory.loadByScene(config, opts.scene!);
+            story = StoryMeta.loadByScene(config, opts.scene!);
           }
           if (!story) {
             console.error(`Error: story not found for "${identifier}"`);

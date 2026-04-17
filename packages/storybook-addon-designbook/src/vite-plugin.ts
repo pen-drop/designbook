@@ -9,7 +9,7 @@ import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { scanAllWorkflows } from './workflow-utils';
-import { DeboStory } from './story-entity';
+import { StoryMeta } from './story-entity';
 
 /** Minimal glob matcher — supports * (no slash) and **-slash (zero or more dirs). */
 function globMatch(pattern: string, filePath: string): boolean {
@@ -390,7 +390,7 @@ export function designbookLoadPlugin(
           }
 
           const config = { data: designbookDir, technology: 'html' as const };
-          const story = DeboStory.load(config, storyId);
+          const story = StoryMeta.load(config, storyId);
 
           if (!story) {
             res.statusCode = 404;

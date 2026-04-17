@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolve } from 'node:path';
 import { mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
-import { DeboStory, resolveScene } from '../story-entity.js';
+import { StoryMeta, resolveScene } from '../story-entity.js';
 import type { DesignbookConfig } from '../config.js';
 
 const tmpDir = resolve(import.meta.dirname, '__fixtures_story_entity__');
@@ -126,7 +126,7 @@ function setupFixtures() {
   );
 }
 
-describe('DeboStory', () => {
+describe('StoryMeta', () => {
   const config = makeConfig(tmpDir);
 
   beforeAll(() => setupFixtures());
@@ -138,7 +138,7 @@ describe('DeboStory', () => {
 
   describe('load', () => {
     it('loads existing story with meta.yml', () => {
-      const story = DeboStory.load(config, 'design-system--shell');
+      const story = StoryMeta.load(config, 'design-system--shell');
       expect(story).not.toBeNull();
       expect(story!.storyId).toBe('design-system--shell');
       expect(story!.section).toBe('design-system');
@@ -148,14 +148,14 @@ describe('DeboStory', () => {
     });
 
     it('loads story without meta.yml', () => {
-      const story = DeboStory.load(config, 'galerie--empty');
+      const story = StoryMeta.load(config, 'galerie--empty');
       expect(story).not.toBeNull();
       expect(story!.storyId).toBe('galerie--empty');
       expect(story!.checks()).toHaveLength(0);
     });
 
     it('returns null for non-existent story', () => {
-      const story = DeboStory.load(config, 'does-not-exist');
+      const story = StoryMeta.load(config, 'does-not-exist');
       expect(story).toBeNull();
     });
   });
@@ -166,7 +166,7 @@ describe('DeboStory', () => {
 
   describe('status and summary', () => {
     it('returns pass when all checks pass', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       expect(story.status).toBe('pass');
       expect(story.summary.total).toBe(6);
       expect(story.summary.pass).toBe(6);
@@ -175,7 +175,7 @@ describe('DeboStory', () => {
     });
 
     it('returns failing when any check fails', () => {
-      const story = DeboStory.load(config, 'galerie--product-detail')!;
+      const story = StoryMeta.load(config, 'galerie--product-detail')!;
       expect(story.status).toBe('failing');
       expect(story.summary.total).toBe(2);
       expect(story.summary.pass).toBe(1);
@@ -183,18 +183,18 @@ describe('DeboStory', () => {
     });
 
     it('returns unchecked when no results', () => {
-      const story = DeboStory.load(config, 'galerie--overview')!;
+      const story = StoryMeta.load(config, 'galerie--overview')!;
       expect(story.status).toBe('unchecked');
       expect(story.summary.unchecked).toBe(1);
     });
 
     it('returns unchecked for story without meta', () => {
-      const story = DeboStory.load(config, 'galerie--empty')!;
+      const story = StoryMeta.load(config, 'galerie--empty')!;
       expect(story.status).toBe('unchecked');
     });
 
     it('computes diff metrics correctly', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       expect(story.summary.maxDiff).toBe(2.1);
       // avgDiff = (1.2 + 0.8 + 2.1 + 1.0) / 4 ≈ 1.28
       expect(story.summary.avgDiff).toBeCloseTo(1.28, 1);
@@ -202,7 +202,7 @@ describe('DeboStory', () => {
     });
 
     it('computes mixed diff metrics', () => {
-      const story = DeboStory.load(config, 'galerie--product-detail')!;
+      const story = StoryMeta.load(config, 'galerie--product-detail')!;
       expect(story.summary.maxDiff).toBe(8.3);
       // avgDiff = (8.3 + 1.2) / 2 = 4.75
       expect(story.summary.avgDiff).toBe(4.75);
@@ -215,12 +215,12 @@ describe('DeboStory', () => {
 
   describe('checks', () => {
     it('returns all checks without filter', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       expect(story.checks()).toHaveLength(6); // 4 regions + 2 markup (hasMarkup: true)
     });
 
     it('filters open checks (status !== done)', () => {
-      const story = DeboStory.load(config, 'galerie--product-detail')!;
+      const story = StoryMeta.load(config, 'galerie--product-detail')!;
       // Both checks are 'done', but sm--full has result 'fail'
       // open filter now checks status !== 'done', not result !== 'pass'
       const open = story.checks({ open: true });
@@ -229,14 +229,14 @@ describe('DeboStory', () => {
     });
 
     it('filters by breakpoints', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       const xlOnly = story.checks({ breakpoints: ['xl'] });
       expect(xlOnly).toHaveLength(3); // 2 regions + 1 markup
       expect(xlOnly.every((c) => c.breakpoint === 'xl')).toBe(true);
     });
 
     it('combines filters', () => {
-      const story = DeboStory.load(config, 'galerie--product-detail')!;
+      const story = StoryMeta.load(config, 'galerie--product-detail')!;
       // All checks are done, so open filter returns 0 for both
       const openXl = story.checks({ open: true, breakpoints: ['xl'] });
       expect(openXl).toHaveLength(0);
@@ -245,7 +245,7 @@ describe('DeboStory', () => {
     });
 
     it('includes check data', () => {
-      const story = DeboStory.load(config, 'galerie--product-detail')!;
+      const story = StoryMeta.load(config, 'galerie--product-detail')!;
       const check = story.checks({ breakpoints: ['sm'] })[0]!;
       expect(check.storyId).toBe('galerie--product-detail');
       expect(check.breakpoint).toBe('sm');
@@ -256,7 +256,7 @@ describe('DeboStory', () => {
     });
 
     it('unchecked checks (no status) are included in open filter', () => {
-      const story = DeboStory.load(config, 'galerie--overview')!;
+      const story = StoryMeta.load(config, 'galerie--overview')!;
       const open = story.checks({ open: true });
       expect(open).toHaveLength(1); // status is undefined !== 'done'
     });
@@ -268,13 +268,13 @@ describe('DeboStory', () => {
 
   describe('screenshots', () => {
     it('returns all screenshots', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       const shots = story.screenshots();
       expect(shots.length).toBeGreaterThanOrEqual(3);
     });
 
     it('filters by type', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       const refs = story.screenshots({ type: 'reference' });
       expect(refs.every((s) => s.type === 'reference')).toBe(true);
       const curs = story.screenshots({ type: 'current' });
@@ -282,13 +282,13 @@ describe('DeboStory', () => {
     });
 
     it('filters by breakpoint', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       const sm = story.screenshots({ breakpoint: 'sm' });
       expect(sm.every((s) => s.breakpoint === 'sm')).toBe(true);
     });
 
     it('screenshot has correct structure', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       const ref = story.screenshots({ type: 'reference', breakpoint: 'sm' })[0]!;
       expect(ref.storyId).toBe('design-system--shell');
       expect(ref.type).toBe('reference');
@@ -305,7 +305,7 @@ describe('DeboStory', () => {
 
   describe('updateCheck', () => {
     it('persists check result to meta.yml', () => {
-      const story = DeboStory.load(config, 'galerie--product-detail')!;
+      const story = StoryMeta.load(config, 'galerie--product-detail')!;
       expect(story.checks({ breakpoints: ['sm'] })[0]!.result).toBe('fail');
 
       story.updateCheck({ breakpoint: 'sm', region: 'full', status: 'done', result: 'pass', diff: 0.5 });
@@ -341,7 +341,7 @@ describe('DeboStory', () => {
       const storyId = 'design-system--shell-new';
       mkdirSync(resolve(tmpDir, 'stories', storyId), { recursive: true });
 
-      const story = DeboStory.load(config, storyId)!;
+      const story = StoryMeta.load(config, storyId)!;
       expect(story.checks()).toHaveLength(0);
 
       // ensureMeta should fail — "shell-new" scene doesn't exist in scenes.yml
@@ -350,7 +350,7 @@ describe('DeboStory', () => {
     });
 
     it('returns true if meta already exists', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       expect(story.ensureMeta(config)).toBe(true);
     });
 
@@ -359,7 +359,7 @@ describe('DeboStory', () => {
       const storyId = 'design-system--no-ref';
       mkdirSync(resolve(tmpDir, 'stories', storyId), { recursive: true });
 
-      const story = DeboStory.load(config, storyId)!;
+      const story = StoryMeta.load(config, storyId)!;
       const result = story.ensureMeta(config);
       expect(result).toBe(false);
       expect(existsSync(resolve(tmpDir, 'stories', storyId, 'meta.yml'))).toBe(false);
@@ -384,7 +384,7 @@ describe('DeboStory', () => {
         }),
       );
 
-      const story = DeboStory.load(config, screenStoryId)!;
+      const story = StoryMeta.load(config, screenStoryId)!;
       const result = story.ensureMeta(config);
       expect(result).toBe(true);
 
@@ -416,12 +416,12 @@ describe('DeboStory', () => {
 
   describe('list', () => {
     it('lists all stories', () => {
-      const stories = DeboStory.list(config);
+      const stories = StoryMeta.list(config);
       expect(stories.length).toBeGreaterThanOrEqual(3);
     });
 
     it('filters by section', () => {
-      const galerie = DeboStory.list(config, { section: 'galerie' });
+      const galerie = StoryMeta.list(config, { section: 'galerie' });
       expect(galerie.every((s) => s.section === 'galerie')).toBe(true);
       expect(galerie.length).toBeGreaterThanOrEqual(2);
     });
@@ -433,7 +433,7 @@ describe('DeboStory', () => {
 
   describe('toJSON', () => {
     it('returns complete entity', () => {
-      const story = DeboStory.load(config, 'design-system--shell')!;
+      const story = StoryMeta.load(config, 'design-system--shell')!;
       const json = story.toJSON();
       expect(json.storyId).toBe('design-system--shell');
       expect(json.status).toBe('pass');
@@ -444,7 +444,7 @@ describe('DeboStory', () => {
     });
 
     it('filters checks with checksOpen (status !== done)', () => {
-      const story = DeboStory.load(config, 'galerie--product-detail')!;
+      const story = StoryMeta.load(config, 'galerie--product-detail')!;
       const json = story.toJSON({ checksOpen: true });
       // All checks are 'done', so checksOpen returns 0
       expect(json.checks).toHaveLength(0);
