@@ -9,10 +9,16 @@ priority: 10
 params:
   type: object
   $ref: ../schemas.yml#/Check
-  required: [scene_id, reference_folder, breakpoints]
+  required: [scene_id, story_id, reference_folder, breakpoints]
   properties:
     scene_id:
       $ref: ../../scenes/schemas.yml#/SceneId
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
+    story_meta:
+      path: designbook/stories/{story_id}/meta.yml
+      type: object
+      $ref: ../schemas.yml#/StoryMeta
     reference_folder:
       $ref: ../schemas.yml#/ReferenceFolder
     breakpoints: { type: string }
@@ -30,11 +36,7 @@ Captures a reference screenshot by loading the source URL at the given breakpoin
 
 ## Execution
 
-1. **Resolve reference URL** from `StoryMeta` entity:
-   ```bash
-   _debo story --scene ${scene}
-   ```
-   Read the `reference.url` from the story JSON output. If no reference URL is available, skip with a warning.
+1. **Read reference URL from the `story_meta` param**: `story_meta.reference.source.url`. If unset, skip with a warning.
 
    **Download URLs:** If the reference URL triggers a file download instead of rendering in the browser (e.g., a provider-specific download endpoint), download it first:
    ```bash
