@@ -1,33 +1,31 @@
 ---
 name: designbook:design:capture-reference
-title: "Capture Reference: {scene_id} ({breakpoint}/{region})"
+title: "Capture Reference: {{ check.scene_id }} ({{ check.breakpoint }}/{{ check.region }})"
 trigger:
   steps: [capture]
 filter:
-  type: screenshot
+  check.type: screenshot
 priority: 10
 params:
   type: object
-  $ref: ../schemas.yml#/Check
-  required: [scene_id, story_id, reference_folder, breakpoints]
+  required: [check, reference_folder]
   properties:
-    scene_id:
-      $ref: ../../scenes/schemas.yml#/SceneId
-    story_id:
-      $ref: ../../scenes/schemas.yml#/StoryId
+    check:
+      type: object
+      $ref: ../schemas.yml#/Check
     story_meta:
-      path: designbook/stories/{story_id}/meta.yml
+      path: "designbook/stories/{{ check.story_id }}/meta.yml"
       type: object
       $ref: ../schemas.yml#/StoryMeta
     reference_folder:
       $ref: ../schemas.yml#/ReferenceFolder
-    breakpoints: { type: string }
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
 each:
-  checks:
-    $ref: ../schemas.yml#/Check
+  check:
+    expr: "checks"
+    schema: { $ref: ../schemas.yml#/Check }
 ---
 
 # Capture Reference

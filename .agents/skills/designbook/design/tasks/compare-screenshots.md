@@ -1,33 +1,32 @@
 ---
 name: designbook:design:compare-screenshots
-title: "Compare Screenshots: {scene_id} ({breakpoint}/{region})"
+title: "Compare Screenshots: {{ check.scene_id }} ({{ check.breakpoint }}/{{ check.region }})"
 trigger:
   steps: [compare]
 params:
   type: object
-  $ref: ../schemas.yml#/Check
-  required: [scene_id, story_id, reference_folder]
+  required: [check, reference_folder]
   properties:
-    scene_id:
-      $ref: ../../scenes/schemas.yml#/SceneId
-    story_id:
-      $ref: ../../scenes/schemas.yml#/StoryId
+    check:
+      type: object
+      $ref: ../schemas.yml#/Check
     story_meta:
-      path: designbook/stories/{story_id}/meta.yml
+      path: "designbook/stories/{{ check.story_id }}/meta.yml"
       type: object
       $ref: ../schemas.yml#/StoryMeta
     story_url:
       type: string
       resolve: story_url
-      from: story_id
+      from: check.story_id
     reference_folder:
       $ref: ../schemas.yml#/ReferenceFolder
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
 each:
-  checks:
-    $ref: ../schemas.yml#/Check
+  check:
+    expr: "checks"
+    schema: { $ref: ../schemas.yml#/Check }
 result:
   type: object
   required: [issues]
@@ -50,15 +49,15 @@ Captures the Storybook screenshot, compares it with the reference, and writes dr
    - Resolve viewport width from `design-tokens.yml`
    - Use selector from the check's `selector` field
    - Full-page CLI for `full` region, element Node API for named regions (header, footer)
-   - Save to `designbook/stories/{story_id}/screenshots/{breakpoint}--{region}.png`
+   - Save to `designbook/stories/{{ check.story_id }}/screenshots/{{ check.breakpoint }}--{{ check.region }}.png`
 
 3. **Verify** by reading the captured image.
 
 ## Phase 2: Compare
 
 1. **Read both images:**
-   - Reference: `{reference_folder}/{breakpoint}--{region}.png`
-   - Storybook: `designbook/stories/{story_id}/screenshots/{breakpoint}--{region}.png`
+   - Reference: `{reference_folder}/{{ check.breakpoint }}--{{ check.region }}.png`
+   - Storybook: `designbook/stories/{{ check.story_id }}/screenshots/{{ check.breakpoint }}--{{ check.region }}.png`
 
    If either image is missing, skip with a warning.
 
