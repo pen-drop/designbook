@@ -53,9 +53,9 @@ StoryMeta:
   type: object
   title: Story Meta
   description: >
-    On-disk format of `stories/{storyId}/meta.yml` — the single source of truth
-    for per-story verification settings (reference source, breakpoints, regions,
-    check results, summary). Written/read exclusively by the `StoryMeta` entity.
+    On-disk format of `stories/{storyId}/meta.yml` — per-story reference
+    configuration (source + breakpoints/regions). Checks and issues are
+    runtime-only and never persisted here.
   properties:
     reference:
       type: object
@@ -91,33 +91,6 @@ StoryMeta:
                     threshold:
                       type: number
                       description: Per-region override of the breakpoint threshold.
-        checks:
-          type: object
-          description: >
-            Map of `{breakpoint}--{region}` key → persisted check result.
-          additionalProperties:
-            type: object
-            required: [status]
-            properties:
-              status: { type: string, enum: [open, done] }
-              result: { type: string, enum: [pass, fail] }
-              diff: { type: number }
-              issues:
-                type: array
-                items:
-                  $ref: "#/Issue"
-        summary:
-          type: object
-          description: Aggregated verification status persisted with the story.
-          required: [total, pass, fail, unchecked, maxDiff, avgDiff, threshold]
-          properties:
-            total: { type: integer }
-            pass: { type: integer }
-            fail: { type: integer }
-            unchecked: { type: integer }
-            maxDiff: { type: [number, "null"] }
-            avgDiff: { type: [number, "null"] }
-            threshold: { type: number }
 
 Issue:
   type: object
@@ -305,6 +278,152 @@ DesignReference:
         radii:
           type: array
           items: { type: string }
+    navigation:
+      type: array
+      description: Navigation structures detected in the design reference.
+      items:
+        type: object
+        properties:
+          role:
+            type: string
+            description: "Navigation context: main, footer, breadcrumb, sidebar, utility."
+            enum: [main, footer, breadcrumb, sidebar, utility]
+          items:
+            type: array
+            description: Ordered list of navigation entries.
+            items:
+              type: object
+              properties:
+                label: { type: string }
+                url: { type: string }
+                active: { type: boolean, description: "True if this item appears as the active/current page." }
+                children:
+                  type: array
+                  description: Sub-navigation items (one level deep).
+                  items:
+                    type: object
+                    properties:
+                      label: { type: string }
+                      url: { type: string }
+    images:
+      type: array
+      description: Static images and brand assets detected in the design reference (logos, icons, illustrations).
+      items:
+        type: object
+        properties:
+          url: { type: string, description: "Source URL or path of the image." }
+          role:
+            type: string
+            description: "Visual role of the image."
+            enum: [logo, icon, hero, background, illustration, avatar, other]
+          alt: { type: string, description: "Alt text or accessible label if present." }
+          location: { type: string, description: "Where the image appears: header, footer, main, sidebar." }
+          width: { type: string, description: "Rendered width (px or CSS value)." }
+          height: { type: string, description: "Rendered height (px or CSS value)." }
+    components:
+      type: array
+      description: UI components identified in the design reference.
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            description: "Component type as it would be named in the design system (e.g. button, card, navigation, hero, badge)."
+          count:
+            type: number
+            description: Number of distinct instances detected.
+          location:
+            type: array
+            description: "Regions where the component appears."
+            items: { type: string }
+          variants:
+            type: array
+            description: Visual variants observed (e.g. primary/secondary, filled/outline, horizontal/vertical).
+            items: { type: string }
+          props:
+            type: object
+            description: Key visual properties extracted from the observed instances (colors, sizes, labels, etc.).
+    sections:
+      type: array
+      description: >
+        Page-level content zones between header and footer (hero, features grid, CTA, testimonials, etc.).
+        Provides layout context for story structure decisions.
+      items:
+        type: object
+        properties:
+          type:
+            type: string
+            description: "Section type (e.g. hero, features, cta, testimonials, pricing, faq, gallery, contact)."
+          bg: { type: string, description: "Background color or gradient." }
+          layout:
+            type: string
+            description: "Layout pattern (e.g. full-width, two-column, grid-3, centered)."
+          content_summary:
+            type: string
+            description: "One-sentence description of what this section contains."
+          order:
+            type: integer
+            description: "Top-to-bottom position of the section on the page (1-based)."
+    shadows:
+      type: array
+      description: >
+        Elevation / box-shadow tokens detected in the design reference.
+        Maps to CSS custom properties (e.g. --shadow-card, --shadow-modal).
+      items:
+        type: object
+        properties:
+          value: { type: string, description: "Full CSS box-shadow value." }
+          usage:
+            type: array
+            description: "Contexts where this shadow appears (e.g. card, modal, dropdown, button, header)."
+            items: { type: string }
+          token: { type: string, description: "Suggested CSS custom property name (e.g. --shadow-sm)." }
+    forms:
+      type: array
+      description: >
+        Form patterns detected in the design reference — input fields, labels, error states, etc.
+        Extracted per distinct form or form section observed.
+      items:
+        type: object
+        properties:
+          context:
+            type: string
+            description: "Where the form appears or its purpose (e.g. login, newsletter, contact, search)."
+          fields:
+            type: array
+            description: "Detected input fields."
+            items:
+              type: object
+              properties:
+                type: { type: string, description: "Input type (text, email, password, select, checkbox, radio, textarea)." }
+                label_position: { type: string, description: "Label placement (above, inline, placeholder-only)." }
+                style:
+                  type: object
+                  properties:
+                    bg: { type: string }
+                    border: { type: string }
+                    border_radius: { type: string }
+                    padding: { type: string }
+                    font_size: { type: string }
+          error_color: { type: string, description: "Color used for validation error messages." }
+          submit_button: { type: string, description: "Description of the submit CTA style." }
+    breakpoints:
+      type: array
+      description: >
+        Responsive breakpoints observed in the design reference (e.g. when multiple viewport
+        widths are shown). Maps detected px values to design-token breakpoint identifiers.
+      items:
+        type: object
+        properties:
+          px:
+            type: integer
+            description: "Viewport width in pixels at which the layout changes."
+          token_id:
+            type: string
+            description: "Suggested breakpoint token identifier (e.g. sm, md, lg, xl)."
+          description:
+            type: string
+            description: "What changes at this breakpoint (e.g. nav collapses, grid switches to single column)."
 
 DesignHint:
   type: object
