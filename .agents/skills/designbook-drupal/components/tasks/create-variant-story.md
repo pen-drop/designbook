@@ -1,6 +1,6 @@
 ---
 name: designbook-drupal:components:create-variant-story
-title: "Create Variant Story {{ component }}.{{ variant.id }}"
+title: "Create Variant Story {{ component.component }}.{{ variant.id }}"
 trigger:
   steps: [create-component]
 filter:
@@ -10,7 +10,8 @@ params:
   type: object
   required: [component, variant]
   properties:
-    component: { type: string }
+    component:
+      $ref: designbook/design/schemas.yml#/Component
     variant:
       $ref: designbook/design/schemas.yml#/Variant
 result:
@@ -18,10 +19,14 @@ result:
   required: [variant-story]
   properties:
     variant-story:
-      path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.{{ variant.id }}.story.yml
+      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.{{ variant.id }}.story.yml"
       $ref: designbook-drupal/components/schemas.yml#/SdcStory
 each:
-  component.variants:
-    $ref: designbook/design/schemas.yml#/Variant
+  component:
+    expr: "component"
+    schema: { $ref: designbook/design/schemas.yml#/Component }
+  variant:
+    expr: "component.variants"
+    schema: { $ref: designbook/design/schemas.yml#/Variant }
 ---
 
