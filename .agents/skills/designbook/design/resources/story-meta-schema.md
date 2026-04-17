@@ -42,15 +42,6 @@ properties:
               type: number
               default: 3
               description: Diff threshold in percent. Differences below this value are PASS. Default 3%.
-            lastDiff:
-              type: number
-              nullable: true
-              description: Last computed diff percentage from compare-screenshots. Null if never compared.
-            lastResult:
-              type: string
-              nullable: true
-              enum: [pass, fail, null]
-              description: Last comparison result. Null if never compared.
             regions:
               type: object
               required: true
@@ -67,114 +58,22 @@ properties:
                   threshold:
                     type: number
                     description: Override threshold for this region. Defaults to breakpoint threshold.
-                  lastDiff:
-                    type: number
-                    nullable: true
-                    description: Last computed diff percentage for this region.
-                  lastResult:
-                    type: string
-                    nullable: true
-                    enum: [pass, fail, null]
-                    description: Last comparison result for this region.
-      checks:
-        type: object
-        description: >
-          Per-check results. Keys are `breakpoint--region` (e.g. `sm--header`, `xl--markup`).
-          Written by compare tasks via `_debo story check`.
-        additionalProperties:
-          type: object
-          properties:
-            status:
-              type: string
-              enum: [open, done]
-              description: >
-                Check lifecycle status. `open` = created by compare, issues pending.
-                `done` = resolved by verify after polish.
-            result:
-              type: string
-              nullable: true
-              enum: [pass, fail, null]
-              description: Check verdict. Set by verify. Null while status is open.
-            diff:
-              type: number
-              nullable: true
-              description: Diff percentage (screenshot checks).
-            issues:
-              type: array
-              description: Structured issues found during comparison.
-              items:
-                type: object
-                properties:
-                  source:
-                    type: string
-                    enum: [screenshots, extraction]
-                    description: Where the issue was detected.
-                  severity:
-                    type: string
-                    enum: [critical, major]
-                    description: Issue severity. Only critical and major are persisted.
-                  description:
-                    type: string
-                    description: Human-readable summary.
-                  label:
-                    type: string
-                    nullable: true
-                    description: Element label from extraction spec (extraction issues only).
-                  category:
-                    type: string
-                    nullable: true
-                    enum: [typography, layout, media, interactive, decoration]
-                    description: Element category.
-                  property:
-                    type: string
-                    nullable: true
-                    description: CSS property name or null.
-                  expected:
-                    type: string
-                    nullable: true
-                    description: Expected value.
-                  actual:
-                    type: string
-                    nullable: true
-                    description: Actual value.
-                  status:
-                    type: string
-                    enum: [open, done]
-                    description: Issue lifecycle status.
-                  result:
-                    type: string
-                    nullable: true
-                    enum: [pass, fail, null]
-                    description: Issue resolution result. Set by verify.
-      summary:
-        type: object
-        description: Aggregated summary. Recomputed automatically by `_debo story check`.
-        properties:
-          total:
-            type: integer
-          pass:
-            type: integer
-          fail:
-            type: integer
-          unchecked:
-            type: integer
-          maxDiff:
-            type: number
-            nullable: true
-          avgDiff:
-            type: number
-            nullable: true
-          threshold:
-            type: number
 ```
 
-### Issue Lifecycle
+`meta.yml` is pure reference configuration. Runtime state — checks and issues — flows through the workflow scope as data results:
+
+- `setup-compare` writes `meta.yml` (above schema) and emits `checks[]` as a data result.
+- `compare-screenshots` emits `issues[]` as a data result, consumed by `verify` via the workflow scope.
+- `verify` emits `verified-issues[]` as a data result. No `meta.yml` write.
+
+### Runtime Flow
 
 ```
-compare (screenshots/extraction)  →  writes check (status: open) + issues (status: open)
-polish                             →  fixes code, updates issues (status: done)
-recapture                          →  re-captures screenshots
-verify                             →  re-evaluates, writes result per issue (pass/fail), closes check (done)
+setup-compare   →  writes meta.yml + emits checks[] (data result)
+compare         →  emits issues[] (data result)
+polish          →  fixes code
+recapture       →  re-captures screenshots
+verify          →  emits verified-issues[] (data result)
 ```
 
 ## Example
@@ -193,23 +92,15 @@ reference:
       regions:
         header:
           selector: "header"
-          lastDiff: 2.1
-          lastResult: pass
         footer:
           selector: "footer"
-          lastDiff: 1.5
-          lastResult: pass
     xl:
       threshold: 5
       regions:
         header:
           selector: "header"
-          lastDiff: null
-          lastResult: null
         footer:
           selector: "footer"
-          lastDiff: null
-          lastResult: null
 ```
 
 ```yaml
@@ -224,15 +115,11 @@ reference:
       regions:
         full:
           selector: ""
-          lastDiff: 2.1
-          lastResult: pass
     xl:
       threshold: 5
       regions:
         full:
           selector: ""
-          lastDiff: null
-          lastResult: null
 ```
 
 ## Path Convention
@@ -241,7 +128,7 @@ All story artifacts live under `designbook/stories/{storyId}/`:
 
 ```
 designbook/stories/{storyId}/
-  meta.yml                                  ← this file (checks + issues)
+  meta.yml                                  ← this file (reference configuration)
   screenshots/
     {breakpoint}--{region}.png              ← Storybook captures (gitignored)
   extractions/
