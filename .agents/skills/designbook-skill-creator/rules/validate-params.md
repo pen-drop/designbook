@@ -6,7 +6,7 @@ priority: 10
 
 Check all task files for param/body consistency violations:
 
-1. **Hardcoded paths in body** — Search markdown body (below frontmatter) for patterns: `$DESIGNBOOK_DATA`, `.yml` filename references, `Read ... .yml`, `If ... .yml exists`. Warn if a file reference is found that is not a runtime path (runtime paths contain `{{ }}`, `{var}`, or `$reference_dir`).
+1. **Hardcoded paths in body** — Search markdown body (below frontmatter) for patterns: `$DESIGNBOOK_DATA`, `.yml` filename references, `Read ... .yml`, `If ... .yml exists`. Warn if a file reference is found that is not a runtime path (runtime paths contain `{{ … }}` JSONata templates or `$ENV_VAR` / `${ENV_VAR}` env references).
 
 2. **Missing params** — If a file is referenced in the body but not declared in `params.properties`, report as error with suggested param declaration.
 
