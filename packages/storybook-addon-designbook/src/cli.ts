@@ -4,7 +4,6 @@ import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds 
 import { validateData } from './validators/data.js';
 import { validateEntityMapping } from './validators/entity-mapping.js';
 import { register as registerWorkflow } from './cli/workflow.js';
-import { register as registerStory } from './cli/story.js';
 import { register as registerStorybook } from './cli/storybook.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
@@ -100,7 +99,6 @@ validate
 
 // Register submodules
 registerWorkflow(program);
-registerStory(program);
 registerStorybook(program);
 
 program.parse();
