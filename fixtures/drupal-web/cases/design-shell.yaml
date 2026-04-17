@@ -7,8 +7,8 @@ fixtures:
 prompt: |
   You are working in the directory {{workspace}}.
   Run the /debo design-shell workflow. Do NOT ask any questions.
-  Use the design reference from vision.md.
-  The homepage on https://leando.de/ is the primary reference for the shell design.
+  Use reference_url: https://leando.de/ as the primary design reference for the shell.
+  The regions are: header, footer.
   Use breakpoints sm and xl.
   Execute the workflow now.
 

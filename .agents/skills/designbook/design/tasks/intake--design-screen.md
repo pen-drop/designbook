@@ -14,6 +14,7 @@ params:
     design_scenes:
       path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
       type: object
+      $ref: ../../scenes/schemas.yml#/SceneFile
     vision:
       path: $DESIGNBOOK_DATA/vision.yml
       type: object
@@ -22,7 +23,7 @@ params:
       path: $DESIGNBOOK_DATA/sections/[section-id]/[section-id].section.scenes.yml
       workflow: debo-shape-section
       type: object
-      $ref: ../../sections/schemas.yml#/SectionScenes
+      $ref: ../../scenes/schemas.yml#/SceneFile
 result:
   type: object
   required: [component, output_path, entity_mappings, section_id, section_title]

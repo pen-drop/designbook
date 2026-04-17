@@ -8,9 +8,11 @@ params:
   type: object
   required: [scene_id, story_id, issues]
   properties:
-    scene_id: { type: string }
+    scene_id:
+      $ref: ../../scenes/schemas.yml#/SceneId
     reference: { type: array, default: [] }
-    story_id: { type: string }
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
     issues:
       type: array
 ---

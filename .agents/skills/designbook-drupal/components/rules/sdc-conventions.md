@@ -54,6 +54,14 @@ Layout components (`container`, `section`, `grid`) MUST wrap each slot output in
 
 This applies to all slots on layout components, including optional slots like `background` and `header`.
 
+## YAML Quoting
+
+All generated YAML files (`.component.yml`, `.story.yml`, `.scenes.yml`) MUST use double quotes (`"`). Single quotes cause parser errors in the SDC Storybook addon.
+
+## Variant Story Files
+
+Every variant declared in `.component.yml` MUST have its own `<component>.<variant-id>.story.yml` file. The `<component>.default.story.yml` is always produced. For components with variants, additional per-variant story files sit alongside the default. Never combine multiple stories in a single file via `---` document separators.
+
 ## No Hardcoded Colors
 
 Do not hardcode color values in Twig. Use design token CSS custom properties (e.g. `color: var(--color-primary)`, `background: var(--color-surface)`) or utility classes derived from them.

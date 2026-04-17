@@ -5,7 +5,7 @@ trigger:
 
 # Scenes Critical Constraints
 
-> Full `*.scenes.yml` format and `ComponentNode` output schema: see [scenes-schema](../resources/scenes-schema.md).
+> Full `*.scenes.yml` format and `SceneNode` types: see [scenes/schemas.yml](../../scenes/schemas.yml).
 
 > ⛔ **`component:` values MUST always use `provider:component` format.**
 > Write `$DESIGNBOOK_COMPONENT_NAMESPACE:header`, NEVER just `header`.

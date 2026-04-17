@@ -290,8 +290,11 @@ Runs after hooks, only when `--optimize` flag was set at invocation.
 
 ## Research Pass (`--research`, internal)
 
-Runs after optimize pass, only when `--research` flag was set. Internal diagnostic for skill development.
+Runs after optimize pass, only when `--research` flag was set at skill invocation.
 
-1. Replay conversation — log every CLI failure, retry, ambiguity, undocumented behavior
-2. Root-cause each issue (workflow-execution.md, SKILL.md, cli-reference.md, task/rule file, CLI bug)
-3. Output diagnostic report — do not modify files, only report
+**During the workflow:** append `--log` to every `_debo workflow …` CLI call so entries in `designbook/dbo.log` carry `tagged: true`. This is the canonical marker the audit filters on.
+
+**After the workflow:** load `designbook-skill-creator` and follow [`resources/research.md`](../../designbook-skill-creator/resources/research.md). The audit combines:
+
+- archived `tasks.yml` (loaded task files, rules, blueprints)
+- tagged entries in `dbo.log` (CLI failures, retries, unresolved params)

@@ -1,48 +1,95 @@
 # Drupal SDC component schemas
 
 ComponentYml:
-  description: SDC .component.yml metadata file
+  title: SDC Component Metadata
+  description: The `.component.yml` file that declares an SDC component's metadata, props, slots, and variants to Drupal and the Storybook addon.
   type: object
   required: [name, status, group]
   properties:
-    $schema: { type: string }
-    name: { type: string }
-    status: { type: string, enum: [stable, experimental, deprecated] }
-    group: { type: string }
-    description: { type: string }
-    provider: { type: string }
+    $schema:
+      type: string
+      description: Path to the SDC JSON Schema file. Usually `https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json`.
+    name:
+      type: string
+      description: Human-readable display name shown in Storybook navigation. Title case, free-form.
+      examples: [Button, Card, Navigation]
+    status:
+      type: string
+      enum: [stable, experimental, deprecated]
+      description: Lifecycle state. `stable` for production-ready components; `experimental` for in-development; `deprecated` for scheduled removal.
+    group:
+      type: string
+      enum: [Action, "Data Display", Navigation, Layout, Shell]
+      description: Top-level category used for Storybook grouping. One of the allowed values only.
+    description:
+      type: string
+      description: One-sentence summary of the component's purpose and typical usage context.
+    provider:
+      type: string
+      description: Drupal SDC namespace (module/theme name) that owns the component. Maps to a Twig namespace in `.storybook/main.js`.
+      examples: [test_integration_drupal, designbook_design]
     props:
       type: object
+      description: "JSON Schema object describing the component's typed props. Always `type: object` with `properties:` and optional `required:`."
       properties:
-        type: { type: string, const: object }
-        properties: { type: object }
+        type:
+          type: string
+          const: object
+          description: Always literally `object` — props are declared as a JSON Schema object type.
+        properties:
+          type: object
+          description: Map of prop-name to JSON Schema type definition. Each prop uses camelCase or snake_case per the component's convention.
         required:
           type: array
+          description: Names of required props that MUST be passed for the component to render correctly.
           items: { type: string }
-    slots: { type: object }
-    variants: { type: object }
+    slots:
+      type: object
+      description: Map of slot-name (snake_case) to slot metadata (`title`, `description`). Slots receive pre-rendered content from the caller.
+    variants:
+      type: object
+      description: Map of variant-id (kebab-case) to variant metadata. Each variant must have a matching `<component>.<variant-id>.story.yml`.
     thirdPartySettings:
       type: object
+      description: Vendor-specific settings. Used by the SDC Storybook addon (`sdcStorybook`) to toggle built-in story generation.
       properties:
         sdcStorybook:
           type: object
+          description: Storybook addon configuration block.
           properties:
-            disableBasicStory: { type: boolean }
+            disableBasicStory:
+              type: boolean
+              description: Set `true` to suppress the auto-generated basic story; use when explicit `.story.yml` files cover all cases.
 
 StoryYml:
-  description: SDC .story.yml file
+  title: SDC Story File
+  description: A `<component>.<story-name>.story.yml` file describing one visually distinct rendering of a component. Flat format — no `stories:` wrapper.
   type: object
   required: [component]
   properties:
-    component: { type: string }
-    variant: { type: string }
+    component:
+      type: string
+      description: Fully qualified component reference in `<provider>:<component-name>` format. Provider matches the `provider:` field of the target component's `.component.yml`.
+      examples: ["test_integration_drupal:header", "designbook_design:entity-article"]
+    variant:
+      type: string
+      description: Variant id (kebab-case) when the story exercises a specific variant declared in `.component.yml`. Omit for the default variant.
     stories:
       type: array
+      description: Legacy multi-story array. New story files use the flat top-level format (`name`, `props`, `slots`) with one story per file instead.
       items:
         type: object
         required: [name]
         properties:
-          name: { type: string }
-          description: { type: string }
-          props: { type: object }
-          slots: { type: object }
+          name:
+            type: string
+            description: Story name shown in Storybook. Use `default` for the primary story of a component.
+          description:
+            type: string
+            description: Optional short note explaining what visual state this story demonstrates.
+          props:
+            type: object
+            description: Prop overrides for this story. Keys match prop names declared in the component's `.component.yml`.
+          slots:
+            type: object
+            description: "Slot content for this story. Each value is an array of story-node objects (`type: element | component | image`)."

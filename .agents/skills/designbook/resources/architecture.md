@@ -80,6 +80,20 @@ result:
 
 The engine expands one task instance per item in the `component` scope array. Scope is populated when the preceding stage completes and its data results are collected.
 
+**Dotpath expansion** — for `(outer × nested inner)` cross-products, use a dotpath key. The engine resolves the outer scope, descends the remaining path on each outer item, and emits one task per inner item. Params are `{ ...outerItem, [singularInnerKey]: innerItem }`:
+
+```yaml
+# task frontmatter (create-variant-story.md)
+each:
+  component.variants:
+    $ref: ../schemas.yml#/Variant
+result:
+  variant-story:
+    path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.{{ variant.id }}.story.yml
+```
+
+The last dotpath segment is singularized to form the inner accessor (`variants` → `variant`). See `designbook-skill-creator/resources/schemas.md#each-iteration-declaration` for the full rules.
+
 The `intake` stage is a regular declared stage — its task file is resolved via the `intake--<workflow-id>.md` fallback convention. It runs first, gathering user input and producing data results that flow into scope for subsequent stages.
 
 ## CLI-Side Resolution

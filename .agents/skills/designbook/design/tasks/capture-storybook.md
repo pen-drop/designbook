@@ -2,7 +2,7 @@
 name: designbook:design:capture-storybook
 title: "Capture Storybook: {scene_id} ({breakpoint}/{region})"
 trigger:
-  steps: [recapture]
+  steps: [capture]
 filter:
   type: screenshot
 priority: 20
@@ -10,10 +10,14 @@ params:
   type: object
   required: [scene_id, story_id, breakpoint, region]
   properties:
-    scene_id: { type: string }
-    story_id: { type: string }
-    breakpoint: { type: string }
-    region: { type: string }
+    scene_id:
+      $ref: ../../scenes/schemas.yml#/SceneId
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
+    breakpoint:
+      $ref: ../schemas.yml#/BreakpointId
+    region:
+      $ref: ../schemas.yml#/RegionId
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object

@@ -8,7 +8,8 @@ params:
   type: object
   required: [story_id]
   properties:
-    story_id: { type: string }
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object

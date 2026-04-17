@@ -26,32 +26,32 @@ describe('resolverRegistry', () => {
 });
 
 describe('resolveParams', () => {
-  it('returns allResolved true and empty maps when no params have resolve declarations', () => {
+  it('returns allResolved true and empty maps when no params have resolve declarations', async () => {
     const schema = {
       story_id: { type: 'string' },
       name: { type: 'string' },
     };
     const context = makeContext({ story_id: 'some-story', name: 'test' });
-    const result = resolveParams(schema, context);
+    const result = await resolveParams(schema, context);
 
     expect(result.allResolved).toBe(true);
     expect(Object.keys(result.resolved)).toHaveLength(0);
     expect(Object.keys(result.unresolved)).toHaveLength(0);
   });
 
-  it('skips resolving when param value is not provided', () => {
+  it('skips resolving when param value is not provided', async () => {
     const schema = {
       story_id: { type: 'string', resolve: 'story_id' },
     };
     const context = makeContext({});
-    const result = resolveParams(schema, context);
+    const result = await resolveParams(schema, context);
 
     expect(result.allResolved).toBe(true);
     expect(Object.keys(result.resolved)).toHaveLength(0);
     expect(Object.keys(result.unresolved)).toHaveLength(0);
   });
 
-  it('respects dependency ordering via from — dependent resolver sees resolved values', () => {
+  it('respects dependency ordering via from — dependent resolver sees resolved values', async () => {
     const schema = {
       reference_url: { type: 'string' },
       reference_folder: {
@@ -63,7 +63,7 @@ describe('resolveParams', () => {
     const context = makeContext({
       reference_url: 'https://example.com/design',
     });
-    const result = resolveParams(schema, context);
+    const result = await resolveParams(schema, context);
 
     // reference_folder resolver runs (may fail due to /tmp/test not existing,
     // but the ordering logic ensures it ran with reference_url available)

@@ -10,17 +10,3 @@ Section:
     status: { type: string }
     order: { type: integer }
     group: { type: string }
-
-SectionScenes:
-  type: object
-  required: [id, title]
-  properties:
-    id: { type: string }
-    title: { type: string }
-    description: { type: string }
-    status: { type: string }
-    order: { type: integer }
-    group: { type: string }
-    scenes:
-      type: array
-      items: { type: object }

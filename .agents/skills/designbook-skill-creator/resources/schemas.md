@@ -128,6 +128,40 @@ Two param classes, distinguished by `path:`:
 | `path:` | File/directory input path — engine resolves and reads |
 | `workflow:` | Inter-workflow dependency tracking |
 | `$ref:` | Schema reference — resolved into `schema.definitions` |
+| `resolve:` | Name of a registered code resolver to run before the task starts |
+| `from:` | Name of another param whose value feeds into the resolver (chained) |
+
+### Code Resolvers (`resolve:` + `from:`)
+
+Declare resolvers **on the task that needs the param** — not on the workflow. At `workflow create` the engine aggregates all task-level `resolve:` declarations and runs them once against the merged params; the resolved value is then available to every downstream stage.
+
+```yaml
+# task frontmatter
+params:
+  type: object
+  required: [story_url]
+  properties:
+    story_url:
+      type: string
+      resolve: story_url      # registered resolver name
+```
+
+```yaml
+# workflow frontmatter — supplies the input, no resolver info needed
+params:
+  story_url: { type: string, default: "shell" }
+```
+
+Use `from:` when one param derives from another:
+
+```yaml
+reference_folder:
+  type: string
+  resolve: reference_folder
+  from: reference_url
+```
+
+Registered resolvers live in `packages/storybook-addon-designbook/src/resolvers/`. If the resolver returns an error, `workflow create` emits an `unresolved` response and stops — fix the input and retry.
 
 ### Directory Inputs
 
@@ -276,3 +310,28 @@ The engine expands one task instance per item in the scope array. Scope is popul
 
 - Keys reference scope entries from completed stages
 - Values are JSON Schema (inline or `$ref`) describing the expected item shape
+- Only the **first key** of the `each:` map is used for expansion — declare a single iteration axis per task
+
+### Dotpath expansion — iterate a nested array per outer item
+
+To expand one task per `(outer, inner)` pair where the inner array lives on each outer item, use a dotpath key:
+
+```yaml
+each:
+  component.variants:
+    $ref: ../schemas.yml#/Variant
+```
+
+Semantics:
+
+- Outer scope (`component`) is resolved from scope/params as usual — an array of objects
+- For each outer item, the path after the first dot (`variants`) is descended to find the inner array
+- Each inner item produces one task instance; params are `{ ...outerItem, [innerKey]: innerItem }`
+- `innerKey` is the last dotpath segment singularized (`variants` → `variant`, `stories` → `story`, `categories` → `category`)
+- Outer items with a missing or empty inner array produce zero tasks
+- Template vars inside result paths can reference both axes:
+  ```yaml
+  result:
+    variant-story:
+      path: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.{{ variant.id }}.story.yml
+  ```

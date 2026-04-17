@@ -1,5 +1,6 @@
 import type { ParamResolver, ResolverResult, ResolverContext } from './types.js';
 import { storyIdResolver } from './story-id.js';
+import { storyUrlResolver } from './story-url.js';
 import { referenceFolderResolver } from './reference-folder.js';
 import { breakpointsResolver } from './breakpoints.js';
 
@@ -28,6 +29,7 @@ function register(resolver: ParamResolver): void {
 }
 
 register(storyIdResolver);
+register(storyUrlResolver);
 register(referenceFolderResolver);
 register(breakpointsResolver);
 
@@ -42,7 +44,10 @@ export const resolverRegistry = {
 /*  resolveParams                                                     */
 /* ------------------------------------------------------------------ */
 
-export function resolveParams(schema: Record<string, ParamDeclaration>, context: ResolverContext): ResolveParamsResult {
+export async function resolveParams(
+  schema: Record<string, ParamDeclaration>,
+  context: ResolverContext,
+): Promise<ResolveParamsResult> {
   const resolved: Record<string, ResolverResult> = {};
   const unresolved: Record<string, ResolverResult> = {};
   const outputParams: Record<string, unknown> = { ...context.params };
@@ -70,7 +75,7 @@ export function resolveParams(schema: Record<string, ParamDeclaration>, context:
     return config;
   }
 
-  function runResolver(key: string): void {
+  async function runResolver(key: string): Promise<void> {
     const decl = schema[key];
     if (!decl?.resolve) return;
     const resolverName = decl.resolve;
@@ -99,7 +104,7 @@ export function resolveParams(schema: Record<string, ParamDeclaration>, context:
       params: { ...outputParams },
     };
 
-    const result = resolver.resolve(typeof input === 'string' ? input : '', config, ctx);
+    const result = await resolver.resolve(typeof input === 'string' ? input : '', config, ctx);
 
     if (result.resolved) {
       resolved[key] = result;
@@ -111,12 +116,12 @@ export function resolveParams(schema: Record<string, ParamDeclaration>, context:
 
   // Run independent resolvers first
   for (const key of independent) {
-    runResolver(key);
+    await runResolver(key);
   }
 
   // Run dependent resolvers (they see updated outputParams)
   for (const key of dependent) {
-    runResolver(key);
+    await runResolver(key);
   }
 
   const allResolved = Object.keys(unresolved).length === 0;

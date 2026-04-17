@@ -2,17 +2,7 @@
 type: component
 name: form
 priority: 10
-embeds:
-  - form_element
-  - label
-  - input
-  - select
-  - textarea
-  - checkbox
-  - radio
-  - checkboxes
-  - radios
-  - submit
+embeds: []
 trigger:
   domain: components
 ---

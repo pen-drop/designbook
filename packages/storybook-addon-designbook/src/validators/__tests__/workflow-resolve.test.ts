@@ -326,6 +326,15 @@ describe('expandFilePath', () => {
   it('throws on unknown param', () => {
     expect(() => expandFilePath('{{ missing }}', {}, envMap)).toThrow(/Unknown param/);
   });
+
+  it('expands env vars inside param values', () => {
+    const result = expandFilePath(
+      '{{ output_path }}',
+      { output_path: '$DESIGNBOOK_DATA/design-system/design-system.scenes.yml' },
+      envMap,
+    );
+    expect(result).toBe('/test/dist/design-system/design-system.scenes.yml');
+  });
 });
 
 // 5.4: Params validation

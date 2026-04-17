@@ -8,8 +8,10 @@ params:
   $ref: ../schemas.yml#/Check
   required: [scene_id, reference_folder]
   properties:
-    scene_id: { type: string }
-    reference_folder: { type: string }
+    scene_id:
+      $ref: ../../scenes/schemas.yml#/SceneId
+    reference_folder:
+      $ref: ../schemas.yml#/ReferenceFolder
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
@@ -22,24 +24,7 @@ result:
     issues:
       type: array
       items:
-        type: object
-        required: [severity, description]
-        properties:
-          id: { type: string }
-          story_id: { type: string }
-          checkKey: { type: string }
-          scene_id: { type: string }
-          severity: { type: string, enum: [critical, major, minor] }
-          description: { type: string }
-          file_hint: { type: string }
-          properties:
-            type: array
-            items:
-              type: object
-              properties:
-                property: { type: string }
-                expected: { type: string }
-                actual: { type: string }
+        $ref: ../schemas.yml#/Issue
 ---
 
 # Compare Screenshots

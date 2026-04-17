@@ -6,8 +6,13 @@ params:
   type: object
   required: [vision]
   properties:
-    story_id: { type: string, default: "" }
-    reference_folder: { type: string, default: "", resolver: reference_folder }
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
+      default: ""
+    reference_folder:
+      $ref: ../schemas.yml#/ReferenceFolder
+      default: ""
+      resolver: reference_folder
     vision:
       path: $DESIGNBOOK_DATA/vision.yml
       type: object
@@ -17,12 +22,11 @@ result:
   required: [reference_dir, reference]
   properties:
     reference_dir:
-      type: string
+      $ref: ../schemas.yml#/ReferenceFolder
     reference:
-      type: array
+      type: object
       path: "{reference_folder}/extract.json"
-      items:
-        $ref: ../schemas.yml#/Reference
+      $ref: ../schemas.yml#/DesignReference
     screenshot:
       type: string
       default: ""
@@ -30,10 +34,7 @@ result:
 
 # Extract Reference
 
-Resolves a design reference URL from `vision.yml`, extracts structure into a `DesignReference` (`extract.json`), and returns the reference directory, reference array, and screenshot path.
+Resolves a design reference URL from `vision.yml` and extracts structure into a `DesignReference` (`extract.json`).
 
 If `{reference_folder}/extract.json` already exists, return results from it — no extraction needed.
 
-## Result: reference
-
-Built from `extract.json` `source` field. Use `type: "url"` for URLs, `type: "image"` for screenshots.

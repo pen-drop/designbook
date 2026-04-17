@@ -1,0 +1,170 @@
+title: Define Data Model
+workflow: data-model
+workflow_id: 21fd
+status: incomplete
+engine: direct
+stages:
+  create-data-model:
+    steps:
+      - create-data-model
+stage_loaded:
+  create-data-model:
+    task_file: .claude/skills/designbook/data-model/tasks/create-data-model.md
+    rules:
+      - .claude/skills/designbook-drupal/data-model/rules/media-image-styles.md
+      - .claude/skills/designbook-drupal/data-model/rules/drupal-views.md
+      - .claude/skills/designbook/vision/rules/vision-context.md
+      - .claude/skills/designbook/data-model/rules/sample-template-mapping.md
+      - .claude/skills/designbook/data-model/rules/image-style-config.md
+    blueprints:
+      - .claude/skills/designbook-drupal/data-model/blueprints/view.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/taxonomy_term.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/node.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/media.md
+      - .claude/skills/designbook/data-model/blueprints/image_style.md
+    config_rules: []
+    config_instructions: []
+    schema:
+      definitions:
+        DataModel:
+          type: object
+          required:
+            - content
+          properties:
+            content:
+              additionalProperties:
+                additionalProperties:
+                  properties:
+                    fields:
+                      additionalProperties:
+                        properties:
+                          sample_template:
+                            type: object
+            config:
+              properties:
+                image_style:
+                  additionalProperties:
+                    required:
+                      - aspect_ratio
+                    properties:
+                      aspect_ratio:
+                        type: string
+                        pattern: ^\d+:\d+$
+      params:
+        vision:
+          type: object
+          path: /home/cw/projects/designbook/designbook/vision.yml
+          exists: false
+          content: null
+        data_model:
+          type: object
+          path: /home/cw/projects/designbook/designbook/data-model.yml
+          exists: false
+          content: null
+      result:
+        data-model:
+          path: /home/cw/projects/designbook/designbook/data-model.yml
+          exists: false
+          content: null
+          $ref: '#/definitions/DataModel'
+current_stage: create-data-model
+started_at: '2026-04-16T18:49:10'
+workspace_root: /home/cw/projects/designbook
+schemas:
+  DataModel: &ref_0
+    type: object
+    required:
+      - content
+    properties:
+      content:
+        type: object
+        additionalProperties:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              purpose:
+                type: string
+              view_modes:
+                type: object
+                additionalProperties:
+                  type: object
+                  required:
+                    - template
+                  properties:
+                    template:
+                      type: string
+                    settings:
+                      type: object
+                      additionalProperties: true
+                  additionalProperties: false
+              fields:
+                type: object
+                additionalProperties:
+                  type: object
+                  required:
+                    - type
+                  properties:
+                    type:
+                      type: string
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    required:
+                      type: boolean
+                    multiple:
+                      type: boolean
+                    settings:
+                      type: object
+                      additionalProperties: true
+                    sample_template:
+                      type: object
+                      required:
+                        - template
+                      properties:
+                        template:
+                          type: string
+                        settings:
+                          type: object
+                          additionalProperties: true
+                      additionalProperties: false
+            additionalProperties: true
+      config:
+        type: object
+        additionalProperties: true
+env_map:
+  DESIGNBOOK_TECHNOLOGY: html
+  DESIGNBOOK_WORKSPACE: /home/cw/projects/designbook
+  DESIGNBOOK_HOME: /home/cw/projects/designbook
+  DESIGNBOOK_DATA: /home/cw/projects/designbook/designbook
+  DESIGNBOOK_EXTENSIONS: ''
+  DESIGNBOOK_EXTENSION_SKILLS: ''
+tasks:
+  - id: create-data-model
+    title: 'Define Data Model: create-data-model'
+    type: data
+    step: create-data-model
+    stage: create-data-model
+    status: in-progress
+    started_at: '2026-04-16T18:49:10'
+    task_file: .claude/skills/designbook/data-model/tasks/create-data-model.md
+    rules:
+      - .claude/skills/designbook-drupal/data-model/rules/media-image-styles.md
+      - .claude/skills/designbook-drupal/data-model/rules/drupal-views.md
+      - .claude/skills/designbook/vision/rules/vision-context.md
+      - .claude/skills/designbook/data-model/rules/sample-template-mapping.md
+      - .claude/skills/designbook/data-model/rules/image-style-config.md
+    blueprints:
+      - .claude/skills/designbook-drupal/data-model/blueprints/view.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/taxonomy_term.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/node.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/media.md
+      - .claude/skills/designbook/data-model/blueprints/image_style.md
+    files: []
+    result:
+      data-model:
+        path: /home/cw/projects/designbook/designbook/data-model.yml
+        schema: *ref_0
+completed_at: '2026-04-16T18:49:21'
+summary: 'Define Data Model: create-data-model (data)'

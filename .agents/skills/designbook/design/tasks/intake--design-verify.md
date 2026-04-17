@@ -6,7 +6,8 @@ params:
   type: object
   required: [story_id]
   properties:
-    story_id: { type: string }
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
     reference: { type: array, default: [] }
     reference_dir: { type: string, default: "" }
     design_tokens:

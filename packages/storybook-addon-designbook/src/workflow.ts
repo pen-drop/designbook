@@ -22,6 +22,8 @@ import {
   inferTaskType,
   expandFileDeclarations,
   expandResultDeclarations,
+  resolveSchemasForTasks,
+  deriveSkillsRootFromTaskFile,
   type TaskFileDeclaration,
   type ResolvedStep,
 } from './workflow-resolve.js';
@@ -413,6 +415,58 @@ export function workflowCreate(
 }
 
 /**
+ * Resolve an `each:` key to a flat array of per-task param objects.
+ *
+ * - Flat key (`component`): returns `lookup[component]` directly, spreading
+ *   each item into params.
+ * - Dotpath (`component.variants`): iterates `lookup[component]` as the outer
+ *   scope, then descends the remaining path per outer item. Each inner item
+ *   produces a params object that spreads the outer item and attaches the
+ *   inner item under the dotpath's last segment, singularized (`variants` →
+ *   `variant`). This gives tasks both parent context (`{{ component }}`) and
+ *   the current inner item (`{{ variant.id }}`).
+ */
+function singularize(word: string): string {
+  if (word.endsWith('ies') && word.length > 3) return `${word.slice(0, -3)}y`;
+  if (word.endsWith('s') && !word.endsWith('ss')) return word.slice(0, -1);
+  return word;
+}
+
+function resolveEachIterables(eachKey: string, lookup: Record<string, unknown>): Array<Record<string, unknown>> {
+  const segments = eachKey.split('.');
+  if (segments.length === 1) {
+    const iterables = lookup[eachKey];
+    if (!Array.isArray(iterables)) return [];
+    return iterables.map((item) =>
+      typeof item === 'object' && item !== null ? (item as Record<string, unknown>) : { [eachKey]: item },
+    );
+  }
+  const outerKey = segments[0]!;
+  const innerPath = segments.slice(1);
+  const innerKey = singularize(innerPath[innerPath.length - 1]!);
+  const outerItems = lookup[outerKey];
+  if (!Array.isArray(outerItems)) return [];
+  const results: Array<Record<string, unknown>> = [];
+  for (const outerItem of outerItems) {
+    let innerArray: unknown = outerItem;
+    for (const seg of innerPath) {
+      if (innerArray && typeof innerArray === 'object') {
+        innerArray = (innerArray as Record<string, unknown>)[seg];
+      } else {
+        innerArray = undefined;
+        break;
+      }
+    }
+    if (!Array.isArray(innerArray)) continue;
+    const outerObj = typeof outerItem === 'object' && outerItem !== null ? (outerItem as Record<string, unknown>) : {};
+    for (const innerItem of innerArray) {
+      results.push({ ...outerObj, [innerKey]: innerItem });
+    }
+  }
+  return results;
+}
+
+/**
  * Unified task expansion: compute tasks from stages × params.
  *
  * Called from both `workflow create` (when initial params provide iterables)
@@ -453,63 +507,77 @@ export function expandTasksFromParams(
   const existingIds = new Set(existingTasks.map((t) => t.id).filter(Boolean) as string[]);
 
   // Resolve task-level each: from frontmatter (Task 5.1)
-  // Build a map: step → each key (task-level overrides stage-level)
-  const stepToTaskEach = new Map<string, string>();
+  // Each task file carries its own each key — multiple tasks on the same step
+  // may iterate over different scopes (e.g. create-component: each: component,
+  // create-variant-story: each: component.variants).
+  const taskFileToEach = new Map<string, string>();
+  const stepHasAnyTaskEach = new Map<string, boolean>();
   for (const step of allSteps) {
     const preResolved = stageLoaded[step];
     if (!preResolved) continue;
-    const resolved = Array.isArray(preResolved) ? preResolved[0] : preResolved;
-    if (!resolved) continue;
-    const taskFm = parseFrontmatter(resolved.task_file);
-    if (taskFm?.each && typeof taskFm.each === 'object') {
-      // Task-level each: { <scope-key>: <schema> } — use the first key
-      const eachKey = Object.keys(taskFm.each as Record<string, unknown>)[0];
-      if (eachKey) stepToTaskEach.set(step, eachKey);
+    const resolvedEntries = Array.isArray(preResolved) ? preResolved : [preResolved];
+    let anyEach = false;
+    for (const resolved of resolvedEntries) {
+      const taskFm = parseFrontmatter(resolved.task_file);
+      if (taskFm?.each && typeof taskFm.each === 'object') {
+        const eachKey = Object.keys(taskFm.each as Record<string, unknown>)[0];
+        if (eachKey) {
+          taskFileToEach.set(resolved.task_file, eachKey);
+          anyEach = true;
+        }
+      }
     }
+    stepHasAnyTaskEach.set(step, anyEach);
   }
 
   // Expand each-based items from lookup (scope + params)
-  const items: Array<{ step: string; params?: Record<string, unknown> }> = [];
+  const items: Array<{ step: string; taskFile: string; params?: Record<string, unknown> }> = [];
   for (const [, def] of Object.entries(stages)) {
     const stageSteps = def.steps ?? [];
     const stageHasTasks = stageSteps.some((s) => existingSteps.has(s));
     if (stageHasTasks) continue; // Already expanded — skip
 
     for (const step of stageSteps) {
-      // Resolve each key: task-level (5.1) with stage-level fallback (5.2)
-      const taskEachKey = stepToTaskEach.get(step);
-      const stageEachKey = def.each;
-      let eachKey: string | undefined;
-      if (taskEachKey) {
-        eachKey = taskEachKey;
-      } else if (stageEachKey) {
-        eachKey = stageEachKey;
-        if (taskEachKey === undefined && stageEachKey) {
+      const preResolved = stageLoaded[step];
+      if (!preResolved) continue;
+      const resolvedEntries = Array.isArray(preResolved) ? preResolved : [preResolved];
+
+      for (const resolved of resolvedEntries) {
+        // Resolve each key: task-level (per task file) with stage-level fallback (5.2)
+        const taskEachKey = taskFileToEach.get(resolved.task_file);
+        const stageEachKey = def.each;
+        let eachKey: string | undefined;
+        if (taskEachKey) {
+          eachKey = taskEachKey;
+        } else if (stageEachKey) {
+          eachKey = stageEachKey;
           console.warn(
             `[designbook] stage-level each: "${stageEachKey}" is deprecated — move each: to task frontmatter for step "${step}"`,
           );
         }
-      }
 
-      if (!eachKey) continue;
+        if (!eachKey) continue;
 
-      const iterables = lookup[eachKey] as Array<Record<string, unknown>> | undefined;
-      if (!iterables || !Array.isArray(iterables)) continue;
-
-      for (const iterableItem of iterables) {
-        const itemParams =
-          typeof iterableItem === 'object' && iterableItem !== null ? iterableItem : { [eachKey]: iterableItem };
-        items.push({ step, params: itemParams });
+        const expanded = resolveEachIterables(eachKey, lookup);
+        for (const itemParams of expanded) {
+          items.push({ step, taskFile: resolved.task_file, params: itemParams });
+        }
       }
     }
   }
 
-  // For steps without `each` and no existing tasks, create singleton items
+  // For task files without `each` (and their step has no existing tasks), create singleton items
   for (const step of allSteps) {
     if (existingSteps.has(step)) continue;
-    if (items.some((i) => i.step === step)) continue;
-    if (stepToEach.has(step) || stepToTaskEach.has(step)) continue;
-    items.push({ step, params: {} });
+    const preResolved = stageLoaded[step];
+    if (!preResolved) continue;
+    const resolvedEntries = Array.isArray(preResolved) ? preResolved : [preResolved];
+    for (const resolved of resolvedEntries) {
+      if (taskFileToEach.has(resolved.task_file)) continue; // task-level each handled above
+      if (stepToEach.has(step)) continue; // stage-level each handled above
+      if (items.some((i) => i.step === step && i.taskFile === resolved.task_file)) continue;
+      items.push({ step, taskFile: resolved.task_file, params: {} });
+    }
   }
 
   if (items.length === 0) return [];
@@ -536,8 +604,11 @@ export function expandTasksFromParams(
       const resultDeclarations = taskFm?.result as Record<string, unknown> | undefined;
       const filterConditions = (taskFm?.filter ?? {}) as Record<string, unknown>;
 
-      for (let itemIdx = 0; itemIdx < stepItems.length; itemIdx++) {
-        const item = stepItems[itemIdx]!;
+      // Items produced for THIS specific task file only (task-level each: isolation)
+      const taskItems = stepItems.filter((i) => i.taskFile === resolved.task_file);
+
+      for (let itemIdx = 0; itemIdx < taskItems.length; itemIdx++) {
+        const item = taskItems[itemIdx]!;
 
         // Filter items by `filter:` conditions against item params (task-level AND).
         const itemParams = { ...lookup, ...item.params };
@@ -1188,6 +1259,15 @@ export async function workflowDone(
             );
             if (expanded.length > 0) {
               data.tasks.push(...expanded);
+              // Resolve $ref in newly-expanded tasks' result schemas and merge
+              // into the inlined schemas map so AJV validation can resolve refs.
+              const skillsRoot = deriveSkillsRootFromTaskFile(expanded[0]?.task_file);
+              if (skillsRoot) {
+                const mergedSchemas = resolveSchemasForTasks(expanded, skillsRoot, { ...(data.schemas ?? {}) });
+                if (Object.keys(mergedSchemas).length > 0) {
+                  data.schemas = mergedSchemas;
+                }
+              }
               expandedFromScope = expanded.map((t) => ({
                 id: t.id,
                 step: t.step,

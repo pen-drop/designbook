@@ -1,108 +1,132 @@
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import type { ResolverContext } from '../types.js';
-import { storyIdResolver } from '../story-id.js';
 
-const fixtureDir = join(import.meta.dirname, '__fixtures_story_id_resolver__');
-const storiesDir = join(fixtureDir, 'stories');
+const tmpDir = join(import.meta.dirname, '__fixtures_story_id_resolver__');
 
-const STORY_IDS = [
-  'designbook-design-system-scenes--shell',
-  'designbook-design-system-scenes--navigation',
-  'designbook-galerie-scenes--landing',
-  'designbook-galerie-scenes--product-detail',
-  'designbook-homepage-scenes--landing',
-  'designbook-homepage-scenes--hero',
-  'components--card',
-];
+let mockStatus: { running: boolean; port?: number } = { running: false };
+let mockIndex: { entries?: Record<string, unknown> } | null | 'throw' = null;
 
-function makeContext(tmpDir: string = fixtureDir): ResolverContext {
+vi.mock('../../storybook.js', () => {
+  class StorybookDaemon {
+    constructor(
+      private readonly dataDir: string,
+      private readonly baseUrl: string = 'http://localhost',
+    ) {}
+    status() {
+      return mockStatus;
+    }
+    get url(): string | undefined {
+      if (!mockStatus.port) return undefined;
+      return `http://localhost:${mockStatus.port}`;
+    }
+    iframeUrl(storyId: string): string | undefined {
+      if (!mockStatus.port) return undefined;
+      return `http://localhost:${mockStatus.port}/iframe.html?id=${storyId}&viewMode=story`;
+    }
+  }
+  function fetchJson(_url: string): Promise<unknown> {
+    if (mockIndex === 'throw') return Promise.reject(new Error('ECONNREFUSED'));
+    return Promise.resolve(mockIndex);
+  }
+  return { StorybookDaemon, fetchJson };
+});
+
+const { storyIdResolver } = await import('../story-id.js');
+
+function makeContext(): ResolverContext {
   return { config: { data: tmpDir, technology: 'html' }, params: {} };
 }
 
+function seedStory(id: string): void {
+  mkdirSync(join(tmpDir, 'stories', id), { recursive: true });
+}
+
+function indexed(...ids: string[]): { entries: Record<string, unknown> } {
+  const entries: Record<string, unknown> = {};
+  for (const id of ids) entries[id] = { id };
+  return { entries };
+}
+
 describe('storyIdResolver', () => {
-  beforeAll(() => {
-    mkdirSync(storiesDir, { recursive: true });
-    for (const id of STORY_IDS) {
-      mkdirSync(join(storiesDir, id), { recursive: true });
-    }
+  beforeEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+    mkdirSync(tmpDir, { recursive: true });
+    mockStatus = { running: false };
+    mockIndex = null;
   });
 
   afterAll(() => {
-    rmSync(fixtureDir, { recursive: true, force: true });
+    rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('has name "story_id"', () => {
     expect(storyIdResolver.name).toBe('story_id');
   });
 
-  it('resolves an exact match', () => {
-    const result = storyIdResolver.resolve('designbook-design-system-scenes--shell', {}, makeContext());
+  it('resolves matched id when Storybook is running and story is indexed', async () => {
+    seedStory('designbook-design-system-scenes--shell');
+    mockStatus = { running: true, port: 6006 };
+    mockIndex = indexed('designbook-design-system-scenes--shell');
+
+    const result = await storyIdResolver.resolve('shell', {}, makeContext());
     expect(result.resolved).toBe(true);
     expect(result.value).toBe('designbook-design-system-scenes--shell');
   });
 
-  it('resolves unique substring "shell"', () => {
-    const result = storyIdResolver.resolve('shell', {}, makeContext());
-    expect(result.resolved).toBe(true);
-    expect(result.value).toBe('designbook-design-system-scenes--shell');
+  it('returns unresolved when input does not match any story directory', async () => {
+    seedStory('foo--bar');
+    mockStatus = { running: true, port: 6006 };
+
+    const result = await storyIdResolver.resolve('nonexistent', {}, makeContext());
+    expect(result.resolved).toBe(false);
+    expect(result.error).toMatch(/No story found/);
   });
 
-  it('resolves unique substring "product-detail"', () => {
-    const result = storyIdResolver.resolve('product-detail', {}, makeContext());
-    expect(result.resolved).toBe(true);
-    expect(result.value).toBe('designbook-galerie-scenes--product-detail');
+  it('returns unresolved when Storybook is not running', async () => {
+    seedStory('designbook-design-system-scenes--shell');
+    mockStatus = { running: false };
+
+    const result = await storyIdResolver.resolve('shell', {}, makeContext());
+    expect(result.resolved).toBe(false);
+    expect(result.error).toMatch(/not running/);
   });
 
-  it('resolves unique substring "navigation"', () => {
-    const result = storyIdResolver.resolve('navigation', {}, makeContext());
-    expect(result.resolved).toBe(true);
-    expect(result.value).toBe('designbook-design-system-scenes--navigation');
+  it('returns unresolved when story is not in Storybook index', async () => {
+    seedStory('designbook-design-system-scenes--shell');
+    mockStatus = { running: true, port: 6006 };
+    mockIndex = indexed('other--story');
+
+    const result = await storyIdResolver.resolve('shell', {}, makeContext());
+    expect(result.resolved).toBe(false);
+    expect(result.error).toMatch(/not in Storybook's \/index\.json/);
+    expect(result.error).toMatch(/--force/);
   });
 
-  it('resolves unique substring "card"', () => {
-    const result = storyIdResolver.resolve('card', {}, makeContext());
-    expect(result.resolved).toBe(true);
-    expect(result.value).toBe('components--card');
+  it('returns unresolved when /index.json is unreachable', async () => {
+    seedStory('designbook-design-system-scenes--shell');
+    mockStatus = { running: true, port: 6006 };
+    mockIndex = 'throw';
+
+    const result = await storyIdResolver.resolve('shell', {}, makeContext());
+    expect(result.resolved).toBe(false);
+    expect(result.error).toMatch(/Could not reach Storybook/);
   });
 
-  it('returns unresolved with 2 candidates for ambiguous "landing"', () => {
-    const result = storyIdResolver.resolve('landing', {}, makeContext());
+  it('returns candidates when ambiguous', async () => {
+    seedStory('alpha--shell');
+    seedStory('beta--shell');
+    mockStatus = { running: true, port: 6006 };
+
+    const result = await storyIdResolver.resolve('shell', {}, makeContext());
     expect(result.resolved).toBe(false);
     expect(result.candidates).toHaveLength(2);
-    const values = result.candidates!.map((c) => c.value);
-    expect(values).toContain('designbook-galerie-scenes--landing');
-    expect(values).toContain('designbook-homepage-scenes--landing');
   });
 
-  it('returns unresolved with 2 candidates for ambiguous "galerie"', () => {
-    const result = storyIdResolver.resolve('galerie', {}, makeContext());
-    expect(result.resolved).toBe(false);
-    expect(result.candidates).toHaveLength(2);
-    const values = result.candidates!.map((c) => c.value);
-    expect(values).toContain('designbook-galerie-scenes--landing');
-    expect(values).toContain('designbook-galerie-scenes--product-detail');
-  });
-
-  it('returns unresolved with empty candidates for "nonexistent"', () => {
-    const result = storyIdResolver.resolve('nonexistent', {}, makeContext());
-    expect(result.resolved).toBe(false);
-    expect(result.candidates).toEqual([]);
-  });
-
-  it('returns unresolved for empty input', () => {
-    const result = storyIdResolver.resolve('', {}, makeContext());
+  it('returns unresolved for empty input', async () => {
+    const result = await storyIdResolver.resolve('', {}, makeContext());
     expect(result.resolved).toBe(false);
     expect(result.error).toBeDefined();
-  });
-
-  it('returns unresolved with empty candidates when stories directory is missing', () => {
-    const noStoriesDir = join(fixtureDir, 'no-stories');
-    mkdirSync(noStoriesDir, { recursive: true });
-    const result = storyIdResolver.resolve('shell', {}, makeContext(noStoriesDir));
-    expect(result.resolved).toBe(false);
-    expect(result.candidates).toEqual([]);
-    rmSync(noStoriesDir, { recursive: true, force: true });
   });
 });

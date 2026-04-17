@@ -14,10 +14,10 @@ Use a flat structure:
 ├── SKILL.md              # Index only (required); no implementation detail
 ├── tasks/                # One file per stage; filename = stage name
 │   └── [stage-name].md
-├── rules/                # Constraints loaded when `domain` matches
-│   └── [rule-name].md    # frontmatter: domain: components; when: { backend: drupal }
+├── rules/                # Constraints loaded when triggers match (strict)
+│   └── [rule-name].md    # frontmatter: trigger: { domain: components }; filter: { backend: drupal }
 ├── blueprints/           # Overridable starting points for creation stages
-│   └── [name].md         # frontmatter: domain: components; when: { backend: drupal }
+│   └── [name].md         # frontmatter: trigger: { domain: components }; filter: { backend: drupal }
 ├── resources/            # Reference docs, split by concern
 │   └── [topic].md
 └── schemas.yml            # Reusable JSON Schema definitions (PascalCase keys)
@@ -51,49 +51,71 @@ See [`resources/schemas.md`](../resources/schemas.md) for format conventions and
 
 ### Workflow-qualified tasks (`<step>--<workflow>.md`)
 
-Task files scoped to a specific workflow use `<step>--<workflow>.md` naming (e.g. `intake--design-verify.md`). Their `when.steps` **MUST** use the fully qualified step name including the workflow prefix:
+Task files scoped to a specific workflow use `<step>--<workflow>.md` naming (e.g. `intake--design-verify.md`). Their `trigger.steps:` **MUST** use the fully qualified step name including the workflow prefix:
 
 ```yaml
 # ✅ CORRECT — matches workflow step "design-verify:intake"
-when:
+trigger:
   steps: [design-verify:intake]
 
 # ❌ WRONG — bare step name will NOT match, task gets skipped
-when:
+trigger:
   steps: [intake]
 ```
 
-The CLI matches `when.steps` values literally against the step name from the workflow definition. A workflow that declares `steps: [design-verify:intake]` will only find task files whose `when.steps` contains the exact string `design-verify:intake`.
+The CLI matches `trigger.steps:` values literally against the step name from the workflow definition. A workflow that declares `steps: [design-verify:intake]` will only find task files whose `trigger.steps:` contains the exact string `design-verify:intake`.
 
-## `rules/` — Domain Matching
+## `rules/` — Trigger + Filter Matching
 
-Rules use `when.domain:` to declare which knowledge domain they belong to. The resolver loads a rule when its domain matches the effective domains of the current step (union of task `domain:` + stage `domain:`).
+Rules declare activation via two separate frontmatter blocks:
+
+- **`trigger:`** — WHEN the rule becomes active (OR-connected, **strict**: at least one key must explicitly match).
+  Supported keys: `steps`, `domain`.
+- **`filter:`** — WHERE (project config) the rule is applicable (AND-connected, deferring: undefined keys pass).
+  Supported keys: `backend`, `frameworks.*`, `extensions`, `type`.
 
 ```markdown
 ---
-when:
-  domain: components
-  backend: drupal          # optional config condition
+trigger:
+  domain: components      # activates when a task needs the `components` domain
+filter:
+  backend: drupal         # only in Drupal projects
 ---
 ```
 
-Config conditions in `when:` (`backend`, `frameworks.*`, `extensions`) still apply as additional filters. `when.steps` is deprecated for rules — use `when.domain:` instead.
+### Consumer Semantics — `domain:` declares WHAT A TASK NEEDS
+
+> **Critical:** `domain:` in a task's frontmatter lists domains the task **consumes** (depends on), not domains it **produces**.
+
+A rule with `trigger.domain: X` activates only when the current task declares `domain: [..., X, ...]`. So:
+
+- A task that CREATES `vision.yml` (the producer) does **not** set `domain: [vision]` — it doesn't consume vision context.
+- A task that CREATES a data-model but READS the vision (the consumer) declares `domain: [data-model, vision]` — it needs vision context loaded.
+
+This makes rules like `vision-context.md` (with `trigger.domain: vision`) load only where the vision is actually needed, not during vision creation itself.
+
+**Rule of thumb:** If removing a rule would break the task, declare the rule's domain in the task's `domain:`. If the task is the thing that creates the domain's data, do NOT declare it.
+
+### Strict Trigger Matching
+
+Triggers are strict: a `trigger.domain: X` rule does **not** load for a task that declared no `domain:`. Previously (legacy `when:` semantics) undefined context keys were deferred (treated as match); this is no longer the case. If a rule should always load for certain steps regardless of domain, use `trigger.steps: [...]` instead.
 
 ### Domain Subcontexts
 
-Use dot-notation for finer scoping: `components.layout`, `scenes.shell`. A task with `domain: [components]` loads rules with `domain: components` and `domain: components.*`. A task with `domain: [components.layout]` loads `domain: components` (parent) and `domain: components.layout` (exact), but not `domain: components.discovery` (sibling).
+Use dot-notation for finer scoping: `components.layout`, `scenes.shell`. A task with `domain: [components]` loads rules with `trigger.domain: components` and `trigger.domain: components.*`. A task with `domain: [components.layout]` loads `trigger.domain: components` (parent) and `trigger.domain: components.layout` (exact), but not `trigger.domain: components.discovery` (sibling).
 
 ### Provider Rules (`provides`) — Legacy
 
-> **Prefer code resolvers.** New param resolution should use `resolve:` in workflow param declarations (see architecture.md). Provider rules are a legacy mechanism kept for backwards compatibility.
+> **Prefer code resolvers.** New param resolution should use `resolve:` in the task's param declarations (see `resources/schemas.md`). Provider rules are a legacy mechanism kept for backwards compatibility.
 
 A rule with `provides: <param>` declares that it can resolve a specific workflow param via AI execution. The workflow engine runs provider rules **before** the task starts (step 2a-resolve), but only for params not already resolved by a code resolver or `--params`.
 
 ```markdown
 ---
 provides: url
-when:
+trigger:
   domain: design.intake
+filter:
   extensions: stitch
 ---
 ```
@@ -112,7 +134,7 @@ Rules can extend the merged result schema of a task. Three operations:
 
 ```yaml
 ---
-when:
+trigger:
   domain: tokens
 constrains:
   design-tokens:
@@ -134,19 +156,20 @@ constrains:
 
 See [`resources/schema-composition.md`](../resources/schema-composition.md) for the full merge model.
 
-## `blueprints/` — Domain Matching
+## `blueprints/` — Trigger + Filter Matching
 
-Same `when.domain:` matching as rules. Blueprints declare which knowledge domain they belong to; the resolver loads them when a step's effective domains match.
+Blueprints use the same `trigger:` + `filter:` matching as rules, including strict-trigger semantics and consumer-based `domain:` activation.
 
 ```markdown
 ---
-when:
-  domain: components
-  backend: drupal          # optional config condition
+trigger:
+  domain: components       # activates when a task needs the `components` domain
+filter:
+  backend: drupal          # only in Drupal projects
 ---
 ```
 
-All conditions in `when:` apply as filters — `domain` uses prefix matching, other keys use exact matching against config.
+`trigger.domain:` uses prefix matching (via `matchDomain()`); other `filter:` keys use exact matching against config values.
 
 ### Schema Extension Fields
 

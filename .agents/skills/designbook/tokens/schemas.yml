@@ -14,11 +14,26 @@ DesignTokens:
     semantic:
       type: object
       title: Semantic Tokens
+      required: [color, typography]
       description: >
         Purpose-based aliases. Values MUST reference primitives
         via {primitive.<group>.<key>} — no raw values allowed.
-        Common groups: color (primary, secondary, …), typography
-        (roles with font size, weight, line height per role).
+      properties:
+        color:
+          type: object
+          title: Semantic Colors
+          description: >
+            Purpose-based color aliases (primary, secondary, background,
+            surface, foreground, error, …). Each leaf is a TokenLeaf whose
+            $value references a primitive color.
+        typography:
+          type: object
+          title: Semantic Typography
+          description: >
+            Role-based typography tokens (heading, body, button, …). Each role
+            is a typography TokenLeaf bundling fontFamily, fontSize, fontWeight,
+            and lineHeight references. When derived from a design reference,
+            every HTML element observed in the extract MUST appear as a role.
     component:
       type: object
       title: Component Tokens

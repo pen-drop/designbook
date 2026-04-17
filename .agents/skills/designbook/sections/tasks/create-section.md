@@ -24,6 +24,7 @@ result:
       path: $DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml
       type: object
       validators: [scene]
+      $ref: ../../scenes/schemas.yml#/SceneFile
 each:
   section:
     $ref: ../schemas.yml#/Section

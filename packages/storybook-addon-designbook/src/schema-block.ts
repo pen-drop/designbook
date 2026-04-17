@@ -34,6 +34,39 @@ export interface BuildSchemaBlockInput {
 }
 
 /**
+ * Recursively resolve nested $ref entries into the definitions map and
+ * rewrite them as local AJV-compatible refs (`#/definitions/TypeName`).
+ * Skips already-local refs and the top-level $ref (handled separately so the
+ * entry-level $ref stays mergeable with the other entry fields).
+ */
+function resolveNestedRefs(
+  node: unknown,
+  definitions: Record<string, object>,
+  input: BuildSchemaBlockInput,
+  depth: number,
+): void {
+  if (Array.isArray(node)) {
+    for (const item of node) resolveNestedRefs(item, definitions, input, depth + 1);
+    return;
+  }
+  if (!node || typeof node !== 'object') return;
+
+  const obj = node as Record<string, unknown>;
+  if (depth > 0 && typeof obj.$ref === 'string') {
+    const ref = obj.$ref;
+    if (ref.includes('#/') && !ref.startsWith('#/')) {
+      const { typeName, schema } = resolveSchemaRef(ref, input.taskFilePath, input.skillsRoot);
+      definitions[typeName] = schema;
+      obj.$ref = `#/definitions/${typeName}`;
+    }
+  }
+
+  for (const value of Object.values(obj)) {
+    resolveNestedRefs(value, definitions, input, depth + 1);
+  }
+}
+
+/**
  * Resolve a single property declaration into a SchemaEntry.
  * Used identically for both params and result entries.
  */
@@ -54,8 +87,8 @@ function resolveEntry(
   if (typeof decl.path === 'string') {
     const resolved = expandFilePath(decl.path, {}, input.envMap, true);
 
-    // Pattern paths (containing [placeholder]) — pass through unresolved
-    if (/\[.+\]/.test(resolved)) {
+    // Pattern paths (containing [placeholder] or unresolved {{ param }}) — pass through unresolved
+    if (/\[.+\]/.test(resolved) || /\{\{\s*\w+\s*\}\}/.test(resolved)) {
       entry.path = resolved;
     } else {
       entry.path = resolved;
@@ -73,12 +106,16 @@ function resolveEntry(
     }
   }
 
-  // Resolve $ref into definitions
+  // Resolve top-level $ref into definitions
   if (typeof decl.$ref === 'string') {
     const { typeName, schema } = resolveSchemaRef(decl.$ref, input.taskFilePath, input.skillsRoot);
     definitions[typeName] = schema;
     entry.$ref = `#/definitions/${typeName}`;
   }
+
+  // Resolve any nested $ref (e.g. items.$ref, properties.foo.$ref) so AJV can
+  // resolve them against the inline definitions map at validation time.
+  resolveNestedRefs(entry, definitions, input, 1);
 
   return entry;
 }

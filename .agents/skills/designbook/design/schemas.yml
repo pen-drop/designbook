@@ -1,15 +1,53 @@
 # Design concern schemas — referenced via $ref from task frontmatter
 
+BreakpointId:
+  type: string
+  description: >
+    Viewport breakpoint identifier from `design-tokens.yml` (sm, md, lg, xl, ...).
+    Determines the viewport width for capture/verify operations.
+  examples: [sm, md, lg, xl]
+
+RegionId:
+  type: string
+  enum: [full, header, footer]
+  description: >
+    Capture region of the page. `full` = entire page,
+    `header`/`footer` = only the landmark area for targeted verification.
+
+ReferenceFolder:
+  type: string
+  description: >
+    Path to a scene's verification material — contains `extract.json`
+    (reference structure) and reference screenshots per breakpoint/region.
+    Format: `{breakpoint}--{region}.png` (e.g. `xl--full.png`).
+  examples: ["$DESIGNBOOK_DATA/references/hero", "/tmp/refs/article"]
+
 Check:
   type: object
+  title: Verification Check
+  description: >
+    Definition of a single verification check — links a Storybook story
+    to a reference asset for a specific breakpoint/region.
   required: [story_id, breakpoint, region]
   properties:
-    story_id: { type: string }
-    breakpoint: { type: string }
-    region: { type: string, enum: [full, header, footer] }
-    threshold: { type: number, default: 0 }
-    selector: { type: string }
-    type: { type: string }
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
+    breakpoint:
+      $ref: "#/BreakpointId"
+    region:
+      $ref: "#/RegionId"
+    threshold:
+      type: number
+      default: 0
+      description: Maximum percentage deviation (0–1) before the check fails.
+    selector:
+      type: string
+      description: >
+        Optional CSS selector — limits the capture to a subregion of the
+        story render. When empty, the full story viewport area is used.
+    type:
+      type: string
+      description: Check type (e.g. `screenshot`, `dom`). Determines the capture strategy.
 
 Issue:
   type: object
@@ -47,12 +85,28 @@ Component:
     description: { type: string }
     design_hint:
       $ref: "#/DesignHint"
+    variants:
+      type: array
+      default: []
+      items:
+        $ref: "#/Variant"
 
-Scene:
+Variant:
   type: object
-  required: [scene]
+  required: [id]
   properties:
-    scene: { type: string }
+    id:
+      type: string
+      description: >
+        Variant identifier in kebab-case. Used as the story filename segment
+        (`<component>.<id>.story.yml`) and as the key in `.component.yml` `variants:`.
+      examples: [main, footer, vertical, horizontal]
+    title:
+      type: string
+      description: Human-readable variant label shown in Storybook.
+    description:
+      type: string
+      description: One-sentence summary of the variant's distinguishing visual or behavioural trait.
 
 Reference:
   type: object

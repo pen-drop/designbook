@@ -5,7 +5,8 @@ params:
   type: object
   required: [story_id, breakpoints]
   properties:
-    story_id: { type: string }
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
     reference: { type: array, default: [] }
     breakpoints: { type: array }
     design_tokens:

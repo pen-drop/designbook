@@ -11,11 +11,9 @@ params:
     section_id: { type: string }
     section_title: { type: string }
     reference:
-      type: array
-      default: []
-      items:
-        $ref: ../schemas.yml#/Reference
-    reference_dir: { type: string, default: "" }
+      type: object
+      default: null
+      $ref: ../schemas.yml#/DesignReference
     components_dir:
       path: $DESIGNBOOK_DIRS_COMPONENTS
       type: string
@@ -23,6 +21,7 @@ params:
     design_scenes:
       path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
       type: object
+      $ref: ../../scenes/schemas.yml#/SceneFile
     data_model:
       path: $DESIGNBOOK_DATA/data-model.yml
       type: object
@@ -33,6 +32,7 @@ result:
     scene-file:
       path: "{{ output_path }}"
       validators: [scene]
+      $ref: ../../scenes/schemas.yml#/SceneFile
 ---
 
 # Create Scene
@@ -41,4 +41,4 @@ Creates a scene file at `{{ output_path }}`. The exact structure depends on the 
 
 ## Result: scene-file
 
-If `reference_dir` is non-empty and `reference` is empty, read `$reference_dir/extract.json` and construct the reference entry from its `source` field.
+Use `reference` (the `DesignReference`) to inform the scene's shell/section structure.

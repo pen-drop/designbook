@@ -154,7 +154,7 @@ export function resolveSchemaRef(
   ref: string,
   taskFilePath: string,
   skillsRoot: string,
-): { typeName: string; schema: object } {
+): { typeName: string; schema: object; schemaFilePath: string; fileSchemas: Record<string, object> } {
   const hashIdx = ref.indexOf('#/');
   if (hashIdx === -1) {
     throw new Error(`Invalid $ref '${ref}' — must contain '#/' fragment (e.g. ../schemas.yml#/TypeName)`);
@@ -170,23 +170,70 @@ export function resolveSchemaRef(
     schemaFilePath = resolve(skillsRoot, filePart);
   }
 
-  const schemas = loadSchemaFile(schemaFilePath);
-  if (!(typeName in schemas)) {
-    const available = Object.keys(schemas).join(', ');
+  const fileSchemas = loadSchemaFile(schemaFilePath);
+  if (!(typeName in fileSchemas)) {
+    const available = Object.keys(fileSchemas).join(', ');
     throw new Error(`Type '${typeName}' not found in ${schemaFilePath}. Available: ${available}`);
   }
-  return { typeName, schema: schemas[typeName]! };
+  return { typeName, schema: fileSchemas[typeName]!, schemaFilePath, fileSchemas };
 }
 
 /**
- * Collect all $ref entries from resolved tasks and resolve them into a schemas map.
- * Called at workflow create time to inline all schemas into tasks.yml.
+ * Walk a schema object and collect all local `#/TypeName` refs into the target
+ * `schemas` map by resolving them from the schemas file they originated from.
+ * Handles transitive references — if a resolved type itself references others.
+ *
+ * Example: Component's schema has `{ $ref: "#/DesignHint" }`. After hoisting
+ * Component into the workflow's top-level schemas map, `DesignHint` also needs
+ * to live there so AJV can resolve the ref.
  */
-export function collectAndResolveSchemas(tasks: ResolvedTask[], skillsRoot: string): Record<string, object> {
-  const schemas: Record<string, object> = {};
+function collectLocalRefsFromSchema(
+  node: unknown,
+  fileSchemas: Record<string, object>,
+  schemas: Record<string, object>,
+  visited: Set<string>,
+): void {
+  if (Array.isArray(node)) {
+    for (const item of node) collectLocalRefsFromSchema(item, fileSchemas, schemas, visited);
+    return;
+  }
+  if (!node || typeof node !== 'object') return;
 
+  const obj = node as Record<string, unknown>;
+  if (typeof obj.$ref === 'string' && obj.$ref.startsWith('#/')) {
+    const typeName = obj.$ref.slice(2);
+    if (typeName && !(typeName in schemas) && typeName in fileSchemas && !visited.has(typeName)) {
+      visited.add(typeName);
+      schemas[typeName] = fileSchemas[typeName]!;
+      collectLocalRefsFromSchema(fileSchemas[typeName], fileSchemas, schemas, visited);
+    }
+  }
+
+  for (const value of Object.values(obj)) {
+    collectLocalRefsFromSchema(value, fileSchemas, schemas, visited);
+  }
+}
+
+/** Minimal shape of a task with enough fields for schema resolution. */
+export interface TaskForSchemaResolution {
+  task_file?: string;
+  result?: Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }>;
+}
+
+/**
+ * Resolve $ref entries for a set of tasks and merge them into an existing schemas map.
+ * Mutates both the tasks (`result[key].schema`) and the provided schemas map.
+ *
+ * Used at plan time (via `collectAndResolveSchemas`) and again at runtime when new
+ * tasks are expanded during stage transitions (e.g. via `expandTasksFromParams`).
+ */
+export function resolveSchemasForTasks(
+  tasks: TaskForSchemaResolution[],
+  skillsRoot: string,
+  schemas: Record<string, object>,
+): Record<string, object> {
   for (const task of tasks) {
-    if (!task.result) continue;
+    if (!task.result || !task.task_file) continue;
     const taskFilePath = task.task_file;
 
     // Re-read frontmatter to get the original $ref strings
@@ -208,8 +255,9 @@ export function collectAndResolveSchemas(tasks: ResolvedTask[], skillsRoot: stri
       // Update the task's actual result schema:
       // For top-level $ref, replace schema with the resolved definition
       if (task.result[key] && originalRef) {
-        const { typeName, schema } = resolveSchemaRef(originalRef, taskFilePath, skillsRoot);
+        const { typeName, schema, fileSchemas } = resolveSchemaRef(originalRef, taskFilePath, skillsRoot);
         schemas[typeName] = schema;
+        collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]));
         task.result[key]!.schema = schema;
       }
 
@@ -232,12 +280,35 @@ export function collectAndResolveSchemas(tasks: ResolvedTask[], skillsRoot: stri
     // Collect $ref from params: declaration
     if (taskFm.params && typeof taskFm.params === 'object' && '$ref' in taskFm.params) {
       const ref = (taskFm.params as Record<string, unknown>)['$ref'] as string;
-      const { typeName, schema: refSchema } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+      const { typeName, schema: refSchema, fileSchemas } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
       schemas[typeName] = refSchema;
+      collectLocalRefsFromSchema(refSchema, fileSchemas, schemas, new Set([typeName]));
     }
   }
 
   return schemas;
+}
+
+/**
+ * Collect all $ref entries from resolved tasks and resolve them into a schemas map.
+ * Called at workflow create time to inline all schemas into tasks.yml.
+ */
+export function collectAndResolveSchemas(tasks: ResolvedTask[], skillsRoot: string): Record<string, object> {
+  return resolveSchemasForTasks(tasks, skillsRoot, {});
+}
+
+/**
+ * Derive the skills root (`.agents/skills`) from an absolute task file path.
+ * Task files are always located under `<skillsRoot>/<skill>/.../tasks/<name>.md`,
+ * so splitting on `/skills/` yields the root. Returns `undefined` for paths
+ * that don't match the expected layout.
+ */
+export function deriveSkillsRootFromTaskFile(taskFilePath: string | undefined): string | undefined {
+  if (!taskFilePath) return undefined;
+  const marker = '/skills/';
+  const idx = taskFilePath.indexOf(marker);
+  if (idx === -1) return undefined;
+  return taskFilePath.slice(0, idx + marker.length - 1);
 }
 
 /** Recursively resolve $ref entries in a declaration object.
@@ -250,8 +321,10 @@ function resolveRefsInDeclaration(
   schemas: Record<string, object>,
 ): void {
   if (obj.$ref && typeof obj.$ref === 'string') {
-    const { typeName, schema } = resolveSchemaRef(obj.$ref, taskFilePath, skillsRoot);
+    const { typeName, schema, fileSchemas } = resolveSchemaRef(obj.$ref, taskFilePath, skillsRoot);
     schemas[typeName] = schema;
+    // Pull in transitive local refs from the same schema file (e.g. Component → #/DesignHint)
+    collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]));
     // Replace file-system $ref with local AJV reference
     obj.$ref = `#/${typeName}`;
   }
@@ -282,8 +355,10 @@ export function rewriteRefsInSchema(
     const ref = obj.$ref as string;
     // Only rewrite file-system $ref (contains '#/'); skip already-local refs like '#/TypeName'
     if (ref.includes('#/') && !ref.startsWith('#/')) {
-      const { typeName, schema } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+      const { typeName, schema, fileSchemas } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
       schemas[typeName] = schema;
+      // Also pull in transitive local refs (e.g. Component → #/DesignHint)
+      collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]));
       obj.$ref = `#/${typeName}`;
     }
   }
@@ -959,9 +1034,9 @@ export function matchBlueprintFiles(
 /**
  * Expand {param} and {{ param }} placeholders in a template string.
  * Unknown {param} placeholders are left as-is (for runtime resolution).
- * Unknown {{ param }} placeholders throw (strict mode for legacy paths).
+ * Unknown {{ param }} placeholders throw unless `lenient` is true.
  */
-export function expandParams(template: string, params: Record<string, unknown>): string {
+export function expandParams(template: string, params: Record<string, unknown>, lenient?: boolean): string {
   let result = template;
 
   const stringifyParam = (value: unknown): string => {
@@ -978,9 +1053,10 @@ export function expandParams(template: string, params: Record<string, unknown>):
     return JSON.stringify(value);
   };
 
-  // Expand {{ param }} patterns (strict — throws on unknown)
-  result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, paramName) => {
+  // Expand {{ param }} patterns — strict by default, lenient leaves unknown as-is (for each: expansion)
+  result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, paramName) => {
     if (params[paramName] !== undefined) return stringifyParam(params[paramName]);
+    if (lenient) return match;
     throw new Error(`Unknown param: {{ ${paramName} }} in "${template}"`);
   });
 
@@ -1002,6 +1078,9 @@ export function expandFilePath(
 ): string {
   let result = template;
 
+  // Expand param placeholders first — param values may themselves contain $VAR env refs
+  result = expandParams(result, params, lenient);
+
   // Expand ${VAR} and $VAR patterns (env vars)
   result = result.replace(/\$\{(\w+)\}/g, (match, varName) => {
     if (envMap[varName] !== undefined) return envMap[varName];
@@ -1013,9 +1092,6 @@ export function expandFilePath(
     if (lenient) return match;
     throw new Error(`Unknown environment variable: $${varName} in path "${template}"`);
   });
-
-  // Expand param placeholders
-  result = expandParams(result, params);
 
   return result;
 }
@@ -1218,8 +1294,8 @@ export function resolveParamsRef(
  * Valid: object with a `type` property (e.g. `{ type: 'string' }`, `{ type: 'array', default: [] }`).
  * Invalid (old format): null, bare array, bare object without `type`, scalar.
  */
-export function isJsonSchemaParam(value: unknown): value is Record<string, unknown> & { type: string } {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) && 'type' in value;
+export function isJsonSchemaParam(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) && ('type' in value || '$ref' in value);
 }
 
 /**
@@ -1364,6 +1440,10 @@ export interface ExpectedParam {
   required: boolean;
   from_step: string;
   default?: unknown;
+  /** Name of a registered param resolver to run before stage-start. Declared by the task. */
+  resolve?: string;
+  /** Optional `from` param passed to the resolver (chained resolution). */
+  from?: string;
 }
 
 export interface ResolvedSteps {
@@ -1580,17 +1660,26 @@ export function resolveAllStages(
         const schema = value as Record<string, unknown>;
         const def = extractParamDefault(schema);
         const isRequired = requiredKeys.has(key) || !def.hasDefault;
+        const resolveName = typeof schema.resolve === 'string' ? (schema.resolve as string) : undefined;
+        const fromName = typeof schema.from === 'string' ? (schema.from as string) : undefined;
 
         if (key in expectedParams) {
           // If ANY step marks it required, it stays required
           if (isRequired && !expectedParams[key]!.required) {
             expectedParams[key]!.required = true;
           }
+          // Task-declared resolver wins over an earlier task with no resolver.
+          if (resolveName && !expectedParams[key]!.resolve) {
+            expectedParams[key]!.resolve = resolveName;
+            if (fromName) expectedParams[key]!.from = fromName;
+          }
         } else {
           expectedParams[key] = {
             required: isRequired,
             from_step: step,
             ...(def.hasDefault ? { default: def.default } : {}),
+            ...(resolveName ? { resolve: resolveName } : {}),
+            ...(resolveName && fromName ? { from: fromName } : {}),
           };
         }
       }

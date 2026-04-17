@@ -157,7 +157,7 @@ describe('parseSchemaExtension', () => {
     writeFileSync(
       filePath,
       `---
-when:
+trigger:
   steps: [create-tokens]
 extends:
   design-tokens:
@@ -178,7 +178,7 @@ extends:
     writeFileSync(
       filePath,
       `---
-when:
+trigger:
   steps: [create-data-model]
 provides:
   data-model:
@@ -200,7 +200,7 @@ provides:
       filePath,
       `---
 provides: reference.url
-when:
+trigger:
   steps: [design-verify:intake]
 ---
 # Rule content`,
@@ -217,7 +217,7 @@ when:
     writeFileSync(
       filePath,
       `---
-when:
+trigger:
   steps: [create-tokens]
 ---
 # Rule content`,
@@ -249,7 +249,7 @@ describe('computeMergedSchema', () => {
 
   it('returns undefined when no extensions found', () => {
     tmpDir = mkdtempSync(resolve(tmpdir(), 'merge-'));
-    const rulePath = writeRule('plain', '---\nwhen:\n  steps: [create-tokens]\n---\n# No extensions');
+    const rulePath = writeRule('plain', '---\ntrigger:\n  steps: [create-tokens]\n---\n# No extensions');
 
     const result = computeMergedSchema(
       { 'design-tokens': { schema: { type: 'object', properties: { color: { type: 'string' } } } } },
@@ -263,7 +263,7 @@ describe('computeMergedSchema', () => {
     const rulePath = writeRule(
       'extend-tokens',
       `---
-when:
+trigger:
   steps: [create-tokens]
 extends:
   design-tokens:
@@ -318,7 +318,7 @@ constrains:
       'signal-only',
       `---
 provides: reference.url
-when:
+trigger:
   steps: [create-tokens]
 ---
 # AI signal only`,

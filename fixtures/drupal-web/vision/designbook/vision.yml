@@ -1,0 +1,27 @@
+product_name: LEANDO
+description: The portal for vocational training practice — a platform by BIBB (Federal Institute for Vocational Education and Training) for trainers, examiners, and vocational education professionals.
+problems:
+  - title: Training personnel cannot find relevant materials and information in one place
+    solution: Curated portal with topic, profession, and target group navigation
+  - title: Networking and exchange among vocational training practitioners is lacking
+    solution: Community features with events, groups, and discussions
+  - title: Learning materials are scattered and not interactive
+    solution: Structured learning packages with SCORM and H5P integration
+features:
+  - Topic and profession-based content navigation
+  - Event management with registration and BBB video conferencing
+  - Learning packages (Learning Nuggets) with interactive content
+  - Handbook system (Book) for structured documentation
+  - Landing pages with flexible paragraph-based sections
+  - Location and profession database
+design_reference:
+  type: url
+  url: https://leando.de/
+  label: LEANDO production portal
+references:
+  - type: source
+    url: ~/projects/leando/frontend
+    label: Angular frontend
+  - type: source
+    url: ~/projects/leando/leando-community/drupal
+    label: Drupal backend

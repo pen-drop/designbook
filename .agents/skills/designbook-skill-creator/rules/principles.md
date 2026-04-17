@@ -127,13 +127,48 @@ Each issue needs a `severity`:
 
 No `## Result: scene` needed — the schema type `string` is self-explanatory.
 
+## Schemas Must Teach the AI
+
+`schemas.yml` is the authoritative spec for what tasks produce. The AI uses these schemas to drive intake dialogues and generation — so every type must contain enough metadata to be self-explanatory:
+
+- **Top-level types** declare `title:` or `description:`.
+- **Each property** has either `description:`, `enum:`, `pattern:`, or `examples:` — anything that gives the AI a signal beyond the bare type.
+- **`additionalProperties: true`** is documented (what kind of arbitrary keys belong here).
+- **Required fields** are listed explicitly in `required:`.
+
+A reader (human or AI) must be able to look at a schema and know what to ask for and what to generate. A schema with only `{ type: string }` properties teaches nothing.
+
+```yaml
+# ❌ Teaches nothing — AI has no signal what to put in product_name
+Vision:
+  type: object
+  properties:
+    product_name: { type: string }
+    description: { type: string }
+
+# ✅ Teaches the AI what to ask for and what to generate
+Vision:
+  type: object
+  title: Product Vision
+  description: High-level intent for the product — drives all downstream generation.
+  required: [product_name, description]
+  properties:
+    product_name:
+      type: string
+      description: Short brand-facing name. Used in titles, story labels, and intake prompts.
+      examples: [Acme Portal, Citizen Hub]
+    description:
+      type: string
+      description: One-paragraph product mission — answers "what is this for, for whom".
+```
+
 ## Blueprints Are Overridable Starting Points
 
 Blueprints provide an example of what a good output looks like: required tokens, props, slots, markup patterns. Integrations may deviate from blueprints to match their stack.
 
 ```markdown
 ---
-when:
+trigger:
   domain: components
 ---
 # Blueprint: Card
@@ -148,12 +183,13 @@ Blueprints are suggestions — an integration with different token conventions i
 
 ## Rules Are Hard Constraints
 
-Rules enforce constraints that must hold regardless of integration, framework, or user preference. Once a rule's `when` conditions match, it applies absolutely.
+Rules enforce constraints that must hold regardless of integration, framework, or user preference. Once a rule's `trigger` conditions match, it applies absolutely.
 
 ```markdown
 ---
-when:
+trigger:
   domain: components
+filter:
   backend: drupal
 ---
 All component files must include a `$schema` field pointing to the JSON schema.
@@ -181,7 +217,7 @@ Tasks and rules must be **as abstract as possible**. They describe structure, re
 **Wrong** (concrete implementation in a rule):
 ```markdown
 ---
-when:
+trigger:
   domain: components
 ---
 Use BEM class naming: `.block__element--modifier`.
@@ -190,7 +226,7 @@ Use BEM class naming: `.block__element--modifier`.
 **Correct** (move naming conventions to a blueprint):
 ```markdown
 ---
-when:
+trigger:
   domain: components
 ---
 # Blueprint: Component Naming
@@ -280,9 +316,9 @@ stages:
     steps: [design-screen:outtake]
 ```
 
-The workflow prefix belongs in task files' `when.steps` for disambiguation (e.g. `when: steps: [design-screen:intake]`), not in the workflow definition itself. The resolver combines the workflow name with the step name automatically.
+The workflow prefix belongs in task files' `trigger.steps` for disambiguation (e.g. `trigger: steps: [design-screen:intake]`), not in the workflow definition itself. The resolver combines the workflow name with the step name automatically.
 
-**Note:** `when.steps` is only used in **task files** for step matching. Rules and blueprints use `domain:` instead — see [`structure.md`](./structure.md) for the domain matching model.
+**Note:** `trigger.steps` is only used in **task files** for step matching. Rules and blueprints use `trigger.domain` instead — see [`structure.md`](./structure.md) for the domain matching model.
 
 ## Stage = Filename, No Duplication
 

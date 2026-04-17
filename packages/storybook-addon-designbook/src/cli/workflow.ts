@@ -42,13 +42,13 @@ function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
 export function register(program: Command): void {
   const workflow = program.command('workflow').description('Manage workflow tracking');
 
-  workflow.option('--research', 'Enable research mode — tags all log entries for post-workflow audit');
+  workflow.option('--log', 'Tag this CLI call in dbo.log (for post-workflow audit via --research)');
 
   // Initialize logger before every subcommand
   workflow.hook('preAction', () => {
     const config = loadConfig();
-    const research = !!(workflow.opts() as { research?: boolean }).research;
-    initLogger(config.data, research);
+    const logTag = !!(workflow.opts() as { log?: boolean }).log;
+    initLogger(config.data, logTag);
   });
 
   workflow
@@ -70,7 +70,7 @@ export function register(program: Command): void {
     .option('--title <title>', 'Human-readable workflow title')
     .option('--parent <name>', 'Triggering workflow name when started via a hook')
     .option('--params <json>', 'JSON object of initial params (e.g. from parent dispatch)')
-    .action((opts: { workflow: string; title?: string; parent?: string; params?: string }) => {
+    .action(async (opts: { workflow: string; title?: string; parent?: string; params?: string }) => {
       const config = loadConfig();
 
       // Parse initial params if provided
@@ -98,7 +98,42 @@ export function register(program: Command): void {
 
         // ── Resolve phase: run param resolvers ────────────────────────
         const wfFm = parseFrontmatter(workflowFilePath) as Record<string, unknown> | null;
-        const wfParams = wfFm?.params as Record<string, Record<string, unknown>> | undefined;
+        const wfParamsRaw = wfFm?.params as Record<string, Record<string, unknown>> | undefined;
+
+        // Merge task-declared resolvers into the workflow-level param schema so
+        // one resolver pass covers both levels. Task-level `resolve:` takes
+        // precedence over a missing workflow-level entry; existing workflow-level
+        // resolvers stay untouched.
+        const wfParams: Record<string, Record<string, unknown>> | undefined = wfParamsRaw
+          ? { ...wfParamsRaw }
+          : Object.values(resolved.expected_params).some((p) => p.resolve)
+            ? {}
+            : undefined;
+        if (wfParams) {
+          for (const [key, expected] of Object.entries(resolved.expected_params)) {
+            if (!expected.resolve) continue;
+            const existing = wfParams[key];
+            if (existing && 'resolve' in existing) continue;
+            const base: Record<string, unknown> = existing
+              ? { ...existing }
+              : { type: 'string', ...(expected.default !== undefined ? { default: expected.default } : {}) };
+            base.resolve = expected.resolve;
+            if (expected.from) base.from = expected.from;
+            wfParams[key] = base;
+          }
+        }
+
+        // Apply workflow-level param defaults before resolver/task-expansion so
+        // downstream steps see them without the caller having to repeat defaults.
+        if (wfParams) {
+          initialParams = initialParams ?? {};
+          for (const [key, decl] of Object.entries(wfParams)) {
+            if (initialParams[key] !== undefined) continue;
+            if (decl && typeof decl === 'object' && 'default' in decl) {
+              initialParams[key] = (decl as { default: unknown }).default;
+            }
+          }
+        }
 
         if (initialParams && wfParams) {
           const hasResolvers = Object.values(wfParams).some(
@@ -107,7 +142,7 @@ export function register(program: Command): void {
 
           if (hasResolvers) {
             const resolverContext: ResolverContext = { config, params: initialParams };
-            const resolveResult = resolveParams(wfParams, resolverContext);
+            const resolveResult = await resolveParams(wfParams, resolverContext);
 
             if (!resolveResult.allResolved) {
               console.log(

@@ -30,14 +30,14 @@ result:
 
 # Design Tokens
 
-Guide the user through choosing colors, typography, and additional token groups. Result is W3C Design Token YAML.
+Derive a W3C Design Token YAML. When the `extract` param is present, it is the authoritative source — see the `extract-mapping` rule for value-origin constraints and completeness requirements. Fall back to vision or user input only when extract is missing and the workflow is interactive.
 
-Use `extract` param (`fonts`, `colors`, `tokens` fields) as the starting point. Fall back to vision context and user input if the extract is unavailable.
-
-Present choices to the user, let them confirm or adjust, and summarize all tokens before saving.
+When the workflow runs interactively and extract is missing, guide the user through choosing colors, typography, and additional token groups; present choices, let them confirm or adjust, and summarize all tokens before saving.
 
 Follow the `merged_schema` for required token structure — blueprints extend the schema with component-level token groups. Read the css-naming blueprint from `task.blueprints[]` filtered by `type: css-naming` for token group names and CSS variable mapping. Apply renderer hints per the `renderer-hints` rule.
 
 ## Result: design-tokens
 
 Three fixed levels per schema: `primitive` → `semantic` → `component`. Each leaf is a `TokenLeaf` with `$value` and `$type`.
+
+`semantic.color` and `semantic.typography` are required. When `extract` is present, every entry in `extract.typography[]` must be represented in `semantic.typography.*`, and every key in `extract.tokens.colors` must be present in `semantic.color.*`.

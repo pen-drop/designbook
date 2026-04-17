@@ -11,8 +11,10 @@ params:
   $ref: ../schemas.yml#/Check
   required: [scene_id, reference_folder, breakpoints]
   properties:
-    scene_id: { type: string }
-    reference_folder: { type: string }
+    scene_id:
+      $ref: ../../scenes/schemas.yml#/SceneId
+    reference_folder:
+      $ref: ../schemas.yml#/ReferenceFolder
     breakpoints: { type: string }
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml

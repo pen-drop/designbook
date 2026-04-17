@@ -27,8 +27,9 @@ Declare extension fields in blueprint or rule frontmatter, keyed by result name:
 
 ```yaml
 ---
-when:
+trigger:
   domain: tokens
+filter:
   extensions: stitch
 extends:
   design-tokens:
@@ -48,7 +49,7 @@ Error if a property already exists in the base schema. Use `provides:` to modify
 
 ```yaml
 ---
-when:
+trigger:
   domain: data-model
 provides:
   data-model:
@@ -70,7 +71,7 @@ Last writer wins — if multiple rules/blueprints provide defaults for the same 
 
 ```yaml
 ---
-when:
+trigger:
   domain: tokens
 constrains:
   design-tokens:

@@ -6,6 +6,7 @@ prompt: |
   You are working in the directory {{workspace}}.
   Run the /debo tokens workflow. Do NOT ask any questions.
   Use the design reference from vision.md to derive all colors, typography, and other tokens.
+  Pass reference_url (from vision.yml design_reference.url) when creating the workflow.
   Execute the workflow now.
 
 assert:

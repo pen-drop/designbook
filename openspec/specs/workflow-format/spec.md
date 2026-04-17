@@ -62,22 +62,22 @@ No `!WORKFLOW_FILE` or `!WORKFLOW_DONE` markers. File production declared in tas
 
 ---
 
-## Requirement: Task files use when.steps for stage matching
+## Requirement: Task files use trigger.steps for stage matching
 
-A task file declares applicable steps via `when.steps`. Filename is a fallback with deprecation warning.
+A task file declares applicable steps via `trigger.steps`. Filename is a fallback with deprecation warning.
 
-- `when: { steps: [create-component] }` → matched for step `create-component`
+- `trigger: { steps: [create-component] }` → matched for step `create-component`
 - Multiple matches → `name/as` deduplication and priority sorting applied
-- No `when.steps` match but `<step>.md` exists → filename fallback with deprecation warning
-- No `when` field → unconditional match at specificity 0
+- No `trigger.steps` match but `<step>.md` exists → filename fallback with deprecation warning
+- No `trigger` field → unconditional match at specificity 0
 
 ---
 
-## Requirement: Task file frontmatter — when, params, files, reads
+## Requirement: Task file frontmatter — trigger, params, files, reads
 
 ```yaml
 ---
-when:
+trigger:
   steps: [design-screen:create-scene]
 params:
   section_id: ~
@@ -101,26 +101,26 @@ files:
 
 ---
 
-## Requirement: Rule files use when to scope to steps and config
+## Requirement: Rule files use trigger/filter to scope to steps and config
 
-Rules in `skills/<name>/rules/` are candidates for all steps; `when` narrows scope.
+Rules in `skills/<name>/rules/` are candidates for all steps; `trigger` (OR-connected: steps, domain) and `filter` (AND-connected: backend, frameworks.*, extensions, type) narrow scope.
 
-- `when: { steps: [create-data-model], backend: drupal }` → applies only during that step+config combo
-- Rules without `when` (or empty) are skipped (`requireWhen=true`)
-
----
-
-## Requirement: Blueprint files use when to scope to steps and config
-
-Blueprints use same `when` system as rules, deduplicated by `type`+`name` with priority-based resolution. Highest `priority` wins (default: 0); equal priority uses last match.
+- `trigger: { steps: [create-data-model] }, filter: { backend: drupal }` → applies only during that step+config combo
+- Rules without `trigger` or `filter` (or empty) are skipped (`requireWhen=true`)
 
 ---
 
-## Requirement: Step name resolution — colon syntax and when.steps
+## Requirement: Blueprint files use trigger/filter to scope to steps and config
 
-Step names: plain (`create-component`) or qualified (`<workflow-id>:<step>`), both matched by `when.steps`.
+Blueprints use same `trigger`/`filter` system as rules, deduplicated by `type`+`name` with priority-based resolution. Highest `priority` wins (default: 0); equal priority uses last match.
 
-- Plain step → scans `skills/**/tasks/*.md` for `when.steps` matches
+---
+
+## Requirement: Step name resolution — colon syntax and trigger.steps
+
+Step names: plain (`create-component`) or qualified (`<workflow-id>:<step>`), both matched by `trigger.steps`.
+
+- Plain step → scans `skills/**/tasks/*.md` for `trigger.steps` matches
 - Qualified step → returns best match (highest specificity)
 - Rule matching includes plain, qualified, and `<workflow-id>:*` variants
 
@@ -181,20 +181,20 @@ Computes concrete tasks from `stage_loaded` and `params`.
 
 ---
 
-## Requirement: checkWhen — two-source lookup
+## Requirement: checkConditions — two-source lookup
 
-Resolves each `when` key from context first, then config as fallback. Returns matched key count on success, `false` on any failure.
+Resolves each `trigger`/`filter` key from context first, then config as fallback. `filter` keys are AND-connected (all must match); `trigger` keys are OR-connected (any match suffices). Returns specificity count on success, `false` on mismatch.
 
 - Context key takes precedence over config
 - Config supports dot-path traversal (`frameworks.css: tailwind`)
 - Array values use inclusion check (`extensions: canvas` matches `['canvas', 'drupal']`)
-- Empty `when` → unconditional match at specificity 0 (if `requireWhen=false`)
+- Empty `trigger` and `filter` → unconditional match at specificity 0 (if `requireWhen=false`)
 
 ---
 
 ## Requirement: resolveFiles — unified glob-and-filter
 
-Globs markdown files, parses frontmatter, filters by `when`. With `requireWhen=true` (default), files without `when` skipped. Returns `ResolvedFile` with `specificity`, `path`, `name`, `frontmatter`.
+Globs markdown files, parses frontmatter, filters by `trigger`/`filter`. With `requireWhen=true` (default), files without either field are skipped. Returns `ResolvedFile` with `specificity`, `path`, `name`, `frontmatter`.
 
 ---
 

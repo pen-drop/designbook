@@ -77,7 +77,9 @@ describe('resolveAllStages rejects old-format params in properties', () => {
       agentsDir,
       'test-skill',
       'do-thing',
-      ['when:', '  steps: [do-thing]', 'params:', '  type: object', '  properties:', `    ${propertyLine}`].join('\n'),
+      ['trigger:', '  steps: [do-thing]', 'params:', '  type: object', '  properties:', `    ${propertyLine}`].join(
+        '\n',
+      ),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
     return () => resolveAllStages(wfPath, baseConfig, {}, agentsDir);
@@ -120,7 +122,7 @@ describe('resolveAllStages rejects old-format params in properties', () => {
       'test-skill',
       'do-thing',
       [
-        'when:',
+        'trigger:',
         '  steps: [do-thing]',
         'params:',
         '  type: object',
@@ -144,7 +146,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'test-skill',
       'do-thing',
       [
-        'when:',
+        'trigger:',
         '  steps: [do-thing]',
         'params:',
         '  type: object',
@@ -168,7 +170,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'test-skill',
       'do-thing',
       [
-        'when:',
+        'trigger:',
         '  steps: [do-thing]',
         'params:',
         '  type: object',
@@ -191,7 +193,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'test-skill',
       'do-thing',
       [
-        'when:',
+        'trigger:',
         '  steps: [do-thing]',
         'params:',
         '  type: object',
@@ -218,7 +220,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'test-skill',
       'do-thing',
       [
-        'when:',
+        'trigger:',
         '  steps: [do-thing]',
         'params:',
         '  type: object',
@@ -240,7 +242,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'test-skill',
       'step-a',
       [
-        'when:',
+        'trigger:',
         '  steps: [step-a]',
         'params:',
         '  type: object',
@@ -254,7 +256,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'test-skill-b',
       'step-b',
       [
-        'when:',
+        'trigger:',
         '  steps: [step-b]',
         'params:',
         '  type: object',
@@ -281,7 +283,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'skill-a',
       'step-a',
       [
-        'when:',
+        'trigger:',
         '  steps: [step-a]',
         'params:',
         '  type: object',
@@ -295,7 +297,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'skill-b',
       'step-b',
       [
-        'when:',
+        'trigger:',
         '  steps: [step-b]',
         'params:',
         '  type: object',
@@ -317,7 +319,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'test-skill',
       'create-vision',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-vision]',
         'params:',
         '  type: object',
@@ -341,7 +343,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'test-skill',
       'do-thing',
       [
-        'when:',
+        'trigger:',
         '  steps: [do-thing]',
         'params:',
         '  type: object',
@@ -369,7 +371,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       'test-skill',
       'do-thing',
       [
-        'when:',
+        'trigger:',
         '  steps: [do-thing]',
         'params:',
         '  type: object',
@@ -419,7 +421,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-vision]',
         'params:',
         '  type: object',
@@ -448,7 +450,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-vision]',
         'params:',
         '  type: object',
@@ -474,7 +476,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-vision]',
         'params:',
         '  type: object',
@@ -504,7 +506,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     const taskFile = writeTaskFile(
       'run-workflow',
       [
-        'when:',
+        'trigger:',
         '  steps: [run-workflow]',
         'params:',
         '  type: object',
@@ -530,7 +532,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     const taskFile = writeTaskFile(
       'create-section',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-section]',
         'params:',
         '  type: object',
@@ -556,7 +558,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     const taskFile = writeTaskFile(
       'create-component',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-component]',
         'params:',
         '  type: object',
@@ -597,11 +599,133 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     expect(tasks[1]!.params!.group).toBe('atoms');
   });
 
+  it('expands each: dotpath as cross-product of outer scope × nested inner array', () => {
+    const taskFile = writeTaskFile(
+      'create-variant-story',
+      [
+        'trigger:',
+        '  steps: [create-variant-story]',
+        'params:',
+        '  type: object',
+        '  required: [component, variant]',
+        '  properties:',
+        '    component: { type: string }',
+        '    variant: { type: object }',
+        'each:',
+        '  component.variants:',
+        '    type: object',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-variant-story'] },
+    };
+    const params = {
+      component: [
+        { component: 'navigation', variants: [{ id: 'main' }, { id: 'footer' }] },
+        { component: 'page', variants: [] },
+        { component: 'card', variants: [{ id: 'horizontal' }] },
+      ],
+    };
+
+    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-variant-story': taskFile }), stages, params, [], {});
+
+    // navigation × 2 variants + card × 1 variant = 3 tasks (page has no variants)
+    expect(tasks).toHaveLength(3);
+
+    expect(tasks[0]!.params!.component).toBe('navigation');
+    expect(tasks[0]!.params!.variant).toEqual({ id: 'main' });
+
+    expect(tasks[1]!.params!.component).toBe('navigation');
+    expect(tasks[1]!.params!.variant).toEqual({ id: 'footer' });
+
+    expect(tasks[2]!.params!.component).toBe('card');
+    expect(tasks[2]!.params!.variant).toEqual({ id: 'horizontal' });
+
+    // Task IDs are unique per (component, variant) pair
+    const ids = tasks.map((t) => t.id);
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it('two tasks on the same step with different each keys expand independently', () => {
+    const componentTask = writeTaskFile(
+      'create-component',
+      [
+        'trigger:',
+        '  steps: [create-component]',
+        'params:',
+        '  type: object',
+        '  required: [component]',
+        '  properties:',
+        '    component: { type: string }',
+        'each:',
+        '  component:',
+        '    type: object',
+      ].join('\n'),
+    );
+
+    const variantTask = writeTaskFile(
+      'create-variant-story',
+      [
+        'name: test-skill:components:create-variant-story',
+        'trigger:',
+        '  steps: [create-component]',
+        'priority: 10',
+        'params:',
+        '  type: object',
+        '  required: [component, variant]',
+        '  properties:',
+        '    component: { type: string }',
+        '    variant: { type: object }',
+        'each:',
+        '  component.variants:',
+        '    type: object',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, ResolvedStep[]> = {
+      'create-component': [
+        { task_file: componentTask, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+        { task_file: variantTask, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+      ],
+    };
+
+    const stages: Record<string, StageDefinition> = {
+      component: { steps: ['create-component'] },
+    };
+
+    const params = {
+      component: [
+        { component: 'navigation', variants: [{ id: 'main' }, { id: 'footer' }] },
+        { component: 'page', variants: [] },
+      ],
+    };
+
+    const tasks = expandTasksFromParams(stageLoaded, stages, params, [], {});
+
+    // create-component: 2 components → 2 tasks
+    // create-variant-story: 2 variants of navigation → 2 tasks (page has no variants)
+    expect(tasks).toHaveLength(4);
+
+    const componentTasks = tasks.filter((t) => t.task_file === componentTask);
+    expect(componentTasks).toHaveLength(2);
+    expect(componentTasks.map((t) => t.params!.component).sort()).toEqual(['navigation', 'page']);
+    componentTasks.forEach((t) => expect(t.params!.variant).toBeUndefined());
+
+    const variantTasks = tasks.filter((t) => t.task_file === variantTask);
+    expect(variantTasks).toHaveLength(2);
+    variantTasks.forEach((t) => expect(t.params!.component).toBe('navigation'));
+    expect(variantTasks.map((t) => (t.params!.variant as Record<string, unknown>).id).sort()).toEqual([
+      'footer',
+      'main',
+    ]);
+  });
+
   it('all params provided — no defaults needed', () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-vision]',
         'params:',
         '  type: object',
@@ -634,7 +758,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     const taskA = writeTaskFile(
       'step-a',
       [
-        'when:',
+        'trigger:',
         '  steps: [step-a]',
         'params:',
         '  type: object',
@@ -648,7 +772,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     const taskB = writeTaskFile(
       'step-b',
       [
-        'when:',
+        'trigger:',
         '  steps: [step-b]',
         'params:',
         '  type: object',
@@ -706,7 +830,7 @@ describe('real-world JSON Schema param shapes', () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-vision]',
         'params:',
         '  type: object',
@@ -754,7 +878,7 @@ describe('real-world JSON Schema param shapes', () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-vision]',
         'params:',
         '  type: object',
@@ -804,7 +928,7 @@ describe('real-world JSON Schema param shapes', () => {
     const taskFile = writeTaskFile(
       'create-section',
       [
-        'when:',
+        'trigger:',
         '  steps: [create-section]',
         'params:',
         '  type: object',
@@ -837,7 +961,7 @@ describe('real-world JSON Schema param shapes', () => {
     const taskFile = writeTaskFile(
       'run-workflow',
       [
-        'when:',
+        'trigger:',
         '  steps: [run-workflow]',
         'params:',
         '  type: object',

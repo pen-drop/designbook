@@ -19,6 +19,19 @@ The workflow runs as usual — all stages, tasks, rules, blueprints apply. The o
 
 Read the archived workflow from `workflows/archive/<workflow-name>/tasks.yml`. The resolved entries contain the task files, rules, blueprints, and config instructions involved in this run.
 
+### Step 2b — Collect tagged CLI log entries
+
+Read `designbook/dbo.log` (JSONL, one entry per line) and keep only entries where `tagged: true`. When `--research` was set at skill invocation, every `_debo workflow …` CLI call during the workflow was invoked with `--log`, so every entry that belongs to this run is tagged.
+
+Group the tagged entries by `cmd` and surface:
+
+- **Errors** — any entry with an `error` field (YAML parse failures, schema violations, missing params, CLI bugs)
+- **Retries** — the same `cmd` + same key args appearing multiple times in sequence (indicates the AI had to correct something)
+- **Unresolved params** — `workflow create` responses with an `unresolved` field
+- **Long-running calls** — entries with unusually high `duration_ms`
+
+These observations feed into Step 3's audit table as the `Issues` column for the files that were loaded when the error occurred.
+
 ### Step 3 — Audit every loaded file
 
 Read every file that was loaded during the run and verify each one against the skill model principles. This is a systematic audit — do not skip files.
