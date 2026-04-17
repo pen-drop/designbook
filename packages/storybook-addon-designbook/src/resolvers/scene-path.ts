@@ -12,11 +12,7 @@ function toKebab(input: string): string {
 export const scenePathResolver: ParamResolver = {
   name: 'scene_path',
 
-  resolve(
-    input: string,
-    _config: Record<string, unknown>,
-    _context: ResolverContext,
-  ): ResolverResult {
+  resolve(input: string, _config: Record<string, unknown>, _context: ResolverContext): ResolverResult {
     if (!input || !input.trim()) {
       return { resolved: false, input, error: 'scene id is required' };
     }
