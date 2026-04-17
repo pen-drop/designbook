@@ -1,4 +1,0 @@
-{"ts":"2026-04-16T16:48:59.106Z","cmd":"workflow create","args":{"workflow":"vision","title":"Define Product Vision"},"result":{"name":"vision-2026-04-16-7db2"}}
-{"ts":"2026-04-16T16:49:09.507Z","cmd":"workflow abandon","args":{"workflow":"vision-2026-04-16-7db2"}}
-{"ts":"2026-04-16T16:49:10.333Z","cmd":"workflow create","args":{"workflow":"data-model","title":"Define Data Model"},"result":{"name":"data-model-2026-04-16-21fd"}}
-{"ts":"2026-04-16T16:49:21.419Z","cmd":"workflow abandon","args":{"workflow":"data-model-2026-04-16-21fd"}}

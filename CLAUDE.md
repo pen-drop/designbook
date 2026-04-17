@@ -1,5 +1,9 @@
 # Development Rules
 
+## Breaking Changes
+
+Never write migration, backwards-compatibility, or legacy-artifact-fixing code. Existing on-disk artifacts (meta.yml, scene files, generated output, etc.) are disposable — testing always happens from scratch. When a schema or format changes, update the writer/reader to the new shape; do not add code that reads or upgrades old artifacts.
+
 ## Code Quality
 
 Run `pnpm check` before committing. It runs typecheck → lint → test (fail-fast).
