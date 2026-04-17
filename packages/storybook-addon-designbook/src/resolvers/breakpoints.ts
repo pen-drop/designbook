@@ -13,9 +13,7 @@ function breakpointsFromMeta(context: ResolverContext, config: Record<string, un
   const storyId = context.params[fromParam];
   if (typeof storyId !== 'string' || storyId === '') return null;
 
-  const story = StoryMeta.load(context.config, storyId);
-  if (!story) return null;
-
+  const story = StoryMeta.loadOrCreate(context.config, storyId);
   const meta = story.data;
   const bps = meta.reference?.breakpoints;
   if (!bps) return null;

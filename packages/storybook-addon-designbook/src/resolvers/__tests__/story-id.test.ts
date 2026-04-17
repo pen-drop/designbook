@@ -78,9 +78,10 @@ describe('storyIdResolver', () => {
     expect(result.value).toBe('designbook-design-system-scenes--shell');
   });
 
-  it('returns unresolved when input does not match any story directory', async () => {
+  it('returns unresolved when input does not match any story directory or /index.json', async () => {
     seedStory('foo--bar');
     mockStatus = { running: true, port: 6006 };
+    mockIndex = indexed('foo--bar');
 
     const result = await storyIdResolver.resolve('nonexistent', {}, makeContext());
     expect(result.resolved).toBe(false);

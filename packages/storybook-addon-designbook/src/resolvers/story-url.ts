@@ -5,7 +5,7 @@ export const storyUrlResolver: ParamResolver = {
   name: 'story_url',
 
   async resolve(input: string, _config: Record<string, unknown>, context: ResolverContext): Promise<ResolverResult> {
-    const outcome = await resolveRunningIndexedStory(input, context.config.data);
+    const outcome = await resolveRunningIndexedStory(input, context.config);
     if (!outcome.ok) return outcome.result;
 
     // verifyStoryIndexed already confirmed the daemon has a port.
