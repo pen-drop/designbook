@@ -3,6 +3,7 @@ import { storyIdResolver } from './story-id.js';
 import { storyUrlResolver } from './story-url.js';
 import { referenceFolderResolver } from './reference-folder.js';
 import { breakpointsResolver } from './breakpoints.js';
+import { scenePathResolver } from './scene-path.js';
 
 interface ParamDeclaration {
   type?: string;
@@ -32,6 +33,7 @@ register(storyIdResolver);
 register(storyUrlResolver);
 register(referenceFolderResolver);
 register(breakpointsResolver);
+register(scenePathResolver);
 
 export const resolverRegistry = {
   get(name: string): ParamResolver | undefined {
@@ -92,10 +94,22 @@ export async function resolveParams(
     const input = outputParams[key];
     // Skip if no input and no from: dependency — nothing to resolve
     if (input === undefined && !decl.from) return;
-    // Skip dependent params when the from-param is also empty — resolve opportunistically
+
+    let effectiveInput: string;
     if (decl.from) {
       const fromValue = outputParams[decl.from];
+      // Skip when both own input and the from-param value are empty
       if ((!input || input === '') && (!fromValue || fromValue === '')) return;
+      // When own input is empty, pass the from-param value as input so the resolver
+      // can use it directly (e.g. story_url resolver gets scene_id as input)
+      effectiveInput =
+        input !== undefined && input !== ''
+          ? typeof input === 'string'
+            ? input
+            : String(input)
+          : String(fromValue ?? '');
+    } else {
+      effectiveInput = typeof input === 'string' ? input : '';
     }
 
     const config = buildConfig(decl);
@@ -104,7 +118,7 @@ export async function resolveParams(
       params: { ...outputParams },
     };
 
-    const result = await resolver.resolve(typeof input === 'string' ? input : '', config, ctx);
+    const result = await resolver.resolve(effectiveInput, config, ctx);
 
     if (result.resolved) {
       resolved[key] = result;
