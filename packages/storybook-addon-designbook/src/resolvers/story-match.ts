@@ -1,8 +1,11 @@
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { StorybookDaemon } from '../storybook.js';
-import { fetchJson } from '../storybook.js';
+import { StorybookDaemon, fetchJson } from '../storybook.js';
 import type { ResolverResult } from './types.js';
+
+export type StoryResolution =
+  | { ok: true; storyId: string; daemon: StorybookDaemon }
+  | { ok: false; result: ResolverResult };
 
 /**
  * List story IDs by reading directory names from `<dataDir>/stories/`.
@@ -65,6 +68,33 @@ export function matchStoryId(input: string, dataDir: string): ResolverResult {
  * check daemon.status() first so they can return the more specific
  * "Storybook is not running" error.
  */
+/**
+ * Full resolution pipeline: match input → verify Storybook running → verify indexed.
+ * Returns a single `StoryResolution` so callers can share one daemon instance.
+ */
+export async function resolveRunningIndexedStory(input: string, dataDir: string): Promise<StoryResolution> {
+  const match = matchStoryId(input, dataDir);
+  if (!match.resolved || !match.value) return { ok: false, result: match };
+
+  const daemon = new StorybookDaemon(dataDir);
+  const status = daemon.status();
+  if (!status.running) {
+    return {
+      ok: false,
+      result: {
+        resolved: false,
+        input: match.value,
+        error: 'Storybook is not running — start it with "_debo storybook start" before resolving story_id',
+      },
+    };
+  }
+
+  const indexError = await verifyStoryIndexed(match.value, daemon);
+  if (indexError) return { ok: false, result: indexError };
+
+  return { ok: true, storyId: match.value, daemon };
+}
+
 export async function verifyStoryIndexed(storyId: string, daemon: StorybookDaemon): Promise<ResolverResult | null> {
   const origin = daemon.url;
   if (!origin) {

@@ -1696,6 +1696,56 @@ export function resolveAllStages(
   };
 }
 
+/**
+ * Run task-level `resolve:` declarations for the given stage with the current
+ * workflow params as input. Used at stage transition (after intake, before
+ * task expansion) so resolvers see the up-to-date params rather than the
+ * stale values that were available at workflow create time.
+ *
+ * Returns a new params record with resolved values merged in. Unresolved
+ * params are silently skipped — the merged schema validator at task dispatch
+ * will surface any still-missing required values.
+ */
+export async function resolveStageTaskParams(
+  stageLoaded: Record<string, ResolvedStep | ResolvedStep[]>,
+  stageDef: { steps?: string[] },
+  currentParams: Record<string, unknown>,
+  config: DesignbookConfig,
+): Promise<import('./resolvers/registry.js').ResolveParamsResult> {
+  const { resolveParams } = await import('./resolvers/registry.js');
+
+  const schema: Record<string, Record<string, unknown>> = {};
+  const steps = stageDef.steps ?? [];
+
+  for (const step of steps) {
+    const entry = stageLoaded[step];
+    if (!entry) continue;
+    const resolvedSteps = Array.isArray(entry) ? entry : [entry];
+
+    for (const rs of resolvedSteps) {
+      const fm = parseFrontmatter(rs.task_file) as TaskFileFrontmatter | null;
+      const params = fm?.params;
+      if (!params) continue;
+      const properties = (params.properties ?? {}) as Record<string, unknown>;
+      for (const [key, value] of Object.entries(properties)) {
+        if (typeof value !== 'object' || value === null) continue;
+        const schemaEntry = value as Record<string, unknown>;
+        if (typeof schemaEntry.resolve !== 'string') continue;
+        // First task that declares a resolver for this key wins (matches resolveAllStages)
+        if (!(key in schema)) {
+          schema[key] = schemaEntry;
+        }
+      }
+    }
+  }
+
+  if (Object.keys(schema).length === 0) {
+    return { allResolved: true, resolved: {}, unresolved: {}, params: currentParams };
+  }
+
+  return resolveParams(schema, { config, params: currentParams });
+}
+
 // ── Main Resolution Function ────────────────────────────────────────
 
 /**

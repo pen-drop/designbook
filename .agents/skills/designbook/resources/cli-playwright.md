@@ -60,6 +60,21 @@ Runs Playwright code with the `page` object. Use for complex interactions that n
 
 ## Common Patterns
 
+### Validate story render
+
+Session skeleton for checking that a Storybook iframe renders without errors.
+Used by [`design/rules/playwright-validate.md`](../design/rules/playwright-validate.md):
+
+```bash
+npx playwright-cli open
+npx playwright-cli goto "${story_url}"
+npx playwright-cli resize 1280 800
+npx playwright-cli run-code "async (page) => { await page.waitForTimeout(2000) }"
+npx playwright-cli eval "document.querySelector('#storybook-root')?.innerText || ''"
+npx playwright-cli eval "document.querySelector('#error-message, #preview-loader-error, .sb-errordisplay')?.innerText || ''"
+npx playwright-cli close
+```
+
 ### Full-page screenshot at specific viewport
 
 ```bash

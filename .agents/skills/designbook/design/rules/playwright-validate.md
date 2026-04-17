@@ -1,54 +1,39 @@
 ---
-name: designbook:design:validate-story
+name: designbook:design:playwright-validate
 trigger:
   steps: [validate]
 ---
 
-# Validate Story (Execution)
+# Playwright Validate (Execution)
 
 Hard constraints for verifying that a Storybook story renders. Applies to every `validate` step.
 
 ## Preflight
 
-1. If `_debo storybook status` reports `running: false`, run `_debo storybook start --force` and wait for the status file to show `running: true` before continuing.
-2. `story_url` is pre-resolved by the `story_url` resolver. If the resolver returned an error at `workflow create` time, fix the input (Storybook not running, no matching story ID) and restart the stage — do NOT fabricate a URL.
+`story_url` is pre-resolved by the `story_url` resolver at `workflow create` time. The resolver already ensured:
 
-## Index check
+- Storybook is running.
+- The story ID is present in Storybook's `/index.json`.
 
-Verify the story ID is present in Storybook's index before loading the iframe:
-
-```bash
-BASE="${story_url%/iframe.html*}"
-STORY_ID=$(echo "$story_url" | sed -E 's/.*id=([^&]+).*/\1/')
-curl -sf "${BASE}/index.json" | jq -e --arg id "${STORY_ID}" '.entries[$id]'
-```
-
-If the entry is absent, run `_debo storybook start --force` once and re-check. Index misses after one restart indicate a compilation problem — read `designbook/storybook.log` for the root cause.
+If the resolver returned an error, fix the input (Storybook not running, no matching story ID, or compile error) and restart the stage — do NOT fabricate a URL and do NOT re-check `/index.json` here.
 
 ## Render check
 
-Use Playwright CLI (not the Node API) for the actual render check — consistent with `playwright-capture`:
+Use the Playwright CLI session skeleton documented in [`cli-playwright.md`](../../resources/cli-playwright.md#validate-story-render) (open → goto → resize → wait → eval → close), then read:
 
-```bash
-npx playwright-cli open
-npx playwright-cli goto "${story_url}"
-npx playwright-cli resize 1280 800
-npx playwright-cli run-code "async (page) => { await page.waitForTimeout(2000) }"
-npx playwright-cli eval "document.querySelector('#storybook-root')?.innerText || ''"
-npx playwright-cli eval "document.querySelector('#error-message, #preview-loader-error, .sb-errordisplay')?.innerText || ''"
-npx playwright-cli close
-```
+- `#storybook-root` inner text or rendered children.
+- Any error element: `#error-message`, `#preview-loader-error`, `.sb-errordisplay`.
 
 ## Pass criteria
 
 The stage only completes when ALL are true:
 
 - `#storybook-root` contains non-empty text or rendered children.
-- No error element (`#error-message`, `#preview-loader-error`, `.sb-errordisplay`) is present.
+- No error element is present.
 - The Storybook log for the current session has no unresolved compilation errors referencing the scene or its components.
 
 ## Failure protocol
 
-1. First failure → `_debo storybook start --force` (single restart attempt), re-run index + render check.
+1. First failure → `_debo storybook start --force` (single restart attempt), then **restart the stage**. Restarting re-runs the `story_url` resolver, which automatically re-verifies that the story is in `/index.json`.
 2. Second failure → stop, read `designbook/storybook.log`, report the cause (missing `.component.yml`, invalid Twig, scene file path, etc.), and fix before resubmitting.
 3. Never mark the stage done with a visible error banner or empty root.

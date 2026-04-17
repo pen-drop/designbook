@@ -24,6 +24,7 @@ import {
   expandResultDeclarations,
   resolveSchemasForTasks,
   deriveSkillsRootFromTaskFile,
+  resolveStageTaskParams,
   type TaskFileDeclaration,
   type ResolvedStep,
 } from './workflow-resolve.js';
@@ -836,6 +837,8 @@ export interface StageResponse {
   expanded_tasks?: Array<{ id: string; step?: string; stage?: string; title: string }>;
   /** Validation errors from --data processing. Task stays in-progress when present. */
   validation_errors?: string[];
+  /** Per-param errors from task-level `resolve:` declarations that failed at stage transition. */
+  resolver_errors?: Record<string, { input?: string; error?: string }>;
 }
 
 export interface LoadedPayload {
@@ -1241,6 +1244,7 @@ export async function workflowDone(
 
         // Scope-driven expansion: if this stage has no tasks yet, try expanding from scope
         let expandedFromScope: Array<{ id: string; step?: string; stage?: string; title: string }> | undefined;
+        let resolverErrors: Record<string, { input?: string; error?: string }> | undefined;
         const hasTasksForStage = data.tasks.some((t) => t.stage === nextStage);
         if (!hasTasksForStage && data.stage_loaded && data.scope) {
           const stageLoaded = data.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]>;
@@ -1249,10 +1253,24 @@ export async function workflowDone(
           const nextStageDef = stages[nextStage];
           if (nextStageDef) {
             const singleStage = { [nextStage]: nextStageDef };
+            // Task-level `resolve:` declarations run here (at stage transition)
+            // — not at workflow create — so resolvers see up-to-date params.
+            const resolveResult = await resolveStageTaskParams(
+              stageLoaded,
+              nextStageDef,
+              data.params ?? {},
+              options?.config ?? { data: dataDir, technology: 'html' as const, extensions: [] },
+            );
+            data.params = resolveResult.params;
+            if (Object.keys(resolveResult.unresolved).length > 0) {
+              resolverErrors = Object.fromEntries(
+                Object.entries(resolveResult.unresolved).map(([k, v]) => [k, { input: v.input, error: v.error }]),
+              );
+            }
             const expanded = expandTasksFromParams(
               stageLoaded,
               singleStage,
-              data.params ?? {},
+              resolveResult.params,
               data.tasks,
               scopeEnvMap,
               data.scope,
@@ -1296,6 +1314,7 @@ export async function workflowDone(
             stage_complete: true,
             ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
             ...(expandedFromScope && { expanded_tasks: expandedFromScope }),
+            ...(resolverErrors && { resolver_errors: resolverErrors }),
           };
           writeWorkflowAtomic(filePath, data);
           return { archived: false, data, response };

@@ -3,7 +3,6 @@ title: Design Shell
 description: Design the application shell -- page component with header, content, and footer slots
 params:
   scene_id: { type: string, default: "design-system:shell" }
-  story_url: { type: string, default: "shell" }
   section_id: { type: string, default: "shell" }
   section_title: { type: string, default: "Shell" }
   reference_url: { type: string, default: "" }

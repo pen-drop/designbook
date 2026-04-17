@@ -28,10 +28,12 @@ import {
   collectAndResolveSchemas,
   resolveSchemaRef,
   resolveParamsRef,
+  resolveStageTaskParams,
   matchDomain,
   type ResolvedFile,
   type ResolvedTask,
 } from '../../workflow-resolve.js';
+import type { StageDefinition } from '../../workflow-types.js';
 import { acquireLock, releaseLock, withLock } from '../../workflow-lock.js';
 import type { DesignbookConfig } from '../../config.js';
 
@@ -2346,5 +2348,233 @@ describe('$ref end-to-end: collectAndResolveSchemas → workflowPlan → workflo
     const invalidResult = await workflowResult(dist, name, 'setup-compare', 'checks', invalidData, mockConfig);
     expect(invalidResult.valid).toBe(false);
     expect(invalidResult.errors.length).toBeGreaterThan(0);
+  });
+});
+
+// ── resolveStageTaskParams: lazy task-level resolvers at stage transition ──
+
+describe('resolveStageTaskParams', () => {
+  let tmpDir: string;
+  let agentsDir: string;
+  let dataDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    agentsDir = resolve(tmpDir, '.agents');
+    dataDir = resolve(tmpDir, 'dist');
+    mkdirSync(dataDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true });
+  });
+
+  it('runs task-level resolver with current params and merges resolved value', async () => {
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'validate',
+      [
+        'trigger:',
+        '  steps: [validate]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    reference_folder:',
+        '      type: string',
+        '      resolve: reference_folder',
+        '      from: reference_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['validate'] };
+    const currentParams = { reference_url: 'https://example.com/design' };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const { params: resolved } = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(resolved.reference_url).toBe('https://example.com/design');
+    expect(typeof resolved.reference_folder).toBe('string');
+    expect(resolved.reference_folder as string).toContain('references');
+  });
+
+  it('skips resolver when input is undefined and resolver has no from:', async () => {
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'validate',
+      [
+        'trigger:',
+        '  steps: [validate]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    story_url:',
+        '      type: string',
+        '      resolve: story_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['validate'] };
+    const currentParams = {};
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const { params: resolved } = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(resolved.story_url).toBeUndefined();
+  });
+
+  it('returns params unchanged when no task param has resolve:', async () => {
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'plain',
+      [
+        'trigger:',
+        '  steps: [plain]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    name:',
+        '      type: string',
+        '      default: hello',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      plain: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['plain'] };
+    const currentParams = { foo: 'bar' };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const { params: resolved } = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(resolved).toEqual(currentParams);
+  });
+
+  it('uses updated params (not stale create-time params) when resolving', async () => {
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'validate',
+      [
+        'trigger:',
+        '  steps: [validate]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    reference_folder:',
+        '      type: string',
+        '      resolve: reference_folder',
+        '      from: reference_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['validate'] };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const first = await resolveStageTaskParams(
+      stageLoaded,
+      stageDef,
+      { reference_url: 'https://first.example/' },
+      config,
+    );
+    const second = await resolveStageTaskParams(
+      stageLoaded,
+      stageDef,
+      { reference_url: 'https://second.example/' },
+      config,
+    );
+
+    // reference_folder is a hash of the URL -> different hashes for different URLs
+    expect(first.params.reference_folder).not.toEqual(second.params.reference_folder);
+  });
+
+  it('handles stages with multiple steps', async () => {
+    const taskA = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'step-a',
+      [
+        'trigger:',
+        '  steps: [step-a]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    plain_a:',
+        '      type: string',
+      ].join('\n'),
+    );
+    const taskB = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'step-b',
+      [
+        'trigger:',
+        '  steps: [step-b]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    reference_folder:',
+        '      type: string',
+        '      resolve: reference_folder',
+        '      from: reference_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      'step-a': { task_file: taskA, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+      'step-b': { task_file: taskB, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['step-a', 'step-b'] };
+    const currentParams = { reference_url: 'https://example.com/multi' };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const { params: resolved } = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(typeof resolved.reference_folder).toBe('string');
+    expect(resolved.reference_folder as string).toContain('references');
+  });
+
+  it('surfaces resolver errors in unresolved map when a resolver fails', async () => {
+    // story_url requires Storybook running; data dir has no PID file -> resolver fails.
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'validate',
+      [
+        'trigger:',
+        '  steps: [validate]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    story_url:',
+        '      type: string',
+        '      resolve: story_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['validate'] };
+    const currentParams = { story_url: 'some-nonexistent-story' };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const result = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(result.allResolved).toBe(false);
+    expect(result.unresolved.story_url).toBeDefined();
+    expect(result.unresolved.story_url?.error).toBeDefined();
   });
 });

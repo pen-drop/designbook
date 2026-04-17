@@ -197,6 +197,40 @@ All component files must include a `$schema` field pointing to the JSON schema.
 
 Rules are never overridden by integration skills. If something CAN be overridden, it is a blueprint.
 
+## Rules Never Declare `params:`
+
+Rules are constraints that apply when a step matches. They must not declare their own `params:` schema and must not pick resolvers. Resolver choice is strictly task territory — different tasks can choose different resolvers (or no resolver) for the same input param.
+
+If a rule needs a value (e.g. `story_url`), it reads it from the values already resolved by the task that owns the step. A rule that "requires" a param is really stating a precondition on the task: the task must declare that param with the appropriate resolver.
+
+**Wrong** (rule carrying its own param + resolver):
+```markdown
+---
+name: designbook:design:playwright-validate
+trigger:
+  steps: [validate]
+params:
+  type: object
+  required: [story_url]
+  properties:
+    story_url: { type: string, resolve: story_url }
+---
+```
+
+**Correct** (rule consumes what the task provides):
+```markdown
+---
+name: designbook:design:playwright-validate
+trigger:
+  steps: [validate]
+---
+
+`story_url` is pre-resolved by the task's `story_url` resolver at `workflow create` time.
+If the resolver returned an error, fix the input and restart the stage.
+```
+
+The same principle applies to blueprints.
+
 ## Concrete Implementations Belong in Blueprints, Never in Tasks or Rules
 
 Tasks and rules must be **as abstract as possible**. They describe structure, requirements, and constraints — never concrete implementation details that differ between integrations (class names, token names, file naming patterns, markup specifics).

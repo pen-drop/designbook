@@ -34,33 +34,33 @@ describe('breakpointsResolver', () => {
     expect(breakpointsResolver.name).toBe('breakpoints');
   });
 
-  it('resolves breakpoint names from design-tokens.yml', () => {
-    const result = breakpointsResolver.resolve('', {}, makeContext());
+  it('resolves breakpoint names from design-tokens.yml', async () => {
+    const result = await breakpointsResolver.resolve('', {}, makeContext());
     expect(result.resolved).toBe(true);
     expect(result.value).toBe('sm,xl');
   });
 
-  it('returns unresolved when design-tokens.yml is missing', () => {
+  it('returns unresolved when design-tokens.yml is missing', async () => {
     const ctx = makeContext();
     ctx.config.data = join(tmpDir, 'nonexistent');
-    const result = breakpointsResolver.resolve('', {}, ctx);
+    const result = await breakpointsResolver.resolve('', {}, ctx);
     expect(result.resolved).toBe(false);
     expect(result.error).toContain('design-tokens.yml');
   });
 
-  it('returns unresolved when no breakpoints section exists', () => {
+  it('returns unresolved when no breakpoints section exists', async () => {
     const noBreakpointsDir = join(tmpDir, 'no-bp');
     mkdirSync(join(noBreakpointsDir, 'design-system'), { recursive: true });
     writeFileSync(join(noBreakpointsDir, 'design-system', 'design-tokens.yml'), 'semantic:\n  colors: {}');
     const ctx = makeContext();
     ctx.config.data = noBreakpointsDir;
-    const result = breakpointsResolver.resolve('', {}, ctx);
+    const result = await breakpointsResolver.resolve('', {}, ctx);
     expect(result.resolved).toBe(false);
     expect(result.error).toContain('breakpoints');
   });
 
-  it('ignores $ keys (like $extensions)', () => {
-    const result = breakpointsResolver.resolve('', {}, makeContext());
+  it('ignores $ keys (like $extensions)', async () => {
+    const result = await breakpointsResolver.resolve('', {}, makeContext());
     expect(result.value).not.toContain('$extensions');
   });
 });

@@ -29,30 +29,38 @@ describe('referenceFolderResolver', () => {
     expect(referenceFolderResolver.name).toBe('reference_folder');
   });
 
-  it('resolves URL to hash-based folder path', () => {
+  it('resolves URL to hash-based folder path', async () => {
     const url = 'https://example.com/design';
-    const result = referenceFolderResolver.resolve('', { from: 'reference_url' }, makeContext({ reference_url: url }));
+    const result = await referenceFolderResolver.resolve(
+      '',
+      { from: 'reference_url' },
+      makeContext({ reference_url: url }),
+    );
     const hash = expectedHash(url);
     expect(result.resolved).toBe(true);
     expect(result.value).toBe(resolve(tmpDir, 'references', hash));
   });
 
-  it('creates directory if not exists', () => {
+  it('creates directory if not exists', async () => {
     const url = 'https://example.com/new-dir-test';
-    const result = referenceFolderResolver.resolve('', { from: 'reference_url' }, makeContext({ reference_url: url }));
+    const result = await referenceFolderResolver.resolve(
+      '',
+      { from: 'reference_url' },
+      makeContext({ reference_url: url }),
+    );
     expect(result.resolved).toBe(true);
     expect(existsSync(result.value!)).toBe(true);
   });
 
-  it('normalizes trailing slash', () => {
+  it('normalizes trailing slash', async () => {
     const withSlash = 'https://example.com/page/';
     const withoutSlash = 'https://example.com/page';
-    const resultWith = referenceFolderResolver.resolve(
+    const resultWith = await referenceFolderResolver.resolve(
       '',
       { from: 'reference_url' },
       makeContext({ reference_url: withSlash }),
     );
-    const resultWithout = referenceFolderResolver.resolve(
+    const resultWithout = await referenceFolderResolver.resolve(
       '',
       { from: 'reference_url' },
       makeContext({ reference_url: withoutSlash }),
@@ -60,15 +68,15 @@ describe('referenceFolderResolver', () => {
     expect(resultWith.value).toBe(resultWithout.value);
   });
 
-  it('normalizes case', () => {
+  it('normalizes case', async () => {
     const mixed = 'https://Example.COM/Page';
     const lower = 'https://example.com/page';
-    const resultMixed = referenceFolderResolver.resolve(
+    const resultMixed = await referenceFolderResolver.resolve(
       '',
       { from: 'reference_url' },
       makeContext({ reference_url: mixed }),
     );
-    const resultLower = referenceFolderResolver.resolve(
+    const resultLower = await referenceFolderResolver.resolve(
       '',
       { from: 'reference_url' },
       makeContext({ reference_url: lower }),
@@ -76,15 +84,15 @@ describe('referenceFolderResolver', () => {
     expect(resultMixed.value).toBe(resultLower.value);
   });
 
-  it('preserves query strings', () => {
+  it('preserves query strings', async () => {
     const url1 = 'https://example.com/page?v=1';
     const url2 = 'https://example.com/page?v=2';
-    const result1 = referenceFolderResolver.resolve(
+    const result1 = await referenceFolderResolver.resolve(
       '',
       { from: 'reference_url' },
       makeContext({ reference_url: url1 }),
     );
-    const result2 = referenceFolderResolver.resolve(
+    const result2 = await referenceFolderResolver.resolve(
       '',
       { from: 'reference_url' },
       makeContext({ reference_url: url2 }),
@@ -92,19 +100,23 @@ describe('referenceFolderResolver', () => {
     expect(result1.value).not.toBe(result2.value);
   });
 
-  it('returns unresolved when from-param missing', () => {
-    const result = referenceFolderResolver.resolve('', { from: 'reference_url' }, makeContext({}));
+  it('returns unresolved when from-param missing', async () => {
+    const result = await referenceFolderResolver.resolve('', { from: 'reference_url' }, makeContext({}));
     expect(result.resolved).toBe(false);
     expect(result.error).toContain('reference_url');
   });
 
-  it('returns unresolved when from-param is empty string', () => {
-    const result = referenceFolderResolver.resolve('', { from: 'reference_url' }, makeContext({ reference_url: '' }));
+  it('returns unresolved when from-param is empty string', async () => {
+    const result = await referenceFolderResolver.resolve(
+      '',
+      { from: 'reference_url' },
+      makeContext({ reference_url: '' }),
+    );
     expect(result.resolved).toBe(false);
   });
 
-  it('returns unresolved when "from" config missing', () => {
-    const result = referenceFolderResolver.resolve('', {}, makeContext({ reference_url: 'https://example.com' }));
+  it('returns unresolved when "from" config missing', async () => {
+    const result = await referenceFolderResolver.resolve('', {}, makeContext({ reference_url: 'https://example.com' }));
     expect(result.resolved).toBe(false);
     expect(result.error).toContain('from');
   });

@@ -1,7 +1,7 @@
 ---
 name: designbook-skill-creator
 user-invocable: true
-description: Meta-skill documenting the 4-level skill model, design principles, and skill map for all Designbook skills. Load before modifying any .agents/skills/ file.
+description: Authoritative spec for authoring tasks, rules, blueprints, workflows, and schemas.yml under .agents/skills/designbook/, .agents/skills/designbook-*/ (drupal, css-tailwind, stitch, devtools), and this skill's own rules/ and resources/. Load BEFORE creating or editing ANY such file — covers the 4-level model (workflow→stage→task/blueprint/rule), "tasks say WHAT not HOW", "rules never declare params:", schema $ref conventions, and file-structure rules. Skipping this produces tasks with inline HOW, rules carrying their own params, and inline-duplicated schemas.
 ---
 
 # Designbook Skill Creator

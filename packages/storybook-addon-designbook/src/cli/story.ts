@@ -5,9 +5,9 @@ import { storyIdResolver } from '../resolvers/story-id.js';
 import type { ResolverContext } from '../resolvers/types.js';
 
 export function register(program: Command): void {
-  function resolveStoryArg(identifier: string, config: ReturnType<typeof loadConfig>): string | null {
+  async function resolveStoryArg(identifier: string, config: ReturnType<typeof loadConfig>): Promise<string | null> {
     const ctx: ResolverContext = { config, params: {} };
-    const result = storyIdResolver.resolve(identifier, {}, ctx);
+    const result = await storyIdResolver.resolve(identifier, {}, ctx);
 
     if (result.resolved) return result.value!;
 
@@ -75,7 +75,7 @@ export function register(program: Command): void {
 
             let story: DeboStory | null = null;
             if (storyIdArg) {
-              const resolved = resolveStoryArg(storyIdArg, config);
+              const resolved = await resolveStoryArg(storyIdArg, config);
               if (!resolved) return;
               story = DeboStory.load(config, resolved);
             } else {
@@ -129,7 +129,7 @@ export function register(program: Command): void {
               const metaData = opts.json ? JSON.parse(opts.json) : undefined;
               story = DeboStory.createByScene(config, opts.scene, metaData);
             } else if (storyIdArg) {
-              const resolved = resolveStoryArg(storyIdArg, config);
+              const resolved = await resolveStoryArg(storyIdArg, config);
               if (!resolved) return;
               story = DeboStory.load(config, resolved);
             } else {
@@ -209,7 +209,7 @@ export function register(program: Command): void {
           // Load story: positional arg goes through resolver, --scene uses loadByScene
           let story: DeboStory | null = null;
           if (subcommandOrId && !isSubcommand) {
-            const resolved = resolveStoryArg(subcommandOrId, config);
+            const resolved = await resolveStoryArg(subcommandOrId, config);
             if (!resolved) return;
             story = DeboStory.load(config, resolved);
           } else {

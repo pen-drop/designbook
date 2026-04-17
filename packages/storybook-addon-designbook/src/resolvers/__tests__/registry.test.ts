@@ -70,4 +70,19 @@ describe('resolveParams', () => {
     const hasEntry = 'reference_folder' in result.resolved || 'reference_folder' in result.unresolved;
     expect(hasEntry).toBe(true);
   });
+
+  it('awaits async resolvers (story_url) — surfaces failure in unresolved with resolver error', async () => {
+    // story_url is async and requires a running Storybook. With /tmp/test no daemon is running,
+    // so the resolver must reject via its async code path and land in `unresolved` with a
+    // helpful error message. This locks in that `resolveParams` actually awaits the promise.
+    const schema = {
+      story_url: { type: 'string', resolve: 'story_url' },
+    };
+    const context = makeContext({ story_url: 'some-nonexistent-story' });
+    const result = await resolveParams(schema, context);
+
+    expect(result.allResolved).toBe(false);
+    expect(result.unresolved.story_url).toBeDefined();
+    expect(typeof result.unresolved.story_url?.error).toBe('string');
+  });
 });

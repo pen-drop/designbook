@@ -5,6 +5,9 @@ import type { ResolverContext } from '../types.js';
 
 const tmpDir = join(import.meta.dirname, '__fixtures_story_id_resolver__');
 
+// Mock invariant: `daemon.url` must return undefined when port is missing, matching the
+// real daemon's `url` getter (storybook.ts). If resolver code switches from `daemon.url`
+// to reading `status.port` directly, update the mock's status() to also expose `port`.
 let mockStatus: { running: boolean; port?: number } = { running: false };
 let mockIndex: { entries?: Record<string, unknown> } | null | 'throw' = null;
 
@@ -26,7 +29,7 @@ vi.mock('../../storybook.js', () => {
       return `http://localhost:${mockStatus.port}/iframe.html?id=${storyId}&viewMode=story`;
     }
   }
-  function fetchJson(_url: string): Promise<unknown> {
+  function fetchJson(): Promise<unknown> {
     if (mockIndex === 'throw') return Promise.reject(new Error('ECONNREFUSED'));
     return Promise.resolve(mockIndex);
   }
