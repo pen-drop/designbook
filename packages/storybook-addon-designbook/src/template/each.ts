@@ -10,26 +10,27 @@ export async function resolveEach(
   each: EachDeclaration,
   scope: Record<string, unknown>,
 ): Promise<Array<Record<string, unknown>>> {
-  const axes: Array<{ binding: string; items: unknown[] }> = [];
+  const entries = Object.entries(each);
+  if (entries.length === 0) return [];
 
-  for (const [binding, raw] of Object.entries(each)) {
-    const expr = getExpr(raw);
-    const value = await jsonata(expr).evaluate(scope);
-    if (value === undefined || value === null) return [];
-    const items = Array.isArray(value) ? value : [value];
-    if (items.length === 0) return [];
-    axes.push({ binding, items });
-  }
-
+  // Lazy cross-product: each axis' expression evaluates against the scope
+  // enriched with already-bound axes. This lets the variant axis see the
+  // current component binding via {{ component.variants }}.
   let combos: Array<Record<string, unknown>> = [{}];
-  for (const { binding, items } of axes) {
+  for (const [binding, raw] of entries) {
+    const expr = getExpr(raw);
     const next: Array<Record<string, unknown>> = [];
     for (const combo of combos) {
+      const innerScope = { ...scope, ...combo };
+      const value = await jsonata(expr).evaluate(innerScope);
+      if (value === undefined || value === null) continue;
+      const items = Array.isArray(value) ? value : [value];
       for (const item of items) {
         next.push({ ...combo, [binding]: item });
       }
     }
     combos = next;
+    if (combos.length === 0) break;
   }
 
   const total = combos.length;

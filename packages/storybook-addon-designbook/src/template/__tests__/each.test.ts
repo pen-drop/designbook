@@ -27,6 +27,24 @@ describe('resolveEach', () => {
     expect(result[1]).toMatchObject({ variant: { id: 'main' }, bp: 'xl' });
   });
 
+  it('supports dependent axes — inner axis sees previous binding', async () => {
+    const each = { component: 'components', variant: 'component.variants' };
+    const scope = {
+      components: [
+        { component: 'navigation', variants: [{ id: 'main' }, { id: 'footer' }] },
+        { component: 'card', variants: [{ id: 'horizontal' }] },
+      ],
+    };
+    const result = await resolveEach(each, scope);
+    expect(result).toHaveLength(3);
+    expect(result[0]).toMatchObject({ variant: { id: 'main' } });
+    expect((result[0]!.component as { component: string }).component).toBe('navigation');
+    expect(result[1]).toMatchObject({ variant: { id: 'footer' } });
+    expect((result[1]!.component as { component: string }).component).toBe('navigation');
+    expect(result[2]).toMatchObject({ variant: { id: 'horizontal' } });
+    expect((result[2]!.component as { component: string }).component).toBe('card');
+  });
+
   it('supports filter expressions', async () => {
     const each = { v: 'variants[published = true]' };
     const scope = {
