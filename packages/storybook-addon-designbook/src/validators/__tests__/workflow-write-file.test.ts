@@ -35,48 +35,48 @@ const mockConfig: DesignbookConfig = {
 // ── expandFileDeclarations ──────────────────────────────────────────────────
 
 describe('expandFileDeclarations', () => {
-  it('expands file path template and passes through key and validators', () => {
+  it('expands file path template and passes through key and validators', async () => {
     const declarations: TaskFileDeclaration[] = [
       { file: '$DATA/design-tokens.yml', key: 'tokens', validators: ['tokens'] },
     ];
-    const result = expandFileDeclarations(declarations, {}, { DATA: '/home/designbook' });
+    const result = await expandFileDeclarations(declarations, {}, { DATA: '/home/designbook' });
     expect(result).toEqual([{ path: '/home/designbook/design-tokens.yml', key: 'tokens', validators: ['tokens'] }]);
   });
 
-  it('expands {{ param }} in file path', () => {
+  it('expands {{ param }} in file path', async () => {
     const declarations: TaskFileDeclaration[] = [
       { file: '$DATA/sections/{{ id }}/data.yml', key: 'data', validators: ['data'] },
     ];
-    const result = expandFileDeclarations(declarations, { id: 'dashboard' }, { DATA: '/d' });
+    const result = await expandFileDeclarations(declarations, { id: 'dashboard' }, { DATA: '/d' });
     expect(result[0]!.path).toBe('/d/sections/dashboard/data.yml');
   });
 
-  it('throws on duplicate key', () => {
+  it('throws on duplicate key', async () => {
     const declarations: TaskFileDeclaration[] = [
       { file: '/a.yml', key: 'same', validators: [] },
       { file: '/b.yml', key: 'same', validators: [] },
     ];
-    expect(() => expandFileDeclarations(declarations, {}, {})).toThrow("Duplicate key 'same'");
+    await expect(async () => expandFileDeclarations(declarations, {}, {})).rejects.toThrow("Duplicate key 'same'");
   });
 
-  it('defaults validators to empty array when omitted', () => {
+  it('defaults validators to empty array when omitted', async () => {
     const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test' }];
-    const result = expandFileDeclarations(declarations, {}, {});
+    const result = await expandFileDeclarations(declarations, {}, {});
     expect(result[0]!.validators).toEqual([]);
   });
 
-  it('rejects unknown validator keys when validatorKeys provided', () => {
+  it('rejects unknown validator keys when validatorKeys provided', async () => {
     const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test', validators: ['nonexistent'] }];
     const knownKeys = new Set(['data', 'scene']);
-    expect(() => expandFileDeclarations(declarations, {}, {}, knownKeys)).toThrow(
+    await expect(async () => expandFileDeclarations(declarations, {}, {}, knownKeys)).rejects.toThrow(
       "Unknown validator key 'nonexistent'",
     );
   });
 
-  it('accepts known validator keys', () => {
+  it('accepts known validator keys', async () => {
     const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test', validators: ['data'] }];
     const knownKeys = new Set(['data', 'scene']);
-    expect(() => expandFileDeclarations(declarations, {}, {}, knownKeys)).not.toThrow();
+    await expect(expandFileDeclarations(declarations, {}, {}, knownKeys)).resolves.not.toThrow();
   });
 });
 

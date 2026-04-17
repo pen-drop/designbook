@@ -1192,7 +1192,7 @@ describe('expandTasksFromParams filter-condition filtering', () => {
     };
   }
 
-  it('filters tasks by filter.type — screenshot items only get screenshot tasks', () => {
+  it('filters tasks by filter.type — screenshot items only get screenshot tasks', async () => {
     const stages = { test: { each: 'checks', steps: ['capture', 'compare'] } };
     const params = {
       scene: 'design-system:shell',
@@ -1202,7 +1202,7 @@ describe('expandTasksFromParams filter-condition filtering', () => {
       ],
     };
 
-    const tasks = expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
+    const tasks = await expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
 
     // Screenshot check should get: capture + compare-screenshots (2 tasks)
     // Markup check should get: compare-markup only (1 task, no capture)
@@ -1217,31 +1217,31 @@ describe('expandTasksFromParams filter-condition filtering', () => {
     expect(markupTasks[0]!.task_file).toContain('compare-markup.md');
   });
 
-  it('screenshot compare resolves to compare-screenshots task file', () => {
+  it('screenshot compare resolves to compare-screenshots task file', async () => {
     const stages = { test: { each: 'checks', steps: ['compare'] } };
     const params = {
       scene: 'design-system:shell',
       checks: [{ scene: 'design-system:shell', breakpoint: 'xl', region: 'header', type: 'screenshot' }],
     };
 
-    const tasks = expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
+    const tasks = await expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
     expect(tasks).toHaveLength(1);
     expect(tasks[0]!.task_file).toContain('compare-screenshots.md');
   });
 
-  it('markup compare resolves to compare-markup task file', () => {
+  it('markup compare resolves to compare-markup task file', async () => {
     const stages = { test: { each: 'checks', steps: ['compare'] } };
     const params = {
       scene: 'design-system:shell',
       checks: [{ scene: 'design-system:shell', breakpoint: 'xl', region: 'markup', type: 'markup' }],
     };
 
-    const tasks = expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
+    const tasks = await expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
     expect(tasks).toHaveLength(1);
     expect(tasks[0]!.task_file).toContain('compare-markup.md');
   });
 
-  it('filter.type filters before param validation — mismatched type skips task entirely', () => {
+  it('filter.type filters before param validation — mismatched type skips task entirely', async () => {
     const stages = { test: { each: 'checks', steps: ['capture'] } };
     const params = {
       scene: 'design-system:shell',
@@ -1249,7 +1249,7 @@ describe('expandTasksFromParams filter-condition filtering', () => {
     };
 
     // capture has filter.type: screenshot — markup item should produce zero capture tasks
-    const tasks = expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
+    const tasks = await expandTasksFromParams(makeStageLoaded(), stages, params, [], {});
     expect(tasks).toHaveLength(0);
   });
 });

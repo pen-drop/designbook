@@ -71,7 +71,7 @@ afterEach(() => {
 // ── resolveAllStages: old-format rejection ──────────────────────────────────
 
 describe('resolveAllStages rejects old-format params in properties', () => {
-  function setupAndResolve(propertyLine: string): () => void {
+  function setupAndResolve(propertyLine: string): () => Promise<unknown> {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -82,40 +82,40 @@ describe('resolveAllStages rejects old-format params in properties', () => {
       ),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
-    return () => resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    return async () => resolveAllStages(wfPath, baseConfig, {}, agentsDir);
   }
 
-  it('rejects null param (old required format)', () => {
+  it('rejects null param (old required format)', async () => {
     const fn = setupAndResolve('name: ~');
-    expect(fn).toThrow(/Invalid param "name".*got null/);
+    await expect(fn).rejects.toThrow(/Invalid param "name".*got null/);
   });
 
-  it('rejects bare array param (old optional format)', () => {
+  it('rejects bare array param (old optional format)', async () => {
     const fn = setupAndResolve('items: []');
-    expect(fn).toThrow(/Invalid param "items".*got array/);
+    await expect(fn).rejects.toThrow(/Invalid param "items".*got array/);
   });
 
-  it('rejects bare object without type', () => {
+  it('rejects bare object without type', async () => {
     const fn = setupAndResolve('data: { foo: bar }');
-    expect(fn).toThrow(/Invalid param "data".*got object without "type"/);
+    await expect(fn).rejects.toThrow(/Invalid param "data".*got object without "type"/);
   });
 
-  it('rejects string scalar', () => {
+  it('rejects string scalar', async () => {
     const fn = setupAndResolve('mode: fast');
-    expect(fn).toThrow(/Invalid param "mode".*got string/);
+    await expect(fn).rejects.toThrow(/Invalid param "mode".*got string/);
   });
 
-  it('rejects number scalar', () => {
+  it('rejects number scalar', async () => {
     const fn = setupAndResolve('count: 5');
-    expect(fn).toThrow(/Invalid param "count".*got number/);
+    await expect(fn).rejects.toThrow(/Invalid param "count".*got number/);
   });
 
-  it('rejects boolean scalar', () => {
+  it('rejects boolean scalar', async () => {
     const fn = setupAndResolve('enabled: true');
-    expect(fn).toThrow(/Invalid param "enabled".*got boolean/);
+    await expect(fn).rejects.toThrow(/Invalid param "enabled".*got boolean/);
   });
 
-  it('rejects mixed params (first invalid triggers error)', () => {
+  it('rejects mixed params (first invalid triggers error)', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -132,14 +132,16 @@ describe('resolveAllStages rejects old-format params in properties', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
-    expect(() => resolveAllStages(wfPath, baseConfig, {}, agentsDir)).toThrow(/Invalid param "bad_param"/);
+    await expect(async () => resolveAllStages(wfPath, baseConfig, {}, agentsDir)).rejects.toThrow(
+      /Invalid param "bad_param"/,
+    );
   });
 });
 
 // ── resolveAllStages: expected_params from JSON Schema ──────────────────────
 
 describe('resolveAllStages builds correct expected_params', () => {
-  it('marks param without default as required', () => {
+  it('marks param without default as required', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -156,14 +158,14 @@ describe('resolveAllStages builds correct expected_params', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
-    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    const result = await resolveAllStages(wfPath, baseConfig, {}, agentsDir);
 
     expect(result.expected_params.product_name).toBeDefined();
     expect(result.expected_params.product_name!.required).toBe(true);
     expect(result.expected_params.product_name!.default).toBeUndefined();
   });
 
-  it('marks param with default as optional and stores default', () => {
+  it('marks param with default as optional and stores default', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -179,14 +181,14 @@ describe('resolveAllStages builds correct expected_params', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
-    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    const result = await resolveAllStages(wfPath, baseConfig, {}, agentsDir);
 
     expect(result.expected_params.items).toBeDefined();
     expect(result.expected_params.items!.required).toBe(false);
     expect(result.expected_params.items!.default).toEqual([]);
   });
 
-  it('handles default: null as optional', () => {
+  it('handles default: null as optional', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -206,14 +208,14 @@ describe('resolveAllStages builds correct expected_params', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
-    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    const result = await resolveAllStages(wfPath, baseConfig, {}, agentsDir);
 
     expect(result.expected_params.ref).toBeDefined();
     expect(result.expected_params.ref!.required).toBe(false);
     expect(result.expected_params.ref!.default).toBeNull();
   });
 
-  it('handles default: {} as optional with empty object default', () => {
+  it('handles default: {} as optional with empty object default', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -229,13 +231,13 @@ describe('resolveAllStages builds correct expected_params', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
-    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    const result = await resolveAllStages(wfPath, baseConfig, {}, agentsDir);
 
     expect(result.expected_params.config!.required).toBe(false);
     expect(result.expected_params.config!.default).toEqual({});
   });
 
-  it('aggregates params from multiple steps', () => {
+  it('aggregates params from multiple steps', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -267,7 +269,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [step-a, step-b]');
-    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    const result = await resolveAllStages(wfPath, baseConfig, {}, agentsDir);
 
     expect(Object.keys(result.expected_params)).toHaveLength(3);
     expect(result.expected_params.name!.required).toBe(true);
@@ -275,7 +277,7 @@ describe('resolveAllStages builds correct expected_params', () => {
     expect(result.expected_params.mode!.required).toBe(true);
   });
 
-  it('if any step marks a param required, it stays required', () => {
+  it('if any step marks a param required, it stays required', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     // step-a declares shared as optional (has default)
     writeTask(
@@ -307,12 +309,12 @@ describe('resolveAllStages builds correct expected_params', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [step-a, step-b]');
-    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    const result = await resolveAllStages(wfPath, baseConfig, {}, agentsDir);
 
     expect(result.expected_params.shared!.required).toBe(true);
   });
 
-  it('records from_step for each param', () => {
+  it('records from_step for each param', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -330,13 +332,13 @@ describe('resolveAllStages builds correct expected_params', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [create-vision]');
-    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    const result = await resolveAllStages(wfPath, baseConfig, {}, agentsDir);
 
     expect(result.expected_params.product_name!.from_step).toBe('create-vision');
     expect(result.expected_params.features!.from_step).toBe('create-vision');
   });
 
-  it('complex param with properties parsed correctly', () => {
+  it('complex param with properties parsed correctly', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -358,13 +360,13 @@ describe('resolveAllStages builds correct expected_params', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
-    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    const result = await resolveAllStages(wfPath, baseConfig, {}, agentsDir);
 
     expect(result.expected_params.design_reference!.required).toBe(false);
     expect(result.expected_params.design_reference!.default).toBeNull();
   });
 
-  it('integer type is valid JSON Schema', () => {
+  it('integer type is valid JSON Schema', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     writeTask(
       agentsDir,
@@ -381,7 +383,7 @@ describe('resolveAllStages builds correct expected_params', () => {
       ].join('\n'),
     );
     const wfPath = writeWorkflow(tmpDir, 'title: Test\nstages:\n  execute:\n    steps: [do-thing]');
-    const result = resolveAllStages(wfPath, baseConfig, {}, agentsDir);
+    const result = await resolveAllStages(wfPath, baseConfig, {}, agentsDir);
 
     expect(result.expected_params.order!.required).toBe(true);
   });
@@ -417,7 +419,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     return result;
   }
 
-  it('applies defaults for optional JSON Schema params', () => {
+  it('applies defaults for optional JSON Schema params', async () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
@@ -438,7 +440,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     };
     const params = { product_name: 'My Product' };
 
-    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {});
+    const tasks = await expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {});
 
     expect(tasks).toHaveLength(1);
     expect(tasks[0]!.params!.product_name).toBe('My Product');
@@ -446,7 +448,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     expect(tasks[0]!.params!.references).toEqual([]);
   });
 
-  it('throws on missing required JSON Schema param', () => {
+  it('throws on missing required JSON Schema param', async () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
@@ -467,12 +469,12 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     // Only provide one of two required params
     const params = { product_name: 'My Product' };
 
-    expect(() => expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {})).toThrow(
-      /Missing required param 'description'/,
-    );
+    await expect(async () =>
+      expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {}),
+    ).rejects.toThrow(/Missing required param 'description'/);
   });
 
-  it('applies default: null for optional object param', () => {
+  it('applies default: null for optional object param', async () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
@@ -496,13 +498,13 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     };
     const params = { name: 'Test' };
 
-    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {});
+    const tasks = await expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {});
 
     expect(tasks).toHaveLength(1);
     expect(tasks[0]!.params!.design_reference).toBeNull();
   });
 
-  it('applies default: {} for optional object param', () => {
+  it('applies default: {} for optional object param', async () => {
     const taskFile = writeTaskFile(
       'run-workflow',
       [
@@ -522,13 +524,13 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     };
     const params = { workflow: 'debo-tokens' };
 
-    const tasks = expandTasksFromParams(makeStageLoaded({ 'run-workflow': taskFile }), stages, params, [], {});
+    const tasks = await expandTasksFromParams(makeStageLoaded({ 'run-workflow': taskFile }), stages, params, [], {});
 
     expect(tasks).toHaveLength(1);
     expect(tasks[0]!.params!.params).toEqual({});
   });
 
-  it('item params override JSON Schema defaults', () => {
+  it('item params override JSON Schema defaults', async () => {
     const taskFile = writeTaskFile(
       'create-section',
       [
@@ -548,13 +550,13 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     };
     const params = { section_id: 'hero', order: 5 };
 
-    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-section': taskFile }), stages, params, [], {});
+    const tasks = await expandTasksFromParams(makeStageLoaded({ 'create-section': taskFile }), stages, params, [], {});
 
     expect(tasks).toHaveLength(1);
     expect(tasks[0]!.params!.order).toBe(5);
   });
 
-  it('expands each-based items with JSON Schema defaults', () => {
+  it('expands each-based items with JSON Schema defaults', async () => {
     const taskFile = writeTaskFile(
       'create-component',
       [
@@ -582,7 +584,13 @@ describe('expandTasksFromParams with JSON Schema params', () => {
       component: [{ component: 'button', slots: ['default'] }, { component: 'icon' }],
     };
 
-    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-component': taskFile }), stages, params, [], {});
+    const tasks = await expandTasksFromParams(
+      makeStageLoaded({ 'create-component': taskFile }),
+      stages,
+      params,
+      [],
+      {},
+    );
 
     expect(tasks).toHaveLength(2);
 
@@ -599,7 +607,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     expect(tasks[1]!.params!.group).toBe('atoms');
   });
 
-  it('expands each: dotpath as cross-product of outer scope × nested inner array', () => {
+  it('expands each: dotpath as cross-product of outer scope × nested inner array', async () => {
     const taskFile = writeTaskFile(
       'create-variant-story',
       [
@@ -628,7 +636,13 @@ describe('expandTasksFromParams with JSON Schema params', () => {
       ],
     };
 
-    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-variant-story': taskFile }), stages, params, [], {});
+    const tasks = await expandTasksFromParams(
+      makeStageLoaded({ 'create-variant-story': taskFile }),
+      stages,
+      params,
+      [],
+      {},
+    );
 
     // navigation × 2 variants + card × 1 variant = 3 tasks (page has no variants)
     expect(tasks).toHaveLength(3);
@@ -647,7 +661,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     expect(new Set(ids).size).toBe(3);
   });
 
-  it('two tasks on the same step with different each keys expand independently', () => {
+  it('two tasks on the same step with different each keys expand independently', async () => {
     const componentTask = writeTaskFile(
       'create-component',
       [
@@ -701,7 +715,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
       ],
     };
 
-    const tasks = expandTasksFromParams(stageLoaded, stages, params, [], {});
+    const tasks = await expandTasksFromParams(stageLoaded, stages, params, [], {});
 
     // create-component: 2 components → 2 tasks
     // create-variant-story: 2 variants of navigation → 2 tasks (page has no variants)
@@ -721,7 +735,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     ]);
   });
 
-  it('all params provided — no defaults needed', () => {
+  it('all params provided — no defaults needed', async () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
@@ -746,7 +760,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
       features: ['search', 'cart'],
     };
 
-    const tasks = expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {});
+    const tasks = await expandTasksFromParams(makeStageLoaded({ 'create-vision': taskFile }), stages, params, [], {});
 
     expect(tasks).toHaveLength(1);
     expect(tasks[0]!.params!.product_name).toBe('Pet Shop');
@@ -754,7 +768,7 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     expect(tasks[0]!.params!.features).toEqual(['search', 'cart']);
   });
 
-  it('multiple steps — each gets correct param resolution', () => {
+  it('multiple steps — each gets correct param resolution', async () => {
     const taskA = writeTaskFile(
       'step-a',
       [
@@ -788,7 +802,13 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     };
     const params = { name: 'test' };
 
-    const tasks = expandTasksFromParams(makeStageLoaded({ 'step-a': taskA, 'step-b': taskB }), stages, params, [], {});
+    const tasks = await expandTasksFromParams(
+      makeStageLoaded({ 'step-a': taskA, 'step-b': taskB }),
+      stages,
+      params,
+      [],
+      {},
+    );
 
     expect(tasks).toHaveLength(2);
     expect(tasks[0]!.params!.optional_a).toBe('default-a');
@@ -826,7 +846,7 @@ describe('real-world JSON Schema param shapes', () => {
     return result;
   }
 
-  it('create-vision shape — all required + mixed optionals', () => {
+  it('create-vision shape — all required + mixed optionals', async () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
@@ -856,7 +876,7 @@ describe('real-world JSON Schema param shapes', () => {
     };
 
     // Minimal required params only
-    const tasks = expandTasksFromParams(
+    const tasks = await expandTasksFromParams(
       makeStageLoaded({ 'create-vision': taskFile }),
       stages,
       { product_name: 'Pet Shop', description: 'Online pet shop' },
@@ -874,7 +894,7 @@ describe('real-world JSON Schema param shapes', () => {
     expect(p.references).toEqual([]);
   });
 
-  it('create-vision shape — with optional params provided', () => {
+  it('create-vision shape — with optional params provided', async () => {
     const taskFile = writeTaskFile(
       'create-vision',
       [
@@ -903,7 +923,7 @@ describe('real-world JSON Schema param shapes', () => {
       execute: { steps: ['create-vision'] },
     };
 
-    const tasks = expandTasksFromParams(
+    const tasks = await expandTasksFromParams(
       makeStageLoaded({ 'create-vision': taskFile }),
       stages,
       {
@@ -924,7 +944,7 @@ describe('real-world JSON Schema param shapes', () => {
     expect(p.references).toEqual([]); // still default
   });
 
-  it('create-section shape — required strings + integer with default', () => {
+  it('create-section shape — required strings + integer with default', async () => {
     const taskFile = writeTaskFile(
       'create-section',
       [
@@ -945,7 +965,7 @@ describe('real-world JSON Schema param shapes', () => {
       execute: { steps: ['create-section'] },
     };
 
-    const tasks = expandTasksFromParams(
+    const tasks = await expandTasksFromParams(
       makeStageLoaded({ 'create-section': taskFile }),
       stages,
       { section_id: 'hero', section_title: 'Hero', section_description: 'Landing page hero' },
@@ -957,7 +977,7 @@ describe('real-world JSON Schema param shapes', () => {
     expect(tasks[0]!.params!.order).toBe(0);
   });
 
-  it('run-workflow shape — string + object default {}', () => {
+  it('run-workflow shape — string + object default {}', async () => {
     const taskFile = writeTaskFile(
       'run-workflow',
       [
@@ -976,7 +996,7 @@ describe('real-world JSON Schema param shapes', () => {
       execute: { steps: ['run-workflow'] },
     };
 
-    const tasks = expandTasksFromParams(
+    const tasks = await expandTasksFromParams(
       makeStageLoaded({ 'run-workflow': taskFile }),
       stages,
       { workflow: 'debo-tokens' },

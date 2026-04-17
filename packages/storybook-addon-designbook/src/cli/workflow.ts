@@ -94,7 +94,7 @@ export function register(program: Command): void {
 
       try {
         const workflowFilePath = resolveWorkflowFile(opts.workflow, agentsDir);
-        const resolved = resolveAllStages(workflowFilePath, config, rawConfig, agentsDir);
+        const resolved = await resolveAllStages(workflowFilePath, config, rawConfig, agentsDir);
 
         // ── Resolve phase: run param resolvers ────────────────────────
         const wfFm = parseFrontmatter(workflowFilePath) as Record<string, unknown> | null;
@@ -175,7 +175,14 @@ export function register(program: Command): void {
           const resultDecl = firstFm?.result as Record<string, unknown> | undefined;
           const resultDeclProperties = resultDecl?.properties as Record<string, ResultDeclaration> | undefined;
           const envMap = buildEnvMap(config);
-          firstResult = expandResultDeclarations(resultDecl, undefined, initialParams ?? {}, envMap, undefined, true);
+          firstResult = await expandResultDeclarations(
+            resultDecl,
+            undefined,
+            initialParams ?? {},
+            envMap,
+            undefined,
+            true,
+          );
 
           // Resolve $ref in result schemas inline
           if (firstResult && resultDeclProperties) {

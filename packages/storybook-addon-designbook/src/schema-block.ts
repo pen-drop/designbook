@@ -5,7 +5,8 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
-import { expandFilePath, resolveSchemaRef } from './workflow-resolve.js';
+import { resolveSchemaRef } from './workflow-resolve.js';
+import { interpolate } from './template/interpolate.js';
 
 export interface SchemaEntry {
   path?: string;
@@ -70,11 +71,11 @@ function resolveNestedRefs(
  * Resolve a single property declaration into a SchemaEntry.
  * Used identically for both params and result entries.
  */
-function resolveEntry(
+async function resolveEntry(
   decl: Record<string, unknown>,
   definitions: Record<string, object>,
   input: BuildSchemaBlockInput,
-): SchemaEntry {
+): Promise<SchemaEntry> {
   const entry: SchemaEntry = {};
 
   // Copy all fields except reserved keys
@@ -85,7 +86,7 @@ function resolveEntry(
 
   // Resolve path: expand env vars, check existence, read content
   if (typeof decl.path === 'string') {
-    const resolved = expandFilePath(decl.path, {}, input.envMap, true);
+    const resolved = await interpolate(decl.path, {}, { envMap: input.envMap, lenient: true });
 
     // Pattern paths (containing [placeholder] or unresolved {{ param }}) — pass through unresolved
     if (/\[.+\]/.test(resolved) || /\{\{\s*\w+\s*\}\}/.test(resolved)) {
@@ -120,7 +121,7 @@ function resolveEntry(
   return entry;
 }
 
-export function buildSchemaBlock(input: BuildSchemaBlockInput): SchemaBlock {
+export async function buildSchemaBlock(input: BuildSchemaBlockInput): Promise<SchemaBlock> {
   const definitions: Record<string, object> = {};
   const params: Record<string, SchemaEntry> = {};
   const result: Record<string, SchemaEntry> = {};
@@ -128,13 +129,13 @@ export function buildSchemaBlock(input: BuildSchemaBlockInput): SchemaBlock {
   const paramProps = (input.params?.properties ?? {}) as Record<string, Record<string, unknown>>;
   for (const [key, decl] of Object.entries(paramProps)) {
     if (decl == null || typeof decl !== 'object') continue; // skip invalid declarations (e.g. null, scalar)
-    params[key] = resolveEntry(decl, definitions, input);
+    params[key] = await resolveEntry(decl, definitions, input);
   }
 
   const resultProps = (input.result?.properties ?? {}) as Record<string, Record<string, unknown>>;
   for (const [key, decl] of Object.entries(resultProps)) {
     if (decl == null || typeof decl !== 'object') continue; // skip invalid declarations
-    result[key] = resolveEntry(decl, definitions, input);
+    result[key] = await resolveEntry(decl, definitions, input);
   }
 
   return { definitions, params, result };

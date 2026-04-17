@@ -1,3 +1,4 @@
+import jsonata from 'jsonata';
 import type { ParamResolver, ResolverResult, ResolverContext } from './types.js';
 import { storyIdResolver } from './story-id.js';
 import { storyUrlResolver } from './story-url.js';
@@ -97,9 +98,19 @@ export async function resolveParams(
 
     let effectiveInput: string;
     if (decl.from) {
-      const fromValue = outputParams[decl.from];
+      let fromValue: unknown;
+      try {
+        fromValue = await jsonata(decl.from).evaluate(outputParams);
+      } catch (err) {
+        unresolved[key] = {
+          resolved: false,
+          input: '',
+          error: `Invalid from: expression "${decl.from}": ${(err as Error).message}`,
+        };
+        return;
+      }
       // Skip when both own input and the from-param value are empty
-      if ((!input || input === '') && (!fromValue || fromValue === '')) return;
+      if ((!input || input === '') && (fromValue === undefined || fromValue === null || fromValue === '')) return;
       // When own input is empty, pass the from-param value as input so the resolver
       // can use it directly (e.g. story_url resolver gets scene_id as input)
       effectiveInput =

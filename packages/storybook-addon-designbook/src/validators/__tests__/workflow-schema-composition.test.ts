@@ -212,7 +212,7 @@ interface RunWorkflowResult {
  * 4. Returns { resolved, name, created, afterSteps }
  */
 async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Promise<RunWorkflowResult> {
-  const resolved = resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
+  const resolved = await resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
 
   // Find first stage with a resolved step (mirrors CLI logic)
   let firstStepName: string | undefined;
@@ -240,7 +240,7 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
   if (firstResolved) {
     const firstFm = parseFrontmatter(firstResolved.task_file);
     const resultDecl = firstFm?.result as Record<string, unknown> | undefined;
-    firstResult = expandResultDeclarations(resultDecl, undefined, {}, envMap, undefined, true);
+    firstResult = await expandResultDeclarations(resultDecl, undefined, {}, envMap, undefined, true);
   }
 
   const title = resolved.title;
@@ -316,9 +316,9 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
 // ── Test 1: resolveAllStages produces schema with definitions ───────────────
 
 describe('resolveAllStages with schema composition', () => {
-  it('produces schema.definitions from extends + provides + constrains', () => {
+  it('produces schema.definitions from extends + provides + constrains', async () => {
     const { workflowPath } = setupSchemaCompositionFixtures();
-    const resolved = resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
+    const resolved = await resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
 
     // The create-thing step should have schema with definitions
     const createThingStep = resolved.step_resolved['create-thing'];
@@ -352,9 +352,9 @@ describe('resolveAllStages with schema composition', () => {
     expect(step.blueprints.some((b) => b.includes('thing-bp.md'))).toBe(true);
   });
 
-  it('intake step has no composed definitions', () => {
+  it('intake step has no composed definitions', async () => {
     const { workflowPath } = setupSchemaCompositionFixtures();
-    const resolved = resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
+    const resolved = await resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
 
     const intakeStep = resolved.step_resolved['intake'];
     expect(intakeStep).toBeDefined();

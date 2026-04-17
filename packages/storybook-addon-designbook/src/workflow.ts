@@ -17,7 +17,6 @@ import {
   parseFrontmatter,
   validateAndMergeParams,
   generateTaskId,
-  expandParams,
   generateTaskTitle,
   inferTaskType,
   expandFileDeclarations,
@@ -28,6 +27,7 @@ import {
   type TaskFileDeclaration,
   type ResolvedStep,
 } from './workflow-resolve.js';
+import { interpolate } from './template/interpolate.js';
 import { getValidatorKeys } from './validation-registry.js';
 
 export type {
@@ -480,14 +480,14 @@ function resolveEachIterables(eachKey: string, lookup: Record<string, unknown>):
  * 3. For stages without `each` and no tasks yet → create singleton task
  * 5. Deduplicate IDs against existing tasks
  */
-export function expandTasksFromParams(
+export async function expandTasksFromParams(
   stageLoaded: Record<string, ResolvedStep | ResolvedStep[]>,
   stages: Record<string, StageDefinition>,
   params: Record<string, unknown>,
   existingTasks: WorkflowTask[],
   envMap: Record<string, string>,
   scope?: Record<string, unknown>,
-): WorkflowTask[] {
+): Promise<WorkflowTask[]> {
   // Merge scope into lookup — scope takes precedence for each: arrays
   const lookup = { ...params, ...(scope ?? {}) };
 
@@ -636,12 +636,12 @@ export function expandTasksFromParams(
         existingIds.add(taskId);
 
         const title = taskTitle
-          ? generateTaskTitle(step, mergedParams, schemaParams, taskTitle)
-          : generateTaskTitle(step, mergedParams, schemaParams);
-        const description = taskDescription ? expandParams(taskDescription, mergedParams) : undefined;
+          ? await generateTaskTitle(step, mergedParams, schemaParams, taskTitle)
+          : await generateTaskTitle(step, mergedParams, schemaParams);
+        const description = taskDescription ? await interpolate(taskDescription, mergedParams) : undefined;
         const type = inferTaskType(step);
-        const files = expandFileDeclarations(fileDeclarations, mergedParams, envMap, knownValidators);
-        const result = expandResultDeclarations(
+        const files = await expandFileDeclarations(fileDeclarations, mergedParams, envMap, knownValidators);
+        const result = await expandResultDeclarations(
           resultDeclarations,
           fileDeclarations,
           mergedParams,
@@ -1248,7 +1248,7 @@ export async function workflowDone(
                 Object.entries(resolveResult.unresolved).map(([k, v]) => [k, { input: v.input, error: v.error }]),
               );
             }
-            const expanded = expandTasksFromParams(
+            const expanded = await expandTasksFromParams(
               stageLoaded,
               singleStage,
               resolveResult.params,

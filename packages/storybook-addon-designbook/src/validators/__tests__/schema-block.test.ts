@@ -36,7 +36,7 @@ afterEach(() => {
 
 describe('buildSchemaBlock()', () => {
   // Test 1: resolves param with path: on existing YAML file
-  it('resolves param with path: on existing YAML file', () => {
+  it('resolves param with path: on existing YAML file', async () => {
     const dataFile = resolve(tmpDir, 'vision.yml');
     writeYaml(dataFile, { title: 'My Vision', description: 'Some text' });
 
@@ -52,7 +52,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.params.vision).toBeDefined();
     expect(block.params.vision!.path).toBe(dataFile);
@@ -62,7 +62,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 2: returns exists: false and content: null for missing file
-  it('returns exists: false and content: null for missing file', () => {
+  it('returns exists: false and content: null for missing file', async () => {
     const missingFile = resolve(tmpDir, 'nonexistent.yml');
 
     const input: BuildSchemaBlockInput = {
@@ -77,7 +77,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.params.data!.path).toBe(missingFile);
     expect(block.params.data!.exists).toBe(false);
@@ -85,7 +85,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 3: expands $ENV_VAR in path
-  it('expands $ENV_VAR in path', () => {
+  it('expands $ENV_VAR in path', async () => {
     const dataDir = resolve(tmpDir, 'data');
     mkdirSync(dataDir, { recursive: true });
     const visionFile = resolve(dataDir, 'vision.yml');
@@ -103,7 +103,7 @@ describe('buildSchemaBlock()', () => {
       envMap: { DESIGNBOOK_DATA: dataDir },
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.params.vision!.path).toBe(visionFile);
     expect(block.params.vision!.exists).toBe(true);
@@ -111,7 +111,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 4: resolves $ref into definitions for param
-  it('resolves $ref into definitions for param', () => {
+  it('resolves $ref into definitions for param', async () => {
     // Create schemas.yml in schemaDir/schemas.yml, task at schemaDir/tasks/task.md
     const schemaDir = resolve(tmpDir, 'myskill');
     const tasksDir = resolve(schemaDir, 'tasks');
@@ -142,7 +142,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.params.vision!.$ref).toBe('#/definitions/Vision');
     expect(block.definitions['Vision']).toBeDefined();
@@ -153,7 +153,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 5: resolves $ref, path, exists, and content for result entries (same logic as params)
-  it('resolves $ref, path, exists, and content for result entries', () => {
+  it('resolves $ref, path, exists, and content for result entries', async () => {
     const schemaDir = resolve(tmpDir, 'myskill');
     const tasksDir = resolve(schemaDir, 'tasks');
     mkdirSync(tasksDir, { recursive: true });
@@ -186,7 +186,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.result.model!.$ref).toBe('#/definitions/DataModel');
     expect(block.result.model!.path).toBe(outputFile);
@@ -196,7 +196,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 6: result entry with missing file gets exists: false and content: null
-  it('result entry with missing file gets exists: false and content: null', () => {
+  it('result entry with missing file gets exists: false and content: null', async () => {
     const missingFile = resolve(tmpDir, 'missing-output.yml');
 
     const input: BuildSchemaBlockInput = {
@@ -211,7 +211,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.result.output!.path).toBe(missingFile);
     expect(block.result.output!.exists).toBe(false);
@@ -219,7 +219,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 7: deduplicates definitions when same schema used in param and result
-  it('deduplicates definitions when same schema used in param and result', () => {
+  it('deduplicates definitions when same schema used in param and result', async () => {
     const schemaDir = resolve(tmpDir, 'myskill');
     const tasksDir = resolve(schemaDir, 'tasks');
     mkdirSync(tasksDir, { recursive: true });
@@ -251,7 +251,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     // Only one entry for SharedType in definitions
     expect(Object.keys(block.definitions)).toHaveLength(1);
@@ -263,7 +263,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 8: handles directory params — exists check only, no content
-  it('handles directory params — exists check only, no content', () => {
+  it('handles directory params — exists check only, no content', async () => {
     const actualDir = resolve(tmpDir, 'some-dir');
     mkdirSync(actualDir, { recursive: true });
     // Use a trailing slash so the implementation recognises it as a directory path
@@ -281,7 +281,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.params.dir!.path).toBe(dirPath);
     expect(block.params.dir!.exists).toBe(true);
@@ -290,7 +290,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 9: passes through pattern paths without resolving
-  it('passes through pattern paths without resolving', () => {
+  it('passes through pattern paths without resolving', async () => {
     const patternPath = resolve(tmpDir, '[component]/vision.yml');
 
     const input: BuildSchemaBlockInput = {
@@ -305,7 +305,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.params.vision!.path).toBe(patternPath);
     // Pattern paths should NOT have exists or content set
@@ -314,7 +314,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 10: handles empty params and result
-  it('handles empty params and result (undefined inputs)', () => {
+  it('handles empty params and result (undefined inputs)', async () => {
     const input: BuildSchemaBlockInput = {
       params: undefined,
       result: undefined,
@@ -323,7 +323,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.definitions).toEqual({});
     expect(block.params).toEqual({});
@@ -331,7 +331,7 @@ describe('buildSchemaBlock()', () => {
   });
 
   // Test 11: handles CLI-only params (no path:) — passes through without file resolution
-  it('handles CLI-only params (no path:) — passes through without file resolution', () => {
+  it('handles CLI-only params (no path:) — passes through without file resolution', async () => {
     const input: BuildSchemaBlockInput = {
       params: {
         properties: {
@@ -346,7 +346,7 @@ describe('buildSchemaBlock()', () => {
       envMap: {},
     };
 
-    const block = buildSchemaBlock(input);
+    const block = await buildSchemaBlock(input);
 
     expect(block.params.name).toEqual({ type: 'string' });
     expect(block.params.count).toEqual({ type: 'number' });

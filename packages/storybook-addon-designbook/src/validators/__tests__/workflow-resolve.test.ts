@@ -4,9 +4,9 @@ import { dump as stringifyYaml } from 'js-yaml';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
+import { interpolate } from '../../template/interpolate.js';
 import {
   resolveTaskFiles,
-  expandFilePath,
   matchRuleFiles,
   matchBlueprintFiles,
   resolveConfigForStep,
@@ -298,46 +298,7 @@ describe('resolveTaskFiles', () => {
   });
 });
 
-// 5.2: File path expansion
-describe('expandFilePath', () => {
-  const envMap = { DESIGNBOOK_DATA: '/test/dist', DESIGNBOOK_DIRS_COMPONENTS: '/test/theme/components' };
-
-  it('expands {{ param }} placeholders', () => {
-    const result = expandFilePath(
-      '$DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml',
-      { component: 'button' },
-      envMap,
-    );
-    expect(result).toBe('/test/dist/components/button/button.yml');
-  });
-
-  it('expands ${VAR} env vars', () => {
-    const result = expandFilePath('${DESIGNBOOK_DIRS_COMPONENTS}/test.yml', {}, envMap);
-    expect(result).toBe('/test/theme/components/test.yml');
-  });
-
-  it('expands $VAR env vars (without braces)', () => {
-    const result = expandFilePath('$DESIGNBOOK_DATA/data.yml', {}, envMap);
-    expect(result).toBe('/test/dist/data.yml');
-  });
-
-  it('throws on unknown env var', () => {
-    expect(() => expandFilePath('$UNKNOWN_VAR/test', {}, envMap)).toThrow(/Unknown environment variable/);
-  });
-
-  it('throws on unknown param', () => {
-    expect(() => expandFilePath('{{ missing }}', {}, envMap)).toThrow(/Unknown param/);
-  });
-
-  it('expands env vars inside param values', () => {
-    const result = expandFilePath(
-      '{{ output_path }}',
-      { output_path: '$DESIGNBOOK_DATA/design-system/design-system.scenes.yml' },
-      envMap,
-    );
-    expect(result).toBe('/test/dist/design-system/design-system.scenes.yml');
-  });
-});
+// 5.2: File path expansion — covered by template/__tests__/interpolate.test.ts
 
 // 5.4: Params validation
 describe('isJsonSchemaParam', () => {
@@ -740,7 +701,7 @@ describe('matchBlueprintFiles with domain', () => {
 
 // 5.6: End-to-end resolveWorkflowPlan
 describe('resolveWorkflowPlan', () => {
-  it('resolves a complete plan from workflow file and items', () => {
+  it('resolves a complete plan from workflow file and items', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     const workflowsDir = resolve(tmpDir, 'workflows');
     mkdirSync(workflowsDir, { recursive: true });
@@ -766,7 +727,7 @@ describe('resolveWorkflowPlan', () => {
       'title: Test\nstages:\n  intake:\n    steps: [intake]\n  component:\n    steps: [create-component]\n  scene:\n    steps: [create-scene]',
     );
 
-    const plan = resolveWorkflowPlan(
+    const plan = await resolveWorkflowPlan(
       wfPath,
       { section_id: 'dashboard' },
       [
@@ -806,7 +767,7 @@ describe('resolveWorkflowPlan', () => {
     expect(plan.params).toEqual({ section_id: 'dashboard' });
   });
 
-  it('throws on item with step not in workflow', () => {
+  it('throws on item with step not in workflow', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     const workflowsDir = resolve(tmpDir, 'workflows');
     mkdirSync(workflowsDir, { recursive: true });
@@ -817,9 +778,9 @@ describe('resolveWorkflowPlan', () => {
       'workflow:\n  title: Test\n  stages: [create-component]',
     );
 
-    expect(() => resolveWorkflowPlan(wfPath, {}, [{ step: 'nonexistent' }], baseConfig, {}, agentsDir)).toThrow(
-      /not found in workflow steps/,
-    );
+    await expect(async () =>
+      resolveWorkflowPlan(wfPath, {}, [{ step: 'nonexistent' }], baseConfig, {}, agentsDir),
+    ).rejects.toThrow(/not found in workflow steps/);
   });
 });
 
@@ -913,7 +874,7 @@ describe('buildWorktreeEnvMap', () => {
     expect(remapped.DESIGNBOOK_TECHNOLOGY).toBe('drupal');
   });
 
-  it('files: paths using remapped env differ from file-input param paths using original env', () => {
+  it('files: paths using remapped env differ from file-input param paths using original env', async () => {
     const rootDir = '/home/user/project';
     const envMap = {
       DESIGNBOOK_WORKSPACE: rootDir,
@@ -924,11 +885,11 @@ describe('buildWorktreeEnvMap', () => {
 
     // files: path (uses remapped env) → WORKTREE
     const fileTemplate = '$DESIGNBOOK_HOME/data-model.yml';
-    const filesPath = expandFilePath(fileTemplate, {}, remappedEnvMap);
+    const filesPath = await interpolate(fileTemplate, {}, { envMap: remappedEnvMap });
     expect(filesPath).toBe('/tmp/wt-123/designbook/data-model.yml');
 
     // file-input param path (uses original env) → real path
-    const paramPath = expandFilePath(fileTemplate, {}, envMap);
+    const paramPath = await interpolate(fileTemplate, {}, { envMap });
     expect(paramPath).toBe('/home/user/project/designbook/data-model.yml');
   });
 });

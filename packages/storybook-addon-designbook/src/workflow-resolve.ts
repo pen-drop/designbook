@@ -14,6 +14,7 @@ import { load as parseYaml } from 'js-yaml';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
 import { buildSchemaBlock } from './schema-block.js';
 import type { SchemaBlock } from './schema-block.js';
+import { interpolate } from './template/interpolate.js';
 import { computeMergedSchema } from './workflow-schema-merge.js';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -1029,110 +1030,44 @@ export function matchBlueprintFiles(
 // ── File Path Expansion ─────────────────────────────────────────────
 
 /**
- * Expand a file path template by substituting {{ param }} and ${ENV_VAR} placeholders.
- */
-/**
- * Expand {param} and {{ param }} placeholders in a template string.
- * Unknown {param} placeholders are left as-is (for runtime resolution).
- * Unknown {{ param }} placeholders throw unless `lenient` is true.
- */
-export function expandParams(template: string, params: Record<string, unknown>, lenient?: boolean): string {
-  let result = template;
-
-  const stringifyParam = (value: unknown): string => {
-    if (value === null || value === undefined) return '';
-    if (typeof value !== 'object') return String(value);
-    if (Array.isArray(value)) {
-      const first = value[0];
-      if (first && typeof first === 'object') {
-        if ('scene' in first) return String(first.scene);
-        if ('storyId' in first) return String(first.storyId);
-      }
-      return JSON.stringify(value);
-    }
-    return JSON.stringify(value);
-  };
-
-  // Expand {{ param }} patterns — strict by default, lenient leaves unknown as-is (for each: expansion)
-  result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, paramName) => {
-    if (params[paramName] !== undefined) return stringifyParam(params[paramName]);
-    if (lenient) return match;
-    throw new Error(`Unknown param: {{ ${paramName} }} in "${template}"`);
-  });
-
-  // Expand {param} patterns (lenient — leaves unknown as-is for runtime resolution)
-  result = result.replace(/\{(\w+)\}/g, (match, paramName) => {
-    if (params[paramName] !== undefined) return stringifyParam(params[paramName]);
-    return match;
-  });
-
-  return result;
-}
-
-export function expandFilePath(
-  template: string,
-  params: Record<string, unknown>,
-  envMap: Record<string, string>,
-  /** When true, leave unknown $VARS in place instead of throwing. */
-  lenient?: boolean,
-): string {
-  let result = template;
-
-  // Expand param placeholders first — param values may themselves contain $VAR env refs
-  result = expandParams(result, params, lenient);
-
-  // Expand ${VAR} and $VAR patterns (env vars)
-  result = result.replace(/\$\{(\w+)\}/g, (match, varName) => {
-    if (envMap[varName] !== undefined) return envMap[varName];
-    if (lenient) return match;
-    throw new Error(`Unknown environment variable: \${${varName}} in path "${template}"`);
-  });
-  result = result.replace(/\$([A-Z_][A-Z0-9_]*)/g, (match, varName) => {
-    if (envMap[varName] !== undefined) return envMap[varName];
-    if (lenient) return match;
-    throw new Error(`Unknown environment variable: $${varName} in path "${template}"`);
-  });
-
-  return result;
-}
-
-/**
  * Expand all file declarations from a task file's frontmatter.
  * Expands the `file` path template, passes through `key` and `validators`.
  */
-export function expandFileDeclarations(
+export async function expandFileDeclarations(
   declarations: TaskFileDeclaration[],
   params: Record<string, unknown>,
   envMap: Record<string, string>,
   validatorKeys?: Set<string>,
-): Array<{ path: string; key: string; validators: string[] }> {
+): Promise<Array<{ path: string; key: string; validators: string[] }>> {
   const keys = new Set<string>();
-  return declarations.map((d) => {
-    if (keys.has(d.key)) {
-      throw new Error(`Duplicate key '${d.key}' in file declarations`);
-    }
-    keys.add(d.key);
-    const validators = d.validators ?? [];
-    if (validatorKeys) {
-      for (const v of validators) {
-        if (v.startsWith('cmd:')) continue; // cmd: validators are shell commands, not registry keys
-        if (!validatorKeys.has(v)) {
-          throw new Error(
-            `Unknown validator key '${v}' in file '${d.key}'. Available: ${[...validatorKeys].join(', ')}`,
-          );
+  return Promise.all(
+    declarations.map(async (d) => {
+      if (keys.has(d.key)) {
+        throw new Error(`Duplicate key '${d.key}' in file declarations`);
+      }
+      keys.add(d.key);
+      const validators = d.validators ?? [];
+      if (validatorKeys) {
+        for (const v of validators) {
+          if (v.startsWith('cmd:')) continue; // cmd: validators are shell commands, not registry keys
+          if (!validatorKeys.has(v)) {
+            throw new Error(
+              `Unknown validator key '${v}' in file '${d.key}'. Available: ${[...validatorKeys].join(', ')}`,
+            );
+          }
         }
       }
-    }
-    const template = d.path ?? d.file;
-    if (!template) {
-      throw new Error(`File declaration '${d.key}' has no 'path' or 'file' property`);
-    }
-    return {
-      path: expandFilePath(template, params, envMap),
-      key: d.key,
-      validators,
-    };
-  });
+      const template = d.path ?? d.file;
+      if (!template) {
+        throw new Error(`File declaration '${d.key}' has no 'path' or 'file' property`);
+      }
+      return {
+        path: await interpolate(template, params, { envMap }),
+        key: d.key,
+        validators,
+      };
+    }),
+  );
 }
 
 /**
@@ -1142,7 +1077,7 @@ export function expandFileDeclarations(
  *
  * Also handles `files:` → `result:` fallback for backwards compatibility.
  */
-export function expandResultDeclarations(
+export async function expandResultDeclarations(
   resultDecl: Record<string, unknown> | undefined,
   filesDecl: TaskFileDeclaration[] | undefined,
   params: Record<string, unknown>,
@@ -1150,7 +1085,7 @@ export function expandResultDeclarations(
   validatorKeys?: Set<string>,
   /** When true, leave unknown $VARS in paths instead of throwing. */
   lenient?: boolean,
-): Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }> | undefined {
+): Promise<Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }> | undefined> {
   // Prefer result: over files:
   if (resultDecl) {
     const properties = (resultDecl as Record<string, unknown>).properties as
@@ -1181,7 +1116,7 @@ export function expandResultDeclarations(
 
       const entry: { path?: string; schema?: object; validators?: string[]; flush?: string } = {};
       if (decl.path) {
-        entry.path = expandFilePath(decl.path, params, envMap, lenient);
+        entry.path = await interpolate(decl.path, params, { envMap, lenient });
       }
       if (schema) entry.schema = schema;
       if (validators.length > 0) entry.validators = validators;
@@ -1195,7 +1130,7 @@ export function expandResultDeclarations(
   // Fallback: convert files: to result: format (deprecated)
   if (filesDecl && filesDecl.length > 0) {
     const result: Record<string, { path?: string; schema?: object; validators?: string[] }> = {};
-    const expanded = expandFileDeclarations(filesDecl, params, envMap, validatorKeys);
+    const expanded = await expandFileDeclarations(filesDecl, params, envMap, validatorKeys);
     for (const f of expanded) {
       result[f.key] = {
         path: f.path,
@@ -1457,12 +1392,12 @@ export interface ResolvedSteps {
 /**
  * Resolve ALL steps from a workflow file at create time.
  */
-export function resolveAllStages(
+export async function resolveAllStages(
   workflowFilePath: string,
   config: DesignbookConfig,
   rawConfig: Record<string, unknown>,
   agentsDir: string,
-): ResolvedSteps {
+): Promise<ResolvedSteps> {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
   const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
 
@@ -1584,7 +1519,7 @@ export function resolveAllStages(
 
     // Build unified schema block from task frontmatter
     const envMap = buildEnvMap(config);
-    const schemaBlock = buildSchemaBlock({
+    const schemaBlock = await buildSchemaBlock({
       params: taskFmForSchema?.params as Record<string, unknown> | undefined,
       result: taskFmForSchema?.result as Record<string, unknown> | undefined,
       taskFilePath: primaryTaskFile,
@@ -1764,14 +1699,14 @@ export function inferTaskType(stage: string): string {
 /**
  * Generate a human-readable task title from stage and params.
  */
-export function generateTaskTitle(
+export async function generateTaskTitle(
   stage: string,
   params: Record<string, unknown>,
   schemaParams?: Record<string, unknown>,
   explicitTitle?: string,
-): string {
+): Promise<string> {
   if (explicitTitle) {
-    return expandParams(explicitTitle, params);
+    return interpolate(explicitTitle, params);
   }
 
   // Derive title from step name
@@ -1798,7 +1733,7 @@ export function generateTaskTitle(
 /**
  * Resolve a full workflow plan from items + pre-resolved step data.
  */
-export function resolveWorkflowPlan(
+export async function resolveWorkflowPlan(
   workflowFilePath: string,
   globalParams: Record<string, unknown>,
   items: PlanItem[],
@@ -1806,7 +1741,7 @@ export function resolveWorkflowPlan(
   rawConfig: Record<string, unknown>,
   agentsDir: string,
   stepResolved?: Record<string, ResolvedStep>,
-): ResolvedPlan {
+): Promise<ResolvedPlan> {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
   const allSteps = wfFm ? getWorkflowSteps(wfFm) : undefined;
   if (!allSteps) {
@@ -1882,12 +1817,12 @@ export function resolveWorkflowPlan(
       for (const item of stepItems) {
         const mergedParams = validateAndMergeParams(item.params ?? {}, schemaParams, step);
         const taskId = generateTaskId(step, mergedParams, schemaParams);
-        const title = generateTaskTitle(step, mergedParams, schemaParams);
+        const title = await generateTaskTitle(step, mergedParams, schemaParams);
         const type = inferTaskType(step);
-        const files = expandFileDeclarations(fileDeclarations, mergedParams, envMap);
+        const files = await expandFileDeclarations(fileDeclarations, mergedParams, envMap);
 
         // Expand result: declarations (new model), with files: fallback
-        const result = expandResultDeclarations(taskFm?.result, taskFm?.files, mergedParams, envMap);
+        const result = await expandResultDeclarations(taskFm?.result, taskFm?.files, mergedParams, envMap);
 
         tasks.push({
           id: taskId,
