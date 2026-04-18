@@ -49,7 +49,8 @@ describe('referenceFolderResolver', () => {
       makeContext({ reference_url: url }),
     );
     expect(result.resolved).toBe(true);
-    expect(existsSync(result.value!)).toBe(true);
+    expect(typeof result.value).toBe('string');
+    expect(existsSync(result.value as string)).toBe(true);
   });
 
   it('normalizes trailing slash', async () => {

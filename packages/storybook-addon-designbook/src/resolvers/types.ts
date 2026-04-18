@@ -8,7 +8,7 @@ export interface Candidate {
 
 export interface ResolverResult {
   resolved: boolean;
-  value?: string;
+  value?: string | unknown[];
   input: string;
   error?: string;
   candidates?: Candidate[];

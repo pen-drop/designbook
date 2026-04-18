@@ -194,7 +194,7 @@ export async function resolveRunningIndexedStory(input: string, config: Designbo
 
   // Try local stories/ directory first
   const localMatch = matchStoryId(input, dataDir);
-  if (localMatch.resolved && localMatch.value) {
+  if (localMatch.resolved && typeof localMatch.value === 'string') {
     const indexError = await verifyStoryIndexed(localMatch.value, daemon);
     if (indexError) return { ok: false, result: indexError };
     return { ok: true, storyId: localMatch.value, daemon };
@@ -207,7 +207,7 @@ export async function resolveRunningIndexedStory(input: string, config: Designbo
 
   // Fallback: query live /index.json and implicitly create story entity if found
   const liveMatch = await matchStoryIdFromIndex(input, daemon, config);
-  if (!liveMatch.resolved || !liveMatch.value) {
+  if (!liveMatch.resolved || typeof liveMatch.value !== 'string') {
     return { ok: false, result: liveMatch };
   }
 
