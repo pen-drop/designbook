@@ -400,7 +400,7 @@ export function register(program: Command): void {
   workflow
     .command('result')
     .description(
-      'Register an externally-written file result (flush: external). For data results use --json. All other file results go via workflow done --data.',
+      'Register an externally-written file result (submission: direct). For data results use --json. All other file results go via workflow done --data.',
     )
     .requiredOption('--workflow <name>', 'Workflow name')
     .requiredOption('--task <id>', 'Task id')

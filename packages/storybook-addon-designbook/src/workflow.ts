@@ -1529,7 +1529,7 @@ function collectStageResults(stageTasks: WorkflowTask[]): Record<string, unknown
  * Replaces `workflowWriteFile` for new `result:` declarations.
  *
  * For file results (result entry has `path:`):
- *   - Only accepted when result is declared with `flush: external`
+ *   - Only accepted when result is declared with `submission: direct`
  *   - File must already exist at the declared path (written by external tool, e.g. Playwright)
  *   - All other file results must be submitted via `workflow done --data`
  *

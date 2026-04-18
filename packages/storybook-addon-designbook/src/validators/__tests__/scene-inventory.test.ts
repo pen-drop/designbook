@@ -40,6 +40,12 @@ describe('validateSceneAgainstInventory', () => {
     expect(r.errors).toEqual(['components_index resolver failed: Storybook is not running']);
   });
 
+  it('propagates the rejection when the resolver throws', async () => {
+    vi.spyOn(componentsIndex.componentsIndexResolver, 'resolve').mockRejectedValue(new Error('boom: socket closed'));
+    const scene = { scenes: [{ component: 'ns:header' }] };
+    await expect(validateSceneAgainstInventory(scene, { config: {} as never })).rejects.toThrow('boom: socket closed');
+  });
+
   it('accumulates one error per unknown component id', async () => {
     vi.spyOn(componentsIndex.componentsIndexResolver, 'resolve').mockResolvedValue({
       resolved: true,

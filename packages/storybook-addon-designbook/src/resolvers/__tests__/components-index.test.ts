@@ -151,6 +151,17 @@ describe('componentsIndexResolver', () => {
     expect(result.error).toMatch(/unknown-framework/);
   });
 
+  it('fails with an actionable error when fetchJson rejects', async () => {
+    mockStatus = { running: true, port: 40327 };
+    mockFetchError = new Error('ECONNREFUSED');
+
+    const result = await componentsIndexResolver.resolve('', {}, makeContext());
+
+    expect(result.resolved).toBe(false);
+    expect(result.error).toMatch(/Could not reach Storybook \/index\.json/);
+    expect(result.error).toMatch(/ECONNREFUSED/);
+  });
+
   it('honors a user-provided override from config', async () => {
     mockStatus = { running: true, port: 40327 };
     mockIndex = {

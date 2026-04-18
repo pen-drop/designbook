@@ -19,11 +19,6 @@ EXCLUDES=(
   'packages/storybook-addon-designbook/src/validators/__tests__/workflow-write-file.test.ts'
 )
 
-EXCLUDE_ARGS=()
-for f in "${EXCLUDES[@]}"; do
-  EXCLUDE_ARGS+=(--exclude-dir="" "--exclude=$(basename "$f")")
-done
-
 ALL_MATCHES=$(grep -rEn "$PATTERN" "${ROOTS[@]}" || true)
 
 # Filter out exempt files by exact path.
