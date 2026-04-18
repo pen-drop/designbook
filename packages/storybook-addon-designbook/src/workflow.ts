@@ -24,6 +24,7 @@ import {
   resolveSchemasForTasks,
   deriveSkillsRootFromTaskFile,
   resolveStageTaskParams,
+  buildEnvMap,
   type TaskFileDeclaration,
   type ResolvedStep,
 } from './workflow-resolve.js';
@@ -377,6 +378,7 @@ export function workflowCreate(
   workspaceRoot?: string,
   schemas?: Record<string, object>,
   envMap?: Record<string, string>,
+  initialScope?: Record<string, unknown>,
 ): string {
   const date = new Date().toISOString().slice(0, 10);
   const wfId = shortId();
@@ -398,6 +400,7 @@ export function workflowCreate(
     ...(workspaceRoot ? { workspace_root: workspaceRoot } : {}),
     ...(schemas && Object.keys(schemas).length > 0 ? { schemas } : {}),
     ...(envMap && Object.keys(envMap).length > 0 ? { env_map: envMap } : {}),
+    ...(initialScope && Object.keys(initialScope).length > 0 ? { scope: initialScope } : {}),
     tasks: tasks.map((t, i) => ({
       id: t.id,
       title: t.title,
@@ -902,9 +905,29 @@ export async function workflowDone(
         );
       }
 
+      // Resolve $VAR / ${VAR} (and any {{ … }}) tokens in string leaves via the
+      // standard interpolate() mechanism, so scene payloads like
+      // "$DESIGNBOOK_COMPONENT_NAMESPACE:page" reach the file and validator as
+      // resolved literals.
+      const envMap = options.config ? buildEnvMap(options.config) : {};
+      const { interpolate } = await import('./template/interpolate.js');
+      const resolveInValue = async (v: unknown): Promise<unknown> => {
+        if (typeof v === 'string') return interpolate(v, {}, { envMap });
+        if (Array.isArray(v)) return Promise.all(v.map((item) => resolveInValue(item)));
+        if (v && typeof v === 'object') {
+          const out: Record<string, unknown> = {};
+          for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+            out[k] = await resolveInValue(val);
+          }
+          return out;
+        }
+        return v;
+      };
+
       // Distribute each key to its result entry
       const validationErrors: string[] = [];
-      for (const [key, value] of Object.entries(dataPayload)) {
+      for (const [key, rawValue] of Object.entries(dataPayload)) {
+        const value = await resolveInValue(rawValue);
         const resultEntry = task.result[key];
         if (!resultEntry) continue;
 
