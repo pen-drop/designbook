@@ -71,7 +71,7 @@ Tasks declare their iteration requirements via `each:` in their own frontmatter 
 # task frontmatter (create-component.md)
 each:
   component:
-    expr: "component"
+    expr: "components"
     schema: { $ref: ../schemas.yml#/Component }
 result:
   component-yml:
@@ -87,7 +87,7 @@ The engine evaluates the expression, binds every array item under `component`, a
 # task frontmatter (create-variant-story.md)
 each:
   component:
-    expr: "component"
+    expr: "components"
     schema: { $ref: ../schemas.yml#/Component }
   variant:
     expr: "component.variants"
@@ -192,7 +192,7 @@ params:
   component: ~               # ~ means required (from intake)
 each:
   component:
-    expr: "component"
+    expr: "components"
     schema: { $ref: ../schemas.yml#/Component }
 result:
   component-yml:

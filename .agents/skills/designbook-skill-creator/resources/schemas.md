@@ -304,7 +304,7 @@ Tasks declare iteration over scope arrays via `each:` in frontmatter. Every `eac
 
 ```yaml
 each:
-  component: "component"
+  component: "components"
 ```
 
 **Long form** (with schema):
@@ -312,7 +312,7 @@ each:
 ```yaml
 each:
   component:
-    expr: "component"
+    expr: "components"
     schema: { $ref: ../schemas.yml#/Component }
 ```
 
@@ -328,7 +328,7 @@ Inner bindings evaluate against the scope enriched with earlier bindings. This r
 ```yaml
 each:
   component:
-    expr: "component"
+    expr: "components"
     schema: { $ref: ../schemas.yml#/Component }
   variant:
     expr: "component.variants"
