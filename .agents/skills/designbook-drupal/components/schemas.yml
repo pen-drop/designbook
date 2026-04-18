@@ -155,12 +155,26 @@ SdcStory:
 SdcStoryNode:
   title: SDC Story Node
   description: >
-    A single content item in a story slot. Three types: `element` (HTML), `component` (nested SDC), `image`.
+    A single content item in a story slot. The `type` field (required) selects one of three shapes below.
 
 
     IMAGE URLS — images in story files MUST use placeholder service URLs (e.g. `https://placehold.co/600x400`). Local file paths do not exist in Storybook and will not render.
   type: object
   required: [type]
+  properties:
+    type:
+      type: string
+      enum: [element, component, image]
+      description: >
+        Discriminator — picks which shape applies (see `oneOf` below):
+
+        - `element` → renders inline HTML. Requires `value`. Optional: `tag`, `attributes`.
+
+        - `component` → nests another SDC component. Requires `component` (fully qualified `<provider>:<name>`). Optional: `props`, `slots`.
+
+        - `image` → embeds a placeholder image. Requires `uri` (external URL). Optional: `attributes`.
+  discriminator:
+    propertyName: type
   oneOf:
     - title: Element Node
       description: >

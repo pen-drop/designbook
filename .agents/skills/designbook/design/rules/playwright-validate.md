@@ -17,6 +17,17 @@ Hard constraints for verifying that a Storybook story renders. Applies to every 
 
 If the resolver returned an error, fix the input (Storybook not running, no matching story ID, or compile error) and restart the stage — do NOT fabricate a URL and do NOT re-check `/index.json` here.
 
+### New components in the same workflow run
+
+Storybook's Twig namespace map (`toTwingNamespaces()`) is built **once at startup**. Components created inside `components/` after Storybook was started are not in that map — stories referencing them render with `Cannot find template: …/<name>/<name>.twig` even though the file exists on disk.
+
+Before the first `validate` step of any workflow that created new components:
+
+- Run `_debo storybook start --force` once to rebuild the namespace map with the new component directories present.
+- This is a **preflight** action, not a failure recovery — do not wait for the validate step to fail first.
+
+Skip the preflight only when you can confirm that every component referenced in the scene already existed before Storybook started (e.g. pure scene edits against pre-existing components).
+
 ## Render check
 
 Use the Playwright CLI session skeleton documented in [`cli-playwright.md`](../../resources/cli-playwright.md#validate-story-render) (open → goto → resize → wait → eval → close), then read:
