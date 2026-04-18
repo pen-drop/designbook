@@ -6,6 +6,11 @@ params:
   type: object
   properties:
     reference_dir: { type: string, default: "" }
+    components:
+      type: array
+      default: []
+      items:
+        $ref: ../schemas.yml#/Component
 result:
   type: object
   required: [components]
@@ -19,6 +24,16 @@ result:
 # Intake: Design Component
 
 Help the user design a new UI component by gathering requirements. The `extract-reference` stage runs after intake — design reference data is not available during intake.
+
+## Step 0: Pre-Supplied Components (Batch Mode)
+
+**If `$components` is non-empty**, the caller has already supplied a fully-resolved component list (e.g. from a migration adapter). Skip all interactive intake steps:
+
+- Validate that each item carries at least `component` and `group`.
+- Store the `$components` array unchanged as the task `components` result.
+- Exit the intake task immediately.
+
+This batch path is the only way to seed the `design-component` workflow with multiple components in a single run. Do not prompt the user for anything.
 
 ## Step 1: Choose Input Mode
 
