@@ -1,12 +1,28 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { EventEmitter } from 'node:events';
-import { StorybookDaemon, isAlive, killProcess, type StorybookInfo } from '../storybook.js';
+import {
+  StorybookDaemon,
+  isAlive,
+  killProcess,
+  registerDaemon,
+  unregisterDaemon,
+  reapZombies,
+  findDaemonsByCwd,
+  registryPath,
+  type StorybookInfo,
+} from '../storybook.js';
 
 function makeTmpDir(): string {
   return mkdtempSync(join(tmpdir(), 'storybook-test-'));
+}
+
+function readRegistryFile(): { entries: StorybookInfo[] } {
+  const path = registryPath();
+  if (!existsSync(path)) return { entries: [] };
+  return JSON.parse(readFileSync(path, 'utf-8')) as { entries: StorybookInfo[] };
 }
 
 const sampleInfo: StorybookInfo = {
@@ -20,6 +36,26 @@ const sampleInfo: StorybookInfo = {
 function writePidFile(dataDir: string, info: StorybookInfo): void {
   writeFileSync(join(dataDir, 'storybook.json'), JSON.stringify(info, null, 2));
 }
+
+// ── Registry fixture helpers ────────────────────────────────────────────────
+
+let registryDir: string;
+
+beforeEach(() => {
+  registryDir = makeTmpDir();
+  process.env['DESIGNBOOK_REGISTRY'] = join(registryDir, 'storybooks.json');
+});
+
+afterEach(() => {
+  delete process.env['DESIGNBOOK_REGISTRY'];
+  try {
+    rmSync(registryDir, { recursive: true, force: true });
+  } catch {
+    /* ignore */
+  }
+});
+
+// ── Basic state access ──────────────────────────────────────────────────────
 
 describe('StorybookDaemon — state access', () => {
   let dataDir: string;
@@ -92,6 +128,8 @@ describe('StorybookDaemon — URL resolution', () => {
   });
 });
 
+// ── Status ──────────────────────────────────────────────────────────────────
+
 describe('StorybookDaemon — status', () => {
   let dataDir: string;
 
@@ -99,22 +137,35 @@ describe('StorybookDaemon — status', () => {
     dataDir = makeTmpDir();
   });
 
-  it('returns { running: false } when no file and no process', () => {
+  it('returns { running: false } when no file and no registry entry', () => {
     const sb = new StorybookDaemon(dataDir);
     const status = sb.status();
     expect(status.running).toBe(false);
   });
 
   it('returns { running: false, stale: true } and cleans up stale file', () => {
+    // PID file exists but no matching live entry in registry
     writePidFile(dataDir, sampleInfo);
     const sb = new StorybookDaemon(dataDir);
-    // No actual storybook process running → /proc scan will find nothing
     const status = sb.status();
     expect(status.running).toBe(false);
     expect(status.stale).toBe(true);
     expect(existsSync(join(dataDir, 'storybook.json'))).toBe(false);
   });
+
+  it('returns { running: true } when live registry entry matches cwd', () => {
+    const liveInfo: StorybookInfo = { ...sampleInfo, pid: process.pid, cwd: dataDir };
+    registerDaemon(liveInfo);
+    writePidFile(dataDir, liveInfo);
+    const sb = new StorybookDaemon(dataDir);
+    const status = sb.status();
+    expect(status.running).toBe(true);
+    expect(status.pid).toBe(process.pid);
+    expect(status.port).toBe(liveInfo.port);
+  });
 });
+
+// ── Stop ────────────────────────────────────────────────────────────────────
 
 describe('StorybookDaemon — stop', () => {
   let dataDir: string;
@@ -136,6 +187,8 @@ describe('StorybookDaemon — stop', () => {
   });
 });
 
+// ── Logs ────────────────────────────────────────────────────────────────────
+
 describe('StorybookDaemon — logs', () => {
   let dataDir: string;
 
@@ -154,6 +207,8 @@ describe('StorybookDaemon — logs', () => {
     expect(sb.logs()).toBe('line1\nline2\n');
   });
 });
+
+// ── Process helpers ─────────────────────────────────────────────────────────
 
 describe('isAlive', () => {
   it('returns true when process.kill(pid, 0) does not throw', () => {
@@ -225,6 +280,89 @@ describe('killProcess', () => {
     await vi.advanceTimersByTimeAsync(5000);
     await expect(promise).resolves.toBeUndefined();
     vi.useRealTimers();
+  });
+});
+
+// ── Registry ────────────────────────────────────────────────────────────────
+
+describe('global registry', () => {
+  it('registerDaemon creates registry file and appends entry', () => {
+    registerDaemon(sampleInfo);
+    const contents = readRegistryFile();
+    expect(contents.entries).toHaveLength(1);
+    expect(contents.entries[0]).toEqual(sampleInfo);
+  });
+
+  it('registerDaemon replaces existing entry with same pid', () => {
+    registerDaemon(sampleInfo);
+    registerDaemon({ ...sampleInfo, port: 9999 });
+    const contents = readRegistryFile();
+    expect(contents.entries).toHaveLength(1);
+    expect(contents.entries[0]?.port).toBe(9999);
+  });
+
+  it('unregisterDaemon removes the matching entry', () => {
+    registerDaemon(sampleInfo);
+    registerDaemon({ ...sampleInfo, pid: 22222 });
+    unregisterDaemon(sampleInfo.pid);
+    const contents = readRegistryFile();
+    expect(contents.entries).toHaveLength(1);
+    expect(contents.entries[0]?.pid).toBe(22222);
+  });
+
+  it('reapZombies drops entries whose PID is dead', () => {
+    const spy = vi.spyOn(process, 'kill').mockImplementation(() => {
+      throw new Error('ESRCH');
+    });
+    registerDaemon(sampleInfo);
+    const alive = reapZombies();
+    expect(alive).toHaveLength(0);
+    expect(readRegistryFile().entries).toHaveLength(0);
+    spy.mockRestore();
+  });
+
+  it('reapZombies drops entries whose cwd no longer exists and tries to kill them', () => {
+    // Stub process.kill so the fake pid registers as alive, but SIGTERM calls
+    // are captured instead of actually killing the vitest worker.
+    const killed: Array<[number, string | number]> = [];
+    const spy = vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
+      killed.push([pid as number, signal as string | number]);
+      return true;
+    });
+
+    const ghostCwd = join(registryDir, 'deleted-workspace');
+    registerDaemon({ ...sampleInfo, pid: 11111, cwd: ghostCwd });
+    const alive = reapZombies();
+
+    expect(alive).toHaveLength(0);
+    expect(readRegistryFile().entries).toHaveLength(0);
+    // Should attempt to kill the orphaned daemon
+    expect(killed.some(([pid, sig]) => pid === -11111 && sig === 'SIGTERM')).toBe(true);
+    spy.mockRestore();
+  });
+
+  it('reapZombies keeps entries where pid is alive and cwd exists', () => {
+    const liveCwd = makeTmpDir();
+    const spy = vi.spyOn(process, 'kill').mockImplementation(() => true);
+    registerDaemon({ ...sampleInfo, pid: 22222, cwd: liveCwd });
+    const alive = reapZombies();
+    expect(alive).toHaveLength(1);
+    expect(alive[0]?.pid).toBe(22222);
+    spy.mockRestore();
+  });
+
+  it('findDaemonsByCwd filters entries by workspace cwd', () => {
+    const cwdA = makeTmpDir();
+    const cwdB = makeTmpDir();
+    registerDaemon({ ...sampleInfo, pid: process.pid, cwd: cwdA });
+    registerDaemon({ ...sampleInfo, pid: process.pid + 1, cwd: cwdB });
+
+    // Stub kill so the fake cwdB-pid appears alive
+    const spy = vi.spyOn(process, 'kill').mockImplementation(() => true);
+    const entries = findDaemonsByCwd(cwdA);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.cwd).toBe(cwdA);
+    spy.mockRestore();
   });
 });
 
@@ -335,5 +473,10 @@ describe('StorybookDaemon.start', () => {
     sb.reload();
     expect(sb.pid).toBe(77777);
     expect(sb.port).toBe(9009);
+
+    // Verify entry registered in global registry
+    const registry = readRegistryFile();
+    expect(registry.entries).toHaveLength(1);
+    expect(registry.entries[0]?.pid).toBe(77777);
   });
 });

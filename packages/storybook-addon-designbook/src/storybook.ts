@@ -2,14 +2,14 @@ import { resolve } from 'node:path';
 import {
   mkdirSync,
   readFileSync,
-  readdirSync,
-  readlinkSync,
   existsSync,
   openSync,
   closeSync,
   writeFileSync,
   unlinkSync,
+  renameSync,
 } from 'node:fs';
+import { homedir } from 'node:os';
 import { spawn } from 'node:child_process';
 import * as http from 'node:http';
 
@@ -74,50 +74,101 @@ export function fetchJson(url: string): Promise<unknown> {
   });
 }
 
-/** Read the process group ID (pgrp) for a given PID from /proc. */
-function getProcessGroup(pid: number): number | null {
+// ── Global registry ─────────────────────────────────────────────────────────
+
+/**
+ * Path to the global storybook registry. Cross-platform: uses $HOME/.designbook.
+ * Can be overridden via DESIGNBOOK_REGISTRY env var (used in tests).
+ */
+export function registryPath(): string {
+  const override = process.env['DESIGNBOOK_REGISTRY'];
+  if (override) return override;
+  return resolve(homedir(), '.designbook', 'storybooks.json');
+}
+
+interface Registry {
+  entries: StorybookInfo[];
+}
+
+function readRegistry(): Registry {
+  const path = registryPath();
   try {
-    const stat = readFileSync(`/proc/${pid}/stat`, 'utf-8');
-    const afterComm = stat.split(') ')[1];
-    if (!afterComm) return null;
-    const fields = afterComm.split(' ');
-    // Fields after "(comm) ": state(0) ppid(1) pgrp(2)
-    return parseInt(fields[2] ?? '', 10);
+    if (!existsSync(path)) return { entries: [] };
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as unknown;
+    if (raw && typeof raw === 'object' && Array.isArray((raw as Registry).entries)) {
+      return raw as Registry;
+    }
+    return { entries: [] };
   } catch {
-    return null;
+    return { entries: [] };
+  }
+}
+
+function writeRegistry(registry: Registry): void {
+  const path = registryPath();
+  const dir = resolve(path, '..');
+  mkdirSync(dir, { recursive: true });
+  const tmp = `${path}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(registry, null, 2));
+  renameSync(tmp, path);
+}
+
+/** Add or replace an entry (keyed by pid) in the global registry. */
+export function registerDaemon(info: StorybookInfo): void {
+  const registry = readRegistry();
+  registry.entries = registry.entries.filter((e) => e.pid !== info.pid);
+  registry.entries.push(info);
+  writeRegistry(registry);
+}
+
+/** Remove the entry with the given pid from the global registry. */
+export function unregisterDaemon(pid: number): void {
+  const registry = readRegistry();
+  const next = registry.entries.filter((e) => e.pid !== pid);
+  if (next.length !== registry.entries.length) {
+    writeRegistry({ entries: next });
   }
 }
 
 /**
- * Find all storybook-related PIDs whose cwd matches the given directory.
- * Uses /proc to reliably identify processes belonging to this workspace,
- * regardless of whether they were started by this daemon manager.
- *
- * Excludes the current process and any process sharing its process group
- * (e.g. the npx wrapper or parent shell) so the CLI doesn't kill itself
- * during stop/restart.
+ * Remove registry entries for processes that are no longer alive OR whose
+ * original cwd has been deleted. Returns the cleaned list of still-live entries.
  */
-export function findStorybookPids(workspaceCwd: string): number[] {
-  const selfPgrp = getProcessGroup(process.pid);
-  try {
-    return readdirSync('/proc')
-      .filter((e) => /^\d+$/.test(e))
-      .map(Number)
-      .filter((pid) => {
-        if (pid === process.pid) return false;
-        if (selfPgrp !== null && getProcessGroup(pid) === selfPgrp) return false;
-        try {
-          const cmdline = readFileSync(`/proc/${pid}/cmdline`, 'utf-8');
-          if (!cmdline.includes('storybook')) return false;
-          const cwd = readlinkSync(`/proc/${pid}/cwd`);
-          return cwd === workspaceCwd;
-        } catch {
-          return false;
-        }
-      });
-  } catch {
-    return [];
+export function reapZombies(): StorybookInfo[] {
+  const registry = readRegistry();
+  const alive: StorybookInfo[] = [];
+  const dead: StorybookInfo[] = [];
+  for (const entry of registry.entries) {
+    if (isAlive(entry.pid) && existsSync(entry.cwd)) {
+      alive.push(entry);
+    } else {
+      dead.push(entry);
+    }
   }
+  // Kill any process whose cwd is missing (orphaned daemon) before dropping it
+  for (const entry of dead) {
+    if (isAlive(entry.pid)) {
+      try {
+        process.kill(-entry.pid, 'SIGTERM');
+      } catch {
+        /* ignore */
+      }
+      try {
+        process.kill(entry.pid, 'SIGTERM');
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  if (dead.length > 0) {
+    writeRegistry({ entries: alive });
+  }
+  return alive;
+}
+
+/** Return all live registry entries for the given workspace cwd. */
+export function findDaemonsByCwd(workspaceCwd: string): StorybookInfo[] {
+  return reapZombies().filter((e) => e.cwd === workspaceCwd);
 }
 
 export function isAlive(pid: number): boolean {
@@ -250,23 +301,23 @@ export class StorybookDaemon {
 
   // ── Lifecycle ───────────────────────────────────────────────────────────
 
-  /** Check if Storybook is running via /proc scan. Cleans up stale PID files. */
-  status(): { running: boolean; stale?: boolean } & Partial<StorybookInfo> {
-    // Always use /proc to determine running state
-    const workspaceCwd = this.cwd ?? this.dataDir;
-    const pids = findStorybookPids(workspaceCwd);
+  /** Workspace cwd as known to this daemon (from file or dataDir fallback). */
+  private get workspaceCwd(): string {
+    return this.info?.cwd ?? this.dataDir;
+  }
 
-    if (pids.length > 0) {
-      // Process found via /proc — merge with file info if available
+  /** Check if Storybook is running via registry cross-check. Cleans up stale PID files. */
+  status(): { running: boolean; stale?: boolean } & Partial<StorybookInfo> {
+    const entries = findDaemonsByCwd(this.workspaceCwd);
+
+    if (entries.length > 0) {
       const info = this.info;
-      if (info && pids.includes(info.pid)) {
-        return { running: true, ...info };
-      }
-      // Running process doesn't match file — return first found pid with file info
-      return { running: true, pid: pids[0], ...info };
+      const match = info ? entries.find((e) => e.pid === info.pid) : undefined;
+      const chosen = match ?? entries[0]!;
+      return { running: true, ...chosen };
     }
 
-    // No process found — check if file is stale
+    // No live process found — clean up stale file if present
     if (this.exists) {
       this.removeFile();
       this.reload();
@@ -362,6 +413,7 @@ export class StorybookDaemon {
       };
       this.saveFile(info);
       this.reload();
+      registerDaemon(info);
       return {
         ready: true,
         pid: child.pid,
@@ -384,12 +436,12 @@ export class StorybookDaemon {
     }
   }
 
-  /** Stop Storybook. Always uses /proc scanning — never relies on PID file for process discovery. */
+  /** Stop Storybook. Uses the global registry to find daemons for this workspace. */
   async stop(): Promise<void> {
-    const workspaceCwd = this.cwd ?? this.dataDir;
-    const pids = findStorybookPids(workspaceCwd);
-    for (const pid of pids) {
-      await killProcess(pid);
+    const entries = findDaemonsByCwd(this.workspaceCwd);
+    for (const entry of entries) {
+      await killProcess(entry.pid);
+      unregisterDaemon(entry.pid);
     }
     this.removeFile();
     this.reload();
