@@ -18,6 +18,20 @@ params:
       path: $DESIGNBOOK_DIRS_COMPONENTS
       type: string
       description: Components -- location resolved by the active framework skill
+    components:
+      type: array
+      resolve: components_index
+      description: >
+        Live inventory of components currently rendered in Storybook.
+        Every `component:` field in the scene result MUST match one of these ids —
+        the compiled schema enum enforces this automatically.
+      items:
+        type: object
+        required: [id]
+        properties:
+          id: { type: string }
+          import_path: { type: string }
+          story_id: { type: string }
     design_scenes:
       path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
       type: object
