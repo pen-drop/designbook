@@ -31,6 +31,7 @@ import jsonata from 'jsonata';
 import { interpolate } from './template/interpolate.js';
 import { resolveEach, type EachDeclaration } from './template/each.js';
 import { getValidatorKeys } from './validation-registry.js';
+import { renderSubmitResultsHint } from './cli/submit-results-hint.js';
 
 export type {
   WorkflowEngine,
@@ -691,7 +692,16 @@ export function workflowPlan(
     step?: string;
     stage?: string;
     files?: Array<{ path: string; key: string; validators: string[] }>;
-    result?: Record<string, { path?: string; schema?: object; validators?: string[] }>;
+    result?: Record<
+      string,
+      {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission?: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      }
+    >;
     depends_on?: string[];
     params?: Record<string, unknown>;
     task_file?: string;
@@ -1019,11 +1029,29 @@ export async function workflowDone(
         }
       }
       if (directWrites.length > 0) {
+        // Build a flat result map for the renderer. task.result entries carry path + submission + flush + schema,
+        // where schema holds the resolved inline JSON Schema block ($ref and/or type).
+        const hintResults = Object.fromEntries(
+          Object.entries(task.result).map(([k, v]) => {
+            const schema = v.schema as Record<string, unknown> | undefined;
+            return [
+              k,
+              {
+                path: v.path,
+                submission: v.submission,
+                flush: v.flush,
+                $ref: typeof schema?.$ref === 'string' ? schema.$ref : undefined,
+                type: typeof schema?.type === 'string' ? schema.type : undefined,
+              },
+            ];
+          }),
+        );
+        const hint = renderSubmitResultsHint(taskId, hintResults) ?? '';
         throw new Error(
           `Cannot mark '${taskId}' as done — ${directWrites.length} file result(s) were written directly instead of via \`workflow done --data\`:\n` +
             directWrites.join('\n') +
-            '\n\nSubmit file results through the workflow:\n' +
-            '  workflow done --workflow <name> --task <id> --data \'{"<key>": <content>}\'',
+            '\n\n' +
+            hint,
         );
       }
     }

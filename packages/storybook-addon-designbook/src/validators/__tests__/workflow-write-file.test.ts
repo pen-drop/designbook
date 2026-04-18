@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtempSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { load as parseYaml } from 'js-yaml';
@@ -621,5 +621,116 @@ describe('direct engine cleanup on abandon', () => {
     workflowAbandon(dist, name1);
     expect(existsSync(result1.file_path)).toBe(false);
     expect(existsSync(result2.file_path)).toBe(true);
+  });
+});
+
+// ── submission enforcement in workflowDone ──────────────────────────────────
+
+describe('workflow done — submission enforcement', () => {
+  let dist: string;
+  let config: DesignbookConfig;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-sub-'));
+    config = { data: dist, technology: 'html', extensions: [] };
+  });
+
+  it('rejects submission: data file results that were written directly to disk', async () => {
+    const targetPath = resolve(dist, 'phantom.yml');
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(
+      dist,
+      name,
+      [
+        {
+          id: 'create-phantom',
+          title: 'Create Phantom',
+          type: 'data',
+          files: [{ path: targetPath, key: 'phantom', validators: [] }],
+          result: { phantom: { path: targetPath, submission: 'data', flush: 'deferred' } },
+        },
+      ],
+      { execute: { steps: ['create-phantom'] } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    // Simulate AI writing directly to final path (bypassing --data)
+    writeFileSync(targetPath, 'value: 1\n');
+
+    await expect(workflowDone(dist, name, 'create-phantom')).rejects.toThrow(
+      /written directly instead of via `workflow done --data`/,
+    );
+  });
+
+  it('accepts submission: direct file results already on disk', async () => {
+    const targetPath = resolve(dist, 'shot.png');
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(
+      dist,
+      name,
+      [
+        {
+          id: 'capture',
+          title: 'Capture',
+          type: 'data',
+          // submission: direct results don't flow through task.files[] — validate externally
+          result: { shot: { path: targetPath, submission: 'direct' } },
+        },
+      ],
+      { execute: { steps: ['capture'] } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    // Simulate external tool (e.g. Playwright) writing the file to its target path
+    writeFileSync(targetPath, 'fake-png-bytes');
+
+    // Must validate externally-written file via workflowResult before done gate accepts it
+    const { workflowResult } = await import('../../workflow.js');
+    await workflowResult(dist, name, 'capture', 'shot', null, config);
+
+    const doneResult = await workflowDone(dist, name, 'capture');
+    expect(doneResult.archived).toBe(true);
+  });
+
+  it('error message includes the submit-results hint for copy-paste retry', async () => {
+    const targetPath = resolve(dist, 'comp.yml');
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(
+      dist,
+      name,
+      [
+        {
+          id: 'create-comp',
+          title: 'Create Component',
+          type: 'data',
+          files: [{ path: targetPath, key: 'comp', validators: [] }],
+          result: {
+            comp: {
+              path: targetPath,
+              submission: 'data',
+              flush: 'deferred',
+              schema: { type: 'object' },
+            },
+          },
+        },
+      ],
+      { execute: { steps: ['create-comp'] } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+    writeFileSync(targetPath, 'name: foo\n');
+
+    await expect(workflowDone(dist, name, 'create-comp')).rejects.toThrow(/workflow done --task create-comp --data/);
   });
 });
