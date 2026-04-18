@@ -12,9 +12,11 @@ params:
     type: string
     resolve: breakpoints
     from: story_id
+  components:
+    type: array
+    items:
+      $ref: ../schemas.yml#/Component
 stages:
-  reference:
-    steps: [extract-reference]
   intake:
     steps: [intake]
   component:
