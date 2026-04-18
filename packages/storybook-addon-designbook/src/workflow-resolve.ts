@@ -15,6 +15,7 @@ import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type Design
 import { buildSchemaBlock } from './schema-block.js';
 import type { SchemaBlock } from './schema-block.js';
 import { interpolate } from './template/interpolate.js';
+import { injectComponentsEnum } from './workflow-resolve-components-enum.js';
 import { computeMergedSchema } from './workflow-schema-merge.js';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -221,6 +222,7 @@ function collectLocalRefsFromSchema(
 /** Minimal shape of a task with enough fields for schema resolution. */
 export interface TaskForSchemaResolution {
   task_file?: string;
+  params?: Record<string, unknown>;
   result?: Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }>;
 }
 
@@ -290,6 +292,25 @@ export function resolveSchemasForTasks(
     }
   }
 
+  // Dynamic enum injection — when a task's `components` param resolved to an
+  // inventory, constrain ComponentNode.component to those ids in the shared
+  // schema map. Affects only the compiled schemas; on-disk scene schema is
+  // untouched.
+  let inventory: string[] | undefined;
+  for (const task of tasks) {
+    const raw = task.params?.['components'];
+    if (!Array.isArray(raw)) continue;
+    const ids = raw
+      .map((c) => (c && typeof c === 'object' ? (c as Record<string, unknown>)['id'] : undefined))
+      .filter((id): id is string => typeof id === 'string');
+    if (ids.length > 0) {
+      inventory = ids;
+      break;
+    }
+  }
+  if (inventory && inventory.length > 0) {
+    return injectComponentsEnum(schemas, inventory) as Record<string, object>;
+  }
   return schemas;
 }
 
