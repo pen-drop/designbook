@@ -30,7 +30,7 @@ result:
       path: ${DESIGNBOOK_CSS_APP}
 each:
   component:
-    expr: "component"
+    expr: "components"
     schema: { $ref: designbook/design/schemas.yml#/Component }
 ---
 
