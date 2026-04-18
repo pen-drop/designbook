@@ -23,7 +23,7 @@ result:
       $ref: designbook-drupal/components/schemas.yml#/SdcStory
 each:
   component:
-    expr: "component"
+    expr: "components"
     schema: { $ref: designbook/design/schemas.yml#/Component }
   variant:
     expr: "component.variants"
