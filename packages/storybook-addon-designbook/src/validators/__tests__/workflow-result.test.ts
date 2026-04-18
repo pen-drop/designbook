@@ -250,7 +250,7 @@ describe('workflow result: file result via workflow done --data', () => {
           stage: 'execute',
           status: 'pending',
           result: {
-            reference: { path: targetPath, flush: 'immediately' },
+            reference: { path: targetPath, flush: 'immediate' },
           },
         } as WorkflowTask,
       ],
@@ -358,7 +358,7 @@ describe('workflow result: file result via workflow done --data', () => {
     );
 
     await expect(workflowResult(dist, name, 'task1', 'design-tokens', null, config)).rejects.toThrow(
-      'is not declared as `flush: external`',
+      'is not declared as `submission: direct`',
     );
   });
 });
@@ -668,7 +668,7 @@ describe('workflow result: external file (screenshot)', () => {
           stage: 'capture',
           status: 'pending',
           result: {
-            screenshot: { path: screenshotPath, flush: 'external' },
+            screenshot: { path: screenshotPath, submission: 'direct' },
           },
         } as WorkflowTask,
       ],

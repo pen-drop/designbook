@@ -114,6 +114,76 @@ describe('expandResultDeclarations path interpolation', () => {
   });
 });
 
+// ── submission + flush semantics ────────────────────────────────────────────
+
+describe('expandResultDeclarations submission + flush', () => {
+  it('defaults submission=data and flush=deferred when fields are absent', async () => {
+    const resultDecl = {
+      properties: {
+        component: { path: '/tmp/a.yml', type: 'object' },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, {}, {});
+    expect(result?.component?.submission).toBe('data');
+    expect(result?.component?.flush).toBe('deferred');
+  });
+
+  it('accepts submission=direct and ignores flush regardless of value', async () => {
+    const resultDecl = {
+      properties: {
+        shot: { path: '/tmp/shot.png', submission: 'direct', flush: 'immediate', type: 'string' },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, {}, {});
+    expect(result?.shot?.submission).toBe('direct');
+    expect(result?.shot?.flush).toBeUndefined();
+  });
+
+  it('accepts flush=immediate with submission=data', async () => {
+    const resultDecl = {
+      properties: {
+        extract: { path: '/tmp/extract.json', flush: 'immediate', type: 'object' },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, {}, {});
+    expect(result?.extract?.submission).toBe('data');
+    expect(result?.extract?.flush).toBe('immediate');
+  });
+
+  it('rejects legacy flush: immediately with a rename hint', async () => {
+    const resultDecl = {
+      properties: {
+        x: { path: '/tmp/x.yml', flush: 'immediately', type: 'object' },
+      },
+    };
+    await expect(async () => expandResultDeclarations(resultDecl, undefined, {}, {})).rejects.toThrow(
+      /flush: immediately.*no longer supported.*flush: immediate/,
+    );
+  });
+
+  it('rejects legacy flush: external with a migration hint', async () => {
+    const resultDecl = {
+      properties: {
+        x: { path: '/tmp/x.png', flush: 'external', type: 'string' },
+      },
+    };
+    await expect(async () => expandResultDeclarations(resultDecl, undefined, {}, {})).rejects.toThrow(
+      /flush: external.*submission: direct/,
+    );
+  });
+
+  it('rejects unknown submission values', async () => {
+    const resultDecl = {
+      properties: {
+        x: { path: '/tmp/x.yml', submission: 'external', type: 'object' },
+      },
+    };
+    await expect(async () => expandResultDeclarations(resultDecl, undefined, {}, {})).rejects.toThrow(
+      /submission.*must be one of: data, direct/,
+    );
+  });
+});
+
 // ── validator key lookup ────────────────────────────────────────────────────
 
 describe('validator key lookup', () => {

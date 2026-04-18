@@ -88,8 +88,10 @@ export interface TaskResult {
   schema?: object;
   /** Semantic validator keys (e.g. ['component', 'scene']). */
   validators?: string[];
-  /** Flush policy: 'immediately' writes to final path on result write; 'external' = written by external tool, register via `workflow result`. */
-  flush?: string;
+  /** Who produces the content. `data` (default) = AI submits via --data; `direct` = task code writes the file. */
+  submission?: 'data' | 'direct';
+  /** When the file lands on disk. `deferred` (default) = at stage flush; `immediate` = on `workflow done`. Ignored when `submission: direct`. */
+  flush?: 'deferred' | 'immediate';
   /** Inline data value — stored for data results (no path). */
   value?: unknown;
   /** Whether the result has been written and validated. */
@@ -350,7 +352,16 @@ export function workflowCreate(
     step?: string;
     stage?: string;
     files?: Array<{ path: string; key: string; validators: string[] }>;
-    result?: Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }>;
+    result?: Record<
+      string,
+      {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission?: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      }
+    >;
     task_file?: string;
     rules?: string[];
     blueprints?: string[];
@@ -957,7 +968,7 @@ export async function workflowDone(
           }
 
           // Flush immediately if declared in result schema
-          if (resultEntry.flush === 'immediately' && writtenPath !== resultEntry.path) {
+          if (resultEntry.flush === 'immediate' && writtenPath !== resultEntry.path) {
             mkdirSync(dirname(resultEntry.path), { recursive: true });
             renameSync(writtenPath, resultEntry.path);
             resultEntry.flushed_at = new Date().toISOString();
@@ -1000,7 +1011,7 @@ export async function workflowDone(
       for (const [key, resultEntry] of Object.entries(task.result)) {
         if (!resultEntry.path) continue;
         if (resultEntry.valid !== undefined) continue; // already submitted through workflow
-        if (resultEntry.flush === 'external') continue; // flush: external results are written by external tools
+        if (resultEntry.submission === 'direct') continue; // submission: direct results are written by external tools
         if (/\{[a-zA-Z]\w*\}/.test(resultEntry.path)) continue; // unresolved placeholders
 
         if (existsSync(resultEntry.path)) {
@@ -1420,7 +1431,7 @@ export async function workflowWriteFile(
 
     // Flush immediately if declared in result schema
     const resultEntry = task.result?.[key];
-    if (resultEntry?.flush === 'immediately' && writtenPath !== fileEntry.path) {
+    if (resultEntry?.flush === 'immediate' && writtenPath !== fileEntry.path) {
       mkdirSync(dirname(fileEntry.path), { recursive: true });
       renameSync(writtenPath, fileEntry.path);
       fileEntry.flushed_at = new Date().toISOString();
@@ -1530,11 +1541,11 @@ export async function workflowResult(
     const isFileResult = !!resultEntry.path;
     const errors: string[] = [];
 
-    // ── File result: only accepted for flush: external declarations ──────────
+    // ── File result: only accepted for submission: direct declarations ───────
     if (isFileResult) {
-      if (resultEntry.flush !== 'external') {
+      if (resultEntry.submission !== 'direct') {
         throw new Error(
-          `Result '${key}' is not declared as \`flush: external\`. ` +
+          `Result '${key}' is not declared as \`submission: direct\`. ` +
             'Submit file results via `workflow done --data \'{"' +
             key +
             '": ...}\'` instead.',
@@ -1595,7 +1606,7 @@ export async function workflowResult(
       }
 
       // Flush immediately if declared in result schema
-      if ((resultEntry.flush as string) === 'immediately' && writtenPath !== resultEntry.path) {
+      if (resultEntry.flush === 'immediate' && writtenPath !== resultEntry.path) {
         mkdirSync(dirname(resultEntry.path!), { recursive: true });
         renameSync(writtenPath, resultEntry.path!);
         resultEntry.flushed_at = new Date().toISOString();

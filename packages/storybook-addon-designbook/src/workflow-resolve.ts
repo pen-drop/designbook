@@ -66,7 +66,10 @@ export interface ResultDeclaration {
   path?: string; // file result path template
   $ref?: string; // schema reference (e.g. ../schemas.yml#/Check)
   validators?: string[]; // semantic validator keys
-  flush?: 'immediately' | 'external'; // flush policy: 'immediately' writes directly; 'external' = written by external tool, register via `workflow result`
+  /** Who produces the content. `data` (default) = AI submits via --data; `direct` = task code writes the file. */
+  submission?: 'data' | 'direct';
+  /** When the file lands on disk. `deferred` (default) = at stage flush; `immediate` = on `workflow done`. Ignored when `submission: direct`. */
+  flush?: 'deferred' | 'immediate';
   type?: string; // inline JSON Schema type
   items?: unknown; // inline JSON Schema items (for arrays)
   [key: string]: unknown; // additional JSON Schema properties
@@ -1085,7 +1088,19 @@ export async function expandResultDeclarations(
   validatorKeys?: Set<string>,
   /** When true, leave unknown $VARS in paths instead of throwing. */
   lenient?: boolean,
-): Promise<Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }> | undefined> {
+): Promise<
+  | Record<
+      string,
+      {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      }
+    >
+  | undefined
+> {
   // Prefer result: over files:
   if (resultDecl) {
     const properties = (resultDecl as Record<string, unknown>).properties as
@@ -1093,8 +1108,47 @@ export async function expandResultDeclarations(
       | undefined;
     if (!properties) return undefined;
 
-    const result: Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }> = {};
+    const result: Record<
+      string,
+      {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      }
+    > = {};
     for (const [key, decl] of Object.entries(properties)) {
+      // Legacy value migration — reject with explicit hint
+      if (decl.flush === ('immediately' as unknown)) {
+        throw new Error(
+          `Result '${key}': \`flush: immediately\` is no longer supported. Replace with \`flush: immediate\`.`,
+        );
+      }
+      if (decl.flush === ('external' as unknown)) {
+        throw new Error(
+          `Result '${key}': \`flush: external\` is no longer supported. Replace with \`submission: direct\`.`,
+        );
+      }
+
+      // Validate submission enum
+      if (decl.submission !== undefined && decl.submission !== 'data' && decl.submission !== 'direct') {
+        throw new Error(
+          `Result '${key}': \`submission\` must be one of: data, direct (got "${String(decl.submission)}").`,
+        );
+      }
+
+      // Validate flush enum
+      if (decl.flush !== undefined && decl.flush !== 'deferred' && decl.flush !== 'immediate') {
+        throw new Error(
+          `Result '${key}': \`flush\` must be one of: deferred, immediate (got "${String(decl.flush)}").`,
+        );
+      }
+
+      const submission: 'data' | 'direct' = decl.submission ?? 'data';
+      const flush: 'deferred' | 'immediate' | undefined =
+        submission === 'direct' ? undefined : (decl.flush ?? 'deferred');
+
       const validators = decl.validators ?? [];
       if (validatorKeys) {
         for (const v of validators) {
@@ -1107,20 +1161,33 @@ export async function expandResultDeclarations(
         }
       }
 
-      // Build inline schema from declaration (exclude path, validators, $ref, flush)
+      // Build inline schema from declaration (exclude path, validators, $ref, submission, flush)
       let schema: object | undefined;
-      const { path: _path, validators: _validators, $ref: _ref, flush: _flush, ...schemaProps } = decl;
+      const {
+        path: _path,
+        validators: _validators,
+        $ref: _ref,
+        submission: _sub,
+        flush: _flush,
+        ...schemaProps
+      } = decl;
       if (Object.keys(schemaProps).length > 0) {
         schema = schemaProps as object;
       }
 
-      const entry: { path?: string; schema?: object; validators?: string[]; flush?: string } = {};
+      const entry: {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      } = { submission };
+      if (flush !== undefined) entry.flush = flush;
       if (decl.path) {
         entry.path = await interpolate(decl.path, params, { envMap, lenient });
       }
       if (schema) entry.schema = schema;
       if (validators.length > 0) entry.validators = validators;
-      if (decl.flush) entry.flush = decl.flush;
 
       result[key] = entry;
     }
@@ -1129,11 +1196,22 @@ export async function expandResultDeclarations(
 
   // Fallback: convert files: to result: format (deprecated)
   if (filesDecl && filesDecl.length > 0) {
-    const result: Record<string, { path?: string; schema?: object; validators?: string[] }> = {};
+    const result: Record<
+      string,
+      {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      }
+    > = {};
     const expanded = await expandFileDeclarations(filesDecl, params, envMap, validatorKeys);
     for (const f of expanded) {
       result[f.key] = {
         path: f.path,
+        submission: 'data',
+        flush: 'deferred',
         ...(f.validators.length > 0 && { validators: f.validators }),
       };
     }
