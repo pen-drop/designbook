@@ -8,9 +8,9 @@ params:
     reference_dir: { type: string, default: "" }
 result:
   type: object
-  required: [component]
+  required: [components]
   properties:
-    component:
+    components:
       type: array
       items:
         $ref: ../schemas.yml#/Component
@@ -88,8 +88,6 @@ Ask these questions in order, waiting for each response:
 
 > "What is the component name? (e.g. `Button`, `Card`, `Hero`)"
 
-Normalize to kebab-case for files.
-
 **3.2 -- Description:**
 
 > "Brief description of the component? (1-2 sentences)"
@@ -136,18 +134,12 @@ Wait for response. If no, go back to relevant step.
 
 ## Step 5: Complete Intake
 
-Store the `component` iterable as task result.
+Store the `components` iterable as task result.
 
-- **`component`**: one entry with `component` (name), `slots` (array), and `group` (set to component name as default group).
+- **`components`**: one entry with `component` (name), `slots` (array), and `group` (set to component name as default group).
 - When a design reference was extracted, also include `design_hint` (structured data from `$reference_dir/extract.json`) and `reference_screenshot` (absolute path to `$reference_dir/reference-full.png`) on the component item.
 
-**Auto-set fields** (do NOT ask the user):
-- `status` -> `experimental`
-- `provider` -> from `$DESIGNBOOK_COMPONENT_NAMESPACE` or `designbook.config.yml`
+**Uniqueness**
 
-**Guardrails**
-
-- Component names must be unique (check existing components first)
+- Check existing components first; component names must be unique
 - If component already exists, ask: overwrite or rename?
-- Use kebab-case for files, PascalCase for display names
-- Component skills are loaded by convention: `designbook-components-$DESIGNBOOK_FRAMEWORK_COMPONENT`

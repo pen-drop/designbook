@@ -15,9 +15,9 @@ params:
       type: object
 result:
   type: object
-  required: [component]
+  required: [components]
   properties:
-    component:
+    components:
       type: array
       items:
         $ref: ../schemas.yml#/Component
@@ -35,11 +35,11 @@ The `extract-reference` stage runs **before** intake. If `$reference_dir/extract
 ## Steps
 
 1. **Determine layout** — from `$reference_dir/extract.json` landmarks if present, else from user dialog
-2. **Plan components** — derive the `component[]` list via the deterministic rule below; resolve `embeds:` from loaded blueprints (leaves before dependents); confirm with user
+2. **Plan components** — derive the `components[]` list via the deterministic rule below; resolve `embeds:` from loaded blueprints (leaves before dependents); confirm with user
 3. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), root = `page` component, show `content → $content`, title = "Shell Structure"
 4. **Existing shell handling** — if `design-system/design-system.scenes.yml` exists, read it and ask whether to update or replace; reuse existing page/header/footer components instead of recreating
 
-### Enumerate `component[]`
+### Enumerate `components[]`
 
 The list is derived from two sources with no ad-hoc decisions:
 
@@ -54,6 +54,6 @@ The list is derived from two sources with no ad-hoc decisions:
 
 Reuse an existing component when its slots/variants already cover the new need — do not create near-duplicates.
 
-## Result: component
+## Result: components
 
 One entry per **new** component. Each item: `component` (name), `slots` (array), `group`.

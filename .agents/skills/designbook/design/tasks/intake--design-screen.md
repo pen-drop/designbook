@@ -26,9 +26,9 @@ params:
       $ref: ../../scenes/schemas.yml#/SceneFile
 result:
   type: object
-  required: [component, output_path, entity_mappings, section_id, section_title]
+  required: [components, output_path, entity_mappings, section_id, section_title]
   properties:
-    component:
+    components:
       type: array
       items:
         $ref: ../schemas.yml#/Component
@@ -57,7 +57,7 @@ Gather section, screen type, entity mappings, and component plan for one screen.
 5. **Summary** — present complete build plan, wait for confirmation
 6. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection
 
-## Result: component
+## Result: components
 
 One entry per **new** component. When `$reference_dir/extract.json` exists, include `design_hint` on each item.
 
