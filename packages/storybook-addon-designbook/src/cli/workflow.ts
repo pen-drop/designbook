@@ -285,8 +285,21 @@ export function register(program: Command): void {
         }
 
         const firstTaskId = firstStepName ?? 'task-1';
+
+        // Intake-skip: when caller passes a non-empty `components` param to
+        // design-component, seed scope from it and emit zero intake tasks. The
+        // engine's "stage with no tasks → keep walking" path then transitions
+        // straight to the next stage, which expands from the seeded scope.
+        const skipIntake =
+          opts.workflow === 'design-component' &&
+          Array.isArray(initialParams?.components) &&
+          (initialParams!.components as unknown[]).length > 0;
+        const initialScope: Record<string, unknown> | undefined = skipIntake
+          ? { components: initialParams!.components }
+          : undefined;
+
         const firstTask =
-          firstStepName && firstStageName && firstResolved
+          !skipIntake && firstStepName && firstStageName && firstResolved
             ? [
                 {
                   id: firstTaskId,
@@ -320,11 +333,13 @@ export function register(program: Command): void {
           workspaceRoot,
           firstSchemas,
           envMap,
+          initialScope,
         );
 
-        // Build task_ids map: step name → actual task ID
+        // Build task_ids map: step name → actual task ID. When intake was
+        // skipped, no first task was emitted, so leave the map empty.
         const taskIds: Record<string, string> = {};
-        if (firstStepName) {
+        if (firstStepName && !skipIntake) {
           taskIds[firstStepName] = firstTaskId;
         }
 
