@@ -35,9 +35,24 @@ The `extract-reference` stage runs **before** intake. If `$reference_dir/extract
 ## Steps
 
 1. **Determine layout** — from `$reference_dir/extract.json` landmarks if present, else from user dialog
-2. **Plan components** — scan existing components, list shell components needed (page, header, footer, navigation, plus atomic elements that appear 2+ times or are interactive); resolve `embeds:` from loaded blueprints (leaves before dependents); confirm with user
+2. **Plan components** — derive the `component[]` list via the deterministic rule below; resolve `embeds:` from loaded blueprints (leaves before dependents); confirm with user
 3. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), root = `page` component, show `content → $content`, title = "Shell Structure"
 4. **Existing shell handling** — if `design-system/design-system.scenes.yml` exists, read it and ask whether to update or replace; reuse existing page/header/footer components instead of recreating
+
+### Enumerate `component[]`
+
+The list is derived from two sources with no ad-hoc decisions:
+
+1. **Structural landmarks.** For each top-level entry in `extract.json.landmarks` (`header`, `footer`, `main`, …), emit one component. Nested rows inside a landmark MAY be composed as `section` components when the reference shows distinct backgrounds or borders between rows.
+
+2. **Atoms from prose.** Parse `extract.json.landmarks.*.rows[].content`. For each distinct interactive element or branded mark referenced, emit one component per kind:
+   - Logo / wordmark → `logo` (see `logo.md`)
+   - CTA button / labelled action → `button` (see `button.md`)
+   - Plain text anchor / inline link → `link` (see `link.md`)
+   - Non-text symbol (social icons, search glyph, hamburger) → `icon` (see `icon.md`)
+   - Anything without a matching convention blueprint → emit a design-specific component with a role-based name (e.g. `lang-switcher`, `search-trigger`, `auth-cta`).
+
+Reuse an existing component when its slots/variants already cover the new need — do not create near-duplicates.
 
 ## Result: component
 
