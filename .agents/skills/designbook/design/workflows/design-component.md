@@ -27,4 +27,14 @@ before:
     execute: if-never-run
 after:
   - workflow: design-verify
+    when: "components.length <= 1"
 ---
+
+## Conditional design-verify
+
+The `design-verify` follow-up suggestion is suppressed when the workflow was
+seeded with a batch of pre-supplied components (`components.length > 1`).
+Verification per component would explode the iteration cost and is not
+meaningful during a one-shot migration. Operators can run `design-verify`
+manually per component once the migration is settled.
+
