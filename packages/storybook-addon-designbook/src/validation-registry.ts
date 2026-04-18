@@ -40,8 +40,31 @@ const validators: Record<string, ValidatorFn> = {
     return toFileResult(await validateEntityMapping(file, config), file, 'entity-mapping');
   },
   scene: async (file, config) => {
-    const { validateSceneBuild } = await import('./validators/scene.js');
-    return validateSceneBuild(file, config);
+    const { validateSceneBuild, validateSceneAgainstInventory } = await import('./validators/scene.js');
+    const buildResult = await validateSceneBuild(file, config);
+    if (!buildResult.valid) return buildResult;
+    // Safety-net: re-check component ids against live inventory.
+    try {
+      const { load: parseYaml } = await import('js-yaml');
+      const { readFileSync, existsSync } = await import('node:fs');
+      if (!existsSync(file)) return buildResult;
+      const raw = parseYaml(readFileSync(file, 'utf-8'));
+      const inv = await validateSceneAgainstInventory(raw, { config });
+      if (!inv.valid) {
+        const ts = new Date().toISOString();
+        return {
+          file,
+          type: 'scene',
+          valid: false,
+          error: inv.errors.join('; '),
+          last_validated: ts,
+          last_failed: ts,
+        };
+      }
+      return buildResult;
+    } catch {
+      return buildResult;
+    }
   },
   image: async (file) => toFileResult(validateImage(file), file, 'image'),
 };
