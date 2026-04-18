@@ -16,7 +16,7 @@ These issues will affect every future `design-shell`, `design-screen`, and `desi
 
 Three interlocking workstreams in `packages/storybook-addon-designbook` and the skills layer:
 
-1. **Self-describing result schemas.** New `submission:` enum on each result property (`data` | `immediate` | `direct`). Replaces the existing `flush:` field entirely — no compat shim. The `workflow instructions` CLI emits a structured per-task "Submit results" section with the expected `--data` JSON shape.
+1. **Self-describing result schemas.** Two orthogonal fields on each result property: `submission: data | direct` (who produces the content) and `flush: deferred | immediate` (when it lands on disk). The existing `flush: immediately` convention is narrowed to the enum value `flush: immediate` — no compat shim for the old value name. The `workflow instructions` CLI emits a structured per-task "Submit results" section with the expected `--data` JSON shape.
 2. **Stories-index-grounded scene generation.** A new `components_index` resolver fetches Storybook's `/index.json` and derives the set of available `<namespace>:<component-name>` ids via a regex pattern contributed by the active integration. The `create-scene` task receives this inventory as a `components` param; the scene result schema enum-constrains every `component:` reference to that set. Safety-net validator re-checks on `workflow done`.
 3. **Reference-driven intake decomposition.** The `intake--design-shell` task gains an explicit, deterministic decomposition rule: structural components come from `extract.json.landmarks`; atomic components come from parsing `landmarks.*.rows[].content` prose. Thin convention blueprints (`button.md`, `logo.md`, `link.md`, `icon.md`) encode only the variant mechanism — no site-specific content.
 
@@ -38,7 +38,7 @@ Not part of this spec's implementation but context-relevant:
 
 ### Schema Extension
 
-Each `result:` property may declare a `submission:` field:
+Each `result:` property may declare two independent fields — `submission:` (who writes the content) and `flush:` (when it lands on disk):
 
 ```yaml
 result:
@@ -48,33 +48,41 @@ result:
     component-yml:
       path: components/{{name}}/{{name}}.component.yml
       $ref: ../schemas.yml#/SdcComponentYaml
-      # submission: data   (implicit default)
+      # submission: data  flush: deferred  (implicit defaults)
     schema-patch:
       path: ...
-      submission: immediate
+      flush: immediate          # AI submits; CLI writes straight away
     screenshot:
       path: designbook/screenshots/{{name}}.png
-      submission: direct
+      submission: direct        # task code writes; flush is irrelevant
 ```
 
-### Enum and Semantics
+### `submission:` — who produces the content
 
-| Value | Lifecycle | Replaces |
+| Value | Semantics |
+|---|---|
+| `data` (default) | AI submits the value via `workflow done --data '{"<key>": <value>}'`. The CLI serializes per the property's extension (`.yml` → YAML, `.twig`/`.css` → raw string) and writes to `path:`. |
+| `direct` | Task code writes the file itself (Playwright screenshot, CLI invocation, shell output, …). The CLI runs post-write validation against `$ref` / `validators:` only. `flush:` is ignored — the file already exists. |
+
+### `flush:` — when the file lands on disk
+
+Only meaningful when `submission: data`. Ignored for `submission: direct`.
+
+| Value | Semantics | Replaces |
 |---|---|---|
-| `data` (default) | AI submits the value via `workflow done --data '{"<key>": <value>}'`. CLI serializes per the property's extension (`.yml` → YAML, `.twig`/`.css` → raw string) and writes to `path:` **at stage flush**. | Default result without any `flush:` field. |
-| `immediate` | Same serialization as `data`, but the CLI writes to `path:` **as soon as `workflow done` completes**, before the stage flushes. | `flush: immediately`. |
-| `direct` | Task code writes the file itself (Playwright navigation, CLI invocation, etc.). CLI only runs post-write validation against `$ref` / `validators:`. | No prior mechanism — was implicit for tasks like `capture-reference`. |
+| `deferred` (default) | CLI writes to `path:` at **stage flush**. | Absent `flush:` field. |
+| `immediate` | CLI writes to `path:` as soon as **`workflow done` completes**, before the stage flushes. | `flush: immediately`. |
 
-Data-only results (no `path:`) are always submitted via `--data` and ignore `submission:`.
+Data-only results (no `path:`) are always submitted via `--data` and ignore both fields.
 
 ### CLI: `workflow instructions` Enhancement
 
-`workflow instructions <task-id>` gains a new "Submit results" section when at least one result has `submission: data` or `immediate`:
+`workflow instructions <task-id>` gains a new "Submit results" section when at least one result has `submission: data` (any `flush:` value):
 
 ```
 ## Submit results
 
-Return all `data` and `immediate` results in a single call:
+Return every `submission: data` result in a single call:
 
     workflow done --task <id> --data '<json>'
 
@@ -83,7 +91,7 @@ The JSON must match:
     {
       "component-yml":   <SdcComponentYaml>,       // → components/<name>/<name>.component.yml
       "component-twig":  <SdcTemplate>,            // → components/<name>/<name>.twig
-      "component-story": <SdcStoryFile>            // → components/<name>/<name>.default.story.yml
+      "component-story": <SdcStoryFile>            // → components/<name>/<name>.default.story.yml (flush: immediate)
     }
 
 Direct-submission results (written by task code, not submitted):
@@ -91,11 +99,11 @@ Direct-submission results (written by task code, not submitted):
     screenshot                                     → designbook/screenshots/<name>.png
 ```
 
-Schema type placeholders are derived from each property's `$ref:` (last path segment) or the inline `type:` when no `$ref` exists. No schema body is inlined in the hint — the CLI links to the `schemas.yml` entry by name.
+Schema type placeholders are derived from each property's `$ref:` (last path segment) or the inline `type:` when no `$ref` exists. No schema body is inlined in the hint — the CLI links to the `schemas.yml` entry by name. Properties with `flush: immediate` are annotated inline so task authors can spot them without cross-referencing the task file.
 
 ### `workflow done` Enforcement
 
-When a task has at least one `submission: data | immediate` property and `workflow done` is called without `--data`, the CLI fails with:
+When a task has at least one `submission: data` property and `workflow done` is called without `--data`, the CLI fails with:
 
 ```
 Error: task <id> has data-submission results. Call `workflow done` with `--data` containing:
@@ -103,22 +111,22 @@ Error: task <id> has data-submission results. Call `workflow done` with `--data`
 <the hint shape above>
 ```
 
-### `flush:` Removal
+### Legacy `flush: immediately` Rejection
 
-The schema parser rejects `flush:` in task frontmatter:
+The schema parser accepts `flush:` only with the new enum values (`deferred` | `immediate`). The legacy value `immediately` is rejected:
 
 ```
-Error: `flush:` is no longer supported. Replace with `submission: immediate` (or remove if default staging is desired).
+Error: `flush: immediately` is no longer supported. Replace with `flush: immediate`.
 ```
 
-No silent migration, no fallback read. All existing `flush:` occurrences in `.agents/skills/` are rewritten to `submission: immediate` as part of the implementation.
+No silent migration, no fallback read. All existing `flush: immediately` occurrences in `.agents/skills/` are rewritten to `flush: immediate` as part of the implementation. Tasks that previously relied on the absence of `flush:` continue to work — the default is `deferred`.
 
 ### Engine Impact
 
-- `packages/storybook-addon-designbook/src/cli/workflow-resolve.ts` — `expandResultDeclarations` accepts `submission:`, rejects `flush:`.
+- `packages/storybook-addon-designbook/src/cli/workflow-resolve.ts` — `expandResultDeclarations` accepts `submission: data|direct` and `flush: deferred|immediate`; rejects `flush: immediately`.
 - `packages/storybook-addon-designbook/src/cli/workflow-instructions.ts` (or equivalent renderer) — new "Submit results" section.
-- `packages/storybook-addon-designbook/src/cli/workflow-done.ts` — enforcement check and structured error.
-- Result-staging logic (wherever write-timing is currently derived from `flush:`) — routes based on `submission:` value.
+- `packages/storybook-addon-designbook/src/cli/workflow-done.ts` — enforcement check (`submission: data` requires `--data`) and structured error.
+- Result-staging logic — routes by `(submission, flush)` pair. `direct` skips the write phase entirely.
 
 ## Workstream 2: Stories-Index-Grounded Scene Generation (B′-pattern)
 
@@ -259,10 +267,10 @@ Available: test_integration_drupal:page, test_integration_drupal:header, test_in
 
 No Storybook render attempted — the failure is detected before the CLI writes the scene file.
 
-### `flush:` in Frontmatter Post-Migration
+### Legacy `flush: immediately` Post-Migration
 
 ```
-Error: `flush:` removed in favour of `submission:`. Replace with `submission: immediate` or remove.
+Error: `flush: immediately` is no longer supported. Replace with `flush: immediate`.
 ```
 
 No silent acceptance.
@@ -299,9 +307,9 @@ Set component.story_filter in designbook.config.yml or use a supported framework
 ### Unit Tests (`packages/storybook-addon-designbook`, vitest)
 
 - `resolvers/components_index.test.ts` — Index JSON with the SDC default pattern; user-override pattern takes precedence; unknown framework fails with the expected message; dedupe across multiple stories of one component; empty index.
-- `cli/workflow-resolve.test.ts` — `submission:` accepted with each enum value; missing defaults to `data`; `flush:` produces the removal error.
-- `cli/workflow-instructions.test.ts` — Hint section emitted only when data-submission results exist; schema names come from `$ref` last segment; direct-submission results appear in a separate block.
-- `cli/workflow-done.test.ts` — Submission enforcement; error includes the hint text.
+- `cli/workflow-resolve.test.ts` — `submission:` and `flush:` accepted with each enum value; both default correctly (`data` / `deferred`); `flush: immediately` fails with the rename error.
+- `cli/workflow-instructions.test.ts` — Hint section emitted only when data-submission results exist; schema names come from `$ref` last segment; direct-submission results appear in a separate block; `flush: immediate` properties are annotated inline.
+- `cli/workflow-done.test.ts` — Enforcement triggers on any `submission: data` result; error includes the hint text.
 - `validators/scene.test.ts` — Phantom id fails; known id passes; runs independently of schema enum as safety net.
 
 ### Integration Test (Fixtures)
@@ -316,10 +324,10 @@ Set component.story_filter in designbook.config.yml or use a supported framework
 
 ### Migration Guard (CI)
 
-Repo-wide grep check fails the build if `flush:` appears in any `.md` frontmatter or referenced field under `.agents/skills/` or `packages/storybook-addon-designbook/src/` after the migration lands.
+Repo-wide grep check fails the build if `flush:\s*immediately` appears under `.agents/skills/` or `packages/storybook-addon-designbook/src/` after the migration lands.
 
 ## Rollout
 
-Single-change delivery — no feature flag, no phased rollout. The `flush:` → `submission:` migration is a find-and-replace across task files, performed atomically with the schema-parser change. The Stories-Index resolver lands together with the `create-scene` task-param addition so scenes always have an inventory. Thin atom blueprints land with the intake rewrite.
+Single-change delivery — no feature flag, no phased rollout. The `flush: immediately` → `flush: immediate` rename and the `submission:` addition land atomically with the schema-parser change. The Stories-Index resolver lands together with the `create-scene` task-param addition so scenes always have an inventory. Thin atom blueprints land with the intake rewrite.
 
 Rollback: a single revert restores the prior behaviour. No on-disk artifacts are migrated — test workspaces are regenerated from fixtures, so any state lives ephemerally in workspace directories.
