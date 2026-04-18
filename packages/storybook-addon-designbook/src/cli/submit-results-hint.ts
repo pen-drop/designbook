@@ -4,11 +4,11 @@ interface ResultProperty {
   type?: string;
   submission?: 'data' | 'direct';
   flush?: 'deferred' | 'immediate';
+  [key: string]: unknown;
 }
 
-interface SchemaShape {
-  result?: { properties?: Record<string, ResultProperty> };
-}
+/** Schema shape: a flat map of result key to its resolved SchemaEntry, as produced by buildSchemaBlock. */
+type ResultMap = Record<string, ResultProperty>;
 
 function typeLabel(prop: ResultProperty): string {
   if (prop.$ref) {
@@ -18,12 +18,18 @@ function typeLabel(prop: ResultProperty): string {
   return `<${prop.type ?? 'any'}>`;
 }
 
-export function renderSubmitResultsHint(taskId: string, schema: SchemaShape): string | null {
-  const props = schema.result?.properties ?? {};
+/**
+ * Render a markdown "Submit results" hint for a task stage.
+ *
+ * @param taskId   The resolved task identifier to embed in the `workflow done --task <id>` example.
+ * @param results  The flat `result` map from a SchemaBlock, mapping each result key to its SchemaEntry.
+ * @returns        A markdown string, or `null` when no `submission: data` entries with a path exist.
+ */
+export function renderSubmitResultsHint(taskId: string, results: ResultMap): string | null {
   const data: Array<[string, ResultProperty]> = [];
   const direct: Array<[string, ResultProperty]> = [];
 
-  for (const [key, prop] of Object.entries(props)) {
+  for (const [key, prop] of Object.entries(results)) {
     if (!prop.path) continue;
     const sub = prop.submission ?? 'data';
     if (sub === 'direct') {

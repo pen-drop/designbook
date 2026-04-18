@@ -40,6 +40,81 @@ function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
   return matches[0]!;
 }
 
+export interface InstructionsResult {
+  stage: string;
+  task_file: string | undefined;
+  rules: string[];
+  blueprints: string[];
+  config_rules: string[];
+  config_instructions: string[];
+  schema?: import('../schema-block.js').SchemaBlock;
+  submit_results?: string;
+}
+
+export type InstructionsError = { error: string; availableStages: string[] | null };
+
+/**
+ * Build the instructions payload for a given (workflow, stage) pair by reading the tasks.yml
+ * at `<dataDir>/workflows/changes/<workflow>/tasks.yml`. Exported for integration testing.
+ */
+export function buildInstructions(
+  dataDir: string,
+  workflowName: string,
+  stageName: string,
+): InstructionsResult | InstructionsError {
+  const tasksYmlPath = resolve(dataDir, 'workflows', 'changes', workflowName, 'tasks.yml');
+  if (!existsSync(tasksYmlPath)) {
+    return { error: `workflow not found: ${workflowName}`, availableStages: null };
+  }
+
+  const data = readWorkflow(tasksYmlPath);
+
+  // Transition from waiting back to running when AI resumes work
+  if (data.status === 'waiting') {
+    data.status = 'running';
+    delete data.waiting_message;
+    writeWorkflowAtomic(tasksYmlPath, data);
+  }
+
+  // Resolve stage name: try direct key first, then look up via stages definition
+  let resolvedKey = stageName;
+  if (data.stage_loaded && !data.stage_loaded[resolvedKey]) {
+    const stageEntry = data.stages?.[stageName];
+    if (stageEntry?.steps?.[0] && data.stage_loaded[stageEntry.steps[0]]) {
+      resolvedKey = stageEntry.steps[0];
+    }
+  }
+
+  if (!data.stage_loaded || !data.stage_loaded[resolvedKey]) {
+    return {
+      error: `no resolved data for stage "${stageName}"`,
+      availableStages: data.stage_loaded ? Object.keys(data.stage_loaded) : [],
+    };
+  }
+
+  // Paths already resolved by readWorkflow
+  const rawStage = data.stage_loaded[resolvedKey]!;
+  const stage = Array.isArray(rawStage) ? rawStage[0]! : rawStage;
+  const taskFile = stage.task_file || undefined;
+  const rules = stage.rules ?? [];
+  const blueprints = stage.blueprints ?? [];
+
+  // Include schema if present (unified schema block from resolution time)
+  const schema = stage.schema;
+  const submitResults = schema ? renderSubmitResultsHint(resolvedKey, schema.result) : null;
+
+  return {
+    stage: stageName,
+    task_file: taskFile,
+    rules,
+    blueprints,
+    config_rules: stage.config_rules ?? [],
+    config_instructions: stage.config_instructions ?? [],
+    ...(schema ? { schema } : {}),
+    ...(submitResults ? { submit_results: submitResults } : {}),
+  };
+}
+
 export function register(program: Command): void {
   const workflow = program.command('workflow').description('Manage workflow tracking');
 
@@ -280,72 +355,24 @@ export function register(program: Command): void {
     .requiredOption('--stage <name>', 'Stage name (e.g., intake, create-component)')
     .action((opts: { workflow: string; stage: string }) => {
       const config = loadConfig();
-      const changesDir = resolve(config.data, 'workflows', 'changes', opts.workflow);
-      const tasksYmlPath = resolve(changesDir, 'tasks.yml');
+      const result = buildInstructions(config.data, opts.workflow, opts.stage);
 
-      if (!existsSync(tasksYmlPath)) {
-        console.error(`Error: workflow not found: ${opts.workflow}`);
+      if ('error' in result) {
+        const suffix =
+          result.availableStages === null
+            ? ''
+            : `. Available stages: ${result.availableStages.length > 0 ? result.availableStages.join(', ') : 'none'}.`;
+        console.error(`Error: ${result.error}${suffix}`);
         process.exitCode = 1;
         return;
       }
 
-      const data = readWorkflow(tasksYmlPath);
-
-      // Transition from waiting back to running when AI resumes work
-      if (data.status === 'waiting') {
-        data.status = 'running';
-        delete data.waiting_message;
-        writeWorkflowAtomic(tasksYmlPath, data);
-      }
-
-      // Resolve stage name: try direct key first, then look up via stages definition
-      let resolvedKey = opts.stage;
-      if (data.stage_loaded && !data.stage_loaded[resolvedKey]) {
-        const stageEntry = data.stages?.[opts.stage];
-        if (stageEntry?.steps?.[0] && data.stage_loaded[stageEntry.steps[0]]) {
-          resolvedKey = stageEntry.steps[0];
-        }
-      }
-
-      if (!data.stage_loaded || !data.stage_loaded[resolvedKey]) {
-        console.error(
-          `Error: no resolved data for stage "${opts.stage}". ` +
-            `Available stages: ${data.stage_loaded ? Object.keys(data.stage_loaded).join(', ') : 'none'}.`,
-        );
-        process.exitCode = 1;
-        return;
-      }
-
-      // Paths already resolved by readWorkflow
-      const rawStage = data.stage_loaded[resolvedKey]!;
-      const stage = Array.isArray(rawStage) ? rawStage[0]! : rawStage;
-      const taskFile = stage.task_file || undefined;
-      const rules = stage.rules ?? [];
-      const blueprints = stage.blueprints ?? [];
-
-      // Include schema if present (unified schema block from resolution time)
-      const schema = (stage as unknown as Record<string, unknown>).schema ?? undefined;
-      const submitResults =
-        schema && typeof schema === 'object'
-          ? renderSubmitResultsHint(resolvedKey, schema as Parameters<typeof renderSubmitResultsHint>[1])
-          : null;
-
-      const instructionsResult = {
-        stage: opts.stage,
-        task_file: taskFile,
-        rules,
-        blueprints,
-        config_rules: stage.config_rules ?? [],
-        config_instructions: stage.config_instructions ?? [],
-        ...(schema ? { schema } : {}),
-        ...(submitResults ? { submit_results: submitResults } : {}),
-      };
       log({
         cmd: 'workflow instructions',
         args: { workflow: opts.workflow, stage: opts.stage },
-        result: { stage: opts.stage, rules: rules.length, blueprints: blueprints.length },
+        result: { stage: opts.stage, rules: result.rules.length, blueprints: result.blueprints.length },
       });
-      console.log(JSON.stringify(instructionsResult, null, 2));
+      console.log(JSON.stringify(result, null, 2));
     });
 
   workflow
