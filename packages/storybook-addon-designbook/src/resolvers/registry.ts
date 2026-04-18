@@ -5,6 +5,7 @@ import { storyUrlResolver } from './story-url.js';
 import { referenceFolderResolver } from './reference-folder.js';
 import { breakpointsResolver } from './breakpoints.js';
 import { scenePathResolver } from './scene-path.js';
+import { componentsIndexResolver } from './components-index.js';
 
 interface ParamDeclaration {
   type?: string;
@@ -35,6 +36,7 @@ register(storyUrlResolver);
 register(referenceFolderResolver);
 register(breakpointsResolver);
 register(scenePathResolver);
+register(componentsIndexResolver);
 
 export const resolverRegistry = {
   get(name: string): ParamResolver | undefined {
