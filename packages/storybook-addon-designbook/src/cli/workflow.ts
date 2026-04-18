@@ -28,6 +28,7 @@ import {
 } from '../workflow-resolve.js';
 import { resolveParams } from '../resolvers/registry.js';
 import type { ResolverContext } from '../resolvers/types.js';
+import { renderSubmitResultsHint } from './submit-results-hint.js';
 import { initLogger, log } from '../logger.js';
 
 // Resolve a workflow .md file from a workflow ID by scanning skills directories (same glob mechanism as tasks/rules).
@@ -324,6 +325,10 @@ export function register(program: Command): void {
 
       // Include schema if present (unified schema block from resolution time)
       const schema = (stage as unknown as Record<string, unknown>).schema ?? undefined;
+      const submitResults =
+        schema && typeof schema === 'object'
+          ? renderSubmitResultsHint(resolvedKey, schema as Parameters<typeof renderSubmitResultsHint>[1])
+          : null;
 
       const instructionsResult = {
         stage: opts.stage,
@@ -333,6 +338,7 @@ export function register(program: Command): void {
         config_rules: stage.config_rules ?? [],
         config_instructions: stage.config_instructions ?? [],
         ...(schema ? { schema } : {}),
+        ...(submitResults ? { submit_results: submitResults } : {}),
       };
       log({
         cmd: 'workflow instructions',
