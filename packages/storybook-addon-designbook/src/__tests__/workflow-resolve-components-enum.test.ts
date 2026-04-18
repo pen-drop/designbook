@@ -45,4 +45,10 @@ describe('injectComponentsEnum', () => {
     const out = injectComponentsEnum(schema, ['ns:a']);
     expect(out).toEqual(schema);
   });
+
+  it('handles ComponentNode without properties.component gracefully', () => {
+    const schema = { ComponentNode: { type: 'object', properties: { other: { type: 'string' } } } };
+    const out = injectComponentsEnum(schema, ['ns:a']);
+    expect(out).toEqual(schema);
+  });
 });

@@ -232,6 +232,12 @@ export interface TaskForSchemaResolution {
  *
  * Used at plan time (via `collectAndResolveSchemas`) and again at runtime when new
  * tasks are expanded during stage transitions (e.g. via `expandTasksFromParams`).
+ *
+ * After $ref resolution, if any task carries a resolved `components` param with
+ * an inventory of `{id: string}` entries, returns a clone of the schemas map with
+ * `ComponentNode.component` constrained to those ids via `injectComponentsEnum`.
+ * Only the first task with a non-empty inventory is used; callers must not stage
+ * conflicting inventories across tasks.
  */
 export function resolveSchemasForTasks(
   tasks: TaskForSchemaResolution[],
