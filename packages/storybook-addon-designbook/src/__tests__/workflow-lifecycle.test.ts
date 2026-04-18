@@ -160,7 +160,7 @@ describe('getNextStage — outtake stages', () => {
   it('includes outtake stage in lifecycle order', () => {
     const stages = {
       intake: { steps: ['design-shell:intake'] },
-      component: { steps: ['create-component'], each: 'component' },
+      component: { steps: ['create-component'], each: 'components' },
       scene: { steps: ['design-shell:create-scene'], each: 'scene' },
       outtake: { steps: ['design-shell:outtake'] },
     };
