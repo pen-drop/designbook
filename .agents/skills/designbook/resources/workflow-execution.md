@@ -183,22 +183,22 @@ Task results are driven by the `result:` schema in the task's frontmatter. The `
 Pass all results — both file and data — as a single JSON object via `--data` on `workflow done`.
 The CLI serializes to the target format, validates the schema on the raw data, and runs semantic validators.
 
-By default, file results are staged (written to a `.debo` suffix path) and flushed atomically on stage transition. Results declared with `flush: immediately` in the task's result schema are written to their final path directly — the AI does not need to pass any flush flag.
+By default, file results are staged (written to a `.debo` suffix path) and flushed atomically on stage transition. Results declared with `flush: immediate` in the task's result schema are written to their final path as soon as `workflow done` completes — the AI does not need to pass any flush flag.
+
+**Direct-submission file results** (`submission: direct`):
+
+The file is written by an external tool (Playwright screenshot, CLI invocation, etc.). The task code produces the file; the workflow CLI only runs post-write validation. Such results are registered via `workflow result` when produced outside the normal `--data` path.
 
 ```bash
 _debo workflow done --workflow $WORKFLOW_NAME --task <task-id> \
   --data '{"vision": {"product_name": "...", "description": "..."}}'
 ```
 
-**External file results** (result declaration has `flush: external`):
-For files that cannot be written through the CLI (e.g. Playwright screenshots).
-The AI writes the file directly, then registers via `workflow result` (no `--external` flag needed — the declaration controls this).
-
 > ⛔ **GLOBAL RULE — no exceptions:**
 > File results declared in `result:` frontmatter MUST be submitted via `workflow done --data`.
 > Writing a result file directly with the Write tool or any other mechanism is **forbidden**.
 > `workflow done` will fail if it detects a file at a declared result path that was not submitted through the workflow.
-> The only exception is `flush: external` — results with this declaration are written by an external tool (e.g. Playwright) and registered via `workflow result`.
+> The only exception to the `workflow done --data` pattern is `submission: direct` — those results are written by an external tool and registered via `workflow result`.
 
 ### 2c. Mark Task Done
 

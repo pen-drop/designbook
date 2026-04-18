@@ -164,31 +164,26 @@ workflow result --task <task-id> --key <key> --json '<json-data>'
 
 Stores structured data inline in `tasks.yml`. Data results flow into the workflow scope when the stage completes, making them available to subsequent stages via `each:`.
 
-### File result — external (file already written to staged path)
+### File result — submission and flush
 
-```bash
-workflow result --task <task-id> --key <key> --external
-```
-
-Use `--external` when the file was already written to the staged path by an external tool (e.g. Playwright). Skips stdin, validates the existing file, and updates task state.
-
-### File result — with immediate flush
-
-Files with `flush: immediately` in their result declaration are written directly to the final path instead of being staged. This is declared in the task frontmatter, not as a CLI argument:
+Results declare two orthogonal fields in the task frontmatter: `submission:` (who produces the content) and `flush:` (when it lands on disk). Both have defaults, so simple tasks need neither.
 
 ```yaml
 result:
   type: object
-  required: [design-reference]
   properties:
-    design-reference:
-      path: $DESIGNBOOK_DATA/design-reference.md
-      flush: immediately
+    extract:
+      path: "{{ reference_dir }}/extract.json"
+      flush: immediate            # write when `workflow done` completes, before stage flush
+    component-yml:
+      path: "components/{{name}}/{{name}}.component.yml"
+      # submission: data  flush: deferred   (implicit defaults)
+    screenshot:
+      path: "screenshots/{{ story_id }}.png"
+      submission: direct          # task code writes the file (e.g. Playwright); CLI only validates
 ```
 
-Use `flush: immediately` when the file must be readable by subsequent steps within the same task (e.g. extract-reference writes a file that the same intake task reads next).
-
-Without `flush: immediately`, files remain staged until the stage completes.
+Use `flush: immediate` when the file must be readable by subsequent steps within the same task (e.g. extract-reference writes a file that the same intake task reads next). `submission: direct` is for outputs produced by external tools whose content can't be round-tripped through `--data`.
 
 ### Path mode — direct write
 

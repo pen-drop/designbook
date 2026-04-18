@@ -40,7 +40,7 @@ result:                                       # task-specific: output declaratio
   `frameworks.*`, `extensions`, `type` are AND-connected (every key must match). Evaluated against
   project config.
 - `each` — declares what this task iterates over. Each key is a **binding name** (singular, e.g. `check`, `variant`). Each value is a JSONata expression against task scope, either as a short-form string (`check: "checks"`) or long form `{ expr: "<jsonata>", schema: { $ref: … } }`. The engine evaluates the expression, binds every array item to the scope under the binding name, and expands one task instance per item. Multiple bindings produce the cross-product; inner axes can reference earlier bindings (e.g. `variant: "component.variants"`). Helpers `$i` and `$total` are available inside each expanded task.
-- `result` — declares all task outputs. Each key is a stable identifier. File results include a `path:` template (supports `$ENV` and `{{ param }}`). Optional `flush: immediately` writes to final path on result write instead of staging. Data results declare a JSON Schema type (inline or `$ref`). Both support optional `validators:` for semantic validation.
+- `result` — declares all task outputs. Each key is a stable identifier. File results include a `path:` template (supports `$ENV` and `{{ param }}`) and optional `submission: data | direct` (default `data`) and `flush: deferred | immediate` (default `deferred`). Data results declare a JSON Schema type (inline or `$ref`). Both support optional `validators:` for semantic validation.
 - `validators` — semantic validator keys: `data`, `entity-mapping`, `scene`, `image`, or `cmd:<command>` prefix for arbitrary command validators. Empty = auto-pass.
 
 ### JSONata interpolation in `{{ … }}` templates
@@ -148,7 +148,7 @@ tasks:
 
 **`result:` vs `reads:` in task files:**
 
-- `result:` — output declarations. File results (with `path:`) are written to disk; optional `flush: immediately` bypasses staging. Data results (without `path:`) are passed inline via `--data` on `workflow done`. The engine validates immediately on write (JSON Schema + semantic validators). Data results flow into scope at stage completion.
+- `result:` — output declarations. File results (with `path:`) default to `submission: data` + `flush: deferred` (AI returns the value via `--data`, CLI writes at stage flush). Override `flush: immediate` to write on `workflow done`; override `submission: direct` when an external tool writes the file. Data results (without `path:`) are passed inline via `--data` on `workflow done`. The engine validates immediately on write (JSON Schema + semantic validators). Data results flow into scope at stage completion.
 - `reads:` — input paths using real `DESIGNBOOK_DATA`-relative vars. Never remapped — always point to the actual filesystem so subagents can read pre-existing files.
 
 **Result state:**
