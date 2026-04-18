@@ -13,6 +13,7 @@ import {
   workflowMerge,
   readWorkflow,
   writeWorkflowAtomic,
+  expandTasksFromParams,
 } from '../workflow.js';
 import { load as parseYaml } from 'js-yaml';
 import { globSync } from 'glob';
@@ -287,9 +288,8 @@ export function register(program: Command): void {
         const firstTaskId = firstStepName ?? 'task-1';
 
         // Intake-skip: when caller passes a non-empty `components` param to
-        // design-component, seed scope from it and emit zero intake tasks. The
-        // engine's "stage with no tasks → keep walking" path then transitions
-        // straight to the next stage, which expands from the seeded scope.
+        // design-component, seed scope from it and pre-expand the next stage's
+        // tasks at create-time (same logic the engine runs at stage transitions).
         const skipIntake =
           opts.workflow === 'design-component' &&
           Array.isArray(initialParams?.components) &&
@@ -298,28 +298,70 @@ export function register(program: Command): void {
           ? { components: initialParams!.components }
           : undefined;
 
-        const firstTask =
-          !skipIntake && firstStepName && firstStageName && firstResolved
-            ? [
-                {
-                  id: firstTaskId,
-                  title: `${title}: ${firstStepName}`,
-                  type: 'data' as const,
-                  step: firstStepName,
-                  stage: firstStageName,
-                  files: [] as Array<{ path: string; key: string; validators: string[] }>,
-                  ...(firstResult ? { result: firstResult } : {}),
-                  task_file: firstResolved.task_file,
-                  rules: firstResolved.rules,
-                  blueprints: firstResolved.blueprints,
-                  config_rules: firstResolved.config_rules,
-                  config_instructions: firstResolved.config_instructions,
-                },
-              ]
-            : [];
-
         const workspaceRoot = (config.workspace as string | undefined) ?? configDir;
         const envMap = buildEnvMap(config);
+
+        // Build the initial task list. Default: a singleton first task for the
+        // first resolved stage. Skip-intake: pre-expand the second stage from
+        // seeded scope and use those expanded tasks instead.
+        type CreateTask = Parameters<typeof workflowCreate>[3][number];
+        let firstTask: CreateTask[] = [];
+        const taskIds: Record<string, string> = {};
+
+        if (skipIntake && resolved.stages) {
+          // Find the stage immediately after the first one (the intake stage we're skipping).
+          const stageNames = Object.keys(resolved.stages);
+          const skipStageIdx = firstStageName ? stageNames.indexOf(firstStageName) : 0;
+          const nextStageName = stageNames[skipStageIdx + 1];
+          const nextStageDef = nextStageName ? resolved.stages[nextStageName] : undefined;
+          if (nextStageName && nextStageDef) {
+            const expanded = await expandTasksFromParams(
+              resolved.step_resolved,
+              { [nextStageName]: nextStageDef },
+              initialParams ?? {},
+              [],
+              envMap,
+              initialScope,
+              config,
+            );
+            firstTask = expanded.map((t) => ({
+              id: t.id,
+              title: t.title,
+              type: t.type,
+              step: t.step,
+              stage: t.stage,
+              files: t.files,
+              ...(t.result ? { result: t.result } : {}),
+              task_file: t.task_file,
+              rules: t.rules,
+              blueprints: t.blueprints,
+              config_rules: t.config_rules,
+              config_instructions: t.config_instructions,
+            }));
+            for (const t of firstTask) {
+              if (t.step) taskIds[t.step] = t.id;
+            }
+          }
+        } else if (firstStepName && firstStageName && firstResolved) {
+          firstTask = [
+            {
+              id: firstTaskId,
+              title: `${title}: ${firstStepName}`,
+              type: 'data' as const,
+              step: firstStepName,
+              stage: firstStageName,
+              files: [] as Array<{ path: string; key: string; validators: string[] }>,
+              ...(firstResult ? { result: firstResult } : {}),
+              task_file: firstResolved.task_file,
+              rules: firstResolved.rules,
+              blueprints: firstResolved.blueprints,
+              config_rules: firstResolved.config_rules,
+              config_instructions: firstResolved.config_instructions,
+            },
+          ];
+          taskIds[firstStepName] = firstTaskId;
+        }
+
         const name = workflowCreate(
           config.data,
           opts.workflow,
@@ -335,13 +377,6 @@ export function register(program: Command): void {
           envMap,
           initialScope,
         );
-
-        // Build task_ids map: step name → actual task ID. When intake was
-        // skipped, no first task was emitted, so leave the map empty.
-        const taskIds: Record<string, string> = {};
-        if (firstStepName && !skipIntake) {
-          taskIds[firstStepName] = firstTaskId;
-        }
 
         // Output JSON with workflow name + all resolved steps
         const createResult = {

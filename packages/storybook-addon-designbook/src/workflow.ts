@@ -394,7 +394,9 @@ export function workflowCreate(
     ...(initialParams && Object.keys(initialParams).length > 0 ? { params: initialParams } : {}),
     ...(stages && Object.keys(stages).length > 0 ? { stages } : {}),
     ...(stageLoaded ? { stage_loaded: stageLoaded } : {}),
-    ...(stages && Object.keys(stages).length > 0 ? { current_stage: Object.keys(stages)[0] } : {}),
+    ...(stages && Object.keys(stages).length > 0
+      ? { current_stage: tasks[0]?.stage ?? Object.keys(stages)[0] }
+      : {}),
     started_at: timestamp(),
     completed_at: undefined,
     ...(workspaceRoot ? { workspace_root: workspaceRoot } : {}),
