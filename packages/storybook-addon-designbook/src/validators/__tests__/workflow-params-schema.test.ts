@@ -601,6 +601,67 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     expect(tasks[1]!.params!.group).toBe('atoms');
   });
 
+  it('runs per-iteration resolvers for each-expanded items', async () => {
+    // Covers the case where a task uses `each: section` with a bound object
+    // and a dependent `resolve:` param (e.g. scene_path derived from
+    // section.id). The resolver must run PER iteration so that
+    // result-path templates like `{{ scene_path }}` can be expanded.
+    const taskFile = writeTaskFile(
+      'create-section',
+      [
+        'trigger:',
+        '  steps: [create-section]',
+        'params:',
+        '  type: object',
+        '  required: [section]',
+        '  properties:',
+        '    section: { type: object }',
+        '    scene_path:',
+        '      type: string',
+        '      resolve: scene_path',
+        '      from: section.id',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    section-scenes:',
+        '      path: "$DATA/{{ scene_path }}"',
+        '      type: object',
+        'each:',
+        '  section:',
+        '    expr: "section"',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-section'] },
+    };
+    const params = {
+      section: [
+        { id: 'homepage', title: 'Homepage' },
+        { id: 'ausbildung', title: 'Ausbildung' },
+      ],
+    };
+    const envMap = { DATA: '/tmp/data' };
+
+    const tasks = await expandTasksFromParams(
+      makeStageLoaded({ 'create-section': taskFile }),
+      stages,
+      params,
+      [],
+      envMap,
+    );
+
+    expect(tasks).toHaveLength(2);
+
+    expect(tasks[0]!.params!.scene_path).toBe('sections/homepage/homepage.section.scenes.yml');
+    expect(tasks[0]!.result!['section-scenes']!.path).toBe('/tmp/data/sections/homepage/homepage.section.scenes.yml');
+
+    expect(tasks[1]!.params!.scene_path).toBe('sections/ausbildung/ausbildung.section.scenes.yml');
+    expect(tasks[1]!.result!['section-scenes']!.path).toBe(
+      '/tmp/data/sections/ausbildung/ausbildung.section.scenes.yml',
+    );
+  });
+
   it('expands each: nested jsonata expression flattens variants across components', async () => {
     const taskFile = writeTaskFile(
       'create-variant-story',

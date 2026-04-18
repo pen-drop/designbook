@@ -18,7 +18,7 @@ import {
 } from '../../workflow.js';
 import type { DesignbookConfig } from '../../config.js';
 import { getValidatorKeys, getValidator, validateByKeys } from '../../validation-registry.js';
-import { expandFileDeclarations, type TaskFileDeclaration } from '../../workflow-resolve.js';
+import { expandFileDeclarations, expandResultDeclarations, type TaskFileDeclaration } from '../../workflow-resolve.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -77,6 +77,40 @@ describe('expandFileDeclarations', () => {
     const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test', validators: ['data'] }];
     const knownKeys = new Set(['data', 'scene']);
     await expect(expandFileDeclarations(declarations, {}, {}, knownKeys)).resolves.not.toThrow();
+  });
+});
+
+// ── expandResultDeclarations ────────────────────────────────────────────────
+
+describe('expandResultDeclarations path interpolation', () => {
+  it('resolves {{ param }} in result file path against params', async () => {
+    const resultDecl = {
+      properties: {
+        reference: {
+          path: '{{ reference_folder }}/extract.json',
+          type: 'object',
+        },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, { reference_folder: '/d/references/abc' }, {});
+    expect(result?.reference?.path).toBe('/d/references/abc/extract.json');
+  });
+
+  it('leaves single-brace {param} literal — legacy syntax not supported', async () => {
+    // Regression: extract-reference.md once used `{reference_folder}/extract.json`
+    // which the JSONata-based interpolator silently passed through. Task authors
+    // must use `{{ param }}` for resolved params; bare `{param}` is reserved for
+    // each-expansion iterator placeholders filled at step expansion time.
+    const resultDecl = {
+      properties: {
+        reference: {
+          path: '{reference_folder}/extract.json',
+          type: 'object',
+        },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, { reference_folder: '/d/references/abc' }, {});
+    expect(result?.reference?.path).toBe('{reference_folder}/extract.json');
   });
 });
 

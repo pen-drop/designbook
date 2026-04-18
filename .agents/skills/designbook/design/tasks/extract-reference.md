@@ -25,7 +25,7 @@ result:
       $ref: ../schemas.yml#/ReferenceFolder
     reference:
       type: object
-      path: "{reference_folder}/extract.json"
+      path: "{{ reference_folder }}/extract.json"
       $ref: ../schemas.yml#/DesignReference
     screenshot:
       type: string

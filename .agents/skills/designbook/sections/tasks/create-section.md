@@ -18,7 +18,7 @@ params:
     scene_path:
       type: string
       resolve: scene_path
-      from: section.section_id
+      from: section.id
 result:
   type: object
   required: [section-scenes]
@@ -67,12 +67,12 @@ Show the specification and iterate until satisfied.
 
 ## Output Format
 
-**For the `sections` workflow** (intake only provides `section_id`, `section_title`, `description`, `order`):
+**For the `sections` workflow** (intake only provides `id`, `title`, `description`, `order`):
 
 ```yaml
-id: {{ section.section_id }}
-group: "Designbook/Sections/{{ section.section_title }}"
-title: "{{ section.section_title }}"
+id: {{ section.id }}
+group: "Designbook/Sections/{{ section.title }}"
+title: "{{ section.title }}"
 description: "{{ section.description }}"
 status: planned
 order: {{ section.order }}
@@ -82,9 +82,9 @@ scenes: []
 **For the `shape-section` workflow** (also provides `user_flows`, `ui_requirements`, `use_shell`):
 
 ```yaml
-id: {{ section.section_id }}
-group: "Designbook/Sections/{{ section.section_title }}"
-title: "{{ section.section_title }}"
+id: {{ section.id }}
+group: "Designbook/Sections/{{ section.title }}"
+title: "{{ section.title }}"
 description: "{{ section.description }}"
 status: shaped
 order: {{ section.order }}
@@ -98,7 +98,7 @@ scenes: []
 - If `user_flows` and `ui_requirements` are provided (non-empty), include them
 - If `order` is not provided, omit it
 - `scenes` starts as empty array — populated later by `/debo design-screen`
-- **`group:`** must always be `"Designbook/Sections/{{ section.section_title }}"` — required in both workflows
+- **`group:`** must always be `"Designbook/Sections/{{ section.title }}"` — required in both workflows
 
 ## Constraints
 

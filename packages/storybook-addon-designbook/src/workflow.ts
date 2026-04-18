@@ -437,6 +437,7 @@ export async function expandTasksFromParams(
   existingTasks: WorkflowTask[],
   envMap: Record<string, string>,
   scope?: Record<string, unknown>,
+  config?: import('./config.js').DesignbookConfig,
 ): Promise<WorkflowTask[]> {
   // Merge scope into lookup — scope takes precedence for each: arrays
   const lookup = { ...params, ...(scope ?? {}) };
@@ -585,6 +586,34 @@ export async function expandTasksFromParams(
         }
 
         const mergedParams = validateAndMergeParams(itemParams, schemaParams, step);
+
+        // Per-iteration resolvers: task-level `resolve:` params (e.g. scene_path)
+        // may depend on each-bound fields (e.g. section.id) that only exist
+        // after this item is merged. Re-run resolvers here so result-path templates
+        // like `{{ scene_path }}` can interpolate successfully.
+        const resolverSchema: Record<string, Record<string, unknown>> = {};
+        const schemaProperties = (schemaParams.properties ?? {}) as Record<string, unknown>;
+        for (const [key, value] of Object.entries(schemaProperties)) {
+          if (typeof value !== 'object' || value === null) continue;
+          const decl = value as Record<string, unknown>;
+          if (typeof decl.resolve === 'string') {
+            resolverSchema[key] = decl;
+          }
+        }
+        if (Object.keys(resolverSchema).length > 0) {
+          const { resolveParams } = await import('./resolvers/registry.js');
+          const resolverConfig = config ?? { data: '', technology: 'html' as const, extensions: [] };
+          const resolveResult = await resolveParams(resolverSchema, {
+            config: resolverConfig,
+            params: mergedParams,
+          });
+          for (const [key, value] of Object.entries(resolveResult.params)) {
+            if (!(key in mergedParams) || mergedParams[key] === undefined || mergedParams[key] === '') {
+              mergedParams[key] = value;
+            }
+          }
+        }
+
         let taskId = generateTaskId(step, mergedParams, schemaParams, itemIdx);
 
         // Deduplicate against existing IDs
@@ -1215,6 +1244,7 @@ export async function workflowDone(
               data.tasks,
               scopeEnvMap,
               data.scope,
+              options?.config,
             );
             if (expanded.length > 0) {
               data.tasks.push(...expanded);

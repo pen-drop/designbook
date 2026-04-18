@@ -13,7 +13,7 @@ params:
       workflow: /debo-vision
       type: object
     extract:
-      path: "{reference_dir}/extract.json"
+      path: "{{ reference_dir }}/extract.json"
       $ref: ../../design/schemas.yml#/DesignReference
       type: object
     design_tokens:

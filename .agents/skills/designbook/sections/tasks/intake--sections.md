@@ -60,8 +60,8 @@ Keep iterating until the user approves. Once confirmed, the `create-section` sta
 Each approved section becomes an entry in the `section` array (keyed by `each: section`):
 ```json
 {"section": [
-  {"section_id": "dashboard", "section_title": "Dashboard", "description": "...", "order": 1},
-  {"section_id": "training", "section_title": "Training", "description": "...", "order": 2}
+  {"id": "dashboard", "title": "Dashboard", "description": "...", "order": 1},
+  {"id": "training", "title": "Training", "description": "...", "order": 2}
 ]}
 ```
 
