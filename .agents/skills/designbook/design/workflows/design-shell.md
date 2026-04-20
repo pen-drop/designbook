@@ -2,9 +2,17 @@
 title: Design Shell
 description: Design the application shell -- page component with header, content, and footer slots
 params:
-  scene_id: { type: string, default: "design-system:shell" }
-  section_id: { type: string, default: "shell" }
-  section_title: { type: string, default: "Shell" }
+  section:
+    type: object
+    default:
+      id: shell
+      group: "Designbook/Design System"
+      title: "Shell"
+      status: planned
+  scene_path:
+    type: string
+    resolve: scene_path
+    from: section.id
   reference_url: { type: string, default: "" }
   reference_folder:
     type: string
@@ -21,7 +29,7 @@ stages:
   component:
     steps: [create-component]
   scene:
-    steps: [create-scene]  
+    steps: [create-scene-file, create-scene]
   validate:
     steps: [validate]
 engine: direct
