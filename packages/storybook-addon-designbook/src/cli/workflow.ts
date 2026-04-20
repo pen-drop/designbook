@@ -252,6 +252,7 @@ export function register(program: Command): void {
             envMap,
             undefined,
             true,
+            firstResolved.rules,
           );
 
           // Resolve $ref in result schemas inline

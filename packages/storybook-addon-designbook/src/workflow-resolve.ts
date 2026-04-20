@@ -1164,6 +1164,12 @@ export async function expandResultDeclarations(
   validatorKeys?: Set<string>,
   /** When true, leave unknown $VARS in paths instead of throwing. */
   lenient?: boolean,
+  /**
+   * Absolute paths to matched rule files for the current step. Scanned for
+   * string-valued `provides: <key>` frontmatter — each match becomes the
+   * provider for the result key with that name (attached as `provider_rule`).
+   */
+  ruleFiles?: string[],
 ): Promise<
   | Record<
       string,
@@ -1173,10 +1179,26 @@ export async function expandResultDeclarations(
         validators?: string[];
         submission: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
+        /** Absolute path to the rule whose `provides:` matches this result key. */
+        provider_rule?: string;
       }
     >
   | undefined
 > {
+  // Build provider map once: for each rule with a string-valued `provides:`
+  // frontmatter, record rule path by the key it provides.
+  const providerByKey: Record<string, string> = {};
+  if (ruleFiles && ruleFiles.length > 0) {
+    for (const rulePath of ruleFiles) {
+      const fm = parseFrontmatter(rulePath);
+      const provides = fm?.['provides'];
+      if (typeof provides === 'string' && provides.length > 0) {
+        // First rule wins per key — stable order matches matchRuleFiles output.
+        if (!(provides in providerByKey)) providerByKey[provides] = rulePath;
+      }
+    }
+  }
+
   // Prefer result: over files:
   if (resultDecl) {
     const properties = (resultDecl as Record<string, unknown>).properties as
@@ -1192,6 +1214,7 @@ export async function expandResultDeclarations(
         validators?: string[];
         submission: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
+        provider_rule?: string;
       }
     > = {};
     for (const [key, decl] of Object.entries(properties)) {
@@ -1257,6 +1280,7 @@ export async function expandResultDeclarations(
         validators?: string[];
         submission: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
+        provider_rule?: string;
       } = { submission };
       if (flush !== undefined) entry.flush = flush;
       if (decl.path) {
@@ -1264,6 +1288,7 @@ export async function expandResultDeclarations(
       }
       if (schema) entry.schema = schema;
       if (validators.length > 0) entry.validators = validators;
+      if (providerByKey[key]) entry.provider_rule = providerByKey[key];
 
       result[key] = entry;
     }
@@ -1280,6 +1305,7 @@ export async function expandResultDeclarations(
         validators?: string[];
         submission: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
+        provider_rule?: string;
       }
     > = {};
     const expanded = await expandFileDeclarations(filesDecl, params, envMap, validatorKeys);
@@ -1289,6 +1315,7 @@ export async function expandResultDeclarations(
         submission: 'data',
         flush: 'deferred',
         ...(f.validators.length > 0 && { validators: f.validators }),
+        ...(providerByKey[f.key] ? { provider_rule: providerByKey[f.key] } : {}),
       };
     }
     return result;
@@ -1976,7 +2003,15 @@ export async function resolveWorkflowPlan(
         const files = await expandFileDeclarations(fileDeclarations, mergedParams, envMap);
 
         // Expand result: declarations (new model), with files: fallback
-        const result = await expandResultDeclarations(taskFm?.result, taskFm?.files, mergedParams, envMap);
+        const result = await expandResultDeclarations(
+          taskFm?.result,
+          taskFm?.files,
+          mergedParams,
+          envMap,
+          undefined,
+          undefined,
+          resolved.rules,
+        );
 
         tasks.push({
           id: taskId,

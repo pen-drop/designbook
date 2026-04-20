@@ -94,6 +94,12 @@ export interface TaskResult {
   submission?: 'data' | 'direct';
   /** When the file lands on disk. `deferred` (default) = at stage flush; `immediate` = on `workflow done`. Ignored when `submission: direct`. */
   flush?: 'deferred' | 'immediate';
+  /**
+   * Absolute path to the rule whose `provides: <key>` frontmatter matches this
+   * result key. When set, the task-execution AI reads this rule's body to
+   * learn how to produce the value.
+   */
+  provider_rule?: string;
   /** Inline data value — stored for data results (no path). */
   value?: unknown;
   /** Whether the result has been written and validated. */
@@ -377,6 +383,7 @@ export function workflowCreate(
         validators?: string[];
         submission?: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
+        provider_rule?: string;
       }
     >;
     task_file?: string;
@@ -666,6 +673,8 @@ export async function expandTasksFromParams(
           mergedParams,
           envMap,
           knownValidators,
+          undefined,
+          resolved.rules,
         );
 
         tasks.push({
@@ -718,6 +727,7 @@ export function workflowPlan(
         validators?: string[];
         submission?: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
+        provider_rule?: string;
       }
     >;
     depends_on?: string[];
