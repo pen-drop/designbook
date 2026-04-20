@@ -12,7 +12,6 @@ import {
   workflowWait,
   workflowMerge,
   readWorkflow,
-  writeWorkflowAtomic,
   expandTasksFromParams,
 } from '../workflow.js';
 import { load as parseYaml } from 'js-yaml';
@@ -69,13 +68,6 @@ export function buildInstructions(
   }
 
   const data = readWorkflow(tasksYmlPath);
-
-  // Transition from waiting back to running when AI resumes work
-  if (data.status === 'waiting') {
-    data.status = 'running';
-    delete data.waiting_message;
-    writeWorkflowAtomic(tasksYmlPath, data);
-  }
 
   // Resolve stage name: try direct key first, then look up via stages definition
   let resolvedKey = stageName;
