@@ -1,4 +1,4 @@
----
+lik---
 trigger:
   steps: [create-scene, map-entity]
 ---
@@ -9,7 +9,9 @@ trigger:
 
 > ⛔ **`component:` values MUST always use `provider:component` format.**
 > Write `$DESIGNBOOK_COMPONENT_NAMESPACE:header`, NEVER just `header`.
-> `DESIGNBOOK_COMPONENT_NAMESPACE` is set by the workflow bootstrap (Rule 0).
+> The engine substitutes `$DESIGNBOOK_COMPONENT_NAMESPACE` (and any `$VAR` /
+> `${VAR}` env token) on `workflow done --data` submission. The scene file on
+> disk contains the resolved provider literal (e.g. `test_integration_drupal:page`).
 
 ```yaml
 # ✅ Correct — provider prefix on every component, including nested slots

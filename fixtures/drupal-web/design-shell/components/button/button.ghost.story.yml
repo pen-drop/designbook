@@ -1,0 +1,7 @@
+component: test_integration_drupal:button
+name: Ghost
+variant: ghost
+slots:
+  label:
+    - type: element
+      value: Suche

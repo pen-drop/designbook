@@ -1,0 +1,8 @@
+component: test_integration_drupal:link
+name: Default
+props:
+  href: /impressum
+slots:
+  label:
+    - type: element
+      value: Impressum

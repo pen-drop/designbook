@@ -1,0 +1,15 @@
+component: test_integration_drupal:page
+name: Default
+slots:
+  header:
+    - type: element
+      tag: div
+      value: Header region
+  content:
+    - type: element
+      tag: div
+      value: Main content
+  footer:
+    - type: element
+      tag: div
+      value: Footer region

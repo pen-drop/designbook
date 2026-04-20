@@ -1,6 +1,6 @@
 ---
 name: designbook:design:capture-reference
-title: "Capture Reference: {{ check.scene_id }} ({{ check.breakpoint }}/{{ check.region }})"
+title: "Capture Reference: {{ check.story_id }} ({{ check.breakpoint }}/{{ check.region }})"
 trigger:
   steps: [capture]
 filter:
@@ -22,6 +22,14 @@ params:
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
+result:
+  type: object
+  required: [screenshot]
+  properties:
+    screenshot:
+      path: "{{ reference_folder }}/{{ check.breakpoint }}--{{ check.region }}.png"
+      submission: direct
+      validators: [image]
 each:
   check:
     expr: "checks"

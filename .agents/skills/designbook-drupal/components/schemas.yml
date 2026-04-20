@@ -65,7 +65,11 @@ SdcComponent:
           description: Always literally `object` — props are declared as a JSON Schema object type.
         properties:
           type: object
-          description: Map of prop-name to JSON Schema type definition. Each prop uses camelCase or snake_case per the component's convention.
+          description: >
+            Map of prop-name to JSON Schema type definition. Prop names MUST match `^[A-Za-z_][A-Za-z0-9_]*$` (snake_case or camelCase).
+            Hyphens are forbidden — Twig cannot read `{{ my-prop }}` and the SDC addon emits unquoted JS identifiers from these keys.
+          propertyNames:
+            pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
         required:
           type: array
           description: Names of required props that MUST be passed for the component to render correctly. Omit when empty.
@@ -74,7 +78,11 @@ SdcComponent:
       type: object
       description: >
         Map of slot-name to slot metadata (`title`, `description`). Slots receive pre-rendered content from the caller.
-        Slot names MUST be snake_case (`main_content` ✅, `mainContent` ❌). Omit the `slots:` section when the component has none.
+        Slot names MUST match `^[A-Za-z_][A-Za-z0-9_]*$` — snake_case preferred (`main_content` ✅, `mainContent` ⚠️, `main-content` ❌).
+        Hyphens are forbidden: slots become Twig `{% block <name> %}` tags, and Twig identifiers cannot contain hyphens.
+        Omit the `slots:` section when the component has none.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
       additionalProperties:
         type: object
         properties:
@@ -83,8 +91,11 @@ SdcComponent:
     variants:
       type: object
       description: >
-        Map of variant-id (kebab-case) to variant metadata. Each variant must have a matching `<component>.<variant-id>.story.yml`.
-        Omit the `variants:` section when the component has none.
+        Map of variant-id to variant metadata. Variant IDs MUST match `^[A-Za-z_][A-Za-z0-9_]*$` (snake_case or camelCase).
+        Hyphens are forbidden: the Storybook SDC addon emits `export const ${capitalize(variantId)} = …` and `Mark-only` is not a valid JS identifier.
+        Each variant must have a matching `<component>.<variant-id>.story.yml`. Omit the `variants:` section when the component has none.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
       additionalProperties:
         type: object
         properties:
@@ -139,14 +150,23 @@ SdcStory:
       description: Story name shown in Storybook. Use `Default` for the primary story.
     variant:
       type: string
-      description: Variant id (kebab-case) when the story exercises a specific variant declared in `.component.yml`. Omit for the default variant.
+      pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      description: >
+        Variant id matching one declared under `.component.yml` → `variants:`. MUST match `^[A-Za-z_][A-Za-z0-9_]*$` (snake_case or camelCase).
+        Hyphens are forbidden: the Storybook SDC addon emits `export const ${capitalize(variantId)} = …` and a hyphen produces an invalid JS identifier.
+        Omit for the default variant.
     props:
       type: object
-      description: Prop overrides for this story. Keys match prop names declared in the component's `.component.yml`. When the component has a `variants:` block, set `variant:` at the top level instead of via a `variant` prop.
+      description: Prop overrides for this story. Keys match prop names declared in the component's `.component.yml` (snake_case or camelCase, no hyphens). When the component has a `variants:` block, set `variant:` at the top level instead of via a `variant` prop.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
     slots:
       type: object
       description: >
         Slot content for this story. Each key is a slot name (snake_case, matching `.component.yml`); each value is an array of `SdcStoryNode` objects.
+        Slot names MUST match `^[A-Za-z_][A-Za-z0-9_]*$` — hyphens are forbidden because the component's slots map to Twig `{% block <name> %}` tags.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
       additionalProperties:
         type: array
         items:
@@ -173,8 +193,6 @@ SdcStoryNode:
         - `component` → nests another SDC component. Requires `component` (fully qualified `<provider>:<name>`). Optional: `props`, `slots`.
 
         - `image` → embeds a placeholder image. Requires `uri` (external URL). Optional: `attributes`.
-  discriminator:
-    propertyName: type
   oneOf:
     - title: Element Node
       description: >
@@ -208,10 +226,14 @@ SdcStoryNode:
           examples: ["test_integration_drupal:navigation", "designbook_design:card"]
         props:
           type: object
-          description: Prop overrides for the nested component.
+          description: Prop overrides for the nested component. Keys must match `^[A-Za-z_][A-Za-z0-9_]*$` (snake_case or camelCase, no hyphens).
+          propertyNames:
+            pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
         slots:
           type: object
-          description: Slot content overrides for the nested component (same `SdcStoryNode` array format).
+          description: Slot content overrides for the nested component (same `SdcStoryNode` array format). Slot-name keys must match `^[A-Za-z_][A-Za-z0-9_]*$`.
+          propertyNames:
+            pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
     - title: Image Node
       description: Embeds an image into a slot.
       required: [type, uri]

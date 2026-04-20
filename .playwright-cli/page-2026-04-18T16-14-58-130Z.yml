@@ -1,0 +1,58 @@
+- generic [ref=e5]:
+  - banner [ref=e6]:
+    - generic [ref=e8]:
+      - link "LEANDO" [ref=e10] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e11]: LEANDO
+      - navigation [ref=e13]:
+        - link "Suche" [ref=e14] [cursor=pointer]:
+          - /url: /suche
+        - link "Über uns" [ref=e15] [cursor=pointer]:
+          - /url: /ueber-uns
+        - link "Team" [ref=e16] [cursor=pointer]:
+          - /url: /team
+      - generic "Menu öffnen" [ref=e18]: menu
+  - main [ref=e19]:
+    - generic [ref=e20]: $content
+  - contentinfo [ref=e21]:
+    - generic [ref=e24]:
+      - heading "Newsletter abonnieren" [level=3] [ref=e25]
+      - paragraph [ref=e26]: Aktuelle Nachrichten, Infos, Tipps und Veranstaltungshinweise rund um das Thema Ausbildungs- und Prüfungspersonal.
+    - generic [ref=e29]:
+      - navigation [ref=e30]:
+        - link "Ausbilden" [ref=e31] [cursor=pointer]:
+          - /url: /ausbilden
+        - link "Prüfen" [ref=e32] [cursor=pointer]:
+          - /url: /pruefen
+        - link "Vernetzen" [ref=e33] [cursor=pointer]:
+          - /url: /vernetzen
+      - navigation [ref=e34]:
+        - link "Über Leando" [ref=e35] [cursor=pointer]:
+          - /url: /ueber-uns
+        - link "Kontakt" [ref=e36] [cursor=pointer]:
+          - /url: /kontakt
+        - link "FAQ" [ref=e37] [cursor=pointer]:
+          - /url: /faq
+      - navigation [ref=e38]:
+        - link "Impressum" [ref=e39] [cursor=pointer]:
+          - /url: /impressum
+        - link "Datenschutz" [ref=e40] [cursor=pointer]:
+          - /url: /datenschutz
+        - link "Barrierefreiheit" [ref=e41] [cursor=pointer]:
+          - /url: /barrierefreiheit
+    - generic [ref=e44]:
+      - generic [ref=e45]: BMBF
+      - generic [ref=e46]: BIBB
+      - generic [ref=e47]: ESF
+      - generic [ref=e48]: Europäische Union
+    - generic [ref=e51]:
+      - generic [ref=e52]: © 2026 LEANDO
+      - generic [ref=e53]: ·
+      - link "Impressum" [ref=e54] [cursor=pointer]:
+        - /url: /impressum
+      - generic [ref=e55]: ·
+      - link "Datenschutz" [ref=e56] [cursor=pointer]:
+        - /url: /datenschutz
+      - generic [ref=e57]: ·
+      - link "Barrierefreiheit" [ref=e58] [cursor=pointer]:
+        - /url: /barrierefreiheit

@@ -30,7 +30,6 @@ Fixes a single consolidated issue from the triage stage. Each polish task receiv
 | Field | Description |
 |---|---|
 | `issue.id` | Issue ID (e.g. `issue-001`) |
-| `issue.scene_id` | Scene reference |
 | `issue.story_id` | Story identifier |
 | `issue.checkKey` | Check key (e.g. `sm--header`, `xl--markup`) |
 | `issue.severity` | `critical` or `major` |
@@ -43,7 +42,7 @@ Fixes a single consolidated issue from the triage stage. Each polish task receiv
 Before applying any fix, inspect what exists:
 
 1. **Read the component files** referenced by `issue.file_hint` and any related templates
-2. **Read the scene YAML** for the affected scene (`issue.scene_id`)
+2. **Read the scene YAML** associated with the affected story (`issue.story_id`)
 3. **Open the Storybook URL** and verify current rendering state — understand what the issue looks like before changing code
 
 Only proceed to the fix after completing the inspection.

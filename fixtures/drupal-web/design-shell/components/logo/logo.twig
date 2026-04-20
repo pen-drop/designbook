@@ -1,0 +1,3 @@
+<a class="logo" href="{{ href|default('/') }}">
+  {% block image %}{% if image %}{{ image }}{% elseif src %}<img src="{{ src }}" alt="{{ alt|default('') }}" style="height: {{ height|default('48px') }};">{% endif %}{% endblock %}
+</a>

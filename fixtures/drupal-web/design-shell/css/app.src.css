@@ -1,0 +1,106 @@
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+@import "./tailwind.config.pcss";
+
+/**
+ * We include tailwindcss into an own layer
+ * to prevent wrong layer ordering
+ *
+ * @see https://github.com/tailwindlabs/tailwindcss/issues/15864
+ */
+@import "tailwindcss" source(none);
+
+/**
+ * Include design tokens
+ */
+@import "./tokens/index.src.css";
+
+/**
+ * Include additional plugins here
+ */
+@import "./plugins/_tailwindcss.typography.config.src.css";
+
+/**
+ * Declare all source files to take into account all utility classes used in the theme for the build process.
+ */
+@source "../templates/**/*.{twig,js}";
+@source "../components/**/*.{twig,js,yml}";
+@source "../*.ui_styles.yml";
+@source "../ui_examples/*.yml";
+@source "./safelist.txt";
+/* shell components: page, header, footer, navigation, container */
+/* content components: hero, feature-card, stats, card */
+
+.header { background-color: #ffffff; }
+.header__funding-bar { background-color: #ececec; padding: 8px 16px; min-height: 60px; display: flex; align-items: center; gap: 16px; }
+.header__main { display: flex; align-items: center; gap: 16px; padding: 16px 80px; min-height: 102px; }
+.header__logo { flex: 0 0 auto; }
+.header__navigation { flex: 1 1 auto; display: flex; gap: 16px; }
+.header__actions { flex: 0 0 auto; display: flex; gap: 16px; }
+@media (max-width: 640px) {
+  .header__main { padding: 12px 16px; }
+}
+
+.footer { color: #ffffff; }
+.footer__newsletter { background: linear-gradient(135deg, #056336 0%, #00336a 100%); padding: 40px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.footer__social { background: linear-gradient(135deg, #056336 0%, #00336a 100%); padding: 20px 80px; display: flex; justify-content: center; gap: 24px; }
+.footer__funding-logos { background-color: #f7f7f7; color: #212529; padding: 24px 80px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 32px; align-items: center; }
+.footer__legal { background-color: #ffffff; color: #212529; padding: 16px 80px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.footer__legal-primary, .footer__legal-secondary { display: flex; gap: 16px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .footer__newsletter { grid-template-columns: 1fr; padding: 24px 16px; }
+  .footer__social { padding: 16px; }
+  .footer__funding-logos { padding: 16px; }
+  .footer__legal { flex-direction: column; align-items: flex-start; padding: 12px 16px; }
+}
+
+.container { position: relative; width: 100%; margin-inline: auto; padding-inline: 80px; }
+.container--sm { max-width: 640px; }
+.container--md { max-width: 768px; }
+.container--lg { max-width: 1024px; }
+.container--xl { max-width: 1280px; }
+.container--full { max-width: none; }
+.container__background { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.container__header, .container__content { position: relative; z-index: 1; }
+@media (max-width: 640px) { .container { padding-inline: 16px; } }
+
+.navigation__list { display: flex; list-style: none; margin: 0; padding: 0; gap: 16px; flex-wrap: wrap; }
+.navigation__link { text-decoration: none; color: #0d6efd; font: 400 16px/24px "Sarabun", sans-serif; }
+.navigation--main .navigation__link { color: #00336a; font: 400 22px/33px "Reef", sans-serif; }
+.navigation--footer .navigation__link { color: #0d6efd; font: 400 14px/20px "Sarabun", sans-serif; }
+.navigation__item.is-active .navigation__link { font-weight: 700; }
+
+.logo { display: inline-flex; align-items: center; text-decoration: none; }
+.logo img { display: block; height: auto; max-height: 56px; }
+
+.button { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 9px; border: 1px solid transparent; font: 400 22px/33px "Reef", sans-serif; cursor: pointer; }
+.button--primary { background-color: #00336a; color: #ffffff; border-color: #00336a; }
+.button--primary:hover { background-color: #124e9b; border-color: #124e9b; }
+.button--accent { background-color: #95c11f; color: #00336a; border-color: #95c11f; font: 700 16px/24px "Sarabun", sans-serif; padding: 12px 24px; }
+.button--accent:hover { background-color: #056336; color: #ffffff; }
+.button--ghost { background-color: transparent; color: #00336a; border-color: transparent; border-radius: 7px; padding: 16px; }
+.button--ghost:hover { background-color: rgba(5, 99, 54, 0.25); }
+
+.link { color: #0d6efd; text-decoration: none; font: 400 16px/24px "Sarabun", sans-serif; }
+.link:hover { text-decoration: underline; }
+
+.icon { display: inline-flex; align-items: center; justify-content: center; width: var(--icon-size, 24px); height: var(--icon-size, 24px); color: currentColor; }
+.icon svg { display: block; fill: currentColor; }
+
+.form-element { display: flex; flex-direction: column; gap: 4px; margin-block: 8px; }
+.form-element--checkbox, .form-element--radio { flex-direction: row; align-items: center; gap: 8px; }
+.form-element__label { font: 400 14px/20px "Sarabun", sans-serif; color: #212529; }
+.form-element__description { font: 400 13px/18px "Sarabun", sans-serif; color: #6b6a6a; }
+.form-element__input { display: flex; align-items: center; gap: 4px; }
+.form-element__errors { color: #dd5234; font: 400 13px/18px "Sarabun", sans-serif; }
+
+.label { font: 400 14px/20px "Sarabun", sans-serif; color: #212529; }
+.label--visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+.input { display: block; width: 100%; padding: 8px 12px; border: 1px solid #b2b2b2; border-radius: 4px; background-color: #ffffff; color: #212529; font: 400 16px/24px "Sarabun", sans-serif; }
+.input:focus { outline: 2px solid #95c11f; outline-offset: 2px; border-color: #95c11f; }
+
+.checkbox { width: 18px; height: 18px; accent-color: #95c11f; }
+
+.submit { display: inline-flex; align-items: center; justify-content: center; padding: 12px 24px; background-color: #95c11f; color: #00336a; border: none; border-radius: 9px; font: 700 16px/24px "Sarabun", sans-serif; cursor: pointer; }
+.submit:hover:not([disabled]) { background-color: #056336; color: #ffffff; }
+.submit[disabled] { opacity: 0.5; cursor: not-allowed; }

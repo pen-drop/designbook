@@ -1,0 +1,13 @@
+{% macro tree(items) %}
+  {% import _self as m %}
+  <ul class="navigation__list">
+    {% for it in items %}
+      <li class="navigation__item{% if it.in_active_trail %} is-active{% endif %}">
+        <a class="navigation__link" href="{{ it.url }}">{{ it.title }}</a>
+        {% if it.below %}{{ m.tree(it.below) }}{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% endmacro %}
+{% import _self as m %}
+<div class="navigation navigation--{{ variant|default('main') }}">{{ m.tree(items|default([])) }}</div>

@@ -1,0 +1,33 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Footer
+status: stable
+group: Shell
+description: 'Site footer composed of four stacked rows: newsletter, social, funding logos, legal.'
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    copyright:
+      type: string
+slots:
+  newsletter:
+    title: Newsletter
+    description: Newsletter subscription teaser (row 1, green→blue gradient).
+  social:
+    title: Social
+    description: Social icons row (row 2, continues gradient).
+  funding_logos:
+    title: Funding Logos
+    description: Funder logos row (row 3, subtle surface).
+  legal_primary:
+    title: Legal Primary
+    description: Left side of legal strip (row 4).
+  legal_secondary:
+    title: Legal Secondary
+    description: Right side of legal strip.
+  navigation:
+    title: Navigation
+    description: Footer navigation component.

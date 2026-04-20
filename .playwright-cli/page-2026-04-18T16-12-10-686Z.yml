@@ -1,0 +1,531 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Wir schätzen Ihre Privatsphäre." [level=3] [ref=e5]
+      - paragraph [ref=e6]:
+        - text: Diese Website verwendet Cookies, um sicherzustellen, dass Sie die beste Erfahrung auf unserer Website erhalten. Durch die Nutzung unserer Website stimmen Sie der Verwendung von Cookies zu. Weitere Informationen finden Sie in unserer
+        - link "Datenschutzerklärung" [ref=e7] [cursor=pointer]:
+          - /url: /artikel/datenschutzerklaerung
+        - text: .
+    - generic [ref=e8]:
+      - button "Zulassen" [ref=e10] [cursor=pointer]
+      - button "Ablehnen" [ref=e12] [cursor=pointer]
+  - generic [ref=e13]:
+    - link "Zum Hauptinhalt springen" [ref=e14] [cursor=pointer]:
+      - /url: /#main
+    - generic [ref=e20]:
+      - link "Leando - ausbilden, prüfen, vernetzen" [ref=e21] [cursor=pointer]:
+        - /url: /
+        - img "Leando - ausbilden, prüfen, vernetzen" [ref=e22]
+      - navigation "Hauptmenü" [ref=e23]:
+        - list [ref=e24]:
+          - listitem [ref=e25]:
+            - button "Suche" [ref=e26] [cursor=pointer]:
+              - text: Suche
+              - img [ref=e28]
+          - listitem [ref=e30]:
+            - link "Über uns" [ref=e31] [cursor=pointer]:
+              - /url: /artikel/willkommen
+          - listitem [ref=e32]:
+            - button "Anmelden" [ref=e33] [cursor=pointer]
+          - listitem [ref=e34]:
+            - button "Menü" [ref=e35] [cursor=pointer]:
+              - img [ref=e37]
+              - text: Menü
+  - main [ref=e39]:
+    - generic [ref=e41]:
+      - heading "Leando - ausbilden, prüfen, vernetzen" [level=1] [ref=e42]
+      - article [ref=e45]:
+        - generic [ref=e47]:
+          - searchbox "Suche" [ref=e48]
+          - button "Suchen" [ref=e49] [cursor=pointer]:
+            - img [ref=e51]
+            - generic [ref=e53]: Suchen
+        - generic [ref=e55]:
+          - img "Entdecken Sie Leando – das Portal für Ausbildungs- und Prüfungspersonal! (Werbespot)" [ref=e56]
+          - button "YouTube Video abspielen" [ref=e57] [cursor=pointer]:
+            - img [ref=e58]
+            - generic [ref=e60]: YouTube Video abspielen
+          - paragraph [ref=e61]: "Hinweis: Dieses Video ist über den Youtube-Kanal des BIBB eingebunden.Wenn Sie dieses Video hier abspielen, erfolgt eine Datenübertragung an Youtubebzw. Google. Weitere Hinweise hierzu entnehmen Sie bitte unserer Datenschutzerklärung."
+      - generic [ref=e65]:
+        - article [ref=e66]:
+          - generic [ref=e67]:
+            - img [ref=e70]
+            - heading "ausbilden" [level=2] [ref=e72]
+          - generic [ref=e73]:
+            - paragraph [ref=e75]: Ausbilderinnen und Ausbilder finden auf Leando anwendungsbezogene Themenbeiträge, qualitätsgesicherte Informationen zu aktuellen Trends sowie nützliche Praxis-Tipps.
+            - list
+            - link "Ausbildung" [ref=e77] [cursor=pointer]:
+              - /url: /ausbildung
+        - article [ref=e78]:
+          - generic [ref=e79]:
+            - img [ref=e82]
+            - heading "prüfen" [level=2] [ref=e84]
+          - generic [ref=e85]:
+            - paragraph [ref=e87]: Prüferinnen und Prüfer finden auf Leando nützliche Informationen für die Praxis - von gesetzlichen Grundlagen und Basiswissen bis hin zu Arbeitshilfen und aktuellen Entwicklungen.
+            - list
+            - link "Prüfung" [ref=e89] [cursor=pointer]:
+              - /url: /pruefung
+        - article [ref=e90]:
+          - generic [ref=e91]:
+            - img [ref=e94]
+            - heading "vernetzen" [level=2] [ref=e96]
+          - generic [ref=e97]:
+            - paragraph [ref=e99]: Tauschen Sie sich aus und teilen Sie Ihre Erfahrungen in unseren Communitys. Sobald Sie angemeldet sind, steht Ihnen der volle Funktionsumfang von Leando zur Verfügung
+            - list
+            - link "Registrieren" [ref=e101] [cursor=pointer]:
+              - /url: https://iam.leando.de/realms/leando/protocol/openid-connect/registrations?client_id=frontend-prd&response_type=code&scope=openid&redirect_uri=https://leando.de/
+      - generic [ref=e103]:
+        - heading "Aktuelle Themen" [level=2] [ref=e106]
+        - generic [ref=e107]:
+          - article [ref=e108]:
+            - article [ref=e109]:
+              - generic [ref=e111]: Artikel
+              - heading "Sprachbildung und Sprachförderung in der Ausbildung" [level=3] [ref=e112]:
+                - link "Sprachbildung und Sprachförderung in der Ausbildung" [ref=e113] [cursor=pointer]:
+                  - /url: /sprachbildung-und-sprachfoerderung-der-ausbildung
+              - generic [ref=e114]: Wenn Auszubildende sprachliche Hürden erleben, wirkt sich das auf Arbeitsprozesse, Sicherheit und Teamkommunikation aus.
+          - generic [ref=e115]:
+            - article [ref=e116]:
+              - article [ref=e117]:
+                - generic [ref=e119]: Artikel
+                - heading "Teilzeit ausgebildet – voll qualifiziert" [level=3] [ref=e120]:
+                  - link "Teilzeit ausgebildet – voll qualifiziert" [ref=e121] [cursor=pointer]:
+                    - /url: /teilzeit-ausgebildet-voll-qualifiziert
+                - generic [ref=e122]: "Online-Fachtagung mit Workshops, Keynote und Podiumsdiskussion am 18. Juni (09:30 - 15:30 Uhr): Jetzt anmelden!"
+            - article [ref=e123]:
+              - article [ref=e124]:
+                - generic [ref=e126]: Artikel
+                - heading "\"Hauswirtschafterinnen und Hauswirtschafter sind eigentlich Multi-Manager\"" [level=3] [ref=e127]:
+                  - link "\"Hauswirtschafterinnen und Hauswirtschafter sind eigentlich Multi-Manager\"" [ref=e128] [cursor=pointer]:
+                    - /url: /hauswirtschafterinnen-und-hauswirtschafter-sind-eigentlich-multi-manager
+                - generic [ref=e129]: Projekt HAND entwickelt neue Lernformate – von praxisnahen Materialien und Workshops bis zum interaktiven Escape Room.
+        - link "Aktuelle Themen im Überblick" [ref=e132] [cursor=pointer]:
+          - /url: https://leando.de/aktuelles
+          - img [ref=e134]
+          - text: Aktuelle Themen im Überblick
+      - generic [ref=e139]:
+        - article [ref=e142]:
+          - img "Blick auf Mannheim mit berühmten Wasserturm" [ref=e144]
+          - article [ref=e145]:
+            - generic [ref=e148]:
+              - img [ref=e149]
+              - text: roadshow
+            - generic [ref=e151]:
+              - heading "Leando on Tour in Mannheim" [level=3] [ref=e153]
+              - generic [ref=e155]: Wie KI in Ausbildung und Prüfung nutzen? Wie mit Handys im Betrieb umgehen? Sichern Sie sich jetzt ihren Workshop-Platz!
+              - link "Weitere Informationen" [ref=e157] [cursor=pointer]:
+                - /url: https://leando.de/artikel/mannheim-17-juni-2026
+                - img [ref=e158]
+                - text: Weitere Informationen
+        - article [ref=e162]:
+          - img "Solargründach" [ref=e164]
+          - article [ref=e165]:
+            - generic [ref=e168]:
+              - img [ref=e169]
+              - text: Thema
+            - generic [ref=e171]:
+              - 'heading "Solargründächer in der Ausbildung verankern: Weiterbildung für das Dachdeckerhandwerk" [level=3] [ref=e173]':
+                - 'link "Solargründächer in der Ausbildung verankern: Weiterbildung für das Dachdeckerhandwerk" [ref=e174] [cursor=pointer]':
+                  - /url: /solargruendaecher-der-ausbildung-verankern-weiterbildung-fuer-das-dachdeckerhandwerk
+              - generic [ref=e176]: Neues Leando-Video zeigt anschaulich, wie ein Solargründach aufgebaut wird und welche Gewerke dabei zusammenarbeiten.
+              - generic [ref=e177]: Projekt qualifiziert Ausbildungspersonal und Lehrkräfte | Video zeigt praxisnah den Aufbau eines Solargründachs
+        - article [ref=e180]:
+          - img "Person blickt auf einen Monitor an einem PC-Arbeitsplatz" [ref=e182]
+          - article [ref=e183]:
+            - generic [ref=e186]:
+              - img [ref=e187]
+              - text: Thema
+            - generic [ref=e189]:
+              - heading "Praktische Kfz-Gesellenprüfung zum ersten Mal mit digitaler Prüfungsstation" [level=3] [ref=e191]:
+                - link "Praktische Kfz-Gesellenprüfung zum ersten Mal mit digitaler Prüfungsstation" [ref=e192] [cursor=pointer]:
+                  - /url: /praktische-kfz-gesellenpruefung-zum-ersten-mal-mit-digitaler-pruefungsstation
+              - generic [ref=e194]: Rund 100 Prüflinge führten die Fehlerdiagnose an einem Kfz in einer Simulation durch.
+              - generic [ref=e195]: Projektbeteiligte stellen Durchführung im Video vor
+        - article [ref=e198]:
+          - img "Aufkeimende Pflanze in Händen gehalten" [ref=e200]
+          - article [ref=e201]:
+            - generic [ref=e204]:
+              - img [ref=e205]
+              - text: Landing Page
+            - generic [ref=e207]:
+              - heading "Nachhaltigkeit" [level=3] [ref=e209]:
+                - link "Nachhaltigkeit" [ref=e210] [cursor=pointer]:
+                  - /url: /nachhaltigkeit
+              - generic [ref=e212]: Wie Ressourcen geschont und die soziale sowie ökonomische Verantwortung gefördert werden können.
+        - article [ref=e215]:
+          - img "Bautechnischer Konstrukteur bei der Arbeit" [ref=e217]
+          - article [ref=e218]:
+            - generic [ref=e221]:
+              - img [ref=e222]
+              - text: Artikel
+            - generic [ref=e224]:
+              - 'heading "Modernisiertes Berufsbild: Bautechnischer Konstrukteur/Bautechnische Konstrukteurin" [level=3] [ref=e226]':
+                - 'link "Modernisiertes Berufsbild: Bautechnischer Konstrukteur/Bautechnische Konstrukteurin" [ref=e227] [cursor=pointer]':
+                  - /url: /modernisiertes-berufsbild-bautechnischer-konstrukteurbautechnische-konstrukteurin
+              - generic [ref=e229]: Aus Bauzeichnern und Bauzeichnerinnen werden künftig Bautechnische Konstrukteurinnen und Konstrukteure.
+        - article [ref=e232]:
+          - img "An einem Schreibtisch, auf dem Unterlagen liegen, sitzen sich eine Frau und ein Roboter gegenüber" [ref=e234]
+          - article [ref=e235]:
+            - generic [ref=e238]:
+              - img [ref=e239]
+              - text: Thema
+            - generic [ref=e241]:
+              - heading "KI-Einsatz bei der Prüfungsbewertung" [level=3] [ref=e243]:
+                - link "KI-Einsatz bei der Prüfungsbewertung" [ref=e244] [cursor=pointer]:
+                  - /url: /ki-einsatz-bei-der-pruefungsbewertung
+              - generic [ref=e246]: Das Assistenzsystem KI-Exam soll Prüfende künftig bei der Bewertung von Freitext-Aufgaben unterstützen können.
+        - article [ref=e249]:
+          - 'img "Illustration zu generativer KI in der beruflichen Bildung: Mensch arbeitet am Laptop, Roboterarm und Auszubildende mit digitalen Tools vor futuristischem KI-Kopf." [ref=e251]'
+          - article [ref=e252]:
+            - generic [ref=e255]:
+              - img [ref=e256]
+              - text: Thema
+            - generic [ref=e258]:
+              - heading "Wie generative KI leise die berufliche Bildung verändert" [level=3] [ref=e260]:
+                - link "Wie generative KI leise die berufliche Bildung verändert" [ref=e261] [cursor=pointer]:
+                  - /url: /wie-generative-ki-leise-die-berufliche-bildung-veraendert
+              - generic [ref=e263]: Erste Einblicke aus den Interviews des BIBB-Forschungsprojekts "Generative KI in der beruflichen Bildung"
+              - generic [ref=e264]: Erste Einblicke aus den Interviews des BIBB-Forschungsprojekts "Generative KI in der beruflichen Bildung"
+        - article [ref=e267]:
+          - img "Cover Kompendium zur Berufsausbildung nach Bundes- und Landesrecht" [ref=e269]
+          - article [ref=e270]:
+            - generic [ref=e273]:
+              - img [ref=e274]
+              - text: Artikel
+            - generic [ref=e276]:
+              - heading "Neues BIBB-Kompendium bringt Orientierung in die Berufsbildung" [level=3] [ref=e278]:
+                - link "Neues BIBB-Kompendium bringt Orientierung in die Berufsbildung" [ref=e279] [cursor=pointer]:
+                  - /url: /neues-bibb-kompendium-bringt-orientierung-die-berufsbildung
+              - generic [ref=e281]: Eine neue BIBB-Veröffentlichung bietet erstmals einen umfassenden Überblick über das deutsche Berufsbildungssystem.
+        - article [ref=e284]:
+          - img "Automatische Glasschneidemaschine schneidet durch eine Glasplatte" [ref=e286]
+          - article [ref=e287]:
+            - generic [ref=e290]:
+              - img [ref=e291]
+              - text: Artikel
+            - generic [ref=e293]:
+              - heading "Ausbildungsordnung Verfahrensmechaniker/-in Glastechnik modernisiert" [level=3] [ref=e295]:
+                - link "Ausbildungsordnung Verfahrensmechaniker/-in Glastechnik modernisiert" [ref=e296] [cursor=pointer]:
+                  - /url: /ausbildungsordnung-verfahrensmechaniker-glastechnik-modernisiert
+              - generic [ref=e298]: Die veränderten Anforderungen in der Glasindustrie und die wachsende Bedeutung der Anlagensteuerung machten eine Anpassung der Ausbildungsinhalte erforderlich.
+        - article [ref=e301]:
+          - img "Bahnsteig am Frankfurter Hauptbahnhof" [ref=e303]
+          - article [ref=e304]:
+            - generic [ref=e307]:
+              - img [ref=e308]
+              - text: Artikel
+            - generic [ref=e310]:
+              - heading "Ausbildungsberuf Kaufleute für Mobilität und Verkehrsservice modernisiert" [level=3] [ref=e312]:
+                - link "Ausbildungsberuf Kaufleute für Mobilität und Verkehrsservice modernisiert" [ref=e313] [cursor=pointer]:
+                  - /url: /ausbildungsberuf-kaufleute-fuer-mobilitaet-und-verkehrsservice-modernisiert
+              - generic [ref=e315]: Digitalisierung, neue Mobilitätsangebote und neue Serviceanforderungen machten eine Neuordnung erforderlich.
+        - article [ref=e318]:
+          - img "Cover BWP 01/2026" [ref=e320]
+          - article [ref=e321]:
+            - generic [ref=e324]:
+              - img [ref=e325]
+              - text: Artikel
+            - generic [ref=e327]:
+              - 'heading "Neue BWP: Fachkräftepotenziale" [level=3] [ref=e329]':
+                - 'link "Neue BWP: Fachkräftepotenziale" [ref=e330] [cursor=pointer]':
+                  - /url: /neue-bwp-fachkraeftepotenziale
+              - generic [ref=e332]: Die BWP untersucht, wie Fachkräftepotenziale durch Ausbildung und qualifizierte Zuwanderung erschlossen werden können.
+        - article [ref=e335]:
+          - img "Zwei Kollegen mit Schutzhelmen und -westen stehen auf einer Baustelle, im Hintergrund steht ein weiterer Mann." [ref=e337]
+          - article [ref=e338]:
+            - generic [ref=e341]:
+              - img [ref=e342]
+              - text: Artikel
+            - generic [ref=e344]:
+              - heading "19 Ausbildungsberufe der Bauwirtschaft neu geordnet" [level=3] [ref=e346]:
+                - link "19 Ausbildungsberufe der Bauwirtschaft neu geordnet" [ref=e347] [cursor=pointer]:
+                  - /url: /19-ausbildungsberufe-der-bauwirtschaft-neu-geordnet
+              - generic [ref=e349]: Zum 1. August 2026 treten 19 modernisierte Ausbildungsordnungen für die Bauwirtschaft in Kraft.
+        - article [ref=e352]:
+          - img "Webkonferenz auf Laptop-Bildschirm" [ref=e354]
+          - article [ref=e355]:
+            - generic [ref=e358]:
+              - img [ref=e359]
+              - text: Thema
+            - generic [ref=e361]:
+              - heading "Wie wird KI in der Berufsbildung bereits genutzt?" [level=3] [ref=e363]:
+                - link "Wie wird KI in der Berufsbildung bereits genutzt?" [ref=e364] [cursor=pointer]:
+                  - /url: /wie-wird-ki-der-berufsbildung-bereits-genutzt
+              - generic [ref=e366]: Neue Webinarreihe, mit der Best Practice-Beispiele präsentiert werden. Seien Sie dabei!
+              - generic [ref=e367]: Neue Webinarreihe
+        - article [ref=e370]:
+          - img "VET Chain" [ref=e372]
+          - article [ref=e373]:
+            - generic [ref=e376]:
+              - img [ref=e377]
+              - text: Thema
+            - generic [ref=e379]:
+              - 'heading "VET Chain: Lieferketten im Praxischeck" [level=3] [ref=e381]':
+                - 'link "VET Chain: Lieferketten im Praxischeck" [ref=e382] [cursor=pointer]':
+                  - /url: /vet-chain-lieferketten-im-praxischeck
+              - generic [ref=e384]: Neue Präsenz-Workshops im März und April 2026 in Bonn – Anmeldungen sind ab sofort möglich!
+              - generic [ref=e385]: Workshops im März und April 2026
+        - article [ref=e388]:
+          - img "Arbeitsszene in einer Großküche mit zwei Männern" [ref=e390]
+          - article [ref=e391]:
+            - generic [ref=e394]:
+              - img [ref=e395]
+              - text: Artikel
+            - generic [ref=e397]:
+              - 'heading "Rangliste der Neuabschlüsse bei Ausbildungsberufen: Wenig Neues an der Spitze, Bewegung im Mittelfeld" [level=3] [ref=e399]':
+                - 'link "Rangliste der Neuabschlüsse bei Ausbildungsberufen: Wenig Neues an der Spitze, Bewegung im Mittelfeld" [ref=e400] [cursor=pointer]':
+                  - /url: /rangliste-der-neuabschluesse-bei-ausbildungsberufen-wenig-neues-der-spitze-bewegung-im-mittelfeld
+              - generic [ref=e402]: Die Rangliste der beliebtesten dualen Ausbildungsberufe blieb weitgehend stabil, im Mittelfeld gibt es jedoch Bewegung.
+        - article [ref=e405]:
+          - img "Unterlagen in einem Ordner" [ref=e407]
+          - article [ref=e408]:
+            - generic [ref=e411]:
+              - img [ref=e412]
+              - text: Thema
+            - generic [ref=e414]:
+              - heading "Dokumentieren mit praxisbezogenen Unterlagen" [level=3] [ref=e416]:
+                - link "Dokumentieren mit praxisbezogenen Unterlagen" [ref=e417] [cursor=pointer]:
+                  - /url: /dokumentieren-mit-praxisbezogenen-unterlagen
+              - generic [ref=e419]: Mit Hilfe praxisbezogener Unterlagen dokumentiert der Prüfling sein Vorgehen bei praktischen Prüfungsaufgaben.
+        - article [ref=e422]:
+          - img "Auszubildende in einem Community College" [ref=e424]
+          - article [ref=e425]:
+            - generic [ref=e428]:
+              - img [ref=e429]
+              - text: Artikel
+            - generic [ref=e431]:
+              - heading "Partnerschaften für die Zukunft – Berufsschulen treffen Community Colleges" [level=3] [ref=e433]:
+                - link "Partnerschaften für die Zukunft – Berufsschulen treffen Community Colleges" [ref=e434] [cursor=pointer]:
+                  - /url: /partnerschaften-fuer-die-zukunft-berufsschulen-treffen-community-colleges
+              - generic [ref=e436]: Ziel ist der Aufbau nachhaltiger transatlantischer Austauschprogramme für Auszubildende.
+              - generic [ref=e437]: Projekt zur Förderung des transatlantischen Austausches in der Berufsbildung
+        - article [ref=e440]:
+          - img "Mensch und Roboter geben sich in Gerichtssaal die Hand" [ref=e442]
+          - article [ref=e443]:
+            - generic [ref=e446]:
+              - img [ref=e447]
+              - text: Thema
+            - generic [ref=e449]:
+              - heading "KI & Recht" [level=3] [ref=e451]:
+                - link "KI & Recht" [ref=e452] [cursor=pointer]:
+                  - /url: /ki-recht
+              - generic [ref=e454]: KI kann Aufgaben beschleunigen und Texte, Bilder oder Auswertungen liefern. Gleichzeitig existieren rechtliche Risiken.
+              - generic [ref=e455]: Neuer Lernpfad in der Lernwelt
+        - article [ref=e458]:
+          - img "Junger Mann an Schreibtisch mit aufgeklapptem Laptop blickt über die Schulter in die Kamera" [ref=e460]
+          - article [ref=e461]:
+            - generic [ref=e464]:
+              - img [ref=e465]
+              - text: Thema
+            - generic [ref=e467]:
+              - 'heading "Neurodiversität: Neuer Lernpfad in der Lernwelt" [level=3] [ref=e469]':
+                - 'link "Neurodiversität: Neuer Lernpfad in der Lernwelt" [ref=e470] [cursor=pointer]':
+                  - /url: /neurodiversitaet-neuer-lernpfad-der-lernwelt
+              - generic [ref=e472]: Wie Ausbilder/-innen Stärken neurodivergenter Azubis erkennen und optimal fördern können.
+        - article [ref=e475]:
+          - img "Frau in Werkstatt an Tisch sitzend. Sie blickt auf ein Blatt Papier." [ref=e477]
+          - article [ref=e478]:
+            - generic [ref=e481]:
+              - img [ref=e482]
+              - text: Thema
+            - generic [ref=e484]:
+              - heading "Lese- und Schreibfähigkeiten in der Ausbildung fördern" [level=3] [ref=e486]:
+                - link "Lese- und Schreibfähigkeiten in der Ausbildung fördern" [ref=e487] [cursor=pointer]:
+                  - /url: /lese-und-schreibfaehigkeiten-der-ausbildung-foerdern
+              - generic [ref=e489]: Bereiten Lesen und Schreiben Schwierigkeiten, hat dies Auswirkungen auf Lernprozesse und berufliche Weiterentwicklung.
+              - generic [ref=e490]: Tipps für den Umgang mit geringer Literalität
+        - article [ref=e493]:
+          - img "Zeichnung von junger Person, die Teile einer Uhr wegnimmt" [ref=e495]
+          - article [ref=e496]:
+            - generic [ref=e499]:
+              - img [ref=e500]
+              - text: Thema
+            - generic [ref=e502]:
+              - heading "Alles zur Teilzeitberufsausbildung – Ihre Fragen, unsere Antworten!" [level=3] [ref=e504]:
+                - link "Alles zur Teilzeitberufsausbildung – Ihre Fragen, unsere Antworten!" [ref=e505] [cursor=pointer]:
+                  - /url: /alles-zur-teilzeitberufsausbildung-ihre-fragen-unsere-antworten
+              - generic [ref=e507]: Ausbilder/-in mit Fragen zur Teilzeitberufsausbildung? Dann sind Sie bei dieser Online-Sprechstunde genau richtig!
+              - generic [ref=e508]: Online-Sprechstunde am 21. April (13:00 - 14:00 Uhr)
+      - generic [ref=e511]:
+        - heading "Lernwelt" [level=2] [ref=e512]
+        - paragraph [ref=e514]: Lern- und Informationspfade zu berufsspezifischen Themen sowie zu allgemeinen Inhalten wie Persönlichkeitsentwicklung, Inklusion, Nachhaltigkeit und Künstliche Intelligenz. Die Lernwelt wird kontinuierlich um neue Themen erweitert, um Sie in Ihrer täglichen Arbeit bestmöglich zu unterstützen.
+        - link "zu allen Lernpfaden" [ref=e517] [cursor=pointer]:
+          - /url: https://leando.de/learnmap/
+          - img [ref=e519]
+          - text: zu allen Lernpfaden
+      - generic [ref=e523]:
+        - heading "Communitys" [level=2] [ref=e524]
+        - paragraph [ref=e526]: Eine Community vereint Menschen mit gemeinsamen Interessen und Zielen. Sie bietet Unterstützung, Austausch und Möglichkeiten zur Zusammenarbeit.
+        - link "Alle Communitys im Überblick" [ref=e529] [cursor=pointer]:
+          - /url: https://leando.de/community
+          - img [ref=e531]
+          - text: Alle Communitys im Überblick
+      - generic [ref=e534]:
+        - generic [ref=e537]:
+          - img [ref=e539]
+          - heading "Weitere Inhalte" [level=2] [ref=e541]
+        - generic [ref=e543]:
+          - article [ref=e546]:
+            - img "Wortmarke Leando on Tour" [ref=e548]
+            - article [ref=e549]:
+              - generic [ref=e552]:
+                - img [ref=e553]
+                - text: Veranstaltung
+              - generic [ref=e555]:
+                - heading "Leando on Tour" [level=3] [ref=e557]
+                - generic [ref=e559]: Leando bietet bundesweit kostenfreie Workshops an, in denen hilfreiche Tools und Konzepte für die Ausbildungspraxis vorgestellt werden.
+                - link "weitere Informationen" [ref=e561] [cursor=pointer]:
+                  - /url: https://leando.de/artikel/roadshow-leando-tour
+                  - img [ref=e562]
+                  - text: weitere Informationen
+          - article [ref=e566]:
+            - img "Auswahl von Werkzeugen auf Tisch" [ref=e568]
+            - article [ref=e569]:
+              - generic [ref=e572]:
+                - img [ref=e573]
+                - text: Tool
+              - generic [ref=e575]:
+                - heading "Toolbox" [level=3] [ref=e577]
+                - generic [ref=e579]: Hier finden Sie digitale Werkzeuge, die im Rahmen von Leando bereit gestellt werden.
+                - link "zu den Tools" [ref=e581] [cursor=pointer]:
+                  - /url: https://leando.de/landing_page/toolbox
+                  - img [ref=e582]
+                  - text: zu den Tools
+          - article [ref=e586]:
+            - img "Icon des Leando-Game" [ref=e588]
+            - article [ref=e589]:
+              - generic [ref=e592]:
+                - img [ref=e593]
+                - text: Leando-Game
+              - generic [ref=e595]:
+                - heading "Leando-Game" [level=3] [ref=e597]
+                - generic [ref=e599]: Leando entwickelt eine unterhaltsame Quiz-Applikation, die auf spielerische Weise Informationen zu den Standardberufsbildpositionen (SBBP) vermittelt.
+                - link "weitere Informationen" [ref=e601] [cursor=pointer]:
+                  - /url: https://leando.de/artikel/testen-sie-das-leando-game
+                  - img [ref=e602]
+                  - text: weitere Informationen
+          - article [ref=e606]:
+            - img "Blick auf gefüllten Schreibtisch mit Dokumenten und Bauhelm" [ref=e608]
+            - article [ref=e609]:
+              - generic [ref=e612]:
+                - img [ref=e613]
+                - text: Thema
+              - generic [ref=e615]:
+                - heading "Neues aus Berufen" [level=3] [ref=e617]
+                - generic [ref=e619]: Leando stellt aktuelle Informationen zu neuen und modernisierten Aus- und Fortbildungsberufen zusammen.
+                - link "weitere Informationen" [ref=e621] [cursor=pointer]:
+                  - /url: https://leando.de/landing_page/neues-aus-berufen
+                  - img [ref=e622]
+                  - text: weitere Informationen
+          - article [ref=e626]:
+            - img "Blick auf Laptop-Bildschirm mit Anwendung Aufgaben-Manager" [ref=e628]
+            - article [ref=e629]:
+              - generic [ref=e632]:
+                - img [ref=e633]
+                - text: Aufgaben-Manager
+              - generic [ref=e635]:
+                - heading "Aufgaben-Manager" [level=3] [ref=e637]
+                - generic [ref=e639]: Online-Anwendung, mit der praxisnahe und handlungsorientierte Lern- und Arbeitsaufgaben erstellt werden können.
+                - link "zum Tool" [ref=e641] [cursor=pointer]:
+                  - /url: https://leando.de/landing_page/aufgaben-manager
+                  - img [ref=e642]
+                  - text: zum Tool
+          - article [ref=e646]:
+            - img "Person schaut auf Bildschirm, auf dem der Zuständige-Stellen-Finder zu sehen ist" [ref=e648]
+            - article [ref=e649]:
+              - generic [ref=e652]:
+                - img [ref=e653]
+                - text: Zuständige-Stellen-Finder
+              - generic [ref=e655]:
+                - heading "Zuständige-Stellen-Finder" [level=3] [ref=e657]
+                - generic [ref=e659]: Zugriff auf zuständige Stellen für Prüfungen und Ausbildung in dualen Ausbildungsberufen nach BBiG und HwO
+                - link "Zum Tool" [ref=e661] [cursor=pointer]:
+                  - /url: https://leando.de/zustaendige-stellen
+                  - img [ref=e662]
+                  - text: Zum Tool
+          - article [ref=e666]:
+            - img "MIKA Avatar" [ref=e668]
+            - article [ref=e669]:
+              - generic [ref=e672]:
+                - img [ref=e673]
+                - text: MIKA
+              - generic [ref=e675]:
+                - heading "MIKA" [level=3] [ref=e677]
+                - generic [ref=e679]: Die MIKA-Weiterbildung hat zum Ziel, digitale und medienpädagogische Kompetenzen von Ausbildungspersonal zu fördern.
+                - link "weitere Informationen" [ref=e681] [cursor=pointer]:
+                  - /url: https://leando.de/landing_page/mika
+                  - img [ref=e682]
+                  - text: weitere Informationen
+  - contentinfo "Footernavigation" [ref=e685]:
+    - generic [ref=e688]:
+      - generic [ref=e691]:
+        - img [ref=e693]
+        - heading "Newsletter abonnieren" [level=2] [ref=e695]
+      - generic [ref=e696]:
+        - paragraph [ref=e698]: Erhalten Sie aktuelle Nachrichten, Infos, Tipps und Veranstaltungshinweise rund um das Thema Ausbildungs- und Prüfungspersonal - kostenfrei!
+        - generic [ref=e700]:
+          - generic [ref=e701]:
+            - textbox "Ihre E-Mail Adresse" [ref=e702]
+            - button "Anmelden" [ref=e703] [cursor=pointer]:
+              - img [ref=e704]
+              - generic [ref=e706]: Anmelden
+          - generic [ref=e708]:
+            - checkbox "Ich stimme der Verarbeitung meiner personenbezogenen Daten gem. DSGVO zu. (Weitere Informationen finden Sie in unserer Datenschutzerklärung.)" [ref=e709] [cursor=pointer]
+            - generic [ref=e710]: Ich stimme der Verarbeitung meiner personenbezogenen Daten gem. DSGVO zu. (Weitere Informationen finden Sie in unserer Datenschutzerklärung.)
+        - generic [ref=e713]:
+          - link "YouTube-Kanal" [ref=e714] [cursor=pointer]:
+            - /url: https://www.youtube.com/@leando_bibb
+            - img [ref=e716]
+            - generic [ref=e718]: YouTube-Kanal
+          - link "Instagram" [ref=e719] [cursor=pointer]:
+            - /url: https://www.instagram.com/leando_bibb/
+            - img [ref=e721]
+            - generic [ref=e723]: Instagram
+          - link "LinkedIn" [ref=e724] [cursor=pointer]:
+            - /url: https://www.linkedin.com/company/leando-bibb/
+            - img [ref=e726]
+            - generic [ref=e728]: LinkedIn
+    - generic [ref=e730]:
+      - link [ref=e733] [cursor=pointer]:
+        - /url: https://www.bmbfsfj.bund.de/
+        - img [ref=e734]
+      - generic [ref=e757]:
+        - link "Communitys" [ref=e759] [cursor=pointer]:
+          - /url: /community
+          - img [ref=e760]
+          - text: Communitys
+        - link "Toolbox" [ref=e763] [cursor=pointer]:
+          - /url: /landing_page/toolbox
+          - img [ref=e764]
+          - text: Toolbox
+      - generic [ref=e766]:
+        - img "Finanziert von der Europäischen Union - NextGenerationEU" [ref=e768]
+        - link "BIBB Logo" [ref=e770] [cursor=pointer]:
+          - /url: https://www.bibb.de/
+          - img "BIBB Logo" [ref=e771]
+    - generic "Footermenü weitere Informationen" [ref=e773]:
+      - list [ref=e775]:
+        - listitem [ref=e776]:
+          - link "English Intro" [ref=e777] [cursor=pointer]:
+            - /url: /artikel/english-intro
+            - img [ref=e778]
+            - generic [ref=e780]: English Intro
+        - listitem [ref=e781]:
+          - link "Glossar" [ref=e782] [cursor=pointer]:
+            - /url: /glossar
+            - img [ref=e783]
+            - generic [ref=e785]: Glossar
+    - list [ref=e790]:
+      - listitem [ref=e791]:
+        - link "Impressum" [ref=e792] [cursor=pointer]:
+          - /url: /artikel/impressum
+      - listitem [ref=e793]:
+        - link "Datenschutz" [ref=e794] [cursor=pointer]:
+          - /url: /artikel/datenschutz
+      - listitem [ref=e795]:
+        - link "Kontakt" [ref=e796] [cursor=pointer]:
+          - /url: /artikel/kontakt
+      - listitem [ref=e797]:
+        - link "support@leando.de" [ref=e798] [cursor=pointer]:
+          - /url: mailto:support@leando.de

@@ -6,10 +6,8 @@ trigger:
 priority: 50
 params:
   type: object
-  required: [scene_id, story_id, issues]
+  required: [story_id, issues]
   properties:
-    scene_id:
-      $ref: ../../scenes/schemas.yml#/SceneId
     reference: { type: array, default: [] }
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
@@ -37,7 +35,7 @@ If the `issues` array is empty (compare found no issues), skip to Step 2.
 Display a table with the comparison results:
 
 ```
-## Visual Comparison — ${scene}
+## Visual Comparison — ${story_id}
 
 | Breakpoint | Region | Score | Diff |
 |------------|--------|-------|------|
@@ -67,7 +65,7 @@ Ask the user:
 
 > "Start design-verify?"
 
-- **If yes** → create and run the design-verify workflow as a child workflow with params `{"scene": "${scene}", "reference": <params.reference>}`.
+- **If yes** → create and run the design-verify workflow as a child workflow with params `{"story_id": "${story_id}", "reference": <params.reference>}`.
 
   Execute the child workflow completely. Since screenshots already exist from the inline capture, the capture tasks will auto-skip.
 
@@ -76,7 +74,7 @@ Ask the user:
 ## Output
 
 ```
-## Outtake — ${scene}
+## Outtake — ${story_id}
 
 Total Score: {score} (0 = perfect match)
 {score table}

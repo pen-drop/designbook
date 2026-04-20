@@ -1,0 +1,27 @@
+component: test_integration_drupal:footer
+name: Default
+slots:
+  newsletter:
+    - type: element
+      tag: div
+      value: Newsletter abonnieren
+  social:
+    - type: element
+      tag: div
+      value: YouTube · Instagram · LinkedIn
+  funding_logos:
+    - type: element
+      tag: div
+      value: BMBFSFJ · EU NextGenerationEU · BIBB
+  legal_primary:
+    - type: element
+      tag: div
+      value: English Intro · Glossar
+  legal_secondary:
+    - type: element
+      tag: div
+      value: Impressum · Datenschutz · Kontakt
+  navigation:
+    - type: element
+      tag: div
+      value: ''

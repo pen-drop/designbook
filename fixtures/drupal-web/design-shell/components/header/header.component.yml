@@ -1,0 +1,28 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Header
+status: stable
+group: Shell
+description: 'Site header with two stacked rows: BIBB funding bar and main nav.'
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    sticky:
+      type: boolean
+      default: false
+slots:
+  funding_bar:
+    title: Funding Bar
+    description: 'Top row: funding/sponsor bar.'
+  logo:
+    title: Logo
+    description: Brand logo mark.
+  navigation:
+    title: Navigation
+    description: Main navigation.
+  actions:
+    title: Actions
+    description: Header actions (search, login, menu toggle).

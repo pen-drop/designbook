@@ -1,0 +1,9 @@
+component: test_integration_drupal:container
+name: Default
+props:
+  max_width: xl
+slots:
+  content:
+    - type: element
+      tag: p
+      value: Container content

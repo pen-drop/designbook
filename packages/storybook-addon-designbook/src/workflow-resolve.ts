@@ -197,25 +197,48 @@ function collectLocalRefsFromSchema(
   fileSchemas: Record<string, object>,
   schemas: Record<string, object>,
   visited: Set<string>,
+  schemaFilePath: string,
+  skillsRoot: string,
 ): void {
   if (Array.isArray(node)) {
-    for (const item of node) collectLocalRefsFromSchema(item, fileSchemas, schemas, visited);
+    for (const item of node)
+      collectLocalRefsFromSchema(item, fileSchemas, schemas, visited, schemaFilePath, skillsRoot);
     return;
   }
   if (!node || typeof node !== 'object') return;
 
   const obj = node as Record<string, unknown>;
-  if (typeof obj.$ref === 'string' && obj.$ref.startsWith('#/')) {
-    const typeName = obj.$ref.slice(2);
-    if (typeName && !(typeName in schemas) && typeName in fileSchemas && !visited.has(typeName)) {
-      visited.add(typeName);
-      schemas[typeName] = fileSchemas[typeName]!;
-      collectLocalRefsFromSchema(fileSchemas[typeName], fileSchemas, schemas, visited);
+  if (typeof obj.$ref === 'string') {
+    const ref = obj.$ref;
+    if (ref.startsWith('#/')) {
+      const typeName = ref.slice(2);
+      if (typeName && !(typeName in schemas) && typeName in fileSchemas && !visited.has(typeName)) {
+        visited.add(typeName);
+        schemas[typeName] = fileSchemas[typeName]!;
+        collectLocalRefsFromSchema(fileSchemas[typeName], fileSchemas, schemas, visited, schemaFilePath, skillsRoot);
+      }
+    } else if (ref.includes('#/')) {
+      // Cross-file ref nested inside a resolved schema — resolve relative to the
+      // file the outer schema was loaded from, then rewrite to local AJV form.
+      const resolved = resolveSchemaRef(ref, schemaFilePath, skillsRoot);
+      obj.$ref = `#/${resolved.typeName}`;
+      if (!(resolved.typeName in schemas) && !visited.has(resolved.typeName)) {
+        visited.add(resolved.typeName);
+        schemas[resolved.typeName] = resolved.schema;
+        collectLocalRefsFromSchema(
+          resolved.schema,
+          resolved.fileSchemas,
+          schemas,
+          visited,
+          resolved.schemaFilePath,
+          skillsRoot,
+        );
+      }
     }
   }
 
   for (const value of Object.values(obj)) {
-    collectLocalRefsFromSchema(value, fileSchemas, schemas, visited);
+    collectLocalRefsFromSchema(value, fileSchemas, schemas, visited, schemaFilePath, skillsRoot);
   }
 }
 
@@ -267,9 +290,13 @@ export function resolveSchemasForTasks(
       // Update the task's actual result schema:
       // For top-level $ref, replace schema with the resolved definition
       if (task.result[key] && originalRef) {
-        const { typeName, schema, fileSchemas } = resolveSchemaRef(originalRef, taskFilePath, skillsRoot);
+        const { typeName, schema, fileSchemas, schemaFilePath } = resolveSchemaRef(
+          originalRef,
+          taskFilePath,
+          skillsRoot,
+        );
         schemas[typeName] = schema;
-        collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]));
+        collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]), schemaFilePath, skillsRoot);
         task.result[key]!.schema = schema;
       }
 
@@ -292,9 +319,14 @@ export function resolveSchemasForTasks(
     // Collect $ref from params: declaration
     if (taskFm.params && typeof taskFm.params === 'object' && '$ref' in taskFm.params) {
       const ref = (taskFm.params as Record<string, unknown>)['$ref'] as string;
-      const { typeName, schema: refSchema, fileSchemas } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+      const {
+        typeName,
+        schema: refSchema,
+        fileSchemas,
+        schemaFilePath,
+      } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
       schemas[typeName] = refSchema;
-      collectLocalRefsFromSchema(refSchema, fileSchemas, schemas, new Set([typeName]));
+      collectLocalRefsFromSchema(refSchema, fileSchemas, schemas, new Set([typeName]), schemaFilePath, skillsRoot);
     }
   }
 
@@ -352,16 +384,22 @@ function resolveRefsInDeclaration(
   schemas: Record<string, object>,
 ): void {
   if (obj.$ref && typeof obj.$ref === 'string') {
-    const { typeName, schema, fileSchemas } = resolveSchemaRef(obj.$ref, taskFilePath, skillsRoot);
+    const { typeName, schema, fileSchemas, schemaFilePath } = resolveSchemaRef(obj.$ref, taskFilePath, skillsRoot);
     schemas[typeName] = schema;
     // Pull in transitive local refs from the same schema file (e.g. Component → #/DesignHint)
-    collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]));
+    collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]), schemaFilePath, skillsRoot);
     // Replace file-system $ref with local AJV reference
     obj.$ref = `#/${typeName}`;
   }
-  // Check nested objects (e.g. items: { $ref: ... })
+  // Check nested objects and arrays (e.g. items: { $ref: ... }, allOf: [{ $ref }])
   for (const value of Object.values(obj)) {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item && typeof item === 'object') {
+          resolveRefsInDeclaration(item as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
+        }
+      }
+    } else if (value && typeof value === 'object') {
       resolveRefsInDeclaration(value as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
     }
   }
@@ -386,15 +424,26 @@ export function rewriteRefsInSchema(
     const ref = obj.$ref as string;
     // Only rewrite file-system $ref (contains '#/'); skip already-local refs like '#/TypeName'
     if (ref.includes('#/') && !ref.startsWith('#/')) {
-      const { typeName, schema, fileSchemas } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+      const {
+        typeName,
+        schema,
+        fileSchemas,
+        schemaFilePath: refFilePath,
+      } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
       schemas[typeName] = schema;
       // Also pull in transitive local refs (e.g. Component → #/DesignHint)
-      collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]));
+      collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]), refFilePath, skillsRoot);
       obj.$ref = `#/${typeName}`;
     }
   }
   for (const value of Object.values(obj)) {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item && typeof item === 'object') {
+          rewriteRefsInSchema(item as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
+        }
+      }
+    } else if (value && typeof value === 'object') {
       rewriteRefsInSchema(value as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
     }
   }

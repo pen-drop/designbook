@@ -1,0 +1,23 @@
+<footer class="footer">
+  <section class="footer__newsletter">
+    {% block newsletter %}{% if newsletter %}{{ newsletter }}{% endif %}{% endblock %}
+  </section>
+  <div class="footer__social">
+    {% block social %}{% if social %}{{ social }}{% endif %}{% endblock %}
+  </div>
+  <div class="footer__funding-logos">
+    {% block funding_logos %}{% if funding_logos %}{{ funding_logos }}{% endif %}{% endblock %}
+  </div>
+  <div class="footer__legal">
+    <div class="footer__legal-primary">
+      {% block legal_primary %}{% if legal_primary %}{{ legal_primary }}{% endif %}{% endblock %}
+    </div>
+    <div class="footer__legal-secondary">
+      {% block legal_secondary %}{% if legal_secondary %}{{ legal_secondary }}{% endif %}{% endblock %}
+    </div>
+    <nav class="footer__navigation">
+      {% block navigation %}{% if navigation %}{{ navigation }}{% endif %}{% endblock %}
+    </nav>
+  </div>
+  {% if copyright %}<div class="footer__copyright">{{ copyright }}</div>{% endif %}
+</footer>

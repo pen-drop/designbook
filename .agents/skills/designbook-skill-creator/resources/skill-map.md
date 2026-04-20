@@ -34,7 +34,6 @@ Each skill extends Part 1 with backend/framework-specific tasks, rules, and blue
 | `designbook-css-tailwind` | Tailwind CSS token generation and class conventions |
 | `designbook-drupal` | Drupal SDC component structure, data model, view modes |
 | `designbook-stitch` | Stitch design system integration |
-| `designbook-devtools` | Dev tooling and local development helpers |
 
 ## Meta Skills
 

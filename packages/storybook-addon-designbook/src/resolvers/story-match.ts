@@ -98,15 +98,14 @@ async function matchStoryIdFromIndex(
       return { resolved: true, value: input, input };
     }
 
-    // Build search terms: full input + just the scene name when input is a scene ref (group:name)
-    const searchTerms = [input.toLowerCase()];
-    if (input.includes(':')) {
-      const sceneName = input.split(':').pop();
-      if (sceneName) searchTerms.push(sceneName.toLowerCase());
-    }
+    // Build search terms. For a scene ref "group:name", every part must be a substring of
+    // the matching story id — otherwise every story that merely shares a scene name would
+    // match (e.g. "shell" matches both scene and shell-component stories in the live index).
+    const lowerInput = input.toLowerCase();
+    const searchTerms = input.includes(':') ? lowerInput.split(':').filter(Boolean) : [lowerInput];
     const matches = liveIds.filter((id) => {
       const lowerId = id.toLowerCase();
-      return searchTerms.some((term) => lowerId.includes(term));
+      return searchTerms.every((term) => lowerId.includes(term));
     });
 
     if (matches.length === 1) {

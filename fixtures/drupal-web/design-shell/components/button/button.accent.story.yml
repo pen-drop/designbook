@@ -1,0 +1,7 @@
+component: test_integration_drupal:button
+name: Accent
+variant: accent
+slots:
+  label:
+    - type: element
+      value: Newsletter Anmelden

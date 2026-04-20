@@ -1,0 +1,23 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Link
+status: stable
+group: Action
+description: Plain inline link for navigation items and legal links.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    href:
+      type: string
+    external:
+      type: boolean
+      default: false
+  required:
+    - href
+slots:
+  label:
+    title: Label
+    description: Link text.

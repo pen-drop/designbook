@@ -1,0 +1,6 @@
+component: test_integration_drupal:label
+name: Default
+slots:
+  title:
+    - type: element
+      value: E-Mail-Adresse

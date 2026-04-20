@@ -1,0 +1,7 @@
+component: test_integration_drupal:button
+name: Default
+variant: primary
+slots:
+  label:
+    - type: element
+      value: Anmelden

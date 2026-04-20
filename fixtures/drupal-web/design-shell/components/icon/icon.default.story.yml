@@ -1,0 +1,6 @@
+component: test_integration_drupal:icon
+name: Default
+props:
+  id: youtube
+  label: YouTube
+  size: 24px

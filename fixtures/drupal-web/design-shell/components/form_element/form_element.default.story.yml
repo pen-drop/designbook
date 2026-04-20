@@ -1,0 +1,18 @@
+component: test_integration_drupal:form_element
+name: Default
+props:
+  type: textfield
+  label_display: before
+slots:
+  label:
+    - type: element
+      tag: label
+      value: E-Mail-Adresse
+  children:
+    - type: element
+      tag: input
+      value: ''
+      attributes:
+        type: email
+        name: email
+        placeholder: you@example.com

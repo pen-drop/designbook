@@ -1,0 +1,18 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Input
+status: stable
+group: Action
+description: Lean text-based input (email, text, tel, etc.). Embedded in form_element.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    pattern:
+      type: string
+slots:
+  children:
+    title: Children
+    description: Optional additional elements.

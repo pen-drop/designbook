@@ -1,0 +1,24 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Icon
+status: stable
+group: Data Display
+description: SVG icon referenced from a sprite (social, UI).
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    sprite:
+      type: string
+      default: /icons-defs.svg
+    id:
+      type: string
+    label:
+      type: string
+    size:
+      type: string
+      default: 24px
+  required:
+    - id

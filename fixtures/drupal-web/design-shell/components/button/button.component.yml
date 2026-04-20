@@ -1,0 +1,33 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Button
+status: stable
+group: Action
+description: Clickable button with primary, accent, and ghost variants.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    type:
+      type: string
+      enum:
+        - button
+        - submit
+        - reset
+      default: button
+variants:
+  primary:
+    title: Primary
+    description: Dark blue fill, white text (login CTA).
+  accent:
+    title: Accent
+    description: Green fill, dark-blue text (newsletter).
+  ghost:
+    title: Ghost
+    description: Transparent fill, primary color text (utility).
+slots:
+  label:
+    title: Label
+    description: Button label content.

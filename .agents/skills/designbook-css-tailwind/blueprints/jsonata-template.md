@@ -10,113 +10,154 @@ filter:
 
 # JSONata Expression Template — Tailwind v4
 
-Template for generating `.jsonata` expression files that transform `design-tokens.yml` into CSS token files.
+Template for generating `.jsonata` expressions that transform
+`design-tokens.yml` into CSS token files. The expression walks the configured
+token subtree **recursively**, flattens nested keys into dash-separated CSS
+variable names, skips DTCG metadata (`$value`, `$type`, `$extensions`, …), and
+emits `$value` verbatim. `fontFamily` source values must already be CSS-valid
+(quoted multi-word names, comma-separated fallbacks); the template does not
+post-process them.
+
+The leaf-emit branch has three variants depending on the `CssGroup` flags:
+
+| Variant         | Condition           | Behavior |
+|-----------------|---------------------|----------|
+| Default         | no `resolve`/`expand` | Emit `--<prefix>-<flat>: <value>;` |
+| Var-resolve     | `resolve: var`      | DTCG references → `var(--<prefix>-<flat-ref>)` |
+| Typography-expand | `expand: typography` | Composite `$type: typography` → 3 properties (size/weight/line-height) |
 
 ## @config Block
 
-The `@config` block uses paths relative to the `.jsonata` file location:
+The `@config` block uses paths relative to the `.jsonata` file:
 
 ```jsonata
 /** @config
  {
-   "input": "<relative-path-to-design-tokens.yml>",
-   "output": "<relative-path-to-output-css>"
+   "input": "../design-system/design-tokens.yml",
+   "output": "../../css/tokens/{group}.src.css"
  }
  */
 ```
 
-- `input`: relative path from the `.jsonata` file to `design-tokens.yml`
-- `output`: relative path from the `.jsonata` file to the CSS output. Name the output `{group}.src.css`.
+`{group}` is the `CssGroup.group` identifier (e.g. `primitive-color`,
+`layout-spacing`).
 
-## Expression Template
+## Default Expression — Recursive Flatten
+
+Use this template when the group has neither `resolve` nor `expand`. It uses
+`$lookup`/`$keys` so hyphenated keys (`max-width`, `padding-y`) and arbitrary
+nesting depth work without manual quoting.
 
 ```jsonata
 (
-  $entries := $each($$.<token-path>, function($v, $k) {
-    $substring($k, 0, 1) != "$" ? "  --<prefix>-" & $k & ": " & $v."$value" & ";"
-  });
-  "<wrap> {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+  $walk := function($node, $path) {
+    $reduce(
+      $keys($node),
+      function($acc, $k) {
+        $substring($k, 0, 1) != "$" ? (
+          $v := $lookup($node, $k);
+          $sub := $path = "" ? $k : $path & "-" & $k;
+          $exists($v."$value")
+            ? $append($acc, "  --<prefix>-" & $sub & ": " & $v."$value" & ";")
+            : $append($acc, $walk($v, $sub))
+        ) : $acc
+      },
+      []
+    )
+  };
+  $node := $reduce($split("<path>", "."), function($a, $s) { $lookup($a, $s) }, $$);
+  $lines := $walk($node, "");
+  $count($lines) > 0
+    ? "<wrap> {\n" & $join($lines, "\n") & "\n}\n"
+    : ""
 )
 ```
 
-Where:
-- `<token-path>` — dot-separated path from `css-mapping` blueprint's `path` field (e.g., `semantic.color`)
-- `<prefix>` — `prefix` value from css-mapping
-- `<wrap>` — `wrap` value from css-mapping, used verbatim as the block opener
+Substitute:
+- `<path>` — `CssGroup.path` (e.g. `primitive.color`, `component.section.padding-y`)
+- `<prefix>` — `CssGroup.prefix` (e.g. `color`, `layout-spacing`)
+- `<wrap>` — `CssGroup.wrap` (e.g. `@theme`)
 
-Filter entries where key starts with `$` (e.g., `$extensions`, `$type`) to skip metadata.
+## Var-Resolution Expression (`resolve: var`)
 
-## DTCG Reference Resolution
-
-When token values contain DTCG references (e.g., `{primitive.color.blue-600}`), there are two resolution modes:
-
-### Hex resolution (default)
-
-Resolves references to their final `$value` (concrete hex). Use for groups that don't have `resolve: "var"` in css-mapping:
+When the group should re-reference primitives via `var()` instead of expanding
+them, replace the leaf-emit branch. The resolver translates the second segment
+of the DTCG ref (the primitive type) to its CSS prefix, so refs work even when
+the consuming group's prefix differs:
 
 ```jsonata
-$resolve := function($val) {
-  $substring($val, 0, 1) = "{" ? (
-    $path := $split($replace($replace($val, "{", ""), "}", ""), ".");
-    $reduce($path, function($acc, $key) { $lookup($acc, $key) }, $$)."$value"
-  ) : $val
-};
-```
-
-### Var resolution (`resolve: "var"`)
-
-Resolves references to `var()` CSS custom property references. Use for groups with `resolve: "var"` in css-mapping:
-
-```jsonata
-$resolveVar := function($val, $prefix) {
-  $substring($val, 0, 1) = "{" ? (
+$exists($v."$value") ? (
+  $val := $v."$value";
+  $resolved := $substring($val, 0, 1) = "{" ? (
     $ref := $replace($replace($val, "{", ""), "}", "");
     $parts := $split($ref, ".");
-    $name := $join($filter($parts, function($v, $i) { $i >= 2 }), "-");
-    "var(--" & $prefix & "-" & $name & ")"
-  ) : $val
-};
+    $type := $parts[1];
+    $primPrefix := $type = "fontFamily" ? "font"
+      : $type = "fontSize" ? "text"
+      : $type = "fontWeight" ? "font-weight"
+      : $type = "lineHeight" ? "leading"
+      : $type;
+    "var(--" & $primPrefix & "-" & $join($filter($parts, function($p, $i) { $i >= 2 }), "-") & ")"
+  ) : $val;
+  $append($acc, "  --<prefix>-" & $sub & ": " & $resolved & ";")
+)
+: $append($acc, $walk($v, $sub))
 ```
 
-Use `$resolveVar($v."$value", "<prefix>")` instead of bare `$v."$value"` when the group references another token layer via `var()`.
+The reference `{primitive.color.blue.900}` becomes `var(--color-blue-900)`
+and `{primitive.spacing.6}` becomes `var(--spacing-6)`. The first two segments
+are dropped; the second segment selects the primitive layer's prefix
+(`color`, `spacing`, `radius`, `text`, `font`, `font-weight`, `leading`).
 
-## Typography: fontFamily Quoting
+## Composite Typography Expansion (`expand: typography`)
 
-For groups containing `$type: fontFamily` tokens, only include tokens with that type and quote the values:
+When the group expands composite `$type: typography` tokens, use a
+single-level iteration (composites are flat under the configured path):
 
-```jsonata
-$v."$type" = "fontFamily" ? "  --<prefix>-" & $k & ": \"" & $v."$value" & "\";"
-```
-
-Skip composite typography tokens (`$type: typography`).
-
-## Composite Typography Expansion (`expand: "typography"`)
-
-For groups with `expand: "typography"` in their css-mapping entry, the JSONata expression SHALL expand each composite `$type: typography` token into three CSS custom properties:
-
-- `--<prefix>-<role>`: the `fontSize` value
-- `--<prefix>-<role>--weight`: the `fontWeight` value
-- `--<prefix>-<role>--line-height`: the `lineHeight` value
-
-The `fontFamily` sub-value is NOT emitted (it is already handled by the `typography` fontFamily group).
+Composite sub-values are typically DTCG refs (e.g.
+`{primitive.fontSize.xl}`) and must be resolved to `var()` before emission —
+unresolved braces produce invalid CSS:
 
 ```jsonata
 (
-  $entries := $each($$.<token-path>, function($v, $k) {
+  $resolve := function($val) {
+    $substring($val, 0, 1) = "{" ? (
+      $ref := $replace($replace($val, "{", ""), "}", "");
+      $parts := $split($ref, ".");
+      $type := $parts[1];
+      $primPrefix := $type = "fontFamily" ? "font"
+        : $type = "fontSize" ? "text"
+        : $type = "fontWeight" ? "font-weight"
+        : $type = "lineHeight" ? "leading"
+        : $type;
+      "var(--" & $primPrefix & "-" & $join($filter($parts, function($p, $i) { $i >= 2 }), "-") & ")"
+    ) : $val
+  };
+  $node := $reduce($split("<path>", "."), function($a, $s) { $lookup($a, $s) }, $$);
+  $entries := $each($node, function($v, $k) {
     $substring($k, 0, 1) != "$" and $v."$type" = "typography" ? (
       $val := $v."$value";
-      "  --<prefix>-" & $k & ": " & $val.fontSize & ";\n" &
-      "  --<prefix>-" & $k & "--weight: " & $val.fontWeight & ";\n" &
-      "  --<prefix>-" & $k & "--line-height: " & $val.lineHeight & ";"
+      "  --<prefix>-" & $k & ": " & $resolve($val.fontSize) & ";\n" &
+      "  --<prefix>-" & $k & "--weight: " & $resolve($val.fontWeight) & ";\n" &
+      "  --<prefix>-" & $k & "--line-height: " & $resolve($val.lineHeight) & ";"
     )
   });
-  "<wrap> {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+  $lines := $filter($entries, function($e) { $e != null });
+  $count($lines) > 0
+    ? "<wrap> {\n" & $join($lines, "\n") & "\n}\n"
+    : ""
 )
 ```
+
+The `fontFamily` sub-value is intentionally omitted — it is already covered
+by the `primitive-font` group.
 
 ## Theme Override Expression Template
 
-For themes declared in the `themes:` section of `design-tokens.yml`, use `@layer theme` with a `[data-theme]` selector instead of `@theme`. The input is the same `design-tokens.yml` — the expression navigates to `$$.themes.<name>.semantic.color`.
+For themes declared in the `themes:` section of `design-tokens.yml`, use
+`@layer theme` with a `[data-theme]` selector instead of `@theme`. The input
+is the same `design-tokens.yml`; the expression navigates to
+`$$.themes.<name>.semantic.color`.
 
 ### Standard Theme
 
@@ -125,13 +166,17 @@ For themes declared in the `themes:` section of `design-tokens.yml`, use `@layer
   $entries := $each($$.themes."<name>".semantic.color, function($v, $k) {
     $substring($k, 0, 1) != "$" ? "    --color-" & $k & ": " & $v."$value" & ";"
   });
-  "@layer theme {\n  [data-theme=\"<name>\"] {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n  }\n}\n"
+  $lines := $filter($entries, function($e) { $e != null });
+  $count($lines) > 0
+    ? "@layer theme {\n  [data-theme=\"<name>\"] {\n" & $join($lines, "\n") & "\n  }\n}\n"
+    : ""
 )
 ```
 
 ### Dark Mode Theme
 
-If the theme has `$extensions.darkMode: true`, output **both** a `prefers-color-scheme` media query and a `data-theme` selector:
+If the theme has `$extensions.darkMode: true`, output **both** a
+`prefers-color-scheme` media query and a `data-theme` selector:
 
 ```jsonata
 (

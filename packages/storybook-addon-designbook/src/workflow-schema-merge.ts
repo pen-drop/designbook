@@ -84,7 +84,13 @@ export function resolveRefsInExtension(
       Object.assign(obj, schema);
       return;
     }
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item && typeof item === 'object') {
+          resolveRefsInExtension(item as Record<string, unknown>, sourceFilePath, skillsRoot, schemas);
+        }
+      }
+    } else if (value && typeof value === 'object') {
       resolveRefsInExtension(value as Record<string, unknown>, sourceFilePath, skillsRoot, schemas);
     }
   }

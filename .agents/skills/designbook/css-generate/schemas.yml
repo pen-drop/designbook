@@ -2,12 +2,14 @@
 
 CssGroup:
   type: object
-  required: [group, tokens]
+  required: [group, prefix, wrap, path]
   properties:
-    group: { type: string }
-    tokens:
-      type: array
-      items: { type: string }
+    group: { type: string, description: "Group identifier (kebab-case)." }
+    prefix: { type: string, description: "CSS custom property prefix." }
+    wrap: { type: string, description: "CSS wrapper construct (e.g. \"@theme\")." }
+    path: { type: string, description: "Dotted path inside design-tokens.yml that supplies this group." }
+    resolve: { type: string, description: "Optional resolve strategy (e.g. \"var\" to re-reference primitive tokens)." }
+    expand: { type: string, description: "Optional composite-token expansion mode (e.g. \"typography\")." }
 
 IndexCss:
   type: object
