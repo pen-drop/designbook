@@ -156,11 +156,11 @@ Both kinds are submitted the same way: as JSON inside `--data` on `workflow done
 
 - **Default** (`submission: data`, `flush: deferred`) — you pass the value via `--data`; the CLI stages it under `.debo` and flushes it atomically at stage end.
 - **`flush: immediate`** — file is flushed to its final path as soon as `workflow done` completes, so later steps within the same task can read it. Still submitted via `--data`.
-- **`submission: direct`** — an external tool writes the file (Playwright, headless CLI, etc.). The task runs the tool, then calls `_debo workflow result --key <k> --external` to register. The CLI runs post-write validation but doesn't author the content.
+- **`submission: direct`** — an external tool writes the file (Playwright, headless CLI, etc.). The task runs the tool, then calls `_debo workflow result --workflow $WORKFLOW_NAME --task <task-id> --key <k>` (omit `--json`) to register. The CLI runs post-write validation but doesn't author the content.
 
 ### Global rule — no direct Write-tool writes
 
-File results declared in `result:` frontmatter MUST be submitted via `workflow done --data` (or `workflow result --external` for `submission: direct`). Writing a declared result path with the Write tool or any other mechanism is forbidden — `workflow done` will reject the task if it detects an untracked file at a declared result path.
+File results declared in `result:` frontmatter MUST be submitted via `workflow done --data` (or `workflow result` without `--json` for `submission: direct`). Writing a declared result path with the Write tool or any other mechanism is forbidden — `workflow done` will reject the task if it detects an untracked file at a declared result path.
 
 ### Validation
 
