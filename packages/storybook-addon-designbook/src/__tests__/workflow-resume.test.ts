@@ -21,10 +21,7 @@ describe('workflowResume', () => {
   afterEach(() => rmSync(dataDir, { recursive: true, force: true }));
 
   it('transitions waiting → running and clears waiting_message', () => {
-    writeFileSync(
-      tasksYmlPath,
-      dumpYaml({ status: 'waiting', waiting_message: 'Preview OK?', tasks: [], stages: {} }),
-    );
+    writeFileSync(tasksYmlPath, dumpYaml({ status: 'waiting', waiting_message: 'Preview OK?', tasks: [], stages: {} }));
     workflowResume(dataDir, workflowName);
     const raw = parseYaml(readFileSync(tasksYmlPath, 'utf-8')) as { status: string; waiting_message?: string };
     expect(raw.status).toBe('running');

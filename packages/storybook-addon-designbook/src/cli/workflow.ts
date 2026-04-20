@@ -10,6 +10,7 @@ import {
   workflowDone,
   workflowAbandon,
   workflowWait,
+  workflowResume,
   workflowMerge,
   readWorkflow,
   expandTasksFromParams,
@@ -582,6 +583,22 @@ export function register(program: Command): void {
             ...(opts.message ? { message: opts.message } : {}),
           }),
         );
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('resume')
+    .description('Transition workflow status from waiting to running (call after user answers).')
+    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+    .action((opts: { workflow: string }) => {
+      const config = loadConfig();
+      try {
+        workflowResume(config.data, opts.workflow);
+        log({ cmd: 'workflow resume', args: { workflow: opts.workflow } });
+        console.log(JSON.stringify({ status: 'running', workflow: opts.workflow }));
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;
