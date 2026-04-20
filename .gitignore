@@ -13,3 +13,4 @@ promptfoo/workspaces/
 workspaces/
 autoresearch-results.tsv
 .claude/worktrees/
+.playwright-cli/
