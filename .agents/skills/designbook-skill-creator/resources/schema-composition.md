@@ -13,11 +13,12 @@ A task's result schema is never just what the task declares. The engine merges c
 
 | Operation | Effect | Allowed in |
 |-----------|--------|------------|
-| `extends:` | Add new properties to the schema | Blueprint, Rule |
-| `provides:` | Set default values for existing properties | Blueprint, Rule |
+| `extends:` | Add new properties to the schema | **Rule only** |
+| `provides:` | Set default values for existing properties | **Rule only** |
 | `constrains:` | Intersect enum values to narrow allowed options | **Rule only** |
+| `suggests:` | Informational — ignored during merge | **Blueprint only** |
 
-Blueprints **must not** use `constrains:` — only rules may constrain. This ensures blueprints remain overridable while rules enforce hard limits.
+Blueprints **must not** use any of `extends:`, `provides:`, or `constrains:` — all three are rule-exclusive. This ensures blueprints remain purely overridable; any authority lives in rules or schema types. Blueprints may use `suggests:` to publish machine-readable recommendations that do not participate in validation.
 
 ## Syntax
 
@@ -106,6 +107,18 @@ Phase 6: Rule constrains:        (enum narrowing — rules only)
 - Blueprints extend first, then rules — so rules can see all properties
 - Rules provide after blueprints — so rule defaults override blueprint defaults
 - Constraints come last — they narrow what's already defined
+
+## Keys Ignored During Merge
+
+`suggests:` (blueprint-only) is **not** merged into the task's result schema. It is
+informational — intended for UI/discovery consumers. The executor skips it entirely
+during the six-phase merge above.
+
+`suggests:` exists so blueprints can publish a machine-readable recommendation shape
+without claiming any validation authority. See
+[blueprint-files.md](../rules/blueprint-files.md#blueprints-suggest-never-enforce) for
+the authoring rules, and the vehicle decision matrix in that same file for how to
+choose between `suggests:` (soft) and a rule / schema type (hard).
 
 ## `$ref` in Extension Fields
 
