@@ -44,6 +44,10 @@ Tasks and rules must be **as abstract as possible**. They describe structure, re
 | What never changes | → Rule |
 | What to produce (outputs only) | → Task |
 
+When the integration-specific detail is structured (a prop enum, a default value, a
+recommended shape), express it as `suggests:` in frontmatter. When it is narrative
+guidance, keep it in the body.
+
 **Examples:**
 
 - "A component must have a `$schema` field" — never changes → **rule**
@@ -94,52 +98,79 @@ the blueprint is used for.
 Prefer component/pattern names over framework names. `card-blueprint.md` works for Drupal
 SDC, Tailwind, and Stitch; `drupal-card.md` forces a fork per integration.
 
-## Schema Extension as Core Mechanism
+## Blueprints Suggest, Never Enforce
 
-Blueprints frequently extend the task's result schema — adding default values, extra
-properties, or default nested structures. This is the **preferred mechanism** — not
-body prose. A blueprint describes "what kind of output do I produce, with what default
-shape" in frontmatter; the body only contains the narrative guidance and correct/wrong
-examples.
+Blueprints are overridable starting points. When an integration deviates from a
+blueprint, it replaces the entire blueprint file — not a merged subset. Hard
+constraints in a blueprint are therefore meaningless: they get overridden wholesale.
+A blueprint's only job is to suggest.
 
-Blueprints may use:
+Blueprints **must not** use `extends:`, `provides:`, or `constrains:` in frontmatter.
+All three are rule-exclusive — see [rule-files.md](rule-files.md#schema-extension-as-core-mechanism).
 
-- `extends:` — inherit another schema type
-- `provides:` (object form) — add properties with defaults
+Blueprints **may** use `suggests:` to express soft recommendations in a
+machine-readable form. `suggests:` is a JSON-Schema-like property map (supports
+`enum`, `default`, `type`, `description`, nested objects). The executor reads
+`suggests:` only for UI/discovery purposes — it is **never** merged into the task's
+validation schema. It never narrows enums. It never enforces defaults.
 
-Blueprints **must not** use `constrains:` — that is rule-exclusive, because a blueprint
-is overridable and narrowing an enum value non-overridably would break that promise.
-
-For the full schema-extension mechanics (merge semantics, last-writer-wins for `provides:`,
-enum-intersection for `constrains:`), see [rule-files.md](rule-files.md#schema-extension-as-core-mechanism).
-
-**Wrong — body prose describing defaults:**
-
-```markdown
-# Card Blueprint
-
-The card component has three variants: `default`, `featured`, `compact`.
-The default padding is `16px`.
-```
-
-**Correct — same defaults expressed in frontmatter:**
+**Wrong — blueprint with `provides:`:**
 
 ```yaml
 ---
-name: card-blueprint
+name: container-blueprint
 trigger:
   domain: components
-  component: card
+  component: container
 provides:
-  variant:
-    default: default
-    enum: [default, featured, compact]
-  padding:
-    default: 16px
+  max_width:
+    default: md
+    enum: [sm, md, lg, xl, full]
 ---
 ```
 
-The `BLUEPRINT-03` check below flags body prose that should live in frontmatter instead.
+**Correct — same recommendations as `suggests:`:**
+
+```yaml
+---
+name: container-blueprint
+trigger:
+  domain: components
+  component: container
+suggests:
+  max_width:
+    enum: [sm, md, lg, xl, full]
+    default: md
+    description: Container outer width preset
+  padding_top:
+    enum: [auto, none, sm, md, lg]
+  padding_bottom:
+    enum: [auto, none, sm, md, lg]
+---
+
+# Blueprint: Container
+
+The container component wraps arbitrary content and applies layout spacing.
+See `suggests:` above for recommended prop values.
+```
+
+### Vehicle Decision Matrix
+
+Blueprints carry no authority by design — any hard constraint must live in a rule
+or schema, never in a blueprint. Pick the vehicle by what the content is:
+
+| Situation | Vehicle |
+|---|---|
+| Recommended prop shape or enum for a component (overridable) | Blueprint `suggests:` |
+| Loose prose guidance, no structure | Blueprint body |
+| Hard contract other tools must validate against | Schema type in integration's `schemas.yml` (via `$ref` on a core type) |
+| Non-overridable narrowing for a specific backend/config | Rule with `constrains:` |
+| Runtime default value that affects validation | Rule with `provides:` |
+| Added property that affects validation | Rule with `extends:` |
+
+The `BLUEPRINT-01` check flags any of `extends:`/`provides:`/`constrains:` in
+blueprint frontmatter. The `BLUEPRINT-03` check flags body prose that should live
+in `suggests:` (soft) or in `schemas.yml` / a rule (hard).
 
 ## `blueprints/` — Trigger + Filter Matching
 
