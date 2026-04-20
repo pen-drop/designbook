@@ -6,7 +6,10 @@ params:
     type: string
     resolve: story_id
     sources: [scenes]
-  scene_id: { type: string }
+  scene_path:
+    type: string
+    resolve: scene_path
+    from: story_id
   reference_url: { type: string, default: "" }
   reference_folder:
     type: string
