@@ -75,7 +75,7 @@ A `$ref` at the top level of `params:` resolves a schema and merges its `propert
 
 ```yaml
 params:
-  $ref: ../schemas.yml#/Section       # Section.properties are merged in
+  $ref: ../../scenes/schemas.yml#/SceneFile  # SceneFile.properties are merged in
   type: object
   required: [scene]
   properties:

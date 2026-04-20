@@ -19,7 +19,7 @@ result:
     section:
       type: array
       items:
-        $ref: ../schemas.yml#/Section
+        $ref: ../../scenes/schemas.yml#/SceneFile
 ---
 
 # Intake: Sections
