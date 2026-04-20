@@ -1158,11 +1158,6 @@ export async function workflowDone(
     task.completed_at = timestamp();
     if (options?.summary) task.summary = options.summary;
 
-    if (data.status === 'waiting') {
-      data.status = 'running';
-      delete data.waiting_message;
-    }
-
     if (loaded) {
       // Write step-level data — deduplicate: only write if step not already recorded
       const stepName = task.step;
@@ -1489,12 +1484,6 @@ export async function workflowWriteFile(
       writtenPath = fileEntry.path;
     }
 
-    // Transition from waiting back to running on first write
-    if (data.status === 'waiting') {
-      data.status = 'running';
-      delete data.waiting_message;
-    }
-
     writeWorkflowAtomic(filePath, data);
 
     return {
@@ -1665,12 +1654,6 @@ export async function workflowResult(
         writtenPath = resultEntry.path!;
       }
 
-      // Transition from waiting back to running
-      if (data.status === 'waiting') {
-        data.status = 'running';
-        delete data.waiting_message;
-      }
-
       writeWorkflowAtomic(filePath, data);
 
       return {
@@ -1705,12 +1688,6 @@ export async function workflowResult(
       delete resultEntry.error;
     }
     resultEntry.last_validated = new Date().toISOString();
-
-    // Transition from waiting back to running
-    if (data.status === 'waiting') {
-      data.status = 'running';
-      delete data.waiting_message;
-    }
 
     writeWorkflowAtomic(filePath, data);
 
