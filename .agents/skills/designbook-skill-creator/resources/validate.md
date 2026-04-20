@@ -1,17 +1,17 @@
 ---
 name: validate
-description: Static analysis of skill files — checks tasks, rules, and blueprints against principles and structure conventions
+description: Static analysis runner — discovers rule files via applies-to globs and applies their `## Checks` tables to every skill file. No checks are defined here.
 ---
 
-# Skill Validator
+# Skill Validator — Runner
 
 ## What It Does
 
-Static analysis of all task, rule, and blueprint files in a skill directory. Checks each file against the rules in `principles.md` and `structure.md`. Outputs a structured report with findings, metrics, and scores.
+Static analysis of all task, rule, blueprint, schema, and workflow files in a skill directory. For each file, the runner loads every rule file from `.agents/skills/designbook-skill-creator/rules/` whose `applies-to` glob matches, extracts its `## Checks` table, and applies every row. Outputs a structured report with findings, metrics, and scores.
 
 Pendant to `research.md` (runtime audit), but purely static — no workflow execution needed.
 
-## Aufruf
+## Invocation
 
 When asked to validate a skill:
 
@@ -24,51 +24,30 @@ Validate all skills
 
 ### Step 1 — Discover files
 
-Scan the skill directory for all `.md` files in `tasks/`, `rules/`, and `blueprints/`. For the core skill (`designbook/`), scan all `<concern>/tasks/`, `<concern>/rules/`, and integration skill `blueprints/` directories.
+Scan the skill directory for all `.md` files in `tasks/`, `rules/`, `blueprints/`, and `workflows/`; plus any `schemas.yml`; plus `SKILL.md`. For the core skill (`designbook/`), scan all `<concern>/tasks/`, `<concern>/rules/`, `<concern>/workflows/`, and integration-skill `blueprints/` directories.
 
-Also locate `schemas.yml` for `$ref` resolution.
+Also locate every `schemas.yml` for `$ref` resolution.
 
-### Step 2 — Classify each file
+### Step 2 — Load rule files
 
-Determine file type from directory:
+Read all files in `.agents/skills/designbook-skill-creator/rules/`. For each rule file, read its frontmatter `applies-to:` glob list.
 
-| Directory | Type |
-|---|---|
-| `tasks/` | task |
-| `rules/` | rule |
-| `blueprints/` | blueprint |
+### Step 3 — Dispatch + check
 
-### Step 3 — Check each file
+For every scanned file, collect all rule files whose `applies-to` globs match the scanned file's path (relative to the skill root). For each matching rule file, read its `## Checks` table and apply every row to the scanned file.
 
-For every file, parse YAML frontmatter and markdown body. Apply all applicable rules.
+Every row follows the contract:
 
-#### Errors (rule violations)
+```
+| ID | Severity | What to verify | Where |
+```
 
-| ID | Rule | Source | Check |
-|---|---|---|---|
-| `E01` | Frontmatter missing/invalid | structure.md | YAML frontmatter must be parseable |
-| `E02` | Required fields missing | structure.md | Tasks need `when`; tasks with outputs need `result:` |
-| `E03` | `$ref` points to nothing | principles.md (Results Declare Schema) | Every `$ref` must resolve to a key in `schemas.yml` |
-| `E04` | `when.steps` references unknown step | structure.md (Naming Rule) | Step name must exist in a workflow file |
-| `E05` | `stage:` in frontmatter | principles.md (Stage = Filename) | Redundant field, must not exist |
-| `E06` | `constrains:` in blueprint | structure.md (Schema Extension) | Only rules may use `constrains:` |
-| `E07` | Inline schema duplicates `schemas.yml` type | principles.md (Results Declare Schema) | A `result:` property with `type: object` (or array of objects) defines its shape inline while a matching type exists in the concern's `schemas.yml` — must use `$ref` instead |
+- `ID` is globally unique across all rule files.
+- `Severity` is `error` or `warning`.
+- `What to verify` is a natural-language predicate the LLM runner evaluates against the scanned file's content.
+- `Where` is `frontmatter`, `body`, `filename`, or `frontmatter+body`.
 
-#### Warnings (principle deviations)
-
-| ID | Rule | Source | Check |
-|---|---|---|---|
-| `W01` | Body repeats result schema | principles.md (Results in Schema, Not in Body) | `## Result:` section present + schema is self-explanatory (simple type without semantic ambiguity) |
-| `W02` | Task contains HOW not WHAT | principles.md (Tasks Say WHAT) | Body contains implementation details: CSS classes, Twig code, framework-specific syntax, style instructions |
-| `W03` | Site-specific content in core skill | principles.md (Site-Agnostic) | Hardcoded brand names, URLs, project-specific references in `designbook/` |
-| `W04` | Cross-layer duplicate | research.md (3d) | Task body repeats what a loaded rule already enforces |
-| `W05` | Validation steps in body | principles.md (Validation Is Automatic) | Body describes manual validation that the engine handles automatically |
-| `W06` | Workflow prefix in workflow definition | principles.md (Workflow Steps Are Plain Names) | `stages.*.steps` contains qualified names |
-| `W07` | Property lacks teaching signals | principles.md (Schemas Must Teach the AI) | Property in `params:`, `result:`, or `schemas.yml` of `type: string`/`number`/`object` without `description`, `enum`, `pattern`, or `examples`. **Skip** properties with `path:` (file references) and `$ref:` (delegates teaching to ref target) |
-| `W08` | Type missing title/description | principles.md (Schemas Must Teach the AI) | Top-level type in `schemas.yml` lacks both `title:` and `description:` |
-| `W09` | `additionalProperties: true` undocumented | principles.md (Schemas Must Teach the AI) | Schema allows arbitrary keys without explaining what belongs there |
-
-**Scope of W07–W09:** schema teaching checks run over `params:` and `result:` blocks of tasks plus all definitions in `schemas.yml`. Properties carrying a `path:` field (file inputs/outputs) are excluded — they are file references, not content schemas. Properties using `$ref:` are also excluded; the ref target is checked separately.
+Record each matched violation as a finding: `{ file, id, severity, description }`.
 
 ### Step 4 — Compute metrics
 
@@ -95,7 +74,7 @@ For each top-level type in every `schemas.yml`, plus every `params:`/`result:` b
 | `refs_in` | List of types/tasks that `$ref` this type |
 | `completeness` | (has_title_or_description ? 1 : 0) + coverage, scaled 0–100% |
 
-**Exclusions:** properties with `path:` are file references and bypass W07–W09 entirely. Properties with `$ref:` count toward `refs_out` only; their teaching is the responsibility of the ref target.
+**Exclusions:** properties with `path:` are file references and bypass the teaching-signal checks entirely. Properties with `$ref:` count toward `refs_out` only; their teaching is the responsibility of the ref target.
 
 ### Step 5 — Compute scores
 
@@ -120,7 +99,7 @@ Output as markdown tables:
 
 | File | Type | ID | Severity | Description |
 |---|---|---|---|---|
-| tasks/create-component.md | task | W02 | warning | Body contains Twig code (line 45-60) |
+| tasks/create-component.md | task | TASK-06 | warning | Body contains Twig code (line 45-60) |
 
 ### Metrics
 
@@ -160,7 +139,30 @@ Per top-level type in `schemas.yml` (and `params:`/`result:` blocks of tasks). P
 | Skill score | 78/100 |
 ```
 
-## Abgrenzung zu research.md
+## References — Rule Files
+
+All checks live in these rule files. Any change to a check — adding, removing, tightening,
+rephrasing — happens in the rule file, not here.
+
+- Task rules: [../rules/task-files.md](../rules/task-files.md) — `TASK-01` .. `TASK-14`
+- Blueprint rules: [../rules/blueprint-files.md](../rules/blueprint-files.md) — `BLUEPRINT-01` .. `BLUEPRINT-03`
+- Rule rules: [../rules/rule-files.md](../rules/rule-files.md) — `RULE-01`
+- Schema rules: [../rules/schema-files.md](../rules/schema-files.md) — `SCHEMA-01` .. `SCHEMA-04`
+- Workflow rules: [../rules/workflow-files.md](../rules/workflow-files.md) — `WORKFLOW-01`
+- Common rules: [../rules/common-rules.md](../rules/common-rules.md) — `COMMON-01`, `COMMON-02`
+
+## Maintenance
+
+Some checks share a predicate across two rule files because their authoring context differs.
+Currently:
+
+- `TASK-09` (task params/result teaching signals) and `SCHEMA-02` (schemas.yml teaching signals)
+  share the "at least one of `description`, `enum`, `pattern`, `examples`" predicate.
+
+When the predicate definition changes (e.g., adding `const:` as a valid teaching signal),
+update **both** checks in the same commit.
+
+## Boundary vs research.md
 
 | | validate.md | research.md |
 |---|---|---|
