@@ -6,8 +6,8 @@ fixtures:
 prompt: |
   You are working in the directory {{workspace}}.
   Run the /debo design-component workflow. Do NOT ask any questions.
-  Create a "pet-card" component for PetMatch that displays: pet photo, name, breed, age, and an "Adopt Me" button.
-  The component should have variants: default and featured (with a highlight border).
+  Create an "avatar" component for PetMatch that displays: user photo, user name, and a role label.
+  The component should have variants: small, medium (default), and large.
   Execute the workflow now.
 
 assert:

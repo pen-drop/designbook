@@ -1,4 +1,4 @@
----
+static-assets.md---
 name: static-assets
 ---
 

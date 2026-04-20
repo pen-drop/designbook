@@ -1,0 +1,15 @@
+product_name: Designbook
+description: Designbook is an AI-powered design-to-implementation platform that bridges the gap between design tools and CMS/frontend development. It transforms designs from any source into structured, implementation-ready specifications through guided workflows.
+problems:
+  - title: Manual Design-to-Code Translation
+    solution: Guided AI workflows that progressively structure designs into implementation-ready specs — from vision through data model to fully rendered screens.
+  - title: Lost Context in Design Handoff
+    solution: Single source of truth with YAML specs, component code, and live Storybook preview, keeping design intent intact throughout implementation.
+  - title: Framework-Specific Implementation Patterns
+    solution: Framework-agnostic approach that generates output for any stack — Drupal, React, Twig, Tailwind, and more — through swappable integration plugins.
+features:
+  - Staged AI workflows (vision, sections, tokens, data model, sample data, shell, screens)
+  - Design input from Figma, Google Stitch, existing websites, or AI conversation
+  - Live component preview in Storybook
+  - YAML-based specs for content types, view modes, and page compositions
+  - Integration plugins for Drupal, Tailwind CSS, and SDC

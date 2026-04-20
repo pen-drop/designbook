@@ -6,10 +6,8 @@ trigger:
 priority: 50
 params:
   type: object
-  required: [scene_id, story_id]
+  required: [story_id]
   properties:
-    scene_id:
-      $ref: ../../scenes/schemas.yml#/SceneId
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
 ---
@@ -41,7 +39,7 @@ Summarizes all check results and determines whether the workflow is complete or 
 ```
 ## Design Verify — Summary
 
-**Scene:** {scene}
+**Story:** {story_id}
 **Result:** {resolved}/{total} issues resolved
 
 ### Issues

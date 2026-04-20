@@ -1,4 +1,4 @@
----
+:---
 trigger:
   steps: [generate-index]
 domain: [css]

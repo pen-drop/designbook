@@ -1,0 +1,2254 @@
+title: Homepage Design 3
+workflow: design-screen
+workflow_id: 015f
+status: running
+engine: direct
+params:
+  story_id: Designbook/Sections/Homepage--default
+  reference_url: ''
+  scene_path: sections/homepage/homepage.section.scenes.yml
+stages:
+  reference:
+    steps:
+      - extract-reference
+  intake:
+    steps:
+      - intake
+    domain:
+      - data-model
+  component:
+    steps:
+      - create-component
+  sample-data:
+    steps:
+      - create-sample-data
+  entity-mapping:
+    steps:
+      - map-entity
+  scene:
+    steps:
+      - create-scene
+    domain:
+      - data-model
+stage_loaded:
+  extract-reference:
+    task_file: .claude/skills/designbook/design/tasks/extract-reference.md
+    rules: []
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+    schema:
+      definitions:
+        StoryId:
+          type: string
+          description: >
+            Storybook story ID in `Group/Component--variant` format
+            (CSF-compliant). Used to render or verify a specific story variant.
+          examples:
+            - Designbook/Sections/Hero--default
+            - Components/Card--primary
+        ReferenceFolder:
+          type: string
+          description: >
+            Path to a scene's verification material — contains `extract.json`
+            (reference structure) and reference screenshots per
+            breakpoint/region. Format: `{breakpoint}--{region}.png` (e.g.
+            `xl--full.png`).
+          examples:
+            - $DESIGNBOOK_DATA/references/hero
+            - /tmp/refs/article
+        Vision:
+          type: object
+          required:
+            - product_name
+            - description
+          properties:
+            product_name:
+              type: string
+              title: Product Name
+            description:
+              type: string
+              title: Description
+            problems:
+              type: array
+              title: Problems & Solutions
+              default: []
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  solution:
+                    type: string
+            features:
+              type: array
+              title: Key Features
+              default: []
+              items:
+                type: string
+            design_reference:
+              type: object
+              title: Design Reference
+              default: null
+              properties:
+                type:
+                  type: string
+                url:
+                  type: string
+                label:
+                  type: string
+            references:
+              type: array
+              title: References
+              default: []
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                  url:
+                    type: string
+                  label:
+                    type: string
+        DesignReference:
+          type: object
+          required:
+            - source
+            - extracted
+            - strategy
+          properties:
+            source:
+              type: string
+            extracted:
+              type: string
+            strategy:
+              type: string
+              enum:
+                - vision
+                - playwright+vision
+            assets_dir:
+              type: string
+              description: >
+                Directory (relative to the reference folder) where downloaded
+                static assets (logos, icons, SVGs) are stored. Typically
+                `assets/`.
+              examples:
+                - assets
+            fonts:
+              type: array
+              items:
+                type: object
+                properties:
+                  family:
+                    type: string
+                  source:
+                    type: string
+                  weights:
+                    type: array
+                    items:
+                      type: number
+                  styles:
+                    type: array
+                    items:
+                      type: string
+            typography:
+              type: array
+              items:
+                type: object
+                properties:
+                  element:
+                    type: string
+                  font_family:
+                    type: string
+                  font_size:
+                    type: string
+                  line_height:
+                    type: string
+                  letter_spacing:
+                    type: string
+                  font_weight:
+                    type: number
+                  color:
+                    type: string
+            colors:
+              type: array
+              items:
+                type: object
+                properties:
+                  hex:
+                    type: string
+                  usage:
+                    type: array
+                    items:
+                      type: string
+            css_variables:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  value:
+                    type: string
+            spacing:
+              type: object
+              properties:
+                container_max_width:
+                  type: string
+                edge_padding:
+                  type: string
+                section_gap:
+                  type: string
+                values:
+                  type: array
+                  items:
+                    type: string
+            landmarks:
+              type: object
+              properties:
+                header:
+                  type: object
+                  properties:
+                    rows:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          tag:
+                            type: string
+                          bg:
+                            type: string
+                          height:
+                            type: string
+                          padding:
+                            type: string
+                          content:
+                            type: string
+                          layout:
+                            type: string
+                          gap:
+                            type: string
+                footer:
+                  type: object
+                  properties:
+                    rows:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          tag:
+                            type: string
+                          bg:
+                            type: string
+                          height:
+                            type: string
+                          padding:
+                            type: string
+                          content:
+                            type: string
+                          layout:
+                            type: string
+                          gap:
+                            type: string
+            interactive:
+              type: array
+              items:
+                type: object
+                properties:
+                  element:
+                    type: string
+                  selector:
+                    type: string
+                  bg:
+                    type: string
+                  color:
+                    type: string
+                  border_radius:
+                    type: string
+                  padding:
+                    type: string
+                  font:
+                    type: string
+                  box_shadow:
+                    type: string
+                  border:
+                    type: string
+            tokens:
+              type: object
+              properties:
+                colors:
+                  type: object
+                fonts:
+                  type: object
+                spacing:
+                  type: array
+                  items:
+                    type: string
+                radii:
+                  type: array
+                  items:
+                    type: string
+            navigation:
+              type: array
+              description: Navigation structures detected in the design reference.
+              items:
+                type: object
+                properties:
+                  role:
+                    type: string
+                    description: >-
+                      Navigation context: main, footer, breadcrumb, sidebar,
+                      utility.
+                    enum:
+                      - main
+                      - footer
+                      - breadcrumb
+                      - sidebar
+                      - utility
+                  items:
+                    type: array
+                    description: Ordered list of navigation entries.
+                    items:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                        url:
+                          type: string
+                        active:
+                          type: boolean
+                          description: >-
+                            True if this item appears as the active/current
+                            page.
+                        children:
+                          type: array
+                          description: Sub-navigation items (one level deep).
+                          items:
+                            type: object
+                            properties:
+                              label:
+                                type: string
+                              url:
+                                type: string
+            images:
+              type: array
+              description: >-
+                Static images and brand assets detected in the design reference
+                (logos, icons, illustrations).
+              items:
+                type: object
+                required:
+                  - url
+                  - role
+                properties:
+                  url:
+                    type: string
+                    description: Source URL or path of the image.
+                  role:
+                    type: string
+                    description: Visual role of the image.
+                    enum:
+                      - logo
+                      - icon
+                      - hero
+                      - background
+                      - illustration
+                      - avatar
+                      - other
+                  alt:
+                    type: string
+                    description: Alt text or accessible label if present.
+                  location:
+                    type: string
+                    description: 'Where the image appears: header, footer, main, sidebar.'
+                  width:
+                    type: string
+                    description: Rendered width (px or CSS value).
+                  height:
+                    type: string
+                    description: Rendered height (px or CSS value).
+                  local_path:
+                    type: string
+                    description: >
+                      Path (relative to the Storybook `public/` or configured
+                      static dir) where the asset has been downloaded. Empty if
+                      the asset could not be downloaded or is decorative-only.
+                      Scenes and components MUST reference this path (e.g. `<img
+                      src="/logo.svg">`) instead of text placeholders when it is
+                      set.
+                    examples:
+                      - /logo.svg
+                      - /assets/partner-bmbf.svg
+            components:
+              type: array
+              description: UI components identified in the design reference.
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: >-
+                      Component type as it would be named in the design system
+                      (e.g. button, card, navigation, hero, badge).
+                  count:
+                    type: number
+                    description: Number of distinct instances detected.
+                  location:
+                    type: array
+                    description: Regions where the component appears.
+                    items:
+                      type: string
+                  variants:
+                    type: array
+                    description: >-
+                      Visual variants observed (e.g. primary/secondary,
+                      filled/outline, horizontal/vertical).
+                    items:
+                      type: string
+                  props:
+                    type: object
+                    description: >-
+                      Key visual properties extracted from the observed
+                      instances (colors, sizes, labels, etc.).
+            sections:
+              type: array
+              description: >
+                Page-level content zones between header and footer (hero,
+                features grid, CTA, testimonials, etc.). Provides layout context
+                for story structure decisions.
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    description: >-
+                      Section type (e.g. hero, features, cta, testimonials,
+                      pricing, faq, gallery, contact).
+                  bg:
+                    type: string
+                    description: Background color or gradient.
+                  layout:
+                    type: string
+                    description: >-
+                      Layout pattern (e.g. full-width, two-column, grid-3,
+                      centered).
+                  content_summary:
+                    type: string
+                    description: One-sentence description of what this section contains.
+                  order:
+                    type: integer
+                    description: >-
+                      Top-to-bottom position of the section on the page
+                      (1-based).
+            shadows:
+              type: array
+              description: >
+                Elevation / box-shadow tokens detected in the design reference.
+                Maps to CSS custom properties (e.g. --shadow-card,
+                --shadow-modal).
+              items:
+                type: object
+                properties:
+                  value:
+                    type: string
+                    description: Full CSS box-shadow value.
+                  usage:
+                    type: array
+                    description: >-
+                      Contexts where this shadow appears (e.g. card, modal,
+                      dropdown, button, header).
+                    items:
+                      type: string
+                  token:
+                    type: string
+                    description: Suggested CSS custom property name (e.g. --shadow-sm).
+            forms:
+              type: array
+              description: >
+                Form patterns detected in the design reference — input fields,
+                labels, error states, etc. Extracted per distinct form or form
+                section observed.
+              items:
+                type: object
+                properties:
+                  context:
+                    type: string
+                    description: >-
+                      Where the form appears or its purpose (e.g. login,
+                      newsletter, contact, search).
+                  fields:
+                    type: array
+                    description: Detected input fields.
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          description: >-
+                            Input type (text, email, password, select, checkbox,
+                            radio, textarea).
+                        label_position:
+                          type: string
+                          description: Label placement (above, inline, placeholder-only).
+                        style:
+                          type: object
+                          properties:
+                            bg:
+                              type: string
+                            border:
+                              type: string
+                            border_radius:
+                              type: string
+                            padding:
+                              type: string
+                            font_size:
+                              type: string
+                  error_color:
+                    type: string
+                    description: Color used for validation error messages.
+                  submit_button:
+                    type: string
+                    description: Description of the submit CTA style.
+            breakpoints:
+              type: array
+              description: >
+                Responsive breakpoints observed in the design reference (e.g.
+                when multiple viewport widths are shown). Maps detected px
+                values to design-token breakpoint identifiers.
+              items:
+                type: object
+                properties:
+                  px:
+                    type: integer
+                    description: Viewport width in pixels at which the layout changes.
+                  token_id:
+                    type: string
+                    description: >-
+                      Suggested breakpoint token identifier (e.g. sm, md, lg,
+                      xl).
+                  description:
+                    type: string
+                    description: >-
+                      What changes at this breakpoint (e.g. nav collapses, grid
+                      switches to single column).
+      params:
+        story_id:
+          default: ''
+          $ref: '#/definitions/StoryId'
+        reference_folder:
+          default: ''
+          resolve: reference_folder
+          from: vision.design_reference.url
+          $ref: '#/definitions/ReferenceFolder'
+        vision:
+          type: object
+          path: /home/cw/projects/designbook/designbook/vision.yml
+          exists: false
+          content: null
+          $ref: '#/definitions/Vision'
+      result:
+        reference_dir:
+          $ref: '#/definitions/ReferenceFolder'
+        reference:
+          type: object
+          path: '{{ reference_folder }}/extract.json'
+          $ref: '#/definitions/DesignReference'
+        screenshot:
+          type: string
+          default: ''
+  intake:
+    task_file: .claude/skills/designbook/design/tasks/intake--design-screen.md
+    rules:
+      - .claude/skills/designbook-drupal/shell/rules/navigation.md
+      - .claude/skills/designbook-drupal/data-model/rules/media-image-styles.md
+      - .claude/skills/designbook-drupal/data-model/rules/drupal-views.md
+      - .claude/skills/designbook-drupal/components/rules/layout-constraints.md
+      - .claude/skills/designbook-css-tailwind/rules/component-source.md
+      - .claude/skills/designbook/design/rules/markup-derivation.md
+      - .claude/skills/designbook/data-model/rules/sample-template-mapping.md
+    blueprints:
+      - .claude/skills/designbook-drupal/data-model/blueprints/view.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/taxonomy_term.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/node.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/media.md
+      - .claude/skills/designbook-drupal/components/blueprints/section.md
+      - .claude/skills/designbook-drupal/components/blueprints/page.md
+      - .claude/skills/designbook-drupal/components/blueprints/navigation.md
+      - .claude/skills/designbook-drupal/components/blueprints/logo.md
+      - .claude/skills/designbook-drupal/components/blueprints/link.md
+      - .claude/skills/designbook-drupal/components/blueprints/icon.md
+      - .claude/skills/designbook-drupal/components/blueprints/header.md
+      - .claude/skills/designbook-drupal/components/blueprints/grid.md
+      - .claude/skills/designbook-drupal/components/blueprints/form.md
+      - .claude/skills/designbook-drupal/components/blueprints/footer.md
+      - .claude/skills/designbook-drupal/components/blueprints/container.md
+      - .claude/skills/designbook-drupal/components/blueprints/button.md
+      - .claude/skills/designbook/data-model/blueprints/image_style.md
+      - .claude/skills/designbook/design/blueprints/static-assets.md
+    config_rules: []
+    config_instructions: []
+    schema:
+      definitions:
+        DataModel:
+          type: object
+          required:
+            - content
+          properties:
+            content:
+              type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    purpose:
+                      type: string
+                    view_modes:
+                      type: object
+                      additionalProperties:
+                        type: object
+                        required:
+                          - template
+                        properties:
+                          template:
+                            type: string
+                          settings:
+                            type: object
+                            additionalProperties: true
+                        additionalProperties: false
+                    fields:
+                      type: object
+                      additionalProperties:
+                        type: object
+                        required:
+                          - type
+                        properties:
+                          type:
+                            type: string
+                          title:
+                            type: string
+                          description:
+                            type: string
+                          required:
+                            type: boolean
+                          multiple:
+                            type: boolean
+                          settings:
+                            type: object
+                            additionalProperties: true
+                          sample_template:
+                            type: object
+                            required:
+                              - template
+                            properties:
+                              template:
+                                type: string
+                              settings:
+                                type: object
+                                additionalProperties: true
+                            additionalProperties: false
+                  additionalProperties: true
+            config:
+              type: object
+              additionalProperties: true
+        SceneFile:
+          type: object
+          required:
+            - id
+            - title
+          properties:
+            id:
+              type: string
+              description: Section/shell identifier for Designbook overview pages.
+            title:
+              type: string
+              description: Human-readable title for overview page.
+            description:
+              type: string
+              description: Section description for overview page.
+            status:
+              type: string
+              enum:
+                - planned
+                - in-progress
+                - done
+            order:
+              type: integer
+              description: Display order in Storybook sidebar.
+            group:
+              type: string
+              description: >-
+                Storybook story group (e.g. "Designbook/Design System"). Falls
+                back to name.
+            scenes:
+              type: array
+              items:
+                $ref: '#/SceneDef'
+        Vision:
+          type: object
+          required:
+            - product_name
+            - description
+          properties:
+            product_name:
+              type: string
+              title: Product Name
+            description:
+              type: string
+              title: Description
+            problems:
+              type: array
+              title: Problems & Solutions
+              default: []
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  solution:
+                    type: string
+            features:
+              type: array
+              title: Key Features
+              default: []
+              items:
+                type: string
+            design_reference:
+              type: object
+              title: Design Reference
+              default: null
+              properties:
+                type:
+                  type: string
+                url:
+                  type: string
+                label:
+                  type: string
+            references:
+              type: array
+              title: References
+              default: []
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                  url:
+                    type: string
+                  label:
+                    type: string
+        Component:
+          type: object
+          required:
+            - component
+            - group
+          properties:
+            component:
+              type: string
+            slots:
+              type: array
+              items:
+                type: string
+              default: []
+            group:
+              type: string
+            description:
+              type: string
+            design_hint:
+              $ref: '#/DesignHint'
+            variants:
+              type: array
+              default: []
+              items:
+                $ref: '#/Variant'
+        EntityMapping:
+          type: object
+          required:
+            - entity_type
+            - bundle
+            - view_mode
+          properties:
+            entity_type:
+              type: string
+            bundle:
+              type: string
+            view_mode:
+              type: string
+      params:
+        reference_dir:
+          type: string
+          default: ''
+        data_model:
+          type: object
+          path: /home/cw/projects/designbook/designbook/data-model.yml
+          exists: false
+          content: null
+          $ref: '#/definitions/DataModel'
+        design_scenes:
+          type: object
+          path: >-
+            /home/cw/projects/designbook/designbook/design-system/design-system.scenes.yml
+          exists: false
+          content: null
+          $ref: '#/definitions/SceneFile'
+        vision:
+          type: object
+          path: /home/cw/projects/designbook/designbook/vision.yml
+          exists: false
+          content: null
+          $ref: '#/definitions/Vision'
+        section_scenes:
+          type: object
+          path: >-
+            /home/cw/projects/designbook/designbook/sections/[section-id]/[section-id].section.scenes.yml
+          $ref: '#/definitions/SceneFile'
+      result:
+        components:
+          type: array
+          items:
+            $ref: '#/definitions/Component'
+        output_path:
+          type: string
+        entity_mappings:
+          type: array
+          items:
+            $ref: '#/definitions/EntityMapping'
+        section_id:
+          type: string
+        section_title:
+          type: string
+  create-component:
+    - task_file: .claude/skills/designbook-drupal/components/tasks/create-component.md
+      rules:
+        - .claude/skills/designbook/design/rules/markup-derivation.md
+      blueprints:
+        - .claude/skills/designbook/design/blueprints/static-assets.md
+      config_rules: &ref_0 []
+      config_instructions: &ref_1 []
+      schema: &ref_2
+        definitions:
+          Component:
+            type: object
+            required:
+              - component
+              - group
+            properties:
+              component:
+                type: string
+              slots:
+                type: array
+                items:
+                  type: string
+                default: []
+              group:
+                type: string
+              description:
+                type: string
+              design_hint:
+                $ref: '#/DesignHint'
+              variants:
+                type: array
+                default: []
+                items:
+                  $ref: '#/Variant'
+          SdcComponent:
+            title: SDC Component Metadata
+            description: >
+              The `.component.yml` file declaring an SDC component's metadata,
+              props, slots and variants to Drupal and the Storybook addon.
+
+
+              NAMING — directory name equals file base name; always kebab-case
+              (`button/button.component.yml`,
+              `nav-main/nav-main.component.yml`). Components are visually
+              descriptive, never domain-specific: `card` ✅, `article-card` ❌;
+              `grid` ✅, `article-teaser-grid` ❌.
+
+
+              YAML QUOTING — all string values use double quotes (`"`). Single
+              quotes cause parser errors in the SDC Storybook addon.
+
+
+              STORIES LIVE IN SEPARATE FILES — never declare stories inside
+              `.component.yml`. Every component MUST set
+              `thirdPartySettings.sdcStorybook.disableBasicStory: true` and ship
+              at least one `<component>.default.story.yml` alongside it.
+
+
+              VARIANTS — when two components share the same props and slots but
+              differ only in layout or visual arrangement, implement them as
+              variants of a single component. Each variant listed here needs a
+              matching `<component>.<variant-id>.story.yml`. Never declare a
+              `variant` prop under `props.properties` when `variants:` is
+              populated — the `variants:` block is the canonical source.
+            type: object
+            required:
+              - name
+              - status
+              - group
+            properties:
+              $schema:
+                type: string
+                const: >-
+                  https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+                description: Path to the SDC JSON Schema. Always this exact URL.
+              name:
+                type: string
+                description: >-
+                  Human-readable display name shown in Storybook navigation.
+                  Title case, free-form.
+                examples:
+                  - Button
+                  - Card
+                  - Navigation
+              status:
+                type: string
+                enum:
+                  - stable
+                  - experimental
+                  - deprecated
+                description: >-
+                  Lifecycle state. `stable` for production-ready; `experimental`
+                  for in-development; `deprecated` for scheduled removal.
+              group:
+                type: string
+                enum:
+                  - Action
+                  - Data Display
+                  - Navigation
+                  - Layout
+                  - Shell
+                description: >-
+                  Top-level category used for Storybook grouping. Must be one of
+                  the listed values.
+              description:
+                type: string
+                description: >-
+                  One-sentence summary of the component's purpose and typical
+                  usage context.
+              provider:
+                type: string
+                description: >
+                  Drupal SDC namespace (module/theme name) that owns the
+                  component. Maps to a Twig namespace in `.storybook/main.js`.
+                  Resolve the literal `COMPONENT_NAMESPACE` placeholder to the
+                  concrete provider from config at generation time — never leave
+                  the placeholder in the written file.
+                examples:
+                  - test_integration_drupal
+                  - designbook_design
+              props:
+                type: object
+                description: >
+                  JSON Schema object describing the component's typed props.
+                  Always `type: object` with `properties:` and optional
+                  `required:`. Type mapping — `string` → `type: string`,
+                  `boolean` → `type: boolean`, `number` → `type: number` or
+                  `type: integer`, `array` → `type: array`, `object` → `type:
+                  object`. Enums are declared with `enum:` on the prop. Never
+                  declare a `variant` prop when the top-level `variants:` block
+                  exists. Omit the entire `props:` section when there are no
+                  props.
+                properties:
+                  type:
+                    type: string
+                    const: object
+                    description: >-
+                      Always literally `object` — props are declared as a JSON
+                      Schema object type.
+                  properties:
+                    type: object
+                    description: >
+                      Map of prop-name to JSON Schema type definition. Prop
+                      names MUST match `^[A-Za-z_][A-Za-z0-9_]*$` (snake_case or
+                      camelCase). Hyphens are forbidden — Twig cannot read `{{
+                      my-prop }}` and the SDC addon emits unquoted JS
+                      identifiers from these keys.
+                    propertyNames:
+                      pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+                  required:
+                    type: array
+                    description: >-
+                      Names of required props that MUST be passed for the
+                      component to render correctly. Omit when empty.
+                    items:
+                      type: string
+              slots:
+                type: object
+                description: >
+                  Map of slot-name to slot metadata (`title`, `description`).
+                  Slots receive pre-rendered content from the caller. Slot names
+                  MUST match `^[A-Za-z_][A-Za-z0-9_]*$` — snake_case preferred
+                  (`main_content` ✅, `mainContent` ⚠️, `main-content` ❌).
+                  Hyphens are forbidden: slots become Twig `{% block <name> %}`
+                  tags, and Twig identifiers cannot contain hyphens. Omit the
+                  `slots:` section when the component has none.
+                propertyNames:
+                  pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+                additionalProperties:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                      description: Human-readable slot label.
+                    description:
+                      type: string
+                      description: >-
+                        One-sentence summary of what content belongs in this
+                        slot.
+              variants:
+                type: object
+                description: >
+                  Map of variant-id to variant metadata. Variant IDs MUST match
+                  `^[A-Za-z_][A-Za-z0-9_]*$` (snake_case or camelCase). Hyphens
+                  are forbidden: the Storybook SDC addon emits `export const
+                  ${capitalize(variantId)} = …` and `Mark-only` is not a valid
+                  JS identifier. Each variant must have a matching
+                  `<component>.<variant-id>.story.yml`. Omit the `variants:`
+                  section when the component has none.
+                propertyNames:
+                  pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+                additionalProperties:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                      description: Human-readable variant label shown in Storybook.
+                    description:
+                      type: string
+                      description: >-
+                        One-sentence summary of the variant's distinguishing
+                        visual or behavioural trait.
+              thirdPartySettings:
+                type: object
+                description: >
+                  Vendor-specific settings. The `sdcStorybook.disableBasicStory:
+                  true` entry is MANDATORY for every component — it suppresses
+                  the auto-generated basic story so the explicit `.story.yml`
+                  files are used instead.
+                required:
+                  - sdcStorybook
+                properties:
+                  sdcStorybook:
+                    type: object
+                    required:
+                      - disableBasicStory
+                    properties:
+                      disableBasicStory:
+                        type: boolean
+                        const: true
+                        description: >-
+                          Always `true`. Suppresses Drupal's auto-generated
+                          basic story so the explicit `.story.yml` files drive
+                          Storybook.
+          SdcStory:
+            title: SDC Story File
+            description: >
+              A `<component>.<story-name>.story.yml` file describing one
+              visually distinct rendering of a component.
+
+
+              FLAT FORMAT — top-level keys are `component`, `name`, `variant`,
+              `props`, `slots`. There is no `stories:` wrapper.
+
+
+              ONE STORY PER FILE — never combine multiple stories via `---` YAML
+              document separators. Each meaningful story gets its own file.
+
+
+              FILENAME PATTERN — `[component-name].[story-name].story.yml` with
+              a mandatory name segment. Use `default` as the story name for the
+              primary/single story (`footer.default.story.yml`). Variant stories
+              use the variant id as the name segment (`card.vertical.story.yml`,
+              `card.horizontal.story.yml`).
+
+
+              YAML QUOTING — always double quotes.
+
+
+              VISUAL DISTINCTNESS — every story should demonstrate a visually
+              distinct state. Good candidates: one file per layout variant,
+              content-length extremes, state variations (empty slots, missing
+              optional props), context/page scenarios. Avoid stories that look
+              identical but differ only in invisible props.
+            type: object
+            required:
+              - component
+            properties:
+              component:
+                type: string
+                description: >
+                  Fully qualified component reference in
+                  `<provider>:<component-name>` format. The `<provider>` prefix
+                  is mandatory. Look up the concrete provider from the target
+                  component's own `.component.yml` → `provider:` field. The
+                  provider maps to a Twig namespace configured in
+                  `.storybook/main.js` → `sdcStorybookOptions.namespaces`;
+                  without it the SDC addon cannot resolve the component path.
+                examples:
+                  - test_integration_drupal:header
+                  - designbook_design:entity-article
+              name:
+                type: string
+                description: >-
+                  Story name shown in Storybook. Use `Default` for the primary
+                  story.
+              variant:
+                type: string
+                pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+                description: >
+                  Variant id matching one declared under `.component.yml` →
+                  `variants:`. MUST match `^[A-Za-z_][A-Za-z0-9_]*$` (snake_case
+                  or camelCase). Hyphens are forbidden: the Storybook SDC addon
+                  emits `export const ${capitalize(variantId)} = …` and a hyphen
+                  produces an invalid JS identifier. Omit for the default
+                  variant.
+              props:
+                type: object
+                description: >-
+                  Prop overrides for this story. Keys match prop names declared
+                  in the component's `.component.yml` (snake_case or camelCase,
+                  no hyphens). When the component has a `variants:` block, set
+                  `variant:` at the top level instead of via a `variant` prop.
+                propertyNames:
+                  pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+              slots:
+                type: object
+                description: >
+                  Slot content for this story. Each key is a slot name
+                  (snake_case, matching `.component.yml`); each value is an
+                  array of `SdcStoryNode` objects. Slot names MUST match
+                  `^[A-Za-z_][A-Za-z0-9_]*$` — hyphens are forbidden because the
+                  component's slots map to Twig `{% block <name> %}` tags.
+                propertyNames:
+                  pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+                additionalProperties:
+                  type: array
+                  items:
+                    $ref: '#/SdcStoryNode'
+        params:
+          component:
+            $ref: '#/definitions/Component'
+          design_tokens:
+            type: object
+            path: >-
+              /home/cw/projects/designbook/designbook/design-system/design-tokens.yml
+            exists: false
+            content: null
+        result:
+          component-yml:
+            path: >-
+              /home/cw/projects/designbook/components/{{ component.component
+              }}/{{ component.component }}.component.yml
+            exists: false
+            content: null
+            $ref: '#/definitions/SdcComponent'
+          component-twig:
+            path: >-
+              /home/cw/projects/designbook/components/{{ component.component
+              }}/{{ component.component }}.twig
+            exists: false
+            content: null
+          component-story:
+            path: >-
+              /home/cw/projects/designbook/components/{{ component.component
+              }}/{{ component.component }}.default.story.yml
+            exists: false
+            content: null
+            $ref: '#/definitions/SdcStory'
+          app-css:
+            path: ${DESIGNBOOK_CSS_APP}
+            exists: false
+            content: null
+    - task_file: >-
+        .claude/skills/designbook-drupal/components/tasks/create-variant-story.md
+      rules:
+        - .claude/skills/designbook/design/rules/markup-derivation.md
+      blueprints:
+        - .claude/skills/designbook/design/blueprints/static-assets.md
+      config_rules: *ref_0
+      config_instructions: *ref_1
+      schema: *ref_2
+  create-sample-data:
+    task_file: .claude/skills/designbook/sample-data/tasks/create-sample-data.md
+    rules:
+      - .claude/skills/designbook-drupal/sample-data/rules/link.md
+      - .claude/skills/designbook-drupal/sample-data/rules/image.md
+      - .claude/skills/designbook-drupal/sample-data/rules/formatted-text.md
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+    schema:
+      definitions: {}
+      params:
+        section_id:
+          type: string
+        entities:
+          type: array
+          default: []
+        data_model:
+          type: object
+          path: /home/cw/projects/designbook/designbook/data-model.yml
+          exists: false
+          content: null
+        sections_dir:
+          type: string
+          path: /home/cw/projects/designbook/designbook/sections/
+          exists: false
+        components_dir:
+          type: string
+          description: >-
+            Available components — required for canvas bundle generation (rule
+            canvas.md)
+          path: $DESIGNBOOK_DIRS_COMPONENTS
+          exists: false
+          content: null
+      result:
+        sample-data:
+          type: object
+          validators:
+            - data
+          path: >-
+            /home/cw/projects/designbook/designbook/sections/{{ section_id
+            }}/data.yml
+  map-entity:
+    task_file: .claude/skills/designbook/design/tasks/map-entity--design-screen.md
+    rules: []
+    blueprints: []
+    config_rules: []
+    config_instructions: []
+    schema:
+      definitions:
+        EntityMapping:
+          type: object
+          required:
+            - entity_type
+            - bundle
+            - view_mode
+          properties:
+            entity_type:
+              type: string
+            bundle:
+              type: string
+            view_mode:
+              type: string
+      params:
+        mapping:
+          type: object
+          $ref: '#/definitions/EntityMapping'
+        data_model:
+          type: object
+          path: /home/cw/projects/designbook/designbook/data-model.yml
+          exists: false
+          content: null
+      result:
+        entity-mapping:
+          validators:
+            - entity-mapping
+          path: >-
+            /home/cw/projects/designbook/designbook/entity-mapping/{{
+            mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.view_mode
+            }}.jsonata
+          exists: false
+          content: null
+  create-scene:
+    task_file: .claude/skills/designbook/scenes/tasks/create-scene.md
+    rules:
+      - .claude/skills/designbook-drupal/shell/rules/navigation.md
+      - .claude/skills/designbook-drupal/scenes/rules/scenes-constraints.md
+      - .claude/skills/designbook-drupal/data-model/rules/media-image-styles.md
+      - .claude/skills/designbook-drupal/data-model/rules/drupal-views.md
+      - .claude/skills/designbook-drupal/components/rules/layout-constraints.md
+      - .claude/skills/designbook-css-tailwind/rules/component-source.md
+      - .claude/skills/designbook/design/rules/markup-derivation.md
+      - .claude/skills/designbook/data-model/rules/sample-template-mapping.md
+      - .claude/skills/designbook/design/rules/screen-scene-constraints.md
+    blueprints:
+      - .claude/skills/designbook-drupal/data-model/blueprints/view.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/taxonomy_term.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/node.md
+      - .claude/skills/designbook-drupal/data-model/blueprints/media.md
+      - .claude/skills/designbook-drupal/components/blueprints/section.md
+      - .claude/skills/designbook-drupal/components/blueprints/page.md
+      - .claude/skills/designbook-drupal/components/blueprints/navigation.md
+      - .claude/skills/designbook-drupal/components/blueprints/logo.md
+      - .claude/skills/designbook-drupal/components/blueprints/link.md
+      - .claude/skills/designbook-drupal/components/blueprints/icon.md
+      - .claude/skills/designbook-drupal/components/blueprints/header.md
+      - .claude/skills/designbook-drupal/components/blueprints/grid.md
+      - .claude/skills/designbook-drupal/components/blueprints/form.md
+      - .claude/skills/designbook-drupal/components/blueprints/footer.md
+      - .claude/skills/designbook-drupal/components/blueprints/container.md
+      - .claude/skills/designbook-drupal/components/blueprints/button.md
+      - .claude/skills/designbook/design/blueprints/static-assets.md
+      - .claude/skills/designbook/data-model/blueprints/image_style.md
+    config_rules: []
+    config_instructions: []
+    schema:
+      definitions:
+        DesignReference:
+          type: object
+          required:
+            - source
+            - extracted
+            - strategy
+          properties:
+            source:
+              type: string
+            extracted:
+              type: string
+            strategy:
+              type: string
+              enum:
+                - vision
+                - playwright+vision
+            assets_dir:
+              type: string
+              description: >
+                Directory (relative to the reference folder) where downloaded
+                static assets (logos, icons, SVGs) are stored. Typically
+                `assets/`.
+              examples:
+                - assets
+            fonts:
+              type: array
+              items:
+                type: object
+                properties:
+                  family:
+                    type: string
+                  source:
+                    type: string
+                  weights:
+                    type: array
+                    items:
+                      type: number
+                  styles:
+                    type: array
+                    items:
+                      type: string
+            typography:
+              type: array
+              items:
+                type: object
+                properties:
+                  element:
+                    type: string
+                  font_family:
+                    type: string
+                  font_size:
+                    type: string
+                  line_height:
+                    type: string
+                  letter_spacing:
+                    type: string
+                  font_weight:
+                    type: number
+                  color:
+                    type: string
+            colors:
+              type: array
+              items:
+                type: object
+                properties:
+                  hex:
+                    type: string
+                  usage:
+                    type: array
+                    items:
+                      type: string
+            css_variables:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  value:
+                    type: string
+            spacing:
+              type: object
+              properties:
+                container_max_width:
+                  type: string
+                edge_padding:
+                  type: string
+                section_gap:
+                  type: string
+                values:
+                  type: array
+                  items:
+                    type: string
+            landmarks:
+              type: object
+              properties:
+                header:
+                  type: object
+                  properties:
+                    rows:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          tag:
+                            type: string
+                          bg:
+                            type: string
+                          height:
+                            type: string
+                          padding:
+                            type: string
+                          content:
+                            type: string
+                          layout:
+                            type: string
+                          gap:
+                            type: string
+                footer:
+                  type: object
+                  properties:
+                    rows:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          tag:
+                            type: string
+                          bg:
+                            type: string
+                          height:
+                            type: string
+                          padding:
+                            type: string
+                          content:
+                            type: string
+                          layout:
+                            type: string
+                          gap:
+                            type: string
+            interactive:
+              type: array
+              items:
+                type: object
+                properties:
+                  element:
+                    type: string
+                  selector:
+                    type: string
+                  bg:
+                    type: string
+                  color:
+                    type: string
+                  border_radius:
+                    type: string
+                  padding:
+                    type: string
+                  font:
+                    type: string
+                  box_shadow:
+                    type: string
+                  border:
+                    type: string
+            tokens:
+              type: object
+              properties:
+                colors:
+                  type: object
+                fonts:
+                  type: object
+                spacing:
+                  type: array
+                  items:
+                    type: string
+                radii:
+                  type: array
+                  items:
+                    type: string
+            navigation:
+              type: array
+              description: Navigation structures detected in the design reference.
+              items:
+                type: object
+                properties:
+                  role:
+                    type: string
+                    description: >-
+                      Navigation context: main, footer, breadcrumb, sidebar,
+                      utility.
+                    enum:
+                      - main
+                      - footer
+                      - breadcrumb
+                      - sidebar
+                      - utility
+                  items:
+                    type: array
+                    description: Ordered list of navigation entries.
+                    items:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                        url:
+                          type: string
+                        active:
+                          type: boolean
+                          description: >-
+                            True if this item appears as the active/current
+                            page.
+                        children:
+                          type: array
+                          description: Sub-navigation items (one level deep).
+                          items:
+                            type: object
+                            properties:
+                              label:
+                                type: string
+                              url:
+                                type: string
+            images:
+              type: array
+              description: >-
+                Static images and brand assets detected in the design reference
+                (logos, icons, illustrations).
+              items:
+                type: object
+                required:
+                  - url
+                  - role
+                properties:
+                  url:
+                    type: string
+                    description: Source URL or path of the image.
+                  role:
+                    type: string
+                    description: Visual role of the image.
+                    enum:
+                      - logo
+                      - icon
+                      - hero
+                      - background
+                      - illustration
+                      - avatar
+                      - other
+                  alt:
+                    type: string
+                    description: Alt text or accessible label if present.
+                  location:
+                    type: string
+                    description: 'Where the image appears: header, footer, main, sidebar.'
+                  width:
+                    type: string
+                    description: Rendered width (px or CSS value).
+                  height:
+                    type: string
+                    description: Rendered height (px or CSS value).
+                  local_path:
+                    type: string
+                    description: >
+                      Path (relative to the Storybook `public/` or configured
+                      static dir) where the asset has been downloaded. Empty if
+                      the asset could not be downloaded or is decorative-only.
+                      Scenes and components MUST reference this path (e.g. `<img
+                      src="/logo.svg">`) instead of text placeholders when it is
+                      set.
+                    examples:
+                      - /logo.svg
+                      - /assets/partner-bmbf.svg
+            components:
+              type: array
+              description: UI components identified in the design reference.
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: >-
+                      Component type as it would be named in the design system
+                      (e.g. button, card, navigation, hero, badge).
+                  count:
+                    type: number
+                    description: Number of distinct instances detected.
+                  location:
+                    type: array
+                    description: Regions where the component appears.
+                    items:
+                      type: string
+                  variants:
+                    type: array
+                    description: >-
+                      Visual variants observed (e.g. primary/secondary,
+                      filled/outline, horizontal/vertical).
+                    items:
+                      type: string
+                  props:
+                    type: object
+                    description: >-
+                      Key visual properties extracted from the observed
+                      instances (colors, sizes, labels, etc.).
+            sections:
+              type: array
+              description: >
+                Page-level content zones between header and footer (hero,
+                features grid, CTA, testimonials, etc.). Provides layout context
+                for story structure decisions.
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    description: >-
+                      Section type (e.g. hero, features, cta, testimonials,
+                      pricing, faq, gallery, contact).
+                  bg:
+                    type: string
+                    description: Background color or gradient.
+                  layout:
+                    type: string
+                    description: >-
+                      Layout pattern (e.g. full-width, two-column, grid-3,
+                      centered).
+                  content_summary:
+                    type: string
+                    description: One-sentence description of what this section contains.
+                  order:
+                    type: integer
+                    description: >-
+                      Top-to-bottom position of the section on the page
+                      (1-based).
+            shadows:
+              type: array
+              description: >
+                Elevation / box-shadow tokens detected in the design reference.
+                Maps to CSS custom properties (e.g. --shadow-card,
+                --shadow-modal).
+              items:
+                type: object
+                properties:
+                  value:
+                    type: string
+                    description: Full CSS box-shadow value.
+                  usage:
+                    type: array
+                    description: >-
+                      Contexts where this shadow appears (e.g. card, modal,
+                      dropdown, button, header).
+                    items:
+                      type: string
+                  token:
+                    type: string
+                    description: Suggested CSS custom property name (e.g. --shadow-sm).
+            forms:
+              type: array
+              description: >
+                Form patterns detected in the design reference — input fields,
+                labels, error states, etc. Extracted per distinct form or form
+                section observed.
+              items:
+                type: object
+                properties:
+                  context:
+                    type: string
+                    description: >-
+                      Where the form appears or its purpose (e.g. login,
+                      newsletter, contact, search).
+                  fields:
+                    type: array
+                    description: Detected input fields.
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          description: >-
+                            Input type (text, email, password, select, checkbox,
+                            radio, textarea).
+                        label_position:
+                          type: string
+                          description: Label placement (above, inline, placeholder-only).
+                        style:
+                          type: object
+                          properties:
+                            bg:
+                              type: string
+                            border:
+                              type: string
+                            border_radius:
+                              type: string
+                            padding:
+                              type: string
+                            font_size:
+                              type: string
+                  error_color:
+                    type: string
+                    description: Color used for validation error messages.
+                  submit_button:
+                    type: string
+                    description: Description of the submit CTA style.
+            breakpoints:
+              type: array
+              description: >
+                Responsive breakpoints observed in the design reference (e.g.
+                when multiple viewport widths are shown). Maps detected px
+                values to design-token breakpoint identifiers.
+              items:
+                type: object
+                properties:
+                  px:
+                    type: integer
+                    description: Viewport width in pixels at which the layout changes.
+                  token_id:
+                    type: string
+                    description: >-
+                      Suggested breakpoint token identifier (e.g. sm, md, lg,
+                      xl).
+                  description:
+                    type: string
+                    description: >-
+                      What changes at this breakpoint (e.g. nav collapses, grid
+                      switches to single column).
+        SceneFile:
+          type: object
+          required:
+            - id
+            - title
+          properties:
+            id:
+              type: string
+              description: Section/shell identifier for Designbook overview pages.
+            title:
+              type: string
+              description: Human-readable title for overview page.
+            description:
+              type: string
+              description: Section description for overview page.
+            status:
+              type: string
+              enum:
+                - planned
+                - in-progress
+                - done
+            order:
+              type: integer
+              description: Display order in Storybook sidebar.
+            group:
+              type: string
+              description: >-
+                Storybook story group (e.g. "Designbook/Design System"). Falls
+                back to name.
+            scenes:
+              type: array
+              items:
+                $ref: '#/SceneDef'
+      params:
+        scene_path:
+          type: string
+          description: >
+            File path (relative to $DESIGNBOOK_DATA) of the target SceneFile.
+            Supplied by the calling workflow via the scene_path resolver.
+        components_dir:
+          type: string
+          description: >-
+            Components directory — location resolved by the active framework
+            skill.
+          path: $DESIGNBOOK_DIRS_COMPONENTS
+          exists: false
+          content: null
+        components:
+          type: array
+          resolve: components_index
+          description: >
+            Live inventory of components currently rendered in Storybook. Every
+            `component:` field in the scene result MUST match one of these ids —
+            the compiled schema enum enforces this automatically.
+          items:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                type: string
+              import_path:
+                type: string
+              story_id:
+                type: string
+        reference:
+          type: object
+          default: null
+          $ref: '#/definitions/DesignReference'
+        design_scenes:
+          type: object
+          path: >-
+            /home/cw/projects/designbook/designbook/design-system/design-system.scenes.yml
+          exists: false
+          content: null
+          $ref: '#/definitions/SceneFile'
+        data_model:
+          type: object
+          path: /home/cw/projects/designbook/designbook/data-model.yml
+          exists: false
+          content: null
+        section_scenes:
+          type: object
+          path: /home/cw/projects/designbook/designbook/{{ scene_path }}
+          $ref: '#/definitions/SceneFile'
+      result:
+        scene-file:
+          validators:
+            - scene
+          path: /home/cw/projects/designbook/designbook/{{ scene_path }}
+          $ref: '#/definitions/SceneFile'
+current_stage: reference
+started_at: '2026-04-20T09:41:36'
+workspace_root: /home/cw/projects/designbook
+schemas:
+  ReferenceFolder: &ref_3
+    type: string
+    description: >
+      Path to a scene's verification material — contains `extract.json`
+      (reference structure) and reference screenshots per breakpoint/region.
+      Format: `{breakpoint}--{region}.png` (e.g. `xl--full.png`).
+    examples:
+      - $DESIGNBOOK_DATA/references/hero
+      - /tmp/refs/article
+  DesignReference: &ref_4
+    type: object
+    required:
+      - source
+      - extracted
+      - strategy
+    properties:
+      source:
+        type: string
+      extracted:
+        type: string
+      strategy:
+        type: string
+        enum:
+          - vision
+          - playwright+vision
+      assets_dir:
+        type: string
+        description: >
+          Directory (relative to the reference folder) where downloaded static
+          assets (logos, icons, SVGs) are stored. Typically `assets/`.
+        examples:
+          - assets
+      fonts:
+        type: array
+        items:
+          type: object
+          properties:
+            family:
+              type: string
+            source:
+              type: string
+            weights:
+              type: array
+              items:
+                type: number
+            styles:
+              type: array
+              items:
+                type: string
+      typography:
+        type: array
+        items:
+          type: object
+          properties:
+            element:
+              type: string
+            font_family:
+              type: string
+            font_size:
+              type: string
+            line_height:
+              type: string
+            letter_spacing:
+              type: string
+            font_weight:
+              type: number
+            color:
+              type: string
+      colors:
+        type: array
+        items:
+          type: object
+          properties:
+            hex:
+              type: string
+            usage:
+              type: array
+              items:
+                type: string
+      css_variables:
+        type: array
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+            value:
+              type: string
+      spacing:
+        type: object
+        properties:
+          container_max_width:
+            type: string
+          edge_padding:
+            type: string
+          section_gap:
+            type: string
+          values:
+            type: array
+            items:
+              type: string
+      landmarks:
+        type: object
+        properties:
+          header:
+            type: object
+            properties:
+              rows:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    tag:
+                      type: string
+                    bg:
+                      type: string
+                    height:
+                      type: string
+                    padding:
+                      type: string
+                    content:
+                      type: string
+                    layout:
+                      type: string
+                    gap:
+                      type: string
+          footer:
+            type: object
+            properties:
+              rows:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    tag:
+                      type: string
+                    bg:
+                      type: string
+                    height:
+                      type: string
+                    padding:
+                      type: string
+                    content:
+                      type: string
+                    layout:
+                      type: string
+                    gap:
+                      type: string
+      interactive:
+        type: array
+        items:
+          type: object
+          properties:
+            element:
+              type: string
+            selector:
+              type: string
+            bg:
+              type: string
+            color:
+              type: string
+            border_radius:
+              type: string
+            padding:
+              type: string
+            font:
+              type: string
+            box_shadow:
+              type: string
+            border:
+              type: string
+      tokens:
+        type: object
+        properties:
+          colors:
+            type: object
+          fonts:
+            type: object
+          spacing:
+            type: array
+            items:
+              type: string
+          radii:
+            type: array
+            items:
+              type: string
+      navigation:
+        type: array
+        description: Navigation structures detected in the design reference.
+        items:
+          type: object
+          properties:
+            role:
+              type: string
+              description: 'Navigation context: main, footer, breadcrumb, sidebar, utility.'
+              enum:
+                - main
+                - footer
+                - breadcrumb
+                - sidebar
+                - utility
+            items:
+              type: array
+              description: Ordered list of navigation entries.
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                  url:
+                    type: string
+                  active:
+                    type: boolean
+                    description: True if this item appears as the active/current page.
+                  children:
+                    type: array
+                    description: Sub-navigation items (one level deep).
+                    items:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                        url:
+                          type: string
+      images:
+        type: array
+        description: >-
+          Static images and brand assets detected in the design reference
+          (logos, icons, illustrations).
+        items:
+          type: object
+          required:
+            - url
+            - role
+          properties:
+            url:
+              type: string
+              description: Source URL or path of the image.
+            role:
+              type: string
+              description: Visual role of the image.
+              enum:
+                - logo
+                - icon
+                - hero
+                - background
+                - illustration
+                - avatar
+                - other
+            alt:
+              type: string
+              description: Alt text or accessible label if present.
+            location:
+              type: string
+              description: 'Where the image appears: header, footer, main, sidebar.'
+            width:
+              type: string
+              description: Rendered width (px or CSS value).
+            height:
+              type: string
+              description: Rendered height (px or CSS value).
+            local_path:
+              type: string
+              description: >
+                Path (relative to the Storybook `public/` or configured static
+                dir) where the asset has been downloaded. Empty if the asset
+                could not be downloaded or is decorative-only. Scenes and
+                components MUST reference this path (e.g. `<img
+                src="/logo.svg">`) instead of text placeholders when it is set.
+              examples:
+                - /logo.svg
+                - /assets/partner-bmbf.svg
+      components:
+        type: array
+        description: UI components identified in the design reference.
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+              description: >-
+                Component type as it would be named in the design system (e.g.
+                button, card, navigation, hero, badge).
+            count:
+              type: number
+              description: Number of distinct instances detected.
+            location:
+              type: array
+              description: Regions where the component appears.
+              items:
+                type: string
+            variants:
+              type: array
+              description: >-
+                Visual variants observed (e.g. primary/secondary,
+                filled/outline, horizontal/vertical).
+              items:
+                type: string
+            props:
+              type: object
+              description: >-
+                Key visual properties extracted from the observed instances
+                (colors, sizes, labels, etc.).
+      sections:
+        type: array
+        description: >
+          Page-level content zones between header and footer (hero, features
+          grid, CTA, testimonials, etc.). Provides layout context for story
+          structure decisions.
+        items:
+          type: object
+          properties:
+            type:
+              type: string
+              description: >-
+                Section type (e.g. hero, features, cta, testimonials, pricing,
+                faq, gallery, contact).
+            bg:
+              type: string
+              description: Background color or gradient.
+            layout:
+              type: string
+              description: Layout pattern (e.g. full-width, two-column, grid-3, centered).
+            content_summary:
+              type: string
+              description: One-sentence description of what this section contains.
+            order:
+              type: integer
+              description: Top-to-bottom position of the section on the page (1-based).
+      shadows:
+        type: array
+        description: >
+          Elevation / box-shadow tokens detected in the design reference. Maps
+          to CSS custom properties (e.g. --shadow-card, --shadow-modal).
+        items:
+          type: object
+          properties:
+            value:
+              type: string
+              description: Full CSS box-shadow value.
+            usage:
+              type: array
+              description: >-
+                Contexts where this shadow appears (e.g. card, modal, dropdown,
+                button, header).
+              items:
+                type: string
+            token:
+              type: string
+              description: Suggested CSS custom property name (e.g. --shadow-sm).
+      forms:
+        type: array
+        description: >
+          Form patterns detected in the design reference — input fields, labels,
+          error states, etc. Extracted per distinct form or form section
+          observed.
+        items:
+          type: object
+          properties:
+            context:
+              type: string
+              description: >-
+                Where the form appears or its purpose (e.g. login, newsletter,
+                contact, search).
+            fields:
+              type: array
+              description: Detected input fields.
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    description: >-
+                      Input type (text, email, password, select, checkbox,
+                      radio, textarea).
+                  label_position:
+                    type: string
+                    description: Label placement (above, inline, placeholder-only).
+                  style:
+                    type: object
+                    properties:
+                      bg:
+                        type: string
+                      border:
+                        type: string
+                      border_radius:
+                        type: string
+                      padding:
+                        type: string
+                      font_size:
+                        type: string
+            error_color:
+              type: string
+              description: Color used for validation error messages.
+            submit_button:
+              type: string
+              description: Description of the submit CTA style.
+      breakpoints:
+        type: array
+        description: >
+          Responsive breakpoints observed in the design reference (e.g. when
+          multiple viewport widths are shown). Maps detected px values to
+          design-token breakpoint identifiers.
+        items:
+          type: object
+          properties:
+            px:
+              type: integer
+              description: Viewport width in pixels at which the layout changes.
+            token_id:
+              type: string
+              description: Suggested breakpoint token identifier (e.g. sm, md, lg, xl).
+            description:
+              type: string
+              description: >-
+                What changes at this breakpoint (e.g. nav collapses, grid
+                switches to single column).
+env_map:
+  DESIGNBOOK_TECHNOLOGY: html
+  DESIGNBOOK_WORKSPACE: /home/cw/projects/designbook
+  DESIGNBOOK_HOME: /home/cw/projects/designbook
+  DESIGNBOOK_DATA: /home/cw/projects/designbook/designbook
+  DESIGNBOOK_EXTENSIONS: ''
+  DESIGNBOOK_EXTENSION_SKILLS: ''
+tasks:
+  - id: extract-reference
+    title: 'Homepage Design 3: extract-reference'
+    type: data
+    step: extract-reference
+    stage: reference
+    status: in-progress
+    started_at: '2026-04-20T09:41:36'
+    task_file: .claude/skills/designbook/design/tasks/extract-reference.md
+    files: []
+    result:
+      reference_dir:
+        submission: data
+        flush: deferred
+        schema: *ref_3
+      reference:
+        submission: data
+        flush: deferred
+        path: '{{ reference_folder }}/extract.json'
+        schema: *ref_4
+      screenshot:
+        submission: data
+        flush: deferred
+        schema:
+          type: string
+          default: ''

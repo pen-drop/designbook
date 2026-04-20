@@ -1,0 +1,5 @@
+<div class="container container--{{ max_width|default('xl') }}{% if theme %} container--theme-{{ theme }}{% endif %}">
+  {% if background %}<div class="container__background">{% block background %}{{ background }}{% endblock %}</div>{% endif %}
+  {% if header %}<div class="container__header">{% block header %}{{ header }}{% endblock %}</div>{% endif %}
+  <div class="container__content">{% block content %}{% if content %}{{ content }}{% endif %}{% endblock %}</div>
+</div>

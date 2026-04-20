@@ -1,0 +1,26 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Label
+status: stable
+group: Action
+description: Form label component used inside form_element.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    title_display:
+      type: string
+      enum:
+        - before
+        - after
+        - invisible
+        - hidden
+      default: before
+    for:
+      type: string
+slots:
+  title:
+    title: Title
+    description: Label text.

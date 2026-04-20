@@ -1,0 +1,120 @@
+id: debo-design-system
+title: Design System
+description: 'LEANDO shell: two-row header (BIBB funding bar + main nav), page content, four-row footer (newsletter, social, funding logos, legal).'
+status: planned
+order: 0
+group: Designbook/Design System
+scenes:
+  - name: shell
+    items:
+      - component: test_integration_drupal:page
+        slots:
+          header:
+            - component: test_integration_drupal:header
+              props:
+                sticky: false
+              slots:
+                funding_bar: '<span style="font: 400 14px/20px ''Sarabun'', sans-serif; color: #212529;">Gefördert durch</span><img src="/bibb_logo.svg" alt="BIBB / BMBFSFJ" style="height: 36px; width: auto; margin-left: 12px;">'
+                logo:
+                  - component: test_integration_drupal:logo
+                    props:
+                      href: /
+                      src: /leando_logo.png
+                      alt: LEANDO
+                      height: 48px
+                navigation:
+                  - component: test_integration_drupal:navigation
+                    props:
+                      variant: main
+                      items:
+                        - title: Suche
+                          url: /suche
+                          in_active_trail: false
+                          below: []
+                        - title: Über uns
+                          url: /ueber-uns
+                          in_active_trail: false
+                          below: []
+                actions:
+                  - component: test_integration_drupal:button
+                    props:
+                      type: button
+                      variant: primary
+                    slots:
+                      label: Anmelden
+                  - component: test_integration_drupal:button
+                    props:
+                      type: button
+                      variant: ghost
+                    slots:
+                      label:
+                        - component: test_integration_drupal:icon
+                          props:
+                            id: close
+                            label: Menü
+                            size: 24px
+                            sprite: /icons-defs.svg
+          content: $content
+          footer:
+            - component: test_integration_drupal:footer
+              props:
+                copyright: ''
+              slots:
+                newsletter: '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;color:#ffffff;"><div><h2 style="margin:0 0 8px;font: 400 40px/52px ''Reef'', sans-serif;color:#ffffff;">Newsletter abonnieren</h2><p style="margin:0;font: 400 16px/24px ''Sarabun'', sans-serif;color:#ffffff;">Bleiben Sie auf dem Laufenden zu neuen Inhalten und Veranstaltungen der LEANDO-Community.</p></div><form style="display:flex;flex-direction:column;gap:12px;"><input type="email" name="email" placeholder="E-Mail-Adresse" required style="display:block;width:100%;padding:12px 16px;border:1px solid #ffffff;border-radius:9px;background:#ffffff;color:#212529;font: 400 16px/24px ''Sarabun'', sans-serif;"><label style="display:flex;align-items:center;gap:8px;font: 400 14px/20px ''Sarabun'', sans-serif;color:#ffffff;"><input type="checkbox" name="consent" required style="width:18px;height:18px;accent-color:#95c11f;"> Ich stimme der Datenschutzerklärung zu (DSGVO).</label><button type="submit" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;background:#95c11f;color:#00336a;border:none;border-radius:9px;font: 700 16px/24px ''Sarabun'', sans-serif;cursor:pointer;">Anmelden</button></form></div>'
+                social:
+                  - component: test_integration_drupal:icon
+                    props:
+                      id: youtube
+                      label: YouTube
+                      size: 28px
+                      sprite: /icons-defs.svg
+                  - component: test_integration_drupal:icon
+                    props:
+                      id: instagram
+                      label: Instagram
+                      size: 28px
+                      sprite: /icons-defs.svg
+                  - component: test_integration_drupal:icon
+                    props:
+                      id: linkedin
+                      label: LinkedIn
+                      size: 28px
+                      sprite: /icons-defs.svg
+                funding_logos: '<span style="font: 400 14px/20px ''Sarabun'', sans-serif;color:#212529;">Gefördert von:</span><img src="/bibb_logo.svg" alt="BMBFSFJ" style="height:40px;width:auto;"><img src="/bibb_logo.svg" alt="Communitys" style="height:40px;width:auto;opacity:0.85;"><img src="/bibb_logo.svg" alt="Toolbox" style="height:40px;width:auto;opacity:0.85;"><img src="/bibb_logo.svg" alt="EU NextGenerationEU" style="height:40px;width:auto;opacity:0.85;"><img src="/bibb_logo.svg" alt="BIBB" style="height:40px;width:auto;">'
+                legal_primary:
+                  - component: test_integration_drupal:link
+                    props:
+                      href: /en/intro
+                    slots:
+                      label: English Intro
+                  - component: test_integration_drupal:link
+                    props:
+                      href: /glossar
+                    slots:
+                      label: Glossar
+                legal_secondary:
+                  - component: test_integration_drupal:link
+                    props:
+                      href: /impressum
+                    slots:
+                      label: Impressum
+                  - component: test_integration_drupal:link
+                    props:
+                      href: /datenschutz
+                    slots:
+                      label: Datenschutz
+                  - component: test_integration_drupal:link
+                    props:
+                      href: /kontakt
+                    slots:
+                      label: Kontakt
+                  - component: test_integration_drupal:link
+                    props:
+                      href: mailto:support@leando.de
+                    slots:
+                      label: support@leando.de
+                navigation:
+                  - component: test_integration_drupal:navigation
+                    props:
+                      variant: footer
+                      items: []

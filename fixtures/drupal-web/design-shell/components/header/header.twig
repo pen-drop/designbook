@@ -1,0 +1,16 @@
+<header class="header" {% if sticky %}data-sticky="true"{% endif %}>
+  <div class="header__funding-bar">
+    {% block funding_bar %}{% if funding_bar %}{{ funding_bar }}{% endif %}{% endblock %}
+  </div>
+  <div class="header__main">
+    <div class="header__logo">
+      {% block logo %}{% if logo %}{{ logo }}{% endif %}{% endblock %}
+    </div>
+    <nav class="header__navigation">
+      {% block navigation %}{% if navigation %}{{ navigation }}{% endif %}{% endblock %}
+    </nav>
+    <div class="header__actions">
+      {% block actions %}{% if actions %}{{ actions }}{% endif %}{% endblock %}
+    </div>
+  </div>
+</header>

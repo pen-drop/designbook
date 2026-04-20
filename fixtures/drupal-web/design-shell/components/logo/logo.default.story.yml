@@ -1,0 +1,7 @@
+component: test_integration_drupal:logo
+name: Default
+props:
+  href: /
+  alt: LEANDO
+  src: https://placehold.co/180x48/00336a/ffffff?text=LEANDO
+  height: 48px

@@ -29,3 +29,4 @@ pnpm run lint         # ESLint + Prettier
 ## License
 
 Private project
+

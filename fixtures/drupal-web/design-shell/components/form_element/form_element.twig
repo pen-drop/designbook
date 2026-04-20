@@ -1,0 +1,21 @@
+{% set is_check = type in ['checkbox', 'radio'] %}
+<div class="form-element form-element--{{ type }}{% if is_check %} form-check{% endif %}">
+  {% if not is_check and label_display != 'after' %}
+    <div class="form-element__label">{% block label %}{% if label %}{{ label }}{% endif %}{% endblock %}</div>
+  {% endif %}
+  {% if description and description_display == 'before' and description.content %}
+    <div class="form-element__description">{{ description.content }}</div>
+  {% endif %}
+  <div class="form-element__input">
+    {% if prefix %}<span class="form-element__prefix">{% block prefix %}{{ prefix }}{% endblock %}</span>{% endif %}
+    {% block children %}{% if children %}{{ children }}{% endif %}{% endblock %}
+    {% if suffix %}<span class="form-element__suffix">{% block suffix %}{{ suffix }}{% endblock %}</span>{% endif %}
+  </div>
+  {% if is_check or label_display == 'after' %}
+    <div class="form-element__label">{% if label %}{{ label }}{% endif %}</div>
+  {% endif %}
+  {% if description and description_display != 'before' and description.content %}
+    <div class="form-element__description">{{ description.content }}</div>
+  {% endif %}
+  {% if errors %}<div class="form-element__errors" role="alert">{% block errors %}{{ errors }}{% endblock %}</div>{% endif %}
+</div>

@@ -1,0 +1,17 @@
+component: test_integration_drupal:navigation
+name: Footer
+variant: footer
+props:
+  items:
+    - title: Impressum
+      url: /impressum
+      in_active_trail: false
+      below: []
+    - title: Datenschutz
+      url: /datenschutz
+      in_active_trail: false
+      below: []
+    - title: Kontakt
+      url: /kontakt
+      in_active_trail: false
+      below: []

@@ -83,7 +83,7 @@ When `intake_skipped: true`, the first expanded task is already marked `in-progr
 List active workflows for a given workflow ID.
 
 ```bash
- workflow list --workflow <id> [--include-archived]
+ . [--include-archived]
 ```
 
 Returns workflow names newest-first, one per line. With `--include-archived`, also scans the archive.

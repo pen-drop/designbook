@@ -1,0 +1,3 @@
+<label class="label{% if title_display in ['invisible','hidden'] %} label--visually-hidden{% endif %}"{% if for %} for="{{ for }}"{% endif %}>
+  {% block title %}{% if title %}{{ title }}{% endif %}{% endblock %}
+</label>

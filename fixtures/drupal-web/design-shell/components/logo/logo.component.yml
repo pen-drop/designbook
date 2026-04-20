@@ -1,0 +1,27 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Logo
+status: stable
+group: Shell
+description: Brand mark / wordmark image linked to the homepage.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    href:
+      type: string
+      default: /
+    src:
+      type: string
+    alt:
+      type: string
+      default: LEANDO
+    height:
+      type: string
+      default: 48px
+slots:
+  image:
+    title: Image
+    description: Optional custom image markup (overrides src).

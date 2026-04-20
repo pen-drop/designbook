@@ -1,6 +1,6 @@
 ---
 name: designbook:design:compare-screenshots
-title: "Compare Screenshots: {{ check.scene_id }} ({{ check.breakpoint }}/{{ check.region }})"
+title: "Compare Screenshots: {{ check.story_id }} ({{ check.breakpoint }}/{{ check.region }})"
 trigger:
   steps: [compare]
 params:
@@ -82,7 +82,7 @@ Emit the found issues as a task result — they are **not** written to disk. Tri
 Complete the task with `workflow done --data` passing the issues array. The engine collects issues from all check iterations into the workflow scope for later stages (e.g. verify, triage).
 
 ```bash
-workflow done --data '{"issues": [{ "scene_id": "...", "severity": "major", ... }]}'
+workflow done --data '{"issues": [{ "story_id": "...", "severity": "major", ... }]}'
 ```
 
 If no issues found, emit an empty array: `workflow done --data '{"issues": []}'`.

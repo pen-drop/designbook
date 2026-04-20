@@ -1,15 +1,13 @@
 ---
 name: designbook:design:triage--design-verify
-title: "Triage: {scene_id}"
+title: "Triage: {story_id}"
 trigger:
   steps: [triage]
 priority: 10
 params:
   type: object
-  required: [scene_id, story_id, issues]
+  required: [story_id, issues]
   properties:
-    scene_id:
-      $ref: ../../scenes/schemas.yml#/SceneId
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
     issues:
@@ -78,7 +76,6 @@ Each issue object must contain `id` and the params that `polish.md` needs:
 ```json
 {
   "id": "issue-001",
-  "scene": "design-system:shell",
   "storyId": "designbook-design-system-scenes--shell",
   "checkKey": "sm--header",
   "severity": "critical",
@@ -96,7 +93,7 @@ The workflow engine expands polish tasks from the `issues` result via `each: iss
 ## Output
 
 ```
-## Triage: {scene}
+## Triage: {story_id}
 
 Read 12 draft issues from 6 checks.
 Consolidated to 4 issues:

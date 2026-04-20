@@ -1,0 +1,19 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Page
+status: stable
+group: Shell
+description: Top-level page wrapper that composes header, content, and footer regions vertically.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  header:
+    title: Header
+    description: Site header region.
+  content:
+    title: Content
+    description: Main content region.
+  footer:
+    title: Footer
+    description: Site footer region.

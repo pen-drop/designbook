@@ -1,0 +1,22 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Navigation
+status: stable
+group: Navigation
+description: Drupal menu-tree renderer with main and footer variants.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    items:
+      type: array
+      default: []
+variants:
+  main:
+    title: Main
+    description: 'Header navigation: horizontal list of top-level items.'
+  footer:
+    title: Footer
+    description: 'Footer navigation: legal and cross-links.'

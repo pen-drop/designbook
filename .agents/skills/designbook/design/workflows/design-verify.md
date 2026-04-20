@@ -1,6 +1,11 @@
 ---
 title: Design Verify
 description: Visual testing -- verify screens or components against design references
+params:
+  story_id:
+    type: string
+    resolve: story_id
+    sources: [scenes]
 stages:
   reference:
     steps: [extract-reference]

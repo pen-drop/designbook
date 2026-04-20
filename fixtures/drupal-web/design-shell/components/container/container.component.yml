@@ -1,0 +1,33 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Container
+status: stable
+group: Layout
+description: Width control wrapper that applies consistent max-width and horizontal edge padding.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    max_width:
+      type: string
+      enum:
+        - sm
+        - md
+        - lg
+        - xl
+        - full
+      default: xl
+    theme:
+      type: string
+slots:
+  content:
+    title: Content
+    description: Inner content.
+  header:
+    title: Header
+    description: Optional container-header area.
+  background:
+    title: Background
+    description: Optional absolutely-positioned background.

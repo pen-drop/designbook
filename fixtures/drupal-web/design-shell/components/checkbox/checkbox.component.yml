@@ -1,0 +1,13 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Checkbox
+status: stable
+group: Action
+description: Single checkbox input. Embedded in form_element.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  children:
+    title: Children
+    description: Optional extra markup.

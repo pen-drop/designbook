@@ -1,15 +1,13 @@
 ---
 name: designbook:design:verify
-title: "Verify: {scene} ({breakpoint}/{region})"
+title: "Verify: {story_id} ({breakpoint}/{region})"
 trigger:
   steps: [verify]
 priority: 60
 params:
   type: object
-  required: [scene_id, story_id, breakpoint, region, reference_folder]
+  required: [story_id, breakpoint, region, reference_folder]
   properties:
-    scene_id:
-      $ref: ../../scenes/schemas.yml#/SceneId
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
     story_meta:

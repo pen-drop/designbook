@@ -1,6 +1,6 @@
 ---
 name: designbook:design:capture-storybook
-title: "Capture Storybook: {{ check.scene_id }} ({{ check.breakpoint }}/{{ check.region }})"
+title: "Capture Storybook: {{ check.story_id }} ({{ check.breakpoint }}/{{ check.region }})"
 trigger:
   steps: [capture]
 filter:
@@ -26,6 +26,8 @@ result:
   properties:
     screenshot:
       path: "designbook/stories/{{ check.story_id }}/screenshots/{{ check.breakpoint }}--{{ check.region }}.png"
+      submission: direct
+      validators: [image]
 each:
   check:
     expr: "checks"

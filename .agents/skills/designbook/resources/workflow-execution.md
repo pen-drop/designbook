@@ -4,10 +4,6 @@
 
 # Workflow Execution Rules
 
-## Scope Boundary
-
-> **OpenSpec artifacts are out of scope.** During any `debo` workflow, never read, load, or reference OpenSpec specs — change files, delta specs, main specs, or any artifact under `.agents/changes/` or similar OpenSpec paths. Task files, rule files, and blueprint files come exclusively from `.agents/skills/*/tasks/`, `.agents/skills/*/rules/`, and `.agents/skills/*/blueprints/`.
-
 ---
 
 ## Core Principle: Response-Driven Execution
@@ -117,10 +113,6 @@ When `--params` is passed to `workflow create` and satisfies all required params
   ]
 }
 ```
-
-When `intake_skipped: true` → skip directly to Step 2 with the expanded tasks.
-
----
 
 ## Step 2: Execute Tasks
 
@@ -267,18 +259,6 @@ For each `before` entry in workflow frontmatter:
 When the workflow archives (response `"stage": "done"`), process `after` entries from frontmatter:
 - Prompt: "Run `/<workflow-id>` next?"
 - If accepted → start it with `--parent $WORKFLOW_NAME`
-
----
-
-## Merge Flow (git-worktree engine)
-
-When the engine is `git-worktree`, the `finalizing → done` transition returns `waiting_for` with a merge prompt. Ask the user, then:
-
-```bash
-_debo workflow merge --workflow $WORKFLOW_NAME
-```
-
-For `direct` engine, `finalizing → done` happens automatically (auto-archive).
 
 ---
 

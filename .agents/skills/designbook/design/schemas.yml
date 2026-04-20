@@ -31,7 +31,7 @@ Check:
   required: [story_id, breakpoint, region]
   properties:
     story_id:
-      $ref: ../../scenes/schemas.yml#/StoryId
+      $ref: ../scenes/schemas.yml#/StoryId
     breakpoint:
       $ref: "#/BreakpointId"
     region:
@@ -99,7 +99,6 @@ Issue:
     id: { type: string }
     story_id: { type: string }
     checkKey: { type: string }
-    scene_id: { type: string }
     severity: { type: string, enum: [critical, major, minor] }
     description: { type: string }
     file_hint: { type: string }
@@ -176,6 +175,12 @@ DesignReference:
     source: { type: string }
     extracted: { type: string }
     strategy: { type: string, enum: [vision, playwright+vision] }
+    assets_dir:
+      type: string
+      description: >
+        Directory (relative to the reference folder) where downloaded static assets
+        (logos, icons, SVGs) are stored. Typically `assets/`.
+      examples: [assets]
     fonts:
       type: array
       items:
@@ -310,6 +315,7 @@ DesignReference:
       description: Static images and brand assets detected in the design reference (logos, icons, illustrations).
       items:
         type: object
+        required: [url, role]
         properties:
           url: { type: string, description: "Source URL or path of the image." }
           role:
@@ -320,6 +326,15 @@ DesignReference:
           location: { type: string, description: "Where the image appears: header, footer, main, sidebar." }
           width: { type: string, description: "Rendered width (px or CSS value)." }
           height: { type: string, description: "Rendered height (px or CSS value)." }
+          local_path:
+            type: string
+            description: >
+              Path (relative to the Storybook `public/` or configured static dir)
+              where the asset has been downloaded. Empty if the asset could not be
+              downloaded or is decorative-only. Scenes and components MUST reference
+              this path (e.g. `<img src="/logo.svg">`) instead of text placeholders
+              when it is set.
+            examples: ["/logo.svg", "/assets/partner-bmbf.svg"]
     components:
       type: array
       description: UI components identified in the design reference.

@@ -1,0 +1,11 @@
+<div class="page">
+  <div class="page__header">
+    {% block header %}{% if header %}{{ header }}{% endif %}{% endblock %}
+  </div>
+  <main class="page__content">
+    {% block content %}{% if content %}{{ content }}{% endif %}{% endblock %}
+  </main>
+  <div class="page__footer">
+    {% block footer %}{% if footer %}{{ footer }}{% endif %}{% endblock %}
+  </div>
+</div>

@@ -1,0 +1,19 @@
+component: test_integration_drupal:header
+name: Default
+slots:
+  funding_bar:
+    - type: element
+      tag: div
+      value: Gefördert durch BMBFSFJ
+  logo:
+    - type: element
+      tag: div
+      value: LEANDO
+  navigation:
+    - type: element
+      tag: div
+      value: Suche · Über uns
+  actions:
+    - type: element
+      tag: div
+      value: Anmelden · Menü

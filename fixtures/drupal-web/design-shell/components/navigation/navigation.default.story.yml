@@ -1,0 +1,13 @@
+component: test_integration_drupal:navigation
+name: Default
+variant: main
+props:
+  items:
+    - title: Suche
+      url: /suche
+      in_active_trail: false
+      below: []
+    - title: Über uns
+      url: /ueber-uns
+      in_active_trail: false
+      below: []
