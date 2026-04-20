@@ -6,7 +6,7 @@ Die Regeln des `designbook-skill-creator` Skills werden pro Artefakt-Typ organis
 
 Das löst zwei Probleme gleichzeitig:
 
-1. **Authoring-Klarheit.** Beim Anlegen eines neuen Tasks wird genau eine Rule-Datei (`rules/task.md`) geladen, die sowohl das "WAS" (Prinzipien, Beispiele) als auch die Prüfkriterien enthält.
+1. **Authoring-Klarheit.** Beim Anlegen eines neuen Tasks wird genau eine Rule-Datei (`rules/task-files.md`) geladen, die sowohl das "WAS" (Prinzipien, Beispiele) als auch die Prüfkriterien enthält.
 2. **Validator-Kohärenz.** Prüfungen leben an genau einer Stelle. Der Validator dupliziert nichts; Änderungen an Regeln sind automatisch für Validator und Authoring wirksam.
 
 ## Motivation (aus review.md, Zeile 68)
@@ -45,12 +45,12 @@ Probleme:
 .agents/skills/designbook-skill-creator/
 ├── SKILL.md
 ├── rules/
-│   ├── common-rules.md        # Quer-Regeln für alle File-Types (Frontmatter parsebar, Site-Agnostic)
-│   ├── task.md                # Alles für tasks/*.md
-│   ├── blueprint.md           # Alles für blueprints/*.md
-│   ├── rule.md                # Alles für rules/*.md (außer dieser Skill selbst)
-│   ├── schema.md              # Alles für schemas.yml
-│   └── workflow.md            # Alles für workflows/*.md
+│   ├── common-rules.md        # Quer-Regeln für alle File-Types (Frontmatter parsebar, Site-Agnostic, Skill-Root-Struktur)
+│   ├── task-files.md          # Alles für tasks/*.md
+│   ├── blueprint-files.md     # Alles für blueprints/*.md
+│   ├── rule-files.md          # Alles für rules/*.md (außer dieser Skill selbst)
+│   ├── schema-files.md        # Alles für schemas.yml
+│   └── workflow-files.md      # Alles für workflows/*.md
 └── resources/
     ├── validate.md            # Pure Runner — keine eigene Prüflogik
     ├── research.md
@@ -58,6 +58,8 @@ Probleme:
     ├── schema-composition.md
     └── skill-map.md
 ```
+
+**Namenskonvention:** Alle File-Type-Regeln tragen den Suffix `-files.md` — das vermeidet die Kollision zwischen dem Dateinamen `rule.md` und dem Konzept "Rule". `common-rules.md` behält seinen Namen, da es nicht nur einen File-Type beschreibt.
 
 `rules/principles.md`, `rules/structure.md`, `rules/validate-params.md` werden **ersatzlos entfernt** (CLAUDE.md: keine Backwards-Compat-Shims). Ihr Inhalt wird in die neuen Dateien migriert.
 
@@ -69,7 +71,9 @@ Jede Rule-Datei hat denselben Aufbau:
 ---
 name: <file-type>-rules
 description: Authoring- und Validierungsregeln für <file-type>-Dateien
-applies-to: tasks/*.md            # Glob relativ zum Skill-Root (Runner-Dispatch)
+applies-to:
+  - tasks/*.md
+  - <weitere globs>
 ---
 
 # <File-Type> Rules
@@ -91,8 +95,19 @@ applies-to: tasks/*.md            # Glob relativ zum Skill-Root (Runner-Dispatch
 
 **Zwei Zwecke, eine Datei:**
 
-- Beim Authoring (z. B. `skill-creator` lädt `rules/task.md` vor dem Anlegen eines neuen Tasks) liest Claude die Prinzipien + Beispiele und versteht, was zu produzieren ist.
+- Beim Authoring (z. B. `skill-creator` lädt `rules/task-files.md` vor dem Anlegen eines neuen Tasks) liest Claude die Prinzipien + Beispiele und versteht, was zu produzieren ist.
 - Beim Validieren lädt `validate.md` dieselbe Datei, extrahiert die `## Checks`-Tabelle und wendet die Zeilen auf jede passende Datei an.
+
+### `## Checks` — Format-Kontrakt
+
+Die Tabelle wird vom Runner mechanisch gelesen (durch Claude als LLM-Runner, nicht durch einen Parser). Damit das zuverlässig funktioniert, gilt ein verbindlicher Kontrakt pro Rule-Datei:
+
+- **Fester Spaltensatz in fester Reihenfolge:** `ID | Severity | What to verify | Where`.
+- **Header case-sensitive** (exakt wie oben).
+- **Keine zusätzlichen Spalten.** Wenn eine Regel längere Erklärung braucht, gehört das in das Narrativ im oberen Teil der Datei, nicht in eine neue Spalte.
+- **Severity-Werte:** nur `error` oder `warning`. Kein `info`, kein `hint`.
+- **`Where`-Werte:** nur `frontmatter`, `body`, oder `filename` (wo der Check am File greift).
+- **Jede Datei hat genau eine `## Checks`-Tabelle** — kein Splitten über mehrere Abschnitte.
 
 ### `applies-to` als Dispatch-Schlüssel
 
@@ -100,20 +115,30 @@ Das `applies-to` Frontmatter ist eine Glob-Liste relativ zum zu validierenden Sk
 
 | Rule-Datei | applies-to |
 |---|---|
-| `common-rules.md` | `tasks/*.md`, `blueprints/*.md`, `rules/*.md`, `**/*.yml` |
-| `task.md` | `tasks/*.md`, `**/tasks/*.md` |
-| `blueprint.md` | `blueprints/*.md`, `**/blueprints/*.md` |
-| `rule.md` | `rules/*.md`, `**/rules/*.md` |
-| `schema.md` | `schemas.yml`, `**/schemas.yml` |
-| `workflow.md` | `workflows/*.md`, `**/workflows/*.md` |
+| `common-rules.md` | `tasks/*.md`, `**/tasks/*.md`, `blueprints/*.md`, `**/blueprints/*.md`, `rules/*.md`, `**/rules/*.md`, `**/schemas.yml`, `**/workflows/*.md` |
+| `task-files.md` | `tasks/*.md`, `**/tasks/*.md` |
+| `blueprint-files.md` | `blueprints/*.md`, `**/blueprints/*.md` |
+| `rule-files.md` | `rules/*.md`, `**/rules/*.md` |
+| `schema-files.md` | `schemas.yml`, `**/schemas.yml` |
+| `workflow-files.md` | `workflows/*.md`, `**/workflows/*.md` |
 
-Der Runner baut daraus das Dispatch-Mapping. Wenn `common-rules.md` und `task.md` beide auf `tasks/create-component.md` matchen, laufen beide Check-Sets.
+Der Runner baut daraus das Dispatch-Mapping. Wenn `common-rules.md` und `task-files.md` beide auf `tasks/create-component.md` matchen, laufen beide Check-Sets.
 
-### Check-ID-Konvention
+### Check-IDs — Konvention und Eindeutigkeit
 
-- Präfix = File-Type in Großbuchstaben (`TASK`, `BLUEPRINT`, `RULE`, `SCHEMA`, `WORKFLOW`, `COMMON`).
-- Counter = zweistellig, innerhalb der Datei sequentiell (`TASK-01`, `TASK-02`, …).
-- Severity steht in einer eigenen Spalte, nicht in der ID — das ersetzt die bisherige `E`/`W` Trennung. Findings-Reports gruppieren weiterhin nach Severity.
+- **Präfix = File-Type in Großbuchstaben** (`TASK`, `BLUEPRINT`, `RULE`, `SCHEMA`, `WORKFLOW`, `COMMON`).
+- **Counter = zweistellig**, innerhalb der Datei sequentiell (`TASK-01`, `TASK-02`, …).
+- **IDs sind global eindeutig** über alle Rule-Dateien. `COMMON-*` ist per Konstruktion disjunkt von File-Type-spezifischen Checks — ein Check, der für mehrere File-Types gilt, lebt ausschließlich in `common-rules.md` als `COMMON-*`, nie parallel in Typ-Dateien.
+- **Kein Überlappen** zwischen `TASK-*`, `BLUEPRINT-*` etc.: Wenn dieselbe Bedingung für Tasks und Blueprints geprüft werden muss, wird sie zu `COMMON-*` promoted.
+
+### Identisches Prädikat über Typ-Dateien
+
+In Ausnahmefällen ist dieselbe Prüflogik aus Authoring-Sicht sinnvoll in zwei Typ-Dateien zu haben (nicht in `common-rules.md`, weil die jeweilige Erklärung file-type-spezifisch ist). Beispiel:
+
+- `TASK-09` — Property in `params:`/`result:` eines Tasks fehlen Teaching-Signale.
+- `SCHEMA-02` — Property eines Top-Level-Typs in `schemas.yml` fehlen Teaching-Signale.
+
+Das Prädikat ("Property hat weder `description`, `enum`, `pattern` noch `examples`") ist identisch, der Anwendungsort unterscheidet sich. **Invariante:** Wenn die Definition des Prädikats (was als "Teaching-Signal" zählt) sich ändert, müssen beide Checks gleichzeitig angepasst werden. Diese Invariante wird als Kommentar-Zeile über jedem der beiden Checks dokumentiert und im Runner-Abschnitt unter "Wartung" aufgeführt.
 
 ### `validate.md` als Runner
 
@@ -128,19 +153,34 @@ Neue Struktur der `validate.md`:
 2. Für jede Datei: alle Rule-Dateien in `.agents/skills/designbook-skill-creator/rules/` laden,
    deren `applies-to` Glob matcht.
 3. Für jede geladene Rule-Datei: `## Checks`-Tabelle parsen, jede Zeile auf die Datei anwenden.
-4. Findings, Metriken und Score-Berechnung wie bisher.
+4. Findings, Metriken und Score-Berechnung anwenden (siehe unten).
+
+## Runner-eigene Konzepte (KEINE Checks — verbleiben in validate.md)
+
+- **Metrik-Definitionen** pro Datei: `lines`, `frontmatter_lines`, `body_lines`, `body_ratio`.
+- **Schema-Audit-Metriken** pro Typ: `properties_total`, `properties_described`, `coverage`, `has_title_or_description`, `refs_out`, `refs_in`, `completeness`.
+- **Schema-Graph**: `refs_in`/`refs_out` Kanten zwischen Schema-Typen.
+- **Score-Berechnung**: Start 100, Error −20, Warning −10, `body_ratio > 0.8` bei Tasks −5, Minimum 0.
+- **Output-Format**: Markdown-Tabellen mit Findings, Metrics, Schema Audit, Schema Graph, Summary.
+- **Abgrenzung zu research.md**: Tabelle am Ende der Datei bleibt unverändert.
 
 ## Referenzen
 
-- Task-Regeln: [rules/task.md](../rules/task.md)
-- Blueprint-Regeln: [rules/blueprint.md](../rules/blueprint.md)
-- Rule-Regeln: [rules/rule.md](../rules/rule.md)
-- Schema-Regeln: [rules/schema.md](../rules/schema.md)
-- Workflow-Regeln: [rules/workflow.md](../rules/workflow.md)
+- Task-Regeln: [rules/task-files.md](../rules/task-files.md)
+- Blueprint-Regeln: [rules/blueprint-files.md](../rules/blueprint-files.md)
+- Rule-Regeln: [rules/rule-files.md](../rules/rule-files.md)
+- Schema-Regeln: [rules/schema-files.md](../rules/schema-files.md)
+- Workflow-Regeln: [rules/workflow-files.md](../rules/workflow-files.md)
 - Gemeinsame Regeln: [rules/common-rules.md](../rules/common-rules.md)
+
+## Wartung
+
+Checks mit identischem Prädikat in zwei Rule-Dateien (aktuell: `TASK-09` + `SCHEMA-02`)
+werden zusammen angepasst. Die Prädikat-Definition steht jeweils als Kommentar-Zeile
+über dem Check in beiden Dateien.
 ```
 
-Keine Check-Tabelle mehr in `validate.md`. Metrik-Definitionen, Score-Berechnung, Output-Format und die Abgrenzung zu `research.md` bleiben erhalten — das sind Runner-Konzepte, nicht Regeln.
+Keine Check-Tabelle mehr in `validate.md`. Metrik-Definitionen, Score-Berechnung, Output-Format, Schema-Graph und die Abgrenzung zu `research.md` bleiben erhalten — das sind Runner-Konzepte, nicht Regeln.
 
 ## Content-Migration — Inhaltliche Zuordnung
 
@@ -148,19 +188,22 @@ Keine Check-Tabelle mehr in `validate.md`. Metrik-Definitionen, Score-Berechnung
 
 | Abschnitt in principles.md | Ziel-Datei |
 |---|---|
-| Tasks Say WHAT, Never HOW | `task.md` |
-| Results Declare Schema, Not Just Paths | `task.md` |
-| Tasks Declare Results in Schema, Not in Body | `task.md` |
-| Schemas Must Teach the AI | `schema.md` |
-| Blueprints Are Overridable Starting Points | `blueprint.md` |
-| Rules Are Hard Constraints | `rule.md` |
-| Rules Never Declare `params:` | `rule.md` |
-| Concrete Implementations Belong in Blueprints | `blueprint.md` + `rule.md` (Referenz) |
+| Tasks Say WHAT, Never HOW | `task-files.md` |
+| Results Declare Schema, Not Just Paths | `task-files.md` |
+| Tasks Declare Results in Schema, Not in Body | `task-files.md` |
+| Schemas Must Teach the AI | `schema-files.md` |
+| Blueprints Are Overridable Starting Points | `blueprint-files.md` |
+| Rules Are Hard Constraints | `rule-files.md` |
+| Rules Never Declare `params:` | `rule-files.md` |
+| Concrete Implementations Belong in Blueprints | `task-files.md` + `blueprint-files.md` + `rule-files.md` (gespiegelt, siehe unten) |
 | Skills Are Site-Agnostic | `common-rules.md` |
-| Stages Flush After Completion | `task.md` |
-| Workflow Steps Are Plain Names | `workflow.md` |
-| Stage = Filename, No Duplication | `task.md` |
-| Validation Is Automatic | `task.md` |
+| Stages Flush After Completion | `task-files.md` |
+| Workflow Steps Are Plain Names | `workflow-files.md` |
+| Stage = Filename, No Duplication | `task-files.md` |
+| Validation Is Automatic | `task-files.md` |
+
+**Zur dreifachen Zuordnung von "Concrete Implementations Belong in Blueprints":**
+Dieses Prinzip ist das einzige, dessen Aussage aus Sicht aller drei File-Types relevant ist (ein Task-Author muss wissen: kein konkreter Code im Task; ein Rule-Author muss wissen: kein konkreter Code in der Rule; ein Blueprint-Author muss wissen: hier gehört konkreter Code hin). Die Migration spiegelt den Kerntext in allen drei Dateien mit file-type-spezifischer Perspektive. Die daraus abgeleiteten Checks `TASK-06` (body enthält keine HOW) und `BLUEPRINT-02` (body enthält Implementierungsdetails — hier ist das ok, aber markerzeilen für Agnostic-Check) bleiben file-type-spezifisch.
 
 ### `structure.md` → Ziel-Dateien
 
@@ -168,21 +211,30 @@ Keine Check-Tabelle mehr in `validate.md`. Metrik-Definitionen, Score-Berechnung
 |---|---|
 | Integration Skills Layout | `common-rules.md` (Skill-Root-Struktur) |
 | Core Skill Layout | `common-rules.md` |
-| `schemas.yml` — Schema Definitions | `schema.md` |
-| `tasks/` — Naming Rule + Workflow-qualified | `task.md` |
-| `rules/` — Trigger + Filter Matching | `rule.md` |
-| `rules/` — Consumer Semantics (domain) | `rule.md` |
-| `rules/` — Strict Trigger Matching | `rule.md` |
-| `rules/` — Domain Subcontexts | `rule.md` |
-| `rules/` — Provider Rules (Legacy) | `rule.md` |
-| `rules/` — Schema Extension Fields (extends/provides/constrains) | `rule.md` + `blueprint.md` |
-| `blueprints/` — Trigger + Filter Matching | `blueprint.md` |
+| `schemas.yml` — Schema Definitions | `schema-files.md` |
+| `tasks/` — Naming Rule (Dateiname = Stage) | `task-files.md` |
+| `tasks/` — Workflow-qualified tasks (`<step>--<workflow>.md`) | `task-files.md` (eigene Unterüberschrift, siehe unten) |
+| `rules/` — Trigger + Filter Matching | `rule-files.md` |
+| `rules/` — Consumer Semantics (domain) | `rule-files.md` |
+| `rules/` — Strict Trigger Matching | `rule-files.md` |
+| `rules/` — Domain Subcontexts | `rule-files.md` |
+| `rules/` — Provider Rules (Legacy) | `rule-files.md` |
+| `rules/` — Schema Extension Fields (extends/provides/constrains) | `rule-files.md` + `blueprint-files.md` |
+| `blueprints/` — Trigger + Filter Matching | `blueprint-files.md` |
 | `SKILL.md` — Index Only | `common-rules.md` |
 | Naming Conventions | `common-rules.md` |
 
-### `validate-params.md` → `task.md`
+### Workflow-qualified tasks — eigene Unterüberschrift in `task-files.md`
 
-Alle fünf Checks (hardcoded paths, missing params, missing `$ref`, redundant body references, flat map format) sind task-spezifisch und wandern in die `## Checks` Tabelle von `task.md`.
+Der Abschnitt "Workflow-qualified tasks" in `structure.md` (Zeilen 52–67) enthält eine harte Regel, die **nur für Task-Dateien mit `--` im Dateinamen** gilt: `trigger.steps:` muss den voll qualifizierten Step-Namen inkl. Workflow-Prefix tragen. Bei der Migration:
+
+- Eigener Abschnitt `### Workflow-qualified tasks` in `task-files.md`.
+- Einleitender Satz: "Dieser Abschnitt gilt nur für Task-Dateien, deren Dateiname `--` enthält (z. B. `intake--design-verify.md`). Nicht-qualifizierte Task-Dateien ignorieren diesen Abschnitt."
+- Zugehöriger Check `TASK-02` in der Checks-Tabelle trägt denselben Scope-Hinweis in der `Where`-Spalte (`filename`, scope: "filename contains `--`").
+
+### `validate-params.md` → `task-files.md`
+
+Alle fünf Checks (hardcoded paths, missing params, missing `$ref`, redundant body references, flat map format) sind task-spezifisch und wandern in die `## Checks` Tabelle von `task-files.md`.
 
 ### Check-ID-Mapping (alt → neu)
 
@@ -193,7 +245,7 @@ Vollständige Umnummerierung. Die Migration ist disposable (keine Altlasten), da
 | E01 | Frontmatter fehlt/ungültig | `COMMON-01` |
 | E02 | Pflichtfelder fehlen (when, result) | `TASK-01` |
 | E03 | `$ref` zeigt ins Leere | `SCHEMA-01` |
-| E04 | `when.steps` referenziert unbekannten Step | `TASK-02` |
+| E04 | `trigger.steps` referenziert unbekannten Step | `TASK-02` (scope: filename contains `--`) |
 | E05 | `stage:` in Frontmatter | `TASK-03` |
 | E06 | `constrains:` in Blueprint | `BLUEPRINT-01` |
 | E07 | Inline schema duplicates `schemas.yml` type | `TASK-04` |
@@ -203,7 +255,8 @@ Vollständige Umnummerierung. Die Migration ist disposable (keine Altlasten), da
 | W04 | Cross-Layer-Duplikat | `TASK-07` |
 | W05 | Validation steps in body | `TASK-08` |
 | W06 | Workflow-Prefix in Workflow-Definition | `WORKFLOW-01` |
-| W07 | Property lacks teaching signals | `SCHEMA-02` (+ `TASK-09` für Task-Params/Result) |
+| W07 | Property lacks teaching signals (Task-params/result) | `TASK-09` |
+| W07 | Property lacks teaching signals (schemas.yml types) | `SCHEMA-02` |
 | W08 | Type missing title/description | `SCHEMA-03` |
 | W09 | `additionalProperties: true` undokumentiert | `SCHEMA-04` |
 | — | validate-params.md #1 (hardcoded paths) | `TASK-10` |
@@ -214,22 +267,48 @@ Vollständige Umnummerierung. Die Migration ist disposable (keine Altlasten), da
 
 ## SKILL.md Anpassung
 
-`SKILL.md` verweist heute auf `principles.md` und `structure.md`. Diese Verweise werden durch Verweise auf die neuen Rule-Dateien ersetzt. Die "Key Principles" Bullet-Liste wird knapper gehalten und verweist auf die passende Rule-Datei statt pauschal auf `principles.md`.
+Die "Key Principles" und "File Structure Conventions" Abschnitte in `SKILL.md` verweisen heute auf `principles.md` und `structure.md`. Nach der Migration wird dieser Abschnitt wie folgt aufgebaut:
+
+```markdown
+## Rule Files by Artifact Type
+
+Load the matching rule file **before** creating or editing any file of that type.
+Common rules apply on top in every case.
+
+| Creating/editing | Load |
+|---|---|
+| `tasks/*.md` | [rules/common-rules.md](rules/common-rules.md) + [rules/task-files.md](rules/task-files.md) |
+| `blueprints/*.md` | [rules/common-rules.md](rules/common-rules.md) + [rules/blueprint-files.md](rules/blueprint-files.md) |
+| `rules/*.md` | [rules/common-rules.md](rules/common-rules.md) + [rules/rule-files.md](rules/rule-files.md) |
+| `schemas.yml` | [rules/common-rules.md](rules/common-rules.md) + [rules/schema-files.md](rules/schema-files.md) |
+| `workflows/*.md` | [rules/common-rules.md](rules/common-rules.md) + [rules/workflow-files.md](rules/workflow-files.md) |
+
+## Validation
+
+See [resources/validate.md](resources/validate.md) for the static validator runner.
+The runner dispatches to the same rule files via `applies-to` globs — the rules
+above are the single source of truth for both authoring and validation.
+```
+
+Die SKILL.md-Frontmatter-`description` wird aktualisiert, um die neuen Rule-Dateien zu benennen statt "the 4-level model… tasks say WHAT not HOW, rules never declare params:, schema \$ref conventions".
 
 ## Nicht im Scope
 
 - Änderungen am Runtime-Verhalten des Workflow-Engine oder der Rule-Loading-Logik im Addon.
 - Andere Review-Punkte aus `review.md` (CSS, Image Styles, Extract-Reference, Capture, CLI-Workflow — jeweils eigene Change).
-- Neue Checks hinzufügen. Die Migration ist 1:1 inhaltlich identisch.
+- Neue Checks hinzufügen. Die Migration ist 1:1 inhaltlich identisch (Ausnahme: W07 wird sauber gesplittet in TASK-09 + SCHEMA-02, siehe oben).
 - Automatisches Fixen von Findings. Das bleibt wie bisher Aufgabe der Nutzer/Agenten.
 
 ## Erfolgs-Kriterien
 
-1. Nach der Migration existieren nur noch die sechs neuen Rule-Dateien in `rules/`. `principles.md`, `structure.md`, `validate-params.md` sind entfernt.
-2. `validate.md` enthält keine `## Errors` oder `## Warnings` Tabelle mehr — nur noch Runner-Prozess, Metriken, Score, Output-Format.
-3. Validator auf den bestehenden Skills (`designbook`, `designbook-drupal`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-devtools`, `designbook-skill-creator` selbst) produziert dieselben Findings wie vorher, nur mit neuen IDs.
-4. Beim Anlegen eines neuen Tasks lädt der skill-creator **nur** `rules/task.md` + `rules/common-rules.md` — nicht mehr `principles.md` + `structure.md` pauschal.
+1. Nach der Migration existieren nur noch die sechs neuen Rule-Dateien in `rules/` (`common-rules.md`, `task-files.md`, `blueprint-files.md`, `rule-files.md`, `schema-files.md`, `workflow-files.md`). `principles.md`, `structure.md`, `validate-params.md` sind entfernt.
+2. `validate.md` enthält keine `## Errors`, `## Warnings` oder `## Checks` Tabelle mehr. Verbleiben: Runner-Prozess, Metrik-Definitionen, Schema-Audit-Metriken, Schema-Graph, Score-Berechnung, Output-Format, Referenz-Links zu den Rule-Dateien, Abgrenzung zu `research.md`, Wartungs-Hinweis zu Prädikat-Duplikaten.
+3. Validator auf den bestehenden Skills (`designbook`, `designbook-drupal`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-devtools`, `designbook-skill-creator` selbst) produziert dieselben Findings wie vorher, nur mit neuen IDs gemäß Mapping-Tabelle.
+4. Beim Anlegen eines neuen Tasks lädt der skill-creator **nur** `rules/task-files.md` + `rules/common-rules.md` — nicht mehr `principles.md` + `structure.md` pauschal.
+5. Alle `## Checks`-Tabellen folgen dem Format-Kontrakt (`ID | Severity | What to verify | Where`, `error`/`warning`, `frontmatter`/`body`/`filename`).
+6. Check-IDs sind global eindeutig; `COMMON-*` überlappen nicht mit file-type-spezifischen Checks.
+7. `SKILL.md` verweist auf die neuen Rule-Dateien mit einer Tabelle pro Artefakt-Typ.
 
 ## Offene Punkte
 
-Keine. Alle drei Kern-Design-Entscheidungen (Scope = B+A, Granularität = per-file-type ohne shared.md, Format = Narrativ + Checks-Tabelle) sind im Brainstorming bestätigt.
+Keine. Alle Design-Entscheidungen (Scope = B+A, Granularität = per-file-type ohne shared.md, Format = Narrativ + Checks-Tabelle, Naming = `*-files.md` Suffix, Format-Kontrakt, ID-Eindeutigkeit) sind im Brainstorming + Codex-Review bestätigt.
