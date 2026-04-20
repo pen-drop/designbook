@@ -1,71 +1,161 @@
-color:
-  primary:
-    $value: "#4F46E5"
-    $type: color
-    description: Indigo — trust and reliability
-  primary-content:
-    $value: "#FFFFFF"
-    $type: color
-    description: Text on primary
-  secondary:
-    $value: "#10B981"
-    $type: color
-    description: Emerald — nature, growth, pet wellness
-  secondary-content:
-    $value: "#FFFFFF"
-    $type: color
-    description: Text on secondary
-  accent:
-    $value: "#F59E0B"
-    $type: color
-    description: Amber — warmth, energy, call-to-action
-  accent-content:
-    $value: "#000000"
-    $type: color
-    description: Text on accent
-  neutral:
-    $value: "#1F2937"
-    $type: color
-    description: Dark gray — headers, footer
-  neutral-content:
-    $value: "#F1F5F9"
-    $type: color
-    description: Text on neutral
-  base-100:
-    $value: "#F9FAFB"
-    $type: color
-    description: Page background
-  base-200:
-    $value: "#F3F4F6"
-    $type: color
-    description: Card surfaces
-  base-300:
-    $value: "#E5E7EB"
-    $type: color
-    description: Borders, dividers
-  base-content:
-    $value: "#1F2937"
-    $type: color
-    description: Main text color
-  success:
-    $value: "#22C55E"
-    $type: color
-    description: Adoption approved
-  error:
-    $value: "#EF4444"
-    $type: color
-    description: Error states
+primitive:
+  color:
+    indigo-500:
+      $value: "#4F46E5"
+      $type: color
+      description: Indigo — trust and reliability
+    emerald-500:
+      $value: "#10B981"
+      $type: color
+      description: Emerald — nature, growth, pet wellness
+    amber-500:
+      $value: "#F59E0B"
+      $type: color
+      description: Amber — warmth, energy, call-to-action
+    gray-900:
+      $value: "#1F2937"
+      $type: color
+    gray-200:
+      $value: "#F3F4F6"
+      $type: color
+    gray-100:
+      $value: "#F9FAFB"
+      $type: color
+    gray-300:
+      $value: "#E5E7EB"
+      $type: color
+    slate-100:
+      $value: "#F1F5F9"
+      $type: color
+    green-500:
+      $value: "#22C55E"
+      $type: color
+    red-500:
+      $value: "#EF4444"
+      $type: color
+    white:
+      $value: "#FFFFFF"
+      $type: color
+    black:
+      $value: "#000000"
+      $type: color
+  fontFamily:
+    inter:
+      $value: Inter
+      $type: fontFamily
+    jetbrains-mono:
+      $value: JetBrains Mono
+      $type: fontFamily
+  fontSize:
+    base:
+      $value: "1rem"
+      $type: dimension
+    lg:
+      $value: "1.125rem"
+      $type: dimension
+    xl:
+      $value: "1.5rem"
+      $type: dimension
+    2xl:
+      $value: "2rem"
+      $type: dimension
+  fontWeight:
+    regular:
+      $value: 400
+      $type: fontWeight
+    bold:
+      $value: 700
+      $type: fontWeight
+  lineHeight:
+    tight:
+      $value: 1.2
+      $type: number
+    normal:
+      $value: 1.5
+      $type: number
 
-typography:
-  heading:
-    $value: Inter
-    $type: fontFamily
-    description: Clean, modern headings
-  body:
-    $value: Inter
-    $type: fontFamily
-    description: Readable body text
-  mono:
-    $value: JetBrains Mono
-    $type: fontFamily
-    description: Code and reference IDs
+semantic:
+  color:
+    primary:
+      $value: "{primitive.color.indigo-500}"
+      $type: color
+      description: Brand primary — trust and reliability
+    primary-content:
+      $value: "{primitive.color.white}"
+      $type: color
+      description: Text on primary
+    secondary:
+      $value: "{primitive.color.emerald-500}"
+      $type: color
+      description: Pet wellness accent
+    secondary-content:
+      $value: "{primitive.color.white}"
+      $type: color
+      description: Text on secondary
+    accent:
+      $value: "{primitive.color.amber-500}"
+      $type: color
+      description: Call-to-action accent
+    accent-content:
+      $value: "{primitive.color.black}"
+      $type: color
+      description: Text on accent
+    neutral:
+      $value: "{primitive.color.gray-900}"
+      $type: color
+      description: Dark headers and footer
+    neutral-content:
+      $value: "{primitive.color.slate-100}"
+      $type: color
+      description: Text on neutral
+    background:
+      $value: "{primitive.color.gray-100}"
+      $type: color
+      description: Page background
+    surface:
+      $value: "{primitive.color.gray-200}"
+      $type: color
+      description: Card surfaces
+    border:
+      $value: "{primitive.color.gray-300}"
+      $type: color
+      description: Dividers and borders
+    foreground:
+      $value: "{primitive.color.gray-900}"
+      $type: color
+      description: Main text color
+    success:
+      $value: "{primitive.color.green-500}"
+      $type: color
+      description: Adoption approved
+    error:
+      $value: "{primitive.color.red-500}"
+      $type: color
+      description: Error states
+  typography:
+    heading:
+      $value:
+        fontFamily: "{primitive.fontFamily.inter}"
+        fontSize: "{primitive.fontSize.2xl}"
+        fontWeight: "{primitive.fontWeight.bold}"
+        lineHeight: "{primitive.lineHeight.tight}"
+      $type: typography
+      description: Clean, modern headings
+    body:
+      $value:
+        fontFamily: "{primitive.fontFamily.inter}"
+        fontSize: "{primitive.fontSize.base}"
+        fontWeight: "{primitive.fontWeight.regular}"
+        lineHeight: "{primitive.lineHeight.normal}"
+      $type: typography
+      description: Readable body text
+    mono:
+      $value:
+        fontFamily: "{primitive.fontFamily.jetbrains-mono}"
+        fontSize: "{primitive.fontSize.base}"
+        fontWeight: "{primitive.fontWeight.regular}"
+        lineHeight: "{primitive.lineHeight.normal}"
+      $type: typography
+      description: Code and reference IDs
+
+component: {}
