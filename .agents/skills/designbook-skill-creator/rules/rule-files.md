@@ -142,9 +142,10 @@ Rules can extend the merged result schema of a task. Three operations:
 
 | Field | Effect | Allowed in |
 |-------|--------|------------|
-| `extends:` | Add new properties (error on duplicates) | Rule, Blueprint |
-| `provides:` (object) | Set default values (last writer wins) | Rule, Blueprint |
+| `extends:` | Add new properties (error on duplicates) | Rule only |
+| `provides:` (object) | Set default values (last writer wins) | Rule only |
 | `constrains:` | Intersect enum values | Rule only |
+| `suggests:` | Soft recommendation (not merged into validation schema) | Blueprint only |
 
 ```yaml
 ---
