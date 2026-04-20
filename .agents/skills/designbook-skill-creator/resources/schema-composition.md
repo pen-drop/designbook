@@ -9,7 +9,7 @@ description: Deep-dive into the schema merge model — how task, blueprint, and 
 
 A task's result schema is never just what the task declares. The engine merges contributions from the task, its matched blueprints, and its matched rules into a **merged schema**. This merged schema is the single source of truth for validation.
 
-## The Three Operations
+## Keyword Semantics
 
 | Operation | Effect | Allowed in |
 |-----------|--------|------------|
