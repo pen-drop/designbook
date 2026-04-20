@@ -19,7 +19,7 @@ StoryId:
 
 SceneFile:
   type: object
-  required: [scenes]
+  required: [id, title]
   properties:
     id: { type: string, description: "Section/shell identifier for Designbook overview pages." }
     title: { type: string, description: "Human-readable title for overview page." }
@@ -66,11 +66,19 @@ ComponentNode:
       description: "provider:component-name format (e.g. $COMPONENT_NAMESPACE:card)"
     props:
       type: object
-      description: Data/configuration values passed to the component.
+      description: >
+        Data/configuration values passed to the component. Keys must match `^[A-Za-z_][A-Za-z0-9_]*$`
+        (snake_case or camelCase) — they map directly to SDC component props, which Twig cannot read when hyphenated.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
     slots:
       type: object
       description: >
         Named content slots. Values can be: string, SceneNode, or array of SceneNode.
+        Slot-name keys must match `^[A-Za-z_][A-Za-z0-9_]*$` — hyphens are forbidden because slots
+        become Twig `{% block <name> %}` tags in the underlying SDC component.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
       additionalProperties:
         oneOf:
           - type: string
@@ -121,6 +129,10 @@ SceneRefNode:
       description: >
         Fills $variable placeholders in the referenced scene.
         Keys are variable names (without $), values are SceneNode arrays or strings.
+        Keys MUST match `^[A-Za-z_][A-Za-z0-9_]*$` — they become `$variable` placeholders resolved via
+        JSONata, which rejects hyphens in identifiers.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
       additionalProperties:
         oneOf:
           - type: string
