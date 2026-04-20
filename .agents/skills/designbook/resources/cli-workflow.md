@@ -68,7 +68,6 @@ Intake-skip case (design-component-style workflow where `--params` already carri
 
 **Notes:**
 
-- If any `resolve:` param is ambiguous, the response carries an `unresolved` block with `candidates`. Present to the user, then call `create` again with a refined `--params`.
 - `step_resolved[<step>].schema` is the authoritative goal statement for the task loop (see `workflow-execution.md` §3).
 - Capture `name` into `$WORKFLOW_NAME` — every subsequent call needs it.
 
@@ -168,14 +167,15 @@ RESPONSE: {"stage":"component","step_completed":"create-component","next_step":"
 Payload variants on the `RESPONSE:` line:
 
 - **Next task in same stage:** `{ "stage": "...", "step_completed": "...", "next_step": "...", "stage_progress": "N/M", "stage_complete": false }`
+- **Validation failure (known key, bad data):** exit 0, payload `{ "stage": "<current>", "validation_errors": ["outputs/svg: must be a string", ...] }`. Task stays `in-progress`; re-call `done` with corrected `--data`.
 - **Stage transition:** adds `"stage_complete": true`, `"transition_from": "...", "next_stage": "...", "scope_update": { ... }, "expanded_tasks": [ ... ]`.
+- **Stage-transition resolver failure:** exit 0, payload includes `"resolver_errors": { "<key>": { "input": "...", "error": "..." } }`. Cannot advance until the offending inputs are fixed.
 - **Waiting for params:** `{ "stage": "...", "waiting_for": { "<key>": { "type": "...", "prompt": "..." } } }` — run `workflow wait`, ask the user, `workflow resume`, then resubmit `done` with the answer in `--data`.
 - **Workflow complete:** `{ "stage": "done" }`. Archived-case also prints `Workflow <name> archived (all tasks done)`.
-- **Workflow complete with child dispatch:** `{ "stage": "done", "dispatch": [{ "workflow": "...", "params": { ... } }] }`.
 
 **Notes:**
 
-- If any declared result is missing or invalid, `done` exits non-zero; fix and call again.
+- `done` exits non-zero only on thrown errors (unknown result keys, missing workflow, IO/lock failures). When known keys fail schema or validator checks, exit is 0 and the `RESPONSE:` payload carries `validation_errors`; the task stays `in-progress` and you re-call with corrected `--data`.
 - `--data` carries both file and data results. File results are staged under `.debo` and atomically flushed at stage end (or immediately for `flush: immediate` keys).
 - `submission: direct` results are registered via `workflow result` first, then `done` closes the task (see below).
 
@@ -209,7 +209,7 @@ _debo workflow result --workflow <name> --task <id> --key <key> [--json <data>]
 On validation failure:
 
 ```json
-{ "valid": false, "errors": [ { "path": "…", "message": "…" } ] }
+{ "valid": false, "errors": ["outputs/svg: must be a string", "data: required key missing"] }
 ```
 
 Exits non-zero when `valid: false`.
