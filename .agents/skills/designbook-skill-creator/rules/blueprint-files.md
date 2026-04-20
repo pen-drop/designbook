@@ -191,6 +191,6 @@ filter:
 
 | ID | Severity | What to verify | Where |
 |---|---|---|---|
-| BLUEPRINT-01 | error | `constrains:` field is absent from frontmatter (only rules may constrain enum values) | frontmatter |
+| BLUEPRINT-01 | error | Frontmatter contains none of `extends:`, `provides:`, or `constrains:` — these are rule-exclusive. Blueprints may use `suggests:` for soft recommendations. | frontmatter |
 | BLUEPRINT-02 | warning | Body does not contain site-specific references (brand names, project URLs, customer slot names) — site-specific content in core `designbook/` is caught by COMMON-02 in common-rules.md; this check covers blueprints in integration skills that still must stay site-agnostic | body |
-| BLUEPRINT-03 | warning | Body does not describe schema extensions as prose (default values, additional result properties, enumerations) when they could be expressed via `extends:` or `provides:` in frontmatter | body |
+| BLUEPRINT-03 | warning | Body does not describe enum values, required fields, type restrictions, or default values. Such content belongs either in `suggests:` in frontmatter (soft recommendation, machine-readable) or in `schemas.yml` / a rule (hard contract). Pure narrative prose is fine. Finding message must name which target applies per the decision matrix in "Blueprints Suggest, Never Enforce". | body |
