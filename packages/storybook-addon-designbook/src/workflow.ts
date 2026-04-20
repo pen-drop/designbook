@@ -291,6 +291,14 @@ function transformWorkflowPaths(data: WorkflowFile, fn: PathFn): WorkflowFile {
       rules: task.rules?.map((r) => fn(root, r)),
       blueprints: task.blueprints?.map((b) => fn(root, b)),
       files: task.files?.map((f) => ({ ...f, path: fn(root, f.path) })),
+      result: task.result
+        ? (Object.fromEntries(
+            Object.entries(task.result).map(([key, entry]) => [
+              key,
+              entry.provider_rule ? { ...entry, provider_rule: fn(root, entry.provider_rule) } : entry,
+            ]),
+          ) as Record<string, TaskResult>)
+        : undefined,
     })),
     stage_loaded: data.stage_loaded
       ? (Object.fromEntries(

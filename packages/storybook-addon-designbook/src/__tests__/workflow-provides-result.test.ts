@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
@@ -178,7 +178,17 @@ Extract \`extractedValue\` from the input string using a simple rule.`,
     const task = wf.tasks[0]!;
     expect(task.result).toBeDefined();
     expect(task.result!.extractedValue).toBeDefined();
+    // readWorkflow resolves back to absolute for in-memory use.
     expect(task.result!.extractedValue!.provider_rule).toBe(rulePath);
+
+    // Raw file must store the path RELATIVE to workspace_root (worktree-portable),
+    // matching how task_file/rules are serialized today.
+    const rawYaml = readFileSync(tasksPath, 'utf-8');
+    // The absolute rule path must NOT appear in the raw file.
+    expect(rawYaml).not.toContain(rulePath);
+    // But the workspace-relative form must be present.
+    const relativeRulePath = rulePath.replace(tmpDir + '/', '');
+    expect(rawYaml).toContain(`provider_rule: ${relativeRulePath}`);
   });
 
   it('does not attach provider_rule when no rule provides the result key', async () => {
@@ -225,6 +235,41 @@ Extract \`extractedValue\` from the input string using a simple rule.`,
     expect(expandedResult).toBeDefined();
     expect(expandedResult!.value).toBeDefined();
     expect(expandedResult!.value!.provider_rule).toBeUndefined();
+
+    // Round-trip through tasks.yml — provider_rule must remain absent.
+    const name = workflowCreate(
+      baseConfig.data,
+      'test-no-provider',
+      resolved.title,
+      [
+        {
+          id: 'make-value',
+          title: `${resolved.title}: make-value`,
+          type: 'data',
+          step: 'make-value',
+          stage: 'execute',
+          files: [],
+          result: expandedResult,
+          task_file: firstStep.task_file,
+          rules: firstStep.rules,
+          blueprints: firstStep.blueprints,
+          config_rules: firstStep.config_rules,
+          config_instructions: firstStep.config_instructions,
+        },
+      ],
+      resolved.stages,
+      undefined,
+      resolved.step_resolved,
+      resolved.engine,
+      undefined,
+      tmpDir,
+      {},
+      envMap,
+    );
+
+    const tasksPath = resolve(baseConfig.data, 'workflows', 'changes', name, 'tasks.yml');
+    const wf = readWorkflow(tasksPath);
+    expect(wf.tasks[0]!.result!.value!.provider_rule).toBeUndefined();
   });
 
   it('backward-compat: object-valued provides: (schema composition) still works and does not add provider_rule', async () => {
@@ -293,5 +338,94 @@ Extract \`extractedValue\` from the input string using a simple rule.`,
     const thingDef = firstStep.schema!.definitions.thing as Record<string, unknown>;
     const props = thingDef.properties as Record<string, Record<string, unknown>>;
     expect(props.name!.default).toBe('unnamed');
+
+    // Round-trip through tasks.yml — provider_rule must remain absent for
+    // object-valued provides (backward-compat path).
+    const name = workflowCreate(
+      baseConfig.data,
+      'test-provides-object',
+      resolved.title,
+      [
+        {
+          id: 'make-thing',
+          title: `${resolved.title}: make-thing`,
+          type: 'data',
+          step: 'make-thing',
+          stage: 'execute',
+          files: [],
+          result: expandedResult,
+          task_file: firstStep.task_file,
+          rules: firstStep.rules,
+          blueprints: firstStep.blueprints,
+          config_rules: firstStep.config_rules,
+          config_instructions: firstStep.config_instructions,
+        },
+      ],
+      resolved.stages,
+      undefined,
+      resolved.step_resolved,
+      resolved.engine,
+      undefined,
+      tmpDir,
+      {},
+      envMap,
+    );
+
+    const tasksPath = resolve(baseConfig.data, 'workflows', 'changes', name, 'tasks.yml');
+    const wf = readWorkflow(tasksPath);
+    expect(wf.tasks[0]!.result!.thing!.provider_rule).toBeUndefined();
+  });
+
+  it('throws when two rules provide the same result key', async () => {
+    const skill = 'test-provides-conflict';
+
+    const workflowPath = writeWorkflow(agentsDir, skill, 'test-provides-conflict', {
+      title: 'Test Provides Conflict',
+      stages: {
+        execute: { steps: ['make-dup'] },
+      },
+      engine: 'direct',
+    });
+
+    writeTask(agentsDir, skill, 'make-dup', {
+      trigger: { steps: ['make-dup'] },
+      result: {
+        type: 'object',
+        properties: {
+          dupValue: { type: 'string' },
+        },
+      },
+    });
+
+    // Two rules that both provide the same key — this is a config error.
+    writeRule(agentsDir, skill, 'provide-dup-a', {
+      provides: 'dupValue',
+      trigger: { steps: ['make-dup'] },
+    });
+    writeRule(agentsDir, skill, 'provide-dup-b', {
+      provides: 'dupValue',
+      trigger: { steps: ['make-dup'] },
+    });
+
+    const resolved = await resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
+    const firstStep = resolved.step_resolved['make-dup'] as ResolvedStep;
+    expect(firstStep).toBeDefined();
+    // Both rules must have been matched, otherwise the test is meaningless.
+    expect(firstStep.rules.length).toBe(2);
+
+    const envMap = buildEnvMap(baseConfig);
+    const taskFm = parseFrontmatter(firstStep.task_file);
+
+    await expect(
+      expandResultDeclarations(
+        taskFm?.result as Record<string, unknown> | undefined,
+        undefined,
+        {},
+        envMap,
+        undefined,
+        true,
+        firstStep.rules,
+      ),
+    ).rejects.toThrow(/Multiple provider rules for result key "dupValue"/);
   });
 });

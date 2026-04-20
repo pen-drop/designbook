@@ -1187,14 +1187,20 @@ export async function expandResultDeclarations(
 > {
   // Build provider map once: for each rule with a string-valued `provides:`
   // frontmatter, record rule path by the key it provides.
+  // Two rules providing the same key are a config error — throw so the user
+  // notices instead of silently keeping one and dropping the other.
   const providerByKey: Record<string, string> = {};
   if (ruleFiles && ruleFiles.length > 0) {
     for (const rulePath of ruleFiles) {
       const fm = parseFrontmatter(rulePath);
       const provides = fm?.['provides'];
       if (typeof provides === 'string' && provides.length > 0) {
-        // First rule wins per key — stable order matches matchRuleFiles output.
-        if (!(provides in providerByKey)) providerByKey[provides] = rulePath;
+        if (provides in providerByKey) {
+          throw new Error(
+            `Multiple provider rules for result key "${provides}": "${providerByKey[provides]}" and "${rulePath}"`,
+          );
+        }
+        providerByKey[provides] = rulePath;
       }
     }
   }
