@@ -110,7 +110,13 @@ _debo workflow done --workflow $WORKFLOW_NAME --task <task-id> \
 
 The CLI serializes file results to their declared paths, validates every result against `schema.definitions`, and marks the task done. If validation fails, the response reports the errors — fix and call `done` again.
 
-For `submission: direct` results only (external tool writes — Playwright screenshots, CLI-generated files), the external tool writes the file first, then registers it via `_debo workflow result --key <k> --external`. `done` follows when all results are in place. See [`cli-workflow.md` → `workflow result`](cli-workflow.md) for the direct-submission flow.
+For `submission: direct` results only (external tool writes — Playwright screenshots, CLI-generated files), the external tool writes the file first, then registers it:
+
+```bash
+_debo workflow result --workflow $WORKFLOW_NAME --task <task-id> --key <result-key>
+```
+
+Omit `--json` to mark it as an externally-written file (the CLI looks up the staged path from the schema). `done` follows when all results are in place. See [`cli-workflow.md` → `workflow result`](cli-workflow.md) for the direct-submission flow.
 
 ### 7. Follow the response
 
