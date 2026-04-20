@@ -6,7 +6,7 @@ Introduce a new frontmatter keyword `suggests:` for blueprints. Remove `extends:
 
 ## Motivation
 
-The current skill-creator rules allow `extends:` and `provides:` in blueprint frontmatter (under "Schema Extension as Core Mechanism"). But blueprints are defined as **overridable starting points** that integrations may deviate from. Using `provides:` (last-writer-wins defaults) in an overridable file creates confusing contract semantics: is a `provides:` default truly a default, or an informal suggestion?
+The current skill-creator rules allow `extends:` and `provides:` in blueprint frontmatter (under "Schema Extension as Core Mechanism"). But blueprints are defined as **overridable starting points** — integrations always replace the entire blueprint file when they deviate. Hard constraints in a blueprint are therefore meaningless: they get overridden wholesale. A blueprint's only job is to suggest.
 
 Validator findings expose the problem:
 
@@ -23,6 +23,18 @@ These findings need a structured home, but not one that implies a validation con
 - Shape: JSON-Schema-like property map (supports `enum`, `default`, `type`, `description`, nested objects).
 - **Runtime:** the executor reads `suggests:` purely for UI/discovery purposes (surfacing hints in Storybook, doc generation). It is **not** merged into the task's validation schema. It never narrows enums. It never enforces defaults.
 - **Contract semantics:** none. A blueprint remains an overridable starting point; `suggests:` formalises the structure of what is being suggested without giving it authority.
+
+### Keyword-driven CLI, file-type-agnostic
+
+The CLI/executor does **not** distinguish between `blueprints/` and `rules/` at runtime. It processes frontmatter by keyword:
+
+| Keyword | Runtime effect |
+|---|---|
+| `trigger:` / `filter:` | Activation (which files load for which task) |
+| `extends:` / `provides:` / `constrains:` | Merged into the task's validation schema |
+| `suggests:` | Informational only — ignored during schema merge, available to UI/discovery |
+
+The blueprint-vs-rule distinction is an **authoring convention** enforced by the validator (`BLUEPRINT-01`), not by the CLI. If a blueprint mistakenly used `extends:`, the CLI would still merge it — but the validator would flag it as an authoring error. This keeps the runtime simple (one code path, keyword-driven) and the authoring rules opinionated.
 
 ### `suggests:` example
 
@@ -67,16 +79,16 @@ See `suggests:` above for recommended prop values.
 
 ### Vehicle decision matrix
 
-This matrix goes into `blueprint-files.md` to make the author's choice explicit:
+This matrix goes into `blueprint-files.md` to make the author's choice explicit. Blueprints carry no authority by design — any hard constraint must live in a rule or schema, never in a blueprint:
 
 | Situation | Vehicle |
 |---|---|
-| Integration-specific props with recommended values (overridable) | Blueprint `suggests:` |
+| Recommended prop shape or enum for a component (overridable) | Blueprint `suggests:` |
+| Loose prose guidance, no structure | Blueprint body |
 | Hard contract other tools must validate against | Schema type in integration's `schemas.yml` (via `$ref` on a core type) |
 | Non-overridable narrowing for a specific backend/config | Rule with `constrains:` |
 | Runtime default value that affects validation | Rule with `provides:` |
 | Added property that affects validation | Rule with `extends:` |
-| Loose prose guidance, no structure | Blueprint body |
 
 ### Check changes
 
