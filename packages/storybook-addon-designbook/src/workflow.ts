@@ -234,6 +234,21 @@ export function workflowWait(dataDir: string, name: string, message?: string): v
   writeWorkflowAtomic(filePath, data);
 }
 
+export function workflowResume(dataDir: string, name: string): void {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+  const data = readWorkflow(filePath);
+
+  if (data.status === 'running') return;
+  if (data.status !== 'waiting') {
+    throw new Error(`Cannot resume: workflow "${name}" is ${data.status}, expected waiting or running`);
+  }
+
+  data.status = 'running';
+  delete data.waiting_message;
+  writeWorkflowAtomic(filePath, data);
+}
+
 // ── Path normalization ──────────────────────────────────────────────
 // Workflow YAML stores paths relative to workspace_root.
 // On read (readWorkflow) they are resolved back to absolute;
