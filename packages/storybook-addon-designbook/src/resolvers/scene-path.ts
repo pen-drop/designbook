@@ -9,6 +9,36 @@ function toKebab(input: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+function normaliseToSectionId(input: string): { id: string } | null {
+  const withoutVariant = input.split('--')[0] ?? input;
+  const segments = withoutVariant
+    .split('/')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (segments.length === 0) {
+    return null;
+  }
+
+  // Storybook story-id shape: at least two segments ("Group/Path").
+  if (segments.length >= 2) {
+    if (segments[0] === 'Designbook' && segments[1] === 'Design System') {
+      return { id: 'shell' };
+    }
+    const last = segments[segments.length - 1] ?? '';
+    const id = toKebab(last);
+    return id ? { id } : null;
+  }
+
+  // Single-segment: treat as a direct id ("shell" or a kebab section id).
+  const first = segments[0] ?? '';
+  if (first === 'shell') {
+    return { id: 'shell' };
+  }
+  const id = toKebab(first);
+  return id ? { id } : null;
+}
+
 export const scenePathResolver: ParamResolver = {
   name: 'scene_path',
 
@@ -16,13 +46,19 @@ export const scenePathResolver: ParamResolver = {
     if (!input || !input.trim()) {
       return { resolved: false, input, error: 'scene id is required' };
     }
-    if (input === 'shell') {
+
+    const normalised = normaliseToSectionId(input);
+    if (!normalised) {
+      return { resolved: false, input, error: `cannot derive scene path from: ${input}` };
+    }
+
+    if (normalised.id === 'shell') {
       return { resolved: true, value: 'design-system/design-system.scenes.yml', input };
     }
-    const id = toKebab(input);
+
     return {
       resolved: true,
-      value: `sections/${id}/${id}.section.scenes.yml`,
+      value: `sections/${normalised.id}/${normalised.id}.section.scenes.yml`,
       input,
     };
   },
