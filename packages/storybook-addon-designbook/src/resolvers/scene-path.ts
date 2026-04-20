@@ -10,7 +10,7 @@ function toKebab(input: string): string {
 }
 
 function normaliseToSectionId(input: string): { id: string } | null {
-  const withoutVariant = input.split('--')[0] ?? input;
+  const [withoutVariant = input] = input.split('--');
   const segments = withoutVariant
     .split('/')
     .map((s) => s.trim())
@@ -25,6 +25,8 @@ function normaliseToSectionId(input: string): { id: string } | null {
     if (segments[0] === 'Designbook' && segments[1] === 'Design System') {
       return { id: 'shell' };
     }
+    // The `?? ''` fallbacks satisfy TS `noUncheckedIndexedAccess`; the preceding
+    // length checks guarantee the indexed access is safe at runtime.
     const last = segments[segments.length - 1] ?? '';
     const id = toKebab(last);
     return id ? { id } : null;
