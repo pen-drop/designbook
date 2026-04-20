@@ -8,59 +8,29 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
-import { Command } from 'commander';
-import { register as registerWorkflow } from '../workflow.js';
+import { setupCliSandbox, type CliSandbox } from './helpers.js';
 
 describe('cli: workflow resume', () => {
-  let tmpRoot: string;
-  let dataDir: string;
+  let sandbox: CliSandbox;
   let workflowName: string;
   let tasksYmlPath: string;
-  let originalCwd: string;
-  let exitCodeBefore: number | string | undefined;
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), 'cli-wf-resume-'));
-    dataDir = join(tmpRoot, 'designbook');
-    mkdirSync(dataDir, { recursive: true });
-
-    // Write a minimal designbook.config.yml so loadConfig() resolves data=dataDir.
-    writeFileSync(
-      join(tmpRoot, 'designbook.config.yml'),
-      dumpYaml({
-        designbook: { data: 'designbook' },
-      }),
-    );
+    sandbox = setupCliSandbox();
 
     workflowName = 'test-wf-2026-04-20-abcd';
-    const dir = join(dataDir, 'workflows', 'changes', workflowName);
+    const dir = join(sandbox.dataDir, 'workflows', 'changes', workflowName);
     mkdirSync(dir, { recursive: true });
     tasksYmlPath = join(dir, 'tasks.yml');
-
-    originalCwd = process.cwd();
-    process.chdir(tmpRoot);
-
-    exitCodeBefore = process.exitCode;
-    process.exitCode = undefined;
   });
 
   afterEach(() => {
-    process.chdir(originalCwd);
-    process.exitCode = exitCodeBefore as number | undefined;
-    if (tmpRoot) rmSync(tmpRoot, { recursive: true, force: true });
+    sandbox.cleanup();
     vi.restoreAllMocks();
   });
-
-  function makeProgram(): Command {
-    const program = new Command();
-    program.exitOverride(); // throw instead of process.exit on commander errors
-    registerWorkflow(program);
-    return program;
-  }
 
   it('transitions waiting → running, prints JSON, updates tasks.yml on disk', async () => {
     writeFileSync(
@@ -75,8 +45,7 @@ describe('cli: workflow resume', () => {
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    const program = makeProgram();
-    await program.parseAsync(['node', 'cli', 'workflow', 'resume', '--workflow', workflowName]);
+    await sandbox.program.parseAsync(['node', 'cli', 'workflow', 'resume', '--workflow', workflowName]);
 
     // No non-zero exit code set
     expect(process.exitCode).toBeFalsy();
@@ -101,8 +70,7 @@ describe('cli: workflow resume', () => {
   it('exits non-zero and writes to stderr when the workflow does not exist', async () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const program = makeProgram();
-    await program.parseAsync(['node', 'cli', 'workflow', 'resume', '--workflow', 'does-not-exist']);
+    await sandbox.program.parseAsync(['node', 'cli', 'workflow', 'resume', '--workflow', 'does-not-exist']);
 
     expect(process.exitCode).toBe(1);
 
