@@ -1,19 +1,20 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTheme } from 'storybook/theming';
+
+/** Module-level store so open/close state survives component remounts. */
+const _openStates = new Map();
 
 function createStyles(theme) {
   return {
     container: {
       card: {
         border: `1px solid ${theme.appBorderColor}`,
-        borderRadius: '16px',
+        borderRadius: '8px',
         boxShadow: '0px 2px 12px -6px rgba(0,0,0,0.05)',
-        overflow: 'clip',
       },
       'action-summary': {
         border: `1px solid ${theme.appBorderColor}`,
         borderRadius: '8px',
-        overflow: 'clip',
       },
       'action-item': {
         background: 'transparent',
@@ -132,6 +133,7 @@ function getProgressBar(progress, statusColor) {
  * @param {'card'|'action-summary'|'action-item'|'action-inline'} [props.variant='card'] — Visual variant
  * @param {'done'|'running'|'pending'} [props.status='pending'] — Status color (action variants only)
  * @param {{ done: number, total: number }} [props.progress] — Progress bar (action-summary only)
+ * @param {string} [props.id] — Unique ID for state persistence across remounts
  * @param {React.ReactNode} props.children — Collapsible content
  */
 export function DeboCollapsible({
@@ -141,9 +143,21 @@ export function DeboCollapsible({
   variant = 'card',
   status = 'pending',
   progress,
+  id,
   children,
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpenRaw] = useState(() => {
+    if (id && _openStates.has(id)) return _openStates.get(id);
+    return defaultOpen;
+  });
+  const setOpen = useCallback(
+    (v) => {
+      const next = typeof v === 'function' ? v(open) : v;
+      if (id) _openStates.set(id, next);
+      setOpenRaw(next);
+    },
+    [id, open],
+  );
   const theme = useTheme();
   const S = useMemo(() => createStyles(theme), [theme]);
 
@@ -157,9 +171,9 @@ export function DeboCollapsible({
 
   let containerStyle;
   if (variant === 'card') {
-    containerStyle = { ...S.container.card, overflow: open ? 'visible' : 'clip' };
+    containerStyle = S.container.card;
   } else if (variant === 'action-summary') {
-    containerStyle = { ...S.container['action-summary'], overflow: open ? 'visible' : 'clip' };
+    containerStyle = S.container['action-summary'];
   } else if (variant === 'action-inline') {
     containerStyle = {
       background: 'transparent',
@@ -170,9 +184,22 @@ export function DeboCollapsible({
     containerStyle = S.container['action-item'];
   }
 
-  const summaryStyle = S.summary[variant] || S.summary.card;
+  const baseSummaryStyle = S.summary[variant] || S.summary.card;
   const contentStyle = S.content[variant] || S.content.card;
   const progressBar = variant === 'action-summary' ? getProgressBar(progress, statusColor) : null;
+
+  const RADII = { card: '8px', 'action-summary': '8px' };
+  const r = RADII[variant];
+  const summaryRadius = r
+    ? open
+      ? `${r} ${r} 0 0`
+      : r
+    : undefined;
+  const contentRadius = r ? `0 0 ${r} ${r}` : undefined;
+
+  const summaryStyle = summaryRadius
+    ? { ...baseSummaryStyle, borderRadius: summaryRadius }
+    : baseSummaryStyle;
 
   return (
     <details open={open} style={containerStyle}>
@@ -210,7 +237,7 @@ export function DeboCollapsible({
         </div>
         {progressBar}
       </summary>
-      <div style={contentStyle.outer}>
+      <div style={{ ...contentStyle.outer, borderRadius: contentRadius }}>
         <div style={contentStyle.inner}>{children}</div>
       </div>
     </details>

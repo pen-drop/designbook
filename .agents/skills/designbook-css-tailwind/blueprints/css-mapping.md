@@ -2,9 +2,10 @@
 type: css-mapping
 name: tailwind
 priority: 10
-when:
-  frameworks.css: tailwind
-  steps: [generate-jsonata, generate-css]
+trigger:
+  domain: css
+filter:
+  frameworks.style: tailwind
 ---
 
 # CSS Mapping — Tailwind v4

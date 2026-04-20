@@ -1,74 +1,43 @@
 ---
-when:
+trigger:
   steps: [create-tokens]
+domain: [tokens]
+title: Create Design Tokens
 params:
-  intake: {}
-files:
-  - file: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    key: design-tokens
-    validators: [tokens]
+  type: object
+  required: [reference_dir, vision]
+  properties:
+    reference_dir: { type: string }
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      workflow: /debo-vision
+      type: object
+    extract:
+      path: "{{ reference_dir }}/extract.json"
+      $ref: ../../design/schemas.yml#/DesignReference
+      type: object
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
+result:
+  type: object
+  required: [design-tokens]
+  properties:
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      $ref: ../schemas.yml#/DesignTokens
 ---
 
-# Create Design Tokens
+# Design Tokens
 
-Write the result in W3C Design Token YAML format via stdin to the CLI:
-```
-write-file $WORKFLOW_NAME $TASK_ID --key design-tokens
-```
+Derive a W3C Design Token YAML. When the `extract` param is present, it is the authoritative source — see the `extract-mapping` rule for value-origin constraints and completeness requirements. Fall back to vision or user input only when extract is missing and the workflow is interactive.
 
-## Token Hierarchy
+When the workflow runs interactively and extract is missing, guide the user through choosing colors, typography, and additional token groups; present choices, let them confirm or adjust, and summarize all tokens before saving.
 
-All tokens live in `design-tokens.yml` organized in three fixed levels:
+Follow the `merged_schema` for required token structure — blueprints extend the schema with component-level token groups. Read the css-naming blueprint from `task.blueprints[]` filtered by `type: css-naming` for token group names and CSS variable mapping. Apply renderer hints per the `renderer-hints` rule.
 
-```yaml
-primitive:        # Raw values — no references, only concrete values
-  color:
-    indigo-600: { $value: "#4F46E5", $type: color }
-  spacing:
-    4: { $value: "1rem", $type: dimension }
+## Result: design-tokens
 
-semantic:         # Purpose-based aliases referencing primitives
-  color:
-    primary: { $value: "{primitive.color.indigo-600}", $type: color }
-  typography:
-    heading: { $value: "Space Grotesk", $type: fontFamily }
+Three fixed levels per schema: `primitive` → `semantic` → `component`. Each leaf is a `TokenLeaf` with `$value` and `$type`.
 
-component:        # Component-specific tokens from blueprint required_tokens
-  container:
-    max-width:
-      lg: { $value: "1024px", $type: dimension }
-```
-
-## Instructions
-
-1. **Read naming conventions** — read the css-naming blueprint from `task.blueprints[]` filtered by `type: css-naming` for token group names, sub-key conventions, and CSS variable mapping
-2. **Primitive tokens** — for each group in `intake`, write raw values under `primitive.<group>`. Sub-key naming follows the css-naming blueprint loaded in step 1.
-3. **Semantic tokens** — create purpose-based aliases referencing primitives (e.g., `color` → `primary`/`secondary`, `typography` → `heading`/`body`/`mono`). Semantic tokens MUST reference primitives via `{primitive.<group>.<key>}` — no raw values in semantics.
-4. **Component tokens** — read `required_tokens` from each matched blueprint file and write them under `component.<group>`. These are defaults — if `component.<group>` already exists in a prior `design-tokens.yml`, keep existing values and only add missing keys
-5. Apply renderer hints per the `renderer-hints` rule
-
-## Intake Param
-
-The `intake` param is a free-form object whose keys are token groups gathered during intake (e.g., `colors`, `typography`, `breakpoints`, `type_scale`). The set of groups is not fixed — process whatever the intake provides.
-
-## Component Tokens from Blueprints
-
-Each matched blueprint declares `required_tokens` in its frontmatter. Read these and write under `component.*`.
-
-Component tokens may reference primitives or semantics:
-```yaml
-component:
-  grid:
-    gap:
-      md: { $value: "{primitive.spacing.4}", $type: dimension }
-```
-
-## Typography Composite Tokens
-
-When `intake` contains a `type_scale` group, generate `$type: typography` composite tokens in `semantic.typography` alongside any `fontFamily` tokens.
-
-## Constraints
-
-- Every leaf token must have `$value` and `$type`
-- Colors must be hex codes
-- Valid `$type` values: `color`, `fontFamily`, `dimension`, `number`, `fontWeight`, `duration`, `cubicBezier`, `shadow`, `gradient`, `transition`, `border`, `strokeStyle`, `typography`
+`semantic.color` and `semantic.typography` are required. When `extract` is present, every entry in `extract.typography[]` must be represented in `semantic.typography.*`, and every key in `extract.tokens.colors` must be present in `semantic.color.*`.

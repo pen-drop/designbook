@@ -1,28 +1,39 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { dump as stringifyYaml } from 'js-yaml';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
+import { interpolate } from '../../template/interpolate.js';
 import {
   resolveTaskFiles,
-  expandFilePath,
   matchRuleFiles,
+  matchBlueprintFiles,
   resolveConfigForStep,
   validateAndMergeParams,
+  isJsonSchemaParam,
+  validateParamFormats,
   generateTaskId,
   resolveWorkflowPlan,
   buildEnvMap,
   buildWorktreeEnvMap,
   lookup,
-  checkWhen,
+  checkConditions,
   resolveFiles,
   buildRuntimeContext,
   buildEnrichedConfig,
   deriveArtifactName,
   resolveShortName,
   deduplicateByNameAs,
+  collectAndResolveSchemas,
+  resolveSchemaRef,
+  resolveParamsRef,
+  resolveStageTaskParams,
+  matchDomain,
   type ResolvedFile,
+  type ResolvedTask,
 } from '../../workflow-resolve.js';
+import type { StageDefinition } from '../../workflow-types.js';
 import { acquireLock, releaseLock, withLock } from '../../workflow-lock.js';
 import type { DesignbookConfig } from '../../config.js';
 
@@ -92,6 +103,20 @@ function writeSkillTaskFileInSubdir(
   return path;
 }
 
+function writeSkillBlueprintFile(
+  agentsDir: string,
+  skillName: string,
+  blueprintName: string,
+  frontmatter: string,
+  body = '',
+): string {
+  const dir = resolve(agentsDir, 'skills', skillName, 'blueprints');
+  mkdirSync(dir, { recursive: true });
+  const path = resolve(dir, `${blueprintName}.md`);
+  writeFileSync(path, `---\n${frontmatter}\n---\n${body}`);
+  return path;
+}
+
 function writeWorkflowFile(dir: string, name: string, frontmatter: string): string {
   const path = resolve(dir, `${name}.md`);
   writeFileSync(path, `---\n${frontmatter}\n---\nLoad skill designbook-workflow.`);
@@ -130,7 +155,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-sections',
       'create-section',
-      'when:\n  steps: [designbook-sections:create-section]\nparams:\n  section_id: ~',
+      'trigger:\n  steps: [designbook-sections:create-section]\nparams:\n  section_id: { type: string }',
     );
 
     const result = resolveTaskFiles('designbook-sections:create-section', baseConfig, agentsDir);
@@ -143,7 +168,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-tokens',
       'create-tokens',
-      'when:\n  steps: [create-tokens]\nparams:\n  colors: {}',
+      'trigger:\n  steps: [create-tokens]\nparams:\n  colors: { type: object }',
     );
 
     const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
@@ -157,14 +182,14 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'generic-comp',
       'create-component',
-      'when:\n  steps: [create-component]\nparams:\n  component: ~',
+      'trigger:\n  steps: [create-component]\nparams:\n  component: { type: string }',
     );
     // Specific match (when frameworks.component: sdc + steps)
     const specificPath = writeSkillTaskFile(
       agentsDir,
       'sdc-comp',
       'create-component',
-      'when:\n  steps: [create-component]\n  frameworks.component: sdc\nparams:\n  component: ~',
+      'trigger:\n  steps: [create-component]\nfilter:\n  frameworks.component: sdc\nparams:\n  component: { type: string }',
     );
 
     const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
@@ -188,7 +213,7 @@ describe('resolveTaskFiles', () => {
       'designbook-sdc',
       'components',
       'create-component',
-      'when:\n  steps: [create-component]\nparams:\n  component: ~',
+      'trigger:\n  steps: [create-component]\nparams:\n  component: { type: string }',
     );
 
     const result = resolveTaskFiles('create-component', baseConfig, agentsDir);
@@ -201,7 +226,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-tokens',
       'create-tokens',
-      'when:\n  steps: [create-tokens]\nparams:\n  colors: {}',
+      'trigger:\n  steps: [create-tokens]\nparams:\n  colors: { type: object }',
     );
 
     const result = resolveTaskFiles('create-tokens', baseConfig, agentsDir);
@@ -215,7 +240,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook-devtools',
       'inspect-storybook',
-      'when:\n  steps: [inspect]',
+      'trigger:\n  steps: [inspect]',
     );
 
     const result = resolveTaskFiles('inspect', baseConfig, agentsDir);
@@ -237,8 +262,8 @@ describe('resolveTaskFiles', () => {
   // 3.3: multiple tasks from different skills match one step via when.steps
   it('returns tasks from multiple skills matching the same step via when.steps', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const path1 = writeSkillTaskFile(agentsDir, 'skill-a', 'do-thing', 'when:\n  steps: [shared-step]');
-    const path2 = writeSkillTaskFile(agentsDir, 'skill-b', 'do-thing-alt', 'when:\n  steps: [shared-step]');
+    const path1 = writeSkillTaskFile(agentsDir, 'skill-a', 'do-thing', 'trigger:\n  steps: [shared-step]');
+    const path2 = writeSkillTaskFile(agentsDir, 'skill-b', 'do-thing-alt', 'trigger:\n  steps: [shared-step]');
 
     const result = resolveTaskFiles('shared-step', baseConfig, agentsDir);
     expect(result).toHaveLength(2);
@@ -265,7 +290,7 @@ describe('resolveTaskFiles', () => {
       agentsDir,
       'designbook',
       'intake--design-shell',
-      'when:\n  steps: [design-shell:intake]',
+      'trigger:\n  steps: [design-shell:intake]',
     );
 
     const result = resolveTaskFiles('design-shell:intake', baseConfig, agentsDir);
@@ -273,67 +298,160 @@ describe('resolveTaskFiles', () => {
   });
 });
 
-// 5.2: File path expansion
-describe('expandFilePath', () => {
-  const envMap = { DESIGNBOOK_DATA: '/test/dist', DESIGNBOOK_DIRS_COMPONENTS: '/test/theme/components' };
+// 5.2: File path expansion — covered by template/__tests__/interpolate.test.ts
 
-  it('expands {{ param }} placeholders', () => {
-    const result = expandFilePath(
-      '$DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml',
-      { component: 'button' },
-      envMap,
-    );
-    expect(result).toBe('/test/dist/components/button/button.yml');
+// 5.4: Params validation
+describe('isJsonSchemaParam', () => {
+  it('accepts object with type property', () => {
+    expect(isJsonSchemaParam({ type: 'string' })).toBe(true);
   });
 
-  it('expands ${VAR} env vars', () => {
-    const result = expandFilePath('${DESIGNBOOK_DIRS_COMPONENTS}/test.yml', {}, envMap);
-    expect(result).toBe('/test/theme/components/test.yml');
+  it('accepts complex object with type and properties', () => {
+    expect(isJsonSchemaParam({ type: 'object', properties: { name: { type: 'string' } } })).toBe(true);
   });
 
-  it('expands $VAR env vars (without braces)', () => {
-    const result = expandFilePath('$DESIGNBOOK_DATA/data.yml', {}, envMap);
-    expect(result).toBe('/test/dist/data.yml');
+  it('accepts object with type and default', () => {
+    expect(isJsonSchemaParam({ type: 'array', default: [] })).toBe(true);
   });
 
-  it('throws on unknown env var', () => {
-    expect(() => expandFilePath('$UNKNOWN_VAR/test', {}, envMap)).toThrow(/Unknown environment variable/);
+  it('rejects null', () => {
+    expect(isJsonSchemaParam(null)).toBe(false);
   });
 
-  it('throws on unknown param', () => {
-    expect(() => expandFilePath('{{ missing }}', {}, envMap)).toThrow(/Unknown param/);
+  it('rejects bare array', () => {
+    expect(isJsonSchemaParam([])).toBe(false);
+  });
+
+  it('rejects bare object without type', () => {
+    expect(isJsonSchemaParam({})).toBe(false);
+  });
+
+  it('rejects string scalar', () => {
+    expect(isJsonSchemaParam('hello')).toBe(false);
+  });
+
+  it('rejects number scalar', () => {
+    expect(isJsonSchemaParam(42)).toBe(false);
+  });
+
+  it('rejects boolean scalar', () => {
+    expect(isJsonSchemaParam(true)).toBe(false);
   });
 });
 
-// 5.4: Params validation
+describe('validateParamFormats', () => {
+  it('accepts params with valid JSON Schema properties', () => {
+    expect(() =>
+      validateParamFormats(
+        { type: 'object', properties: { a: { type: 'string' }, b: { type: 'array', default: [] } } },
+        'test.md',
+      ),
+    ).not.toThrow();
+  });
+
+  it('throws on non-JSON-Schema property', () => {
+    expect(() => validateParamFormats({ type: 'object', properties: { bad: null } }, 'test.md')).toThrow(
+      /Invalid param "bad"/,
+    );
+  });
+
+  it('accepts params with no properties', () => {
+    expect(() => validateParamFormats({ type: 'object' }, 'test.md')).not.toThrow();
+  });
+
+  it('rejects flat map params without type: object and properties:', () => {
+    expect(() =>
+      validateParamFormats(
+        { vision: { path: '$DATA/vision.yml', type: 'object' } } as Record<string, unknown>,
+        'test.md',
+      ),
+    ).toThrow(/must use wrapper format/);
+  });
+});
+
 describe('validateAndMergeParams', () => {
-  it('passes with all required params provided', () => {
-    const result = validateAndMergeParams({ component: 'button' }, { component: null, slots: [] }, 'create-component');
-    expect(result).toEqual({ component: 'button', slots: [] });
+  it('merges item params with schema defaults', () => {
+    const schema = {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+        color: { type: 'string', default: 'blue' },
+      },
+    };
+    const result = validateAndMergeParams({ name: 'foo' }, schema, 'test');
+    expect(result).toEqual({ name: 'foo', color: 'blue' });
   });
 
-  it('throws on missing required param with expected params list', () => {
-    expect(() => validateAndMergeParams({}, { component: null, slots: [] }, 'create-component')).toThrow(
-      /Missing required param 'component' for step 'create-component'. Expected params: component \(required\), slots \(optional\)/,
-    );
+  it('throws on missing required param', () => {
+    const schema = {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+      },
+    };
+    expect(() => validateAndMergeParams({}, schema, 'test')).toThrow(/Missing required param 'name'/);
   });
 
-  it('uses default for optional params', () => {
-    const result = validateAndMergeParams(
-      { component: 'button' },
-      { component: null, slots: ['default'], count: 0 },
-      'create-component',
-    );
-    expect(result).toEqual({ component: 'button', slots: ['default'], count: 0 });
+  it('skips optional params without default when not provided', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+      },
+    };
+    const result = validateAndMergeParams({}, schema, 'test');
+    expect(result).toEqual({});
   });
 
-  it('item params override defaults', () => {
-    const result = validateAndMergeParams(
-      { component: 'card', slots: ['header'] },
-      { component: null, slots: [] },
-      'create-component',
-    );
-    expect(result).toEqual({ component: 'card', slots: ['header'] });
+  it('item params override schema defaults', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        color: { type: 'string', default: 'blue' },
+      },
+    };
+    const result = validateAndMergeParams({ color: 'red' }, schema, 'test');
+    expect(result).toEqual({ color: 'red' });
+  });
+
+  it('skips file-input params (with path:) during validation', () => {
+    const schema = {
+      type: 'object',
+      required: ['name', 'vision'],
+      properties: {
+        name: { type: 'string' },
+        vision: { type: 'object', path: '$DESIGNBOOK_DATA/vision.yml' },
+      },
+    };
+    // Only provide 'name' — 'vision' has path: so it should be skipped
+    const result = validateAndMergeParams({ name: 'foo' }, schema, 'test');
+    expect(result).toEqual({ name: 'foo' });
+  });
+
+  it('skips file-input params with path: and workflow: during validation', () => {
+    const schema = {
+      type: 'object',
+      required: ['design_tokens'],
+      properties: {
+        design_tokens: { type: 'object', path: '$DESIGNBOOK_DATA/design-tokens.yml', workflow: 'tokens' },
+      },
+    };
+    const result = validateAndMergeParams({}, schema, 'test');
+    expect(result).toEqual({});
+  });
+
+  it('still validates CLI params without path:', () => {
+    const schema = {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: { type: 'string' },
+        vision: { type: 'object', path: '$DESIGNBOOK_DATA/vision.yml' },
+      },
+    };
+    expect(() => validateAndMergeParams({}, schema, 'test')).toThrow(/Missing required param 'name'/);
   });
 });
 
@@ -392,7 +510,7 @@ describe('matchRuleFiles', () => {
       agentsDir,
       'designbook-scenes',
       'scene-rules',
-      'when:\n  stages: [create-scene]',
+      'trigger:\n  stages: [create-scene]',
     );
 
     const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
@@ -401,7 +519,7 @@ describe('matchRuleFiles', () => {
 
   it('excludes rule file for non-matching stage', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-scenes', 'scene-rules', 'when:\n  stages: [create-scene]');
+    writeSkillRuleFile(agentsDir, 'designbook-scenes', 'scene-rules', 'trigger:\n  stages: [create-scene]');
 
     const result = matchRuleFiles('create-component', baseConfig, agentsDir);
     expect(result).toEqual([]);
@@ -413,7 +531,7 @@ describe('matchRuleFiles', () => {
       agentsDir,
       'designbook-css',
       'tailwind-rules',
-      'when:\n  frameworks.css: tailwind\n  stages: [create-tokens]',
+      'trigger:\n  stages: [create-tokens]\nfilter:\n  frameworks.css: tailwind',
     );
 
     const result = matchRuleFiles('create-tokens', baseConfig, agentsDir);
@@ -426,7 +544,7 @@ describe('matchRuleFiles', () => {
       agentsDir,
       'designbook-css',
       'daisyui-rules',
-      'when:\n  frameworks.css: daisyui\n  stages: [create-tokens]',
+      'trigger:\n  stages: [create-tokens]\nfilter:\n  frameworks.css: daisyui',
     );
 
     // Config has tailwind, not daisyui
@@ -436,7 +554,7 @@ describe('matchRuleFiles', () => {
 
   it('excludes rule file with empty when', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', 'when: {}');
+    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', '');
 
     const result = matchRuleFiles('any-stage', baseConfig, agentsDir);
     expect(result).toEqual([]);
@@ -450,7 +568,7 @@ describe('matchRuleFiles', () => {
       'designbook-drupal',
       'scenes',
       'canvas-rule',
-      'when:\n  stages: [create-scene]',
+      'trigger:\n  stages: [create-scene]',
     );
 
     const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
@@ -460,16 +578,130 @@ describe('matchRuleFiles', () => {
   it('flat structure still discovered after glob change', () => {
     // skills/<skill>/rules/rule.md continues to work
     const agentsDir = resolve(tmpDir, '.agents');
-    const rulePath = writeSkillRuleFile(agentsDir, 'designbook-scenes', 'flat-rule', 'when:\n  stages: [create-scene]');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'flat-rule',
+      'trigger:\n  stages: [create-scene]',
+    );
 
     const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
     expect(result).toContain(rulePath);
   });
 });
 
+// Task 3: matchRuleFiles with domain
+describe('matchRuleFiles with domain', () => {
+  it('matches domain rule when effectiveDomains provided', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-domain-rule',
+      'trigger:\n  domain: components',
+    );
+
+    const result = matchRuleFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toContain(rulePath);
+  });
+
+  it('does NOT match domain rule when wrong effectiveDomains', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'scene-domain-rule', 'trigger:\n  domain: scenes');
+
+    const result = matchRuleFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toEqual([]);
+  });
+
+  it('domain rule does NOT match without effectiveDomains (strict trigger)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-domain-rule',
+      'trigger:\n  domain: components',
+    );
+
+    // No effectiveDomains → domain trigger cannot match → rule excluded (strict semantics)
+    const result = matchRuleFiles('create-component', baseConfig, agentsDir);
+    expect(result).not.toContain(rulePath);
+  });
+
+  it('legacy when.steps rule still works when no effectiveDomains', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'scene-legacy-rule',
+      'trigger:\n  stages: [create-scene]',
+    );
+
+    const result = matchRuleFiles('create-scene', baseConfig, agentsDir);
+    expect(result).toContain(rulePath);
+  });
+
+  it('legacy when.steps rule still works alongside domain rules', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const legacyPath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'legacy-rule',
+      'trigger:\n  stages: [create-component]',
+    );
+    const domainPath = writeSkillRuleFile(agentsDir, 'designbook-sdc', 'domain-rule', 'trigger:\n  domain: components');
+
+    const result = matchRuleFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toContain(legacyPath);
+    expect(result).toContain(domainPath);
+  });
+});
+
+// Task 3: matchBlueprintFiles with domain
+describe('matchBlueprintFiles with domain', () => {
+  it('matches domain blueprint when effectiveDomains provided', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const blueprintPath = writeSkillBlueprintFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-bp',
+      'type: component\nname: section\ntrigger:\n  domain: components',
+    );
+
+    const result = matchBlueprintFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toContain(blueprintPath);
+  });
+
+  it('domain blueprint does NOT match without effectiveDomains (strict trigger)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const blueprintPath = writeSkillBlueprintFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-bp',
+      'type: component\nname: section\ntrigger:\n  domain: components',
+    );
+
+    // No effectiveDomains → domain trigger cannot match → blueprint excluded (strict semantics)
+    const result = matchBlueprintFiles('create-component', baseConfig, agentsDir);
+    expect(result).not.toContain(blueprintPath);
+  });
+
+  it('does NOT match domain blueprint when wrong effectiveDomains', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillBlueprintFile(
+      agentsDir,
+      'designbook-sdc',
+      'scene-bp',
+      'type: scene\nname: hero\ntrigger:\n  domain: scenes',
+    );
+
+    const result = matchBlueprintFiles('create-component', baseConfig, agentsDir, undefined, ['components']);
+    expect(result).toEqual([]);
+  });
+});
+
 // 5.6: End-to-end resolveWorkflowPlan
 describe('resolveWorkflowPlan', () => {
-  it('resolves a complete plan from workflow file and items', () => {
+  it('resolves a complete plan from workflow file and items', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     const workflowsDir = resolve(tmpDir, 'workflows');
     mkdirSync(workflowsDir, { recursive: true });
@@ -479,13 +711,13 @@ describe('resolveWorkflowPlan', () => {
       agentsDir,
       'designbook-components',
       'create-component',
-      'params:\n  component: ~\n  slots: []\nfiles:\n  - file: $DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml\n    key: component\n    validators: [component]',
+      'params:\n  component: { type: string }\n  slots: { type: array, default: [] }\nfiles:\n  - file: $DESIGNBOOK_DATA/components/{{ component }}/{{ component }}.yml\n    key: component\n    validators: [component]',
     );
     writeSkillTaskFile(
       agentsDir,
       'designbook-scenes',
       'create-scene',
-      'params:\n  section_id: ~\nfiles:\n  - file: $DESIGNBOOK_DATA/scenes/{{ section_id }}.yml\n    key: scene\n    validators: [scene]',
+      'params:\n  section_id: { type: string }\nfiles:\n  - file: $DESIGNBOOK_DATA/scenes/{{ section_id }}.yml\n    key: scene\n    validators: [scene]',
     );
 
     // Create workflow file
@@ -495,7 +727,7 @@ describe('resolveWorkflowPlan', () => {
       'title: Test\nstages:\n  intake:\n    steps: [intake]\n  component:\n    steps: [create-component]\n  scene:\n    steps: [create-scene]',
     );
 
-    const plan = resolveWorkflowPlan(
+    const plan = await resolveWorkflowPlan(
       wfPath,
       { section_id: 'dashboard' },
       [
@@ -535,7 +767,7 @@ describe('resolveWorkflowPlan', () => {
     expect(plan.params).toEqual({ section_id: 'dashboard' });
   });
 
-  it('throws on item with step not in workflow', () => {
+  it('throws on item with step not in workflow', async () => {
     const agentsDir = resolve(tmpDir, '.agents');
     const workflowsDir = resolve(tmpDir, 'workflows');
     mkdirSync(workflowsDir, { recursive: true });
@@ -546,9 +778,9 @@ describe('resolveWorkflowPlan', () => {
       'workflow:\n  title: Test\n  stages: [create-component]',
     );
 
-    expect(() => resolveWorkflowPlan(wfPath, {}, [{ step: 'nonexistent' }], baseConfig, {}, agentsDir)).toThrow(
-      /not found in workflow steps/,
-    );
+    await expect(async () =>
+      resolveWorkflowPlan(wfPath, {}, [{ step: 'nonexistent' }], baseConfig, {}, agentsDir),
+    ).rejects.toThrow(/not found in workflow steps/);
   });
 });
 
@@ -642,7 +874,7 @@ describe('buildWorktreeEnvMap', () => {
     expect(remapped.DESIGNBOOK_TECHNOLOGY).toBe('drupal');
   });
 
-  it('files: paths using remapped env differ from reads: paths using original env', () => {
+  it('files: paths using remapped env differ from file-input param paths using original env', async () => {
     const rootDir = '/home/user/project';
     const envMap = {
       DESIGNBOOK_WORKSPACE: rootDir,
@@ -653,12 +885,12 @@ describe('buildWorktreeEnvMap', () => {
 
     // files: path (uses remapped env) → WORKTREE
     const fileTemplate = '$DESIGNBOOK_HOME/data-model.yml';
-    const filesPath = expandFilePath(fileTemplate, {}, remappedEnvMap);
+    const filesPath = await interpolate(fileTemplate, {}, { envMap: remappedEnvMap });
     expect(filesPath).toBe('/tmp/wt-123/designbook/data-model.yml');
 
-    // reads: path (uses original env) → real path
-    const readsPath = expandFilePath(fileTemplate, {}, envMap);
-    expect(readsPath).toBe('/home/user/project/designbook/data-model.yml');
+    // file-input param path (uses original env) → real path
+    const paramPath = await interpolate(fileTemplate, {}, { envMap });
+    expect(paramPath).toBe('/home/user/project/designbook/data-model.yml');
   });
 });
 
@@ -688,44 +920,120 @@ describe('lookup', () => {
   });
 });
 
-// checkWhen: dual-source (context + config)
-describe('checkWhen', () => {
-  it('matches scalar from config', () => {
-    expect(checkWhen({ backend: 'drupal' }, {}, { backend: 'drupal' })).toBe(1);
+// checkConditions: dual-source (context + config), OR-triggers + AND-filters
+describe('checkConditions', () => {
+  it('matches filter scalar from config', () => {
+    expect(checkConditions(undefined, { backend: 'drupal' }, {}, { backend: 'drupal' })).toBe(1);
   });
 
-  it('matches scalar from context (takes priority)', () => {
-    expect(checkWhen({ template: 'canvas' }, { template: 'canvas' }, {})).toBe(1);
+  it('matches trigger scalar from context (takes priority)', () => {
+    expect(checkConditions({ template: 'canvas' }, undefined, { template: 'canvas' }, {})).toBe(1);
   });
 
-  it('matches array when value — stage in list', () => {
-    expect(checkWhen({ stages: ['create-scene', 'create-tokens'] }, { stages: 'create-scene' }, {})).toBe(1);
+  it('matches array trigger value — stage in list', () => {
+    expect(
+      checkConditions({ stages: ['create-scene', 'create-tokens'] }, undefined, { stages: 'create-scene' }, {}),
+    ).toBe(1);
   });
 
-  it('matches array context value — extension inclusion', () => {
-    expect(checkWhen({ extensions: 'canvas' }, {}, { extensions: ['canvas', 'drupal'] })).toBe(1);
+  it('matches array context value — extension inclusion via filter', () => {
+    expect(checkConditions(undefined, { extensions: 'canvas' }, {}, { extensions: ['canvas', 'drupal'] })).toBe(1);
   });
 
-  it('returns false on mismatch', () => {
-    expect(checkWhen({ backend: 'drupal' }, {}, { backend: 'html' })).toBe(false);
+  it('returns false on filter mismatch', () => {
+    expect(checkConditions(undefined, { backend: 'drupal' }, {}, { backend: 'html' })).toBe(false);
   });
 
-  it('returns specificity count', () => {
-    const result = checkWhen(
-      { stages: ['create-component'], 'frameworks.css': 'tailwind', backend: 'drupal' },
+  it('returns specificity count (trigger keys + filter keys)', () => {
+    const result = checkConditions(
+      { stages: ['create-component'] },
+      { 'frameworks.css': 'tailwind', backend: 'drupal' },
       { stages: 'create-component' },
       { 'frameworks.css': 'tailwind', backend: 'drupal' },
     );
     expect(result).toBe(3);
   });
 
-  it('returns false if any condition fails', () => {
-    const result = checkWhen(
-      { stages: ['create-component'], 'frameworks.css': 'daisyui' },
+  it('returns false if any filter fails (AND)', () => {
+    const result = checkConditions(
+      { stages: ['create-component'] },
+      { 'frameworks.css': 'daisyui' },
       { stages: 'create-component' },
       { 'frameworks.css': 'tailwind' },
     );
     expect(result).toBe(false);
+  });
+
+  it('OR-matches triggers — domain matches even if steps does not', () => {
+    const result = checkConditions(
+      { domain: 'components', steps: ['create-scene'] },
+      undefined,
+      { domain: ['components'], steps: 'create-tokens' },
+      {},
+    );
+    expect(result).toBe(2);
+  });
+
+  it('OR-matches triggers — steps matches even if domain does not', () => {
+    const result = checkConditions(
+      { domain: 'scenes', steps: ['create-tokens'] },
+      undefined,
+      { domain: ['components'], steps: 'create-tokens' },
+      {},
+    );
+    expect(result).toBe(2);
+  });
+
+  it('returns false when all triggers mismatch', () => {
+    const result = checkConditions(
+      { domain: 'scenes', steps: ['create-scene'] },
+      undefined,
+      { domain: ['components'], steps: 'create-tokens' },
+      {},
+    );
+    expect(result).toBe(false);
+  });
+});
+
+describe('matchDomain', () => {
+  it('exact match', () => {
+    expect(matchDomain('components', ['components'])).toBe(true);
+  });
+
+  it('no match — different domain', () => {
+    expect(matchDomain('scenes', ['components'])).toBe(false);
+  });
+
+  it('broad need loads sub-domain rule', () => {
+    expect(matchDomain('components.layout', ['components'])).toBe(true);
+  });
+
+  it('specific need loads parent rule', () => {
+    expect(matchDomain('components', ['components.layout'])).toBe(true);
+  });
+
+  it('specific need does NOT load sibling', () => {
+    expect(matchDomain('components.discovery', ['components.layout'])).toBe(false);
+  });
+
+  it('matches against any domain in the set', () => {
+    expect(matchDomain('scenes', ['components', 'scenes'])).toBe(true);
+  });
+
+  it('does not partial-match without dot boundary', () => {
+    expect(matchDomain('components-extra', ['components'])).toBe(false);
+  });
+
+  it('deep subcontext matches parent', () => {
+    expect(matchDomain('design', ['design.intake'])).toBe(true);
+  });
+
+  it('deep subcontext matches exact', () => {
+    expect(matchDomain('design.intake', ['design.intake'])).toBe(true);
+  });
+
+  it('empty effective domains matches nothing', () => {
+    expect(matchDomain('components', [])).toBe(false);
   });
 });
 
@@ -733,8 +1041,8 @@ describe('checkWhen', () => {
 describe('resolveFiles', () => {
   it('finds files matching glob and filters by when', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'when:\n  frameworks.css: tailwind');
-    writeSkillRuleFile(agentsDir, 'designbook-css', 'daisyui-rule', 'when:\n  frameworks.css: daisyui');
+    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'filter:\n  frameworks.css: tailwind');
+    writeSkillRuleFile(agentsDir, 'designbook-css', 'daisyui-rule', 'filter:\n  frameworks.css: daisyui');
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
@@ -747,7 +1055,7 @@ describe('resolveFiles', () => {
 
   it('skips files without when or with empty when', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', 'when: {}');
+    writeSkillRuleFile(agentsDir, 'designbook-workflow', 'global-rule', '');
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
@@ -762,7 +1070,7 @@ describe('resolveFiles', () => {
       agentsDir,
       'designbook-css',
       'tailwind-tokens',
-      'when:\n  stages: [create-tokens]\n  frameworks.css: tailwind',
+      'trigger:\n  stages: [create-tokens]\nfilter:\n  frameworks.css: tailwind',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -771,6 +1079,177 @@ describe('resolveFiles', () => {
 
     expect(matches).toHaveLength(1);
     expect(matches[0]!.specificity).toBe(2);
+  });
+});
+
+// Task 2: Domain-aware resolveFiles()
+describe('resolveFiles with domain', () => {
+  it('matches rule by domain when context.domain provided', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'component-rules',
+      'trigger:\n  domain: components',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+
+  it('domain rule NOT matched when context.domain empty (strict trigger)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'trigger:\n  domain: components');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    // Strict trigger semantics: trigger.domain needs an explicit match against context.domain.
+    // Without a domain in context, the only trigger key cannot match → rule excluded.
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
+
+    expect(matches).toHaveLength(0);
+  });
+
+  it('domain rule excluded when context.domain does not overlap', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'component-rules', 'trigger:\n  domain: components');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    context['domain'] = ['tokens'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+
+    expect(matches).toHaveLength(0);
+  });
+
+  it('domain rule excluded when config condition fails', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // Rule requires daisyui but config has tailwind
+    writeSkillRuleFile(
+      agentsDir,
+      'designbook-css',
+      'daisyui-component-rules',
+      'trigger:\n  domain: components\nfilter:\n  frameworks.css: daisyui',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
+
+    expect(matches).toHaveLength(0);
+  });
+
+  it('domain rule included when config condition passes', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-css',
+      'tailwind-component-rules',
+      'trigger:\n  domain: components\nfilter:\n  frameworks.css: tailwind',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+
+  it('broad need loads sub-domain rule via prefix matching', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // Rule domain is "components.layout" (child of "components")
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'layout-component-rules',
+      'trigger:\n  domain: components.layout',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    // context.domain has "components" (parent) → should match "components.layout" (child)
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+
+  it('domain rule NOT matched when domain does not overlap', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    writeSkillRuleFile(agentsDir, 'designbook-sdc', 'scene-rules', 'trigger:\n  domain: scenes');
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
+
+    expect(matches).toHaveLength(0);
+  });
+
+  it('legacy when.steps still works when no domain in frontmatter', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-scenes',
+      'scene-rules',
+      'trigger:\n  stages: [create-scene]',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext('create-scene');
+    // context.domain set — legacy file has no when.domain so it still matches via when.stages
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
+  });
+
+  it('domain match OR steps match is sufficient (both present in when)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    // File has BOTH when.domain and when.steps — domain matches, steps don't
+    writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'mixed-rules',
+      'trigger:\n  domain: components\n  steps: [create-scene]',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    // context has create-component step (NOT create-scene), but domain matches
+    const context = buildRuntimeContext('create-component');
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
+
+    // trigger keys are OR-connected: domain matches → rule matches even though steps doesn't.
+    expect(matches).toHaveLength(1);
+  });
+
+  it('domain as array in trigger: matches when any rule domain matches context domain', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const rulePath = writeSkillRuleFile(
+      agentsDir,
+      'designbook-sdc',
+      'multi-domain-rules',
+      'trigger:\n  domain:\n    - scenes\n    - components',
+    );
+
+    const enrichedConfig = buildEnrichedConfig(baseConfig);
+    const context = buildRuntimeContext();
+    context['domain'] = ['components'];
+    const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0]!.path).toBe(rulePath);
   });
 });
 
@@ -961,7 +1440,7 @@ describe('resolveShortName', () => {
 describe('resolveFiles with name', () => {
   it('includes derived name in resolved files', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'when:\n  frameworks.css: tailwind');
+    writeSkillRuleFile(agentsDir, 'designbook-css', 'tailwind-rule', 'filter:\n  frameworks.css: tailwind');
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext();
@@ -973,7 +1452,13 @@ describe('resolveFiles with name', () => {
 
   it('includes derived name for nested skill files', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    writeSkillRuleFileInSubdir(agentsDir, 'designbook', 'design', 'screenshot-rule', 'when:\n  stages: [screenshot]');
+    writeSkillRuleFileInSubdir(
+      agentsDir,
+      'designbook',
+      'design',
+      'screenshot-rule',
+      'trigger:\n  stages: [screenshot]',
+    );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
     const context = buildRuntimeContext('screenshot');
@@ -989,7 +1474,7 @@ describe('resolveFiles with name', () => {
       agentsDir,
       'designbook-css',
       'tailwind-rule',
-      'name: designbook-css:tokens:tailwind-rule\nwhen:\n  frameworks.css: tailwind',
+      'name: designbook-css:tokens:tailwind-rule\nfilter:\n  frameworks.css: tailwind',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1019,7 +1504,7 @@ describe('resolveFiles with name', () => {
       'designbook',
       'design',
       'screenshot-storybook',
-      'when:\n  stages: [screenshot]\npriority: 10',
+      'trigger:\n  stages: [screenshot]\npriority: 10',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1041,20 +1526,20 @@ describe('when conditions with named artifacts', () => {
       'designbook',
       'design',
       'inspect-storybook',
-      'name: designbook:design:inspect-storybook\nwhen:\n  stages: [inspect]\npriority: 10',
+      'name: designbook:design:inspect-storybook\ntrigger:\n  stages: [inspect]\npriority: 10',
     );
     writeSkillTaskFileInSubdir(
       agentsDir,
       'designbook',
       'design',
       'inspect-reference',
-      'name: designbook:design:inspect-reference\nwhen:\n  stages: [inspect]\npriority: 20',
+      'name: designbook:design:inspect-reference\ntrigger:\n  stages: [inspect]\npriority: 20',
     );
     writeSkillTaskFile(
       agentsDir,
       'designbook-stitch',
       'inspect-stitch',
-      'name: designbook-stitch:inspect-stitch\nwhen:\n  stages: [inspect]\n  backend: drupal\npriority: 30',
+      'name: designbook-stitch:inspect-stitch\ntrigger:\n  stages: [inspect]\nfilter:\n  backend: drupal\npriority: 30',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1077,7 +1562,7 @@ describe('when conditions with named artifacts', () => {
       agentsDir,
       'designbook-stitch',
       'inspect-stitch',
-      'name: designbook-stitch:inspect-stitch\nwhen:\n  stages: [inspect]\n  backend: html\npriority: 30',
+      'name: designbook-stitch:inspect-stitch\ntrigger:\n  stages: [inspect]\nfilter:\n  backend: html\npriority: 30',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1095,14 +1580,14 @@ describe('when conditions with named artifacts', () => {
       'designbook',
       'design',
       'ensure-storybook',
-      'name: designbook:design:ensure-storybook\nwhen:\n  stages: [screenshot]\npriority: 5',
+      'name: designbook:design:ensure-storybook\ntrigger:\n  stages: [screenshot]\npriority: 5',
     );
     writeSkillTaskFileInSubdir(
       agentsDir,
       'designbook',
       'design',
       'screenshot-storybook',
-      'name: designbook:design:screenshot-storybook\nwhen:\n  stages: [screenshot]\npriority: 10',
+      'name: designbook:design:screenshot-storybook\ntrigger:\n  stages: [screenshot]\npriority: 10',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1127,13 +1612,13 @@ describe('when conditions with named artifacts', () => {
       'designbook',
       'design',
       'playwright-session',
-      'name: designbook:design:playwright-session\nwhen:\n  stages: [inspect]',
+      'name: designbook:design:playwright-session\ntrigger:\n  stages: [inspect]',
     );
     writeSkillRuleFile(
       agentsDir,
       'designbook-css',
       'inspect-tokens',
-      'name: designbook-css:inspect-tokens\nwhen:\n  stages: [inspect]\n  frameworks.css: tailwind',
+      'name: designbook-css:inspect-tokens\ntrigger:\n  stages: [inspect]\nfilter:\n  frameworks.css: tailwind',
     );
 
     const enrichedConfig = buildEnrichedConfig(baseConfig);
@@ -1332,5 +1817,725 @@ describe('deduplicateByNameAs', () => {
     const result = deduplicateByNameAs(files, agentsDir);
     expect(result[0]!.name).toBe('designbook:basic'); // priority 0 comes first
     expect(result[1]!.name).toBe('designbook:design:advanced'); // priority 10
+  });
+});
+
+// ── $ref schema resolution ────────────────────────────────────────────────
+
+describe('resolveSchemaRef', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('resolves a relative $ref to a schema type', () => {
+    // Create schemas.yml next to the task file's parent
+    const tasksDir = resolve(tmpDir, 'skills', 'designbook', 'design', 'tasks');
+    const schemasDir = resolve(tmpDir, 'skills', 'designbook', 'design');
+    mkdirSync(tasksDir, { recursive: true });
+
+    const schemasContent = stringifyYaml({
+      Check: {
+        type: 'object',
+        required: ['storyId', 'breakpoint'],
+        properties: {
+          storyId: { type: 'string' },
+          breakpoint: { type: 'string' },
+        },
+      },
+    });
+    writeFileSync(resolve(schemasDir, 'schemas.yml'), schemasContent);
+
+    const taskFilePath = resolve(tasksDir, 'setup-compare.md');
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    const result = resolveSchemaRef('../schemas.yml#/Check', taskFilePath, resolve(tmpDir, 'skills'));
+    expect(result.typeName).toBe('Check');
+    expect(result.schema).toEqual({
+      type: 'object',
+      required: ['storyId', 'breakpoint'],
+      properties: {
+        storyId: { type: 'string' },
+        breakpoint: { type: 'string' },
+      },
+    });
+  });
+
+  it('throws on non-existent schema file', () => {
+    const taskFilePath = resolve(tmpDir, 'task.md');
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    expect(() => resolveSchemaRef('../missing.yml#/Foo', taskFilePath, tmpDir)).toThrow('Schema file not found');
+  });
+
+  it('throws on missing type name in schema file', () => {
+    const schemasContent = stringifyYaml({ Check: { type: 'object' } });
+    writeFileSync(resolve(tmpDir, 'schemas.yml'), schemasContent);
+
+    const taskFilePath = resolve(tmpDir, 'tasks', 'task.md');
+    mkdirSync(resolve(tmpDir, 'tasks'), { recursive: true });
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    expect(() => resolveSchemaRef('../schemas.yml#/Missing', taskFilePath, tmpDir)).toThrow("Type 'Missing' not found");
+  });
+});
+
+describe('resolveParamsRef', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function setupSchemaFile(properties: Record<string, unknown>): { taskFilePath: string; skillsRoot: string } {
+    const tasksDir = resolve(tmpDir, 'skills', 'designbook', 'sections', 'tasks');
+    const schemasDir = resolve(tmpDir, 'skills', 'designbook', 'sections');
+    mkdirSync(tasksDir, { recursive: true });
+
+    writeFileSync(
+      resolve(schemasDir, 'schemas.yml'),
+      stringifyYaml({
+        Section: {
+          type: 'object',
+          required: ['id', 'title'],
+          properties,
+        },
+      }),
+    );
+
+    const taskFilePath = resolve(tasksDir, 'create-section.md');
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    return { taskFilePath, skillsRoot: resolve(tmpDir, 'skills') };
+  }
+
+  it('merges $ref schema with explicit properties and required', () => {
+    const props = { id: { type: 'string' }, title: { type: 'string' }, order: { type: 'integer' } };
+    const { taskFilePath, skillsRoot } = setupSchemaFile(props);
+
+    const params = {
+      type: 'object',
+      $ref: '../schemas.yml#/Section',
+      required: ['extra'],
+      properties: {
+        extra: { type: 'string' },
+      },
+    };
+    const resolved = resolveParamsRef(params, taskFilePath, skillsRoot);
+    expect(resolved.properties).toEqual({
+      id: { type: 'string' },
+      title: { type: 'string' },
+      order: { type: 'integer' },
+      extra: { type: 'string' },
+    });
+    // Schema required ['id', 'title'] + explicit required ['extra']
+    expect(resolved.required).toEqual(['id', 'title', 'extra']);
+  });
+
+  it('explicit properties override $ref properties', () => {
+    const props = { id: { type: 'string' }, order: { type: 'integer' } };
+    const { taskFilePath, skillsRoot } = setupSchemaFile(props);
+
+    const params = {
+      type: 'object',
+      $ref: '../schemas.yml#/Section',
+      properties: {
+        order: { type: 'integer', default: 1 },
+      },
+    };
+    const resolved = resolveParamsRef(params, taskFilePath, skillsRoot);
+    expect((resolved.properties as Record<string, unknown>).order).toEqual({ type: 'integer', default: 1 });
+  });
+
+  it('throws if $ref target has no properties', () => {
+    const tasksDir = resolve(tmpDir, 'skills', 'designbook', 'sections', 'tasks');
+    const schemasDir = resolve(tmpDir, 'skills', 'designbook', 'sections');
+    mkdirSync(tasksDir, { recursive: true });
+
+    writeFileSync(resolve(schemasDir, 'schemas.yml'), stringifyYaml({ Section: { type: 'string' } }));
+
+    const taskFilePath = resolve(tasksDir, 'task.md');
+    writeFileSync(taskFilePath, '---\nname: test\n---\n');
+
+    expect(() =>
+      resolveParamsRef({ type: 'object', $ref: '../schemas.yml#/Section' }, taskFilePath, resolve(tmpDir, 'skills')),
+    ).toThrow(/without 'properties'/);
+  });
+});
+
+describe('collectAndResolveSchemas', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('resolves $ref in task result schemas and populates schemas map', () => {
+    const skillsRoot = resolve(tmpDir, 'skills');
+    const designDir = resolve(skillsRoot, 'designbook', 'design');
+    const tasksDir = resolve(designDir, 'tasks');
+    mkdirSync(tasksDir, { recursive: true });
+
+    // Create schemas.yml
+    const schemasContent = stringifyYaml({
+      Check: {
+        type: 'object',
+        required: ['storyId', 'breakpoint'],
+        properties: {
+          storyId: { type: 'string' },
+          breakpoint: { type: 'string' },
+        },
+      },
+      Issue: {
+        type: 'object',
+        required: ['severity', 'description'],
+        properties: {
+          severity: { type: 'string' },
+          description: { type: 'string' },
+        },
+      },
+    });
+    writeFileSync(resolve(designDir, 'schemas.yml'), schemasContent);
+
+    // Create task file with $ref in result (new JSON Schema object format)
+    const taskFilePath = resolve(tasksDir, 'setup-compare.md');
+    writeFileSync(
+      taskFilePath,
+      [
+        '---',
+        'name: test:setup-compare',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    checks:',
+        '      $ref: "../schemas.yml#/Check"',
+        '      type: array',
+        '---',
+        '',
+      ].join('\n'),
+    );
+
+    // Simulate expanded tasks (result without schema, as expandResultDeclarations currently produces)
+    const tasks = [
+      {
+        id: 'setup-compare-abc123',
+        title: 'Setup Compare',
+        type: 'data' as const,
+        step: 'setup-compare',
+        stage: 'setup',
+        params: {},
+        task_file: taskFilePath,
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+        files: [],
+        result: {
+          checks: { schema: { type: 'array' } },
+        },
+      },
+    ];
+
+    const schemas = collectAndResolveSchemas(tasks as unknown as ResolvedTask[], skillsRoot);
+
+    // Schema map should contain the Check type
+    expect(schemas).toHaveProperty('Check');
+    expect(schemas.Check).toEqual({
+      type: 'object',
+      required: ['storyId', 'breakpoint'],
+      properties: {
+        storyId: { type: 'string' },
+        breakpoint: { type: 'string' },
+      },
+    });
+
+    // Task result entry should have its schema populated
+    expect(tasks[0]!.result!.checks!.schema).toEqual(schemas.Check);
+  });
+
+  it('resolves multiple $ref entries across tasks', () => {
+    const skillsRoot = resolve(tmpDir, 'skills');
+    const designDir = resolve(skillsRoot, 'designbook', 'design');
+    const tasksDir = resolve(designDir, 'tasks');
+    mkdirSync(tasksDir, { recursive: true });
+
+    const schemasContent = stringifyYaml({
+      Check: { type: 'object', properties: { storyId: { type: 'string' } } },
+      Issue: { type: 'object', properties: { severity: { type: 'string' } } },
+    });
+    writeFileSync(resolve(designDir, 'schemas.yml'), schemasContent);
+
+    // Task 1: $ref to Check (new JSON Schema object format)
+    const task1Path = resolve(tasksDir, 'task1.md');
+    writeFileSync(
+      task1Path,
+      [
+        '---',
+        'name: test:task1',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    checks:',
+        '      $ref: "../schemas.yml#/Check"',
+        '---',
+        '',
+      ].join('\n'),
+    );
+
+    // Task 2: $ref to Issue (new JSON Schema object format)
+    const task2Path = resolve(tasksDir, 'task2.md');
+    writeFileSync(
+      task2Path,
+      [
+        '---',
+        'name: test:task2',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    issues:',
+        '      $ref: "../schemas.yml#/Issue"',
+        '---',
+        '',
+      ].join('\n'),
+    );
+
+    const baseMeta = { params: {}, rules: [], blueprints: [], config_rules: [], config_instructions: [], files: [] };
+    const tasks = [
+      {
+        ...baseMeta,
+        id: 'task1-abc',
+        title: 'Task 1',
+        type: 'data' as const,
+        step: 'step1',
+        stage: 'stage1',
+        task_file: task1Path,
+        result: { checks: {} },
+      },
+      {
+        ...baseMeta,
+        id: 'task2-abc',
+        title: 'Task 2',
+        type: 'data' as const,
+        step: 'step2',
+        stage: 'stage2',
+        task_file: task2Path,
+        result: { issues: {} },
+      },
+    ];
+
+    const schemas = collectAndResolveSchemas(tasks as unknown as ResolvedTask[], skillsRoot);
+
+    expect(Object.keys(schemas)).toEqual(expect.arrayContaining(['Check', 'Issue']));
+    expect((tasks[0]!.result!.checks as { schema?: object }).schema).toEqual(schemas.Check);
+    expect((tasks[1]!.result!.issues as { schema?: object }).schema).toEqual(schemas.Issue);
+  });
+
+  it('returns empty map when no tasks have $ref', () => {
+    const skillsRoot = resolve(tmpDir, 'skills');
+    const tasksDir = resolve(skillsRoot, 'designbook', 'tasks');
+    mkdirSync(tasksDir, { recursive: true });
+
+    const taskFilePath = resolve(tasksDir, 'plain.md');
+    writeFileSync(
+      taskFilePath,
+      [
+        '---',
+        'name: test:plain',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    data:',
+        '      type: object',
+        '---',
+        '',
+      ].join('\n'),
+    );
+
+    const tasks = [
+      {
+        id: 'plain-abc',
+        title: 'Plain',
+        type: 'data' as const,
+        step: 'step',
+        stage: 'stage',
+        params: {},
+        task_file: taskFilePath,
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+        files: [],
+        result: { data: { schema: { type: 'object' } } },
+      },
+    ];
+
+    const schemas = collectAndResolveSchemas(tasks as unknown as ResolvedTask[], skillsRoot);
+    expect(Object.keys(schemas)).toHaveLength(0);
+  });
+});
+
+describe('$ref end-to-end: collectAndResolveSchemas → workflowPlan → workflowResult', () => {
+  let dist: string;
+  let tmpDir: string;
+
+  beforeEach(() => {
+    dist = makeTmpDir();
+    tmpDir = makeTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(dist, { recursive: true, force: true });
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('validates data result against $ref-resolved schema via workflowResult', async () => {
+    // Setup: skill files with schemas.yml + task with items.$ref (real-world pattern)
+    const skillsRoot = resolve(tmpDir, 'skills');
+    const designDir = resolve(skillsRoot, 'designbook', 'design');
+    const tasksDir = resolve(designDir, 'tasks');
+    mkdirSync(tasksDir, { recursive: true });
+
+    const checkSchema = {
+      type: 'object',
+      required: ['storyId', 'breakpoint'],
+      properties: {
+        storyId: { type: 'string' },
+        breakpoint: { type: 'string' },
+      },
+    };
+    writeFileSync(resolve(designDir, 'schemas.yml'), stringifyYaml({ Check: checkSchema }));
+
+    // Real-world pattern: type: array + items: { $ref: ... } (new JSON Schema object format)
+    const taskFilePath = resolve(tasksDir, 'setup-compare.md');
+    writeFileSync(
+      taskFilePath,
+      [
+        '---',
+        'name: test:setup-compare',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    checks:',
+        '      type: array',
+        '      items:',
+        '        $ref: "../schemas.yml#/Check"',
+        '---',
+        '',
+      ].join('\n'),
+    );
+
+    // Simulate expanded task — expandResultDeclarations produces { schema: { type: 'array', items: { $ref: '...' } } }
+    // but strips $ref from items. After collectAndResolveSchemas, items should be replaced with the resolved schema.
+    const tasks = [
+      {
+        id: 'setup-compare',
+        title: 'Setup Compare',
+        type: 'data' as const,
+        step: 'setup-compare',
+        stage: 'setup',
+        params: {},
+        task_file: taskFilePath,
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+        files: [],
+        result: {
+          checks: {
+            schema: { type: 'array', items: {} },
+          },
+        },
+      },
+    ];
+
+    const schemas = collectAndResolveSchemas(tasks as unknown as ResolvedTask[], skillsRoot);
+
+    // Schema map should contain the Check type
+    expect(schemas).toHaveProperty('Check');
+
+    // The schema's items should now be resolved from $ref
+    // collectAndResolveSchemas resolves nested $ref via resolveRefsInDeclaration
+    // but the actual task.result schema is only updated for top-level $ref (line 186)
+    // For items.$ref, only the schemas map is populated — the task schema items stay as-is
+
+    // Create workflow and plan with resolved schemas + manually fix items schema
+    const { workflowCreate, workflowPlan, workflowResult } = await import('../../workflow.js');
+
+    // Build the full schema with resolved items (as workflow create does for intake at lines 216-224)
+    tasks[0]!.result!.checks!.schema = {
+      type: 'array',
+      items: checkSchema,
+    };
+
+    const name = workflowCreate(dist, 'debo-test', 'Test $ref', []);
+    workflowPlan(
+      dist,
+      name,
+      tasks,
+      { setup: { steps: ['setup-compare'] } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+      schemas,
+    );
+
+    // Valid data — should pass
+    const validData = [
+      { storyId: 'shell', breakpoint: 'sm' },
+      { storyId: 'shell', breakpoint: 'xl' },
+    ];
+    const mockConfig = { data: dist, technology: 'html' as const, extensions: [] };
+    const validResult = await workflowResult(dist, name, 'setup-compare', 'checks', validData, mockConfig);
+    expect(validResult.valid).toBe(true);
+    expect(validResult.errors).toEqual([]);
+
+    // Invalid data — missing required 'breakpoint'
+    const invalidData = [{ storyId: 'shell' }];
+    const invalidResult = await workflowResult(dist, name, 'setup-compare', 'checks', invalidData, mockConfig);
+    expect(invalidResult.valid).toBe(false);
+    expect(invalidResult.errors.length).toBeGreaterThan(0);
+  });
+});
+
+// ── resolveStageTaskParams: lazy task-level resolvers at stage transition ──
+
+describe('resolveStageTaskParams', () => {
+  let tmpDir: string;
+  let agentsDir: string;
+  let dataDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    agentsDir = resolve(tmpDir, '.agents');
+    dataDir = resolve(tmpDir, 'dist');
+    mkdirSync(dataDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true });
+  });
+
+  it('runs task-level resolver with current params and merges resolved value', async () => {
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'validate',
+      [
+        'trigger:',
+        '  steps: [validate]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    reference_folder:',
+        '      type: string',
+        '      resolve: reference_folder',
+        '      from: reference_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['validate'] };
+    const currentParams = { reference_url: 'https://example.com/design' };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const { params: resolved } = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(resolved.reference_url).toBe('https://example.com/design');
+    expect(typeof resolved.reference_folder).toBe('string');
+    expect(resolved.reference_folder as string).toContain('references');
+  });
+
+  it('skips resolver when input is undefined and resolver has no from:', async () => {
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'validate',
+      [
+        'trigger:',
+        '  steps: [validate]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    story_url:',
+        '      type: string',
+        '      resolve: story_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['validate'] };
+    const currentParams = {};
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const { params: resolved } = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(resolved.story_url).toBeUndefined();
+  });
+
+  it('returns params unchanged when no task param has resolve:', async () => {
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'plain',
+      [
+        'trigger:',
+        '  steps: [plain]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    name:',
+        '      type: string',
+        '      default: hello',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      plain: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['plain'] };
+    const currentParams = { foo: 'bar' };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const { params: resolved } = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(resolved).toEqual(currentParams);
+  });
+
+  it('uses updated params (not stale create-time params) when resolving', async () => {
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'validate',
+      [
+        'trigger:',
+        '  steps: [validate]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    reference_folder:',
+        '      type: string',
+        '      resolve: reference_folder',
+        '      from: reference_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['validate'] };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const first = await resolveStageTaskParams(
+      stageLoaded,
+      stageDef,
+      { reference_url: 'https://first.example/' },
+      config,
+    );
+    const second = await resolveStageTaskParams(
+      stageLoaded,
+      stageDef,
+      { reference_url: 'https://second.example/' },
+      config,
+    );
+
+    // reference_folder is a hash of the URL -> different hashes for different URLs
+    expect(first.params.reference_folder).not.toEqual(second.params.reference_folder);
+  });
+
+  it('handles stages with multiple steps', async () => {
+    const taskA = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'step-a',
+      [
+        'trigger:',
+        '  steps: [step-a]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    plain_a:',
+        '      type: string',
+      ].join('\n'),
+    );
+    const taskB = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'step-b',
+      [
+        'trigger:',
+        '  steps: [step-b]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    reference_folder:',
+        '      type: string',
+        '      resolve: reference_folder',
+        '      from: reference_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      'step-a': { task_file: taskA, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+      'step-b': { task_file: taskB, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['step-a', 'step-b'] };
+    const currentParams = { reference_url: 'https://example.com/multi' };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const { params: resolved } = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(typeof resolved.reference_folder).toBe('string');
+    expect(resolved.reference_folder as string).toContain('references');
+  });
+
+  it('surfaces resolver errors in unresolved map when a resolver fails', async () => {
+    // story_url requires Storybook running; data dir has no PID file -> resolver fails.
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'test-skill',
+      'validate',
+      [
+        'trigger:',
+        '  steps: [validate]',
+        'params:',
+        '  type: object',
+        '  properties:',
+        '    story_url:',
+        '      type: string',
+        '      resolve: story_url',
+      ].join('\n'),
+    );
+
+    const stageLoaded: Record<string, import('../../workflow-resolve.js').ResolvedStep> = {
+      validate: { task_file: taskPath, rules: [], blueprints: [], config_rules: [], config_instructions: [] },
+    };
+    const stageDef: StageDefinition = { steps: ['validate'] };
+    const currentParams = { story_url: 'some-nonexistent-story' };
+    const config: DesignbookConfig = { data: dataDir, technology: 'html' };
+
+    const result = await resolveStageTaskParams(stageLoaded, stageDef, currentParams, config);
+
+    expect(result.allResolved).toBe(false);
+    expect(result.unresolved.story_url).toBeDefined();
+    expect(result.unresolved.story_url?.error).toBeDefined();
   });
 });

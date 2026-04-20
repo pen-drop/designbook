@@ -9,7 +9,7 @@ import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { scanAllWorkflows } from './workflow-utils';
-import { DeboStory } from './story-entity';
+import { StoryMeta } from './story-entity';
 
 /** Minimal glob matcher — supports * (no slash) and **-slash (zero or more dirs). */
 function globMatch(pattern: string, filePath: string): boolean {
@@ -139,7 +139,7 @@ export function designbookLoadPlugin(
       const FILE_TYPES: Record<string, string> = {
         task: 'workflows/**/*.yml',
         scene: '**/*.scenes.yml',
-        vision: 'vision.md',
+        vision: 'vision.yml',
         tokens: 'tokens/**/*.yml',
         designTokens: 'design-system/design-tokens.yml',
         dataModel: 'data-model.yml',
@@ -154,7 +154,7 @@ export function designbookLoadPlugin(
 
       server.watcher.add(resolve(designbookDir, 'data-model.yml'));
       server.watcher.add(resolve(designbookDir, 'design-system'));
-      server.watcher.add(resolve(designbookDir, 'vision.md'));
+      server.watcher.add(resolve(designbookDir, 'vision.yml'));
       server.watcher.add(resolve(designbookDir, 'sections'));
       server.watcher.add(resolve(designbookDir, 'tokens'));
       server.watcher.add(resolve(designbookDir, 'workflows'));
@@ -230,7 +230,7 @@ export function designbookLoadPlugin(
           }
 
           const status = {
-            vision: { exists: existsSync(resolve(designbookDir, 'vision.md')) },
+            vision: { exists: existsSync(resolve(designbookDir, 'vision.yml')) },
             designSystem: {
               tokens: existsSync(resolve(designbookDir, 'design-system/design-tokens.yml')),
             },
@@ -390,7 +390,7 @@ export function designbookLoadPlugin(
           }
 
           const config = { data: designbookDir, technology: 'html' as const };
-          const story = DeboStory.load(config, storyId);
+          const story = StoryMeta.load(config, storyId);
 
           if (!story) {
             res.statusCode = 404;

@@ -1,7 +1,8 @@
 ---
-when:
+trigger:
+  domain: data-model
+filter:
   extensions: canvas
-  steps: [data-model:intake, create-data-model]
 ---
 
 # Rule: Canvas Extension

@@ -40,12 +40,9 @@ Rules for generating Drupal-compatible sample data (`when: backend: drupal`).
 
 Rules, tasks, and resources for creating Drupal SDC components (`when: frameworks.component: sdc`).
 
-- [components/rules/sdc-conventions.md](components/rules/sdc-conventions.md) — Naming, slot rules, variants, placeholder images, error handling
-- [components/rules/component-discovery.md](components/rules/component-discovery.md) — Component discovery rules
+- [components/schemas.yml](components/schemas.yml) — `SdcComponent` / `SdcStory` / `SdcStoryNode` / `SdcTemplate` — naming, slot rules, YAML quoting, variants, placeholder images, Twig conventions (single source)
 - [components/tasks/create-component.md](components/tasks/create-component.md) — Creates all three SDC files; phase-based generation with per-component validation
-- [components/resources/twig.md](components/resources/twig.md) — Twig template structure and rules
-- [components/resources/story-yml.md](components/resources/story-yml.md) — Story YAML structure
-- [components/resources/component-yml.md](components/resources/component-yml.md) — Component YAML structure
+- [components/resources/twig.md](components/resources/twig.md) — Twig template examples
 - [components/resources/component-patterns.md](components/resources/component-patterns.md) — Slot/variant/prop detection heuristics
 - [components/resources/container-reference.md](components/resources/container-reference.md) — Container markup (component.yml, Twig, stories)
 - [components/resources/grid-reference.md](components/resources/grid-reference.md) — Grid markup (component.yml, Twig, stories)

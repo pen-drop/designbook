@@ -1,0 +1,33 @@
+fixtures:
+  - vision
+  - tokens
+  - sections
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Start the /debo design-component workflow with a pre-supplied components[] payload (intake stage will be skipped).
+
+  Run the CLI directly:
+
+      _debo workflow create --workflow design-component --params '{"components":[{"id":"avatar","title":"Avatar","description":"User photo with role label","variants":[{"id":"small"},{"id":"medium","default":true},{"id":"large"}]}]}'
+
+  Then resolve and execute the resulting tasks until the workflow archives.
+  Do NOT ask any questions.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.component.yml'))
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.twig'))
+  - type: javascript
+    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.story.yml'))
+  - type: javascript
+    value: output.archivedWorkflows['design-component']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-component']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: output.archivedWorkflows['design-component']?.tasks?.every(t => t.stage !== 'intake')
+  - type: javascript
+    value: output.archivedWorkflows['design-component']?.scope?.components?.length === 1
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

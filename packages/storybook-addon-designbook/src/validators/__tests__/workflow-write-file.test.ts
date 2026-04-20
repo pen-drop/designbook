@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtempSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { load as parseYaml } from 'js-yaml';
@@ -18,7 +18,7 @@ import {
 } from '../../workflow.js';
 import type { DesignbookConfig } from '../../config.js';
 import { getValidatorKeys, getValidator, validateByKeys } from '../../validation-registry.js';
-import { expandFileDeclarations, type TaskFileDeclaration } from '../../workflow-resolve.js';
+import { expandFileDeclarations, expandResultDeclarations, type TaskFileDeclaration } from '../../workflow-resolve.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -35,48 +35,152 @@ const mockConfig: DesignbookConfig = {
 // ── expandFileDeclarations ──────────────────────────────────────────────────
 
 describe('expandFileDeclarations', () => {
-  it('expands file path template and passes through key and validators', () => {
+  it('expands file path template and passes through key and validators', async () => {
     const declarations: TaskFileDeclaration[] = [
       { file: '$DATA/design-tokens.yml', key: 'tokens', validators: ['tokens'] },
     ];
-    const result = expandFileDeclarations(declarations, {}, { DATA: '/home/designbook' });
+    const result = await expandFileDeclarations(declarations, {}, { DATA: '/home/designbook' });
     expect(result).toEqual([{ path: '/home/designbook/design-tokens.yml', key: 'tokens', validators: ['tokens'] }]);
   });
 
-  it('expands {{ param }} in file path', () => {
+  it('expands {{ param }} in file path', async () => {
     const declarations: TaskFileDeclaration[] = [
       { file: '$DATA/sections/{{ id }}/data.yml', key: 'data', validators: ['data'] },
     ];
-    const result = expandFileDeclarations(declarations, { id: 'dashboard' }, { DATA: '/d' });
+    const result = await expandFileDeclarations(declarations, { id: 'dashboard' }, { DATA: '/d' });
     expect(result[0]!.path).toBe('/d/sections/dashboard/data.yml');
   });
 
-  it('throws on duplicate key', () => {
+  it('throws on duplicate key', async () => {
     const declarations: TaskFileDeclaration[] = [
       { file: '/a.yml', key: 'same', validators: [] },
       { file: '/b.yml', key: 'same', validators: [] },
     ];
-    expect(() => expandFileDeclarations(declarations, {}, {})).toThrow("Duplicate key 'same'");
+    await expect(async () => expandFileDeclarations(declarations, {}, {})).rejects.toThrow("Duplicate key 'same'");
   });
 
-  it('defaults validators to empty array when omitted', () => {
+  it('defaults validators to empty array when omitted', async () => {
     const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test' }];
-    const result = expandFileDeclarations(declarations, {}, {});
+    const result = await expandFileDeclarations(declarations, {}, {});
     expect(result[0]!.validators).toEqual([]);
   });
 
-  it('rejects unknown validator keys when validatorKeys provided', () => {
+  it('rejects unknown validator keys when validatorKeys provided', async () => {
     const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test', validators: ['nonexistent'] }];
-    const knownKeys = new Set(['tokens', 'component']);
-    expect(() => expandFileDeclarations(declarations, {}, {}, knownKeys)).toThrow(
+    const knownKeys = new Set(['data', 'scene']);
+    await expect(async () => expandFileDeclarations(declarations, {}, {}, knownKeys)).rejects.toThrow(
       "Unknown validator key 'nonexistent'",
     );
   });
 
-  it('accepts known validator keys', () => {
-    const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test', validators: ['tokens'] }];
-    const knownKeys = new Set(['tokens', 'component']);
-    expect(() => expandFileDeclarations(declarations, {}, {}, knownKeys)).not.toThrow();
+  it('accepts known validator keys', async () => {
+    const declarations: TaskFileDeclaration[] = [{ file: '/a.yml', key: 'test', validators: ['data'] }];
+    const knownKeys = new Set(['data', 'scene']);
+    await expect(expandFileDeclarations(declarations, {}, {}, knownKeys)).resolves.not.toThrow();
+  });
+});
+
+// ── expandResultDeclarations ────────────────────────────────────────────────
+
+describe('expandResultDeclarations path interpolation', () => {
+  it('resolves {{ param }} in result file path against params', async () => {
+    const resultDecl = {
+      properties: {
+        reference: {
+          path: '{{ reference_folder }}/extract.json',
+          type: 'object',
+        },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, { reference_folder: '/d/references/abc' }, {});
+    expect(result?.reference?.path).toBe('/d/references/abc/extract.json');
+  });
+
+  it('leaves single-brace {param} literal — legacy syntax not supported', async () => {
+    // Regression: extract-reference.md once used `{reference_folder}/extract.json`
+    // which the JSONata-based interpolator silently passed through. Task authors
+    // must use `{{ param }}` for resolved params; bare `{param}` is reserved for
+    // each-expansion iterator placeholders filled at step expansion time.
+    const resultDecl = {
+      properties: {
+        reference: {
+          path: '{reference_folder}/extract.json',
+          type: 'object',
+        },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, { reference_folder: '/d/references/abc' }, {});
+    expect(result?.reference?.path).toBe('{reference_folder}/extract.json');
+  });
+});
+
+// ── submission + flush semantics ────────────────────────────────────────────
+
+describe('expandResultDeclarations submission + flush', () => {
+  it('defaults submission=data and flush=deferred when fields are absent', async () => {
+    const resultDecl = {
+      properties: {
+        component: { path: '/tmp/a.yml', type: 'object' },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, {}, {});
+    expect(result?.component?.submission).toBe('data');
+    expect(result?.component?.flush).toBe('deferred');
+  });
+
+  it('accepts submission=direct and ignores flush regardless of value', async () => {
+    const resultDecl = {
+      properties: {
+        shot: { path: '/tmp/shot.png', submission: 'direct', flush: 'immediate', type: 'string' },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, {}, {});
+    expect(result?.shot?.submission).toBe('direct');
+    expect(result?.shot?.flush).toBeUndefined();
+  });
+
+  it('accepts flush=immediate with submission=data', async () => {
+    const resultDecl = {
+      properties: {
+        extract: { path: '/tmp/extract.json', flush: 'immediate', type: 'object' },
+      },
+    };
+    const result = await expandResultDeclarations(resultDecl, undefined, {}, {});
+    expect(result?.extract?.submission).toBe('data');
+    expect(result?.extract?.flush).toBe('immediate');
+  });
+
+  it('rejects legacy flush: immediately with a rename hint', async () => {
+    const resultDecl = {
+      properties: {
+        x: { path: '/tmp/x.yml', flush: 'immediately', type: 'object' },
+      },
+    };
+    await expect(async () => expandResultDeclarations(resultDecl, undefined, {}, {})).rejects.toThrow(
+      /flush: immediately.*no longer supported.*flush: immediate/,
+    );
+  });
+
+  it('rejects legacy flush: external with a migration hint', async () => {
+    const resultDecl = {
+      properties: {
+        x: { path: '/tmp/x.png', flush: 'external', type: 'string' },
+      },
+    };
+    await expect(async () => expandResultDeclarations(resultDecl, undefined, {}, {})).rejects.toThrow(
+      /flush: external.*submission: direct/,
+    );
+  });
+
+  it('rejects unknown submission values', async () => {
+    const resultDecl = {
+      properties: {
+        x: { path: '/tmp/x.yml', submission: 'external', type: 'object' },
+      },
+    };
+    await expect(async () => expandResultDeclarations(resultDecl, undefined, {}, {})).rejects.toThrow(
+      /submission.*must be one of: data, direct/,
+    );
   });
 });
 
@@ -85,16 +189,18 @@ describe('expandFileDeclarations', () => {
 describe('validator key lookup', () => {
   it('getValidatorKeys returns all registered keys', () => {
     const keys = getValidatorKeys();
-    expect(keys).toContain('component');
-    expect(keys).toContain('tokens');
-    expect(keys).toContain('data-model');
     expect(keys).toContain('data');
     expect(keys).toContain('entity-mapping');
     expect(keys).toContain('scene');
+    expect(keys).toContain('image');
+    // JSON-Schema-only validators removed (component, data-model, tokens)
+    expect(keys).not.toContain('component');
+    expect(keys).not.toContain('data-model');
+    expect(keys).not.toContain('tokens');
   });
 
   it('getValidator returns function for known key', () => {
-    expect(getValidator('tokens')).toBeTypeOf('function');
+    expect(getValidator('data')).toBeTypeOf('function');
   });
 
   it('getValidator returns undefined for unknown key', () => {
@@ -185,7 +291,7 @@ describe('write-file pipeline (direct engine)', () => {
           id: 'create-dm',
           title: 'Create Data Model',
           type: 'data',
-          files: [{ path: targetPath, key: 'data-model', validators: ['data-model'] }],
+          files: [{ path: targetPath, key: 'data-model', validators: ['cmd:exit 1'] }],
         },
       ],
       undefined,
@@ -196,7 +302,7 @@ describe('write-file pipeline (direct engine)', () => {
       'direct',
     );
 
-    // Write invalid content (data-model validator expects specific structure)
+    // Write content — cmd:exit 1 validator always fails
     const result = await workflowWriteFile(dist, name, 'create-dm', 'data-model', 'invalid: true', config);
 
     expect(result.valid).toBe(false);
@@ -515,5 +621,116 @@ describe('direct engine cleanup on abandon', () => {
     workflowAbandon(dist, name1);
     expect(existsSync(result1.file_path)).toBe(false);
     expect(existsSync(result2.file_path)).toBe(true);
+  });
+});
+
+// ── submission enforcement in workflowDone ──────────────────────────────────
+
+describe('workflow done — submission enforcement', () => {
+  let dist: string;
+  let config: DesignbookConfig;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-sub-'));
+    config = { data: dist, technology: 'html', extensions: [] };
+  });
+
+  it('rejects submission: data file results that were written directly to disk', async () => {
+    const targetPath = resolve(dist, 'phantom.yml');
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(
+      dist,
+      name,
+      [
+        {
+          id: 'create-phantom',
+          title: 'Create Phantom',
+          type: 'data',
+          files: [{ path: targetPath, key: 'phantom', validators: [] }],
+          result: { phantom: { path: targetPath, submission: 'data', flush: 'deferred' } },
+        },
+      ],
+      { execute: { steps: ['create-phantom'] } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    // Simulate AI writing directly to final path (bypassing --data)
+    writeFileSync(targetPath, 'value: 1\n');
+
+    await expect(workflowDone(dist, name, 'create-phantom')).rejects.toThrow(
+      /written directly instead of via `workflow done --data`/,
+    );
+  });
+
+  it('accepts submission: direct file results already on disk', async () => {
+    const targetPath = resolve(dist, 'shot.png');
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(
+      dist,
+      name,
+      [
+        {
+          id: 'capture',
+          title: 'Capture',
+          type: 'data',
+          // submission: direct results don't flow through task.files[] — validate externally
+          result: { shot: { path: targetPath, submission: 'direct' } },
+        },
+      ],
+      { execute: { steps: ['capture'] } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    // Simulate external tool (e.g. Playwright) writing the file to its target path
+    writeFileSync(targetPath, 'fake-png-bytes');
+
+    // Must validate externally-written file via workflowResult before done gate accepts it
+    const { workflowResult } = await import('../../workflow.js');
+    await workflowResult(dist, name, 'capture', 'shot', null, config);
+
+    const doneResult = await workflowDone(dist, name, 'capture');
+    expect(doneResult.archived).toBe(true);
+  });
+
+  it('error message includes the submit-results hint for copy-paste retry', async () => {
+    const targetPath = resolve(dist, 'comp.yml');
+    const name = workflowCreate(dist, 'debo-test', 'Test', []);
+    workflowPlan(
+      dist,
+      name,
+      [
+        {
+          id: 'create-comp',
+          title: 'Create Component',
+          type: 'data',
+          files: [{ path: targetPath, key: 'comp', validators: [] }],
+          result: {
+            comp: {
+              path: targetPath,
+              submission: 'data',
+              flush: 'deferred',
+              schema: { type: 'object' },
+            },
+          },
+        },
+      ],
+      { execute: { steps: ['create-comp'] } },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+    writeFileSync(targetPath, 'name: foo\n');
+
+    await expect(workflowDone(dist, name, 'create-comp')).rejects.toThrow(/workflow done --task create-comp --data/);
   });
 });

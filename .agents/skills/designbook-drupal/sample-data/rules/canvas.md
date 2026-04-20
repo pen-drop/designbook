@@ -1,6 +1,7 @@
 ---
-when:
-  steps: [create-sample-data]
+trigger:
+  domain: sample-data
+filter:
   extensions: canvas
   backend: drupal
 ---

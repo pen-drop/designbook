@@ -7,9 +7,6 @@ import { resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 import type { DesignbookConfig } from './config.js';
 import type { ValidationFileResult } from './workflow-types.js';
-import { validateComponent } from './validators/component.js';
-import { validateDataModel } from './validators/data-model.js';
-import { validateTokens } from './validators/tokens.js';
 import { validateData } from './validators/data.js';
 import { validateImage } from './validators/image.js';
 
@@ -35,17 +32,48 @@ function toFileResult(result: ValidatorResult, file: string, type: string): Vali
 // ── Validator Key Registry ──────────────────────────────────────────────────
 
 const validators: Record<string, ValidatorFn> = {
-  component: async (file) => toFileResult(validateComponent(file), file, 'component'),
-  'data-model': async (file) => toFileResult(validateDataModel(file), file, 'data-model'),
-  tokens: async (file) => toFileResult(validateTokens(file), file, 'tokens'),
+  // JSON-Schema-only validators (component, data-model, tokens) removed —
+  // schema validation now happens via $ref on result: declarations (see workflowResult).
   data: async (file, config) => toFileResult(validateData(resolve(config.data, 'data-model.yml'), file), file, 'data'),
   'entity-mapping': async (file, config) => {
     const { validateEntityMapping } = await import('./validators/entity-mapping.js');
     return toFileResult(await validateEntityMapping(file, config), file, 'entity-mapping');
   },
   scene: async (file, config) => {
-    const { validateSceneBuild } = await import('./validators/scene.js');
-    return validateSceneBuild(file, config);
+    const { validateSceneBuild, validateSceneAgainstInventory } = await import('./validators/scene.js');
+    const buildResult = await validateSceneBuild(file, config);
+    if (!buildResult.valid) return buildResult;
+
+    // Safety-net: re-check component ids against live inventory. YAML re-parse
+    // failures fall through to buildResult (validateSceneBuild would have caught
+    // them), but inventory resolver crashes MUST surface as a scene failure —
+    // otherwise the safety-net silently defeats itself.
+    const { load: parseYaml } = await import('js-yaml');
+    const { readFileSync, existsSync } = await import('node:fs');
+    if (!existsSync(file)) return buildResult;
+    let raw: unknown;
+    try {
+      raw = parseYaml(readFileSync(file, 'utf-8'));
+    } catch {
+      return buildResult;
+    }
+    const ts = new Date().toISOString();
+    try {
+      const inv = await validateSceneAgainstInventory(raw, { config });
+      if (!inv.valid) {
+        return { file, type: 'scene', valid: false, error: inv.errors.join('; '), last_validated: ts, last_failed: ts };
+      }
+      return buildResult;
+    } catch (err) {
+      return {
+        file,
+        type: 'scene',
+        valid: false,
+        error: `inventory check crashed: ${(err as Error).message}`,
+        last_validated: ts,
+        last_failed: ts,
+      };
+    }
   },
   image: async (file) => toFileResult(validateImage(file), file, 'image'),
 };

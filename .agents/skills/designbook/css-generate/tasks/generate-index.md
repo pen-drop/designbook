@@ -1,10 +1,13 @@
 ---
-when:
+trigger:
   steps: [generate-index]
-files:
-  - file: $DESIGNBOOK_DIRS_CSS_TOKENS/index.src.css
-    key: index-css
-    validators: []
+domain: [css]
+result:
+  type: object
+  required: [index-css]
+  properties:
+    index-css:
+      path: $DESIGNBOOK_DIRS_CSS_TOKENS/index.src.css
 ---
 
 # Generate CSS Token Index

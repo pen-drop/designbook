@@ -24,7 +24,7 @@ description: >
 | Flag | Visibility | Effect |
 |---|---|---|
 | `--optimize` | User-facing | After the workflow completes, review all created/modified artifacts and suggest concrete optimizations (performance, maintainability, accessibility, design-system consistency). Output as a numbered list. Do not apply changes — only suggest. |
-| `--research` | Internal | After the workflow completes, run the research review flow. Load `designbook-skill-creator` and follow [`resources/research.md`](../designbook-skill-creator/resources/research.md) for the full protocol. |
+| `--research` | Internal | After the workflow completes, run the research review flow. When set, **append `--log` to every `_debo workflow …` CLI call** during the workflow so dbo.log entries get the `tagged: true` marker for later filtering. Load `designbook-skill-creator` and follow [`resources/research.md`](../designbook-skill-creator/resources/research.md) for the full protocol. |
 
 Parse flags from `$ARGUMENTS` before dispatch. Flags are not sub-commands and do not affect workflow selection. Multiple flags can be combined (e.g. `--optimize --research`).
 
@@ -44,7 +44,7 @@ When the user references one of these files or topics in conversation, start the
 
 | File / Artifact | Workflow | Path Pattern |
 |---|---|---|
-| vision | `vision` | `$DESIGNBOOK_DATA/vision.md` |
+| vision | `vision` | `$DESIGNBOOK_DATA/vision.yml` |
 | data-model | `data-model` | `$DESIGNBOOK_DATA/data-model.yml` |
 | tokens | `tokens` | `$DESIGNBOOK_DATA/design-system/design-tokens.yml` |
 | sections | `sections` | `$DESIGNBOOK_DATA/sections/**/*.section.scenes.yml` |

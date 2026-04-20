@@ -2,9 +2,10 @@
 type: entity-type
 name: node
 priority: 10
-when:
+trigger:
+  domain: data-model
+filter:
   backend: drupal
-  steps: [design-token:intake, data-model:intake]
 ---
 
 # Entity Type: node

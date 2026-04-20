@@ -1,17 +1,31 @@
 ---
-when:
+trigger:
   steps: [generate-jsonata]
+domain: [css]
 params:
-  group: ~
-files:
-  - file: $DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group }}.jsonata
-    key: generate-jsonata
-    validators:
-      - "cmd:npx jsonata-w transform --dry-run {{ file }}"
-      - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    workflow: tokens
+  type: object
+  required: [group, design_tokens]
+  properties:
+    group:
+      type: object
+      $ref: ../schemas.yml#/CssGroup
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      workflow: tokens
+      type: object
+result:
+  type: object
+  required: [generate-jsonata]
+  properties:
+    generate-jsonata:
+      path: "$DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group.group }}.jsonata"
+      validators:
+        - "cmd:npx jsonata-w transform --dry-run {{ file }}"
+        - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
+each:
+  group:
+    expr: "groups"
+    schema: { $ref: ../schemas.yml#/CssGroup }
 ---
 
 # Generate JSONata Expression

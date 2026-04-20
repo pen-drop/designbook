@@ -1,109 +1,62 @@
 ---
-when:
+title: "Create Component {{ component.component }}"
+trigger:
   steps: [create-component]
+filter:
   frameworks.component: sdc
 params:
-  component: ~
-  slots: []
-  props: []
-  group: ~
-  variants: []
-files:
-  - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.component.yml
-    key: component-yml
-    validators: [component]
-  - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.twig
-    key: component-twig
-    validators: []
-  - file: ${DESIGNBOOK_HOME}/components/{{ component }}/{{ component }}.default.story.yml
-    key: component-story
-    validators: []
-  - file: ${DESIGNBOOK_CSS_APP}
-    key: app-css
-    validators: []
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    workflow: debo-design-tokens
+  type: object
+  required: [component]
+  properties:
+    component:
+      $ref: designbook/design/schemas.yml#/Component
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      workflow: debo-design-tokens
+      type: object
+result:
+  type: object
+  required: [component-yml, component-twig, component-story, app-css]
+  properties:
+    component-yml:
+      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.component.yml"
+      $ref: designbook-drupal/components/schemas.yml#/SdcComponent
+    component-twig:
+      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.twig"
+    component-story:
+      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.default.story.yml"
+      $ref: designbook-drupal/components/schemas.yml#/SdcStory
+    app-css:
+      path: ${DESIGNBOOK_CSS_APP}
+each:
+  component:
+    expr: "components"
+    schema: { $ref: designbook/design/schemas.yml#/Component }
 ---
 
-# Create SDC Component
+# Create Component
 
-Creates three files per component. All files share the same kebab-case base name as the directory. Write each file via stdin to the CLI:
-```
-_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key component-yml
-_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key component-twig
-_debo workflow write-file $WORKFLOW_NAME $TASK_ID --key component-story
-```
+Produce the three SDC artefacts for a single component:
 
-## Variant Story Files
+- `{{ component.component }}.component.yml` — schema (props, slots, libraries)
+- `{{ component.component }}.twig` — markup template
+- `{{ component.component }}.default.story.yml` — default story
 
-> ⛔ **Each variant MUST have its own `.story.yml` file.** The `.default.story.yml` is always created (tracked by the workflow). For components with variants, additionally create one `{{ component }}.[variant-id].story.yml` per variant. Write variant story files directly to disk alongside the tracked default story.
->
-> ```
-> # Example: navigation with variants main + footer
-> navigation.default.story.yml   ← tracked by workflow (always)
-> navigation.main.story.yml      ← written directly to disk
-> navigation.footer.story.yml    ← written directly to disk
-> ```
+## Template Mode (`component.design_hint.markup`)
 
-## Design Hint
+When `component.design_hint.markup` is non-empty, treat it as the **starting template** for the Twig file:
 
-When `design_hint` is present in params (passed via `each: component` expansion from intake), use it as the primary design input for template generation. The hint contains landmark-specific data:
+- The markup is a sketch of the desired DOM and Twig structure (props, slots, conditionals). Preserve its shape, tags, and class hints.
+- Consult the matching blueprint (`designbook-drupal/components/blueprints/<group>.md`) for idiom and conventions — apply them where they do not contradict the supplied markup.
+- Reconcile differences in favour of the supplied markup for structure; in favour of the blueprint for naming, accessibility, and library wiring.
+- Map any `component.design_hint.props` (loose schema) onto the formal `props:` block in `<name>.component.yml`. Only `component.design_hint.atoms_used` informs the `libraryDependencies` and any `{% include 'leando:<atom>' %}` calls.
 
-- **`rows`**: Array of `{bg, height}` objects describing visual rows/sections
-- **`fonts`**: Per-element font specifications (e.g. `{nav: "Reef 22px", cta: "Reef 22px"}`)
-- **`interactive`**: Array of `{element, color, radius}` objects for interactive patterns
+When `component.design_hint.markup` is empty, fall back to the blueprint defaults exclusively.
 
-Prefer hint values over generic defaults. When `design_hint` is absent, fall back to other params (`description`, `styles`, `fonts`).
+## Steps
 
-## Inspection Phase (Before Generation)
-
-Before generating any files, inspect the existing codebase:
-
-1. **Read existing components** that this component will embed or include (check slots, props, and template patterns of dependencies)
-2. **Identify composition relationships** — which components will be used via `{% embed %}`, `{% include %}`, or `{{ include() }}`
-
-After all files are generated:
-
-3. **Verify Storybook renders** the component — open the Storybook URL and confirm the default story renders without errors
-4. If rendering fails, diagnose and fix before declaring the task done
-
-## File Generation Order
-
-Generate in three phases across **all components** before moving to the next phase.
-
-**Build order within each phase:** Scan each component's `.twig` file for Twig include/embed directives — `{% include %}`, `{% embed %}`, and `{{ component() }}`, and and `{{ include() }}` calls that reference other project components. Build components with no such dependencies first (leaf components), then components that include them. This ensures that when a composing component's Twig is written, all included components already exist.
-
-1. **Phase 1 — ALL `.twig` files** — read `resources/twig.md` + `@designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/SKILL.md` once
-2. **Phase 2 — ALL `.story.yml` files** — read `resources/story-yml.md` once
-3. **Phase 3 — Each `.component.yml` + validate** — read `resources/component-yml.md` once; validate each component immediately after writing
-
-The CSS skill is only needed in Phase 1. Validation runs after each component YAML via `workflow validate --task`.
-
-## YAML Quoting Rule
-
-> ⛔ **Always use double quotes (`"`) in all generated YAML files.** Never use single quotes (`'`).
-> Single quotes cause parsing errors in the SDC Storybook addon. This applies to `.component.yml`, `.story.yml`, and `.scenes.yml`.
->
-> ```yaml
-> # Correct
-> component: "test_integration_drupal:header"
-> value: "Hello World"
->
-> # Wrong — causes parser errors
-> component: "test_integration_drupal:header"
-> value: 'Hello World'
-> ```
-
-## Resources
-
-Read the relevant resource file at the start of each phase:
-
-- `resources/twig.md` — Twig template rules
-- `resources/story-yml.md` — Story YAML structure
-- `resources/component-yml.md` — Component YAML structure
-- `resources/component-patterns.md` — Drupal-specific component patterns (navigation) and slot/variant/prop detection heuristics
-
-## App CSS Update
-
-> This section applies only when a CSS framework integration (e.g. `designbook-css-tailwind`) is active. The framework's rules handle the specifics of how to register component directories for class scanning.
+1. Read the blueprint for `component.group` if present.
+2. If `component.design_hint.markup` is set, lift the markup into `<name>.twig` and clean up Angular-isms (handlers, `[innerHTML]`, etc.) per the migration rules.
+3. Derive `<name>.component.yml` from `component.slots` + `component.design_hint.props`.
+4. Generate the default story exercising every slot and the default of every prop.
+5. Append component-specific styles to `${DESIGNBOOK_CSS_APP}` only when a class introduced here is not already covered by tokens.

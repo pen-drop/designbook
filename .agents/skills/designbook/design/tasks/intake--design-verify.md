@@ -1,64 +1,71 @@
 ---
-when:
+trigger:
   steps: [design-verify:intake]
+domain: [design.verify]
 params:
-  scene: ~
-  reference: []
-  breakpoints: []
-files: []
+  type: object
+  required: [story_id]
+  properties:
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
+    reference: { type: array, default: [] }
+    reference_dir: { type: string, default: "" }
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
+result:
+  type: object
+  required: [reference, breakpoints]
+  properties:
+    reference:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Reference
+    breakpoints:
+      type: array
+      items: { type: string }
 ---
 
 # Intake: Design Verify
 
-Visual testing for a single scene. Called once per scene — either as subworkflow (from design-shell/design-screen) or standalone.
+Visual testing for a single story. The `story_id` is pre-resolved by the workflow engine's param resolver before this task runs.
 
-## Context Detection
+Can be called as a subworkflow (from design-shell/screen/component after-hook) or standalone.
 
-- **`params.scene` is set:** Subworkflow — skip dialog, go to Step 2.
-- **`params.scene` is NOT set:** Standalone — proceed with Step 1.
+## Step 1: Resolve Reference
 
-## Step 1: Identify Scene and Reference (standalone only)
+If `$reference_dir` is non-empty and `$reference_dir/extract.json` exists (from a prior build workflow or the extract-reference stage):
+- Read the `source` field from `extract.json` to get the reference URL
+- Build the `reference` array: `[{"type": "url", "url": "<url>", "threshold": 3, "title": "<label>"}]`
+- Skip asking the user for a reference
 
-Ask the user which scene to verify and how:
-
-> "Which scene should I verify? (e.g. `design-system:shell`, `homepage:landing`)"
-
-Then ask for the reference:
+If no `$reference_dir` and `params.reference` is empty:
 
 > "What is the design reference?
-> - Stitch screen ID (e.g. `projects/123/screens/abc`)
-> - URL to a design screenshot
-> - Or 'skip' to verify without reference"
+> - A URL to the design source
+> - 'skip' to verify without reference"
 
-Then ask for breakpoints:
+Set `params.reference` from the answer.
 
-> "Which breakpoints to test? (default: all from design-tokens)"
+## Step 2: Select Breakpoints
 
-Set `params.scene` and `params.reference` from the answers. `reference` is an array:
-```json
-[{"type": "stitch", "url": "projects/...", "threshold": 3, "title": "Screen Name"}]
-```
+Breakpoints are collected as a required result -- the workflow engine triggers `waiting_for` automatically, prompting the user to select which breakpoints to test.
 
-Reference entries describe the design source only — no `breakpoint` field. Breakpoints are resolved separately in Step 3a.
+List available breakpoints from the design tokens with pixel values.
 
-## Step 2: Ensure Storybook is running
+## Step 3: Ensure Storybook is running
 
 ```bash
 _debo storybook status
 ```
 
-- **If running:** check freshness — if component files are newer than `started_at`, restart with `_debo storybook start --force`.
+- **If running:** check freshness -- if component files are newer than `started_at`, restart with `_debo storybook start --force`.
 - **If not running:** `_debo storybook start`. Wait for `{ ready: true }`.
 - **If startup fails:** report errors from `_debo storybook logs` and pause.
 
-## Step 3: Complete with Params
+## Step 4: Write Results and Complete
 
-Pass `scene`, `reference`, and `breakpoints` to the next stage. The `setup-compare` stage handles story creation and checks resolution.
+Pass `reference` and `breakpoints` to the next stage via data results.
 
-```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID \
-  --params "{\"scene\": \"${scene}\", \"reference\": $REFERENCE, \"breakpoints\": $BREAKPOINTS}"
-```
-
-- `reference`: the array from Step 1 (or `params.reference` in subworkflow mode)
-- `breakpoints`: from user input (standalone) or empty array (subworkflow — setup-compare resolves from design-tokens)
+- `reference`: the array from Step 1
+- `breakpoints`: from user input (Step 2)

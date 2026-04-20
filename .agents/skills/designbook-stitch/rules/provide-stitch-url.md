@@ -1,7 +1,8 @@
 ---
 provides: reference.url
-when:
-  steps: [design-verify:intake, design-screen:intake, design-shell:intake]
+trigger:
+  domain: design.intake
+filter:
   extensions: stitch
 ---
 

@@ -1,0 +1,265 @@
+# Drupal SDC component schemas
+#
+# These schemas are the single source of truth for `.component.yml`, `.story.yml`,
+# and `.twig` structure. Constraints that used to live in rules/sdc-conventions.md,
+# resources/component-yml.md and resources/story-yml.md are folded into the
+# descriptions below — tasks reference these schemas via $ref and the engine
+# delivers the constraints directly to the AI.
+
+SdcComponent:
+  title: SDC Component Metadata
+  description: >
+    The `.component.yml` file declaring an SDC component's metadata, props, slots and variants to Drupal and the Storybook addon.
+
+
+    NAMING — directory name equals file base name; always kebab-case (`button/button.component.yml`, `nav-main/nav-main.component.yml`).
+    Components are visually descriptive, never domain-specific: `card` ✅, `article-card` ❌; `grid` ✅, `article-teaser-grid` ❌.
+
+
+    YAML QUOTING — all string values use double quotes (`"`). Single quotes cause parser errors in the SDC Storybook addon.
+
+
+    STORIES LIVE IN SEPARATE FILES — never declare stories inside `.component.yml`. Every component MUST set `thirdPartySettings.sdcStorybook.disableBasicStory: true` and ship at least one `<component>.default.story.yml` alongside it.
+
+
+    VARIANTS — when two components share the same props and slots but differ only in layout or visual arrangement, implement them as variants of a single component. Each variant listed here needs a matching `<component>.<variant-id>.story.yml`. Never declare a `variant` prop under `props.properties` when `variants:` is populated — the `variants:` block is the canonical source.
+  type: object
+  required: [name, status, group]
+  properties:
+    $schema:
+      type: string
+      const: "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+      description: Path to the SDC JSON Schema. Always this exact URL.
+    name:
+      type: string
+      description: Human-readable display name shown in Storybook navigation. Title case, free-form.
+      examples: [Button, Card, Navigation]
+    status:
+      type: string
+      enum: [stable, experimental, deprecated]
+      description: Lifecycle state. `stable` for production-ready; `experimental` for in-development; `deprecated` for scheduled removal.
+    group:
+      type: string
+      enum: [Action, "Data Display", Navigation, Layout, Shell]
+      description: Top-level category used for Storybook grouping. Must be one of the listed values.
+    description:
+      type: string
+      description: One-sentence summary of the component's purpose and typical usage context.
+    provider:
+      type: string
+      description: >
+        Drupal SDC namespace (module/theme name) that owns the component. Maps to a Twig namespace in `.storybook/main.js`.
+        Resolve the literal `COMPONENT_NAMESPACE` placeholder to the concrete provider from config at generation time — never leave the placeholder in the written file.
+      examples: [test_integration_drupal, designbook_design]
+    props:
+      type: object
+      description: >
+        JSON Schema object describing the component's typed props. Always `type: object` with `properties:` and optional `required:`.
+        Type mapping — `string` → `type: string`, `boolean` → `type: boolean`, `number` → `type: number` or `type: integer`, `array` → `type: array`, `object` → `type: object`.
+        Enums are declared with `enum:` on the prop. Never declare a `variant` prop when the top-level `variants:` block exists.
+        Omit the entire `props:` section when there are no props.
+      properties:
+        type:
+          type: string
+          const: object
+          description: Always literally `object` — props are declared as a JSON Schema object type.
+        properties:
+          type: object
+          description: Map of prop-name to JSON Schema type definition. Each prop uses camelCase or snake_case per the component's convention.
+        required:
+          type: array
+          description: Names of required props that MUST be passed for the component to render correctly. Omit when empty.
+          items: { type: string }
+    slots:
+      type: object
+      description: >
+        Map of slot-name to slot metadata (`title`, `description`). Slots receive pre-rendered content from the caller.
+        Slot names MUST be snake_case (`main_content` ✅, `mainContent` ❌). Omit the `slots:` section when the component has none.
+      additionalProperties:
+        type: object
+        properties:
+          title: { type: string, description: Human-readable slot label. }
+          description: { type: string, description: One-sentence summary of what content belongs in this slot. }
+    variants:
+      type: object
+      description: >
+        Map of variant-id (kebab-case) to variant metadata. Each variant must have a matching `<component>.<variant-id>.story.yml`.
+        Omit the `variants:` section when the component has none.
+      additionalProperties:
+        type: object
+        properties:
+          title: { type: string, description: Human-readable variant label shown in Storybook. }
+          description: { type: string, description: One-sentence summary of the variant's distinguishing visual or behavioural trait. }
+    thirdPartySettings:
+      type: object
+      description: >
+        Vendor-specific settings. The `sdcStorybook.disableBasicStory: true` entry is MANDATORY for every component — it suppresses the auto-generated basic story so the explicit `.story.yml` files are used instead.
+      required: [sdcStorybook]
+      properties:
+        sdcStorybook:
+          type: object
+          required: [disableBasicStory]
+          properties:
+            disableBasicStory:
+              type: boolean
+              const: true
+              description: Always `true`. Suppresses Drupal's auto-generated basic story so the explicit `.story.yml` files drive Storybook.
+
+SdcStory:
+  title: SDC Story File
+  description: >
+    A `<component>.<story-name>.story.yml` file describing one visually distinct rendering of a component.
+
+
+    FLAT FORMAT — top-level keys are `component`, `name`, `variant`, `props`, `slots`. There is no `stories:` wrapper.
+
+
+    ONE STORY PER FILE — never combine multiple stories via `---` YAML document separators. Each meaningful story gets its own file.
+
+
+    FILENAME PATTERN — `[component-name].[story-name].story.yml` with a mandatory name segment. Use `default` as the story name for the primary/single story (`footer.default.story.yml`). Variant stories use the variant id as the name segment (`card.vertical.story.yml`, `card.horizontal.story.yml`).
+
+
+    YAML QUOTING — always double quotes.
+
+
+    VISUAL DISTINCTNESS — every story should demonstrate a visually distinct state. Good candidates: one file per layout variant, content-length extremes, state variations (empty slots, missing optional props), context/page scenarios. Avoid stories that look identical but differ only in invisible props.
+  type: object
+  required: [component]
+  properties:
+    component:
+      type: string
+      description: >
+        Fully qualified component reference in `<provider>:<component-name>` format. The `<provider>` prefix is mandatory.
+        Look up the concrete provider from the target component's own `.component.yml` → `provider:` field.
+        The provider maps to a Twig namespace configured in `.storybook/main.js` → `sdcStorybookOptions.namespaces`; without it the SDC addon cannot resolve the component path.
+      examples: ["test_integration_drupal:header", "designbook_design:entity-article"]
+    name:
+      type: string
+      description: Story name shown in Storybook. Use `Default` for the primary story.
+    variant:
+      type: string
+      description: Variant id (kebab-case) when the story exercises a specific variant declared in `.component.yml`. Omit for the default variant.
+    props:
+      type: object
+      description: Prop overrides for this story. Keys match prop names declared in the component's `.component.yml`. When the component has a `variants:` block, set `variant:` at the top level instead of via a `variant` prop.
+    slots:
+      type: object
+      description: >
+        Slot content for this story. Each key is a slot name (snake_case, matching `.component.yml`); each value is an array of `SdcStoryNode` objects.
+      additionalProperties:
+        type: array
+        items:
+          $ref: "#/SdcStoryNode"
+
+SdcStoryNode:
+  title: SDC Story Node
+  description: >
+    A single content item in a story slot. The `type` field (required) selects one of three shapes below.
+
+
+    IMAGE URLS — images in story files MUST use placeholder service URLs (e.g. `https://placehold.co/600x400`). Local file paths do not exist in Storybook and will not render.
+  type: object
+  required: [type]
+  properties:
+    type:
+      type: string
+      enum: [element, component, image]
+      description: >
+        Discriminator — picks which shape applies (see `oneOf` below):
+
+        - `element` → renders inline HTML. Requires `value`. Optional: `tag`, `attributes`.
+
+        - `component` → nests another SDC component. Requires `component` (fully qualified `<provider>:<name>`). Optional: `props`, `slots`.
+
+        - `image` → embeds a placeholder image. Requires `uri` (external URL). Optional: `attributes`.
+  discriminator:
+    propertyName: type
+  oneOf:
+    - title: Element Node
+      description: >
+        Renders inline HTML. MUST use `value:` for text — the key `content:` is NOT supported and causes `undefined` to render.
+      required: [type, value]
+      properties:
+        type:
+          type: string
+          const: element
+        value:
+          type: string
+          description: "Text or HTML to render. Use `value:` — never `content:`."
+          examples: ["Hello World", "<strong>Bold text</strong>"]
+        tag:
+          type: string
+          description: HTML wrapper tag. Defaults to `div` when omitted.
+          examples: [p, h2, div, span, button]
+        attributes:
+          type: object
+          description: HTML attributes applied to the wrapper tag (e.g. `class`, `id`).
+    - title: Component Node
+      description: Nests another SDC component inside a slot.
+      required: [type, component]
+      properties:
+        type:
+          type: string
+          const: component
+        component:
+          type: string
+          description: Fully qualified component reference in `<provider>:<component-name>` format.
+          examples: ["test_integration_drupal:navigation", "designbook_design:card"]
+        props:
+          type: object
+          description: Prop overrides for the nested component.
+        slots:
+          type: object
+          description: Slot content overrides for the nested component (same `SdcStoryNode` array format).
+    - title: Image Node
+      description: Embeds an image into a slot.
+      required: [type, uri]
+      properties:
+        type:
+          type: string
+          const: image
+        uri:
+          type: string
+          description: Placeholder image URL — MUST be an external placeholder service. Never a local path.
+          examples: ["https://placehold.co/600x400", "https://placehold.co/1200x630/png"]
+        attributes:
+          type: object
+          description: HTML attributes for the image element (e.g. `class`, `alt`).
+
+SdcTemplate:
+  title: SDC Twig Template
+  description: >
+    The `<component>.twig` file that renders an SDC component. Not JSON — this schema describes structural and rendering constraints the AI must honour when generating Twig markup.
+
+
+    ONE FILE PER COMPONENT — a single `.twig` file holds all variants inline via `{% if variant == '...' %}` branches (or class-set patterns). Never create partial/sub twig files per variant.
+
+
+    SINGLE ROOT ELEMENT — each template has exactly one root element. No fragments.
+
+
+    `attributes` ON ROOT — the root element MUST include the Drupal `attributes` object so classes merge correctly:
+      `<div{{ attributes.addClass([...]) }}>`
+
+
+    SLOT RENDERING — render slots directly, no wrapper unless the content requires one:
+      `{% if content %}{{ content }}{% endif %}`
+
+
+    LAYOUT COMPONENTS — for layout components (`container`, `section`, `grid`, and any component whose `group` is `Layout`), every slot MUST be wrapped in `{% block <slotname> %}` tags. This is required for `{% embed %}` compatibility; without `{% block %}` tags, embedding templates cannot override the slot and content silently disappears. Applies to ALL slots including optional ones (`background`, `header`).
+
+
+    VARIANT CONDITIONALS — use `{% if variant == '<id>' %}` blocks or conditional class sets. Example:
+      `{% set card_classes = variant == 'horizontal' ? ['card', 'card-side'] : ['card'] %}`
+
+
+    NAMESPACE RESOLUTION — never leave the literal `COMPONENT_NAMESPACE` token in generated twig. Resolve to the concrete provider (e.g. `test_integration_drupal`) at generation time.
+
+
+    SHELL COMPONENTS — header, footer and page templates are full UI components with real HTML, not structural slot-only wrappers. They live alongside other components under `$DESIGNBOOK_HOME/components/`.
+
+
+    NO HARDCODED COLORS — never hardcode color values in Twig. Use design-token CSS custom properties (`color: var(--color-primary)`, `background: var(--color-surface)`) or utility classes derived from them.
+  type: string
+  format: twig

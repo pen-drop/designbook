@@ -1,12 +1,25 @@
 ---
-when:
+trigger:
   steps: [sections:intake]
-files: []
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-    workflow: /debo-vision
-  - path: $DESIGNBOOK_DATA/sections
-    optional: true
+params:
+  type: object
+  required: [vision]
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      workflow: /debo-vision
+      type: object
+    sections_dir:
+      path: $DESIGNBOOK_DATA/sections
+      type: string
+result:
+  type: object
+  required: [section]
+  properties:
+    section:
+      type: array
+      items:
+        $ref: ../../scenes/schemas.yml#/SceneFile
 ---
 
 # Intake: Sections
@@ -47,8 +60,8 @@ Keep iterating until the user approves. Once confirmed, the `create-section` sta
 Each approved section becomes an entry in the `section` array (keyed by `each: section`):
 ```json
 {"section": [
-  {"section_id": "dashboard", "section_title": "Dashboard", "description": "...", "order": 1},
-  {"section_id": "training", "section_title": "Training", "description": "...", "order": 2}
+  {"id": "dashboard", "title": "Dashboard", "description": "...", "order": 1},
+  {"id": "training", "title": "Training", "description": "...", "order": 2}
 ]}
 ```
 

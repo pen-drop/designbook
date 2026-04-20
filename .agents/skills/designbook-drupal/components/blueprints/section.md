@@ -2,17 +2,24 @@
 type: component
 name: section
 priority: 10
-when:
-  steps: [design-shell:intake, design-screen:intake, tokens:intake]
-required_tokens:
-  section:
-    padding-y:
-      $extensions:
-        designbook:
-          renderer: spacing
-      sm: { $value: "2rem", $type: dimension }
-      md: { $value: "4rem", $type: dimension }
-      lg: { $value: "6rem", $type: dimension }
+trigger:
+  domain: components.layout
+  steps: [create-tokens]
+extends:
+  DesignTokens:
+    properties:
+      component:
+        required: [section]
+        properties:
+          section:
+            type: object
+            required: [padding-y]
+            properties:
+              padding-y:
+                type: object
+                $extensions:
+                  designbook:
+                    renderer: spacing
 ---
 
 # Blueprint: Section

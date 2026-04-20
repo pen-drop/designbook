@@ -7,10 +7,16 @@
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve, relative } from 'node:path';
+import { resolve, relative, dirname } from 'node:path';
 import fm from 'front-matter';
 import { globSync } from 'glob';
+import { load as parseYaml } from 'js-yaml';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
+import { buildSchemaBlock } from './schema-block.js';
+import type { SchemaBlock } from './schema-block.js';
+import { interpolate } from './template/interpolate.js';
+import { injectComponentsEnum } from './workflow-resolve-components-enum.js';
+import { computeMergedSchema } from './workflow-schema-merge.js';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -32,12 +38,14 @@ export interface ResolvedTask {
   config_rules: string[];
   config_instructions: string[];
   files: Array<{ path: string; key: string; validators: string[] }>;
+  result?: Record<string, { path?: string; schema?: object; validators?: string[] }>;
 }
 
 export interface ResolvedPlan {
   params: Record<string, unknown>;
   steps: string[]; // ordered step names — was: stages
   tasks: ResolvedTask[];
+  schemas?: Record<string, object>; // resolved JSON Schema definitions from $ref
 }
 
 export interface ResolvedFile {
@@ -54,17 +62,45 @@ export interface TaskFileDeclaration {
   validators?: string[]; // validator keys (e.g. ['tokens']); defaults to []
 }
 
+/** Result declaration entry in task frontmatter — file results have `path:`, data results don't. */
+export interface ResultDeclaration {
+  path?: string; // file result path template
+  $ref?: string; // schema reference (e.g. ../schemas.yml#/Check)
+  validators?: string[]; // semantic validator keys
+  /** Who produces the content. `data` (default) = AI submits via --data; `direct` = task code writes the file. */
+  submission?: 'data' | 'direct';
+  /** When the file lands on disk. `deferred` (default) = at stage flush; `immediate` = on `workflow done`. Ignored when `submission: direct`. */
+  flush?: 'deferred' | 'immediate';
+  type?: string; // inline JSON Schema type
+  items?: unknown; // inline JSON Schema items (for arrays)
+  [key: string]: unknown; // additional JSON Schema properties
+}
+
 interface TaskFileFrontmatter {
-  when?: Record<string, unknown>;
-  params?: Record<string, unknown>;
+  trigger?: Record<string, unknown>;
+  filter?: Record<string, unknown>;
+  params?: {
+    type?: string; // always 'object'
+    required?: string[];
+    properties?: Record<string, unknown>;
+    $ref?: string;
+    [key: string]: unknown;
+  };
   files?: TaskFileDeclaration[];
-  reads?: Array<{ path: string; workflow?: string }>;
+  result?: {
+    type?: string; // always 'object'
+    required?: string[];
+    properties?: Record<string, ResultDeclaration>;
+    [key: string]: unknown;
+  };
+  each?: Record<string, unknown>; // iteration declaration { <scope-key>: <schema> }
 }
 
 interface StageDefinitionFm {
   steps?: string[];
   workflow?: string;
   each?: string;
+  domain?: string[];
   params?: Record<string, { type: string; prompt: string }>;
 }
 
@@ -79,6 +115,292 @@ interface WorkflowFrontmatter {
     stages?: string[];
   };
 }
+
+// ── Schema Infrastructure ─────────────────────────────────────────────
+
+/**
+ * Load a schemas.yml file and return a map of PascalCase type names to JSON Schema definitions.
+ * Validates that all keys are PascalCase and all values are objects.
+ */
+export function loadSchemaFile(schemaFilePath: string): Record<string, object> {
+  if (!existsSync(schemaFilePath)) {
+    throw new Error(`Schema file not found: ${schemaFilePath}`);
+  }
+  const raw = readFileSync(schemaFilePath, 'utf-8');
+  const parsed = parseYaml(raw) as Record<string, unknown>;
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error(`Schema file is not a valid YAML map: ${schemaFilePath}`);
+  }
+  const schemas: Record<string, object> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (!/^[A-Z][a-zA-Z0-9]*$/.test(key)) {
+      throw new Error(`Schema key '${key}' in ${schemaFilePath} must be PascalCase`);
+    }
+    if (!value || typeof value !== 'object') {
+      throw new Error(`Schema '${key}' in ${schemaFilePath} must be a JSON Schema object`);
+    }
+    schemas[key] = value as object;
+  }
+  return schemas;
+}
+
+/**
+ * Resolve a $ref path to a schema definition.
+ * Supports two forms:
+ *   - Relative: `../schemas.yml#/Check` — resolved from the task file's directory
+ *   - Skill-qualified: `designbook/design/schemas.yml#/Check` — resolved from skills root
+ *
+ * @param ref - The $ref string (e.g. "../schemas.yml#/Check")
+ * @param taskFilePath - Absolute path to the task file containing the $ref
+ * @param skillsRoot - Absolute path to the skills root directory (.agents/skills/)
+ * @returns The resolved JSON Schema object
+ */
+export function resolveSchemaRef(
+  ref: string,
+  taskFilePath: string,
+  skillsRoot: string,
+): { typeName: string; schema: object; schemaFilePath: string; fileSchemas: Record<string, object> } {
+  const hashIdx = ref.indexOf('#/');
+  if (hashIdx === -1) {
+    throw new Error(`Invalid $ref '${ref}' — must contain '#/' fragment (e.g. ../schemas.yml#/TypeName)`);
+  }
+  const filePart = ref.slice(0, hashIdx);
+  const typeName = ref.slice(hashIdx + 2);
+
+  // Resolve file path: relative (starts with . or /) vs skill-qualified
+  let schemaFilePath: string;
+  if (filePart.startsWith('.') || filePart.startsWith('/')) {
+    schemaFilePath = resolve(dirname(taskFilePath), filePart);
+  } else {
+    schemaFilePath = resolve(skillsRoot, filePart);
+  }
+
+  const fileSchemas = loadSchemaFile(schemaFilePath);
+  if (!(typeName in fileSchemas)) {
+    const available = Object.keys(fileSchemas).join(', ');
+    throw new Error(`Type '${typeName}' not found in ${schemaFilePath}. Available: ${available}`);
+  }
+  return { typeName, schema: fileSchemas[typeName]!, schemaFilePath, fileSchemas };
+}
+
+/**
+ * Walk a schema object and collect all local `#/TypeName` refs into the target
+ * `schemas` map by resolving them from the schemas file they originated from.
+ * Handles transitive references — if a resolved type itself references others.
+ *
+ * Example: Component's schema has `{ $ref: "#/DesignHint" }`. After hoisting
+ * Component into the workflow's top-level schemas map, `DesignHint` also needs
+ * to live there so AJV can resolve the ref.
+ */
+function collectLocalRefsFromSchema(
+  node: unknown,
+  fileSchemas: Record<string, object>,
+  schemas: Record<string, object>,
+  visited: Set<string>,
+): void {
+  if (Array.isArray(node)) {
+    for (const item of node) collectLocalRefsFromSchema(item, fileSchemas, schemas, visited);
+    return;
+  }
+  if (!node || typeof node !== 'object') return;
+
+  const obj = node as Record<string, unknown>;
+  if (typeof obj.$ref === 'string' && obj.$ref.startsWith('#/')) {
+    const typeName = obj.$ref.slice(2);
+    if (typeName && !(typeName in schemas) && typeName in fileSchemas && !visited.has(typeName)) {
+      visited.add(typeName);
+      schemas[typeName] = fileSchemas[typeName]!;
+      collectLocalRefsFromSchema(fileSchemas[typeName], fileSchemas, schemas, visited);
+    }
+  }
+
+  for (const value of Object.values(obj)) {
+    collectLocalRefsFromSchema(value, fileSchemas, schemas, visited);
+  }
+}
+
+/** Minimal shape of a task with enough fields for schema resolution. */
+export interface TaskForSchemaResolution {
+  task_file?: string;
+  params?: Record<string, unknown>;
+  result?: Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }>;
+}
+
+/**
+ * Resolve $ref entries for a set of tasks and merge them into an existing schemas map.
+ * Mutates both the tasks (`result[key].schema`) and the provided schemas map.
+ *
+ * Used at plan time (via `collectAndResolveSchemas`) and again at runtime when new
+ * tasks are expanded during stage transitions (e.g. via `expandTasksFromParams`).
+ *
+ * After $ref resolution, if any task carries a resolved `components` param with
+ * an inventory of `{id: string}` entries, returns a clone of the schemas map with
+ * `ComponentNode.component` constrained to those ids via `injectComponentsEnum`.
+ * Only the first task with a non-empty inventory is used; callers must not stage
+ * conflicting inventories across tasks.
+ */
+export function resolveSchemasForTasks(
+  tasks: TaskForSchemaResolution[],
+  skillsRoot: string,
+  schemas: Record<string, object>,
+): Record<string, object> {
+  for (const task of tasks) {
+    if (!task.result || !task.task_file) continue;
+    const taskFilePath = task.task_file;
+
+    // Re-read frontmatter to get the original $ref strings
+    const taskFm = parseFrontmatter(taskFilePath) as TaskFileFrontmatter | null;
+    if (!taskFm?.result) continue;
+
+    const resultProperties = (taskFm.result as Record<string, unknown>).properties as
+      | Record<string, Record<string, unknown>>
+      | undefined;
+    if (!resultProperties) continue;
+
+    for (const [key, resultDecl] of Object.entries(resultProperties)) {
+      // Save original $ref before resolveRefsInDeclaration rewrites it to AJV-local form
+      const originalRef = resultDecl.$ref as string | undefined;
+
+      // Resolve $ref in the frontmatter copy (populates schemas map)
+      resolveRefsInDeclaration(resultDecl, taskFilePath, skillsRoot, schemas);
+
+      // Update the task's actual result schema:
+      // For top-level $ref, replace schema with the resolved definition
+      if (task.result[key] && originalRef) {
+        const { typeName, schema, fileSchemas } = resolveSchemaRef(originalRef, taskFilePath, skillsRoot);
+        schemas[typeName] = schema;
+        collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]));
+        task.result[key]!.schema = schema;
+      }
+
+      // For nested $ref (e.g. items.$ref, properties.foo.$ref at any depth),
+      // rewrite file-system refs to AJV-compatible local refs in the task's schema
+      if (task.result[key]?.schema && typeof task.result[key]!.schema === 'object') {
+        rewriteRefsInSchema(task.result[key]!.schema as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
+      }
+    }
+
+    // Collect $ref from each: declaration
+    if (taskFm.each) {
+      for (const eachValue of Object.values(taskFm.each)) {
+        if (eachValue && typeof eachValue === 'object') {
+          resolveRefsInDeclaration(eachValue as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
+        }
+      }
+    }
+
+    // Collect $ref from params: declaration
+    if (taskFm.params && typeof taskFm.params === 'object' && '$ref' in taskFm.params) {
+      const ref = (taskFm.params as Record<string, unknown>)['$ref'] as string;
+      const { typeName, schema: refSchema, fileSchemas } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+      schemas[typeName] = refSchema;
+      collectLocalRefsFromSchema(refSchema, fileSchemas, schemas, new Set([typeName]));
+    }
+  }
+
+  // Dynamic enum injection — when a task's `components` param resolved to an
+  // inventory, constrain ComponentNode.component to those ids in the shared
+  // schema map. Affects only the compiled schemas; on-disk scene schema is
+  // untouched.
+  let inventory: string[] | undefined;
+  for (const task of tasks) {
+    const raw = task.params?.['components'];
+    if (!Array.isArray(raw)) continue;
+    const ids = raw
+      .map((c) => (c && typeof c === 'object' ? (c as Record<string, unknown>)['id'] : undefined))
+      .filter((id): id is string => typeof id === 'string');
+    if (ids.length > 0) {
+      inventory = ids;
+      break;
+    }
+  }
+  if (inventory && inventory.length > 0) {
+    return injectComponentsEnum(schemas, inventory) as Record<string, object>;
+  }
+  return schemas;
+}
+
+/**
+ * Collect all $ref entries from resolved tasks and resolve them into a schemas map.
+ * Called at workflow create time to inline all schemas into tasks.yml.
+ */
+export function collectAndResolveSchemas(tasks: ResolvedTask[], skillsRoot: string): Record<string, object> {
+  return resolveSchemasForTasks(tasks, skillsRoot, {});
+}
+
+/**
+ * Derive the skills root (`.agents/skills`) from an absolute task file path.
+ * Task files are always located under `<skillsRoot>/<skill>/.../tasks/<name>.md`,
+ * so splitting on `/skills/` yields the root. Returns `undefined` for paths
+ * that don't match the expected layout.
+ */
+export function deriveSkillsRootFromTaskFile(taskFilePath: string | undefined): string | undefined {
+  if (!taskFilePath) return undefined;
+  const marker = '/skills/';
+  const idx = taskFilePath.indexOf(marker);
+  if (idx === -1) return undefined;
+  return taskFilePath.slice(0, idx + marker.length - 1);
+}
+
+/** Recursively resolve $ref entries in a declaration object.
+ * Replaces file-system $ref (e.g. ../schemas.yml#/Component) with
+ * local AJV-compatible $ref (e.g. #/Component) so validation works. */
+function resolveRefsInDeclaration(
+  obj: Record<string, unknown>,
+  taskFilePath: string,
+  skillsRoot: string,
+  schemas: Record<string, object>,
+): void {
+  if (obj.$ref && typeof obj.$ref === 'string') {
+    const { typeName, schema, fileSchemas } = resolveSchemaRef(obj.$ref, taskFilePath, skillsRoot);
+    schemas[typeName] = schema;
+    // Pull in transitive local refs from the same schema file (e.g. Component → #/DesignHint)
+    collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]));
+    // Replace file-system $ref with local AJV reference
+    obj.$ref = `#/${typeName}`;
+  }
+  // Check nested objects (e.g. items: { $ref: ... })
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      resolveRefsInDeclaration(value as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
+    }
+  }
+}
+
+/**
+ * Rewrite file-system $ref strings to AJV-compatible local refs in a schema object.
+ * Walks the schema tree at any depth, converting e.g. `../schemas.yml#/Component`
+ * to `#/Component` (matching the key used in `ajv.addSchema`).
+ *
+ * Unlike `resolveRefsInDeclaration`, this does NOT load schema files — it relies
+ * on the schemas map being already populated. Any $ref not matching an existing
+ * schema key is resolved from disk and added.
+ */
+export function rewriteRefsInSchema(
+  obj: Record<string, unknown>,
+  taskFilePath: string,
+  skillsRoot: string,
+  schemas: Record<string, object>,
+): void {
+  if (obj.$ref && typeof obj.$ref === 'string') {
+    const ref = obj.$ref as string;
+    // Only rewrite file-system $ref (contains '#/'); skip already-local refs like '#/TypeName'
+    if (ref.includes('#/') && !ref.startsWith('#/')) {
+      const { typeName, schema, fileSchemas } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+      schemas[typeName] = schema;
+      // Also pull in transitive local refs (e.g. Component → #/DesignHint)
+      collectLocalRefsFromSchema(schema, fileSchemas, schemas, new Set([typeName]));
+      obj.$ref = `#/${typeName}`;
+    }
+  }
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      rewriteRefsInSchema(value as Record<string, unknown>, taskFilePath, skillsRoot, schemas);
+    }
+  }
+}
+
+// ── Workflow Steps ────────────────────────────────────────────────────
 
 /**
  * Extract steps from workflow frontmatter.
@@ -207,41 +529,106 @@ export function lookup(key: string, context: Record<string, unknown>, config: Re
     );
 }
 
-/**
- * Check whether all `when` conditions match against context + config.
- *
- * Lookup order per key: context first, config fallback (with dot-path traversal).
- * Matching rules:
- * - Array value in `when` → looked-up value must be one of those values
- * - Array looked-up value → `when` value must be present in that array
- * - Scalar vs scalar → exact string match
- *
- * Returns specificity count (number of matched keys) on success, or `false` if any key fails.
- */
-export function checkWhen(
-  when: Record<string, unknown>,
+type MatchOutcome = 'match' | 'nomatch' | 'defer';
+
+function matchConditionKey(
+  key: string,
+  value: unknown,
   context: Record<string, unknown>,
   config: Record<string, unknown>,
-): number | false {
-  for (const [key, value] of Object.entries(when)) {
-    const actual = lookup(key, context, config);
-    // Key not found in context or config → skip (deferred to expansion time)
-    if (actual === undefined) continue;
-    if (Array.isArray(value)) {
-      if (!value.map(String).includes(String(actual ?? ''))) return false;
-    } else if (Array.isArray(actual)) {
-      if (!actual.map(String).includes(String(value))) return false;
-    } else {
-      if (String(actual ?? '') !== String(value)) return false;
-    }
+): MatchOutcome {
+  if (key === 'domain') {
+    const domains = context['domain'];
+    if (domains === undefined) return 'defer';
+    const effectiveDomains: string[] = Array.isArray(domains) ? domains.map(String) : [String(domains)];
+    const ruleDomains: string[] = Array.isArray(value) ? (value as string[]).map(String) : [String(value)];
+    return ruleDomains.some((rd) => matchDomain(rd, effectiveDomains)) ? 'match' : 'nomatch';
   }
-  return Object.keys(when).length;
+
+  const actual = lookup(key, context, config);
+  if (actual === undefined) return 'defer';
+  if (Array.isArray(value)) {
+    return value.map(String).includes(String(actual ?? '')) ? 'match' : 'nomatch';
+  }
+  if (Array.isArray(actual)) {
+    return actual.map(String).includes(String(value)) ? 'match' : 'nomatch';
+  }
+  return String(actual ?? '') === String(value) ? 'match' : 'nomatch';
 }
 
 /**
- * Build runtime context for `when` evaluation (step-specific, not config).
- * Sets both `steps` (new) and `stages` (legacy) keys for backwards compatibility
- * with existing rule files that use `when: stages:`.
+ * Check whether a `trigger:` + `filter:` pair matches against context + config.
+ *
+ * - `trigger:` keys (`steps`, `domain`) declare WHEN the rule/blueprint becomes active.
+ *   They are OR-connected and STRICT: at least one trigger must explicitly match.
+ *   A trigger key whose context value is undefined does NOT pass — strict semantics
+ *   ensure that e.g. `trigger.domain: components` never matches a task that did not
+ *   declare a domain.
+ * - `filter:` keys (`backend`, `frameworks.*`, `extensions`, `type`, …) declare
+ *   WHERE (project config) the rule/blueprint is applicable. They are AND-connected
+ *   and deferring: an undefined config/context value is treated as a pass.
+ *
+ * Lookup order per key: context first, config fallback (with dot-path traversal).
+ * Matching rules:
+ * - Array value → looked-up value must be one of those values
+ * - Array looked-up value → condition value must be present in that array
+ * - Scalar vs scalar → exact string match
+ * - `domain` → prefix matching via matchDomain()
+ *
+ * Returns specificity count (number of declared keys) on success, or `false` on mismatch.
+ */
+export function checkConditions(
+  trigger: Record<string, unknown> | undefined,
+  filter: Record<string, unknown> | undefined,
+  context: Record<string, unknown>,
+  config: Record<string, unknown>,
+): number | false {
+  if (filter) {
+    for (const [key, value] of Object.entries(filter)) {
+      const outcome = matchConditionKey(key, value, context, config);
+      if (outcome === 'nomatch') return false;
+    }
+  }
+
+  if (trigger && Object.keys(trigger).length > 0) {
+    let anyMatch = false;
+    for (const [key, value] of Object.entries(trigger)) {
+      const outcome = matchConditionKey(key, value, context, config);
+      if (outcome === 'match') {
+        anyMatch = true;
+        break;
+      }
+    }
+    if (!anyMatch) return false;
+  }
+
+  const triggerCount = trigger ? Object.keys(trigger).length : 0;
+  const filterCount = filter ? Object.keys(filter).length : 0;
+  return triggerCount + filterCount;
+}
+
+/**
+ * Check whether a rule's domain matches any of the effective domains.
+ *
+ * Matching rules (dot-delimited prefix matching):
+ * - Exact: "components" matches "components"
+ * - Rule is child of need: need "components" matches rule "components.layout"
+ * - Rule is parent of need: need "components.layout" matches rule "components"
+ * - No partial segment: "components" does NOT match "components-extra"
+ */
+export function matchDomain(ruleDomain: string, effectiveDomains: string[]): boolean {
+  for (const need of effectiveDomains) {
+    if (ruleDomain === need) return true;
+    if (ruleDomain.startsWith(need + '.')) return true;
+    if (need.startsWith(ruleDomain + '.')) return true;
+  }
+  return false;
+}
+
+/**
+ * Build runtime context for trigger/filter evaluation (step-specific, not config).
+ * Sets both `steps` (canonical) and `stages` (legacy alias) keys so rule files
+ * declaring `trigger.stages:` continue to match during migration.
  */
 export function buildRuntimeContext(step?: string, extraConditions?: Record<string, string>): Record<string, unknown> {
   const context: Record<string, unknown> = {};
@@ -348,14 +735,22 @@ export function buildWorktreeEnvMap(
 // ── Unified File Resolution ─────────────────────────────────────────
 
 /**
- * Find markdown files matching a glob pattern and filter by `when` frontmatter
- * conditions against context (runtime) and config (project).
+ * Find markdown files matching a glob pattern and filter by `trigger:` +
+ * `filter:` frontmatter conditions against context (runtime) and config (project).
  *
- * Returns all matches with their specificity (number of `when` keys matched).
+ * Returns all matches with their specificity (number of declared keys matched).
  *
- * When `requireWhen` is true (default), files without `when` (or empty `when`)
- * are skipped — at least one `when` condition is required. Set to false for
- * task files where unconditional matching is expected.
+ * When `requireConditions` is true (default), files without any conditions are
+ * skipped — at least one declared key across `trigger:` or `filter:` is required.
+ * Set to false for task files where unconditional matching is expected.
+ *
+ * Semantics:
+ * - `trigger:` keys (`steps`, `domain`) are OR-connected — at least one must match.
+ * - `filter:` keys (`backend`, `frameworks.*`, `extensions`, `type`) are AND-connected.
+ *
+ * Domain matching is handled inside `checkConditions()` via the `domain` key in
+ * context (set to the effective domains array). Rule/blueprint files declare
+ * `trigger.domain:` and `checkConditions` uses `matchDomain()` prefix logic.
  */
 export function resolveFiles(
   globPattern: string,
@@ -369,10 +764,13 @@ export function resolveFiles(
 
   for (const filePath of paths) {
     const frontmatter = parseFrontmatter(filePath);
-    const when = frontmatter?.when as Record<string, unknown> | undefined;
+    const trigger = frontmatter?.trigger as Record<string, unknown> | undefined;
+    const filter = frontmatter?.filter as Record<string, unknown> | undefined;
     const name = deriveArtifactName(filePath, agentsDir, frontmatter);
 
-    if (!when || Object.keys(when).length === 0) {
+    const triggerCount = trigger ? Object.keys(trigger).length : 0;
+    const filterCount = filter ? Object.keys(filter).length : 0;
+    if (triggerCount + filterCount === 0) {
       if (requireWhen) {
         continue;
       }
@@ -380,7 +778,7 @@ export function resolveFiles(
       continue;
     }
 
-    const specificity = checkWhen(when, context, config);
+    const specificity = checkConditions(trigger, filter, context, config);
     if (specificity !== false) {
       results.push({ path: filePath, name, specificity, frontmatter });
     }
@@ -499,7 +897,7 @@ export function resolveTaskFiles(stage: string, config: DesignbookConfig, agents
   const context = buildRuntimeContext(stage);
   const enrichedConfig = buildEnrichedConfig(config);
 
-  // Primary: broad scan — find all tasks with when.steps matching this stage
+  // Primary: broad scan — find all tasks with trigger.steps matching this stage
   const broadMatches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, true);
 
   // Named stage (skill:task format): return single best match
@@ -514,7 +912,9 @@ export function resolveTaskFiles(stage: string, config: DesignbookConfig, agents
     const taskName = parts[1] ?? '';
     const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
     if (existsSync(taskPath)) {
-      console.warn(`[designbook] task "${taskPath}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+      console.warn(
+        `[designbook] task "${taskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
+      );
       return [taskPath];
     }
     return [];
@@ -529,7 +929,7 @@ export function resolveTaskFiles(stage: string, config: DesignbookConfig, agents
   const filenameMatches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir, false);
   if (filenameMatches.length > 0) {
     for (const m of filenameMatches) {
-      console.warn(`[designbook] task "${m.path}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+      console.warn(`[designbook] task "${m.path}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`);
     }
     return filenameMatches.map((m) => m.path);
   }
@@ -545,7 +945,7 @@ export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, ag
   const context = buildRuntimeContext(stage);
   const enrichedConfig = buildEnrichedConfig(config);
 
-  // Primary: broad scan — find all tasks with when.steps matching this stage
+  // Primary: broad scan — find all tasks with trigger.steps matching this stage
   const broadMatches = resolveFiles('skills/**/tasks/*.md', context, enrichedConfig, agentsDir, true);
 
   // Named stage (skill:task format): return single best match, no dedup needed
@@ -560,7 +960,9 @@ export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, ag
     const taskName = parts[1] ?? '';
     const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
     if (existsSync(taskPath)) {
-      console.warn(`[designbook] task "${taskPath}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+      console.warn(
+        `[designbook] task "${taskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
+      );
       const frontmatter = parseFrontmatter(taskPath);
       const name = deriveArtifactName(taskPath, agentsDir, frontmatter);
       return [{ path: taskPath, name, specificity: 0, frontmatter }];
@@ -577,7 +979,7 @@ export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, ag
   const filenameMatches = resolveFiles(`skills/**/tasks/${stage}.md`, context, enrichedConfig, agentsDir, false);
   if (filenameMatches.length > 0) {
     for (const m of filenameMatches) {
-      console.warn(`[designbook] task "${m.path}" resolved by filename — add when.steps: [${stage}] to frontmatter`);
+      console.warn(`[designbook] task "${m.path}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`);
     }
     return deduplicateByNameAs(filenameMatches, agentsDir);
   }
@@ -589,16 +991,24 @@ export function resolveTaskFilesRich(stage: string, config: DesignbookConfig, ag
 
 /**
  * Scan all rule files and return paths matching the given stage and config.
+ *
+ * Domain matching is handled via `trigger.domain` in each rule file, evaluated
+ * by `checkConditions()` using `matchDomain()` prefix logic. The `effectiveDomains`
+ * are injected into the runtime context as `context.domain`.
  */
 export function matchRuleFiles(
   stage: string,
   config: DesignbookConfig,
   agentsDir: string,
   extraConditions?: Record<string, string>,
+  effectiveDomains?: string[],
 ): string[] {
   const context = buildRuntimeContext(stage, extraConditions);
+  if (effectiveDomains && effectiveDomains.length > 0) {
+    context['domain'] = effectiveDomains;
+  }
   const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir);
+  const matches = resolveFiles('skills/**/rules/*.md', context, enrichedConfig, agentsDir, true);
   return matches.map((m) => m.path);
 }
 
@@ -606,22 +1016,29 @@ export function matchRuleFiles(
 
 /**
  * Scan all blueprint files and return paths matching the given stage and config.
- * Blueprints use the same when-frontmatter matching as rules.
+ * Blueprints use the same trigger/filter frontmatter matching as rules.
  *
  * Unlike rules (which are additive), blueprints are unique per `type`+`name`.
  * If multiple skills define the same type+name blueprint, the one with the
  * highest `priority` frontmatter field wins (default: 0). Equal priority
  * uses last-match-wins (skills are globbed alphabetically).
+ *
+ * Domain matching is handled via `trigger.domain` in each blueprint file, evaluated
+ * by `checkConditions()` using `matchDomain()` prefix logic.
  */
 export function matchBlueprintFiles(
   stage: string,
   config: DesignbookConfig,
   agentsDir: string,
   extraConditions?: Record<string, string>,
+  effectiveDomains?: string[],
 ): string[] {
   const context = buildRuntimeContext(stage, extraConditions);
+  if (effectiveDomains && effectiveDomains.length > 0) {
+    context['domain'] = effectiveDomains;
+  }
   const enrichedConfig = buildEnrichedConfig(config);
-  const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir);
+  const matches = resolveFiles('skills/**/blueprints/*.md', context, enrichedConfig, agentsDir, true);
 
   // Deduplicate by type+name — highest priority wins, equal priority = last match wins
   const byKey = new Map<string, { path: string; priority: number }>();
@@ -643,105 +1060,192 @@ export function matchBlueprintFiles(
 // ── File Path Expansion ─────────────────────────────────────────────
 
 /**
- * Expand a file path template by substituting {{ param }} and ${ENV_VAR} placeholders.
- */
-/**
- * Expand {param} and {{ param }} placeholders in a template string.
- * Unknown {param} placeholders are left as-is (for runtime resolution).
- * Unknown {{ param }} placeholders throw (strict mode for legacy paths).
- */
-export function expandParams(template: string, params: Record<string, unknown>): string {
-  let result = template;
-
-  const stringifyParam = (value: unknown): string => {
-    if (value === null || value === undefined) return '';
-    if (typeof value !== 'object') return String(value);
-    if (Array.isArray(value)) {
-      const first = value[0];
-      if (first && typeof first === 'object') {
-        if ('scene' in first) return String(first.scene);
-        if ('storyId' in first) return String(first.storyId);
-      }
-      return JSON.stringify(value);
-    }
-    return JSON.stringify(value);
-  };
-
-  // Expand {{ param }} patterns (strict — throws on unknown)
-  result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_match, paramName) => {
-    if (params[paramName] !== undefined) return stringifyParam(params[paramName]);
-    throw new Error(`Unknown param: {{ ${paramName} }} in "${template}"`);
-  });
-
-  // Expand {param} patterns (lenient — leaves unknown as-is for runtime resolution)
-  result = result.replace(/\{(\w+)\}/g, (match, paramName) => {
-    if (params[paramName] !== undefined) return stringifyParam(params[paramName]);
-    return match;
-  });
-
-  return result;
-}
-
-export function expandFilePath(
-  template: string,
-  params: Record<string, unknown>,
-  envMap: Record<string, string>,
-): string {
-  let result = template;
-
-  // Expand ${VAR} and $VAR patterns (env vars)
-  result = result.replace(/\$\{(\w+)\}/g, (_match, varName) => {
-    if (envMap[varName] !== undefined) return envMap[varName];
-    throw new Error(`Unknown environment variable: \${${varName}} in path "${template}"`);
-  });
-  result = result.replace(/\$([A-Z_][A-Z0-9_]*)/g, (_match, varName) => {
-    if (envMap[varName] !== undefined) return envMap[varName];
-    throw new Error(`Unknown environment variable: $${varName} in path "${template}"`);
-  });
-
-  // Expand param placeholders
-  result = expandParams(result, params);
-
-  return result;
-}
-
-/**
  * Expand all file declarations from a task file's frontmatter.
  * Expands the `file` path template, passes through `key` and `validators`.
  */
-export function expandFileDeclarations(
+export async function expandFileDeclarations(
   declarations: TaskFileDeclaration[],
   params: Record<string, unknown>,
   envMap: Record<string, string>,
   validatorKeys?: Set<string>,
-): Array<{ path: string; key: string; validators: string[] }> {
+): Promise<Array<{ path: string; key: string; validators: string[] }>> {
   const keys = new Set<string>();
-  return declarations.map((d) => {
-    if (keys.has(d.key)) {
-      throw new Error(`Duplicate key '${d.key}' in file declarations`);
-    }
-    keys.add(d.key);
-    const validators = d.validators ?? [];
-    if (validatorKeys) {
-      for (const v of validators) {
-        if (v.startsWith('cmd:')) continue; // cmd: validators are shell commands, not registry keys
-        if (!validatorKeys.has(v)) {
-          throw new Error(
-            `Unknown validator key '${v}' in file '${d.key}'. Available: ${[...validatorKeys].join(', ')}`,
-          );
+  return Promise.all(
+    declarations.map(async (d) => {
+      if (keys.has(d.key)) {
+        throw new Error(`Duplicate key '${d.key}' in file declarations`);
+      }
+      keys.add(d.key);
+      const validators = d.validators ?? [];
+      if (validatorKeys) {
+        for (const v of validators) {
+          if (v.startsWith('cmd:')) continue; // cmd: validators are shell commands, not registry keys
+          if (!validatorKeys.has(v)) {
+            throw new Error(
+              `Unknown validator key '${v}' in file '${d.key}'. Available: ${[...validatorKeys].join(', ')}`,
+            );
+          }
         }
       }
+      const template = d.path ?? d.file;
+      if (!template) {
+        throw new Error(`File declaration '${d.key}' has no 'path' or 'file' property`);
+      }
+      return {
+        path: await interpolate(template, params, { envMap }),
+        key: d.key,
+        validators,
+      };
+    }),
+  );
+}
+
+/**
+ * Expand result declarations from task frontmatter.
+ * Converts `result:` map entries to TaskResult-compatible objects.
+ * File results (with path:) get expanded paths. Data results pass through.
+ *
+ * Also handles `files:` → `result:` fallback for backwards compatibility.
+ */
+export async function expandResultDeclarations(
+  resultDecl: Record<string, unknown> | undefined,
+  filesDecl: TaskFileDeclaration[] | undefined,
+  params: Record<string, unknown>,
+  envMap: Record<string, string>,
+  validatorKeys?: Set<string>,
+  /** When true, leave unknown $VARS in paths instead of throwing. */
+  lenient?: boolean,
+): Promise<
+  | Record<
+      string,
+      {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      }
+    >
+  | undefined
+> {
+  // Prefer result: over files:
+  if (resultDecl) {
+    const properties = (resultDecl as Record<string, unknown>).properties as
+      | Record<string, ResultDeclaration>
+      | undefined;
+    if (!properties) return undefined;
+
+    const result: Record<
+      string,
+      {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      }
+    > = {};
+    for (const [key, decl] of Object.entries(properties)) {
+      // Legacy value migration — reject with explicit hint
+      if (decl.flush === ('immediately' as unknown)) {
+        throw new Error(
+          `Result '${key}': \`flush: immediately\` is no longer supported. Replace with \`flush: immediate\`.`,
+        );
+      }
+      if (decl.flush === ('external' as unknown)) {
+        throw new Error(
+          `Result '${key}': \`flush: external\` is no longer supported. Replace with \`submission: direct\`.`,
+        );
+      }
+
+      // Validate submission enum
+      if (decl.submission !== undefined && decl.submission !== 'data' && decl.submission !== 'direct') {
+        throw new Error(
+          `Result '${key}': \`submission\` must be one of: data, direct (got "${String(decl.submission)}").`,
+        );
+      }
+
+      // Validate flush enum
+      if (decl.flush !== undefined && decl.flush !== 'deferred' && decl.flush !== 'immediate') {
+        throw new Error(
+          `Result '${key}': \`flush\` must be one of: deferred, immediate (got "${String(decl.flush)}").`,
+        );
+      }
+
+      const submission: 'data' | 'direct' = decl.submission ?? 'data';
+      const flush: 'deferred' | 'immediate' | undefined =
+        submission === 'direct' ? undefined : (decl.flush ?? 'deferred');
+
+      const validators = decl.validators ?? [];
+      if (validatorKeys) {
+        for (const v of validators) {
+          if (v.startsWith('cmd:')) continue;
+          if (!validatorKeys.has(v)) {
+            throw new Error(
+              `Unknown validator key '${v}' in result '${key}'. Available: ${[...validatorKeys].join(', ')}`,
+            );
+          }
+        }
+      }
+
+      // Build inline schema from declaration (exclude path, validators, $ref, submission, flush)
+      let schema: object | undefined;
+      const {
+        path: _path,
+        validators: _validators,
+        $ref: _ref,
+        submission: _sub,
+        flush: _flush,
+        ...schemaProps
+      } = decl;
+      if (Object.keys(schemaProps).length > 0) {
+        schema = schemaProps as object;
+      }
+
+      const entry: {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      } = { submission };
+      if (flush !== undefined) entry.flush = flush;
+      if (decl.path) {
+        entry.path = await interpolate(decl.path, params, { envMap, lenient });
+      }
+      if (schema) entry.schema = schema;
+      if (validators.length > 0) entry.validators = validators;
+
+      result[key] = entry;
     }
-    const template = d.path ?? d.file;
-    if (!template) {
-      throw new Error(`File declaration '${d.key}' has no 'path' or 'file' property`);
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  // Fallback: convert files: to result: format (deprecated)
+  if (filesDecl && filesDecl.length > 0) {
+    const result: Record<
+      string,
+      {
+        path?: string;
+        schema?: object;
+        validators?: string[];
+        submission: 'data' | 'direct';
+        flush?: 'deferred' | 'immediate';
+      }
+    > = {};
+    const expanded = await expandFileDeclarations(filesDecl, params, envMap, validatorKeys);
+    for (const f of expanded) {
+      result[f.key] = {
+        path: f.path,
+        submission: 'data',
+        flush: 'deferred',
+        ...(f.validators.length > 0 && { validators: f.validators }),
+      };
     }
-    return {
-      path: expandFilePath(template, params, envMap),
-      key: d.key,
-      validators,
-    };
-  });
+    return result;
+  }
+
+  return undefined;
 }
 
 // ── Config Resolution ───────────────────────────────────────────────
@@ -780,27 +1284,143 @@ export function resolveConfigForStep(
  * Required params (value is null/~) must be provided.
  * Optional params (value is a default) are filled from schema if absent.
  */
+/**
+ * Resolve a `$ref` in a `params:` declaration.
+ * Extracts `properties` from the referenced schema and merges with explicit entries (explicit wins).
+ */
+export function resolveParamsRef(
+  params: Record<string, unknown>,
+  taskFilePath: string,
+  skillsRoot: string,
+): Record<string, unknown> {
+  const ref = params['$ref'] as string;
+  const { schema } = resolveSchemaRef(ref, taskFilePath, skillsRoot);
+
+  const schemaObj = schema as Record<string, unknown>;
+  const schemaProps = schemaObj.properties as Record<string, unknown> | undefined;
+  if (!schemaProps) {
+    throw new Error(
+      `$ref '${ref}' in params: resolved to a schema without 'properties'. ` +
+        `params: $ref must point to an object schema with properties.`,
+    );
+  }
+
+  // Merge properties: $ref first, explicit overrides
+  const explicitProps = (params.properties ?? {}) as Record<string, unknown>;
+  const mergedProperties: Record<string, unknown> = { ...schemaProps, ...explicitProps };
+
+  // Concatenate required arrays
+  const schemaRequired = (schemaObj.required ?? []) as string[];
+  const explicitRequired = (params.required ?? []) as string[];
+  const mergedRequired = [...schemaRequired, ...explicitRequired];
+
+  // Build merged result: copy all non-special keys, then set merged values
+  const resolved: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (key === '$ref' || key === 'properties' || key === 'required') continue;
+    resolved[key] = value;
+  }
+  resolved.properties = mergedProperties;
+  if (mergedRequired.length > 0) {
+    resolved.required = mergedRequired;
+  }
+
+  return resolved;
+}
+
+/**
+ * Check whether a param value is a valid inline JSON Schema object.
+ * Valid: object with a `type` property (e.g. `{ type: 'string' }`, `{ type: 'array', default: [] }`).
+ * Invalid (old format): null, bare array, bare object without `type`, scalar.
+ */
+export function isJsonSchemaParam(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) && ('type' in value || '$ref' in value);
+}
+
+/**
+ * Validate that all params in a task file use inline JSON Schema format.
+ * Throws with descriptive error on old-format params.
+ */
+export function validateParamFormats(params: Record<string, unknown>, taskFile: string): void {
+  const properties = params.properties as Record<string, unknown> | undefined;
+  if (!properties) {
+    // Check if this looks like a flat map (has keys that look like param names)
+    const hasParamLikeKeys = Object.keys(params).some(
+      (k) => k !== 'type' && k !== 'required' && k !== 'properties' && k !== '$ref',
+    );
+    if (hasParamLikeKeys) {
+      throw new Error(
+        `Params in ${taskFile} must use wrapper format: { type: object, properties: { ... } }. ` +
+          `Found flat map keys: ${Object.keys(params).join(', ')}.`,
+      );
+    }
+    return; // Truly empty params — OK
+  }
+
+  for (const [key, value] of Object.entries(properties)) {
+    if (isJsonSchemaParam(value)) continue;
+
+    const got =
+      value === null
+        ? 'null'
+        : Array.isArray(value)
+          ? 'array'
+          : typeof value === 'object'
+            ? 'object without "type"'
+            : typeof value;
+    throw new Error(
+      `Invalid param "${key}" in ${taskFile}: expected JSON Schema object with "type" property, got ${got}. ` +
+        `Migrate to inline JSON Schema (e.g. { type: string } or { type: array, default: [] }).`,
+    );
+  }
+}
+
+/**
+ * Extract the default value from a JSON Schema param, or undefined if required.
+ */
+function extractParamDefault(schema: Record<string, unknown>): { hasDefault: boolean; default?: unknown } {
+  if ('default' in schema) {
+    return { hasDefault: true, default: schema.default };
+  }
+  return { hasDefault: false };
+}
+
 export function validateAndMergeParams(
   itemParams: Record<string, unknown>,
   schemaParams: Record<string, unknown>,
   step: string,
 ): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...itemParams };
+  const properties = (schemaParams.properties ?? {}) as Record<string, unknown>;
+  const requiredKeys = new Set((schemaParams.required ?? []) as string[]);
 
   const missing: string[] = [];
-  for (const [key, defaultValue] of Object.entries(schemaParams)) {
+  for (const [key, value] of Object.entries(properties)) {
     if (merged[key] !== undefined) continue;
 
-    if (defaultValue === null) {
+    // Skip file-input params — they're read from disk by the AI, not provided via CLI
+    if (isJsonSchemaParam(value) && 'path' in value) continue;
+
+    if (isJsonSchemaParam(value)) {
+      const def = extractParamDefault(value);
+      if (def.hasDefault) {
+        merged[key] = def.default;
+      } else if (requiredKeys.has(key)) {
+        missing.push(key);
+      }
+      // Not required and no default → skip (optional, caller didn't provide)
+    } else if (requiredKeys.has(key)) {
       missing.push(key);
-    } else {
-      merged[key] = defaultValue;
     }
   }
 
   if (missing.length > 0) {
-    const paramList = Object.entries(schemaParams)
-      .map(([k, v]) => `${k} (${v === null ? 'required' : 'optional'})`)
+    const paramList = Object.entries(properties)
+      .filter(([, v]) => !(isJsonSchemaParam(v as Record<string, unknown>) && 'path' in (v as Record<string, unknown>)))
+      .map(([k]) => {
+        const isRequired = requiredKeys.has(k);
+        return `${k} (${isRequired ? 'required' : 'optional'})`;
+      })
       .join(', ');
     throw new Error(`Missing required param '${missing[0]}' for step '${step}'. Expected params: ${paramList}`);
   }
@@ -851,12 +1471,18 @@ export interface ResolvedStep {
   blueprints: string[];
   config_rules: string[];
   config_instructions: string[];
+  /** Unified schema block (params, result, definitions). Only present when the task declares params/result. */
+  schema?: SchemaBlock;
 }
 
 export interface ExpectedParam {
   required: boolean;
   from_step: string;
   default?: unknown;
+  /** Name of a registered param resolver to run before stage-start. Declared by the task. */
+  resolve?: string;
+  /** Optional `from` param passed to the resolver (chained resolution). */
+  from?: string;
 }
 
 export interface ResolvedSteps {
@@ -871,12 +1497,12 @@ export interface ResolvedSteps {
 /**
  * Resolve ALL steps from a workflow file at create time.
  */
-export function resolveAllStages(
+export async function resolveAllStages(
   workflowFilePath: string,
   config: DesignbookConfig,
   rawConfig: Record<string, unknown>,
   agentsDir: string,
-): ResolvedSteps {
+): Promise<ResolvedSteps> {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
   const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
 
@@ -891,6 +1517,7 @@ export function resolveAllStages(
   const stepResolved: Record<string, ResolvedStep | ResolvedStep[]> = {};
   const resolvedSteps: string[] = [];
   const expectedParams: Record<string, ExpectedParam> = {};
+  const collectedSchemas: Record<string, object> = {};
 
   for (const step of allSteps ?? []) {
     let resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir);
@@ -904,6 +1531,31 @@ export function resolveAllStages(
     }
     const taskFilePaths = resolvedTaskFiles.map((r) => r.path);
 
+    // Compute effectiveDomains: union of domain: from task files + stage definition
+    const effectiveDomains: string[] = [];
+    for (const taskFile of taskFilePaths) {
+      const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
+      const taskDomain = taskFm?.domain;
+      if (taskDomain !== undefined) {
+        const domains: string[] = Array.isArray(taskDomain)
+          ? (taskDomain as string[]).map(String)
+          : [String(taskDomain)];
+        for (const d of domains) {
+          if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
+        }
+      }
+    }
+    // Also include domain from the stage definition (if any)
+    if (stageDefs) {
+      for (const [, stageDef] of Object.entries(stageDefs)) {
+        if (stageDef.steps?.includes(step) && stageDef.domain) {
+          for (const d of stageDef.domain) {
+            if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
+          }
+        }
+      }
+    }
+
     // Match rules/blueprints for the step name AND variant names:
     // - If step is plain (e.g. "intake"), also try workflow-qualified ("vision:intake")
     // - If step is already qualified (e.g. "design-screen:map-entity"), also try base ("map-entity")
@@ -916,19 +1568,91 @@ export function resolveAllStages(
     if (isQualified && baseStep !== step) stepsToMatch.push(baseStep);
     if (qualifiedStep && qualifiedStep !== step) stepsToMatch.push(qualifiedStep);
 
+    const effectiveDomainsArg = effectiveDomains.length > 0 ? effectiveDomains : undefined;
     const ruleFiles: string[] = [];
     for (const s of stepsToMatch) {
-      for (const r of matchRuleFiles(s, config, agentsDir)) {
+      for (const r of matchRuleFiles(s, config, agentsDir, undefined, effectiveDomainsArg)) {
         if (!ruleFiles.includes(r)) ruleFiles.push(r);
       }
     }
     const blueprintFiles: string[] = [];
     for (const s of stepsToMatch) {
-      for (const b of matchBlueprintFiles(s, config, agentsDir)) {
+      for (const b of matchBlueprintFiles(s, config, agentsDir, undefined, effectiveDomainsArg)) {
         if (!blueprintFiles.includes(b)) blueprintFiles.push(b);
       }
     }
     const { config_rules, config_instructions } = resolveConfigForStep(step, rawConfig);
+
+    // Read frontmatter from primary task file for schema block
+    const primaryTaskFile = taskFilePaths[0]!;
+    const taskFmForSchema = parseFrontmatter(primaryTaskFile) as TaskFileFrontmatter | null;
+
+    // Schema composition: merge base result schemas with rule/blueprint extensions
+    let mergedSchema: Record<string, object> | undefined;
+    if (ruleFiles.length > 0 || blueprintFiles.length > 0) {
+      if (taskFmForSchema?.result) {
+        const resultProps = (taskFmForSchema.result as Record<string, unknown>).properties as
+          | Record<string, Record<string, unknown>>
+          | undefined;
+        const baseResult: Record<string, { schema?: object }> = {};
+        const refMap: Record<string, string> = {};
+        if (resultProps) {
+          for (const [rk, rv] of Object.entries(resultProps)) {
+            // Build inline schema from result declaration (excluding path/$ref/validators)
+            const { path: _path, $ref: ref, validators: _validators, ...schemaProps } = rv;
+            // Always include the result key — even $ref-only entries need a merge target
+            // so that blueprint extends can contribute properties (e.g. component tokens)
+            baseResult[rk] = { schema: Object.keys(schemaProps).length > 0 ? schemaProps : {} };
+            // Map result key → definition name for schema-name-based matching
+            if (typeof ref === 'string') {
+              const defName = String(ref).split('#/').pop()?.split('/').pop();
+              if (defName) refMap[rk] = defName;
+            }
+          }
+        }
+        if (Object.keys(baseResult).length > 0) {
+          mergedSchema = computeMergedSchema(baseResult, {
+            blueprintFiles,
+            ruleFiles,
+            skillsRoot: resolve(agentsDir, 'skills'),
+            schemas: collectedSchemas,
+            refMap,
+          });
+        }
+      }
+    }
+
+    // Build unified schema block from task frontmatter
+    const envMap = buildEnvMap(config);
+    const schemaBlock = await buildSchemaBlock({
+      params: taskFmForSchema?.params as Record<string, unknown> | undefined,
+      result: taskFmForSchema?.result as Record<string, unknown> | undefined,
+      taskFilePath: primaryTaskFile,
+      skillsRoot: resolve(agentsDir, 'skills'),
+      envMap,
+    });
+
+    // Merge schema composition results into schema block definitions
+    if (mergedSchema) {
+      for (const [resultKey, composedSchema] of Object.entries(mergedSchema)) {
+        const resultEntry = schemaBlock.result[resultKey];
+        if (resultEntry?.$ref) {
+          // Result references a definition — merge into that definition
+          const defName = resultEntry.$ref.replace('#/definitions/', '');
+          if (schemaBlock.definitions[defName]) {
+            Object.assign(schemaBlock.definitions[defName], composedSchema);
+          }
+        } else {
+          // Inline result — store composed schema in definitions keyed by result key
+          schemaBlock.definitions[resultKey] = composedSchema;
+        }
+      }
+    }
+
+    const hasSchema =
+      Object.keys(schemaBlock.definitions).length > 0 ||
+      Object.keys(schemaBlock.params).length > 0 ||
+      Object.keys(schemaBlock.result).length > 0;
 
     if (taskFilePaths.length === 1) {
       stepResolved[step] = {
@@ -937,6 +1661,7 @@ export function resolveAllStages(
         blueprints: blueprintFiles,
         config_rules,
         config_instructions,
+        ...(hasSchema ? { schema: schemaBlock } : {}),
       };
     } else {
       // Multiple tasks per step: ordered by priority (from deduplicateByNameAs)
@@ -946,27 +1671,53 @@ export function resolveAllStages(
         blueprints: blueprintFiles,
         config_rules,
         config_instructions,
+        ...(hasSchema ? { schema: schemaBlock } : {}),
       }));
     }
     resolvedSteps.push(step);
 
     // Aggregate expected_params from task file frontmatter
+    const skillsRoot = resolve(agentsDir, 'skills');
     for (const taskFile of taskFilePaths) {
       const taskFm = parseFrontmatter(taskFile) as Record<string, unknown> | null;
-      const params = taskFm?.params as Record<string, unknown> | undefined;
+      let params = taskFm?.params as Record<string, unknown> | undefined;
       if (!params) continue;
-      for (const [key, value] of Object.entries(params)) {
-        const isRequired = value === null;
+
+      // Resolve $ref in params before validation
+      if ('$ref' in params) {
+        params = resolveParamsRef(params, taskFile, skillsRoot);
+      }
+
+      // Validate all params use inline JSON Schema format
+      validateParamFormats(params, taskFile);
+
+      const properties = (params.properties ?? {}) as Record<string, unknown>;
+      const requiredKeys = new Set((params.required ?? []) as string[]);
+
+      for (const [key, value] of Object.entries(properties)) {
+        const schema = value as Record<string, unknown>;
+        const def = extractParamDefault(schema);
+        const isRequired = requiredKeys.has(key) || !def.hasDefault;
+        const resolveName = typeof schema.resolve === 'string' ? (schema.resolve as string) : undefined;
+        const fromName = typeof schema.from === 'string' ? (schema.from as string) : undefined;
+
         if (key in expectedParams) {
           // If ANY step marks it required, it stays required
           if (isRequired && !expectedParams[key]!.required) {
             expectedParams[key]!.required = true;
           }
+          // Task-declared resolver wins over an earlier task with no resolver.
+          if (resolveName && !expectedParams[key]!.resolve) {
+            expectedParams[key]!.resolve = resolveName;
+            if (fromName) expectedParams[key]!.from = fromName;
+          }
         } else {
           expectedParams[key] = {
             required: isRequired,
             from_step: step,
-            ...(isRequired ? {} : { default: value }),
+            ...(def.hasDefault ? { default: def.default } : {}),
+            ...(resolveName ? { resolve: resolveName } : {}),
+            ...(resolveName && fromName ? { from: fromName } : {}),
           };
         }
       }
@@ -981,6 +1732,56 @@ export function resolveAllStages(
     step_resolved: stepResolved,
     expected_params: expectedParams,
   };
+}
+
+/**
+ * Run task-level `resolve:` declarations for the given stage with the current
+ * workflow params as input. Used at stage transition (after intake, before
+ * task expansion) so resolvers see the up-to-date params rather than the
+ * stale values that were available at workflow create time.
+ *
+ * Returns a new params record with resolved values merged in. Unresolved
+ * params are silently skipped — the merged schema validator at task dispatch
+ * will surface any still-missing required values.
+ */
+export async function resolveStageTaskParams(
+  stageLoaded: Record<string, ResolvedStep | ResolvedStep[]>,
+  stageDef: { steps?: string[] },
+  currentParams: Record<string, unknown>,
+  config: DesignbookConfig,
+): Promise<import('./resolvers/registry.js').ResolveParamsResult> {
+  const { resolveParams } = await import('./resolvers/registry.js');
+
+  const schema: Record<string, Record<string, unknown>> = {};
+  const steps = stageDef.steps ?? [];
+
+  for (const step of steps) {
+    const entry = stageLoaded[step];
+    if (!entry) continue;
+    const resolvedSteps = Array.isArray(entry) ? entry : [entry];
+
+    for (const rs of resolvedSteps) {
+      const fm = parseFrontmatter(rs.task_file) as TaskFileFrontmatter | null;
+      const params = fm?.params;
+      if (!params) continue;
+      const properties = (params.properties ?? {}) as Record<string, unknown>;
+      for (const [key, value] of Object.entries(properties)) {
+        if (typeof value !== 'object' || value === null) continue;
+        const schemaEntry = value as Record<string, unknown>;
+        if (typeof schemaEntry.resolve !== 'string') continue;
+        // First task that declares a resolver for this key wins (matches resolveAllStages)
+        if (!(key in schema)) {
+          schema[key] = schemaEntry;
+        }
+      }
+    }
+  }
+
+  if (Object.keys(schema).length === 0) {
+    return { allResolved: true, resolved: {}, unresolved: {}, params: currentParams };
+  }
+
+  return resolveParams(schema, { config, params: currentParams });
 }
 
 // ── Main Resolution Function ────────────────────────────────────────
@@ -1003,14 +1804,14 @@ export function inferTaskType(stage: string): string {
 /**
  * Generate a human-readable task title from stage and params.
  */
-export function generateTaskTitle(
+export async function generateTaskTitle(
   stage: string,
   params: Record<string, unknown>,
   schemaParams?: Record<string, unknown>,
   explicitTitle?: string,
-): string {
+): Promise<string> {
   if (explicitTitle) {
-    return expandParams(explicitTitle, params);
+    return interpolate(explicitTitle, params);
   }
 
   // Derive title from step name
@@ -1037,7 +1838,7 @@ export function generateTaskTitle(
 /**
  * Resolve a full workflow plan from items + pre-resolved step data.
  */
-export function resolveWorkflowPlan(
+export async function resolveWorkflowPlan(
   workflowFilePath: string,
   globalParams: Record<string, unknown>,
   items: PlanItem[],
@@ -1045,7 +1846,7 @@ export function resolveWorkflowPlan(
   rawConfig: Record<string, unknown>,
   agentsDir: string,
   stepResolved?: Record<string, ResolvedStep>,
-): ResolvedPlan {
+): Promise<ResolvedPlan> {
   const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
   const allSteps = wfFm ? getWorkflowSteps(wfFm) : undefined;
   if (!allSteps) {
@@ -1092,12 +1893,21 @@ export function resolveWorkflowPlan(
       ? Array.isArray(preResolved)
         ? preResolved
         : [preResolved]
-      : resolveTaskFiles(step, config, agentsDir).map((taskFile) => ({
-          task_file: taskFile,
-          rules: matchRuleFiles(step, config, agentsDir),
-          blueprints: matchBlueprintFiles(step, config, agentsDir),
-          ...resolveConfigForStep(step, rawConfig),
-        }));
+      : resolveTaskFiles(step, config, agentsDir).map((taskFile) => {
+          // Compute effectiveDomains from the task file's domain: declaration
+          const taskFmDomain = parseFrontmatter(taskFile)?.domain;
+          const ed: string[] = taskFmDomain
+            ? Array.isArray(taskFmDomain)
+              ? (taskFmDomain as string[]).map(String)
+              : [String(taskFmDomain)]
+            : [];
+          return {
+            task_file: taskFile,
+            rules: matchRuleFiles(step, config, agentsDir, undefined, ed.length > 0 ? ed : undefined),
+            blueprints: matchBlueprintFiles(step, config, agentsDir, undefined, ed.length > 0 ? ed : undefined),
+            ...resolveConfigForStep(step, rawConfig),
+          };
+        });
 
     if (resolvedEntries.length === 0) {
       console.debug(`[Designbook] workflow plan: step "${step}" skipped — no matching task file`);
@@ -1112,9 +1922,12 @@ export function resolveWorkflowPlan(
       for (const item of stepItems) {
         const mergedParams = validateAndMergeParams(item.params ?? {}, schemaParams, step);
         const taskId = generateTaskId(step, mergedParams, schemaParams);
-        const title = generateTaskTitle(step, mergedParams, schemaParams);
+        const title = await generateTaskTitle(step, mergedParams, schemaParams);
         const type = inferTaskType(step);
-        const files = expandFileDeclarations(fileDeclarations, mergedParams, envMap);
+        const files = await expandFileDeclarations(fileDeclarations, mergedParams, envMap);
+
+        // Expand result: declarations (new model), with files: fallback
+        const result = await expandResultDeclarations(taskFm?.result, taskFm?.files, mergedParams, envMap);
 
         tasks.push({
           id: taskId,
@@ -1129,6 +1942,7 @@ export function resolveWorkflowPlan(
           config_rules: resolved.config_rules,
           config_instructions: resolved.config_instructions,
           files,
+          ...(result && { result }),
         });
       }
     }
@@ -1136,9 +1950,14 @@ export function resolveWorkflowPlan(
 
   deduplicateTaskIds(tasks);
 
+  // Resolve $ref schemas from all tasks (Task 1.3 — fail-fast on unresolvable $ref)
+  const skillsRoot = resolve(agentsDir, 'skills');
+  const schemas = collectAndResolveSchemas(tasks, skillsRoot);
+
   return {
     params: globalParams,
     steps: allSteps,
     tasks,
+    ...(Object.keys(schemas).length > 0 && { schemas }),
   };
 }

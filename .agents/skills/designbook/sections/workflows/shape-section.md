@@ -2,9 +2,7 @@
 title: Shape Section
 description: Define a section specification — user flows, UI requirements, and scope
 stages:
-  intake:
-    steps: [shape-section:intake]
-  execute:
-    steps: [create-section]
+  create-section:
+    steps: [create-scene-file]
 engine: direct
 ---

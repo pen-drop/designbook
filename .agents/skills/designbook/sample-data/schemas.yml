@@ -1,0 +1,11 @@
+# Sample data concern schemas
+
+SampleData:
+  type: object
+  properties:
+    content:
+      type: object
+      additionalProperties: true
+    config:
+      type: object
+      additionalProperties: true

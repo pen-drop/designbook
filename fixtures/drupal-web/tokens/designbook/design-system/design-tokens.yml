@@ -1,275 +1,322 @@
 primitive:
   color:
-    navy-600:
-      $value: "#00336a"
-      $type: color
-    navy-700:
-      $value: "#002952"
-      $type: color
-    navy-800:
-      $value: "#001f3d"
-      $type: color
-    blue-500:
-      $value: "#124e9b"
-      $type: color
-    blue-600:
-      $value: "#0d6efd"
-      $type: color
-    green-600:
-      $value: "#056336"
-      $type: color
-    green-700:
-      $value: "#044a29"
-      $type: color
-    lime-500:
-      $value: "#95c11f"
-      $type: color
-    lime-600:
-      $value: "#7da319"
-      $type: color
-    purple-500:
-      $value: "#6d4f9b"
-      $type: color
-    purple-600:
-      $value: "#5a3f82"
-      $type: color
-    neutral-50:
-      $value: "#ffffff"
-      $type: color
-    neutral-100:
-      $value: "#f8f9fa"
-      $type: color
-    neutral-200:
-      $value: "#ececec"
-      $type: color
-    neutral-300:
-      $value: "#dee2e6"
-      $type: color
-    neutral-500:
-      $value: "#6b6a6a"
-      $type: color
-    neutral-800:
-      $value: "#212529"
-      $type: color
-    neutral-900:
-      $value: "#000000"
-      $type: color
-  typography:
-    reef:
-      $value: "Reef"
+    blue:
+      '500':
+        $value: '#5a84c3'
+        $type: color
+      '700':
+        $value: '#124e9b'
+        $type: color
+      '900':
+        $value: '#00336a'
+        $type: color
+    green:
+      '100':
+        $value: '#eaf3d2'
+        $type: color
+      '500':
+        $value: '#95c11f'
+        $type: color
+      '900':
+        $value: '#056336'
+        $type: color
+    green-transparent:
+      '100':
+        $value: 'rgba(149, 193, 31, .1)'
+        $type: color
+      '250':
+        $value: 'rgba(5, 99, 54, .25)'
+        $type: color
+    purple:
+      '500':
+        $value: '#6d4f9b'
+        $type: color
+    red:
+      '500':
+        $value: '#dd5234'
+        $type: color
+    link:
+      '500':
+        $value: '#0d6efd'
+        $type: color
+    neutral:
+      '0':
+        $value: '#ffffff'
+        $type: color
+      '50':
+        $value: '#f7f7f7'
+        $type: color
+      '100':
+        $value: '#ececec'
+        $type: color
+      '300':
+        $value: '#b2b2b2'
+        $type: color
+      '500':
+        $value: '#6b6a6a'
+        $type: color
+      '900':
+        $value: '#212529'
+        $type: color
+      '950':
+        $value: '#000000'
+        $type: color
+  fontFamily:
+    heading:
+      $value: Reef, sans-serif
       $type: fontFamily
-    sarabun:
-      $value: "Sarabun"
+    body:
+      $value: '"Sarabun Regular", sans-serif'
       $type: fontFamily
-    sarabun-light:
-      $value: "Sarabun Light"
+    icon:
+      $value: '"Material Icons", sans-serif'
       $type: fontFamily
-
+  fontSize:
+    sm:
+      $value: 16px
+      $type: dimension
+    md:
+      $value: 18px
+      $type: dimension
+    lg:
+      $value: 22px
+      $type: dimension
+    xl:
+      $value: 34px
+      $type: dimension
+    2xl:
+      $value: 40px
+      $type: dimension
+  fontWeight:
+    thin:
+      $value: 100
+      $type: fontWeight
+    light:
+      $value: 300
+      $type: fontWeight
+    regular:
+      $value: 400
+      $type: fontWeight
+    medium:
+      $value: 500
+      $type: fontWeight
+    bold:
+      $value: 700
+      $type: fontWeight
+    black:
+      $value: 900
+      $type: fontWeight
+  lineHeight:
+    tight:
+      $value: 1.2
+      $type: number
+    snug:
+      $value: 1.3
+      $type: number
+    normal:
+      $value: 1.5
+      $type: number
+  spacing:
+    '1':
+      $value: 8px
+      $type: dimension
+    '2':
+      $value: 12px
+      $type: dimension
+    '3':
+      $value: 16px
+      $type: dimension
+    '4':
+      $value: 20px
+      $type: dimension
+    '5':
+      $value: 24px
+      $type: dimension
+    '6':
+      $value: 32px
+      $type: dimension
+    '7':
+      $value: 40px
+      $type: dimension
+    '8':
+      $value: 48px
+      $type: dimension
+    '9':
+      $value: 64px
+      $type: dimension
+    '10':
+      $value: 80px
+      $type: dimension
+  radius:
+    sm:
+      $value: 4px
+      $type: dimension
+    md:
+      $value: 7px
+      $type: dimension
+    lg:
+      $value: 9px
+      $type: dimension
+    xl:
+      $value: 24px
+      $type: dimension
+    2xl:
+      $value: 25px
+      $type: dimension
+    pill:
+      $value: 40px
+      $type: dimension
+    full:
+      $value: 50%
+      $type: dimension
 semantic:
   color:
     primary:
-      $value: "{primitive.color.navy-600}"
+      $value: '{primitive.color.blue.900}'
       $type: color
-    primary-hover:
-      $value: "{primitive.color.navy-700}"
+    primary-medium:
+      $value: '{primitive.color.blue.700}'
       $type: color
-    primary-active:
-      $value: "{primitive.color.navy-800}"
+    primary-light:
+      $value: '{primitive.color.blue.500}'
       $type: color
     secondary:
-      $value: "{primitive.color.green-600}"
+      $value: '{primitive.color.green.900}'
       $type: color
-    secondary-hover:
-      $value: "{primitive.color.green-700}"
+    secondary-transparent:
+      $value: '{primitive.color.green-transparent.250}'
       $type: color
     accent:
-      $value: "{primitive.color.lime-500}"
+      $value: '{primitive.color.green.500}'
       $type: color
-    accent-hover:
-      $value: "{primitive.color.lime-600}"
+    accent-bright:
+      $value: '{primitive.color.green.100}'
       $type: color
-    highlight:
-      $value: "{primitive.color.purple-500}"
+    accent-transparent:
+      $value: '{primitive.color.green-transparent.100}'
       $type: color
-    highlight-hover:
-      $value: "{primitive.color.purple-600}"
+    purple:
+      $value: '{primitive.color.purple.500}'
+      $type: color
+    error:
+      $value: '{primitive.color.red.500}'
       $type: color
     link:
-      $value: "{primitive.color.blue-600}"
-      $type: color
-    link-hover:
-      $value: "{primitive.color.blue-500}"
-      $type: color
-    foreground:
-      $value: "{primitive.color.neutral-800}"
-      $type: color
-    foreground-muted:
-      $value: "{primitive.color.neutral-500}"
-      $type: color
-    background:
-      $value: "{primitive.color.neutral-50}"
+      $value: '{primitive.color.link.500}'
       $type: color
     surface:
-      $value: "{primitive.color.neutral-100}"
+      $value: '{primitive.color.neutral.0}'
       $type: color
-    surface-alt:
-      $value: "{primitive.color.neutral-200}"
+    surface-subtle:
+      $value: '{primitive.color.neutral.50}'
       $type: color
-    outline:
-      $value: "{primitive.color.neutral-300}"
+    surface-variant:
+      $value: '{primitive.color.neutral.100}'
       $type: color
-    inverse-foreground:
-      $value: "{primitive.color.neutral-50}"
+    on-surface:
+      $value: '{primitive.color.neutral.900}'
       $type: color
-    inverse-background:
-      $value: "{primitive.color.navy-600}"
+    on-surface-muted:
+      $value: '{primitive.color.neutral.500}'
+      $type: color
+    on-surface-disabled:
+      $value: '{primitive.color.neutral.300}'
+      $type: color
+    inverse:
+      $value: '{primitive.color.neutral.0}'
       $type: color
   typography:
     heading:
-      $value: "{primitive.typography.reef}"
-      $type: fontFamily
-    body:
-      $value: "{primitive.typography.sarabun}"
-      $type: fontFamily
-    body-light:
-      $value: "{primitive.typography.sarabun-light}"
-      $type: fontFamily
-  typescale:
+      $value:
+        fontFamily: '{primitive.fontFamily.heading}'
+        fontSize: '{primitive.fontSize.xl}'
+        fontWeight: '{primitive.fontWeight.medium}'
+        lineHeight: '{primitive.lineHeight.tight}'
+        color: '{semantic.color.secondary}'
+      $type: typography
     display:
       $value:
-        fontFamily: "{primitive.typography.reef}"
-        fontSize: "44px"
-        fontWeight: "100"
-        lineHeight: "1.2"
+        fontFamily: '{primitive.fontFamily.heading}'
+        fontSize: '{primitive.fontSize.2xl}'
+        fontWeight: '{primitive.fontWeight.thin}'
+        lineHeight: '{primitive.lineHeight.snug}'
+        color: '{primitive.color.neutral.950}'
       $type: typography
-    headline:
+    subheading:
       $value:
-        fontFamily: "{primitive.typography.reef}"
-        fontSize: "40px"
-        fontWeight: "100"
-        lineHeight: "1.3"
+        fontFamily: '{primitive.fontFamily.heading}'
+        fontSize: '{primitive.fontSize.md}'
+        fontWeight: '{primitive.fontWeight.black}'
+        lineHeight: '{primitive.lineHeight.snug}'
+        color: '{semantic.color.inverse}'
       $type: typography
-    title:
+    body:
       $value:
-        fontFamily: "{primitive.typography.reef}"
-        fontSize: "34px"
-        fontWeight: "500"
-        lineHeight: "1.2"
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.sm}'
+        fontWeight: '{primitive.fontWeight.regular}'
+        lineHeight: '{primitive.lineHeight.normal}'
+        color: '{semantic.color.on-surface}'
       $type: typography
-    subtitle:
+    link:
       $value:
-        fontFamily: "{primitive.typography.reef}"
-        fontSize: "28px"
-        fontWeight: "500"
-        lineHeight: "1.3"
+        fontFamily: '{primitive.fontFamily.body}'
+        fontSize: '{primitive.fontSize.sm}'
+        fontWeight: '{primitive.fontWeight.regular}'
+        lineHeight: '{primitive.lineHeight.normal}'
+        color: '{semantic.color.link}'
       $type: typography
-    body-lg:
+    button:
       $value:
-        fontFamily: "{primitive.typography.sarabun}"
-        fontSize: "20px"
-        fontWeight: "400"
-        lineHeight: "1.5"
+        fontFamily: '{primitive.fontFamily.heading}'
+        fontSize: '{primitive.fontSize.lg}'
+        fontWeight: '{primitive.fontWeight.regular}'
+        lineHeight: '{primitive.lineHeight.normal}'
+        color: '{semantic.color.primary}'
       $type: typography
-    body-md:
-      $value:
-        fontFamily: "{primitive.typography.sarabun}"
-        fontSize: "16px"
-        fontWeight: "400"
-        lineHeight: "1.5"
-      $type: typography
-    body-sm:
-      $value:
-        fontFamily: "{primitive.typography.sarabun}"
-        fontSize: "14px"
-        fontWeight: "400"
-        lineHeight: "1.5"
-      $type: typography
-    label:
-      $value:
-        fontFamily: "{primitive.typography.sarabun}"
-        fontSize: "12px"
-        fontWeight: "400"
-        lineHeight: "1.4"
-      $type: typography
-  breakpoints:
-    $extensions:
-      designbook:
-        renderer: screen
-    sm:
-      $value: "640px"
-      $type: dimension
-    md:
-      $value: "768px"
-      $type: dimension
-    lg:
-      $value: "1024px"
-      $type: dimension
-    xl:
-      $value: "1280px"
-      $type: dimension
-    2xl:
-      $value: "1536px"
-      $type: dimension
-  radius:
-    $extensions:
-      designbook:
-        renderer: radius
-    sm:
-      $value: "0.25rem"
-      $type: dimension
-    md:
-      $value: "0.4375rem"
-      $type: dimension
-    lg:
-      $value: "0.75rem"
-      $type: dimension
-    full:
-      $value: "9999px"
-      $type: dimension
-
 component:
-  container:
-    max-width:
-      $extensions:
-        designbook:
-          renderer: container
+  section:
+    padding-y:
+      none:
+        $value: '0'
+        $type: dimension
       sm:
-        $value: "640px"
+        $value: '{primitive.spacing.6}'
         $type: dimension
       md:
-        $value: "768px"
+        $value: '{primitive.spacing.8}'
         $type: dimension
       lg:
-        $value: "1024px"
-        $type: dimension
-      xl:
-        $value: "1280px"
+        $value: '{primitive.spacing.10}'
         $type: dimension
   grid:
     gap:
-      $extensions:
-        designbook:
-          renderer: gap
+      none:
+        $value: '0'
+        $type: dimension
       sm:
-        $value: "1rem"
+        $value: '{primitive.spacing.3}'
         $type: dimension
       md:
-        $value: "1.5rem"
+        $value: '{primitive.spacing.5}'
         $type: dimension
       lg:
-        $value: "2rem"
+        $value: '{primitive.spacing.7}'
         $type: dimension
-  section:
-    padding-y:
-      $extensions:
-        designbook:
-          renderer: spacing
+  container:
+    max-width:
       sm:
-        $value: "2rem"
+        $value: 640px
         $type: dimension
       md:
-        $value: "4rem"
+        $value: 960px
         $type: dimension
       lg:
-        $value: "6rem"
+        $value: 1200px
+        $type: dimension
+      xl:
+        $value: 1440px
+        $type: dimension
+      full:
+        $value: 100%
         $type: dimension

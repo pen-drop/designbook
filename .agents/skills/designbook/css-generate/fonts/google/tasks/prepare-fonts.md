@@ -1,14 +1,23 @@
 ---
-when:
+trigger:
   steps: [prepare-fonts]
+filter:
   extensions: google-fonts
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    workflow: tokens
-files:
-  - file: $DESIGNBOOK_DIRS_CSS_TOKENS/google-fonts.src.css
-    key: google-fonts-css
-    validators: []
+domain: [css]
+params:
+  type: object
+  required: [design_tokens]
+  properties:
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      workflow: tokens
+      type: object
+result:
+  type: object
+  required: [google-fonts-css]
+  properties:
+    google-fonts-css:
+      path: $DESIGNBOOK_DIRS_CSS_TOKENS/google-fonts.src.css
 ---
 
 # Prepare Fonts: Download Google Fonts CSS

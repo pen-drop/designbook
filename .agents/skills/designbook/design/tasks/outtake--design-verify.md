@@ -1,13 +1,17 @@
 ---
 name: designbook:design:outtake--design-verify
 title: "Outtake: Design Verify"
-when:
+trigger:
   steps: [design-verify:outtake]
 priority: 50
 params:
-  scene: ~
-  storyId: ~
-files: []
+  type: object
+  required: [scene_id, story_id]
+  properties:
+    scene_id:
+      $ref: ../../scenes/schemas.yml#/SceneId
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
 ---
 
 # Outtake — Design Verify

@@ -1,6 +1,7 @@
 ---
-when:
+trigger:
   steps: [create-sample-data]
+filter:
   backend: drupal
 ---
 

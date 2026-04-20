@@ -2,8 +2,8 @@
 type: data-mapping
 name: layout-builder
 priority: 10
-when:
-  steps: [map-entity]
+trigger:
+  domain: data-mapping
 ---
 
 # Blueprint: Layout Builder — Passthrough Mapping

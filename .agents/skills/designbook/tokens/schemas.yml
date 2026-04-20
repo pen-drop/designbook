@@ -1,0 +1,54 @@
+# Design tokens concern schemas
+
+DesignTokens:
+  type: object
+  required: [primitive, semantic]
+  properties:
+    primitive:
+      type: object
+      title: Primitive Tokens
+      description: >
+        Raw values only — no references. Common groups: color (hex codes),
+        fontFamily (exact Google Fonts names), fontSize, fontWeight, lineHeight, spacing.
+        Each leaf is a TokenLeaf.
+    semantic:
+      type: object
+      title: Semantic Tokens
+      required: [color, typography]
+      description: >
+        Purpose-based aliases. Values MUST reference primitives
+        via {primitive.<group>.<key>} — no raw values allowed.
+      properties:
+        color:
+          type: object
+          title: Semantic Colors
+          description: >
+            Purpose-based color aliases (primary, secondary, background,
+            surface, foreground, error, …). Each leaf is a TokenLeaf whose
+            $value references a primitive color.
+        typography:
+          type: object
+          title: Semantic Typography
+          description: >
+            Role-based typography tokens (heading, body, button, …). Each role
+            is a typography TokenLeaf bundling fontFamily, fontSize, fontWeight,
+            and lineHeight references. When derived from a design reference,
+            every HTML element observed in the extract MUST appear as a role.
+    component:
+      type: object
+      title: Component Tokens
+      description: Component-specific tokens derived from blueprint required_tokens
+      default: {}
+    themes: { type: object }
+
+TokenLeaf:
+  type: object
+  required: [$value, $type]
+  description: W3C Design Token Format leaf node
+  properties:
+    $value:
+      type: [string, number, object]
+      description: Concrete value or {primitive.<group>.<key>} reference
+    $type:
+      type: string
+      enum: [color, fontFamily, dimension, number, fontWeight, duration, cubicBezier, shadow, gradient, transition, border, strokeStyle, typography]

@@ -1,7 +1,8 @@
 ---
-when:
+trigger:
+  domain: css
+filter:
   extensions: google-fonts
-  steps: [prepare-fonts]
 ---
 
 # Google Fonts URL Construction

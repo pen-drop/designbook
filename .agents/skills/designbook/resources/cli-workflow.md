@@ -4,18 +4,25 @@ Manages workflow lifecycle — create, execute tasks, track stage transitions.
 
 > This is the **complete command list** — do not attempt `status`, `tasks`, or other subcommands.
 
+## Global options
+
+| Option | Description |
+|---|---|
+| `--research` | Enable research mode. Tags all log entries with `research: true` for post-workflow audit. |
+
+All `workflow` subcommands write structured JSONL log entries to `$DESIGNBOOK_DATA/dbo.log`. Each line is a JSON object with `ts`, `cmd`, `args`, and `result` or `error`. When `--research` is set, entries include `research: true`.
+
 ## `workflow create`
 
-Create a new workflow tracking file from a workflow `.md` file.
+Create a new workflow tracking file. The workflow `.md` file is resolved automatically from the workflow ID via `skills/**/workflows/<id>.md`.
 
 ```bash
- workflow create --workflow <id> --workflow-file <path> [--parent <name>] [--params <json>]
+ workflow create --workflow <id> [--parent <name>] [--params <json>]
 ```
 
 | Option | Required | Description |
 |---|---|---|
 | `--workflow <id>` | Yes | Workflow identifier (e.g. `vision`, `design-screen`) |
-| `--workflow-file <path>` | Yes | Absolute path to workflow `.md` file |
 | `--title <title>` | No | Human-readable workflow title |
 | `--parent <name>` | No | Parent workflow name (traceability for child workflows) |
 | `--params <json>` | No | Initial params JSON. If all required params are satisfied, intake is skipped and tasks are expanded immediately. |
@@ -110,7 +117,6 @@ Stage name resolution: tries direct key first, then looks up via the stage's fir
   "stage": "verify",
   "dispatch": true,
   "workflow": "design-verify",
-  "workflow_file": "/abs/path/design-verify.md",
   "items": [{ "scene": "shell", "product_name": "My Product" }]
 }
 ```
@@ -127,99 +133,111 @@ Return the staged and final path for a file key. Used by external tools (e.g. Pl
 |---|---|---|
 | `<workflow-name>` | Yes | Positional — workflow name |
 | `<task-id>` | Yes | Positional — task ID from `expanded_tasks` |
-| `--key <key>` | Yes | File key as declared in task frontmatter |
+| `--key <key>` | Yes | Result key as declared in task `result:` frontmatter |
 
 **Response:**
 ```json
 { "staged_path": "/abs/path/to/file.png.wf-id.debo", "final_path": "/abs/path/to/file.png" }
 ```
 
-The `staged_path` is where external tools should write. After writing, call `write-file --external` to register.
+The `staged_path` is where external tools should write. After writing, call `workflow result --key <key> --external` to register.
 
-## `workflow write-file`
+## `workflow result`
 
-Write file content from stdin (or register an externally-written file), validate, and update task state.
+Write a task result (file or data), validate, and update task state.
 
-Two modes: **key mode** (tracked file from task frontmatter) and **path mode** (direct file path, no gate check).
-
-### Key mode — standard (content from stdin)
+### File result (content from stdin)
 
 ```bash
-cat <<'EOF' | workflow write-file <workflow-name> <task-id> --key <key>
+cat <<'EOF' | workflow result --task <task-id> --key <key>
 <file content>
 EOF
 ```
 
-### Key mode — external (file already written to staged path)
+Writes file content from stdin. The file path is resolved from the task's `result:` declaration. Validation runs immediately (JSON Schema + semantic validators).
+
+### Data result (JSON inline)
 
 ```bash
- workflow write-file <workflow-name> <task-id> --key <key> --external
+workflow result --task <task-id> --key <key> --json '<json-data>'
 ```
 
-Use `--external` when the file was already written to the staged path by an external tool (e.g. Playwright). Skips stdin, validates the existing file, and updates task state.
+Stores structured data inline in `tasks.yml`. Data results flow into the workflow scope when the stage completes, making them available to subsequent stages via `each:`.
 
-### Key mode — with flush
+### File result — submission and flush
 
-```bash
-cat <<'EOF' | workflow write-file <workflow-name> <task-id> --key <key> --flush
-<file content>
-EOF
+Results declare two orthogonal fields in the task frontmatter: `submission:` (who produces the content) and `flush:` (when it lands on disk). Both have defaults, so simple tasks need neither.
+
+```yaml
+result:
+  type: object
+  properties:
+    extract:
+      path: "{{ reference_dir }}/extract.json"
+      flush: immediate            # write when `workflow done` completes, before stage flush
+    component-yml:
+      path: "components/{{name}}/{{name}}.component.yml"
+      # submission: data  flush: deferred   (implicit defaults)
+    screenshot:
+      path: "screenshots/{{ story_id }}.png"
+      submission: direct          # task code writes the file (e.g. Playwright); CLI only validates
 ```
 
-`--flush` immediately moves the file from its staged path to the final path. Use when the file must be readable by subsequent steps within the same task (e.g. extract-reference writes a file that the same intake task reads next).
-
-Without `--flush`, files remain staged (with `.debo` suffix) until the stage completes.
+Use `flush: immediate` when the file must be readable by subsequent steps within the same task (e.g. extract-reference writes a file that the same intake task reads next). `submission: direct` is for outputs produced by external tools whose content can't be round-tripped through `--data`.
 
 ### Path mode — direct write
 
 ```bash
-cat <<'EOF' | workflow write-file <workflow-name> <task-id> --path <absolute-path> --flush
+cat <<'EOF' | workflow result --task <task-id> --path <absolute-path>
 <file content>
 EOF
 ```
 
-`--path` writes directly to the given path without requiring a file key declaration in the task frontmatter. The file is **not** tracked in the task's gate check — use for auxiliary reference files (e.g. `design-reference.md`) that rules produce but that aren't task deliverables.
+`--path` writes directly to the given path without requiring a result key declaration in the task frontmatter. The file is **not** tracked in the task's gate check — use for auxiliary reference files (e.g. `design-reference.json`) that rules produce but that aren't task deliverables.
 
 `--path` and `--key` are mutually exclusive.
 
-| Argument/Option | Required | Description |
+| Option | Required | Description |
 |---|---|---|
-| `<workflow-name>` | Yes | Positional — workflow name |
-| `<task-id>` | Yes | Positional — task ID from `expanded_tasks` |
-| `--key <key>` | One of key/path | File key as declared in task frontmatter |
-| `--path <path>` | One of key/path | Direct file path (bypasses file key lookup) |
+| `--task <id>` | Yes | Task ID from `expanded_tasks` |
+| `--key <key>` | One of key/path | Result key as declared in task `result:` frontmatter |
+| `--path <path>` | One of key/path | Direct file path (bypasses result key lookup) |
+| `--json <data>` | No | JSON data for data results (mutually exclusive with stdin) |
 | `--external` | No | Register an already-written file (skip stdin) |
-| `--flush` | No | Immediately move file to final path |
 
-**Response:**
+**Response (file result):**
 ```json
 { "valid": true, "errors": [], "file_path": "/abs/path/to/written/file" }
+```
+
+**Response (data result):**
+```json
+{ "valid": true, "errors": [] }
 ```
 
 If `valid: false`, fix content and call again.
 
 ## `workflow done`
 
-Mark a task as done. Triggers stage transitions and auto-archives when all tasks complete.
+Mark a task as done. Triggers stage transitions, scope collection, and auto-archives when all tasks complete.
 
 ```bash
- workflow done --workflow <name> --task <id> [--params <json>] [--loaded <json>]
+ workflow done --workflow <name> --task <id> [--loaded <json>] [--summary <text>]
 ```
 
 | Option | Required | Description |
 |---|---|---|
 | `--workflow <name>` | Yes | Workflow name |
 | `--task <id>` | Yes | Task ID to mark done |
-| `--params <json>` | No | Params JSON — expands new tasks. The CLI decides plan vs. append mode based on workflow state. |
 | `--loaded <json>` | No | Stage context payload for observability (task_file, rules, config_rules, config_instructions) |
+| `--summary <text>` | No | Short human-readable result summary for the task |
 
 **Gate checks before marking done:**
-- All declared files must be written via `write-file` and valid
-- Files with unresolved `{param}` placeholders are skipped
+- All declared results must be written via `workflow result` and valid
+- Results with unresolved `{param}` placeholders are skipped
 
 **Output:**
 ```
-Expanded N tasks                          ← only if --params expanded tasks
 Task <id> → done (N/M tasks complete)
   ✓ Completed Task — done
   ○ Current Task — in-progress
@@ -228,17 +246,19 @@ Task <id> → done (N/M tasks complete)
 RESPONSE: <json>
 ```
 
-Parse the `RESPONSE:` JSON line — it drives all subsequent actions.
+Parse the `RESPONSE:` JSON line — it drives all subsequent actions. All responses include `stage_progress` and `stage_complete` fields.
 
 **Response: next task in same stage**
 ```json
-{ "stage": "component", "step_completed": "create-component", "next_step": "create-component" }
+{ "stage": "component", "step_completed": "create-component", "next_step": "create-component", "stage_progress": "1/3", "stage_complete": false }
 ```
 
-**Response: stage transition**
+**Response: stage transition (stage complete, scope collected)**
 ```json
-{ "stage": "test", "transition_from": "component", "next_stage": "test", "next_step": "screenshot" }
+{ "stage": "test", "transition_from": "component", "next_stage": "test", "next_step": "screenshot", "stage_progress": "3/3", "stage_complete": true, "scope_update": { "issues": [...] }, "expanded_tasks": [{ "id": "...", "step": "...", "stage": "...", "title": "..." }] }
 ```
+
+When `stage_complete: true`, the engine has collected all data results from the completed stage into the workflow scope. `scope_update` shows which keys were added. `expanded_tasks` lists tasks expanded for the next stage(s) based on the updated scope.
 
 **Response: waiting for user params**
 ```json
@@ -252,12 +272,7 @@ Parse the `RESPONSE:` JSON line — it drives all subsequent actions.
 
 **Response: workflow complete with child dispatch**
 ```json
-{ "stage": "done", "dispatch": [{ "workflow": "design-verify", "workflow_file": "/abs/path", "params": { "..." } }] }
-```
-
-**Response: done with expanded tasks (when `--params` provided)**
-```json
-{ "stage": "create-vision", "transition_from": "...", "next_stage": "create-vision", "next_step": "create-vision", "expanded_tasks": [{ "id": "...", "step": "...", "stage": "...", "title": "..." }] }
+{ "stage": "done", "dispatch": [{ "workflow": "design-verify", "params": { "..." } }] }
 ```
 
 ## `workflow wait`
@@ -273,7 +288,7 @@ _debo workflow wait --workflow <name> [--message "<question for the user>"]
 | `--workflow` | Workflow name (required) |
 | `--message` | Question or prompt to display in the workflow panel (optional) |
 
-The workflow transitions `running → waiting`. The next CLI call (`done`, `write-file`, or `instructions`) automatically transitions back to `running` and clears the message.
+The workflow transitions `running → waiting`. The next CLI call (`done`, `result`, or `instructions`) automatically transitions back to `running` and clears the message.
 
 ## `workflow abandon`
 

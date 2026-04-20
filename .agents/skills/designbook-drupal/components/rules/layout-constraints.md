@@ -1,6 +1,7 @@
 ---
-when:
-  steps: [create-component, design-shell:intake, design-screen:intake]
+trigger:
+  domain: components.layout
+filter:
   backend: drupal
 ---
 

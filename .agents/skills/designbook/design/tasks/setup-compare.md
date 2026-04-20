@@ -1,19 +1,34 @@
 ---
-when:
+trigger:
   steps: [setup-compare]
 params:
-  scene: ~
-  reference: []
-  breakpoints: []
-files: []
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
+  type: object
+  required: [story_id, breakpoints]
+  properties:
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
+    reference: { type: array, default: [] }
+    breakpoints: { type: array }
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
+result:
+  type: object
+  required: [story-meta, checks]
+  properties:
+    story-meta:
+      path: designbook/stories/{story_id}/meta.yml
+      type: object
+      $ref: ../schemas.yml#/StoryMeta
+    checks:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Check
 ---
 
 # Setup Compare
 
-Creates the story entity and returns the `checks` array for the inline capture and compare stages. This is a lightweight version of the design-verify intake — it only creates the story and resolves checks.
+Builds the `meta.yml` configuration for the story and returns the runtime `checks` matrix that drives the capture + compare stages.
 
 ## Step 1: Restart Storybook
 
@@ -25,17 +40,23 @@ _debo storybook start --force
 
 Wait for `{ ready: true }`. If startup fails, report errors from `_debo storybook logs` and pause.
 
-This is mandatory — the Storybook watcher may serve stale compiled output for recently generated or modified components, making screenshot comparison unreliable.
+## Step 2: Determine Regions
 
-## Step 2: Build meta-seed JSON
+Derive regions from the story metadata:
+- Shell stories (`story_id` contains `--shell`): regions `["header", "footer"]`
+- All other stories: regions `["full"]`
 
-From `params.reference` (array from the scene definition) and resolved breakpoints, build the meta-seed.
+## Step 3: Apply rules that shape the reference
 
-**Determine regions** from the scene name:
-- **Shell scenes** (`scene` ends with `:shell`): `"header": {}`, `"footer": {}`
-- **All other scenes**: `"full": {}`
+Before building the result, apply all loaded rules for this stage that modify the reference. Rules may resolve provider-specific URLs, set additional fields on `reference.source` (e.g. `hasMarkup`), or transform the seed.
 
-Build the full breakpoints × regions matrix:
+If `reference` is empty or null: skip compare by completing with an empty `checks` array and a `story-meta` that contains only the breakpoints × regions matrix (no `reference.source`).
+
+## Step 4: Build the result
+
+The result contains two keys:
+
+1. **`story-meta`** — the complete `meta.yml` body:
 
 ```json
 {
@@ -46,34 +67,25 @@ Build the full breakpoints × regions matrix:
       "hasMarkup": true
     },
     "breakpoints": {
-      "<bp1>": { "threshold": <threshold>, "regions": { "<region>": {}, ... } },
-      "<bp2>": { "threshold": <threshold>, "regions": { "<region>": {}, ... } }
+      "<bp>": {
+        "threshold": <threshold>,
+        "regions": {
+          "<region>": { "selector": "<selector or empty>", "threshold": <threshold> }
+        }
+      }
     }
   }
 }
 ```
 
-If `reference` is empty or null: skip compare by completing with an empty `checks` array.
+2. **`checks`** — the runtime matrix as a JSON array. One entry per (breakpoint × region):
 
-### Apply matched rules (before story creation)
-
-Before calling the CLI, apply all loaded rules for this stage that modify the reference. Rules may resolve provider-specific URLs, set additional fields on `reference.source` (e.g. `hasMarkup`), or transform the meta-seed.
-
-## Step 3: Create story and get checks
-
-```bash
-CHECKS=$(_debo story --scene ${scene} --create --json '<meta-seed-json>' checks)
+```json
+[
+  { "story_id": "<id>", "breakpoint": "<bp>", "region": "<region>", "threshold": <number> }
+]
 ```
 
-This creates the story directory + `meta.yml`, validates the reference exists, and returns the checks as a JSON array. Each check has: `storyId`, `breakpoint`, `region`, `threshold`.
+## Step 5: Complete the task
 
-If the command fails, report the error and pause.
-
-## Step 4: Complete with checks
-
-```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task $TASK_ID \
-  --params "{\"scene\": \"${scene}\", \"checks\": $CHECKS}"
-```
-
-The `checks` array flows into the `capture` and `compare` stages via the `each: checks` iterables.
+Pass both as a single JSON object via `workflow done --data`. The engine writes `story-meta` to disk and collects `checks` into the workflow scope for the `each: checks` expansion in later stages.

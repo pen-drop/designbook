@@ -1,21 +1,31 @@
 ---
 name: designbook:design:capture-reference
-title: "Capture Reference: {scene} ({breakpoint}/{region})"
-when:
+title: "Capture Reference: {{ check.scene_id }} ({{ check.breakpoint }}/{{ check.region }})"
+trigger:
   steps: [capture]
-  type: screenshot
+filter:
+  check.type: screenshot
 priority: 10
 params:
-  scene: ~
-  storyId: ~
-  breakpoint: ~
-  region: ~
-files:
-  - key: screenshot
-    path: $DESIGNBOOK_DATA/stories/{storyId}/screenshots/reference/{breakpoint}--{region}.png
-reads:
-  - path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
-    optional: true
+  type: object
+  required: [check, reference_folder]
+  properties:
+    check:
+      type: object
+      $ref: ../schemas.yml#/Check
+    story_meta:
+      path: "designbook/stories/{{ check.story_id }}/meta.yml"
+      type: object
+      $ref: ../schemas.yml#/StoryMeta
+    reference_folder:
+      $ref: ../schemas.yml#/ReferenceFolder
+    design_tokens:
+      path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
+      type: object
+each:
+  check:
+    expr: "checks"
+    schema: { $ref: ../schemas.yml#/Check }
 ---
 
 # Capture Reference
@@ -24,11 +34,7 @@ Captures a reference screenshot by loading the source URL at the given breakpoin
 
 ## Execution
 
-1. **Resolve reference URL** from `DeboStory` entity:
-   ```bash
-   _debo story --scene ${scene}
-   ```
-   Read the `reference.url` from the story JSON output. If no reference URL is available, skip with a warning.
+1. **Read reference URL from the `story_meta` param**: `story_meta.reference.source.url`. If unset, skip with a warning.
 
    **Download URLs:** If the reference URL triggers a file download instead of rendering in the browser (e.g., a provider-specific download endpoint), download it first:
    ```bash
@@ -42,8 +48,10 @@ Captures a reference screenshot by loading the source URL at the given breakpoin
 
 ## Output
 
+Screenshots are written to the reference folder:
+
 | Breakpoint | Region | Path |
 |-----------|--------|------|
-| sm | header | `screenshots/reference/sm--header.png` |
-| sm | footer | `screenshots/reference/sm--footer.png` |
-| xl | full | `screenshots/reference/xl--full.png` |
+| sm | header | `{reference_folder}/sm--header.png` |
+| sm | footer | `{reference_folder}/sm--footer.png` |
+| xl | full | `{reference_folder}/xl--full.png` |

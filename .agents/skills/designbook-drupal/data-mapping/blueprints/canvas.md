@@ -2,8 +2,8 @@
 type: data-mapping
 name: canvas
 priority: 10
-when:
-  steps: [map-entity]
+trigger:
+  domain: data-mapping
 ---
 
 # Blueprint: Canvas — Passthrough Mapping

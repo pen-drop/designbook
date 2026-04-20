@@ -7,15 +7,23 @@ description: Core design principles for all Designbook skill authoring
 
 ## Tasks Say WHAT, Never HOW
 
-Task files declare **what outputs to produce** — file paths, required params, prerequisite reads. They never contain style guidelines, implementation instructions, or format prescriptions.
+Task files declare **what outputs to produce** — file paths, required params, file-input dependencies. They never contain style guidelines, implementation instructions, or format prescriptions.
 
 **Correct:**
 ```markdown
 ---
 params:
-  component: ~
-files:
-  - $DESIGNBOOK_HOME/components/{{ component }}/{{ component }}.component.yml
+  type: object
+  required: [component]
+  properties:
+    component: { type: string }
+result:
+  type: object
+  required: [component-yml]
+  properties:
+    component-yml:
+      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+      validators: [data]
 ---
 ```
 
@@ -23,12 +31,136 @@ files:
 ```markdown
 ---
 params:
-  component: ~
+  type: object
+  required: [component]
+  properties:
+    component: { type: string }
 ---
 Use snake_case for the component name. Create the YAML file with these required fields: ...
 ```
 
 Implementation guidance belongs in blueprints (overridable) or rules (hard constraints) — never in task files.
+
+## Results Declare Schema, Not Just Paths
+
+Task results are declared in the `result:` frontmatter field with a JSON Schema. Two types:
+
+- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `submission: data | direct` (default `data`) and `flush: deferred | immediate` (default `deferred`) control who writes the file and when. Optional `validators:` for semantic validation. Optional JSON Schema type (inline or `$ref`).
+- **Data results** (without `path:`) — structured data returned via `--data`. JSON Schema type required (inline or `$ref`).
+
+Both support `$ref` to `schemas.yml` definitions (see [`resources/schemas.md`](../resources/schemas.md)).
+
+```yaml
+result:
+  type: object
+  required: [component-yml]
+  properties:
+    component-yml:                              # file result
+      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+      validators: [data]
+      $ref: ../schemas.yml#/ComponentYml
+    issues:                                     # data result
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
+```
+
+The schema in frontmatter is the source of truth — the engine validates automatically.
+
+**Result schemas must use `$ref` to `schemas.yml`.** Never inline a schema definition in task frontmatter when a matching type exists in the concern's `schemas.yml`. The `schemas.yml` is the single source of truth for schema shape — task results reference it, they don't duplicate it. If no matching type exists yet, create one in `schemas.yml` first, then `$ref` it.
+
+```yaml
+# ✅ CORRECT — schema defined in schemas.yml, referenced from task
+result:
+  type: object
+  required: [vision]
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      $ref: ../schemas.yml#/Vision
+
+# ❌ WRONG — schema duplicated inline in task frontmatter
+result:
+  type: object
+  required: [vision]
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      type: object
+      required: [product_name, description]
+      properties:
+        product_name: { type: string }
+        description: { type: string }
+```
+
+## Tasks Declare Results in Schema, Not in Body
+
+The `result:` schema in frontmatter defines shape and type of all outputs. The task body never explains *how* results are returned (writing files vs. `--data`), but may explain *what* goes into a result when the semantics aren't obvious from the schema type alone.
+
+Use `## Result: <key>` sections in the task body for results that need semantic explanation. Keys whose schema is self-explanatory need no section.
+
+```markdown
+---
+result:
+  type: object
+  required: [issues]
+  properties:
+    issues:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Issue
+    scene:
+      type: string
+---
+# Compare Screenshots
+
+Compare each screenshot against its design reference.
+
+## Result: issues
+
+Collect all visual deviations between screenshot and reference.
+Each issue needs a `severity`:
+- `critical` — layout broken, content missing
+- `major` — clearly visible deviation
+- `minor` — cosmetic, only noticeable on close inspection
+```
+
+No `## Result: scene` needed — the schema type `string` is self-explanatory.
+
+## Schemas Must Teach the AI
+
+`schemas.yml` is the authoritative spec for what tasks produce. The AI uses these schemas to drive intake dialogues and generation — so every type must contain enough metadata to be self-explanatory:
+
+- **Top-level types** declare `title:` or `description:`.
+- **Each property** has either `description:`, `enum:`, `pattern:`, or `examples:` — anything that gives the AI a signal beyond the bare type.
+- **`additionalProperties: true`** is documented (what kind of arbitrary keys belong here).
+- **Required fields** are listed explicitly in `required:`.
+
+A reader (human or AI) must be able to look at a schema and know what to ask for and what to generate. A schema with only `{ type: string }` properties teaches nothing.
+
+```yaml
+# ❌ Teaches nothing — AI has no signal what to put in product_name
+Vision:
+  type: object
+  properties:
+    product_name: { type: string }
+    description: { type: string }
+
+# ✅ Teaches the AI what to ask for and what to generate
+Vision:
+  type: object
+  title: Product Vision
+  description: High-level intent for the product — drives all downstream generation.
+  required: [product_name, description]
+  properties:
+    product_name:
+      type: string
+      description: Short brand-facing name. Used in titles, story labels, and intake prompts.
+      examples: [Acme Portal, Citizen Hub]
+    description:
+      type: string
+      description: One-paragraph product mission — answers "what is this for, for whom".
+```
 
 ## Blueprints Are Overridable Starting Points
 
@@ -36,8 +168,8 @@ Blueprints provide an example of what a good output looks like: required tokens,
 
 ```markdown
 ---
-when:
-  steps: [create-component]
+trigger:
+  domain: components
 ---
 # Blueprint: Card
 
@@ -51,18 +183,53 @@ Blueprints are suggestions — an integration with different token conventions i
 
 ## Rules Are Hard Constraints
 
-Rules enforce constraints that must hold regardless of integration, framework, or user preference. Once a rule's `when` conditions match, it applies absolutely.
+Rules enforce constraints that must hold regardless of integration, framework, or user preference. Once a rule's `trigger` conditions match, it applies absolutely.
 
 ```markdown
 ---
-when:
+trigger:
+  domain: components
+filter:
   backend: drupal
-  steps: [create-component]
 ---
 All component files must include a `$schema` field pointing to the JSON schema.
 ```
 
 Rules are never overridden by integration skills. If something CAN be overridden, it is a blueprint.
+
+## Rules Never Declare `params:`
+
+Rules are constraints that apply when a step matches. They must not declare their own `params:` schema and must not pick resolvers. Resolver choice is strictly task territory — different tasks can choose different resolvers (or no resolver) for the same input param.
+
+If a rule needs a value (e.g. `story_url`), it reads it from the values already resolved by the task that owns the step. A rule that "requires" a param is really stating a precondition on the task: the task must declare that param with the appropriate resolver.
+
+**Wrong** (rule carrying its own param + resolver):
+```markdown
+---
+name: designbook:design:playwright-validate
+trigger:
+  steps: [validate]
+params:
+  type: object
+  required: [story_url]
+  properties:
+    story_url: { type: string, resolve: story_url }
+---
+```
+
+**Correct** (rule consumes what the task provides):
+```markdown
+---
+name: designbook:design:playwright-validate
+trigger:
+  steps: [validate]
+---
+
+`story_url` is pre-resolved by the task's `story_url` resolver at `workflow create` time.
+If the resolver returned an error, fix the input and restart the stage.
+```
+
+The same principle applies to blueprints.
 
 ## Concrete Implementations Belong in Blueprints, Never in Tasks or Rules
 
@@ -84,8 +251,8 @@ Tasks and rules must be **as abstract as possible**. They describe structure, re
 **Wrong** (concrete implementation in a rule):
 ```markdown
 ---
-when:
-  steps: [create-component]
+trigger:
+  domain: components
 ---
 Use BEM class naming: `.block__element--modifier`.
 ```
@@ -93,8 +260,8 @@ Use BEM class naming: `.block__element--modifier`.
 **Correct** (move naming conventions to a blueprint):
 ```markdown
 ---
-when:
-  steps: [create-component]
+trigger:
+  domain: components
 ---
 # Blueprint: Component Naming
 
@@ -138,17 +305,25 @@ Blueprints describe **structural patterns** (multi-row headers, multi-section fo
 
 After each stage completes, all output files are **flushed** — renamed from their temporary working names to their final canonical names. This flush is what makes outputs referenceable by later stages.
 
-Consequence: a task file must declare the **final flushed paths** in `files:`, not temporary names. If stage B needs to read a file produced by stage A, it references the flushed name via `reads:`.
+Consequence: a task file must declare the **final flushed paths** in `result:`, not temporary names. If stage B needs to read a file produced by stage A, it references the flushed name as a file-input param (with `path:` extension field).
 
 ```markdown
 # Stage A task — produces flushed output
-files:
-  - $DESIGNBOOK_HOME/components/{{ component }}/{{ component }}.component.yml
+result:
+  type: object
+  required: [component-yml]
+  properties:
+    component-yml:
+      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
 
-# Stage B task — reads the flushed output from stage A
-reads:
-  - path: $DESIGNBOOK_HOME/components/{{ component }}/{{ component }}.component.yml
-    workflow: _debo-design-component
+# Stage B task — declares file-input param for flushed output
+params:
+  type: object
+  required: [component_yml]
+  properties:
+    component_yml:
+      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
+      type: object
 ```
 
 Never reference unflushed (in-progress) file names from another stage — the file will not exist at that path until the producing stage has completed and flushed.
@@ -175,7 +350,9 @@ stages:
     steps: [design-screen:outtake]
 ```
 
-The workflow prefix belongs in task files' `when.steps` for disambiguation (e.g. `when: steps: [design-screen:intake]`), not in the workflow definition itself. The resolver combines the workflow name with the step name automatically.
+The workflow prefix belongs in task files' `trigger.steps` for disambiguation (e.g. `trigger: steps: [design-screen:intake]`), not in the workflow definition itself. The resolver combines the workflow name with the step name automatically.
+
+**Note:** `trigger.steps` is only used in **task files** for step matching. Rules and blueprints use `trigger.domain` instead — see [`structure.md`](./structure.md) for the domain matching model.
 
 ## Stage = Filename, No Duplication
 
@@ -183,4 +360,6 @@ A task file's filename IS its stage assignment. `tasks/create-component.md` appl
 
 ## Validation Is Automatic
 
-Validation runs automatically via `workflow validate --task`. Never add validation steps or instructions inside task files.
+Validation runs automatically when results are written and when tasks complete. Never add validation steps or instructions inside task files.
+
+Results support semantic `validators:` in addition to JSON Schema validation: `data`, `entity-mapping`, `scene`, `image`, or `cmd:<command>` for arbitrary command validators.

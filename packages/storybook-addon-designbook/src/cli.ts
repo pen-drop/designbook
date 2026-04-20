@@ -2,12 +2,8 @@ import { resolve } from 'node:path';
 import { Command } from 'commander';
 import { loadConfig, normalizeExtensions, getExtensionIds, getExtensionSkillIds } from './config.js';
 import { validateData } from './validators/data.js';
-import { validateTokens } from './validators/tokens.js';
-import { validateComponent } from './validators/component.js';
-import { validateDataModel } from './validators/data-model.js';
 import { validateEntityMapping } from './validators/entity-mapping.js';
 import { register as registerWorkflow } from './cli/workflow.js';
-import { register as registerStory } from './cli/story.js';
 import { register as registerStorybook } from './cli/storybook.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
@@ -92,42 +88,6 @@ validate
   });
 
 validate
-  .command('tokens')
-  .description('Validate design tokens against W3C schema')
-  .action(() => {
-    const config = loadConfig();
-    const tokensPath = resolve(config.data, 'design-system', 'design-tokens.yml');
-    const result = validateTokens(tokensPath);
-    printJson('design-tokens', result.valid, result.errors, result.warnings);
-  });
-
-validate
-  .command('component <name>')
-  .description('Validate component YAML against Drupal SDC schema')
-  .action((name: string) => {
-    const config = loadConfig();
-    const themePath = config['designbook.home'] as string | undefined;
-    if (!themePath) {
-      console.error('Error: designbook.home not configured in designbook.config.yml');
-      process.exitCode = 1;
-      return;
-    }
-    const componentPath = resolve(themePath, 'components', name, `${name}.component.yml`);
-    const result = validateComponent(componentPath);
-    printJson(name, result.valid, result.errors, result.warnings);
-  });
-
-validate
-  .command('data-model')
-  .description('Validate data-model.yml against schema')
-  .action(() => {
-    const config = loadConfig();
-    const dataModelPath = resolve(config.data, 'data-model.yml');
-    const result = validateDataModel(dataModelPath);
-    printJson('data-model', result.valid, result.errors, result.warnings);
-  });
-
-validate
   .command('entity-mapping <name>')
   .description('Validate a .jsonata entity mapping file against sample data')
   .action(async (name: string) => {
@@ -139,7 +99,6 @@ validate
 
 // Register submodules
 registerWorkflow(program);
-registerStory(program);
 registerStorybook(program);
 
 program.parse();

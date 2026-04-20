@@ -2,8 +2,8 @@
 type: component
 name: page
 priority: 10
-when:
-  steps: [design-shell:intake]
+trigger:
+  domain: components.shell
 ---
 
 # Blueprint: Page

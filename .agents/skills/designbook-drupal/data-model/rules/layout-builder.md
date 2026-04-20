@@ -1,7 +1,8 @@
 ---
-when:
+trigger:
+  domain: data-model
+filter:
   extensions: layout_builder
-  steps: [data-model:intake, create-data-model]
 ---
 
 # Rule: Layout Builder Extension

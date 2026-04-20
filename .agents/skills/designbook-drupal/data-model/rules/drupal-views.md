@@ -1,7 +1,8 @@
 ---
-when:
+trigger:
+  domain: data-model
+filter:
   backend: drupal
-  steps: [data-model:intake, create-data-model]
 ---
 
 # Rule: Drupal Views Config Entities

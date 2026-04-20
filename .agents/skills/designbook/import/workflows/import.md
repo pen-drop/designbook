@@ -5,7 +5,6 @@ stages:
   intake:
     steps: [import:intake]
   execute:
-    each: workflow
     steps: [run-workflow]
 engine: direct
 ---

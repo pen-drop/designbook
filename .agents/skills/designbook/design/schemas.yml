@@ -1,0 +1,457 @@
+# Design concern schemas — referenced via $ref from task frontmatter
+
+BreakpointId:
+  type: string
+  description: >
+    Viewport breakpoint identifier from `design-tokens.yml` (sm, md, lg, xl, ...).
+    Determines the viewport width for capture/verify operations.
+  examples: [sm, md, lg, xl]
+
+RegionId:
+  type: string
+  enum: [full, header, footer]
+  description: >
+    Capture region of the page. `full` = entire page,
+    `header`/`footer` = only the landmark area for targeted verification.
+
+ReferenceFolder:
+  type: string
+  description: >
+    Path to a scene's verification material — contains `extract.json`
+    (reference structure) and reference screenshots per breakpoint/region.
+    Format: `{breakpoint}--{region}.png` (e.g. `xl--full.png`).
+  examples: ["$DESIGNBOOK_DATA/references/hero", "/tmp/refs/article"]
+
+Check:
+  type: object
+  title: Verification Check
+  description: >
+    Definition of a single verification check — links a Storybook story
+    to a reference asset for a specific breakpoint/region.
+  required: [story_id, breakpoint, region]
+  properties:
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
+    breakpoint:
+      $ref: "#/BreakpointId"
+    region:
+      $ref: "#/RegionId"
+    threshold:
+      type: number
+      default: 0
+      description: Maximum percentage deviation (0–1) before the check fails.
+    selector:
+      type: string
+      description: >
+        Optional CSS selector — limits the capture to a subregion of the
+        story render. When empty, the full story viewport area is used.
+    type:
+      type: string
+      description: Check type (e.g. `screenshot`, `dom`). Determines the capture strategy.
+
+StoryMeta:
+  type: object
+  title: Story Meta
+  description: >
+    On-disk format of `stories/{storyId}/meta.yml` — per-story reference
+    configuration (source + breakpoints/regions). Checks and issues are
+    runtime-only and never persisted here.
+  properties:
+    reference:
+      type: object
+      properties:
+        source:
+          type: object
+          description: Origin of the design reference for this story.
+          properties:
+            url: { type: string }
+            origin: { type: string, description: "Provenance tag (e.g. `figma`, `manual`, `url`)." }
+            screenId: { type: string }
+            hasMarkup: { type: boolean }
+        breakpoints:
+          type: object
+          description: >
+            Map of breakpoint id → per-breakpoint configuration. Keys must match
+            identifiers from `design-tokens.yml` (see `#/BreakpointId`).
+          additionalProperties:
+            type: object
+            properties:
+              threshold:
+                type: number
+                description: Default maximum percentage deviation for regions of this breakpoint.
+              regions:
+                type: object
+                description: Map of region id → capture configuration.
+                additionalProperties:
+                  type: object
+                  properties:
+                    selector:
+                      type: string
+                      description: CSS selector for this region. Empty = full viewport.
+                    threshold:
+                      type: number
+                      description: Per-region override of the breakpoint threshold.
+
+Issue:
+  type: object
+  required: [severity, description]
+  properties:
+    id: { type: string }
+    story_id: { type: string }
+    checkKey: { type: string }
+    scene_id: { type: string }
+    severity: { type: string, enum: [critical, major, minor] }
+    description: { type: string }
+    file_hint: { type: string }
+    check: { type: string }
+    source: { type: string }
+    details: { type: string }
+    properties:
+      type: array
+      items:
+        type: object
+        properties:
+          property: { type: string }
+          expected: { type: string }
+          actual: { type: string }
+
+Component:
+  type: object
+  required: [component, group]
+  properties:
+    component: { type: string }
+    slots:
+      type: array
+      items: { type: string }
+      default: []
+    group: { type: string }
+    description: { type: string }
+    design_hint:
+      $ref: "#/DesignHint"
+    variants:
+      type: array
+      default: []
+      items:
+        $ref: "#/Variant"
+
+Variant:
+  type: object
+  required: [id]
+  properties:
+    id:
+      type: string
+      description: >
+        Variant identifier in kebab-case. Used as the story filename segment
+        (`<component>.<id>.story.yml`) and as the key in `.component.yml` `variants:`.
+      examples: [main, footer, vertical, horizontal]
+    title:
+      type: string
+      description: Human-readable variant label shown in Storybook.
+    description:
+      type: string
+      description: One-sentence summary of the variant's distinguishing visual or behavioural trait.
+
+Reference:
+  type: object
+  required: [type, url]
+  properties:
+    type: { type: string }
+    url: { type: string }
+    breakpoint: { type: string }
+    threshold: { type: number }
+    title: { type: string }
+
+EntityMapping:
+  type: object
+  required: [entity_type, bundle, view_mode]
+  properties:
+    entity_type: { type: string }
+    bundle: { type: string }
+    view_mode: { type: string }
+
+DesignReference:
+  type: object
+  required: [source, extracted, strategy]
+  properties:
+    source: { type: string }
+    extracted: { type: string }
+    strategy: { type: string, enum: [vision, playwright+vision] }
+    fonts:
+      type: array
+      items:
+        type: object
+        properties:
+          family: { type: string }
+          source: { type: string }
+          weights: { type: array, items: { type: number } }
+          styles: { type: array, items: { type: string } }
+    typography:
+      type: array
+      items:
+        type: object
+        properties:
+          element: { type: string }
+          font_family: { type: string }
+          font_size: { type: string }
+          line_height: { type: string }
+          letter_spacing: { type: string }
+          font_weight: { type: number }
+          color: { type: string }
+    colors:
+      type: array
+      items:
+        type: object
+        properties:
+          hex: { type: string }
+          usage: { type: array, items: { type: string } }
+    css_variables:
+      type: array
+      items:
+        type: object
+        properties:
+          name: { type: string }
+          value: { type: string }
+    spacing:
+      type: object
+      properties:
+        container_max_width: { type: string }
+        edge_padding: { type: string }
+        section_gap: { type: string }
+        values: { type: array, items: { type: string } }
+    landmarks:
+      type: object
+      properties:
+        header:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  tag: { type: string }
+                  bg: { type: string }
+                  height: { type: string }
+                  padding: { type: string }
+                  content: { type: string }
+                  layout: { type: string }
+                  gap: { type: string }
+        footer:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  tag: { type: string }
+                  bg: { type: string }
+                  height: { type: string }
+                  padding: { type: string }
+                  content: { type: string }
+                  layout: { type: string }
+                  gap: { type: string }
+    interactive:
+      type: array
+      items:
+        type: object
+        properties:
+          element: { type: string }
+          selector: { type: string }
+          bg: { type: string }
+          color: { type: string }
+          border_radius: { type: string }
+          padding: { type: string }
+          font: { type: string }
+          box_shadow: { type: string }
+          border: { type: string }
+    tokens:
+      type: object
+      properties:
+        colors:
+          type: object
+        fonts:
+          type: object
+        spacing:
+          type: array
+          items: { type: string }
+        radii:
+          type: array
+          items: { type: string }
+    navigation:
+      type: array
+      description: Navigation structures detected in the design reference.
+      items:
+        type: object
+        properties:
+          role:
+            type: string
+            description: "Navigation context: main, footer, breadcrumb, sidebar, utility."
+            enum: [main, footer, breadcrumb, sidebar, utility]
+          items:
+            type: array
+            description: Ordered list of navigation entries.
+            items:
+              type: object
+              properties:
+                label: { type: string }
+                url: { type: string }
+                active: { type: boolean, description: "True if this item appears as the active/current page." }
+                children:
+                  type: array
+                  description: Sub-navigation items (one level deep).
+                  items:
+                    type: object
+                    properties:
+                      label: { type: string }
+                      url: { type: string }
+    images:
+      type: array
+      description: Static images and brand assets detected in the design reference (logos, icons, illustrations).
+      items:
+        type: object
+        properties:
+          url: { type: string, description: "Source URL or path of the image." }
+          role:
+            type: string
+            description: "Visual role of the image."
+            enum: [logo, icon, hero, background, illustration, avatar, other]
+          alt: { type: string, description: "Alt text or accessible label if present." }
+          location: { type: string, description: "Where the image appears: header, footer, main, sidebar." }
+          width: { type: string, description: "Rendered width (px or CSS value)." }
+          height: { type: string, description: "Rendered height (px or CSS value)." }
+    components:
+      type: array
+      description: UI components identified in the design reference.
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            description: "Component type as it would be named in the design system (e.g. button, card, navigation, hero, badge)."
+          count:
+            type: number
+            description: Number of distinct instances detected.
+          location:
+            type: array
+            description: "Regions where the component appears."
+            items: { type: string }
+          variants:
+            type: array
+            description: Visual variants observed (e.g. primary/secondary, filled/outline, horizontal/vertical).
+            items: { type: string }
+          props:
+            type: object
+            description: Key visual properties extracted from the observed instances (colors, sizes, labels, etc.).
+    sections:
+      type: array
+      description: >
+        Page-level content zones between header and footer (hero, features grid, CTA, testimonials, etc.).
+        Provides layout context for story structure decisions.
+      items:
+        type: object
+        properties:
+          type:
+            type: string
+            description: "Section type (e.g. hero, features, cta, testimonials, pricing, faq, gallery, contact)."
+          bg: { type: string, description: "Background color or gradient." }
+          layout:
+            type: string
+            description: "Layout pattern (e.g. full-width, two-column, grid-3, centered)."
+          content_summary:
+            type: string
+            description: "One-sentence description of what this section contains."
+          order:
+            type: integer
+            description: "Top-to-bottom position of the section on the page (1-based)."
+    shadows:
+      type: array
+      description: >
+        Elevation / box-shadow tokens detected in the design reference.
+        Maps to CSS custom properties (e.g. --shadow-card, --shadow-modal).
+      items:
+        type: object
+        properties:
+          value: { type: string, description: "Full CSS box-shadow value." }
+          usage:
+            type: array
+            description: "Contexts where this shadow appears (e.g. card, modal, dropdown, button, header)."
+            items: { type: string }
+          token: { type: string, description: "Suggested CSS custom property name (e.g. --shadow-sm)." }
+    forms:
+      type: array
+      description: >
+        Form patterns detected in the design reference — input fields, labels, error states, etc.
+        Extracted per distinct form or form section observed.
+      items:
+        type: object
+        properties:
+          context:
+            type: string
+            description: "Where the form appears or its purpose (e.g. login, newsletter, contact, search)."
+          fields:
+            type: array
+            description: "Detected input fields."
+            items:
+              type: object
+              properties:
+                type: { type: string, description: "Input type (text, email, password, select, checkbox, radio, textarea)." }
+                label_position: { type: string, description: "Label placement (above, inline, placeholder-only)." }
+                style:
+                  type: object
+                  properties:
+                    bg: { type: string }
+                    border: { type: string }
+                    border_radius: { type: string }
+                    padding: { type: string }
+                    font_size: { type: string }
+          error_color: { type: string, description: "Color used for validation error messages." }
+          submit_button: { type: string, description: "Description of the submit CTA style." }
+    breakpoints:
+      type: array
+      description: >
+        Responsive breakpoints observed in the design reference (e.g. when multiple viewport
+        widths are shown). Maps detected px values to design-token breakpoint identifiers.
+      items:
+        type: object
+        properties:
+          px:
+            type: integer
+            description: "Viewport width in pixels at which the layout changes."
+          token_id:
+            type: string
+            description: "Suggested breakpoint token identifier (e.g. sm, md, lg, xl)."
+          description:
+            type: string
+            description: "What changes at this breakpoint (e.g. nav collapses, grid switches to single column)."
+
+DesignHint:
+  type: object
+  properties:
+    landmark: { type: string }
+    rows:
+      type: array
+      items:
+        type: object
+        properties:
+          bg: { type: string }
+          height: { type: string }
+          layout: { type: string }
+          gap: { type: string }
+          padding: { type: string }
+          content: { type: string }
+    fonts:
+      type: object
+    interactive:
+      type: array
+      items:
+        type: object
+        properties:
+          element: { type: string }
+          bg: { type: string }
+          color: { type: string }
+          border_radius: { type: string }
+          padding: { type: string }
+          box_shadow: { type: string }
+    tokens:
+      type: object

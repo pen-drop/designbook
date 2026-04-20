@@ -265,6 +265,288 @@ importers:
         specifier: ^8.7.1
         version: 8.8.5
 
+  workspaces/drupal:
+    dependencies:
+      '@egjs/flicking':
+        specifier: ^4.14.1
+        version: 4.15.0
+      '@egjs/flicking-plugins':
+        specifier: ^4.7.1
+        version: 4.7.1(@egjs/flicking@4.15.0)
+    devDependencies:
+      '@christianwiedemann/drupal-twig-extensions':
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3
+      '@pivanov/vite-plugin-svg-sprite':
+        specifier: ^3.0.0
+        version: 3.1.5(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
+      '@storybook/addon-docs':
+        specifier: ^10.0.0
+        version: 10.2.17(@types/react@18.3.28)(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@storybook/addon-themes':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html-vite':
+        specifier: ^10.0.0
+        version: 10.2.17(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/cli':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tailwindcss/typography':
+        specifier: ^0.5.16
+        version: 0.5.19(tailwindcss@4.1.18)
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      drupal-attribute:
+        specifier: ^1.2.1
+        version: 1.2.1
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
+      locutus:
+        specifier: ^2.0.39
+        version: 2.0.39
+      lodash.clonedeep:
+        specifier: ^4.5.0
+        version: 4.5.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
+      prettier:
+        specifier: ^3.5.3
+        version: 3.8.1
+      storybook:
+        specifier: ^10.0.0
+        version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      storybook-addon-designbook:
+        specifier: workspace:*
+        version: link:../../packages/storybook-addon-designbook
+      storybook-addon-sdc:
+        specifier: ^0.22.0
+        version: 0.22.5(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      stylelint:
+        specifier: ^16.15.0
+        version: 16.26.1(typescript@5.9.3)
+      stylelint-config-standard:
+        specifier: ^37.0.0
+        version: 37.0.0(stylelint@16.26.1(typescript@5.9.3))
+      stylelint-config-tailwindcss:
+        specifier: ^1.0.0
+        version: 1.0.1(stylelint@16.26.1(typescript@5.9.3))(tailwindcss@4.1.18)
+      stylelint-prettier:
+        specifier: ^5.0.3
+        version: 5.0.3(prettier@3.8.1)(stylelint@16.26.1(typescript@5.9.3))
+      tailwindcss:
+        specifier: ^4.0.0-beta.9
+        version: 4.1.18
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+      vite-plugin-node-polyfills:
+        specifier: ^0.25.0
+        version: 0.25.0(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      vite-plugin-static-copy:
+        specifier: ^2.3.0
+        version: 2.3.2(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+
+  workspaces/drupal-petshop:
+    dependencies:
+      '@egjs/flicking':
+        specifier: ^4.14.1
+        version: 4.15.0
+      '@egjs/flicking-plugins':
+        specifier: ^4.7.1
+        version: 4.7.1(@egjs/flicking@4.15.0)
+    devDependencies:
+      '@christianwiedemann/drupal-twig-extensions':
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3
+      '@pivanov/vite-plugin-svg-sprite':
+        specifier: ^3.0.0
+        version: 3.1.5(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
+      '@storybook/addon-docs':
+        specifier: ^10.0.0
+        version: 10.2.17(@types/react@18.3.28)(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@storybook/addon-themes':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html-vite':
+        specifier: ^10.0.0
+        version: 10.2.17(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/cli':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tailwindcss/typography':
+        specifier: ^0.5.16
+        version: 0.5.19(tailwindcss@4.1.18)
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      drupal-attribute:
+        specifier: ^1.2.1
+        version: 1.2.1
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
+      locutus:
+        specifier: ^2.0.39
+        version: 2.0.39
+      lodash.clonedeep:
+        specifier: ^4.5.0
+        version: 4.5.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
+      prettier:
+        specifier: ^3.5.3
+        version: 3.8.1
+      storybook:
+        specifier: ^10.0.0
+        version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      storybook-addon-designbook:
+        specifier: workspace:*
+        version: link:../../packages/storybook-addon-designbook
+      storybook-addon-sdc:
+        specifier: ^0.22.0
+        version: 0.22.5(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      stylelint:
+        specifier: ^16.15.0
+        version: 16.26.1(typescript@5.9.3)
+      stylelint-config-standard:
+        specifier: ^37.0.0
+        version: 37.0.0(stylelint@16.26.1(typescript@5.9.3))
+      stylelint-config-tailwindcss:
+        specifier: ^1.0.0
+        version: 1.0.1(stylelint@16.26.1(typescript@5.9.3))(tailwindcss@4.1.18)
+      stylelint-prettier:
+        specifier: ^5.0.3
+        version: 5.0.3(prettier@3.8.1)(stylelint@16.26.1(typescript@5.9.3))
+      tailwindcss:
+        specifier: ^4.0.0-beta.9
+        version: 4.1.18
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+      vite-plugin-node-polyfills:
+        specifier: ^0.25.0
+        version: 0.25.0(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      vite-plugin-static-copy:
+        specifier: ^2.3.0
+        version: 2.3.2(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+
+  workspaces/drupal-schema:
+    dependencies:
+      '@egjs/flicking':
+        specifier: ^4.14.1
+        version: 4.15.0
+      '@egjs/flicking-plugins':
+        specifier: ^4.7.1
+        version: 4.7.1(@egjs/flicking@4.15.0)
+    devDependencies:
+      '@christianwiedemann/drupal-twig-extensions':
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3
+      '@pivanov/vite-plugin-svg-sprite':
+        specifier: ^3.0.0
+        version: 3.1.5(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
+      '@storybook/addon-docs':
+        specifier: ^10.0.0
+        version: 10.2.17(@types/react@18.3.28)(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@storybook/addon-themes':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html-vite':
+        specifier: ^10.0.0
+        version: 10.2.17(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/cli':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tailwindcss/typography':
+        specifier: ^0.5.16
+        version: 0.5.19(tailwindcss@4.1.18)
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      drupal-attribute:
+        specifier: ^1.2.1
+        version: 1.2.1
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
+      locutus:
+        specifier: ^2.0.39
+        version: 2.0.39
+      lodash.clonedeep:
+        specifier: ^4.5.0
+        version: 4.5.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
+      prettier:
+        specifier: ^3.5.3
+        version: 3.8.1
+      storybook:
+        specifier: ^10.0.0
+        version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      storybook-addon-designbook:
+        specifier: workspace:*
+        version: link:../../packages/storybook-addon-designbook
+      storybook-addon-sdc:
+        specifier: ^0.22.0
+        version: 0.22.5(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      stylelint:
+        specifier: ^16.15.0
+        version: 16.26.1(typescript@5.9.3)
+      stylelint-config-standard:
+        specifier: ^37.0.0
+        version: 37.0.0(stylelint@16.26.1(typescript@5.9.3))
+      stylelint-config-tailwindcss:
+        specifier: ^1.0.0
+        version: 1.0.1(stylelint@16.26.1(typescript@5.9.3))(tailwindcss@4.1.18)
+      stylelint-prettier:
+        specifier: ^5.0.3
+        version: 5.0.3(prettier@3.8.1)(stylelint@16.26.1(typescript@5.9.3))
+      tailwindcss:
+        specifier: ^4.0.0-beta.9
+        version: 4.1.18
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+      vite-plugin-node-polyfills:
+        specifier: ^0.25.0
+        version: 0.25.0(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      vite-plugin-static-copy:
+        specifier: ^2.3.0
+        version: 2.3.2(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+
   workspaces/drupal-stitch:
     dependencies:
       '@egjs/flicking':
@@ -359,7 +641,477 @@ importers:
         specifier: ^2.3.0
         version: 2.3.2(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
 
+  workspaces/drupal-stitch-css-generate:
+    dependencies:
+      '@egjs/flicking':
+        specifier: ^4.14.1
+        version: 4.15.0
+      '@egjs/flicking-plugins':
+        specifier: ^4.7.1
+        version: 4.7.1(@egjs/flicking@4.15.0)
+    devDependencies:
+      '@christianwiedemann/drupal-twig-extensions':
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3
+      '@pivanov/vite-plugin-svg-sprite':
+        specifier: ^3.0.0
+        version: 3.1.5(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
+      '@storybook/addon-docs':
+        specifier: ^10.0.0
+        version: 10.2.17(@types/react@18.3.28)(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@storybook/addon-themes':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html-vite':
+        specifier: ^10.0.0
+        version: 10.2.17(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/cli':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tailwindcss/typography':
+        specifier: ^0.5.16
+        version: 0.5.19(tailwindcss@4.1.18)
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      drupal-attribute:
+        specifier: ^1.2.1
+        version: 1.2.1
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
+      locutus:
+        specifier: ^2.0.39
+        version: 2.0.39
+      lodash.clonedeep:
+        specifier: ^4.5.0
+        version: 4.5.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
+      prettier:
+        specifier: ^3.5.3
+        version: 3.8.1
+      storybook:
+        specifier: ^10.0.0
+        version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      storybook-addon-designbook:
+        specifier: workspace:*
+        version: link:../../packages/storybook-addon-designbook
+      storybook-addon-sdc:
+        specifier: ^0.22.0
+        version: 0.22.5(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      stylelint:
+        specifier: ^16.15.0
+        version: 16.26.1(typescript@5.9.3)
+      stylelint-config-standard:
+        specifier: ^37.0.0
+        version: 37.0.0(stylelint@16.26.1(typescript@5.9.3))
+      stylelint-config-tailwindcss:
+        specifier: ^1.0.0
+        version: 1.0.1(stylelint@16.26.1(typescript@5.9.3))(tailwindcss@4.1.18)
+      stylelint-prettier:
+        specifier: ^5.0.3
+        version: 5.0.3(prettier@3.8.1)(stylelint@16.26.1(typescript@5.9.3))
+      tailwindcss:
+        specifier: ^4.0.0-beta.9
+        version: 4.1.18
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+      vite-plugin-node-polyfills:
+        specifier: ^0.25.0
+        version: 0.25.0(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      vite-plugin-static-copy:
+        specifier: ^2.3.0
+        version: 2.3.2(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+
+  workspaces/drupal-stitch-design-shell:
+    dependencies:
+      '@egjs/flicking':
+        specifier: ^4.14.1
+        version: 4.15.0
+      '@egjs/flicking-plugins':
+        specifier: ^4.7.1
+        version: 4.7.1(@egjs/flicking@4.15.0)
+    devDependencies:
+      '@christianwiedemann/drupal-twig-extensions':
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3
+      '@pivanov/vite-plugin-svg-sprite':
+        specifier: ^3.0.0
+        version: 3.1.5(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
+      '@storybook/addon-docs':
+        specifier: ^10.0.0
+        version: 10.2.17(@types/react@18.3.28)(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@storybook/addon-themes':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html-vite':
+        specifier: ^10.0.0
+        version: 10.2.17(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/cli':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tailwindcss/typography':
+        specifier: ^0.5.16
+        version: 0.5.19(tailwindcss@4.1.18)
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      drupal-attribute:
+        specifier: ^1.2.1
+        version: 1.2.1
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
+      locutus:
+        specifier: ^2.0.39
+        version: 2.0.39
+      lodash.clonedeep:
+        specifier: ^4.5.0
+        version: 4.5.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
+      prettier:
+        specifier: ^3.5.3
+        version: 3.8.1
+      storybook:
+        specifier: ^10.0.0
+        version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      storybook-addon-designbook:
+        specifier: workspace:*
+        version: link:../../packages/storybook-addon-designbook
+      storybook-addon-sdc:
+        specifier: ^0.22.0
+        version: 0.22.5(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      stylelint:
+        specifier: ^16.15.0
+        version: 16.26.1(typescript@5.9.3)
+      stylelint-config-standard:
+        specifier: ^37.0.0
+        version: 37.0.0(stylelint@16.26.1(typescript@5.9.3))
+      stylelint-config-tailwindcss:
+        specifier: ^1.0.0
+        version: 1.0.1(stylelint@16.26.1(typescript@5.9.3))(tailwindcss@4.1.18)
+      stylelint-prettier:
+        specifier: ^5.0.3
+        version: 5.0.3(prettier@3.8.1)(stylelint@16.26.1(typescript@5.9.3))
+      tailwindcss:
+        specifier: ^4.0.0-beta.9
+        version: 4.1.18
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+      vite-plugin-node-polyfills:
+        specifier: ^0.25.0
+        version: 0.25.0(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      vite-plugin-static-copy:
+        specifier: ^2.3.0
+        version: 2.3.2(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+
+  workspaces/drupal-stitch-test:
+    dependencies:
+      '@egjs/flicking':
+        specifier: ^4.14.1
+        version: 4.15.0
+      '@egjs/flicking-plugins':
+        specifier: ^4.7.1
+        version: 4.7.1(@egjs/flicking@4.15.0)
+    devDependencies:
+      '@christianwiedemann/drupal-twig-extensions':
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3
+      '@pivanov/vite-plugin-svg-sprite':
+        specifier: ^3.0.0
+        version: 3.1.5(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
+      '@storybook/addon-docs':
+        specifier: ^10.0.0
+        version: 10.2.17(@types/react@18.3.28)(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@storybook/addon-themes':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html-vite':
+        specifier: ^10.0.0
+        version: 10.2.17(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/cli':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tailwindcss/typography':
+        specifier: ^0.5.16
+        version: 0.5.19(tailwindcss@4.1.18)
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      drupal-attribute:
+        specifier: ^1.2.1
+        version: 1.2.1
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
+      locutus:
+        specifier: ^2.0.39
+        version: 2.0.39
+      lodash.clonedeep:
+        specifier: ^4.5.0
+        version: 4.5.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
+      prettier:
+        specifier: ^3.5.3
+        version: 3.8.1
+      storybook:
+        specifier: ^10.0.0
+        version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      storybook-addon-designbook:
+        specifier: workspace:*
+        version: link:../../packages/storybook-addon-designbook
+      storybook-addon-sdc:
+        specifier: ^0.22.0
+        version: 0.22.5(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      stylelint:
+        specifier: ^16.15.0
+        version: 16.26.1(typescript@5.9.3)
+      stylelint-config-standard:
+        specifier: ^37.0.0
+        version: 37.0.0(stylelint@16.26.1(typescript@5.9.3))
+      stylelint-config-tailwindcss:
+        specifier: ^1.0.0
+        version: 1.0.1(stylelint@16.26.1(typescript@5.9.3))(tailwindcss@4.1.18)
+      stylelint-prettier:
+        specifier: ^5.0.3
+        version: 5.0.3(prettier@3.8.1)(stylelint@16.26.1(typescript@5.9.3))
+      tailwindcss:
+        specifier: ^4.0.0-beta.9
+        version: 4.1.18
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+      vite-plugin-node-polyfills:
+        specifier: ^0.25.0
+        version: 0.25.0(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      vite-plugin-static-copy:
+        specifier: ^2.3.0
+        version: 2.3.2(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+
   workspaces/drupal-web:
+    dependencies:
+      '@egjs/flicking':
+        specifier: ^4.14.1
+        version: 4.15.0
+      '@egjs/flicking-plugins':
+        specifier: ^4.7.1
+        version: 4.7.1(@egjs/flicking@4.15.0)
+    devDependencies:
+      '@christianwiedemann/drupal-twig-extensions':
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3
+      '@pivanov/vite-plugin-svg-sprite':
+        specifier: ^3.0.0
+        version: 3.1.5(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
+      '@storybook/addon-docs':
+        specifier: ^10.0.0
+        version: 10.2.17(@types/react@18.3.28)(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@storybook/addon-themes':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html-vite':
+        specifier: ^10.0.0
+        version: 10.2.17(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/cli':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tailwindcss/typography':
+        specifier: ^0.5.16
+        version: 0.5.19(tailwindcss@4.1.18)
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      drupal-attribute:
+        specifier: ^1.2.1
+        version: 1.2.1
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
+      locutus:
+        specifier: ^2.0.39
+        version: 2.0.39
+      lodash.clonedeep:
+        specifier: ^4.5.0
+        version: 4.5.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
+      prettier:
+        specifier: ^3.5.3
+        version: 3.8.1
+      storybook:
+        specifier: ^10.0.0
+        version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      storybook-addon-designbook:
+        specifier: workspace:*
+        version: link:../../packages/storybook-addon-designbook
+      storybook-addon-sdc:
+        specifier: ^0.22.0
+        version: 0.22.5(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      stylelint:
+        specifier: ^16.15.0
+        version: 16.26.1(typescript@5.9.3)
+      stylelint-config-standard:
+        specifier: ^37.0.0
+        version: 37.0.0(stylelint@16.26.1(typescript@5.9.3))
+      stylelint-config-tailwindcss:
+        specifier: ^1.0.0
+        version: 1.0.1(stylelint@16.26.1(typescript@5.9.3))(tailwindcss@4.1.18)
+      stylelint-prettier:
+        specifier: ^5.0.3
+        version: 5.0.3(prettier@3.8.1)(stylelint@16.26.1(typescript@5.9.3))
+      tailwindcss:
+        specifier: ^4.0.0-beta.9
+        version: 4.1.18
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+      vite-plugin-node-polyfills:
+        specifier: ^0.25.0
+        version: 0.25.0(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      vite-plugin-static-copy:
+        specifier: ^2.3.0
+        version: 2.3.2(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+
+  workspaces/leando:
+    dependencies:
+      '@egjs/flicking':
+        specifier: ^4.14.1
+        version: 4.15.0
+      '@egjs/flicking-plugins':
+        specifier: ^4.7.1
+        version: 4.7.1(@egjs/flicking@4.15.0)
+    devDependencies:
+      '@christianwiedemann/drupal-twig-extensions':
+        specifier: 2.0.0-beta.3
+        version: 2.0.0-beta.3
+      '@pivanov/vite-plugin-svg-sprite':
+        specifier: ^3.0.0
+        version: 3.1.5(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.58.2
+      '@storybook/addon-docs':
+        specifier: ^10.0.0
+        version: 10.2.17(@types/react@18.3.28)(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@storybook/addon-themes':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html':
+        specifier: ^10.0.0
+        version: 10.2.17(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@storybook/html-vite':
+        specifier: ^10.0.0
+        version: 10.2.17(esbuild@0.27.3)(rollup@4.57.1)(storybook@10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      '@tailwindcss/cli':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tailwindcss/typography':
+        specifier: ^0.5.16
+        version: 0.5.19(tailwindcss@4.1.18)
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      drupal-attribute:
+        specifier: ^1.2.1
+        version: 1.2.1
+      glob:
+        specifier: ^11.0.1
+        version: 11.1.0
+      locutus:
+        specifier: ^2.0.39
+        version: 2.0.39
+      lodash.clonedeep:
+        specifier: ^4.5.0
+        version: 4.5.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
+      prettier:
+        specifier: ^3.5.3
+        version: 3.8.1
+      storybook:
+        specifier: ^10.0.0
+        version: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      storybook-addon-designbook:
+        specifier: workspace:*
+        version: link:../../packages/storybook-addon-designbook
+      storybook-addon-sdc:
+        specifier: ^0.22.0
+        version: 0.22.5(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      stylelint:
+        specifier: ^16.15.0
+        version: 16.26.1(typescript@5.9.3)
+      stylelint-config-standard:
+        specifier: ^37.0.0
+        version: 37.0.0(stylelint@16.26.1(typescript@5.9.3))
+      stylelint-config-tailwindcss:
+        specifier: ^1.0.0
+        version: 1.0.1(stylelint@16.26.1(typescript@5.9.3))(tailwindcss@4.1.18)
+      stylelint-prettier:
+        specifier: ^5.0.3
+        version: 5.0.3(prettier@3.8.1)(stylelint@16.26.1(typescript@5.9.3))
+      tailwindcss:
+        specifier: ^4.0.0-beta.9
+        version: 4.1.18
+      twing:
+        specifier: ^7.3.0
+        version: 7.3.0
+      vite:
+        specifier: ^6.3.5
+        version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
+      vite-plugin-node-polyfills:
+        specifier: ^0.25.0
+        version: 0.25.0(rollup@4.57.1)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+      vite-plugin-static-copy:
+        specifier: ^2.3.0
+        version: 2.3.2(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
+
+  workspaces/theme-test:
     dependencies:
       '@egjs/flicking':
         specifier: ^4.14.1

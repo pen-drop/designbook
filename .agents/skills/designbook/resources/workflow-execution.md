@@ -1,5 +1,5 @@
 ---
-when: {}
+
 ---
 
 # Workflow Execution Rules
@@ -37,23 +37,17 @@ Workflows with `track: false` in frontmatter skip the entire lifecycle (no `work
 
 ---
 
-## Step 0: Precondition Check
+## Step 0.5: Param Resolution
 
-**Before creating a workflow**, verify that all required inputs exist. Do not call `workflow create` until all preconditions pass.
+After `workflow create`, check the response for an `unresolved` field. If present:
 
-1. **Bootstrap config only** — run `eval "$(_debo config)"` to get `$DESIGNBOOK_HOME` and `$DESIGNBOOK_DATA`
-2. **Read the workflow file** to identify the first step (the intake step)
-3. **Locate the first task file** by convention:
-   - Step `<workflow>:intake` → `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/tasks/intake--<workflow>.md`
-   - Step `create-<name>` → `$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/tasks/create-<name>.md`
-4. **Read the task file's frontmatter** and check each `reads:` entry:
-   - **Non-optional reads**: Check the file/directory exists. If missing:
-     - Has `workflow:` → tell the user which workflow to run first (e.g. "Run `/designbook vision` first")
-     - No `workflow:` → report the missing file
-   - **Optional reads** (`optional: true`): Skip — missing is fine
-5. **Scan rules** for the first step in `<concern>/rules/` and any cross-cutting rules referenced. Check file-existence preconditions (e.g. vision-context requires `vision.md`)
-6. **If any precondition fails** → report all missing prerequisites to the user in one message. Do **not** create the workflow. Suggest the workflows or actions needed to satisfy them.
-7. **If all preconditions pass** → proceed to Step 1.
+1. Read the `candidates` array for each unresolved param
+2. If candidates exist: present them to the user and ask which one is correct
+3. If no candidates: ask the user for a more specific identifier
+4. Call `_debo workflow create` again with the corrected params
+5. Repeat until all params resolve, then continue with normal workflow execution
+
+If no `unresolved` field: all params were resolved automatically, proceed with Step 1.
 
 ---
 
@@ -72,8 +66,7 @@ EXISTING=$(_debo workflow list --workflow <id>)
 if [ -n "$EXISTING" ]; then
   echo "EXISTING:$EXISTING"
 else
-  WF_FILE="$DESIGNBOOK_HOME/.agents/skills/designbook/<concern>/workflows/<id>.md"
-  CREATE_JSON=$(_debo workflow create --workflow <id> --workflow-file "$WF_FILE")
+  CREATE_JSON=$(_debo workflow create --workflow <id>)
   echo "$CREATE_JSON"
 fi
 ```
@@ -143,21 +136,34 @@ _debo workflow instructions --workflow $WORKFLOW_NAME --stage <step-name>
 
 Read the `task_file` and all `rules`/`blueprints`. Rules are hard constraints — apply silently, never mention to the user.
 
-### 2a-resolve. Run Provider Rules
+The response includes a `schema` field that contains all inputs and outputs for the task:
 
-After loading rules, check each rule's frontmatter for a `provides: <param>` field. For each expected param that is **not yet set** (not in `--params` and not resolved by a previous step), find a loaded rule that provides it and execute that rule's instructions to set the param.
+- `schema.definitions` — resolved schemas from `schemas.yml`, deduplicated across all loaded files (task, blueprints, rules)
+- `schema.params` — file inputs with resolved `path`, `exists`, `content` (parsed YAML/JSON or null), and `$ref` to definitions
+- `schema.result` — expected outputs with the same resolution: resolved `path`, `exists`, `content`, and `$ref` to definitions
 
+Params and result use identical resolution logic. The AI uses param/result content directly from the response. File names and paths are never mentioned in task body text. If an entry has `exists: true`, its `content` is the parsed file. If `exists: false`, the file does not exist yet and `content` is null.
+
+Some result properties are intentionally open in the base schema and only gain structure through extensions — e.g. `config` in the data model is `{ type: object }` in the base, but blueprints/rules add type-specific properties like `image_style.aspect_ratio`. Always use `schema` (from `workflow instructions`) over the base task schema when both are available.
+
+### 2a-resolve. Param Resolution
+
+Most params are resolved automatically by **code resolvers** at `workflow create` time (Step 0.5). Params with `resolve:` in the workflow definition are handled by the CLI before any task runs.
+
+For remaining unresolved params, check loaded rules for a `provides: <param>` field (legacy provider rules). For each expected param that is **not yet set** (not in `--params` and not resolved by a code resolver or previous step), find a loaded rule that provides it and execute that rule's instructions to set the param.
+
+- If a code resolver handled it → param is already set, skip
 - If a provider rule exists → execute it, set the param
 - If no provider rule exists → leave the param unset (the task will handle it, e.g. ask the user)
 - If the param is already set → skip the provider rule entirely
 
-Provider rules run **before** the task starts. The task sees provider-resolved params as already set.
+**Prefer code resolvers** for new params. Provider rules are a legacy mechanism — use `resolve:` in workflow params instead.
 
 ### 2b. Do the Work
 
 Follow the task file instructions. This could mean:
 - Gathering information from the user (for tasks that collect params)
-- Creating file content and writing it via `write-file`
+- Creating file/data results via `workflow result`
 - Running commands or capturing screenshots
 - Any other work described in the task file
 
@@ -167,55 +173,64 @@ Follow the task file instructions. This could mean:
 _debo workflow wait --workflow $WORKFLOW_NAME --message "<the question for the user>"
 ```
 
-This transitions the workflow from `running` → `waiting`, shows an amber pulse in the panel, and auto-focuses the Designbook tab. The next CLI call (`done`, `write-file`, or `instructions`) automatically clears the waiting state back to `running`.
+This transitions the workflow from `running` → `waiting`, shows an amber pulse in the panel, and auto-focuses the Designbook tab. The next CLI call (`done`, `result`, or `instructions`) automatically clears the waiting state back to `running`.
 
-**Writing files:**
+**Writing results:**
+
+Task results are driven by the `result:` schema in the task's frontmatter. The `schema.result` field (from `workflow instructions`) is the single source of truth for what to fill.
+
+**File results** (result keys with `path:`):
+Pass all results — both file and data — as a single JSON object via `--data` on `workflow done`.
+The CLI serializes to the target format, validates the schema on the raw data, and runs semantic validators.
+
+By default, file results are staged (written to a `.debo` suffix path) and flushed atomically on stage transition. Results declared with `flush: immediate` in the task's result schema are written to their final path as soon as `workflow done` completes — the AI does not need to pass any flush flag.
+
+**Direct-submission file results** (`submission: direct`):
+
+The file is written by an external tool (Playwright screenshot, CLI invocation, etc.). The task code produces the file; the workflow CLI only runs post-write validation. Such results are registered via `workflow result` when produced outside the normal `--data` path.
+
 ```bash
-cat <<'EOF' | _debo workflow write-file $WORKFLOW_NAME <task-id> --key <key>
-<file content>
-EOF
+_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> \
+  --data '{"vision": {"product_name": "...", "description": "..."}}'
 ```
 
-If `valid: false` → fix content and call `write-file` again until valid.
+> ⛔ **GLOBAL RULE — no exceptions:**
+> File results declared in `result:` frontmatter MUST be submitted via `workflow done --data`.
+> Writing a result file directly with the Write tool or any other mechanism is **forbidden**.
+> `workflow done` will fail if it detects a file at a declared result path that was not submitted through the workflow.
+> The only exception to the `workflow done --data` pattern is `submission: direct` — those results are written by an external tool and registered via `workflow result`.
 
 ### 2c. Mark Task Done
 
 ```bash
-_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--params <json>] [--summary <text>]
+_debo workflow done --workflow $WORKFLOW_NAME --task <task-id> [--data '<json>'] [--summary <text>]
 ```
 
-Pass `--params` when the task produces params that expand subsequent tasks (e.g. iterables for stages with `each`). The CLI decides whether to use `plan` or `append` mode based on the workflow state.
+- `--data '<json>'` — pass all results (file and data) as a single JSON object.
+  The engine serializes file results to disk, validates all results against the
+  `schema.definitions`, and marks the task done.
+- `--summary` — short result description shown in Storybook panel. Skip for self-explanatory tasks.
+- Results with `default:` in `schema.result` are auto-filled if not provided.
 
-Pass `--summary` with a short result description when the task outcome is not obvious from the title alone. The summary is shown in the Storybook panel next to the task title. Skip it for self-explanatory tasks (e.g. "Capture Reference: sm/header"). Use it for tasks that produce results the user would want to see at a glance (e.g. "3 issues found", "12 → 4 consolidated", "fontSize 14px → 48px").
-
-**Params format for stages with `each`:**
-```json
-{
-  "component": [
-    {"component": "header", "group": "Shell"},
-    {"component": "footer", "group": "Shell"}
-  ],
-  "scene": [
-    {"scene": "design-system:shell"}
-  ]
-}
-```
+**Data flow model:** Tasks declare their outputs via `result:` in frontmatter with a JSON Schema. The engine validates results against `schema` (base + blueprint extensions + rule constraints). When all tasks in a stage complete, the engine collects data results into the workflow scope and expands pending stages whose `each:` keys are now available.
 
 ### 2d. Follow the Response
 
-Parse the `RESPONSE:` JSON line and act accordingly:
+Parse the `RESPONSE:` JSON line and act accordingly. All responses now include `stage_progress` and `stage_complete` fields:
 
 **Next task in same stage:**
 ```json
-{ "stage": "component", "step_completed": "create-component", "next_step": "create-component" }
+{ "stage": "component", "step_completed": "create-component", "next_step": "create-component", "stage_progress": "1/3", "stage_complete": false }
 ```
 → Continue to the next task (go to 2a).
 
-**Stage transition:**
+**Stage transition (stage complete, scope updated):**
 ```json
-{ "stage": "test", "transition_from": "component", "next_stage": "test", "next_step": "screenshot" }
+{ "stage": "test", "transition_from": "component", "next_stage": "test", "next_step": "screenshot", "stage_progress": "3/3", "stage_complete": true, "scope_update": { "issues": [...] } }
 ```
-→ New stage. Load instructions for the new step (go to 2a).
+→ Stage complete. Data results from the completed stage have been collected into scope (`scope_update` shows what was added). Load instructions for the new step (go to 2a).
+
+When `scope_update` is present, it means the engine collected data results from all tasks in the completed stage and wrote them to the workflow scope. Subsequent stages with `each:` on those keys will be expanded automatically (visible in `expanded_tasks` if present).
 
 **Waiting for params (user input required):**
 ```json
@@ -227,7 +242,7 @@ Parse the `RESPONSE:` JSON line and act accordingly:
 _debo workflow wait --workflow $WORKFLOW_NAME --message "Preview OK?"
 ```
 
-Then ask the user the prompt. When the user answers, call `done` again with the answer as `--params`. The next CLI call (`done`, `write-file`, or `instructions`) automatically transitions the workflow back to `running`.
+Then ask the user the prompt. When the user answers, pass the answer via `--data` on the next `workflow done` call. The next CLI call (`done`, `result`, or `instructions`) automatically transitions the workflow back to `running`.
 
 **Workflow complete:**
 ```json
@@ -244,7 +259,7 @@ Then ask the user the prompt. When the user answers, call `done` again with the 
 For each `before` entry in workflow frontmatter:
 - Check `reads:` gate — skip if missing
 - Apply policy: `always` → run, `if-never-run` → check `workflow list --include-archived`, `ask` → prompt user
-- Resolve workflow file: `before: workflow: css-generate` → `$DESIGNBOOK_HOME/.agents/skills/designbook/css-generate/workflows/css-generate.md`
+- Start the hook workflow: `_debo workflow create --workflow css-generate`
 - Complete the hook workflow fully before continuing
 
 ### After Hooks
@@ -271,7 +286,7 @@ For `direct` engine, `finalizing → done` happens automatically (auto-archive).
 
 Runs after hooks, only when `--optimize` flag was set at invocation.
 
-1. Collect all files written during the workflow (from `write-file` results)
+1. Collect all files written during the workflow (from `workflow result` calls)
 2. Review for: performance, maintainability, accessibility, design-system consistency
 3. Output numbered suggestions — do not apply, only suggest
 
@@ -279,8 +294,11 @@ Runs after hooks, only when `--optimize` flag was set at invocation.
 
 ## Research Pass (`--research`, internal)
 
-Runs after optimize pass, only when `--research` flag was set. Internal diagnostic for skill development.
+Runs after optimize pass, only when `--research` flag was set at skill invocation.
 
-1. Replay conversation — log every CLI failure, retry, ambiguity, undocumented behavior
-2. Root-cause each issue (workflow-execution.md, SKILL.md, cli-reference.md, task/rule file, CLI bug)
-3. Output diagnostic report — do not modify files, only report
+**During the workflow:** append `--log` to every `_debo workflow …` CLI call so entries in `designbook/dbo.log` carry `tagged: true`. This is the canonical marker the audit filters on.
+
+**After the workflow:** load `designbook-skill-creator` and follow [`resources/research.md`](../../designbook-skill-creator/resources/research.md). The audit combines:
+
+- archived `tasks.yml` (loaded task files, rules, blueprints)
+- tagged entries in `dbo.log` (CLI failures, retries, unresolved params)

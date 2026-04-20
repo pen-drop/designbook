@@ -11,7 +11,7 @@ const ENDPOINT = '/__designbook/load';
  * Fetch a file from the designbook middleware. Returns the raw content string,
  * or null if the file does not exist.
  *
- * @param {string} path — Relative path within designbook/ (e.g. "vision.md")
+ * @param {string} path — Relative path within designbook/ (e.g. "vision.yml")
  * @returns {Promise<string|null>}
  */
 export async function loadDesignbookFile(path) {

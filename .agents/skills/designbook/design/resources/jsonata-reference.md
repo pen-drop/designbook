@@ -11,19 +11,19 @@ Each `.jsonata` file is a pure JSONata expression. Input is a single entity reco
  */
 [
   {
-    "component": "figure",
+    "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:figure",
     "props": {
       "src": image.url,
       "alt": image.alt ? image.alt : title
     }
   },
   {
-    "component": "heading",
+    "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:heading",
     "props": { "level": "h3" },
     "slots": { "text": title }
   },
   {
-    "component": "text-block",
+    "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:text-block",
     "slots": {
       "content": teaser ? teaser : $substring(body, 0, 200) & "..."
     }
@@ -37,19 +37,27 @@ Each item in the output array:
 
 | Key | Required | Type | Description |
 |-----|----------|------|-------------|
-| `component` | ✅ | string | Component name (without provider prefix — added at render time) |
+| `component` | ✅ | string | Component name with provider prefix (`$DESIGNBOOK_COMPONENT_NAMESPACE:name`) — resolved at generation time |
 | `props` | ❌ | object | Data/configuration values passed to the component |
 | `slots` | ❌ | object | Rendered content slots (strings, arrays, or nested nodes) |
 
-### Nested Entity References
+> ⛔ **Provider prefix is required.** Always use `$DESIGNBOOK_COMPONENT_NAMESPACE:component-name` in JSONata output — never bare component names. The prefix is resolved at generation time, not at render time.
 
-For cross-entity rendering, return an entity node. The addon resolves it recursively by loading the referenced `.jsonata` file:
+### Entity Reference Nodes
 
-| Key           | Required | Type                   | Description |
-|---------------|----------|------------------------|-------------|
-| `entity`      | ✅ | `"entity_type.bundle"` | Marks this as a nested entity reference |
-| `view_mode`   | ✅ | string                 | View mode to apply |
-| `record`      | ❌ | integer                | Record index in sample data (default: 0) |
+For cross-entity rendering, return an entity reference node. The addon resolves it recursively by loading the referenced `.jsonata` file.
+
+The format is identical in scene YAML and JSONata output:
+
+```jsonata
+{ "entity": "node.article", "view_mode": "teaser", "record": 0 }
+```
+
+| Key | Required | Type | Description |
+|-----|----------|------|-------------|
+| `entity` | ✅ | `"entity_type.bundle"` | Two-part dot string (e.g. `node.article`, `media.image`, `paragraph.slider`) |
+| `view_mode` | ✅ | string | View mode / mapping to apply |
+| `record` | ❌ | integer | Sample data record index (default: 0) |
 
 ### JSONata Syntax Quick Reference
 
@@ -72,39 +80,53 @@ Use JSONata's ternary to conditionally include components. `null` values are aut
 ```jsonata
 [
   {
-    "component": "heading",
+    "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:heading",
     "props": { "level": "h1" },
     "slots": { "text": title }
   },
   image ? {
-    "component": "figure",
+    "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:figure",
     "props": {
       "src": image.url,
       "alt": image.alt
     }
   },
   {
-    "component": "text-block",
+    "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:text-block",
     "slots": { "content": body }
   }
 ]
 ```
 
-### Nested Entity Example
+### Entity Reference in JSONata
 
 Embedding a contact card from another entity type:
 
 ```jsonata
 [
   {
-    "component": "heading",
+    "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:heading",
     "props": { "level": "h1" },
     "slots": { "text": title }
   },
-  {
-    "entity": "person.contact",
-    "view_mode": "avatar",
-    "record": 0
-  }
+  { "entity": "person.contact", "view_mode": "avatar", "record": 0 }
 ]
+```
+
+### Parent Entity Orchestrating Children
+
+A landing page that delegates to child paragraph entities:
+
+```jsonata
+(
+  $page := $;
+  [
+    $page.field_banner_enabled ? {
+      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:hero-banner",
+      "props": { "gradient": "green-to-yellow" }
+    },
+    { "entity": "paragraph.icon_link_boxes", "view_mode": "default", "record": 0 },
+    { "entity": "paragraph.slider", "view_mode": "default", "record": 0 }
+  ]
+)
 ```

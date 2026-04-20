@@ -1,6 +1,8 @@
 ---
-when:
-  steps: [create-scene, design-shell:intake, design-screen:intake]
+trigger:
+  domain: scenes
+filter:
+  backend: drupal
 ---
 
 # Drupal Scene Constraints

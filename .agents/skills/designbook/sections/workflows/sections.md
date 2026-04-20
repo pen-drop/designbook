@@ -5,7 +5,6 @@ stages:
   intake:
     steps: [sections:intake]
   execute:
-    each: section
-    steps: [create-section]
+    steps: [create-scene-file]
 engine: direct
 ---

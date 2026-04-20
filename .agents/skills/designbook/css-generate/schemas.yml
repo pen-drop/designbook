@@ -1,0 +1,43 @@
+# CSS generation concern schemas
+
+CssGroup:
+  type: object
+  required: [group, tokens]
+  properties:
+    group: { type: string }
+    tokens:
+      type: array
+      items: { type: string }
+
+IndexCss:
+  type: object
+  required: [imports]
+  properties:
+    imports:
+      type: array
+      items: { type: string }
+
+Jsonata:
+  type: object
+  required: [group]
+  properties:
+    group: { type: string }
+    expression: { type: string }
+
+GoogleFontsCss:
+  type: object
+  required: [fonts]
+  properties:
+    fonts:
+      type: array
+      items:
+        type: object
+        required: [family]
+        properties:
+          family: { type: string }
+          weights:
+            type: array
+            items: { type: integer }
+          styles:
+            type: array
+            items: { type: string }

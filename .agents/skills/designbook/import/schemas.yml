@@ -1,0 +1,8 @@
+# Import concern schemas
+
+ImportWorkflow:
+  type: object
+  required: [workflow]
+  properties:
+    workflow: { type: string }
+    params: { type: object }

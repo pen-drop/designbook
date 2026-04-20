@@ -1,61 +1,23 @@
 ---
-when:
+trigger:
   steps: [create-vision]
 params:
-  product_name: ~
-  description: ~
-  problems: []
-  features: []
-  design_reference: ~
-  references: []
-files:
-  - file: $DESIGNBOOK_DATA/vision.md
-    key: vision
-    validators: []
+  type: object
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      type: object
+result:
+  type: object
+  required: [vision]
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      $ref: ../schemas.yml#/Vision
 ---
 
-# Create Product Vision
+# Product Vision
 
-Write the approved product vision from the dialog via stdin to the CLI:
-```
- write-file $WORKFLOW_NAME $TASK_ID --key vision
-```
-
-## File Format
-
-```markdown
-# {{ product_name }}
-
-## Description
-{{ description }}
-
-## Problems & Solutions
-
-### Problem 1: [Problem Title]
-[How the product solves it in 1-2 sentences]
-
-### Problem 2: [Problem Title]
-[How the product solves it in 1-2 sentences]
-
-## Key Features
-- [Feature 1]
-- [Feature 2]
-- [Feature 3]
-
-## Design Reference
-type: [url | image | stitch | ...]
-url: [URL or integration-specific identifier]
-label: [Short description]
-
-## References
-- type: [url | folder | ...]
-  url: [URL or path]
-  label: [Short description]
-```
-
-## Rules
-
-- `## Design Reference` and `## References` are optional — only include them if the user provided values
-- Reference types are extensible — integration skills (e.g. stitch) can add their own types
-- Folder references use `path:` instead of `url:` to point to local directories
-- Keep the section order: Description → Problems & Solutions → Key Features → Design Reference → References
+Define the product vision through dialog. Extract fields from the user's message.
+If all required fields are present, no questions needed.
+If fields are missing, ask for all missing in a single question.

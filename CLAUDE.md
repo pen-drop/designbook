@@ -1,5 +1,9 @@
 # Development Rules
 
+## Breaking Changes
+
+Never write migration, backwards-compatibility, or legacy-artifact-fixing code. Existing on-disk artifacts (meta.yml, scene files, generated output, etc.) are disposable — testing always happens from scratch. When a schema or format changes, update the writer/reader to the new shape; do not add code that reads or upgrades old artifacts.
+
 ## Code Quality
 
 Run `pnpm check` before committing. It runs typecheck → lint → test (fail-fast).
@@ -22,9 +26,9 @@ pnpm --filter storybook-addon-designbook lint:fix
 
 ## Skills
 
-Skill-Quelldateien liegen in `.agents/skills/` — das ist der kanonische Ort. `.claude/skills/` ist ein Symlink darauf und darf nicht separat editiert werden.
+Skill source files live in `.agents/skills/` — that is the canonical location. `.claude/skills/` is a symlink to it and must not be edited separately.
 
-Before modifying any file under `.agents/skills/`, load the `designbook-skill-creator` skill.
+Before creating OR editing any task/rule/blueprint/workflow/schemas.yml under `.agents/skills/designbook/`, `.agents/skills/designbook-*/` (drupal, css-tailwind, stitch, devtools), or the skill-creator's own `rules/` and `resources/`, you MUST load `designbook-skill-creator` first. This is not optional — writing these files without the skill loaded regularly produces invalid output (HOW mixed into WHAT, rules with own params, inline-duplicated schemas).
 
 ## Skill Architecture
 

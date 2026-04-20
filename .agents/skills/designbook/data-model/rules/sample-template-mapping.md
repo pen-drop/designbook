@@ -1,6 +1,17 @@
 ---
-when:
-  steps: [data-model:intake, create-data-model]
+trigger:
+  domain: [data-model]
+provides:
+  data-model:
+    properties:
+      content:
+        additionalProperties:
+          additionalProperties:
+            properties:
+              fields:
+                additionalProperties:
+                  properties:
+                    sample_template: { type: object }
 ---
 
 # Rule: Auto-assign sample_template from Config
@@ -27,9 +38,9 @@ sample_data:
     image: image
 ```
 
-A field `field_body: { type: formatted_text }` becomes:
+A field `body: { type: formatted_text }` becomes:
 ```yaml
-field_body:
+body:
   type: formatted_text
   title: Body
   sample_template:

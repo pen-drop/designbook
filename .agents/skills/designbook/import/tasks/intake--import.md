@@ -1,10 +1,23 @@
 ---
-when:
+trigger:
   steps: [import:intake]
-files: []
-reads:
-  - path: $DESIGNBOOK_DATA/vision.md
-    workflow: vision
+domain: [design.intake]
+params:
+  type: object
+  required: [vision]
+  properties:
+    vision:
+      path: $DESIGNBOOK_DATA/vision.yml
+      workflow: vision
+      type: object
+result:
+  type: object
+  required: [workflow]
+  properties:
+    workflow:
+      type: array
+      items:
+        $ref: ../schemas.yml#/ImportWorkflow
 ---
 
 # Intake: Import Design System
@@ -13,7 +26,7 @@ Orchestrates importing a full design system from a design reference. Resolves th
 
 ## Step 1: Resolve design reference
 
-Read `vision.md`. Check for the `## Design Reference` section.
+Read the vision. Check for the `design_reference` field.
 
 - If a design reference is present, announce the reference type and continue.
 - If no design reference is found, ask the user:
@@ -46,9 +59,9 @@ Wait for response. Build the selected screens list.
 
 ## Step 3: Gather product info
 
-If `vision.md` exists, read the product name and description from it.
+If existing vision data is provided, read the product name and description from it.
 
-If `vision.md` does not exist, ask:
+If no vision data exists, ask:
 
 > "What is the product name and a short description (1-2 sentences)?"
 
@@ -64,7 +77,7 @@ Build the `workflow` iterable. The order is fixed and matches the dependency cha
 5. **design-shell** — `{ "workflow": "design-shell", "params": { "reference": "<first selected screen reference>" } }`
 6. **design-screen** (one per selected screen) — `{ "workflow": "design-screen", "params": { "section": "<screen-name>", "reference": "<screen reference>" } }`
 
-If `vision.md` already exists with a design reference, skip the vision entry.
+If vision data already includes a design reference, skip the vision entry.
 
 ## Step 5: Present summary for confirmation
 

@@ -1,7 +1,7 @@
 ---
 name: designbook-skill-creator
 user-invocable: true
-description: Meta-skill documenting the 4-level skill model, design principles, and skill map for all Designbook skills. Load before modifying any .agents/skills/ file.
+description: Authoritative spec for authoring tasks, rules, blueprints, workflows, and schemas.yml under .agents/skills/designbook/, .agents/skills/designbook-*/ (drupal, css-tailwind, stitch, devtools), and this skill's own rules/ and resources/. Load BEFORE creating or editing ANY such file — covers the 4-level model (workflow→stage→task/blueprint/rule), "tasks say WHAT not HOW", "rules never declare params:", schema $ref conventions, and file-structure rules. Skipping this produces tasks with inline HOW, rules carrying their own params, and inline-duplicated schemas.
 ---
 
 # Designbook Skill Creator
@@ -52,7 +52,8 @@ workflow
 
 See [`rules/principles.md`](rules/principles.md) for detailed principles with examples.
 
-- **Tasks say WHAT, never HOW** — task files declare output files and params; never contain style or implementation instructions
+- **Tasks say WHAT, never HOW** — task files declare result schemas and params; never contain style or implementation instructions
+- **Results declare schema** — file results with `path:`, data results with JSON Schema; `$ref` to `schemas.yml`
 - **Blueprints are overridable** — provide a starting point; integrations may deviate
 - **Rules are absolute** — apply unconditionally once their `when` conditions match; integrations cannot override
 
@@ -60,10 +61,20 @@ See [`rules/principles.md`](rules/principles.md) for detailed principles with ex
 
 See [`rules/structure.md`](rules/structure.md) for full conventions.
 
+## Schema Reference
+
+See [`resources/schemas.md`](resources/schemas.md) for `schemas.yml` format, `$ref` syntax, and result conventions.
+
+See [`resources/schema-composition.md`](resources/schema-composition.md) for the schema merge model (extends/provides/constrains).
+
 ## Skill Map
 
 See [`resources/skill-map.md`](resources/skill-map.md) for a full listing of all skills.
 
 ## Research Flag
 
-See [`resources/research.md`](resources/research.md) for the `--research` flag convention.
+See [`resources/research.md`](resources/research.md) for the `--research` post-workflow review (Superpowers-based).
+
+## Skill Validation
+
+See [`resources/validate.md`](resources/validate.md) for static analysis of skill files (principles compliance, metrics, scoring).

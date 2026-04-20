@@ -1,0 +1,160 @@
+# Scenes concern schemas — file format for *.scenes.yml
+#
+# Mirrors the addon types in packages/storybook-addon-designbook/src/renderer/types.ts
+# and packages/storybook-addon-designbook/src/renderer/scene-metadata.ts.
+
+SceneId:
+  type: string
+  description: >
+    Unique scene identifier. References `SceneDef.name` in a scenes.yml file.
+    Used by capture, verify, and triage tasks to address a single scene.
+  examples: [shell, hero, footer, article-detail]
+
+StoryId:
+  type: string
+  description: >
+    Storybook story ID in `Group/Component--variant` format (CSF-compliant).
+    Used to render or verify a specific story variant.
+  examples: ["Designbook/Sections/Hero--default", "Components/Card--primary"]
+
+SceneFile:
+  type: object
+  required: [id, title]
+  properties:
+    id: { type: string, description: "Section/shell identifier for Designbook overview pages." }
+    title: { type: string, description: "Human-readable title for overview page." }
+    description: { type: string, description: "Section description for overview page." }
+    status: { type: string, enum: [planned, in-progress, done] }
+    order: { type: integer, description: "Display order in Storybook sidebar." }
+    group: { type: string, description: "Storybook story group (e.g. \"Designbook/Design System\"). Falls back to name." }
+    scenes:
+      type: array
+      items:
+        $ref: "#/SceneDef"
+
+SceneDef:
+  type: object
+  required: [name, items]
+  properties:
+    name: { type: string, description: "Display name in Storybook sidebar." }
+    docs: { type: string }
+    section: { type: string, description: "Section ID for data loading." }
+    group: { type: string }
+    theme: { type: string }
+    items:
+      type: array
+      items:
+        $ref: "#/SceneNode"
+
+SceneNode:
+  description: >
+    Duck-typed by its identifying key. Exactly one of:
+    component (ComponentNode), entity (EntityNode), scene (SceneRefNode), image (ImageNode).
+  oneOf:
+    - $ref: "#/ComponentNode"
+    - $ref: "#/EntityNode"
+    - $ref: "#/SceneRefNode"
+    - $ref: "#/ImageNode"
+
+ComponentNode:
+  type: object
+  required: [component]
+  description: Render a UI component directly.
+  properties:
+    component:
+      type: string
+      description: "provider:component-name format (e.g. $COMPONENT_NAMESPACE:card)"
+    props:
+      type: object
+      description: >
+        Data/configuration values passed to the component. Keys must match `^[A-Za-z_][A-Za-z0-9_]*$`
+        (snake_case or camelCase) — they map directly to SDC component props, which Twig cannot read when hyphenated.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+    slots:
+      type: object
+      description: >
+        Named content slots. Values can be: string, SceneNode, or array of SceneNode.
+        Slot-name keys must match `^[A-Za-z_][A-Za-z0-9_]*$` — hyphens are forbidden because slots
+        become Twig `{% block <name> %}` tags in the underlying SDC component.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      additionalProperties:
+        oneOf:
+          - type: string
+          - $ref: "#/SceneNode"
+          - type: array
+            items:
+              oneOf:
+                - type: string
+                - $ref: "#/SceneNode"
+    story:
+      type: string
+      description: Load args from an existing story variant.
+
+EntityNode:
+  type: object
+  required: [entity]
+  description: >
+    Render an entity from sample data via JSONata mapping.
+    Entity format: "entity_type.bundle" or "[listing_type].[bundle]" for listings.
+  properties:
+    entity:
+      type: string
+      description: "entity_type.bundle (e.g. node.article)"
+    view_mode:
+      type: string
+      description: Which view mode to use for entity mapping.
+    record:
+      type: integer
+      default: 0
+      description: Sample data record index.
+    records:
+      type: array
+      items: { type: integer }
+      description: >
+        Demo-only shorthand. Expands to separate entries per index.
+        Do NOT use for listing pages — use view.* entities instead.
+
+SceneRefNode:
+  type: object
+  required: [scene]
+  description: Embed another scene and fill its $variable placeholders.
+  properties:
+    scene:
+      type: string
+      description: "source:sceneName format (e.g. design-system:shell)"
+    with:
+      type: object
+      description: >
+        Fills $variable placeholders in the referenced scene.
+        Keys are variable names (without $), values are SceneNode arrays or strings.
+        Keys MUST match `^[A-Za-z_][A-Za-z0-9_]*$` — they become `$variable` placeholders resolved via
+        JSONata, which rejects hyphens in identifiers.
+      propertyNames:
+        pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
+      additionalProperties:
+        oneOf:
+          - type: string
+          - type: array
+            items:
+              $ref: "#/SceneNode"
+
+ImageNode:
+  type: object
+  required: [image]
+  description: >
+    Render an image using a named image style from config.image_style in data-model.yml.
+    Resolved by imageStyleBuilder into a designbook:image ComponentNode.
+  properties:
+    image:
+      type: string
+      description: Name of an image style bundle defined under config.image_style in data-model.yml (e.g. hero, "16_9", "4_3").
+    alt:
+      type: string
+      description: Alt text for the image.
+    src:
+      type: string
+      description: >
+        Optional custom image path. When omitted, the configured image provider
+        generates a placeholder URL. When provided, CSS aspect-ratio is applied instead.

@@ -1,12 +1,11 @@
 config:
   image_style:
     ratio_16_9:
-      aspect_ratio: "16:9"
+      aspect_ratio: '16:9'
     ratio_4_3:
-      aspect_ratio: "4:3"
+      aspect_ratio: '4:3'
     ratio_1_1:
-      aspect_ratio: "1:1"
-
+      aspect_ratio: '1:1'
 content:
   node:
     landing_page:
@@ -93,7 +92,6 @@ content:
           settings:
             target_type: taxonomy_term
             target_bundle: areas_of_responsibility
-
     event:
       title: Veranstaltung
       description: Events with registration, scheduling, and video conferencing integration
@@ -201,7 +199,6 @@ content:
           settings:
             target_type: taxonomy_term
             target_bundle: areas_of_responsibility
-
     topic:
       title: Inhalt
       description: General content pages with media and taxonomy classification
@@ -272,7 +269,6 @@ content:
           settings:
             target_type: node
             target_bundle: landing_page
-
     learning_nugget:
       title: Lernpaket
       description: Structured learning units with SCORM integration
@@ -330,7 +326,6 @@ content:
           settings:
             target_type: taxonomy_term
             target_bundle: topics
-
     book:
       title: Handbuch
       description: Hierarchical book pages for documentation and handbooks
@@ -361,7 +356,6 @@ content:
           settings:
             target_type: media
             target_bundle: document
-
     page:
       title: Seite
       description: Simple static pages
@@ -389,7 +383,6 @@ content:
           settings:
             target_type: taxonomy_term
             target_bundle: topics
-
     video:
       title: Video
       description: Video content with transcription
@@ -419,28 +412,24 @@ content:
             target_bundle:
               - remote_video
               - video
-
     location:
       title: Standort
       description: Location directory based on BIBB registry
       view_modes:
         full:
           template: field-map
-
     profession:
       title: Beruf
       description: Profession database with examination instruments
       view_modes:
         full:
           template: field-map
-
     stage_teaser:
       title: Bühnen Teaser
       description: Teaser tiles for the homepage stage area
       view_modes:
         full:
           template: field-map
-
   taxonomy_term:
     topics:
       title: Themen
@@ -478,7 +467,6 @@ content:
     landing_page_types:
       title: Seitentypen
       description: Landing page type classification
-
   media:
     image:
       title: Bild
@@ -502,7 +490,6 @@ content:
     remote_video:
       title: Remote Video
       description: Embedded videos (YouTube, Vimeo)
-
   paragraph:
     banner_typ2:
       title: Banner
