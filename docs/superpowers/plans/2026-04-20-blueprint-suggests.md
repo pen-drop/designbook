@@ -341,8 +341,8 @@ The current step 1 (near line 63) references the old mechanism. Replace the enti
 
 These findings are tracked for a follow-up refactor. The migration pattern per finding is:
 
-1. For each **rule** finding: move the body prose constraint/default into frontmatter via `extends:`, `provides:`, or `constrains:` — pick per the form table in [rule-files.md](../../.agents/skills/designbook-skill-creator/rules/rule-files.md#schema-extension-as-core-mechanism).
-2. For each **blueprint** finding: move the body prose recommendation into `suggests:` in frontmatter. If the content is actually a hard contract (not overridable), create a new type in the integration's `schemas.yml` instead — see the vehicle decision matrix in [blueprint-files.md](../../.agents/skills/designbook-skill-creator/rules/blueprint-files.md#blueprints-suggest-never-enforce).
+1. For each **rule** finding: move the body prose constraint/default into frontmatter via `extends:`, `provides:`, or `constrains:` — pick per the form table in [rule-files.md](../../../.agents/skills/designbook-skill-creator/rules/rule-files.md#schema-extension-as-core-mechanism).
+2. For each **blueprint** finding: move the body prose recommendation into `suggests:` in frontmatter. If the content is actually a hard contract (not overridable), create a new type in the integration's `schemas.yml` instead — see the vehicle decision matrix in [blueprint-files.md](../../../.agents/skills/designbook-skill-creator/rules/blueprint-files.md#blueprints-suggest-never-enforce).
 3. Remove the now-redundant prose from the body. Keep any explanatory narrative beyond the constraint/default.
 4. Re-run the validator — the `RULE-01` / `BLUEPRINT-03` finding for that file should disappear.
 
