@@ -154,7 +154,7 @@ The container component wraps arbitrary content and applies layout spacing.
 See `suggests:` above for recommended prop values.
 ```
 
-### Vehicle Decision Matrix
+### Vehicle decision matrix
 
 Blueprints carry no authority by design — any hard constraint must live in a rule
 or schema, never in a blueprint. Pick the vehicle by what the content is:
