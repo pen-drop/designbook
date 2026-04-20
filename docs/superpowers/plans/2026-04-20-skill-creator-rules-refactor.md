@@ -8,7 +8,7 @@
 
 **Tech Stack:** Markdown only. Existing source files: `.agents/skills/designbook-skill-creator/rules/principles.md` (365 lines), `rules/structure.md` (201 lines), `rules/validate-params.md` (19 lines), `resources/validate.md` (171 lines), `SKILL.md` (80 lines). Design spec: `docs/superpowers/specs/2026-04-20-skill-creator-rules-refactor-design.md`.
 
-**Verification method:** After Task 10 the rebuilt runner is invoked on the `designbook-skill-creator` skill itself. Findings must map 1:1 to the old check IDs via the migration table from the spec. No new findings, no missing ones.
+**Verification method:** After Task 10 the rebuilt runner is invoked on the `designbook-skill-creator` skill itself. Findings must map 1:1 to the old check IDs via the migration table from the spec. No new findings, no missing ones. Task 11 then runs the two new legacy-detection checks (`RULE-01`, `BLUEPRINT-03`) against every production skill and records the findings in a separate audit document — no in-place fixes here.
 
 ---
 
@@ -17,10 +17,12 @@
 | Spec question | Decision | Rationale |
 |---|---|---|
 | Naming suffix for per-type files | `*-files.md` (e.g., `task-files.md`) | Codex review flagged `rules/rule.md` as a name collision with the "rule" concept. Uniform suffix removes ambiguity across all five types. |
-| W07 split | Split into `TASK-09` (task params/result) **and** `SCHEMA-02` (schemas.yml types) with shared-predicate invariant | Two distinct authoring contexts share identical predicate logic. Wartungs-Invariante in `validate.md`. |
+| W07 split | Split into `TASK-09` (task params/result) **and** `SCHEMA-02` (schemas.yml types) with shared-predicate invariant | Two distinct authoring contexts share identical predicate logic. Maintenance invariant documented in `validate.md`. |
 | "Concrete Implementations" principle | Mirrored into `task-files.md`, `blueprint-files.md`, `rule-files.md` with file-type-specific framing | Author of each file type needs the principle from their perspective; cannot live only in `common-rules.md` because framing differs. |
 | `## Checks` table format contract | Fixed columns `ID \| Severity \| What to verify \| Where`; severities `error`/`warning`; Where values `frontmatter`/`body`/`filename` | LLM runner reads the table mechanically — needs a hard contract. |
 | Check-ID uniqueness | IDs globally unique; `COMMON-*` intentionally disjoint from file-type prefixes | Prevents dedup ambiguity when `common-rules.md` and a type file both apply. |
+| Descriptive naming for production rule/blueprint files | Enforced by narrative + examples only (not by a check) | Filename quality is subjective; a static check would produce noisy false positives. The narrative sections in `rule-files.md` + `blueprint-files.md` set the expectation. |
+| Legacy body-prose schema extensions | Detected by new `RULE-01` + `BLUEPRINT-03` checks; fixed in a separate change | Modernizing legacy rule/blueprint files is out of scope here (see spec §Out of scope). Task 11 records findings in `docs/superpowers/audits/`. |
 | Commit cadence | One commit per task; the commit for each "create rule file" task includes only that file | Clean history; easy rollback per file; matches existing project style. |
 
 ## File map
@@ -31,16 +33,17 @@
 |---|---|
 | `.agents/skills/designbook-skill-creator/rules/common-rules.md` | Cross-cutting rules (frontmatter parseable, site-agnostic, skill-directory layout, SKILL.md conventions, naming conventions). Loaded alongside every file-type rule. |
 | `.agents/skills/designbook-skill-creator/rules/task-files.md` | Everything for `tasks/*.md`. Absorbs all task-related principles, `validate-params.md`, `tasks/` naming rules, and the workflow-qualified subsection. |
-| `.agents/skills/designbook-skill-creator/rules/blueprint-files.md` | Everything for `blueprints/*.md`. Principles on overridability + concrete implementations, plus trigger/filter and schema-extension rules for blueprints. |
-| `.agents/skills/designbook-skill-creator/rules/rule-files.md` | Everything for `rules/*.md`. Hard-constraint principle, "rules never declare params", trigger/filter matching, consumer-semantics `domain:`, strict matching, subcontexts, provider rules, schema-extension fields. |
+| `.agents/skills/designbook-skill-creator/rules/blueprint-files.md` | Everything for `blueprints/*.md`. Principles on overridability + concrete implementations, descriptive naming, schema extension as core mechanism, trigger/filter rules. Owns `BLUEPRINT-01..03`. |
+| `.agents/skills/designbook-skill-creator/rules/rule-files.md` | Everything for `rules/*.md`. Hard-constraint principle, rules-target-one-output-file-type framing, descriptive naming, schema extension as core mechanism, "rules never declare params", trigger/filter matching, consumer-semantics `domain:`, strict matching, subcontexts, provider rules. Owns `RULE-01`. |
 | `.agents/skills/designbook-skill-creator/rules/schema-files.md` | Everything for `schemas.yml`. "Schemas teach the AI" principle plus reference-integrity / teaching-signal / title-description / additionalProperties checks. |
 | `.agents/skills/designbook-skill-creator/rules/workflow-files.md` | Everything for `workflows/*.md`. Plain-name step principle plus the workflow-prefix check. |
+| `docs/superpowers/audits/2026-04-20-legacy-schema-extension.md` | Tracking document (produced in Task 11) listing every production rule/blueprint file whose body prose should be migrated to `extends:` / `provides:` / `constrains:` frontmatter. |
 
 ### Modified files
 
 | Path | What changes |
 |---|---|
-| `.agents/skills/designbook-skill-creator/resources/validate.md` | Gutted of `## Errors` and `## Warnings` tables. Keeps: discovery process, metric definitions, schema-audit metrics, score computation, output format, `research.md` boundary, adds Referenzen + Wartung sections. |
+| `.agents/skills/designbook-skill-creator/resources/validate.md` | Gutted of `## Errors` and `## Warnings` tables. Keeps: discovery process, metric definitions, schema-audit metrics, score computation, output format, `research.md` boundary. Adds References + Maintenance sections. |
 | `.agents/skills/designbook-skill-creator/SKILL.md` | "Key Principles" / "File Structure Conventions" replaced by a "Rule Files by Artifact Type" table pointing to the six new files; `description:` frontmatter updated to mention the new file names. |
 
 ### Deleted files
@@ -282,7 +285,7 @@ git commit -m "skill-creator: add task-files.md (task authoring + checks TASK-01
 **Files:**
 - Create: `.agents/skills/designbook-skill-creator/rules/blueprint-files.md`
 
-**Background.** Blueprints are overridable starting points. This file owns the "Blueprints Are Overridable" principle, the "Concrete Implementations Belong in Blueprints" principle (file-type perspective: "what belongs here"), and the `blueprints/` trigger+filter matching + schema-extension rules from `structure.md`. Owns check IDs `BLUEPRINT-01` (constrains forbidden) and `BLUEPRINT-02` (site-agnostic framing).
+**Background.** Blueprints are overridable starting points. This file owns the "Blueprints Are Overridable" principle, the "Concrete Implementations Belong in Blueprints" principle (file-type perspective: "what belongs here"), the new "Name Blueprint Files Descriptively" guidance, the promoted top-level "Schema Extension as Core Mechanism" section, and the `blueprints/` trigger+filter matching rules from `structure.md`. Owns check IDs `BLUEPRINT-01` (constrains forbidden), `BLUEPRINT-02` (site-agnostic framing), and the new `BLUEPRINT-03` (legacy body prose describing schema extensions).
 
 - [ ] **Step 1: Create the file**
 
@@ -314,16 +317,79 @@ put this in a task") and `rule-files.md` (framing: "don't put this in a rule").
 
 [Copy verbatim from current `rules/principles.md` "Concrete Implementations Belong in Blueprints, Never in Tasks or Rules" section (lines 234–271), including the distinction table, the example list, and both Wrong/Correct blocks. Drop the final paragraph about layer vs file-type determining overridability — that belongs in `common-rules.md`'s structure section.]
 
+## Name Blueprint Files Descriptively
+
+A blueprint filename should reflect the output pattern or component family it provides
+a starting point for. The reader should be able to guess, from the filename alone, what
+the blueprint is used for.
+
+**Good names:**
+
+- `card-blueprint.md`
+- `header-section.md`
+- `form-layout.md`
+- `hero-banner.md`
+
+**Bad names:**
+
+- `blueprint-1.md`
+- `stuff.md`
+- `generic.md`
+- `components.md` (too broad — which component?)
+
+Prefer component/pattern names over framework names. `card-blueprint.md` works for Drupal
+SDC, Tailwind, and Stitch; `drupal-card.md` forces a fork per integration.
+
+## Schema Extension as Core Mechanism
+
+Blueprints frequently extend the task's result schema — adding default values, extra
+properties, or default nested structures. This is the **preferred mechanism** — not
+body prose. A blueprint describes "what kind of output do I produce, with what default
+shape" in frontmatter; the body only contains the narrative guidance and correct/wrong
+examples.
+
+Blueprints may use:
+
+- `extends:` — inherit another schema type
+- `provides:` (object form) — add properties with defaults
+
+Blueprints **must not** use `constrains:` — that is rule-exclusive, because a blueprint
+is overridable and narrowing an enum value non-overridably would break that promise.
+
+For the full schema-extension mechanics (merge semantics, last-writer-wins for `provides:`,
+enum-intersection for `constrains:`), see [rule-files.md](rule-files.md#schema-extension-as-core-mechanism).
+
+**Wrong — body prose describing defaults:**
+
+```markdown
+# Card Blueprint
+
+The card component has three variants: `default`, `featured`, `compact`.
+The default padding is `16px`.
+```
+
+**Correct — same defaults expressed in frontmatter:**
+
+```yaml
+---
+name: card-blueprint
+trigger:
+  domain: components
+  component: card
+provides:
+  variant:
+    default: default
+    enum: [default, featured, compact]
+  padding:
+    default: 16px
+---
+```
+
+The `BLUEPRINT-03` check below flags body prose that should live in frontmatter instead.
+
 ## `blueprints/` — Trigger + Filter Matching
 
 [Copy verbatim from current `rules/structure.md` "`blueprints/` — Trigger + Filter Matching" section (lines 159–172), including the YAML example with `trigger.domain: components` + `filter.backend: drupal`.]
-
-### Schema Extension Fields
-
-[Copy verbatim from current `rules/structure.md` "Schema Extension Fields" subsection under `blueprints/` (lines 174–176), i.e. the two-sentence paragraph clarifying that blueprints may use `extends:` and `provides:` (object form) but **not** `constrains:`. The broader extends/provides/constrains table lives in `rule-files.md` — reference it from here with a link.]
-
-For the full schema-extension mechanics (merge semantics, last-writer-wins for `provides:`,
-enum-intersection for `constrains:`), see [rule-files.md](rule-files.md#schema-extension-fields).
 
 ## Checks
 
@@ -331,6 +397,7 @@ enum-intersection for `constrains:`), see [rule-files.md](rule-files.md#schema-e
 |---|---|---|---|
 | BLUEPRINT-01 | error | `constrains:` field is absent from frontmatter (only rules may constrain enum values) | frontmatter |
 | BLUEPRINT-02 | warning | Body does not contain site-specific references (brand names, project URLs, customer slot names) — site-specific content in core `designbook/` is caught by COMMON-02 in common-rules.md; this check covers blueprints in integration skills that still must stay site-agnostic | body |
+| BLUEPRINT-03 | warning | Body does not describe schema extensions as prose (default values, additional result properties, enumerations) when they could be expressed via `extends:` or `provides:` in frontmatter | body |
 ```
 
 - [ ] **Step 2: Verify counts**
@@ -339,19 +406,19 @@ Run:
 ```bash
 grep -c '^## ' .agents/skills/designbook-skill-creator/rules/blueprint-files.md
 ```
-Expected: `4` (Blueprints Are Overridable, Concrete Implementations, blueprints/ Trigger + Filter, Checks).
+Expected: `6` (Blueprints Are Overridable, Concrete Implementations, Name Blueprint Files Descriptively, Schema Extension as Core Mechanism, blueprints/ Trigger + Filter, Checks).
 
 Run:
 ```bash
 grep -c '^| BLUEPRINT-' .agents/skills/designbook-skill-creator/rules/blueprint-files.md
 ```
-Expected: `2`
+Expected: `3`
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add .agents/skills/designbook-skill-creator/rules/blueprint-files.md
-git commit -m "skill-creator: add blueprint-files.md (blueprint authoring + checks)"
+git commit -m "skill-creator: add blueprint-files.md (blueprint authoring + BLUEPRINT-01..03)"
 ```
 
 ---
@@ -361,7 +428,7 @@ git commit -m "skill-creator: add blueprint-files.md (blueprint authoring + chec
 **Files:**
 - Create: `.agents/skills/designbook-skill-creator/rules/rule-files.md`
 
-**Background.** Everything about authoring rule files. Owns the "Rules Are Hard Constraints" and "Rules Never Declare params:" principles, the mirrored "Concrete Implementations" framing, and all `rules/`-specific structure content: trigger+filter matching, consumer-semantics `domain:`, strict trigger matching, domain subcontexts, provider rules (legacy), and schema-extension fields (extends/provides/constrains — this is where the full table lives). No new checks; rule-file constraints are either caught by `COMMON-01` (frontmatter) or are too subtle for static checking in the current scope.
+**Background.** Everything about authoring rule files. Owns the "Rules Are Hard Constraints" and "Rules Never Declare params:" principles, the new "Rules Often Target One Output File Type" framing, the new "Name Rule Files Descriptively" guidance, the mirrored "Concrete Implementations" framing, the promoted top-level "Schema Extension as Core Mechanism" section (with the full extends/provides/constrains table), and all `rules/`-specific structure content: trigger+filter matching, consumer-semantics `domain:`, strict trigger matching, domain subcontexts, provider rules (legacy). Owns the new check `RULE-01` (legacy body prose describing schema extensions).
 
 - [ ] **Step 1: Create the file**
 
@@ -383,6 +450,59 @@ Load together with [common-rules.md](common-rules.md).
 ## Rules Are Hard Constraints
 
 [Copy verbatim from current `rules/principles.md` "Rules Are Hard Constraints" section (lines 184–198), including the YAML example with `trigger.domain: components` + `filter.backend: drupal`.]
+
+## Rules Often Target One Output File Type
+
+A well-scoped rule binds to exactly one output file type — a Twig component, a CSS
+JSONata transform, a screenshot capture — and describes the **format + logic** for
+that output, never the domain specifics.
+
+The split:
+
+- **Format and logic** → rule. "A Twig component file must declare `$schema`." "A screenshot
+  capture uses the full viewport, not just the fold." These constraints hold regardless
+  of which specific component, token, or page is being produced.
+- **Domain specifics** → blueprint. "The primary button uses `btn btn--primary`." "The
+  hero section uses the `header-hero` layout token." These vary between integrations and
+  sites.
+
+Examples of well-scoped rules:
+
+- `twig-component-format.md` — enforces frontmatter fields and file-naming for any
+  Twig component file. Does **not** set colors, classes, or specific component markup.
+- `screenshot-capture.md` — defines viewport, full-page-vs-fold, device emulation defaults
+  for any screenshot task. Does **not** name specific URLs or pages.
+- `css-generate-jsonata.md` — enforces the JSONata shape (input contract, required
+  output keys) for any CSS-generation transform. Does **not** define specific token
+  names or colors.
+
+**Test:** if the rule body names a specific component, page, or token value, it's either
+mis-scoped (should be narrower + matched by trigger/filter) or it should be a blueprint
+instead.
+
+## Name Rule Files Descriptively
+
+A rule filename should reflect the output file type or concept the rule constrains. The
+reader should be able to guess from the filename alone which file type the rule governs.
+
+**Good names:**
+
+- `twig-component-format.md`
+- `screenshot-capture.md`
+- `css-generate-jsonata.md`
+- `sdc-conventions.md`
+- `image-style-config.md`
+
+**Bad names:**
+
+- `conventions.md` (which conventions?)
+- `rule-1.md`
+- `component-stuff.md`
+- `misc.md`
+
+Prefer the name of the output file type or transform over the name of the task that
+produces it. `twig-component-format.md` is better than `create-component-rules.md`
+because multiple tasks may produce Twig components.
 
 ## Rules Never Declare `params:`
 
@@ -406,6 +526,43 @@ Example:
 - "A component must have a `$schema` field" — never changes → **rule**
 - "Use `btn btn--primary` as the default button class" — Tailwind uses different classes → **blueprint**
 
+## Schema Extension as Core Mechanism
+
+Rules frequently extend the task's schema — adding properties, narrowing enum values,
+declaring provided values. This is the **preferred mechanism** — not body prose. A rule
+describes "what I add to the task schema" in frontmatter; the body only contains the
+narrative guidance and correct/wrong examples.
+
+[Copy verbatim from current `rules/structure.md` "Schema Extension Fields" subsection under `rules/` (lines 125–157), including the full extends/provides/constrains table and the YAML example showing `constrains:` on `renderer.enum`. Keep the closing note distinguishing `provides: <param>` (string) from `provides:` (object).]
+
+See [`resources/schema-composition.md`](../resources/schema-composition.md) for the full merge model.
+
+**Wrong — body prose describing a constraint:**
+
+```markdown
+# Renderer Selection
+
+For the Drupal integration, the `renderer` param must be one of `twig`, `sdc`.
+The `react` value is not allowed here.
+```
+
+**Correct — same constraint expressed in frontmatter:**
+
+```yaml
+---
+name: renderer-constraint
+trigger:
+  domain: components
+filter:
+  backend: drupal
+constrains:
+  renderer:
+    enum: [twig, sdc]
+---
+```
+
+The `RULE-01` check below flags body prose that should live in frontmatter instead.
+
 ## `rules/` — Trigger + Filter Matching
 
 [Copy verbatim from current `rules/structure.md` "`rules/` — Trigger + Filter Matching" section (lines 68–84), including the explanatory paragraph and the YAML example.]
@@ -426,19 +583,11 @@ Example:
 
 [Copy verbatim from current `rules/structure.md` "Provider Rules (`provides`) — Legacy" subsection (lines 107–123), including the callout about preferring code resolvers and the YAML example with `provides: url`.]
 
-### Schema Extension Fields
-
-[Copy verbatim from current `rules/structure.md` "Schema Extension Fields" subsection under `rules/` (lines 125–157), including the full extends/provides/constrains table and the YAML example showing `constrains:` on `renderer.enum`. Keep the closing note distinguishing `provides: <param>` (string) from `provides:` (object).]
-
-See [`resources/schema-composition.md`](../resources/schema-composition.md) for the full merge model.
-
 ## Checks
 
-<!-- Rule files have no file-type-specific static checks beyond what common-rules.md covers.
-     Some rule violations (e.g., rule body containing `params:` in frontmatter) would be
-     single-line YAML checks; add them here if they become a recurring authoring mistake. -->
-
-_No rule-file-specific checks. Cross-cutting checks (COMMON-01, COMMON-02) apply via [common-rules.md](common-rules.md)._
+| ID | Severity | What to verify | Where |
+|---|---|---|---|
+| RULE-01 | warning | Body does not describe schema constraints as prose (enum values, required fields, type restrictions, property shapes) when they could be expressed via `extends:` / `provides:` / `constrains:` in frontmatter | body |
 ```
 
 - [ ] **Step 2: Verify counts**
@@ -447,13 +596,19 @@ Run:
 ```bash
 grep -c '^## ' .agents/skills/designbook-skill-creator/rules/rule-files.md
 ```
-Expected: `5` (Rules Are Hard Constraints, Rules Never Declare params, Concrete Implementations, rules/ Trigger + Filter Matching, Checks).
+Expected: `8` (Rules Are Hard Constraints, Rules Often Target One Output File Type, Name Rule Files Descriptively, Rules Never Declare params, Concrete Implementations Don't Belong in Rules, Schema Extension as Core Mechanism, rules/ Trigger + Filter Matching, Checks).
+
+Run:
+```bash
+grep -c '^| RULE-' .agents/skills/designbook-skill-creator/rules/rule-files.md
+```
+Expected: `1`
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add .agents/skills/designbook-skill-creator/rules/rule-files.md
-git commit -m "skill-creator: add rule-files.md (rule authoring, no new checks)"
+git commit -m "skill-creator: add rule-files.md (rule authoring + RULE-01)"
 ```
 
 ---
@@ -591,7 +746,7 @@ git commit -m "skill-creator: add workflow-files.md (workflow authoring + WORKFL
 **Files:**
 - Modify: `.agents/skills/designbook-skill-creator/resources/validate.md`
 
-**Background.** The current `validate.md` has three kinds of content: runner logic (discover files, classify, iterate, score, report) and two tables of hardcoded checks (`### Errors` + `### Warnings`). The check tables leave; everything else stays. Two new sections arrive: **Referenzen** (links to the six rule files) and **Wartung** (predicate-sharing invariant).
+**Background.** The current `validate.md` has three kinds of content: runner logic (discover files, classify, iterate, score, report) and two tables of hardcoded checks (`### Errors` + `### Warnings`). The check tables leave; everything else stays. Two new sections arrive: **References** (links to the six rule files) and **Maintenance** (predicate-sharing invariant).
 
 The Metric, Schema Audit, Score-Computation, Output-Format, and `research.md` boundary sections are preserved **verbatim**. The discovery/classify/check steps become a dispatch step that loads each rule file whose `applies-to` glob matches the scanned file.
 
@@ -613,7 +768,7 @@ Static analysis of all task, rule, blueprint, schema, and workflow files in a sk
 
 Pendant to `research.md` (runtime audit), but purely static — no workflow execution needed.
 
-## Aufruf
+## Invocation
 
 When asked to validate a skill:
 
@@ -741,19 +896,19 @@ Per top-level type in `schemas.yml` (and `params:`/`result:` blocks of tasks). P
 | Skill score | 78/100 |
 ```
 
-## Referenzen — Rule Files
+## References — Rule Files
 
 All checks live in these rule files. Any change to a check — adding, removing, tightening,
 rephrasing — happens in the rule file, not here.
 
-- Task-Regeln: [../rules/task-files.md](../rules/task-files.md) — `TASK-01` .. `TASK-14`
-- Blueprint-Regeln: [../rules/blueprint-files.md](../rules/blueprint-files.md) — `BLUEPRINT-01`, `BLUEPRINT-02`
-- Rule-Regeln: [../rules/rule-files.md](../rules/rule-files.md) — (no rule-file-specific checks)
-- Schema-Regeln: [../rules/schema-files.md](../rules/schema-files.md) — `SCHEMA-01` .. `SCHEMA-04`
-- Workflow-Regeln: [../rules/workflow-files.md](../rules/workflow-files.md) — `WORKFLOW-01`
-- Gemeinsame Regeln: [../rules/common-rules.md](../rules/common-rules.md) — `COMMON-01`, `COMMON-02`
+- Task rules: [../rules/task-files.md](../rules/task-files.md) — `TASK-01` .. `TASK-14`
+- Blueprint rules: [../rules/blueprint-files.md](../rules/blueprint-files.md) — `BLUEPRINT-01` .. `BLUEPRINT-03`
+- Rule rules: [../rules/rule-files.md](../rules/rule-files.md) — `RULE-01`
+- Schema rules: [../rules/schema-files.md](../rules/schema-files.md) — `SCHEMA-01` .. `SCHEMA-04`
+- Workflow rules: [../rules/workflow-files.md](../rules/workflow-files.md) — `WORKFLOW-01`
+- Common rules: [../rules/common-rules.md](../rules/common-rules.md) — `COMMON-01`, `COMMON-02`
 
-## Wartung
+## Maintenance
 
 Some checks share a predicate across two rule files because their authoring context differs.
 Currently:
@@ -764,7 +919,7 @@ Currently:
 When the predicate definition changes (e.g., adding `const:` as a valid teaching signal),
 update **both** checks in the same commit.
 
-## Abgrenzung zu research.md
+## Boundary vs research.md
 
 | | validate.md | research.md |
 |---|---|---|
@@ -791,7 +946,7 @@ Expected: `0`
 
 Run (confirms the new sections arrived):
 ```bash
-grep -c '^## Referenzen — Rule Files\|^## Wartung' .agents/skills/designbook-skill-creator/resources/validate.md
+grep -c '^## References — Rule Files\|^## Maintenance' .agents/skills/designbook-skill-creator/resources/validate.md
 ```
 Expected: `2`
 
@@ -942,19 +1097,19 @@ Produce the findings report (Step 6 of the runner's Process section — the full
 
 - [ ] **Step 2: Cross-check findings against the migration table**
 
-Using the migration table from `docs/superpowers/specs/2026-04-20-skill-creator-rules-refactor-design.md` ("Check-ID-Mapping (alt → neu)"), verify that every finding's new ID corresponds to an old `E0*`/`W0*` that would have fired on the same file. Flag any unmapped finding.
+Using the migration table from `docs/superpowers/specs/2026-04-20-skill-creator-rules-refactor-design.md` ("Check ID mapping (old → new)"), verify that every finding's new ID corresponds to an old `E0*`/`W0*` that would have fired on the same file. Flag any unmapped finding.
 
 Expected mapping behavior:
 - All surviving E01–W09 rules should still fire on the same lines/files, renumbered per the mapping table.
 - `TASK-10` through `TASK-14` (from `validate-params.md`) should fire on the same lines/files they used to fire on.
 - No finding should be absent because its check was dropped during migration.
-- No finding should be present because a new check snuck in.
+- No finding should be present because a new check snuck in — **except** for `RULE-01` and `BLUEPRINT-03`, which are new by design. Do not flag those as migration bugs; they are counted in Task 11.
 
 - [ ] **Step 3: If mismatches found, fix the offending rule file**
 
 If a finding disappeared, the check's predicate was weakened during migration — tighten the `What to verify` text in the relevant rule file.
 
-If a spurious finding appeared, the predicate was widened — narrow the text or add the missing exemption (e.g., "properties with `path:` or `$ref:` are exempt").
+If a spurious finding appeared (other than `RULE-01`/`BLUEPRINT-03`), the predicate was widened — narrow the text or add the missing exemption (e.g., "properties with `path:` or `$ref:` are exempt").
 
 For each fix, re-run Step 1 until the findings are stable and map 1:1.
 
@@ -977,28 +1132,146 @@ Commit any additional predicate fixes under the same message as Step 4 (or as a 
 
 ---
 
+## Task 11: Run legacy-detection checks and produce the audit document
+
+**Files:**
+- Create: `docs/superpowers/audits/2026-04-20-legacy-schema-extension.md`
+
+**Background.** The two new checks `RULE-01` and `BLUEPRINT-03` surface existing rule/blueprint files whose body prose describes schema constraints or defaults that should be expressed via `extends:` / `provides:` / `constrains:` in frontmatter. These files pre-date the schema-extension mechanism and were never migrated.
+
+**Scope here is detection, not fixing.** Per the spec (§Out of scope): migrating the legacy files is a separate change after this refactor lands. This task produces a single tracking document listing every affected file so the follow-up work has a clean starting point.
+
+- [ ] **Step 1: Create the audits directory if it doesn't exist**
+
+Run:
+```bash
+mkdir -p docs/superpowers/audits
+```
+
+- [ ] **Step 2: Run RULE-01 against every production skill's rules**
+
+For each of the five production skills (`designbook`, `designbook-drupal`, `designbook-css-tailwind`, `designbook-stitch`, `designbook-devtools`), run the validator and collect findings with ID `RULE-01`. Focus on rule files that describe enum values, required fields, type restrictions, or property shapes as body prose instead of using `constrains:` / `extends:` / `provides:` in frontmatter.
+
+For each finding, record:
+
+- Skill
+- Rule file path (relative to the skill root)
+- Approximate line numbers of the body-prose paragraph
+- One-sentence paraphrase of what the prose describes
+- Proposed frontmatter form (`extends:` / `provides:` / `constrains:`) for that description
+
+- [ ] **Step 3: Run BLUEPRINT-03 against every production skill's blueprints**
+
+Same procedure for blueprints — collect findings with ID `BLUEPRINT-03`. Focus on blueprint files that describe default values, additional result properties, or enumerations as body prose instead of using `extends:` / `provides:` in frontmatter. Record skill, blueprint file path, line numbers, paraphrase, and proposed frontmatter form.
+
+- [ ] **Step 4: Write the audit document**
+
+Create `docs/superpowers/audits/2026-04-20-legacy-schema-extension.md` with this structure:
+
+```markdown
+# Audit: Legacy Body-Prose Schema Extensions
+
+**Date:** 2026-04-20
+**Trigger:** Rules refactor (`docs/superpowers/specs/2026-04-20-skill-creator-rules-refactor-design.md`), success criterion 8.
+**Source checks:** `RULE-01` in `.agents/skills/designbook-skill-creator/rules/rule-files.md`, `BLUEPRINT-03` in `.agents/skills/designbook-skill-creator/rules/blueprint-files.md`.
+
+## Scope
+
+This audit lists every rule and blueprint file in the production skills that currently
+describes schema extensions as body prose — enum values, required fields, default values,
+additional properties — instead of using the `extends:` / `provides:` / `constrains:`
+frontmatter mechanism.
+
+**In scope:** `.agents/skills/designbook/**/rules/`, `.agents/skills/designbook/**/blueprints/`,
+`.agents/skills/designbook-drupal/rules/`, `.agents/skills/designbook-drupal/blueprints/`,
+`.agents/skills/designbook-css-tailwind/rules/`, `.agents/skills/designbook-css-tailwind/blueprints/`,
+`.agents/skills/designbook-stitch/rules/`, `.agents/skills/designbook-stitch/blueprints/`,
+`.agents/skills/designbook-devtools/rules/`, `.agents/skills/designbook-devtools/blueprints/`.
+
+**Out of scope:** this document does not fix the files. Migration of each finding is a
+separate change tracked as a follow-up plan.
+
+## Findings — RULE-01 (rule files)
+
+| Skill | File | Lines | What the prose describes | Proposed frontmatter form |
+|---|---|---|---|---|
+| <populate from Step 2> | | | | |
+
+## Findings — BLUEPRINT-03 (blueprint files)
+
+| Skill | File | Lines | What the prose describes | Proposed frontmatter form |
+|---|---|---|---|---|
+| <populate from Step 3> | | | | |
+
+## Summary
+
+| Metric | Value |
+|---|---|
+| Rule files flagged | <count> |
+| Blueprint files flagged | <count> |
+| Skills with at least one finding | <count>/5 |
+
+## Next steps
+
+These findings are tracked for a follow-up refactor. The migration pattern per finding is:
+
+1. Move the body prose constraint/default into frontmatter via `extends:`, `provides:`, or `constrains:` — pick based on the form table in `.agents/skills/designbook-skill-creator/rules/rule-files.md#schema-extension-as-core-mechanism` (for rules) or the equivalent section in `blueprint-files.md` (for blueprints).
+2. Remove the now-redundant prose from the body. If the prose included explanatory narrative beyond the constraint/default, keep only the narrative.
+3. Re-run the validator — the `RULE-01` / `BLUEPRINT-03` finding for that file should disappear.
+
+Files with no findings need no action.
+```
+
+Fill the Findings tables with the collected data from Steps 2 and 3. If a table has zero rows, replace the header row with the text `_No findings._`
+
+- [ ] **Step 5: Verify the audit document is well-formed**
+
+Run:
+```bash
+head -10 docs/superpowers/audits/2026-04-20-legacy-schema-extension.md
+```
+Expected: the `# Audit:` heading, the date line, and the trigger paragraph are visible.
+
+Run:
+```bash
+grep -c '^## Findings — RULE-01\|^## Findings — BLUEPRINT-03\|^## Summary\|^## Next steps' docs/superpowers/audits/2026-04-20-legacy-schema-extension.md
+```
+Expected: `4`
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add docs/superpowers/audits/2026-04-20-legacy-schema-extension.md
+git commit -m "audit: record legacy body-prose schema extensions in production skills"
+```
+
+---
+
 ## Self-review
 
 **Spec coverage** — every section in `docs/superpowers/specs/2026-04-20-skill-creator-rules-refactor-design.md` has a task:
-- "Ziel-Architektur / Verzeichnisstruktur" → Tasks 1–6 create the six files, Task 9 deletes the three old ones.
-- "Rule-Datei-Format" and "`## Checks` — Format-Kontrakt" → the fixed column order appears in every Checks table in Tasks 1–6.
-- "`applies-to` als Dispatch-Schlüssel" → each Task 1–6 includes `applies-to` globs matching the spec's table; Task 7's runner step 3 describes dispatch.
-- "Check-IDs — Konvention und Eindeutigkeit" → Checks tables in Tasks 1–6 use globally unique IDs; COMMON-* lives only in Task 1 (`common-rules.md`); the same IDs appear nowhere else.
-- "Identisches Prädikat über Typ-Dateien" → comments above `TASK-09` in Task 2 and `SCHEMA-02` in Task 5 state the invariant; the Wartung section in Task 7's `validate.md` re-states it.
-- "Runner-eigene Konzepte" → Task 7 keeps Metrics (Step 4), Schema Audit (Step 4b), Scores (Step 5), Output Format (Step 6), Schema-Graph (inside Step 6), Abgrenzung (final table).
-- "Content-Migration" (principles.md + structure.md + validate-params.md tables) → every listed section is pulled in by name + line range inside Tasks 1–6.
+- "Target Architecture / Directory layout" → Tasks 1–6 create the six files, Task 9 deletes the three old ones.
+- "Rule file format" and "`## Checks` — format contract" → the fixed column order appears in every Checks table in Tasks 1–6.
+- "`applies-to` as dispatch key" → each Task 1–6 includes `applies-to` globs matching the spec's table; Task 7's runner step 3 describes dispatch.
+- "Check IDs — convention and uniqueness" → Checks tables in Tasks 1–6 use globally unique IDs; COMMON-* lives only in Task 1 (`common-rules.md`); the same IDs appear nowhere else.
+- "Identical predicate across type files" → comments above `TASK-09` in Task 2 and `SCHEMA-02` in Task 5 state the invariant; the Maintenance section in Task 7's `validate.md` re-states it.
+- "`validate.md` as runner" → Task 7 keeps Metrics (Step 4), Schema Audit (Step 4b), Scores (Step 5), Output Format (Step 6), Schema Graph (inside Step 6), Boundary (final table).
+- "Content Migration" (principles.md + structure.md + validate-params.md tables) → every listed section is pulled in by name + line range inside Tasks 1–6.
 - "Workflow-qualified tasks" → Task 2 includes the dedicated `### Workflow-qualified tasks` subsection with the filename-scoped check.
-- "`SKILL.md` Anpassung" → Task 8 replaces Key Principles + File Structure Conventions with the "Rule Files by Artifact Type" table and updates the `description:` frontmatter.
-- "Erfolgs-Kriterien" 1–7 → Tasks 9 (1), 7 (2), 10 (3), covered implicitly in Tasks 1–6 (4, 5, 6), 8 (7).
+- "New in `rule-files.md`" (Rules Often Target One Output File Type, Name Rule Files Descriptively, Schema Extension as Core Mechanism, RULE-01 check) → Task 4 includes all four.
+- "New in `blueprint-files.md`" (Name Blueprint Files Descriptively, Schema Extension as Core Mechanism, BLUEPRINT-03 check) → Task 3 includes all three.
+- "SKILL.md adjustment" → Task 8 replaces Key Principles + File Structure Conventions with the "Rule Files by Artifact Type" table and updates the `description:` frontmatter.
+- "Success criteria" 1–8 → Tasks 9 (1), 7 (2), 10 (3), covered implicitly in Tasks 1–6 (4, 5, 6), 8 (7), 11 (8).
 
-**Placeholder scan** — no TBD/TODO, no "implement later", no "similar to Task N". Each section to copy is named by heading + line range in the current source file; each new Checks row is written out. The only prose placeholders are `[Copy verbatim from current rules/... section ...]` — these are **intentional** migration instructions, each with a concrete source file and line range.
+**Placeholder scan** — no TBD/TODO, no "implement later", no "similar to Task N". Each section to copy is named by heading + line range in the current source file; each new Checks row is written out. The only prose placeholders are `[Copy verbatim from current rules/... section ...]` — these are **intentional** migration instructions, each with a concrete source file and line range. The `<populate from Step 2>` / `<populate from Step 3>` markers in Task 11 are intentional runtime placeholders filled at validator time, not unresolved authoring TODOs.
 
-**Type consistency** — check IDs used in Tasks 1–6 match the spec's migration table exactly (TASK-01..14, BLUEPRINT-01..02, SCHEMA-01..04, WORKFLOW-01, COMMON-01..02). File-name references (`task-files.md`, `blueprint-files.md`, `rule-files.md`, `schema-files.md`, `workflow-files.md`, `common-rules.md`) are identical across all tasks.
+**Type consistency** — check IDs used in Tasks 1–6 match the spec's migration table exactly (TASK-01..14, BLUEPRINT-01..03, RULE-01, SCHEMA-01..04, WORKFLOW-01, COMMON-01..02). File-name references (`task-files.md`, `blueprint-files.md`, `rule-files.md`, `schema-files.md`, `workflow-files.md`, `common-rules.md`) are identical across all tasks.
 
 ---
 
 ## Execution notes
 
-- Tasks 1–6 can run in parallel. Tasks 7 and 8 depend on 1–6 (the SKILL.md table and validate.md Referenzen section link to the new files). Task 9 depends on 7 + 8 (the old files are referenced nowhere after Task 8 lands). Task 10 depends on all of the above.
+- Tasks 1–6 can run in parallel. Tasks 7 and 8 depend on 1–6 (the SKILL.md table and validate.md References section link to the new files). Task 9 depends on 7 + 8 (the old files are referenced nowhere after Task 8 lands). Task 10 depends on all of the above. Task 11 depends on 10 only for confidence that the validator produces stable output on the skill-creator itself before being pointed at the other skills.
 - Commits are one-per-task; use the given commit messages verbatim so `git log` reads cleanly.
 - Content copies are line-range-anchored to today's source files. Do not refactor the narrative text during the migration — that would mask regressions in Task 10. Refactoring passes happen as separate commits after the refactor lands and Task 10 confirms parity.
+- Task 11 produces a tracking document only. Resist the temptation to fix any `RULE-01` / `BLUEPRINT-03` finding inline — that's a separate change (see spec §Out of scope).
