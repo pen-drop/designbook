@@ -606,6 +606,24 @@ export function register(program: Command): void {
     });
 
   workflow
+    .command('config')
+    .description(
+      'Return a single config variable value. For task bodies that need one $DESIGNBOOK_* var without full eval.',
+    )
+    .requiredOption('--var <name>', 'Variable name (e.g. DESIGNBOOK_DIRS_CSS)')
+    .action((opts: { var: string }) => {
+      const config = loadConfig();
+      const env = buildEnvMap(config);
+      const value = env[opts.var];
+      if (value === undefined) {
+        console.error(`Error: unknown variable "${opts.var}"`);
+        process.exitCode = 1;
+        return;
+      }
+      console.log(value);
+    });
+
+  workflow
     .command('abandon')
     .description('Archive a workflow as incomplete (user declined to resume).')
     .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
