@@ -80,5 +80,5 @@ When the user references one of these files or topics in conversation, start the
 
 ## Resources
 
-- [workflow-execution.md](resources/workflow-execution.md) — Response-driven AI execution rules
-- [cli-reference.md](resources/cli-reference.md) — CLI command index (links to per-type references)
+- [workflow-execution.md](resources/workflow-execution.md) — Execution guide
+- [cli-reference.md](resources/cli-reference.md) — CLI command index
