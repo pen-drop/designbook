@@ -10,9 +10,9 @@ import {
   workflowDone,
   workflowAbandon,
   workflowWait,
+  workflowResume,
   workflowMerge,
   readWorkflow,
-  writeWorkflowAtomic,
   expandTasksFromParams,
 } from '../workflow.js';
 import { load as parseYaml } from 'js-yaml';
@@ -69,13 +69,6 @@ export function buildInstructions(
   }
 
   const data = readWorkflow(tasksYmlPath);
-
-  // Transition from waiting back to running when AI resumes work
-  if (data.status === 'waiting') {
-    data.status = 'running';
-    delete data.waiting_message;
-    writeWorkflowAtomic(tasksYmlPath, data);
-  }
 
   // Resolve stage name: try direct key first, then look up via stages definition
   let resolvedKey = stageName;
@@ -259,6 +252,7 @@ export function register(program: Command): void {
             envMap,
             undefined,
             true,
+            firstResolved.rules,
           );
 
           // Resolve $ref in result schemas inline
@@ -594,6 +588,40 @@ export function register(program: Command): void {
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;
       }
+    });
+
+  workflow
+    .command('resume')
+    .description('Transition workflow status from waiting to running (call after user answers).')
+    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
+    .action((opts: { workflow: string }) => {
+      const config = loadConfig();
+      try {
+        workflowResume(config.data, opts.workflow);
+        log({ cmd: 'workflow resume', args: { workflow: opts.workflow } });
+        console.log(JSON.stringify({ status: 'running', workflow: opts.workflow }));
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('config')
+    .description(
+      'Return a single config variable value. For task bodies that need one $DESIGNBOOK_* var without full eval.',
+    )
+    .requiredOption('--var <name>', 'Variable name (e.g. DESIGNBOOK_DIRS_CSS)')
+    .action((opts: { var: string }) => {
+      const config = loadConfig();
+      const env = buildEnvMap(config);
+      const value = env[opts.var];
+      if (value === undefined) {
+        console.error(`Error: unknown variable "${opts.var}"`);
+        process.exitCode = 1;
+        return;
+      }
+      console.log(value);
     });
 
   workflow

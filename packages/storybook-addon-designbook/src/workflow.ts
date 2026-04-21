@@ -94,6 +94,12 @@ export interface TaskResult {
   submission?: 'data' | 'direct';
   /** When the file lands on disk. `deferred` (default) = at stage flush; `immediate` = on `workflow done`. Ignored when `submission: direct`. */
   flush?: 'deferred' | 'immediate';
+  /**
+   * Absolute path to the rule whose `provides: <key>` frontmatter matches this
+   * result key. When set, the task-execution AI reads this rule's body to
+   * learn how to produce the value.
+   */
+  provider_rule?: string;
   /** Inline data value — stored for data results (no path). */
   value?: unknown;
   /** Whether the result has been written and validated. */
@@ -234,6 +240,21 @@ export function workflowWait(dataDir: string, name: string, message?: string): v
   writeWorkflowAtomic(filePath, data);
 }
 
+export function workflowResume(dataDir: string, name: string): void {
+  const changesDir = resolve(dataDir, 'workflows', 'changes', name);
+  const filePath = resolve(changesDir, 'tasks.yml');
+  const data = readWorkflow(filePath);
+
+  if (data.status === 'running') return;
+  if (data.status !== 'waiting') {
+    throw new Error(`Cannot resume: workflow "${name}" is ${data.status}, expected waiting or running`);
+  }
+
+  data.status = 'running';
+  delete data.waiting_message;
+  writeWorkflowAtomic(filePath, data);
+}
+
 // ── Path normalization ──────────────────────────────────────────────
 // Workflow YAML stores paths relative to workspace_root.
 // On read (readWorkflow) they are resolved back to absolute;
@@ -270,6 +291,14 @@ function transformWorkflowPaths(data: WorkflowFile, fn: PathFn): WorkflowFile {
       rules: task.rules?.map((r) => fn(root, r)),
       blueprints: task.blueprints?.map((b) => fn(root, b)),
       files: task.files?.map((f) => ({ ...f, path: fn(root, f.path) })),
+      result: task.result
+        ? (Object.fromEntries(
+            Object.entries(task.result).map(([key, entry]) => [
+              key,
+              entry.provider_rule ? { ...entry, provider_rule: fn(root, entry.provider_rule) } : entry,
+            ]),
+          ) as Record<string, TaskResult>)
+        : undefined,
     })),
     stage_loaded: data.stage_loaded
       ? (Object.fromEntries(
@@ -362,6 +391,7 @@ export function workflowCreate(
         validators?: string[];
         submission?: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
+        provider_rule?: string;
       }
     >;
     task_file?: string;
@@ -651,6 +681,8 @@ export async function expandTasksFromParams(
           mergedParams,
           envMap,
           knownValidators,
+          undefined,
+          resolved.rules,
         );
 
         tasks.push({
@@ -703,6 +735,7 @@ export function workflowPlan(
         validators?: string[];
         submission?: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
+        provider_rule?: string;
       }
     >;
     depends_on?: string[];
@@ -1158,11 +1191,6 @@ export async function workflowDone(
     task.completed_at = timestamp();
     if (options?.summary) task.summary = options.summary;
 
-    if (data.status === 'waiting') {
-      data.status = 'running';
-      delete data.waiting_message;
-    }
-
     if (loaded) {
       // Write step-level data — deduplicate: only write if step not already recorded
       const stepName = task.step;
@@ -1489,12 +1517,6 @@ export async function workflowWriteFile(
       writtenPath = fileEntry.path;
     }
 
-    // Transition from waiting back to running on first write
-    if (data.status === 'waiting') {
-      data.status = 'running';
-      delete data.waiting_message;
-    }
-
     writeWorkflowAtomic(filePath, data);
 
     return {
@@ -1665,12 +1687,6 @@ export async function workflowResult(
         writtenPath = resultEntry.path!;
       }
 
-      // Transition from waiting back to running
-      if (data.status === 'waiting') {
-        data.status = 'running';
-        delete data.waiting_message;
-      }
-
       writeWorkflowAtomic(filePath, data);
 
       return {
@@ -1705,12 +1721,6 @@ export async function workflowResult(
       delete resultEntry.error;
     }
     resultEntry.last_validated = new Date().toISOString();
-
-    // Transition from waiting back to running
-    if (data.status === 'waiting') {
-      data.status = 'running';
-      delete data.waiting_message;
-    }
 
     writeWorkflowAtomic(filePath, data);
 
