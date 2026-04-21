@@ -1,7 +1,7 @@
 ---
 name: designbook-skill-creator
 user-invocable: true
-description: Authoritative spec for authoring tasks, rules, blueprints, workflows, and schemas.yml under .agents/skills/designbook/, .agents/skills/designbook-*/ (drupal, css-tailwind, stitch, devtools), and this skill's own rules/ and resources/. Load BEFORE creating or editing ANY such file — covers the 4-level model (workflow→stage→task/blueprint/rule), "tasks say WHAT not HOW", "rules never declare params:", schema $ref conventions, and file-structure rules. Skipping this produces tasks with inline HOW, rules carrying their own params, and inline-duplicated schemas.
+description: Authoritative spec for authoring tasks, rules, blueprints, workflows, and schemas.yml under .agents/skills/designbook/, .agents/skills/designbook-*/, and this skill's own rules/ and resources/. Load the matching per-file-type rule before creating or editing ANY such file — rules/task-files.md for tasks, rules/blueprint-files.md for blueprints, rules/rule-files.md for rules, rules/schema-files.md for schemas.yml, rules/workflow-files.md for workflow definitions, plus rules/common-rules.md always. Skipping this produces files that violate the single source of truth for authoring + validation.
 ---
 
 # Designbook Skill Creator
@@ -48,18 +48,22 @@ workflow
 | **Blueprint** | `blueprints/<name>.md` | Overridable starting point |
 | **Rule** | `rules/<name>.md` | Hard constraint; cannot be overridden |
 
-## Key Principles
+## Rule Files by Artifact Type
 
-See [`rules/principles.md`](rules/principles.md) for detailed principles with examples.
+Load the matching rule file **before** creating or editing any file of that type.
+`common-rules.md` loads on top in every case.
 
-- **Tasks say WHAT, never HOW** — task files declare result schemas and params; never contain style or implementation instructions
-- **Results declare schema** — file results with `path:`, data results with JSON Schema; `$ref` to `schemas.yml`
-- **Blueprints are overridable** — provide a starting point; integrations may deviate
-- **Rules are absolute** — apply unconditionally once their `when` conditions match; integrations cannot override
+| Creating/editing | Load |
+|---|---|
+| `tasks/*.md` | [rules/common-rules.md](rules/common-rules.md) + [rules/task-files.md](rules/task-files.md) |
+| `blueprints/*.md` | [rules/common-rules.md](rules/common-rules.md) + [rules/blueprint-files.md](rules/blueprint-files.md) |
+| `rules/*.md` | [rules/common-rules.md](rules/common-rules.md) + [rules/rule-files.md](rules/rule-files.md) |
+| `schemas.yml` | [rules/common-rules.md](rules/common-rules.md) + [rules/schema-files.md](rules/schema-files.md) |
+| `workflows/*.md` | [rules/common-rules.md](rules/common-rules.md) + [rules/workflow-files.md](rules/workflow-files.md) |
 
-## File Structure Conventions
-
-See [`rules/structure.md`](rules/structure.md) for full conventions.
+Each rule file contains narrative + correct/wrong examples (authoring guidance) and a
+`## Checks` table (validation source of truth). The same files are loaded by the
+validator runner — see [resources/validate.md](resources/validate.md).
 
 ## Schema Reference
 
