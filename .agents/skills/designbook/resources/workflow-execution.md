@@ -170,6 +170,8 @@ Results are validated against `schema.definitions` (base + blueprint extensions 
 
 You generally don't read `tasks.yml` directly, but when debugging you'll see:
 
+**Top-level fields:** `title`, `workflow` (workflow ID), `status`, `parent` (optional — parent workflow name), `stages` (list of stage names), `tasks` (list of task entries with `id`, `stage`, `status`, `params`, `task_file`, `rules`, `blueprints`, `result`).
+
 **Workflow-level status:** `running`, `waiting`, `completed`, `incomplete`.
 
 **Task-level status:** `pending`, `in-progress`, `done`, `incomplete`.
