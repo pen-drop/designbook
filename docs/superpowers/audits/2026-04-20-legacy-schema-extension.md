@@ -22,9 +22,10 @@ separate change tracked as a follow-up plan.
 
 **Note (2026-04-20 update):** Target vehicles were regenerated after the
 `suggests:` keyword was introduced (see `docs/superpowers/specs/2026-04-20-blueprint-suggests-design.md`).
-Blueprint findings now target `suggests:` instead of `provides:` / `extends:`, because
-blueprints are pure suggestions and carry no validation authority. Rule findings are
-unchanged.
+Blueprint body-prose findings for enums/defaults/required now target `suggests:` (soft
+recommendation) or the integration's `schemas.yml` (hard contract), since `provides:`
+and `constrains:` are rule-exclusive. `extends:` remains allowed in blueprints — adding
+new properties is not a hard constraint. Rule findings are unchanged.
 
 ## Findings — RULE-01 (rule files)
 

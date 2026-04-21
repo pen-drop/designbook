@@ -105,8 +105,14 @@ blueprint, it replaces the entire blueprint file — not a merged subset. Hard
 constraints in a blueprint are therefore meaningless: they get overridden wholesale.
 A blueprint's only job is to suggest.
 
-Blueprints **must not** use `extends:`, `provides:`, or `constrains:` in frontmatter.
-All three are rule-exclusive — see [rule-files.md](rule-files.md#schema-extension-as-core-mechanism).
+Blueprints **must not** use `provides:` or `constrains:` in frontmatter — both are
+rule-exclusive (see [rule-files.md](rule-files.md#schema-extension-as-core-mechanism)).
+`provides:` sets defaults that affect validation; `constrains:` narrows enums. Both are
+hard effects and belong in rules.
+
+Blueprints **may** use `extends:` to add integration-specific properties to the task's
+merged schema. Adding structure is not a hard constraint — later rules can still
+narrow or default the added properties.
 
 Blueprints **may** use `suggests:` to express soft recommendations in a
 machine-readable form. `suggests:` is a JSON-Schema-like property map (supports
@@ -166,11 +172,13 @@ or schema, never in a blueprint. Pick the vehicle by what the content is:
 | Hard contract other tools must validate against | Schema type in integration's `schemas.yml` (via `$ref` on a core type) |
 | Non-overridable narrowing for a specific backend/config | Rule with `constrains:` |
 | Runtime default value that affects validation | Rule with `provides:` |
-| Added property that affects validation | Rule with `extends:` |
+| Added property for integration-specific shape (still overridable by rules) | Blueprint `extends:` |
+| Added property that is invariant regardless of integration | Rule with `extends:` |
 
-The `BLUEPRINT-01` check flags any of `extends:`/`provides:`/`constrains:` in
-blueprint frontmatter. The `BLUEPRINT-03` check flags body prose that should live
-in `suggests:` (soft) or in `schemas.yml` / a rule (hard).
+The `BLUEPRINT-01` check flags `provides:` or `constrains:` in blueprint frontmatter
+(rule-exclusive). `extends:` and `suggests:` are allowed. The `BLUEPRINT-03` check
+flags body prose that should live in `suggests:` (soft) or in `schemas.yml` / a rule
+(hard).
 
 ## `blueprints/` — Trigger + Filter Matching
 
@@ -191,6 +199,6 @@ filter:
 
 | ID | Severity | What to verify | Where |
 |---|---|---|---|
-| BLUEPRINT-01 | error | Frontmatter contains none of `extends:`, `provides:`, or `constrains:` — these are rule-exclusive. Blueprints may use `suggests:` for soft recommendations. | frontmatter |
+| BLUEPRINT-01 | error | Frontmatter contains no `provides:` or `constrains:` — both are rule-exclusive. Blueprints may use `extends:` (add properties) and `suggests:` (soft recommendations). | frontmatter |
 | BLUEPRINT-02 | warning | Body does not contain site-specific references (brand names, project URLs, customer slot names) — site-specific content in core `designbook/` is caught by COMMON-02 in common-rules.md; this check covers blueprints in integration skills that still must stay site-agnostic | body |
 | BLUEPRINT-03 | warning | Body does not describe enum values, required fields, type restrictions, or default values. Such content belongs either in `suggests:` in frontmatter (soft recommendation, machine-readable) or in `schemas.yml` / a rule (hard contract). Pure narrative prose is fine. Finding message must name which target applies per the decision matrix in "Blueprints Suggest, Never Enforce". | body |

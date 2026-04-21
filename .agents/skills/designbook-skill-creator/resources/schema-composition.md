@@ -13,12 +13,12 @@ A task's result schema is never just what the task declares. The engine merges c
 
 | Operation | Effect | Allowed in |
 |-----------|--------|------------|
-| `extends:` | Add new properties to the schema | **Rule only** |
+| `extends:` | Add new properties to the schema | **Rule and Blueprint** |
 | `provides:` | Set default values for existing properties | **Rule only** |
 | `constrains:` | Intersect enum values to narrow allowed options | **Rule only** |
 | `suggests:` | Informational — ignored during merge | **Blueprint only** |
 
-Blueprints **must not** use any of `extends:`, `provides:`, or `constrains:` — all three are rule-exclusive. This ensures blueprints remain purely overridable; any authority lives in rules or schema types. Blueprints may use `suggests:` to publish machine-readable recommendations that do not participate in validation.
+Blueprints **must not** use `provides:` or `constrains:` — both are rule-exclusive because they enforce hard effects (defaults that affect validation, enum narrowing). Blueprints **may** use `extends:` to add integration-specific properties; added structure is not itself a hard constraint (rules can still narrow or default those properties). Blueprints may also use `suggests:` for machine-readable soft recommendations that do not participate in validation.
 
 ## Syntax
 
