@@ -139,12 +139,25 @@ export function resolveSkillsRoot(configDir: string): string {
  * @param startDir - Directory to start searching from (defaults to cwd)
  * @returns Parsed config with defaults applied
  */
+function assertNotRepoRoot(dataDir: string): void {
+  const parent = dirname(dataDir);
+  const hasPnpmWorkspace = existsSync(resolve(parent, 'pnpm-workspace.yaml'));
+  const hasGit = existsSync(resolve(parent, '.git'));
+  if (hasPnpmWorkspace && hasGit) {
+    throw new Error(
+      `designbook CLI cannot write runtime data to the repo root (resolved DESIGNBOOK_DATA=${dataDir}). ` +
+        `Run from a workspace (cd workspaces/<suite>) or set DESIGNBOOK_DATA explicitly.`,
+    );
+  }
+}
+
 export function loadConfig(startDir?: string): DesignbookConfig {
   const configPath = findConfig(startDir);
 
   if (!configPath) {
-    const cwd = process.cwd();
+    const cwd = startDir ?? process.cwd();
     const dataDir = resolve(cwd, 'designbook');
+    assertNotRepoRoot(dataDir);
     return {
       ...DEFAULTS,
       data: dataDir,
@@ -198,6 +211,7 @@ export function loadConfig(startDir?: string): DesignbookConfig {
     // 3. Resolve designbook.data (workflow data dir, name relative to home)
     const rawData = (config['designbook.data'] as string | undefined) ?? 'designbook';
     const dataDir = resolve(home, rawData);
+    assertNotRepoRoot(dataDir);
     config['designbook.data'] = dataDir;
     config.data = dataDir;
 
