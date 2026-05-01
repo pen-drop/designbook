@@ -16,7 +16,7 @@ params:
     resolve: reference_folder
     from: reference_url
   breakpoints:
-    type: string
+    type: array
     resolve: breakpoints
     from: story_id
 stages:
@@ -34,6 +34,14 @@ stages:
   scene:
     steps: [create-scene]
     domain: [data-model]
+  setup-compare:
+    steps: [setup-compare]
+  capture:
+    steps: [capture]
+  compare:
+    steps: [compare]
+  outtake:
+    steps: [outtake]
 engine: direct
 before:
   - workflow: css-generate

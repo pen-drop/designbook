@@ -110,6 +110,10 @@ _debo workflow done --workflow $WORKFLOW_NAME --task <task-id> \
 
 The CLI serializes file results to their declared paths, validates every result against `schema.definitions`, and marks the task done. If validation fails, the response reports the errors — fix and call `done` again.
 
+For file results, treat validation errors as a repair loop on the submitted file content itself. Do not stop at reporting the error. Update the artifact so it satisfies the validator feedback exactly, then re-submit the same result key via `workflow done` until the task passes.
+
+`--data` is final content. The engine does not rewrite submitted values. Example: if a Twig file should contain `test_integration_drupal:page`, submit that literal string — not `$DESIGNBOOK_COMPONENT_NAMESPACE:page`.
+
 For `submission: direct` results only (external tool writes — Playwright screenshots, CLI-generated files), the external tool writes the file first, then registers it:
 
 ```bash
@@ -157,6 +161,8 @@ Both kinds are submitted the same way: as JSON inside `--data` on `workflow done
 - **Default** (`submission: data`, `flush: deferred`) — you pass the value via `--data`; the CLI stages it under `.debo` and flushes it atomically at stage end.
 - **`flush: immediate`** — file is flushed to its final path as soon as `workflow done` completes, so later steps within the same task can read it. Still submitted via `--data`.
 - **`submission: direct`** — an external tool writes the file (Playwright, headless CLI, etc.). The task runs the tool, then calls `_debo workflow result --workflow $WORKFLOW_NAME --task <task-id> --key <k>` (omit `--json`) to register. The CLI runs post-write validation but doesn't author the content.
+
+Treat `--data` as opaque result content. The engine resolves declarative metadata like result paths, but not payload values. Replace any `DESIGNBOOK_*` authoring hint in the artifact before calling `workflow done`.
 
 ### Global rule — no direct Write-tool writes
 

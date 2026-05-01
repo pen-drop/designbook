@@ -1,13 +1,13 @@
 ---
 trigger:
   steps: [prepare-fonts]
-filter:
-  extensions: google-fonts
 domain: [css]
 params:
   type: object
-  required: [design_tokens]
+  required: [css_generation_plan, design_tokens]
   properties:
+    css_generation_plan:
+      $ref: ../../../schemas.yml#/CssGenerationPlan
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       workflow: tokens
@@ -17,16 +17,20 @@ result:
   required: [google-fonts-css]
   properties:
     google-fonts-css:
-      path: $DESIGNBOOK_DIRS_CSS_TOKENS/google-fonts.src.css
+      path: "{{ css_generation_plan.fonts.font_css_path }}"
+      $ref: ../../../schemas.yml#/GoogleFontsCss
 ---
 
 # Prepare Fonts: Download Google Fonts CSS
 
-Downloads Google Fonts CSS based on font family tokens from `design-tokens.yml`.
+Prepare generated font assets according to `css_generation_plan.fonts`.
 
 ## Step 1: Read Font Families
 
-Read `semantic.typography` tokens from `design-tokens.yml`. Extract all unique `fontFamily` values (tokens with `$type: fontFamily`).
+Read `semantic.typography` tokens from `design-tokens.yml`. Extract all unique font families unless the plan already provides an explicit family list.
+
+If the plan strategy is `reuse`, keep the existing font stylesheet and binaries in their current locations and return the current stylesheet source as-is.
+If the plan strategy is `skip`, return an empty stylesheet string and do not download or modify binaries.
 
 ## Step 2: Derive Font Weights
 
@@ -34,10 +38,10 @@ If `semantic.typography-scale` tokens exist, extract all unique `fontWeight` val
 
 ## Step 3: Download woff2 Files
 
-For each font family, download woff2 files using `google-font-cli`:
+When the plan strategy is `create` or `refresh`, download the required woff2 files into the planned font directory:
 
 ```bash
-npx google-font-cli download "<Font Name>" -v <w1>,<w2>,<w3> --woff2 -d $DESIGNBOOK_DIRS_CSS/fonts
+npx google-font-cli download "<Font Name>" -v <w1>,<w2>,<w3> --woff2 -d {{ css_generation_plan.fonts.fonts_dir }}
 ```
 
 - `<Font Name>`: exact family name (e.g. `"Inter"`, `"Space Grotesk"`)
@@ -46,7 +50,7 @@ npx google-font-cli download "<Font Name>" -v <w1>,<w2>,<w3> --woff2 -d $DESIGNB
 
 ## Step 4: Write CSS
 
-After downloading, generate `css/tokens/google-fonts.src.css` with `@font-face` declarations for each downloaded woff2 file:
+Generate the planned font stylesheet with `@font-face` declarations for each downloaded woff2 file:
 
 ```css
 @font-face {
@@ -59,5 +63,7 @@ After downloading, generate `css/tokens/google-fonts.src.css` with `@font-face` 
 ```
 
 - One `@font-face` block per weight per family
-- Use relative paths from the token CSS directory to the fonts directory (`../fonts/`)
+- Use relative paths from the planned font stylesheet to the planned font directory
 - The file SHALL contain only `@font-face` declarations with local woff2 references — never remote URLs or `@import url(...)` statements
+
+When the strategy is `reuse`, read the existing stylesheet from `css_generation_plan.fonts.font_css_path` and return its current source instead of rewriting it unnecessarily.

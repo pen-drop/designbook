@@ -208,6 +208,7 @@ export class StorybookDaemon {
   constructor(
     private readonly dataDir: string,
     private readonly baseUrl: string = 'http://localhost',
+    private readonly home?: string,
   ) {}
 
   // ── Private file I/O ────────────────────────────────────────────────────
@@ -301,9 +302,9 @@ export class StorybookDaemon {
 
   // ── Lifecycle ───────────────────────────────────────────────────────────
 
-  /** Workspace cwd as known to this daemon (from file or dataDir fallback). */
+  /** Workspace cwd as known to this daemon (from file, then home, then dataDir fallback). */
   private get workspaceCwd(): string {
-    return this.info?.cwd ?? this.dataDir;
+    return this.info?.cwd ?? this.home ?? this.dataDir;
   }
 
   /** Check if Storybook is running via registry cross-check. Cleans up stale PID files. */
@@ -339,7 +340,8 @@ export class StorybookDaemon {
 
     const st = this.status();
     if (st.running) {
-      if (force) {
+      if (force || !this.exists) {
+        // force: explicit override; !this.exists: orphan from deleted+recreated workspace
         await this.stop();
       } else {
         throw new Error(`Storybook is already running (pid ${st.pid}, port ${st.port}). Use --force to replace it.`);
@@ -422,10 +424,16 @@ export class StorybookDaemon {
         startup_errors: startupErrors.filter(Boolean),
       };
     } else {
+      // Kill the whole process group, not just the shell process
+      try {
+        process.kill(-child.pid!, 'SIGTERM');
+      } catch {
+        /* group may not exist */
+      }
       try {
         child.kill('SIGTERM');
       } catch {
-        /* ignore */
+        /* process may already be gone */
       }
       return {
         ready: false,

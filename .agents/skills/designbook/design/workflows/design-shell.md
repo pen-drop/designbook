@@ -9,6 +9,13 @@ params:
       group: "Designbook/Design System"
       title: "Shell"
       status: planned
+  scene_id:
+    type: string
+    default: design-system:shell
+  story_id:
+    type: string
+    resolve: story_id
+    from: scene_id
   scene_path:
     type: string
     resolve: scene_path
@@ -18,9 +25,12 @@ params:
     type: string
     resolve: reference_folder
     from: reference_url
+  breakpoints:
+    type: array
+    default: []
   regions:
-    type: string
-    default: "header,footer"
+    type: array
+    default: [header, footer]
 stages:
   reference:
     steps: [extract-reference]
@@ -32,6 +42,14 @@ stages:
     steps: [create-scene-file, create-scene]
   validate:
     steps: [validate]
+  setup-compare:
+    steps: [setup-compare]
+  capture:
+    steps: [capture]
+  compare:
+    steps: [compare]
+  outtake:
+    steps: [outtake]
 engine: direct
 before:
   - workflow: css-generate

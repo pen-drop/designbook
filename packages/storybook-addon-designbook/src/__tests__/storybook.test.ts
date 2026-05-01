@@ -351,6 +351,27 @@ describe('global registry', () => {
     spy.mockRestore();
   });
 
+  it('findDaemonsByCwd uses home (not dataDir) when no local json exists', () => {
+    const workspaceHome = makeTmpDir();
+    const dataDir = join(workspaceHome, 'designbook');
+    const spy = vi.spyOn(process, 'kill').mockImplementation(() => true);
+
+    // Register daemon with cwd = workspaceHome (as start() does)
+    registerDaemon({ ...sampleInfo, pid: 33333, cwd: workspaceHome });
+
+    // Without home: lookups by dataDir miss the entry
+    const misses = findDaemonsByCwd(dataDir);
+    expect(misses).toHaveLength(0);
+
+    // With home passed to constructor: workspaceCwd resolves correctly
+    const sb = new StorybookDaemon(dataDir, 'http://localhost', workspaceHome);
+    const status = sb.status();
+    expect(status.running).toBe(true);
+    expect(status.pid).toBe(33333);
+
+    spy.mockRestore();
+  });
+
   it('findDaemonsByCwd filters entries by workspace cwd', () => {
     const cwdA = makeTmpDir();
     const cwdB = makeTmpDir();
@@ -410,6 +431,38 @@ function mockHttpGet(behaviour: 'reject' | { json: unknown }) {
     return req as unknown as http.ClientRequest;
   });
 }
+
+describe('StorybookDaemon — auto-kill orphan on fresh workspace', () => {
+  let dataDir: string;
+  let workspaceHome: string;
+
+  beforeEach(() => {
+    workspaceHome = makeTmpDir();
+    dataDir = join(workspaceHome, 'designbook');
+  });
+
+  it('kills orphan daemon from previous workspace instance when no local json exists', async () => {
+    const killed: Array<[number, string | number]> = [];
+    const spy = vi.spyOn(process, 'kill').mockImplementation((pid, signal) => {
+      killed.push([pid as number, signal as string | number]);
+      return true;
+    });
+
+    // Simulate orphan: alive process registered with workspaceHome as cwd, but no local json
+    registerDaemon({ ...sampleInfo, pid: 44444, cwd: workspaceHome });
+
+    const sb = new StorybookDaemon(dataDir, 'http://localhost', workspaceHome);
+
+    // status() sees the orphan as running
+    const st = sb.status();
+    expect(st.running).toBe(true);
+    expect(st.pid).toBe(44444);
+    // exists is false (no local json)
+    expect(sb.exists).toBe(false);
+
+    spy.mockRestore();
+  });
+});
 
 describe('StorybookDaemon.start', () => {
   let dataDir: string;

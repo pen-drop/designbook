@@ -26,21 +26,29 @@ The leaf-emit branch has three variants depending on the `CssGroup` flags:
 | Var-resolve     | `resolve: var`      | DTCG references → `var(--<prefix>-<flat-ref>)` |
 | Typography-expand | `expand: typography` | Composite `$type: typography` → 3 properties (size/weight/line-height) |
 
+## CSS Value Normalization
+
+Normalize emitted CSS literals before writing them. Decimal values must include
+a leading zero so formatter/stylelint validation passes:
+
+- `.1` → `0.1`
+- `-.25` → `-0.25`
+
 ## @config Block
 
-The `@config` block uses paths relative to the `.jsonata` file:
+The `@config` block uses paths relative to the `.jsonata` file. Intake chooses the final target directories; the `generate-jsonata` task passes the artifact's relative output path into this template.
 
 ```jsonata
 /** @config
  {
    "input": "../design-system/design-tokens.yml",
-   "output": "../../css/tokens/{group}.src.css"
+   "output": "<config_output_path>"
  }
  */
 ```
 
-`{group}` is the `CssGroup.group` identifier (e.g. `primitive-color`,
-`layout-spacing`).
+`<config_output_path>` is the artifact's CSS output path relative to the JSONata
+file itself (e.g. `../../css/tokens/color.src.css`).
 
 ## Default Expression — Recursive Flatten
 
@@ -50,6 +58,11 @@ nesting depth work without manual quoting.
 
 ```jsonata
 (
+  $normalizeCssValue := function($val) {
+    $type($val) = "string"
+      ? $replace($replace($val, /(^|[\s(:,])\.(\d)/, "$10.$2"), /(^|[\s(:,])-\.(\d)/, "$1-0.$2")
+      : $val
+  };
   $walk := function($node, $path) {
     $reduce(
       $keys($node),
@@ -58,7 +71,7 @@ nesting depth work without manual quoting.
           $v := $lookup($node, $k);
           $sub := $path = "" ? $k : $path & "-" & $k;
           $exists($v."$value")
-            ? $append($acc, "  --<prefix>-" & $sub & ": " & $v."$value" & ";")
+            ? $append($acc, "  --<prefix>-" & $sub & ": " & $normalizeCssValue($v."$value") & ";")
             : $append($acc, $walk($v, $sub))
         ) : $acc
       },
@@ -86,6 +99,11 @@ of the DTCG ref (the primitive type) to its CSS prefix, so refs work even when
 the consuming group's prefix differs:
 
 ```jsonata
+$normalizeCssValue := function($val) {
+  $type($val) = "string"
+    ? $replace($replace($val, /(^|[\s(:,])\.(\d)/, "$10.$2"), /(^|[\s(:,])-\.(\d)/, "$1-0.$2")
+    : $val
+};
 $exists($v."$value") ? (
   $val := $v."$value";
   $resolved := $substring($val, 0, 1) = "{" ? (
@@ -98,7 +116,7 @@ $exists($v."$value") ? (
       : $type = "lineHeight" ? "leading"
       : $type;
     "var(--" & $primPrefix & "-" & $join($filter($parts, function($p, $i) { $i >= 2 }), "-") & ")"
-  ) : $val;
+  ) : $normalizeCssValue($val);
   $append($acc, "  --<prefix>-" & $sub & ": " & $resolved & ";")
 )
 : $append($acc, $walk($v, $sub))
@@ -120,6 +138,11 @@ unresolved braces produce invalid CSS:
 
 ```jsonata
 (
+  $normalizeCssValue := function($val) {
+    $type($val) = "string"
+      ? $replace($replace($val, /(^|[\s(:,])\.(\d)/, "$10.$2"), /(^|[\s(:,])-\.(\d)/, "$1-0.$2")
+      : $val
+  };
   $resolve := function($val) {
     $substring($val, 0, 1) = "{" ? (
       $ref := $replace($replace($val, "{", ""), "}", "");
@@ -131,7 +154,7 @@ unresolved braces produce invalid CSS:
         : $type = "lineHeight" ? "leading"
         : $type;
       "var(--" & $primPrefix & "-" & $join($filter($parts, function($p, $i) { $i >= 2 }), "-") & ")"
-    ) : $val
+    ) : $normalizeCssValue($val)
   };
   $node := $reduce($split("<path>", "."), function($a, $s) { $lookup($a, $s) }, $$);
   $entries := $each($node, function($v, $k) {
@@ -199,7 +222,7 @@ Theme expressions use the same `design-tokens.yml` as input:
 /** @config
  {
    "input": "../design-system/design-tokens.yml",
-   "output": "../../css/tokens/color.theme-<name>.src.css"
+   "output": "<theme_config_output_path>"
  }
  */
 ```

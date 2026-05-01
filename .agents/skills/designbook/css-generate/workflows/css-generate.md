@@ -5,7 +5,7 @@ stages:
   intake:
     steps: [css-generate:intake]
   prepare:
-    steps: [prepare-fonts, prepare-icons]
+    steps: [prepare-fonts]
   generate:
     steps: [generate-jsonata]
   transform:

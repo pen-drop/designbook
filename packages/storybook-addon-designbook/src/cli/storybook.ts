@@ -19,7 +19,7 @@ export function register(program: Command): void {
         return;
       }
 
-      const sb = new StorybookDaemon(config.data);
+      const sb = new StorybookDaemon(config.data, 'http://localhost', config['designbook.home'] as string | undefined);
       const port = opts.port ? parseInt(opts.port, 10) : opts.force ? undefined : await findFreePort();
       const result = await sb.start({
         cmd: storybookCmdStr,
@@ -37,7 +37,7 @@ export function register(program: Command): void {
     .description('Stop a Storybook process started by storybook start')
     .action(async () => {
       const config = loadConfig(process.env['DESIGNBOOK_HOME']);
-      const sb = new StorybookDaemon(config.data);
+      const sb = new StorybookDaemon(config.data, 'http://localhost', config['designbook.home'] as string | undefined);
       await sb.stop();
       process.exit(0);
     });
@@ -47,7 +47,7 @@ export function register(program: Command): void {
     .description('Check if a Storybook daemon is running')
     .action(() => {
       const config = loadConfig(process.env['DESIGNBOOK_HOME']);
-      const sb = new StorybookDaemon(config.data);
+      const sb = new StorybookDaemon(config.data, 'http://localhost', config['designbook.home'] as string | undefined);
       const st = sb.status();
       const url = st.running ? sb.url : undefined;
       console.log(JSON.stringify({ ...st, ...(url ? { url } : {}) }));
@@ -59,7 +59,7 @@ export function register(program: Command): void {
     .option('-f, --follow', 'Follow the log (tail with polling)')
     .action(async (opts: { follow?: boolean }) => {
       const config = loadConfig(process.env['DESIGNBOOK_HOME']);
-      const sb = new StorybookDaemon(config.data);
+      const sb = new StorybookDaemon(config.data, 'http://localhost', config['designbook.home'] as string | undefined);
 
       const content = sb.logs();
       if (content === undefined) {
@@ -92,7 +92,7 @@ export function register(program: Command): void {
         return;
       }
 
-      const sb = new StorybookDaemon(config.data);
+      const sb = new StorybookDaemon(config.data, 'http://localhost', config['designbook.home'] as string | undefined);
       const port = opts.port ? parseInt(opts.port, 10) : undefined;
       const result = await sb.restart({
         cmd: storybookCmdStr,

@@ -24,13 +24,16 @@ params:
       from: section.id
 result:
   type: object
-  required: [scene-file]
+  required: [scene-file, scene_id]
   properties:
     scene-file:
       path: "$DESIGNBOOK_DATA/{{ scene_path }}"
+      flush: immediate
       type: object
       validators: [scene]
       $ref: ../schemas.yml#/SceneFile
+    scene_id:
+      $ref: ../schemas.yml#/SceneId
 each:
   section:
     expr: "section"
@@ -113,6 +116,9 @@ scenes: []
 - If `user_flows` and `ui_requirements` are provided (non-empty), include them
 - If `order` is not provided, omit it
 - `scenes` starts as empty array — populated later by `/debo design-screen` or `/debo design-shell`
+- `scene_id` must identify the scene file's primary scene target:
+  - shell file → `design-system:shell`
+  - section file → `{{ section.id }}:<scene-name>` once the scene name is known upstream
 - **`group:`** must be `"Designbook/Sections/{{ section.title }}"` for section files, `"Designbook/Design System"` for the shell
 
 ## Constraints

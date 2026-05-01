@@ -111,16 +111,8 @@ export async function resolveParams(
         };
         return;
       }
-      // Skip when both own input and the from-param value are empty
-      if ((!input || input === '') && (fromValue === undefined || fromValue === null || fromValue === '')) return;
-      // When own input is empty, pass the from-param value as input so the resolver
-      // can use it directly (e.g. story_url resolver gets scene_id as input)
-      effectiveInput =
-        input !== undefined && input !== ''
-          ? typeof input === 'string'
-            ? input
-            : String(input)
-          : String(fromValue ?? '');
+      if (fromValue === undefined || fromValue === null || fromValue === '') return;
+      effectiveInput = typeof fromValue === 'string' ? fromValue : String(fromValue);
     } else {
       effectiveInput = typeof input === 'string' ? input : '';
     }

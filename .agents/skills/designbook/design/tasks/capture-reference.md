@@ -40,6 +40,9 @@ each:
 
 Captures a reference screenshot by loading the source URL at the given breakpoint viewport width via Playwright.
 
+If `{reference_folder}/{check.breakpoint}--{check.region}.png` already exists,
+reuse it and register that file as the result instead of capturing a new one.
+
 ## Execution
 
 1. **Read reference URL from the `story_meta` param**: `story_meta.reference.source.url`. If unset, skip with a warning.

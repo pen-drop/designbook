@@ -15,12 +15,16 @@ params:
       type: object
 result:
   type: object
-  required: [components]
+  required: [components, scenes]
   properties:
     components:
       type: array
       items:
         $ref: ../schemas.yml#/Component
+    scenes:
+      type: array
+      items:
+        $ref: ../../scenes/schemas.yml#/SceneDef
     output_path:
       type: string
       default: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
@@ -57,3 +61,10 @@ Reuse an existing component when its slots/variants already cover the new need â
 ## Result: components
 
 One entry per **new** component. Each item: `component` (name), `slots` (array), `group`.
+
+## Result: scenes
+
+Emit the shell `SceneDef[]` that `create-scene` will append to
+`design-system.scenes.yml`. For the shell workflow this normally means a single
+scene named `shell`, derived from the extracted landmark structure and using
+`$content` as the page-content injection point.

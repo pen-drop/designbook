@@ -42,7 +42,8 @@ export const componentsIndexResolver: ParamResolver = {
       return {
         resolved: false,
         input: '',
-        error: 'Storybook is not running — start it with "_debo storybook start" before resolving components_index',
+        error:
+          'Storybook is not running — start it with "npx storybook-addon-designbook storybook start" before resolving components_index',
       };
     }
 

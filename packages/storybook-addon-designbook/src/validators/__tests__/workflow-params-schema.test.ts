@@ -662,6 +662,55 @@ describe('expandTasksFromParams with JSON Schema params', () => {
     );
   });
 
+  it('overrides stale resolver values during per-iteration expansion', async () => {
+    const taskFile = writeTaskFile(
+      'create-section',
+      [
+        'trigger:',
+        '  steps: [create-section]',
+        'params:',
+        '  type: object',
+        '  required: [section]',
+        '  properties:',
+        '    section: { type: object }',
+        '    scene_path:',
+        '      type: string',
+        '      resolve: scene_path',
+        '      from: section.id',
+        'result:',
+        '  type: object',
+        '  properties:',
+        '    section-scenes:',
+        '      path: "$DATA/{{ scene_path }}"',
+        '      type: object',
+        'each:',
+        '  section:',
+        '    expr: "section"',
+      ].join('\n'),
+    );
+
+    const stages: Record<string, StageDefinition> = {
+      execute: { steps: ['create-section'] },
+    };
+    const params = {
+      section: [{ id: 'shell', title: 'Shell' }],
+      scene_path: 'sections/stale/stale.section.scenes.yml',
+    };
+    const envMap = { DATA: '/tmp/data' };
+
+    const tasks = await expandTasksFromParams(
+      makeStageLoaded({ 'create-section': taskFile }),
+      stages,
+      params,
+      [],
+      envMap,
+    );
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]!.params!.scene_path).toBe('design-system/design-system.scenes.yml');
+    expect(tasks[0]!.result!['section-scenes']!.path).toBe('/tmp/data/design-system/design-system.scenes.yml');
+  });
+
   it('expands each: nested jsonata expression flattens variants across components', async () => {
     const taskFile = writeTaskFile(
       'create-variant-story',

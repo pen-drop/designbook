@@ -6,9 +6,6 @@ params:
   type: object
   required: [vision]
   properties:
-    story_id:
-      $ref: ../../scenes/schemas.yml#/StoryId
-      default: ""
     reference_folder:
       $ref: ../schemas.yml#/ReferenceFolder
       default: ""
@@ -86,4 +83,3 @@ Populate `sections[]` for every page-level content zone between header and foote
 ## Verification
 
 Before returning, verify the extract is not thin: if `landmarks.header.rows.length < 2` for a typical institutional site, `images.length === 0`, or `forms.length === 0` on a page with a visible search/newsletter/login — re-extract. Thin extracts are almost always the cause of shell/screen mismatches in verify.
-
