@@ -15,7 +15,13 @@ import type { Command } from 'commander';
 import { load as parseYaml } from 'js-yaml';
 import { loadConfig } from '../config.js';
 import { digestLog } from '../log/digest.js';
-import { computeScore, evalAssertions, type Assertion, type AssertionResult } from '../scoring/composite.js';
+import {
+  computeScore,
+  evalAssertions,
+  type Assertion,
+  type AssertionResult,
+  type ScoreResult,
+} from '../scoring/composite.js';
 
 export interface ScoreOptions {
   dataDir: string;
@@ -23,16 +29,7 @@ export interface ScoreOptions {
   caseFile?: string;
 }
 
-export interface ScoreCliResult {
-  score: number;
-  components: {
-    successRate?: number;
-    assertions?: AssertionResult;
-    errors: number;
-    retries: number;
-    unresolved: number;
-  };
-  computedFrom: 'composite' | 'friction';
+export interface ScoreCliResult extends ScoreResult {
   workflow: string;
 }
 
@@ -100,6 +97,5 @@ export function register(workflow: Command): void {
         console.log(`score: ${r.score.toFixed(2)}  (${r.computedFrom})`);
         console.log(JSON.stringify(r.components, null, 2));
       }
-      process.exitCode = 0;
     });
 }
