@@ -4,11 +4,12 @@ trigger:
 domain: [css]
 params:
   type: object
-  required: [group, design_tokens]
+  required: [artifact, css_generation_plan, design_tokens]
   properties:
-    group:
-      type: object
-      $ref: ../schemas.yml#/CssGroup
+    artifact:
+      $ref: ../schemas.yml#/CssArtifactPlan
+    css_generation_plan:
+      $ref: ../schemas.yml#/CssGenerationPlan
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       workflow: tokens
@@ -18,22 +19,33 @@ result:
   required: [generate-jsonata]
   properties:
     generate-jsonata:
-      path: "$DESIGNBOOK_DATA/designbook-css-$DESIGNBOOK_FRAMEWORK_CSS/generate-{{ group.group }}.jsonata"
+      path: "{{ artifact.jsonata_path }}"
+      $ref: ../schemas.yml#/Jsonata
       validators:
         - "cmd:npx jsonata-w transform --dry-run {{ file }}"
         - "cmd:npx jsonata-w transform --dry-run {{ file }} | npx stylelint --stdin-filename output.css"
 each:
-  group:
-    expr: "groups"
-    schema: { $ref: ../schemas.yml#/CssGroup }
+  artifact:
+    expr: "css_generation_plan.jsonata.artifacts"
+    schema: { $ref: ../schemas.yml#/CssArtifactPlan }
 ---
 
 # Generate JSONata Expression
 
-Generates one `.jsonata` expression file per token group. The expression transforms `design-tokens.yml` into a CSS token file.
+Generate one `.jsonata` expression file per planned CSS artifact. The expression transforms `design-tokens.yml` into the artifact's target CSS file.
 
-Read the `css-mapping` blueprint for group configuration (prefix, wrap, path) and the `jsonata-template` blueprint for the expression format.
+Read the `jsonata-template` blueprint for the expression format. Use the current `artifact` values for the token path, CSS prefix, wrapper, JSONata destination, and relative `@config.output` path.
 
-## Theme Override Files
+The generated JSONata source must:
 
-After generating the default token group expressions, check `design-tokens.yml` for a `themes:` section. For each theme declared there, generate a `.jsonata` expression using the theme expression template from the `jsonata-template` blueprint.
+- keep `input` relative to the JSONata file's location
+- use `artifact.config_output_path` as the `@config.output`
+- preserve the active framework's mapping semantics from the blueprint
+
+When `css_generation_plan.jsonata.strategy` is:
+
+- `create` — write a fresh JSONata file for every artifact
+- `refresh` — overwrite the existing JSONata file in place using the current artifact plan
+- `reuse` — keep the existing JSONata file content if it already exists at `artifact.jsonata_path`; only regenerate missing files
+
+If a reused JSONata file already exists and still matches the current artifact plan, submit that file unchanged as the task result instead of inventing a new variant.

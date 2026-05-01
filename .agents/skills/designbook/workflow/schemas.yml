@@ -1,0 +1,70 @@
+# Workflow concern schemas
+
+WorkflowOutput:
+  type: object
+  title: Workflow Output
+  description: >
+    Global workflow completion payload written by an outtake stage. It records
+    quality and run metrics separately: `completed` means the workflow reached
+    the end technically, while `success_rate` expresses how successful the
+    result is in the workflow's own domain. The outtake computes
+    `success_rate`; the schema only defines the shape and field semantics.
+  required: [success_rate]
+  properties:
+    success_rate:
+      type: number
+      minimum: 0
+      maximum: 1
+      description: >
+        Workflow-specific success score computed by the outtake stage. `1`
+        means the workflow result is considered fully successful in context;
+        lower values indicate remaining defects, validation noise, missing
+        quality gates, or partial completion. The schema does not prescribe the
+        formula.
+    summary:
+      type: string
+      description: Short human-readable outcome summary for the archived workflow.
+    warnings:
+      type: array
+      description: >
+        Non-fatal issues noticed by the outtake. Use for caveats that should
+        remain visible after archival without preventing completion.
+      items:
+        type: string
+    artifacts:
+      type: object
+      description: >
+        Map of workflow-specific artifact references produced by the run, such
+        as diff images, reports, or derived output files.
+      additionalProperties: true
+    metrics:
+      type: object
+      description: >
+        Generic run metrics collected by the outtake. These describe execution
+        quality, not product/domain quality.
+      properties:
+        validation_errors:
+          type: integer
+          minimum: 0
+          description: >
+            Number of result-validation failures encountered during the run.
+            Count only actual validator failures returned by the workflow
+            engine, not hypothetical issues or domain findings.
+        invalid_calls:
+          type: integer
+          minimum: 0
+          description: >
+            Number of invalid or disallowed CLI/tool calls made during the run
+            that required correction or retry.
+        token_usage:
+          type: integer
+          minimum: 0
+          description: >
+            Total token usage for the run when the environment exposes a
+            reliable value. Omit when unavailable rather than inventing one.
+        retries:
+          type: integer
+          minimum: 0
+          description: >
+            Number of times a task had to be resubmitted after a failed attempt
+            (validation failure, invalid call, or equivalent recoverable error).

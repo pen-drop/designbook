@@ -1094,6 +1094,78 @@ describe('workflowDone stage-based response', () => {
     expect(result.response).toBeDefined();
     expect(result.response!.stage).toBe('done');
   });
+
+  it('does not leave the current stage while declared steps are still missing', async () => {
+    const stages = {
+      execute: { steps: ['create-component', 'create-scene'] },
+      test: { steps: ['visual-diff'] },
+    };
+    const name = workflowCreate(
+      dist,
+      'debo-test',
+      'Test',
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'test', step: 'visual-diff', stage: 'test' },
+      ],
+      stages,
+    );
+    workflowPlan(
+      dist,
+      name,
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'test', step: 'visual-diff', stage: 'test' },
+      ],
+      stages,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow(
+      "Cannot complete stage 'execute' — step(s) not materialized: create-scene",
+    );
+  });
+
+  it('allows entering the next stage when at least one declared step is materialized', async () => {
+    const stages = {
+      execute: { steps: ['create-component'] },
+      scene: { steps: ['create-scene-file', 'create-scene'] },
+    };
+    const name = workflowCreate(
+      dist,
+      'debo-test',
+      'Test',
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'scene', step: 'create-scene-file', stage: 'scene' },
+      ],
+      stages,
+    );
+    workflowPlan(
+      dist,
+      name,
+      [
+        { id: 'task1', title: 'T1', type: 'component', step: 'create-component', stage: 'execute' },
+        { id: 'task2', title: 'T2', type: 'scene', step: 'create-scene-file', stage: 'scene' },
+      ],
+      stages,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'direct',
+    );
+
+    const result = await workflowDone(dist, name, 'task1');
+    expect(result.archived).toBe(false);
+    expect(result.response).toBeDefined();
+    expect(result.response!.next_stage).toBe('scene');
+    expect(result.response!.next_step).toBe('create-scene-file');
+  });
 });
 
 // ── expandTasksFromParams: when.type filtering ─────────────────────────────

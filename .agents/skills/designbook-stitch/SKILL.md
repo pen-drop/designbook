@@ -2,7 +2,7 @@
 name: designbook-stitch
 disable-model-invocation: true
 user-invocable: false
-description: Stitch design tool integration — MCP-based reference resolution and intake screen selection. Loaded via extensions: [stitch] in designbook.config.yml.
+description: "Stitch design tool integration — MCP-based reference resolution and intake screen selection. Loaded via extensions: [stitch] in designbook.config.yml."
 ---
 
 # Designbook Stitch

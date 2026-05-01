@@ -7,7 +7,17 @@ params:
   properties:
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
+      resolve: story_id
+      from: scene_id
     reference: { type: array, default: [] }
+    reference_folder:
+      $ref: ../schemas.yml#/ReferenceFolder
+      default: ""
+    regions:
+      type: array
+      default: []
+      items:
+        $ref: ../schemas.yml#/RegionId
     breakpoints: { type: array }
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
@@ -28,64 +38,18 @@ result:
 
 # Setup Compare
 
-Builds the `meta.yml` configuration for the story and returns the runtime `checks` matrix that drives the capture + compare stages.
+Build the `meta.yml` configuration for the story and return the runtime
+`checks` matrix that drives the capture and compare stages.
 
-## Step 1: Restart Storybook
+Use `regions` when the workflow already chose an explicit review surface.
+Otherwise derive the default regions from the story type:
+- shell stories → `["header", "footer"]`
+- all other stories → `["full"]`
 
-Always restart Storybook before capture to ensure compiled state matches generated files:
+Use the first item from `reference[]` when it is already present. If it is
+empty and `{reference_folder}/extract.json` exists, derive the reference source
+from that file instead.
 
-```bash
-_debo storybook start --force
-```
-
-Wait for `{ ready: true }`. If startup fails, report errors from `_debo storybook logs` and pause.
-
-## Step 2: Determine Regions
-
-Derive regions from the story metadata:
-- Shell stories (`story_id` contains `--shell`): regions `["header", "footer"]`
-- All other stories: regions `["full"]`
-
-## Step 3: Apply rules that shape the reference
-
-Before building the result, apply all loaded rules for this stage that modify the reference. Rules may resolve provider-specific URLs, set additional fields on `reference.source` (e.g. `hasMarkup`), or transform the seed.
-
-If `reference` is empty or null: skip compare by completing with an empty `checks` array and a `story-meta` that contains only the breakpoints × regions matrix (no `reference.source`).
-
-## Step 4: Build the result
-
-The result contains two keys:
-
-1. **`story-meta`** — the complete `meta.yml` body:
-
-```json
-{
-  "reference": {
-    "source": {
-      "url": "<reference[0].url>",
-      "origin": "<reference[0].type>",
-      "hasMarkup": true
-    },
-    "breakpoints": {
-      "<bp>": {
-        "threshold": <threshold>,
-        "regions": {
-          "<region>": { "selector": "<selector or empty>", "threshold": <threshold> }
-        }
-      }
-    }
-  }
-}
-```
-
-2. **`checks`** — the runtime matrix as a JSON array. One entry per (breakpoint × region):
-
-```json
-[
-  { "story_id": "<id>", "breakpoint": "<bp>", "region": "<region>", "threshold": <number> }
-]
-```
-
-## Step 5: Complete the task
-
-Pass both as a single JSON object via `workflow done --data`. The engine writes `story-meta` to disk and collects `checks` into the workflow scope for the `each: checks` expansion in later stages.
+If no reference source can be derived, still emit the breakpoint × region
+matrix so downstream stages can reuse existing reference screenshots from the
+reference folder.

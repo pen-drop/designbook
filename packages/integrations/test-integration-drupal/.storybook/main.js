@@ -70,8 +70,7 @@ const config = {
       },
       server: {
         watch: {
-          usePolling: true,
-          interval: 300,
+          usePolling: false,
           awaitWriteFinish: {
             stabilityThreshold: 500,
             pollInterval: 100,

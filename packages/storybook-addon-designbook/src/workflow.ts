@@ -24,7 +24,6 @@ import {
   resolveSchemasForTasks,
   deriveSkillsRootFromTaskFile,
   resolveStageTaskParams,
-  buildEnvMap,
   type TaskFileDeclaration,
   type ResolvedStep,
 } from './workflow-resolve.js';
@@ -653,9 +652,7 @@ export async function expandTasksFromParams(
             params: mergedParams,
           });
           for (const [key, value] of Object.entries(resolveResult.params)) {
-            if (!(key in mergedParams) || mergedParams[key] === undefined || mergedParams[key] === '') {
-              mergedParams[key] = value;
-            }
+            mergedParams[key] = value;
           }
         }
 
@@ -938,29 +935,10 @@ export async function workflowDone(
         );
       }
 
-      // Resolve $VAR / ${VAR} (and any {{ … }}) tokens in string leaves via the
-      // standard interpolate() mechanism, so scene payloads like
-      // "$DESIGNBOOK_COMPONENT_NAMESPACE:page" reach the file and validator as
-      // resolved literals.
-      const envMap = options.config ? buildEnvMap(options.config) : {};
-      const { interpolate } = await import('./template/interpolate.js');
-      const resolveInValue = async (v: unknown): Promise<unknown> => {
-        if (typeof v === 'string') return interpolate(v, {}, { envMap });
-        if (Array.isArray(v)) return Promise.all(v.map((item) => resolveInValue(item)));
-        if (v && typeof v === 'object') {
-          const out: Record<string, unknown> = {};
-          for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-            out[k] = await resolveInValue(val);
-          }
-          return out;
-        }
-        return v;
-      };
-
       // Distribute each key to its result entry
       const validationErrors: string[] = [];
       for (const [key, rawValue] of Object.entries(dataPayload)) {
-        const value = await resolveInValue(rawValue);
+        const value = rawValue;
         const resultEntry = task.result[key];
         if (!resultEntry) continue;
 
@@ -1215,6 +1193,85 @@ export async function workflowDone(
     if (hasGroupedStages && data.current_stage) {
       const stages = data.stages as Record<string, StageDefinition>;
       const currentStage = data.current_stage;
+      const configForExpansion = options?.config ?? { data: dataDir, technology: 'html' as const, extensions: [] };
+
+      const getMissingStageSteps = (stageName: string): string[] => {
+        const stageDef = stages[stageName];
+        if (!stageDef?.steps) return [];
+        const stageHasTrackedSteps =
+          data.tasks.some((t) => t.stage === stageName && typeof t.step === 'string' && t.step.length > 0) ||
+          stageDef.steps.some((step) => Boolean(data.stage_loaded?.[step]));
+        if (!stageHasTrackedSteps) return [];
+        return stageDef.steps.filter((step) => !data.tasks.some((t) => t.stage === stageName && t.step === step));
+      };
+
+      const expandStageIfNeeded = async (
+        stageName: string,
+      ): Promise<{
+        expandedFromScope?: Array<{ id: string; step?: string; stage?: string; title: string }>;
+        resolverErrors?: Record<string, { input?: string; error?: string }>;
+      }> => {
+        const missingBefore = getMissingStageSteps(stageName);
+        if (missingBefore.length === 0) return {};
+        if (!data.stage_loaded) return {};
+
+        const stageLoaded = data.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]>;
+        const scopeEnvMap: Record<string, string> = data.env_map ?? {};
+        const stageDef = stages[stageName];
+        if (!stageDef) return {};
+
+        let expandedFromScope: Array<{ id: string; step?: string; stage?: string; title: string }> | undefined;
+        let resolverErrors: Record<string, { input?: string; error?: string }> | undefined;
+
+        const resolveResult = await resolveStageTaskParams(
+          stageLoaded,
+          stageDef,
+          data.params ?? {},
+          configForExpansion,
+        );
+        data.params = resolveResult.params;
+        if (Object.keys(resolveResult.unresolved).length > 0) {
+          resolverErrors = Object.fromEntries(
+            Object.entries(resolveResult.unresolved).map(([k, v]) => [k, { input: v.input, error: v.error }]),
+          );
+        }
+
+        const expanded = await expandTasksFromParams(
+          stageLoaded,
+          { [stageName]: stageDef },
+          resolveResult.params,
+          data.tasks,
+          scopeEnvMap,
+          data.scope,
+          options?.config,
+        );
+        if (expanded.length > 0) {
+          data.tasks.push(...expanded);
+          const skillsRoot = deriveSkillsRootFromTaskFile(expanded[0]?.task_file);
+          if (skillsRoot) {
+            const mergedSchemas = resolveSchemasForTasks(expanded, skillsRoot, { ...(data.schemas ?? {}) });
+            if (Object.keys(mergedSchemas).length > 0) {
+              data.schemas = mergedSchemas;
+            }
+          }
+          expandedFromScope = expanded.map((t) => ({
+            id: t.id,
+            step: t.step,
+            stage: t.stage,
+            title: t.title,
+          }));
+        }
+
+        return { expandedFromScope, resolverErrors };
+      };
+
+      const formatResolverErrors = (resolverErrors?: Record<string, { input?: string; error?: string }>): string => {
+        if (!resolverErrors || Object.keys(resolverErrors).length === 0) return '';
+        const details = Object.entries(resolverErrors)
+          .map(([key, value]) => `  · ${key}: ${value.error ?? 'unresolved'}`)
+          .join('\n');
+        return `\nResolver errors:\n${details}`;
+      };
 
       const nextStepInStage = getNextStep(currentStage, task.step ?? '', data.tasks);
 
@@ -1241,6 +1298,33 @@ export async function workflowDone(
         };
         writeWorkflowAtomic(filePath, data);
         return { archived: false, data, response };
+      }
+
+      const currentStageExpansion = await expandStageIfNeeded(currentStage);
+      const nextTaskInCurrentStage = data.tasks.find((t) => t.stage === currentStage && t.status !== 'done');
+      if (nextTaskInCurrentStage) {
+        if (nextTaskInCurrentStage.status === 'pending') {
+          nextTaskInCurrentStage.status = 'in-progress';
+          nextTaskInCurrentStage.started_at = timestamp();
+        }
+        response = {
+          stage: currentStage,
+          step_completed: task.step,
+          next_step: nextTaskInCurrentStage.step ?? null,
+          stage_progress: `${stageDone}/${stageTotal}`,
+          stage_complete: false,
+          ...(currentStageExpansion.expandedFromScope && { expanded_tasks: currentStageExpansion.expandedFromScope }),
+          ...(currentStageExpansion.resolverErrors && { resolver_errors: currentStageExpansion.resolverErrors }),
+        };
+        writeWorkflowAtomic(filePath, data);
+        return { archived: false, data, response };
+      }
+      const missingCurrentSteps = getMissingStageSteps(currentStage);
+      if (missingCurrentSteps.length > 0) {
+        throw new Error(
+          `Cannot complete stage '${currentStage}' — step(s) not materialized: ${missingCurrentSteps.join(', ')}` +
+            formatResolverErrors(currentStageExpansion.resolverErrors),
+        );
       }
 
       // ── Stage complete — collect data results into scope ──────────────
@@ -1303,59 +1387,7 @@ export async function workflowDone(
         }
 
         // Scope-driven expansion: if this stage has no tasks yet, try expanding from scope
-        let expandedFromScope: Array<{ id: string; step?: string; stage?: string; title: string }> | undefined;
-        let resolverErrors: Record<string, { input?: string; error?: string }> | undefined;
-        const hasTasksForStage = data.tasks.some((t) => t.stage === nextStage);
-        if (!hasTasksForStage && data.stage_loaded && data.scope) {
-          const stageLoaded = data.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]>;
-          const scopeEnvMap: Record<string, string> = data.env_map ?? {};
-          // Only expand the target stage — pass a single-stage map
-          const nextStageDef = stages[nextStage];
-          if (nextStageDef) {
-            const singleStage = { [nextStage]: nextStageDef };
-            // Task-level `resolve:` declarations run here (at stage transition)
-            // — not at workflow create — so resolvers see up-to-date params.
-            const resolveResult = await resolveStageTaskParams(
-              stageLoaded,
-              nextStageDef,
-              data.params ?? {},
-              options?.config ?? { data: dataDir, technology: 'html' as const, extensions: [] },
-            );
-            data.params = resolveResult.params;
-            if (Object.keys(resolveResult.unresolved).length > 0) {
-              resolverErrors = Object.fromEntries(
-                Object.entries(resolveResult.unresolved).map(([k, v]) => [k, { input: v.input, error: v.error }]),
-              );
-            }
-            const expanded = await expandTasksFromParams(
-              stageLoaded,
-              singleStage,
-              resolveResult.params,
-              data.tasks,
-              scopeEnvMap,
-              data.scope,
-              options?.config,
-            );
-            if (expanded.length > 0) {
-              data.tasks.push(...expanded);
-              // Resolve $ref in newly-expanded tasks' result schemas and merge
-              // into the inlined schemas map so AJV validation can resolve refs.
-              const skillsRoot = deriveSkillsRootFromTaskFile(expanded[0]?.task_file);
-              if (skillsRoot) {
-                const mergedSchemas = resolveSchemasForTasks(expanded, skillsRoot, { ...(data.schemas ?? {}) });
-                if (Object.keys(mergedSchemas).length > 0) {
-                  data.schemas = mergedSchemas;
-                }
-              }
-              expandedFromScope = expanded.map((t) => ({
-                id: t.id,
-                step: t.step,
-                stage: t.stage,
-                title: t.title,
-              }));
-            }
-          }
-        }
+        const { expandedFromScope, resolverErrors } = await expandStageIfNeeded(nextStage);
 
         // If this stage has pending tasks, stop here
         const nextStepInNewStage = data.tasks.find((t) => t.stage === nextStage && t.status !== 'done');
@@ -1379,6 +1411,14 @@ export async function workflowDone(
           };
           writeWorkflowAtomic(filePath, data);
           return { archived: false, data, response };
+        }
+
+        const missingNextSteps = getMissingStageSteps(nextStage);
+        if (missingNextSteps.length > 0) {
+          throw new Error(
+            `Cannot enter stage '${nextStage}' — step(s) not materialized: ${missingNextSteps.join(', ')}` +
+              formatResolverErrors(resolverErrors),
+          );
         }
 
         // No tasks in this stage — keep walking

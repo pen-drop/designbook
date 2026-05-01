@@ -1,19 +1,28 @@
-:---
+---
 trigger:
   steps: [generate-index]
 domain: [css]
+params:
+  type: object
+  required: [css_generation_plan]
+  properties:
+    css_generation_plan:
+      $ref: ../schemas.yml#/CssGenerationPlan
 result:
   type: object
   required: [index-css]
   properties:
     index-css:
-      path: $DESIGNBOOK_DIRS_CSS_TOKENS/index.src.css
+      path: "{{ css_generation_plan.paths.index_css_path }}"
+      $ref: ../schemas.yml#/IndexCss
 ---
 
 # Generate CSS Token Index
 
-Generates a barrel file that imports all generated token CSS files from the token directory.
+Generate a barrel file source that imports the token CSS files referenced by the current CSS generation plan.
 
-List all `*.src.css` files (excluding `index.src.css` itself), sorted alphabetically. Write one `@import` per file.
+List the planned token CSS outputs, excluding the index file itself, sorted alphabetically. Write one `@import` per file.
 
-Theme override files (`color.theme-*.src.css`) are included automatically — alphabetical sorting ensures they appear after `color.src.css`, which is the correct cascade order for CSS custom property overrides.
+Also include `css_generation_plan.fonts.font_css_path` when the font strategy is not `skip`. The generated font stylesheet should participate in the same barrel file when the workspace manages fonts through generated CSS.
+
+All imports must be written relative to the index file location.

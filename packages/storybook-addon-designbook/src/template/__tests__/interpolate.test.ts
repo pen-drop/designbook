@@ -86,4 +86,12 @@ describe('interpolate', () => {
   it('returns template unchanged when no placeholders', async () => {
     expect(await interpolate('no placeholders here', {})).toBe('no placeholders here');
   });
+
+  it('can resolve env vars without evaluating moustache expressions', async () => {
+    const envMap = { DESIGNBOOK_COMPONENT_NAMESPACE: 'test_integration_drupal' };
+    const tpl = '{% block header %}{{ header }}{% endblock %}\n$DESIGNBOOK_COMPONENT_NAMESPACE:page';
+    expect(await interpolate(tpl, {}, { envMap, evaluateExpressions: false })).toBe(
+      '{% block header %}{{ header }}{% endblock %}\ntest_integration_drupal:page',
+    );
+  });
 });

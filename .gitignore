@@ -14,3 +14,8 @@ workspaces/
 autoresearch-results.tsv
 .claude/worktrees/
 .playwright-cli/
+.pnpm-store/
+designbook/dbo.log
+designbook/references/
+designbook/stories/
+designbook/workflows/

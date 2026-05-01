@@ -29,6 +29,7 @@ function stringify(value: unknown): string {
 export interface InterpolateOptions {
   lenient?: boolean;
   envMap?: Record<string, string>;
+  evaluateExpressions?: boolean;
 }
 
 export async function interpolate(
@@ -36,19 +37,21 @@ export async function interpolate(
   scope: Record<string, unknown>,
   options: InterpolateOptions = {},
 ): Promise<string> {
-  const { lenient = false, envMap } = options;
+  const { lenient = false, envMap, evaluateExpressions = true } = options;
+
+  const resolveEnvRef = (match: string, name: string, braced: boolean): string => {
+    if (envMap && envMap[name] !== undefined) {
+      if (evaluateExpressions) return `{{ $env.${name} }}`;
+      return envMap[name]!;
+    }
+    if (lenient) return match;
+    if (braced) throw new Error(`Unknown environment variable: \${${name}} in path "${template}"`);
+    throw new Error(`Unknown environment variable: $${name} in path "${template}"`);
+  };
 
   const prepared = template
-    .replace(/\$\{([A-Z_][A-Z0-9_]*)\}/g, (match, name: string) => {
-      if (envMap && envMap[name] !== undefined) return `{{ $env.${name} }}`;
-      if (lenient) return match;
-      throw new Error(`Unknown environment variable: \${${name}} in path "${template}"`);
-    })
-    .replace(/(?<![\w$])\$([A-Z_][A-Z0-9_]*)/g, (match, name: string) => {
-      if (envMap && envMap[name] !== undefined) return `{{ $env.${name} }}`;
-      if (lenient) return match;
-      throw new Error(`Unknown environment variable: $${name} in path "${template}"`);
-    });
+    .replace(/\$\{([A-Z_][A-Z0-9_]*)\}/g, (match, name: string) => resolveEnvRef(match, name, true))
+    .replace(/(?<![\w$])\$([A-Z_][A-Z0-9_]*)/g, (match, name: string) => resolveEnvRef(match, name, false));
 
   const bindings: Record<string, unknown> = {};
   if (envMap) bindings.env = envMap;
@@ -59,27 +62,31 @@ export async function interpolate(
     if (key.startsWith('$')) bindings[key.slice(1)] = scope[key];
   }
 
-  const parts = prepared.split(/(\{\{[^}]*\}\})/);
-  const resolved = await Promise.all(
-    parts.map(async (part) => {
-      const match = part.match(/^\{\{\s*(.+?)\s*\}\}$/);
-      if (!match) return part;
-      const expr = match[1]!;
-      let value: unknown;
-      try {
-        value = await compile(expr).evaluate(scope, bindings);
-      } catch (err) {
-        if (lenient) return part;
-        throw new Error(`Error evaluating {{ ${expr} }} in "${template}": ${(err as Error).message}`);
-      }
-      if (value === undefined) {
-        if (lenient) return part;
-        throw new Error(`Unknown expression: {{ ${expr} }} in "${template}"`);
-      }
-      return stringify(value);
-    }),
-  );
-  let joined = resolved.join('');
+  let joined = prepared;
+
+  if (evaluateExpressions) {
+    const parts = prepared.split(/(\{\{[^}]*\}\})/);
+    const resolved = await Promise.all(
+      parts.map(async (part) => {
+        const match = part.match(/^\{\{\s*(.+?)\s*\}\}$/);
+        if (!match) return part;
+        const expr = match[1]!;
+        let value: unknown;
+        try {
+          value = await compile(expr).evaluate(scope, bindings);
+        } catch (err) {
+          if (lenient) return part;
+          throw new Error(`Error evaluating {{ ${expr} }} in "${template}": ${(err as Error).message}`);
+        }
+        if (value === undefined) {
+          if (lenient) return part;
+          throw new Error(`Unknown expression: {{ ${expr} }} in "${template}"`);
+        }
+        return stringify(value);
+      }),
+    );
+    joined = resolved.join('');
+  }
 
   if (envMap) {
     joined = joined

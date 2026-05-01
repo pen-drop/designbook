@@ -894,6 +894,40 @@ describe('workflow done --data', () => {
     expect(result.data.tasks[0]!.result!['design-tokens']!.valid).toBe(true);
   });
 
+  it('preserves file result payloads exactly as submitted', async () => {
+    const targetPath = resolve(dist, 'output', 'page.twig');
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'component',
+          step: 'create-component',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            twig: {
+              path: targetPath,
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['create-component'] } },
+    );
+
+    const result = await workflowDone(dist, name, 'task1', undefined, {
+      data: {
+        twig: '{% block header %}{{ header }}{% endblock %}\n$DESIGNBOOK_HOME/components/page',
+      },
+    });
+
+    expect(result.data.tasks[0]!.status).toBe('done');
+    expect(readFileSync(targetPath, 'utf8')).toBe(
+      '{% block header %}{{ header }}{% endblock %}\n$DESIGNBOOK_HOME/components/page',
+    );
+  });
+
   it('rejects files written directly at declared paths', async () => {
     const targetPath = resolve(dist, 'output', 'vision.yml');
     // Pre-write the file directly (bypassing workflow done --data)

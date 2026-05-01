@@ -49,6 +49,37 @@ Check:
       type: string
       description: Check type (e.g. `screenshot`, `dom`). Determines the capture strategy.
 
+CompareArtifact:
+  type: object
+  title: Compare Artifact
+  description: >
+    Structured result of one screenshot compare check. One item is emitted per
+    `(breakpoint, region)` pair so outtake can summarize visual review without
+    rerunning capture or compare.
+  required: [story_id, breakpoint, region, passed]
+  properties:
+    story_id:
+      $ref: ../scenes/schemas.yml#/StoryId
+    breakpoint:
+      $ref: "#/BreakpointId"
+    region:
+      $ref: "#/RegionId"
+    passed:
+      type: boolean
+      description: True when this compare check passed within its configured threshold.
+    diff_path:
+      type: string
+      description: Path to the diff/report artifact for this check when one was written.
+    screenshot_path:
+      type: string
+      description: Path to the captured Storybook screenshot used in the compare.
+    reference_path:
+      type: string
+      description: Path to the reference screenshot used in the compare.
+    diff_percent:
+      type: number
+      description: Measured visual deviation ratio for this check when available.
+
 StoryMeta:
   type: object
   title: Story Meta
@@ -470,3 +501,74 @@ DesignHint:
           box_shadow: { type: string }
     tokens:
       type: object
+
+DesignWorkflowOutput:
+  type: object
+  title: Design Workflow Output
+  description: >
+    Design-workflow-specific outtake payload. It builds on the global
+    `WorkflowOutput` contract defined in `designbook/workflow/schemas.yml` and
+    adds compare-oriented fields so shell/screen workflows can archive visual
+    quality information alongside generic run metrics.
+  required: [success_rate]
+  properties:
+    success_rate:
+      type: number
+      minimum: 0
+      maximum: 1
+      description: >
+        Outtake-computed design success score. Typical inputs are compare
+        result quality, unresolved design issues, validation failures, and the
+        presence of expected review artifacts.
+    summary:
+      type: string
+      description: Short human-readable outcome summary for the design workflow.
+    warnings:
+      type: array
+      items:
+        type: string
+    artifacts:
+      type: object
+      additionalProperties: true
+    metrics:
+      type: object
+      properties:
+        validation_errors:
+          type: integer
+          minimum: 0
+        invalid_calls:
+          type: integer
+          minimum: 0
+        token_usage:
+          type: integer
+          minimum: 0
+        retries:
+          type: integer
+          minimum: 0
+    compare_passed:
+      type: boolean
+      description: >
+        True when the final visual comparison is considered passing for this
+        workflow. This can remain false even when the workflow completed
+        technically.
+    diff_path:
+      type: string
+      description: >
+        Path to the final visual diff artifact when one was produced. Leave
+        empty when no diff exists yet.
+    reference_folder:
+      $ref: "#/ReferenceFolder"
+    issues_count:
+      type: integer
+      minimum: 0
+      description: Number of unresolved design issues considered by the outtake.
+    breakpoints_checked:
+      type: array
+      description: Breakpoints covered by the final compare/review pass.
+      items:
+        $ref: "#/BreakpointId"
+    regions_checked:
+      type: array
+      description: Regions covered by the final compare/review pass.
+      items:
+        $ref: "#/RegionId"

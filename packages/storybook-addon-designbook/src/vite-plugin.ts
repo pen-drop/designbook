@@ -79,12 +79,26 @@ export function designbookLoadPlugin(
             'react/jsx-dev-runtime',
             'react-dom',
             'react-dom/client',
+            // Pre-bundle these so Vite doesn't discover them at preview runtime
+            // (runtime discovery triggers "optimized dependencies changed. reloading"
+            // which causes an infinite HMR loop in workspace-linked setups).
+            '@storybook/addon-themes',
             // Pre-bundle CJS modules used by Designbook page components so they
             // don't trigger a Vite dep-discovery reload during vitest browser runs.
             'semver',
             'yaml',
             'marked',
           ],
+        },
+        server: {
+          watch: {
+            // When installed as a pnpm workspace symlink, Vite resolves the
+            // real path (packages/storybook-addon-designbook) and watches it.
+            // With usePolling:true this polls 300+ files every 300 ms and
+            // saturates the libuv thread pool. Addon changes always require a
+            // full Storybook restart anyway, so HMR-watching is pointless.
+            ignored: ['**/storybook-addon-designbook/**'],
+          },
         },
         // Force Vite to process twing through its own module pipeline in SSR context.
         // When externalized, Node.js ESM loads twing/index.mjs which imports locutus

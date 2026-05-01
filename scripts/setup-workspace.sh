@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Setup a local workspace from the test-integration-drupal template.
 # Always rebuilds from scratch — removes any existing workspace first.
-# Copies .agents and .claude from the current working directory (CWD),
-# so workspaces created from a git worktree reflect that worktree's skill state.
+# Copies .agents, .claude, .cursor and .codex from the current working directory
+# (CWD), so workspaces created from a git worktree reflect that worktree's skill
+# state for Claude Code, Cursor and Codex alike.
 #
 # Usage: ./scripts/setup-workspace.sh [name]
 #   name  Workspace name (default: drupal)
@@ -35,10 +36,13 @@ rsync -a \
   --exclude='tmp' \
   "$SOURCE_DIR/" "$WORKSPACE_DIR/"
 
-# Symlink .claude and .agents so the CLI and Claude can resolve skills from the workspace.
-# .claude/skills is a relative symlink (../.agents/skills), so .agents must also be
-# present in the workspace for the CLI to resolve it correctly.
+# Symlink agent directories so the CLI and every agent (Claude, Cursor, Codex)
+# can resolve skills and commands from the workspace. The skills/commands inside
+# .claude, .cursor and .codex are themselves relative symlinks into .agents, so
+# .agents must also be present alongside them.
 ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
+ln -sfn "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
+ln -sfn "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
 ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
 
 # Symlink openspec so changes are always stored at repo root

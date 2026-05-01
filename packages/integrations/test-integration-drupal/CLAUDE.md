@@ -10,6 +10,10 @@ The `openspec/` directory is a symlink to the repo root's `openspec/`. All chang
 
 | Path | Target | Purpose |
 |------|--------|---------|
-| `.claude/` | repo root `.claude/` | Skills, commands, settings |
+| `.claude/` | repo root `.claude/` | Claude Code skills, commands, settings |
+| `.cursor/` | repo root `.cursor/` | Cursor skills, commands, MCP config |
+| `.codex/` | repo root `.codex/` | Codex skills, commands |
+| `.agents` | repo root `.agents` | Skill source files (shared by all agents) |
 | `openspec/` | repo root `openspec/` | Shared changes and specs |
-| `.agents` | repo root `.agents` | Skill source files (via `.claude`) |
+| `AGENTS.md` | workspace `CLAUDE.md` | Rules file read by Codex |
+| `.cursorrules` | workspace `CLAUDE.md` | Rules file read by Cursor |

@@ -157,7 +157,7 @@ export async function verifyStoryIndexed(storyId: string, daemon: StorybookDaemo
       return {
         resolved: false,
         input: storyId,
-        error: `Story "${storyId}" is not in Storybook's /index.json — restart with "_debo storybook start --force" or check designbook/storybook.log for compilation errors`,
+        error: `Story "${storyId}" is not in Storybook's /index.json — restart with "npx storybook-addon-designbook storybook start --force" or check designbook/storybook.log for compilation errors`,
       };
     }
     return null;
@@ -186,7 +186,8 @@ export async function resolveRunningIndexedStory(input: string, config: Designbo
       result: {
         resolved: false,
         input,
-        error: 'Storybook is not running — start it with "_debo storybook start" before resolving story_id',
+        error:
+          'Storybook is not running — start it with "npx storybook-addon-designbook storybook start" before resolving story_id',
       },
     };
   }
