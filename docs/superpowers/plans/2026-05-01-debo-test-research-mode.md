@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add an autonomous skill-improvement loop to `debo-test`. Running `debo-test <suite> <case> --research` sets up a fresh workspace, runs the case, scores it via a composite metric, proposes one targeted change to the loaded skill files (or CLI source) per iteration via a subagent, re-runs and scores, then keeps or discards based on the score delta. Stops on score target / iteration cap / plateau. Removes `_debo --research` entirely.
+**Goal:** Add an autonomous skill-improvement loop to `debo-test`. Running `debo-test <suite> <case> --research` sets up a fresh workspace, runs the case, scores it via a composite metric, proposes one targeted change to the loaded skill files (or CLI source) per iteration via a subagent, re-runs and scores, then keeps or discards based on the score delta. Stops on score target / iteration cap / plateau. Removes `debo --research` entirely.
 
-**Architecture:** Two-tier git: experiments commit at the repo root, the workspace `git reset --hard`s to a baseline per iteration. State lives at `research-runs/<slug>/` (gitignored). The loop is orchestrated by a Claude session driven by a new `research.md` skill file. TypeScript provides three new CLI surfaces: `_debo workflow score` (composite metric + assertion sandbox), the `dbo.log` digester library, and a repo-root guard in config resolution. Subagent-delegated ideation keeps main context bounded.
+**Architecture:** Two-tier git: experiments commit at the repo root, the workspace `git reset --hard`s to a baseline per iteration. State lives at `research-runs/<slug>/` (gitignored). The loop is orchestrated by a Claude session driven by a new `research.md` skill file. TypeScript provides three new CLI surfaces: `npx storybook-addon-designbook workflow score` (composite metric + assertion sandbox), the `dbo.log` digester library, and a repo-root guard in config resolution. Subagent-delegated ideation keeps main context bounded.
 
 **Tech Stack:** Node 20 + TypeScript, `commander` for CLI, `vitest` for tests, `vm` (built-in) for assertion sandbox, `js-yaml` for case YAML, existing `loadConfig` / `logger` / `workflow` modules. Skills are markdown with YAML frontmatter under `.agents/skills/`.
 
@@ -24,7 +24,7 @@ This plan implements `docs/superpowers/specs/2026-05-01-debo-test-research-mode-
 | `packages/storybook-addon-designbook/src/log/__tests__/digest.test.ts` | Unit tests for digester |
 | `packages/storybook-addon-designbook/src/scoring/composite.ts` | Composite-score formula + assertion sandbox |
 | `packages/storybook-addon-designbook/src/scoring/__tests__/composite.test.ts` | Unit tests for composite + sandbox |
-| `packages/storybook-addon-designbook/src/cli/workflow-score.ts` | `_debo workflow score` subcommand wiring |
+| `packages/storybook-addon-designbook/src/cli/workflow-score.ts` | `npx storybook-addon-designbook workflow score` subcommand wiring |
 | `packages/storybook-addon-designbook/src/cli/__tests__/workflow-score.test.ts` | CLI integration tests for score |
 | `.agents/skills/designbook-test/research.md` | The loop protocol that Claude follows when --research is set |
 | `.agents/skills/designbook-test/research-audit.md` | Audit criteria (extracted from current --research Step 3) |
@@ -117,7 +117,7 @@ function assertNotRepoRoot(dataDir: string): void {
   const hasGit = existsSync(resolve(parent, '.git'));
   if (hasPnpmWorkspace && hasGit) {
     throw new Error(
-      `_debo cannot write runtime data to the repo root (resolved DESIGNBOOK_DATA=${dataDir}). ` +
+      `designbook CLI cannot write runtime data to the repo root (resolved DESIGNBOOK_DATA=${dataDir}). ` +
         `Run from a workspace (cd workspaces/<suite>) or set DESIGNBOOK_DATA explicitly.`,
     );
   }
@@ -306,7 +306,7 @@ Create `packages/storybook-addon-designbook/src/log/digest.ts`:
 ```typescript
 /**
  * Read the tagged subset of dbo.log and group entries by friction signal.
- * Used by `_debo workflow score` and by research-mode subagent context bundles.
+ * Used by `npx storybook-addon-designbook workflow score` and by research-mode subagent context bundles.
  */
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -642,7 +642,7 @@ git add packages/storybook-addon-designbook/src/scoring/composite.ts \
 git commit -m "feat(score): add composite metric and assertion sandbox"
 ```
 
-### Task 5: `_debo workflow score` subcommand
+### Task 5: `npx storybook-addon-designbook workflow score` subcommand
 
 **Files:**
 - Create: `packages/storybook-addon-designbook/src/cli/workflow-score.ts`
@@ -739,7 +739,7 @@ Create `packages/storybook-addon-designbook/src/cli/workflow-score.ts`:
 
 ```typescript
 /**
- * `_debo workflow score` — emit composite metric for the most recent run of a case.
+ * `npx storybook-addon-designbook workflow score` — emit composite metric for the most recent run of a case.
  *
  * Reads:
  *   - $DATA/dbo.log               (filtered to tagged: true)
@@ -884,7 +884,7 @@ Expected: typecheck ✓, lint ✓, test ✓.
 git add packages/storybook-addon-designbook/src/cli/workflow-score.ts \
         packages/storybook-addon-designbook/src/cli/workflow.ts \
         packages/storybook-addon-designbook/src/cli/__tests__/workflow-score.test.ts
-git commit -m "feat(cli): add _debo workflow score subcommand"
+git commit -m "feat(cli): add npx storybook-addon-designbook workflow score subcommand"
 ```
 
 ---
@@ -1030,9 +1030,8 @@ This file is loaded by `debo-test/SKILL.md` when `--research` is parsed from `$A
 3. Run `./scripts/setup-test.sh $SUITE $CASE --into workspaces/$SUITE` to layer the case fixtures.
 4. Start Storybook via the addon CLI (cd into the workspace first):
    ```
-   _debo() { npx storybook-addon-designbook "$@"; }
-   eval "$(_debo config)"
-   _debo storybook start
+   eval "$(npx storybook-addon-designbook config)"
+   npx storybook-addon-designbook storybook start
    ```
 5. Tag the workspace baseline: `cd workspaces/$SUITE && git tag workspace-baseline`.
 6. Tag the repo baseline: `cd <repo-root> && git tag research-baseline-$(date +%Y-%m-%d-%H%M)`.
@@ -1042,9 +1041,9 @@ This file is loaded by `debo-test/SKILL.md` when `--research` is parsed from `$A
 ## Iteration 0 — baseline
 
 1. Inside the workspace, run the case prompt (read `fixtures/$SUITE/cases/$CASE.yaml` `prompt:` field).
-2. Every `_debo workflow …` CLI call inside the case run MUST be invoked with `--log` so dbo.log entries are tagged.
+2. Every `npx storybook-addon-designbook workflow …` CLI call inside the case run MUST be invoked with `--log` so dbo.log entries are tagged.
 3. After the run completes, inside the workspace:
-   - `_debo workflow score --workflow <id> --case ../../fixtures/$SUITE/cases/$CASE.yaml --json` → write to `research-runs/<slug>/iterations/000-baseline/score.json`.
+   - `npx storybook-addon-designbook workflow score --workflow <id> --case ../../fixtures/$SUITE/cases/$CASE.yaml --json` → write to `research-runs/<slug>/iterations/000-baseline/score.json`.
 4. Generate the audit table per `research-audit.md` → `research-runs/<slug>/iterations/000-baseline/audit.md`.
 5. Save the dbo.log digest: copy the JSON output of `digestLog` (or run a small node one-liner that imports it) → `iterations/000-baseline/log-digest.json`.
 6. Append a row to `score-history.tsv`:
@@ -1103,8 +1102,8 @@ git clean -fdx designbook/ workflows/
 
 ### 5. Re-verify + score
 
-Re-run the case prompt with `--log` on every `_debo workflow …` call, then:
-- `_debo workflow score --workflow <id> --case <path> --json` → `iterations/<N>/score.json`
+Re-run the case prompt with `--log` on every `npx storybook-addon-designbook workflow …` call, then:
+- `npx storybook-addon-designbook workflow score --workflow <id> --case <path> --json` → `iterations/<N>/score.json`
 - Generate audit → `iterations/<N>/audit.md`
 - Generate digest → `iterations/<N>/log-digest.json`
 
@@ -1156,7 +1155,7 @@ If `research-runs/<slug>/` already exists at launch:
 | Failure | Recovery |
 |---|---|
 | Workflow crash mid-run | `git restore`, retry same hypothesis up to 3, then `blocked`. |
-| `_debo workflow score` returns non-zero | Bail loop. Print `score CLI failed — inspect <path>`. |
+| `npx storybook-addon-designbook workflow score` returns non-zero | Bail loop. Print `score CLI failed — inspect <path>`. |
 | Subagent returns invalid patch | Re-dispatch with hint, max 3 in a row, then bail. |
 | Workspace reset fails | Bail. Tell user to rebuild via `debo-test $SUITE $CASE`. |
 | User Ctrl-C | Stop after current iteration completes. Print partial summary. |
@@ -1211,7 +1210,7 @@ git commit -m "feat(skill): add --research dispatch to debo-test"
 
 ---
 
-## Phase 4 — Removal of `_debo --research`
+## Phase 4 — Removal of `debo --research`
 
 ### Task 9: Remove `--research` from `designbook/SKILL.md`
 
@@ -1238,7 +1237,7 @@ Expected: no output.
 
 ```bash
 git add .agents/skills/designbook/SKILL.md
-git commit -m "refactor(skill): remove --research flag from _debo SKILL.md"
+git commit -m "refactor(skill): remove --research flag from debo SKILL.md"
 ```
 
 ### Task 10: Remove "Research Pass" section from `workflow-execution.md`
@@ -1314,7 +1313,7 @@ description: Pointer to the autonomous research-mode loop and audit criteria. Th
 
 # Research (relocated)
 
-The `--research` flag was removed from `_debo` and replaced by the autonomous loop on `debo-test`:
+The `--research` flag was removed from the `debo` skill and replaced by the autonomous loop on `debo-test`:
 
 ```
 debo-test <suite> <case> --research
@@ -1449,7 +1448,7 @@ Use `gh pr create` with a title under 70 chars; body should mention the spec doc
 
 - [ ] All 8 modify-scope decisions in the spec are honored: scope = files in `tasks.yml` + CLI source.
 - [ ] Composite formula in code matches spec section "Composite metric" exactly (weights: 100, 30, 5, 2, 3).
-- [ ] No `_debo --research` references remain anywhere except the rewritten pointer.
+- [ ] No `debo --research` references remain anywhere except the rewritten pointer.
 - [ ] `research-runs/` is gitignored at repo root.
 - [ ] `<repo-root>/designbook/` is deleted and CLI guard prevents recreation.
 - [ ] All new tests pass; `pnpm check` clean.

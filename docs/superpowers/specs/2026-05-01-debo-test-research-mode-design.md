@@ -7,9 +7,9 @@
 
 ## Goal
 
-Replace the current human-in-the-loop `_debo --research` audit with an autonomous goal-directed iteration loop that lives on `debo-test`. A single test case is selected, the loop runs it, scores it against a composite metric, proposes one targeted change to the loaded skill files (or CLI source), re-runs the case, and keeps or discards the change based on the score delta. The loop continues until the score reaches a target, an iteration cap is hit, or the score plateaus.
+Replace the current human-in-the-loop `debo --research` audit with an autonomous goal-directed iteration loop that lives on `debo-test`. A single test case is selected, the loop runs it, scores it against a composite metric, proposes one targeted change to the loaded skill files (or CLI source), re-runs the case, and keeps or discards the change based on the score delta. The loop continues until the score reaches a target, an iteration cap is hit, or the score plateaus.
 
-The design transplants Karpathy-style autoresearch principles (modify → verify → keep/discard → repeat, mechanical metric, git-as-memory) into the designbook skill-development workflow. It removes `--research` from `_debo` entirely.
+The design transplants Karpathy-style autoresearch principles (modify → verify → keep/discard → repeat, mechanical metric, git-as-memory) into the designbook skill-development workflow. It removes `--research` from the `debo` skill entirely.
 
 ## Non-goals
 
@@ -23,7 +23,7 @@ The design transplants Karpathy-style autoresearch principles (modify → verify
 |---|---|
 | Primary intent | Single-case convergence (loop one case to zero friction) |
 | Placement | `debo-test --research <suite> <case>` |
-| Old `_debo --research` flag | Removed entirely. `--log` flag stays. |
+| Old `debo --research` flag | Removed entirely. `--log` flag stays. |
 | Metric | Composite: `success_rate*100 + assertions_ratio*30 - errors*5 - retries*2 - unresolved*3` |
 | Modification scope | All files resolved in `workflows/archive/<workflow>/tasks.yml` (tasks, rules, blueprints, `$ref`'d schemas) PLUS `packages/storybook-addon-designbook/src/**` (CLI source) |
 | Ideate strategy | Hybrid — audit table + dbo.log digest + score history feed a `general-purpose` subagent that returns one diff per iteration |
@@ -31,7 +31,7 @@ The design transplants Karpathy-style autoresearch principles (modify → verify
 | Termination | Score ≥ target (default 100) OR `Iterations: N` (default 25) OR plateau M (default 5), whichever first |
 | Commit policy | Commit-after-keep (discarded experiments are NOT committed; `git restore` reverts them in-place) |
 | Guard / multi-case verification | Skipped for v1. No `--guard` flag. |
-| Promptfoo integration | Reuse `assert:` DSL via inline JS sandbox in `_debo workflow score`; do not invoke promptfoo as a process |
+| Promptfoo integration | Reuse `assert:` DSL via inline JS sandbox in `npx storybook-addon-designbook workflow score`; do not invoke promptfoo as a process |
 
 ## Architecture
 
@@ -66,7 +66,7 @@ repo-root/                            ← experiments commit here
   iter 0: run case once → write iterations/000-baseline/ (audit, log-digest, score)
 
 [Loop iteration N]
-  1. Verify+Score:    workspace clean → run case → _debo workflow score → score.json
+  1. Verify+Score:    workspace clean → run case → npx storybook-addon-designbook workflow score → score.json
   2. Ideate:          dispatch general-purpose subagent → proposed.patch
   3. Modify:          apply proposed.patch in repo root (in-tree, uncommitted)
   4. Reset workspace: git reset --hard workspace-baseline + git clean -fdx designbook/
@@ -148,7 +148,7 @@ score = success_rate * 100                                 (0 if absent)
 
 ### Score CLI shape
 
-`_debo workflow score --json` emits:
+`npx storybook-addon-designbook workflow score --json` emits:
 
 ```json
 {
@@ -193,7 +193,7 @@ This object shape is documented in the score CLI and tested.
 ### New
 
 1. **`.agents/skills/designbook-test/research.md`** — Resource describing the loop protocol. Loaded by the skill when `--research` is parsed from `$ARGUMENTS`.
-2. **`_debo workflow score` CLI subcommand** — Reads `dbo.log` + `workflow archive output.json` + the case YAML, evaluates assertions, emits the composite score JSON. Implementation lives at `packages/storybook-addon-designbook/src/cli/workflow-score.ts`.
+2. **`npx storybook-addon-designbook workflow score` CLI subcommand** — Reads `dbo.log` + `workflow archive output.json` + the case YAML, evaluates assertions, emits the composite score JSON. Implementation lives at `packages/storybook-addon-designbook/src/cli/workflow-score.ts`.
 
 ### Extracted (refactored from existing)
 
@@ -206,7 +206,7 @@ This object shape is documented in the score CLI and tested.
 
 ### Deleted
 
-6. **`_debo --research` flag** — Remove from:
+6. **`debo --research` flag** — Remove from:
    - `.agents/skills/designbook/SKILL.md` (flag table + dispatch parser)
    - `.agents/skills/designbook/resources/workflow-execution.md` (Research Pass section)
    - `.agents/skills/designbook-skill-creator/SKILL.md` (reference)
@@ -218,7 +218,7 @@ This object shape is documented in the score CLI and tested.
 In `packages/storybook-addon-designbook/src/config.ts` (or wherever DESIGNBOOK_DATA resolves): if the resolved path's parent directory contains BOTH `pnpm-workspace.yaml` AND `.git/` (the markers of the repo root), exit with:
 
 ```
-error: _debo cannot write runtime data to the repo root.
+error: designbook CLI cannot write runtime data to the repo root.
        Run from a workspace (cd workspaces/<suite>) or set DESIGNBOOK_DATA explicitly.
 ```
 
@@ -286,8 +286,8 @@ research-runs/<YYYY-MM-DD-HHMM>-<suite>-<case>/
 
 | Failure | Detection | Recovery |
 |---|---|---|
-| Workflow crashes mid-run | Non-zero exit from `_debo workflow done` or unhandled error in dbo.log | `score = -∞`. Log `crash`. `git restore <scope>`. Retry same hypothesis up to 3 times. After 3 → `blocked`, new ideation. |
-| Score computation fails | `_debo workflow score --json` returns invalid JSON or non-zero | Bail loop with clear message. The score CLI itself is broken; no point continuing. |
+| Workflow crashes mid-run | Non-zero exit from `npx storybook-addon-designbook workflow done` or unhandled error in dbo.log | `score = -∞`. Log `crash`. `git restore <scope>`. Retry same hypothesis up to 3 times. After 3 → `blocked`, new ideation. |
+| Score computation fails | `npx storybook-addon-designbook workflow score --json` returns invalid JSON or non-zero | Bail loop with clear message. The score CLI itself is broken; no point continuing. |
 | Subagent returns invalid patch | `git apply --check` fails or empty diff | Re-dispatch subagent with failure hint. After 3 ideate-failures → bail. |
 | Workspace reset fails | git error during `reset --hard` or `clean -fdx` | Bail immediately. Workspace state untrusted. Tell user to rebuild via `debo-test <suite> <case>`. |
 | User Ctrl-C | SIGINT | Stop after current iteration. Print partial summary. Workspace + storybook left running. Run-dir is fully populated up to last completed iteration. |
@@ -338,13 +338,13 @@ This is run manually for now (full pnpm install + storybook startup is heavy for
 ## Implementation order (rough plan input)
 
 1. **CLI guard + cleanup**: add the repo-root guard, delete local `designbook/`, simplify `.gitignore`. First commit on this branch.
-2. **`_debo workflow score`**: implement the score CLI, including the assertion sandbox and dbo.log digester. Unit-tested.
+2. **`npx storybook-addon-designbook workflow score`**: implement the score CLI, including the assertion sandbox and dbo.log digester. Unit-tested.
 3. **Audit module extraction**: pull current Step 3 logic into a callable form.
 4. **`research.md`** in `designbook-test`: write the loop protocol.
 5. **`SKILL.md` dispatch**: parse `--research` and the new flags.
 6. **Subagent prompt template + run-dir scaffolding**: build the context bundle, dispatch.
 7. **Loop wiring**: keep/discard, score-history, termination conditions.
-8. **Removal of `_debo --research`**: delete flag, update docs, rewrite `designbook-skill-creator/resources/research.md` as a pointer.
+8. **Removal of `debo --research`**: delete flag, update docs, rewrite `designbook-skill-creator/resources/research.md` as a pointer.
 9. **Integration smoke test**: minimal fake case, verify run-dir layout.
 
 The detailed order is the writing-plans step's job — this is just a sketch.
