@@ -15,5 +15,5 @@ autoresearch-results.tsv
 .claude/worktrees/
 .playwright-cli/
 .pnpm-store/
-designbook/
-research-runs/
+/designbook/
+/research-runs/
