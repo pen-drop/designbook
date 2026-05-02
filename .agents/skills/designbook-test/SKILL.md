@@ -24,6 +24,20 @@ If only `<suite>` is provided:
 2. Show them as a numbered list with the `fixtures` field from each case
 3. Ask the user to pick one
 
+### 1b. Parse `--research` flags (research mode)
+
+Parse from `$ARGUMENTS`:
+- `--research` (boolean) — enables research mode
+- `--iterations N` (default 25)
+- `--target T` (default 100)
+- `--plateau M` (default 5)
+- `--baseline-only` (boolean)
+- `--scope <glob>` (comma-separated)
+
+If `--research` is present:
+- If only `<suite>` is provided (no `<case>`): error "research mode requires a case", list cases, stop.
+- Else: run setup steps 2–3 (workspace + start storybook), then **load `research.md` and follow it**. Skip steps 4 (prompt confirm) and 5 (snapshot offer).
+
 ### 2. Setup workspace
 
 Always create a fresh workspace — never reuse an existing one.
