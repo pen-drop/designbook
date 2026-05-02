@@ -10,7 +10,7 @@ All CLI calls here use `_debo` as shorthand for `npx storybook-addon-designbook`
 
 | Flag | Description |
 |---|---|
-| `--log` | Tag this CLI call in `$DESIGNBOOK_DATA/dbo.log` (picked up by post-workflow `--research` audits). Placed before the subcommand: `_debo workflow --log done …`. |
+| `--log` | Tag this CLI call in `$DESIGNBOOK_DATA/dbo.log` (picked up by `debo-test --research` audits). Placed before the subcommand: `_debo workflow --log done …`. |
 
 Every subcommand writes a JSONL entry to `dbo.log` with `ts`, `cmd`, `args`, and either `result` or `error`.
 
