@@ -249,7 +249,7 @@ For these:
 
 ---
 
-## 8. Optimize and Research Passes
+## 8. Optimize Pass
 
 ### Optimize (`--optimize`)
 
@@ -258,10 +258,3 @@ Runs after hooks, only when `--optimize` was passed at workflow invocation.
 1. Collect every file written during the workflow (from the `result` submissions).
 2. Review for performance, maintainability, accessibility, design-system consistency.
 3. Output numbered suggestions — do not apply them, only suggest.
-
-### Research (`--research`, internal)
-
-Runs after the optimize pass, only when `--research` was set.
-
-- **During the workflow:** append `--log` to every `_debo workflow …` CLI call so entries in `designbook/dbo.log` carry `tagged: true`.
-- **After the workflow:** load `designbook-skill-creator` and follow [`resources/research.md`](../../designbook-skill-creator/resources/research.md). The audit combines archived `tasks.yml` and tagged `dbo.log` entries (CLI failures, retries, unresolved params).
