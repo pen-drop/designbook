@@ -102,4 +102,38 @@ describe('derivePlaceholderFromSchema', () => {
     expect(out).toContain('name: <string>');
     expect(out.split('\n').length).toBeLessThanOrEqual(50);
   });
+
+  it('renders $ref-to-scalar inline (single-line key:value)', () => {
+    const out = derivePlaceholderFromSchema(
+      { type: 'object', properties: { story_id: { $ref: '#/definitions/StoryId' } } },
+      { StoryId: { type: 'string' } },
+    );
+    expect(out).toBe('story_id: <string>');
+  });
+
+  it('renders empty object property inline as `key: {}`', () => {
+    const out = derivePlaceholderFromSchema({ type: 'object', properties: { tokens: { type: 'object' } } }, {});
+    expect(out).toBe('tokens: {}');
+  });
+
+  it('renders nested object-in-object with two-space indent per level', () => {
+    const out = derivePlaceholderFromSchema(
+      {
+        type: 'object',
+        properties: {
+          parent: {
+            type: 'object',
+            properties: {
+              child: {
+                type: 'object',
+                properties: { leaf: { type: 'string' } },
+              },
+            },
+          },
+        },
+      },
+      {},
+    );
+    expect(out).toBe('parent:\n  child:\n    leaf: <string>');
+  });
 });

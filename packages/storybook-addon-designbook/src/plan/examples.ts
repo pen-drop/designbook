@@ -61,7 +61,11 @@ function renderNode(node: SchemaNode, defs: Record<string, object>, depth: numbe
       .map((k) => {
         const child = props[k]!;
         const rendered = renderNode(child, defs, depth + 1);
-        if (rendered.includes('\n') || isContainerHeader(child)) {
+        // Indent if rendered output spans multiple lines OR if child is a non-empty object/array
+        const isNonEmptyObject = child.type === 'object' && Object.keys(child.properties ?? {}).length > 0;
+        const isArray = child.type === 'array' && child.items;
+        const shouldIndent = rendered.includes('\n') || isNonEmptyObject || isArray;
+        if (shouldIndent) {
           return `${k}:\n${indentBlock(rendered, '  ')}`;
         }
         return `${k}: ${rendered}`;
@@ -83,10 +87,6 @@ function renderNode(node: SchemaNode, defs: Record<string, object>, depth: numbe
   if (node.type === 'number' || node.type === 'integer') return '<number>';
   if (node.type === 'boolean') return '<boolean>';
   return '<unknown>';
-}
-
-function isContainerHeader(node: SchemaNode): boolean {
-  return node.type === 'object' || node.type === 'array' || typeof node.$ref === 'string';
 }
 
 function indentBlock(text: string, prefix: string): string {
