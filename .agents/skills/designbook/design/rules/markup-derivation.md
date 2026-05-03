@@ -8,6 +8,8 @@ trigger:
 
 The markup produced by `create-component` (templates, e.g. Twig/SDC) and the slot HTML produced by `create-scene` MUST be derived from the concrete structure captured in the `DesignReference` (`extract.json`) — not from generic assumptions about what a "header" or "footer" typically looks like.
 
+All values consumed by the derivations below are populated by the `extract-reference` task. If a field is missing or thin, re-run extraction before attempting to derive markup.
+
 Generic templates that ignore the reference are the root cause of triage-noise in `design-verify`. Every mismatch caught in compare has a corresponding gap between the reference and the rendered markup — this rule eliminates that gap at the source.
 
 ## Binding Derivations
