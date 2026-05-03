@@ -43,3 +43,63 @@ components:
     expect(extractExample(body)).toBe('  indented: yes\n  child:\n    deep: 1');
   });
 });
+
+import { derivePlaceholderFromSchema } from '../examples.js';
+
+describe('derivePlaceholderFromSchema', () => {
+  it('emits a single scalar placeholder for primitive schemas', () => {
+    expect(derivePlaceholderFromSchema({ type: 'string' }, {})).toBe('<string>');
+    expect(derivePlaceholderFromSchema({ type: 'number' }, {})).toBe('<number>');
+    expect(derivePlaceholderFromSchema({ type: 'boolean' }, {})).toBe('<boolean>');
+  });
+
+  it('renders an object as YAML key/value lines', () => {
+    expect(
+      derivePlaceholderFromSchema(
+        { type: 'object', properties: { name: { type: 'string' }, count: { type: 'number' } } },
+        {},
+      ),
+    ).toBe('name: <string>\ncount: <number>');
+  });
+
+  it('renders an array as a single-item YAML list using items schema', () => {
+    expect(derivePlaceholderFromSchema({ type: 'array', items: { type: 'string' } }, {})).toBe('- <string>');
+  });
+
+  it('renders an array of objects with proper indentation', () => {
+    expect(
+      derivePlaceholderFromSchema(
+        {
+          type: 'array',
+          items: { type: 'object', properties: { id: { type: 'string' }, n: { type: 'number' } } },
+        },
+        {},
+      ),
+    ).toBe('- id: <string>\n  n: <number>');
+  });
+
+  it('resolves $ref against the supplied definitions map', () => {
+    expect(
+      derivePlaceholderFromSchema(
+        { $ref: '#/definitions/Component' },
+        { Component: { type: 'object', properties: { name: { type: 'string' } } } },
+      ),
+    ).toBe('name: <string>');
+  });
+
+  it('renders <unknown> when type is missing and no $ref', () => {
+    expect(derivePlaceholderFromSchema({}, {})).toBe('<unknown>');
+  });
+
+  it('caps recursion at depth 6 for self-referential schemas', () => {
+    const defs = {
+      Tree: {
+        type: 'object',
+        properties: { name: { type: 'string' }, child: { $ref: '#/definitions/Tree' } },
+      },
+    };
+    const out = derivePlaceholderFromSchema({ $ref: '#/definitions/Tree' }, defs);
+    expect(out).toContain('name: <string>');
+    expect(out.split('\n').length).toBeLessThanOrEqual(50);
+  });
+});

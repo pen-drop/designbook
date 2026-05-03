@@ -29,3 +29,69 @@ export function extractExample(bodyMarkdown: string): string | null {
   }
   return null;
 }
+
+const MAX_DEPTH = 6;
+
+interface SchemaNode {
+  type?: string;
+  $ref?: string;
+  properties?: Record<string, SchemaNode>;
+  items?: SchemaNode;
+}
+
+export function derivePlaceholderFromSchema(schema: object, definitions: Record<string, object>): string {
+  return renderNode(schema as SchemaNode, definitions, 0);
+}
+
+function renderNode(node: SchemaNode, defs: Record<string, object>, depth: number): string {
+  if (depth > MAX_DEPTH) return '<...>';
+
+  if (node.$ref) {
+    const refName = node.$ref.replace(/^#\/definitions\//, '');
+    const target = defs[refName];
+    if (target) return renderNode(target as SchemaNode, defs, depth + 1);
+    return `<${refName}>`;
+  }
+
+  if (node.type === 'object') {
+    const props = node.properties ?? {};
+    const keys = Object.keys(props);
+    if (keys.length === 0) return '{}';
+    return keys
+      .map((k) => {
+        const child = props[k]!;
+        const rendered = renderNode(child, defs, depth + 1);
+        if (rendered.includes('\n') || isContainerHeader(child)) {
+          return `${k}:\n${indentBlock(rendered, '  ')}`;
+        }
+        return `${k}: ${rendered}`;
+      })
+      .join('\n');
+  }
+
+  if (node.type === 'array') {
+    const item = (node.items ?? {}) as SchemaNode;
+    const rendered = renderNode(item, defs, depth + 1);
+    if (rendered.includes('\n')) {
+      const [first, ...rest] = rendered.split('\n');
+      return [`- ${first}`, ...rest.map((l) => `  ${l}`)].join('\n');
+    }
+    return `- ${rendered}`;
+  }
+
+  if (node.type === 'string') return '<string>';
+  if (node.type === 'number' || node.type === 'integer') return '<number>';
+  if (node.type === 'boolean') return '<boolean>';
+  return '<unknown>';
+}
+
+function isContainerHeader(node: SchemaNode): boolean {
+  return node.type === 'object' || node.type === 'array' || typeof node.$ref === 'string';
+}
+
+function indentBlock(text: string, prefix: string): string {
+  return text
+    .split('\n')
+    .map((l) => prefix + l)
+    .join('\n');
+}
