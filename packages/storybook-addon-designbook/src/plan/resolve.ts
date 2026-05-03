@@ -21,10 +21,26 @@ function readBody(filePath: string): string {
   return parsed.body.trim();
 }
 
-function readTriggerSteps(filePath: string): string[] {
+function readTriggerLabels(filePath: string): string[] {
   const fmAttrs = parseFrontmatter(filePath) as Record<string, unknown> | null;
-  const trigger = fmAttrs?.trigger as { steps?: string[] } | undefined;
-  return trigger?.steps ?? [];
+  const labels: string[] = [];
+
+  const trigger = fmAttrs?.trigger as { steps?: string[]; domain?: string | string[] } | undefined;
+  if (trigger?.steps) labels.push(...trigger.steps);
+  if (trigger?.domain) {
+    const domains = Array.isArray(trigger.domain) ? trigger.domain : [trigger.domain];
+    for (const d of domains) labels.push(`domain:${d}`);
+  }
+
+  const filter = fmAttrs?.filter as Record<string, unknown> | undefined;
+  if (filter) {
+    for (const [key, val] of Object.entries(filter)) {
+      const vs = Array.isArray(val) ? val : [val];
+      for (const v of vs) labels.push(`filter.${key}:${String(v)}`);
+    }
+  }
+
+  return labels;
 }
 
 /**
@@ -178,17 +194,17 @@ export async function buildRenderContext(workflowFilePath: string, agentsDir: st
         priorOutputs.push({ stage: stageName, task: step, properties: resultProps });
       }
 
-      // Rule + blueprint bodies and trigger steps
+      // Rule + blueprint bodies and trigger labels
       for (const rulePath of rs.rules) {
         if (!ruleBodies.has(rulePath)) {
           ruleBodies.set(rulePath, readBody(rulePath));
-          ruleTriggerSteps.set(rulePath, readTriggerSteps(rulePath));
+          ruleTriggerSteps.set(rulePath, readTriggerLabels(rulePath));
         }
       }
       for (const bpPath of rs.blueprints) {
         if (!blueprintBodies.has(bpPath)) {
           blueprintBodies.set(bpPath, readBody(bpPath));
-          blueprintTriggerSteps.set(bpPath, readTriggerSteps(bpPath));
+          blueprintTriggerSteps.set(bpPath, readTriggerLabels(bpPath));
         }
       }
     }

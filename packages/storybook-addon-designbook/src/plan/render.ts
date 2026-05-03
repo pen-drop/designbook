@@ -2,6 +2,7 @@ import { dump as dumpYaml } from 'js-yaml';
 import type { ResolvedStep } from '../workflow-resolve.js';
 import type { InputSource } from './sources.js';
 import type { ArtifactIndex } from './reverse-index.js';
+import { slugifyArtifactName } from './anchors.js';
 
 export interface RenderContext {
   workflowId: string;
@@ -123,8 +124,8 @@ function renderTask(step: string, stages: Array<[string, { steps?: string[] }]>,
   if (!raw) return [...out, ''];
   const rs = Array.isArray(raw) ? raw[0]! : raw;
 
-  const ruleSlugs = rs.rules.map(slugFromPath);
-  const blueprintSlugs = rs.blueprints.map(slugFromPath);
+  const ruleSlugs = rs.rules.map(slugifyArtifactName);
+  const blueprintSlugs = rs.blueprints.map(slugifyArtifactName);
   const refs: string[] = [];
   for (const s of ruleSlugs) refs.push(`rule [${s}](#rule-${s})`);
   for (const s of blueprintSlugs) refs.push(`blueprint [${s}](#blueprint-${s})`);
@@ -228,21 +229,9 @@ function renderBlueprintsAppendix(ctx: RenderContext): string[] {
 
 function findFilePathBySlug(bodies: Map<string, string>, slug: string): string | undefined {
   for (const path of bodies.keys()) {
-    if (slugFromPath(path) === slug) return path;
+    if (slugifyArtifactName(path) === slug) return path;
   }
   return undefined;
-}
-
-function slugFromPath(filePath: string): string {
-  // Inline equivalent of slugifyArtifactName — kept here to avoid a circular
-  // import path; resolve.ts imports the real helper.
-  const base = filePath.split('/').pop()!.replace(/\.md$/, '');
-  return base
-    .toLowerCase()
-    .replace(/[_\s]+/g, '-')
-    .replace(/[^a-z0-9-]+/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
 }
 
 function formatScalar(value: unknown): string {
