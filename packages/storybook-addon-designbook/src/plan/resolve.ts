@@ -117,6 +117,15 @@ export async function buildRenderContext(workflowFilePath: string, agentsDir: st
         );
       }
       const list: ResolvedStep[] = Array.isArray(raw) ? raw : [raw];
+      // v1 limitation: when a step resolves to multiple tasks (e.g., two skills both
+      // contribute a task for the same step name), only the first is rendered.
+      // Surface this so users notice rather than silently lose data.
+      if (list.length > 1) {
+        console.warn(
+          `[plan] Step "${step}" in stage "${stageName}" resolved to ${list.length} tasks; ` +
+            `only the first (${list[0]!.task_file}) will appear in the plan output.`,
+        );
+      }
       const rs = list[0]!;
 
       // Task body + frontmatter
