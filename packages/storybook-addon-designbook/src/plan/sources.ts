@@ -25,6 +25,8 @@ export function classifyInputs(
       continue;
     }
 
+    // Order matters: iteration before produced. An each-item name (e.g. `issue`)
+    // can collide with an upstream result name; iteration semantics win.
     if (name in eachKeys) {
       const expr = typeof eachKeys[name]?.expr === 'string' ? eachKeys[name]!.expr! : name;
       out.push({ kind: 'iteration', name, expr });
