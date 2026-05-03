@@ -3,20 +3,20 @@ name: research
 description: Autonomous skill-improvement loop for a single test case. Run case → score → ideate one change via subagent → re-run → keep or discard → repeat until target / iteration cap / plateau.
 ---
 
-# Research Mode
+# research subcommand
 
-This file is loaded by `debo-test/SKILL.md` when `--research` is parsed from `$ARGUMENTS`.
+Loaded by `debo-test/SKILL.md` when `debo-test research <suite> <case>` is invoked.
 
-## Inputs (parsed by SKILL.md before loading this file)
+## Inputs
 
 | Variable | Source |
 |---|---|
-| `$SUITE` | `<suite>` arg |
-| `$CASE` | `<case>` arg |
+| `$SUITE` | arg 2 (`research <suite> ...`) |
+| `$CASE` | arg 3 (`research <suite> <case>`) |
 | `$ITERATIONS` | `--iterations N`, default 25 |
 | `$TARGET` | `--target T`, default 100 |
 | `$PLATEAU` | `--plateau M`, default 5 |
-| `$BASELINE_ONLY` | `--baseline-only`, boolean |
+| `$BASELINE_ONLY` | `--baseline-only`, boolean — stops after iteration 0 |
 | `$SCOPE` | `--scope <glob,glob,...>`, default = files resolved from `tasks.yml` + `packages/storybook-addon-designbook/src/**` |
 
 ## Setup
@@ -40,7 +40,7 @@ This file is loaded by `debo-test/SKILL.md` when `--research` is parsed from `$A
 2. Every `npx storybook-addon-designbook workflow …` CLI call inside the case run MUST be invoked with `--log` so dbo.log entries are tagged.
 3. After the run completes, inside the workspace:
    - `npx storybook-addon-designbook workflow score --workflow <id> --case ../../fixtures/$SUITE/cases/$CASE.yaml --json` → write to `research-runs/<slug>/iterations/000-baseline/score.json`.
-4. Generate the audit table per `research-audit.md` → `research-runs/<slug>/iterations/000-baseline/audit.md`.
+4. Generate the audit table per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `research-runs/<slug>/iterations/000-baseline/audit.md`.
 5. Save the dbo.log digest: copy the JSON output of `digestLog` (or run a small node one-liner that imports it) → `iterations/000-baseline/log-digest.json`.
 6. Append a row to `score-history.tsv`:
    ```
@@ -100,7 +100,7 @@ git clean -fdx designbook/ workflows/
 
 Re-run the case prompt with `--log` on every `npx storybook-addon-designbook workflow …` call, then:
 - `npx storybook-addon-designbook workflow score --workflow <id> --case <path> --json` → `iterations/<N>/score.json`
-- Generate audit → `iterations/<N>/audit.md`
+- Generate audit per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `iterations/<N>/audit.md`
 - Generate digest → `iterations/<N>/log-digest.json`
 
 ### 6. Decide
@@ -135,7 +135,7 @@ Otherwise continue to iteration N+1.
 ## Termination
 
 1. Append final row to `score-history.tsv` with `decision: terminate-<reason>`.
-2. Run audit one last time on the current state → `final-audit.md`.
+2. Run audit one last time per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `research-runs/<slug>/final-audit.md`.
 3. Write `overview.md` with: config, baseline score, best score, total kept/discarded/crashed, list of kept hypotheses (one per line).
 4. Print overview to stdout.
 5. Leave workspace + Storybook running so the user can inspect.
@@ -153,5 +153,5 @@ If `research-runs/<slug>/` already exists at launch:
 | Workflow crash mid-run | `git restore`, retry same hypothesis up to 3, then `blocked`. |
 | `npx storybook-addon-designbook workflow score` returns non-zero | Bail loop. Print `score CLI failed — inspect <path>`. |
 | Subagent returns invalid patch | Re-dispatch with hint, max 3 in a row, then bail. |
-| Workspace reset fails | Bail. Tell user to rebuild via `debo-test $SUITE $CASE`. |
+| Workspace reset fails | Bail. Tell user to rebuild via `debo-test run $SUITE $CASE`. |
 | User Ctrl-C | Stop after current iteration completes. Print partial summary. |

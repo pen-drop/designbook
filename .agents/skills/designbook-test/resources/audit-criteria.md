@@ -1,16 +1,16 @@
 ---
-name: research-audit
-description: Audit criteria for files loaded during a research-mode workflow run. Used as a context signal by the research-mode subagent and as a final-summary reporter.
+name: audit-criteria
+description: Audit criteria for files loaded during a research-mode workflow run. Referenced by research.md to generate audit tables after each iteration.
 ---
 
-# Research Audit
+# Audit Criteria
 
 Systematic file-level review applied after a workflow completes. Output is a Markdown table (one row per loaded file) with an `Issues` column that flags violations of the 4-level skill model.
 
-## When to load
+## When applied
 
-- During a `debo-test --research` iteration: reads tasks.yml + dbo.log digest, produces audit table for `research-runs/<slug>/iterations/<N>/audit.md`.
-- After a research run terminates: produces `final-audit.md` so the user sees what's still flagged.
+- After each `debo-test research` iteration: reads tasks.yml + dbo.log digest, produces `research-runs/<slug>/iterations/<N>/audit.md`.
+- After a research run terminates: produces `research-runs/<slug>/final-audit.md`.
 
 ## Inputs
 
