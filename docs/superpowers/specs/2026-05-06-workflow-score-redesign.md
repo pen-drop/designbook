@@ -15,8 +15,8 @@ Score wird aktuell zweimal berechnet: einmal im `outtake--design-workflow` Task 
 | `metrics` | object | Engine aus `dbo.log` | Prozess-Metriken: errors, retries, unresolved |
 | `flow_rate` | `number` | Engine (deterministisch) | Composite: `success_rate * 100 - friction` |
 
-`success_rate` bleibt — aber mit klarer Semantik: optisches Urteil des AI, der die Diffs und Screenshots beurteilt hat.  
-`flow_rate` ist neu — der Research-Loop-Score, von der Engine berechnet.
+`success_rate` bleibt — optisches Urteil des AI, der die Diffs und Screenshots beurteilt hat.  
+`flow_rate` ist neu — deterministisch von der Engine berechnet, primärer Signal für den Research-Loop.
 
 ## Datenfluss
 
@@ -41,25 +41,57 @@ tasks.yml (archiviert):
       unresolved: 0
     compare_passed: true
     summary: "..."
-
-workflow score CLI
-  → liest nur tasks.yml
-  → gibt flow_rate + success_rate + metrics aus
-  → keine Formellogik, ~20 Zeilen
 ```
 
 ## Friction-Formel (Engine)
 
 ```
-friction   = errors * 5 + retries * 2 + unresolved * 3
-flow_rate  = success_rate * 100 - friction
+friction  = errors * 5 + retries * 2 + unresolved * 3
+flow_rate = success_rate * 100 - friction
 ```
+
+## CLI: `workflow summary`
+
+`workflow score` entfällt. Ersetzt durch `workflow summary` — ein Command, zwei Ausgabeformate:
+
+```
+workflow summary              → menschlich lesbar, vollständiger Überblick
+workflow summary --json       → kompaktes JSON für den Research-Loop
+```
+
+### Human-Output (default)
+
+```
+design-shell-2026-05-06-abcd
+  flow_rate:    81.0
+  success_rate: 0.85  (visual quality)
+  compare:      ✓ passed
+  metrics:      errors 0 · retries 2 · unresolved 0
+  summary:      Header and footer visually match reference across all breakpoints.
+  warnings:     –
+```
+
+### JSON-Output (`--json`)
+
+```json
+{
+  "workflow": "design-shell-2026-05-06-abcd",
+  "flow_rate": 81.0,
+  "success_rate": 0.85,
+  "compare_passed": true,
+  "metrics": { "errors": 0, "retries": 2, "unresolved": 0 },
+  "summary": "...",
+  "assertions": { "passed": 2, "total": 2, "failures": [] }
+}
+```
+
+`assertions` nur wenn `--case <file>` übergeben.
 
 ## Schema-Änderungen (`design/schemas.yml`)
 
 `DesignWorkflowOutput`:
-- `success_rate` — bleibt, Semantik präzisiert: optisches Qualitätsurteil des AI (0–1)
-- `flow_rate: number` — neu, von Engine geschrieben, für Research-Loop
+- `success_rate` — bleibt, Beschreibung präzisiert: optisches Qualitätsurteil des AI (0–1)
+- `flow_rate: number` — neu, von Engine geschrieben
 - `metrics` — bleibt, Engine befüllt `errors/retries/unresolved` aus `dbo.log`
 
 ## Betroffene Dateien
@@ -67,33 +99,19 @@ flow_rate  = success_rate * 100 - friction
 | Datei | Änderung |
 |---|---|
 | `workflow.ts` | Hook nach Outtake-Stage-Abschluss: `metrics` aus `dbo.log` + `flow_rate` berechnen und in `scope.workflow_output` mergen |
-| `scoring/composite.ts` | Vereinfacht: nur `flow_rate`-Formel (`success_rate * 100 - friction`). Kein Assertions-Weight im gespeicherten Score. |
-| `cli/workflow-score.ts` | Reiner Leser: liest `tasks.yml`, gibt `flow_rate` + `success_rate` + `metrics` aus. Case-Assertions weiterhin on-demand. |
-| `cli/__tests__/workflow-score.test.ts` | Tests auf neue Struktur |
-| `design/schemas.yml` | `flow_rate` neu, `metrics` durch Engine befüllt, `success_rate` Beschreibung präzisiert |
-| `design/tasks/outtake--design-workflow.md` | `success_rate` bleibt im Result; `flow_rate`/`metrics` entfernt (Engine-Aufgabe) |
-
-## workflow score Output (`--json`)
-
-```json
-{
-  "workflow": "design-shell-2026-05-06-abcd",
-  "flow_rate": 81.0,
-  "success_rate": 0.85,
-  "metrics": { "errors": 0, "retries": 2, "unresolved": 0 },
-  "compare_passed": true,
-  "assertions": { "passed": 2, "total": 2, "failures": [] }
-}
-```
-
-`assertions` nur wenn `--case` übergeben.
+| `scoring/composite.ts` | Vereinfacht: nur `flow_rate`-Formel. Kein Assertions-Weight im gespeicherten Score. |
+| `cli/workflow-score.ts` | → umbenannt zu `workflow-summary.ts`. Reiner Leser + human/JSON Ausgabe. |
+| `cli/__tests__/workflow-score.test.ts` | → `workflow-summary.test.ts`, Tests auf neue Struktur |
+| `design/schemas.yml` | `flow_rate` neu, `success_rate` Beschreibung präzisiert |
+| `design/tasks/outtake--design-workflow.md` | `flow_rate`/`metrics` aus Result entfernt (Engine-Aufgabe); `success_rate` bleibt |
 
 ## Was wegfällt
 
+- `workflow score` Command
 - Doppelte Score-Berechnung zwischen Outtake-Task und Score-CLI
 - `issuesPenalty` als eigene Score-Dimension
 - Score-Formellogik in `workflow-score.ts`
 
 ## Offene Frage
 
-Workflows ohne Compare-Stage (z.B. reine Token-Workflows) haben kein `success_rate` im Outtake. In diesem Fall: `flow_rate = -friction`. Valider Wert für den Research-Loop — misst nur Prozessqualität.
+Workflows ohne Compare-Stage haben kein `success_rate`. In diesem Fall: `flow_rate = -friction`. Valider Wert für den Research-Loop — misst nur Prozessqualität.
