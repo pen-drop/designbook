@@ -1498,8 +1498,17 @@ export function workflowGetFile(
   }
 
   const fileEntry = (task.files ?? []).find((f) => f.key === key);
+
   if (!fileEntry) {
-    const validKeys = (task.files ?? []).map((f) => f.key).join(', ');
+    const resultEntry = task.result?.[key];
+    if (resultEntry?.path) {
+      return { staged_path: resultEntry.path, final_path: resultEntry.path };
+    }
+    const fileKeys = (task.files ?? []).map((f) => f.key);
+    const resultKeys = Object.entries(task.result ?? {})
+      .filter(([, v]) => typeof v === 'object' && v !== null && 'path' in v && v.path)
+      .map(([k]) => k);
+    const validKeys = [...fileKeys, ...resultKeys].join(', ');
     throw new Error(`Unknown key '${key}' for task '${taskId}'. Valid keys: ${validKeys}`);
   }
 
