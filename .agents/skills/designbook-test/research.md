@@ -39,13 +39,13 @@ Loaded by `debo-test/SKILL.md` when `debo-test research <suite> <case>` is invok
 1. Inside the workspace, run the case prompt (read `fixtures/$SUITE/cases/$CASE.yaml` `prompt:` field).
 2. Every `npx storybook-addon-designbook workflow …` CLI call inside the case run MUST be invoked with `--log` so dbo.log entries are tagged.
 3. After the run completes, inside the workspace:
-   - `npx storybook-addon-designbook workflow score --workflow <id> --case ../../fixtures/$SUITE/cases/$CASE.yaml --json` → write to `research-runs/<slug>/iterations/000-baseline/score.json`.
+   - `npx storybook-addon-designbook workflow summary --workflow <id> --case ../../fixtures/$SUITE/cases/$CASE.yaml --json` → write to `research-runs/<slug>/iterations/000-baseline/summary.json`.
 4. Generate the audit table per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `research-runs/<slug>/iterations/000-baseline/audit.md`.
 5. Save the dbo.log digest: copy the JSON output of `digestLog` (or run a small node one-liner that imports it) → `iterations/000-baseline/log-digest.json`.
 6. Append a row to `score-history.tsv`:
    ```
-   iter	hypothesis	score	delta	decision
-   0	baseline	<score>	—	keep
+   iter	hypothesis	flow_rate	delta	decision
+   0	baseline	<flow_rate>	—	keep
    ```
 7. If `$BASELINE_ONLY`: print the baseline score and stop.
 
@@ -67,7 +67,7 @@ Goal: propose ONE change to improve composite score on this run.
 Context bundle (read these files):
 - research-runs/<slug>/iterations/<N-1>/audit.md
 - research-runs/<slug>/iterations/<N-1>/log-digest.json
-- research-runs/<slug>/iterations/<N-1>/score.json
+- research-runs/<slug>/iterations/<N-1>/summary.json
 - research-runs/<slug>/score-history.tsv
 - research-runs/<slug>/scope.txt
 - research-runs/<slug>/last-kept.patch  (skip if missing)
@@ -99,13 +99,13 @@ git clean -fdx designbook/ workflows/
 ### 5. Re-verify + score
 
 Re-run the case prompt with `--log` on every `npx storybook-addon-designbook workflow …` call, then:
-- `npx storybook-addon-designbook workflow score --workflow <id> --case <path> --json` → `iterations/<N>/score.json`
+- `npx storybook-addon-designbook workflow summary --workflow <id> --case <path> --json` → `iterations/<N>/summary.json`
 - Generate audit per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `iterations/<N>/audit.md`
 - Generate digest → `iterations/<N>/log-digest.json`
 
 ### 6. Decide
 
-Compare `iterations/<N>/score.json:.score` with the **best-so-far** score (max from previous keeps + baseline).
+Compare `iterations/<N>/summary.json:.flowRate` with the **best-so-far** flow_rate (max from previous keeps + baseline).
 
 | Outcome | Condition | Action |
 |---|---|---|
@@ -151,7 +151,7 @@ If `research-runs/<slug>/` already exists at launch:
 | Failure | Recovery |
 |---|---|
 | Workflow crash mid-run | `git restore`, retry same hypothesis up to 3, then `blocked`. |
-| `npx storybook-addon-designbook workflow score` returns non-zero | Bail loop. Print `score CLI failed — inspect <path>`. |
+| `npx storybook-addon-designbook workflow summary` returns non-zero | Bail loop. Print `summary CLI failed — inspect <path>`. |
 | Subagent returns invalid patch | Re-dispatch with hint, max 3 in a row, then bail. |
 | Workspace reset fails | Bail. Tell user to rebuild via `debo-test run $SUITE $CASE`. |
 | User Ctrl-C | Stop after current iteration completes. Print partial summary. |

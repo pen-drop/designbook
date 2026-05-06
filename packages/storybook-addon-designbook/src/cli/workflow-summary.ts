@@ -91,11 +91,11 @@ function formatHuman(r: SummaryResult): string {
     r.workflow,
     `  flow_rate:    ${r.flowRate.toFixed(1)}`,
     ...(typeof r.successRate === 'number' ? [`  success_rate: ${r.successRate.toFixed(2)}  (visual quality)`] : []),
-    ...(typeof r.comparePassed === 'boolean'
-      ? [`  compare:      ${r.comparePassed ? '✓ passed' : '✗ failed'}`]
-      : []),
+    ...(typeof r.comparePassed === 'boolean' ? [`  compare:      ${r.comparePassed ? '✓ passed' : '✗ failed'}`] : []),
     ...(r.metrics
-      ? [`  metrics:      errors ${r.metrics.errors} · retries ${r.metrics.retries} · unresolved ${r.metrics.unresolved}`]
+      ? [
+          `  metrics:      errors ${r.metrics.errors} · retries ${r.metrics.retries} · unresolved ${r.metrics.unresolved}`,
+        ]
       : []),
     ...(r.summary ? [`  summary:      ${r.summary}`] : []),
     ...(r.warnings?.length ? r.warnings.map((w) => `  warning:      ${w}`) : []),
