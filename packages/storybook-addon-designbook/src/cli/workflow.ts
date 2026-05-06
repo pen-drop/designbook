@@ -31,7 +31,7 @@ import { resolveParams } from '../resolvers/registry.js';
 import type { ResolverContext } from '../resolvers/types.js';
 import { renderSubmitResultsHint } from './submit-results-hint.js';
 import { initLogger, log } from '../logger.js';
-import { register as registerScore } from './workflow-score.js';
+import { register as registerSummary } from './workflow-summary.js';
 
 // Resolve a workflow .md file from a workflow ID by scanning skills directories (same glob mechanism as tasks/rules).
 function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
@@ -660,5 +660,5 @@ export function register(program: Command): void {
       }
     });
 
-  registerScore(workflow);
+  registerSummary(workflow);
 }
