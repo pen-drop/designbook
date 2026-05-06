@@ -71,3 +71,10 @@ task focused on collecting the current run facts and computing the final
 Do not perform capture or compare work here. The preceding compare stages are
 the source of truth for screenshot diffs and issues; this task only assembles
 the final workflow output.
+
+## Note
+
+`flow_rate` and `workflow_output.metrics` (errors, retries, unresolved) are **not** written
+by this task. The engine injects these values deterministically when archiving the workflow.
+Only write `success_rate` (visual quality judgment) and the human-readable fields
+(`summary`, `warnings`, `artifacts`, `compare_passed`, etc.).

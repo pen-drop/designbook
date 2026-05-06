@@ -38,7 +38,7 @@ Check:
       $ref: "#/RegionId"
     threshold:
       type: number
-      default: 0
+      default: 0.8
       description: Maximum percentage deviation (0–1) before the check fails.
     selector:
       type: string
@@ -517,9 +517,16 @@ DesignWorkflowOutput:
       minimum: 0
       maximum: 1
       description: >
-        Outtake-computed design success score. Typical inputs are compare
-        result quality, unresolved design issues, validation failures, and the
-        presence of expected review artifacts.
+        Optisches Qualitätsurteil des AI nach Abschluss des Outtake-Tasks.
+        Beschreibt wie gut das visuelle Ergebnis der Referenz entspricht (0 = kein Match, 1 = perfekter Match).
+        Wird von der Engine nach dem Archivieren zu flow_rate weiterverarbeitet.
+        Wird nie von der Engine überschrieben.
+    flow_rate:
+      type: number
+      description: >
+        Composite-Score für den Research-Loop. Wird von der Engine deterministisch
+        beim Archivieren berechnet: flow_rate = success_rate * 100 - friction
+        (errors*5 + retries*2 + unresolved*3). Wird nie vom AI geschrieben.
     summary:
       type: string
       description: Short human-readable outcome summary for the design workflow.
@@ -532,19 +539,22 @@ DesignWorkflowOutput:
       additionalProperties: true
     metrics:
       type: object
+      description: >
+        Prozessmetriken aus dbo.log — werden von der Engine beim Archivieren
+        deterministisch befüllt. Darf vom AI nicht geschrieben werden.
       properties:
-        validation_errors:
+        errors:
           type: integer
           minimum: 0
-        invalid_calls:
-          type: integer
-          minimum: 0
-        token_usage:
-          type: integer
-          minimum: 0
+          description: Anzahl CLI-Fehler (error-Einträge in dbo.log).
         retries:
           type: integer
           minimum: 0
+          description: Anzahl Retry-Wiederholungen (retry-groups count - 1 pro Gruppe).
+        unresolved:
+          type: integer
+          minimum: 0
+          description: Anzahl unresolved-Einträge in dbo.log.
     compare_passed:
       type: boolean
       description: >
