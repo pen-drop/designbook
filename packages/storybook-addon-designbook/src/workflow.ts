@@ -8,6 +8,8 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { resolve, relative, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { digestLog } from './log/digest.js';
+import { computeFlowRate } from './scoring/composite.js';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
 import type { ValidationFileResult, StageParam, StageDefinition, TaskFile } from './workflow-types.js';
 import { withLockAsync } from './workflow-lock.js';
@@ -155,6 +157,26 @@ function timestamp(): string {
   return local.toISOString().replace(/\.\d{3}Z$/, '');
 }
 
+/**
+ * Reads dbo.log from dataDir, computes flow_rate + metrics and writes both
+ * into scope.workflow_output. Called by archiveWorkflow.
+ */
+export function injectFlowRate(dataDir: string, scope: Record<string, unknown>): void {
+  const logPath = resolve(dataDir, 'dbo.log');
+  const digest = existsSync(logPath) ? digestLog(logPath) : { errors: [], retries: [], unresolved: [] };
+  const errors = digest.errors.length;
+  const retries = digest.retries.reduce((acc: number, g: { count: number }) => acc + (g.count - 1), 0);
+  const unresolved = digest.unresolved.length;
+
+  const wo = (scope.workflow_output ?? {}) as Record<string, unknown>;
+  const successRate = typeof wo.success_rate === 'number' ? wo.success_rate : undefined;
+  const result = computeFlowRate({ successRate, errors, retries, unresolved });
+
+  wo.flow_rate = result.flowRate;
+  wo.metrics = { ...((wo.metrics as object | undefined) ?? {}), ...result.metrics };
+  scope.workflow_output = wo;
+}
+
 function shortId(): string {
   return randomBytes(2).toString('hex');
 }
@@ -186,6 +208,11 @@ function archiveWorkflow(dataDir: string, name: string, wf: WorkflowFile): void 
   wf.status = 'completed';
   wf.completed_at = timestamp();
   wf.summary = wf.tasks.map((t) => `${t.title} (${t.type})`).join(', ');
+
+  // Compute flow_rate deterministically from dbo.log + success_rate
+  const scope = (wf.scope ?? {}) as Record<string, unknown>;
+  injectFlowRate(dataDir, scope);
+  wf.scope = scope;
 
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
