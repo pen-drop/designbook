@@ -92,12 +92,26 @@ export function designbookLoadPlugin(
         },
         server: {
           watch: {
-            // When installed as a pnpm workspace symlink, Vite resolves the
-            // real path (packages/storybook-addon-designbook) and watches it.
-            // With usePolling:true this polls 300+ files every 300 ms and
-            // saturates the libuv thread pool. Addon changes always require a
-            // full Storybook restart anyway, so HMR-watching is pointless.
-            ignored: ['**/storybook-addon-designbook/**'],
+            // Setting `ignored` REPLACES Vite's defaults — so we explicitly
+            // re-include `.git` and `node_modules`. Without `node_modules`,
+            // Vite resolves pnpm's `.pnpm/<pkg>/node_modules/<pkg>` symlinks
+            // and watches the whole dependency tree (~2200+ dirs). The 16k
+            // inotify event queue (`fs.inotify.max_queued_events`) is then
+            // one event burst away from overflowing — at which point Linux
+            // silently drops events and any watcher built on top goes deaf.
+            //
+            // `followSymlinks: false` is needed alongside the glob: chokidar
+            // matches `ignored` against the original symlink path, but once
+            // it follows the link it watches the resolved tree without
+            // re-checking ignores against the target.
+            //
+            // `storybook-addon-designbook/**` exists because the addon is
+            // consumed via a pnpm workspace symlink — Vite would otherwise
+            // resolve and watch its source under packages/, multiplying the
+            // surface and being pointless (addon changes need a Storybook
+            // restart anyway).
+            followSymlinks: false,
+            ignored: ['**/.git/**', '**/node_modules/**', '**/dist/**', '**/storybook-addon-designbook/**'],
           },
         },
         // Force Vite to process twing through its own module pipeline in SSR context.

@@ -62,6 +62,19 @@ Reuse an existing component when its slots/variants already cover the new need â
 
 One entry per **new** component. Each item: `component` (name), `slots` (array), `group`.
 
+When the component has visual variants (e.g. logo full vs mark-only, navigation main vs footer), declare them under `variants:` as objects with an `id` field â€” **kebab-case, no `name:`**. Example:
+
+```yaml
+- component: navigation
+  slots: []
+  group: Navigation
+  variants:
+    - id: main
+    - id: footer
+```
+
+The `id` becomes the story filename segment (`<component>.<id>.story.yml`) and the key in `.component.yml` `variants:`. Submitting `name:` instead fails validation with `must have required property 'id'`.
+
 ## Result: scenes
 
 Emit the shell `SceneDef[]` that `create-scene` will append to

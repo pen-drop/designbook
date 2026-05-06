@@ -29,9 +29,16 @@ export const directEngine: WorkflowEngine = {
   },
 
   getStagedPath(data: WorkflowFile, task: WorkflowTask, key: string): string {
+    // Prefer task.files (legacy/explicit declarations); fall back to task.result[key] for
+    // submission: direct results, where the engine never populates task.files.
     const fileEntry = (task.files ?? []).find((f) => f.key === key);
-    if (!fileEntry) throw new Error(`No file entry with key '${key}' in task '${task.id}'`);
-    return stashPath(data, fileEntry);
+    if (fileEntry) return stashPath(data, fileEntry);
+    const resultEntry = task.result?.[key];
+    if (resultEntry?.path) {
+      // submission: direct writes straight to the final path — no `.debo` stash suffix.
+      return resultEntry.path;
+    }
+    throw new Error(`No file entry with key '${key}' in task '${task.id}'`);
   },
 
   async flush(data: WorkflowFile, tasks: WorkflowTask[]): Promise<void> {

@@ -48,14 +48,17 @@ describe('readSummary', () => {
     const { root, dataDir } = setup('assertions');
     writeArchive(dataDir, 'design-shell', { flow_rate: 90, success_rate: 0.9, compare_passed: true });
     const caseFile = resolve(root, 'case.yaml');
-    writeFileSync(caseFile, [
-      'fixtures: []',
-      'prompt: x',
-      'assert:',
-      '  - type: javascript',
-      "    value: 'output.comparePassed === true'",
-      '',
-    ].join('\n'));
+    writeFileSync(
+      caseFile,
+      [
+        'fixtures: []',
+        'prompt: x',
+        'assert:',
+        '  - type: javascript',
+        "    value: 'output.comparePassed === true'",
+        '',
+      ].join('\n'),
+    );
     const r = readSummary({ dataDir, workflowName: 'design-shell', caseFile });
     expect(r?.assertions?.passed).toBe(1);
     expect(r?.assertions?.total).toBe(1);
