@@ -38,7 +38,9 @@ If `{reference_folder}/extract.json` already exists, return results from it — 
 
 ## Completeness Requirements
 
-The extracted `DesignReference` is the single source of truth for every downstream stage (intake, create-component, create-scene, verify). Shallow extraction is the root cause of generic markup and triage-noise later. Treat the schema fields as a checklist — when a field is observable in the reference, it MUST be populated.
+The extracted `DesignReference` is the single source of truth for every downstream stage (intake, create-component, create-scene, verify). All fields below map directly to binding derivations in the `markup-derivation` rule: every row, interactive element, form, image, and breakpoint you populate here MUST be structurally represented in the markup produced by `create-component` and `create-scene`. A field left empty here cannot be used there — thin extraction propagates directly into markup mismatches in `design-verify`.
+
+Treat the schema fields as a checklist — when a field is observable in the reference, it MUST be populated.
 
 ### Landmarks — every visual row separately
 

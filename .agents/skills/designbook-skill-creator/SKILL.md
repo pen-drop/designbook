@@ -75,9 +75,9 @@ See [`resources/schema-composition.md`](resources/schema-composition.md) for the
 
 See [`resources/skill-map.md`](resources/skill-map.md) for a full listing of all skills.
 
-## Research Flag
+## Research Mode
 
-See [`resources/research.md`](resources/research.md) for the `--research` post-workflow review (Superpowers-based).
+See `.agents/skills/designbook-test/research.md` for the autonomous research-mode loop protocol. The audit criteria are in `.agents/skills/designbook-test/research-audit.md`.
 
 ## Skill Validation
 

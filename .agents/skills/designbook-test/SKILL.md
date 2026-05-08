@@ -1,20 +1,33 @@
 ---
 name: debo-test
-argument-hint: "<suite> <case>"
+user-invocable: true
+argument-hint: "<subcommand> <suite> <case>"
+subcommands:
+  run:
+    hint: "<suite> [<case>]"
+    description: Set up a test workspace and run a workflow case
+  research:
+    hint: "<suite> <case> [--iterations N] [--target T] [--plateau M] [--baseline-only] [--scope <glob>]"
+    description: Autonomous skill-improvement loop; --baseline-only for a single audit pass
 description: >
-  Set up a test workspace from fixtures and run a workflow case.
-  Use for manual testing of designbook workflows with pre-built fixture data.
-  Supports snapshot creation to save workflow results as new fixtures.
+  Test workspace runner and autonomous research loop for designbook workflows.
+  Use for manual testing with pre-built fixture data, or for iterative skill improvement.
 ---
 
 ## Dispatch
 
-Parse `$ARGUMENTS` as: `<suite> [<case>]`
+Parse `$ARGUMENTS` as: `<subcommand> <suite> [<case>] [options]`
 
-- **suite**: Required. The fixture suite name (e.g., `drupal-petshop`, `drupal-stitch`).
-- **case**: Optional. The case name (e.g., `design-screen`, `vision`).
+| Subcommand | Signature | Description |
+|---|---|---|
+| `run` | `<suite> [<case>]` | Set up workspace and run a test case |
+| `research` | `<suite> <case> [options]` | Autonomous improvement loop |
 
-## Workflow
+Unknown subcommand → print available subcommands and stop.
+
+---
+
+## run
 
 ### 1. List cases (no case argument)
 
@@ -69,7 +82,24 @@ After the workflow completes:
    - Report: "✓ Fixture saved to fixtures/<suite>/<fixture-name>/"
 7. If the user declines: do nothing, workspace remains
 
-### Error Handling
+---
+
+## research
+
+Parse from `$ARGUMENTS` (after `research <suite> <case>`):
+- `--iterations N` (default 25)
+- `--target T` (default 100)
+- `--plateau M` (default 5)
+- `--baseline-only` — single audit pass (iteration 0 only); equivalent to `--iterations 0`
+- `--scope <glob>` (comma-separated)
+
+If `<case>` is missing: error "research requires a case", list available cases, stop.
+
+Load `research.md` and follow it.
+
+---
+
+## Error Handling
 
 - If `fixtures/<suite>/` does not exist: list available suites from `fixtures/`
 - If `fixtures/<suite>/cases/<case>.yaml` does not exist: list available cases
