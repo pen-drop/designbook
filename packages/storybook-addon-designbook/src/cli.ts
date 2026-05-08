@@ -5,6 +5,7 @@ import { validateData } from './validators/data.js';
 import { validateEntityMapping } from './validators/entity-mapping.js';
 import { register as registerWorkflow } from './cli/workflow.js';
 import { register as registerStorybook } from './cli/storybook.js';
+import { register as registerPlan } from './cli/plan.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
   const out: Record<string, unknown> = { valid, label };
@@ -100,5 +101,6 @@ validate
 // Register submodules
 registerWorkflow(program);
 registerStorybook(program);
+registerPlan(program);
 
 program.parse();

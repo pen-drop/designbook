@@ -1,0 +1,10 @@
+Component:
+  type: object
+  required: [name]
+  properties:
+    name:
+      type: string
+    slots:
+      type: array
+      items:
+        type: string
