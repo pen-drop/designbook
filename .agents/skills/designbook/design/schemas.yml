@@ -642,3 +642,157 @@ DesignWorkflowOutput:
       description: Regions covered by the final compare/review pass.
       items:
         $ref: "#/RegionId"
+
+RegionProperties:
+  type: object
+  title: Region Properties
+  description: |
+    Authoritative element properties for the region the current task covers.
+    Produced by the region-properties code resolver from the rendered DOM.
+    When `matched_via !== "none"`, `style` values are ground truth — markup
+    and CSS MUST use them where present. Falls back to extract.json + design
+    hints only for properties not in the bag.
+  required: [matched_via, nodes]
+  properties:
+    matched_via:
+      type: string
+      description: Which heuristic located the region root.
+      enum: [role, heading, label, bbox, none]
+    root_id:
+      type: string
+      description: ID of the region root inside `nodes`. Absent when matched_via === "none".
+      examples: ["n_8a3f21bc"]
+    nodes:
+      type: array
+      description: All PropertyNodes in the region subtree. Hierarchy via parent_id / child_ids. Empty when matched_via === "none".
+      items:
+        $ref: "#/PropertyNode"
+
+PropertyNode:
+  type: object
+  title: Property Node
+  description: One visible element from the captured source. Source-agnostic — a future Figma walker would return the same shape.
+  required: [id, child_ids, label, kind, bbox, style, source]
+  properties:
+    id:
+      type: string
+      description: Deterministic node ID. Walker-chosen (DOM uses hash of dom_path + bbox).
+      examples: ["n_8a3f21bc"]
+    parent_id:
+      type: string
+      description: ID of this node's parent PropertyNode. Absent for the root.
+    child_ids:
+      type: array
+      description: Child node IDs in reading / visual order.
+      items: { type: string }
+    label:
+      type: string
+      description: Human-readable name. Heading text, layer name, ARIA label, or text content.
+      examples: ["Site Header", "Buy now", "Pricing"]
+    kind:
+      type: string
+      description: Coarse element category — drives consumer reasoning even when specific style fields are missing.
+      enum: [section, container, text, image, icon, button, input, link, list, list-item, form, media]
+    role:
+      type: string
+      description: Normalized semantic role. Strong for DOM (HTML5 landmarks + ARIA). Optional.
+      enum: [banner, navigation, main, contentinfo, search, form, complementary, region]
+    heading_context:
+      type: string
+      description: Nearest preceding section / heading text. The strongest source-agnostic anchor for region matching.
+      examples: ["Pricing", "Frequently asked questions"]
+    bbox:
+      type: object
+      description: Pixel coordinates relative to the viewport.
+      required: [x, y, width, height]
+      properties:
+        x: { type: number, description: "Left edge in px" }
+        y: { type: number, description: "Top edge in px" }
+        width: { type: number, description: "Width in px" }
+        height: { type: number, description: "Height in px" }
+    text:
+      type: string
+      description: Visible text content, trimmed, max 200 chars.
+    href:
+      type: string
+      description: Absolute or root-relative URL for link nodes.
+    src:
+      type: string
+      description: Asset URL or path for media nodes.
+    alt:
+      type: string
+      description: Alt text or accessible name.
+    style:
+      type: object
+      title: Curated Style
+      description: Source-agnostic curated style block. Walkers map their native properties (CSS computed style, Figma layout/fills/typography) onto this shape.
+      required: [padding, margin, background, foreground]
+      properties:
+        layout:
+          type: string
+          description: Layout primitive.
+          enum: [flex-row, flex-col, grid, stack, absolute, none]
+        main_axis_align:
+          type: string
+          description: Main-axis alignment.
+          enum: [start, center, end, space-between, space-around, space-evenly]
+        cross_axis_align:
+          type: string
+          description: Cross-axis alignment.
+          enum: [start, center, end, stretch, baseline]
+        gap:
+          type: string
+          description: Gap between flex / grid items, normalized in px.
+          examples: ["16px", "8px 24px"]
+        padding:
+          type: string
+          description: Normalized "<top> <right> <bottom> <left>" or shorthand.
+          examples: ["0 32 0 32", "16"]
+        margin:
+          type: string
+          description: Same normalization as padding.
+        border:
+          type: string
+          description: Border shorthand.
+          examples: ["1px solid #e5e7eb"]
+        border_radius:
+          type: string
+          examples: ["4px", "9999px"]
+        background:
+          type: string
+          description: Resolved hex color, or url() / image ref.
+          examples: ["#ffffff", "linear-gradient(...)", "url(/hero.jpg)"]
+        foreground:
+          type: string
+          description: Text or icon color (resolved hex).
+          examples: ["#111111"]
+        font_family:
+          type: string
+          examples: ["Inter, sans-serif"]
+        font_size:
+          type: string
+          examples: ["16px", "1.125rem"]
+        font_weight:
+          type: string
+          examples: ["400", "600"]
+        line_height:
+          type: string
+        letter_spacing:
+          type: string
+        text_transform:
+          type: string
+          enum: [uppercase, lowercase, capitalize]
+    source:
+      type: object
+      title: Source Locator
+      description: Walker-specific identification. `locator` is opaque to consumers; `raw` carries the unmapped native data when deep dives are needed.
+      required: [locator]
+      properties:
+        locator:
+          type: string
+          description: Walker-defined — DOM path for the URL walker.
+          examples: ["body > header"]
+        raw:
+          type: object
+          description: Walker-specific extra fields. Opaque to consumers — only loaded when explicitly requested. Keys vary by walker.
+          additionalProperties: true
