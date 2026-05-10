@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
-import { walkDocument } from '../../../../.agents/skills/designbook/design/resources/element-walker.js';
+import { walkDocument, PAGE_SCRIPT } from '../../../../.agents/skills/designbook/design/resources/element-walker.js';
 
 function loadFixture(): Document {
   const html = readFileSync(resolve(__dirname, '../../../../tests/fixtures/element-walker/basic-page.html'), 'utf8');
@@ -73,5 +73,47 @@ describe('element walker', () => {
     const ctaLink = captured.nodes.find((n) => n.label === 'Sign up');
     expect(ctaLink!.kind).toBe('link');
     expect(ctaLink!.href).toBe('/signup');
+  });
+
+  it('treats rgba(0,0,0,0) as no background instead of solid black', () => {
+    const dom = new JSDOM(`<html><body><div style="background-color: rgba(0,0,0,0)">Transparent</div></body></html>`, {
+      pretendToBeVisual: true,
+    });
+    const captured = walkDocument(dom.window.document, { sourceRef: 'test' });
+    const t = captured.nodes.find((n) => n.label === 'Transparent');
+    expect(t).toBeDefined();
+    expect(t!.style.background).not.toBe('#000000');
+    expect(t!.style.background).toBe('');
+  });
+
+  it('PAGE_SCRIPT is valid JS containing all required identifiers', () => {
+    expect(typeof PAGE_SCRIPT).toBe('string');
+    // Required helpers must each be present by name.
+    const required = [
+      'ADAPTER_VERSION',
+      'ROLE_TAG_MAP',
+      'KIND_TAG_MAP',
+      'HEADING_TAGS',
+      'rgbToHex',
+      'resolveBackground',
+      'normalizeBox',
+      'mapLayout',
+      'mapAxisAlign',
+      'mapCrossAlign',
+      'isVisible',
+      'hashId',
+      'getDomPath',
+      'findHeadingContext',
+      'getRole',
+      'getKind',
+      'getLabel',
+      'buildStyle',
+      'walkDocument',
+    ];
+    for (const id of required) {
+      expect(PAGE_SCRIPT).toContain(id);
+    }
+    // The script must parse as valid JavaScript (Function ctor throws on syntax error).
+    expect(() => new Function(PAGE_SCRIPT + '; return walkDocument;')).not.toThrow();
   });
 });

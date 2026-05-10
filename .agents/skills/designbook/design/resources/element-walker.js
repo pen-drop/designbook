@@ -1,7 +1,8 @@
 // Element-property walker. Two surfaces in one ESM module:
 //   - walkDocument(doc, options): pure, jsdom-testable, returns CapturedSource
 //   - default export (page): playwright-cli run-code compatible, handles
-//     client-side rendering and post-load redirects, writes JSON to GRAPHIFY_OUT
+//     client-side rendering and post-load redirects, writes JSON to
+//     DESIGNBOOK_WALKER_OUT
 //
 // The shape is source-agnostic. Future Figma / screenshot walkers can return
 // the same CapturedSource via different production paths.
@@ -35,10 +36,27 @@ const HEADING_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
 
 function rgbToHex(value) {
   if (!value) return '';
-  const m = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  const m = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/i);
   if (!m) return value;
+  const alpha = m[4] === undefined ? 1 : parseFloat(m[4]);
+  if (alpha === 0) return undefined;
   const hex = (n) => Number(n).toString(16).padStart(2, '0');
-  return `#${hex(m[1])}${hex(m[2])}${hex(m[3])}`;
+  if (alpha >= 1) return `#${hex(m[1])}${hex(m[2])}${hex(m[3])}`;
+  return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
+}
+
+function resolveBackground(cs) {
+  const c = cs.backgroundColor;
+  const isTransparent =
+    !c || c === 'transparent' || /rgba?\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)/i.test(c);
+  if (isTransparent) {
+    return cs.backgroundImage && cs.backgroundImage !== 'none' ? cs.backgroundImage : '';
+  }
+  const hex = rgbToHex(c);
+  if (hex === undefined) {
+    return cs.backgroundImage && cs.backgroundImage !== 'none' ? cs.backgroundImage : '';
+  }
+  return hex || '';
 }
 
 function normalizeBox(top, right, bottom, left) {
@@ -129,10 +147,14 @@ function findHeadingContext(el) {
     const prev = node.previousElementSibling;
     if (prev) {
       if (HEADING_TAGS.has(prev.tagName)) {
-        return prev.textContent ? prev.textContent.trim().slice(0, 200) : '';
+        const t = prev.textContent ? prev.textContent.trim() : '';
+        if (t) return t.slice(0, 200);
       }
       const inner = prev.querySelector && prev.querySelector('h1, h2, h3, h4, h5, h6');
-      if (inner && inner.textContent) return inner.textContent.trim().slice(0, 200);
+      if (inner && inner.textContent) {
+        const t = inner.textContent.trim();
+        if (t) return t.slice(0, 200);
+      }
     }
     node = node.parentElement;
   }
@@ -172,10 +194,10 @@ function buildStyle(el, view) {
     padding: normalizeBox(cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft),
     margin: normalizeBox(cs.marginTop, cs.marginRight, cs.marginBottom, cs.marginLeft),
     border: cs.borderWidth && parseFloat(cs.borderWidth) > 0
-      ? `${cs.borderWidth} ${cs.borderStyle} ${rgbToHex(cs.borderColor)}`
+      ? `${cs.borderWidth} ${cs.borderStyle} ${rgbToHex(cs.borderColor) || cs.borderColor}`
       : undefined,
     border_radius: cs.borderRadius && cs.borderRadius !== '0px' ? cs.borderRadius : undefined,
-    background: rgbToHex(cs.backgroundColor) || cs.backgroundImage,
+    background: resolveBackground(cs),
     foreground: rgbToHex(cs.color),
     font_family: cs.fontFamily,
     font_size: cs.fontSize,
@@ -236,6 +258,32 @@ export function walkDocument(doc, options = {}) {
   };
 }
 
+// Self-contained source string for in-page evaluation. `walkDocument.toString()`
+// alone strips module-scoped helpers; we re-assemble all dependencies here in
+// dependency order so a single eval() in the browser context makes
+// `walkDocument` callable.
+export const PAGE_SCRIPT = [
+  `const ADAPTER_VERSION = ${JSON.stringify(ADAPTER_VERSION)};`,
+  `const ROLE_TAG_MAP = ${JSON.stringify(ROLE_TAG_MAP)};`,
+  `const KIND_TAG_MAP = ${JSON.stringify(KIND_TAG_MAP)};`,
+  `const HEADING_TAGS = new Set(${JSON.stringify([...HEADING_TAGS])});`,
+  rgbToHex.toString(),
+  resolveBackground.toString(),
+  normalizeBox.toString(),
+  mapLayout.toString(),
+  mapAxisAlign.toString(),
+  mapCrossAlign.toString(),
+  isVisible.toString(),
+  hashId.toString(),
+  getDomPath.toString(),
+  findHeadingContext.toString(),
+  getRole.toString(),
+  getKind.toString(),
+  getLabel.toString(),
+  buildStyle.toString(),
+  walkDocument.toString(),
+].join('\n\n');
+
 // Wait until URL is stable AND networkidle has fired — handles SPA hydration,
 // HTTP redirects, JS redirects, OAuth round-trips, and SPA route guards.
 async function waitForReady(page, totalBudgetMs) {
@@ -264,26 +312,31 @@ async function waitForReady(page, totalBudgetMs) {
 
 // Default export: playwright-cli run-code compatible.
 export default async function (page) {
-  const sourceRef = process.env.GRAPHIFY_SOURCE_REF || page.url();
-  const waitMs = parseInt(process.env.GRAPHIFY_WAIT_MS || '30000', 10);
+  const sourceRef = process.env.DESIGNBOOK_WALKER_SOURCE_REF || page.url();
+  const waitMs = parseInt(process.env.DESIGNBOOK_WALKER_WAIT_MS || '30000', 10);
 
   await waitForReady(page, waitMs);
 
   const finalUrl = page.url();
+  const viewport = page.viewportSize() || { width: 1440, height: 900 };
   const result = await page.evaluate(
-    ({ ref, walkSource }) => {
+    ({ ref, script, vp }) => {
       // eslint-disable-next-line no-eval
-      const fn = eval(`(${walkSource})`);
-      return fn(document, {
-        sourceRef: ref,
-        viewport: { width: window.innerWidth, height: window.innerHeight },
-      });
+      eval(script);
+      // After eval, walkDocument is in scope.
+      // eslint-disable-next-line no-undef
+      return walkDocument(document, { sourceRef: ref, viewport: vp });
     },
-    { ref: finalUrl !== sourceRef ? finalUrl : sourceRef, walkSource: walkDocument.toString() },
+    {
+      ref: finalUrl !== sourceRef ? finalUrl : sourceRef,
+      script: PAGE_SCRIPT,
+      vp: viewport,
+    },
   );
   const fs = await import('node:fs/promises');
-  const outPath = process.env.GRAPHIFY_OUT;
-  if (!outPath) throw new Error('GRAPHIFY_OUT env var not set');
-  await fs.mkdir(outPath.replace(/\/[^/]+$/, ''), { recursive: true });
+  const path = await import('node:path');
+  const outPath = process.env.DESIGNBOOK_WALKER_OUT;
+  if (!outPath) throw new Error('DESIGNBOOK_WALKER_OUT env var not set');
+  await fs.mkdir(path.dirname(outPath), { recursive: true });
   await fs.writeFile(outPath, JSON.stringify(result, null, 2));
 }
