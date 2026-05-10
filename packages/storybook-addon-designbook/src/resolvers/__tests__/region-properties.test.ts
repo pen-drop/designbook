@@ -174,4 +174,75 @@ describe('regionPropertiesResolver', () => {
     expect(result.resolved).toBe(true);
     expect(result.value).toBeUndefined();
   });
+
+  it('locates region via scene_path when component.id is absent', async () => {
+    // sections/main/main.section.scenes.yml → label 'main' → role hint hits n_main.
+    const result = await regionPropertiesResolver.resolve(
+      'https://example.com',
+      { from: 'vision.design_reference.url' },
+      buildContext({
+        vision: { design_reference: { type: 'url', url: 'https://example.com' } },
+        scene_path: 'sections/main/main.section.scenes.yml',
+      }),
+    );
+    const region = result.value as { matched_via: string; root_id?: string };
+    expect(region.matched_via).toBe('role');
+    expect(region.root_id).toBe('n_main');
+  });
+
+  it('descendantsOf is cycle-safe', async () => {
+    const cyclic = {
+      ...FIXTURE_CAPTURED,
+      nodes: [
+        {
+          id: 'a',
+          parent_id: 'b',
+          child_ids: ['b'],
+          label: 'A',
+          kind: 'container',
+          bbox: { x: 0, y: 0, width: 0, height: 0 },
+          style: { padding: '0', margin: '0', background: '', foreground: '' },
+          source: { locator: 'a' },
+        },
+        {
+          id: 'b',
+          parent_id: 'a',
+          child_ids: ['a'],
+          label: 'B',
+          kind: 'container',
+          bbox: { x: 0, y: 0, width: 0, height: 0 },
+          style: { padding: '0', margin: '0', background: '', foreground: '' },
+          source: { locator: 'b' },
+        },
+      ],
+    };
+    const fs = await import('node:fs/promises');
+    (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(JSON.stringify(cyclic));
+    const result = await regionPropertiesResolver.resolve(
+      'https://example.com',
+      { from: 'vision.design_reference.url' },
+      buildContext({
+        vision: { design_reference: { type: 'url', url: 'https://example.com' } },
+        component: { id: 'A' },
+      }),
+    );
+    // Must complete (not hang). Subtree walk visits each node at most once.
+    const region = result.value as { nodes: unknown[] };
+    expect(region.nodes.length).toBeLessThanOrEqual(2);
+  });
+
+  it('returns value: undefined when captured nodes[] is missing', async () => {
+    const fs = await import('node:fs/promises');
+    (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(JSON.stringify({ source_kind: 'url-dom' }));
+    const result = await regionPropertiesResolver.resolve(
+      'https://example.com',
+      { from: 'vision.design_reference.url' },
+      buildContext({
+        vision: { design_reference: { type: 'url', url: 'https://example.com' } },
+        component: { id: 'site_header' },
+      }),
+    );
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBeUndefined();
+  });
 });
