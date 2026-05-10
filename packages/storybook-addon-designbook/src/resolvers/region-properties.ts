@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { resolve as joinPath, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import type { ParamResolver, ResolverContext, ResolverResult } from './types.js';
@@ -50,6 +50,8 @@ const ROLE_HINTS: Array<{ pattern: RegExp; role: string }> = [
   { pattern: /^(form|search)/i, role: 'form' },
 ];
 
+const DEFAULT_WALKER_TIMEOUT_MS = 60_000;
+
 function hashUrl(url: string): string {
   return createHash('sha256').update(url.toLowerCase().replace(/\/+$/, '')).digest('hex').slice(0, 12);
 }
@@ -70,30 +72,91 @@ function getNested(obj: unknown, path: string[]): unknown {
   return cur;
 }
 
-async function runWalker(url: string, outPath: string): Promise<void> {
+function locateWalker(context: ResolverContext): string {
+  const cfg = context.config as { workspace?: string; data?: string; 'designbook.home'?: string };
+  const candidates: string[] = [];
+  const walkerRel = '.agents/skills/designbook/design/resources/element-walker.js';
+  if (cfg.workspace) candidates.push(joinPath(cfg.workspace, walkerRel));
+  if (typeof cfg['designbook.home'] === 'string') {
+    candidates.push(joinPath(cfg['designbook.home'] as string, walkerRel));
+  }
+  candidates.push(joinPath(process.cwd(), walkerRel));
+  if (cfg.data) candidates.push(joinPath(cfg.data, '..', walkerRel));
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return candidates[0] ?? joinPath(process.cwd(), walkerRel);
+}
+
+async function runWalker(url: string, outPath: string, walkerPath: string): Promise<void> {
   await mkdir(dirname(outPath), { recursive: true });
-  const walkerPath = joinPath(process.cwd(), '.agents/skills/designbook/design/resources/element-walker.js');
-  const env = {
+  const walkerSource = await readFile(walkerPath, 'utf8');
+
+  const env: NodeJS.ProcessEnv = {
     ...process.env,
     DESIGNBOOK_WALKER_OUT: outPath,
     DESIGNBOOK_WALKER_SOURCE_REF: url,
   };
 
-  await new Promise<void>((resolveProc, rejectProc) => {
-    const child = spawn(
-      'sh',
-      [
-        '-c',
-        `npx playwright-cli open && \
-         npx playwright-cli goto "${url}" && \
-         npx playwright-cli resize 1440 1600 && \
-         npx playwright-cli run-code "$(cat "${walkerPath}")" && \
-         npx playwright-cli close`,
-      ],
-      { env, stdio: 'inherit' },
+  let activeChild: ChildProcess | null = null;
+
+  function runOne(args: string[]): Promise<void> {
+    return new Promise<void>((resolveProc, rejectProc) => {
+      const child = spawn('npx', ['playwright-cli', ...args], { env, stdio: 'inherit' });
+      activeChild = child;
+      child.on('exit', (code) => {
+        activeChild = null;
+        if (code === 0) {
+          resolveProc();
+        } else {
+          rejectProc(new Error(`playwright-cli ${args[0]} exit ${code}`));
+        }
+      });
+      child.on('error', (err) => {
+        activeChild = null;
+        rejectProc(err);
+      });
+    });
+  }
+
+  const totalTimeoutMs = Number.parseInt(
+    process.env.DESIGNBOOK_WALKER_TOTAL_TIMEOUT_MS ?? `${DEFAULT_WALKER_TIMEOUT_MS}`,
+    10,
+  );
+  const effectiveTimeout =
+    Number.isFinite(totalTimeoutMs) && totalTimeoutMs > 0 ? totalTimeoutMs : DEFAULT_WALKER_TIMEOUT_MS;
+
+  const pipeline = (async () => {
+    await runOne(['open']);
+    try {
+      await runOne(['goto', url]);
+      await runOne(['resize', '1440', '1600']);
+      await runOne(['run-code', walkerSource]);
+    } finally {
+      // Always close, even on failure.
+      await runOne(['close']).catch(() => {});
+    }
+  })();
+
+  await new Promise<void>((resolveAll, rejectAll) => {
+    const timer = setTimeout(() => {
+      try {
+        activeChild?.kill('SIGKILL');
+      } catch {
+        // ignore
+      }
+      rejectAll(new Error(`walker timed out after ${effectiveTimeout}ms`));
+    }, effectiveTimeout);
+    pipeline.then(
+      () => {
+        clearTimeout(timer);
+        resolveAll();
+      },
+      (err) => {
+        clearTimeout(timer);
+        rejectAll(err);
+      },
     );
-    child.on('exit', (code) => (code === 0 ? resolveProc() : rejectProc(new Error(`walker exit ${code}`))));
-    child.on('error', rejectProc);
   });
 }
 
@@ -104,12 +167,18 @@ function pickRegionLabel(params: Record<string, unknown>): string {
   if (typeof sectionId === 'string' && sectionId) return sectionId;
   const scenePath = params['scene_path'];
   if (typeof scenePath === 'string' && scenePath) {
-    return (
-      scenePath
-        .replace(/\.[^/.]+$/, '')
-        .split('/')
-        .pop() ?? ''
-    );
+    const segments = scenePath.split('/').filter(Boolean);
+    // sections/<id>/<id>.section.scenes.yml → use <id> from the directory segment
+    if (segments[0] === 'sections' && segments.length >= 2) {
+      return segments[1] ?? '';
+    }
+    // design-system/design-system.scenes.yml → 'shell' (anchor for the shell case)
+    if (segments[0] === 'design-system') {
+      return 'shell';
+    }
+    // Fallback: strip all extensions from the basename
+    const basename = segments[segments.length - 1] ?? '';
+    return basename.replace(/(\.[^./]+)+$/, '');
   }
   return '';
 }
@@ -123,12 +192,15 @@ function descendantsOf(captured: CapturedSource, rootId: string): PropertyNode[]
   }
   const root = captured.nodes.find((n) => n.id === rootId);
   if (!root) return [];
+  const visited = new Set<string>([rootId]);
   const out: PropertyNode[] = [root];
   const stack: string[] = [rootId];
   while (stack.length) {
     const parent = stack.pop()!;
     const children = byParent.get(parent) ?? [];
     for (const child of children) {
+      if (visited.has(child.id)) continue;
+      visited.add(child.id);
       out.push(child);
       stack.push(child.id);
     }
@@ -204,9 +276,14 @@ export const regionPropertiesResolver: ParamResolver = {
     const sourcePath = joinPath(elementTreeDir, 'source.json');
 
     if (!existsSync(sourcePath)) {
+      const walkerPath = locateWalker(context);
+      if (!existsSync(walkerPath)) {
+        console.warn(`[region-properties] walker not found at ${walkerPath}; skipping capture`);
+        return { resolved: true, value: undefined, input: url };
+      }
       try {
         mkdirSync(elementTreeDir, { recursive: true });
-        await runWalker(url, sourcePath);
+        await runWalker(url, sourcePath, walkerPath);
       } catch (error) {
         console.warn(`[region-properties] walker failed: ${(error as Error).message}`);
         return { resolved: true, value: undefined, input: url };
@@ -216,6 +293,9 @@ export const regionPropertiesResolver: ParamResolver = {
     let captured: CapturedSource;
     try {
       captured = JSON.parse(await readFile(sourcePath, 'utf8')) as CapturedSource;
+      if (!captured || !Array.isArray(captured.nodes)) {
+        throw new Error('CapturedSource is missing nodes[]');
+      }
     } catch (error) {
       console.warn(`[region-properties] failed to read ${sourcePath}: ${(error as Error).message}`);
       return { resolved: true, value: undefined, input: url };
