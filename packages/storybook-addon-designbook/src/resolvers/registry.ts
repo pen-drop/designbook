@@ -6,6 +6,7 @@ import { referenceFolderResolver } from './reference-folder.js';
 import { breakpointsResolver } from './breakpoints.js';
 import { scenePathResolver } from './scene-path.js';
 import { componentsIndexResolver } from './components-index.js';
+import { regionPropertiesResolver } from './region-properties.js';
 
 interface ParamDeclaration {
   type?: string;
@@ -37,6 +38,7 @@ register(referenceFolderResolver);
 register(breakpointsResolver);
 register(scenePathResolver);
 register(componentsIndexResolver);
+register(regionPropertiesResolver);
 
 export const resolverRegistry = {
   get(name: string): ParamResolver | undefined {
