@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Element Walker Fixture</title>
+  <style>
+    body { margin: 0; font-family: Inter, sans-serif; color: #111; background: #fff; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 0 32px; height: 72px; background: #ffffff; }
+    nav { display: flex; gap: 24px; }
+    nav a { color: #333; font-weight: 500; }
+    main h1 { font-size: 32px; font-weight: 700; }
+    .cta { background: #007acc; color: #fff; padding: 8px 16px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header role="banner">
+    <a href="/" class="logo">Brand</a>
+    <nav role="navigation">
+      <a href="/products">Products</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/about">About</a>
+    </nav>
+    <a href="/signup" class="cta">Sign up</a>
+  </header>
+  <main role="main">
+    <h1>Build faster</h1>
+    <p>Plain text paragraph for testing text nodes.</p>
+  </main>
+  <footer role="contentinfo">
+    <p>© 2026 Example</p>
+  </footer>
+</body>
+</html>
