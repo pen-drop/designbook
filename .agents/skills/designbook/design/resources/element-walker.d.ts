@@ -68,5 +68,12 @@ export interface WalkDocumentOptions {
 
 export function walkDocument(doc: Document, options?: WalkDocumentOptions): CapturedSource;
 
+/**
+ * Self-contained source string with all helpers + walkDocument, ready for
+ * `eval()` inside a Playwright `page.evaluate` call. Required because
+ * `walkDocument.toString()` alone strips module-scoped helper references.
+ */
+export const PAGE_SCRIPT: string;
+
 declare const _default: (page: unknown) => Promise<void>;
 export default _default;
