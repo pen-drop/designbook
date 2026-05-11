@@ -157,6 +157,64 @@ describe('regionPropertiesResolver', () => {
     expect(region.root_id).toBe('n_pricing');
   });
 
+  it('prefers the largest candidate when multiple nodes share the same role', async () => {
+    // Real-world: leando.de has four nodes with role=contentinfo — three tiny
+    // 27px <footer> sentinels and one big 698px Footernavigation. Reading order
+    // would pick a sentinel; the resolver MUST pick the largest by visual area.
+    const captured = {
+      ...FIXTURE_CAPTURED,
+      nodes: [
+        FIXTURE_CAPTURED.nodes[0]!,
+        {
+          id: 'n_footer_tiny_a',
+          parent_id: 'n_root',
+          child_ids: [],
+          label: 'footer',
+          kind: 'container',
+          role: 'contentinfo',
+          bbox: { x: 0, y: 1850, width: 1267, height: 27 },
+          style: { padding: '0', margin: '0', background: '#ffffff', foreground: '#111111' },
+          source: { locator: 'body > footer:nth-of-type(1)' },
+        },
+        {
+          id: 'n_footer_tiny_b',
+          parent_id: 'n_root',
+          child_ids: [],
+          label: 'footer',
+          kind: 'container',
+          role: 'contentinfo',
+          bbox: { x: 0, y: 3253, width: 1267, height: 27 },
+          style: { padding: '0', margin: '0', background: '#ffffff', foreground: '#111111' },
+          source: { locator: 'body > footer:nth-of-type(2)' },
+        },
+        {
+          id: 'n_footer_big',
+          parent_id: 'n_root',
+          child_ids: [],
+          label: 'Footernavigation',
+          kind: 'container',
+          role: 'contentinfo',
+          bbox: { x: 0, y: 4912, width: 1440, height: 698 },
+          style: { padding: '64', margin: '0', background: '#1a1a1a', foreground: '#ffffff' },
+          source: { locator: 'body > footer:nth-of-type(3)' },
+        },
+      ],
+    };
+    const fs = await import('node:fs/promises');
+    (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(JSON.stringify(captured));
+
+    const result = await regionPropertiesResolver.resolve(
+      'https://example.com',
+      { from: 'reference_url' },
+      buildContext({
+        component: { component: 'footer', group: 'navigation' },
+      }),
+    );
+    const region = result.value as { matched_via: string; root_id?: string };
+    expect(region.matched_via).toBe('role');
+    expect(region.root_id).toBe('n_footer_big');
+  });
+
   it('returns matched_via:none with empty nodes when no heuristic hits', async () => {
     const result = await regionPropertiesResolver.resolve(
       'https://example.com',

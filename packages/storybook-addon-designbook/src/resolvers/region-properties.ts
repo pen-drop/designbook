@@ -240,7 +240,15 @@ function locateRegion(captured: CapturedSource, label: string): RegionProperties
     if (hint.pattern.test(label)) {
       const candidates = captured.nodes
         .filter((n) => n.role === hint.role)
-        .sort((a, b) => a.bbox.y - b.bbox.y || a.bbox.x - b.bbox.x);
+        .sort((a, b) => {
+          // Prefer the largest visual area first (real-world sites often have
+          // multiple landmark candidates — pick the one that is the actual region,
+          // not a small sentinel). Fall back to reading order as tiebreaker.
+          const areaA = a.bbox.width * a.bbox.height;
+          const areaB = b.bbox.width * b.bbox.height;
+          if (areaA !== areaB) return areaB - areaA;
+          return a.bbox.y - b.bbox.y || a.bbox.x - b.bbox.x;
+        });
       if (candidates[0]) {
         return {
           matched_via: 'role',
@@ -258,7 +266,15 @@ function locateRegion(captured: CapturedSource, label: string): RegionProperties
       const lbl = n.label.toLowerCase();
       return (normalized.length > 0 && ctx.includes(normalized)) || (normalized.length > 0 && lbl.includes(normalized));
     })
-    .sort((a, b) => a.bbox.y - b.bbox.y || a.bbox.x - b.bbox.x)[0];
+    .sort((a, b) => {
+      // Prefer the largest visual area first (real-world sites often have
+      // multiple landmark candidates — pick the one that is the actual region,
+      // not a small sentinel). Fall back to reading order as tiebreaker.
+      const areaA = a.bbox.width * a.bbox.height;
+      const areaB = b.bbox.width * b.bbox.height;
+      if (areaA !== areaB) return areaB - areaA;
+      return a.bbox.y - b.bbox.y || a.bbox.x - b.bbox.x;
+    })[0];
   if (headingHit) {
     return {
       matched_via: 'heading',
@@ -270,7 +286,15 @@ function locateRegion(captured: CapturedSource, label: string): RegionProperties
   // 3. Label match
   const labelHit = captured.nodes
     .filter((n) => n.label.toLowerCase().replace(/[-_]/g, ' ') === normalized)
-    .sort((a, b) => a.bbox.y - b.bbox.y || a.bbox.x - b.bbox.x)[0];
+    .sort((a, b) => {
+      // Prefer the largest visual area first (real-world sites often have
+      // multiple landmark candidates — pick the one that is the actual region,
+      // not a small sentinel). Fall back to reading order as tiebreaker.
+      const areaA = a.bbox.width * a.bbox.height;
+      const areaB = b.bbox.width * b.bbox.height;
+      if (areaA !== areaB) return areaB - areaA;
+      return a.bbox.y - b.bbox.y || a.bbox.x - b.bbox.x;
+    })[0];
   if (labelHit) {
     return {
       matched_via: 'label',
