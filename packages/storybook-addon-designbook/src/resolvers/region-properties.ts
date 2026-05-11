@@ -181,6 +181,10 @@ async function runWalker(url: string, outPath: string, walkerPath: string): Prom
 }
 
 function pickRegionLabel(params: Record<string, unknown>): string {
+  // Component schema uses `component` (string id) as the canonical identifier.
+  // `id` is a legacy fallback.
+  const componentName = getNested(params, ['component', 'component']);
+  if (typeof componentName === 'string' && componentName) return componentName;
   const componentId = getNested(params, ['component', 'id']);
   if (typeof componentId === 'string' && componentId) return componentId;
   const sectionId = getNested(params, ['section', 'id']);
