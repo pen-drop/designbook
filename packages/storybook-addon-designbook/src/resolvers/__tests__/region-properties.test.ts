@@ -157,6 +157,87 @@ describe('regionPropertiesResolver', () => {
     expect(region.root_id).toBe('n_pricing');
   });
 
+  it('promotes a matched heading element to its enclosing container', async () => {
+    // <section><h2>Pricing</h2><p>…</p></section> — searching for "Pricing"
+    // matches the h2 by label, but the resolver must return the section so
+    // create-scene gets the actual region content.
+    const captured = {
+      ...FIXTURE_CAPTURED,
+      nodes: [
+        FIXTURE_CAPTURED.nodes[0]!,
+        {
+          id: 'n_section',
+          parent_id: 'n_root',
+          child_ids: ['n_h2', 'n_para'],
+          label: 'section',
+          kind: 'section',
+          bbox: { x: 0, y: 800, width: 1440, height: 600 },
+          style: { padding: '64', margin: '0', background: '#fafafa', foreground: '#111111' },
+          source: { locator: 'body > section' },
+        },
+        {
+          id: 'n_h2',
+          parent_id: 'n_section',
+          child_ids: [],
+          label: 'Pricing',
+          kind: 'heading',
+          bbox: { x: 64, y: 824, width: 200, height: 32 },
+          style: { padding: '0', margin: '0', background: '', foreground: '#111111' },
+          source: { locator: 'body > section > h2' },
+        },
+        {
+          id: 'n_para',
+          parent_id: 'n_section',
+          child_ids: [],
+          label: 'Plans for every team size.',
+          kind: 'text',
+          bbox: { x: 64, y: 870, width: 800, height: 24 },
+          style: { padding: '0', margin: '0', background: '', foreground: '#666666' },
+          source: { locator: 'body > section > p' },
+        },
+      ],
+    };
+    const fs = await import('node:fs/promises');
+    (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(JSON.stringify(captured));
+
+    const result = await regionPropertiesResolver.resolve(
+      'https://example.com',
+      { from: 'reference_url' },
+      buildContext({
+        component: { component: 'pricing' },
+      }),
+    );
+    const region = result.value as {
+      matched_via: string;
+      root_id: string;
+      nodes: Array<{ id: string }>;
+    };
+    expect(region.matched_via).toBe('heading');
+    expect(region.root_id).toBe('n_section');
+    expect(region.nodes.map((n) => n.id)).toEqual(['n_section', 'n_h2', 'n_para']);
+  });
+
+  it('reuses the workflow-resolved reference_folder when provided', async () => {
+    // P2: avoid recomputing the reference folder hash locally (which lowercases
+    // the whole URL and collides /Pricing with /pricing). When reference_folder
+    // is already in workflow scope, read source.json from there.
+    const fs = await import('node:fs/promises');
+    (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(JSON.stringify(FIXTURE_CAPTURED));
+
+    const result = await regionPropertiesResolver.resolve(
+      'https://Example.com/Pricing',
+      { from: 'reference_url' },
+      buildContext({
+        reference_folder: '/tmp/designbook-data/references/abc123',
+        component: { component: 'site_header' },
+      }),
+    );
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBeDefined();
+    const region = result.value as { matched_via: string };
+    expect(region.matched_via).toBe('role');
+  });
+
   it('prefers the largest candidate when multiple nodes share the same role', async () => {
     // Real-world: leando.de has four nodes with role=contentinfo — three tiny
     // 27px <footer> sentinels and one big 698px Footernavigation. Reading order

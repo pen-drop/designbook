@@ -633,7 +633,7 @@ PropertyNode:
     kind:
       type: string
       description: Coarse element category — drives consumer reasoning even when specific style fields are missing.
-      enum: [section, container, text, image, icon, button, input, link, list, list-item, form, media]
+      enum: [section, container, text, heading, image, icon, button, input, link, list, list-item, form, media]
     role:
       type: string
       description: Normalized semantic role. Strong for DOM (HTML5 landmarks + ARIA). Optional.
