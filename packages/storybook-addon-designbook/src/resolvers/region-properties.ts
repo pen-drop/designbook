@@ -232,6 +232,27 @@ function descendantsOf(captured: CapturedSource, rootId: string): PropertyNode[]
   return out;
 }
 
+/**
+ * When a heading-element (<h1>-<h6>) wins the match, return its enclosing
+ * region instead — otherwise the subtree contains only the heading line
+ * and loses the section content. Walks up via parent_id until a section,
+ * container with a role, or main landmark is reached. Falls back to the
+ * heading itself if no such ancestor exists.
+ */
+function promoteToContainer(captured: CapturedSource, hit: PropertyNode): PropertyNode {
+  const byId = new Map(captured.nodes.map((n) => [n.id, n]));
+  let cur: PropertyNode = hit;
+  for (let depth = 0; depth < 8 && cur.parent_id; depth++) {
+    const parent = byId.get(cur.parent_id);
+    if (!parent) break;
+    if (parent.kind === 'section' || parent.kind === 'container' || parent.role) {
+      return parent;
+    }
+    cur = parent;
+  }
+  return hit;
+}
+
 function locateRegion(captured: CapturedSource, label: string): RegionProperties {
   const normalized = label.toLowerCase().replace(/[-_]/g, ' ').trim();
 
@@ -276,10 +297,14 @@ function locateRegion(captured: CapturedSource, label: string): RegionProperties
       return a.bbox.y - b.bbox.y || a.bbox.x - b.bbox.x;
     })[0];
   if (headingHit) {
+    // When the match is a heading element itself (<h1>-<h6>), promote to the
+    // enclosing container/section so the returned subtree carries the
+    // actual region content — not just the heading line.
+    const root = headingHit.kind === 'heading' ? promoteToContainer(captured, headingHit) : headingHit;
     return {
       matched_via: 'heading',
-      root_id: headingHit.id,
-      nodes: descendantsOf(captured, headingHit.id),
+      root_id: root.id,
+      nodes: descendantsOf(captured, root.id),
     };
   }
 
@@ -316,8 +341,14 @@ export const regionPropertiesResolver: ParamResolver = {
       return { resolved: true, value: undefined, input: url ?? '' };
     }
 
+    // Prefer the workflow's already-resolved reference_folder so we share the
+    // cache directory with extract-reference. Computing it locally would
+    // duplicate (and potentially diverge from) reference-folder.ts's URL
+    // normalization — case-sensitive paths/queries would land in a different
+    // hash bucket and read the wrong cache.
+    const paramRefDir = context.params.reference_folder;
     const dataDir = (context.config as { data: string }).data;
-    const refDir = referenceFolder(url, dataDir);
+    const refDir = typeof paramRefDir === 'string' && paramRefDir ? paramRefDir : referenceFolder(url, dataDir);
     const elementTreeDir = joinPath(refDir, '.element-tree');
     const sourcePath = joinPath(elementTreeDir, 'source.json');
 

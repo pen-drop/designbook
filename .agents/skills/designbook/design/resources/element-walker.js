@@ -23,7 +23,7 @@ const ROLE_TAG_MAP = {
 };
 
 const KIND_TAG_MAP = {
-  H1: 'text', H2: 'text', H3: 'text', H4: 'text', H5: 'text', H6: 'text',
+  H1: 'heading', H2: 'heading', H3: 'heading', H4: 'heading', H5: 'heading', H6: 'heading',
   P: 'text', SPAN: 'text', LABEL: 'text', LI: 'list-item',
   UL: 'list', OL: 'list',
   A: 'link', BUTTON: 'button',
