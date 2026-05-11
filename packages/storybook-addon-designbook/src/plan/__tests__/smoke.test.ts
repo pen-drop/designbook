@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolve } from 'node:path';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { buildRenderContext } from '../resolve.js';
 import { renderPlan } from '../render.js';
 
@@ -9,14 +11,22 @@ const WORKFLOW = resolve(AGENTS_DIR, 'skills/designbook/design/workflows/design-
 
 describe('smoke: design-shell plan', () => {
   let previousCwd: string;
+  let cwdSandbox: string;
 
   beforeEach(() => {
     previousCwd = process.cwd();
-    process.chdir(REPO_ROOT);
+    // loadConfig refuses to run with the repo root as cwd (the guard at
+    // src/config.ts:assertNotRepoRoot rejects when the resolved DESIGNBOOK_DATA
+    // would land next to pnpm-workspace.yaml + .git). The plan renderer is
+    // read-only — chdir to a tmp dir so the guard passes; all path inputs
+    // (workflow, agents) stay absolute and resolve against REPO_ROOT.
+    cwdSandbox = mkdtempSync(join(tmpdir(), 'designbook-plan-smoke-'));
+    process.chdir(cwdSandbox);
   });
 
   afterEach(() => {
     process.chdir(previousCwd);
+    rmSync(cwdSandbox, { recursive: true, force: true });
   });
 
   it('produces a plan whose every `**References**:` slug exists in the appendix', async () => {

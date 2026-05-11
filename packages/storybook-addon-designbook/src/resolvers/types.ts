@@ -8,7 +8,7 @@ export interface Candidate {
 
 export interface ResolverResult {
   resolved: boolean;
-  value?: string | unknown[];
+  value?: string | unknown[] | Record<string, unknown> | undefined;
   input: string;
   error?: string;
   candidates?: Candidate[];
