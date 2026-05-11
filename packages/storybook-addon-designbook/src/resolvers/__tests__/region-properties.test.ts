@@ -87,14 +87,8 @@ describe('regionPropertiesResolver', () => {
     expect(regionPropertiesResolver.name).toBe('region_properties');
   });
 
-  it('returns value: undefined when type is not "url"', async () => {
-    const result = await regionPropertiesResolver.resolve(
-      'figma://xyz',
-      { from: 'vision.design_reference.url' },
-      buildContext({
-        vision: { design_reference: { type: 'figma', url: 'figma://xyz' } },
-      }),
-    );
+  it('returns value: undefined when input is not an http(s) URL', async () => {
+    const result = await regionPropertiesResolver.resolve('figma://xyz', { from: 'reference_url' }, buildContext({}));
     expect(result.resolved).toBe(true);
     expect(result.value).toBeUndefined();
   });
@@ -102,7 +96,7 @@ describe('regionPropertiesResolver', () => {
   it('locates header via role match', async () => {
     const result = await regionPropertiesResolver.resolve(
       'https://example.com',
-      { from: 'vision.design_reference.url' },
+      { from: 'reference_url' },
       buildContext({
         vision: { design_reference: { type: 'url', url: 'https://example.com' } },
         component: { id: 'site_header' },
@@ -139,7 +133,7 @@ describe('regionPropertiesResolver', () => {
 
     const result = await regionPropertiesResolver.resolve(
       'https://example.com',
-      { from: 'vision.design_reference.url' },
+      { from: 'reference_url' },
       buildContext({
         vision: { design_reference: { type: 'url', url: 'https://example.com' } },
         component: { id: 'pricing' },
@@ -153,7 +147,7 @@ describe('regionPropertiesResolver', () => {
   it('returns matched_via:none with empty nodes when no heuristic hits', async () => {
     const result = await regionPropertiesResolver.resolve(
       'https://example.com',
-      { from: 'vision.design_reference.url' },
+      { from: 'reference_url' },
       buildContext({
         vision: { design_reference: { type: 'url', url: 'https://example.com' } },
         component: { id: 'nonexistent_widget' },
@@ -167,7 +161,7 @@ describe('regionPropertiesResolver', () => {
   it('returns value: undefined when input URL is empty', async () => {
     const result = await regionPropertiesResolver.resolve(
       '',
-      { from: 'vision.design_reference.url' },
+      { from: 'reference_url' },
       buildContext({
         vision: { design_reference: { type: 'url', url: '' } },
       }),
@@ -180,7 +174,7 @@ describe('regionPropertiesResolver', () => {
     // sections/main/main.section.scenes.yml → label 'main' → role hint hits n_main.
     const result = await regionPropertiesResolver.resolve(
       'https://example.com',
-      { from: 'vision.design_reference.url' },
+      { from: 'reference_url' },
       buildContext({
         vision: { design_reference: { type: 'url', url: 'https://example.com' } },
         scene_path: 'sections/main/main.section.scenes.yml',
@@ -221,7 +215,7 @@ describe('regionPropertiesResolver', () => {
     (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(JSON.stringify(cyclic));
     const result = await regionPropertiesResolver.resolve(
       'https://example.com',
-      { from: 'vision.design_reference.url' },
+      { from: 'reference_url' },
       buildContext({
         vision: { design_reference: { type: 'url', url: 'https://example.com' } },
         component: { id: 'A' },
@@ -237,7 +231,7 @@ describe('regionPropertiesResolver', () => {
     (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(JSON.stringify({ source_kind: 'url-dom' }));
     const result = await regionPropertiesResolver.resolve(
       'https://example.com',
-      { from: 'vision.design_reference.url' },
+      { from: 'reference_url' },
       buildContext({
         vision: { design_reference: { type: 'url', url: 'https://example.com' } },
         component: { id: 'site_header' },

@@ -47,11 +47,11 @@ params:
     region_properties:
       $ref: ../../design/schemas.yml#/RegionProperties
       resolve: region_properties
-      from: vision.design_reference.url
+      from: reference_url
       description: >
         Authoritative element properties for the region this scene covers. Optional —
-        populated only when vision.design_reference.type === "url" and the resolver
-        found a matching subtree in the rendered DOM. When present, use style values 1:1.
+        populated only when reference_url is a live URL and the resolver found a matching
+        subtree in the rendered DOM. When present, use style values 1:1.
 result:
   type: object
   required: [scene-file]
