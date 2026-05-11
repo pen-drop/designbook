@@ -2,15 +2,6 @@
 name: designbook:design:region-properties
 trigger:
   steps: [create-component, create-scene]
-extends:
-  region_properties:
-    $ref: ../schemas.yml#/RegionProperties
-    description: |
-      Authoritative element properties for the region this task covers. Optional —
-      present only when vision.design_reference.type === "url" and the resolver
-      found a matching subtree in the rendered DOM.
-    resolve: region_properties
-    from: vision.design_reference.url
 ---
 
 # Region Properties
