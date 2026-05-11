@@ -43,23 +43,7 @@ A universal structural wrapper that constrains content width, provides horizonta
 
 ## Twig Slot Pattern
 
-All slots MUST be wrapped in `{% block %}` tags for `{% embed %}` compatibility:
-
-```twig
-{% block background %}
-  {% if background %}{{ background }}{% endif %}
-{% endblock %}
-
-{% block header %}
-  {% if header and display_header %}
-    <div class="container__header">{{ header }}</div>
-  {% endif %}
-{% endblock %}
-
-{% block content %}
-  {% if content %}{{ content }}{% endif %}
-{% endblock %}
-```
+Layout components wrap each slot in `{% block <name> %}` for `{% embed %}` compatibility — see `rules/twig.md`.
 
 ## Token Integration
 
