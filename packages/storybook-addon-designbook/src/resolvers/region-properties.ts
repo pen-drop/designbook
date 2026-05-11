@@ -283,10 +283,8 @@ export const regionPropertiesResolver: ParamResolver = {
   name: 'region_properties',
 
   async resolve(input: string, _config: Record<string, unknown>, context: ResolverContext): Promise<ResolverResult> {
-    const type = getNested(context.params, ['vision', 'design_reference', 'type']);
     const url = input && input !== '' ? input : undefined;
-
-    if (type !== 'url' || !url) {
+    if (!url || !/^https?:\/\//i.test(url)) {
       return { resolved: true, value: undefined, input: url ?? '' };
     }
 
