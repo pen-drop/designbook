@@ -93,13 +93,12 @@ describe('regionPropertiesResolver', () => {
     expect(result.value).toBeUndefined();
   });
 
-  it('locates header via role match', async () => {
+  it('locates header via role match (component.component as label)', async () => {
     const result = await regionPropertiesResolver.resolve(
       'https://example.com',
       { from: 'reference_url' },
       buildContext({
-        vision: { design_reference: { type: 'url', url: 'https://example.com' } },
-        component: { id: 'site_header' },
+        component: { component: 'header', group: 'navigation' },
       }),
     );
     expect(result.resolved).toBe(true);
@@ -107,6 +106,20 @@ describe('regionPropertiesResolver', () => {
     expect(region.matched_via).toBe('role');
     expect(region.root_id).toBe('n_header');
     expect(region.nodes.map((n) => n.id)).toEqual(['n_header', 'n_logo']);
+  });
+
+  it('falls back to component.id when component.component is absent', async () => {
+    const result = await regionPropertiesResolver.resolve(
+      'https://example.com',
+      { from: 'reference_url' },
+      buildContext({
+        component: { id: 'site_header' },
+      }),
+    );
+    expect(result.resolved).toBe(true);
+    const region = result.value as { matched_via: string; root_id?: string };
+    expect(region.matched_via).toBe('role');
+    expect(region.root_id).toBe('n_header');
   });
 
   it('locates section via heading match when role does not apply', async () => {
