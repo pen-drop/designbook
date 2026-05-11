@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
-import { mkdir, readFile } from 'node:fs/promises';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve as joinPath, dirname } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import type { ParamResolver, ResolverContext, ResolverResult } from './types.js';
 
@@ -88,76 +88,96 @@ function locateWalker(context: ResolverContext): string {
   return candidates[0] ?? joinPath(process.cwd(), walkerRel);
 }
 
+function parseTimeoutMs(): number {
+  const raw = process.env.DESIGNBOOK_WALKER_TOTAL_TIMEOUT_MS;
+  if (!raw) return DEFAULT_WALKER_TIMEOUT_MS;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_WALKER_TIMEOUT_MS;
+}
+
+// Wait until URL is stable AND networkidle has fired — handles SPA hydration,
+// HTTP redirects, JS redirects, OAuth round-trips, and SPA route guards.
+async function waitForReady(page: import('playwright').Page, totalBudgetMs: number): Promise<void> {
+  const deadline = Date.now() + totalBudgetMs;
+  let lastUrl = '';
+  let lastUrlChangeAt = Date.now();
+  while (Date.now() < deadline) {
+    await page.waitForLoadState('load').catch(() => {});
+    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+    const currentUrl = page.url();
+    if (currentUrl !== lastUrl) {
+      lastUrl = currentUrl;
+      lastUrlChangeAt = Date.now();
+      continue;
+    }
+    if (Date.now() - lastUrlChangeAt > 1500) {
+      await page.waitForTimeout(500);
+      return;
+    }
+    await page.waitForTimeout(300);
+  }
+  console.warn(`[region-properties] URL never stabilized within ${totalBudgetMs}ms; walking current DOM`);
+}
+
 async function runWalker(url: string, outPath: string, walkerPath: string): Promise<void> {
-  await mkdir(dirname(outPath), { recursive: true });
-  const walkerSource = await readFile(walkerPath, 'utf8');
+  const totalTimeoutMs = parseTimeoutMs();
 
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    DESIGNBOOK_WALKER_OUT: outPath,
-    DESIGNBOOK_WALKER_SOURCE_REF: url,
-  };
-
-  let activeChild: ChildProcess | null = null;
-
-  function runOne(args: string[]): Promise<void> {
-    return new Promise<void>((resolveProc, rejectProc) => {
-      const child = spawn('npx', ['playwright-cli', ...args], { env, stdio: 'inherit' });
-      activeChild = child;
-      child.on('exit', (code) => {
-        activeChild = null;
-        if (code === 0) {
-          resolveProc();
-        } else {
-          rejectProc(new Error(`playwright-cli ${args[0]} exit ${code}`));
-        }
-      });
-      child.on('error', (err) => {
-        activeChild = null;
-        rejectProc(err);
-      });
-    });
+  // Read PAGE_SCRIPT from the walker module dynamically. Use file:// URL
+  // because walkerPath may be outside the package's tsconfig rootDir.
+  const walkerModUrl = pathToFileURL(walkerPath).href;
+  const walkerMod = (await import(walkerModUrl)) as { PAGE_SCRIPT: string };
+  const pageScript = walkerMod.PAGE_SCRIPT;
+  if (typeof pageScript !== 'string' || pageScript.length === 0) {
+    throw new Error(`PAGE_SCRIPT not exported from ${walkerPath}`);
   }
 
-  const totalTimeoutMs = Number.parseInt(
-    process.env.DESIGNBOOK_WALKER_TOTAL_TIMEOUT_MS ?? `${DEFAULT_WALKER_TIMEOUT_MS}`,
-    10,
-  );
-  const effectiveTimeout =
-    Number.isFinite(totalTimeoutMs) && totalTimeoutMs > 0 ? totalTimeoutMs : DEFAULT_WALKER_TIMEOUT_MS;
+  await mkdir(dirname(outPath), { recursive: true });
 
-  const pipeline = (async () => {
-    await runOne(['open']);
-    try {
-      await runOne(['goto', url]);
-      await runOne(['resize', '1440', '1600']);
-      await runOne(['run-code', walkerSource]);
-    } finally {
-      // Always close, even on failure.
-      await runOne(['close']).catch(() => {});
-    }
-  })();
+  const { chromium } = await import('playwright');
+  const browser = await chromium.launch({ headless: true });
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await new Promise<void>((resolveOuter, rejectOuter) => {
+      timeoutHandle = setTimeout(() => {
+        rejectOuter(new Error(`walker timed out after ${totalTimeoutMs}ms`));
+        browser.close().catch(() => {});
+      }, totalTimeoutMs);
 
-  await new Promise<void>((resolveAll, rejectAll) => {
-    const timer = setTimeout(() => {
-      try {
-        activeChild?.kill('SIGKILL');
-      } catch {
-        // ignore
-      }
-      rejectAll(new Error(`walker timed out after ${effectiveTimeout}ms`));
-    }, effectiveTimeout);
-    pipeline.then(
-      () => {
-        clearTimeout(timer);
-        resolveAll();
-      },
-      (err) => {
-        clearTimeout(timer);
-        rejectAll(err);
-      },
-    );
-  });
+      (async () => {
+        const context = await browser.newContext({ viewport: { width: 1440, height: 1600 } });
+        const page = await context.newPage();
+        try {
+          await page.goto(url);
+          await waitForReady(page, totalTimeoutMs);
+          const vp = page.viewportSize() ?? { width: 1440, height: 1600 };
+          const result = await page.evaluate(
+            ({
+              ref,
+              script,
+              viewport,
+            }: {
+              ref: string;
+              script: string;
+              viewport: { width: number; height: number };
+            }) => {
+              eval(script);
+              // walkDocument is now in scope from PAGE_SCRIPT.
+              // @ts-expect-error — walkDocument is dynamically defined.
+              return walkDocument(document, { sourceRef: ref, viewport });
+            },
+            { ref: url, script: pageScript, viewport: vp },
+          );
+          await writeFile(outPath, JSON.stringify(result, null, 2));
+          resolveOuter();
+        } finally {
+          await context.close().catch(() => {});
+        }
+      })().catch(rejectOuter);
+    });
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    await browser.close().catch(() => {});
+  }
 }
 
 function pickRegionLabel(params: Record<string, unknown>): string {
