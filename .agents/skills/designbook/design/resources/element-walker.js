@@ -224,7 +224,8 @@ export function walkDocument(doc, options = {}) {
 
     const node = {
       id,
-      parent_id: parentId,
+      // Omit parent_id entirely for the root — schema reserves null for "absent".
+      ...(parentId ? { parent_id: parentId } : {}),
       child_ids: [],
       label: getLabel(el),
       kind: getKind(el),
