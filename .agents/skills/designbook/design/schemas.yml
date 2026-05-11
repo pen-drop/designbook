@@ -680,7 +680,8 @@ PropertyNode:
       examples: ["n_8a3f21bc"]
     parent_id:
       type: string
-      description: ID of this node's parent PropertyNode. Absent for the root.
+      description: ID of this node's parent PropertyNode. Absent for the root — walkers MUST omit the key for the root node rather than emit null.
+      examples: ["n_8a3f21bc"]
     child_ids:
       type: array
       description: Child node IDs in reading / visual order.
@@ -777,8 +778,10 @@ PropertyNode:
           examples: ["400", "600"]
         line_height:
           type: string
+          examples: ["1.5", "24px", "normal"]
         letter_spacing:
           type: string
+          examples: ["normal", "0.02em", "0.5px"]
         text_transform:
           type: string
           enum: [uppercase, lowercase, capitalize]
