@@ -1,8 +1,7 @@
 // Type declarations for element-walker.js. Co-located so TypeScript prefers
 // these types over the .js source — keeping the .js out of any consumer's
-// rootDir without sacrificing type safety. The walker is deliberately a
-// plain .js module so it can be inlined into a Playwright `run-code`
-// browser-side function via `walkDocument.toString()`.
+// rootDir without sacrificing type safety. The walker is browser-side only;
+// helpers are inlined into a Playwright `page.evaluate` call via PAGE_SCRIPT.
 
 export interface CapturedSourceViewport {
   width: number;
@@ -74,6 +73,3 @@ export function walkDocument(doc: Document, options?: WalkDocumentOptions): Capt
  * `walkDocument.toString()` alone strips module-scoped helper references.
  */
 export const PAGE_SCRIPT: string;
-
-declare const _default: (page: unknown) => Promise<void>;
-export default _default;

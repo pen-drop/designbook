@@ -1,8 +1,11 @@
-// Element-property walker. Two surfaces in one ESM module:
+// Element-property walker. Browser-side code only.
+//
 //   - walkDocument(doc, options): pure, jsdom-testable, returns CapturedSource
-//   - default export (page): playwright-cli run-code compatible, handles
-//     client-side rendering and post-load redirects, writes JSON to
-//     DESIGNBOOK_WALKER_OUT
+//   - PAGE_SCRIPT: serialized helpers + walkDocument for in-page eval
+//
+// Node-side orchestration (launching Playwright, navigating, waiting for
+// SPA hydration / redirects, writing the JSON) lives in the region-properties
+// resolver. This file does not import anything from `node:*`.
 //
 // The shape is source-agnostic. Future Figma / screenshot walkers can return
 // the same CapturedSource via different production paths.
@@ -283,60 +286,3 @@ export const PAGE_SCRIPT = [
   buildStyle.toString(),
   walkDocument.toString(),
 ].join('\n\n');
-
-// Wait until URL is stable AND networkidle has fired — handles SPA hydration,
-// HTTP redirects, JS redirects, OAuth round-trips, and SPA route guards.
-async function waitForReady(page, totalBudgetMs) {
-  const deadline = Date.now() + totalBudgetMs;
-  let lastUrl = '';
-  let lastUrlChangeAt = Date.now();
-
-  while (Date.now() < deadline) {
-    await page.waitForLoadState('load').catch(() => {});
-    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
-
-    const currentUrl = page.url();
-    if (currentUrl !== lastUrl) {
-      lastUrl = currentUrl;
-      lastUrlChangeAt = Date.now();
-      continue;
-    }
-    if (Date.now() - lastUrlChangeAt > 1500) {
-      await page.waitForTimeout(500);
-      return;
-    }
-    await page.waitForTimeout(300);
-  }
-  console.warn(`[element-walker] URL never stabilized within ${totalBudgetMs}ms; walking current DOM`);
-}
-
-// Default export: playwright-cli run-code compatible.
-export default async function (page) {
-  const sourceRef = process.env.DESIGNBOOK_WALKER_SOURCE_REF || page.url();
-  const waitMs = parseInt(process.env.DESIGNBOOK_WALKER_WAIT_MS || '30000', 10);
-
-  await waitForReady(page, waitMs);
-
-  const finalUrl = page.url();
-  const viewport = page.viewportSize() || { width: 1440, height: 900 };
-  const result = await page.evaluate(
-    ({ ref, script, vp }) => {
-      // eslint-disable-next-line no-eval
-      eval(script);
-      // After eval, walkDocument is in scope.
-      // eslint-disable-next-line no-undef
-      return walkDocument(document, { sourceRef: ref, viewport: vp });
-    },
-    {
-      ref: finalUrl !== sourceRef ? finalUrl : sourceRef,
-      script: PAGE_SCRIPT,
-      vp: viewport,
-    },
-  );
-  const fs = await import('node:fs/promises');
-  const path = await import('node:path');
-  const outPath = process.env.DESIGNBOOK_WALKER_OUT;
-  if (!outPath) throw new Error('DESIGNBOOK_WALKER_OUT env var not set');
-  await fs.mkdir(path.dirname(outPath), { recursive: true });
-  await fs.writeFile(outPath, JSON.stringify(result, null, 2));
-}

@@ -63,6 +63,7 @@ const FIXTURE_CAPTURED = {
 vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(async () => JSON.stringify(FIXTURE_CAPTURED)),
   mkdir: vi.fn(async () => undefined),
+  writeFile: vi.fn(async () => undefined),
 }));
 
 vi.mock('node:fs', () => ({
