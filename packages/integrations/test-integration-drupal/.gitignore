@@ -39,4 +39,4 @@ test-results/
 test_output.txt
 
 # Designbook addon — watcher-trigger file rewritten on every workflow flush
-.storybook/preview.designbook-trigger
+designbook/.workflow-trigger

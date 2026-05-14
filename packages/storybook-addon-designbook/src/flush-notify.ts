@@ -5,13 +5,12 @@ import { loadConfig } from './config.js';
 
 const WATCHER_AGGREGATE_MS = 250;
 
-// Addon-owned file inside the Storybook config directory. Storybook's
-// `watchConfig` callback invalidates the entire story index whenever a file
-// under configDir whose basename starts with `preview` changes. The filename
-// deliberately does NOT match Storybook's preview-module auto-load pattern
-// (`preview.{js,ts,jsx,tsx,mjs,cjs}`), so this file is never imported by
-// Storybook — it only exists as a watcher trigger.
-const INDEX_TRIGGER_BASENAME = 'preview.designbook-trigger';
+// Trigger file under $DESIGNBOOK_DATA. The addon's vite-plugin watches it and
+// restarts the Vite dev server when it changes, which re-runs every plugin's
+// `configureServer` hook — including Storybook's — and rebuilds the story
+// index from scratch. Keeping the trigger inside $DESIGNBOOK_DATA means
+// workflow flushes never touch the user's `.storybook/` directory.
+const TRIGGER_BASENAME = '.workflow-trigger';
 
 export async function notifyWatcherAfterRename(paths: string[]): Promise<void> {
   if (paths.length === 0) return;
@@ -29,18 +28,17 @@ export async function notifyWatcherAfterRename(paths: string[]): Promise<void> {
 
 // Storybook's StoryIndexGenerator runs its own Watchpack and only watches
 // directories that existed at startup. Files dropped into freshly-created
-// subdirectories of a story-spec root are missed by that watcher. Forcing
-// `invalidateAll()` re-globbies every story spec from scratch and picks up
-// the new directories.
+// subdirectories of a story-spec root are missed by that watcher. Writing this
+// trigger file under $DESIGNBOOK_DATA tells the addon's vite-plugin to restart
+// the Vite dev server, which re-creates the StoryIndexGenerator and re-globbies
+// all story specs from scratch — picking up the new directories without
+// touching the user's `.storybook/` config.
 function triggerStorybookIndexRebuild(): void {
   try {
     const cfg = loadConfig();
-    const home = (cfg['designbook.home'] as string | undefined) ?? cfg.data;
-    if (!home) return;
-    const configDir = resolve(home, '.storybook');
-    if (!existsSync(configDir)) return;
-    const triggerPath = resolve(configDir, INDEX_TRIGGER_BASENAME);
-    writeFileSync(triggerPath, String(Date.now()));
+    const dataDir = cfg.data;
+    if (!dataDir || !existsSync(dataDir)) return;
+    writeFileSync(resolve(dataDir, TRIGGER_BASENAME), String(Date.now()));
   } catch {
     /* best-effort — never fail a flush because of this */
   }
