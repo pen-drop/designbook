@@ -38,19 +38,16 @@ Rules for generating Drupal-compatible sample data (`when: backend: drupal`).
 
 ## Components
 
-Rules, tasks, and resources for creating Drupal SDC components (`when: frameworks.component: sdc`).
+Rules, tasks, and blueprints for creating Drupal SDC components (`when: frameworks.component: sdc`).
 
 - [components/schemas.yml](components/schemas.yml) — `SdcComponent` / `SdcStory` / `SdcStoryNode` / `SdcTemplate` — naming, slot rules, YAML quoting, variants, placeholder images, Twig conventions (single source)
 - [components/tasks/create-component.md](components/tasks/create-component.md) — Creates all three SDC files; phase-based generation with per-component validation
-- [components/resources/twig.md](components/resources/twig.md) — Twig template examples
-- [components/resources/component-patterns.md](components/resources/component-patterns.md) — Slot/variant/prop detection heuristics
-- [components/resources/container-reference.md](components/resources/container-reference.md) — Container markup (component.yml, Twig, stories)
-- [components/resources/grid-reference.md](components/resources/grid-reference.md) — Grid markup (component.yml, Twig, stories)
-- [components/resources/section-reference.md](components/resources/section-reference.md) — Section markup (component.yml, Twig, stories)
+- [components/rules/sdc-components.md](components/rules/sdc-components.md) — Constraints for `.component.yml`, `.twig`, `.story.yml` (global naming + per-file-type rules)
+- [components/rules/layout-constraints.md](components/rules/layout-constraints.md) — Layout component constraints
 
 ## Blueprints
 
-Layout component blueprints with tokens, props/slots summary (`when: steps: [create-component]`). Full markup in resources above.
+Layout component blueprints with tokens, props/slots summary (`when: steps: [create-component]`).
 
 - [blueprints/container.md](blueprints/container.md) — Universal structural wrapper (max-width, padding, header, background)
 - [blueprints/grid.md](blueprints/grid.md) — Responsive column grid layout

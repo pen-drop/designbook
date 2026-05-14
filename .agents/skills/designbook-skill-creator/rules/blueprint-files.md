@@ -180,6 +180,14 @@ The `BLUEPRINT-01` check flags `provides:` or `constrains:` in blueprint frontma
 flags body prose that should live in `suggests:` (soft) or in `schemas.yml` / a rule
 (hard).
 
+## Blueprints Don't Reference Rules
+
+Blueprints are loaded together with the rules that match the same task — both reach the AI through the executor's prompt assembly. A blueprint pointing at a rule duplicates information the executor already delivers and couples the blueprint to a rule's filename, which then breaks on rename or split.
+
+A blueprint either contains the guidance itself (as a suggestion) or omits it entirely and lets the rule carry it. Never both.
+
+The same applies to cross-blueprint references for hard constraints: if the content is a constraint, it belongs in a rule, and the rule is delivered alongside the blueprint without needing a "see also" link.
+
 ## `blueprints/` — Trigger + Filter Matching
 
 Blueprints use the same `trigger:` + `filter:` matching as rules, including strict-trigger semantics and consumer-based `domain:` activation.
@@ -202,3 +210,4 @@ filter:
 | BLUEPRINT-01 | error | Frontmatter contains no `provides:` or `constrains:` — both are rule-exclusive. Blueprints may use `extends:` (add properties) and `suggests:` (soft recommendations). | frontmatter |
 | BLUEPRINT-02 | warning | Body does not contain site-specific references (brand names, project URLs, customer slot names) — site-specific content in core `designbook/` is caught by COMMON-02 in common-rules.md; this check covers blueprints in integration skills that still must stay site-agnostic | body |
 | BLUEPRINT-03 | warning | Body does not describe enum values, required fields, type restrictions, or default values. Such content belongs either in `suggests:` in frontmatter (soft recommendation, machine-readable) or in `schemas.yml` / a rule (hard contract). Pure narrative prose is fine. Finding message must name which target applies per the decision matrix in "Blueprints Suggest, Never Enforce". | body |
+| BLUEPRINT-04 | warning | Body does not reference rule files (e.g. `rules/<name>.md`, "see rules/…", "per the … rule"). Rules reach the AI through executor prompt assembly alongside the blueprint — a reference duplicates content and couples the blueprint to a rule filename. | body |
