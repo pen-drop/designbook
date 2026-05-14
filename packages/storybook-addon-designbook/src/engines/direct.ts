@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, renameSync, unlinkSync, writeFileSy
 import { resolve, dirname } from 'node:path';
 import type { WorkflowEngine, TransitionResult } from './types.js';
 import type { WorkflowFile, WorkflowTask } from '../workflow.js';
-import { notifyWatcherAfterRename } from '../flush-notify.js';
+import { signalStorybookRebuild } from '../flush-notify.js';
 
 function deboSuffix(data: WorkflowFile): string {
   if (!data.workflow_id) throw new Error('workflow_id is required for direct engine stash-at-target');
@@ -41,11 +41,9 @@ export const directEngine: WorkflowEngine = {
     throw new Error(`No file entry with key '${key}' in task '${task.id}'`);
   },
 
-  async flush(data: WorkflowFile, tasks: WorkflowTask[]): Promise<void> {
-    const paths: string[] = [];
+  flush(data: WorkflowFile, tasks: WorkflowTask[]): Promise<void> {
     const suffix = deboSuffix(data);
-
-    // Phase 1: rename all stashed files to final paths (silent — no watcher trigger)
+    let renamed = 0;
     const now = new Date().toISOString();
     for (const task of tasks) {
       for (const file of task.files ?? []) {
@@ -55,14 +53,15 @@ export const directEngine: WorkflowEngine = {
         mkdirSync(dirname(file.path), { recursive: true });
         renameSync(src, file.path);
         file.flushed_at = now;
-        paths.push(file.path);
+        renamed++;
       }
     }
 
-    // Phase 2: notify Storybook's file watcher after all renames settle.
-    // renameSync produces inotify MOVE events that Watchpack sometimes coalesces or
-    // misses; a follow-up content rewrite produces a definitive change event.
-    await notifyWatcherAfterRename(paths);
+    // Tell Storybook to rebuild its story index. Files renamed into newly
+    // created subdirectories are missed by Storybook's StoryIndexGenerator
+    // watcher (it only auto-watches directory trees discovered at startup).
+    if (renamed > 0) signalStorybookRebuild();
+    return Promise.resolve();
   },
 
   commit() {
