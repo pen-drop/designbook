@@ -187,6 +187,27 @@ export function designbookLoadPlugin(
       server.watcher.add(resolve(designbookDir, 'tokens'));
       server.watcher.add(resolve(designbookDir, 'workflows'));
 
+      // CLI-side flushes write $DESIGNBOOK_DATA/.workflow-trigger when a stage
+      // transition produces files in directories Storybook's StoryIndexGenerator
+      // did not know about at startup. Storybook's index Watchpack only auto-
+      // watches directory trees discovered during initial traversal, so the
+      // only reliable way to surface new component/section subdirectories
+      // without touching the user's Storybook config is to restart the Vite
+      // dev server — re-running every plugin's `configureServer` re-creates the
+      // StoryIndexGenerator and re-globbies all story specs from scratch.
+      const triggerSrc = resolve(designbookDir, '.workflow-trigger');
+      server.watcher.add(triggerSrc);
+      let restarting = false;
+      const onTrigger = (file: string) => {
+        if (file !== triggerSrc || restarting) return;
+        restarting = true;
+        server.restart().catch(() => {
+          restarting = false;
+        });
+      };
+      server.watcher.on('add', onTrigger);
+      server.watcher.on('change', onTrigger);
+
       for (const [watchEvent, channelEvent] of [
         ['add', 'designbook:file-add'],
         ['change', 'designbook:file-update'],

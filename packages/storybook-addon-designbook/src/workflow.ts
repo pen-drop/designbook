@@ -1462,6 +1462,12 @@ export async function workflowDone(
         ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
       };
       if (engine) {
+        // Safety net: flush any unflushed task files before archiving. The transition
+        // loop above normally handles flushing per stage, but tasks that reach this
+        // branch without crossing a stage boundary still have their files in stash.
+        if (engine.flush) {
+          await engine.flush(data, data.tasks);
+        }
         const doneResult = engine.done(data);
         if (doneResult.archive) {
           archiveWorkflow(dataDir, name, data);
