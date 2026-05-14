@@ -16,7 +16,6 @@ import {
   expandTasksFromParams,
 } from '../workflow.js';
 import { load as parseYaml } from 'js-yaml';
-import { globSync } from 'glob';
 import {
   resolveAllStages,
   parseFrontmatter,
@@ -32,15 +31,7 @@ import type { ResolverContext } from '../resolvers/types.js';
 import { renderSubmitResultsHint } from './submit-results-hint.js';
 import { initLogger, log } from '../logger.js';
 import { register as registerSummary } from './workflow-summary.js';
-
-// Resolve a workflow .md file from a workflow ID by scanning skills directories (same glob mechanism as tasks/rules).
-function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
-  const matches = globSync(`skills/**/workflows/${workflowId}.md`, { cwd: agentsDir, absolute: true });
-  if (matches.length === 0) {
-    throw new Error(`Workflow file not found for "${workflowId}". No match for skills/**/workflows/${workflowId}.md`);
-  }
-  return matches[0]!;
-}
+import { listWorkflowDefinitions, loadWorkflowDefinition, resolveWorkflowFile } from './workflow-discovery.js';
 
 export interface InstructionsResult {
   stage: string;
@@ -115,8 +106,11 @@ export function register(program: Command): void {
 
   workflow.option('--log', 'Tag this CLI call in dbo.log (for post-workflow audit via --research)');
 
-  // Initialize logger before every subcommand
-  workflow.hook('preAction', () => {
+  // Initialize logger before every subcommand. Skip for read-only introspection
+  // (`definitions`) so it can run from the repo root without tripping the
+  // `assertNotRepoRoot` guard in `loadConfig`.
+  workflow.hook('preAction', (_thisCommand, actionCommand) => {
+    if (actionCommand.name() === 'definitions') return;
     const config = loadConfig();
     const logTag = !!(workflow.opts() as { log?: boolean }).log;
     initLogger(config.data, logTag);
@@ -132,6 +126,27 @@ export function register(program: Command): void {
       const names = workflowList(config.data, opts.workflow, opts.includeArchived);
       log({ cmd: 'workflow list', args: { workflow: opts.workflow }, result: names });
       for (const n of names) console.log(n);
+    });
+
+  workflow
+    .command('definitions [workflow-id]')
+    .description('List workflow definitions (skills/**/workflows/*.md). With <workflow-id>, emit JSON detail.')
+    .action((workflowId: string | undefined) => {
+      const configPath = findConfig();
+      const configDir = configPath ? dirname(configPath) : process.cwd();
+      const agentsDir = resolveSkillsRoot(configDir);
+      if (!workflowId) {
+        const ids = listWorkflowDefinitions(agentsDir);
+        for (const id of ids) console.log(id);
+        return;
+      }
+      try {
+        const def = loadWorkflowDefinition(workflowId, agentsDir);
+        console.log(JSON.stringify(def, null, 2));
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
     });
 
   workflow

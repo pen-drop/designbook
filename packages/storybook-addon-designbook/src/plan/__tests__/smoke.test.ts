@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolve } from 'node:path';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { buildRenderContext } from '../resolve.js';
 import { renderPlan } from '../render.js';
 
@@ -9,14 +11,20 @@ const WORKFLOW = resolve(AGENTS_DIR, 'skills/designbook/design/workflows/design-
 
 describe('smoke: design-shell plan', () => {
   let previousCwd: string;
+  let cwdTmp: string;
 
   beforeEach(() => {
     previousCwd = process.cwd();
-    process.chdir(REPO_ROOT);
+    // Run from a tmpdir so `loadConfig()` does not resolve `DESIGNBOOK_DATA`
+    // to the repo root (which trips `assertNotRepoRoot`). `agentsDir` is
+    // passed explicitly to `buildRenderContext`, so cwd only affects config.
+    cwdTmp = mkdtempSync(join(tmpdir(), 'smoke-plan-'));
+    process.chdir(cwdTmp);
   });
 
   afterEach(() => {
     process.chdir(previousCwd);
+    rmSync(cwdTmp, { recursive: true, force: true });
   });
 
   it('produces a plan whose every `**References**:` slug exists in the appendix', async () => {

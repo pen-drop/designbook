@@ -77,7 +77,7 @@ See [`resources/skill-map.md`](resources/skill-map.md) for a full listing of all
 
 ## Research Mode
 
-See `.agents/skills/designbook-test/research.md` for the autonomous research-mode loop protocol. The audit criteria are in `.agents/skills/designbook-test/research-audit.md`.
+See `.agents/skills/designbook-test/workflows/research.md` for the autonomous research-mode loop protocol. The audit criteria are in `.agents/skills/designbook-test/resources/audit-criteria.md`.
 
 ## Skill Validation
 
