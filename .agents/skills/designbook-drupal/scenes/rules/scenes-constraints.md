@@ -59,19 +59,3 @@ The `entity` string provides `entity_type` (part 0) and `bundle` (part 1). `view
 
 `record:` is an optional integer (default: 0) — selects which record from `data.yml` to use.
 
-## Listing Scenes Use listing.* Entities
-
-> ⛔ **Listing scenes MUST use a `listing.*` config entity as the content node.** Never use `entity + records: []` for listing pages.
-
-```yaml
-# ✅ Correct — listing entity handles the collection
-- entity: "[listing_type].[bundle]"
-  view_mode: "default"
-
-# ❌ Wrong — records shorthand is for component demos only
-- entity: "[entity_type].[bundle]"
-  view_mode: "teaser"
-  records: [0, 1, 2]
-```
-
-`records:` shorthand is for isolated component previews only. Listing pages use a `listing.*` config entity — its JSONata file declares its own entity refs inline.

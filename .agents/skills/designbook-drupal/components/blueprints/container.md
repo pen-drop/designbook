@@ -41,13 +41,9 @@ A universal structural wrapper that constrains content width, provides horizonta
 - background — decorative background layer
 - content (required)
 
-## Twig Slot Pattern
-
-Layout components wrap each slot in `{% block <name> %}` for `{% embed %}` compatibility — see `rules/twig.md`.
-
 ## Token Integration
 
-Container max-width values should come from design tokens (`--container-sm`, `--container-md`, etc.) — see `layout-constraints.md` rule for enforcement details.
+Container max-width values should come from design tokens (`--container-sm`, `--container-md`, etc.).
 
 When the design reference uses a wider wrapper than the default token set provides, add a new size tier (e.g. `2xl`) to both the token file and the container's `max_width` enum.
 
