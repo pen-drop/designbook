@@ -6,7 +6,6 @@ import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { setTimeout as delay } from 'node:timers/promises';
 import { load as parseYaml } from 'js-yaml';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -97,64 +96,54 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
   const scenesIndexer = {
     test: /\.scenes\.yml$/,
     createIndex: async (fileName: string) => {
+      const raw = readFileSync(fileName, 'utf-8');
+      let parsed: unknown;
       try {
-        let parsed = parseYaml(readFileSync(fileName, 'utf-8'));
-
-        // Indexer races the file watcher — a half-written file parses to null.
-        // Single retry after a short delay so the sidebar isn't left empty until
-        // the next change event.
-        if (!parsed || typeof parsed !== 'object') {
-          await delay(50);
-          parsed = parseYaml(readFileSync(fileName, 'utf-8'));
-        }
-
-        if (!parsed || typeof parsed !== 'object') {
-          console.warn('[Designbook] Scene file parsed as null/empty:', fileName);
-          return [];
-        }
-
-        const typedParsed = parsed as Record<string, unknown>;
-
-        // --- Scene files ---
-        const relativePath = './' + relative(process.cwd(), fileName);
-        const match = matchHandler(fileName, defaultHandlers);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const entries: any[] = [];
-
-        // Every scenes file gets a canvas Overview entry (rendered via mountReact + DeboSectionPage)
-        if (match && match.handler.hasOverview) {
-          entries.push({
-            type: 'story' as const,
-            importPath: relativePath,
-            exportName: 'overview',
-            title: typedParsed.group,
-            name: 'Overview',
-            tags: ['!autodocs'],
-          });
-        }
-
-        // Add scene story entries
-        const scenes = extractScenes(typedParsed);
-        for (let idx = 0; idx < scenes.length; idx++) {
-          const scene = scenes[idx];
-          if (!scene) continue;
-          const name = (scene.name as string) || `Scene ${idx + 1}`;
-          const exportName = buildExportName(name);
-
-          entries.push({
-            type: 'story' as const,
-            importPath: relativePath,
-            exportName: exportName,
-            title: typedParsed.group + '/Scenes',
-            tags: ['scene', '!autodocs'],
-          });
-        }
-
-        return entries;
+        parsed = parseYaml(raw);
       } catch (err) {
-        console.error('[Designbook] Error indexing scene file:', fileName, err);
-        return [];
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(`Scene file is not valid YAML: ${fileName}\n  ${msg}`);
       }
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error(`Scene file is empty or not a YAML object: ${fileName}`);
+      }
+
+      const typedParsed = parsed as Record<string, unknown>;
+      const relativePath = './' + relative(process.cwd(), fileName);
+      const match = matchHandler(fileName, defaultHandlers);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const entries: any[] = [];
+
+      // Every scenes file gets a canvas Overview entry (rendered via mountReact + DeboSectionPage)
+      if (match && match.handler.hasOverview) {
+        entries.push({
+          type: 'story' as const,
+          importPath: relativePath,
+          exportName: 'overview',
+          title: typedParsed.group,
+          name: 'Overview',
+          tags: ['!autodocs'],
+        });
+      }
+
+      // Add scene story entries
+      const scenes = extractScenes(typedParsed);
+      for (let idx = 0; idx < scenes.length; idx++) {
+        const scene = scenes[idx];
+        if (!scene) continue;
+        const name = (scene.name as string) || `Scene ${idx + 1}`;
+        const exportName = buildExportName(name);
+
+        entries.push({
+          type: 'story' as const,
+          importPath: relativePath,
+          exportName: exportName,
+          title: typedParsed.group + '/Scenes',
+          tags: ['scene', '!autodocs'],
+        });
+      }
+
+      return entries;
     },
   };
 
