@@ -29,10 +29,7 @@ Required artefacts per component, all kebab-case:
 
 - `<name>.component.yml` — metadata + schema
 - `<name>.twig` — markup, one file, all variants inline
-
-Recommended (not required, but ship one unless there is a reason not to):
-
-- `<name>.<variant>.story.yml` — one file per variant. Without a story the component has no Storybook entry and cannot be visually verified — always create at least `<name>.default.story.yml`, omit only for components that are never rendered standalone.
+- `<name>.<variant>.story.yml` — one file per variant. SDC itself does not require this, but designbook does: every component always ships at least `<name>.default.story.yml` so it has a Storybook entry and can be visually verified.
 
 Optional co-located assets (auto-discovered — do **not** declare them in `.component.yml`):
 
