@@ -186,22 +186,6 @@ Blueprints are loaded together with the rules that match the same task — both 
 
 A blueprint either contains the guidance itself (as a suggestion) or omits it entirely and lets the rule carry it. Never both.
 
-**Wrong** — blueprint body cites a rule file:
-
-```markdown
-## Naming
-
-Component file basenames follow the integration's naming convention — see `rules/component-format.md`.
-```
-
-**Correct** — blueprint stays focused on its own concern; the rule carries the constraint and reaches the AI on its own:
-
-```markdown
-## Slots
-- header — optional header content
-- content (required)
-```
-
 The same applies to cross-blueprint references for hard constraints: if the content is a constraint, it belongs in a rule, and the rule is delivered alongside the blueprint without needing a "see also" link.
 
 ## `blueprints/` — Trigger + Filter Matching
