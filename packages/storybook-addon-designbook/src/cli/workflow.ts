@@ -106,8 +106,11 @@ export function register(program: Command): void {
 
   workflow.option('--log', 'Tag this CLI call in dbo.log (for post-workflow audit via --research)');
 
-  // Initialize logger before every subcommand
-  workflow.hook('preAction', () => {
+  // Initialize logger before every subcommand. Skip for read-only introspection
+  // (`definitions`) so it can run from the repo root without tripping the
+  // `assertNotRepoRoot` guard in `loadConfig`.
+  workflow.hook('preAction', (_thisCommand, actionCommand) => {
+    if (actionCommand.name() === 'definitions') return;
     const config = loadConfig();
     const logTag = !!(workflow.opts() as { log?: boolean }).log;
     initLogger(config.data, logTag);
