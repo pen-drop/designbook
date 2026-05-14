@@ -16,7 +16,6 @@ import {
   expandTasksFromParams,
 } from '../workflow.js';
 import { load as parseYaml } from 'js-yaml';
-import { globSync } from 'glob';
 import {
   resolveAllStages,
   parseFrontmatter,
@@ -32,15 +31,7 @@ import type { ResolverContext } from '../resolvers/types.js';
 import { renderSubmitResultsHint } from './submit-results-hint.js';
 import { initLogger, log } from '../logger.js';
 import { register as registerSummary } from './workflow-summary.js';
-
-// Resolve a workflow .md file from a workflow ID by scanning skills directories (same glob mechanism as tasks/rules).
-function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
-  const matches = globSync(`skills/**/workflows/${workflowId}.md`, { cwd: agentsDir, absolute: true });
-  if (matches.length === 0) {
-    throw new Error(`Workflow file not found for "${workflowId}". No match for skills/**/workflows/${workflowId}.md`);
-  }
-  return matches[0]!;
-}
+import { resolveWorkflowFile } from './workflow-discovery.js';
 
 export interface InstructionsResult {
   stage: string;

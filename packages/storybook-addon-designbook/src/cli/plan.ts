@@ -1,17 +1,9 @@
 import { dirname } from 'node:path';
 import type { Command } from 'commander';
-import { globSync } from 'glob';
 import { findConfig, resolveSkillsRoot } from '../config.js';
 import { buildRenderContext } from '../plan/resolve.js';
 import { renderPlan } from '../plan/render.js';
-
-function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
-  const matches = globSync(`skills/**/workflows/${workflowId}.md`, { cwd: agentsDir, absolute: true });
-  if (matches.length === 0) {
-    throw new Error(`Workflow not found: "${workflowId}". No match for skills/**/workflows/${workflowId}.md`);
-  }
-  return matches[0]!;
-}
+import { resolveWorkflowFile } from './workflow-discovery.js';
 
 export function register(program: Command): void {
   program
