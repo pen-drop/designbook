@@ -189,9 +189,9 @@ A blueprint either contains the guidance itself (as a suggestion) or omits it en
 **Wrong** — blueprint body cites a rule file:
 
 ```markdown
-## Twig Slot Pattern
+## Naming
 
-Layout components wrap each slot in `{% block <name> %}` for `{% embed %}` compatibility — see `rules/sdc-components.md`.
+Component file basenames follow the integration's naming convention — see `rules/component-format.md`.
 ```
 
 **Correct** — blueprint stays focused on its own concern; the rule carries the constraint and reaches the AI on its own:
