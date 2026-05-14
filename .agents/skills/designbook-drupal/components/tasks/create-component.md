@@ -16,7 +16,7 @@ params:
       type: object
 result:
   type: object
-  required: [component-yml, component-twig, component-story, app-css]
+  required: [component-yml, component-twig, component-story]
   properties:
     component-yml:
       path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.component.yml"
@@ -59,4 +59,4 @@ When `component.design_hint.markup` is empty, fall back to the blueprint default
 2. If `component.design_hint.markup` is set, lift the markup into `<name>.twig` and clean up Angular-isms (handlers, `[innerHTML]`, etc.) per the migration rules.
 3. Derive `<name>.component.yml` from `component.slots` + `component.design_hint.props`.
 4. Generate the default story exercising every slot and the default of every prop.
-5. Append component-specific styles to `${DESIGNBOOK_CSS_APP}` only when a class introduced here is not already covered by tokens.
+
