@@ -22,6 +22,9 @@ SdcComponent:
 
 
     VARIANTS — when two components share the same props and slots but differ only in layout or visual arrangement, implement them as variants of a single component. Each variant listed here needs a matching `<component>.<variant-id>.story.yml`. Never declare a `variant` prop under `props.properties` when `variants:` is populated — the `variants:` block is the canonical source.
+
+
+    CO-LOCATED ASSETS — `<name>.css` and `<name>.js` placed next to `<name>.twig` are auto-discovered by the SDC addon. Never declare them in `.component.yml`. Use `libraryDependencies` / `libraryOverrides` only when the component pulls in an external library (slider, lightbox, chart) or extends another component's library.
   type: object
   required: [name, status, group]
   properties:
@@ -100,6 +103,15 @@ SdcComponent:
         properties:
           title: { type: string, description: Human-readable variant label shown in Storybook. }
           description: { type: string, description: One-sentence summary of the variant's distinguishing visual or behavioural trait. }
+    libraryDependencies:
+      type: array
+      description: >
+        External Drupal library handles loaded together with this component (`module/library`). Use only for third-party widgets (slider, lightbox, chart) or to depend on another component's library. Omit when the component only uses its auto-discovered `<name>.css` / `<name>.js`.
+      items: { type: string }
+    libraryOverrides:
+      type: object
+      description: >
+        Overrides for the component's auto-generated library. Use only when augmenting or replacing the asset wiring the SDC addon derives from `<name>.css` / `<name>.js`. Omit when the auto-discovered assets are sufficient.
     thirdPartySettings:
       type: object
       description: >
