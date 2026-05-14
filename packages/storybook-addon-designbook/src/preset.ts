@@ -6,6 +6,7 @@ import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { setTimeout as delay } from 'node:timers/promises';
 import { load as parseYaml } from 'js-yaml';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -97,8 +98,15 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
     test: /\.scenes\.yml$/,
     createIndex: async (fileName: string) => {
       try {
-        const content = readFileSync(fileName, 'utf-8');
-        const parsed = parseYaml(content);
+        let parsed = parseYaml(readFileSync(fileName, 'utf-8'));
+
+        // Indexer races the file watcher — a half-written file parses to null.
+        // Single retry after a short delay so the sidebar isn't left empty until
+        // the next change event.
+        if (!parsed || typeof parsed !== 'object') {
+          await delay(50);
+          parsed = parseYaml(readFileSync(fileName, 'utf-8'));
+        }
 
         if (!parsed || typeof parsed !== 'object') {
           console.warn('[Designbook] Scene file parsed as null/empty:', fileName);
@@ -110,7 +118,6 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
         // --- Scene files ---
         const relativePath = './' + relative(process.cwd(), fileName);
         const match = matchHandler(fileName, defaultHandlers);
-        console.log(typedParsed);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entries: any[] = [];
 

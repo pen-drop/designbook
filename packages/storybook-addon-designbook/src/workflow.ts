@@ -14,6 +14,7 @@ import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
 import type { ValidationFileResult, StageParam, StageDefinition, TaskFile } from './workflow-types.js';
 import { withLockAsync } from './workflow-lock.js';
 import { engines } from './engines/index.js';
+import { notifyWatcherAfterRename } from './flush-notify.js';
 import { getNextStage, getNextStep, checkStageParams, interpolatePrompt } from './workflow-lifecycle.js';
 import {
   parseFrontmatter,
@@ -1044,6 +1045,7 @@ export async function workflowDone(
             renameSync(writtenPath, resultEntry.path);
             resultEntry.flushed_at = new Date().toISOString();
             if (fileEntry) fileEntry.flushed_at = resultEntry.flushed_at;
+            await notifyWatcherAfterRename([resultEntry.path]);
           }
         } else {
           // Data result: store inline
@@ -1462,6 +1464,12 @@ export async function workflowDone(
         ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
       };
       if (engine) {
+        // Safety net: flush any unflushed task files before archiving. The transition
+        // loop above normally handles flushing per stage, but tasks that reach this
+        // branch without crossing a stage boundary still have their files in stash.
+        if (engine.flush) {
+          await engine.flush(data, data.tasks);
+        }
         const doneResult = engine.done(data);
         if (doneResult.archive) {
           archiveWorkflow(dataDir, name, data);
@@ -1591,6 +1599,7 @@ export async function workflowWriteFile(
       renameSync(writtenPath, fileEntry.path);
       fileEntry.flushed_at = new Date().toISOString();
       writtenPath = fileEntry.path;
+      await notifyWatcherAfterRename([fileEntry.path]);
     }
 
     writeWorkflowAtomic(filePath, data);
@@ -1761,6 +1770,7 @@ export async function workflowResult(
         resultEntry.flushed_at = new Date().toISOString();
         if (fileEntry) fileEntry.flushed_at = resultEntry.flushed_at;
         writtenPath = resultEntry.path!;
+        await notifyWatcherAfterRename([resultEntry.path!]);
       }
 
       writeWorkflowAtomic(filePath, data);

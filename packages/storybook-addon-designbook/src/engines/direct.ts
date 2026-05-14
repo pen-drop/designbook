@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, readdirSync, renameSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs';
-import { setTimeout as delay } from 'node:timers/promises';
+import { existsSync, mkdirSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import type { WorkflowEngine, TransitionResult } from './types.js';
 import type { WorkflowFile, WorkflowTask } from '../workflow.js';
+import { notifyWatcherAfterRename } from '../flush-notify.js';
 
 function deboSuffix(data: WorkflowFile): string {
   if (!data.workflow_id) throw new Error('workflow_id is required for direct engine stash-at-target');
@@ -59,19 +59,10 @@ export const directEngine: WorkflowEngine = {
       }
     }
 
-    // Phase 2: wait for all renames to settle, then touch all files at once
-    // This ensures Storybook's watcher sees all components when it rebuilds
-    if (paths.length > 0) {
-      await delay(200);
-      const now = new Date();
-      for (const p of paths) {
-        try {
-          utimesSync(p, now, now);
-        } catch {
-          // silently skip
-        }
-      }
-    }
+    // Phase 2: notify Storybook's file watcher after all renames settle.
+    // renameSync produces inotify MOVE events that Watchpack sometimes coalesces or
+    // misses; a follow-up content rewrite produces a definitive change event.
+    await notifyWatcherAfterRename(paths);
   },
 
   commit() {
