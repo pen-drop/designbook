@@ -31,7 +31,7 @@ import type { ResolverContext } from '../resolvers/types.js';
 import { renderSubmitResultsHint } from './submit-results-hint.js';
 import { initLogger, log } from '../logger.js';
 import { register as registerSummary } from './workflow-summary.js';
-import { resolveWorkflowFile } from './workflow-discovery.js';
+import { listWorkflowDefinitions, loadWorkflowDefinition, resolveWorkflowFile } from './workflow-discovery.js';
 
 export interface InstructionsResult {
   stage: string;
@@ -123,6 +123,27 @@ export function register(program: Command): void {
       const names = workflowList(config.data, opts.workflow, opts.includeArchived);
       log({ cmd: 'workflow list', args: { workflow: opts.workflow }, result: names });
       for (const n of names) console.log(n);
+    });
+
+  workflow
+    .command('definitions [workflow-id]')
+    .description('List workflow definitions (skills/**/workflows/*.md). With <workflow-id>, emit JSON detail.')
+    .action((workflowId: string | undefined) => {
+      const configPath = findConfig();
+      const configDir = configPath ? dirname(configPath) : process.cwd();
+      const agentsDir = resolveSkillsRoot(configDir);
+      if (!workflowId) {
+        const ids = listWorkflowDefinitions(agentsDir);
+        for (const id of ids) console.log(id);
+        return;
+      }
+      try {
+        const def = loadWorkflowDefinition(workflowId, agentsDir);
+        console.log(JSON.stringify(def, null, 2));
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
     });
 
   workflow
