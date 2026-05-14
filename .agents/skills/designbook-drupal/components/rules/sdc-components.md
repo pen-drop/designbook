@@ -29,7 +29,10 @@ Required artefacts per component, all kebab-case:
 
 - `<name>.component.yml` — metadata + schema
 - `<name>.twig` — markup, one file, all variants inline
-- `<name>.<variant>.story.yml` — one file per variant
+
+Recommended (not required, but ship one unless there is a reason not to):
+
+- `<name>.<variant>.story.yml` — one file per variant. Without a story the component has no Storybook entry and cannot be visually verified — always create at least `<name>.default.story.yml`, omit only for components that are never rendered standalone.
 
 Optional co-located assets (auto-discovered — do **not** declare them in `.component.yml`):
 
