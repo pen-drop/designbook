@@ -43,6 +43,12 @@ For the compare stage:
 - emit one compare artifact for the active check
 - save any diff/report file needed by that artifact
 
+## Structural Dimension Drift
+
+Before interpreting pixel diff quality, compare the reference screenshot dimensions with the Storybook screenshot dimensions for the same breakpoint and region.
+
+When width or height differs enough to indicate missing or extra structure, emit an issue that names the dimension drift and treat it as a structural mismatch. Continue writing the normal diff artifact when possible, but do not let screenshot resizing hide missing landmark regions.
+
 ## Playwright Execution Rules
 
 - Reuse one Playwright session per compare pass when possible.

@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import { resolve, join, relative } from 'path';
 import { globSync } from 'glob';
 import tailwindcss from '@tailwindcss/vite'
-import { viteStaticCopy } from 'vite-plugin-static-copy';
 import svgSpritePlugin from '@pivanov/vite-plugin-svg-sprite';
 
 /**
@@ -57,18 +56,6 @@ export default defineConfig(() => {
   return {
     plugins: [
       ...plugins,
-      viteStaticCopy({
-        targets: [
-          {
-            src: 'dist/css/components', // Copy compiled CSS directory
-            dest: '../', // to component and folder.
-          },
-          {
-            src: 'dist/js/components', // Copy compiled CSS directory
-            dest: '../', // to component and folder.
-          }
-        ],
-      }),
     ],
     css: {
       postcss: false,
