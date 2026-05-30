@@ -7,15 +7,18 @@ filter:
 
 # Region Properties — Tailwind output
 
-When materializing `region_properties.style` into output, use Tailwind
-utility classes via `class="..."` and component-scoped `@apply` rules in
-`${DESIGNBOOK_CSS_APP}`.
+Materialize `region_properties.style` as inline Tailwind utility classes on the
+element, following `component-styling.md`. Utilities are the styling surface —
+do not emit component CSS rules or `@apply` blocks in `${DESIGNBOOK_CSS_APP}`
+for region styling.
 
-- Class names reference tokens: `bg-<token>`, `text-<token>`, `py-<token>`,
-  `max-w-<token>`. Arbitrary-value classes (`bg-[#xyz]`) are a last resort
-  when no token has a sensible name.
-- Pixel-precise dimensional anchors derived from `bbox` (e.g. `min-h-[60px]`)
-  are an allowed exception when no responsive token fits.
-- Component-scoped rules in `${DESIGNBOOK_CSS_APP}` use `@apply <utility…>;`
-  and CSS variables (`var(--color-<token>)`) for values not expressible as
-  a single utility class (e.g. multi-stop gradients).
+- Map captured values to token-backed utilities: `bg-<token>`, `text-<token>`,
+  `py-[var(--layout-spacing-…)]`, `max-w-[var(--container-…)]`. Reuse design
+  tokens; add a token before falling back to an arbitrary value.
+- Arbitrary values (`bg-[#…]`, `min-h-[60px]`) are a last resort, only when the
+  design reference needs a value with no matching token.
+- Dimensional anchors derived from `bbox` (e.g. `min-h-[…]`) are allowed only
+  when no spacing/sizing token fits.
+- The sole case for an external rule is a complex effect Tailwind cannot express
+  (e.g. a multi-stop gradient) — and then per `component-styling.md`, not a
+  per-region `@apply` block in the shared app CSS.
