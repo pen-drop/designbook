@@ -88,9 +88,9 @@ design-verify:
 ```
 
 - **One subagent per sub-workflow run** (capture / fix / capture). Each subagent runs the child designbook workflow end-to-end and returns ONLY its structured result (score, issues, tokens) — the orchestrator's context stays small.
-- The orchestrator holds `first_shot_score` from run 1 across run 2 (it lives in the orchestrator scope, not in the re-run `verify-capture` output), so there is no clobber to guard.
-- `design-verify` gets its **own** outtake task (`outtake--design-verify`, distinct from `verify-capture`'s outtake) that aggregates the two runs' scores + summed tokens into the `ScoreReport` result.
-- `delta = first_shot_score − final_score` (positive = improvement, since lower is better).
+- The orchestrator holds the `first_shot` `VerifyResult` from run 1 across run 2 (it lives in the orchestrator scope, not in the re-run output), so there is no clobber to guard.
+- `design-verify` gets its **own** outtake task (`outtake--design-verify`, distinct from `verify-capture`'s outtake) that nests the two runs' `VerifyResult`s + summed tokens into the `ScoreReport` result.
+- `delta = first_shot.score − final.score` (positive = improvement, since lower is better).
 - Existing child-workflow invocation already exists in the skill (`outtake` runs design-verify as a child); the orchestrator extends that pattern to dispatch via subagents.
 
 `design-shell` is unchanged except that its existing `after: design-verify` hook now yields the first/final scores through the orchestrator's result.
@@ -101,71 +101,85 @@ design-verify:
 
 Two levels:
 
-- **`verify-capture` result** carries a single run's measurement: `score: number` (0 = perfect) + `tokens?: { input?: number; output?: number }`.
-- **`design-verify` orchestrator result** aggregates the two capture runs: `first_shot_score`, `final_score`, `delta` (`first_shot_score − final_score`), and summed `tokens`.
+- **`verify-capture` result** carries one run's measurement as a `VerifyResult` sub-object: `score` (0 = perfect) **plus** pixel diff (`avg/max_diff_percent`), pass counts, per-severity issue counts, and a per-check breakdown — not a bare number. Plus this run's `tokens`.
+- **`design-verify` orchestrator result** is a `ScoreReport` nesting two `VerifyResult`s — `first_shot` and `final` (each the full sub-object) — plus `delta` (`first_shot.score − final.score`) and summed `tokens`.
 
 `tokens` is **agent-reported**: the workflow engine has no visibility into LLM token consumption (only the agent/harness does), so each `verify-capture`/`verify-fix` subagent records its own run token usage when available and returns it; the orchestrator sums them. **Best-effort** — may be absent on headless/cron runs.
 
-`workflow-summary.ts` prints the orchestrator's `first_shot_score` / `final_score` / `delta` alongside `flow_rate` / `success_rate`; `archiveWorkflow` persists them like the existing metrics.
+`workflow-summary.ts` prints `first_shot.score` / `final.score` / `delta` (and avg pixel diff) alongside `flow_rate` / `success_rate`; `archiveWorkflow` persists the `ScoreReport` like the existing metrics.
 
 ### Schemas & outtake tasks
 
-Workflows declare no top-level `result:` — results surface via the outtake **task** `result:` + archive metrics. So two outtake tasks exist:
+Workflows declare no top-level `result:` — results surface via the outtake **task** `result:` + archive metrics. `first_shot`/`final` are **sub-objects** (`VerifyResult`) carrying score AND pixel-diff AND per-check breakdown — not bare numbers.
 
-- **`verify-capture` outtake** — emits one run's measurement:
-  ```yaml
-  result:
-    type: object
-    required: [score, issues]
-    properties:
-      score:  { type: integer, minimum: 0 }
-      issues: { type: array, items: { $ref: ../schemas.yml#/Issue } }
-      tokens:
+New `VerifyResult` type — one `verify-capture` run's measurement across all checks:
+```yaml
+VerifyResult:
+  type: object
+  title: Verify Result
+  description: >
+    One verify-capture run's measurement. `score` is the severity sum
+    (lower = better, 0 = perfect); pixel diff and per-check breakdown are
+    carried alongside so callers see both structural and visual fidelity.
+  required: [score, checks]
+  properties:
+    score:            { type: integer, minimum: 0, examples: [17],
+      description: "Σ(critical×3 + major×2 + minor×1) over all checks. 0 = perfect." }
+    avg_diff_percent: { type: number, examples: [0.21], description: Mean pixel deviation ratio across checks. }
+    max_diff_percent: { type: number, examples: [0.44], description: Worst-case pixel deviation across checks. }
+    passed:           { type: integer, examples: [2], description: Checks that passed their threshold. }
+    total:            { type: integer, examples: [4], description: Total checks. }
+    issues:
+      type: object
+      description: Aggregate issue counts by severity over all checks.
+      properties:
+        critical: { type: integer, examples: [2] }
+        major:    { type: integer, examples: [4] }
+        minor:    { type: integer, examples: [3] }
+    checks:
+      type: array
+      description: Per-check breakdown (one per breakpoint × region).
+      items:
         type: object
-        properties: { input: { type: integer }, output: { type: integer } }
-  ```
-- **`design-verify` orchestrator outtake** (NEW, distinct task) — aggregates the two capture runs into a `ScoreReport`:
-  ```yaml
-  result:
-    type: object
-    required: [score-report]
-    properties:
-      score-report: { $ref: ../schemas.yml#/ScoreReport }
-  ```
+        required: [breakpoint, region, score, passed]
+        properties:
+          breakpoint:   { $ref: "#/BreakpointId" }
+          region:       { $ref: "#/RegionId" }
+          score:        { type: integer, minimum: 0 }
+          passed:       { type: boolean }
+          diff_percent: { type: number }
+          critical:     { type: integer }
+          major:        { type: integer }
+          minor:        { type: integer }
+    tokens:
+      type: object
+      description: This run's agent-reported LLM tokens. Best-effort.
+      properties: { input: { type: integer }, output: { type: integer } }
+```
 
-New `ScoreReport` type in `design/schemas.yml`:
+New `ScoreReport` type — nests two `VerifyResult`s (before/after fix):
 ```yaml
 ScoreReport:
   type: object
   title: Score Report
   description: >
-    Fidelity scores for a design-verify run. Lower is better (0 = perfect).
-    first_shot_score = before any fix; final_score = after the single verify-fix
-    pass; delta = first_shot_score − final_score (positive = improvement).
-  required: [first_shot_score, final_score, delta]
+    A design-verify run: first_shot (before any fix) and final (after the
+    single verify-fix pass), each a full VerifyResult. delta = first_shot.score
+    − final.score (positive = improvement; lower score is better).
+  required: [first_shot, final, delta]
   properties:
-    first_shot_score: { type: integer, minimum: 0, examples: [17],
-      description: "Σ(critical×3 + major×2 + minor×1) over all checks, before fixing." }
-    final_score:      { type: integer, minimum: 0, examples: [6],
-      description: Same formula, measured after verify-fix. }
-    delta:            { type: integer, examples: [11],
-      description: first_shot_score − final_score. Positive = polish improved fidelity. }
+    first_shot: { $ref: "#/VerifyResult" }
+    final:      { $ref: "#/VerifyResult" }
+    delta:      { type: integer, examples: [11], description: first_shot.score − final.score. }
     tokens:
       type: object
-      description: Agent-reported LLM tokens, summed across capture/fix subagents. Best-effort; absent on headless runs.
+      description: LLM tokens summed across the capture + fix subagents. Best-effort.
       properties: { input: { type: integer }, output: { type: integer } }
-    checks:
-      type: array
-      description: Optional per-check breakdown of the final measurement.
-      items:
-        type: object
-        required: [breakpoint, region, score]
-        properties:
-          breakpoint: { $ref: "#/BreakpointId" }
-          region:     { $ref: "#/RegionId" }
-          score:      { type: integer, minimum: 0 }
-          passed:     { type: boolean }
 ```
+
+Outtake task results:
+- **`verify-capture` outtake** → `result: { verify-result: { $ref: ../schemas.yml#/VerifyResult } }` (plus `issues` for the orchestrator to hand to `verify-fix`).
+- **`design-verify` orchestrator outtake** (NEW, distinct task) → `result: { score-report: { $ref: ../schemas.yml#/ScoreReport } }`.
 
 ---
 
@@ -178,12 +192,12 @@ ScoreReport:
 | `inspect/region.ts` | unchanged — matches base tree |
 | `resolvers/region-properties.ts` | pass breakpoints+px to capture |
 | `scoring/composite.ts` | `computeFidelityScore(issues)` (pure) |
-| `design/schemas.yml` | `PropertyNode.overrides`, `base_breakpoint`, `ScoreReport` |
+| `design/schemas.yml` | `PropertyNode.overrides`, `base_breakpoint`, `VerifyResult`, `ScoreReport` |
 | `design/workflows/verify-capture.md` | new measurement workflow (capture→compare→score→outtake) |
 | `design/workflows/verify-fix.md` | new fix workflow (intake(issues)→triage→polish→outtake) |
 | `design/workflows/design-verify.md` | refactor to thin orchestrator: dispatch 1 subagent per sub-workflow run (capture/fix/capture), aggregate first/final/delta/tokens |
 | `design/tasks/score.md` | compute score via helper for a verify-capture run |
-| `design/tasks/outtake--verify-capture.md` | verify-capture outtake: result `{score, issues, tokens}` |
+| `design/tasks/outtake--verify-capture.md` | verify-capture outtake: result `{verify-result: VerifyResult, issues}` |
 | `design/tasks/outtake--design-verify.md` (NEW) | orchestrator outtake: aggregate runs → `ScoreReport` result |
 | `cli/workflow-summary.ts` + archive | surface + persist first/final scores |
 
@@ -204,7 +218,7 @@ ScoreReport:
 - Multi-breakpoint capture — integration (real chromium) against a fixture with an `@media` responsive element (e.g. nav `display:none` at narrow, `flex` at wide): assert base node `hidden` + `overrides[xl].hidden === false` (or the inverse), aligned by `dom_path`.
 - Walker breakpoint-diff — pure unit (two trees → expected `overrides`, dom_path join, revealed/hidden nodes).
 - `verify-capture` / `verify-fix` stage lists — smoke tests asserting each resolves to its stage order.
-- `design-verify` orchestrator result — asserts `first_shot_score`/`final_score`/`delta` present and `delta = first_shot_score − final_score`.
+- `design-verify` orchestrator result — asserts `score-report` is a `ScoreReport` with `first_shot`/`final` `VerifyResult` sub-objects (each carrying `score`, `checks[]`, diff) and `delta = first_shot.score − final.score`.
 
 ## Non-Goals
 
