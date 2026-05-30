@@ -662,6 +662,13 @@ RegionProperties:
       type: string
       description: ID of the region root inside `nodes`. Absent when matched_via === "none".
       examples: ["n_8a3f21bc"]
+    base_breakpoint:
+      type: string
+      description: >
+        Smallest captured breakpoint — the mobile-first base for node `style`.
+        Larger-breakpoint deltas live in each node's `overrides`. Absent for
+        single-viewport captures.
+      examples: [sm]
     nodes:
       type: array
       description: All PropertyNodes in the region subtree. Hierarchy via parent_id / child_ids. Empty when matched_via === "none".
@@ -799,3 +806,30 @@ PropertyNode:
           type: object
           description: Walker-specific extra fields. Opaque to consumers — only loaded when explicitly requested. Keys vary by walker.
           additionalProperties: true
+    overrides:
+      type: object
+      description: >
+        Per-breakpoint deviations from the mobile-first base. Each key is a
+        breakpoint name (e.g. `sm`, `xl`); values list what changes at that
+        breakpoint. Absent when the node is identical across breakpoints.
+        Consume as responsive utilities: base `style` → base classes,
+        `overrides.<bp>` → the matching `<bp>:` prefix.
+      additionalProperties:
+        type: object
+        properties:
+          hidden:
+            type: boolean
+            description: Element not rendered at this breakpoint; `false` on a base-hidden node means it is revealed here.
+          style:
+            type: object
+            description: Only the style properties that differ from the base `style` at this breakpoint.
+          bbox:
+            type: object
+            description: Bounding box at this breakpoint when it differs from the base.
+            properties:
+              x: { type: number, description: "Left edge in px" }
+              y: { type: number, description: "Top edge in px" }
+              width: { type: number, description: "Width in px" }
+              height: { type: number, description: "Height in px" }
+      examples:
+        - { xl: { hidden: false, style: { layout: flex-row } } }
