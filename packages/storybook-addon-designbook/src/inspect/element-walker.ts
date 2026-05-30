@@ -82,15 +82,34 @@ const ROLE_TAG_MAP: Record<string, string> = {
 };
 
 const KIND_TAG_MAP: Record<string, string> = {
-  H1: 'heading', H2: 'heading', H3: 'heading', H4: 'heading', H5: 'heading', H6: 'heading',
-  P: 'text', SPAN: 'text', LABEL: 'text', LI: 'list-item',
-  UL: 'list', OL: 'list',
-  A: 'link', BUTTON: 'button',
-  INPUT: 'input', TEXTAREA: 'input', SELECT: 'input',
-  IMG: 'image', SVG: 'icon', PICTURE: 'image',
-  VIDEO: 'media', AUDIO: 'media',
-  HEADER: 'container', NAV: 'container', MAIN: 'container',
-  FOOTER: 'container', SECTION: 'section', ARTICLE: 'section',
+  H1: 'heading',
+  H2: 'heading',
+  H3: 'heading',
+  H4: 'heading',
+  H5: 'heading',
+  H6: 'heading',
+  P: 'text',
+  SPAN: 'text',
+  LABEL: 'text',
+  LI: 'list-item',
+  UL: 'list',
+  OL: 'list',
+  A: 'link',
+  BUTTON: 'button',
+  INPUT: 'input',
+  TEXTAREA: 'input',
+  SELECT: 'input',
+  IMG: 'image',
+  SVG: 'icon',
+  PICTURE: 'image',
+  VIDEO: 'media',
+  AUDIO: 'media',
+  HEADER: 'container',
+  NAV: 'container',
+  MAIN: 'container',
+  FOOTER: 'container',
+  SECTION: 'section',
+  ARTICLE: 'section',
   FORM: 'form',
 };
 
@@ -109,8 +128,7 @@ function rgbToHex(value: string): string | undefined {
 
 function resolveBackground(cs: CSSStyleDeclaration): string {
   const c = cs.backgroundColor;
-  const isTransparent =
-    !c || c === 'transparent' || /rgba?\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)/i.test(c);
+  const isTransparent = !c || c === 'transparent' || /rgba?\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)/i.test(c);
   if (isTransparent) {
     return cs.backgroundImage && cs.backgroundImage !== 'none' ? cs.backgroundImage : '';
   }
@@ -143,7 +161,7 @@ function mapAxisAlign(value: string): string | undefined {
   const map: Record<string, string> = {
     'flex-start': 'start',
     'flex-end': 'end',
-    'center': 'center',
+    center: 'center',
     'space-between': 'space-between',
     'space-around': 'space-around',
     'space-evenly': 'space-evenly',
@@ -155,9 +173,9 @@ function mapCrossAlign(value: string): string | undefined {
   const map: Record<string, string> = {
     'flex-start': 'start',
     'flex-end': 'end',
-    'center': 'center',
-    'stretch': 'stretch',
-    'baseline': 'baseline',
+    center: 'center',
+    stretch: 'stretch',
+    baseline: 'baseline',
   };
   return map[value] || undefined;
 }
@@ -286,8 +304,7 @@ export function walkDocument(doc: Document, options: WalkDocumentOptions = {}): 
       role: getRole(el),
       heading_context: findHeadingContext(el),
       bbox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-      text:
-        el.children.length === 0 && el.textContent ? el.textContent.trim().slice(0, 200) || undefined : undefined,
+      text: el.children.length === 0 && el.textContent ? el.textContent.trim().slice(0, 200) || undefined : undefined,
       href: el.getAttribute('href') || undefined,
       src: el.getAttribute('src') || undefined,
       alt: el.getAttribute('alt') || undefined,

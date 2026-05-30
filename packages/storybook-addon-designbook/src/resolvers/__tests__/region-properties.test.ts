@@ -8,14 +8,26 @@ const FIXTURE_CAPTURED = {
   captured_at: '2026-05-09T08:00:00Z',
   adapter_version: 'url-playwright/0.1.0',
   nodes: [
-    { id: 'n_root', child_ids: ['n_header'], label: 'Page', kind: 'container',
+    {
+      id: 'n_root',
+      child_ids: ['n_header'],
+      label: 'Page',
+      kind: 'container',
       bbox: { x: 0, y: 0, width: 1440, height: 2400 },
       style: { padding: '0', margin: '0', background: '#ffffff', foreground: '#111111' },
-      source: { locator: 'body' } },
-    { id: 'n_header', parent_id: 'n_root', child_ids: [], label: 'Site Header', kind: 'container',
-      role: 'banner', bbox: { x: 0, y: 0, width: 1440, height: 72 },
+      source: { locator: 'body' },
+    },
+    {
+      id: 'n_header',
+      parent_id: 'n_root',
+      child_ids: [],
+      label: 'Site Header',
+      kind: 'container',
+      role: 'banner',
+      bbox: { x: 0, y: 0, width: 1440, height: 72 },
       style: { padding: '0 32 0 32', margin: '0', background: '#ffffff', foreground: '#111111' },
-      source: { locator: 'body > header' } },
+      source: { locator: 'body > header' },
+    },
   ],
 };
 

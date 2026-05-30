@@ -5,10 +5,7 @@ import { JSDOM } from 'jsdom';
 import { walkDocument, PAGE_SCRIPT } from '../element-walker.js';
 
 function loadFixture(): Document {
-  const html = readFileSync(
-    resolve(__dirname, '../../../../../tests/fixtures/element-walker/basic-page.html'),
-    'utf8',
-  );
+  const html = readFileSync(resolve(__dirname, '../../../../../tests/fixtures/element-walker/basic-page.html'), 'utf8');
   return new JSDOM(html, { pretendToBeVisual: true }).window.document;
 }
 

@@ -63,7 +63,15 @@ export async function capture(url: string, outPath: string): Promise<void> {
           await waitForReady(page, totalTimeoutMs);
           const vp = page.viewportSize() ?? { width: 1440, height: 1600 };
           const result = await page.evaluate(
-            ({ ref, script, viewport }: { ref: string; script: string; viewport: { width: number; height: number } }) => {
+            ({
+              ref,
+              script,
+              viewport,
+            }: {
+              ref: string;
+              script: string;
+              viewport: { width: number; height: number };
+            }) => {
               eval(script);
               // walkDocument is now in scope from PAGE_SCRIPT.
               // @ts-expect-error — walkDocument is dynamically defined.

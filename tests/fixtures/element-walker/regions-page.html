@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Regions Fixture</title>
+  <style>
+    body { margin: 0; font-family: Inter, sans-serif; color: #111; background: #fff; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 0 32px; height: 80px; background: #ffffff; }
+    nav { display: flex; gap: 24px; }
+    main { padding: 48px 32px; min-height: 1200px; }
+    main h2 { font-size: 28px; font-weight: 700; }
+    .cta { background: #007acc; color: #fff; padding: 8px 16px; border-radius: 4px; }
+    /* two tiny contentinfo sentinels + one large footer — exercises area tie-break */
+    footer.sentinel { height: 24px; background: #ffffff; }
+    footer.main-footer { min-height: 320px; background: #1a1a1a; color: #fff; padding: 64px 32px; }
+    .hidden-display { display: none; }
+    .hidden-opacity { opacity: 0; }
+  </style>
+</head>
+<body>
+  <header role="banner">
+    <a href="/" class="logo">Brand</a>
+    <nav role="navigation">
+      <a href="/products">Products</a>
+      <a href="/pricing">Pricing</a>
+    </nav>
+    <a href="/signup" class="cta">Sign up</a>
+  </header>
+
+  <main role="main">
+    <section>
+      <h2>Pricing</h2>
+      <p>Plans for every team size.</p>
+    </section>
+    <div class="hidden-display">HIDDEN_SENTINEL</div>
+    <div class="hidden-opacity">INVISIBLE_SENTINEL</div>
+  </main>
+
+  <footer class="sentinel" role="contentinfo"><span>top sentinel</span></footer>
+  <footer class="sentinel" role="contentinfo"><span>mid sentinel</span></footer>
+  <footer class="main-footer" role="contentinfo">
+    <p>Footernavigation — © 2026 Example</p>
+  </footer>
+</body>
+</html>
