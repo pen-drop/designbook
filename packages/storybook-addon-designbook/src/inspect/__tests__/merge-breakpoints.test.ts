@@ -31,8 +31,14 @@ describe('mergeBreakpointTrees', () => {
 
   it('records a style override where a node differs at a larger breakpoint', () => {
     const merged = mergeBreakpointTrees([
-      { name: 'sm', source: src([node('nav', { style: { padding: '0', margin: '0', background: '#fff', layout: 'flex-col' } })]) },
-      { name: 'xl', source: src([node('nav', { style: { padding: '0', margin: '0', background: '#fff', layout: 'flex-row' } })]) },
+      {
+        name: 'sm',
+        source: src([node('nav', { style: { padding: '0', margin: '0', background: '#fff', layout: 'flex-col' } })]),
+      },
+      {
+        name: 'xl',
+        source: src([node('nav', { style: { padding: '0', margin: '0', background: '#fff', layout: 'flex-row' } })]),
+      },
     ]);
     const nav = merged.nodes.find((n) => n.source.locator === 'nav')!;
     expect(nav.style.layout).toBe('flex-col'); // base = mobile

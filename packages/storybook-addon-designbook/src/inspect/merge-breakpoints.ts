@@ -6,9 +6,22 @@ export interface BreakpointCapture {
 }
 
 const STYLE_KEYS: (keyof CapturedSourceStyle)[] = [
-  'layout', 'main_axis_align', 'cross_axis_align', 'gap', 'padding', 'margin', 'border',
-  'border_radius', 'background', 'foreground', 'font_family', 'font_size', 'font_weight',
-  'line_height', 'letter_spacing', 'text_transform',
+  'layout',
+  'main_axis_align',
+  'cross_axis_align',
+  'gap',
+  'padding',
+  'margin',
+  'border',
+  'border_radius',
+  'background',
+  'foreground',
+  'font_family',
+  'font_size',
+  'font_weight',
+  'line_height',
+  'letter_spacing',
+  'text_transform',
 ];
 
 function styleDiff(base: CapturedSourceStyle, other: CapturedSourceStyle): Partial<CapturedSourceStyle> {
