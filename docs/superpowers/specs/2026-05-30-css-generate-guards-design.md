@@ -44,15 +44,22 @@ later compare.
 ```
 css-generate:
   … → generate-css (token .src.css)
-      → compile-css   (framework step: app.src.css → /tmp/probe.app.css)   [css-tailwind]
-      → guard-css     (framework-independent)                              [core]
-            generate /tmp/probe.html  (links the compiled CSS, no markup)
-            inspect file:///tmp/probe.html → captureStyleEnv → { root_vars, fonts }
+      → compile-css   (framework step: app.src.css → <css>/_token-probe.css)  [css-tailwind]
+      → guard-css     (framework-independent)                                 [core]
+            write  <css>/_token-probe.html  (links _token-probe.css, no markup)
+            inspect file://<css>/_token-probe.html → captureStyleEnv → { root_vars, fonts }
             assert: every expected --token present & non-empty
                     every expected font loaded
             hard-fail with the missing list
       → generate-index
 ```
+
+**Probe artifacts live in the css folder** (`${DESIGNBOOK_CSS}/_token-probe.{html,css}`),
+persisted, not in `/tmp`. They are naturally invisible to Storybook: the probe
+is not a `*.stories.*` file (Storybook story discovery ignores it) and the css
+folder is not under Tailwind's `@source` globs (`templates/`, `components/`),
+so it is neither indexed as a story nor scanned for utilities. The underscore
+prefix marks it as a generated internal artifact.
 
 ## Components
 
@@ -82,8 +89,9 @@ that keeps both readable.
 ### 2. compile-to-file (css-tailwind, framework-specific)
 
 A `compile-css` step/task in the tailwind integration: `@tailwindcss/cli`
-compiles `${DESIGNBOOK_CSS_APP}` (app.src.css) → a probe CSS file. Other CSS
-integrations provide their own compile; the guard does not care how.
+compiles `${DESIGNBOOK_CSS_APP}` (app.src.css) → `${DESIGNBOOK_CSS}/_token-probe.css`.
+Other CSS integrations provide their own compile to that path; the guard does
+not care how.
 
 ### 3. guard-css (core, framework-independent)
 
@@ -91,8 +99,10 @@ A `guard-css` task:
 - Reads the expected token variable names from `design-tokens.yml` (iterate the
   token map → the `--<group>-<flat>` names css-generate would emit).
 - Reads the expected font families (typography tokens / font config).
-- Generates `probe.html` linking the compiled CSS.
-- Calls `captureStyleEnv(file://probe.html, { fonts })`.
+- Writes `${DESIGNBOOK_CSS}/_token-probe.html` linking `_token-probe.css`
+  (relative). Persisted in the css folder; kept out of Storybook (not a
+  `*.stories.*` file, not under `@source`).
+- Calls `captureStyleEnv(file://…/_token-probe.html, { fonts })`.
 - Asserts each expected `--var` is in `root_vars` and non-empty; each font
   `loaded`. On any miss → fail the task with the exact missing names.
 
@@ -126,7 +136,9 @@ compile; the guard and `captureStyleEnv` are unchanged.
 - Verifying Storybook actually serves the CSS into its iframe — that is
   `verify-capture`'s job (it renders the real story). This guard is the
   content-truth layer; verify-capture is the serving/application layer.
-- A permanent Storybook token-probe story — acceptable to add later, not required.
+- Surfacing the probe in Storybook — explicitly NOT shown there; it is a
+  generated internal artifact in the css folder, kept out of story discovery
+  and the `@source` scan.
 
 ## Testing
 
