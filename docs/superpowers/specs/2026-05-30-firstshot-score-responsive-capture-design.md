@@ -89,6 +89,7 @@ design-verify:
 
 - **One subagent per sub-workflow run** (capture / fix / capture). Each subagent runs the child designbook workflow end-to-end and returns ONLY its structured result (score, issues, tokens) — the orchestrator's context stays small.
 - The orchestrator holds `first_shot_score` from run 1 across run 2 (it lives in the orchestrator scope, not in the re-run `verify-capture` output), so there is no clobber to guard.
+- `design-verify` gets its **own** outtake task (`outtake--design-verify`, distinct from `verify-capture`'s outtake) that aggregates the two runs' scores + summed tokens into the `ScoreReport` result.
 - `delta = first_shot_score − final_score` (positive = improvement, since lower is better).
 - Existing child-workflow invocation already exists in the skill (`outtake` runs design-verify as a child); the orchestrator extends that pattern to dispatch via subagents.
 
@@ -105,7 +106,66 @@ Two levels:
 
 `tokens` is **agent-reported**: the workflow engine has no visibility into LLM token consumption (only the agent/harness does), so each `verify-capture`/`verify-fix` subagent records its own run token usage when available and returns it; the orchestrator sums them. **Best-effort** — may be absent on headless/cron runs.
 
-New `ScoreReport` type: `{ first_shot_score, final_score, delta, tokens? }`. `workflow-summary.ts` prints the orchestrator's `first_shot_score` / `final_score` / `delta` alongside `flow_rate` / `success_rate`; `archiveWorkflow` persists them like the existing metrics.
+`workflow-summary.ts` prints the orchestrator's `first_shot_score` / `final_score` / `delta` alongside `flow_rate` / `success_rate`; `archiveWorkflow` persists them like the existing metrics.
+
+### Schemas & outtake tasks
+
+Workflows declare no top-level `result:` — results surface via the outtake **task** `result:` + archive metrics. So two outtake tasks exist:
+
+- **`verify-capture` outtake** — emits one run's measurement:
+  ```yaml
+  result:
+    type: object
+    required: [score, issues]
+    properties:
+      score:  { type: integer, minimum: 0 }
+      issues: { type: array, items: { $ref: ../schemas.yml#/Issue } }
+      tokens:
+        type: object
+        properties: { input: { type: integer }, output: { type: integer } }
+  ```
+- **`design-verify` orchestrator outtake** (NEW, distinct task) — aggregates the two capture runs into a `ScoreReport`:
+  ```yaml
+  result:
+    type: object
+    required: [score-report]
+    properties:
+      score-report: { $ref: ../schemas.yml#/ScoreReport }
+  ```
+
+New `ScoreReport` type in `design/schemas.yml`:
+```yaml
+ScoreReport:
+  type: object
+  title: Score Report
+  description: >
+    Fidelity scores for a design-verify run. Lower is better (0 = perfect).
+    first_shot_score = before any fix; final_score = after the single verify-fix
+    pass; delta = first_shot_score − final_score (positive = improvement).
+  required: [first_shot_score, final_score, delta]
+  properties:
+    first_shot_score: { type: integer, minimum: 0, examples: [17],
+      description: "Σ(critical×3 + major×2 + minor×1) over all checks, before fixing." }
+    final_score:      { type: integer, minimum: 0, examples: [6],
+      description: Same formula, measured after verify-fix. }
+    delta:            { type: integer, examples: [11],
+      description: first_shot_score − final_score. Positive = polish improved fidelity. }
+    tokens:
+      type: object
+      description: Agent-reported LLM tokens, summed across capture/fix subagents. Best-effort; absent on headless runs.
+      properties: { input: { type: integer }, output: { type: integer } }
+    checks:
+      type: array
+      description: Optional per-check breakdown of the final measurement.
+      items:
+        type: object
+        required: [breakpoint, region, score]
+        properties:
+          breakpoint: { $ref: "#/BreakpointId" }
+          region:     { $ref: "#/RegionId" }
+          score:      { type: integer, minimum: 0 }
+          passed:     { type: boolean }
+```
 
 ---
 
@@ -122,7 +182,9 @@ New `ScoreReport` type: `{ first_shot_score, final_score, delta, tokens? }`. `wo
 | `design/workflows/verify-capture.md` | new measurement workflow (capture→compare→score→outtake) |
 | `design/workflows/verify-fix.md` | new fix workflow (intake(issues)→triage→polish→outtake) |
 | `design/workflows/design-verify.md` | refactor to thin orchestrator: dispatch 1 subagent per sub-workflow run (capture/fix/capture), aggregate first/final/delta/tokens |
-| `design/tasks/score.md` + outtake | compute score via helper; outtake records score+tokens |
+| `design/tasks/score.md` | compute score via helper for a verify-capture run |
+| `design/tasks/outtake--verify-capture.md` | verify-capture outtake: result `{score, issues, tokens}` |
+| `design/tasks/outtake--design-verify.md` (NEW) | orchestrator outtake: aggregate runs → `ScoreReport` result |
 | `cli/workflow-summary.ts` + archive | surface + persist first/final scores |
 
 ## Error Behavior
