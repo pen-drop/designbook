@@ -2,10 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
-import { walkDocument, PAGE_SCRIPT } from '../../../../.agents/skills/designbook/design/resources/element-walker.js';
+import { walkDocument, PAGE_SCRIPT } from '../element-walker.js';
 
 function loadFixture(): Document {
-  const html = readFileSync(resolve(__dirname, '../../../../tests/fixtures/element-walker/basic-page.html'), 'utf8');
+  const html = readFileSync(
+    resolve(__dirname, '../../../../../tests/fixtures/element-walker/basic-page.html'),
+    'utf8',
+  );
   return new JSDOM(html, { pretendToBeVisual: true }).window.document;
 }
 

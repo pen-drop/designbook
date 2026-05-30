@@ -1,18 +1,77 @@
-// Element-property walker. Browser-side code only.
+// Element-property walker. Browser-side logic only — no node:* imports.
 //
 //   - walkDocument(doc, options): pure, jsdom-testable, returns CapturedSource
-//   - PAGE_SCRIPT: serialized helpers + walkDocument for in-page eval
+//   - PAGE_SCRIPT: serialized helpers + walkDocument for in-page eval()
 //
-// Node-side orchestration (launching Playwright, navigating, waiting for
-// SPA hydration / redirects, writing the JSON) lives in the region-properties
-// resolver. This file does not import anything from `node:*`.
-//
-// The shape is source-agnostic. Future Figma / screenshot walkers can return
-// the same CapturedSource via different production paths.
+// Node-side orchestration (launching Playwright, navigating, waiting, writing
+// JSON) lives in ./capture.ts. The CapturedSource shape is source-agnostic:
+// future Figma / screenshot walkers can produce the same shape.
+
+export interface CapturedSourceViewport {
+  width: number;
+  height: number;
+}
+
+export interface BBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CapturedSourceStyle {
+  layout?: 'flex-row' | 'flex-col' | 'grid' | 'stack' | 'none';
+  main_axis_align?: string;
+  cross_axis_align?: string;
+  gap?: string;
+  padding: string;
+  margin: string;
+  border?: string;
+  border_radius?: string;
+  background: string;
+  foreground?: string;
+  font_family?: string;
+  font_size?: string;
+  font_weight?: string;
+  line_height?: string;
+  letter_spacing?: string;
+  text_transform?: string;
+}
+
+export interface PropertyNode {
+  id: string;
+  parent_id?: string;
+  child_ids: string[];
+  label: string;
+  kind: string;
+  role?: string;
+  heading_context?: string;
+  bbox: BBox;
+  text?: string;
+  href?: string;
+  src?: string;
+  alt?: string;
+  style: CapturedSourceStyle;
+  source: { locator: string; raw?: object };
+}
+
+export interface CapturedSource {
+  source_kind: string;
+  source_ref: string;
+  captured_at: string;
+  viewport?: CapturedSourceViewport;
+  adapter_version: string;
+  nodes: PropertyNode[];
+}
+
+export interface WalkDocumentOptions {
+  sourceRef?: string;
+  viewport?: CapturedSourceViewport;
+}
 
 const ADAPTER_VERSION = 'url-playwright/0.1.0';
 
-const ROLE_TAG_MAP = {
+const ROLE_TAG_MAP: Record<string, string> = {
   HEADER: 'banner',
   NAV: 'navigation',
   MAIN: 'main',
@@ -22,7 +81,7 @@ const ROLE_TAG_MAP = {
   FORM: 'form',
 };
 
-const KIND_TAG_MAP = {
+const KIND_TAG_MAP: Record<string, string> = {
   H1: 'heading', H2: 'heading', H3: 'heading', H4: 'heading', H5: 'heading', H6: 'heading',
   P: 'text', SPAN: 'text', LABEL: 'text', LI: 'list-item',
   UL: 'list', OL: 'list',
@@ -37,18 +96,18 @@ const KIND_TAG_MAP = {
 
 const HEADING_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
 
-function rgbToHex(value) {
+function rgbToHex(value: string): string | undefined {
   if (!value) return '';
   const m = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/i);
   if (!m) return value;
   const alpha = m[4] === undefined ? 1 : parseFloat(m[4]);
   if (alpha === 0) return undefined;
-  const hex = (n) => Number(n).toString(16).padStart(2, '0');
-  if (alpha >= 1) return `#${hex(m[1])}${hex(m[2])}${hex(m[3])}`;
+  const hex = (n: string) => Number(n).toString(16).padStart(2, '0');
+  if (alpha >= 1) return `#${hex(m[1] as string)}${hex(m[2] as string)}${hex(m[3] as string)}`;
   return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
 }
 
-function resolveBackground(cs) {
+function resolveBackground(cs: CSSStyleDeclaration): string {
   const c = cs.backgroundColor;
   const isTransparent =
     !c || c === 'transparent' || /rgba?\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)/i.test(c);
@@ -62,7 +121,7 @@ function resolveBackground(cs) {
   return hex || '';
 }
 
-function normalizeBox(top, right, bottom, left) {
+function normalizeBox(top: string, right: string, bottom: string, left: string): string {
   const t = parseFloat(top) || 0;
   const r = parseFloat(right) || 0;
   const b = parseFloat(bottom) || 0;
@@ -71,19 +130,17 @@ function normalizeBox(top, right, bottom, left) {
   return `${t} ${r} ${b} ${l}`;
 }
 
-function mapLayout(display, flexDirection) {
+function mapLayout(display: string, flexDirection: string): CapturedSourceStyle['layout'] {
   if (display === 'flex' || display === 'inline-flex') {
-    return flexDirection === 'column' || flexDirection === 'column-reverse'
-      ? 'flex-col'
-      : 'flex-row';
+    return flexDirection === 'column' || flexDirection === 'column-reverse' ? 'flex-col' : 'flex-row';
   }
   if (display === 'grid' || display === 'inline-grid') return 'grid';
   if (display === 'block' || display === 'inline-block') return 'stack';
   return 'none';
 }
 
-function mapAxisAlign(value) {
-  const map = {
+function mapAxisAlign(value: string): string | undefined {
+  const map: Record<string, string> = {
     'flex-start': 'start',
     'flex-end': 'end',
     'center': 'center',
@@ -94,8 +151,8 @@ function mapAxisAlign(value) {
   return map[value] || undefined;
 }
 
-function mapCrossAlign(value) {
-  const map = {
+function mapCrossAlign(value: string): string | undefined {
+  const map: Record<string, string> = {
     'flex-start': 'start',
     'flex-end': 'end',
     'center': 'center',
@@ -105,17 +162,16 @@ function mapCrossAlign(value) {
   return map[value] || undefined;
 }
 
-function isVisible(el, style) {
+function isVisible(style: CSSStyleDeclaration): boolean {
   if (style.display === 'none') return false;
   if (style.visibility === 'hidden') return false;
   if (parseFloat(style.opacity) === 0) return false;
   // Note: zero-bbox check intentionally omitted — jsdom never lays out
-  // elements, so width/height are always 0 in tests. In Playwright the
-  // display/visibility/opacity gates already catch the common invisible cases.
+  // elements, so width/height are always 0 in tests.
   return true;
 }
 
-function hashId(domPath, x, y, w, h) {
+function hashId(domPath: string, x: number, y: number, w: number, h: number): string {
   let hash = 0x811c9dc5;
   const input = `${domPath}|${x}|${y}|${w}|${h}`;
   for (let i = 0; i < input.length; i++) {
@@ -125,15 +181,13 @@ function hashId(domPath, x, y, w, h) {
   return `n_${hash.toString(16).padStart(8, '0')}`;
 }
 
-function getDomPath(el) {
-  const parts = [];
-  let node = el;
+function getDomPath(el: Element): string {
+  const parts: string[] = [];
+  let node: Element | null = el;
   while (node && node.nodeType === 1 && node.tagName !== 'HTML') {
     let segment = node.tagName.toLowerCase();
     if (node.parentElement) {
-      const sameTag = Array.from(node.parentElement.children).filter(
-        (c) => c.tagName === node.tagName,
-      );
+      const sameTag = Array.from(node.parentElement.children).filter((c) => c.tagName === node!.tagName);
       if (sameTag.length > 1) {
         segment += `:nth-of-type(${sameTag.indexOf(node) + 1})`;
       }
@@ -144,8 +198,8 @@ function getDomPath(el) {
   return parts.join(' > ');
 }
 
-function findHeadingContext(el) {
-  let node = el;
+function findHeadingContext(el: Element): string | undefined {
+  let node: Element | null = el;
   while (node && node !== node.ownerDocument.documentElement) {
     const prev = node.previousElementSibling;
     if (prev) {
@@ -164,21 +218,21 @@ function findHeadingContext(el) {
   return undefined;
 }
 
-function getRole(el) {
-  const aria = el.getAttribute && el.getAttribute('role');
+function getRole(el: Element): string | undefined {
+  const aria = el.getAttribute('role');
   if (aria) return aria;
   return ROLE_TAG_MAP[el.tagName];
 }
 
-function getKind(el) {
+function getKind(el: Element): string {
   return KIND_TAG_MAP[el.tagName] || 'container';
 }
 
-function getLabel(el) {
+function getLabel(el: Element): string {
   if (HEADING_TAGS.has(el.tagName) && el.textContent) {
     return el.textContent.trim().slice(0, 200);
   }
-  const aria = el.getAttribute && el.getAttribute('aria-label');
+  const aria = el.getAttribute('aria-label');
   if (aria) return aria.trim().slice(0, 200);
   if (el.tagName === 'IMG') return el.getAttribute('alt') || el.tagName.toLowerCase();
   if (el.textContent && el.children.length === 0) {
@@ -187,7 +241,7 @@ function getLabel(el) {
   return el.tagName.toLowerCase();
 }
 
-function buildStyle(el, view) {
+function buildStyle(el: Element, view: Window): CapturedSourceStyle {
   const cs = view.getComputedStyle(el);
   return {
     layout: mapLayout(cs.display, cs.flexDirection),
@@ -196,9 +250,10 @@ function buildStyle(el, view) {
     gap: cs.gap && cs.gap !== 'normal' ? cs.gap : undefined,
     padding: normalizeBox(cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft),
     margin: normalizeBox(cs.marginTop, cs.marginRight, cs.marginBottom, cs.marginLeft),
-    border: cs.borderWidth && parseFloat(cs.borderWidth) > 0
-      ? `${cs.borderWidth} ${cs.borderStyle} ${rgbToHex(cs.borderColor) || cs.borderColor}`
-      : undefined,
+    border:
+      cs.borderWidth && parseFloat(cs.borderWidth) > 0
+        ? `${cs.borderWidth} ${cs.borderStyle} ${rgbToHex(cs.borderColor) || cs.borderColor}`
+        : undefined,
     border_radius: cs.borderRadius && cs.borderRadius !== '0px' ? cs.borderRadius : undefined,
     background: resolveBackground(cs),
     foreground: rgbToHex(cs.color),
@@ -211,20 +266,19 @@ function buildStyle(el, view) {
   };
 }
 
-export function walkDocument(doc, options = {}) {
-  const view = doc.defaultView || globalThis;
-  const nodes = [];
+export function walkDocument(doc: Document, options: WalkDocumentOptions = {}): CapturedSource {
+  const view = (doc.defaultView ?? globalThis) as unknown as Window;
+  const nodes: PropertyNode[] = [];
 
-  function visit(el, parentId) {
+  function visit(el: Element, parentId: string | null): PropertyNode | null {
     const cs = view.getComputedStyle(el);
-    if (!isVisible(el, cs)) return null;
+    if (!isVisible(cs)) return null;
     const rect = el.getBoundingClientRect();
     const domPath = getDomPath(el);
     const id = hashId(domPath, rect.x, rect.y, rect.width, rect.height);
 
-    const node = {
+    const node: PropertyNode = {
       id,
-      // Omit parent_id entirely for the root — schema reserves null for "absent".
       ...(parentId ? { parent_id: parentId } : {}),
       child_ids: [],
       label: getLabel(el),
@@ -232,12 +286,11 @@ export function walkDocument(doc, options = {}) {
       role: getRole(el),
       heading_context: findHeadingContext(el),
       bbox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-      text: el.children.length === 0 && el.textContent
-        ? el.textContent.trim().slice(0, 200) || undefined
-        : undefined,
-      href: (el.getAttribute && el.getAttribute('href')) || undefined,
-      src: (el.getAttribute && el.getAttribute('src')) || undefined,
-      alt: (el.getAttribute && el.getAttribute('alt')) || undefined,
+      text:
+        el.children.length === 0 && el.textContent ? el.textContent.trim().slice(0, 200) || undefined : undefined,
+      href: el.getAttribute('href') || undefined,
+      src: el.getAttribute('src') || undefined,
+      alt: el.getAttribute('alt') || undefined,
       style: buildStyle(el, view),
       source: { locator: domPath, raw: undefined },
     };
@@ -262,10 +315,9 @@ export function walkDocument(doc, options = {}) {
   };
 }
 
-// Self-contained source string for in-page evaluation. `walkDocument.toString()`
-// alone strips module-scoped helpers; we re-assemble all dependencies here in
-// dependency order so a single eval() in the browser context makes
-// `walkDocument` callable.
+// Self-contained source string for in-page evaluation. walkDocument.toString()
+// alone strips module-scoped helpers; re-assemble all dependencies in order so
+// a single eval() in the browser context makes walkDocument callable.
 export const PAGE_SCRIPT = [
   `const ADAPTER_VERSION = ${JSON.stringify(ADAPTER_VERSION)};`,
   `const ROLE_TAG_MAP = ${JSON.stringify(ROLE_TAG_MAP)};`,
