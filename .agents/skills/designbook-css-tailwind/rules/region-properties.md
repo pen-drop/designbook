@@ -1,6 +1,6 @@
 ---
 trigger:
-  steps: [create-component, create-scene]
+  steps: [create-component]
 filter:
   frameworks.style: tailwind
 ---

@@ -44,10 +44,6 @@ params:
       path: "$DESIGNBOOK_DATA/{{ scene_path }}"
       type: object
       $ref: ../schemas.yml#/SceneFile
-    region_properties:
-      $ref: ../../design/schemas.yml#/RegionProperties
-      resolve: region_properties
-      from: reference_url
 result:
   type: object
   required: [scene-file]

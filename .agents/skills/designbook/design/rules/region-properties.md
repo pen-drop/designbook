@@ -1,7 +1,7 @@
 ---
 name: designbook:design:region-properties
 trigger:
-  steps: [create-component, create-scene]
+  steps: [create-component]
 ---
 
 # Region Properties
