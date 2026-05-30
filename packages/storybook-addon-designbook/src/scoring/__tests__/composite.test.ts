@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeFlowRate } from '../composite.js';
+import { computeFidelityScore, computeFlowRate } from '../composite.js';
 
 describe('computeFlowRate', () => {
   it('computes flow_rate from success_rate and friction', () => {
@@ -22,5 +22,24 @@ describe('computeFlowRate', () => {
   it('flow_rate is 100 for a perfect run', () => {
     const r = computeFlowRate({ successRate: 1, errors: 0, retries: 0, unresolved: 0 });
     expect(r.flowRate).toBe(100);
+  });
+});
+
+describe('computeFidelityScore', () => {
+  it('is 0 for no issues', () => {
+    expect(computeFidelityScore([])).toBe(0);
+  });
+  it('weights critical=3, major=2, minor=1 and sums across checks', () => {
+    const issues = [
+      { severity: 'critical', description: 'a' },
+      { severity: 'critical', description: 'b' },
+      { severity: 'major', description: 'c' },
+      { severity: 'minor', description: 'd' },
+    ];
+    // 2*3 + 1*2 + 1*1 = 9
+    expect(computeFidelityScore(issues)).toBe(9);
+  });
+  it('ignores unknown severities', () => {
+    expect(computeFidelityScore([{ severity: 'info', description: 'x' }])).toBe(0);
   });
 });
