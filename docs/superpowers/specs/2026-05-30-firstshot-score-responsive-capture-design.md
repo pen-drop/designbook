@@ -1,4 +1,4 @@
-# First-Shot Score, 1× Polish Loop & Responsive (Multi-Breakpoint) Capture
+# First-Shot Score, design-verify Split (capture/fix, subagent-orchestrated) & Responsive (Multi-Breakpoint) Capture
 
 **Date:** 2026-05-30
 **Status:** Draft
@@ -16,7 +16,7 @@ This design adds: deterministic first-shot/final scores in the result, a single 
 
 ## Scope
 
-`design-shell` only (where the A/B was measured). The new `score`/`polish`/recapture/recompare stages and the multi-breakpoint capture are reusable; adopting them in `design-screen`/`design-verify` is out of scope here.
+The fidelity score + fix loop are delivered by **splitting `design-verify` into two composable sub-workflows** (`verify-capture`, `verify-fix`) with `design-verify` retained as a thin **orchestrator** that runs them in subagents. Multi-breakpoint capture lands in the shared `inspect/capture.ts` (used by the region_properties resolver wherever `create-component` runs). `design-shell` keeps its existing `after: design-verify` hook and now receives first/final scores through it. Adopting the same in `design-screen` is out of scope.
 
 ---
 
@@ -63,40 +63,49 @@ computeFidelityScore(issues[]) = Σ ( critical×3 + major×2 + minor×1 )
 
 ---
 
-## Feature 3 — 1× Polish Loop (design-shell)
+## Feature 3 — Split design-verify into `verify-capture` + `verify-fix`, orchestrated with subagents
 
-Current stages: `… validate → setup-compare → capture → compare → outtake`.
+`design-verify` today runs `reference → intake → setup-compare → capture → compare → triage → polish → outtake` in one linear pass. It is split into two composable sub-workflows; `design-verify` keeps its name/entry and becomes a thin orchestrator.
 
-New:
+### `verify-capture` (pure measurement)
+
+`reference → intake → setup-compare → capture → compare → score → outtake`.
+Output: `issues[]` + a deterministic `score` (`computeFidelityScore`, Feature 2) + agent-reported `tokens` (Feature 4). No fixing.
+
+### `verify-fix` (pure fixing)
+
+`intake(issues) → triage → polish → outtake`.
+Consumes the `issues[]` from a prior `verify-capture` and edits the components. Does not re-measure.
+
+### `design-verify` (orchestrator, subagent-offloaded)
+
 ```
-… → compare → score → polish → recapture → recompare → score-final → outtake
-        │                         (steps:[capture]) (steps:[compare])   │
-   first_shot_score                                                 final_score
+design-verify:
+  Subagent → verify-capture        → first_shot_score + issues   (+ tokens)
+  Subagent → verify-fix(issues)    → fixes components
+  Subagent → verify-capture        → final_score                  (+ tokens)
+  aggregate → result: { first_shot_score, final_score, delta, tokens }
 ```
 
-- `compare` (round 1) emits `issues[]`.
-- **`score` stage** (new step `score`) → `computeFidelityScore(issues)` → persists **`first_shot_score`** (snapshot taken before polish can clobber the issues).
-- `polish` consumes the round-1 `issues[]` and fixes the components. Reuses the existing polish task, triggered by the shell's `polish` step (a shell-scoped polish task or a re-triggerable polish task — resolved in the plan).
-- `recapture` / `recompare` are the same capture/compare tasks under distinct stage names (`steps:[capture]` / `[compare]`) → fresh screenshots of the fixed story → round-2 `issues[]`.
-- **`score-final` stage** → **`final_score`**.
-- `outtake` reports both + `delta = first_shot_score − final_score`.
+- **One subagent per sub-workflow run** (capture / fix / capture). Each subagent runs the child designbook workflow end-to-end and returns ONLY its structured result (score, issues, tokens) — the orchestrator's context stays small.
+- The orchestrator holds `first_shot_score` from run 1 across run 2 (it lives in the orchestrator scope, not in the re-run `verify-capture` output), so there is no clobber to guard.
+- `delta = first_shot_score − final_score` (positive = improvement, since lower is better).
+- Existing child-workflow invocation already exists in the skill (`outtake` runs design-verify as a child); the orchestrator extends that pattern to dispatch via subagents.
 
-Stages are name-keyed and walked linearly by `getNextStage`, so the second capture/compare must use new stage names (`recapture`/`recompare`). The score snapshot after round 1 is mandatory so `recompare` cannot overwrite `first_shot_score`.
+`design-shell` is unchanged except that its existing `after: design-verify` hook now yields the first/final scores through the orchestrator's result.
 
 ---
 
 ## Feature 4 — Scores & Token Cost in the Result
 
-The archived workflow result (today: `flow_rate`, `success_rate`, `metrics`) gains, via the `outtake` result schema:
+Two levels:
 
-- `first_shot_score: number` (0 = perfect)
-- `final_score: number`
-- `delta: number` (`first_shot_score − final_score`)
-- `tokens?: { input?: number; output?: number }`
+- **`verify-capture` result** carries a single run's measurement: `score: number` (0 = perfect) + `tokens?: { input?: number; output?: number }`.
+- **`design-verify` orchestrator result** aggregates the two capture runs: `first_shot_score`, `final_score`, `delta` (`first_shot_score − final_score`), and summed `tokens`.
 
-`tokens` is **agent-reported** at `outtake`: the workflow engine has no visibility into LLM token consumption (only the agent/harness does), so the outtake task asks the executing agent to record its run token usage when available; it is **best-effort** and may be absent on headless/cron runs. New `ScoreReport` type: `{ first_shot_score, final_score, delta, tokens? }`.
+`tokens` is **agent-reported**: the workflow engine has no visibility into LLM token consumption (only the agent/harness does), so each `verify-capture`/`verify-fix` subagent records its own run token usage when available and returns it; the orchestrator sums them. **Best-effort** — may be absent on headless/cron runs.
 
-`workflow-summary.ts` prints `first_shot_score` / `final_score` / `delta` alongside `flow_rate` / `success_rate`. `archiveWorkflow` persists them like the existing metrics.
+New `ScoreReport` type: `{ first_shot_score, final_score, delta, tokens? }`. `workflow-summary.ts` prints the orchestrator's `first_shot_score` / `final_score` / `delta` alongside `flow_rate` / `success_rate`; `archiveWorkflow` persists them like the existing metrics.
 
 ---
 
@@ -110,9 +119,11 @@ The archived workflow result (today: `flow_rate`, `success_rate`, `metrics`) gai
 | `resolvers/region-properties.ts` | pass breakpoints+px to capture |
 | `scoring/composite.ts` | `computeFidelityScore(issues)` (pure) |
 | `design/schemas.yml` | `PropertyNode.overrides`, `base_breakpoint`, `ScoreReport` |
-| `design/workflows/design-shell.md` | new `score`/`polish`/`recapture`/`recompare`/`score-final` stages |
-| `design/tasks/score*.md`, polish wiring | compute+persist scores; reuse polish |
-| `cli/workflow-summary.ts` + archive | surface + persist scores |
+| `design/workflows/verify-capture.md` | new measurement workflow (capture→compare→score→outtake) |
+| `design/workflows/verify-fix.md` | new fix workflow (intake(issues)→triage→polish→outtake) |
+| `design/workflows/design-verify.md` | refactor to thin orchestrator: dispatch 1 subagent per sub-workflow run (capture/fix/capture), aggregate first/final/delta/tokens |
+| `design/tasks/score.md` + outtake | compute score via helper; outtake records score+tokens |
+| `cli/workflow-summary.ts` + archive | surface + persist first/final scores |
 
 ## Error Behavior
 
@@ -120,7 +131,8 @@ The archived workflow result (today: `flow_rate`, `success_rate`, `metrics`) gai
 |---|---|
 | Only one breakpoint requested | Capture once; no `overrides`; base = that breakpoint. |
 | Breakpoint px missing in tokens | Skip that breakpoint, log; capture remaining (base still produced). |
-| `compare` round 1 empty issues | `first_shot_score = 0`; polish is a no-op; `final_score = 0`. |
+| `verify-capture` round 1 empty issues | `first_shot_score = 0`; orchestrator skips `verify-fix`; `final_score = 0`. |
+| A capture/fix subagent fails | orchestrator records the failure, keeps any score already obtained, does not fabricate a missing score. |
 | Token usage unavailable | `tokens` omitted/null; scores still recorded. |
 | polish makes it worse | `delta` is negative; recorded honestly (no clamping). |
 
@@ -129,12 +141,13 @@ The archived workflow result (today: `flow_rate`, `success_rate`, `metrics`) gai
 - `computeFidelityScore` — pure unit (empty→0, mixed severities→expected Σ, weights 3/2/1).
 - Multi-breakpoint capture — integration (real chromium) against a fixture with an `@media` responsive element (e.g. nav `display:none` at narrow, `flex` at wide): assert base node `hidden` + `overrides[xl].hidden === false` (or the inverse), aligned by `dom_path`.
 - Walker breakpoint-diff — pure unit (two trees → expected `overrides`, dom_path join, revealed/hidden nodes).
-- design-shell stage list — smoke test asserting the new linear stage order resolves.
-- `outtake` result — asserts `first_shot_score`/`final_score`/`delta` present in the archived result.
+- `verify-capture` / `verify-fix` stage lists — smoke tests asserting each resolves to its stage order.
+- `design-verify` orchestrator result — asserts `first_shot_score`/`final_score`/`delta` present and `delta = first_shot_score − final_score`.
 
 ## Non-Goals
 
-- Multi-round (>1) polish, threshold-based convergence.
-- Adopting the loop/score in `design-screen` / `design-verify`.
+- Multi-round (>1) polish, threshold-based convergence (orchestrator runs capture→fix→capture exactly once).
+- Adopting `verify-capture`/`verify-fix` in `design-screen`.
+- Finer subagent granularity (per-component); one subagent per sub-workflow run only.
 - Symmetric walker-based verification (walking the generated output) — noted as future synergy with `Issue.properties[]`, not built here.
 - A "missing-element" score weight.
