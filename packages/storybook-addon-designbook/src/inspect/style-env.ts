@@ -33,9 +33,19 @@ export async function captureStyleEnv(url: string, opts: { fonts: string[] }): P
             try {
               await (document as Document).fonts.load(`16px "${family}"`);
             } catch {
-              /* ignore — check() below reports the outcome */
+              /* ignore — the FontFaceSet status below reports the outcome */
             }
-            fontResults.push({ family, loaded: (document as Document).fonts.check(`16px "${family}"`) });
+            // NOTE: do NOT use document.fonts.check() — it returns true for a
+            // family with NO @font-face rule (system fallback is always
+            // "available"), so a totally-missing font stylesheet would pass.
+            // Require an actual FontFace ENTRY whose status is 'loaded'. This
+            // fails for both "declared but failed" and "not declared at all".
+            const unquote = (s: string) => s.replace(/^["']|["']$/g, '');
+            let loaded = false;
+            (document as Document).fonts.forEach((face) => {
+              if (face.status === 'loaded' && unquote(face.family) === family) loaded = true;
+            });
+            fontResults.push({ family, loaded });
           }
           return { root_vars, fonts: fontResults };
         },

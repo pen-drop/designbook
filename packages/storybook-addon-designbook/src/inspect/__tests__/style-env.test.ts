@@ -17,7 +17,14 @@ describe('captureStyleEnv (real chromium)', () => {
     const env = await captureStyleEnv(PROBE, { fonts: ['ProbeMono', 'NoSuchFace'] });
     const probe = env.fonts.find((f) => f.family === 'ProbeMono');
     const missing = env.fonts.find((f) => f.family === 'NoSuchFace');
-    expect(probe?.loaded).toBe(true);
-    expect(missing?.loaded).toBe(false);
+    expect(probe?.loaded).toBe(true); // declared @font-face, loaded
+    expect(missing?.loaded).toBe(false); // declared @font-face, broken source
+  }, 60_000);
+
+  it('reports an UNDECLARED family as not loaded (no @font-face entry)', async () => {
+    // Guards against document.fonts.check() false-positives: a family with no
+    // @font-face rule must report loaded:false, not true (system fallback).
+    const env = await captureStyleEnv(PROBE, { fonts: ['TotallyUndeclaredFamily'] });
+    expect(env.fonts.find((f) => f.family === 'TotallyUndeclaredFamily')?.loaded).toBe(false);
   }, 60_000);
 });
