@@ -75,6 +75,17 @@ trigger:
 Use BEM class naming: `.block__element--modifier`.
 ```
 
+## Structure, Not Measured Design Values
+
+Patterns (classes, tokens, markup, composition) belong here. The measured layout of one
+design does not: fixed px/`rem` sizes, heights, paddings, min-heights, and fixed row/
+region counts come from the reference (`extract.json` landmarks) at runtime. Baking them
+in makes every output mimic the example site — "Skills Are Site-Agnostic" applied to
+layout. `COMMON-02` guards only core `designbook/`, so integrations need `BLUEPRINT-05`.
+
+Name the possible patterns ("single bar **or** stacked rows") and let the reference
+decide the count and sizes. Never write a dimensions table.
+
 ## Name Blueprint Files Descriptively
 
 A blueprint filename should reflect the output pattern or component family it provides
@@ -211,3 +222,4 @@ filter:
 | BLUEPRINT-02 | warning | Body does not contain site-specific references (brand names, project URLs, customer slot names) — site-specific content in core `designbook/` is caught by COMMON-02 in common-rules.md; this check covers blueprints in integration skills that still must stay site-agnostic | body |
 | BLUEPRINT-03 | warning | Body does not describe enum values, required fields, type restrictions, or default values. Such content belongs either in `suggests:` in frontmatter (soft recommendation, machine-readable) or in `schemas.yml` / a rule (hard contract). Pure narrative prose is fine. Finding message must name which target applies per the decision matrix in "Blueprints Suggest, Never Enforce". | body |
 | BLUEPRINT-04 | warning | Body does not reference rule files (e.g. `rules/<name>.md`, "see rules/…", "per the … rule"). Rules reach the AI through executor prompt assembly alongside the blueprint — a reference duplicates content and couples the blueprint to a rule filename. | body |
+| BLUEPRINT-05 | warning | Body does not prescribe measured layout for a specific design — fixed pixel/`rem` dimensions, hardcoded heights, paddings, minimum total heights, or fixed row/region/section counts presented as defaults. These are discovered per-design from the design reference (extract.json landmarks) at runtime. Naming a possible structural pattern (e.g. "single bar or stacked rows") is fine; fixing the shape or its measurements is not. | body |

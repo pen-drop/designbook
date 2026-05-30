@@ -26,8 +26,6 @@ result:
     component-story:
       path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.default.story.yml"
       $ref: designbook-drupal/components/schemas.yml#/SdcStory
-    app-css:
-      path: ${DESIGNBOOK_CSS_APP}
 each:
   component:
     expr: "components"
@@ -59,4 +57,3 @@ When `component.design_hint.markup` is empty, fall back to the blueprint default
 2. If `component.design_hint.markup` is set, lift the markup into `<name>.twig` and clean up Angular-isms (handlers, `[innerHTML]`, etc.) per the migration rules.
 3. Derive `<name>.component.yml` from `component.slots` + `component.design_hint.props`.
 4. Generate the default story exercising every slot and the default of every prop.
-

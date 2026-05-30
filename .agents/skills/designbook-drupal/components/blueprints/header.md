@@ -24,3 +24,10 @@ Site header that composes logo, navigation, and optional actions.
 - logo — site logo / brand mark (recommended)
 - navigation — navigation component (recommended — see `navigation.md` rule for enforcement)
 - Additional slots as determined by the design reference
+
+## Layout
+
+Headers vary per design: a single bar, stacked rows (brand strip + navigation), or more.
+Derive the row/region count, heights, padding, and stacking from the design reference
+(extract.json landmarks) — do not assume a fixed shape. Preserve every visually distinct
+landmark region as its own stacked element rather than collapsing them into one row.

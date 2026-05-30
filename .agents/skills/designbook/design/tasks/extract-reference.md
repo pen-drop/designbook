@@ -42,21 +42,35 @@ The extracted `DesignReference` is the single source of truth for every downstre
 
 Treat the schema fields as a checklist — when a field is observable in the reference, it MUST be populated.
 
-### Landmarks — every visual row separately
+### Landmarks and regions
 
-`landmarks.header.rows[]` and `landmarks.footer.rows[]` MUST list **every** visually distinct horizontal band — not a single aggregated row. Evidence of a distinct row: different background color, a separating border, a change in content density, or a change in alignment.
+Populate `landmarks` for every visually distinct page landmark that appears in the reference, such as header, footer, navigation, hero, sidebar, toolbar, search area, promo strip, legal bar, or content panels.
 
-For each row capture:
-- `bg` — resolved background color (hex)
+For each landmark, split direct visual regions whenever background, border, spacing, layout, purpose, content grouping, or interaction treatment changes. Do not collapse multiple visual regions into one generic row or slot.
+
+For each region capture:
+- `bg` — resolved background color (hex or CSS color)
 - `height` — measured rendered height
 - `padding` — vertical + horizontal padding
 - `layout` — `flex`/`grid`/`stack` with direction and alignment
 - `gap` — spacing between items
-- `content` — concrete enumeration of items in reading order (e.g. `"logo | search | account | cart"`, not `"utility links"`)
+- `content` — concrete enumeration of items in reading order
+- `treatment` — short visual role such as brand strip, navigation row, action group, form panel, legal row, card rail, or content band
 
 ### Interactive elements
 
-Populate `interactive[]` for every distinct button/CTA/link-button style. Do not collapse visually different buttons into one entry.
+Populate `interactive[]` for every distinct interactive treatment. Classify the visual treatment separately from the semantic role.
+
+Common treatments include:
+- text link
+- transparent button
+- icon-only button
+- filled or accent button
+- outline button
+- input or search control
+- menu or dropdown trigger using whichever treatment the reference shows
+
+Do not map every clickable element to a filled or accent button. Preserve the observed treatment.
 
 ### Forms
 
@@ -84,4 +98,4 @@ Populate `sections[]` for every page-level content zone between header and foote
 
 ## Verification
 
-Before returning, verify the extract is not thin: if `landmarks.header.rows.length < 2` for a typical institutional site, `images.length === 0`, or `forms.length === 0` on a page with a visible search/newsletter/login — re-extract. Thin extracts are almost always the cause of shell/screen mismatches in verify.
+Before returning, verify the extract is not thin: if a visible landmark contains multiple visual regions but `landmarks` records it as one aggregate area, if `images.length === 0` on a page with visible brand or content images, or if `forms.length === 0` on a page with a visible search/newsletter/login/contact form, re-extract. Thin extracts are almost always the cause of shell/screen mismatches in verify.

@@ -23,5 +23,6 @@ Non-standard namespaces (e.g. `--layout-spacing-*`, `--grid-*`) require `var()`:
 
 ## Rules
 
-- [css-mapping.md](rules/css-mapping.md) — Token-group-to-CSS mapping for the generic `generate-jsonata` task
-- [tailwind-naming.md](rules/tailwind-naming.md) — Token naming conventions for `layout-width`, `layout-spacing`, `grid`
+- [component-styling.md](rules/component-styling.md) — Tailwind utility-first component styling policy.
+- [component-source.md](rules/component-source.md) — Tailwind source registration for component templates.
+- [css-mapping.md](rules/css-mapping.md) — Token-group-to-CSS mapping for the generic `generate-jsonata` task.
