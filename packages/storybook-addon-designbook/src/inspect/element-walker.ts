@@ -38,6 +38,12 @@ export interface CapturedSourceStyle {
   text_transform?: string;
 }
 
+export interface StyleOverride {
+  hidden?: boolean;
+  style?: Partial<CapturedSourceStyle>;
+  bbox?: BBox;
+}
+
 export interface PropertyNode {
   id: string;
   parent_id?: string;
@@ -53,6 +59,8 @@ export interface PropertyNode {
   alt?: string;
   style: CapturedSourceStyle;
   source: { locator: string; raw?: object };
+  /** Per-breakpoint deviations from the mobile-first base. Key = breakpoint name. */
+  overrides?: Record<string, StyleOverride>;
 }
 
 export interface CapturedSource {
@@ -61,6 +69,8 @@ export interface CapturedSource {
   captured_at: string;
   viewport?: CapturedSourceViewport;
   adapter_version: string;
+  /** Smallest captured breakpoint — the mobile-first base for `nodes[].style`. Absent for single-viewport captures. */
+  base_breakpoint?: string;
   nodes: PropertyNode[];
 }
 
