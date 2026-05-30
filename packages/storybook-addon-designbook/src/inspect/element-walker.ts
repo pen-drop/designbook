@@ -355,4 +355,11 @@ export const PAGE_SCRIPT = [
   getLabel.toString(),
   buildStyle.toString(),
   walkDocument.toString(),
+  // Bridge the walker onto a stable global. `${walkDocument.name}` is the
+  // RUNTIME name (the bundler may rename `walkDocument` → `walkDocument2`);
+  // walkDocument.toString() above emits a definition under that same runtime
+  // name, so the assignment always resolves. Callers invoke the walker via
+  // globalThis.__designbookWalkDocument, never via a bare `walkDocument`
+  // identifier (which the bundler can rename out from under the call site).
+  `globalThis.__designbookWalkDocument = ${walkDocument.name};`,
 ].join('\n\n');

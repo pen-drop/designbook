@@ -29,6 +29,15 @@ export function isFeatureEnabled(name: string, config: DesignbookConfig): boolea
   const fromEnv = parseBool(process.env[envKey(name)]);
   if (fromEnv !== undefined) return fromEnv;
 
+  // `loadConfig` flattens nested YAML to dot-path keys, so a config file with
+  //   features:
+  //     region_properties: false
+  // arrives as the flat key `features.<name>`, not a nested `features` object.
+  const flat = (config as Record<string, unknown>)[`features.${name}`];
+  if (typeof flat === 'boolean') return flat;
+
+  // Nested form — produced by callers that build the config object directly
+  // (e.g. tests) rather than going through loadConfig's flattener.
   const features = config.features;
   if (features && typeof features === 'object' && name in features) {
     return features[name] !== false;

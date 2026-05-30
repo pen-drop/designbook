@@ -51,4 +51,15 @@ describe('isFeatureEnabled', () => {
     expect(isFeatureEnabled('region_properties', cfg())).toBe(true);
     expect(isFeatureEnabled('region_properties', cfg({ region_properties: false }))).toBe(false);
   });
+
+  it('reads the flattened "features.<name>" key (loadConfig output shape)', () => {
+    const off = {
+      data: '/tmp',
+      technology: 'html',
+      'features.region_properties': false,
+    } as unknown as DesignbookConfig;
+    const on = { data: '/tmp', technology: 'html', 'features.region_properties': true } as unknown as DesignbookConfig;
+    expect(isFeatureEnabled('region_properties', off)).toBe(false);
+    expect(isFeatureEnabled('region_properties', on)).toBe(true);
+  });
 });

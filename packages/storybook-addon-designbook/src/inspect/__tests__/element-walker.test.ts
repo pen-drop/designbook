@@ -116,4 +116,23 @@ describe('element walker', () => {
     // The script must parse as valid JavaScript (Function ctor throws on syntax error).
     expect(() => new Function(PAGE_SCRIPT + '; return walkDocument;')).not.toThrow();
   });
+
+  it('PAGE_SCRIPT exposes the walker via the globalThis bridge and runs end-to-end', () => {
+    // Mirrors capture.ts: eval the script, then invoke through the stable
+    // global key — never via a bare `walkDocument` identifier (which the
+    // bundler can rename, desyncing it from the call site).
+    const g = globalThis as unknown as {
+      __designbookWalkDocument?: (doc: Document, opts: { sourceRef: string }) => { nodes: unknown[] };
+    };
+    delete g.__designbookWalkDocument;
+    try {
+      new Function(PAGE_SCRIPT)();
+      expect(typeof g.__designbookWalkDocument).toBe('function');
+      const captured = g.__designbookWalkDocument!(loadFixture(), { sourceRef: 'bridge' });
+      expect(Array.isArray(captured.nodes)).toBe(true);
+      expect(captured.nodes.length).toBeGreaterThan(5);
+    } finally {
+      delete g.__designbookWalkDocument;
+    }
+  });
 });

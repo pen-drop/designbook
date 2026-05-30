@@ -73,9 +73,20 @@ export async function capture(url: string, outPath: string): Promise<void> {
               viewport: { width: number; height: number };
             }) => {
               eval(script);
-              // walkDocument is now in scope from PAGE_SCRIPT.
-              // @ts-expect-error — walkDocument is dynamically defined.
-              return walkDocument(document, { sourceRef: ref, viewport });
+              // PAGE_SCRIPT assigns the walker to a fixed global. We must NOT
+              // reference a bare `walkDocument` identifier here: the bundler
+              // renames the real function (collision avoidance) and the eval'd
+              // definition would no longer match a hardcoded call-site name.
+              // Going through globalThis under a stable key is rename-proof.
+              const walk = (
+                globalThis as unknown as {
+                  __designbookWalkDocument: (
+                    doc: Document,
+                    opts: { sourceRef: string; viewport: { width: number; height: number } },
+                  ) => unknown;
+                }
+              ).__designbookWalkDocument;
+              return walk(document, { sourceRef: ref, viewport });
             },
             { ref: url, script: PAGE_SCRIPT, viewport: vp },
           );
