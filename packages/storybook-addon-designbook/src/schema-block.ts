@@ -35,35 +35,83 @@ export interface BuildSchemaBlockInput {
 }
 
 /**
- * Recursively resolve nested $ref entries into the definitions map and
- * rewrite them as local AJV-compatible refs (`#/definitions/TypeName`).
- * Skips already-local refs and the top-level $ref (handled separately so the
- * entry-level $ref stays mergeable with the other entry fields).
+ * Pull a `$ref`'d type into `definitions`, recursively resolving the type's OWN
+ * nested refs — both cross-file (`path#/Y`) and bare same-file (`#/Y`) — against
+ * the file the type lives in. Without this, bare `#/Y` refs inside a
+ * cross-file-pulled type dangle: the compiled AJV root has `#/definitions/Y`,
+ * not `#/Y`, so validation throws "can't resolve reference". Cycle-safe.
+ * Returns the registered type name.
  */
-function resolveNestedRefs(
-  node: unknown,
+function pullType(
+  ref: string,
+  baseFilePath: string,
+  baseFileSchemas: Record<string, object>,
   definitions: Record<string, object>,
   input: BuildSchemaBlockInput,
-  depth: number,
+  visited: Set<string>,
+): string {
+  let typeName: string;
+  let schema: object;
+  let srcFile: string;
+  let srcSchemas: Record<string, object>;
+
+  if (ref.startsWith('#/')) {
+    // Bare same-file ref — resolve against the file the containing type came from.
+    typeName = ref.slice(2);
+    const found = baseFileSchemas[typeName];
+    if (!found) {
+      throw new Error(`Type '${typeName}' not found in ${baseFilePath} (bare '#/' ref)`);
+    }
+    schema = found;
+    srcFile = baseFilePath;
+    srcSchemas = baseFileSchemas;
+  } else {
+    const r = resolveSchemaRef(ref, baseFilePath, input.skillsRoot);
+    typeName = r.typeName;
+    schema = r.schema;
+    srcFile = r.schemaFilePath;
+    srcSchemas = r.fileSchemas;
+  }
+
+  if (!visited.has(typeName)) {
+    visited.add(typeName);
+    const clone = structuredClone(schema) as Record<string, unknown>;
+    resolveRefsIn(clone, srcFile, srcSchemas, definitions, input, visited);
+    definitions[typeName] = clone;
+  }
+  return typeName;
+}
+
+/**
+ * Walk a schema body and rewrite every nested `$ref` to a local
+ * `#/definitions/TypeName`, pulling each referenced type (and its transitive
+ * refs) into `definitions`. `baseFilePath` / `baseFileSchemas` describe the file
+ * this body belongs to — used to resolve relative and bare refs. Already-local
+ * `#/definitions/...` refs are left untouched.
+ */
+function resolveRefsIn(
+  node: unknown,
+  baseFilePath: string,
+  baseFileSchemas: Record<string, object>,
+  definitions: Record<string, object>,
+  input: BuildSchemaBlockInput,
+  visited: Set<string>,
 ): void {
   if (Array.isArray(node)) {
-    for (const item of node) resolveNestedRefs(item, definitions, input, depth + 1);
+    for (const item of node) resolveRefsIn(item, baseFilePath, baseFileSchemas, definitions, input, visited);
     return;
   }
   if (!node || typeof node !== 'object') return;
 
   const obj = node as Record<string, unknown>;
-  if (depth > 0 && typeof obj.$ref === 'string') {
-    const ref = obj.$ref;
-    if (ref.includes('#/') && !ref.startsWith('#/')) {
-      const { typeName, schema } = resolveSchemaRef(ref, input.taskFilePath, input.skillsRoot);
-      definitions[typeName] = schema;
-      obj.$ref = `#/definitions/${typeName}`;
-    }
+  if (typeof obj.$ref === 'string' && obj.$ref.includes('#/') && !obj.$ref.startsWith('#/definitions/')) {
+    const typeName = pullType(obj.$ref, baseFilePath, baseFileSchemas, definitions, input, visited);
+    obj.$ref = `#/definitions/${typeName}`;
+    return;
   }
 
   for (const value of Object.values(obj)) {
-    resolveNestedRefs(value, definitions, input, depth + 1);
+    resolveRefsIn(value, baseFilePath, baseFileSchemas, definitions, input, visited);
   }
 }
 
@@ -107,16 +155,18 @@ async function resolveEntry(
     }
   }
 
-  // Resolve top-level $ref into definitions
+  const visited = new Set<string>();
+
+  // Resolve top-level $ref into definitions (recursively pulling its own refs).
   if (typeof decl.$ref === 'string') {
-    const { typeName, schema } = resolveSchemaRef(decl.$ref, input.taskFilePath, input.skillsRoot);
-    definitions[typeName] = schema;
+    const typeName = pullType(decl.$ref, input.taskFilePath, {}, definitions, input, visited);
     entry.$ref = `#/definitions/${typeName}`;
   }
 
   // Resolve any nested $ref (e.g. items.$ref, properties.foo.$ref) so AJV can
-  // resolve them against the inline definitions map at validation time.
-  resolveNestedRefs(entry, definitions, input, 1);
+  // resolve them against the inline definitions map at validation time. Nested
+  // refs in the entry body are relative to the task file.
+  resolveRefsIn(entry, input.taskFilePath, {}, definitions, input, visited);
 
   return entry;
 }
