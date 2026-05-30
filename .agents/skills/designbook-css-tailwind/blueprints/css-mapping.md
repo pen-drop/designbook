@@ -20,25 +20,25 @@ empty paths are skipped silently — no empty `@theme {}` blocks are produced.
 ```yaml
 groups:
   # primitive layer ─ raw values, never used directly in markup
-  primitive-color:    { path: primitive.color,             prefix: color,           wrap: "@theme" }
-  primitive-radius:   { path: primitive.radius,            prefix: radius,          wrap: "@theme" }
-  primitive-shadow:   { path: primitive.shadow,            prefix: shadow,          wrap: "@theme" }
-  primitive-spacing:  { path: primitive.spacing,           prefix: spacing,         wrap: "@theme" }
-  primitive-font:     { path: primitive.fontFamily,        prefix: font,            wrap: "@theme" }
-  primitive-text:     { path: primitive.fontSize,          prefix: text,            wrap: "@theme" }
-  primitive-weight:   { path: primitive.fontWeight,        prefix: font-weight,     wrap: "@theme" }
-  primitive-leading:  { path: primitive.lineHeight,        prefix: leading,         wrap: "@theme" }
+  primitive-color:    { path: primitive.color,             prefix: color,           wrap: "@theme static" }
+  primitive-radius:   { path: primitive.radius,            prefix: radius,          wrap: "@theme static" }
+  primitive-shadow:   { path: primitive.shadow,            prefix: shadow,          wrap: "@theme static" }
+  primitive-spacing:  { path: primitive.spacing,           prefix: spacing,         wrap: "@theme static" }
+  primitive-font:     { path: primitive.fontFamily,        prefix: font,            wrap: "@theme static" }
+  primitive-text:     { path: primitive.fontSize,          prefix: text,            wrap: "@theme static" }
+  primitive-weight:   { path: primitive.fontWeight,        prefix: font-weight,     wrap: "@theme static" }
+  primitive-leading:  { path: primitive.lineHeight,        prefix: leading,         wrap: "@theme static" }
 
   # semantic layer ─ purpose/role tokens, reference primitives via var()
-  color:              { path: semantic.color,              prefix: color,           wrap: "@theme", resolve: var }
-  radius:             { path: semantic.radius,             prefix: radius,          wrap: "@theme", resolve: var }
-  shadow:             { path: semantic.shadow,             prefix: shadow,          wrap: "@theme", resolve: var }
-  typography:         { path: semantic.typography,         prefix: text,            wrap: "@theme", expand: typography }
+  color:              { path: semantic.color,              prefix: color,           wrap: "@theme static", resolve: var }
+  radius:             { path: semantic.radius,             prefix: radius,          wrap: "@theme static", resolve: var }
+  shadow:             { path: semantic.shadow,             prefix: shadow,          wrap: "@theme static", resolve: var }
+  typography:         { path: semantic.typography,         prefix: text,            wrap: "@theme static", expand: typography }
 
   # component layer ─ component-specific tokens, often nested deeper
-  layout-width:       { path: component.container.max-width, prefix: container,      wrap: "@theme", resolve: var }
-  layout-spacing:     { path: component.section.padding-y,   prefix: layout-spacing, wrap: "@theme", resolve: var }
-  grid:               { path: component.grid.gap,            prefix: grid,           wrap: "@theme", resolve: var }
+  layout-width:       { path: component.container.max-width, prefix: container,      wrap: "@theme static", resolve: var }
+  layout-spacing:     { path: component.section.padding-y,   prefix: layout-spacing, wrap: "@theme static", resolve: var }
+  grid:               { path: component.grid.gap,            prefix: grid,           wrap: "@theme static", resolve: var }
 ```
 
 ## Group Naming
