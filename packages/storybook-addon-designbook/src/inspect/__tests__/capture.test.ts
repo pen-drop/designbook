@@ -62,3 +62,43 @@ describe('capture (real chromium)', () => {
     expect(locateRegion(captured, 'main').matched_via).toBe('role');
   });
 });
+
+describe('capture (multi-breakpoint, real chromium)', () => {
+  const RESP_URL = pathToFileURL(
+    join(__dirname, '../../../../../tests/fixtures/element-walker/responsive-page.html'),
+  ).href;
+  let dir: string;
+  let merged: CapturedSource;
+
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'designbook-capture-bp-'));
+    const out = join(dir, 'source.json');
+    await capture(RESP_URL, out, [
+      { name: 'sm', width: 640 },
+      { name: 'xl', width: 1280 },
+    ]);
+    merged = JSON.parse(await readFile(out, 'utf8')) as CapturedSource;
+  }, 60_000);
+
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('is mobile-first (base_breakpoint = smallest)', () => {
+    expect(merged.base_breakpoint).toBe('sm');
+  });
+
+  it('nav hidden at mobile base, revealed at xl', () => {
+    const nav = merged.nodes.find((n) => n.role === 'navigation');
+    expect(nav).toBeDefined();
+    // Hidden at sm (display:none) → only present because xl revealed it.
+    expect(nav!.overrides?.sm?.hidden).toBe(true);
+    expect(nav!.overrides?.xl?.hidden).toBe(false);
+  });
+
+  it('burger present at base, hidden at xl', () => {
+    const burger = merged.nodes.find((n) => n.label === 'Menü' || n.kind === 'button');
+    expect(burger).toBeDefined();
+    expect(burger!.overrides?.xl?.hidden).toBe(true);
+  });
+});
