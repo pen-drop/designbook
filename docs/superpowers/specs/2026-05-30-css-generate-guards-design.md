@@ -44,9 +44,9 @@ later compare.
 ```
 css-generate:
   … → generate-css (token .src.css)
-      → compile-css   (framework step: app.src.css → <css>/_token-probe.css)  [css-tailwind]
+      → compile-css   (framework step: app.src.css → <css>/app.css)          [css-tailwind]
       → guard-css     (framework-independent)                                 [core]
-            write  <css>/_token-probe.html  (links _token-probe.css, no markup)
+            write  <css>/_token-probe.html  (links the normal app.css, no markup)
             inspect file://<css>/_token-probe.html → captureStyleEnv → { root_vars, fonts }
             assert: every expected --token present & non-empty
                     every expected font loaded
@@ -54,12 +54,18 @@ css-generate:
       → generate-index
 ```
 
-**Probe artifacts live in the css folder** (`${DESIGNBOOK_CSS}/_token-probe.{html,css}`),
-persisted, not in `/tmp`. They are naturally invisible to Storybook: the probe
-is not a `*.stories.*` file (Storybook story discovery ignores it) and the css
-folder is not under Tailwind's `@source` globs (`templates/`, `components/`),
-so it is neither indexed as a story nor scanned for utilities. The underscore
-prefix marks it as a generated internal artifact.
+**Why a compile + a probe html at all.** The token css is Tailwind v4 `@theme {…}`
+— a browser does not resolve `@theme` to `:root` vars without a compile, and
+today there is no compiled css *file* (Storybook compiles in-memory via the vite
+plugin). So a compile-to-file is required. It produces the **normal** `app.css`
+(not a probe-specific stylesheet) — a real, generally-useful artifact. The only
+probe-specific artifact is the **minimal `_token-probe.html`** (inspect needs a
+DOM/page to read computed styles from; a stylesheet alone has none).
+
+`${DESIGNBOOK_CSS}/_token-probe.html` is persisted in the css folder and kept
+out of Storybook: it is not a `*.stories.*` file (story discovery ignores it)
+and the css folder is not under Tailwind's `@source` globs (`templates/`,
+`components/`), so it is neither indexed as a story nor scanned for utilities.
 
 ## Components
 
@@ -86,12 +92,29 @@ export async function captureStyleEnv(url: string, opts: { fonts: string[] }): P
 `globalThis` bridge pattern); factor the shared launch/wait into a helper if
 that keeps both readable.
 
-### 2. compile-to-file (css-tailwind, framework-specific)
+### 2. Unconditional token emission (css-tailwind) — also the root-cause fix
 
-A `compile-css` step/task in the tailwind integration: `@tailwindcss/cli`
-compiles `${DESIGNBOOK_CSS_APP}` (app.src.css) → `${DESIGNBOOK_CSS}/_token-probe.css`.
-Other CSS integrations provide their own compile to that path; the guard does
-not care how.
+Tailwind v4 **tree-shakes** `@theme`: only *used* theme vars reach `:root`. With
+no markup exercising the utilities, the vars are dropped — a content-free compile
+would yield an almost-empty `:root` and fail the probe. This is also the likely
+ORIGINAL bug: `--color-surface-variant` was tree-shaken (unused as a named
+utility), so `bg-[var(--color-surface-variant)]` referenced a never-emitted var
+→ unstyled.
+
+Fix: css-generate emits the token layer as **`@theme static { … }`** (Tailwind
+v4), so every design token lands on `:root` unconditionally. This (a) fixes the
+arbitrary-value-utility bug and (b) makes a content-free compile valid for the
+probe. (Confirm `@theme static` semantics at implementation; fallback is a probe
+that exercises one utility per token and is included in the content scan —
+uglier and framework-coupled.)
+
+### 2b. compile-to-file (css-tailwind, framework-specific)
+
+A `compile-css` step/task: `@tailwindcss/cli` compiles `${DESIGNBOOK_CSS_APP}`
+(app.src.css) → `${DESIGNBOOK_CSS}/app.css` (the normal compiled css, a real
+file). With `@theme static`, its `:root` holds all token vars regardless of
+content. Other CSS integrations provide their own compile to that path; the
+guard does not care how.
 
 ### 3. guard-css (core, framework-independent)
 
@@ -149,3 +172,7 @@ compile; the guard and `captureStyleEnv` are unchanged.
 - `guard-css` assertion unit (pure): given expected names + a `StyleEnv`, returns
   the correct missing list (empty when all present; lists the gaps otherwise).
 - css-generate stage-order smoke: `compile-css` + `guard-css` resolve in order.
+- Unconditional emission: compile a token css using `@theme static` with NO
+  content/markup and assert a never-referenced token var still lands on `:root`
+  in the output (guards against Tailwind tree-shaking — the false-fail the probe
+  would otherwise hit, and the original surface-variant bug).
