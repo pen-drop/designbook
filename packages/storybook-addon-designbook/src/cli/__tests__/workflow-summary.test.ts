@@ -83,6 +83,26 @@ describe('readSummary', () => {
     rmSync(root, { recursive: true });
   });
 
+  it('maps first_shot/final/delta from a score-report in workflow_output', () => {
+    const { root, dataDir } = setup('score');
+    writeArchive(dataDir, 'design-verify', {
+      'score-report': { first_shot: { score: 17 }, final: { score: 6 }, delta: 11 },
+    });
+    const r = readSummary({ dataDir, workflowName: 'design-verify' });
+    expect(r?.scoreReport).toEqual({ firstShot: 17, final: 6, delta: 11 });
+    rmSync(root, { recursive: true });
+  });
+
+  it('derives delta when the score-report omits it', () => {
+    const { root, dataDir } = setup('score-nodelta');
+    writeArchive(dataDir, 'design-verify', {
+      'score-report': { first_shot: { score: 20 }, final: { score: 8 } },
+    });
+    const r = readSummary({ dataDir, workflowName: 'design-verify' });
+    expect(r?.scoreReport?.delta).toBe(12);
+    rmSync(root, { recursive: true });
+  });
+
   it('returns null when tasks.yml does not exist', () => {
     const { root, dataDir } = setup('missing');
     const r = readSummary({ dataDir, workflowName: 'design-shell' });
