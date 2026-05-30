@@ -14,6 +14,7 @@
     "devDependencies": {
         "@christianwiedemann/drupal-twig-extensions": "2.0.0-beta.3",
         "@pivanov/vite-plugin-svg-sprite": "^3.0.0",
+        "@playwright/cli": "^0.1.13",
         "@playwright/test": "^1.58.2",
         "@storybook/addon-docs": "^10.0.0",
         "@storybook/addon-themes": "^10.0.0",
