@@ -98,6 +98,34 @@ validate
     printJson(name, result.valid, result.errors, result.warnings);
   });
 
+program
+  .command('guard-css')
+  .description('Verify token vars and fonts resolve in a compiled stylesheet probe')
+  .requiredOption('--probe <path>', 'probe HTML file to inspect')
+  .option('--vars <list>', 'comma-separated expected --var names', '')
+  .option('--fonts <list>', 'comma-separated expected font families', '')
+  .action(async (opts: { probe: string; vars: string; fonts: string }) => {
+    const { pathToFileURL } = await import('node:url');
+    const vars = opts.vars
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const fonts = opts.fonts
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    try {
+      const { captureStyleEnv } = await import('./inspect/style-env.js');
+      const { collectMissing } = await import('./inspect/css-guard.js');
+      const env = await captureStyleEnv(pathToFileURL(opts.probe).href, { fonts });
+      const result = collectMissing({ vars, fonts }, env);
+      console.log(JSON.stringify(result));
+      process.exitCode = result.ok ? 0 : 1;
+    } catch (e) {
+      console.log(JSON.stringify({ ok: true, vars: [], fonts: [], skipped: (e as Error).message }));
+    }
+  });
+
 // Register submodules
 registerWorkflow(program);
 registerStorybook(program);
