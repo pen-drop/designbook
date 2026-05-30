@@ -136,4 +136,20 @@ describe('regionPropertiesResolver (orchestration)', () => {
     );
     expect(r.value).toBeUndefined();
   });
+
+  it('passes resolved breakpoint widths to capture on cache miss', async () => {
+    existsValue = false;
+    await regionPropertiesResolver.resolve(
+      'https://example.com',
+      {},
+      buildContext({ component: { component: 'header' }, breakpoints: 'sm,xl' }),
+    );
+    expect(captureMock).toHaveBeenCalledTimes(1);
+    const args = captureMock.mock.calls[0]!;
+    // (url, outPath, breakpoints)
+    expect(args[2]).toEqual([
+      { name: 'sm', width: 640 },
+      { name: 'xl', width: 1280 },
+    ]);
+  });
 });

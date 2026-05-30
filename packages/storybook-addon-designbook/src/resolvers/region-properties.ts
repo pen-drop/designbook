@@ -5,8 +5,10 @@ import { createHash } from 'node:crypto';
 import type { ParamResolver, ResolverContext, ResolverResult } from './types.js';
 import type { CapturedSource } from '../inspect/element-walker.js';
 import { capture } from '../inspect/capture.js';
+import { resolveBreakpointWidths } from '../inspect/breakpoint-widths.js';
 import { locateRegion, pickRegionLabel } from '../inspect/region.js';
 import { isFeatureEnabled } from '../config/features.js';
+import type { DesignbookConfig } from '../config.js';
 
 function hashUrl(url: string): string {
   return createHash('sha256').update(url.toLowerCase().replace(/\/+$/, '')).digest('hex').slice(0, 12);
@@ -40,10 +42,22 @@ export const regionPropertiesResolver: ParamResolver = {
     const elementTreeDir = joinPath(refDir, '.element-tree');
     const sourcePath = joinPath(elementTreeDir, 'source.json');
 
+    const bpParam = context.params.breakpoints;
+    const bpNames =
+      typeof bpParam === 'string'
+        ? bpParam
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : Array.isArray(bpParam)
+          ? bpParam.filter((x): x is string => typeof x === 'string')
+          : [];
+    const breakpointWidths = resolveBreakpointWidths(context.config as DesignbookConfig, bpNames);
+
     if (!existsSync(sourcePath)) {
       try {
         mkdirSync(elementTreeDir, { recursive: true });
-        await capture(url, sourcePath);
+        await capture(url, sourcePath, breakpointWidths);
       } catch (error) {
         console.warn(`[region-properties] capture failed: ${(error as Error).message}`);
         return { resolved: true, value: undefined, input: url };
