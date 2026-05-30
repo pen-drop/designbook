@@ -10,6 +10,10 @@ stages:
     steps: [generate-jsonata]
   transform:
     steps: [generate-css]
+  compile:
+    steps: [compile-css]
+  guard:
+    steps: [guard-css]
   index:
     steps: [generate-index]
 engine: direct
