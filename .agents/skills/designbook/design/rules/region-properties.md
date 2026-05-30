@@ -38,3 +38,14 @@ verbatim.
 
 When `region_properties` is missing or `matched_via === "none"`, derive
 from `reference` (extract.json) + `design_hint` only.
+
+## Responsive (mobile-first)
+
+`region_properties` is mobile-first: `nodes[].style` is the smallest-breakpoint
+(base) value; `nodes[].overrides[<bp>]` lists what changes at larger breakpoints.
+
+- Emit `style` as the base, and each `overrides[<bp>]` as the matching responsive
+  variant for that breakpoint.
+- `overrides[<bp>].hidden === true` → the element is not shown at that breakpoint;
+  `hidden === false` → it is revealed at that breakpoint (hidden at base).
+- `base_breakpoint` names the base; treat absent `overrides` as "same across breakpoints".

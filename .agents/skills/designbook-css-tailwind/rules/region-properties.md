@@ -22,3 +22,13 @@ for region styling.
 - The sole case for an external rule is a complex effect Tailwind cannot express
   (e.g. a multi-stop gradient) — and then per `component-styling.md`, not a
   per-region `@apply` block in the shared app CSS.
+
+## Responsive utilities (mobile-first)
+
+Map the mobile-first `region_properties` to Tailwind's mobile-first utilities:
+
+- `style` → unprefixed base utilities.
+- `overrides[<bp>].style` → `<bp>:`-prefixed utilities for only the changed
+  properties (e.g. base `flex-col` + `overrides.xl.layout=flex-row` → `flex-col xl:flex-row`).
+- `overrides[<bp>].hidden === true` → `<bp>:hidden`; `hidden === false` on a
+  node hidden at base → `hidden <bp>:flex` (or the appropriate display).
