@@ -270,6 +270,11 @@ IndexCss:
   title: CSS Token Index
   description: Barrel file source that imports the generated token CSS files in cascade order.
 
+CompiledCss:
+  type: string
+  title: Compiled Application Stylesheet
+  description: Framework-compiled stylesheet on disk in which token @theme variables are resolved to :root custom properties, consumed by the guard-css probe.
+
 Jsonata:
   type: string
   title: JSONata Expression
