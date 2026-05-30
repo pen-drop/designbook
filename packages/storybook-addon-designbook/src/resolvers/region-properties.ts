@@ -6,6 +6,7 @@ import type { ParamResolver, ResolverContext, ResolverResult } from './types.js'
 import type { CapturedSource } from '../inspect/element-walker.js';
 import { capture } from '../inspect/capture.js';
 import { locateRegion, pickRegionLabel } from '../inspect/region.js';
+import { isFeatureEnabled } from '../config/features.js';
 
 function hashUrl(url: string): string {
   return createHash('sha256').update(url.toLowerCase().replace(/\/+$/, '')).digest('hex').slice(0, 12);
@@ -22,6 +23,12 @@ export const regionPropertiesResolver: ParamResolver = {
     const url = input && input !== '' ? input : undefined;
     if (!url || !/^https?:\/\//i.test(url)) {
       return { resolved: true, value: undefined, input: url ?? '' };
+    }
+
+    // Feature flag (default on). Off → param drops; the region-properties rules
+    // fall back to extract.json + design_hint.
+    if (!isFeatureEnabled('region_properties', context.config)) {
+      return { resolved: true, value: undefined, input: url };
     }
 
     // Prefer the workflow's already-resolved reference_folder so we share the

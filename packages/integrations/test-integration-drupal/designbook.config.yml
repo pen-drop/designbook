@@ -16,3 +16,7 @@ css:
 component:
   namespace: 'test_integration_drupal'
   src: components
+# Feature flags — on unless set to false. Override per run with
+# DESIGNBOOK_FEATURE_<NAME> (e.g. DESIGNBOOK_FEATURE_REGION_PROPERTIES=off).
+features:
+  region_properties: true

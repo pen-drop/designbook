@@ -81,6 +81,21 @@ describe('regionPropertiesResolver (orchestration)', () => {
     expect(region.root_id).toBe('n_header');
   });
 
+  it('returns value: undefined when the region_properties feature is disabled', async () => {
+    process.env.DESIGNBOOK_FEATURE_REGION_PROPERTIES = 'off';
+    try {
+      const r = await regionPropertiesResolver.resolve(
+        'https://example.com',
+        {},
+        buildContext({ component: { component: 'header' } }),
+      );
+      expect(r.value).toBeUndefined();
+      expect(captureMock).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.DESIGNBOOK_FEATURE_REGION_PROPERTIES;
+    }
+  });
+
   it('invokes capture on cache miss', async () => {
     existsValue = false;
     await regionPropertiesResolver.resolve(

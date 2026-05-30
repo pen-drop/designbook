@@ -27,6 +27,8 @@ export interface DesignbookConfig {
   technology: string;
   /** Absolute path to the git workspace root (= DESIGNBOOK_WORKSPACE). */
   workspace?: string;
+  /** Feature flags. `features.<name>: false` disables a feature; default is on. */
+  features?: Record<string, boolean>;
   /** Any additional keys from the config file. */
   [key: string]: unknown;
 }
