@@ -10,7 +10,7 @@ result:
   required: [compiled-css]
   properties:
     compiled-css:
-      path: "$DESIGNBOOK_DIRS_CSS/app.css"
+      path: "$DESIGNBOOK_CSS_DIR/app.css"
       $ref: ../../designbook/css-generate/schemas.yml#/CompiledCss
 ---
 
@@ -22,7 +22,7 @@ emitted to `:root` (the source uses Tailwind at-rules a browser cannot resolve).
 Run:
 
 ```bash
-npx @tailwindcss/cli -i "$DESIGNBOOK_CSS_APP" -o "$DESIGNBOOK_DIRS_CSS/app.css" --minify
+npx @tailwindcss/cli -i "$DESIGNBOOK_CSS_APP" -o "$DESIGNBOOK_CSS_DIR/app.css" --minify
 ```
 
 The output is the input both for the `guard-css` probe and for any

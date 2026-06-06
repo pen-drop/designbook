@@ -21,17 +21,17 @@ frontend. Framework-independent: checks `:root` custom properties and
 ## Steps
 
 1. **Expected vars** — collect every `--<name>` declared across the generated
-   token files under `$DESIGNBOOK_DIRS_CSS/tokens/*.css` (grep `^\s*--[\w-]+:`).
+   token files under `$DESIGNBOOK_DIRS_CSS_TOKENS/*.css` (grep `^\s*--[\w-]+:`).
    These are what the design system defines and MUST resolve.
 2. **Expected fonts** — collect each `font-family` name from the generated
    `@font-face` blocks (the prepared font stylesheet) and any `font_family`
    typography token.
-3. **Probe** — write `$DESIGNBOOK_DIRS_CSS/_token-probe.html` (no markup) linking
+3. **Probe** — write `$DESIGNBOOK_CSS_DIR/_token-probe.html` (no markup) linking
    the compiled css relatively:
    `<!doctype html><html><head><link rel="stylesheet" href="./app.css"></head><body></body></html>`
 4. **Inspect** — run the addon to capture the style env of the probe and diff
    against expected (uses `captureStyleEnv` + `collectMissing`):
-   `npx storybook-addon-designbook guard-css --probe "$DESIGNBOOK_DIRS_CSS/_token-probe.html" --vars <comma-list> --fonts <comma-list>`
+   `npx storybook-addon-designbook guard-css --probe "$DESIGNBOOK_CSS_DIR/_token-probe.html" --vars <comma-list> --fonts <comma-list>`
    (CLI prints JSON `{ ok, vars, fonts }`.)
 5. **Verdict** — if `ok`, submit `{"guard-passed": true}`. Otherwise FAIL the
    task: report the missing `--vars` and fonts; do not mark done. A missing var

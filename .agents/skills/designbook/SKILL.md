@@ -46,7 +46,7 @@ When the user references one of these files or topics in conversation, start the
 | tokens | `tokens` | `$DESIGNBOOK_DATA/design-system/design-tokens.yml` |
 | sections | `sections` | `$DESIGNBOOK_DATA/sections/**/*.section.scenes.yml` |
 | sample-data | `sample-data` | `$DESIGNBOOK_DATA/sections/**/data.yml` |
-| css, css-generate | `css-generate` | `$DESIGNBOOK_DIRS_CSS/*.src.css` + `$DESIGNBOOK_DATA/designbook-css-*/*.jsonata` |
+| css, css-generate | `css-generate` | `$DESIGNBOOK_CSS_DIR/*.src.css` + `$DESIGNBOOK_DATA/designbook-css-*/*.jsonata` |
 | shell, design-shell | `design-shell` | design-system.scenes.yml + shell components |
 | screen, design-screen | `design-screen` | section scenes + screen components |
 | verify, design-verify | `design-verify` | visual testing of existing scenes against references |

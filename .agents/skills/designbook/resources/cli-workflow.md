@@ -342,7 +342,7 @@ _debo workflow config --var <name>
 
 | Option | Required | Description |
 |---|---|---|
-| `--var <name>` | Yes | Variable name (e.g. `DESIGNBOOK_DIRS_CSS`). |
+| `--var <name>` | Yes | Variable name (e.g. `DESIGNBOOK_CSS_DIR`). |
 
 **Response shape:** The raw value, printed to stdout with no wrapping:
 

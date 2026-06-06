@@ -16,7 +16,7 @@ Font weights SHALL be derived from `semantic.typography-scale` tokens by collect
 Use `google-font-cli` to download woff2 files:
 
 ```bash
-npx google-font-cli download "<Font Name>" -v <weights> --woff2 -d $DESIGNBOOK_DIRS_CSS/fonts
+npx google-font-cli download "<Font Name>" -v <weights> --woff2 -d $DESIGNBOOK_CSS_DIR/fonts
 ```
 
 - `-v`: comma-separated weights sorted numerically (e.g. `400,500,600,700`)
