@@ -57,12 +57,25 @@ git add .
 git commit -m "init: test-integration-drupal workspace"
 
 rm -r -f node_modules
+
+# Build the local addon so dist/ is current before the workspace install.
+# Always build (deterministic beats fast) — tsup is fast and avoids stale-dist
+# bugs when new CLI features exist only in source.
+echo "Building storybook-addon-designbook..."
+(cd "$REPO_ROOT/packages/storybook-addon-designbook" && pnpm run build)
+
 # Install dependencies
 pnpm install
+
+# Link the LOCAL addon build into the workspace so that `npx storybook-addon-designbook`
+# resolves the repo dist instead of falling back to the registry/cache.
+echo "Linking local storybook-addon-designbook..."
+pnpm add -D "file:$REPO_ROOT/packages/storybook-addon-designbook"
 
 echo ""
 echo "✓ Workspace ready at $WORKSPACE_DIR"
 echo ""
 echo "To use with the CLI:"
 echo "  cd $WORKSPACE_DIR"
-echo "  node $REPO_ROOT/packages/storybook-addon-designbook/dist/cli.js <command>"
+echo "  npx storybook-addon-designbook <command>"
+echo "  # or directly: node $REPO_ROOT/packages/storybook-addon-designbook/dist/cli.js <command>"
