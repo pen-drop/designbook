@@ -1,12 +1,12 @@
 ---
 name: debo
-argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|sections|shape-section|sample-data|css-generate|import|sb] [--optimize]"
+argument-hint: "[install|vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|sections|shape-section|sample-data|css-generate|import|sb] [--optimize]"
 description: >
   Designbook design system. Use ALWAYS when creating, modifying, or
   deleting components, screens, scenes, design tokens, CSS, or any
   design system artifact — whether the user asks directly or the need
   arises during other work. Never create component files without this
-  skill. Sub-commands: vision, tokens, data-model, design-component,
+  skill. Sub-commands: install, vision, tokens, data-model, design-component,
   design-screen, design-shell, sections,
   shape-section, sample-data, css-generate, import.
 ---
@@ -30,6 +30,12 @@ Parse flags from `$ARGUMENTS` before dispatch. Flags are not sub-commands and do
 ## Dispatch
 
 Sub-command: **$ARGUMENTS[0]**
+
+**If `$ARGUMENTS[0]` is `install`** (or the user asks to install/set up designbook
+in a project), load [install/install.md](install/install.md) and follow it
+directly. Install is a pure skill flow — the workflow engine, `workflow create`,
+and Rules 0–7 from `resources/workflow-execution.md` do NOT apply, because the
+addon and `designbook.config.yml` do not exist yet.
 
 **If `$ARGUMENTS[0]` is a known sub-command**, directly load and execute `<concern>/workflows/$0.md` — no scanning, no matching.
 
