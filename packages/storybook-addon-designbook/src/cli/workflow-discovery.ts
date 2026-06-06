@@ -41,7 +41,7 @@ export function loadWorkflowDefinition(workflowId: string, agentsDir: string): W
   }
   const fm = parseYaml(fmMatch[1]!) as {
     stages?: Record<string, { steps?: string[] }>;
-    after?: Array<{ workflow?: string; params?: Record<string, string> }>;
+    after?: Array<{ workflow?: string; when?: string; params?: Record<string, string> }>;
   } | null;
   const stagesObj = fm?.stages ?? {};
   const stages: WorkflowStage[] = Object.entries(stagesObj).map(([name, def]) => ({
@@ -49,7 +49,13 @@ export function loadWorkflowDefinition(workflowId: string, agentsDir: string): W
     steps: def.steps ?? [],
   }));
   const after: AfterDeclaration[] = (fm?.after ?? [])
-    .filter((a): a is { workflow: string; params?: Record<string, string> } => typeof a?.workflow === 'string')
-    .map((a) => ({ workflow: a.workflow, ...(a.params ? { params: a.params } : {}) }));
+    .filter(
+      (a): a is { workflow: string; when?: string; params?: Record<string, string> } => typeof a?.workflow === 'string',
+    )
+    .map((a) => ({
+      workflow: a.workflow,
+      ...(a.when !== undefined ? { when: a.when } : {}),
+      ...(a.params ? { params: a.params } : {}),
+    }));
   return { id: workflowId, file, stages, after };
 }

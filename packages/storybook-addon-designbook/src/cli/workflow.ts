@@ -364,6 +364,30 @@ export async function runWorkflowCreate(
 }
 
 /**
+ * Filter a list of AfterDeclarations down to those that are active for the given parent params.
+ *
+ * A declaration without `when:` is always active. A declaration with `when:` is active only
+ * when the JSONata expression evaluates to a truthy value over the parent's params.
+ *
+ * NOTE: JSONata does not have an `array.length` property — use `$count(array)` instead.
+ */
+export async function filterActiveAfterDeclarations(
+  declarations: AfterDeclaration[],
+  parentParams: Record<string, unknown>,
+): Promise<AfterDeclaration[]> {
+  const results: AfterDeclaration[] = [];
+  for (const decl of declarations) {
+    if (decl.when === undefined) {
+      results.push(decl);
+      continue;
+    }
+    const value = await jsonata(decl.when).evaluate(parentParams);
+    if (value) results.push(decl);
+  }
+  return results;
+}
+
+/**
  * Create the child workflows declared in a parent's `after:` block.
  *
  * For each declaration, evaluate every params-mapping value as a JSONata
@@ -635,16 +659,19 @@ export function register(program: Command): void {
       try {
         // Load the workflow definition's `after:` declarations so a final done
         // can hold the parent and auto-create the declared child workflows.
+        // Filter to active declarations only (when: condition evaluated over parent params).
         // Lookup failures (e.g. test workspaces without skills) degrade to no
         // after-workflows rather than crashing done.
         let after: AfterDeclaration[] = [];
         try {
           const changesPath = resolve(config.data, 'workflows', 'changes', opts.workflow, 'tasks.yml');
-          const workflowId = readWorkflow(changesPath).workflow;
+          const parentMeta = readWorkflow(changesPath);
+          const workflowId = parentMeta.workflow;
           const configPath = findConfig();
           const configDir = configPath ? dirname(configPath) : process.cwd();
           const agentsDir = resolveSkillsRoot(configDir);
-          after = loadWorkflowDefinition(workflowId, agentsDir).after;
+          const allAfter = loadWorkflowDefinition(workflowId, agentsDir).after;
+          after = await filterActiveAfterDeclarations(allAfter, parentMeta.params ?? {});
         } catch (lookupErr) {
           console.warn(`Could not load after: declarations — proceeding without: ${(lookupErr as Error).message}`);
         }

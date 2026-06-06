@@ -2,6 +2,8 @@ export type TaskStatus = 'pending' | 'in-progress' | 'done' | 'incomplete';
 
 export interface AfterDeclaration {
   workflow: string;
+  /** JSONata expression evaluated over the parent's params. Falsy result → declaration inactive. */
+  when?: string;
   /** Param name → JSONata expression evaluated over the parent's params. */
   params?: Record<string, string>;
 }

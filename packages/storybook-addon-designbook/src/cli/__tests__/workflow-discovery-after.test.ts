@@ -37,4 +37,42 @@ describe('loadWorkflowDefinition after:', () => {
     expect(def.after).toEqual([]);
     rmSync(root, { recursive: true });
   });
+
+  it('parses after declarations with a when: condition', () => {
+    const root = setup(
+      'when',
+      [
+        'title: Test',
+        'stages:',
+        '  intake: { steps: [intake] }',
+        'after:',
+        '  - workflow: design-verify',
+        '    when: "$count(components) <= 1"',
+        '    params:',
+        '      story_id: story_id',
+      ].join('\n'),
+    );
+    const def = loadWorkflowDefinition('test-wf', root);
+    expect(def.after).toEqual([
+      { workflow: 'design-verify', when: '$count(components) <= 1', params: { story_id: 'story_id' } },
+    ]);
+    rmSync(root, { recursive: true });
+  });
+
+  it('parses after declarations with when: but no params', () => {
+    const root = setup(
+      'when-no-params',
+      [
+        'title: Test',
+        'stages:',
+        '  intake: { steps: [intake] }',
+        'after:',
+        '  - workflow: design-verify',
+        '    when: "$count(components) <= 1"',
+      ].join('\n'),
+    );
+    const def = loadWorkflowDefinition('test-wf', root);
+    expect(def.after).toEqual([{ workflow: 'design-verify', when: '$count(components) <= 1' }]);
+    rmSync(root, { recursive: true });
+  });
 });

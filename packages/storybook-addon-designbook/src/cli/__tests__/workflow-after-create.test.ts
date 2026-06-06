@@ -18,7 +18,7 @@ import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
 import { loadConfig } from '../../config.js';
 import { loadWorkflowDefinition } from '../workflow-discovery.js';
 import { workflowDone, workflowAbandon, type WorkflowFile } from '../../workflow.js';
-import { runWorkflowCreate, createAfterWorkflows } from '../workflow.js';
+import { runWorkflowCreate, createAfterWorkflows, filterActiveAfterDeclarations } from '../workflow.js';
 
 function writeMd(filePath: string, fm: Record<string, unknown>, body = ''): void {
   mkdirSync(resolve(filePath, '..'), { recursive: true });
@@ -371,6 +371,125 @@ describe('workflow done: after-workflow auto-create', () => {
 
     // Parent summary must reflect the child's score-report
     expect(parentArchived.summary).toBe('child-wf: first_shot 34 → final 12 (Δ 22)');
+  });
+
+  // ── filterActiveAfterDeclarations ───────────────────────────────────────────
+
+  it('filterActiveAfterDeclarations: keeps declaration without when:', async () => {
+    const declarations = [{ workflow: 'child-wf', params: { story_id: 'story_id' } }];
+    const params = { story_id: 'x', components: ['a', 'b'] };
+    const active = await filterActiveAfterDeclarations(declarations, params);
+    expect(active).toEqual(declarations);
+  });
+
+  it('filterActiveAfterDeclarations: keeps declaration when when: evaluates truthy', async () => {
+    const declarations = [{ workflow: 'child-wf', when: '$count(components) <= 1', params: { story_id: 'story_id' } }];
+    const params = { story_id: 'x', components: ['a'] };
+    const active = await filterActiveAfterDeclarations(declarations, params);
+    expect(active).toEqual(declarations);
+  });
+
+  it('filterActiveAfterDeclarations: drops declaration when when: evaluates falsy', async () => {
+    const declarations = [{ workflow: 'child-wf', when: '$count(components) <= 1', params: { story_id: 'story_id' } }];
+    const params = { story_id: 'x', components: ['a', 'b'] };
+    const active = await filterActiveAfterDeclarations(declarations, params);
+    expect(active).toHaveLength(0);
+  });
+
+  it('filterActiveAfterDeclarations: mixed declarations — keeps active, drops inactive', async () => {
+    const declarations = [
+      { workflow: 'child-wf', when: '$count(components) <= 1', params: { story_id: 'story_id' } },
+      { workflow: 'other-wf', params: { story_id: 'story_id' } },
+    ];
+    const params = { story_id: 'x', components: ['a', 'b'] };
+    const active = await filterActiveAfterDeclarations(declarations, params);
+    expect(active).toHaveLength(1);
+    expect(active[0]!.workflow).toBe('other-wf');
+  });
+
+  it('done flow: when: inactive declaration → parent archives immediately (no holdForAfter)', async () => {
+    const config = loadConfig();
+    const skill = 'after-test';
+
+    // Write a parent with a single after: that has a when: condition that will be FALSE
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'workflows', 'parent-wf-when.md'),
+      {
+        title: 'Parent Workflow When',
+        params: { story_id: { type: 'string' } },
+        stages: { execute: { steps: ['do-thing'] } },
+        engine: 'direct',
+        after: [{ workflow: 'child-wf', when: '$count(components) <= 1', params: { story_id: 'story_id' } }],
+      },
+      '# parent-wf-when',
+    );
+
+    const parent = await runWorkflowCreate(
+      { workflow: 'parent-wf-when', params: { story_id: 'debo-design-system', components: ['a', 'b'] } },
+      config,
+    );
+    const parentName = parent.name;
+    const parentMetaBefore = readTasksYml(parentName);
+    const firstTaskId = parentMetaBefore.tasks[0]!.id;
+
+    // Load the definition and filter — only active declarations go to workflowDone
+    const def = loadWorkflowDefinition('parent-wf-when', agentsDir);
+    const activeAfter = await filterActiveAfterDeclarations(def.after, parentMetaBefore.params ?? {});
+
+    // Both conditions false → activeAfter is empty → workflowDone archives immediately
+    expect(activeAfter).toHaveLength(0);
+
+    const result = await workflowDone(config.data, parentName, firstTaskId, undefined, {
+      config,
+      after: activeAfter,
+    });
+
+    // With no active declarations the workflow archives immediately
+    expect(result.archived).toBe(true);
+    expect(result.awaitingAfter).toBeUndefined();
+
+    const parentArchivePath = resolve(dataDir, 'workflows', 'archive', parentName, 'tasks.yml');
+    expect(existsSync(parentArchivePath)).toBe(true);
+  });
+
+  it('done flow: when: active declaration → parent holds for after', async () => {
+    const config = loadConfig();
+    const skill = 'after-test';
+
+    // Write a parent with a single after: that has a when: condition that will be TRUE
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'workflows', 'parent-wf-when-active.md'),
+      {
+        title: 'Parent Workflow When Active',
+        params: { story_id: { type: 'string' } },
+        stages: { execute: { steps: ['do-thing'] } },
+        engine: 'direct',
+        after: [{ workflow: 'child-wf', when: '$count(components) <= 1', params: { story_id: 'story_id' } }],
+      },
+      '# parent-wf-when-active',
+    );
+
+    const parent = await runWorkflowCreate(
+      { workflow: 'parent-wf-when-active', params: { story_id: 'debo-design-system', components: ['a'] } },
+      config,
+    );
+    const parentName = parent.name;
+    const parentMetaBefore = readTasksYml(parentName);
+    const firstTaskId = parentMetaBefore.tasks[0]!.id;
+
+    const def = loadWorkflowDefinition('parent-wf-when-active', agentsDir);
+    const activeAfter = await filterActiveAfterDeclarations(def.after, parentMetaBefore.params ?? {});
+
+    // One component → condition is TRUE → declaration is active
+    expect(activeAfter).toHaveLength(1);
+
+    const result = await workflowDone(config.data, parentName, firstTaskId, undefined, {
+      config,
+      after: activeAfter,
+    });
+
+    expect(result.archived).toBe(false);
+    expect(result.awaitingAfter).toHaveLength(1);
   });
 
   it('abandoning a child unblocks the awaiting-after parent', async () => {
