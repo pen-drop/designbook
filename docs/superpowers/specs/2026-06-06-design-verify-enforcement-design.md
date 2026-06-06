@@ -27,7 +27,7 @@ Two real problems remain:
 |---|---|
 | Enforcement point | CLI-enforced after-hooks (not harness-side, not prose) |
 | Execution model | CLI auto-creates child workflow, returns its id; driver AI dispatches a subagent per child and waits |
-| Linking | Bidirectional: `parent_id` on child, `children: [{id, workflow}]` on parent |
+| Linking | Bidirectional: `parent` (run name) on child, `children: [{name, workflow}]` on parent |
 | Result surfacing | `workflow summary` aggregates child results under `after.<workflow>`; parent's stored result untouched |
 | Workflow split | Reverted — one `design-verify` workflow; `verify-capture`/`verify-fix` not merged to main |
 | Research metric | JSONata expression over the summary JSON, configured per case yaml |
@@ -38,11 +38,19 @@ Two real problems remain:
 1. **Auto-create + return id.** The final `workflow done` on a parent
    workflow reads the workflow definition's `after:` list, creates each child
    workflow with params resolved via JSONata mapping over the parent's
-   params/results, and responds:
+   params/results, and responds (implemented format):
 
-   ```json
-   { "status": "awaiting-after", "next_workflows": [{ "id": "wf-123", "workflow": "design-verify" }] }
    ```
+   Workflow <name> awaiting after-workflows
+   NEXT_WORKFLOWS: [{"name":"design-verify-…","workflow":"design-verify"}]
+   Dispatch ONE subagent per workflow: "execute workflow <name> to completion".
+   ```
+
+   Declarations also support `when: "<jsonata>"` over the parent's params;
+   inactive declarations are filtered once in the done action, so the parent
+   is never held for a child that will not be created. Design workflows use
+   this to skip design-verify when no reference exists
+   (`when: "reference_url != ''"`).
 
 2. **`after:` declaration with param mapping** (same JSONata mechanic as
    resolver `from:`):
@@ -67,10 +75,10 @@ Two real problems remain:
    stays `awaiting-after` — it never reads as complete. Visible in
    `workflow summary`; debo-test scores such a run as crash.
 
-6. **Bidirectional linking.** Auto-create writes `parent_id` into the child
-   meta and appends `{id, workflow}` to the parent's `children`. Summary
-   reads `children` directly (no scan); `parent_id` serves bottom-up
-   navigation/debugging.
+6. **Bidirectional linking.** Auto-create writes `parent` (the parent's run
+   name) into the child meta and appends `{name, workflow}` to the parent's
+   `children`. Summary reads `children` directly (no scan); `parent` serves
+   bottom-up navigation/debugging.
 
 7. **Summary aggregation.** `workflow summary --workflow <parent>` walks
    `children` and embeds each child's result under
