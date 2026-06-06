@@ -47,7 +47,7 @@ with Phase 4.
 
 ## Phase 4 — Verify
 
-Run from the directory containing the new `designbook.config.yml`:
+Locate the `designbook.config.yml` written in Phase 3.
 
 Read `designbook.home` from that config file first. It is relative to the config
 file's directory; resolve it to an absolute path and run every command in this

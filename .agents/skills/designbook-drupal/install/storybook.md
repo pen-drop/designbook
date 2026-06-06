@@ -39,10 +39,15 @@ Otherwise → **Fresh**.
 2. Add devDependencies (use `pnpm add -D` when a `pnpm-lock.yaml` or
    `pnpm-workspace.yaml` exists in `THEME_DIR` or a parent directory; otherwise
    `npm install -D`): `storybook@^10`, `@storybook/html-vite@^10`,
-   `@storybook/addon-docs@^10`, `storybook-addon-sdc@^0.22.0`,
-   `storybook-addon-designbook`, `twing@^7.3.0`, `vite@^6`.
+   `@storybook/addon-docs@^10`, `@storybook/addon-themes@^10`, `marked@^17`,
+   `storybook-addon-sdc@^0.22.0`, `storybook-addon-designbook`, `twing@^7.3.0`,
+   `vite@^6`.
    When `CSS_FRAMEWORK` is `tailwind`, additionally: `tailwindcss@^4`,
    `@tailwindcss/vite@^4`.
+
+   When `storybook-addon-designbook` is not available on the npm registry
+   (development setups), install it from a local checkout instead:
+   `npm install -D file:<path-to>/packages/storybook-addon-designbook`.
 3. Copy every file from this skill's `install/templates/` into `.storybook/`,
    then post-process each copied file:
    - replace every `__NAMESPACE__` with the `NAMESPACE` value

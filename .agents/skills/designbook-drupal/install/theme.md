@@ -5,8 +5,10 @@ description: Find the target custom theme or scaffold a new one; derive the comp
 
 # Theme — find or scaffold
 
-1. Glob `DOCROOT/themes/custom/*/*.info.yml`. Keep only files whose stem equals
-   the parent directory name. Parse each as YAML; skip entries with
+1. Glob `DOCROOT/themes/custom/*/*.info.yml`. Keep only files named exactly
+   `<dirname>.info.yml` where `<dirname>` is the parent directory name (the stem
+   is the filename with the full `.info.yml` suffix stripped). Parse each as
+   YAML; skip entries with
    `hidden: true` or a `type` other than `theme` (a missing `type` counts as
    `theme` for legacy info files). Collect `{ machine_name (stem), name, path }`.
 2. Decide:
