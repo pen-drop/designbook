@@ -29,7 +29,8 @@ Non-standard namespaces (e.g. `--layout-spacing-*`, `--grid-*`) require `var()`:
 
 ## Install
 
-CSS-framework install steps, dispatched from a backend install flow (e.g.
-`designbook-drupal/install/install.md`, CSS framework step).
+CSS-framework install rules, loaded by the core install workflow
+(`designbook/install/workflows/install.md`) when their `trigger.steps` match.
 
-- [install/install.md](install/install.md) — Detection (default suggestion) + Tailwind setup steps
+- [install/rules/detect-tailwind.md](install/rules/detect-tailwind.md) — `write-config`: pre-selects Tailwind as the css_framework default
+- [install/rules/tailwind-storybook.md](install/rules/tailwind-storybook.md) — `setup-storybook` (filter `frameworks.css: tailwind`): deps, Vite wiring, app.src.css, config update

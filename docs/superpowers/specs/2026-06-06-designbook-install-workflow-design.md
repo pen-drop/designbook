@@ -14,7 +14,8 @@ verified running with the designbook addon loaded.
 
 | Decision | Choice |
 |---|---|
-| Execution model | `Untracked workflow (track: false) — markdown instructions via the standard workflow dispatch, but NO engine lifecycle (the engine requires the addon + designbook.config.yml, neither exists at install time).` |
+| Execution model | `Untracked workflow (track: false) — NO engine lifecycle (the engine requires the addon + designbook.config.yml, neither exists at install time); the AI executes the stages directly.` |
+| Artifact structure | Full 4-level conformance: the workflow declares five stages (`detect → target → config → storybook → verify`); all content is structured as tasks (WHAT), rules (hard constraints), and blueprints (overridable HOW) matched by `trigger.steps` + `filter`. No loose procedural `install/*.md` instruction docs. |
 | Multi-backend architecture | Core skill owns the generic flow and dispatches to integration skills by convention (`designbook-<backend>/install/`). v1 ships only Drupal. |
 | Theme selection | Auto-detect custom themes; exactly one → use it, multiple → ask user, none → offer to scaffold a new theme. |
 | Existing Storybook | Extend it (register addons in existing `main.js`), leave the rest untouched. No Storybook → fresh setup from templates. |
@@ -44,39 +45,45 @@ Trigger: user asks to install designbook → subcommand `install` of the core `d
 
 ## Artifacts
 
-### Core skill (`.agents/skills/designbook/`)
+### Core skill (`.agents/skills/designbook/install/`)
 
-- `SKILL.md`: add `install` to the sub-command list.
-- New `install/` directory: generic flow (phases 1–3, 6), the backend detection table,
-  and the dispatch convention `designbook-<backend>/install/`.
-- Untracked workflow file (`track: false`) — instructions only, no engine lifecycle.
-- `install/workflows/install.md`
+- `SKILL.md`: `install` is already in the sub-command list (standard workflow dispatch
+  covers it) — no change needed.
+- `workflows/install.md` — untracked workflow (`track: false`, no `engine:`) declaring
+  the five stages `detect → target → config → storybook → verify`, plus the execution
+  protocol (per-step task + matching rule/blueprint loading, filter-evaluation source),
+  flow preconditions (already-installed walk-up, Node ≥ 20, project-root marker walk-up),
+  and abort semantics.
+- `tasks/{detect-backend,find-target,write-config,setup-storybook,verify-install}.md` —
+  WHAT each stage produces (results `$ref` `schemas.yml`); bodies abstract.
+- `rules/verify-storybook.md` — the fixed verify procedure (pm pick, addon start,
+  `port`/`startup_errors` parsing, curl reachability, leave running + escalate-on-failure).
+- `schemas.yml` — `Backend`, `ProjectRoot`, `BackendDetection`, `TargetDir`,
+  `Namespace`, `InstallTarget`, `StorybookSetup`, `DesignbookConfig`, `StorybookPort`,
+  `StorybookUrl`, `VerifiedInstall`.
 
 ### Drupal integration (`.agents/skills/designbook-drupal/install/`)
 
-- `detect.md` — refines the core table's match (the table owns the
-  `composer.json`/`drupal/core*` marker): determine project layout (`web/` vs
-  `docroot`), confirm it is a working Drupal codebase.
-- `theme.md` — theme scan paths, `info.yml` parsing (machine name →
-  `component.namespace`), scaffold option when no custom theme exists.
-- `storybook.md` — two paths:
-  - **Fresh**: html-vite setup modeled on `packages/integrations/test-integration-drupal`.
-    Dependencies: `storybook`, `@storybook/html-vite`, `@storybook/addon-docs`,
-    `@storybook/addon-themes`, `storybook-addon-sdc`, `storybook-addon-designbook`,
-    `marked`, twing, vite. No framework-conditional deps.
-  - **Extend**: existing `.storybook/main.js` — register `storybook-addon-designbook`
-    and `storybook-addon-sdc` only; everything else untouched.
-- `config.md` — `designbook.config.yml` template written to the theme root:
-  `backend: drupal`, `frameworks.component: sdc`, `frameworks.css: css` (default),
-  `designbook.cmd/home/url`, `dirs.components`, `component.namespace`,
-  `extensions` (`drupal` only; CSS framework step appends when applicable).
+- `rules/detect-drupal.md` (`trigger.steps: [detect-backend]`, no filter) — composer
+  `drupal/core*` marker → backend `drupal`; docroot resolution (scaffold web-root →
+  `web`/`docroot` → `.` last resort) → contributes `root`.
+- `rules/find-theme.md` (`trigger.steps: [find-target]`, `filter.backend: drupal`) —
+  theme scan, one/many/none handling, scaffold offer → `target_dir` + `namespace`.
+- `blueprints/designbook-config.md` (`trigger.steps: [write-config]`,
+  `filter.backend: drupal`) — the `designbook.config.yml` YAML starting point.
+- `blueprints/storybook-setup.md` (`trigger.steps: [setup-storybook]`,
+  `filter.backend: drupal`) — fresh vs extend, dependency list, pm pick, local-checkout
+  fallback, template copy.
 - `templates/` — `.storybook/` file templates (`main.js`, `preview.js`,
-  `twing-hooks.js`), derived from the test-integration-drupal fixture (fixture-specific renderer/defs files deliberately omitted).
+  `twing-hooks.js`).
 
 ### Tailwind integration (`.agents/skills/designbook-css-tailwind/install/`)
 
-- `install.md` — detection (default suggestion), Tailwind deps, `.storybook` Vite
-  wiring, `css/app.src.css`, config update (`frameworks.css: tailwind` + extension).
+- `rules/detect-tailwind.md` (`trigger.steps: [write-config]`) — pre-selects Tailwind
+  as the `css_framework` default; user confirms.
+- `rules/tailwind-storybook.md` (`trigger.steps: [setup-storybook]`,
+  `filter.frameworks.css: tailwind`) — Tailwind deps, Vite wiring, `css/app.src.css`,
+  config update (`frameworks.css: tailwind` + extension).
 
 ## Error Handling
 

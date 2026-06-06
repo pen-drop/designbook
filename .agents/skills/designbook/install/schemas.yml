@@ -1,0 +1,128 @@
+# Install concern schemas
+
+Backend:
+  type: string
+  title: Backend Identifier
+  description: Identifier of the matched backend. Selects the integration skill (designbook-<backend>) and is written verbatim into designbook.config.yml.
+  examples: [drupal]
+
+ProjectRoot:
+  type: string
+  title: Project Root
+  description: Absolute path to the project root — the first directory walking up from CWD that contains a detection marker (for some backends this is the docroot inside the codebase).
+  examples: [/var/www/myproject, /var/www/myproject/web]
+
+BackendDetection:
+  type: object
+  title: Backend Detection Result
+  description: The backend matched during detection plus the resolved project root. Drives which integration skill's rules and blueprints activate for the remaining stages.
+  required: [backend, root]
+  properties:
+    backend:
+      $ref: "#/Backend"
+    root:
+      $ref: "#/ProjectRoot"
+
+TargetDir:
+  type: string
+  title: Install Target Directory
+  description: Absolute path to the directory that receives designbook.config.yml, the .storybook/ config, and the components/ directory.
+  examples: [/var/www/myproject/web/themes/custom/acme]
+
+Namespace:
+  type: string
+  title: Component Namespace
+  description: Component namespace used for SDC/Storybook story resolution. Derived from the target (e.g. a Drupal theme machine name).
+  examples: [acme, citizen_hub]
+
+InstallTarget:
+  type: object
+  title: Install Target
+  description: Where designbook is installed and the component namespace it uses. Both values feed designbook.config.yml and the Storybook setup.
+  required: [target_dir, namespace]
+  properties:
+    target_dir:
+      $ref: "#/TargetDir"
+    namespace:
+      $ref: "#/Namespace"
+
+StorybookPort:
+  type: number
+  title: Storybook Port
+  description: TCP port Storybook bound to, parsed from the addon start command's JSON output.
+  examples: [6006]
+
+StorybookUrl:
+  type: string
+  title: Storybook URL
+  description: Reachable Storybook URL built from the bound port. Confirmed to serve index.json with HTTP 200.
+  examples: ["http://localhost:6006"]
+
+StorybookSetup:
+  type: object
+  title: Storybook Setup Result
+  description: Summary of the Storybook config produced in the install target — whether it was a fresh setup or an extension of an existing instance, and the config entry point that was written or updated. Concrete files and dependency lists come from the backend's install blueprint.
+  required: [mode, config_entry]
+  properties:
+    mode:
+      type: string
+      description: Whether Storybook was set up from scratch or an existing instance was extended in place.
+      enum: [fresh, extend]
+    config_entry:
+      type: string
+      description: Path to the Storybook config entry point that was written or updated, relative to the install target.
+      examples: [.storybook/main.js, .storybook/main.ts]
+
+DesignbookConfig:
+  type: object
+  title: Designbook Config
+  description: The designbook.config.yml written into the install target. Declares the backend, framework choices, run command, directory layout, component namespace, and active integration extensions. The concrete shape per backend/framework comes from the matching install blueprint and CSS-framework rules.
+  required: [backend, frameworks, designbook, component, extensions]
+  properties:
+    backend:
+      $ref: "#/Backend"
+    frameworks:
+      type: object
+      description: Framework choices. `component` is the markup framework (e.g. sdc); `css` is the chosen CSS framework or `css` for plain CSS.
+      properties:
+        component:
+          type: string
+          description: Markup/component framework identifier.
+          examples: [sdc]
+        css:
+          type: string
+          description: CSS framework identifier, or `css` for plain CSS.
+          examples: [css, tailwind]
+    designbook:
+      type: object
+      description: Run configuration. `home` is the directory (relative to the config file) commands run from; `url` is the default Storybook URL; `cmd` is the dev command.
+      properties:
+        cmd: { type: string, description: Storybook dev command. }
+        home: { type: string, description: Directory commands run from, relative to the config file. }
+        url: { type: string, description: Default Storybook URL; the port must match the storybook script. }
+    component:
+      type: object
+      description: Component source location and namespace.
+      properties:
+        namespace:
+          $ref: "#/Namespace"
+        src: { type: string, description: Component source directory, relative to home. }
+    extensions:
+      type: array
+      description: Active integration extensions. Each entry binds an id to the skill that provides its rules; CSS-framework rules append their own entry.
+      items:
+        type: object
+        properties:
+          id: { type: string, description: Extension identifier. }
+          skill: { type: string, description: Skill that provides the extension. }
+
+VerifiedInstall:
+  type: object
+  title: Verified Install
+  description: Proof that Storybook started and serves the story index after install. Produced by the verify stage.
+  required: [port, url]
+  properties:
+    port:
+      $ref: "#/StorybookPort"
+    url:
+      $ref: "#/StorybookUrl"

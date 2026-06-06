@@ -55,12 +55,12 @@ Layout component blueprints with tokens, props/slots summary (`when: steps: [cre
 
 ## Install
 
-Backend-specific install steps, dispatched from the core install flow
-(`designbook/install/workflows/install.md`).
+Backend-specific install rules and blueprints, loaded by the core install workflow
+(`designbook/install/workflows/install.md`) when their `trigger.steps` match and
+`filter: backend: drupal` passes.
 
-- [install/install.md](install/install.md) — Step index: detect → theme → storybook → config
-- [install/detect.md](install/detect.md) — Confirm Drupal codebase, determine docroot
-- [install/theme.md](install/theme.md) — Find or scaffold the target custom theme
-- [install/storybook.md](install/storybook.md) — Fresh Storybook setup or extend existing
-- [install/config.md](install/config.md) — Write designbook.config.yml
+- [install/rules/detect-drupal.md](install/rules/detect-drupal.md) — `detect-backend` match (composer `drupal/core*`) + docroot resolution
+- [install/rules/find-theme.md](install/rules/find-theme.md) — `find-target`: theme scan, choose/scaffold → target_dir + namespace
+- [install/blueprints/designbook-config.md](install/blueprints/designbook-config.md) — `write-config`: the designbook.config.yml YAML starting point
+- [install/blueprints/storybook-setup.md](install/blueprints/storybook-setup.md) — `setup-storybook`: fresh vs extend, deps, template copy
 - [install/templates/](install/templates/) — `.storybook/` file templates
