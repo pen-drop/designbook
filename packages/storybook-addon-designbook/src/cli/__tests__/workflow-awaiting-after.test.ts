@@ -100,6 +100,38 @@ describe('workflowDone awaiting-after behaviour', () => {
     expect(result.awaitingAfter).toBeUndefined();
   });
 
+  it('holds when only some after declarations are satisfied', async () => {
+    const name = workflowCreate(
+      dataDir,
+      'debo-test',
+      'Test Workflow',
+      [{ id: 'task-1', title: 'Task 1', type: 'data', step: 'task-1', stage: 'execute' }],
+      { execute: { steps: ['task-1'] } },
+    );
+
+    // Pre-register only ONE of the two declared after-children
+    const changesPath = resolve(dataDir, 'workflows', 'changes', name, 'tasks.yml');
+    const existing = parseYaml(readFileSync(changesPath, 'utf-8')) as WorkflowFile;
+    existing.children = [{ name: 'child-wf-123', workflow: 'design-verify' }];
+    const { writeFileSync } = await import('node:fs');
+    const { dump: dumpYaml } = await import('js-yaml');
+    writeFileSync(changesPath, dumpYaml(existing));
+
+    const result = await workflowDone(dataDir, name, 'task-1', undefined, {
+      config,
+      after: [
+        { workflow: 'design-verify', params: { story_id: 'story_id' } },
+        { workflow: 'second-wf', params: { story_id: 'story_id' } },
+      ],
+    });
+
+    expect(result.archived).toBe(false);
+    expect(result.awaitingAfter).toEqual([{ workflow: 'second-wf', params: { story_id: 'story_id' } }]);
+
+    const wf = readTasksYml(name);
+    expect(wf.status).toBe('awaiting-after');
+  });
+
   it('transition-archive path: sets awaiting-after when last task of multi-stage workflow completes', async () => {
     // Two tasks in separate stages: completing execute-task completes the execute stage,
     // which triggers the stage-transition walk. The direct engine fires archive: true
