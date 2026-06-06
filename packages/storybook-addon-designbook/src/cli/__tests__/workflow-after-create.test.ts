@@ -318,6 +318,61 @@ describe('workflow done: after-workflow auto-create', () => {
     expect(existsSync(parentArchivePath)).toBe(false);
   });
 
+  it('parent summary reflects child score-report after cascade', async () => {
+    const config = loadConfig();
+
+    // Create parent (has one after: child-wf declaration)
+    const parent = await runWorkflowCreate(
+      { workflow: 'parent-wf', params: { story_id: 'debo-design-system' } },
+      config,
+    );
+    const parentName = parent.name;
+    const parentMetaBefore = parseYaml(
+      readFileSync(resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml'), 'utf-8'),
+    ) as WorkflowFile;
+    const firstTaskId = parentMetaBefore.tasks[0]!.id;
+
+    // Complete the parent's task → awaiting-after
+    const def = loadWorkflowDefinition('parent-wf', agentsDir);
+    const result = await workflowDone(config.data, parentName, firstTaskId, undefined, {
+      config,
+      after: def.after,
+    });
+    expect(result.archived).toBe(false);
+
+    // Create the child workflow
+    const children = await createAfterWorkflows(
+      result.awaitingAfter!,
+      parentName,
+      parentMetaBefore.params ?? {},
+      config,
+    );
+    const childName = children[0]!.name;
+
+    // Manually inject a score-report result into the child's tasks.yml before completing it
+    // (lighter approach: write directly into the YAML rather than wiring a result schema)
+    const childChangesPath = resolve(dataDir, 'workflows', 'changes', childName, 'tasks.yml');
+    const childMeta = parseYaml(readFileSync(childChangesPath, 'utf-8')) as WorkflowFile;
+    const childTaskId = childMeta.tasks[0]!.id;
+    childMeta.tasks[0]!.result = {
+      'score-report': { value: { first_shot: { score: 34 }, final: { score: 12 }, delta: 22 }, valid: true },
+    };
+    writeFileSync(childChangesPath, dumpYaml(childMeta));
+
+    // Complete child → cascade → parent archived
+    const childResult = await workflowDone(config.data, childName, childTaskId, undefined, { config });
+    expect(childResult.archived).toBe(true);
+
+    // Parent must now be in archive
+    const parentArchivePath = resolve(dataDir, 'workflows', 'archive', parentName, 'tasks.yml');
+    expect(existsSync(parentArchivePath)).toBe(true);
+    const parentArchived = parseYaml(readFileSync(parentArchivePath, 'utf-8')) as WorkflowFile;
+    expect(parentArchived.status).toBe('completed');
+
+    // Parent summary must reflect the child's score-report
+    expect(parentArchived.summary).toBe('child-wf: first_shot 34 → final 12 (Δ 22)');
+  });
+
   it('abandoning a child unblocks the awaiting-after parent', async () => {
     const config = loadConfig();
 

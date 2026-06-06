@@ -212,10 +212,50 @@ export function writeWorkflowAtomic(filePath: string, data: WorkflowFile): void 
   renameSync(tmpPath, filePath);
 }
 
-function archiveWorkflow(dataDir: string, name: string, wf: WorkflowFile): void {
+/**
+ * Walk wf.tasks[].result[key]?.value and return the first defined value.
+ */
+function findResultValue(wf: WorkflowFile, key: string): unknown {
+  for (const task of wf.tasks) {
+    const entry = task.result?.[key];
+    if (entry?.value !== undefined) return entry.value;
+  }
+  return undefined;
+}
+
+/**
+ * Build a one-line summary from child score-reports and store it on parent.summary.
+ * Only called when the parent has registered children (i.e. children.length > 0).
+ */
+function appendChildResultSummary(dataDir: string, parent: WorkflowFile): void {
+  const lines: string[] = [];
+  for (const c of parent.children ?? []) {
+    const p = resolve(dataDir, 'workflows', 'archive', c.name, 'tasks.yml');
+    if (!existsSync(p)) continue;
+    let child: WorkflowFile;
+    try {
+      child = readWorkflow(p);
+    } catch {
+      continue;
+    }
+    const report = findResultValue(child, 'score-report') as
+      | { first_shot?: { score?: number }; final?: { score?: number }; delta?: number }
+      | undefined;
+    lines.push(
+      report
+        ? `${c.workflow}: first_shot ${report.first_shot?.score} → final ${report.final?.score} (Δ ${report.delta})`
+        : `${c.workflow}: ${child.status ?? 'unknown'}`,
+    );
+  }
+  if (lines.length) parent.summary = lines.join(' | ');
+}
+
+function archiveWorkflow(dataDir: string, name: string, wf: WorkflowFile, opts?: { keepSummary?: boolean }): void {
   wf.status = 'completed';
   wf.completed_at = timestamp();
-  wf.summary = wf.tasks.map((t) => `${t.title} (${t.type})`).join(', ');
+  if (!opts?.keepSummary) {
+    wf.summary = wf.tasks.map((t) => `${t.title} (${t.type})`).join(', ');
+  }
 
   // Compute flow_rate deterministically from dbo.log + success_rate
   const scope = (wf.scope ?? {}) as Record<string, unknown>;
@@ -252,7 +292,8 @@ function cascadeParent(dataDir: string, parentName: string): void {
     children.length > 0 &&
     children.every((c) => existsSync(resolve(dataDir, 'workflows', 'archive', c.name, 'tasks.yml')));
   if (!allArchived) return;
-  archiveWorkflow(dataDir, parentName, parent);
+  appendChildResultSummary(dataDir, parent);
+  archiveWorkflow(dataDir, parentName, parent, { keepSummary: true });
   if (parent.parent) cascadeParent(dataDir, parent.parent);
 }
 
