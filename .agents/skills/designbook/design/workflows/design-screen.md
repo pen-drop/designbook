@@ -48,4 +48,6 @@ before:
     execute: if-never-run
 after:
   - workflow: design-verify
+    params:
+      story_id: story_id
 ---
