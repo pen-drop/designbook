@@ -23,13 +23,13 @@ the backend flow.
 
 1. Add devDependencies (same package-manager pick as the backend flow):
    `tailwindcss@^4`, `@tailwindcss/vite@^4`.
-2. `.storybook/main.js` — add at the top:
+2. `.storybook/main.js` — add with the other `import` statements at the top of the file:
 
    ```js
    import tailwindcss from '@tailwindcss/vite'
    ```
 
-   and add to the `config` object, after the `framework` entry:
+   and add to the `config` object, after the `framework` entry (when no `framework` key exists — extend path on a custom setup — add it as the last property of the config object):
 
    ```js
    async viteFinal(config) {
@@ -52,8 +52,8 @@ the backend flow.
    @import "tailwindcss";
    ```
 
-5. `designbook.config.yml` — set `frameworks.css: tailwind` and append to
-   `extensions`:
+5. `designbook.config.yml` — set the `css` key nested under `frameworks:` to
+   `tailwind`, and append to the top-level `extensions` list:
 
    ```yaml
    - id: tailwind
