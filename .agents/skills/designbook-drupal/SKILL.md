@@ -52,3 +52,15 @@ Layout component blueprints with tokens, props/slots summary (`when: steps: [cre
 - [blueprints/container.md](blueprints/container.md) — Universal structural wrapper (max-width, padding, header, background)
 - [blueprints/grid.md](blueprints/grid.md) — Responsive column grid layout
 - [blueprints/section.md](blueprints/section.md) — Layout Builder adapter (container + grid + column slots)
+
+## Install
+
+Backend-specific install steps, dispatched from the core install flow
+(`designbook/install/install.md`).
+
+- [install/install.md](install/install.md) — Step index: detect → theme → storybook → config
+- [install/detect.md](install/detect.md) — Confirm Drupal codebase, determine docroot
+- [install/theme.md](install/theme.md) — Find or scaffold the target custom theme
+- [install/storybook.md](install/storybook.md) — Fresh Storybook setup or extend existing
+- [install/config.md](install/config.md) — Write designbook.config.yml
+- [install/templates/](install/templates/) — `.storybook/` file templates
