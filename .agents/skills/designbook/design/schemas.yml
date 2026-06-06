@@ -80,6 +80,66 @@ CompareArtifact:
       type: number
       description: Measured visual deviation ratio for this check when available.
 
+VerifyResult:
+  type: object
+  title: Verify Result
+  description: >
+    One verify-capture run's measurement. `score` is the severity sum
+    (critical×3 + major×2 + minor×1) over all checks — lower is better,
+    0 = perfect. Pixel diff and per-check breakdown sit alongside so callers
+    see both structural and visual fidelity.
+  required: [score, checks]
+  properties:
+    score: { type: integer, minimum: 0, examples: [17],
+      description: "Σ(critical×3 + major×2 + minor×1) over all checks. 0 = perfect." }
+    avg_diff_percent: { type: number, examples: [0.21], description: Mean pixel deviation ratio across checks. }
+    max_diff_percent: { type: number, examples: [0.44], description: Worst-case pixel deviation across checks. }
+    passed: { type: integer, examples: [2], description: Checks that passed their threshold. }
+    total:  { type: integer, examples: [4], description: Total checks. }
+    issues:
+      type: object
+      description: Aggregate issue counts by severity over all checks.
+      properties:
+        critical: { type: integer, examples: [2] }
+        major:    { type: integer, examples: [4] }
+        minor:    { type: integer, examples: [3] }
+    checks:
+      type: array
+      description: Per-check breakdown (one per breakpoint × region).
+      items:
+        type: object
+        required: [breakpoint, region, score, passed]
+        properties:
+          breakpoint:   { $ref: "#/BreakpointId" }
+          region:       { $ref: "#/RegionId" }
+          score:        { type: integer, minimum: 0 }
+          passed:       { type: boolean }
+          diff_percent: { type: number }
+          critical:     { type: integer }
+          major:        { type: integer }
+          minor:        { type: integer }
+    tokens:
+      type: object
+      description: This run's agent-reported LLM tokens. Best-effort; absent on headless runs.
+      properties: { input: { type: integer }, output: { type: integer } }
+
+ScoreReport:
+  type: object
+  title: Score Report
+  description: >
+    A design-verify run: first_shot (before any fix) and final (after the
+    single verify-fix pass), each a full VerifyResult. delta = first_shot.score
+    − final.score (positive = improvement; lower score is better).
+  required: [first_shot, final, delta]
+  properties:
+    first_shot: { $ref: "#/VerifyResult" }
+    final:      { $ref: "#/VerifyResult" }
+    delta:      { type: integer, examples: [11], description: first_shot.score − final.score. }
+    tokens:
+      type: object
+      description: LLM tokens summed across the capture + fix subagents. Best-effort.
+      properties: { input: { type: integer }, output: { type: integer } }
+
 StoryMeta:
   type: object
   title: Story Meta
