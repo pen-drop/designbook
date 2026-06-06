@@ -2,7 +2,7 @@
 name: designbook:design:compare-screenshots
 title: "Compare Screenshots: {{ check.story_id }} ({{ check.breakpoint }}/{{ check.region }})"
 trigger:
-  steps: [compare]
+  steps: [compare, re-compare]
 params:
   type: object
   required: [check, reference_folder]

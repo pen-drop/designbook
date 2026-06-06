@@ -10,43 +10,45 @@ params:
   properties:
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
+result:
+  type: object
+  required: [score-report]
+  properties:
+    score-report: { $ref: ../schemas.yml#/ScoreReport }
 ---
 
 # Outtake — Design Verify
 
-Summarizes all check results and determines whether the workflow is complete or needs another run.
+Assemble the `ScoreReport` from this workflow's own measurements and surface it
+as the workflow result.
 
-## Execution
+## Result: score-report
 
-1. **Read workflow task statuses** to determine which polish tasks were completed and which issues remain open.
+Both measurements come from the workflow's task results in scope — no params are
+passed in for them:
 
-   Use the workflow engine's task list — each polish task corresponds to one issue. A completed task means the issue is resolved.
+- `first_shot` is the `VerifyResult` for the `compare` stage (the first measurement,
+  before any fix). Aggregate the `compare` stage's per-check `issues` and
+  `compare_artifacts` into one `VerifyResult`: `score` is the severity sum
+  (critical×3 + major×2 + minor×1) over all checks, with the per-check breakdown,
+  pass/total counts, and pixel-diff figures alongside.
+- `final` is the `VerifyResult` for the `re-compare` stage (the second measurement,
+  after the single fix pass), aggregated the same way from the `re-compare` stage's
+  results.
 
-2. **Build result table** from the polish task statuses:
+When the `compare` stage scored 0 (no issues), the `triage`/`polish` fix pass and
+the `re-capture`/`re-compare` re-measurement produce no change — `final` equals
+`first_shot`.
 
-   | ID | Severity | Description | Result |
-   |----|----------|-------------|--------|
-   | issue-001 | critical | Hero Heading: fontSize 14px → 48px, ... | done |
-   | issue-002 | major | Navigation: gap 8px → 16px, ... | done |
-   | issue-003 | major | Footer Copyright: color ... | open |
+Then:
 
-3. **Verdict:**
-   - **All issues resolved** → "All issues fixed. Workflow complete."
-   - **Open/failed issues remain** → List them and output: "Re-run `/debo design-verify` to continue polishing. Reference screenshots and passing checks will be preserved."
-
-## Output
+1. `delta = first_shot.score − final.score` (positive = the fix pass improved fidelity).
+2. `tokens` = sum of `first_shot.tokens` and `final.tokens` per channel when present, else omit.
+3. Display the compact score block:
 
 ```
-## Design Verify — Summary
+## Design Verify — {story_id}
 
-**Story:** {story_id}
-**Result:** {resolved}/{total} issues resolved
-
-### Issues
-
-| ID | Severity | Description | Result |
-|----|----------|-------------|--------|
-| ... | ... | ... | ... |
-
-{verdict}
+first_shot: {first_shot.score}   final: {final.score}   delta: {delta}
+passed:     {final.passed}/{final.total}   avg diff: {final.avg_diff_percent}
 ```
