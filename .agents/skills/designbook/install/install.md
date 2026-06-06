@@ -16,6 +16,7 @@ should do next. Never report success while any step failed.
 
 1. Locate the skills root: the directory containing this skill (`.agents/skills/`
    or `.claude/skills/`), walking up from the current working directory.
+   The directory the agent was invoked from (CWD) is treated as the project root for every subsequent check.
 2. Walk up from the project root looking for an existing `designbook.config.yml`
    (or `.yaml`). Found → designbook is already installed: report the path and stop.
    Continue only if the user explicitly asks to reconfigure, and never overwrite
@@ -59,6 +60,7 @@ phase from there.
    `npx storybook-addon-designbook storybook start --force`
    The command exits 0 once Storybook is reachable and outputs a JSON object.
    Parse its `port` field and construct the URL as `http://localhost:<port>`.
+   When the JSON's `startup_errors` array is non-empty, print every entry; continue only if the check in step 3 still passes.
 3. Confirm Storybook serves the story index: `curl -sf http://localhost:<port>/index.json`
    returns HTTP 200.
 4. Any failure → stop, show the exact command output, and escalate to the user.

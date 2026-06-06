@@ -25,7 +25,7 @@ Otherwise → **Fresh**.
 
    ```json
    {
-     "name": "NAMESPACE",
+     "name": "__NAMESPACE__",
      "private": true,
      "type": "module",
      "scripts": {
@@ -34,7 +34,7 @@ Otherwise → **Fresh**.
    }
    ```
 
-   (`"name"` = the `NAMESPACE` value, `_` replaced by `-`.)
+   (substitute `__NAMESPACE__` with the `NAMESPACE` value, then replace every `_` with `-` in the `"name"` field only.)
    Existing → only add the `storybook` script when absent.
 2. Add devDependencies (use `pnpm add -D` when a `pnpm-lock.yaml` or
    `pnpm-workspace.yaml` exists in `THEME_DIR` or a parent directory; otherwise
@@ -90,5 +90,5 @@ Touch nothing except the two addon registrations and missing dependencies.
 2. Ensure `"../components/**/*.component.yml"` is in the `stories` globs; append
    it when missing.
 3. Add missing devDependencies: `storybook-addon-designbook`,
-   `storybook-addon-sdc@^0.22.0`, `twing@^7.3.0`.
+   `@storybook/addon-docs@^10`, `storybook-addon-sdc@^0.22.0`, `twing@^7.3.0`.
 4. Leave every other setting untouched.
