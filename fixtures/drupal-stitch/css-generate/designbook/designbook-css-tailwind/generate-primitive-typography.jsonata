@@ -9,5 +9,5 @@
     $substring($k, 0, 1) != "$" ? "  --text-" & $k & ": " & $v."$value" & ";"
   });
   $filtered := $filter($entries, function($e) { $e != null });
-  $count($filtered) > 0 ? "@theme {\n" & $join($filtered, "\n") & "\n}\n" : "/* no primitive typography tokens */\n"
+  $count($filtered) > 0 ? "@theme static {\n" & $join($filtered, "\n") & "\n}\n" : "/* no primitive typography tokens */\n"
 )

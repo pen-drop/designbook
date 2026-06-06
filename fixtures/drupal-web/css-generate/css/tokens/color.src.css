@@ -1,4 +1,4 @@
-@theme {
+@theme static {
   --color-primary: var(--color-navy-600);
   --color-primary-hover: var(--color-navy-700);
   --color-primary-active: var(--color-navy-800);

@@ -1,4 +1,4 @@
-@theme {
+@theme static {
   --color-primary: var(--color-blue-200);
   --color-primary-container: var(--color-blue-800);
   --color-on-primary: var(--color-blue-900);

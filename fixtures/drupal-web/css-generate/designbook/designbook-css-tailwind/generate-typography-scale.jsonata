@@ -13,5 +13,5 @@
       "  --text-" & $k & "--line-height: " & $val.lineHeight & ";"
     )
   });
-  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+  "@theme static {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
 )
