@@ -11,7 +11,13 @@ import { randomBytes } from 'node:crypto';
 import { digestLog } from './log/digest.js';
 import { computeFlowRate } from './scoring/composite.js';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
-import type { ValidationFileResult, StageParam, StageDefinition, TaskFile } from './workflow-types.js';
+import type {
+  ValidationFileResult,
+  StageParam,
+  StageDefinition,
+  TaskFile,
+  AfterDeclaration,
+} from './workflow-types.js';
 import { withLockAsync } from './workflow-lock.js';
 import { engines } from './engines/index.js';
 import { getNextStage, getNextStep, checkStageParams, interpolatePrompt } from './workflow-lifecycle.js';
@@ -934,8 +940,13 @@ export async function workflowDone(
   name: string,
   taskId: string,
   loaded?: LoadedPayload,
-  options?: { summary?: string; data?: Record<string, unknown>; config?: import('./config.js').DesignbookConfig },
-): Promise<{ archived: boolean; data: WorkflowFile; response?: StageResponse }> {
+  options?: {
+    summary?: string;
+    data?: Record<string, unknown>;
+    config?: import('./config.js').DesignbookConfig;
+    after?: AfterDeclaration[];
+  },
+): Promise<{ archived: boolean; data: WorkflowFile; response?: StageResponse; awaitingAfter?: AfterDeclaration[] }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
 
@@ -1386,6 +1397,18 @@ export async function workflowDone(
 
           if (transitionResult.archive) {
             data.current_stage = 'done';
+            const pendingAfterTransition = (options?.after ?? []).length > 0 && !data.children?.length;
+            if (pendingAfterTransition) {
+              data.status = 'awaiting-after';
+              writeWorkflowAtomic(filePath, data);
+              const transitionResponse: StageResponse = {
+                stage: 'done',
+                stage_progress: `${stageDone}/${stageTotal}`,
+                stage_complete: true,
+                ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
+              };
+              return { archived: false, awaitingAfter: options!.after!, data, response: transitionResponse };
+            }
             archiveWorkflow(dataDir, name, data);
             return {
               archived: true,
@@ -1472,9 +1495,21 @@ export async function workflowDone(
         }
         const doneResult = engine.done(data);
         if (doneResult.archive) {
+          const pendingAfter = (options?.after ?? []).length > 0 && !data.children?.length;
+          if (pendingAfter) {
+            data.status = 'awaiting-after';
+            writeWorkflowAtomic(filePath, data);
+            return { archived: false, awaitingAfter: options!.after!, data, response: completionResponse };
+          }
           archiveWorkflow(dataDir, name, data);
           return { archived: true, data, response: completionResponse };
         }
+      }
+      const pendingAfterNoEngine = (options?.after ?? []).length > 0 && !data.children?.length;
+      if (pendingAfterNoEngine) {
+        data.status = 'awaiting-after';
+        writeWorkflowAtomic(filePath, data);
+        return { archived: false, awaitingAfter: options!.after!, data, response: completionResponse };
       }
       writeWorkflowAtomic(filePath, data);
 

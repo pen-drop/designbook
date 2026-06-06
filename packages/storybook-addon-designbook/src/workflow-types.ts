@@ -1,5 +1,11 @@
 export type TaskStatus = 'pending' | 'in-progress' | 'done' | 'incomplete';
 
+export interface AfterDeclaration {
+  workflow: string;
+  /** Param name → JSONata expression evaluated over the parent's params. */
+  params?: Record<string, string>;
+}
+
 export type TaskType = 'component' | 'scene' | 'data' | 'tokens' | 'view-mode' | 'css' | 'validation';
 
 export interface ValidationFileResult {

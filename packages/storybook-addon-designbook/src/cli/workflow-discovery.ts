@@ -2,16 +2,13 @@ import { readFileSync } from 'node:fs';
 import { globSync } from 'glob';
 import { basename } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
+import type { AfterDeclaration } from '../workflow-types.js';
+
+export type { AfterDeclaration };
 
 export interface WorkflowStage {
   name: string;
   steps: string[];
-}
-
-export interface AfterDeclaration {
-  workflow: string;
-  /** Param name → JSONata expression evaluated over the parent's params. */
-  params?: Record<string, string>;
 }
 
 export interface WorkflowDefinition {
