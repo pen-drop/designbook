@@ -8,10 +8,17 @@ export interface WorkflowStage {
   steps: string[];
 }
 
+export interface AfterDeclaration {
+  workflow: string;
+  /** Param name → JSONata expression evaluated over the parent's params. */
+  params?: Record<string, string>;
+}
+
 export interface WorkflowDefinition {
   id: string;
   file: string;
   stages: WorkflowStage[];
+  after: AfterDeclaration[];
 }
 
 export function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
@@ -35,11 +42,17 @@ export function loadWorkflowDefinition(workflowId: string, agentsDir: string): W
   if (!fmMatch) {
     throw new Error(`Workflow "${workflowId}" has no YAML frontmatter at ${file}`);
   }
-  const fm = parseYaml(fmMatch[1]!) as { stages?: Record<string, { steps?: string[] }> } | null;
+  const fm = parseYaml(fmMatch[1]!) as {
+    stages?: Record<string, { steps?: string[] }>;
+    after?: Array<{ workflow?: string; params?: Record<string, string> }>;
+  } | null;
   const stagesObj = fm?.stages ?? {};
   const stages: WorkflowStage[] = Object.entries(stagesObj).map(([name, def]) => ({
     name,
     steps: def.steps ?? [],
   }));
-  return { id: workflowId, file, stages };
+  const after: AfterDeclaration[] = (fm?.after ?? [])
+    .filter((a): a is { workflow: string; params?: Record<string, string> } => typeof a?.workflow === 'string')
+    .map((a) => ({ workflow: a.workflow, ...(a.params ? { params: a.params } : {}) }));
+  return { id: workflowId, file, stages, after };
 }
