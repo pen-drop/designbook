@@ -116,11 +116,13 @@ export interface TaskResult {
 export interface WorkflowFile {
   title: string;
   workflow: string;
-  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
+  status?: 'running' | 'waiting' | 'awaiting-after' | 'completed' | 'incomplete';
   waiting_message?: string; // question/prompt shown when status is 'waiting'
   /** Write isolation engine: 'git-worktree' or 'direct'. Stored at plan time. */
   engine?: 'git-worktree' | 'direct';
   parent?: string;
+  /** Child workflows auto-created from this workflow's after: declarations. */
+  children?: Array<{ name: string; workflow: string }>;
   params?: Record<string, unknown>; // global intake params (accessible to all subagents)
   current_stage?: string; // current lifecycle stage (planned, execute, committed, test, preview, finalizing, done)
   stages?: Record<string, StageDefinition>; // keyed by stage name (execute, test, preview)

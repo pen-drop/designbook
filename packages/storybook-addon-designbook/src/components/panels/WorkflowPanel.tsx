@@ -74,7 +74,7 @@ interface WorkflowData {
   changeName: string;
   title: string;
   workflow: string;
-  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
+  status?: 'running' | 'waiting' | 'awaiting-after' | 'completed' | 'incomplete';
   parent?: string;
   engine?: 'git-worktree' | 'direct';
   write_root?: string;
@@ -167,13 +167,14 @@ const formatTimestampRange = (start: string | null, end: string | null): string 
 };
 
 function WorkflowStatusDot({ status }: { status?: string }) {
-  const mapped = status === 'completed' ? 'done' : status === 'running' ? 'in-progress' : 'pending';
+  const mapped =
+    status === 'completed' ? 'done' : status === 'running' || status === 'awaiting-after' ? 'in-progress' : 'pending';
   return <StatusDot status={mapped} />;
 }
 
 const collapsibleStatus = (status?: string): 'done' | 'running' | 'pending' => {
   if (status === 'completed') return 'done';
-  if (status === 'running') return 'running';
+  if (status === 'running' || status === 'awaiting-after') return 'running';
   return 'pending';
 };
 
