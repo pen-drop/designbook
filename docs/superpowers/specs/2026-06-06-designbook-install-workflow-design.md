@@ -38,7 +38,7 @@ Trigger: user asks to install designbook → subcommand `install` of the core `d
    `*.info.yml`. One hit → use it; several → ask the user; zero → offer to scaffold a
    new theme. Theme machine name becomes `component.namespace`.
 5. **Set up Storybook + config** — inside the theme directory (see Artifacts).
-6. **Verify** — install JS dependencies, run `npx addon start --force`, confirm the
+6. **Verify** — install JS dependencies, run `npx storybook-addon-designbook storybook start --force`, confirm the
    Storybook URL responds and the designbook addon loads. Any failure → stop and
    report; never claim success with unresolved errors.
 
@@ -71,7 +71,7 @@ Trigger: user asks to install designbook → subcommand `install` of the core `d
   `designbook.cmd/home/url`, `dirs.components`, `component.namespace`,
   `extensions` (`drupal` only; CSS framework step appends when applicable).
 - `templates/` — `.storybook/` file templates (`main.js`, `preview.js`,
-  `twing-hooks.js`, renderer files), framework-neutral (no tailwind markers).
+  `twing-hooks.js`), derived from the test-integration-drupal fixture (fixture-specific renderer/defs files deliberately omitted).
 
 ### Tailwind integration (`.agents/skills/designbook-css-tailwind/install/`)
 

@@ -18,7 +18,8 @@ description: Find the target custom theme or scaffold a new one; derive the comp
      human-readable name, derive the machine name: lowercase, replace spaces and
      hyphens with underscores, strip every remaining character outside
      `[a-z0-9_]`, and prefix `theme_` when the result does not start with a
-     letter, and create
+     letter. When `DOCROOT/themes/custom/<machine_name>` already exists, ask the
+     user before writing into it. Then create
      `DOCROOT/themes/custom/<machine_name>/<machine_name>.info.yml`:
 
      ```yaml

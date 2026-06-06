@@ -36,8 +36,8 @@ Otherwise → **Fresh**.
    `storybook-addon-sdc@^0.22.0`, `storybook-addon-designbook`, `twing@^7.3.0`,
    `vite@^6`.
 
-   When `storybook-addon-designbook` is not available on the npm registry (development setups), install it from a local checkout instead: resolve the real path of the skills root (it is typically a symlink into the designbook repo), walk up to the directory containing `packages/storybook-addon-designbook`, and run `npm install -D file:<that-path>/packages/storybook-addon-designbook`.
-3. Copy every file from this skill's `install/templates/` into `.storybook/`,
+   When `storybook-addon-designbook` is not available on the npm registry (development setups), install it from a local checkout instead: resolve the real path of the skills root (it is typically a symlink into the designbook repo), walk up to the directory containing `packages/storybook-addon-designbook`, and install it with the package manager picked above: `<pm> add/install -D file:<that-path>/packages/storybook-addon-designbook`.
+3. Copy every file from this skill's `install/templates/` into `.storybook/`, skipping any file that already exists there (report skipped files to the user — never overwrite),
    then post-process each copied file:
    - replace every `__NAMESPACE__` with the `NAMESPACE` value
 4. Ensure a `components/` directory exists (create it empty if needed).

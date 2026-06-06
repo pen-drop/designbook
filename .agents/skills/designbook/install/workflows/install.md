@@ -18,17 +18,16 @@ should do next. Never report success while any step failed.
 
 1. Locate the skills root: the directory containing this skill (`.agents/skills/`
    or `.claude/skills/`), walking up from the current working directory.
-   The directory the agent was invoked from (CWD) is treated as the project root for every subsequent check.
+   The project root is determined in Phase 2 by marker walk-up from the CWD.
 2. Walk up from the project root looking for an existing `designbook.config.yml`
    (or `.yaml`). Found → designbook is already installed: report the path and stop.
    Continue only if the user explicitly asks to reconfigure, and never overwrite
    the existing file without showing the intended changes and getting confirmation.
-3. Check that `node --version` succeeds. Missing → tell the user to install
-   Node.js (>= 20) and stop.
+3. Check that `node --version` succeeds and reports major version >= 20. Missing or older → tell the user to install Node.js >= 20 and stop.
 
 ## Phase 2 — Detect backend
 
-Evaluate the table top to bottom against the project root. First match wins.
+Determine the project root: walk up from the CWD to the first directory containing a marker from the table (checking each directory against all rows). Evaluate the table top to bottom there; first match wins.
 
 | Backend | Marker | Integration skill |
 |---|---|---|

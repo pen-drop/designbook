@@ -40,6 +40,8 @@ the backend flow.
    },
    ```
 
+When the config already has a `viteFinal`, do not add a second one — add `tailwindcss()` to the plugins of the existing `viteFinal`'s merge/return instead.
+
 3. `.storybook/preview.js` — add as the first line:
 
    ```js
