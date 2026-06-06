@@ -56,8 +56,7 @@ Read `designbook.home` from that config file first. It is relative to the config
 file's directory; resolve it to an absolute path and run every command in this
 phase from there.
 
-1. Install JS dependencies in the resolved `designbook.home` directory: `pnpm install` when a
-   `pnpm-lock.yaml` or `pnpm-workspace.yaml` is present, otherwise `npm install`.
+1. Install JS dependencies in the resolved `designbook.home` directory: `pnpm install` when a `pnpm-lock.yaml` or `pnpm-workspace.yaml` is present in that directory or any parent up to the project root; otherwise `npm install`.
 2. Start Storybook through the addon CLI:
    `npx storybook-addon-designbook storybook start --force`
    The command exits 0 once Storybook is reachable and outputs a JSON object.
@@ -68,4 +67,4 @@ phase from there.
 4. Any failure → stop, show the exact command output, and escalate to the user.
    Do not retry silently and do not mark the install successful.
 5. On success print a summary: backend, theme directory, config file path,
-   Storybook URL.
+   Storybook URL. Leave Storybook running; mention it can be stopped with `npx storybook-addon-designbook storybook stop`.
