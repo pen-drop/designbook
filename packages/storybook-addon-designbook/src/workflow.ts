@@ -109,6 +109,13 @@ export interface TaskResult {
   provider_rule?: string;
   /** Inline data value — stored for data results (no path). */
   value?: unknown;
+  /**
+   * Whether this entry must be written before the task can be marked done.
+   * Derived from the task's result schema `required` list at plan time.
+   * Absent = enforce (back-compat: tasks with no required info gate on all entries).
+   * `false` = optional — skipped when not submitted (not validated, no path written).
+   */
+  required?: boolean;
   /** Whether the result has been written and validated. */
   valid?: boolean;
   /** Validation error message, if any. */
@@ -1103,6 +1110,11 @@ export async function workflowDone(
         if (!resultEntry) continue;
 
         if (resultEntry.path) {
+          // Guard: never write a file whose path template was left unresolved
+          // (e.g. `{{ reference_folder }}/extract.json` when the param was empty).
+          if (/\{\{[^}]*\}\}/.test(resultEntry.path)) {
+            throw new Error(`result path template unresolved: ${resultEntry.path}`);
+          }
           // File result from --data: serialize and write to disk
           const { serializeForPath } = await import('./workflow-serialize.js');
           const serialized = serializeForPath(
@@ -1296,9 +1308,13 @@ export async function workflowDone(
     }
 
     // Gate-check: assert all result entries are written and valid (new result: model)
+    // An entry is only enforced as "must be written" when it is required. An entry
+    // is required unless its schema marks it optional (`required === false`). Optional
+    // entries that were never submitted (valid === undefined) are simply skipped —
+    // not validated, not flushed, no path written.
     if (task.result) {
       const missingResults = Object.entries(task.result).filter(
-        ([, r]) => r.valid === undefined && r.path !== undefined,
+        ([, r]) => r.valid === undefined && r.path !== undefined && r.required !== false,
       );
       if (missingResults.length > 0) {
         throw new Error(
@@ -1307,7 +1323,7 @@ export async function workflowDone(
         );
       }
       const missingDataResults = Object.entries(task.result).filter(
-        ([, r]) => r.valid === undefined && r.path === undefined,
+        ([, r]) => r.valid === undefined && r.path === undefined && r.required !== false,
       );
       if (missingDataResults.length > 0) {
         throw new Error(

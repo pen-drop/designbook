@@ -1181,6 +1181,8 @@ export async function expandResultDeclarations(
         flush?: 'deferred' | 'immediate';
         /** Absolute path to the rule whose `provides:` matches this result key. */
         provider_rule?: string;
+        /** Whether this entry is in the result schema's `required` list. */
+        required?: boolean;
       }
     >
   | undefined
@@ -1212,6 +1214,11 @@ export async function expandResultDeclarations(
       | undefined;
     if (!properties) return undefined;
 
+    // When the result schema declares a `required` list, entries not in it are
+    // optional. When there is NO `required` list, all entries are required
+    // (back-compat: gate on every declared result).
+    const requiredList = (resultDecl as Record<string, unknown>).required as string[] | undefined;
+
     const result: Record<
       string,
       {
@@ -1221,6 +1228,7 @@ export async function expandResultDeclarations(
         submission: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
         provider_rule?: string;
+        required?: boolean;
       }
     > = {};
     for (const [key, decl] of Object.entries(properties)) {
@@ -1287,6 +1295,7 @@ export async function expandResultDeclarations(
         submission: 'data' | 'direct';
         flush?: 'deferred' | 'immediate';
         provider_rule?: string;
+        required?: boolean;
       } = { submission };
       if (flush !== undefined) entry.flush = flush;
       if (decl.path) {
@@ -1295,6 +1304,9 @@ export async function expandResultDeclarations(
       if (schema) entry.schema = schema;
       if (validators.length > 0) entry.validators = validators;
       if (providerByKey[key]) entry.provider_rule = providerByKey[key];
+      // Only record requiredness when the schema declares a `required` list.
+      // No list → leave undefined → gate enforces all entries (back-compat).
+      if (requiredList) entry.required = requiredList.includes(key);
 
       result[key] = entry;
     }
