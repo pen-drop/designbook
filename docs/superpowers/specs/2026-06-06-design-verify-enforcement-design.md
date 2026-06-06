@@ -79,7 +79,8 @@ Two real problems remain:
 8. **Result summary in the addon task panel.** `WorkflowPanel` shows a
    single compact summary line for a completed workflow's result, including
    aggregated `after.*` child results (e.g.
-   `verify: first_shot 78 → final 92 (Δ +14)`). Summary only — no expanded
+   `design-verify: first_shot 34 → final 12 (Δ 22)` — lower score is better,
+   `delta = first_shot − final`, positive = improvement). Summary only — no expanded
    result tree; details stay in `workflow summary --json`. Data source is
    the same aggregation as item 7.
 
@@ -141,7 +142,9 @@ cherry-picking the good parts of the split branch:
 
    For design-shell and design-section research the metric is
    `first_shot.score` — it measures what the generation workflow produced
-   before any fix pass.
+   before any fix pass. A companion `direction: min|max` field declares
+   which way is better (VerifyResult scores: lower is better → `min`;
+   flowRate-style metrics: `max`, the default).
 
 2. **`research.md` changes:**
    - Score step evaluates the metric expression instead of hardcoded
