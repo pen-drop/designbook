@@ -15,7 +15,7 @@ should do next. Never report success while any step failed.
 ## Phase 1 — Preconditions
 
 1. Locate the skills root: the directory containing this skill (`.agents/skills/`
-   or `.claude/skills/`), walking up from the project root.
+   or `.claude/skills/`), walking up from the current working directory.
 2. Walk up from the project root looking for an existing `designbook.config.yml`
    (or `.yaml`). Found → designbook is already installed: report the path and stop.
    Continue only if the user explicitly asks to reconfigure, and never overwrite
@@ -49,13 +49,18 @@ with Phase 4.
 
 Run from the directory containing the new `designbook.config.yml`:
 
-1. Install JS dependencies in `designbook.home`: `pnpm install` when a
+Read `designbook.home` from that config file first. It is relative to the config
+file's directory; resolve it to an absolute path and run every command in this
+phase from there.
+
+1. Install JS dependencies in the resolved `designbook.home` directory: `pnpm install` when a
    `pnpm-lock.yaml` or `pnpm-workspace.yaml` is present, otherwise `npm install`.
 2. Start Storybook through the addon CLI:
    `npx storybook-addon-designbook storybook start --force`
-   The command exits 0 once Storybook is reachable and prints its URL.
-3. Confirm the addon is active: `curl -sf <url>/index.json` (URL reported by the
-   start command; fall back to `designbook.url` from the config) returns HTTP 200.
+   The command exits 0 once Storybook is reachable and outputs a JSON object.
+   Parse its `port` field and construct the URL as `http://localhost:<port>`.
+3. Confirm Storybook serves the story index: `curl -sf http://localhost:<port>/index.json`
+   returns HTTP 200.
 4. Any failure → stop, show the exact command output, and escalate to the user.
    Do not retry silently and do not mark the install successful.
 5. On success print a summary: backend, theme directory, config file path,

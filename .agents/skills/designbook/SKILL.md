@@ -13,7 +13,7 @@ description: >
 
 ## Rules
 
-> ⛔ **Read `resources/workflow-execution.md` immediately upon loading this skill.** It contains the binding execution rules (Rules 0–7) for all `debo` workflows. No stage may start before these rules are loaded.
+> ⛔ **Read `resources/workflow-execution.md` immediately upon loading this skill.** It contains the binding execution rules (Rules 0–7) for all `debo` workflows. No stage may start before these rules are loaded. (Not applicable to the `install` sub-command — see Dispatch below.)
 
 > ⛔ **Never load or apply this skill for `opsx-*` or `openspec-*` workflows.** Those workflows manage their own artifact lifecycle (changes, specs, archives) and must not be wrapped in a designbook workflow.
 
