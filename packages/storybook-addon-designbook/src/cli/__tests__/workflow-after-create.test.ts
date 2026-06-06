@@ -123,4 +123,66 @@ describe('workflow done: after-workflow auto-create', () => {
     expect(parentMeta.status).toBe('awaiting-after');
     expect(parentMeta.children).toEqual([{ name: next[0]!.name, workflow: 'child-wf' }]);
   });
+
+  it('idempotent re-run: second createAfterWorkflows call skips creation, parent has exactly 1 child', async () => {
+    const config = loadConfig();
+
+    const parent = await runWorkflowCreate(
+      { workflow: 'parent-wf', params: { story_id: 'debo-design-system' } },
+      config,
+    );
+    const parentName = parent.name;
+    const parentMetaBefore = readTasksYml(parentName);
+    const declarations = [{ workflow: 'child-wf', params: { story_id: 'story_id' } }];
+
+    // First run
+    const first = await createAfterWorkflows(declarations, parentName, parentMetaBefore.params ?? {}, config);
+    expect(first.length).toBe(1);
+    const childName = first[0]!.name;
+
+    // Count workflow dirs after first run
+    const { readdirSync } = await import('node:fs');
+    const { resolve: res } = await import('node:path');
+    const childDirsBefore = readdirSync(res(dataDir, 'workflows', 'changes'));
+
+    // Second run — should skip creation entirely
+    const second = await createAfterWorkflows(declarations, parentName, parentMetaBefore.params ?? {}, config);
+
+    const childDirsAfter = readdirSync(res(dataDir, 'workflows', 'changes'));
+    // No new dirs created
+    expect(childDirsAfter.length).toBe(childDirsBefore.length);
+
+    expect(second.length).toBe(1);
+    expect(second[0]!.name).toBe(childName);
+
+    // Parent still has exactly 1 child
+    const parentMeta = readTasksYml(parentName);
+    expect(parentMeta.children).toHaveLength(1);
+    expect(parentMeta.children![0]!.name).toBe(childName);
+  });
+
+  it('rejects with a clear error when a param expression evaluates to undefined', async () => {
+    const config = loadConfig();
+
+    const parent = await runWorkflowCreate(
+      { workflow: 'parent-wf', params: { story_id: 'debo-design-system' } },
+      config,
+    );
+    const parentName = parent.name;
+
+    const declarations = [{ workflow: 'child-wf', params: { story_id: 'nonexistent_key' } }];
+
+    await expect(createAfterWorkflows(declarations, parentName, {}, config)).rejects.toThrow(
+      "after-workflow 'child-wf': param 'story_id' expression 'nonexistent_key' evaluated to undefined on parent params",
+    );
+
+    // No child workflow dir should have been created
+    const { existsSync } = await import('node:fs');
+    const { resolve: res } = await import('node:path');
+    const childChanges = res(dataDir, 'workflows', 'changes');
+    const dirs = existsSync(childChanges)
+      ? (await import('node:fs')).readdirSync(childChanges).filter((d) => d !== parentName)
+      : [];
+    expect(dirs).toHaveLength(0);
+  });
 });

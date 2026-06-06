@@ -242,10 +242,11 @@ function holdForAfter(
   after: AfterDeclaration[] | undefined,
   response: StageResponse | undefined,
 ): { archived: false; awaitingAfter: AfterDeclaration[]; data: WorkflowFile; response?: StageResponse } | null {
-  if (!after?.length || data.children?.length) return null;
+  const unsatisfied = after?.filter((a) => !(data.children ?? []).some((c) => c.workflow === a.workflow)) ?? [];
+  if (unsatisfied.length === 0) return null;
   data.status = 'awaiting-after';
   writeWorkflowAtomic(filePath, data);
-  return { archived: false, awaitingAfter: after, data, response };
+  return { archived: false, awaitingAfter: unsatisfied, data, response };
 }
 
 /**
@@ -257,6 +258,7 @@ export function registerChild(dataDir: string, parentName: string, child: { name
   const filePath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
   const data = readWorkflow(filePath);
   data.children = data.children ?? [];
+  if (data.children.some((c) => c.name === child.name)) return;
   data.children.push(child);
   writeWorkflowAtomic(filePath, data);
 }

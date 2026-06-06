@@ -114,6 +114,7 @@ export interface RunWorkflowCreateOpts {
 
 export interface RunWorkflowCreateResult {
   name: string;
+  title: string;
   steps: unknown;
   stages?: Record<string, StageDefinition>;
   engine?: string;
@@ -351,6 +352,7 @@ export async function runWorkflowCreate(
   // Output JSON with workflow name + all resolved steps
   const createResult: RunWorkflowCreateResult = {
     name,
+    title,
     steps: resolved.steps,
     ...(resolved.stages ? { stages: resolved.stages } : {}),
     ...(resolved.engine ? { engine: resolved.engine } : {}),
@@ -375,19 +377,37 @@ export async function createAfterWorkflows(
   parentParams: Record<string, unknown>,
   config: import('../config.js').DesignbookConfig,
 ): Promise<Array<{ name: string; workflow: string }>> {
-  const created: Array<{ name: string; workflow: string }> = [];
+  const { resolve: resolvePath } = await import('node:path');
+  const parentFilePath = resolvePath(config.data, 'workflows', 'changes', parentName, 'tasks.yml');
+  const parentData = readWorkflow(parentFilePath);
+  const existingChildren = parentData.children ?? [];
+
+  const result: Array<{ name: string; workflow: string }> = [];
   for (const decl of declarations) {
+    // Idempotent re-run: skip creation if a child with the same workflow id already exists
+    const existing = existingChildren.find((c) => c.workflow === decl.workflow);
+    if (existing) {
+      result.push(existing);
+      continue;
+    }
+
     const mapped: Record<string, unknown> = {};
     if (decl.params) {
       for (const [key, expr] of Object.entries(decl.params)) {
-        mapped[key] = await jsonata(expr).evaluate(parentParams);
+        const value = await jsonata(expr).evaluate(parentParams);
+        if (value === undefined) {
+          throw new Error(
+            `after-workflow '${decl.workflow}': param '${key}' expression '${expr}' evaluated to undefined on parent params`,
+          );
+        }
+        mapped[key] = value;
       }
     }
     const child = await runWorkflowCreate({ workflow: decl.workflow, parent: parentName, params: mapped }, config);
     registerChild(config.data, parentName, { name: child.name, workflow: decl.workflow });
-    created.push({ name: child.name, workflow: decl.workflow });
+    result.push({ name: child.name, workflow: decl.workflow });
   }
-  return created;
+  return result;
 }
 
 export function register(program: Command): void {
@@ -467,7 +487,7 @@ export function register(program: Command): void {
         );
         log({
           cmd: 'workflow create',
-          args: { workflow: opts.workflow, title: createResult.name },
+          args: { workflow: opts.workflow, title: createResult.title },
           result: { name: createResult.name },
         });
         console.log(JSON.stringify(createResult, null, 2));
