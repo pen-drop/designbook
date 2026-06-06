@@ -20,6 +20,7 @@ verified running with the designbook addon loaded.
 | Existing Storybook | Extend it (register addons in existing `main.js`), leave the rest untouched. No Storybook → fresh setup from templates. |
 | Done criterion | Config written, Storybook configured, **verified**: dependencies installed, Storybook starts, URL reachable, addon loads. |
 | Instruction location | `designbook-drupal/install/` directory (consistent with concern structure). |
+| CSS framework | Asked during install; installed `designbook-css-*` skills + plain CSS are the choices, auto-detection pre-selects the default. Framework specifics live in the CSS skill's `install/` (e.g. designbook-css-tailwind); backend flow stays framework-neutral. |
 
 ## Flow (6 Phases)
 
@@ -61,16 +62,21 @@ Trigger: user asks to install designbook → subcommand `install` of the core `d
 - `storybook.md` — two paths:
   - **Fresh**: html-vite setup modeled on `packages/integrations/test-integration-drupal`.
     Dependencies: `storybook`, `@storybook/html-vite`, `@storybook/addon-docs`,
-    `storybook-addon-sdc`, `storybook-addon-designbook`, twing; `@tailwindcss/vite`
-    only when Tailwind is detected.
+    `@storybook/addon-themes`, `storybook-addon-sdc`, `storybook-addon-designbook`,
+    `marked`, twing, vite. No framework-conditional deps.
   - **Extend**: existing `.storybook/main.js` — register `storybook-addon-designbook`
     and `storybook-addon-sdc` only; everything else untouched.
 - `config.md` — `designbook.config.yml` template written to the theme root:
-  `backend: drupal`, `frameworks.component: sdc`, `frameworks.css` (detected:
-  `tailwind` | `css`), `designbook.cmd/home/url`, `dirs.components`,
-  `component.namespace`, `extensions` (`drupal`, plus `tailwind` when detected).
+  `backend: drupal`, `frameworks.component: sdc`, `frameworks.css: css` (default),
+  `designbook.cmd/home/url`, `dirs.components`, `component.namespace`,
+  `extensions` (`drupal` only; CSS framework step appends when applicable).
 - `templates/` — `.storybook/` file templates (`main.js`, `preview.js`,
-  `twing-hooks.js`, renderer files), derived from the test-integration-drupal fixture.
+  `twing-hooks.js`, renderer files), framework-neutral (no tailwind markers).
+
+### Tailwind integration (`.agents/skills/designbook-css-tailwind/install/`)
+
+- `install.md` — detection (default suggestion), Tailwind deps, `.storybook` Vite
+  wiring, `css/app.src.css`, config update (`frameworks.css: tailwind` + extension).
 
 ## Error Handling
 

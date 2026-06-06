@@ -26,3 +26,10 @@ Non-standard namespaces (e.g. `--layout-spacing-*`, `--grid-*`) require `var()`:
 - [component-styling.md](rules/component-styling.md) — Tailwind utility-first component styling policy.
 - [component-source.md](rules/component-source.md) — Tailwind source registration for component templates.
 - [css-mapping.md](rules/css-mapping.md) — Token-group-to-CSS mapping for the generic `generate-jsonata` task.
+
+## Install
+
+CSS-framework install steps, dispatched from a backend install flow (e.g.
+`designbook-drupal/install/install.md`, CSS framework step).
+
+- [install/install.md](install/install.md) — Detection (default suggestion) + Tailwind setup steps

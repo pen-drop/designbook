@@ -1,8 +1,5 @@
 import { join } from 'node:path'
 import { cwd } from 'node:process'
-// [tailwind-only] start
-import tailwindcss from '@tailwindcss/vite'
-// [tailwind-only] end
 
 /** @type { import('@storybook/html-vite').StorybookConfig } */
 const config = {
@@ -29,13 +26,5 @@ const config = {
   ],
   core: { builder: { name: '@storybook/builder-vite' } },
   framework: { name: '@storybook/html-vite', options: {} },
-  // [tailwind-only] start
-  async viteFinal(config) {
-    const { mergeConfig } = await import('vite')
-    return mergeConfig(config, {
-      plugins: [tailwindcss()],
-    })
-  },
-  // [tailwind-only] end
 }
 export default config

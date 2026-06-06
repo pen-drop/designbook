@@ -7,13 +7,6 @@ description: Set up Storybook in the theme — fresh from templates, or extend a
 
 All paths are relative to `THEME_DIR`.
 
-## CSS framework detection
-
-Set `CSS_FRAMEWORK` to `tailwind` when either holds, otherwise `css`:
-
-- `package.json` lists `tailwindcss` under `dependencies` or `devDependencies`
-- any `*.css` file under the theme contains `@import "tailwindcss"` or `@tailwind`
-
 ## Choose path
 
 A `.storybook/` directory containing `main.js` or `main.ts` exists → **Extend**.
@@ -42,8 +35,6 @@ Otherwise → **Fresh**.
    `@storybook/addon-docs@^10`, `@storybook/addon-themes@^10`, `marked@^17`,
    `storybook-addon-sdc@^0.22.0`, `storybook-addon-designbook`, `twing@^7.3.0`,
    `vite@^6`.
-   When `CSS_FRAMEWORK` is `tailwind`, additionally: `tailwindcss@^4`,
-   `@tailwindcss/vite@^4`.
 
    When `storybook-addon-designbook` is not available on the npm registry
    (development setups), install it from a local checkout instead:
@@ -51,15 +42,7 @@ Otherwise → **Fresh**.
 3. Copy every file from this skill's `install/templates/` into `.storybook/`,
    then post-process each copied file:
    - replace every `__NAMESPACE__` with the `NAMESPACE` value
-   - `CSS_FRAMEWORK` ≠ `tailwind` → delete every block between
-     `// [tailwind-only] start` and `// [tailwind-only] end` including the marker
-     lines; `CSS_FRAMEWORK` = `tailwind` → delete only the marker lines.
 4. Ensure a `components/` directory exists (create it empty if needed).
-5. `CSS_FRAMEWORK` = `tailwind` and `css/app.src.css` missing → create it:
-
-   ```css
-   @import "tailwindcss";
-   ```
 
 ## Extend
 

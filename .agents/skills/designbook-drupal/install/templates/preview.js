@@ -1,7 +1,3 @@
-// [tailwind-only] start
-import '../css/app.src.css'
-// [tailwind-only] end
-
 /** @type { import('@storybook/html-vite').Preview } */
 const preview = {
   tags: ['autodocs'],

@@ -6,13 +6,13 @@ description: Write designbook.config.yml into the theme root.
 # Config — designbook.config.yml
 
 Write `THEME_DIR/designbook.config.yml` with exactly this content, substituting
-`__CSS_FRAMEWORK__` and `__NAMESPACE__`:
+`__NAMESPACE__`:
 
 ```yaml
 backend: drupal
 frameworks:
   component: sdc
-  css: __CSS_FRAMEWORK__
+  css: css
 designbook:
   cmd: npx storybook dev
   home: .
@@ -34,12 +34,7 @@ extensions:
 
 The port in `designbook.url` must match the `-p` argument of the `storybook` script in `package.json` (fresh installs use 6006). The core verify phase still derives the live URL from the start command's `port` output — the config value is a default for later use.
 
-When `CSS_FRAMEWORK` is `tailwind`, append to `extensions`:
-
-```yaml
-  - id: tailwind
-    skill: designbook-css-tailwind
-```
+The CSS-framework step that follows may update `frameworks.css` and append to `extensions`.
 
 The file must not exist at this point — the core flow aborts in Phase 1 when it
 does. Never overwrite an existing config without explicit user confirmation.
