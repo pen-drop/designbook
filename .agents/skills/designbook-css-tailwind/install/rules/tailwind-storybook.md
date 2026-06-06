@@ -58,8 +58,10 @@ Missing → create it:
 
 ## designbook.config.yml
 
-Set the `css` key nested under `frameworks:` to `tailwind`, and append to the
-top-level `extensions` list:
+(a) Confirm `frameworks.css` is `tailwind` — the write-config task already writes it
+from the user's choice; change nothing when correct.
+
+(b) Append to the top-level `extensions` list:
 
 ```yaml
 - id: tailwind

@@ -53,19 +53,18 @@ known but does not match excludes that rule/blueprint.
 
 Before the `detect` stage starts:
 
-1. **Skills root.** Locate the directory containing this skill (`.agents/skills/` or
+1. **Project root.** Walk up from the CWD to the first directory containing a
+   detection marker (the `detect-backend` task and its rules define the markers).
+   That directory is the project root used by the steps below and the `detect` stage.
+2. **Skills root.** Locate the directory containing this skill (`.agents/skills/` or
    `.claude/skills/`) by walking up from the current working directory.
-2. **Already installed.** Walk up from the project root for an existing
-   `designbook.config.yml` (or `.yaml`). Found → designbook is already installed:
-   report the path and stop. Continue only if the user explicitly asks to
+3. **Already installed.** Walk up from the project root (resolved in step 1) for an
+   existing `designbook.config.yml` (or `.yaml`). Found → designbook is already
+   installed: report the path and stop. Continue only if the user explicitly asks to
    reconfigure, and never overwrite the existing file without showing the intended
    changes and getting confirmation.
-3. **Node version.** `node --version` must succeed and report major version ≥ 20.
+4. **Node version.** `node --version` must succeed and report major version ≥ 20.
    Missing or older → tell the user to install Node.js ≥ 20 and stop.
-4. **Project root.** Walk up from the CWD to the first directory containing a
-   detection marker (the `detect-backend` task and its rules define the markers).
-   That directory is the project root used by the preconditions above and the
-   `detect` stage.
 
 ## Abort Semantics
 

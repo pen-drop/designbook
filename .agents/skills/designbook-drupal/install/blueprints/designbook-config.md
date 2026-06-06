@@ -40,3 +40,7 @@ from the start command's `port` output — the config value is a default for lat
 
 The chosen CSS framework's rules may update `frameworks.css` and append to
 `extensions`.
+
+`css.app` declares where the application CSS entry point will live; the file itself is
+created later (by a CSS-framework rule or the css-generate workflow) — do not create it
+during install for plain CSS.

@@ -46,3 +46,5 @@ It must return HTTP 200.
 - On success → print a summary (backend, install target, config file path, Storybook
   URL). Leave Storybook running and mention it can be stopped with
   `npx storybook-addon-designbook storybook stop`.
+  (In unattended or test environments, stop immediately after the check with
+  `npx storybook-addon-designbook storybook stop`.)
