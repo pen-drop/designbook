@@ -7,8 +7,9 @@ track: false
 # Designbook Install
 
 Untracked utility workflow (`track: false`, see `resources/workflow-execution.md` §7) —
-no run state, no `workflow create`. The addon CLI and `designbook.config.yml` exist
-only from Phase 4 onward; phases 1–3 use plain file operations.
+no run state, no `workflow create`. Install produces no tracked artifacts, and engine
+state must not be written into the target project before designbook is set up there.
+Phases 1–3 use plain file operations; the addon CLI is first used in Phase 4.
 
 Execute the phases in order. Every abort must state the reason and what the user
 should do next. Never report success while any step failed.
