@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
@@ -177,12 +177,144 @@ describe('workflow done: after-workflow auto-create', () => {
     );
 
     // No child workflow dir should have been created
-    const { existsSync } = await import('node:fs');
+    const { existsSync: existsSyncLocal } = await import('node:fs');
     const { resolve: res } = await import('node:path');
     const childChanges = res(dataDir, 'workflows', 'changes');
-    const dirs = existsSync(childChanges)
+    const dirs = existsSyncLocal(childChanges)
       ? (await import('node:fs')).readdirSync(childChanges).filter((d) => d !== parentName)
       : [];
     expect(dirs).toHaveLength(0);
+  });
+
+  it('archives the parent when the last child completes', async () => {
+    const config = loadConfig();
+
+    // Create parent (has one after: child-wf declaration)
+    const parent = await runWorkflowCreate(
+      { workflow: 'parent-wf', params: { story_id: 'debo-design-system' } },
+      config,
+    );
+    const parentName = parent.name;
+    const parentMetaBefore = parseYaml(
+      readFileSync(resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml'), 'utf-8'),
+    ) as WorkflowFile;
+    const firstTaskId = parentMetaBefore.tasks[0]!.id;
+
+    // Complete the parent's task → awaiting-after
+    const def = loadWorkflowDefinition('parent-wf', agentsDir);
+    const result = await workflowDone(config.data, parentName, firstTaskId, undefined, {
+      config,
+      after: def.after,
+    });
+    expect(result.archived).toBe(false);
+    expect(result.awaitingAfter).toEqual(def.after);
+
+    // Create the child workflow
+    const children = await createAfterWorkflows(
+      result.awaitingAfter!,
+      parentName,
+      parentMetaBefore.params ?? {},
+      config,
+    );
+    const childName = children[0]!.name;
+
+    // Complete the child's task → should cascade and archive the parent
+    const childMeta = parseYaml(
+      readFileSync(resolve(dataDir, 'workflows', 'changes', childName, 'tasks.yml'), 'utf-8'),
+    ) as WorkflowFile;
+    const childTaskId = childMeta.tasks[0]!.id;
+
+    const childResult = await workflowDone(config.data, childName, childTaskId, undefined, { config });
+    expect(childResult.archived).toBe(true);
+
+    // Parent must now be in archive, status completed
+    const parentArchivePath = resolve(dataDir, 'workflows', 'archive', parentName, 'tasks.yml');
+    expect(existsSync(parentArchivePath)).toBe(true);
+    const parentArchived = parseYaml(readFileSync(parentArchivePath, 'utf-8')) as WorkflowFile;
+    expect(parentArchived.status).toBe('completed');
+
+    // Parent must no longer be in changes
+    const parentChangesPath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+    expect(existsSync(parentChangesPath)).toBe(false);
+  });
+
+  it('keeps parent awaiting-after while any child is unfinished', async () => {
+    const config = loadConfig();
+    const skill = 'after-test';
+
+    // Write a parent with TWO after: declarations (child-wf and child-wf-b)
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'workflows', 'parent-wf-two.md'),
+      {
+        title: 'Parent Workflow Two',
+        params: { story_id: { type: 'string' } },
+        stages: { execute: { steps: ['do-thing'] } },
+        engine: 'direct',
+        after: [
+          { workflow: 'child-wf', params: { story_id: 'story_id' } },
+          { workflow: 'child-wf-b', params: { story_id: 'story_id' } },
+        ],
+      },
+      '# parent-wf-two',
+    );
+
+    // Second child workflow
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'workflows', 'child-wf-b.md'),
+      {
+        title: 'Child Workflow B',
+        params: { story_id: { type: 'string' } },
+        stages: { execute: { steps: ['verify'] } },
+        engine: 'direct',
+      },
+      '# child-wf-b',
+    );
+
+    const parent = await runWorkflowCreate(
+      { workflow: 'parent-wf-two', params: { story_id: 'debo-design-system' } },
+      config,
+    );
+    const parentName = parent.name;
+    const parentMetaBefore = parseYaml(
+      readFileSync(resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml'), 'utf-8'),
+    ) as WorkflowFile;
+    const firstTaskId = parentMetaBefore.tasks[0]!.id;
+
+    // Complete parent's task → awaiting-after
+    const def = loadWorkflowDefinition('parent-wf-two', agentsDir);
+    const result = await workflowDone(config.data, parentName, firstTaskId, undefined, {
+      config,
+      after: def.after,
+    });
+    expect(result.archived).toBe(false);
+
+    // Create both children
+    const children = await createAfterWorkflows(
+      result.awaitingAfter!,
+      parentName,
+      parentMetaBefore.params ?? {},
+      config,
+    );
+    expect(children.length).toBe(2);
+
+    const firstChildName = children[0]!.name;
+
+    // Complete only the first child
+    const firstChildMeta = parseYaml(
+      readFileSync(resolve(dataDir, 'workflows', 'changes', firstChildName, 'tasks.yml'), 'utf-8'),
+    ) as WorkflowFile;
+    const firstChildTaskId = firstChildMeta.tasks[0]!.id;
+
+    await workflowDone(config.data, firstChildName, firstChildTaskId, undefined, { config });
+
+    // Parent must still be in changes, still awaiting-after
+    const parentChangesPath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+    expect(existsSync(parentChangesPath)).toBe(true);
+    const parentMeta = parseYaml(readFileSync(parentChangesPath, 'utf-8')) as WorkflowFile;
+    expect(parentMeta.status).toBe('awaiting-after');
+
+    // Parent must NOT be in archive
+    const parentArchivePath = resolve(dataDir, 'workflows', 'archive', parentName, 'tasks.yml');
+    expect(existsSync(parentArchivePath)).toBe(false);
   });
 });

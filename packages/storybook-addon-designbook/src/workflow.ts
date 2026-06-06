@@ -232,6 +232,39 @@ function archiveWorkflow(dataDir: string, name: string, wf: WorkflowFile): void 
 }
 
 /**
+ * When a child workflow archives, walk up to its parent: if the parent is
+ * awaiting-after and ALL its registered children are now archived, archive the
+ * parent too. Recurses for grandparents.
+ *
+ * Design notes (intentional):
+ * - Any terminal status (completed OR incomplete) counts as "archived" — the
+ *   parent unblocks regardless so its summary/metrics can be evaluated downstream.
+ * - A parent with zero registered children is NOT cascaded — it is still waiting
+ *   for createAfterWorkflows to register them.
+ */
+function cascadeParent(dataDir: string, parentName: string): void {
+  const filePath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+  if (!existsSync(filePath)) return; // parent already archived or gone
+  const parent = readWorkflow(filePath);
+  if (parent.status !== 'awaiting-after') return;
+  const children = parent.children ?? [];
+  const allArchived =
+    children.length > 0 &&
+    children.every((c) => existsSync(resolve(dataDir, 'workflows', 'archive', c.name, 'tasks.yml')));
+  if (!allArchived) return;
+  archiveWorkflow(dataDir, parentName, parent);
+  if (parent.parent) cascadeParent(dataDir, parent.parent);
+}
+
+/**
+ * Archive a workflow and cascade completion to its parent if it is now unblocked.
+ */
+function archiveAndCascade(dataDir: string, name: string, data: WorkflowFile): void {
+  archiveWorkflow(dataDir, name, data);
+  if (data.parent) cascadeParent(dataDir, data.parent);
+}
+
+/**
  * Hold an all-tasks-done workflow in awaiting-after instead of archiving when
  * after: declarations are pending. Returns the early result, or null to proceed
  * with archiving.
@@ -1437,7 +1470,7 @@ export async function workflowDone(
             };
             const held = holdForAfter(filePath, data, options?.after, transitionResponse);
             if (held) return held;
-            archiveWorkflow(dataDir, name, data);
+            archiveAndCascade(dataDir, name, data);
             return { archived: true, data, response: transitionResponse };
           }
         }
@@ -1516,7 +1549,7 @@ export async function workflowDone(
         if (doneResult.archive) {
           const held = holdForAfter(filePath, data, options?.after, completionResponse);
           if (held) return held;
-          archiveWorkflow(dataDir, name, data);
+          archiveAndCascade(dataDir, name, data);
           return { archived: true, data, response: completionResponse };
         }
       }
