@@ -25,4 +25,4 @@ npx google-font-cli download "<Font Name>" -v <weights> --woff2 -d $DESIGNBOOK_C
 
 ## Output Format
 
-The output file SHALL contain `@font-face` declarations with local woff2 font references — never remote URLs or `@import url(...)` statements. Use relative paths from the token CSS directory to the fonts directory (e.g. `src: url("../fonts/Inter-Regular.woff2") format("woff2")`).
+The output file SHALL contain `@font-face` declarations with local woff2 font references — never remote URLs or `@import url(...)` statements. Use paths relative to the COMPILED stylesheet location `$DESIGNBOOK_CSS_DIR` (e.g. `src: url("fonts/Inter-Regular.woff2") format("woff2")`) — the CSS compiler inlines imported token files into `$DESIGNBOOK_CSS_DIR/app.css` without rebasing relative URLs, so a path relative to the token source directory (`../fonts/...`) breaks after compilation.
