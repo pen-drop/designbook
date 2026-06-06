@@ -11,7 +11,7 @@ steps and consumed by later ones.
 
 1. [detect.md](detect.md) — confirm the Drupal codebase, determine `DOCROOT`
 2. [theme.md](theme.md) — find or scaffold the target theme → `THEME_DIR`, `NAMESPACE`
-3. [storybook.md](storybook.md) — set up or extend Storybook in `THEME_DIR`
+3. [storybook.md](storybook.md) — set up or extend Storybook in `THEME_DIR` → `CSS_FRAMEWORK`
 4. [config.md](config.md) — write `designbook.config.yml` into `THEME_DIR`
 
 Then return to Phase 4 (Verify) of the core install flow

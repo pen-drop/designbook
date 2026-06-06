@@ -10,8 +10,9 @@ The core detection table already matched a `drupal/core*` package in
 
 1. Read `composer.json`. If `extra.drupal-scaffold.locations.web-root` is set,
    strip a trailing slash and use it as `DOCROOT`.
-2. Otherwise take the first of `web`, `docroot`, `.` that contains a `themes/`
-   or `core/` directory.
+2. Otherwise take the first of `web`, `docroot` that contains a `themes/` or
+   `core/` directory. As a last resort accept `.` (the project root) only when
+   it contains a `core/` directory, or both `index.php` and `sites/`.
 3. Neither found → abort: "Could not determine the Drupal docroot — expected
    `web/`, `docroot/`, or a scaffold `web-root` entry in composer.json."
 4. Record `DOCROOT` for the following steps.
