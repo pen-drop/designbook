@@ -8,6 +8,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Command } from 'commander';
 import { load as parseYaml } from 'js-yaml';
+import jsonata from 'jsonata';
 import { loadConfig } from '../config.js';
 import { evalAssertions, type Assertion, type AssertionResult } from '../scoring/composite.js';
 
@@ -123,6 +124,20 @@ export function readSummary(opts: SummaryOptions): SummaryResult | null {
   return result;
 }
 
+/**
+ * Evaluate a JSONata expression over a summary.
+ * Returns the numeric result, or null when the expression is invalid,
+ * unresolvable, or non-numeric.
+ */
+export async function evaluateMetric(summary: SummaryResult, expression: string): Promise<number | null> {
+  try {
+    const v = await jsonata(expression).evaluate(summary);
+    return typeof v === 'number' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 function formatHuman(r: SummaryResult): string {
   const lines = [
     r.workflow,
@@ -148,14 +163,25 @@ export function register(workflow: Command): void {
     .requiredOption('--workflow <name>', 'Workflow name (e.g. design-shell-2026-05-06-abcd)')
     .option('--case <file>', 'Case YAML with assert: block')
     .option('--json', 'JSON output (for research loop)')
-    .action((opts: { workflow: string; case?: string; json?: boolean }) => {
+    .option(
+      '--metric <expression>',
+      'JSONata expression evaluated over the summary; included in JSON output; exit 1 when null',
+    )
+    .action(async (opts: { workflow: string; case?: string; json?: boolean; metric?: string }) => {
       const config = loadConfig();
       const r = readSummary({ dataDir: config.data, workflowName: opts.workflow, caseFile: opts.case });
       if (!r) {
         console.error(`No archived workflow found: ${opts.workflow}`);
         process.exit(1);
       }
-      if (opts.json) {
+      if (opts.metric !== undefined) {
+        const metricValue = await evaluateMetric(r, opts.metric);
+        const output = { ...r, metric: metricValue };
+        console.log(JSON.stringify(output));
+        if (metricValue === null) {
+          process.exitCode = 1;
+        }
+      } else if (opts.json) {
         console.log(JSON.stringify(r));
       } else {
         console.log(formatHuman(r));
