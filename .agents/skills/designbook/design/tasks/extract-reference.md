@@ -17,7 +17,7 @@ params:
       $ref: ../../vision/schemas.yml#/Vision
 result:
   type: object
-  required: [reference_dir, reference]
+  required: [reference_dir]
   properties:
     reference_dir:
       $ref: ../schemas.yml#/ReferenceFolder
@@ -33,6 +33,10 @@ result:
 # Extract Reference
 
 Resolves a design reference URL from `vision.yml` and extracts structure into a `DesignReference` (`extract.json`).
+
+## No reference
+
+When `reference_folder` is empty (the project has no design reference), there is nothing to extract. Complete the task with `reference_dir: ""` and do not submit the `reference` result key — no extraction, no asset download, no file written. Downstream stages run reference-free.
 
 If `{reference_folder}/extract.json` already exists, return results from it — no extraction needed.
 

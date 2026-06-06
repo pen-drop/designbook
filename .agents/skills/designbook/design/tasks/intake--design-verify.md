@@ -41,6 +41,9 @@ If `$reference_dir` is non-empty and `$reference_dir/extract.json` exists (from 
 
 If no `$reference_dir` and `params.reference` is empty:
 
+- **Running as a child workflow** (a parent workflow is set): do not prompt. Proceed reference-free with `params.reference` left empty — verify runs without a reference. (When the parent declares an `after: design-verify` hook gated on a reference being present, this path should not be reached; this guard is defense-in-depth.)
+- **Running standalone** (no parent): ask the user.
+
 > "What is the design reference?
 > - A URL to the design source
 > - 'skip' to verify without reference"

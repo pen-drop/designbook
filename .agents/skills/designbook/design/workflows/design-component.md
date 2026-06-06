@@ -27,6 +27,6 @@ before:
     execute: if-never-run
 after:
   - workflow: design-verify
-    when: "$count(components) <= 1"
+    when: "$count(components) <= 1 and reference_url != ''"
 ---
 
