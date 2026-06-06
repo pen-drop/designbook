@@ -99,4 +99,42 @@ describe('workflowDone awaiting-after behaviour', () => {
     expect(result.archived).toBe(true);
     expect(result.awaitingAfter).toBeUndefined();
   });
+
+  it('transition-archive path: sets awaiting-after when last task of multi-stage workflow completes', async () => {
+    // Two tasks in separate stages: completing execute-task completes the execute stage,
+    // which triggers the stage-transition walk. The direct engine fires archive: true
+    // at onTransition('finalizing', 'done') — this is the transition-archive guard (site 1).
+    const name = workflowCreate(
+      dataDir,
+      'debo-test',
+      'Test Workflow',
+      [
+        { id: 'execute-task', title: 'Execute Task', type: 'data', step: 'execute-task', stage: 'execute' },
+        { id: 'test-task', title: 'Test Task', type: 'data', step: 'test-task', stage: 'test' },
+      ],
+      { execute: { steps: ['execute-task'] }, test: { steps: ['test-task'] } },
+    );
+
+    // Complete the execute-task (mid-workflow — does NOT complete the workflow)
+    const midResult = await workflowDone(dataDir, name, 'execute-task', undefined, {
+      config,
+      after: [{ workflow: 'design-verify', params: { story_id: 'story_id' } }],
+    });
+    // execute stage is done, but test stage is pending — no archive yet
+    expect(midResult.archived).toBe(false);
+    expect(midResult.awaitingAfter).toBeUndefined();
+
+    // Complete the test-task — now all tasks done; transitions walk through
+    // committed → finalizing → done, hitting the transition-archive guard
+    const result = await workflowDone(dataDir, name, 'test-task', undefined, {
+      config,
+      after: [{ workflow: 'design-verify', params: { story_id: 'story_id' } }],
+    });
+
+    expect(result.archived).toBe(false);
+    expect(result.awaitingAfter).toEqual([{ workflow: 'design-verify', params: { story_id: 'story_id' } }]);
+
+    const wf = readTasksYml(name);
+    expect(wf.status).toBe('awaiting-after');
+  });
 });

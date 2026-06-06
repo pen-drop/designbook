@@ -232,6 +232,23 @@ function archiveWorkflow(dataDir: string, name: string, wf: WorkflowFile): void 
 }
 
 /**
+ * Hold an all-tasks-done workflow in awaiting-after instead of archiving when
+ * after: declarations are pending. Returns the early result, or null to proceed
+ * with archiving.
+ */
+function holdForAfter(
+  filePath: string,
+  data: WorkflowFile,
+  after: AfterDeclaration[] | undefined,
+  response: StageResponse | undefined,
+): { archived: false; awaitingAfter: AfterDeclaration[]; data: WorkflowFile; response?: StageResponse } | null {
+  if (!after?.length || data.children?.length) return null;
+  data.status = 'awaiting-after';
+  writeWorkflowAtomic(filePath, data);
+  return { archived: false, awaitingAfter: after, data, response };
+}
+
+/**
  * Archive a workflow as incomplete (user declined to resume).
  * Dispatches engine.cleanup() to tear down any isolation (e.g. git branch).
  */
@@ -1397,29 +1414,16 @@ export async function workflowDone(
 
           if (transitionResult.archive) {
             data.current_stage = 'done';
-            const pendingAfterTransition = (options?.after ?? []).length > 0 && !data.children?.length;
-            if (pendingAfterTransition) {
-              data.status = 'awaiting-after';
-              writeWorkflowAtomic(filePath, data);
-              const transitionResponse: StageResponse = {
-                stage: 'done',
-                stage_progress: `${stageDone}/${stageTotal}`,
-                stage_complete: true,
-                ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
-              };
-              return { archived: false, awaitingAfter: options!.after!, data, response: transitionResponse };
-            }
-            archiveWorkflow(dataDir, name, data);
-            return {
-              archived: true,
-              data,
-              response: {
-                stage: 'done',
-                stage_progress: `${stageDone}/${stageTotal}`,
-                stage_complete: true,
-                ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
-              },
+            const transitionResponse: StageResponse = {
+              stage: 'done',
+              stage_progress: `${stageDone}/${stageTotal}`,
+              stage_complete: true,
+              ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
             };
+            const held = holdForAfter(filePath, data, options?.after, transitionResponse);
+            if (held) return held;
+            archiveWorkflow(dataDir, name, data);
+            return { archived: true, data, response: transitionResponse };
           }
         }
 
@@ -1495,22 +1499,14 @@ export async function workflowDone(
         }
         const doneResult = engine.done(data);
         if (doneResult.archive) {
-          const pendingAfter = (options?.after ?? []).length > 0 && !data.children?.length;
-          if (pendingAfter) {
-            data.status = 'awaiting-after';
-            writeWorkflowAtomic(filePath, data);
-            return { archived: false, awaitingAfter: options!.after!, data, response: completionResponse };
-          }
+          const held = holdForAfter(filePath, data, options?.after, completionResponse);
+          if (held) return held;
           archiveWorkflow(dataDir, name, data);
           return { archived: true, data, response: completionResponse };
         }
       }
-      const pendingAfterNoEngine = (options?.after ?? []).length > 0 && !data.children?.length;
-      if (pendingAfterNoEngine) {
-        data.status = 'awaiting-after';
-        writeWorkflowAtomic(filePath, data);
-        return { archived: false, awaitingAfter: options!.after!, data, response: completionResponse };
-      }
+      const held = holdForAfter(filePath, data, options?.after, completionResponse);
+      if (held) return held;
       writeWorkflowAtomic(filePath, data);
 
       return { archived: false, data, response: completionResponse };
