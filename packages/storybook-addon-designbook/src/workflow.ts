@@ -261,7 +261,13 @@ function cascadeParent(dataDir: string, parentName: string): void {
  */
 function archiveAndCascade(dataDir: string, name: string, data: WorkflowFile): void {
   archiveWorkflow(dataDir, name, data);
-  if (data.parent) cascadeParent(dataDir, data.parent);
+  if (data.parent) {
+    try {
+      cascadeParent(dataDir, data.parent);
+    } catch (err) {
+      console.warn(`cascade to parent failed: ${(err as Error).message}`);
+    }
+  }
 }
 
 /**
@@ -317,6 +323,14 @@ export function workflowAbandon(dataDir: string, name: string): WorkflowFile {
   const archiveDir = resolve(dataDir, 'workflows', 'archive', name);
   mkdirSync(dirname(archiveDir), { recursive: true });
   renameSync(changesDir, archiveDir);
+
+  if (data.parent) {
+    try {
+      cascadeParent(dataDir, data.parent);
+    } catch (err) {
+      console.warn(`cascade to parent failed: ${(err as Error).message}`);
+    }
+  }
 
   return data;
 }
@@ -439,7 +453,7 @@ export function workflowMerge(dataDir: string, name: string): { branch: string; 
   if (!engine) throw new Error(`Unknown engine: "${data.engine}"`);
 
   const result = engine.merge(data);
-  archiveWorkflow(dataDir, name, data);
+  archiveAndCascade(dataDir, name, data);
   return result;
 }
 

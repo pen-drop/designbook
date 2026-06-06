@@ -17,7 +17,7 @@ import { join, resolve } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
 import { loadConfig } from '../../config.js';
 import { loadWorkflowDefinition } from '../workflow-discovery.js';
-import { workflowDone, type WorkflowFile } from '../../workflow.js';
+import { workflowDone, workflowAbandon, type WorkflowFile } from '../../workflow.js';
 import { runWorkflowCreate, createAfterWorkflows } from '../workflow.js';
 
 function writeMd(filePath: string, fm: Record<string, unknown>, body = ''): void {
@@ -316,5 +316,51 @@ describe('workflow done: after-workflow auto-create', () => {
     // Parent must NOT be in archive
     const parentArchivePath = resolve(dataDir, 'workflows', 'archive', parentName, 'tasks.yml');
     expect(existsSync(parentArchivePath)).toBe(false);
+  });
+
+  it('abandoning a child unblocks the awaiting-after parent', async () => {
+    const config = loadConfig();
+
+    // Create parent (has one after: child-wf declaration)
+    const parent = await runWorkflowCreate(
+      { workflow: 'parent-wf', params: { story_id: 'debo-design-system' } },
+      config,
+    );
+    const parentName = parent.name;
+    const parentMetaBefore = parseYaml(
+      readFileSync(resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml'), 'utf-8'),
+    ) as WorkflowFile;
+    const firstTaskId = parentMetaBefore.tasks[0]!.id;
+
+    // Complete the parent's task → awaiting-after
+    const def = loadWorkflowDefinition('parent-wf', agentsDir);
+    const result = await workflowDone(config.data, parentName, firstTaskId, undefined, {
+      config,
+      after: def.after,
+    });
+    expect(result.archived).toBe(false);
+    expect(result.awaitingAfter).toEqual(def.after);
+
+    // Create the child workflow
+    const children = await createAfterWorkflows(
+      result.awaitingAfter!,
+      parentName,
+      parentMetaBefore.params ?? {},
+      config,
+    );
+    const childName = children[0]!.name;
+
+    // Abandon the child — should cascade and archive the parent
+    workflowAbandon(config.data, childName);
+
+    // Parent must now be in archive with status 'completed'
+    const parentArchivePath = resolve(dataDir, 'workflows', 'archive', parentName, 'tasks.yml');
+    expect(existsSync(parentArchivePath)).toBe(true);
+    const parentArchived = parseYaml(readFileSync(parentArchivePath, 'utf-8')) as WorkflowFile;
+    expect(parentArchived.status).toBe('completed');
+
+    // Parent must no longer be in changes
+    const parentChangesPath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+    expect(existsSync(parentChangesPath)).toBe(false);
   });
 });
