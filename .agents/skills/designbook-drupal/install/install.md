@@ -15,4 +15,4 @@ steps and consumed by later ones.
 4. [config.md](config.md) — write `designbook.config.yml` into `THEME_DIR`
 
 Then return to Phase 4 (Verify) of the core install flow
-(`designbook/install/install.md`).
+(`designbook/install/workflows/install.md`).

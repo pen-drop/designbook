@@ -1,13 +1,14 @@
 ---
-name: install
-description: Install designbook into an existing project — check preconditions, detect the backend, dispatch to the integration skill's install instructions, verify the result.
+title: Install Designbook
+description: Install designbook into an existing project — detect the backend, dispatch to the integration skill's install steps, verify the result.
+track: false
 ---
 
 # Designbook Install
 
-Pure skill flow. The workflow engine is NOT available during install — the Storybook
-addon and `designbook.config.yml` do not exist yet. Do not run `workflow create`;
-Rules 0–7 from `resources/workflow-execution.md` do not apply to this flow.
+Untracked utility workflow (`track: false`, see `resources/workflow-execution.md` §7) —
+no run state, no `workflow create`. The addon CLI and `designbook.config.yml` exist
+only from Phase 4 onward; phases 1–3 use plain file operations.
 
 Execute the phases in order. Every abort must state the reason and what the user
 should do next. Never report success while any step failed.

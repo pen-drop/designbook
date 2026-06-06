@@ -56,7 +56,7 @@ Layout component blueprints with tokens, props/slots summary (`when: steps: [cre
 ## Install
 
 Backend-specific install steps, dispatched from the core install flow
-(`designbook/install/install.md`).
+(`designbook/install/workflows/install.md`).
 
 - [install/install.md](install/install.md) — Step index: detect → theme → storybook → config
 - [install/detect.md](install/detect.md) — Confirm Drupal codebase, determine docroot

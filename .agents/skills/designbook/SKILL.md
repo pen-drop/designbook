@@ -13,7 +13,7 @@ description: >
 
 ## Rules
 
-> ⛔ **Read `resources/workflow-execution.md` immediately upon loading this skill.** It contains the binding execution rules (Rules 0–7) for all `debo` workflows. No stage may start before these rules are loaded. (Not applicable to the `install` sub-command — see Dispatch below.)
+> ⛔ **Read `resources/workflow-execution.md` immediately upon loading this skill.** It contains the binding execution rules (Rules 0–7) for all `debo` workflows. No stage may start before these rules are loaded.
 
 > ⛔ **Never load or apply this skill for `opsx-*` or `openspec-*` workflows.** Those workflows manage their own artifact lifecycle (changes, specs, archives) and must not be wrapped in a designbook workflow.
 
@@ -30,12 +30,6 @@ Parse flags from `$ARGUMENTS` before dispatch. Flags are not sub-commands and do
 ## Dispatch
 
 Sub-command: **$ARGUMENTS[0]**
-
-**If `$ARGUMENTS[0]` is `install`** (or the user asks to install/set up designbook
-in a project), load [install/install.md](install/install.md) and follow it
-directly. Install is a pure skill flow — the workflow engine, `workflow create`,
-and Rules 0–7 from `resources/workflow-execution.md` do NOT apply, because the
-addon and `designbook.config.yml` do not exist yet.
 
 **If `$ARGUMENTS[0]` is a known sub-command**, directly load and execute `<concern>/workflows/$0.md` — no scanning, no matching.
 

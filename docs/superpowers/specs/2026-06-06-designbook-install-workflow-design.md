@@ -14,7 +14,7 @@ verified running with the designbook addon loaded.
 
 | Decision | Choice |
 |---|---|
-| Execution model | Pure skill flow (markdown instructions), **no** workflow engine. The engine requires the addon + `designbook.config.yml`, neither exists at install time. |
+| Execution model | `Untracked workflow (track: false) — markdown instructions via the standard workflow dispatch, but NO engine lifecycle (the engine requires the addon + designbook.config.yml, neither exists at install time).` |
 | Multi-backend architecture | Core skill owns the generic flow and dispatches to integration skills by convention (`designbook-<backend>/install/`). v1 ships only Drupal. |
 | Theme selection | Auto-detect custom themes; exactly one → use it, multiple → ask user, none → offer to scaffold a new theme. |
 | Existing Storybook | Extend it (register addons in existing `main.js`), leave the rest untouched. No Storybook → fresh setup from templates. |
@@ -48,7 +48,8 @@ Trigger: user asks to install designbook → subcommand `install` of the core `d
 - `SKILL.md`: add `install` to the sub-command list.
 - New `install/` directory: generic flow (phases 1–3, 6), the backend detection table,
   and the dispatch convention `designbook-<backend>/install/`.
-- No engine workflow file — instructions only.
+- Untracked workflow file (`track: false`) — instructions only, no engine lifecycle.
+- `install/workflows/install.md`
 
 ### Drupal integration (`.agents/skills/designbook-drupal/install/`)
 
