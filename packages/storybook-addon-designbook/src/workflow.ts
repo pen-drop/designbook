@@ -249,6 +249,19 @@ function holdForAfter(
 }
 
 /**
+ * Register a child workflow on its parent's `children` array.
+ * Loads the parent's tasks.yml, appends the child entry (creating the array if
+ * absent), and persists. Used when after: workflows are auto-created on final done.
+ */
+export function registerChild(dataDir: string, parentName: string, child: { name: string; workflow: string }): void {
+  const filePath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+  const data = readWorkflow(filePath);
+  data.children = data.children ?? [];
+  data.children.push(child);
+  writeWorkflowAtomic(filePath, data);
+}
+
+/**
  * Archive a workflow as incomplete (user declined to resume).
  * Dispatches engine.cleanup() to tear down any isolation (e.g. git branch).
  */

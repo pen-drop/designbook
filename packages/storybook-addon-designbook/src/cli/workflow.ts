@@ -14,8 +14,10 @@ import {
   workflowMerge,
   readWorkflow,
   expandTasksFromParams,
+  registerChild,
 } from '../workflow.js';
-import type { StageDefinition } from '../workflow-types.js';
+import jsonata from 'jsonata';
+import type { StageDefinition, AfterDeclaration } from '../workflow-types.js';
 import { load as parseYaml } from 'js-yaml';
 import {
   resolveAllStages,
@@ -359,6 +361,35 @@ export async function runWorkflowCreate(
   return createResult;
 }
 
+/**
+ * Create the child workflows declared in a parent's `after:` block.
+ *
+ * For each declaration, evaluate every params-mapping value as a JSONata
+ * expression over the parent's params, create the child via runWorkflowCreate
+ * (with `parent` set), register it on the parent, and return the new child
+ * {name, workflow} pairs so the driver can dispatch one subagent per child.
+ */
+export async function createAfterWorkflows(
+  declarations: AfterDeclaration[],
+  parentName: string,
+  parentParams: Record<string, unknown>,
+  config: import('../config.js').DesignbookConfig,
+): Promise<Array<{ name: string; workflow: string }>> {
+  const created: Array<{ name: string; workflow: string }> = [];
+  for (const decl of declarations) {
+    const mapped: Record<string, unknown> = {};
+    if (decl.params) {
+      for (const [key, expr] of Object.entries(decl.params)) {
+        mapped[key] = await jsonata(expr).evaluate(parentParams);
+      }
+    }
+    const child = await runWorkflowCreate({ workflow: decl.workflow, parent: parentName, params: mapped }, config);
+    registerChild(config.data, parentName, { name: child.name, workflow: decl.workflow });
+    created.push({ name: child.name, workflow: decl.workflow });
+  }
+  return created;
+}
+
 export function register(program: Command): void {
   const workflow = program.command('workflow').description('Manage workflow tracking');
 
@@ -582,10 +613,27 @@ export function register(program: Command): void {
         }
       }
       try {
+        // Load the workflow definition's `after:` declarations so a final done
+        // can hold the parent and auto-create the declared child workflows.
+        // Lookup failures (e.g. test workspaces without skills) degrade to no
+        // after-workflows rather than crashing done.
+        let after: AfterDeclaration[] = [];
+        try {
+          const changesPath = resolve(config.data, 'workflows', 'changes', opts.workflow, 'tasks.yml');
+          const workflowId = readWorkflow(changesPath).workflow;
+          const configPath = findConfig();
+          const configDir = configPath ? dirname(configPath) : process.cwd();
+          const agentsDir = resolveSkillsRoot(configDir);
+          after = loadWorkflowDefinition(workflowId, agentsDir).after;
+        } catch (lookupErr) {
+          console.warn(`Could not load after: declarations — proceeding without: ${(lookupErr as Error).message}`);
+        }
+
         const result = await workflowDone(config.data, opts.workflow, opts.task, loaded, {
           summary: opts.summary,
           data: dataPayload,
           config,
+          after,
         });
         const { data, response } = result;
 
@@ -594,6 +642,17 @@ export function register(program: Command): void {
           args: { workflow: opts.workflow, task: opts.task },
           result: { archived: result.archived, stage_complete: response?.stage_complete },
         });
+
+        if (result.awaitingAfter) {
+          const children = await createAfterWorkflows(result.awaitingAfter, opts.workflow, data.params ?? {}, config);
+          console.log(`Workflow ${opts.workflow} awaiting after-workflows`);
+          console.log(`NEXT_WORKFLOWS: ${JSON.stringify(children)}`);
+          console.log(
+            'Dispatch ONE subagent per workflow: "execute workflow <name> to completion". ' +
+              'The parent completes automatically when all children complete.',
+          );
+          return;
+        }
 
         if (result.archived) {
           console.log(`Workflow ${opts.workflow} archived (all tasks done)`);
