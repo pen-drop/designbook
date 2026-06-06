@@ -7,7 +7,7 @@ subcommands:
     hint: "<suite> [<case>]"
     description: Set up a test workspace and run a workflow case
   research:
-    hint: "<suite> <case> [--iterations N] [--target T] [--plateau M] [--baseline-only] [--scope <glob>]"
+    hint: "<suite> <case> [--iterations N] [--target T] [--plateau M] [--baseline-only] [--scope <glob>] [--metric <jsonata>] [--direction min|max]"
     description: Autonomous skill-improvement loop; --baseline-only for a single audit pass
   is-clear:
     hint: "<workflow> <task> <question>"
@@ -45,6 +45,8 @@ Parse from `$ARGUMENTS` (after `research <suite> <case>`):
 - `--plateau M` (default 5)
 - `--baseline-only` — single audit pass (iteration 0 only); equivalent to `--iterations 0`
 - `--scope <glob>` (comma-separated)
+- `--metric <jsonata>` — decision metric expression; default = case yaml `metric:` field, fallback `flowRate`
+- `--direction min|max` — metric direction; default = case yaml `direction:` field, fallback `max`
 
 If `<case>` is missing: error "research requires a case", list available cases, stop.
 

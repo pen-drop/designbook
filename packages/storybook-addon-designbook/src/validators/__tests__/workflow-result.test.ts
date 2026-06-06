@@ -701,6 +701,78 @@ describe('workflow result: external file (screenshot)', () => {
   });
 });
 
+// ── optional result entries (schema required list) ─────────────────────────
+
+describe('workflow done: result schema required list', () => {
+  let dist: string;
+  let config: DesignbookConfig;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-result-required-'));
+    config = { data: dist, technology: 'html', extensions: [] };
+  });
+
+  it('completes when an optional path result is not submitted (required: [a])', async () => {
+    const optionalPath = resolve(dist, 'output', 'extract.json');
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'extract',
+          title: 'Extract',
+          type: 'data',
+          step: 'extract',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            // a is required (data result), b is an optional file result
+            a: { schema: { type: 'string' }, required: true },
+            b: { path: optionalPath, required: false },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['extract'] } },
+    );
+
+    // Submit only the required key 'a'. 'b' is optional and not submitted.
+    const result = await workflowDone(dist, name, 'extract', undefined, {
+      data: { a: 'x' },
+      config,
+    });
+
+    expect(result.data.tasks[0]!.status).toBe('done');
+    // b's path must never be written
+    expect(existsSync(optionalPath)).toBe(false);
+  });
+
+  it('still errors when a required path result is not submitted (required: [a, b])', async () => {
+    const requiredPath = resolve(dist, 'output', 'extract.json');
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'extract',
+          title: 'Extract',
+          type: 'data',
+          step: 'extract',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            a: { schema: { type: 'string' }, required: true },
+            b: { path: requiredPath, required: true },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['extract'] } },
+    );
+
+    // Submit only 'a' — 'b' is required but not written → must error
+    await expect(workflowDone(dist, name, 'extract', undefined, { data: { a: 'x' }, config })).rejects.toThrow(
+      'not yet written',
+    );
+  });
+});
+
 // ── task without result declarations (side-effect only) ────────────────────
 
 describe('workflow result: side-effect-only task', () => {

@@ -41,7 +41,17 @@ Report the Storybook URL to the user (`_debo storybook status` returns the `url`
 
 Use `_debo storybook stop` to stop Storybook when the session ends or the user requests it.
 
-## 5. Snapshot offer (after workflow completion)
+## 5. Workflow summary (after workflow completion)
+
+After the workflow completes, retrieve and display the summary:
+
+```bash
+npx storybook-addon-designbook workflow summary --workflow <id> --json
+```
+
+Display the full JSON output, including the `after.*` block (e.g. `after.design-verify.score-report`) when present, so the user can review scores and after-hook results before deciding on a snapshot.
+
+## 6. Snapshot offer
 
 After the workflow completes:
 

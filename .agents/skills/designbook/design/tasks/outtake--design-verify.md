@@ -10,43 +10,30 @@ params:
   properties:
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
+result:
+  type: object
+  required: [score-report]
+  properties:
+    score-report: { $ref: ../schemas.yml#/ScoreReport }
 ---
 
 # Outtake — Design Verify
 
-Summarizes all check results and determines whether the workflow is complete or needs another run.
+Assemble the `ScoreReport` from this workflow's own measurements and submit it
+as the task result.
 
-## Execution
+## Result: score-report
 
-1. **Read workflow task statuses** to determine which polish tasks were completed and which issues remain open.
+Both measurements come from the workflow's task results in scope — no params are
+passed in for them:
 
-   Use the workflow engine's task list — each polish task corresponds to one issue. A completed task means the issue is resolved.
+- `first_shot` is the `VerifyResult` sourced from the `compare` stage results
+  (the first measurement, before any fix pass).
+- `final` is the `VerifyResult` sourced from the `re-compare` stage results
+  (the second measurement, after the fix pass).
 
-2. **Build result table** from the polish task statuses:
+When the `compare` stage scored 0 (no issues), the fix pass and re-measurement
+stages produce no change — `final` equals `first_shot`.
 
-   | ID | Severity | Description | Result |
-   |----|----------|-------------|--------|
-   | issue-001 | critical | Hero Heading: fontSize 14px → 48px, ... | done |
-   | issue-002 | major | Navigation: gap 8px → 16px, ... | done |
-   | issue-003 | major | Footer Copyright: color ... | open |
-
-3. **Verdict:**
-   - **All issues resolved** → "All issues fixed. Workflow complete."
-   - **Open/failed issues remain** → List them and output: "Re-run `/debo design-verify` to continue polishing. Reference screenshots and passing checks will be preserved."
-
-## Output
-
-```
-## Design Verify — Summary
-
-**Story:** {story_id}
-**Result:** {resolved}/{total} issues resolved
-
-### Issues
-
-| ID | Severity | Description | Result |
-|----|----------|-------------|--------|
-| ... | ... | ... | ... |
-
-{verdict}
-```
+See `schemas.yml#/ScoreReport` and `schemas.yml#/VerifyResult` for field
+semantics (delta, tokens, per-check breakdown).

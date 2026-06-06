@@ -18,6 +18,20 @@ Loaded by `debo-test/SKILL.md` when `debo-test research <suite> <case>` is invok
 | `$PLATEAU` | `--plateau M`, default 5 |
 | `$BASELINE_ONLY` | `--baseline-only`, boolean — stops after iteration 0 |
 | `$SCOPE` | `--scope <glob,glob,...>`, default = files resolved from `tasks.yml` + `packages/storybook-addon-designbook/src/**` |
+| `$METRIC` | `--metric <jsonata>`, default = case yaml `metric:` field, fallback `flowRate` |
+| `$DIRECTION` | `--direction min\|max`, default = case yaml `direction:` field, fallback `max` |
+
+## Case yaml fields
+
+In addition to `fixtures`, `prompt`, and `assert`, a case yaml may declare:
+
+```yaml
+metric: after.`design-verify`.`score-report`.first_shot.score
+direction: min
+```
+
+- `metric` — JSONata expression evaluated against the `workflow summary` JSON; selects the value used as the decision metric throughout the research loop. Backtick-quote path segments containing dashes (e.g. `` `design-verify` ``). Defaults to `flowRate` if omitted.
+- `direction` — `min` or `max`; controls whether lower or higher metric values are considered improvements. `min` means lower-is-better (e.g. visual diff score); `max` means higher-is-better (e.g. flow-rate percentage). Defaults to `max` if omitted.
 
 ## Setup
 
@@ -39,14 +53,15 @@ Loaded by `debo-test/SKILL.md` when `debo-test research <suite> <case>` is invok
 1. Inside the workspace, run the case prompt (read `fixtures/$SUITE/cases/$CASE.yaml` `prompt:` field).
 2. Every `npx storybook-addon-designbook workflow …` CLI call inside the case run MUST be invoked with `--log` so dbo.log entries are tagged.
 3. After the run completes, inside the workspace:
-   - `npx storybook-addon-designbook workflow summary --workflow <id> --case ../../fixtures/$SUITE/cases/$CASE.yaml --json` → write to `research-runs/<slug>/iterations/000-baseline/summary.json`.
+   - `npx storybook-addon-designbook workflow summary --workflow <id> --case ../../fixtures/$SUITE/cases/$CASE.yaml --metric "$METRIC" --json` → write to `research-runs/<slug>/iterations/000-baseline/summary.json`. The returned `metric` value is the score for this iteration.
 4. Generate the audit table per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `research-runs/<slug>/iterations/000-baseline/audit.md`.
 5. Save the dbo.log digest: copy the JSON output of `digestLog` (or run a small node one-liner that imports it) → `iterations/000-baseline/log-digest.json`.
 6. Append a row to `score-history.tsv`:
    ```
-   iter	hypothesis	flow_rate	delta	decision
-   0	baseline	<flow_rate>	—	keep
+   iter	hypothesis	score	flow_rate	first_shot	final	delta	decision
+   0	baseline	<score>	<flow_rate or —>	<first_shot or —>	<final or —>	—	keep
    ```
+   Where `score` is the `metric` value returned by the summary CLI; `flow_rate`, `first_shot`, and `final` are logged from the summary JSON when present, otherwise `—`.
 7. If `$BASELINE_ONLY`: print the baseline score and stop.
 
 ## Loop iteration N (N ≥ 1)
@@ -99,19 +114,21 @@ git clean -fdx designbook/ workflows/
 ### 5. Re-verify + score
 
 Re-run the case prompt with `--log` on every `npx storybook-addon-designbook workflow …` call, then:
-- `npx storybook-addon-designbook workflow summary --workflow <id> --case <path> --json` → `iterations/<N>/summary.json`
+- `npx storybook-addon-designbook workflow summary --workflow <id> --case <path> --metric "$METRIC" --json` → `iterations/<N>/summary.json`. The returned `metric` value is the score for this iteration.
 - Generate audit per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `iterations/<N>/audit.md`
 - Generate digest → `iterations/<N>/log-digest.json`
 
 ### 6. Decide
 
-Compare `iterations/<N>/summary.json:.flowRate` with the **best-so-far** flow_rate (max from previous keeps + baseline).
+Read the `metric` value from `iterations/<N>/summary.json` and compare it with the **best-so-far** score (best from previous keeps + baseline), applying `$DIRECTION`:
+- `max` (higher-is-better): new score is an improvement when `new > best`.
+- `min` (lower-is-better): new score is an improvement when `new < best`.
 
 | Outcome | Condition | Action |
 |---|---|---|
-| keep | new > best | Repo root: `git commit -am "experiment: <hypothesis-headline>"`. Update best. |
-| discard | new ≤ best, no crash | Repo root: `git restore <files-touched-by-patch>`. |
-| crash | re-run threw / score CLI failed | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
+| keep | new score is better than best per `$DIRECTION` | Repo root: `git commit -am "experiment: <hypothesis-headline>"`. Update best. |
+| discard | new score is not better, no crash | Repo root: `git restore <files-touched-by-patch>`. |
+| crash | re-run threw / summary CLI exits non-zero / `metric: null` in summary JSON (e.g. parent stuck awaiting-after, missing score-report) | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
 | blocked | crash count ≥ 3 | Log as blocked, ideate again next iteration with this discard recorded. |
 
 Write `iterations/<N>/decision.txt` with one of: `keep`, `discard`, `crash`, `blocked`.
@@ -120,13 +137,14 @@ Write `iterations/<N>/decision.txt` with one of: `keep`, `discard`, `crash`, `bl
 
 Append to `score-history.tsv`:
 ```
-<N>	<hypothesis-headline>	<score>	<delta>	<decision>
+<N>	<hypothesis-headline>	<score>	<flow_rate or —>	<first_shot or —>	<final or —>	<delta>	<decision>
 ```
+Where `score` is the `metric` value from the summary JSON; `flow_rate`, `first_shot`, and `final` are logged from the summary when present, otherwise `—`; `delta` = `first_shot − final` when both are present, otherwise `—`.
 
 ### 8. Termination check (after EVERY iteration)
 
 Stop if any condition holds:
-- Best score ≥ `$TARGET` → terminate-target
+- Best score meets `$TARGET` per `$DIRECTION` (max: best ≥ target; min: best ≤ target) → terminate-target
 - N ≥ `$ITERATIONS` → terminate-cap
 - Last `$PLATEAU` iterations all have decision != `keep` → terminate-plateau
 
@@ -151,7 +169,7 @@ If `research-runs/<slug>/` already exists at launch:
 | Failure | Recovery |
 |---|---|
 | Workflow crash mid-run | `git restore`, retry same hypothesis up to 3, then `blocked`. |
-| `npx storybook-addon-designbook workflow summary` returns non-zero | Bail loop. Print `summary CLI failed — inspect <path>`. |
+| `npx storybook-addon-designbook workflow summary` exits non-zero or returns `metric: null` | Treated as `crash` (see step 6). After 3 retries, bail. Print `summary CLI failed — inspect <path>`. |
 | Subagent returns invalid patch | Re-dispatch with hint, max 3 in a row, then bail. |
 | Workspace reset fails | Bail. Tell user to rebuild via `debo-test run $SUITE $CASE`. |
 | User Ctrl-C | Stop after current iteration completes. Print partial summary. |

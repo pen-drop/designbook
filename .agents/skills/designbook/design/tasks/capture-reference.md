@@ -2,7 +2,7 @@
 name: designbook:design:capture-reference
 title: "Capture Reference: {{ check.story_id }} ({{ check.breakpoint }}/{{ check.region }})"
 trigger:
-  steps: [capture]
+  steps: [capture, re-capture]
 filter:
   check.type: screenshot
 priority: 10

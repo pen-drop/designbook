@@ -8,6 +8,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Command } from 'commander';
 import { load as parseYaml } from 'js-yaml';
+import jsonata from 'jsonata';
 import { loadConfig } from '../config.js';
 import { evalAssertions, type Assertion, type AssertionResult } from '../scoring/composite.js';
 
@@ -26,6 +27,8 @@ export interface SummaryResult {
   summary?: string;
   warnings?: string[];
   assertions?: AssertionResult;
+  /** Aggregated results from after: child workflows. Keyed by child workflow type, then by result key. */
+  after?: Record<string, Record<string, unknown>>;
 }
 
 interface WorkflowOutput {
@@ -41,7 +44,12 @@ export function readSummary(opts: SummaryOptions): SummaryResult | null {
   const tasksPath = resolve(opts.dataDir, 'workflows', 'archive', opts.workflowName, 'tasks.yml');
   if (!existsSync(tasksPath)) return null;
 
-  type TasksDoc = { scope?: { workflow_output?: WorkflowOutput } };
+  type TaskEntry = { result?: Record<string, { value?: unknown }> };
+  type TasksDoc = {
+    scope?: { workflow_output?: WorkflowOutput };
+    children?: Array<{ name: string; workflow: string }>;
+    tasks?: TaskEntry[];
+  };
   let tasksData: TasksDoc | null = null;
   try {
     tasksData = parseYaml(readFileSync(tasksPath, 'utf-8')) as TasksDoc | null;
@@ -66,7 +74,7 @@ export function readSummary(opts: SummaryOptions): SummaryResult | null {
     }
   }
 
-  return {
+  const result: SummaryResult = {
     workflow: opts.workflowName,
     flowRate: wo.flow_rate ?? 0,
     ...(typeof wo.success_rate === 'number' ? { successRate: wo.success_rate } : {}),
@@ -84,6 +92,50 @@ export function readSummary(opts: SummaryOptions): SummaryResult | null {
     ...(wo.warnings?.length ? { warnings: wo.warnings } : {}),
     ...(assertions ? { assertions } : {}),
   };
+
+  // Aggregate child workflow results under after.<workflow>
+  const children = tasksData?.children ?? [];
+  if (children.length > 0) {
+    const after: Record<string, Record<string, unknown>> = {};
+    for (const c of children) {
+      const childPath = resolve(opts.dataDir, 'workflows', 'archive', c.name, 'tasks.yml');
+      if (!existsSync(childPath)) continue;
+      let childDoc: { tasks?: TaskEntry[] } | null = null;
+      try {
+        childDoc = parseYaml(readFileSync(childPath, 'utf-8')) as { tasks?: TaskEntry[] } | null;
+      } catch {
+        continue;
+      }
+      const merged: Record<string, unknown> = {};
+      for (const t of childDoc?.tasks ?? []) {
+        for (const [key, entry] of Object.entries(t.result ?? {})) {
+          if (entry?.value !== undefined) merged[key] = entry.value;
+        }
+      }
+      if (Object.keys(merged).length > 0) {
+        after[c.workflow] = merged;
+      }
+    }
+    if (Object.keys(after).length > 0) {
+      result.after = after;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Evaluate a JSONata expression over a summary.
+ * Returns the numeric result, or null when the expression is invalid,
+ * unresolvable, or non-numeric.
+ */
+export async function evaluateMetric(summary: SummaryResult, expression: string): Promise<number | null> {
+  try {
+    const v = await jsonata(expression).evaluate(summary);
+    return typeof v === 'number' ? v : null;
+  } catch {
+    return null;
+  }
 }
 
 function formatHuman(r: SummaryResult): string {
@@ -111,14 +163,25 @@ export function register(workflow: Command): void {
     .requiredOption('--workflow <name>', 'Workflow name (e.g. design-shell-2026-05-06-abcd)')
     .option('--case <file>', 'Case YAML with assert: block')
     .option('--json', 'JSON output (for research loop)')
-    .action((opts: { workflow: string; case?: string; json?: boolean }) => {
+    .option(
+      '--metric <expression>',
+      'JSONata expression evaluated over the summary; included in JSON output; exit 1 when null',
+    )
+    .action(async (opts: { workflow: string; case?: string; json?: boolean; metric?: string }) => {
       const config = loadConfig();
       const r = readSummary({ dataDir: config.data, workflowName: opts.workflow, caseFile: opts.case });
       if (!r) {
         console.error(`No archived workflow found: ${opts.workflow}`);
         process.exit(1);
       }
-      if (opts.json) {
+      if (opts.metric !== undefined) {
+        const metricValue = await evaluateMetric(r, opts.metric);
+        const output = { ...r, metric: metricValue };
+        console.log(JSON.stringify(output));
+        if (metricValue === null) {
+          process.exitCode = 1;
+        }
+      } else if (opts.json) {
         console.log(JSON.stringify(r));
       } else {
         console.log(formatHuman(r));

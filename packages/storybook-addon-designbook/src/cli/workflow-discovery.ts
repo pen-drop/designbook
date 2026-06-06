@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs';
 import { globSync } from 'glob';
 import { basename } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
+import type { AfterDeclaration } from '../workflow-types.js';
+
+export type { AfterDeclaration };
 
 export interface WorkflowStage {
   name: string;
@@ -12,6 +15,7 @@ export interface WorkflowDefinition {
   id: string;
   file: string;
   stages: WorkflowStage[];
+  after: AfterDeclaration[];
 }
 
 export function resolveWorkflowFile(workflowId: string, agentsDir: string): string {
@@ -35,11 +39,23 @@ export function loadWorkflowDefinition(workflowId: string, agentsDir: string): W
   if (!fmMatch) {
     throw new Error(`Workflow "${workflowId}" has no YAML frontmatter at ${file}`);
   }
-  const fm = parseYaml(fmMatch[1]!) as { stages?: Record<string, { steps?: string[] }> } | null;
+  const fm = parseYaml(fmMatch[1]!) as {
+    stages?: Record<string, { steps?: string[] }>;
+    after?: Array<{ workflow?: string; when?: string; params?: Record<string, string> }>;
+  } | null;
   const stagesObj = fm?.stages ?? {};
   const stages: WorkflowStage[] = Object.entries(stagesObj).map(([name, def]) => ({
     name,
     steps: def.steps ?? [],
   }));
-  return { id: workflowId, file, stages };
+  const after: AfterDeclaration[] = (fm?.after ?? [])
+    .filter(
+      (a): a is { workflow: string; when?: string; params?: Record<string, string> } => typeof a?.workflow === 'string',
+    )
+    .map((a) => ({
+      workflow: a.workflow,
+      ...(a.when !== undefined ? { when: a.when } : {}),
+      ...(a.params ? { params: a.params } : {}),
+    }));
+  return { id: workflowId, file, stages, after };
 }

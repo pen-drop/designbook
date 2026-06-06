@@ -14,7 +14,10 @@ import {
   workflowMerge,
   readWorkflow,
   expandTasksFromParams,
+  registerChild,
 } from '../workflow.js';
+import jsonata from 'jsonata';
+import type { StageDefinition, AfterDeclaration } from '../workflow-types.js';
 import { load as parseYaml } from 'js-yaml';
 import {
   resolveAllStages,
@@ -25,6 +28,7 @@ import {
   rewriteRefsInSchema,
   type ResolvedStep,
   type ResultDeclaration,
+  type ExpectedParam,
 } from '../workflow-resolve.js';
 import { resolveParams } from '../resolvers/registry.js';
 import type { ResolverContext } from '../resolvers/types.js';
@@ -101,6 +105,335 @@ export function buildInstructions(
   };
 }
 
+export interface RunWorkflowCreateOpts {
+  workflow: string;
+  title?: string;
+  parent?: string;
+  params?: Record<string, unknown>;
+}
+
+export interface RunWorkflowCreateResult {
+  name: string;
+  title: string;
+  steps: unknown;
+  stages?: Record<string, StageDefinition>;
+  engine?: string;
+  step_resolved: Record<string, ResolvedStep | ResolvedStep[]>;
+  expected_params: Record<string, ExpectedParam>;
+  task_ids?: Record<string, string>;
+}
+
+/**
+ * Create a workflow from its definition: resolve stages, run param resolvers,
+ * build the initial task list (with intake-skip pre-expansion), and persist via
+ * workflowCreate. Returns the create result payload. Throws on resolution errors.
+ *
+ * Extracted from the `workflow create` action so the after-workflow auto-create
+ * path can reuse it without spawning the CLI binary.
+ */
+export async function runWorkflowCreate(
+  opts: RunWorkflowCreateOpts,
+  config: import('../config.js').DesignbookConfig,
+): Promise<RunWorkflowCreateResult> {
+  let initialParams: Record<string, unknown> | undefined = opts.params;
+
+  const configPath = findConfig();
+  const rawConfig = configPath ? ((parseYaml(readFileSync(configPath, 'utf-8')) as Record<string, unknown>) ?? {}) : {};
+  const configDir = configPath ? dirname(configPath) : process.cwd();
+  const agentsDir = resolveSkillsRoot(configDir);
+
+  const workflowFilePath = resolveWorkflowFile(opts.workflow, agentsDir);
+  const resolved = await resolveAllStages(workflowFilePath, config, rawConfig, agentsDir);
+
+  // ── Resolve phase: run param resolvers ────────────────────────
+  const wfFm = parseFrontmatter(workflowFilePath) as Record<string, unknown> | null;
+  const wfParamsRaw = wfFm?.params as Record<string, Record<string, unknown>> | undefined;
+
+  // Merge task-declared resolvers into the workflow-level param schema so
+  // one resolver pass covers both levels. Task-level `resolve:` takes
+  // precedence over a missing workflow-level entry; existing workflow-level
+  // resolvers stay untouched.
+  const wfParams: Record<string, Record<string, unknown>> | undefined = wfParamsRaw
+    ? { ...wfParamsRaw }
+    : Object.values(resolved.expected_params).some((p) => p.resolve)
+      ? {}
+      : undefined;
+  if (wfParams) {
+    for (const [key, expected] of Object.entries(resolved.expected_params)) {
+      if (!expected.resolve) continue;
+      const existing = wfParams[key];
+      if (existing && 'resolve' in existing) continue;
+      const base: Record<string, unknown> = existing
+        ? { ...existing }
+        : { type: 'string', ...(expected.default !== undefined ? { default: expected.default } : {}) };
+      base.resolve = expected.resolve;
+      if (expected.from) base.from = expected.from;
+      wfParams[key] = base;
+    }
+  }
+
+  // Apply workflow-level param defaults before resolver/task-expansion so
+  // downstream steps see them without the caller having to repeat defaults.
+  if (wfParams) {
+    initialParams = initialParams ?? {};
+    for (const [key, decl] of Object.entries(wfParams)) {
+      if (initialParams[key] !== undefined) continue;
+      if (decl && typeof decl === 'object' && 'default' in decl) {
+        initialParams[key] = (decl as { default: unknown }).default;
+      }
+    }
+  }
+
+  if (initialParams && wfParams) {
+    const hasResolvers = Object.values(wfParams).some((decl) => decl && typeof decl === 'object' && 'resolve' in decl);
+
+    if (hasResolvers) {
+      const resolverContext: ResolverContext = { config, params: initialParams };
+      const resolveResult = await resolveParams(wfParams, resolverContext);
+      initialParams = resolveResult.params as Record<string, unknown>;
+    }
+  }
+
+  const title = opts.title ?? resolved.title;
+
+  // Find first stage with a resolved step
+  let firstStepName: string | undefined;
+  let firstStageName: string | undefined;
+  let firstResolved: ResolvedStep | undefined;
+  if (resolved.stages) {
+    for (const [stageName, stageDef] of Object.entries(resolved.stages)) {
+      const step = (stageDef as { steps?: string[] }).steps?.[0];
+      if (!step) continue;
+      const raw = resolved.step_resolved[step];
+      const res = raw && !Array.isArray(raw) ? raw : undefined;
+      if (res) {
+        firstStepName = step;
+        firstStageName = stageName;
+        firstResolved = res;
+        break;
+      }
+    }
+  }
+  // Build result declarations from first task's frontmatter, resolving $ref schemas
+  let firstResult: Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined;
+  const firstSchemas: Record<string, object> = {};
+  if (firstResolved) {
+    const firstFm = parseFrontmatter(firstResolved.task_file);
+    const resultDecl = firstFm?.result as Record<string, unknown> | undefined;
+    const resultDeclProperties = resultDecl?.properties as Record<string, ResultDeclaration> | undefined;
+    const envMap = buildEnvMap(config);
+    firstResult = await expandResultDeclarations(
+      resultDecl,
+      undefined,
+      initialParams ?? {},
+      envMap,
+      undefined,
+      true,
+      firstResolved.rules,
+    );
+
+    // Resolve $ref in result schemas inline
+    if (firstResult && resultDeclProperties) {
+      const skillsRoot = resolve(agentsDir, 'skills');
+      for (const [key, decl] of Object.entries(resultDeclProperties)) {
+        // Top-level $ref: replace schema with the resolved definition
+        if (decl.$ref && firstResult[key]) {
+          const { typeName, schema } = resolveSchemaRef(decl.$ref, firstResolved.task_file, skillsRoot);
+          firstSchemas[typeName] = schema;
+          firstResult[key]!.schema = schema;
+        }
+        // Nested $ref at any depth (e.g. items.$ref, properties.foo.$ref):
+        // rewrite file-system refs to AJV-compatible local refs
+        if (firstResult[key]?.schema && typeof firstResult[key]!.schema === 'object') {
+          rewriteRefsInSchema(
+            firstResult[key]!.schema as Record<string, unknown>,
+            firstResolved.task_file,
+            skillsRoot,
+            firstSchemas,
+          );
+        }
+      }
+    }
+  }
+
+  const firstTaskId = firstStepName ?? 'task-1';
+
+  // Intake-skip: when caller passes a non-empty `components` param to
+  // design-component, seed scope from it and pre-expand the next stage's
+  // tasks at create-time (same logic the engine runs at stage transitions).
+  const skipIntake =
+    opts.workflow === 'design-component' &&
+    Array.isArray(initialParams?.components) &&
+    (initialParams!.components as unknown[]).length > 0;
+  const initialScope: Record<string, unknown> | undefined = skipIntake
+    ? { components: initialParams!.components }
+    : undefined;
+
+  const workspaceRoot = (config.workspace as string | undefined) ?? configDir;
+  const envMap = buildEnvMap(config);
+
+  // Build the initial task list. Default: a singleton first task for the
+  // first resolved stage. Skip-intake: pre-expand the second stage from
+  // seeded scope and use those expanded tasks instead.
+  type CreateTask = Parameters<typeof workflowCreate>[3][number];
+  let firstTask: CreateTask[] = [];
+  const taskIds: Record<string, string> = {};
+
+  if (skipIntake && resolved.stages) {
+    // Find the stage immediately after the first one (the intake stage we're skipping).
+    const stageNames = Object.keys(resolved.stages);
+    const skipStageIdx = firstStageName ? stageNames.indexOf(firstStageName) : 0;
+    const nextStageName = stageNames[skipStageIdx + 1];
+    const nextStageDef = nextStageName ? resolved.stages[nextStageName] : undefined;
+    if (nextStageName && nextStageDef) {
+      const expanded = await expandTasksFromParams(
+        resolved.step_resolved,
+        { [nextStageName]: nextStageDef },
+        initialParams ?? {},
+        [],
+        envMap,
+        initialScope,
+        config,
+      );
+      firstTask = expanded.map((t) => ({
+        id: t.id,
+        title: t.title,
+        type: t.type,
+        step: t.step,
+        stage: t.stage,
+        files: t.files,
+        ...(t.result ? { result: t.result } : {}),
+        task_file: t.task_file,
+        rules: t.rules,
+        blueprints: t.blueprints,
+        config_rules: t.config_rules,
+        config_instructions: t.config_instructions,
+      }));
+      for (const t of firstTask) {
+        if (t.step) taskIds[t.step] = t.id;
+      }
+    }
+  } else if (firstStepName && firstStageName && firstResolved) {
+    firstTask = [
+      {
+        id: firstTaskId,
+        title: `${title}: ${firstStepName}`,
+        type: 'data' as const,
+        step: firstStepName,
+        stage: firstStageName,
+        files: [] as Array<{ path: string; key: string; validators: string[] }>,
+        ...(firstResult ? { result: firstResult } : {}),
+        task_file: firstResolved.task_file,
+        rules: firstResolved.rules,
+        blueprints: firstResolved.blueprints,
+        config_rules: firstResolved.config_rules,
+        config_instructions: firstResolved.config_instructions,
+      },
+    ];
+    taskIds[firstStepName] = firstTaskId;
+  }
+
+  const name = workflowCreate(
+    config.data,
+    opts.workflow,
+    title,
+    firstTask,
+    resolved.stages,
+    opts.parent,
+    resolved.step_resolved,
+    resolved.engine,
+    initialParams,
+    workspaceRoot,
+    firstSchemas,
+    envMap,
+    initialScope,
+  );
+
+  // Output JSON with workflow name + all resolved steps
+  const createResult: RunWorkflowCreateResult = {
+    name,
+    title,
+    steps: resolved.steps,
+    ...(resolved.stages ? { stages: resolved.stages } : {}),
+    ...(resolved.engine ? { engine: resolved.engine } : {}),
+    step_resolved: resolved.step_resolved,
+    expected_params: resolved.expected_params,
+    ...(Object.keys(taskIds).length > 0 ? { task_ids: taskIds } : {}),
+  };
+  return createResult;
+}
+
+/**
+ * Filter a list of AfterDeclarations down to those that are active for the given parent params.
+ *
+ * A declaration without `when:` is always active. A declaration with `when:` is active only
+ * when the JSONata expression evaluates to a truthy value over the parent's params.
+ *
+ * NOTE: JSONata does not have an `array.length` property — use `$count(array)` instead.
+ */
+export async function filterActiveAfterDeclarations(
+  declarations: AfterDeclaration[],
+  parentParams: Record<string, unknown>,
+): Promise<AfterDeclaration[]> {
+  const results: AfterDeclaration[] = [];
+  for (const decl of declarations) {
+    if (decl.when === undefined) {
+      results.push(decl);
+      continue;
+    }
+    const value = await jsonata(decl.when).evaluate(parentParams);
+    if (value) results.push(decl);
+  }
+  return results;
+}
+
+/**
+ * Create the child workflows declared in a parent's `after:` block.
+ *
+ * For each declaration, evaluate every params-mapping value as a JSONata
+ * expression over the parent's params, create the child via runWorkflowCreate
+ * (with `parent` set), register it on the parent, and return the new child
+ * {name, workflow} pairs so the driver can dispatch one subagent per child.
+ */
+export async function createAfterWorkflows(
+  declarations: AfterDeclaration[],
+  parentName: string,
+  parentParams: Record<string, unknown>,
+  config: import('../config.js').DesignbookConfig,
+): Promise<Array<{ name: string; workflow: string }>> {
+  const { resolve: resolvePath } = await import('node:path');
+  const parentFilePath = resolvePath(config.data, 'workflows', 'changes', parentName, 'tasks.yml');
+  const parentData = readWorkflow(parentFilePath);
+  const existingChildren = parentData.children ?? [];
+
+  const result: Array<{ name: string; workflow: string }> = [];
+  for (const decl of declarations) {
+    // Idempotent re-run: skip creation if a child with the same workflow id already exists
+    const existing = existingChildren.find((c) => c.workflow === decl.workflow);
+    if (existing) {
+      result.push(existing);
+      continue;
+    }
+
+    const mapped: Record<string, unknown> = {};
+    if (decl.params) {
+      for (const [key, expr] of Object.entries(decl.params)) {
+        const value = await jsonata(expr).evaluate(parentParams);
+        if (value === undefined) {
+          throw new Error(
+            `after-workflow '${decl.workflow}': param '${key}' expression '${expr}' evaluated to undefined on parent params`,
+          );
+        }
+        mapped[key] = value;
+      }
+    }
+    const child = await runWorkflowCreate({ workflow: decl.workflow, parent: parentName, params: mapped }, config);
+    registerChild(config.data, parentName, { name: child.name, workflow: decl.workflow });
+    result.push({ name: child.name, workflow: decl.workflow });
+  }
+  return result;
+}
+
 export function register(program: Command): void {
   const workflow = program.command('workflow').description('Manage workflow tracking');
 
@@ -171,234 +504,16 @@ export function register(program: Command): void {
         }
       }
 
-      const configPath = findConfig();
-      const rawConfig = configPath
-        ? ((parseYaml(readFileSync(configPath, 'utf-8')) as Record<string, unknown>) ?? {})
-        : {};
-      const configDir = configPath ? dirname(configPath) : process.cwd();
-      const agentsDir = resolveSkillsRoot(configDir);
-
       try {
-        const workflowFilePath = resolveWorkflowFile(opts.workflow, agentsDir);
-        const resolved = await resolveAllStages(workflowFilePath, config, rawConfig, agentsDir);
-
-        // ── Resolve phase: run param resolvers ────────────────────────
-        const wfFm = parseFrontmatter(workflowFilePath) as Record<string, unknown> | null;
-        const wfParamsRaw = wfFm?.params as Record<string, Record<string, unknown>> | undefined;
-
-        // Merge task-declared resolvers into the workflow-level param schema so
-        // one resolver pass covers both levels. Task-level `resolve:` takes
-        // precedence over a missing workflow-level entry; existing workflow-level
-        // resolvers stay untouched.
-        const wfParams: Record<string, Record<string, unknown>> | undefined = wfParamsRaw
-          ? { ...wfParamsRaw }
-          : Object.values(resolved.expected_params).some((p) => p.resolve)
-            ? {}
-            : undefined;
-        if (wfParams) {
-          for (const [key, expected] of Object.entries(resolved.expected_params)) {
-            if (!expected.resolve) continue;
-            const existing = wfParams[key];
-            if (existing && 'resolve' in existing) continue;
-            const base: Record<string, unknown> = existing
-              ? { ...existing }
-              : { type: 'string', ...(expected.default !== undefined ? { default: expected.default } : {}) };
-            base.resolve = expected.resolve;
-            if (expected.from) base.from = expected.from;
-            wfParams[key] = base;
-          }
-        }
-
-        // Apply workflow-level param defaults before resolver/task-expansion so
-        // downstream steps see them without the caller having to repeat defaults.
-        if (wfParams) {
-          initialParams = initialParams ?? {};
-          for (const [key, decl] of Object.entries(wfParams)) {
-            if (initialParams[key] !== undefined) continue;
-            if (decl && typeof decl === 'object' && 'default' in decl) {
-              initialParams[key] = (decl as { default: unknown }).default;
-            }
-          }
-        }
-
-        if (initialParams && wfParams) {
-          const hasResolvers = Object.values(wfParams).some(
-            (decl) => decl && typeof decl === 'object' && 'resolve' in decl,
-          );
-
-          if (hasResolvers) {
-            const resolverContext: ResolverContext = { config, params: initialParams };
-            const resolveResult = await resolveParams(wfParams, resolverContext);
-            initialParams = resolveResult.params as Record<string, unknown>;
-          }
-        }
-
-        const title = opts.title ?? resolved.title;
-
-        // Find first stage with a resolved step
-        let firstStepName: string | undefined;
-        let firstStageName: string | undefined;
-        let firstResolved: ResolvedStep | undefined;
-        if (resolved.stages) {
-          for (const [stageName, stageDef] of Object.entries(resolved.stages)) {
-            const step = (stageDef as { steps?: string[] }).steps?.[0];
-            if (!step) continue;
-            const raw = resolved.step_resolved[step];
-            const res = raw && !Array.isArray(raw) ? raw : undefined;
-            if (res) {
-              firstStepName = step;
-              firstStageName = stageName;
-              firstResolved = res;
-              break;
-            }
-          }
-        }
-        // Build result declarations from first task's frontmatter, resolving $ref schemas
-        let firstResult: Record<string, { path?: string; schema?: object; validators?: string[] }> | undefined;
-        const firstSchemas: Record<string, object> = {};
-        if (firstResolved) {
-          const firstFm = parseFrontmatter(firstResolved.task_file);
-          const resultDecl = firstFm?.result as Record<string, unknown> | undefined;
-          const resultDeclProperties = resultDecl?.properties as Record<string, ResultDeclaration> | undefined;
-          const envMap = buildEnvMap(config);
-          firstResult = await expandResultDeclarations(
-            resultDecl,
-            undefined,
-            initialParams ?? {},
-            envMap,
-            undefined,
-            true,
-            firstResolved.rules,
-          );
-
-          // Resolve $ref in result schemas inline
-          if (firstResult && resultDeclProperties) {
-            const skillsRoot = resolve(agentsDir, 'skills');
-            for (const [key, decl] of Object.entries(resultDeclProperties)) {
-              // Top-level $ref: replace schema with the resolved definition
-              if (decl.$ref && firstResult[key]) {
-                const { typeName, schema } = resolveSchemaRef(decl.$ref, firstResolved.task_file, skillsRoot);
-                firstSchemas[typeName] = schema;
-                firstResult[key]!.schema = schema;
-              }
-              // Nested $ref at any depth (e.g. items.$ref, properties.foo.$ref):
-              // rewrite file-system refs to AJV-compatible local refs
-              if (firstResult[key]?.schema && typeof firstResult[key]!.schema === 'object') {
-                rewriteRefsInSchema(
-                  firstResult[key]!.schema as Record<string, unknown>,
-                  firstResolved.task_file,
-                  skillsRoot,
-                  firstSchemas,
-                );
-              }
-            }
-          }
-        }
-
-        const firstTaskId = firstStepName ?? 'task-1';
-
-        // Intake-skip: when caller passes a non-empty `components` param to
-        // design-component, seed scope from it and pre-expand the next stage's
-        // tasks at create-time (same logic the engine runs at stage transitions).
-        const skipIntake =
-          opts.workflow === 'design-component' &&
-          Array.isArray(initialParams?.components) &&
-          (initialParams!.components as unknown[]).length > 0;
-        const initialScope: Record<string, unknown> | undefined = skipIntake
-          ? { components: initialParams!.components }
-          : undefined;
-
-        const workspaceRoot = (config.workspace as string | undefined) ?? configDir;
-        const envMap = buildEnvMap(config);
-
-        // Build the initial task list. Default: a singleton first task for the
-        // first resolved stage. Skip-intake: pre-expand the second stage from
-        // seeded scope and use those expanded tasks instead.
-        type CreateTask = Parameters<typeof workflowCreate>[3][number];
-        let firstTask: CreateTask[] = [];
-        const taskIds: Record<string, string> = {};
-
-        if (skipIntake && resolved.stages) {
-          // Find the stage immediately after the first one (the intake stage we're skipping).
-          const stageNames = Object.keys(resolved.stages);
-          const skipStageIdx = firstStageName ? stageNames.indexOf(firstStageName) : 0;
-          const nextStageName = stageNames[skipStageIdx + 1];
-          const nextStageDef = nextStageName ? resolved.stages[nextStageName] : undefined;
-          if (nextStageName && nextStageDef) {
-            const expanded = await expandTasksFromParams(
-              resolved.step_resolved,
-              { [nextStageName]: nextStageDef },
-              initialParams ?? {},
-              [],
-              envMap,
-              initialScope,
-              config,
-            );
-            firstTask = expanded.map((t) => ({
-              id: t.id,
-              title: t.title,
-              type: t.type,
-              step: t.step,
-              stage: t.stage,
-              files: t.files,
-              ...(t.result ? { result: t.result } : {}),
-              task_file: t.task_file,
-              rules: t.rules,
-              blueprints: t.blueprints,
-              config_rules: t.config_rules,
-              config_instructions: t.config_instructions,
-            }));
-            for (const t of firstTask) {
-              if (t.step) taskIds[t.step] = t.id;
-            }
-          }
-        } else if (firstStepName && firstStageName && firstResolved) {
-          firstTask = [
-            {
-              id: firstTaskId,
-              title: `${title}: ${firstStepName}`,
-              type: 'data' as const,
-              step: firstStepName,
-              stage: firstStageName,
-              files: [] as Array<{ path: string; key: string; validators: string[] }>,
-              ...(firstResult ? { result: firstResult } : {}),
-              task_file: firstResolved.task_file,
-              rules: firstResolved.rules,
-              blueprints: firstResolved.blueprints,
-              config_rules: firstResolved.config_rules,
-              config_instructions: firstResolved.config_instructions,
-            },
-          ];
-          taskIds[firstStepName] = firstTaskId;
-        }
-
-        const name = workflowCreate(
-          config.data,
-          opts.workflow,
-          title,
-          firstTask,
-          resolved.stages,
-          opts.parent,
-          resolved.step_resolved,
-          resolved.engine,
-          initialParams,
-          workspaceRoot,
-          firstSchemas,
-          envMap,
-          initialScope,
+        const createResult = await runWorkflowCreate(
+          { workflow: opts.workflow, title: opts.title, parent: opts.parent, params: initialParams },
+          config,
         );
-
-        // Output JSON with workflow name + all resolved steps
-        const createResult = {
-          name,
-          steps: resolved.steps,
-          ...(resolved.stages ? { stages: resolved.stages } : {}),
-          ...(resolved.engine ? { engine: resolved.engine } : {}),
-          step_resolved: resolved.step_resolved,
-          expected_params: resolved.expected_params,
-          ...(Object.keys(taskIds).length > 0 ? { task_ids: taskIds } : {}),
-        };
-        log({ cmd: 'workflow create', args: { workflow: opts.workflow, title }, result: { name } });
+        log({
+          cmd: 'workflow create',
+          args: { workflow: opts.workflow, title: createResult.title },
+          result: { name: createResult.name },
+        });
         console.log(JSON.stringify(createResult, null, 2));
       } catch (err) {
         log({ cmd: 'workflow create', args: { workflow: opts.workflow }, error: (err as Error).message });
@@ -542,10 +657,37 @@ export function register(program: Command): void {
         }
       }
       try {
+        // Load the workflow definition's `after:` declarations so a final done
+        // can hold the parent and auto-create the declared child workflows.
+        // Filter to active declarations only (when: condition evaluated over parent params).
+        //
+        // Two separate scopes:
+        //   1. Definition lookup — degrades to [] on operational failures (missing skills dir,
+        //      definition not found, etc.), e.g. bare test workspaces without agents.
+        //   2. filterActiveAfterDeclarations — runs OUTSIDE the degrading catch. A JSONata
+        //      error from an invalid `when:` expression is an AUTHORING error and must
+        //      propagate so the author sees it rather than silently skipping after-workflows.
+        let allAfter: AfterDeclaration[] = [];
+        let parentParams: Record<string, unknown> = {};
+        try {
+          const changesPath = resolve(config.data, 'workflows', 'changes', opts.workflow, 'tasks.yml');
+          const parentMeta = readWorkflow(changesPath);
+          const workflowId = parentMeta.workflow;
+          const configPath = findConfig();
+          const configDir = configPath ? dirname(configPath) : process.cwd();
+          const agentsDir = resolveSkillsRoot(configDir);
+          allAfter = loadWorkflowDefinition(workflowId, agentsDir).after;
+          parentParams = parentMeta.params ?? {};
+        } catch (lookupErr) {
+          console.warn(`Could not load after: declarations — proceeding without: ${(lookupErr as Error).message}`);
+        }
+        const after = await filterActiveAfterDeclarations(allAfter, parentParams);
+
         const result = await workflowDone(config.data, opts.workflow, opts.task, loaded, {
           summary: opts.summary,
           data: dataPayload,
           config,
+          after,
         });
         const { data, response } = result;
 
@@ -554,6 +696,17 @@ export function register(program: Command): void {
           args: { workflow: opts.workflow, task: opts.task },
           result: { archived: result.archived, stage_complete: response?.stage_complete },
         });
+
+        if (result.awaitingAfter) {
+          const children = await createAfterWorkflows(result.awaitingAfter, opts.workflow, data.params ?? {}, config);
+          console.log(`Workflow ${opts.workflow} awaiting after-workflows`);
+          console.log(`NEXT_WORKFLOWS: ${JSON.stringify(children)}`);
+          console.log(
+            'Dispatch ONE subagent per workflow: "execute workflow <name> to completion". ' +
+              'The parent completes automatically when all children complete.',
+          );
+          return;
+        }
 
         if (result.archived) {
           console.log(`Workflow ${opts.workflow} archived (all tasks done)`);

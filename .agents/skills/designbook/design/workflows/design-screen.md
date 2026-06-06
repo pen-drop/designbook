@@ -48,4 +48,7 @@ before:
     execute: if-never-run
 after:
   - workflow: design-verify
+    when: "reference_url != ''"
+    params:
+      story_id: story_id
 ---
