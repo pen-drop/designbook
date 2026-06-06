@@ -32,6 +32,8 @@ extensions:
     skill: designbook-drupal
 ```
 
+The port in `designbook.url` must match the `-p` argument of the `storybook` script in `package.json` (fresh installs use 6006). The core verify phase still derives the live URL from the start command's `port` output — the config value is a default for later use.
+
 When `CSS_FRAMEWORK` is `tailwind`, append to `extensions`:
 
 ```yaml

@@ -36,8 +36,9 @@ Otherwise → **Fresh**.
 
    (`"name"` = the `NAMESPACE` value, `_` replaced by `-`.)
    Existing → only add the `storybook` script when absent.
-2. Add devDependencies (`pnpm add -D` / `npm install -D` — same pick as the core
-   verify phase): `storybook@^10`, `@storybook/html-vite@^10`,
+2. Add devDependencies (use `pnpm add -D` when a `pnpm-lock.yaml` or
+   `pnpm-workspace.yaml` exists in `THEME_DIR` or a parent directory; otherwise
+   `npm install -D`): `storybook@^10`, `@storybook/html-vite@^10`,
    `@storybook/addon-docs@^10`, `storybook-addon-sdc@^0.22.0`,
    `storybook-addon-designbook`, `twing@^7.3.0`, `vite@^6`.
    When `CSS_FRAMEWORK` is `tailwind`, additionally: `tailwindcss@^4`,
@@ -64,7 +65,7 @@ Touch nothing except the two addon registrations and missing dependencies.
    quote the object key when the namespace is not a valid JS identifier):
 
    ```js
-   'storybook-addon-designbook',
+   { name: 'storybook-addon-designbook' },
    {
      name: 'storybook-addon-sdc',
      options: {
