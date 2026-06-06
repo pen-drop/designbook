@@ -800,24 +800,64 @@ git add .agents/skills/designbook-test
 git commit -m "feat(debo-test): JSONata metric from case yaml drives research scoring"
 ```
 
-### Task 13: End-to-end smoke
+### Task 13: Review — debo-test run as subagent with full validation
 
-- [ ] **Step 1: Build a test workspace**
+The review is NOT a manual smoke test. Dispatch a subagent that runs `debo-test run` end-to-end and validates every artifact against an explicit checklist. The subagent MUST stop and escalate on any validation failure — never report done with unresolved errors.
 
-```bash
-./scripts/setup-workspace.sh smoke
+- [ ] **Step 1: Dispatch the validation subagent**
+
+Use the `Agent` tool (`subagent_type: "general-purpose"`). Prompt (replace `<case>` with an existing design-shell case from `fixtures/`):
+
+```
+Load the debo-test skill, then execute `debo-test run <suite> <case>` for a
+design-shell case, answering "yes" to executing the prompt. The repo's
+.agents/.claude are copied into the workspace by setup-workspace.sh, so the
+new skill files under test are active.
+
+After the run, validate EVERY item below from inside the workspace. For each
+item record PASS/FAIL with evidence (file path + relevant excerpt). Do NOT
+fix anything; do NOT mark items passed without reading the actual artifact.
+If ANY item fails, stop and report the failure — never call the run done.
+
+1. Workflow definition: `workflow list design-verify` (or loadWorkflowDefinition
+   output) shows the merged single workflow — stages reference, intake,
+   setup-compare, capture, compare, triage, polish, re-capture, re-compare,
+   outtake; before: css-generate execute: always; no verify-capture/verify-fix
+   definitions exist.
+2. after: declaration: design-shell definition carries
+   after: [{workflow: design-verify, params: {story_id: story_id}}].
+3. Parent lifecycle: parent's final `workflow done` output contained
+   NEXT_WORKFLOWS with the design-verify child; while the child ran,
+   workflows/changes/<parent>/tasks.yml had status: awaiting-after and
+   children: [{name, workflow: design-verify}].
+4. Child meta: child tasks.yml has parent: <parent-name> and
+   params.story_id resolved to the shell story.
+5. Result schema: child's outtake task result contains a score-report that
+   validates against ScoreReport (first_shot, final, delta all present;
+   delta === first_shot.score − final.score; each VerifyResult has score,
+   passed, total).
+6. Cascade: after child completion the parent is in workflows/archive/ with
+   status: completed and summary matching
+   /design-verify: first_shot \d+ → final \d+ \(Δ -?\d+\)/.
+7. Summary aggregation: `npx storybook-addon-designbook workflow summary
+   --workflow <parent> --json` contains after.design-verify.score-report.
+8. Metric: same command with
+   --metric 'after.`design-verify`.`score-report`.first_shot.score'
+   prints a numeric metric and exits 0; with a bogus expression
+   (--metric 'after.`nope`.x') it prints metric: null and exits non-zero.
+9. Panel: workflows panel data (parent archived tasks.yml summary field) holds
+   the one-line result summary — the WorkflowPanel renders wf.summary, so the
+   field IS the UI contract.
+
+Return: a PASS/FAIL table for items 1-9 with evidence, plus the workspace
+path and parent/child workflow names.
 ```
 
-- [ ] **Step 2: Run a design workflow that declares `after: design-verify`**
+- [ ] **Step 2: Review the subagent's report**
 
-Use `debo-test run` with an existing design-shell case (pick one from `fixtures/`; list via the run workflow). Observe:
+All 9 PASS → phase complete. Any FAIL → fix in the main session (root cause, not symptom), re-dispatch the subagent for a fresh full run (workspaces are disposable; setup-workspace.sh rebuilds from scratch). Repeat until 9/9.
 
-1. Final `workflow done` of the parent prints `NEXT_WORKFLOWS: [...]` and the parent goes `awaiting-after` (check `workflows/changes/<parent>/tasks.yml`).
-2. After the design-verify child completes, the parent auto-archives (`workflows/archive/<parent>/tasks.yml`, status `completed`, summary contains `design-verify: first_shot … → final … (Δ …)`).
-3. `npx storybook-addon-designbook workflow summary --workflow <parent> --metric 'after.`design-verify`.`score-report`.first_shot.score' --json` prints a numeric `metric`.
-4. The Storybook WorkflowPanel shows the parent's summary line.
-
-- [ ] **Step 3: Fix anything that breaks; commit fixes individually.**
+- [ ] **Step 3: Commit any fixes individually, then final `pnpm check`.**
 
 ---
 
