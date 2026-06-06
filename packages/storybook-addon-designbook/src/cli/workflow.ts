@@ -660,9 +660,15 @@ export function register(program: Command): void {
         // Load the workflow definition's `after:` declarations so a final done
         // can hold the parent and auto-create the declared child workflows.
         // Filter to active declarations only (when: condition evaluated over parent params).
-        // Lookup failures (e.g. test workspaces without skills) degrade to no
-        // after-workflows rather than crashing done.
-        let after: AfterDeclaration[] = [];
+        //
+        // Two separate scopes:
+        //   1. Definition lookup — degrades to [] on operational failures (missing skills dir,
+        //      definition not found, etc.), e.g. bare test workspaces without agents.
+        //   2. filterActiveAfterDeclarations — runs OUTSIDE the degrading catch. A JSONata
+        //      error from an invalid `when:` expression is an AUTHORING error and must
+        //      propagate so the author sees it rather than silently skipping after-workflows.
+        let allAfter: AfterDeclaration[] = [];
+        let parentParams: Record<string, unknown> = {};
         try {
           const changesPath = resolve(config.data, 'workflows', 'changes', opts.workflow, 'tasks.yml');
           const parentMeta = readWorkflow(changesPath);
@@ -670,11 +676,12 @@ export function register(program: Command): void {
           const configPath = findConfig();
           const configDir = configPath ? dirname(configPath) : process.cwd();
           const agentsDir = resolveSkillsRoot(configDir);
-          const allAfter = loadWorkflowDefinition(workflowId, agentsDir).after;
-          after = await filterActiveAfterDeclarations(allAfter, parentMeta.params ?? {});
+          allAfter = loadWorkflowDefinition(workflowId, agentsDir).after;
+          parentParams = parentMeta.params ?? {};
         } catch (lookupErr) {
           console.warn(`Could not load after: declarations — proceeding without: ${(lookupErr as Error).message}`);
         }
+        const after = await filterActiveAfterDeclarations(allAfter, parentParams);
 
         const result = await workflowDone(config.data, opts.workflow, opts.task, loaded, {
           summary: opts.summary,

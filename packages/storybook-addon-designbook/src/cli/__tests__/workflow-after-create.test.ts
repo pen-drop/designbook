@@ -407,6 +407,58 @@ describe('workflow done: after-workflow auto-create', () => {
     expect(active[0]!.workflow).toBe('other-wf');
   });
 
+  it('filterActiveAfterDeclarations: syntactically invalid when: expression throws (authoring error)', async () => {
+    // Missing closing paren — JSONata parse error; must propagate, not silently skip
+    const declarations = [{ workflow: 'child-wf', when: '$count(components <= 1', params: { story_id: 'story_id' } }];
+    const params = { story_id: 'x', components: ['a', 'b'] };
+    await expect(filterActiveAfterDeclarations(declarations, params)).rejects.toThrow();
+  });
+
+  it('done flow: invalid when: expression propagates as error, not silent skip', async () => {
+    const config = loadConfig();
+    const skill = 'after-test';
+
+    // Write a parent whose after: declaration has a syntactically invalid when: expression
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'workflows', 'parent-wf-bad-when.md'),
+      {
+        title: 'Parent Workflow Bad When',
+        params: { story_id: { type: 'string' } },
+        stages: { execute: { steps: ['do-thing'] } },
+        engine: 'direct',
+        after: [{ workflow: 'child-wf', when: '$count(components <= 1', params: { story_id: 'story_id' } }],
+      },
+      '# parent-wf-bad-when',
+    );
+
+    const parent = await runWorkflowCreate(
+      { workflow: 'parent-wf-bad-when', params: { story_id: 'debo-design-system', components: ['a', 'b'] } },
+      config,
+    );
+    const parentName = parent.name;
+    const parentMetaBefore = readTasksYml(parentName);
+
+    const def = loadWorkflowDefinition('parent-wf-bad-when', agentsDir);
+
+    // filterActiveAfterDeclarations must throw — the error must NOT be swallowed
+    await expect(filterActiveAfterDeclarations(def.after, parentMetaBefore.params ?? {})).rejects.toThrow();
+
+    // The parent must still be in changes (not silently archived)
+    const parentChangesPath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+    expect(existsSync(parentChangesPath)).toBe(true);
+    const parentArchivePath = resolve(dataDir, 'workflows', 'archive', parentName, 'tasks.yml');
+    expect(existsSync(parentArchivePath)).toBe(false);
+
+    // The done flow: when filterActiveAfterDeclarations is called outside the
+    // degrading try/catch (as it should be after the fix), an invalid when:
+    // expression causes workflowDone to reject rather than archive silently.
+    // We simulate the fixed CLI behaviour by calling filterActiveAfterDeclarations
+    // directly (it throws) and NOT calling workflowDone with an empty after: list.
+    // The key invariant: filterActiveAfterDeclarations rejects — it does not return [].
+    const filterResult = filterActiveAfterDeclarations(def.after, parentMetaBefore.params ?? {});
+    await expect(filterResult).rejects.toThrow();
+  });
+
   it('done flow: when: inactive declaration → parent archives immediately (no holdForAfter)', async () => {
     const config = loadConfig();
     const skill = 'after-test';
