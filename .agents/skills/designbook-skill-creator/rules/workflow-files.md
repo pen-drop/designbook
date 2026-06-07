@@ -41,6 +41,15 @@ stages:
     domain: [data-model]
 ```
 
+A stage may also declare `isolate: true` to run that stage's task(s) in a dedicated subagent context instead of inline in the orchestrator. Default is `false` (or absent — omit rather than spell out `false`). Use `isolate: true` on context-heavy stages of long workflows; lightweight stages such as intake, setup, and outtake should stay inline. The engine surfaces the flag on each `step_resolved` entry and on `workflow instructions`; the driver acts on it per `resources/workflow-execution.md`. An isolated stage that contains multiple `each:`-expanded tasks runs as **one** subagent that loops over the sibling tasks, not one subagent per task.
+
+```yaml
+stages:
+  create-component:
+    steps: [create-component]
+    isolate: true
+```
+
 ### `before:` / `after:` Hooks
 
 Hooks are authored in the workflow frontmatter. The engine surfaces `before:` in the `workflow create` response (after intake resolves) and surfaces `after:` when the final `workflow done` lands. The AI driver reads these and triggers follow-up workflows per their policy.
@@ -116,3 +125,4 @@ The workflow prefix belongs in task files' `trigger.steps` for disambiguation (e
 | ID | Severity | What to verify | Where |
 |---|---|---|---|
 | WORKFLOW-01 | warning | No `stages.*.steps` entry contains a workflow-qualified name (a `:`-separated step with a workflow prefix) — step names inside a workflow definition must be plain | body |
+| WORKFLOW-02 | warning | If any `stages.*.isolate` is present, it is a boolean | body |
