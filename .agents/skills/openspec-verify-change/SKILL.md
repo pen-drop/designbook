@@ -4,6 +4,7 @@ description: Verify implementation matches change artifacts. Use when the user w
 license: MIT
 compatibility: Requires openspec CLI.
 metadata:
+  internal: true
   author: openspec
   version: "1.0"
   generatedBy: "1.0.1"

@@ -1,0 +1,52 @@
+{
+  "name": "designbook",
+  "owner": {
+    "name": "pen-drop"
+  },
+  "metadata": {
+    "description": "Designbook design system skills — core workflow plus framework/backend integrations",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "designbook",
+      "source": "./.agents/skills/designbook",
+      "strict": false,
+      "description": "Designbook core: workflows, stages, and component creation (skill name: debo)",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "designbook-drupal",
+      "source": "./.agents/skills/designbook-drupal",
+      "strict": false,
+      "description": "Drupal/SDC integration for Designbook — backend and SDC-framework tasks, rules, and blueprints",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "designbook-css-tailwind",
+      "source": "./.agents/skills/designbook-css-tailwind",
+      "strict": false,
+      "description": "Tailwind CSS v4 integration for Designbook — token naming conventions and CSS token generation via @theme",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "designbook-stitch",
+      "source": "./.agents/skills/designbook-stitch",
+      "strict": false,
+      "description": "Stitch design tool integration for Designbook — MCP-based reference resolution and intake screen selection",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
+    }
+  ]
+}

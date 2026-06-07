@@ -4,6 +4,7 @@ description: Sync delta specs from a change to main specs. Use when the user wan
 license: MIT
 compatibility: Requires openspec CLI.
 metadata:
+  internal: true
   author: openspec
   version: "1.0"
   generatedBy: "1.0.1"

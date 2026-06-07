@@ -15,6 +15,8 @@ subcommands:
 description: >
   Test workspace runner and autonomous research loop for designbook workflows.
   Use for manual testing with pre-built fixture data, or for iterative skill improvement.
+metadata:
+  internal: true
 ---
 
 ## Dispatch

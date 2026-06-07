@@ -4,6 +4,7 @@ description: Continue working on an OpenSpec change by creating the next artifac
 license: MIT
 compatibility: Requires openspec CLI.
 metadata:
+  internal: true
   author: openspec
   version: "1.0"
   generatedBy: "1.0.1"
