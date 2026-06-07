@@ -27,6 +27,7 @@
     "dev:addon": "pnpm --filter storybook-addon-designbook build:watch",
     "dev:integration:drupal": "pnpm --filter test-integration-drupal storybook",
     "check": "run-s check:legacy-flush typecheck lint test",
+    "release": "pnpm check && pnpm --filter storybook-addon-designbook run prerelease && pnpm --filter storybook-addon-designbook run build && pnpm --filter storybook-addon-designbook publish",
     "check:legacy-flush": "bash scripts/check-no-legacy-flush.sh",
     "typecheck": "pnpm --filter storybook-addon-designbook typecheck",
     "lint": "pnpm --filter storybook-addon-designbook lint",

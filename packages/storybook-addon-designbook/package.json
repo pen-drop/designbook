@@ -1,13 +1,22 @@
 {
   "name": "storybook-addon-designbook",
-  "version": "0.0.0",
-  "description": "Storybook addon for Designbook integration",
+  "version": "0.1.0",
+  "description": "Storybook addon and CLI for Designbook — AI workflows that structure your design for CMS implementation",
   "keywords": [
-    "storybook-addon"
+    "storybook-addon",
+    "design-system",
+    "designbook",
+    "cms",
+    "ai-workflows"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/storybookjs/storybook-addon-kit"
+    "url": "git+https://github.com/pen-drop/designbook.git",
+    "directory": "packages/storybook-addon-designbook"
+  },
+  "homepage": "https://github.com/pen-drop/designbook#readme",
+  "bugs": {
+    "url": "https://github.com/pen-drop/designbook/issues"
   },
   "license": "MIT",
   "author": "Designbook Team",
@@ -46,8 +55,9 @@
   "files": [
     "dist/**/*",
     "README.md",
-    "*.js",
-    "*.d.ts"
+    "manager.js",
+    "preset.js",
+    "preview.js"
   ],
   "scripts": {
     "cli": "node dist/cli.js",
@@ -104,6 +114,7 @@
   },
   "peerDependencies": {
     "storybook": "*",
+    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",
     "playwright": "^1.58.2"
   },
   "peerDependenciesMeta": {
@@ -133,8 +144,7 @@
     "displayName": "Designbook",
     "supportedFrameworks": [
       "html"
-    ],
-    "icon": "https://user-images.githubusercontent.com/321738/63501763-88dbf600-c4cc-11e9-96cd-94adadc2fd72.png"
+    ]
   },
   "dependencies": {
     "@ark-ui/react": "^5.35.0",
