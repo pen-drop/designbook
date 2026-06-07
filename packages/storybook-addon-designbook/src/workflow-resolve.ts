@@ -101,6 +101,7 @@ interface StageDefinitionFm {
   workflow?: string;
   each?: string;
   domain?: string[];
+  isolate?: boolean;
   params?: Record<string, { type: string; prompt: string }>;
 }
 
@@ -1567,6 +1568,8 @@ export interface ResolvedStep {
   config_instructions: string[];
   /** Unified schema block (params, result, definitions). Only present when the task declares params/result. */
   schema?: SchemaBlock;
+  /** True when the step's stage declared `isolate: true`. Drives subagent dispatch in the driver. */
+  isolate?: boolean;
 }
 
 export interface ExpectedParam {
@@ -1639,14 +1642,17 @@ export async function resolveAllStages(
         }
       }
     }
-    // Also include domain from the stage definition (if any)
+    // Also include domain from the stage definition (if any), and pick up the isolate flag
+    let isolate = false;
     if (stageDefs) {
       for (const [, stageDef] of Object.entries(stageDefs)) {
-        if (stageDef.steps?.includes(step) && stageDef.domain) {
+        if (!stageDef.steps?.includes(step)) continue;
+        if (stageDef.domain) {
           for (const d of stageDef.domain) {
             if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
           }
         }
+        if (stageDef.isolate) isolate = true;
       }
     }
 
@@ -1756,6 +1762,7 @@ export async function resolveAllStages(
         config_rules,
         config_instructions,
         ...(hasSchema ? { schema: schemaBlock } : {}),
+        ...(isolate ? { isolate: true } : {}),
       };
     } else {
       // Multiple tasks per step: ordered by priority (from deduplicateByNameAs)
@@ -1766,6 +1773,7 @@ export async function resolveAllStages(
         config_rules,
         config_instructions,
         ...(hasSchema ? { schema: schemaBlock } : {}),
+        ...(isolate ? { isolate: true } : {}),
       }));
     }
     resolvedSteps.push(step);
