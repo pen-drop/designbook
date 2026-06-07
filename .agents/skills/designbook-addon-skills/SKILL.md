@@ -2,6 +2,8 @@
 name: designbook-addon-skills
 user-invocable: false
 description: Storybook addon TypeScript development. Load when modifying packages/storybook-addon-designbook/.
+metadata:
+  internal: true
 ---
 
 # Designbook Addon Skills

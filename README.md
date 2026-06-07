@@ -19,6 +19,37 @@ Design Tool (Figma, Make, Stitch, ...)
 
 Framework-agnostic: the same pipeline works regardless of your frontend framework, CSS tooling, or CMS.
 
+## Installation
+
+The user-facing skills are distributed as four plugins: `designbook` (core, skill name `debo`), `designbook-drupal`, `designbook-css-tailwind`, and `designbook-stitch`.
+
+### Claude Code plugin marketplace
+
+```
+/plugin marketplace add pen-drop/designbook
+/plugin install designbook@designbook
+/plugin install designbook-drupal@designbook   # pick the integrations you need
+```
+
+### skills CLI (any agent)
+
+Installs into the project's agent directories (`.agents/skills/` plus per-agent symlinks):
+
+```bash
+npx skills add pen-drop/designbook                 # interactive picker
+npx skills add pen-drop/designbook --skill debo    # specific skill
+```
+
+Internal development skills are marked `metadata.internal: true` in their `SKILL.md` and are hidden from the skills CLI (override with `INSTALL_INTERNAL_SKILLS=1`).
+
+### Local development
+
+Test workspaces symlink the repo's `.agents`/`.claude` directories — no install step:
+
+```bash
+./scripts/setup-workspace.sh <name>
+```
+
 ## Development
 
 ```bash

@@ -4,6 +4,7 @@ description: Start a new OpenSpec change using the experimental artifact workflo
 license: MIT
 compatibility: Requires openspec CLI.
 metadata:
+  internal: true
   author: openspec
   version: "1.0"
   generatedBy: "1.0.1"

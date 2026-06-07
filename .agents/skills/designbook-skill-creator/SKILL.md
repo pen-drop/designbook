@@ -2,6 +2,8 @@
 name: designbook-skill-creator
 user-invocable: true
 description: Authoritative spec for authoring tasks, rules, blueprints, workflows, and schemas.yml under .agents/skills/designbook/, .agents/skills/designbook-*/, and this skill's own rules/ and resources/. Load the matching per-file-type rule before creating or editing ANY such file — rules/task-files.md for tasks, rules/blueprint-files.md for blueprints, rules/rule-files.md for rules, rules/schema-files.md for schemas.yml, rules/workflow-files.md for workflow definitions, plus rules/common-rules.md always. Skipping this produces files that violate the single source of truth for authoring + validation.
+metadata:
+  internal: true
 ---
 
 # Designbook Skill Creator
