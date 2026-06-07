@@ -1,7 +1,7 @@
 {
   "name": "storybook-addon-designbook",
-  "version": "0.1.0",
-  "description": "Storybook addon and CLI for Designbook — AI workflows that structure your design for CMS implementation",
+  "version": "0.1.1",
+  "description": "Storybook addon and CLI for Designbook \u2014 AI workflows that structure your design for CMS implementation",
   "keywords": [
     "storybook-addon",
     "design-system",
@@ -149,6 +149,7 @@
   "dependencies": {
     "@ark-ui/react": "^5.35.0",
     "@storybook/addon-themes": "^10.0.0",
+    "@storybook/icons": "^2.0.0",
     "ajv": "^8.18.0",
     "ajv-draft-04": "^1.0.0",
     "commander": "^14.0.3",
@@ -157,6 +158,8 @@
     "jsonata": "^2.1.0",
     "marked": "^17.0.2",
     "minimatch": "^10.2.4",
-    "odiff-bin": "^4.3.2"
+    "odiff-bin": "^4.3.2",
+    "semver": "^7.6.0",
+    "yaml": "^2.4.0"
   }
 }
