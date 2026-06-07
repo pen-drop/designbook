@@ -15,9 +15,7 @@ description: >
 
 > ⛔ **Read `resources/workflow-execution.md` immediately upon loading this skill.** It contains the binding execution rules (Rules 0–7) for all `debo` workflows. No stage may start before these rules are loaded.
 
-> ⛔ **Never load or apply this skill for `opsx-*` or `openspec-*` workflows.** Those workflows manage their own artifact lifecycle (changes, specs, archives) and must not be wrapped in a designbook workflow.
-
-> ⛔ **OpenSpec spec files are forbidden inputs.** Never read change files, delta specs, or main specs (`.agents/changes/`, OpenSpec paths) inside a `debo` workflow. Task context comes only from `.agents/skills/*/tasks/`, `.agents/skills/*/rules/`, and `.agents/skills/*/blueprints/`.
+> ⛔ **Spec/change files are forbidden inputs.** Never read change files, delta specs, or main specs inside a `debo` workflow. Task context comes only from `.agents/skills/*/tasks/`, `.agents/skills/*/rules/`, and `.agents/skills/*/blueprints/`.
 
 ## Global Flags
 

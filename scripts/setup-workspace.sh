@@ -94,9 +94,6 @@ ln -sfn "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
 ln -sfn "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
 ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
 
-# Symlink openspec so changes are always stored at repo root
-ln -sfn "$REPO_ROOT/openspec" "$WORKSPACE_DIR/openspec"
-
 # Initialize git repo
 cd "$WORKSPACE_DIR"
 git init

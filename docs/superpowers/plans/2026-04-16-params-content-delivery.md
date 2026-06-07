@@ -971,7 +971,7 @@ Expected: No files found (only allowed in test fixtures if any).
 - [ ] **Step 3: Verify no remaining `vision.md` data-file references**
 
 ```bash
-grep -r 'vision\.md' .agents/skills/ packages/storybook-addon-designbook/src/ --include="*.ts" --include="*.md" --include="*.yml" | grep -v 'workflows/vision.md' | grep -v 'intake--vision.md' | grep -v 'create-vision.md' | grep -v openspec/
+grep -r 'vision\.md' .agents/skills/ packages/storybook-addon-designbook/src/ --include="*.ts" --include="*.md" --include="*.yml" | grep -v 'workflows/vision.md' | grep -v 'intake--vision.md' | grep -v 'create-vision.md'
 ```
 
 Expected: No results (only workflow/task file names should remain, not data file references).

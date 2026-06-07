@@ -9,7 +9,7 @@ Der `designbook-skill-creator` Skill dokumentiert die 4-Level-Architektur (Workf
 - `extends:`/`provides:`/`constrains:` in Blueprints/Rules nutzen
 - Result-Semantik im Task-Body kommunizieren
 
-Zusätzlich basiert `resources/research.md` auf einem eigenständigen Prozess mit OpenSpec-Referenzen, statt auf Superpowers-Skills aufzubauen.
+Zusätzlich basiert `resources/research.md` auf einem eigenständigen Legacy-Prozess, statt auf Superpowers-Skills aufzubauen.
 
 ## Scope
 
@@ -23,7 +23,7 @@ Update des `designbook-skill-creator` Skills. Keine Code-Änderungen am Addon od
 | `rules/structure.md` | Update | `schemas.yml` als Dateityp, Schema-Extension-Felder in Rule/Blueprint-Konventionen |
 | `resources/schemas.md` | Neu | schemas.yml Format-Referenz, `$ref`-Syntax, `## Result: <key>` Konvention |
 | `resources/schema-composition.md` | Neu | Deep-Dive: Merge-Modell, 3 Operationen, Phasenfolge |
-| `resources/research.md` | Rewrite | Superpowers-basiert, OpenSpec entfernt |
+| `resources/research.md` | Rewrite | Superpowers-basiert, Legacy-Prozess entfernt |
 | `SKILL.md` | Update | Links und Beschreibungen anpassen |
 
 ## Design
@@ -309,9 +309,9 @@ Format bleibt wie bisher:
 | intake--tokens.md | task | core | ... |
 ```
 
-#### 5d. Kein OpenSpec
+#### 5d. Kein Legacy-Spec-Prozess
 
-Alle OpenSpec-Referenzen entfernt. Multi-File-Fixes laufen über Superpowers writing-plans → executing-plans.
+Alle Referenzen auf den Legacy-Spec-Prozess entfernt. Multi-File-Fixes laufen über Superpowers writing-plans → executing-plans.
 
 ### 6. `SKILL.md` — Änderungen
 
@@ -337,7 +337,7 @@ Beschreibung aktualisieren: Superpowers-basierter Post-Workflow-Review statt eig
 - `schemas.yml` bekommt eigene Resource-Datei (nicht in `structure.md` integriert)
 - Schema-Komposition: Interface-Level in `structure.md`, Deep-Dive in separater Resource
 - `## Result: <key>` als einheitliche Markup-Konvention im Task-Body
-- OpenSpec komplett entfernt, ersetzt durch Superpowers
+- Legacy-Spec-Prozess komplett entfernt, ersetzt durch Superpowers
 - Audit-Checkliste (5 Checks) bleibt — ist Designbook-spezifisch und wertvoll
 
 ## Nicht im Scope

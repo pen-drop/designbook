@@ -384,7 +384,7 @@ git commit -m "feat(workflows): chain breakpoints resolver from story_id"
 - [ ] **Step 1: Verify the task is not referenced in any live workflow**
 
 Run: `grep -rn "configure-meta" .agents/skills/designbook/ --include='*.md' --include='*.yml'`
-Expected: The only match is the task file itself (`.agents/skills/designbook/design/tasks/configure-meta.md`). Historical spec/plan files under `docs/superpowers/` and `openspec/` are out of scope — they document past work, not current runtime behaviour.
+Expected: The only match is the task file itself (`.agents/skills/designbook/design/tasks/configure-meta.md`). Historical spec/plan files under `docs/superpowers/` are out of scope — they document past work, not current runtime behaviour.
 
 If any live workflow/stage/schema references `configure-meta`, stop and report the finding — the deletion is unsafe without first removing that reference.
 
@@ -528,7 +528,7 @@ Expected: No matches (empty output).
 - [ ] **Step 3: Grep for lingering `configure-meta` runtime references**
 
 Run: `grep -rn "configure-meta" .agents/ packages/storybook-addon-designbook/src/`
-Expected: No matches. (Hits in `docs/` and `openspec/` are historical and acceptable.)
+Expected: No matches. (Hits in `docs/` are historical and acceptable.)
 
 - [ ] **Step 4: Manual sanity check (optional but recommended)**
 

@@ -19,7 +19,7 @@ symlinks `.agents`/`.claude` into test workspaces.
 - **Scope:** user-facing skills only — `designbook` (core, skill name `debo`),
   `designbook-drupal`, `designbook-css-tailwind`, `designbook-stitch`.
   Excluded: `designbook-skill-creator`, `designbook-test`,
-  `designbook-addon-skills`, `leando-migrate`, `openspec-*`.
+  `designbook-addon-skills`, `leando-migrate`.
   `designbook-devtools` is added once it exists.
 - **Repo:** marketplace lives in the designbook repo itself
   (`.claude-plugin/marketplace.json`). One source of truth, no sync.
@@ -59,7 +59,7 @@ metadata:
 ```
 
 All non-published skills (`designbook-skill-creator`, `designbook-test`,
-`designbook-addon-skills`, `openspec-*`) carry this flag. Hidden skills can
+`designbook-addon-skills`) carry this flag. Hidden skills can
 still be installed explicitly with `INSTALL_INTERNAL_SKILLS=1`.
 
 `leando-migrate` is a symlink to an absolute path outside the repo — it is

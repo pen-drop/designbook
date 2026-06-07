@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Update the `designbook-skill-creator` skill to document the schema-driven params/results system and replace the OpenSpec-based research flow with Superpowers.
+**Goal:** Update the `designbook-skill-creator` skill to document the schema-driven params/results system and replace the legacy research flow with Superpowers.
 
 **Architecture:** Six files in `.agents/skills/designbook-skill-creator/` — four updates and two new resources. All changes are documentation (Markdown), no TypeScript code changes.
 
@@ -829,7 +829,7 @@ Skill files are symlinked from the repo root — fixes are available immediately
 
 ```bash
 git add .agents/skills/designbook-skill-creator/resources/research.md
-git commit -m "docs(skill-creator): rewrite research.md — superpowers-based, no OpenSpec"
+git commit -m "docs(skill-creator): rewrite research.md — superpowers-based"
 ```
 
 ---

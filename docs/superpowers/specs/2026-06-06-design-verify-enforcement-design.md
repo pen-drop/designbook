@@ -173,12 +173,6 @@ cherry-picking the good parts of the split branch:
 
 ## Packaging
 
-- No OpenSpec. OpenSpec is legacy; full cleanup (its `openspec/` dir, the
-  `openspec-*` skills, `opsx-*` commands, plus references in
-  `designbook/SKILL.md:18`, `designbook-test/workflows/run.md:50`,
-  `scripts/setup-workspace.sh:48`,
-  `packages/integrations/test-integration-drupal/CLAUDE.md`) is a separate,
-  deferred task.
 - One branch off main, one implementation plan, two phases:
   - **Phase 1 — CLI** (Part 1): TypeScript, implemented with
     `designbook-addon-skills` loaded. `pnpm check` gates.
@@ -189,7 +183,6 @@ cherry-picking the good parts of the split branch:
 
 ## Out of scope
 
-- OpenSpec removal (deferred, own task)
 - Subagent-per-stage as a generic engine feature — discussed and desirable,
   but this design only needs subagent-per-after-workflow. Per-stage
   isolation is a follow-up.
