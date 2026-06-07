@@ -52,3 +52,15 @@ Layout component blueprints with tokens, props/slots summary (`when: steps: [cre
 - [blueprints/container.md](blueprints/container.md) — Universal structural wrapper (max-width, padding, header, background)
 - [blueprints/grid.md](blueprints/grid.md) — Responsive column grid layout
 - [blueprints/section.md](blueprints/section.md) — Layout Builder adapter (container + grid + column slots)
+
+## Install
+
+Backend-specific install rules and blueprints, loaded by the core install workflow
+(`designbook/install/workflows/install.md`) when their `trigger.steps` match and
+`filter: backend: drupal` passes.
+
+- [install/rules/detect-drupal.md](install/rules/detect-drupal.md) — `detect-backend` match (composer `drupal/core*`) + docroot resolution
+- [install/rules/find-theme.md](install/rules/find-theme.md) — `find-target`: theme scan, choose/scaffold → target_dir + namespace
+- [install/blueprints/designbook-config.md](install/blueprints/designbook-config.md) — `write-config`: the designbook.config.yml YAML starting point
+- [install/blueprints/storybook-setup.md](install/blueprints/storybook-setup.md) — `setup-storybook`: fresh vs extend, deps, template copy
+- [install/templates/](install/templates/) — `.storybook/` file templates

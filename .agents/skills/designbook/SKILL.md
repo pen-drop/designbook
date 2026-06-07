@@ -1,12 +1,12 @@
 ---
 name: debo
-argument-hint: "[vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|sections|shape-section|sample-data|css-generate|import|sb] [--optimize]"
+argument-hint: "[install|vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|sections|shape-section|sample-data|css-generate|import|sb] [--optimize]"
 description: >
   Designbook design system. Use ALWAYS when creating, modifying, or
   deleting components, screens, scenes, design tokens, CSS, or any
   design system artifact — whether the user asks directly or the need
   arises during other work. Never create component files without this
-  skill. Sub-commands: vision, tokens, data-model, design-component,
+  skill. Sub-commands: install, vision, tokens, data-model, design-component,
   design-screen, design-shell, sections,
   shape-section, sample-data, css-generate, import.
 ---
