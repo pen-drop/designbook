@@ -27,6 +27,8 @@ export interface DesignbookConfig {
   technology: string;
   /** Absolute path to the git workspace root (= DESIGNBOOK_WORKSPACE). */
   workspace?: string;
+  /** Feature flags. `features.<name>: false` disables a feature; default is on. */
+  features?: Record<string, boolean>;
   /** Any additional keys from the config file. */
   [key: string]: unknown;
 }
@@ -192,9 +194,11 @@ export function loadConfig(startDir?: string): DesignbookConfig {
 
     const config = { ...DEFAULTS, ...flat } as DesignbookConfig;
 
-    // Resolve css.app to absolute path
+    // Resolve css.app to absolute path and derive the css base directory
+    // (= DESIGNBOOK_CSS_DIR) for tasks that write next to the app stylesheet.
     if (typeof config['css.app'] === 'string') {
       config['css.app'] = resolve(configDir, config['css.app'] as string);
+      config['css.dir'] = dirname(config['css.app'] as string);
     }
 
     // 1. Resolve workspace (git project root)

@@ -4,4 +4,5 @@ export { storyUrlResolver } from './story-url.js';
 export { referenceFolderResolver } from './reference-folder.js';
 export { breakpointsResolver } from './breakpoints.js';
 export { scenePathResolver } from './scene-path.js';
+export { regionPropertiesResolver } from './region-properties.js';
 export type { ParamResolver, ResolverResult, ResolverContext, Candidate } from './types.js';

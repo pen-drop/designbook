@@ -14,6 +14,10 @@ params:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       workflow: debo-design-tokens
       type: object
+    region_properties:
+      $ref: designbook/design/schemas.yml#/RegionProperties
+      resolve: region_properties
+      from: reference_url
 result:
   type: object
   required: [component-yml, component-twig, component-story]

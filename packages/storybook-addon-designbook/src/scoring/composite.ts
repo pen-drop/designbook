@@ -61,3 +61,22 @@ export function evalAssertions(assertions: Assertion[], output: unknown): Assert
   }
   return { passed, total, failures };
 }
+
+export interface FidelityIssue {
+  severity: string;
+  [k: string]: unknown;
+}
+
+const SEVERITY_WEIGHT: Record<string, number> = { critical: 3, major: 2, minor: 1 };
+
+/**
+ * Deterministic visual-fidelity score for a verify run. Sum of severity
+ * weights over all issues across all checks. Lower is better; 0 = perfect.
+ */
+export function computeFidelityScore(issues: FidelityIssue[]): number {
+  let score = 0;
+  for (const issue of issues) {
+    score += SEVERITY_WEIGHT[issue.severity] ?? 0;
+  }
+  return score;
+}

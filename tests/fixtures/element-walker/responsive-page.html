@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Responsive Fixture</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    header { display: flex; align-items: center; padding: 0 24px; height: 64px; background: #ffffff; }
+    .nav { display: none; gap: 16px; }
+    .burger { display: block; }
+    @media (min-width: 1000px) {
+      .nav { display: flex; }
+      .burger { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header role="banner">
+    <a href="/" class="logo">Brand</a>
+    <nav class="nav" role="navigation">
+      <a href="/a">Products</a>
+      <a href="/b">Pricing</a>
+    </nav>
+    <button class="burger" aria-label="Menü">≡</button>
+  </header>
+  <main role="main"><h1>Responsive</h1></main>
+</body>
+</html>

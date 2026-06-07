@@ -16,5 +16,5 @@
   $entries := $each($$.semantic.color, function($v, $k) {
     $substring($k, 0, 1) != "$" ? "  --color-" & $k & ": " & $resolveVar($v."$value", "color") & ";"
   });
-  "@theme {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
+  "@theme static {\n" & $join($filter($entries, function($e) { $e != null }), "\n") & "\n}\n"
 )

@@ -27,6 +27,7 @@ export interface SummaryResult {
   summary?: string;
   warnings?: string[];
   assertions?: AssertionResult;
+  scoreReport?: { firstShot: number; final: number; delta: number };
   /** Aggregated results from after: child workflows. Keyed by child workflow type, then by result key. */
   after?: Record<string, Record<string, unknown>>;
 }
@@ -35,6 +36,7 @@ interface WorkflowOutput {
   flow_rate?: number;
   success_rate?: number;
   compare_passed?: boolean;
+  'score-report'?: { first_shot?: { score?: number }; final?: { score?: number }; delta?: number };
   metrics?: { errors?: number; retries?: number; unresolved?: number };
   summary?: string;
   warnings?: string[];
@@ -74,6 +76,16 @@ export function readSummary(opts: SummaryOptions): SummaryResult | null {
     }
   }
 
+  const sr = wo['score-report'];
+  const scoreReport =
+    sr && typeof sr.first_shot?.score === 'number' && typeof sr.final?.score === 'number'
+      ? {
+          firstShot: sr.first_shot.score,
+          final: sr.final.score,
+          delta: typeof sr.delta === 'number' ? sr.delta : sr.first_shot.score - sr.final.score,
+        }
+      : undefined;
+
   const result: SummaryResult = {
     workflow: opts.workflowName,
     flowRate: wo.flow_rate ?? 0,
@@ -90,6 +102,7 @@ export function readSummary(opts: SummaryOptions): SummaryResult | null {
       : {}),
     ...(wo.summary ? { summary: wo.summary } : {}),
     ...(wo.warnings?.length ? { warnings: wo.warnings } : {}),
+    ...(scoreReport ? { scoreReport } : {}),
     ...(assertions ? { assertions } : {}),
   };
 
@@ -147,6 +160,11 @@ function formatHuman(r: SummaryResult): string {
     ...(r.metrics
       ? [
           `  metrics:      errors ${r.metrics.errors} · retries ${r.metrics.retries} · unresolved ${r.metrics.unresolved}`,
+        ]
+      : []),
+    ...(r.scoreReport
+      ? [
+          `  fidelity:     first_shot ${r.scoreReport.firstShot} · final ${r.scoreReport.final} · delta ${r.scoreReport.delta}  (lower is better)`,
         ]
       : []),
     ...(r.summary ? [`  summary:      ${r.summary}`] : []),

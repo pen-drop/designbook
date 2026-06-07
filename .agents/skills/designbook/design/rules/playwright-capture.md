@@ -62,6 +62,11 @@ If the element is best identified by CSS selector, use `eval` to confirm it exis
 - If a selector matches no elements, skip with a warning — do NOT fail the task
 - Output directories MUST be created before capture (`mkdir -p`)
 - Reuse an open session across multiple captures for the same URL — only `open`/`close` once
+- **`resize` invalidates element refs.** Any `resize` (or other layout-affecting op) makes the
+  refs from a prior `snapshot` stale; a `screenshot <ref>` against a stale ref silently falls back
+  to a full-page capture. So within a reused session, after EACH `resize`, settle (`waitForTimeout`)
+  and re-run `snapshot` to re-acquire the ref, then `screenshot <ref>` immediately — never reuse a
+  ref captured at a different viewport.
 
 ## Storybook Restart
 

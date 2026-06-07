@@ -152,6 +152,52 @@ describe('buildSchemaBlock()', () => {
     });
   });
 
+  // Test 4b: a cross-file-pulled type's OWN bare same-file `#/X` refs are pulled
+  // too (transitively) and rewritten to `#/definitions/X` — otherwise they
+  // dangle and AJV throws "can't resolve reference". (regression: VerifyResult →
+  // #/BreakpointId / ScoreReport → #/VerifyResult)
+  it('resolves bare same-file refs inside a cross-file-pulled type, transitively', async () => {
+    const schemaDir = resolve(tmpDir, 'myskill');
+    const tasksDir = resolve(schemaDir, 'tasks');
+    mkdirSync(tasksDir, { recursive: true });
+
+    const schemasFile = resolve(schemaDir, 'schemas.yml');
+    writeYaml(schemasFile, {
+      Leaf: { type: 'string', enum: ['a', 'b'] },
+      Mid: {
+        type: 'object',
+        properties: { kind: { $ref: '#/Leaf' } },
+      },
+      Report: {
+        type: 'object',
+        properties: {
+          rows: { type: 'array', items: { $ref: '#/Mid' } },
+        },
+      },
+    });
+
+    const taskFilePath = resolve(tasksDir, 'task.md');
+    writeFileSync(taskFilePath, '---\ntitle: Test\n---\n');
+
+    const block = await buildSchemaBlock({
+      params: undefined,
+      result: { properties: { report: { $ref: '../schemas.yml#/Report' } } },
+      taskFilePath,
+      skillsRoot: tmpDir,
+      envMap: {},
+    });
+
+    // Entry rewritten to local definitions ref.
+    expect(block.result.report!.$ref).toBe('#/definitions/Report');
+    // All three types pulled into definitions.
+    expect(Object.keys(block.definitions).sort()).toEqual(['Leaf', 'Mid', 'Report']);
+    // Bare same-file refs rewritten to local definitions refs (no dangling '#/Mid' / '#/Leaf').
+    const report = block.definitions['Report'] as { properties: { rows: { items: { $ref: string } } } };
+    expect(report.properties.rows.items.$ref).toBe('#/definitions/Mid');
+    const mid = block.definitions['Mid'] as { properties: { kind: { $ref: string } } };
+    expect(mid.properties.kind.$ref).toBe('#/definitions/Leaf');
+  });
+
   // Test 5: resolves $ref, path, exists, and content for result entries (same logic as params)
   it('resolves $ref, path, exists, and content for result entries', async () => {
     const schemaDir = resolve(tmpDir, 'myskill');

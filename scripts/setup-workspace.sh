@@ -5,13 +5,34 @@
 # (CWD), so workspaces created from a git worktree reflect that worktree's skill
 # state for Claude Code, Cursor and Codex alike.
 #
-# Usage: ./scripts/setup-workspace.sh [name]
-#   name  Workspace name (default: drupal)
+# Usage: ./scripts/setup-workspace.sh [name] [--feature name=value]... [--features a=on,b=off]
+#   name             Workspace name (default: drupal)
+#   --feature k=v    Set a feature flag in the workspace's designbook.config.yml
+#                    (repeatable). value: on/1/true/yes or off/0/false/no.
+#   --features a=v,b=v   Comma-separated shorthand for several flags.
+#
+# Example: ./scripts/setup-workspace.sh ab-test --feature region_properties=off
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WORKSPACE_NAME="${1:-drupal}"
+
+WORKSPACE_NAME=""
+FEATURE_ARGS=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --feature=*) FEATURE_ARGS+=("${1#*=}"); shift ;;
+    --feature|-f) FEATURE_ARGS+=("${2:?--feature needs name=value}"); shift 2 ;;
+    --features=*) IFS=',' read -ra _f <<< "${1#*=}"; FEATURE_ARGS+=("${_f[@]}"); shift ;;
+    -*) echo "Unknown option: $1" >&2; exit 1 ;;
+    *)
+      if [ -z "$WORKSPACE_NAME" ]; then WORKSPACE_NAME="$1"; else
+        echo "Unexpected argument: $1" >&2; exit 1
+      fi
+      shift ;;
+  esac
+done
+WORKSPACE_NAME="${WORKSPACE_NAME:-drupal}"
 WORKSPACE_DIR="$REPO_ROOT/workspaces/$WORKSPACE_NAME"
 SOURCE_DIR="$REPO_ROOT/packages/integrations/test-integration-drupal"
 
@@ -35,6 +56,34 @@ rsync -a \
   --exclude='debug-storybook.log' \
   --exclude='tmp' \
   "$SOURCE_DIR/" "$WORKSPACE_DIR/"
+
+# Apply feature-flag overrides into the copied designbook.config.yml.
+# Note: this rewrites the YAML (comments are dropped) — only runs when flags
+# are passed; a flag-less setup keeps the template config verbatim.
+if [ ${#FEATURE_ARGS[@]} -gt 0 ]; then
+  CONFIG_FILE="$WORKSPACE_DIR/designbook.config.yml" \
+  FEATURE_PAIRS="${FEATURE_ARGS[*]}" \
+  NODE_PATH="$REPO_ROOT/node_modules" \
+  node -e '
+    const fs = require("fs");
+    const yaml = require("js-yaml");
+    const file = process.env.CONFIG_FILE;
+    const cfg = (fs.existsSync(file) ? yaml.load(fs.readFileSync(file, "utf8")) : {}) || {};
+    cfg.features = cfg.features || {};
+    const truthy = new Set(["on", "1", "true", "yes"]);
+    const falsy = new Set(["off", "0", "false", "no"]);
+    for (const pair of (process.env.FEATURE_PAIRS || "").split(/\s+/).filter(Boolean)) {
+      const i = pair.indexOf("=");
+      const k = i === -1 ? pair : pair.slice(0, i);
+      const v = (i === -1 ? "true" : pair.slice(i + 1)).toLowerCase();
+      if (truthy.has(v)) cfg.features[k] = true;
+      else if (falsy.has(v)) cfg.features[k] = false;
+      else { console.error(`Invalid feature value in "${pair}" (use on/off)`); process.exit(1); }
+    }
+    fs.writeFileSync(file, yaml.dump(cfg, { lineWidth: -1 }));
+    console.log("Applied feature flags:", JSON.stringify(cfg.features));
+  '
+fi
 
 # Symlink agent directories so the CLI and every agent (Claude, Cursor, Codex)
 # can resolve skills and commands from the workspace. The skills/commands inside
