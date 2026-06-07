@@ -59,7 +59,7 @@ For each in-progress task, in order. The schema for the task's results is the go
 
 ### 0. Inline or isolated?
 
-Check `step_resolved[<current-step>].isolate` (also surfaced on `workflow instructions` as `isolate`).
+Read `isolate` from the `step_resolved` map captured at `workflow create` — it is emitted once and stays stable for the whole run, so at every transition you look up `step_resolved[<current-step>].isolate` from that retained state. (On a resumed run where you no longer hold the create response, `workflow instructions <step>` re-surfaces `isolate` — but only for a step already loaded via its own `workflow done --loaded`; it does not resolve a step before that step has run.)
 
 - **Absent / false** — run this step inline, exactly as steps 1–7 below.
 - **`true`** — do NOT read the task body, rules, or blueprints yourself. Dispatch ONE subagent with the brief in [`stage-executor.md`](stage-executor.md), passing: `$WORKFLOW_NAME`, the workspace root, the in-progress task id(s) for this step, the step's `task_file`/`rules`/`blueprints`/`schema` from `step_resolved`, the scope subset the stage needs, and paths (not contents) of any bulky upstream artifacts it consumes. The subagent calls `workflow done` itself. When it returns, read ONLY its compact summary + the `RESPONSE:` JSON, then continue at step 7 (Follow the response). The subagent's intermediate context never enters yours.
