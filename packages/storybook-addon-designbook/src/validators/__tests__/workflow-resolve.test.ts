@@ -30,8 +30,10 @@ import {
   resolveParamsRef,
   resolveStageTaskParams,
   matchDomain,
+  resolveAllStages,
   type ResolvedFile,
   type ResolvedTask,
+  type ResolvedStep,
 } from '../../workflow-resolve.js';
 import type { StageDefinition } from '../../workflow-types.js';
 import { acquireLock, releaseLock, withLock } from '../../workflow-lock.js';
@@ -2537,5 +2539,45 @@ describe('resolveStageTaskParams', () => {
     expect(result.allResolved).toBe(false);
     expect(result.unresolved.story_url).toBeDefined();
     expect(result.unresolved.story_url?.error).toBeDefined();
+  });
+});
+
+describe('resolveAllStages — isolate flag', () => {
+  let agentsDir: string;
+  let config: DesignbookConfig;
+
+  beforeEach(() => {
+    agentsDir = makeTmpDir();
+    writeSkillTaskFile(agentsDir, 'demo', 'alpha', 'trigger:\n  steps: [alpha]', 'alpha body');
+    writeSkillTaskFile(agentsDir, 'demo', 'beta', 'trigger:\n  steps: [beta]', 'beta body');
+    config = { data: makeTmpDir() } as unknown as DesignbookConfig;
+  });
+
+  it('sets isolate: true only on steps whose stage declares isolate', async () => {
+    const wfDir = resolve(agentsDir, 'skills', 'demo', 'workflows');
+    mkdirSync(wfDir, { recursive: true });
+    const wfPath = resolve(wfDir, 'demo.md');
+    writeFileSync(
+      wfPath,
+      [
+        '---',
+        'title: Demo',
+        'stages:',
+        '  one:',
+        '    steps: [alpha]',
+        '    isolate: true',
+        '  two:',
+        '    steps: [beta]',
+        '---',
+      ].join('\n'),
+    );
+
+    const resolved = await resolveAllStages(wfPath, config, {}, agentsDir);
+    const alpha = resolved.step_resolved['alpha'] as ResolvedStep;
+    const beta = resolved.step_resolved['beta'] as ResolvedStep;
+    expect(Array.isArray(alpha)).toBe(false);
+    expect(Array.isArray(beta)).toBe(false);
+    expect(alpha.isolate).toBe(true);
+    expect(beta.isolate).toBeUndefined();
   });
 });

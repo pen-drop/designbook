@@ -57,6 +57,15 @@ When `intake_skipped: true` appears in the response (because `--params` covered 
 
 For each in-progress task, in order. The schema for the task's results is the goal — every step below is in service of filling that schema.
 
+### 0. Inline or isolated?
+
+Read `isolate` from the `step_resolved` map captured at `workflow create` — it is emitted once and stays stable for the whole run, so at every transition you look up `step_resolved[<current-step>].isolate` from that retained state. (On a resumed run where you no longer hold the create response, `workflow instructions <step>` re-surfaces `isolate` — but only for a step already loaded via its own `workflow done --loaded`; it does not resolve a step before that step has run.)
+
+- **Absent / false** — run this step inline, exactly as steps 1–7 below.
+- **`true`** — do NOT read the task body, rules, or blueprints yourself. Dispatch ONE subagent with the brief in [`stage-executor.md`](stage-executor.md), passing: `$WORKFLOW_NAME`, the workspace root, the in-progress task id(s) for this step, the step's `task_file`/`rules`/`blueprints`/`schema` from `step_resolved`, the scope subset the stage needs, and paths (not contents) of any bulky upstream artifacts it consumes. The subagent calls `workflow done` itself. When it returns, read ONLY its compact summary + the `RESPONSE:` JSON, then continue at step 7 (Follow the response). The subagent's intermediate context never enters yours.
+
+If the subagent returns `needs_user`, run `workflow wait` → ask the user → `workflow resume`, then re-dispatch the subagent with the answer added to the scope subset.
+
 ### 1. Read the schema of the expected results
 
 The `workflow create` response (and every subsequent `workflow done` response for tasks in the same run) carries `schema.result` on each step entry in `step_resolved`. That schema lists every required result key, with its type, path template (if a file result), and any `$ref`-resolved definitions. This is your goal statement.
@@ -78,6 +87,8 @@ Open the `task_file` from `step_resolved[<step>]`. The body contains decisions a
 ### 4. Read rules and blueprints silently
 
 Read every path in `rules` and `blueprints` for the current step. Rules are hard constraints — they bind all work in this task. Blueprints are overridable starting points (directory layouts, naming, markup patterns). Never mention rules or blueprints to the user; they're context for you, not conversation.
+
+(For isolated steps you skip this entirely — the subagent reads rules and blueprints in its own context. See step 0.)
 
 ### 5. Resolve the schema
 

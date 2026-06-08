@@ -34,20 +34,25 @@ params:
 stages:
   reference:
     steps: [extract-reference]
+    isolate: true
   intake:
     steps: [intake]
   component:
     steps: [create-component]
+    isolate: true
   scene:
     steps: [create-scene-file, create-scene]
+    isolate: true
   validate:
     steps: [validate]
   setup-compare:
     steps: [setup-compare]
   capture:
     steps: [capture]
+    isolate: true
   compare:
     steps: [compare]
+    isolate: true
   outtake:
     steps: [outtake]
 engine: direct

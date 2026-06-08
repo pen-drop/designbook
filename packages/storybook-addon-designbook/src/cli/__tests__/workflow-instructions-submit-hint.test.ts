@@ -12,7 +12,7 @@ import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml } from 'js-yaml';
 import { resolveAllStages, buildEnvMap, expandResultDeclarations, parseFrontmatter } from '../../workflow-resolve.js';
 import type { ResolvedStep } from '../../workflow-resolve.js';
-import { workflowCreate } from '../../workflow.js';
+import { workflowCreate, workflowDone } from '../../workflow.js';
 import type { DesignbookConfig } from '../../config.js';
 import { buildInstructions } from '../workflow.js';
 
@@ -182,6 +182,126 @@ describe('workflow instructions: submit_results hint', () => {
     expect(widgetEntry!.path).toBe('widgets/gizmo.widget.yml');
     expect(widgetEntry!.$ref).toBe('#/definitions/WidgetYaml');
     expect(out.schema!.definitions.WidgetYaml).toBeDefined();
+  });
+
+  it('returns isolate: true when the stage_loaded entry is isolated', async () => {
+    // This test drives the flag through the real workflowDone path so that a
+    // regression in the dedup-write `...(loaded.isolate ? { isolate: true } : {})`
+    // (workflow.ts ~line 1363) would be caught.  The previous version bypassed
+    // that path by pre-seeding stage_loaded via workflowCreate's stageLoaded arg.
+    //
+    // A second task ('do-after') is added so that completing 'do-isolated' does
+    // NOT archive the workflow — the tasks.yml must remain in workflows/changes/
+    // for buildInstructions to read it.
+    const skill = 'test-hint-isolate';
+
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'workflows', 'test-hint-isolate.md'),
+      {
+        title: 'Test Hint Isolate',
+        stages: {
+          execute: { steps: ['do-isolated'], isolate: true },
+          finish: { steps: ['do-after'] },
+        },
+        engine: 'direct',
+      },
+      '# test-hint-isolate',
+    );
+
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'tasks', 'do-isolated.md'),
+      { trigger: { steps: ['do-isolated'] } },
+      '# do-isolated',
+    );
+
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'tasks', 'do-after.md'),
+      { trigger: { steps: ['do-after'] } },
+      '# do-after',
+    );
+
+    const workflowPath = resolve(agentsDir, 'skills', skill, 'workflows', 'test-hint-isolate.md');
+    const resolved = await resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
+
+    const firstStepName = 'do-isolated';
+    const firstResolved = resolved.step_resolved[firstStepName] as ResolvedStep;
+    expect(firstResolved).toBeDefined();
+    expect(firstResolved.isolate).toBe(true);
+
+    const envMap = buildEnvMap(baseConfig);
+
+    // Create the workflow WITHOUT pre-seeding stage_loaded (pass undefined for
+    // the stageLoaded arg so the isolate flag can only come from workflowDone).
+    const name = workflowCreate(
+      baseConfig.data,
+      'test-hint-isolate',
+      resolved.title,
+      [
+        {
+          id: firstStepName,
+          title: `${resolved.title}: ${firstStepName}`,
+          type: 'data',
+          step: firstStepName,
+          stage: 'execute',
+          files: [],
+          task_file: firstResolved.task_file,
+          rules: firstResolved.rules,
+          blueprints: firstResolved.blueprints,
+          config_rules: firstResolved.config_rules,
+          config_instructions: firstResolved.config_instructions,
+        },
+        {
+          id: 'do-after',
+          title: `${resolved.title}: do-after`,
+          type: 'data',
+          step: 'do-after',
+          stage: 'finish',
+          files: [],
+        },
+      ],
+      resolved.stages,
+      undefined, // parent
+      undefined, // stageLoaded — intentionally omitted; flag must come from workflowDone
+      resolved.engine,
+      undefined,
+      tmpDir,
+      {},
+      envMap,
+    );
+
+    // Confirm stage_loaded is NOT yet set (before workflowDone is called).
+    const beforeOut = buildInstructions(baseConfig.data, name, firstStepName);
+    expect('error' in beforeOut).toBe(true);
+
+    // Drive the flag through the real workflowDone dedup-write path.
+    const doneResult = await workflowDone(baseConfig.data, name, firstStepName, {
+      task_file: firstResolved.task_file,
+      rules: [],
+      blueprints: [],
+      config_rules: [],
+      config_instructions: [],
+      isolate: true,
+    });
+
+    // The workflow must NOT have been archived (second task still pending).
+    expect(doneResult.archived).toBe(false);
+
+    // Verify the dedup-write landed in the persisted data returned by workflowDone.
+    const persistedEntry = doneResult.data.stage_loaded?.['do-isolated'];
+    expect(persistedEntry).toBeDefined();
+    expect((persistedEntry as { isolate?: boolean } | undefined)?.isolate).toBe(true);
+
+    // Now buildInstructions must surface isolate: true from stage_loaded.
+    const out = buildInstructions(baseConfig.data, name, firstStepName);
+    expect('error' in out).toBe(false);
+    if ('error' in out) throw new Error('unexpected error');
+
+    expect((out as import('../workflow.js').InstructionsResult).isolate).toBe(true);
+
+    // Negative assertion: the non-isolated step 'do-after' is not yet in
+    // stage_loaded, so buildInstructions for it returns an error (no entry).
+    const outAfter = buildInstructions(baseConfig.data, name, 'do-after');
+    expect('error' in outAfter).toBe(true);
   });
 
   it('omits submit_results when no data-submission results exist', async () => {

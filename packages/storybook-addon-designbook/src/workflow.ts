@@ -61,6 +61,8 @@ export interface StageLoaded {
   config_rules: string[]; // strings from designbook.config.yml → workflow.rules.<step>
   config_instructions: string[]; // strings from designbook.config.yml → workflow.tasks.<step>
   schema?: import('./schema-block.js').SchemaBlock; // unified schema block (params, result, definitions)
+  /** True when this step's stage is isolated. Mirrors ResolvedStep.isolate. */
+  isolate?: boolean;
 }
 
 export type StageLoadedEntry = StageLoaded | StageLoaded[];
@@ -1052,6 +1054,7 @@ export interface LoadedPayload {
   blueprints?: string[];
   config_rules?: string[];
   config_instructions?: string[];
+  isolate?: boolean;
 }
 
 /**
@@ -1357,6 +1360,7 @@ export async function workflowDone(
             blueprints: loaded.blueprints ?? [],
             config_rules: loaded.config_rules ?? [],
             config_instructions: loaded.config_instructions ?? [],
+            ...(loaded.isolate ? { isolate: true } : {}),
           };
         }
       }

@@ -22,11 +22,13 @@ params:
 stages:
   reference:
     steps: [extract-reference]
+    isolate: true
   intake:
     steps: [intake]
     domain: [data-model]
   component:
     steps: [create-component]
+    isolate: true
   sample-data:
     steps: [create-sample-data]
   entity-mapping:
@@ -34,12 +36,15 @@ stages:
   scene:
     steps: [create-scene]
     domain: [data-model]
+    isolate: true
   setup-compare:
     steps: [setup-compare]
   capture:
     steps: [capture]
+    isolate: true
   compare:
     steps: [compare]
+    isolate: true
   outtake:
     steps: [outtake]
 engine: direct
