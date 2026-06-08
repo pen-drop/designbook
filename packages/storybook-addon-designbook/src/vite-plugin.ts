@@ -10,6 +10,7 @@ import { buildSceneModule } from './renderer/scene-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { scanAllWorkflows } from './workflow-utils';
 import { StoryMeta } from './story-entity';
+import { USES_WITH_SELECTOR_SOURCE } from './use-sync-with-selector-source';
 
 /** Minimal glob matcher — supports * (no slash) and **-slash (zero or more dirs). */
 function globMatch(pattern: string, filePath: string): boolean {
@@ -45,42 +46,6 @@ export function designbookLoadPlugin(
 
   const RESOLVED_USES_SHIM = '\0designbook-uses/shim';
   const RESOLVED_USES_WITH_SELECTOR = '\0designbook-uses/shim-with-selector';
-
-  const USES_WITH_SELECTOR_SOURCE = [
-    "import { useSyncExternalStore, useRef, useEffect, useMemo, useDebugValue } from 'react';",
-    "export function useSyncExternalStoreWithSelector(subscribe, getSnapshot, getServerSnapshot, selector, isEqual) {",
-    "  const instRef = useRef(null);",
-    "  let inst;",
-    "  if (instRef.current === null) { inst = { hasValue: false, value: null }; instRef.current = inst; } else { inst = instRef.current; }",
-    "  const [getSelection, getServerSelection] = useMemo(() => {",
-    "    let hasMemo = false; let memoizedSnapshot; let memoizedSelection;",
-    "    const memoizedSelector = (nextSnapshot) => {",
-    "      if (!hasMemo) {",
-    "        hasMemo = true; memoizedSnapshot = nextSnapshot;",
-    "        const nextSelection = selector(nextSnapshot);",
-    "        if (isEqual !== undefined && inst.hasValue) {",
-    "          const currentSelection = inst.value;",
-    "          if (isEqual(currentSelection, nextSelection)) { memoizedSelection = currentSelection; return currentSelection; }",
-    "        }",
-    "        memoizedSelection = nextSelection; return nextSelection;",
-    "      }",
-    "      const prevSnapshot = memoizedSnapshot; const prevSelection = memoizedSelection;",
-    "      if (Object.is(prevSnapshot, nextSnapshot)) return prevSelection;",
-    "      const nextSelection = selector(nextSnapshot);",
-    "      if (isEqual !== undefined && isEqual(prevSelection, nextSelection)) { memoizedSnapshot = nextSnapshot; return prevSelection; }",
-    "      memoizedSnapshot = nextSnapshot; memoizedSelection = nextSelection; return nextSelection;",
-    "    };",
-    "    const getSnapshotWithSelector = () => memoizedSelector(getSnapshot());",
-    "    const getServerSnapshotWithSelector = getServerSnapshot === undefined ? null : () => memoizedSelector(getServerSnapshot());",
-    "    return [getSnapshotWithSelector, getServerSnapshotWithSelector];",
-    "  }, [getSnapshot, getServerSnapshot, selector, isEqual]);",
-    "  const value = useSyncExternalStore(subscribe, getSelection, getServerSelection);",
-    "  useEffect(() => { inst.hasValue = true; inst.value = value; }, [value]);",
-    "  useDebugValue(value);",
-    "  return value;",
-    "}",
-    "export default { useSyncExternalStoreWithSelector };",
-  ].join('\n');
 
   // Resolve React package directories so mount-react.js works in pnpm strict mode
   let reactDir: string | undefined;
@@ -188,10 +153,13 @@ export function designbookLoadPlugin(
       // interop can't detect it (breaks under Storybook 10 / React 19). Map the
       // two shim entrypoints to ESM wrappers that default-import the CJS and
       // re-export the named members.
-      if (cleanId === 'use-sync-external-store/shim'
-        || /use-sync-external-store\/shim\/index\.js$/.test(cleanId)) return RESOLVED_USES_SHIM;
-      if (cleanId === 'use-sync-external-store/shim/with-selector'
-        || /use-sync-external-store\/shim\/with-selector\.js$/.test(cleanId)) return RESOLVED_USES_WITH_SELECTOR;
+      if (cleanId === 'use-sync-external-store/shim' || /use-sync-external-store\/shim\/index\.js$/.test(cleanId))
+        return RESOLVED_USES_SHIM;
+      if (
+        cleanId === 'use-sync-external-store/shim/with-selector' ||
+        /use-sync-external-store\/shim\/with-selector\.js$/.test(cleanId)
+      )
+        return RESOLVED_USES_WITH_SELECTOR;
       if (cleanId === VIRTUAL_SECTIONS) return RESOLVED_VIRTUAL_SECTIONS;
       if (cleanId === VIRTUAL_THEMES) return RESOLVED_VIRTUAL_THEMES;
 
@@ -206,9 +174,11 @@ export function designbookLoadPlugin(
       if (id === RESOLVED_USES_SHIM) {
         // React 18+/19 expose useSyncExternalStore natively — re-export from
         // React (ESM) instead of the CJS shim whose named export esbuild can't see.
-        return "import { useSyncExternalStore } from 'react';\n"
-          + "export { useSyncExternalStore };\n"
-          + "export default { useSyncExternalStore };\n";
+        return (
+          "import { useSyncExternalStore } from 'react';\n" +
+          'export { useSyncExternalStore };\n' +
+          'export default { useSyncExternalStore };\n'
+        );
       }
       if (id === RESOLVED_USES_WITH_SELECTOR) {
         // Standard useSyncExternalStoreWithSelector implementation (React source),
