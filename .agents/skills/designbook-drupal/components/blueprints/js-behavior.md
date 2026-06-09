@@ -1,13 +1,13 @@
 ---
 type: pattern
-name: behavior
+name: js-behavior
 trigger:
   domain: components
 filter:
   backend: drupal
 ---
 
-# Blueprint: Component Behavior
+# Blueprint: Component JS Behavior
 
 Starting point for the co-located `<name>.js` of a component that has interaction
 (a `behavior` on its `interactive[]` entry): a toggle/disclosure/overlay/menu that
