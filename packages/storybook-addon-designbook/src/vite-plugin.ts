@@ -1,6 +1,6 @@
 import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
 import type { IncomingMessage } from 'http';
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve, join, basename, dirname, relative } from 'node:path';
 import { createRequire } from 'node:module';
 import { load as parseYaml } from 'js-yaml';
@@ -239,6 +239,11 @@ export function designbookLoadPlugin(
       // dev server — re-running every plugin's `configureServer` re-creates the
       // StoryIndexGenerator and re-globbies all story specs from scratch.
       const triggerSrc = resolve(designbookDir, '.workflow-trigger');
+      // chokidar ignores a watch target that does not exist yet — if the trigger
+      // file is absent at startup (a fresh workspace), the first flush's write
+      // never fires `onTrigger` and the fallback restart silently never happens.
+      // Create it up front so the watcher binds to a real path.
+      if (!existsSync(triggerSrc)) writeFileSync(triggerSrc, '0');
       server.watcher.add(triggerSrc);
       let restarting = false;
       const onTrigger = (file: string) => {
