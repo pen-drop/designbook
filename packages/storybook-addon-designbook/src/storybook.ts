@@ -200,6 +200,41 @@ export async function killProcess(pid: number): Promise<void> {
   }
 }
 
+/**
+ * Directory roots Storybook's StoryIndexGenerator + Vite watcher will attach to,
+ * read from the `stories` globs in `.storybook/main.*`. chokidar silently ignores
+ * a glob root that does not exist at startup, so a workflow that writes the first
+ * file into one of these dirs after launch never triggers a re-index. Pre-creating
+ * exactly the globbed roots (not a guessed `components`/`stories`) lets the native
+ * watcher track them from the start. Returns absolute dirs; empty when `main.*` is
+ * missing or its `stories` array cannot be parsed (graceful — falls back to the
+ * trigger/restart path).
+ */
+export function storyGlobDirs(cwd: string): string[] {
+  const sbDir = resolve(cwd, '.storybook');
+  const mainFile = ['main.js', 'main.ts', 'main.mjs', 'main.cjs']
+    .map((f) => resolve(sbDir, f))
+    .find((f) => existsSync(f));
+  if (!mainFile) return [];
+  let src: string;
+  try {
+    src = readFileSync(mainFile, 'utf-8');
+  } catch {
+    return [];
+  }
+  const block = src.match(/stories["']?\s*:\s*\[([\s\S]*?)\]/);
+  if (!block) return [];
+  const dirs = new Set<string>();
+  for (const m of block[1]!.matchAll(/['"]([^'"]+)['"]/g)) {
+    const glob = m[1];
+    if (!glob) continue;
+    const star = glob.search(/[*?{([]/);
+    if (star === -1) continue; // concrete file path, not a glob root to pre-create
+    dirs.add(resolve(sbDir, glob.slice(0, star)));
+  }
+  return [...dirs];
+}
+
 // ── StorybookDaemon ─────────────────────────────────────────────────────────
 
 export class StorybookDaemon {
@@ -360,6 +395,16 @@ export class StorybookDaemon {
     const fullCmd = `${cmd} --port ${port}`;
     const startupErrors: string[] = [];
     const errorPattern = /ERROR|ModuleNotFoundError|Cannot find|Failed to/;
+
+    // Pre-create the story-glob roots Storybook will watch so the native watcher
+    // tracks them from the start — see storyGlobDirs(). Without this, the first
+    // component/story a workflow writes after launch is invisible until a manual
+    // `--force` ("Available: (none)").
+    if (cwd) {
+      for (const dir of storyGlobDirs(cwd)) {
+        mkdirSync(dir, { recursive: true });
+      }
+    }
 
     const logPath = this.logPath;
     mkdirSync(this.dataDir, { recursive: true });
