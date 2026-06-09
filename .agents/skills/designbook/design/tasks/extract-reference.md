@@ -76,6 +76,12 @@ Common treatments include:
 
 Do not map every clickable element to a filled or accent button. Preserve the observed treatment.
 
+#### Interactive behavior — trigger, don't just describe
+
+When an element does more than restyle on hover/focus — it shows, hides, or activates another element (a menu, off-canvas panel, dropdown, overlay, tab set, or accordion) — record its behavior, not only its resting look. Classifying the treatment is not enough: a trigger captured only at rest yields inert markup downstream and an open state no one ever saw.
+
+For each such element populate `behavior` (the interaction pattern), `target` (selector of the element it controls), and `aria` (the attribute that flips). Then actually exercise it: drive each non-rest condition and record it as a `CaptureState` (a `name` plus the `steps` — the clicks/hovers — that reach it). The icons or panels that only exist in the activated state (e.g. a close icon, a chevron, a revealed submenu) are observable only after triggering, and they are exactly what downstream markup must reproduce.
+
 ### Forms
 
 Populate `forms[]` for every form detected (search, newsletter, contact, login …). Inline HTML snippets of labels/inputs in scene YAML are not a substitute — a form must be represented structurally so it can be rendered as a `form` component downstream.

@@ -36,3 +36,13 @@ Each item in the `items` array:
 
 - Uses a recursive Twig macro for nested `below` items
 - Shell stories typically use a flat list (1 level)
+
+## Collapsible / mobile variant
+
+When the reference collapses the navigation behind a trigger at smaller viewports,
+the markup must ship the toggleable panel — not just the trigger button. The trigger
+carries `aria-controls` (the panel id), `aria-expanded`, and a `data-behavior` hook;
+the panel carries the id and starts `hidden`. Which viewport shows the trigger vs. the
+inline list is a CSS-utility concern; the open/closed toggle is component behavior, so
+the variant ships a co-located `<name>.js`. Provide a story showing the opened panel so
+the expanded state is visible and verifiable, not only the collapsed default.
