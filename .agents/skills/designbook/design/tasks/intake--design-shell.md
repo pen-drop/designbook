@@ -62,7 +62,7 @@ Reuse an existing component when its slots/variants already cover the new need �
 
 One entry per **new** component. Each item: `component` (name), `slots` (array), `group`.
 
-When the component has visual variants (e.g. logo full vs mark-only, navigation main vs footer), declare them under `variants:` as objects with an `id` field — **kebab-case, no `name:`**. Example:
+When the component has visual variants (e.g. logo full vs mark-only, navigation main vs footer), declare them under `variants:` as objects with an `id` field — **snake_case (no hyphens), no `name:`**. A hyphenated id breaks the generated story export (`mark-only` → invalid JS identifier). Example:
 
 ```yaml
 - component: navigation
@@ -71,6 +71,7 @@ When the component has visual variants (e.g. logo full vs mark-only, navigation 
   variants:
     - id: main
     - id: footer
+    - id: mark_only
 ```
 
 The `id` becomes the story filename segment (`<component>.<id>.story.yml`) and the key in `.component.yml` `variants:`. Submitting `name:` instead fails validation with `must have required property 'id'`.

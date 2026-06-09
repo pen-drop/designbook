@@ -34,6 +34,7 @@ Use the Playwright CLI session skeleton documented in [`cli-playwright.md`](../.
 
 - `#storybook-root` inner text or rendered children.
 - Any error element: `#error-message`, `#preview-loader-error`, `.sb-errordisplay`.
+- Font load state: for each `font-family` the rendered root resolves to (read the computed `font-family` of `#storybook-root` and its text descendants), confirm the browser actually loaded it via `document.fonts.check('1em "<family>"')`. A generic/system family (`serif`, `sans-serif`, `system-ui`, …) where a named brand family was expected means the real face never loaded.
 
 ## Pass criteria
 
@@ -42,6 +43,7 @@ The stage only completes when ALL are true:
 - `#storybook-root` contains non-empty text or rendered children.
 - No error element is present.
 - The Storybook log for the current session has no unresolved compilation errors referencing the scene or its components.
+- Every non-generic `font-family` the render resolves to passes `document.fonts.check` (the named face actually loaded). A silent fallback to a system font is a failure, not a pass — it is invisible in the screenshot diff at this stage but breaks typography fidelity.
 
 ## Failure protocol
 
