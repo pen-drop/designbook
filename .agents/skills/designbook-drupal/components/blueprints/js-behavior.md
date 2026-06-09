@@ -9,12 +9,15 @@ filter:
 
 # Blueprint: Component JS Behavior
 
-Starting point for the co-located `<name>.js` of a component that has interaction
+The **default** starting point for the JavaScript of a component that has interaction
 (a `behavior` on its `interactive[]` entry): a toggle/disclosure/overlay/menu that
-opens, closes, or activates a target. The same file runs unchanged in Drupal and in
-Storybook — the SDC Storybook addon ships the Drupal JS runtime and calls
-`Drupal.attachBehaviors` after every story render, and auto-discovers a co-located
-`<name>.js`, so a `Drupal.behaviors` toggle works in the story without extra wiring.
+opens, closes, or activates a target. This is one approach — `<name>.js` holds any
+component JS, and a project may script it differently (Alpine, vanilla, a web
+component); as a blueprint this is overridable. The Drupal route is the default
+because it runs unchanged in Drupal and Storybook — the SDC Storybook addon ships the
+Drupal JS runtime, calls `Drupal.attachBehaviors` after every story render, and
+auto-discovers `<name>.js`, so a `Drupal.behaviors` toggle works in the story without
+extra wiring.
 
 ## Pattern
 

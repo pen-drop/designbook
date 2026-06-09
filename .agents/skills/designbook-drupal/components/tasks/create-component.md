@@ -45,7 +45,7 @@ Produce the SDC artefacts for a single component:
 - `{{ component.component }}.component.yml` — schema (props, slots, libraries)
 - `{{ component.component }}.twig` — markup template
 - `{{ component.component }}.default.story.yml` — default story
-- `{{ component.component }}.js` — component behavior, only when the component covers an `interactive[]` entry that declares a `behavior` (otherwise omit this result)
+- `{{ component.component }}.js` — the component's JavaScript (the default integration point for any component scripting), when the component needs it — to implement a declared `interactive[]` `behavior`, or for any other enhancement. Omit when none is needed.
 
 ## Template Mode (`component.design_hint.markup`)
 

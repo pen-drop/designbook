@@ -34,7 +34,7 @@ Required artefacts per component, all kebab-case:
 Co-located assets (auto-discovered — do **not** declare them in `.component.yml`):
 
 - `<name>.css` — component-scoped styles (optional)
-- `<name>.js` — component-scoped behavior. **Mandatory** when the component covers an extracted `interactive[]` entry that declares a `behavior` (toggle/disclosure/overlay/menu/tabs/accordion) — the markup alone is inert. Auto-discovered and active in Storybook (the addon calls `Drupal.attachBehaviors` after each render). Optional otherwise.
+- `<name>.js` — the component's JavaScript. Co-located `<name>.js` is the **default, auto-discovered integration point for any component JS** — interaction, progressive enhancement, third-party widget wiring, whatever the component needs. Picked up by filename and active in Storybook (the addon attaches Drupal behaviors after each render). The JS approach is not fixed: the `js-behavior` blueprint offers a `Drupal.behaviors` starting point, but a project may use another (Alpine, vanilla, …) — blueprints are overridable. Add it when the component needs scripting; omit when it doesn't.
 
 `libraryDependencies` / `libraryOverrides` in `.component.yml` is only required when the component pulls in an **external** library (third-party widget like a slider, lightbox, chart) or extends another component's library. For plain co-located `<name>.css` / `<name>.js`, the SDC addon picks them up by filename — no YAML wiring.
 
