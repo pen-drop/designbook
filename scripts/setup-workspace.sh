@@ -110,8 +110,16 @@ rm -r -f node_modules
 echo "Building storybook-addon-designbook..."
 (cd "$REPO_ROOT/packages/storybook-addon-designbook" && pnpm run build)
 
-# Install dependencies
-pnpm install
+# Install dependencies.
+# workspaces/* is a pnpm workspace member, so this resolves the whole monorepo.
+#   --no-frozen-lockfile: a fresh workspace name is not yet in pnpm-lock.yaml; the
+#     lockfile MUST be allowed to update (frozen is the default under CI=true and
+#     would abort with ERR_PNPM_OUTDATED_LOCKFILE).
+#   --config.confirmModulesPurge=false: a public-hoist-pattern diff in a stale
+#     root node_modules otherwise triggers an interactive purge prompt that hangs
+#     in a non-TTY script, leaving deps unlinked (e.g. @tailwindcss/vite missing →
+#     Storybook fails to boot).
+pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false
 
 # Link the LOCAL addon build into the workspace so that `npx storybook-addon-designbook`
 # resolves the repo dist instead of falling back to the registry/cache.
