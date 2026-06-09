@@ -61,6 +61,7 @@ If the element is best identified by CSS selector, use `eval` to confirm it exis
 - **Dismiss consent/cookie overlays before reference captures** — a consent banner overlaying the reference page corrupts the reference screenshot (and every diff against it). Close it (click reject/accept) before the first reference `screenshot`, and pass the same instruction to any compare/verify subagent that recaptures.
 - Viewport height MUST be 1600px for consistency across captures
 - `run-code "(page) => { await page.waitForTimeout(3000) }"` MUST be used to allow rendering to settle
+- **Run `check.steps` before the screenshot** when present (a non-rest state). After resize + settle, execute each step in order via `playwright-cli` (`click`/`hover`/`focus` against `step.selector`, or a bare wait), settling `step.timeout` ms after each, THEN capture. `rest` has no steps — capture the as-rendered view. State steps mutate page state, so load the session fresh per state-check (or navigate back) rather than carrying an opened state into the next check.
 - If a selector matches no elements, skip with a warning — do NOT fail the task
 - Output directories MUST be created before capture (`mkdir -p`)
 - Reuse an open session across multiple captures for the same URL — only `open`/`close` once

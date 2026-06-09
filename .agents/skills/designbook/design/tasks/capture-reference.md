@@ -27,7 +27,7 @@ result:
   required: [screenshot]
   properties:
     screenshot:
-      path: "{{ reference_folder }}/{{ check.breakpoint }}--{{ check.region }}.png"
+      path: "{{ reference_folder }}/{{ check.breakpoint }}--{{ check.region }}{{ check.file_suffix }}.png"
       submission: direct
       validators: [image]
 each:
@@ -40,8 +40,11 @@ each:
 
 Captures a reference screenshot by loading the source URL at the given breakpoint viewport width via Playwright.
 
-If `{reference_folder}/{check.breakpoint}--{check.region}.png` already exists,
-reuse it and register that file as the result instead of capturing a new one.
+If the screenshot for this check already exists at its target path, reuse it and
+register that file as the result instead of capturing a new one. When `check.steps`
+are present, they are run against the loaded reference page before the screenshot so
+the captured image is the interaction state the check names (handled by the
+`playwright-capture` rule).
 
 ## Execution
 

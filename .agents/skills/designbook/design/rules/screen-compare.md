@@ -35,12 +35,16 @@ When the values are present, the stage MUST do all of the following:
    - full-page for `full` or empty selector
    - element-specific capture for named regions/selectors
 5. Compare the captured screenshot against the reference screenshot in
-   `reference_folder`.
-6. Save the resulting compare artifact.
+   `reference_folder`. Pair story and reference by the full `(breakpoint, region,
+   state)` triple — the screenshots for a check share the same `file_suffix`, so a
+   non-rest state never compares against the rest image. When `check.steps` are
+   present, run them before capturing the story side so both sides are in the same
+   interaction state.
+6. Save the resulting compare artifact, carrying the check's `state`.
 
 For the compare stage:
 - emit actionable `issues`
-- emit one compare artifact for the active check
+- emit one compare artifact per check (one per breakpoint × region × state)
 - save any diff/report file needed by that artifact
 
 ## Structural Dimension Drift

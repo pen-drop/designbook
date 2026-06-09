@@ -25,7 +25,7 @@ result:
   required: [screenshot]
   properties:
     screenshot:
-      path: "designbook/stories/{{ check.story_id }}/screenshots/{{ check.breakpoint }}--{{ check.region }}.png"
+      path: "designbook/stories/{{ check.story_id }}/screenshots/{{ check.breakpoint }}--{{ check.region }}{{ check.file_suffix }}.png"
       submission: direct
       validators: [image]
 each:
@@ -46,7 +46,7 @@ Captures a Storybook screenshot at the given breakpoint viewport width via Playw
 
    a. **Resolve viewport width** from `design-tokens.yml` and **selector** from the check's `selector` field.
 
-   b. **Capture** using the method from the `playwright-capture` rule (full-page CLI or element Node API depending on region type).
+   b. **Capture** using the method from the `playwright-capture` rule (full-page CLI or element Node API depending on region type). When `check.steps` are present, they run against the iframe before capture so the story is in the check's interaction state.
 
    c. **Verify** by reading the captured image.
 
