@@ -30,6 +30,8 @@ result:
     component-story:
       path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.default.story.yml"
       $ref: designbook-drupal/components/schemas.yml#/SdcStory
+    component-js:
+      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.js"
 each:
   component:
     expr: "components"
@@ -38,11 +40,12 @@ each:
 
 # Create Component
 
-Produce the three SDC artefacts for a single component:
+Produce the SDC artefacts for a single component:
 
 - `{{ component.component }}.component.yml` — schema (props, slots, libraries)
 - `{{ component.component }}.twig` — markup template
 - `{{ component.component }}.default.story.yml` — default story
+- `{{ component.component }}.js` — component behavior, only when the component covers an `interactive[]` entry that declares a `behavior` (otherwise omit this result)
 
 ## Template Mode (`component.design_hint.markup`)
 

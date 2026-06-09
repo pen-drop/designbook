@@ -31,10 +31,10 @@ Required artefacts per component, all kebab-case:
 - `<name>.twig` — markup, one file, all variants inline
 - `<name>.<variant>.story.yml` — one file per variant. SDC itself does not require this, but designbook does: every component always ships at least `<name>.default.story.yml` so it has a Storybook entry and can be visually verified.
 
-Optional co-located assets (auto-discovered — do **not** declare them in `.component.yml`):
+Co-located assets (auto-discovered — do **not** declare them in `.component.yml`):
 
-- `<name>.css` — component-scoped styles
-- `<name>.js` — component-scoped behavior
+- `<name>.css` — component-scoped styles (optional)
+- `<name>.js` — component-scoped behavior. **Mandatory** when the component covers an extracted `interactive[]` entry that declares a `behavior` (toggle/disclosure/overlay/menu/tabs/accordion) — the markup alone is inert. Auto-discovered and active in Storybook (the addon calls `Drupal.attachBehaviors` after each render). Optional otherwise.
 
 `libraryDependencies` / `libraryOverrides` in `.component.yml` is only required when the component pulls in an **external** library (third-party widget like a slider, lightbox, chart) or extends another component's library. For plain co-located `<name>.css` / `<name>.js`, the SDC addon picks them up by filename — no YAML wiring.
 
