@@ -44,6 +44,7 @@ The stage only completes when ALL are true:
 - No error element is present.
 - The Storybook log for the current session has no unresolved compilation errors referencing the scene or its components.
 - Every non-generic `font-family` the render resolves to passes `document.fonts.check` (the named face actually loaded). A silent fallback to a system font is a failure, not a pass — it is invisible in the screenshot diff at this stage but breaks typography fidelity.
+- Every component the scene renders that has an `interactive[]` entry with a `behavior` is functional: run the `steps` of its first non-rest state against the rendered iframe and confirm the trigger's `aria` attribute flips, or the `target` changes visibility. A trigger that does nothing when exercised is a major issue — static markup with no behavior passes the render checks above but is not done.
 
 ## Failure protocol
 
