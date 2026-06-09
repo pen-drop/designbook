@@ -49,6 +49,16 @@ Before interpreting pixel diff quality, compare the reference screenshot dimensi
 
 When width or height differs enough to indicate missing or extra structure, emit an issue that names the dimension drift and treat it as a structural mismatch. Continue writing the normal diff artifact when possible, but do not let screenshot resizing hide missing landmark regions.
 
+## Severity Is Mapped From Measurements, Not Judgement
+
+Issue severity MUST be derived from the measured numbers, not from a subjective impression. Self-graded severity drifts toward leniency — a footer that is 38% too short is not "minor". Apply these floors (take the highest that matches):
+
+- `diff_percent > 0.25`, **or** width/height drift `> 25%` → at least `critical`.
+- `diff_percent > 0.10`, **or** width/height drift `> 10%` → at least `major`.
+- otherwise → `minor`.
+
+A region with a missing or extra landmark is `critical` regardless of pixel diff. These are floors: raise severity when the deviation is clearly worse, never lower it below the measured band. The outtake's `success_rate` must be consistent with the worst check — it cannot exceed `1 − max(diff_percent)` across all checks.
+
 ## Playwright Execution Rules
 
 - Reuse one Playwright session per compare pass when possible.

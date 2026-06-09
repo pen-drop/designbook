@@ -57,6 +57,8 @@ If the element is best identified by CSS selector, use `eval` to confirm it exis
 
 ## Constraints
 
+- **Pin the session to the workspace** — pass `-s=<workspace>` on every `playwright-cli` call (`open`, `goto`, `resize`, `snapshot`, `screenshot`, `eval`, `close`). The unnamed default session is process-global and shared across workspaces; a concurrent run in another workspace can hijack it mid-capture and silently photograph the wrong Storybook. Use a session name unique to this workspace.
+- **Dismiss consent/cookie overlays before reference captures** — a consent banner overlaying the reference page corrupts the reference screenshot (and every diff against it). Close it (click reject/accept) before the first reference `screenshot`, and pass the same instruction to any compare/verify subagent that recaptures.
 - Viewport height MUST be 1600px for consistency across captures
 - `run-code "(page) => { await page.waitForTimeout(3000) }"` MUST be used to allow rendering to settle
 - If a selector matches no elements, skip with a warning — do NOT fail the task

@@ -230,10 +230,14 @@ Variant:
   properties:
     id:
       type: string
+      pattern: "^[A-Za-z_][A-Za-z0-9_]*$"
       description: >
-        Variant identifier in kebab-case. Used as the story filename segment
+        Variant identifier in snake_case. Used as the story filename segment
         (`<component>.<id>.story.yml`) and as the key in `.component.yml` `variants:`.
-      examples: [main, footer, vertical, horizontal]
+        Hyphens are forbidden — the segment becomes a JS export name in the
+        generated story (`mark-only` → `export const Mark-only`, a SyntaxError)
+        and must satisfy the same identifier pattern as prop/slot keys.
+      examples: [main, footer, vertical, horizontal, mark_only]
     title:
       type: string
       description: Human-readable variant label shown in Storybook.

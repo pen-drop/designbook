@@ -66,8 +66,10 @@ npx playwright-cli eval '<selector>' 'el => el.src || el.querySelector("img")?.s
 npx playwright-cli eval '<selector>' 'el => el.outerHTML'
 
 # Download to public/
-curl -sL "<url>" -o "public/<filename>"
+curl -sL -A "Mozilla/5.0" -e "<reference-page-url>" "<url>" -o "public/<filename>"
 ```
+
+Many sites reject asset requests without a browser `User-Agent` and same-origin `Referer` (a bare `curl` gets `403`/`404`). Always pass `-A "Mozilla/5.0"` and `-e "<reference-page-url>"`; add cookies from the open Playwright session if the asset is gated.
 
 For inline SVGs that are embedded directly in the page HTML, extract the SVG markup and write it to a `.svg` file rather than downloading.
 
