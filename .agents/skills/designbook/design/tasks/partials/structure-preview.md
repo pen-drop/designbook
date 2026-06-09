@@ -11,6 +11,7 @@ Displays a full recursive ASCII tree of the component structure so the user can 
 5. Recursively expand every referenced component — show its own slots and nested components, all the way down to leaf nodes
 6. For repeated items, use `× n` notation (e.g. `article-card × n`)
 7. Where a variant is selected, show it in bracket notation (e.g. `button[variant=primary]`)
+8. **Every planned component appears at least once.** Do not collapse a family of components (e.g. `form`, `form-element`, `label`, `input`) into a single summary line — each planned component must be visible in the tree. The tree is the user's only chance to catch a wrong or missing component before the build; a collapsed summary hides exactly what they need to review.
 
 ## Marking Existing vs New
 
@@ -53,8 +54,16 @@ Scenes: [n] ([names])
 
 Include **Entity Mappings** only when the calling intake provides entity mapping context.
 
+The structured plan itself — `components[]`, `scenes[]`, entity mappings — is the
+intake task's own result and is already persisted in the workflow `tasks.yml`
+(and archived with it). This preview is the **human-readable rendering** of that
+result; it does not need a separate plan file.
+
 ## Confirmation
 
-After presenting the tree and summary, wait for the user to confirm the structure before proceeding to the next stage:
+The confirmation gate adapts to the run mode — it is never a reason to skip rendering the preview:
 
-> "Does this structure look correct? Let me know if you'd like to adjust anything before I start building."
+- **Interactive run:** after presenting the tree + summary, pause for confirmation via the workflow's wait mechanism (`workflow wait` — the stage shows as awaiting input) before the next stage, e.g.:
+  > "Does this structure look correct? Let me know if you'd like to adjust anything before I start building."
+  Resume on the user's reply.
+- **Headless / "don't ask questions" run:** still render and output the full preview, then proceed without pausing. Suppressing the *question* must not suppress the *preview* — it is the record of what is about to be built.

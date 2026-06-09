@@ -55,7 +55,7 @@ Gather section, screen type, entity mappings, and component plan for one screen.
 3. **Plan entities** — collect `entity:` nodes from section spec scenes, deduplicate by entity+view_mode, traverse `type: reference` fields recursively, order leaf-first; present table and confirm
 4. **Plan components** — scan existing components, identify new ones needed per entity and screen-level; if `$reference_dir/extract.json` exists, derive from landmark structure; present grouped table and confirm
 5. **Summary** — present complete build plan, wait for confirmation
-6. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection
+6. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection. Because `extract-reference` runs *after* this stage, the plan is formed without reference data — state `reference: none` in the preview so the user knows the structure was inferred from the section spec and data model, not an observed design.
 
 ## Result: components
 
