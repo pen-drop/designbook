@@ -18,8 +18,9 @@ ReferenceFolder:
   type: string
   description: >
     Path to a scene's verification material — contains `extract.json`
-    (reference structure) and reference screenshots per breakpoint/region.
-    Format: `{breakpoint}--{region}.png` (e.g. `xl--full.png`).
+    (reference structure) and reference screenshots per breakpoint/region/state.
+    Format: `{breakpoint}--{region}{file_suffix}.png` — `rest` state has an empty
+    suffix (`xl--full.png`), non-rest states append `--{state}` (`xl--header--expanded.png`).
   examples: ["$DESIGNBOOK_DATA/references/hero", "/tmp/refs/article"]
 
 Check:
@@ -48,14 +49,38 @@ Check:
     type:
       type: string
       description: Check type (e.g. `screenshot`, `dom`). Determines the capture strategy.
+    state:
+      type: string
+      default: rest
+      description: >
+        Interaction state this check captures (see `#/CaptureState`). `rest` is the
+        default un-interacted condition — equivalent to a check with no state, so
+        existing breakpoint × region checks are unchanged.
+    steps:
+      type: array
+      default: []
+      description: >
+        Interactions to run against the render before capturing, reaching the
+        check's `state`. Denormalized from the element's `CaptureState.steps` so a
+        check is self-contained. Empty for `rest`.
+      items:
+        $ref: "#/CaptureStep"
+    file_suffix:
+      type: string
+      default: ""
+      description: >
+        Filename suffix appended after `{breakpoint}--{region}` so each state writes
+        a distinct screenshot — `""` for `rest` (keeps the canonical
+        `{bp}--{region}.png` name, no regression), `--{state}` otherwise. Computed
+        by setup-compare; capture paths interpolate it.
 
 CompareArtifact:
   type: object
   title: Compare Artifact
   description: >
     Structured result of one screenshot compare check. One item is emitted per
-    `(breakpoint, region)` pair so outtake can summarize visual review without
-    rerunning capture or compare.
+    `(breakpoint, region, state)` triple so outtake can summarize visual review
+    without rerunning capture or compare.
   required: [story_id, breakpoint, region, passed]
   properties:
     story_id:
@@ -64,6 +89,10 @@ CompareArtifact:
       $ref: "#/BreakpointId"
     region:
       $ref: "#/RegionId"
+    state:
+      type: string
+      default: rest
+      description: Interaction state compared (see `#/CaptureState`). `rest` = default.
     passed:
       type: boolean
       description: True when this compare check passed within its configured threshold.
@@ -182,6 +211,21 @@ StoryMeta:
                     threshold:
                       type: number
                       description: Per-region override of the breakpoint threshold.
+                    states:
+                      type: object
+                      description: >
+                        Map of state name → capture configuration for this region.
+                        Absent ⇒ implicit `{ rest: {} }` (rest-only, no interaction).
+                        Lets a story persist its interaction states so re-runs
+                        rebuild the same state checks without re-deriving them.
+                      additionalProperties:
+                        type: object
+                        properties:
+                          steps:
+                            type: array
+                            default: []
+                            items:
+                              $ref: "#/CaptureStep"
 
 Issue:
   type: object

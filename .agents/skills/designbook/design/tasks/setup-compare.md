@@ -53,3 +53,13 @@ from that file instead.
 If no reference source can be derived, still emit the breakpoint × region
 matrix so downstream stages can reuse existing reference screenshots from the
 reference folder.
+
+## States
+
+The check matrix is breakpoint × region × **state**. Every region has at least the
+`rest` state. When a region contains an `interactive[]` element with a `behavior`
+(from `extract.json`, or persisted under the region's `states` in `meta.yml`), add a
+check per additional state. For each check set `state`, `steps` (the interactions
+that reach it — empty for `rest`), and `file_suffix` (`""` for `rest`, `--{state}`
+otherwise). A story with no behaviors yields rest-only checks — identical to the
+prior breakpoint × region matrix, no new screenshots.
