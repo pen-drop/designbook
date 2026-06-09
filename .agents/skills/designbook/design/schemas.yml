@@ -274,13 +274,46 @@ DesignReference:
       examples: [assets]
     fonts:
       type: array
+      description: >
+        Web fonts the reference renders text with. Each family that is not a
+        Google/system font must be downloaded — see `files[]`. Metadata alone
+        (family/weights) is insufficient: a self-hosted family with no `files[]`
+        leaves downstream CSS with an unresolvable family and a silent serif
+        fallback. This is the concrete failure mode `files[]` exists to prevent.
       items:
         type: object
+        required: [family, source]
         properties:
-          family: { type: string }
-          source: { type: string }
-          weights: { type: array, items: { type: number } }
-          styles: { type: array, items: { type: string } }
+          family: { type: string, description: "Exact font-family name as used in @font-face / CSS (e.g. \"Reef\", \"Inter\")." }
+          source:
+            type: string
+            description: >
+              Where the font is served from. `self-hosted` and `adobe`/`other`
+              families MUST be downloaded into `files[]`; `google` is fetched
+              later by css-generate; `system` needs no download.
+            enum: [self-hosted, google, adobe, system, other]
+          weights: { type: array, items: { type: number }, description: "Distinct numeric weights observed (e.g. [400, 700])." }
+          styles: { type: array, items: { type: string }, description: "Distinct styles observed (e.g. [normal, italic])." }
+          files:
+            type: array
+            description: >
+              Downloaded font binaries for this family. Required when `source`
+              is not `google` or `system` and the binary URL was reachable.
+              Empty only when the font could not be downloaded.
+            items:
+              type: object
+              required: [local_path]
+              properties:
+                weight: { type: number, description: "Weight this file provides." }
+                style: { type: string, description: "Style this file provides (normal, italic).", examples: [normal, italic] }
+                format: { type: string, description: "Font format.", examples: [woff2, woff, ttf] }
+                src_url: { type: string, description: "Resolved absolute URL the binary was downloaded from." }
+                local_path:
+                  type: string
+                  description: >
+                    Path (relative to the reference folder, typically under
+                    `{assets_dir}/fonts/`) where the binary was written.
+                  examples: ["assets/fonts/Reef-Regular.woff2"]
     typography:
       type: array
       items:

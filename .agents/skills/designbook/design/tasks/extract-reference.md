@@ -92,6 +92,18 @@ Populate `images[]` for every logo, icon, partner mark, and static brand asset. 
 
 Without `local_path`, scenes fall back to text placeholders — this is the concrete failure mode that the field exists to prevent.
 
+### Fonts — download, don't describe
+
+Populate `fonts[]` for every web font the reference renders text with. Recording only the family name and weights is not enough: a `self-hosted` (or `adobe`/`other`) family with no downloaded binary leaves the downstream token CSS with an unresolvable `font-family` and a silent serif fallback — the exact failure this step prevents.
+
+For each family classify `source` (`self-hosted`, `google`, `adobe`, `system`, `other`). `google` and `system` families need no download — css-generate fetches Google families later. For every other source, downloads are mandatory when the binary URL is reachable:
+
+1. Inspect the reference page's `@font-face` rules and stylesheet links to resolve each family's binary URL (the `src: url(...)` entries) and the weight/style each file covers.
+2. Download to `{reference_folder}/{assets_dir}/fonts/<filename>` via `curl -sL "<url>" -o "<path>"`. Prefer `woff2` when multiple formats are offered.
+3. Record each downloaded binary as a `files[]` entry with `weight`, `style`, `format`, `src_url`, and `local_path`.
+
+This makes the reference the single source of truth for brand fonts that no font registry can supply — `css-generate` then binds the token to a family that actually has `@font-face` coverage instead of a placeholder.
+
 ### Breakpoint variation
 
 Populate `breakpoints[]` with every distinct responsive layout change observed (nav collapse, column count, stacked vs. inline) — not just the token id.
@@ -102,4 +114,4 @@ Populate `sections[]` for every page-level content zone between header and foote
 
 ## Verification
 
-Before returning, verify the extract is not thin: if a visible landmark contains multiple visual regions but `landmarks` records it as one aggregate area, if `images.length === 0` on a page with visible brand or content images, or if `forms.length === 0` on a page with a visible search/newsletter/login/contact form, re-extract. Thin extracts are almost always the cause of shell/screen mismatches in verify.
+Before returning, verify the extract is not thin: if a visible landmark contains multiple visual regions but `landmarks` records it as one aggregate area, if `images.length === 0` on a page with visible brand or content images, if `forms.length === 0` on a page with a visible search/newsletter/login/contact form, or if any `fonts[]` family whose `source` is not `google` or `system` has no `files[]`, re-extract (and download the missing binaries). Thin extracts are almost always the cause of shell/screen mismatches in verify — a missing font binary surfaces as a typography fallback the compare stage cannot recover.
