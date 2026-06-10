@@ -123,8 +123,17 @@ pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false
 
 # Link the LOCAL addon build into the workspace so that `npx storybook-addon-designbook`
 # resolves the repo dist instead of falling back to the registry/cache.
+#
+# Use `link:` (symlink), NOT `file:` (hard copy). A `file:` dep is copied into
+# node_modules/.pnpm/storybook-addon-designbook@file+.../, so a later
+# `pnpm run build` in the package does NOT propagate to the workspace — the
+# workspace keeps running the stale copy. That staleness is a silent footgun:
+# a fixed-and-rebuilt addon looks "still broken" in the workspace, which sends
+# you chasing the wrong cause. `link:` symlinks the package dir instead, so
+# every rebuild is picked up immediately (the build at the top of this script
+# keeps dist current; the vite watcher already ignores the symlinked tree).
 echo "Linking local storybook-addon-designbook..."
-pnpm add -D "file:$REPO_ROOT/packages/storybook-addon-designbook"
+pnpm add -D "link:$REPO_ROOT/packages/storybook-addon-designbook"
 
 echo ""
 echo "✓ Workspace ready at $WORKSPACE_DIR"
