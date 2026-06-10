@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { WithTooltip, TooltipLinkList, IconButton } from 'storybook/internal/components';
 import { EllipsisIcon } from '@storybook/icons';
-import { addons } from 'storybook/manager-api';
 import { DeboFileViewer } from './DeboFileViewer';
 
 function copyToClipboard(text) {
@@ -11,8 +10,12 @@ function copyToClipboard(text) {
 }
 
 function openInEditor(file) {
-  const channel = addons.getChannel();
-  channel.emit('openInEditorRequest', { file });
+  // Use the global addons channel (set in both the manager and the preview iframe)
+  // instead of importing `storybook/manager-api` here. That import is manager-only
+  // and drags semver (a transitive storybook dep) into the PREVIEW client bundle,
+  // where its CJS default-import fails under non-hoisted (pnpm) installs.
+  const channel = globalThis.__STORYBOOK_ADDONS_CHANNEL__;
+  channel?.emit('openInEditorRequest', { file });
 }
 
 function shortenPath(p) {

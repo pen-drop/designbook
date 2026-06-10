@@ -87,11 +87,14 @@ export function designbookLoadPlugin(
             // (runtime discovery triggers "optimized dependencies changed. reloading"
             // which causes an infinite HMR loop in workspace-linked setups).
             '@storybook/addon-themes',
-            // Pre-bundle CJS modules used by Designbook page components so they
-            // don't trigger a Vite dep-discovery reload during vitest browser runs.
-            'semver',
-            'yaml',
-            'marked',
+            // Pre-bundle marked (a real preview import in the page-component
+            // parsers) so Vite doesn't dep-discover + reload mid-run. Nested
+            // `owner > dep` form resolves through the addon's own node_modules,
+            // so it works regardless of consumer hoisting (pnpm strict drops a
+            // bare name that isn't a direct consumer dep). semver is no longer
+            // referenced from the preview (manager-api import removed from
+            // ContextAction); yaml was never a client import.
+            'storybook-addon-designbook > marked',
           ],
           // Leave the CJS external-store shim un-optimized so the dev server
           // routes the bare import through resolveId/load (virtual ESM wrapper),
