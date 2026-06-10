@@ -92,6 +92,54 @@ restart, explicitly.
    namespaces + templates all resolve with zero reloads and zero "Cannot find
    template".
 
+## Review outcome (fable, empirical — confirms the model)
+
+Tested in a workspace with a full built set (16 components / 13 twig / 37 stories).
+`storybook stop` + `storybook start --force`, then render the shell scene:
+
+| Measurement | Value |
+|---|---|
+| start --force (cold / warm) | 7.2s / 9.9s to ready |
+| `startup_errors` | `[]` both runs |
+| Twig templates at start | `Loaded 52 templates (incl. namespaces)` |
+| reload / restart / "Cannot find template" / semver events after ready | **0 / 0 / 0 / 0** |
+| IMPORT-ASSET events | 46, all in one initial-index burst, never again |
+| shell scene render | `#storybook-root` = 17,409 chars (header/footer/nav present) |
+| render after a 2nd restart | identical, no template/semver errors |
+
+(Contrast: the broken run measured 124 reload events.) **Confirmed.**
+
+### Corrections folded into the design
+
+1. **Phase boundary = process restart (`stop` + `start`), NOT in-process
+   `server.restart()`.** A new process makes all four caches (index, namespace
+   map, template cache, optimizeDeps) trivially fresh — categorically stronger
+   than `server.restart()`, which kept the Twig template cache. This is the actual
+   mechanism that makes the model robust and retires the template-cache bug.
+2. **Re-read the port after every restart.** `--force` re-auto-detects the port
+   (observed 6016 → 33637); capture/compare must read it from `storybook.json`
+   each time (or pin `--port`). Without this they hit the old port.
+3. **Polish is one round, not "≤2".** `design-verify` is already structurally
+   "fix once" (`polish → re-capture → re-compare`); the process restart is the
+   first step of `re-capture`. No engine loop support needed — pin to 1 round.
+4. **Latency: already fine** — the vite-deps cache is reused (warm 2nd start).
+   Dropped as a concern.
+5. **Trigger has no external consumers** — `.workflow-trigger` is referenced only
+   by `vite-plugin.ts` / `flush-notify.ts` / `engines/direct.ts`; no skill or
+   workflow file uses it. Safe to retire.
+6. **Multi-provider namespace** (≥2 providers) is untested here (one namespace).
+   Low risk (clean start re-registers all namespaces) but verify once in a
+   multi-provider Drupal workspace.
+
+### Simpler shape (recommended)
+
+No new stage needed: make `storybook start --force` a **`before`-hook of the
+`capture` stage** (lazy start). Storybook then does not run during the build
+phase at all, and the mechanism reuses only existing workflow primitives. (Going
+fully static — `storybook build` + capture against the build output — is not
+worth it: polish would need a full build per round, costlier than a ~10s dev
+start.)
+
 ## Out of scope
 
 - The dispatched-subagent-never-returns / no-parent-timeout issue (separate; a
