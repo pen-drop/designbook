@@ -130,6 +130,64 @@ It no longer decides the magnitude. `success_rate` stops being self-graded.
    but make the CLI the source of truth so a subagent that doesn't load the rule
    still scores identically. (Relevant: the verify subagent's rule-loading.)
 
+## Review outcome (fable, empirical — supersedes assumptions above)
+
+Reviewed with real `odiff-bin@4.3.2` runs against actual v6 workspace screenshots.
+Verdict: **viable — measure-not-judge confirmed deterministic with a plausible
+ranking.** Corrections, in priority order:
+
+1. **odiff result is a discriminated union, not a flat object.** Handle:
+   - `{ match: true }` — no other fields.
+   - `{ match: false, reason: "pixel-diff", diffCount, diffPercentage, diffLines? }`.
+   - `{ match: false, reason: "layout-diff" }` — **no** diffCount/diffPercentage.
+   - `{ match: false, reason: "file-not-exists", file }` — only with `noFailOnFsErrors: true`.
+   `diffPercentage` is **percent (0–100)**, so the `/100` conversion is correct.
+2. **Dimension-mismatch handling in §Design.2 was backwards.** odiff does **not**
+   refuse mismatched sizes by default — `failOnLayoutDiff` defaults `false`, so it
+   pixel-compares anyway (top-left aligned; missing area counts as diff).
+   `layout-diff` only appears with explicit `failOnLayoutDiff: true`. → **Keep
+   `failOnLayoutDiff: false`, always measure pixel-diff, report `dimension_drift`
+   as an *additional* signal, severity = max(both).** Do NOT fall back to
+   `dimension_drift`-only (counterexample: sm--footer has drift 0.021 → would
+   "pass", yet measures 23% pixel-diff).
+3. **Pin order: `base = reference`, always.** odiff's denominator and diff image
+   use the base; swapping ref/actual changes the number (xl--footer: 57.63% with
+   base=ref vs 41.70% with base=actual).
+4. **Re-calibrate the severity floors for the *measured* distribution** and add a
+   spatial second signal. PR #74's 0.25/0.10 floors were tuned for model-*guessed*
+   diff_percent; measured pixel-% correlates poorly with perceived severity in
+   both directions (see below). Use `captureDiffLines: true` (affected row indices)
+   as a cheap spatial extent signal — catches the horizontal-shift case (small %,
+   widely spread).
+5. **Add options:** `ignoreRegions` for dynamic content (carousels, images);
+   mention `ODiffServer` for batch (6+ checks per compare) to avoid spawn overhead.
+6. **JSON-shape fix:** `diff_percent`/`diff_pixels` are only guaranteed on
+   `pixel-diff`; `reason` values come from the real union.
+
+### Empirical measurements (ref vs Storybook capture, v6)
+
+| Pair | dims ref/actual | default | `antialiasing:true, threshold:0.1` |
+|---|---|---|---|
+| sm--header | 640×162 / = | 7.42% | 4.83% |
+| xl--header | 1280×162 / = | 4.33% | **2.83%** |
+| sm--header--expanded | 640×1600 / = | 2.71% | 1.28% |
+| xl--header--expanded | 1280×1600 / = | 24.74% | 21.04% |
+| sm--footer | 640×919 / 640×900 | 25.49% | 23.27% |
+| xl--footer | 1280×699 / 1280×508 | 57.63% | 55.64% |
+
+Deterministic, comparable, plausible ranking. AA+threshold 0.1 cuts ~35–50% noise.
+
+### The one real risk — metric bias
+
+Determinism fixes *model*-comparability, but **pixel-% ≠ perceived severity**:
+- **Under-counts horizontal shifts:** xl--header nav items clearly doubled/offset
+  (visually major) measured only **2.83%** → `minor` by the floors.
+- **Over-counts vertical cascades:** a 19px footer height drift (`dimension_drift.h`
+  ≈ 0.021, would "pass") cascades into 23% pixel-diff.
+Mitigation: calibrate bands empirically (these 6 pairs are the seed) and combine
+pixel-% with `captureDiffLines` extent + `dimension_drift`. Otherwise we trade
+model bias for metric bias.
+
 ## Out of scope
 
 - The design-verify polish-stage subagent hang (separate issue).
