@@ -57,22 +57,39 @@ export function designbookLoadPlugin(
     // React not available — docs pages will fail but scenes still work
   }
 
+  // Resolve semver to an absolute path. storybook-core's preview-runtime does
+  // `import semver from 'semver'`, but in a pnpm-strict workspace the consumer
+  // root cannot resolve the bare `semver` specifier (it's not a direct dep), so
+  // Vite serves it raw and the CJS module yields no `default` export → the
+  // preview crashes. Mirror the React handling: resolve semver through the
+  // addon's own node_modules (where it's reachable), alias the bare specifier
+  // to that absolute dir, and pre-bundle it so esbuild adds CJS-default interop.
+  let semverDir: string | undefined;
+  try {
+    semverDir = dirname(addonRequire.resolve('semver/package.json'));
+  } catch {
+    // semver not reachable from the addon — leave resolution to Vite defaults
+  }
+
   return {
     name: 'vite-plugin-designbook-load',
     enforce: 'pre',
 
     config() {
+      const alias: { find: RegExp; replacement: string }[] = [];
+      if (reactDir && reactDomDir) {
+        alias.push(
+          { find: /^react-dom$/, replacement: reactDomDir },
+          { find: /^react-dom\/(.*)/, replacement: reactDomDir + '/$1' },
+          { find: /^react$/, replacement: reactDir },
+          { find: /^react\/(.*)/, replacement: reactDir + '/$1' },
+        );
+      }
+      if (semverDir) {
+        alias.push({ find: /^semver$/, replacement: semverDir });
+      }
       return {
-        resolve: reactDir
-          ? {
-              alias: [
-                { find: /^react-dom$/, replacement: reactDomDir! },
-                { find: /^react-dom\/(.*)/, replacement: reactDomDir + '/$1' },
-                { find: /^react$/, replacement: reactDir! },
-                { find: /^react\/(.*)/, replacement: reactDir + '/$1' },
-              ],
-            }
-          : undefined,
+        resolve: alias.length ? { alias } : undefined,
         optimizeDeps: {
           include: [
             'vite-plugin-node-polyfills/shims/buffer',
@@ -91,10 +108,15 @@ export function designbookLoadPlugin(
             // parsers) so Vite doesn't dep-discover + reload mid-run. Nested
             // `owner > dep` form resolves through the addon's own node_modules,
             // so it works regardless of consumer hoisting (pnpm strict drops a
-            // bare name that isn't a direct consumer dep). semver is no longer
-            // referenced from the preview (manager-api import removed from
-            // ContextAction); yaml was never a client import.
+            // bare name that isn't a direct consumer dep). yaml was never a
+            // client import.
             'storybook-addon-designbook > marked',
+            // Pre-bundle semver (imported by storybook-core's preview-runtime).
+            // The `semver` alias above points the bare specifier at the addon's
+            // resolved copy; including it here forces esbuild to wrap it with
+            // CJS-default interop so `import semver from 'semver'` gets a real
+            // default export instead of a raw-served ESM module with none.
+            'semver',
           ],
           // Leave the CJS external-store shim un-optimized so the dev server
           // routes the bare import through resolveId/load (virtual ESM wrapper),
