@@ -43,24 +43,33 @@ export const directEngine: WorkflowEngine = {
 
   flush(data: WorkflowFile, tasks: WorkflowTask[]): Promise<void> {
     const suffix = deboSuffix(data);
-    let renamed = 0;
+    let newComponentDir = false;
     const now = new Date().toISOString();
     for (const task of tasks) {
       for (const file of task.files ?? []) {
         if (!file.validation_result) continue; // not yet written
         const src = file.path + suffix;
         if (!existsSync(src)) continue;
-        mkdirSync(dirname(file.path), { recursive: true });
+        const targetDir = dirname(file.path);
+        // A brand-new directory receiving a component template/definition adds a
+        // Twig namespace the SDC namespace map (built once at Storybook startup)
+        // doesn't know — that genuinely needs a Vite/Storybook restart.
+        if (!existsSync(targetDir) && /\.(twig|component\.yml)$/.test(file.path)) {
+          newComponentDir = true;
+        }
+        mkdirSync(targetDir, { recursive: true });
         renameSync(src, file.path);
         file.flushed_at = now;
-        renamed++;
       }
     }
 
-    // Tell Storybook to rebuild its story index. Files renamed into newly
-    // created subdirectories are missed by Storybook's StoryIndexGenerator
-    // watcher (it only auto-watches directory trees discovered at startup).
-    if (renamed > 0) signalStorybookRebuild();
+    // Only force a full Vite/Storybook restart when a NEW component directory
+    // appeared (namespace map must rebuild). Content edits and new files in
+    // already-watched story-glob roots (`components/`, `stories/`) are picked up
+    // by the native watcher, so they must NOT restart. The previous `renamed > 0`
+    // fired a full restart on every flush — e.g. each polish fix+recapture —
+    // churning Storybook reloads and stalling capture-heavy stages.
+    if (newComponentDir) signalStorybookRebuild();
     return Promise.resolve();
   },
 
