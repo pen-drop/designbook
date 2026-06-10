@@ -2,7 +2,6 @@ import { existsSync, mkdirSync, readdirSync, renameSync, unlinkSync, writeFileSy
 import { resolve, dirname } from 'node:path';
 import type { WorkflowEngine, TransitionResult } from './types.js';
 import type { WorkflowFile, WorkflowTask } from '../workflow.js';
-import { signalStorybookRebuild } from '../flush-notify.js';
 
 function deboSuffix(data: WorkflowFile): string {
   if (!data.workflow_id) throw new Error('workflow_id is required for direct engine stash-at-target');
@@ -43,7 +42,6 @@ export const directEngine: WorkflowEngine = {
 
   flush(data: WorkflowFile, tasks: WorkflowTask[]): Promise<void> {
     const suffix = deboSuffix(data);
-    let renamed = 0;
     const now = new Date().toISOString();
     for (const task of tasks) {
       for (const file of task.files ?? []) {
@@ -53,14 +51,15 @@ export const directEngine: WorkflowEngine = {
         mkdirSync(dirname(file.path), { recursive: true });
         renameSync(src, file.path);
         file.flushed_at = now;
-        renamed++;
       }
     }
 
-    // Tell Storybook to rebuild its story index. Files renamed into newly
-    // created subdirectories are missed by Storybook's StoryIndexGenerator
-    // watcher (it only auto-watches directory trees discovered at startup).
-    if (renamed > 0) signalStorybookRebuild();
+    // A flush no longer signals the dev server. The workflow restarts Storybook
+    // explicitly at its phase boundaries — a single `storybook start --force`
+    // before the first render (validate preflight) and one per polish recapture
+    // round — each a fresh process, so the story index / namespace map / Twig
+    // template cache rebuild complete. Signalling a restart per flush churned
+    // reloads and stalled capture-heavy stages (e.g. the polish fix→recapture loop).
     return Promise.resolve();
   },
 
