@@ -1,5 +1,55 @@
 # Design concern schemas — referenced via $ref from task frontmatter
 
+# CaptureStep / CaptureState are defined first and reused via YAML anchors
+# (*CaptureStep / *CaptureState) rather than `$ref: #/…`. The anchors expand to
+# inline copies at YAML-load time, so the result-schema validator never has to
+# resolve a cross-definition `$ref` — which it cannot do when it roots a single
+# definition (e.g. DesignReference) in isolation.
+CaptureStep: &CaptureStep
+  type: object
+  title: Capture Step
+  description: >
+    One generic browser interaction performed before a screenshot is taken, used
+    to drive an element into a non-rest state. Source-agnostic — the same shape
+    applies to a reference page or a Storybook story.
+  required: [action]
+  properties:
+    action:
+      type: string
+      description: Interaction to perform.
+      enum: [click, hover, focus, wait]
+    selector:
+      type: string
+      description: >
+        CSS selector the action targets. Required for click/hover/focus; omitted
+        for a bare wait.
+    timeout:
+      type: integer
+      default: 500
+      description: Milliseconds to let the UI settle after the action.
+
+CaptureState: &CaptureState
+  type: object
+  title: Capture State
+  description: >
+    A named interaction condition under which a screenshot is captured. `rest`
+    is the implicit default (no steps — the element as first rendered); any other
+    state is reached by running `steps` in order. Names are generic UI conditions
+    (rest, expanded, open, …), never component- or site-specific.
+  required: [name]
+  properties:
+    name:
+      type: string
+      pattern: "^[a-z][a-z0-9-]*$"
+      description: >
+        Generic state name. `rest` is reserved for the default un-interacted state.
+      examples: [rest, expanded, open, active]
+    steps:
+      type: array
+      default: []
+      description: Interactions to reach this state from rest. Empty for `rest`.
+      items: *CaptureStep
+
 BreakpointId:
   type: string
   description: >
@@ -63,8 +113,7 @@ Check:
         Interactions to run against the render before capturing, reaching the
         check's `state`. Denormalized from the element's `CaptureState.steps` so a
         check is self-contained. Empty for `rest`.
-      items:
-        $ref: "#/CaptureStep"
+      items: *CaptureStep
     file_suffix:
       type: string
       default: ""
@@ -224,8 +273,7 @@ StoryMeta:
                           steps:
                             type: array
                             default: []
-                            items:
-                              $ref: "#/CaptureStep"
+                            items: *CaptureStep
 
 Issue:
   type: object
@@ -306,52 +354,6 @@ EntityMapping:
     entity_type: { type: string }
     bundle: { type: string }
     view_mode: { type: string }
-
-CaptureStep:
-  type: object
-  title: Capture Step
-  description: >
-    One generic browser interaction performed before a screenshot is taken, used
-    to drive an element into a non-rest state. Source-agnostic — the same shape
-    applies to a reference page or a Storybook story.
-  required: [action]
-  properties:
-    action:
-      type: string
-      description: Interaction to perform.
-      enum: [click, hover, focus, wait]
-    selector:
-      type: string
-      description: >
-        CSS selector the action targets. Required for click/hover/focus; omitted
-        for a bare wait.
-    timeout:
-      type: integer
-      default: 500
-      description: Milliseconds to let the UI settle after the action.
-
-CaptureState:
-  type: object
-  title: Capture State
-  description: >
-    A named interaction condition under which a screenshot is captured. `rest`
-    is the implicit default (no steps — the element as first rendered); any other
-    state is reached by running `steps` in order. Names are generic UI conditions
-    (rest, expanded, open, …), never component- or site-specific.
-  required: [name]
-  properties:
-    name:
-      type: string
-      pattern: "^[a-z][a-z0-9-]*$"
-      description: >
-        Generic state name. `rest` is reserved for the default un-interacted state.
-      examples: [rest, expanded, open, active]
-    steps:
-      type: array
-      default: []
-      description: Interactions to reach this state from rest. Empty for `rest`.
-      items:
-        $ref: "#/CaptureStep"
 
 DesignReference:
   type: object
@@ -511,8 +513,7 @@ DesignReference:
               activated state(s) so the open/expanded condition can be built and
               verified.
             default: [{ name: rest }]
-            items:
-              $ref: "#/CaptureState"
+            items: *CaptureState
     tokens:
       type: object
       properties:
