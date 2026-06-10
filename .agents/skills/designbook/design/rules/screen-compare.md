@@ -35,11 +35,17 @@ When the values are present, the stage MUST do all of the following:
    - full-page for `full` or empty selector
    - element-specific capture for named regions/selectors
 5. Compare the captured screenshot against the reference screenshot in
-   `reference_folder`. Pair story and reference by the full `(breakpoint, region,
-   state)` triple — the screenshots for a check share the same `file_suffix`, so a
-   non-rest state never compares against the rest image. When `check.steps` are
-   present, run them before capturing the story side so both sides are in the same
-   interaction state.
+   `reference_folder` with the **measurement CLI** — do not eyeball the diff:
+   ```
+   npx storybook-addon-designbook compare-images \
+     --reference <ref.png> --actual <story.png> --diff <out-diff.png>
+   ```
+   `--reference` is the comparison base. Pair story and reference by the full
+   `(breakpoint, region, state)` triple — the screenshots for a check share the
+   same `file_suffix`, so a non-rest state never compares against the rest image.
+   When `check.steps` are present, run them before capturing the story side so both
+   sides are in the same interaction state. Take `diff_percent`, `diff_path`,
+   `passed` (and the issue `severity`) from the CLI's JSON.
 6. Save the resulting compare artifact, carrying the check's `state`.
 
 For the compare stage:
@@ -53,15 +59,22 @@ Before interpreting pixel diff quality, compare the reference screenshot dimensi
 
 When width or height differs enough to indicate missing or extra structure, emit an issue that names the dimension drift and treat it as a structural mismatch. Continue writing the normal diff artifact when possible, but do not let screenshot resizing hide missing landmark regions.
 
-## Severity Is Mapped From Measurements, Not Judgement
+## Severity Is Measured, Not Judged
 
-Issue severity MUST be derived from the measured numbers, not from a subjective impression. Self-graded severity drifts toward leniency — a footer that is 38% too short is not "minor". Apply these floors (take the highest that matches):
+Severity is **computed by `compare-images`, not assigned by you** — that is what
+makes the score model-independent (same screenshots → same score). The CLI returns
+a `severity` derived deterministically from the measured signals:
 
-- `diff_percent > 0.25`, **or** width/height drift `> 25%` → at least `critical`.
-- `diff_percent > 0.10`, **or** width/height drift `> 10%` → at least `major`.
-- otherwise → `minor`.
+- pixel ratio `diff_percent` (odiff, antialiasing-aware),
+- structural `dimension_drift` (per-axis size difference),
+- spatial extent (rows touched — catches a small-percentage but widely-spread
+  shift that pixel ratio alone undercounts).
 
-A region with a missing or extra landmark is `critical` regardless of pixel diff. These are floors: raise severity when the deviation is clearly worse, never lower it below the measured band. The outtake's `success_rate` must be consistent with the worst check — it cannot exceed `1 − max(diff_percent)` across all checks.
+Use the returned `severity` verbatim for each check's issue. Your prose describes
+*what* differs and *where* (so polish can act); it must not raise or lower the
+measured severity. Likewise the outtake's `success_rate` is `1 − max(diff_percent)`
+across all checks — measured, not authored. (The exact band thresholds live in the
+CLI and are calibrated there; do not re-derive them here.)
 
 ## Playwright Execution Rules
 

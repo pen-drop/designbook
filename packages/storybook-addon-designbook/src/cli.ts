@@ -6,6 +6,7 @@ import { validateEntityMapping } from './validators/entity-mapping.js';
 import { register as registerWorkflow } from './cli/workflow.js';
 import { register as registerStorybook } from './cli/storybook.js';
 import { register as registerPlan } from './cli/plan.js';
+import { register as registerCompareImages } from './cli/compare-images.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
   const out: Record<string, unknown> = { valid, label };
@@ -130,5 +131,6 @@ program
 registerWorkflow(program);
 registerStorybook(program);
 registerPlan(program);
+registerCompareImages(program);
 
 program.parse();
