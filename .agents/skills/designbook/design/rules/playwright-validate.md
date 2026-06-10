@@ -26,6 +26,8 @@ Before the first `validate` step of any workflow that created new components:
 - Run `_debo storybook start --force` once to rebuild the namespace map with the new component directories present.
 - This is a **preflight** action, not a failure recovery — do not wait for the validate step to fail first.
 
+This `--force` is the **only** refresh: stage flushes no longer poke the dev server, so a fresh process started here (with every built component present) is what makes the story index, namespace map and template cache complete. There is no automatic per-flush restart to fall back on.
+
 Skip the preflight only when you can confirm that every component referenced in the scene already existed before Storybook started (e.g. pure scene edits against pre-existing components).
 
 ## Render check

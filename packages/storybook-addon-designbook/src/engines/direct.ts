@@ -2,7 +2,6 @@ import { existsSync, mkdirSync, readdirSync, renameSync, unlinkSync, writeFileSy
 import { resolve, dirname } from 'node:path';
 import type { WorkflowEngine, TransitionResult } from './types.js';
 import type { WorkflowFile, WorkflowTask } from '../workflow.js';
-import { signalStorybookRebuild } from '../flush-notify.js';
 
 function deboSuffix(data: WorkflowFile): string {
   if (!data.workflow_id) throw new Error('workflow_id is required for direct engine stash-at-target');
@@ -43,33 +42,24 @@ export const directEngine: WorkflowEngine = {
 
   flush(data: WorkflowFile, tasks: WorkflowTask[]): Promise<void> {
     const suffix = deboSuffix(data);
-    let newComponentDir = false;
     const now = new Date().toISOString();
     for (const task of tasks) {
       for (const file of task.files ?? []) {
         if (!file.validation_result) continue; // not yet written
         const src = file.path + suffix;
         if (!existsSync(src)) continue;
-        const targetDir = dirname(file.path);
-        // A brand-new directory receiving a component template/definition adds a
-        // Twig namespace the SDC namespace map (built once at Storybook startup)
-        // doesn't know — that genuinely needs a Vite/Storybook restart.
-        if (!existsSync(targetDir) && /\.(twig|component\.yml)$/.test(file.path)) {
-          newComponentDir = true;
-        }
-        mkdirSync(targetDir, { recursive: true });
+        mkdirSync(dirname(file.path), { recursive: true });
         renameSync(src, file.path);
         file.flushed_at = now;
       }
     }
 
-    // Only force a full Vite/Storybook restart when a NEW component directory
-    // appeared (namespace map must rebuild). Content edits and new files in
-    // already-watched story-glob roots (`components/`, `stories/`) are picked up
-    // by the native watcher, so they must NOT restart. The previous `renamed > 0`
-    // fired a full restart on every flush — e.g. each polish fix+recapture —
-    // churning Storybook reloads and stalling capture-heavy stages.
-    if (newComponentDir) signalStorybookRebuild();
+    // A flush no longer signals the dev server. The workflow restarts Storybook
+    // explicitly at its phase boundaries — a single `storybook start --force`
+    // before the first render (validate preflight) and one per polish recapture
+    // round — each a fresh process, so the story index / namespace map / Twig
+    // template cache rebuild complete. Signalling a restart per flush churned
+    // reloads and stalled capture-heavy stages (e.g. the polish fix→recapture loop).
     return Promise.resolve();
   },
 
