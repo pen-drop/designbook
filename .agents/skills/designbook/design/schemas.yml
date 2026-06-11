@@ -157,6 +157,15 @@ CompareArtifact:
     diff_percent:
       type: number
       description: Measured visual deviation ratio for this check when available.
+    severity:
+      type: string
+      enum: [pass, minor, major, critical]
+      description: >
+        Deterministic severity from the compare-images CLI, derived from pixel
+        ratio, spatial extent, and dimension drift together. Carried onto the
+        artifact so outtake scores by severity, not pixel ratio alone — a small
+        but widely-spread shift (low diff_percent, high extent) still lands as
+        `major`/`critical` here.
 
 VerifyResult:
   type: object
@@ -730,10 +739,21 @@ DesignWorkflowOutput:
       minimum: 0
       maximum: 1
       description: >
-        Optisches Qualitätsurteil des AI nach Abschluss des Outtake-Tasks.
-        Beschreibt wie gut das visuelle Ergebnis der Referenz entspricht (0 = kein Match, 1 = perfekter Match).
-        Wird von der Engine nach dem Archivieren zu flow_rate weiterverarbeitet.
-        Wird nie von der Engine überschrieben.
+        Computed deterministically from compare_artifacts (never an AI judgment):
+        success_rate = 1 − max(effective_deviation) over all artifacts, clamped to [0, 1].
+        Per artifact, effective_deviation = max(diff_percent, severity_floor[severity])
+        with floors pass→0.0, minor→0.05, major→0.20, critical→0.50, so the
+        deterministic severity (pixel ratio + spatial extent + dimension drift) counts,
+        not pixel ratio alone — a widely-spread shift with low diff_percent but
+        severity major/critical still lowers the score. diff_percent and severity both
+        come from the compare-images CLI, so identical screenshots yield the same score
+        regardless of model. Edge cases: no design reference configured (reference_folder
+        empty, no checks) → 1.0; a reference was set but compare_artifacts is empty
+        (compare expected, produced nothing) → 0.0; an artifact missing diff_percent or
+        severity, or an expected check absent from the matrix → effective_deviation 1.0
+        for that check (a failed measurement never raises the score). 0 = no match,
+        1 = perfect match. The engine derives flow_rate from this after archiving and
+        never overwrites it.
     flow_rate:
       type: number
       description: >

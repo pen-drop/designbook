@@ -44,9 +44,14 @@ When the values are present, the stage MUST do all of the following:
    `(breakpoint, region, state)` triple — the screenshots for a check share the
    same `file_suffix`, so a non-rest state never compares against the rest image.
    When `check.steps` are present, run them before capturing the story side so both
-   sides are in the same interaction state. Take `diff_percent`, `diff_path`,
-   `passed` (and the issue `severity`) from the CLI's JSON.
-6. Save the resulting compare artifact, carrying the check's `state`.
+   sides are in the same interaction state. Take `diff_percent`, `diff_path`, and the
+   issue `severity` from the CLI's JSON. The CLI does **not** emit `passed` — derive
+   the artifact's `passed` deterministically as `diff_percent <= check.threshold` (the
+   check's configured percentage threshold). A check with no reference (empty
+   `story_url`/`reference_folder`) is `passed: false` with no `diff_percent`.
+6. Save the resulting compare artifact, carrying the check's `state` plus the
+   CLI's `diff_percent` and `severity` (outtake scores by severity, not pixel
+   ratio alone, so both must reach the artifact).
 
 For the compare stage:
 - emit actionable `issues`
@@ -70,11 +75,17 @@ a `severity` derived deterministically from the measured signals:
 - spatial extent (rows touched — catches a small-percentage but widely-spread
   shift that pixel ratio alone undercounts).
 
-Use the returned `severity` verbatim for each check's issue. Your prose describes
-*what* differs and *where* (so polish can act); it must not raise or lower the
-measured severity. Likewise the outtake's `success_rate` is `1 − max(diff_percent)`
-across all checks — measured, not authored. (The exact band thresholds live in the
-CLI and are calibrated there; do not re-derive them here.)
+Use the returned `severity` verbatim — both on each check's issue and on the
+matching `compare_artifact`. A check whose severity is `pass` emits no issue (the
+`Issue.severity` enum has no `pass` value); it still emits its `compare_artifact`
+carrying `severity: pass`. Your prose describes *what* differs and *where* (so
+polish can act); it must not raise or lower the measured severity. The outtake's
+`success_rate` folds severity in: `1 − max(effective_deviation)` across all checks,
+where `effective_deviation = max(diff_percent, severity_floor[severity])` (floors
+`pass → 0.0`, `minor → 0.05`, `major → 0.20`, `critical → 0.50`) — so a widely-spread
+shift that pixel ratio alone undercounts still costs at least its severity floor.
+Measured, not authored. (The exact band thresholds live in the CLI and are
+calibrated there; do not re-derive them here.)
 
 ## Playwright Execution Rules
 

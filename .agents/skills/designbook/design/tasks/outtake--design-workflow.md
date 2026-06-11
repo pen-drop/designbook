@@ -62,10 +62,29 @@ task focused on collecting the current run facts and computing the final
    - `reference_folder`
 4. Derive `compare_passed`, `issues_count`, and the most relevant `diff_path`
    from the aggregated `compare_artifacts` and `issues`.
-5. Compute `success_rate` from the workflow's actual design outcome. A
-   technically completed run may still have a reduced `success_rate` when
-   compare results, open issues, or validation failures indicate incomplete
-   quality.
+5. Compute `success_rate` **deterministically** from the measured compare
+   results — never as a free judgment. For each artifact compute its
+   `effective_deviation = max(diff_percent, severity_floor[severity])`, where the
+   severity floors are `pass → 0.0`, `minor → 0.05`, `major → 0.20`,
+   `critical → 0.50`. Then `success_rate = 1 − max(effective_deviation)` across all
+   `compare_artifacts` (clamp to `[0, 1]`). Both `diff_percent` and `severity` come
+   from the `compare-images` CLI, so the severity floor folds the CLI's structural
+   signals (spatial extent, dimension drift) into the score — a widely-spread shift
+   with low `diff_percent` but `severity: major` still costs at least `0.20`, rather
+   than reading as near-perfect. Treat any artifact whose measurement is incomplete
+   as a full failure, not as absent — `effective_deviation = 1.0` when an artifact
+   has no `diff_percent` **or** no `severity` (the compare could not run or the CLI
+   output was not carried through: empty `story_url`, missing screenshot, capture
+   failure). A missing severity must never silently default to floor `0`.
+   Identical screenshots always yield the same score, independent of which model
+   ran the workflow. Then handle the no-measurement edges:
+   - **No design reference at all** (`reference_folder` empty → no checks were ever
+     configured): visual fidelity is genuinely unmeasured → `success_rate = 1.0`.
+   - **A `reference_folder` was set but `compare_artifacts` is empty**: compare was
+     expected but produced nothing → `success_rate = 0.0`, never default to perfect.
+   - **Fewer artifacts than the configured check matrix** (`breakpoints[] × regions[] ×
+     states`): each expected-but-absent check counts as `effective_deviation = 1.0`,
+     so dropping the worst check cannot raise the score.
 6. Return a short `summary`, any non-fatal `warnings`, and relevant `artifacts`.
 
 Do not perform capture or compare work here. The preceding compare stages are
@@ -76,5 +95,6 @@ the final workflow output.
 
 `flow_rate` and `workflow_output.metrics` (errors, retries, unresolved) are **not** written
 by this task. The engine injects these values deterministically when archiving the workflow.
-Only write `success_rate` (visual quality judgment) and the human-readable fields
+Only write `success_rate` (computed deterministically from `compare_artifacts`
+per step 5 — measured, not judged) and the human-readable fields
 (`summary`, `warnings`, `artifacts`, `compare_passed`, etc.).

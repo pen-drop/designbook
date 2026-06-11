@@ -15,18 +15,19 @@ describe('severityFromMeasure', () => {
   });
 
   it('escalates on structural dimension drift even when pixel ratio is low', () => {
-    expect(
-      severityFromMeasure({ ...base, diff_percent: 0.01, dimension_drift: { w: 0, h: 0.3 } }),
-    ).toBe('critical');
-    expect(
-      severityFromMeasure({ ...base, diff_percent: 0.01, dimension_drift: { w: 0, h: 0.12 } }),
-    ).toBe('major');
+    expect(severityFromMeasure({ ...base, diff_percent: 0.01, dimension_drift: { w: 0, h: 0.3 } })).toBe('critical');
+    expect(severityFromMeasure({ ...base, diff_percent: 0.01, dimension_drift: { w: 0, h: 0.12 } })).toBe('major');
   });
 
   it('escalates a small-but-widely-spread shift via spatial extent', () => {
     // 2.8% pixels but touching >50% of rows (horizontal shift) → major, not minor
     expect(
-      severityFromMeasure({ diff_percent: 0.028, dimension_drift: null, diff_line_count: 90, ref_dim: { w: 1280, h: 162 } }),
+      severityFromMeasure({
+        diff_percent: 0.028,
+        dimension_drift: null,
+        diff_line_count: 90,
+        ref_dim: { w: 1280, h: 162 },
+      }),
     ).toBe('major');
   });
 });

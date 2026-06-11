@@ -91,7 +91,15 @@ export async function compareImages(
   const base = { ref_dim, actual_dim, dimension_drift, diff_path: diffPath };
 
   if (r.match) {
-    return { ...base, match: true, reason: 'equal', diff_percent: 0, diff_pixels: 0, diff_line_count: 0, severity: 'pass' };
+    return {
+      ...base,
+      match: true,
+      reason: 'equal',
+      diff_percent: 0,
+      diff_pixels: 0,
+      diff_line_count: 0,
+      severity: 'pass',
+    };
   }
   if (r.reason === 'file-not-exists') {
     return {
@@ -139,12 +147,9 @@ export function register(program: Command): void {
     .requiredOption('--diff <path>', 'Output diff image path')
     .option('--threshold <n>', 'Per-pixel color threshold 0..1 (default 0.1)', (v) => parseFloat(v))
     .action(async (opts: { reference: string; actual: string; diff: string; threshold?: number }) => {
-      const result = await compareImages(
-        resolve(opts.reference),
-        resolve(opts.actual),
-        resolve(opts.diff),
-        { threshold: opts.threshold },
-      );
+      const result = await compareImages(resolve(opts.reference), resolve(opts.actual), resolve(opts.diff), {
+        threshold: opts.threshold,
+      });
       console.log(JSON.stringify(result));
     });
 }
