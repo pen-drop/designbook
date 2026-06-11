@@ -6,6 +6,11 @@ params:
     type: string
     resolve: story_id
     sources: [scenes]
+  reference_url: { type: string, default: "" }
+  reference_folder:
+    type: string
+    resolve: reference_folder
+    from: reference_url
 stages:
   reference:
     steps: [extract-reference]

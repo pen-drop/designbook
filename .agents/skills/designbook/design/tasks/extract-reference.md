@@ -10,7 +10,7 @@ params:
       $ref: ../schemas.yml#/ReferenceFolder
       default: ""
       resolve: reference_folder
-      from: vision.design_reference.url
+      from: reference_url
     vision:
       path: $DESIGNBOOK_DATA/vision.yml
       type: object
