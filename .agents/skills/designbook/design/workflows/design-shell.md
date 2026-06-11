@@ -64,4 +64,5 @@ after:
     when: "reference_url != ''"
     params:
       story_id: story_id
+      reference_url: reference_url
 ---
