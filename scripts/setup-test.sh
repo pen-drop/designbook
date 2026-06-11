@@ -117,8 +117,9 @@ FIXTURES=$(sed -n '/^fixtures:/,/^[^ ]/{ /^  - /p; }' "$CASE_FILE" | sed 's/^  -
 for FIXTURE in $FIXTURES; do
   FIXTURE_DIR="$FIXTURES_DIR/$FIXTURE"
   if [[ ! -d "$FIXTURE_DIR" ]]; then
-    echo "  Warning: Fixture '$FIXTURE' not found at $FIXTURE_DIR, skipping" >&2
-    continue
+    echo "ERROR: case '$SUITE/$CASE' lists fixture '$FIXTURE' but $FIXTURE_DIR does not exist." >&2
+    echo "       Refusing to build an incomplete workspace. Add the fixture or fix the case's fixtures: list." >&2
+    exit 1
   fi
   echo "  Layering fixture: $FIXTURE"
   cp -r "$FIXTURE_DIR/." "$TARGET_DIR/"
