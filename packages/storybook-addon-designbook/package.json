@@ -1,6 +1,6 @@
 {
   "name": "storybook-addon-designbook",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Storybook addon and CLI for Designbook \u2014 AI workflows that structure your design for CMS implementation",
   "keywords": [
     "storybook-addon",

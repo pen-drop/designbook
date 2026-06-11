@@ -71,6 +71,34 @@ export function designbookLoadPlugin(
     // semver not reachable from the addon — leave resolution to Vite defaults
   }
 
+  // Same treatment for yaml: storybook-core's preview-runtime imports it, and a
+  // bare `yaml` specifier is unresolvable from a pnpm-strict consumer root.
+  let yamlDir: string | undefined;
+  try {
+    yamlDir = dirname(addonRequire.resolve('yaml/package.json'));
+  } catch {
+    // yaml not reachable from the addon — leave resolution to Vite defaults
+  }
+
+  // Resolve js-yaml to an absolute path. DeboSectionPage.jsx imports bare `js-yaml`,
+  // and parsers.js imports bare `marked` — under pnpm-strict the consumer root cannot
+  // resolve these bare specifiers (they are not direct consumer deps). Mirror the React
+  // handling: resolve through the addon's own node_modules, alias the bare specifier,
+  // and pre-bundle so esbuild adds the necessary interop.
+  let jsYamlDir: string | undefined;
+  try {
+    jsYamlDir = dirname(addonRequire.resolve('js-yaml/package.json'));
+  } catch {
+    // js-yaml not reachable from the addon — leave resolution to Vite defaults
+  }
+
+  let markedDir: string | undefined;
+  try {
+    markedDir = dirname(addonRequire.resolve('marked/package.json'));
+  } catch {
+    // marked not reachable from the addon — leave resolution to Vite defaults
+  }
+
   return {
     name: 'vite-plugin-designbook-load',
     enforce: 'pre',
@@ -88,13 +116,19 @@ export function designbookLoadPlugin(
       if (semverDir) {
         alias.push({ find: /^semver$/, replacement: semverDir });
       }
+      if (yamlDir) {
+        alias.push({ find: /^yaml$/, replacement: yamlDir });
+      }
+      if (jsYamlDir) {
+        alias.push({ find: /^js-yaml$/, replacement: jsYamlDir });
+      }
+      if (markedDir) {
+        alias.push({ find: /^marked$/, replacement: markedDir });
+      }
       return {
         resolve: alias.length ? { alias } : undefined,
         optimizeDeps: {
           include: [
-            'vite-plugin-node-polyfills/shims/buffer',
-            'vite-plugin-node-polyfills/shims/global',
-            'vite-plugin-node-polyfills/shims/process',
             'react',
             'react/jsx-runtime',
             'react/jsx-dev-runtime',
@@ -104,19 +138,23 @@ export function designbookLoadPlugin(
             // (runtime discovery triggers "optimized dependencies changed. reloading"
             // which causes an infinite HMR loop in workspace-linked setups).
             '@storybook/addon-themes',
-            // Pre-bundle marked (a real preview import in the page-component
-            // parsers) so Vite doesn't dep-discover + reload mid-run. Nested
-            // `owner > dep` form resolves through the addon's own node_modules,
-            // so it works regardless of consumer hoisting (pnpm strict drops a
-            // bare name that isn't a direct consumer dep). yaml was never a
-            // client import.
-            'storybook-addon-designbook > marked',
+            // Pre-bundle marked: aliased to the addon's resolved copy so the bare
+            // specifier is reachable under pnpm-strict consumers (DeboSectionPage
+            // and parsers.js import bare `marked`).
+            'marked',
+            // Pre-bundle js-yaml: aliased to the addon's resolved copy so the bare
+            // specifier is reachable under pnpm-strict consumers (DeboSectionPage
+            // imports bare `js-yaml`).
+            'js-yaml',
             // Pre-bundle semver (imported by storybook-core's preview-runtime).
             // The `semver` alias above points the bare specifier at the addon's
             // resolved copy; including it here forces esbuild to wrap it with
             // CJS-default interop so `import semver from 'semver'` gets a real
             // default export instead of a raw-served ESM module with none.
             'semver',
+            // yaml: aliased to the addon's resolved copy above; pre-bundle so it
+            // is reachable as a client import under pnpm-strict consumers.
+            'yaml',
           ],
           // Leave the CJS external-store shim un-optimized so the dev server
           // routes the bare import through resolveId/load (virtual ESM wrapper),
