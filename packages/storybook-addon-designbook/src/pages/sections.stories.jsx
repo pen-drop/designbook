@@ -1,4 +1,4 @@
-import { DeboSectionsOverview } from 'storybook-addon-designbook/dist/components/pages/DeboSectionsOverview.jsx';
+import { DeboSectionsOverview } from '../components/pages/DeboSectionsOverview.jsx';
 import { mountReact } from './mount-react.js';
 
 export default {
