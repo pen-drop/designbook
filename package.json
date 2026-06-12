@@ -5,7 +5,6 @@
     "packages/*",
     "packages/integrations/*"
   ],
-
   "type": "module",
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.81",
@@ -14,7 +13,8 @@
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "promptfoo": "^0.120.24"
+    "promptfoo": "^0.120.24",
+    "auto": "^11.3.0"
   },
   "dependencies": {
     "storybook-addon-designbook": "workspace:*"
@@ -27,7 +27,7 @@
     "dev:addon": "pnpm --filter storybook-addon-designbook build:watch",
     "dev:integration:drupal": "pnpm --filter test-integration-drupal storybook",
     "check": "run-s check:legacy-flush typecheck lint test",
-    "release": "pnpm check && pnpm --filter storybook-addon-designbook run prerelease && pnpm --filter storybook-addon-designbook run build && pnpm --filter storybook-addon-designbook publish",
+    "release": "bash scripts/release.sh",
     "check:legacy-flush": "bash scripts/check-no-legacy-flush.sh",
     "typecheck": "pnpm --filter storybook-addon-designbook typecheck",
     "lint": "pnpm --filter storybook-addon-designbook lint",
