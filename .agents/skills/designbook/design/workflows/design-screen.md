@@ -37,16 +37,6 @@ stages:
     steps: [create-scene]
     domain: [data-model]
     isolate: true
-  setup-compare:
-    steps: [setup-compare]
-  capture:
-    steps: [capture]
-    isolate: true
-  compare:
-    steps: [compare]
-    isolate: true
-  outtake:
-    steps: [outtake]
 engine: direct
 before:
   - workflow: css-generate
