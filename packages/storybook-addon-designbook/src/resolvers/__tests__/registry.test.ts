@@ -51,6 +51,24 @@ describe('resolveParams', () => {
     expect(Object.keys(result.unresolved)).toHaveLength(0);
   });
 
+  it('runs a producer resolver (requiresInput false) even without input or from', async () => {
+    // components_index has no input param and no from: dependency, but it
+    // generates the live inventory from the environment, so it must still run.
+    // Storybook is not running in tests, so it lands in unresolved (not skipped).
+    const schema = {
+      components: { type: 'array', resolve: 'components_index' },
+    };
+    const context = makeContext({});
+    const result = await resolveParams(schema, context);
+
+    // It RAN (no Storybook/framework config in tests → lands in unresolved with
+    // an error) rather than being silently skipped like an input-transforming
+    // resolver would be.
+    expect('components' in result.unresolved).toBe(true);
+    expect(result.unresolved.components!.error).toBeTruthy();
+    expect(Object.keys(result.resolved)).not.toContain('components');
+  });
+
   it('respects dependency ordering via from — dependent resolver sees resolved values', async () => {
     const schema = {
       reference_url: { type: 'string' },

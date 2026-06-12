@@ -23,6 +23,9 @@ function loadOverride(config: Record<string, unknown>): StoryPattern | undefined
 
 export const componentsIndexResolver: ParamResolver = {
   name: 'components_index',
+  // Producer: derives the inventory from the live Storybook index, with no
+  // input param. Must run even though nothing supplies `components`.
+  requiresInput: false,
 
   async resolve(_input: string, _config: Record<string, unknown>, context: ResolverContext): Promise<ResolverResult> {
     const config = context.config as unknown as Record<string, unknown>;

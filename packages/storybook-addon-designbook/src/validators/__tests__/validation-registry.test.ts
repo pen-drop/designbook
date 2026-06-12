@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { getValidator, getValidatorKeys, validateByKeys } from '../../validation-registry.js';
 import type { DesignbookConfig } from '../../config.js';
 
@@ -89,5 +92,16 @@ describe('validateByKeys', () => {
     const result = await validateByKeys(['cmd:true', 'nonexistent'], '/some/file.yml', mockConfig);
     expect(result.valid).toBe(false);
     expect(result.error).toContain("Unknown validator key: 'nonexistent'");
+  });
+
+  it('cmd: validator does not execute injected commands in the file path', async () => {
+    const marker = resolve(tmpdir(), `cmd-injection-${process.pid}.marker`);
+    // A path crafted to break out of the command if substituted unquoted.
+    const maliciousFile = `/nonexistent; touch ${marker}`;
+    const result = await validateByKeys(['cmd:test -f {{ file }}'], maliciousFile, mockConfig);
+    // The injected `touch` must never run — the path is shell-quoted, so `test -f`
+    // just checks a (nonexistent) file with a funny name and fails.
+    expect(result.valid).toBe(false);
+    expect(existsSync(marker)).toBe(false);
   });
 });
