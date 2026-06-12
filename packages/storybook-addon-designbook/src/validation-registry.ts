@@ -16,6 +16,15 @@ export type ValidatorFn = (file: string, config: DesignbookConfig) => Promise<Va
 
 type ValidatorResult = { valid: boolean; errors: string[]; warnings?: string[] };
 
+/**
+ * POSIX shell-quote a value so it is inert when interpolated into a `cmd:`
+ * validator template. The file path can carry AI/user-supplied segments, so an
+ * unquoted substitution would allow command injection (spaces, `;`, `$(...)`).
+ */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
 function toFileResult(result: ValidatorResult, file: string, type: string): ValidationFileResult {
   const ts = new Date().toISOString();
   return {
@@ -113,7 +122,7 @@ export async function validateByKeys(
     // cmd: prefix — execute shell command as validator
     if (key.startsWith('cmd:')) {
       const cmdTemplate = key.slice(4);
-      const cmd = cmdTemplate.replace(/\{\{\s*file\s*\}\}/g, file);
+      const cmd = cmdTemplate.replace(/\{\{\s*file\s*\}\}/g, shellQuote(file));
       const ts = new Date().toISOString();
       try {
         execSync(cmd, { timeout: 30_000, stdio: ['pipe', 'pipe', 'pipe'] });

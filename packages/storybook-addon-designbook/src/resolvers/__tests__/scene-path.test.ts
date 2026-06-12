@@ -58,4 +58,34 @@ describe('scenePathResolver', () => {
     expect(result.resolved).toBe(true);
     expect(result.value).toBe('sections/homepage/homepage.section.scenes.yml');
   });
+
+  // The story_id resolver returns Storybook's sanitised id (no slashes) — this is
+  // the actual shape `scene_path` receives via `from: story_id` in design-screen.
+  it('reverses a sanitised section scene story id to the section scenes path', async () => {
+    const result = await scenePathResolver.resolve('designbook-sections-galerie-scenes--hero', {}, makeContext());
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('sections/galerie/galerie.section.scenes.yml');
+  });
+
+  it('reverses a multi-word sanitised section scene story id', async () => {
+    const result = await scenePathResolver.resolve(
+      'designbook-sections-pet-details-scenes--default',
+      {},
+      makeContext(),
+    );
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('sections/pet-details/pet-details.section.scenes.yml');
+  });
+
+  it('reverses a sanitised section scene story id without a variant', async () => {
+    const result = await scenePathResolver.resolve('designbook-sections-galerie-scenes', {}, makeContext());
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('sections/galerie/galerie.section.scenes.yml');
+  });
+
+  it('reverses the sanitised design-system scene story id to the shell path', async () => {
+    const result = await scenePathResolver.resolve('designbook-design-system-scenes--shell', {}, makeContext());
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('design-system/design-system.scenes.yml');
+  });
 });
