@@ -57,18 +57,25 @@ export function designbookLoadPlugin(
     // React not available — docs pages will fail but scenes still work
   }
 
-  // Resolve semver to an absolute path. storybook-core's preview-runtime does
-  // `import semver from 'semver'`, but in a pnpm-strict workspace the consumer
-  // root cannot resolve the bare `semver` specifier (it's not a direct dep), so
-  // Vite serves it raw and the CJS module yields no `default` export → the
-  // preview crashes. Mirror the React handling: resolve semver through the
-  // addon's own node_modules (where it's reachable), alias the bare specifier
-  // to that absolute dir, and pre-bundle it so esbuild adds CJS-default interop.
+  // js-yaml + marked are bundled into the client components by tsup, so they
+  // need no aliasing here. semver + yaml are still required: storybook-core's
+  // preview-runtime does `import semver from 'semver'` (and yaml), and these CJS
+  // packages are served raw under a pnpm-strict consumer → no `default` export →
+  // the preview crashes. Resolve them from the addon's own node_modules, alias
+  // the bare specifier, and pre-bundle (optimizeDeps) so esbuild adds the
+  // CJS-default interop.
   let semverDir: string | undefined;
   try {
     semverDir = dirname(addonRequire.resolve('semver/package.json'));
   } catch {
     // semver not reachable from the addon — leave resolution to Vite defaults
+  }
+
+  let yamlDir: string | undefined;
+  try {
+    yamlDir = dirname(addonRequire.resolve('yaml/package.json'));
+  } catch {
+    // yaml not reachable from the addon — leave resolution to Vite defaults
   }
 
   return {
@@ -88,13 +95,13 @@ export function designbookLoadPlugin(
       if (semverDir) {
         alias.push({ find: /^semver$/, replacement: semverDir });
       }
+      if (yamlDir) {
+        alias.push({ find: /^yaml$/, replacement: yamlDir });
+      }
       return {
         resolve: alias.length ? { alias } : undefined,
         optimizeDeps: {
           include: [
-            'vite-plugin-node-polyfills/shims/buffer',
-            'vite-plugin-node-polyfills/shims/global',
-            'vite-plugin-node-polyfills/shims/process',
             'react',
             'react/jsx-runtime',
             'react/jsx-dev-runtime',
@@ -104,19 +111,11 @@ export function designbookLoadPlugin(
             // (runtime discovery triggers "optimized dependencies changed. reloading"
             // which causes an infinite HMR loop in workspace-linked setups).
             '@storybook/addon-themes',
-            // Pre-bundle marked (a real preview import in the page-component
-            // parsers) so Vite doesn't dep-discover + reload mid-run. Nested
-            // `owner > dep` form resolves through the addon's own node_modules,
-            // so it works regardless of consumer hoisting (pnpm strict drops a
-            // bare name that isn't a direct consumer dep). yaml was never a
-            // client import.
-            'storybook-addon-designbook > marked',
-            // Pre-bundle semver (imported by storybook-core's preview-runtime).
-            // The `semver` alias above points the bare specifier at the addon's
-            // resolved copy; including it here forces esbuild to wrap it with
-            // CJS-default interop so `import semver from 'semver'` gets a real
-            // default export instead of a raw-served ESM module with none.
+            // semver + yaml: aliased above to the addon's resolved copies;
+            // pre-bundle so esbuild adds CJS-default interop (storybook-core's
+            // preview-runtime imports them by default under pnpm-strict).
             'semver',
+            'yaml',
           ],
           // Leave the CJS external-store shim un-optimized so the dev server
           // routes the bare import through resolveId/load (virtual ESM wrapper),
@@ -522,7 +521,7 @@ export function designbookLoadPlugin(
 
 const MOUNT_REACT_IMPORT = "import { mountReact } from 'storybook-addon-designbook/dist/pages/mount-react.js';";
 const SECTION_PAGE_IMPORT =
-  "import { DeboSectionPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionPage.jsx';";
+  "import { DeboSectionPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionPage.js';";
 
 function buildOverviewStory(sectionId: string, title: string): string {
   const sid = sectionId.replace(/'/g, "\\'");
