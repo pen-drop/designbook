@@ -11,7 +11,6 @@ import {
   workflowAbandon,
   workflowWait,
   workflowResume,
-  workflowMerge,
   readWorkflow,
   expandTasksFromParams,
   registerChild,
@@ -806,24 +805,6 @@ export function register(program: Command): void {
         log({ cmd: 'workflow abandon', args: { workflow: opts.workflow } });
         console.log(`Workflow ${opts.workflow} archived as incomplete`);
         console.log(`  Summary: ${data.summary}`);
-      } catch (err) {
-        console.error(`Error: ${(err as Error).message}`);
-        process.exitCode = 1;
-      }
-    });
-
-  workflow
-    .command('merge')
-    .description('Squash-merge a workflow branch, kill preview, and archive the workflow')
-    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
-    .action((opts: { workflow: string }) => {
-      const config = loadConfig();
-      try {
-        const result = workflowMerge(config.data, opts.workflow);
-        log({ cmd: 'workflow merge', args: { workflow: opts.workflow }, result: { branch: result.branch } });
-        console.log(`✓ Workflow ${opts.workflow} merged and archived`);
-        console.log(`  Branch:  ${result.branch} (deleted)`);
-        console.log(`  Commit:  workflow: ${opts.workflow}`);
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;

@@ -744,44 +744,6 @@ export function buildEnvMap(config: DesignbookConfig): Record<string, string> {
   return env;
 }
 
-/**
- * Build a remapped env map for an isolated git WORKTREE.
- *
- * Swaps DESIGNBOOK_WORKSPACE to the worktree path. All DESIGNBOOK_DIRS_* vars are
- * re-derived by resolving their workspace-relative paths against the new workspace.
- * DESIGNBOOK_HOME and DESIGNBOOK_DATA are re-resolved the same way.
- *
- * This preserves directory structure so that `cp -r WORKTREE/* DESIGNBOOK_HOME/`
- * restores files to their correct locations.
- */
-export function buildWorktreeEnvMap(
-  envMap: Record<string, string>,
-  worktreePath: string,
-  rootDir: string,
-): Record<string, string> {
-  const remapped = { ...envMap };
-
-  // Swap workspace anchor
-  remapped['DESIGNBOOK_WORKSPACE'] = worktreePath;
-
-  // Re-resolve DESIGNBOOK_DIRS_* relative to new workspace
-  for (const [key, value] of Object.entries(envMap)) {
-    if (!key.startsWith('DESIGNBOOK_DIRS_')) continue;
-    const relPath = relative(rootDir, value);
-    remapped[key] = resolve(worktreePath, relPath);
-  }
-
-  // Re-resolve DESIGNBOOK_HOME and DESIGNBOOK_DATA relative to new workspace
-  if (envMap['DESIGNBOOK_HOME']) {
-    remapped['DESIGNBOOK_HOME'] = resolve(worktreePath, relative(rootDir, envMap['DESIGNBOOK_HOME']));
-  }
-  if (envMap['DESIGNBOOK_DATA']) {
-    remapped['DESIGNBOOK_DATA'] = resolve(worktreePath, relative(rootDir, envMap['DESIGNBOOK_DATA']));
-  }
-
-  return remapped;
-}
-
 // ── Unified File Resolution ─────────────────────────────────────────
 
 /**
