@@ -57,10 +57,26 @@ export function designbookLoadPlugin(
     // React not available — docs pages will fail but scenes still work
   }
 
-  // NOTE: js-yaml + marked are bundled into the client components by tsup, and
-  // semver/yaml are resolved by storybook-core relative to itself — so no
-  // absolute aliasing of those is needed for pnpm-strict consumers. Only React
-  // is aliased below (peer dep, resolved from the addon for the docs pages).
+  // js-yaml + marked are bundled into the client components by tsup, so they
+  // need no aliasing here. semver + yaml are still required: storybook-core's
+  // preview-runtime does `import semver from 'semver'` (and yaml), and these CJS
+  // packages are served raw under a pnpm-strict consumer → no `default` export →
+  // the preview crashes. Resolve them from the addon's own node_modules, alias
+  // the bare specifier, and pre-bundle (optimizeDeps) so esbuild adds the
+  // CJS-default interop.
+  let semverDir: string | undefined;
+  try {
+    semverDir = dirname(addonRequire.resolve('semver/package.json'));
+  } catch {
+    // semver not reachable from the addon — leave resolution to Vite defaults
+  }
+
+  let yamlDir: string | undefined;
+  try {
+    yamlDir = dirname(addonRequire.resolve('yaml/package.json'));
+  } catch {
+    // yaml not reachable from the addon — leave resolution to Vite defaults
+  }
 
   return {
     name: 'vite-plugin-designbook-load',
@@ -76,6 +92,12 @@ export function designbookLoadPlugin(
           { find: /^react\/(.*)/, replacement: reactDir + '/$1' },
         );
       }
+      if (semverDir) {
+        alias.push({ find: /^semver$/, replacement: semverDir });
+      }
+      if (yamlDir) {
+        alias.push({ find: /^yaml$/, replacement: yamlDir });
+      }
       return {
         resolve: alias.length ? { alias } : undefined,
         optimizeDeps: {
@@ -89,6 +111,11 @@ export function designbookLoadPlugin(
             // (runtime discovery triggers "optimized dependencies changed. reloading"
             // which causes an infinite HMR loop in workspace-linked setups).
             '@storybook/addon-themes',
+            // semver + yaml: aliased above to the addon's resolved copies;
+            // pre-bundle so esbuild adds CJS-default interop (storybook-core's
+            // preview-runtime imports them by default under pnpm-strict).
+            'semver',
+            'yaml',
           ],
           // Leave the CJS external-store shim un-optimized so the dev server
           // routes the bare import through resolveId/load (virtual ESM wrapper),
