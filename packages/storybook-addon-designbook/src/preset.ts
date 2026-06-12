@@ -1,6 +1,6 @@
 import { designbookLoadPlugin } from './vite-plugin';
 import { loadConfig, findConfig } from './config';
-import { buildExportName, extractScenes } from './renderer/scene-metadata';
+import { buildExportName, extractScenes, extractGroup, fileBaseName } from './renderer/scene-metadata';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 
 import { readFileSync, mkdirSync } from 'node:fs';
@@ -110,6 +110,11 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
 
       const typedParsed = parsed as Record<string, unknown>;
       const relativePath = './' + relative(process.cwd(), fileName);
+      // Use the same group derivation as the loader (scene-module-builder) so
+      // indexer titles and loaded-story titles always match — a divergence
+      // (e.g. missing `group` → "undefined/Scenes") makes Storybook fail with
+      // "couldn't find story matching index entry".
+      const group = extractGroup(typedParsed, fileBaseName(fileName));
       const match = matchHandler(fileName, defaultHandlers);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const entries: any[] = [];
@@ -120,7 +125,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
           type: 'story' as const,
           importPath: relativePath,
           exportName: 'overview',
-          title: typedParsed.group,
+          title: group,
           name: 'Overview',
           tags: ['!autodocs'],
         });
@@ -138,7 +143,7 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
           type: 'story' as const,
           importPath: relativePath,
           exportName: exportName,
-          title: typedParsed.group + '/Scenes',
+          title: group + '/Scenes',
           tags: ['scene', '!autodocs'],
         });
       }
