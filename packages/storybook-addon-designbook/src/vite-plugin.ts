@@ -1,7 +1,7 @@
 import { transformWithEsbuild, type Plugin, type ViteDevServer } from 'vite';
 import type { IncomingMessage } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join, basename, dirname, relative } from 'node:path';
+import { resolve, join, basename, dirname, relative, sep } from 'node:path';
 import { createRequire } from 'node:module';
 import { load as parseYaml } from 'js-yaml';
 
@@ -364,13 +364,22 @@ export function designbookLoadPlugin(
           const url = new URL(req.url || '', 'http://localhost');
           const filePath = url.searchParams.get('path');
 
-          if (!filePath || filePath.includes('..')) {
+          if (!filePath) {
             res.statusCode = 400;
             res.end(JSON.stringify({ error: 'Invalid path' }));
             return;
           }
 
           const fullPath = resolve(designbookDir, filePath);
+
+          // Security: resolve() honors absolute inputs and ../ segments, so a
+          // crafted `path` could escape designbookDir and read any readable
+          // file. Require the resolved path to stay within designbookDir.
+          if (fullPath !== designbookDir && !fullPath.startsWith(designbookDir + sep)) {
+            res.statusCode = 403;
+            res.end(JSON.stringify({ error: 'Path outside designbook directory' }));
+            return;
+          }
 
           if (!existsSync(fullPath)) {
             res.setHeader('Content-Type', 'application/json');
@@ -429,9 +438,11 @@ export function designbookLoadPlugin(
             return;
           }
 
-          // Security: resolve and verify the path is under baseDir
+          // Security: resolve and verify the path is under baseDir. Compare
+          // against `baseDir + sep` so a sibling dir sharing the prefix
+          // (e.g. /home/ws-evil vs /home/ws) cannot pass the check.
           const resolved = resolve(absPath);
-          if (!resolved.startsWith(baseDir)) {
+          if (resolved !== baseDir && !resolved.startsWith(baseDir + sep)) {
             res.statusCode = 403;
             res.end(JSON.stringify({ error: 'Path outside workspace' }));
             return;

@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { dump as stringifyYaml } from 'js-yaml';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
-import { interpolate } from '../../template/interpolate.js';
 import {
   resolveTaskFiles,
   matchRuleFiles,
@@ -16,7 +15,6 @@ import {
   generateTaskId,
   resolveWorkflowPlan,
   buildEnvMap,
-  buildWorktreeEnvMap,
   lookup,
   checkConditions,
   resolveFiles,
@@ -36,7 +34,6 @@ import {
   type ResolvedStep,
 } from '../../workflow-resolve.js';
 import type { StageDefinition } from '../../workflow-types.js';
-import { acquireLock, releaseLock, withLock } from '../../workflow-lock.js';
 import type { DesignbookConfig } from '../../config.js';
 
 // ── Test helpers ───────────────────────────────────────────────────
@@ -845,57 +842,6 @@ describe('buildEnvMap', () => {
   });
 });
 
-// buildWorktreeEnvMap
-describe('buildWorktreeEnvMap', () => {
-  it('swaps DESIGNBOOK_WORKSPACE and remaps DESIGNBOOK_DIRS_* to WORKTREE paths', () => {
-    const rootDir = '/home/user/project';
-    const envMap = {
-      DESIGNBOOK_WORKSPACE: rootDir,
-      DESIGNBOOK_HOME: '/home/user/project/theme',
-      DESIGNBOOK_DATA: '/home/user/project/theme/designbook',
-      DESIGNBOOK_DIRS_COMPONENTS: '/home/user/project/components',
-    };
-    const worktreePath = '/tmp/wt-abc123';
-    const remapped = buildWorktreeEnvMap(envMap, worktreePath, rootDir);
-
-    expect(remapped.DESIGNBOOK_WORKSPACE).toBe('/tmp/wt-abc123');
-    expect(remapped.DESIGNBOOK_HOME).toBe('/tmp/wt-abc123/theme');
-    expect(remapped.DESIGNBOOK_DATA).toBe('/tmp/wt-abc123/theme/designbook');
-    expect(remapped.DESIGNBOOK_DIRS_COMPONENTS).toBe('/tmp/wt-abc123/components');
-  });
-
-  it('does not remap non-workspace vars', () => {
-    const rootDir = '/home/user/project';
-    const envMap = {
-      DESIGNBOOK_WORKSPACE: rootDir,
-      DESIGNBOOK_TECHNOLOGY: 'drupal',
-      DESIGNBOOK_HOME: '/home/user/project/designbook',
-    };
-    const remapped = buildWorktreeEnvMap(envMap, '/tmp/wt', rootDir);
-
-    expect(remapped.DESIGNBOOK_TECHNOLOGY).toBe('drupal');
-  });
-
-  it('files: paths using remapped env differ from file-input param paths using original env', async () => {
-    const rootDir = '/home/user/project';
-    const envMap = {
-      DESIGNBOOK_WORKSPACE: rootDir,
-      DESIGNBOOK_HOME: '/home/user/project/designbook',
-    };
-    const worktreePath = '/tmp/wt-123';
-    const remappedEnvMap = buildWorktreeEnvMap(envMap, worktreePath, rootDir);
-
-    // files: path (uses remapped env) → WORKTREE
-    const fileTemplate = '$DESIGNBOOK_HOME/data-model.yml';
-    const filesPath = await interpolate(fileTemplate, {}, { envMap: remappedEnvMap });
-    expect(filesPath).toBe('/tmp/wt-123/designbook/data-model.yml');
-
-    // file-input param path (uses original env) → real path
-    const paramPath = await interpolate(fileTemplate, {}, { envMap });
-    expect(paramPath).toBe('/home/user/project/designbook/data-model.yml');
-  });
-});
-
 // lookup: context-first, config-fallback with dot-path
 describe('lookup', () => {
   it('prefers context over config', () => {
@@ -1293,78 +1239,6 @@ describe('buildEnrichedConfig', () => {
     const configWithExt = { ...baseConfig, extensions: [{ id: 'canvas', url: 'https://example.com' }] };
     const enriched = buildEnrichedConfig(configWithExt);
     expect(enriched['extensions']).toEqual(['canvas']);
-  });
-});
-
-// 5.7: File locking
-describe('file locking', () => {
-  it('acquires and releases lock', () => {
-    const filePath = resolve(tmpDir, 'test.yml');
-    writeFileSync(filePath, 'data: true');
-
-    const lockPath = acquireLock(filePath);
-    expect(existsSync(lockPath)).toBe(true);
-
-    releaseLock(lockPath);
-    expect(existsSync(lockPath)).toBe(false);
-  });
-
-  it('withLock executes function and releases lock', () => {
-    const filePath = resolve(tmpDir, 'test.yml');
-    writeFileSync(filePath, 'data: true');
-
-    const result = withLock(filePath, () => {
-      // Lock should be held during execution
-      expect(existsSync(`${filePath}.lock`)).toBe(true);
-      return 42;
-    });
-
-    expect(result).toBe(42);
-    expect(existsSync(`${filePath}.lock`)).toBe(false);
-  });
-
-  it('withLock releases lock on error', () => {
-    const filePath = resolve(tmpDir, 'test.yml');
-    writeFileSync(filePath, 'data: true');
-
-    expect(() =>
-      withLock(filePath, () => {
-        throw new Error('intentional');
-      }),
-    ).toThrow('intentional');
-
-    expect(existsSync(`${filePath}.lock`)).toBe(false);
-  });
-
-  it('sequential withLock calls serialize writes correctly', () => {
-    const filePath = resolve(tmpDir, 'counter.yml');
-    writeFileSync(filePath, '0');
-
-    // Two sequential withLock calls should both succeed without corruption
-    withLock(filePath, () => {
-      const val = parseInt(readFileSync(filePath, 'utf-8'), 10);
-      writeFileSync(filePath, String(val + 1));
-    });
-
-    withLock(filePath, () => {
-      const val = parseInt(readFileSync(filePath, 'utf-8'), 10);
-      writeFileSync(filePath, String(val + 1));
-    });
-
-    expect(readFileSync(filePath, 'utf-8')).toBe('2');
-  });
-
-  it('detects stale lock and recovers', () => {
-    const filePath = resolve(tmpDir, 'stale.yml');
-    writeFileSync(filePath, 'data');
-
-    // Create a stale lock (timestamp far in the past)
-    const lockPath = `${filePath}.lock`;
-    writeFileSync(lockPath, String(Date.now() - 60_000), { flag: 'w' });
-
-    // Should recover from stale lock
-    const result = withLock(filePath, () => 'recovered');
-    expect(result).toBe('recovered');
   });
 });
 
@@ -2283,18 +2157,7 @@ describe('$ref end-to-end: collectAndResolveSchemas → workflowPlan → workflo
     };
 
     const name = workflowCreate(dist, 'debo-test', 'Test $ref', []);
-    workflowPlan(
-      dist,
-      name,
-      tasks,
-      { setup: { steps: ['setup-compare'] } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
-      schemas,
-    );
+    workflowPlan(dist, name, tasks, { setup: { steps: ['setup-compare'] } }, undefined, undefined, schemas);
 
     // Valid data — should pass
     const validData = [

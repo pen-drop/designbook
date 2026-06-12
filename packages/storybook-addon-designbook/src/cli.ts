@@ -133,4 +133,10 @@ registerStorybook(program);
 registerPlan(program);
 registerCompareImages(program);
 
-program.parse();
+// parseAsync (not parse) so async action handlers are awaited; a rejected
+// action otherwise surfaces as an unhandled promise rejection with no
+// controlled exit path.
+program.parseAsync(process.argv).catch((err: unknown) => {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exitCode = 1;
+});

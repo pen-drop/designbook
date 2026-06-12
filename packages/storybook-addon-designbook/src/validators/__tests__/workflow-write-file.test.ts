@@ -248,11 +248,6 @@ describe('write-file pipeline (direct engine)', () => {
         },
       ],
       { execute: { steps: ['create-tokens'] } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     // write-file: content via API (simulating CLI stdin)
@@ -295,11 +290,6 @@ describe('write-file pipeline (direct engine)', () => {
         },
       ],
       undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     // Write content — cmd:exit 1 validator always fails
@@ -330,11 +320,6 @@ describe('write-file pipeline (direct engine)', () => {
         },
       ],
       undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     // First write
@@ -368,11 +353,6 @@ describe('write-file pipeline (direct engine)', () => {
         },
       ],
       undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     await expect(workflowWriteFile(dist, name, 'task1', 'unknown-key', 'content', config)).rejects.toThrow(
@@ -382,17 +362,7 @@ describe('write-file pipeline (direct engine)', () => {
 
   it('write-file rejects unknown task', async () => {
     const name = workflowCreate(dist, 'debo-test', 'Test', []);
-    workflowPlan(
-      dist,
-      name,
-      [{ id: 'task1', title: 'T1', type: 'data' }],
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
-    );
+    workflowPlan(dist, name, [{ id: 'task1', title: 'T1', type: 'data' }], undefined);
 
     await expect(workflowWriteFile(dist, name, 'nope', 'key', 'content', config)).rejects.toThrow(
       'Task not found: nope',
@@ -413,61 +383,9 @@ describe('write-file pipeline (direct engine)', () => {
         },
       ],
       undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow('not yet written');
-  });
-});
-
-// ── write-file with git-worktree engine (writes to target directly) ─────────
-
-describe('write-file pipeline (git-worktree engine, no real git)', () => {
-  let dist: string;
-  let config: DesignbookConfig;
-
-  beforeEach(() => {
-    dist = mkdtempSync(resolve(tmpdir(), 'wf-writefile-wt-'));
-    config = { data: dist, technology: 'html', extensions: [] };
-  });
-
-  it('writes directly to target path (no stash)', async () => {
-    const worktreeDir = resolve(dist, 'worktree');
-    mkdirSync(worktreeDir, { recursive: true });
-    const targetPath = resolve(worktreeDir, 'tokens.yml');
-
-    const name = workflowCreate(dist, 'debo-test', 'Test', []);
-    workflowPlan(
-      dist,
-      name,
-      [
-        {
-          id: 'task1',
-          title: 'T1',
-          type: 'tokens',
-          files: [{ path: targetPath, key: 'tokens', validators: [] }],
-        },
-      ],
-      undefined,
-      undefined,
-      worktreeDir,
-      dist,
-      'workflow/test',
-      'git-worktree',
-    );
-
-    const content = 'color:\n  primary:\n    $value: "#00f"\n    $type: color\n';
-    const result = await workflowWriteFile(dist, name, 'task1', 'tokens', content, config);
-
-    expect(result.valid).toBe(true);
-    // Git-worktree writes directly to target path
-    expect(result.file_path).toBe(targetPath);
-    expect(existsSync(targetPath)).toBe(true);
-    expect(readFileSync(targetPath, 'utf-8')).toBe(content);
   });
 });
 
@@ -507,11 +425,6 @@ describe('direct engine flush', () => {
         },
       ],
       { execute: { steps: ['create-tokens'] }, test: { steps: ['visual-diff'] } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     // Write file — stashed at target dir with .debo suffix
@@ -562,11 +475,6 @@ describe('direct engine cleanup on abandon', () => {
         },
       ],
       undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     // Write file — creates .debo stash file
@@ -592,22 +500,12 @@ describe('direct engine cleanup on abandon', () => {
       name1,
       [{ id: 'task1', title: 'T1', type: 'tokens', files: [{ path: targetPath, key: 'tokens', validators: [] }] }],
       undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
     workflowPlan(
       dist,
       name2,
       [{ id: 'task1', title: 'T1', type: 'tokens', files: [{ path: targetPath, key: 'tokens', validators: [] }] }],
       undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     // Write files for both workflows
@@ -651,11 +549,6 @@ describe('workflow done — submission enforcement', () => {
         },
       ],
       { execute: { steps: ['create-phantom'] } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     // Simulate AI writing directly to final path (bypassing --data)
@@ -682,11 +575,6 @@ describe('workflow done — submission enforcement', () => {
         },
       ],
       { execute: { steps: ['capture'] } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     // Simulate external tool (e.g. Playwright) writing the file to its target path
@@ -723,11 +611,6 @@ describe('workflow done — submission enforcement', () => {
         },
       ],
       { execute: { steps: ['create-comp'] } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
     writeFileSync(targetPath, 'name: foo\n');
 
