@@ -80,9 +80,53 @@ export default defineConfig(async () => {
       entry: otherNodeEntries,
       platform: 'node',
       target: NODE_TARGET,
-      onSuccess: 'cp -r src/pages dist/pages && cp -r src/components dist/components && cp -r src/hooks dist/hooks',
     });
   }
+
+  // Client bundle — browser-side JSX/JS pages and page components.
+  // Bundles addon dependencies (js-yaml, marked, @ark-ui/react, …) into the
+  // output so consumers running pnpm in strict mode (no shamefullyHoist) never
+  // need to hoist those packages.  React and all storybook/* paths are kept
+  // external because they are provided by the consumer's Storybook install.
+  const CLIENT_EXTERNAL = [
+    'react',
+    'react-dom',
+    'react-dom/client',
+    'react/jsx-runtime',
+    'react/jsx-dev-runtime',
+    '@storybook/icons',
+    /^storybook\//,
+    /^@storybook\//,
+    /^virtual:/,
+  ];
+
+  configs.push({
+    entry: {
+      // pages/
+      'pages/mount-react': 'src/pages/mount-react.js',
+      'pages/theme-store': 'src/pages/theme-store.js',
+      'pages/foundation.stories': 'src/pages/foundation.stories.jsx',
+      'pages/design-system.stories': 'src/pages/design-system.stories.jsx',
+      'pages/sections.stories': 'src/pages/sections.stories.jsx',
+      'pages/theme-test.stories': 'src/pages/theme-test.stories.jsx',
+      // components/pages/
+      'components/pages/DeboSectionPage': 'src/components/pages/DeboSectionPage.jsx',
+      'components/pages/DeboSectionsOverview': 'src/components/pages/DeboSectionsOverview.jsx',
+      'components/pages/DeboFoundationPage': 'src/components/pages/DeboFoundationPage.jsx',
+      'components/pages/DeboDesignSystemPage': 'src/components/pages/DeboDesignSystemPage.jsx',
+    },
+    outDir: 'dist',
+    platform: 'browser',
+    format: ['esm'],
+    target: 'esnext',
+    dts: false,
+    bundle: true,
+    splitting: true,
+    external: CLIENT_EXTERNAL,
+    noExternal: ['js-yaml', 'marked', '@ark-ui/react', 'front-matter', 'minimatch', 'yaml', 'ajv', 'semver'],
+    clean: false,
+    treeshake: true,
+  });
 
   // Config module: dual ESM + CJS so agent tooling can require() it
   if (configEntries.length) {

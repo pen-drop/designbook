@@ -1,4 +1,4 @@
-import { DeboDesignSystemPage } from 'storybook-addon-designbook/dist/components/pages/DeboDesignSystemPage.jsx';
+import { DeboDesignSystemPage } from '../components/pages/DeboDesignSystemPage.jsx';
 import { mountReact } from './mount-react.js';
 
 export default {

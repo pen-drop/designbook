@@ -560,7 +560,7 @@ export function designbookLoadPlugin(
 
 const MOUNT_REACT_IMPORT = "import { mountReact } from 'storybook-addon-designbook/dist/pages/mount-react.js';";
 const SECTION_PAGE_IMPORT =
-  "import { DeboSectionPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionPage.jsx';";
+  "import { DeboSectionPage } from 'storybook-addon-designbook/dist/components/pages/DeboSectionPage.js';";
 
 function buildOverviewStory(sectionId: string, title: string): string {
   const sid = sectionId.replace(/'/g, "\\'");

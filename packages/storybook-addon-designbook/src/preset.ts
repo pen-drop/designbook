@@ -42,8 +42,8 @@ export const viteFinal = async (config: any, options: any) => {
   return {
     ...config,
     plugins,
-    // Ensure JSX files from the addon (e.g. DeboSectionPage.jsx, DeboDesignSystemPage.jsx) are
-    // transpiled without needing @vitejs/plugin-react.
+    // Ensure JSX transform is set up so consumers don't need @vitejs/plugin-react.
+    // The client bundles (DeboSectionPage.js, DeboDesignSystemPage.js) are pre-bundled ESM.
     esbuild: {
       ...config.esbuild,
       jsx: 'automatic',
@@ -80,9 +80,9 @@ export const stories = async (entry: string[] = [], options: any) => {
 
   // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections.
   // File-name order is Storybook 10's sort mechanism when no storySort is configured.
-  const foundationGlob = resolve(__dirname, 'pages/foundation.stories.jsx');
-  const designSystemGlob = resolve(__dirname, 'pages/design-system.stories.jsx');
-  const sectionsGlob = resolve(__dirname, 'pages/sections.stories.jsx');
+  const foundationGlob = resolve(__dirname, 'pages/foundation.stories.js');
+  const designSystemGlob = resolve(__dirname, 'pages/design-system.stories.js');
+  const sectionsGlob = resolve(__dirname, 'pages/sections.stories.js');
 
   return [foundationGlob, designSystemGlob, sectionsGlob, relative(configDir, scenesGlob), ...entry];
 };
