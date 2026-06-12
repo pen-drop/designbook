@@ -1,7 +1,7 @@
 {
   "name": "storybook-addon-designbook",
-  "version": "0.1.8",
-  "description": "Storybook addon and CLI for Designbook \u2014 AI workflows that structure your design for CMS implementation",
+  "version": "0.2.0",
+  "description": "Storybook addon and CLI for Designbook — AI workflows that structure your design for CMS implementation",
   "keywords": [
     "storybook-addon",
     "design-system",
@@ -113,9 +113,9 @@
     "zx": "^8.7.1"
   },
   "peerDependencies": {
+    "playwright": "^1.58.2",
     "storybook": "*",
-    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",
-    "playwright": "^1.58.2"
+    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0"
   },
   "peerDependenciesMeta": {
     "playwright": {
