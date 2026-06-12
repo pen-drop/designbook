@@ -19,10 +19,14 @@ echo "auto: bump = ${BUMP}"
 # 2. Build the addon.
 pnpm --filter "${PKG}" run build
 
-# 3. Bump the version with pnpm (no git tag yet).
-( cd "${DIR}" && pnpm version "${BUMP}" --no-git-tag-version )
-NEW="$(node -p "require('./${DIR}/package.json').version")"
-echo "new version: v${NEW}"
+# 3. Bump the version WITHOUT npm. Both `npm version` and `pnpm version` shell
+#    out to npm internally, which chokes on the root package's `workspace:*` dep
+#    (EUNSUPPORTEDPROTOCOL). Compute the next version with semver and write it
+#    with `pnpm pkg set` (pure package.json edit, no npm invocation).
+CUR="$(node -p "require('./${DIR}/package.json').version")"
+NEW="$(cd "${DIR}" && node -e "process.stdout.write(require('semver').inc('${CUR}', '${BUMP}'))")"
+( cd "${DIR}" && pnpm pkg set "version=${NEW}" )
+echo "new version: v${NEW} (was v${CUR})"
 
 # 4. Publish with pnpm (rewrites workspace: -> real versions; auth via .npmrc).
 pnpm --filter "${PKG}" publish --no-git-checks --access public
