@@ -2,7 +2,14 @@
 
 Operational guide for running a designbook workflow. You are the AI; this tells you what commands to run, what responses to expect, and what to do with them.
 
-All CLI calls in this doc use `_debo` as shorthand for `npx storybook-addon-designbook`. See [`cli-workflow.md`](cli-workflow.md) for the full CLI reference.
+All CLI calls in this doc use `_debo` as shorthand for
+`DESIGNBOOK_SKILLS="<this skill's base directory>" npx storybook-addon-designbook`.
+You MUST set `DESIGNBOOK_SKILLS` to this skill's base directory (the absolute path
+Claude Code injects at skill load, shown as `Base directory for this skill: ...`)
+so the CLI can find the workflow/task/rule/schema files when Designbook runs as a
+plugin from the cache. Passing only the `designbook` root is enough — sibling
+skills are auto-derived. See [`cli-reference.md`](cli-reference.md) and
+[`cli-workflow.md`](cli-workflow.md) for the full CLI reference.
 
 ---
 

@@ -2,6 +2,7 @@ import { resolve, dirname } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
+import { resolveSkillSources } from '../skill-sources.js';
 import {
   workflowCreate,
   workflowResult,
@@ -142,9 +143,10 @@ export async function runWorkflowCreate(
   const rawConfig = configPath ? ((parseYaml(readFileSync(configPath, 'utf-8')) as Record<string, unknown>) ?? {}) : {};
   const configDir = configPath ? dirname(configPath) : process.cwd();
   const agentsDir = resolveSkillsRoot(configDir);
+  const sources = resolveSkillSources(configDir);
 
-  const workflowFilePath = resolveWorkflowFile(opts.workflow, agentsDir);
-  const resolved = await resolveAllStages(workflowFilePath, config, rawConfig, agentsDir);
+  const workflowFilePath = resolveWorkflowFile(opts.workflow, agentsDir, sources);
+  const resolved = await resolveAllStages(workflowFilePath, config, rawConfig, agentsDir, sources);
 
   // ── Resolve phase: run param resolvers ────────────────────────
   const wfFm = parseFrontmatter(workflowFilePath) as Record<string, unknown> | null;
@@ -239,7 +241,7 @@ export async function runWorkflowCreate(
       for (const [key, decl] of Object.entries(resultDeclProperties)) {
         // Top-level $ref: replace schema with the resolved definition
         if (decl.$ref && firstResult[key]) {
-          const { typeName, schema } = resolveSchemaRef(decl.$ref, firstResolved.task_file, skillsRoot);
+          const { typeName, schema } = resolveSchemaRef(decl.$ref, firstResolved.task_file, skillsRoot, sources);
           firstSchemas[typeName] = schema;
           firstResult[key]!.schema = schema;
         }
@@ -251,6 +253,7 @@ export async function runWorkflowCreate(
             firstResolved.task_file,
             skillsRoot,
             firstSchemas,
+            sources,
           );
         }
       }
@@ -469,13 +472,14 @@ export function register(program: Command): void {
       const configPath = findConfig();
       const configDir = configPath ? dirname(configPath) : process.cwd();
       const agentsDir = resolveSkillsRoot(configDir);
+      const sources = resolveSkillSources(configDir);
       if (!workflowId) {
-        const ids = listWorkflowDefinitions(agentsDir);
+        const ids = listWorkflowDefinitions(agentsDir, sources);
         for (const id of ids) console.log(id);
         return;
       }
       try {
-        const def = loadWorkflowDefinition(workflowId, agentsDir);
+        const def = loadWorkflowDefinition(workflowId, agentsDir, sources);
         console.log(JSON.stringify(def, null, 2));
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
@@ -677,7 +681,8 @@ export function register(program: Command): void {
           const configPath = findConfig();
           const configDir = configPath ? dirname(configPath) : process.cwd();
           const agentsDir = resolveSkillsRoot(configDir);
-          allAfter = loadWorkflowDefinition(workflowId, agentsDir).after;
+          const sources = resolveSkillSources(configDir);
+          allAfter = loadWorkflowDefinition(workflowId, agentsDir, sources).after;
           parentParams = parentMeta.params ?? {};
         } catch (lookupErr) {
           console.warn(`Could not load after: declarations — proceeding without: ${(lookupErr as Error).message}`);
