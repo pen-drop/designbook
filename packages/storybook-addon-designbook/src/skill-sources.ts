@@ -14,16 +14,17 @@
  *    `workflows/`, `tasks/`, `rules/`, `blueprints/` and `*.yml` schema files —
  *    there is no `skills/` prefix and no skill-name segment inside.
  *
- * The plugin-cache roots are discovered from the `skills` config key: a lookup
- * base (typically the marketplace cache dir `~/.claude/plugins/cache/designbook`).
- * The CLI scans `<base>/<skill>/<hash>` and, when several hashes coexist after a
- * plugin update, picks the newest-mtime one per skill. Project-local skills of
- * the same name always override the plugin copy.
+ * This module owns the layout primitives only: given a base directory,
+ * {@link deriveSkillSourcesFromBase} scans `<base>/<skill>/<hash>` (or the flat
+ * `<base>/<skill>` / single-root layouts) and, when several hashes coexist after
+ * a plugin update, picks the newest-mtime one per skill. *Choosing* the base
+ * directory per runtime, and merging project + plugin sources, lives in
+ * `skill-resolver.ts`.
  */
 
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
-import { loadConfig, resolveSkillsRoot } from './config.js';
+import { resolveSkillsRoot } from './config.js';
 
 /**
  * A resolved skill content root.
@@ -139,23 +140,11 @@ export function deriveSkillSourcesFromBase(base: string): SkillSource[] {
 }
 
 /**
- * Build plugin-layout skill sources from the `skills` config lookup root.
- * Returns `[]` when the config has no `skills` key.
- */
-export function resolveConfigSkillSources(configDir: string): SkillSource[] {
-  let skills: unknown;
-  try {
-    skills = loadConfig(configDir)['skills'];
-  } catch {
-    return [];
-  }
-  if (typeof skills !== 'string' || skills.length === 0) return [];
-  return deriveSkillSourcesFromBase(skills);
-}
-
-/**
  * Build project-layout skill sources from the resolved skills root.
  * For each child dir `D` of `<skillsRoot>/skills/`, emits `{ name: basename(D), root: D }`.
+ *
+ * Runtime (plugin-cache) resolution and the project+plugin merge live in
+ * `skill-resolver.ts`; this module only knows the project layout.
  */
 export function resolveProjectSkillSources(configDir: string): SkillSource[] {
   const skillsRoot = resolveSkillsRoot(configDir);
@@ -166,26 +155,4 @@ export function resolveProjectSkillSources(configDir: string): SkillSource[] {
     sources.push({ name: child, root: resolve(skillsDir, child), origin: 'project' });
   }
   return sources;
-}
-
-/**
- * Build the full ordered skill source list for a config dir.
- *
- * Precedence: project sources override plugin sources with the same `name`
- * (a project can locally override a plugin skill). Project sources come first
- * in the returned list; plugin sources whose names are already provided by a
- * project source are dropped.
- *
- * @param configDir - Directory used to resolve the project skills root and config.
- */
-export function resolveSkillSources(configDir: string): SkillSource[] {
-  const projectSources = resolveProjectSkillSources(configDir);
-  const pluginSources = resolveConfigSkillSources(configDir);
-
-  const byName = new Map<string, SkillSource>();
-  for (const src of projectSources) byName.set(src.name, src);
-  for (const src of pluginSources) {
-    if (!byName.has(src.name)) byName.set(src.name, src);
-  }
-  return Array.from(byName.values());
 }

@@ -4,11 +4,11 @@ Operational guide for running a designbook workflow. You are the AI; this tells 
 
 All CLI calls in this doc use `_debo` as shorthand for
 `npx storybook-addon-designbook`. When Designbook runs as a plugin from the
-cache, the CLI locates workflow/task/rule/schema files via the `skills` lookup
-root in `designbook.config.yml` (point it at the marketplace cache base, e.g.
-`~/.claude/plugins/cache/designbook`; sibling skills are auto-derived). See
-[`cli-reference.md`](cli-reference.md) and [`cli-workflow.md`](cli-workflow.md)
-for the full CLI reference.
+cache, the CLI **auto-detects** the runtime (Claude Code / Codex / Gemini /
+`~/.agents/skills`) and locates workflow/task/rule/schema files there — no
+config needed. An optional `skills` key in `designbook.config.yml` overrides the
+detection. See [`cli-reference.md`](cli-reference.md) and
+[`cli-workflow.md`](cli-workflow.md) for the full CLI reference.
 
 ---
 

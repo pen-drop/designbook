@@ -2,7 +2,7 @@ import { resolve, dirname } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
-import { resolveSkillSources } from '../skill-sources.js';
+import { resolveSkillSources } from '../skill-resolver.js';
 import {
   workflowCreate,
   workflowResult,

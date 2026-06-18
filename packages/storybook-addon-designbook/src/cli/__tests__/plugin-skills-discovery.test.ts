@@ -1,14 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, utimesSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { resolveWorkflowFile, listWorkflowDefinitions } from '../workflow-discovery.js';
-import {
-  deriveSkillSourcesFromBase,
-  resolveConfigSkillSources,
-  resolveSkillSources,
-  type SkillSource,
-} from '../../skill-sources.js';
+import { deriveSkillSourcesFromBase, type SkillSource } from '../../skill-sources.js';
 import { resolveSchemaRef, deriveArtifactName, resolveFiles, buildRuntimeContext } from '../../workflow-resolve.js';
 
 // The marketplace cache base inside the plugin-cache fixture (the `skills` config root).
@@ -45,20 +40,6 @@ describe('plugin skills discovery (config `skills` lookup root)', () => {
     mkdirSync(resolve(lone, 'workflows'), { recursive: true });
     const sources = deriveSkillSourcesFromBase(lone);
     expect(sources).toEqual([{ name: 'myskill', root: lone, origin: 'plugin' }]);
-  });
-
-  it('resolveConfigSkillSources reads the `skills` key from designbook.config.yml', () => {
-    const projectDir = mkdtempSync(resolve(tmpdir(), 'debo-proj-'));
-    writeFileSync(resolve(projectDir, 'designbook.config.yml'), `skills: ${MARKETPLACE_BASE}\n`);
-    const byName = Object.fromEntries(resolveConfigSkillSources(projectDir).map((s) => [s.name, s.root]));
-    expect(byName['designbook']).toBe(DESIGNBOOK_ROOT);
-    expect(byName['designbook-css-tailwind']).toBe(TAILWIND_ROOT);
-  });
-
-  it('resolveConfigSkillSources returns [] when no `skills` key is configured', () => {
-    const projectDir = mkdtempSync(resolve(tmpdir(), 'debo-proj-'));
-    writeFileSync(resolve(projectDir, 'designbook.config.yml'), `technology: html\n`);
-    expect(resolveConfigSkillSources(projectDir)).toEqual([]);
   });
 
   it('resolveWorkflowFile finds the plugin workflow file via plugin sources (empty project dir)', () => {
@@ -124,15 +105,5 @@ describe('plugin skills discovery (config `skills` lookup root)', () => {
     const matches = resolveFiles('skills/**/rules/*.md', context, {}, '/empty/agents', true, pluginSources());
     const names = matches.map((m) => m.name);
     expect(names).toContain('designbook-css-tailwind:css-tokens:tailwind-theme');
-  });
-
-  it('resolveSkillSources lets project-local skills override plugin skills of the same name', () => {
-    const projectDir = mkdtempSync(resolve(tmpdir(), 'debo-proj-'));
-    writeFileSync(resolve(projectDir, 'designbook.config.yml'), `skills: ${MARKETPLACE_BASE}\n`);
-    mkdirSync(resolve(projectDir, '.claude', 'skills', 'designbook', 'workflows'), { recursive: true });
-    const byName = Object.fromEntries(resolveSkillSources(projectDir).map((s) => [s.name, s]));
-    // Local designbook wins (origin project), sibling tailwind still comes from the plugin base.
-    expect(byName['designbook']!.origin).toBe('project');
-    expect(byName['designbook-css-tailwind']!.origin).toBe('plugin');
   });
 });

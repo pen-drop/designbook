@@ -1,7 +1,7 @@
 # Runtime-Agnostic Skill Resolver — Design
 
 **Date:** 2026-06-18
-**Status:** Approved (brainstorming), pre-implementation
+**Status:** Implemented
 **Stacks on:** PR #106 (`refactor/skills-discovery-config`) → #105 (`fix/plugin-skills-discovery`)
 
 ## Problem

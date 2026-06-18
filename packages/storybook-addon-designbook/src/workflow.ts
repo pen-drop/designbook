@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { resolve, relative, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { homedir } from 'node:os';
 import { digestLog } from './log/digest.js';
 import { computeFlowRate } from './scoring/composite.js';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
@@ -35,7 +36,7 @@ import {
   type ResolvedStep,
 } from './workflow-resolve.js';
 import jsonata from 'jsonata';
-import { deriveSkillSourcesFromBase } from './skill-sources.js';
+import { resolvePluginSkillSources } from './skill-resolver.js';
 import { interpolate } from './template/interpolate.js';
 import { resolveEach, type EachDeclaration } from './template/each.js';
 import { getValidatorKeys } from './validation-registry.js';
@@ -1382,8 +1383,9 @@ export async function workflowDone(
       );
       if (expanded.length > 0) {
         data.tasks.push(...expanded);
-        const pluginSkillSources =
-          typeof options?.config?.skills === 'string' ? deriveSkillSourcesFromBase(options.config.skills) : [];
+        const pluginSkillSources = options?.config
+          ? (resolvePluginSkillSources({ env: process.env, home: homedir(), config: options.config })?.sources ?? [])
+          : [];
         // Project layout: derive skills root from the task file path.
         // Plugin layout (config `skills`): task files have no `/skills/` marker —
         // fall back to the task file's directory and let plugin sources resolve
