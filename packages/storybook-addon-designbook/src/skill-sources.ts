@@ -14,13 +14,16 @@
  *    `workflows/`, `tasks/`, `rules/`, `blueprints/` and `*.yml` schema files —
  *    there is no `skills/` prefix and no skill-name segment inside.
  *
- * A `DESIGNBOOK_SKILLS` env var (colon-separated absolute paths) carries one or
- * more plugin content roots. Given the primary `designbook` root, the sibling
- * skills are auto-discovered (same hash, different skill-name dir).
+ * This module owns the layout primitives only: given a base directory,
+ * {@link deriveSkillSourcesFromBase} scans `<base>/<skill>/<hash>` (or the flat
+ * `<base>/<skill>` / single-root layouts) and, when several hashes coexist after
+ * a plugin update, picks the newest-mtime one per skill. *Choosing* the base
+ * directory per runtime, and merging project + plugin sources, lives in
+ * `skill-resolver.ts`.
  */
 
 import { existsSync, readdirSync, statSync } from 'node:fs';
-import { basename, dirname, resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { resolveSkillsRoot } from './config.js';
 
 /**
@@ -39,9 +42,10 @@ export interface SkillSource {
    * Where the source came from.
    * - `project`: discovered under `<skillsRoot>/skills/<name>` — already covered by
    *   the project `agentsDir` glob (`skills/**`), so resolvers skip these.
-   * - `env`: derived from `DESIGNBOOK_SKILLS` — resolvers glob these directly.
+   * - `plugin`: derived from the `skills` config lookup root — resolvers glob
+   *   these directly (no `skills/` prefix).
    */
-  origin: 'project' | 'env';
+  origin: 'project' | 'plugin';
 }
 
 const ARTIFACT_SUBDIRS = ['workflows', 'tasks', 'rules', 'blueprints'] as const;
@@ -61,13 +65,7 @@ function isSkillContentRoot(dir: string): boolean {
   }
   for (const child of children) {
     const childDir = resolve(dir, child);
-    let isDir = false;
-    try {
-      isDir = statSync(childDir).isDirectory();
-    } catch {
-      isDir = false;
-    }
-    if (!isDir) continue;
+    if (!isDir(childDir)) continue;
     for (const sub of ARTIFACT_SUBDIRS) {
       if (existsSync(resolve(childDir, sub))) return true;
     }
@@ -75,123 +73,86 @@ function isSkillContentRoot(dir: string): boolean {
   return false;
 }
 
-/**
- * Derive the full set of skill sources from a single `DESIGNBOOK_SKILLS` entry.
- *
- * Algorithm (plugin layout):
- * - `hash = basename(E)`, `skillDir = dirname(E)`, `mpDir = dirname(skillDir)`.
- * - Primary skill: `{ name: basename(skillDir), root: E }`.
- * - Siblings: every existing dir matching `<mpDir>/<skill>/<hash>` (same hash,
- *   different skill-name dir) that looks like a skill content root.
- *
- * Fallback (non-plugin layout — no matching siblings, e.g. `E=/foo/myskill`):
- * a single source `{ name: basename(E), root: E }`.
- */
-export function deriveSkillSourcesFromEntry(entry: string): SkillSource[] {
-  const E = resolve(entry);
-  if (!existsSync(E)) return [];
-
-  const hash = basename(E);
-  const skillDir = dirname(E);
-  const mpDir = dirname(skillDir);
-
-  const siblings: SkillSource[] = [];
-  let skillNameDirs: string[] = [];
+function isDir(p: string): boolean {
   try {
-    skillNameDirs = readdirSync(mpDir);
+    return statSync(p).isDirectory();
   } catch {
-    skillNameDirs = [];
+    return false;
   }
-
-  for (const skillName of skillNameDirs) {
-    const candidate = resolve(mpDir, skillName, hash);
-    if (candidate === E) continue;
-    if (!existsSync(candidate)) continue;
-    if (!isSkillContentRoot(candidate)) continue;
-    siblings.push({ name: basename(dirname(candidate)), root: candidate, origin: 'env' });
-  }
-
-  // Non-plugin layout: no same-hash siblings → a single source named after E.
-  if (siblings.length === 0) {
-    return [{ name: basename(E), root: E, origin: 'env' }];
-  }
-
-  // Plugin layout: primary skill (named after its skill-name dir) plus siblings.
-  return [{ name: basename(skillDir), root: E, origin: 'env' }, ...siblings];
 }
 
-/** Parse the `DESIGNBOOK_SKILLS` env var into a list of source roots (colon-separated). */
-export function parseSkillsEnv(value: string | undefined): string[] {
-  if (!value) return [];
-  return value
-    .split(':')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+function mtimeMs(p: string): number {
+  try {
+    return statSync(p).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+function listDirs(dir: string): string[] {
+  try {
+    return readdirSync(dir).filter((c) => isDir(resolve(dir, c)));
+  } catch {
+    return [];
+  }
 }
 
 /**
- * Build env-derived skill sources from `DESIGNBOOK_SKILLS` (or an explicit value).
- * Each entry is expanded via {@link deriveSkillSourcesFromEntry}. Deduped by name
- * (first entry wins).
+ * Derive skill sources from a lookup base directory.
+ *
+ * Layout precedence:
+ * 1. **Marketplace** — `<base>/<skill>/<hash>` where the hash dir is a content
+ *    root. One source per skill; when multiple hashes coexist (e.g. an old +
+ *    new plugin install), the newest-mtime hash wins.
+ * 2. **Flat skills** — `<base>/<skill>` is itself a content root.
+ * 3. **Single** — `<base>` itself is a content root → one source named after it.
  */
-export function resolveEnvSkillSources(envValue?: string): SkillSource[] {
-  const raw = envValue ?? process.env['DESIGNBOOK_SKILLS'];
-  const entries = parseSkillsEnv(raw);
-  const byName = new Map<string, SkillSource>();
-  for (const entry of entries) {
-    for (const src of deriveSkillSourcesFromEntry(entry)) {
-      if (!byName.has(src.name)) byName.set(src.name, src);
+export function deriveSkillSourcesFromBase(base: string): SkillSource[] {
+  const B = resolve(base);
+  if (!existsSync(B)) return [];
+
+  const sources: SkillSource[] = [];
+  for (const skillName of listDirs(B)) {
+    const skillDir = resolve(B, skillName);
+
+    // Marketplace layout: pick the newest-mtime hash dir that is a content root.
+    const hashRoots = listDirs(skillDir)
+      .map((h) => resolve(skillDir, h))
+      .filter(isSkillContentRoot);
+    if (hashRoots.length > 0) {
+      const best = hashRoots.reduce((a, b) => (mtimeMs(b) > mtimeMs(a) ? b : a));
+      sources.push({ name: skillName, root: best, origin: 'plugin' });
+      continue;
+    }
+
+    // Flat layout: the skill-name dir is itself a content root.
+    if (isSkillContentRoot(skillDir)) {
+      sources.push({ name: skillName, root: skillDir, origin: 'plugin' });
     }
   }
-  return Array.from(byName.values());
+
+  if (sources.length > 0) return sources;
+
+  // Single layout: the base itself is a content root.
+  if (isSkillContentRoot(B)) return [{ name: basename(B), root: B, origin: 'plugin' }];
+
+  return [];
 }
 
 /**
  * Build project-layout skill sources from the resolved skills root.
  * For each child dir `D` of `<skillsRoot>/skills/`, emits `{ name: basename(D), root: D }`.
+ *
+ * Runtime (plugin-cache) resolution and the project+plugin merge live in
+ * `skill-resolver.ts`; this module only knows the project layout.
  */
 export function resolveProjectSkillSources(configDir: string): SkillSource[] {
   const skillsRoot = resolveSkillsRoot(configDir);
   const skillsDir = resolve(skillsRoot, 'skills');
   if (!existsSync(skillsDir)) return [];
-  let children: string[];
-  try {
-    children = readdirSync(skillsDir);
-  } catch {
-    return [];
-  }
   const sources: SkillSource[] = [];
-  for (const child of children) {
-    const dir = resolve(skillsDir, child);
-    try {
-      if (!statSync(dir).isDirectory()) continue;
-    } catch {
-      continue;
-    }
-    sources.push({ name: child, root: dir, origin: 'project' });
+  for (const child of listDirs(skillsDir)) {
+    sources.push({ name: child, root: resolve(skillsDir, child), origin: 'project' });
   }
   return sources;
-}
-
-/**
- * Build the full ordered skill source list for a config dir.
- *
- * Precedence: project sources override env sources with the same `name`
- * (a project can locally override a plugin skill). Project sources come first
- * in the returned list; env sources with names already provided by a project
- * source are dropped.
- *
- * @param configDir - Directory used to resolve the project skills root.
- * @param envValue - Optional explicit `DESIGNBOOK_SKILLS` value (defaults to env).
- */
-export function resolveSkillSources(configDir: string, envValue?: string): SkillSource[] {
-  const projectSources = resolveProjectSkillSources(configDir);
-  const envSources = resolveEnvSkillSources(envValue);
-
-  const byName = new Map<string, SkillSource>();
-  for (const src of projectSources) byName.set(src.name, src);
-  for (const src of envSources) {
-    if (!byName.has(src.name)) byName.set(src.name, src);
-  }
-  return Array.from(byName.values());
 }

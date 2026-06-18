@@ -3,30 +3,46 @@
 All commands are invoked via `_debo` (alias for `npx storybook-addon-designbook`).
 
 ```bash
-_debo() { DESIGNBOOK_SKILLS="<this skill's base directory>" npx storybook-addon-designbook "$@"; }
+_debo() { npx storybook-addon-designbook "$@"; }
 eval "$(_debo config)"
 ```
 
-## `DESIGNBOOK_SKILLS` — skill content discovery
+## Skill content discovery
 
 `_debo` discovers workflow/task/rule/blueprint/schema files for a skill. In a
 dev repo the skill lives under `<project>/.agents/skills/designbook/...`, which
-the CLI finds automatically. When Designbook is installed as a **Claude Code
-plugin**, the skills instead live in the plugin cache
-(`~/.claude/plugins/cache/designbook/<skill>/<hash>/...`), which the CLI cannot
-locate on its own.
+the CLI finds automatically. When Designbook is installed as a **plugin**, the
+skills live in a runtime-specific cache — the CLI **auto-detects** it, no config
+needed:
 
-Always set `DESIGNBOOK_SKILLS` to **this skill's base directory** — the absolute
-path Claude Code injects when it loads the skill (shown as
-`Base directory for this skill: <path>`). It is a colon-separated list of skill
-content roots; passing only the `designbook` root is enough: the CLI
-auto-derives the three sibling skills (`designbook-drupal`,
-`designbook-css-tailwind`, `designbook-stitch`) by matching the same `<hash>`
-segment under the plugin cache. Cross-skill `$ref`s and rules resolve into those
-siblings automatically.
+| Runtime | Detected via | Skill location |
+|---|---|---|
+| Claude Code | `CLAUDECODE` / plugin `bin` on `PATH` | `~/.claude/plugins/cache/designbook/<skill>/<hash>/` |
+| Codex | `CODEX_HOME` | `$CODEX_HOME/skills/` (default `~/.codex/skills/`) |
+| Gemini CLI | `~/.gemini/skills/` | `~/.gemini/skills/` |
+| cross-runtime | — | `~/.agents/skills/` (Codex/Gemini/Copilot) |
 
-A project-local skill of the same name (under `<project>/.agents/skills/`) always
-overrides the plugin copy.
+Resolution order: explicit `skills` config → Claude Code → Codex → Gemini →
+`~/.agents/skills`. The first that actually contains designbook content wins;
+a project-local skill of the same name always overrides the plugin copy. All
+sibling skills (`designbook-drupal`, `designbook-css-tailwind`,
+`designbook-stitch`) come from the same source, and cross-skill `$ref`s/rules
+resolve into them.
+
+### `skills` — explicit override (optional)
+
+Only needed for an unsupported runtime or a pinned dev setup. Set it to the
+**base directory that contains the per-skill folders** (no `<hash>` segment);
+`~`/relative paths resolve against the config file's directory:
+
+```yaml
+# designbook.config.yml
+skills: ~/.claude/plugins/cache/designbook
+```
+
+Set `DESIGNBOOK_DEBUG=1` to print the resolved runtime + base on stderr.
+Set `DESIGNBOOK_DISABLE_AUTODETECT=1` to turn off runtime detection entirely
+(the explicit `skills` override still applies) — for project-local-only setups.
 
 ## Command Groups
 

@@ -1,7 +1,7 @@
 import { dirname } from 'node:path';
 import type { Command } from 'commander';
 import { findConfig, resolveSkillsRoot } from '../config.js';
-import { resolveSkillSources } from '../skill-sources.js';
+import { resolveSkillSources } from '../skill-resolver.js';
 import { buildRenderContext } from '../plan/resolve.js';
 import { renderPlan } from '../plan/render.js';
 import { resolveWorkflowFile } from './workflow-discovery.js';

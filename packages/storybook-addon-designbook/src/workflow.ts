@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { resolve, relative, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { homedir } from 'node:os';
 import { digestLog } from './log/digest.js';
 import { computeFlowRate } from './scoring/composite.js';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
@@ -35,7 +36,7 @@ import {
   type ResolvedStep,
 } from './workflow-resolve.js';
 import jsonata from 'jsonata';
-import { resolveEnvSkillSources } from './skill-sources.js';
+import { resolvePluginSkillSources } from './skill-resolver.js';
 import { interpolate } from './template/interpolate.js';
 import { resolveEach, type EachDeclaration } from './template/each.js';
 import { getValidatorKeys } from './validation-registry.js';
@@ -1382,10 +1383,12 @@ export async function workflowDone(
       );
       if (expanded.length > 0) {
         data.tasks.push(...expanded);
-        const envSkillSources = resolveEnvSkillSources();
+        const pluginSkillSources = options?.config
+          ? (resolvePluginSkillSources({ env: process.env, home: homedir(), config: options.config })?.sources ?? [])
+          : [];
         // Project layout: derive skills root from the task file path.
-        // Plugin layout (DESIGNBOOK_SKILLS): task files have no `/skills/` marker —
-        // fall back to the task file's directory and let env sources resolve
+        // Plugin layout (config `skills`): task files have no `/skills/` marker —
+        // fall back to the task file's directory and let plugin sources resolve
         // skill-qualified $refs into the sibling plugin-cache roots.
         const skillsRoot =
           deriveSkillsRootFromTaskFile(expanded[0]?.task_file) ??
@@ -1395,7 +1398,7 @@ export async function workflowDone(
             expanded,
             skillsRoot,
             { ...(data.schemas ?? {}) },
-            envSkillSources,
+            pluginSkillSources,
           );
           if (Object.keys(mergedSchemas).length > 0) {
             data.schemas = mergedSchemas;
