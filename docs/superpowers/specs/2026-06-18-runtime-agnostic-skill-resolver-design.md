@@ -50,68 +50,88 @@ This splits the problem cleanly: *where* the skills live (runtime concern) vs
 
 ## Architecture
 
-Two modules with a single, well-defined interface between them.
+A resolver registry (internal, no external registration) sits on top of the
+layout primitives. Two modules, one-way import (`skill-resolver` → `skill-sources`),
+so no import cycle.
 
-### `skill-resolver.ts` (new) — locates the base directory
+### `skill-sources.ts` (existing) — layout/fs primitives
 
+Owns only "which skills + what layout", no runtime knowledge:
+`SkillSource`, `isSkillContentRoot`, `deriveSkillSourcesFromBase` (hashed +
+flat layouts, newest-mtime tiebreak — unchanged from #106), and
+`resolveProjectSkillSources(configDir)`.
+
+### `skill-resolver.ts` (new) — runtime resolution
+
+A resolver is a self-contained plugin that does everything — detect + locate +
+expand — and returns finished `SkillSource[]`:
+
+```ts
+interface ResolveContext {
+  env: NodeJS.ProcessEnv;     // injectable for tests (default process.env)
+  home: string;               // injectable for tests (default os.homedir())
+  config: DesignbookConfig;
+}
+interface SkillResolver {
+  name: string;               // 'config' | 'claude-code' | 'codex' | 'gemini' | 'agents'
+  apply(ctx: ResolveContext): SkillSource[];   // [] = not applicable / no content
+}
 ```
-resolveSkillBase(opts?: {
-  env?: NodeJS.ProcessEnv;   // default process.env  (injectable for tests)
-  home?: string;             // default os.homedir()  (injectable for tests)
-  config?: DesignbookConfig; // for the config `skills` override
-}): { base: string; runtime: string } | null
+
+The registry is a fixed ordered array of built-in resolvers (no public
+register API, no config-driven module loading — only the known runtimes are
+supported). **First `apply` that returns a non-empty array wins:**
+
+```ts
+function resolvePluginSkillSources(ctx: ResolveContext): { runtime: string; sources: SkillSource[] } | null {
+  for (const r of BUILT_IN_RESOLVERS) {
+    const sources = r.apply(ctx);
+    if (sources.length) return { runtime: r.name, sources };
+  }
+  return null;
+}
 ```
 
-Pure decision logic plus filesystem existence checks. Returns the chosen
-marketplace/skills base and a `runtime` label (`config` | `claude-code` |
-`codex` | `gemini` | `agents` | null). `null` when no plugin base is found
-(dev repo → project sources cover it).
+`apply` returning `[]` is the fallthrough signal — it unifies "wrong runtime",
+"path missing", and "stale config" into one branch. Each resolver expands via
+the shared `deriveSkillSourcesFromBase`, so all sibling skills come from the
+**same** winning resolver — never mixed across runtimes.
 
-A base "contains designbook" iff `deriveSkillSourcesFromBase(base)` yields a
-source named `designbook`. This single predicate drives both detection
-short-circuits and probe fallthrough, so detection and probing agree.
+`resolveSkillSources(configDir)` (moved here; the orchestrator):
 
-### `skill-sources.ts` (existing) — expands the base into sources
+1. `projectSources` = `resolveProjectSkillSources(configDir)` (origin `project`).
+2. `pluginResult = resolvePluginSkillSources({ env, home, config: loadConfig(configDir) })`.
+3. Merge: project sources override plugin sources of the same name.
 
-- `deriveSkillSourcesFromBase(base)` — unchanged (hashed + flat layouts,
-  newest-mtime tiebreak).
-- `resolveSkillSources(configDir)` — now:
-  1. `projectSources` = `<configDir>/.claude|.agents/skills/*` (origin `project`).
-  2. `base = resolveSkillBase({ config: loadConfig(configDir) })`.
-  3. `pluginSources = base ? deriveSkillSourcesFromBase(base.base) : []`
-     (origin `plugin`).
-  4. Merge: project sources override plugin sources of the same name.
+### Built-in resolvers (fixed order)
 
-All sibling skills come from the **same** winning base — never mixed across
-runtimes — by expanding one base, not per-skill resolution.
+| # | name | `apply` returns sources from … |
+|---|---|---|
+| 1 | `config` | `config.skills` (if set) — explicit override, **fallthrough if empty** |
+| 2 | `claude-code` | only if `CLAUDECODE=1` / `AI_AGENT~claude-code`: first non-empty of `[PATH-scan-base, ~/.claude/plugins/cache/designbook]` |
+| 3 | `codex` | `$CODEX_HOME/skills` (default `~/.codex/skills`) |
+| 4 | `gemini` | `~/.gemini/skills` |
+| 5 | `agents` | `~/.agents/skills` (cross-runtime: Codex/Gemini/Copilot) |
 
-## Resolver precedence (A+B hybrid)
+- **PATH-scan** (claude-code primary): split `env.PATH` by `path.delimiter`,
+  find an entry matching `…/plugins/cache/<mp>/designbook(-*)?/<hash>/bin`,
+  marketplace base = `dirname(dirname(entry))` (parent of the skill dir). Uses
+  the live, runtime-injected hash; no home/hardcode dependency.
+- `config`/`codex`/`gemini`/`agents` resolve their dir then expand via
+  `deriveSkillSourcesFromBase`, returning `[]` when the dir is absent or holds
+  no `designbook` source — which makes the next resolver run.
 
-First step that locates a base containing the primary `designbook` skill wins;
-project-local skills always override on top.
-
-1. **`config.skills` set** → that base (explicit override; #106 behavior). Done.
-2. **detect `CLAUDECODE=1`** → Claude Code:
-   - Primary: **PATH-scan** for an entry matching
-     `…/plugins/cache/<mp>/designbook(-*)?/<hash>/bin` → marketplace base =
-     `dirname(skillDir)`. Uses the live, runtime-injected hash.
-   - Fallback: `~/.claude/plugins/cache/designbook` (then newest-mtime per skill).
-3. **detect `CODEX_HOME`** → `$CODEX_HOME/skills` (default `~/.codex/skills`).
-4. **probe** (no unambiguous signal — Gemini and unknown runtimes), first base
-   that contains designbook content, in order:
-   `~/.gemini/skills` → `~/.agents/skills` → `~/.codex/skills` →
-   `~/.claude/plugins/cache/designbook`.
-5. **project-local** sources are always added and override by name.
-
-Steps 2–3 are hard env detection (B); step 4 is probe fallthrough (A).
+Project-local skills are layered on top by `resolveSkillSources` and always win
+by name (local dev override).
 
 ## Runtime wiring
 
-- CLI entrypoints (`cli/plan.ts`, `cli/workflow.ts`) keep calling
-  `resolveSkillSources(configDir)` — no signature change.
+- CLI entrypoints (`cli/plan.ts`, `cli/workflow.ts`) call
+  `resolveSkillSources(configDir)` — same signature, now imported from
+  `skill-resolver.ts`.
 - `workflow.ts` runtime schema-resolution (currently reads `config.skills`
-  directly) routes through a shared helper that takes `options.config` +
-  `process.env`, so it benefits from the full resolver, not just the config key.
+  directly) calls `resolvePluginSkillSources({ env: process.env, home, config:
+  options.config })`, so it gets the full resolver, not just the config key.
 
 ## Cross-cutting details
 
@@ -123,15 +143,16 @@ Steps 2–3 are hard env detection (B); step 4 is probe fallthrough (A).
 
 ## Testing
 
-`resolveSkillBase` takes injected `env` + `home`, pointed at a fixture tree, so
-each branch is deterministic:
+`resolvePluginSkillSources`/`resolveSkillSources` take injected `env` + `home`,
+pointed at a fixture tree, so each resolver branch is deterministic:
 
 - Claude Code via PATH-scan (fixture PATH entry with hash) → hashed base.
 - Claude Code PATH absent → `~/.claude/plugins/cache/designbook` fallback.
 - Codex via `CODEX_HOME` → `$CODEX_HOME/skills` (flat).
-- Gemini probe → `~/.gemini/skills` (no env signal).
+- Gemini → `~/.gemini/skills` (no env signal, dir-based).
 - `.agents/skills` shared fallback.
-- `config.skills` override beats all detection.
+- `config.skills` resolver wins over runtime resolvers.
+- Stale `config.skills` (no content) → falls through to the next resolver.
 - Project-local override beats plugin sources of the same name.
 - No content anywhere → `null`.
 
@@ -140,6 +161,9 @@ relative `$ref` re-anchor) stay green unchanged.
 
 ## Out of scope (YAGNI)
 
+- **External resolver registration** — no public `register` API and no
+  config-driven module loading. Only the built-in resolvers ship. If a future
+  runtime needs support, add a built-in resolver to the array.
 - Per-runtime tool/command differences (handled by superpowers platform refs).
 - Caching the resolution across CLI invocations (each call is cheap: a few
   `existsSync` checks).
@@ -147,8 +171,9 @@ relative `$ref` re-anchor) stay green unchanged.
 
 ## Decisions
 
-- **Approach:** A+B hybrid (env-detect for Claude Code/Codex, probe for Gemini
-  and unknown).
+- **Approach:** A+B hybrid via a fixed internal resolver array; first non-empty
+  `apply` wins. Resolver logic kept for clarity/testability, but **not**
+  externally extensible.
 - **Runtimes:** Claude Code, Codex, Gemini explicitly; `~/.agents/skills` covers
   Copilot and future cross-runtime CLIs for free.
 - **PR strategy:** stack onto #106 (`refactor/skills-discovery-config`).
