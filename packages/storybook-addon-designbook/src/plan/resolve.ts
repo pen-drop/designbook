@@ -4,6 +4,7 @@ import fm from 'front-matter';
 import { load as parseYaml } from 'js-yaml';
 import { loadConfig, findConfig } from '../config.js';
 import { resolveAllStages, parseFrontmatter, buildEnvMap, type ResolvedStep } from '../workflow-resolve.js';
+import type { SkillSource } from '../skill-sources.js';
 import { buildSchemaBlock } from '../schema-block.js';
 import { classifyInputs, type InputSource, type PriorTaskOutput } from './sources.js';
 import { extractExample, derivePlaceholderFromSchema } from './examples.js';
@@ -93,14 +94,18 @@ function collectRefNamesFromSchema(schema: unknown): Set<string> {
   }
 }
 
-export async function buildRenderContext(workflowFilePath: string, agentsDir: string): Promise<RenderContext> {
+export async function buildRenderContext(
+  workflowFilePath: string,
+  agentsDir: string,
+  sources?: SkillSource[],
+): Promise<RenderContext> {
   const config = loadConfig();
   const configPath = findConfig();
   const rawConfig = configPath ? ((parseYaml(readFileSync(configPath, 'utf-8')) as Record<string, unknown>) ?? {}) : {};
   const skillsRoot = resolvePath(agentsDir, 'skills');
   const envMap = buildEnvMap(config);
 
-  const resolved = await resolveAllStages(workflowFilePath, config, rawConfig, agentsDir);
+  const resolved = await resolveAllStages(workflowFilePath, config, rawConfig, agentsDir, sources);
   const wfFm = (parseFrontmatter(workflowFilePath) as Record<string, unknown> | null) ?? {};
   const workflowId = workflowFilePath.split('/').pop()!.replace(/\.md$/, '');
 
@@ -170,6 +175,7 @@ export async function buildRenderContext(workflowFilePath: string, agentsDir: st
           taskFilePath: rs.task_file,
           skillsRoot,
           envMap,
+          sources,
         });
 
         const schemaObj = buildResultSchemaObject(schemaBlock.result as Record<string, Record<string, unknown>>);

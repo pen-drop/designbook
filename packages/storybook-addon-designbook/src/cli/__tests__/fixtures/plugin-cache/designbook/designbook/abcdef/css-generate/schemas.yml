@@ -1,0 +1,4 @@
+CompiledCss:
+  type: string
+  title: Compiled Application Stylesheet
+  description: Framework-compiled stylesheet on disk.

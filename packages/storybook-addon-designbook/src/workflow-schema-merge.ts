@@ -9,6 +9,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
 import { resolveSchemaRef } from './workflow-resolve.js';
+import type { SkillSource } from './skill-sources.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,10 +75,11 @@ export function resolveRefsInExtension(
   sourceFilePath: string,
   skillsRoot: string,
   schemas: Record<string, object>,
+  sources?: SkillSource[],
 ): void {
   for (const [key, value] of Object.entries(obj)) {
     if (key === '$ref' && typeof value === 'string') {
-      const { typeName, schema } = resolveSchemaRef(value, sourceFilePath, skillsRoot);
+      const { typeName, schema } = resolveSchemaRef(value, sourceFilePath, skillsRoot, sources);
       schemas[typeName] = schema;
       // Replace $ref with the resolved schema properties
       delete obj.$ref;
@@ -87,11 +89,11 @@ export function resolveRefsInExtension(
     if (Array.isArray(value)) {
       for (const item of value) {
         if (item && typeof item === 'object') {
-          resolveRefsInExtension(item as Record<string, unknown>, sourceFilePath, skillsRoot, schemas);
+          resolveRefsInExtension(item as Record<string, unknown>, sourceFilePath, skillsRoot, schemas, sources);
         }
       }
     } else if (value && typeof value === 'object') {
-      resolveRefsInExtension(value as Record<string, unknown>, sourceFilePath, skillsRoot, schemas);
+      resolveRefsInExtension(value as Record<string, unknown>, sourceFilePath, skillsRoot, schemas, sources);
     }
   }
 }
@@ -205,6 +207,8 @@ export interface MergeInput {
   schemas: Record<string, object>;
   /** Maps result key → definition name (from $ref). Used to match extensions by schema name. */
   refMap?: Record<string, string>;
+  /** Env skill sources for resolving skill-qualified $ref into plugin-cache roots. */
+  sources?: SkillSource[];
 }
 
 /**
@@ -234,9 +238,9 @@ export function computeMergedSchema(
         throw new Error(`Blueprint '${bp}' uses constrains: — only rules may constrain schemas`);
       }
       // 3.5: Resolve $refs
-      if (ext.extends) resolveRefsInExtension(ext.extends, bp, input.skillsRoot, input.schemas);
+      if (ext.extends) resolveRefsInExtension(ext.extends, bp, input.skillsRoot, input.schemas, input.sources);
       if (ext.provides && typeof ext.provides === 'object') {
-        resolveRefsInExtension(ext.provides, bp, input.skillsRoot, input.schemas);
+        resolveRefsInExtension(ext.provides, bp, input.skillsRoot, input.schemas, input.sources);
       }
       blueprintExts.push({ path: bp, ext });
     }
@@ -250,11 +254,17 @@ export function computeMergedSchema(
         ext.provides = undefined;
       }
       // 3.5: Resolve $refs
-      if (ext.extends) resolveRefsInExtension(ext.extends, rule, input.skillsRoot, input.schemas);
+      if (ext.extends) resolveRefsInExtension(ext.extends, rule, input.skillsRoot, input.schemas, input.sources);
       if (ext.provides && typeof ext.provides === 'object') {
-        resolveRefsInExtension(ext.provides as Record<string, unknown>, rule, input.skillsRoot, input.schemas);
+        resolveRefsInExtension(
+          ext.provides as Record<string, unknown>,
+          rule,
+          input.skillsRoot,
+          input.schemas,
+          input.sources,
+        );
       }
-      if (ext.constrains) resolveRefsInExtension(ext.constrains, rule, input.skillsRoot, input.schemas);
+      if (ext.constrains) resolveRefsInExtension(ext.constrains, rule, input.skillsRoot, input.schemas, input.sources);
       ruleExts.push({ path: rule, ext });
     }
   }

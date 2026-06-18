@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
 import { resolveSchemaRef } from './workflow-resolve.js';
+import type { SkillSource } from './skill-sources.js';
 import { interpolate } from './template/interpolate.js';
 
 export interface SchemaEntry {
@@ -32,6 +33,8 @@ export interface BuildSchemaBlockInput {
   taskFilePath: string;
   skillsRoot: string;
   envMap: Record<string, string>;
+  /** Env skill sources for resolving skill-qualified $ref into plugin-cache roots. */
+  sources?: SkillSource[];
 }
 
 /**
@@ -66,7 +69,7 @@ function pullType(
     srcFile = baseFilePath;
     srcSchemas = baseFileSchemas;
   } else {
-    const r = resolveSchemaRef(ref, baseFilePath, input.skillsRoot);
+    const r = resolveSchemaRef(ref, baseFilePath, input.skillsRoot, input.sources);
     typeName = r.typeName;
     schema = r.schema;
     srcFile = r.schemaFilePath;

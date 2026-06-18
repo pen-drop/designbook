@@ -2,7 +2,13 @@
 
 Operational guide for running a designbook workflow. You are the AI; this tells you what commands to run, what responses to expect, and what to do with them.
 
-All CLI calls in this doc use `_debo` as shorthand for `npx storybook-addon-designbook`. See [`cli-workflow.md`](cli-workflow.md) for the full CLI reference.
+All CLI calls in this doc use `_debo` as shorthand for
+`npx storybook-addon-designbook`. When Designbook runs as a plugin from the
+cache, the CLI **auto-detects** the runtime (Claude Code / Codex / Gemini /
+`~/.agents/skills`) and locates workflow/task/rule/schema files there — no
+config needed. An optional `skills` key in `designbook.config.yml` overrides the
+detection. See [`cli-reference.md`](cli-reference.md) and
+[`cli-workflow.md`](cli-workflow.md) for the full CLI reference.
 
 ---
 

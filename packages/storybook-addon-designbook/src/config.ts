@@ -9,6 +9,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { resolve, dirname, parse as parsePath } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 
@@ -25,6 +26,13 @@ export interface DesignbookConfig {
   data: string;
   /** Technology used (e.g. 'html', 'drupal'). */
   technology: string;
+  /**
+   * Absolute path to a skill lookup root. When Designbook is installed as a
+   * plugin, point this at the marketplace cache base
+   * (e.g. `~/.claude/plugins/cache/designbook`); the CLI scans
+   * `<root>/<skill>/<hash>` for each skill. Unset → project-local skills only.
+   */
+  skills?: string;
   /** Absolute path to the git workspace root (= DESIGNBOOK_WORKSPACE). */
   workspace?: string;
   /** Feature flags. `features.<name>: false` disables a feature; default is on. */
@@ -141,6 +149,13 @@ export function resolveSkillsRoot(configDir: string): string {
  * @param startDir - Directory to start searching from (defaults to cwd)
  * @returns Parsed config with defaults applied
  */
+/** Expand a leading `~` / `~/` to the user's home directory. */
+function expandTilde(p: string): string {
+  if (p === '~') return homedir();
+  if (p.startsWith('~/') || p.startsWith('~\\')) return resolve(homedir(), p.slice(2));
+  return p;
+}
+
 function assertNotRepoRoot(dataDir: string): void {
   const parent = dirname(dataDir);
   const hasPnpmWorkspace = existsSync(resolve(parent, 'pnpm-workspace.yaml'));
@@ -226,6 +241,11 @@ export function loadConfig(startDir?: string): DesignbookConfig {
       if (key.startsWith('dirs.') && typeof config[key] === 'string') {
         config[key] = resolve(configDir, config[key] as string);
       }
+    }
+
+    // 6. Resolve skills lookup root (~ expansion, relative to configDir)
+    if (typeof config['skills'] === 'string') {
+      config['skills'] = resolve(configDir, expandTilde(config['skills'] as string));
     }
 
     return config;
