@@ -7,9 +7,9 @@ import type { SkillSource } from '../skill-sources.js';
 
 export type { AfterDeclaration };
 
-/** Keep only env-origin sources — project layout is covered by the agentsDir glob. */
-function envSources(sources?: SkillSource[]): SkillSource[] {
-  return (sources ?? []).filter((s) => s.origin === 'env');
+/** Keep only plugin-origin sources — project layout is covered by the agentsDir glob. */
+function pluginSources(sources?: SkillSource[]): SkillSource[] {
+  return (sources ?? []).filter((s) => s.origin === 'plugin');
 }
 
 export interface WorkflowStage {
@@ -28,7 +28,7 @@ export function resolveWorkflowFile(workflowId: string, agentsDir: string, sourc
   const matches = globSync(`skills/**/workflows/${workflowId}.md`, { cwd: agentsDir, absolute: true });
   if (matches.length > 0) return matches[0]!;
 
-  for (const source of envSources(sources)) {
+  for (const source of pluginSources(sources)) {
     const found = globSync(`**/workflows/${workflowId}.md`, { cwd: source.root, absolute: true });
     if (found.length > 0) return found[0]!;
   }
@@ -39,7 +39,7 @@ export function resolveWorkflowFile(workflowId: string, agentsDir: string, sourc
 export function listWorkflowDefinitions(agentsDir: string, sources?: SkillSource[]): string[] {
   const matches = globSync(`skills/**/workflows/*.md`, { cwd: agentsDir, absolute: true });
   const ids = matches.map((p) => basename(p, '.md'));
-  for (const source of envSources(sources)) {
+  for (const source of pluginSources(sources)) {
     for (const p of globSync(`**/workflows/*.md`, { cwd: source.root, absolute: true })) {
       ids.push(basename(p, '.md'));
     }

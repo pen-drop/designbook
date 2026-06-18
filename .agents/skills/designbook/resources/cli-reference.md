@@ -3,27 +3,34 @@
 All commands are invoked via `_debo` (alias for `npx storybook-addon-designbook`).
 
 ```bash
-_debo() { DESIGNBOOK_SKILLS="<this skill's base directory>" npx storybook-addon-designbook "$@"; }
+_debo() { npx storybook-addon-designbook "$@"; }
 eval "$(_debo config)"
 ```
 
-## `DESIGNBOOK_SKILLS` — skill content discovery
+## `skills` — skill content discovery
 
 `_debo` discovers workflow/task/rule/blueprint/schema files for a skill. In a
 dev repo the skill lives under `<project>/.agents/skills/designbook/...`, which
-the CLI finds automatically. When Designbook is installed as a **Claude Code
-plugin**, the skills instead live in the plugin cache
+the CLI finds automatically. When Designbook is installed as a **plugin**, the
+skills instead live in the plugin cache
 (`~/.claude/plugins/cache/designbook/<skill>/<hash>/...`), which the CLI cannot
 locate on its own.
 
-Always set `DESIGNBOOK_SKILLS` to **this skill's base directory** — the absolute
-path Claude Code injects when it loads the skill (shown as
-`Base directory for this skill: <path>`). It is a colon-separated list of skill
-content roots; passing only the `designbook` root is enough: the CLI
-auto-derives the three sibling skills (`designbook-drupal`,
-`designbook-css-tailwind`, `designbook-stitch`) by matching the same `<hash>`
-segment under the plugin cache. Cross-skill `$ref`s and rules resolve into those
-siblings automatically.
+Set the `skills` key in `designbook.config.yml` to the **marketplace cache base**
+— the directory that contains the per-skill folders (no `<hash>` segment):
+
+```yaml
+# designbook.config.yml
+skills: ~/.claude/plugins/cache/designbook
+```
+
+The CLI scans `<base>/<skill>/<hash>` and, when several hashes coexist after a
+plugin update, picks the newest one per skill. Pointing at the base is enough:
+all sibling skills (`designbook-drupal`, `designbook-css-tailwind`,
+`designbook-stitch`) are discovered automatically, and cross-skill `$ref`s and
+rules resolve into them. The path is runtime-agnostic — set it to wherever your
+runtime installs the Designbook plugin (`~`/relative paths resolve against the
+config file's directory).
 
 A project-local skill of the same name (under `<project>/.agents/skills/`) always
 overrides the plugin copy.

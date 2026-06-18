@@ -35,7 +35,7 @@ import {
   type ResolvedStep,
 } from './workflow-resolve.js';
 import jsonata from 'jsonata';
-import { resolveEnvSkillSources } from './skill-sources.js';
+import { deriveSkillSourcesFromBase } from './skill-sources.js';
 import { interpolate } from './template/interpolate.js';
 import { resolveEach, type EachDeclaration } from './template/each.js';
 import { getValidatorKeys } from './validation-registry.js';
@@ -1382,10 +1382,11 @@ export async function workflowDone(
       );
       if (expanded.length > 0) {
         data.tasks.push(...expanded);
-        const envSkillSources = resolveEnvSkillSources();
+        const pluginSkillSources =
+          typeof options?.config?.skills === 'string' ? deriveSkillSourcesFromBase(options.config.skills) : [];
         // Project layout: derive skills root from the task file path.
-        // Plugin layout (DESIGNBOOK_SKILLS): task files have no `/skills/` marker —
-        // fall back to the task file's directory and let env sources resolve
+        // Plugin layout (config `skills`): task files have no `/skills/` marker —
+        // fall back to the task file's directory and let plugin sources resolve
         // skill-qualified $refs into the sibling plugin-cache roots.
         const skillsRoot =
           deriveSkillsRootFromTaskFile(expanded[0]?.task_file) ??
@@ -1395,7 +1396,7 @@ export async function workflowDone(
             expanded,
             skillsRoot,
             { ...(data.schemas ?? {}) },
-            envSkillSources,
+            pluginSkillSources,
           );
           if (Object.keys(mergedSchemas).length > 0) {
             data.schemas = mergedSchemas;

@@ -118,16 +118,16 @@ interface WorkflowFrontmatter {
   };
 }
 
-// ── Env Skill Source Helpers ──────────────────────────────────────────
+// ── Plugin Skill Source Helpers ───────────────────────────────────────
 
-/** Keep only env-origin sources — project layout is covered by the agentsDir glob. */
-function envSources(sources?: SkillSource[]): SkillSource[] {
-  return (sources ?? []).filter((s) => s.origin === 'env');
+/** Keep only plugin-origin sources — project layout is covered by the agentsDir glob. */
+function pluginSources(sources?: SkillSource[]): SkillSource[] {
+  return (sources ?? []).filter((s) => s.origin === 'plugin');
 }
 
 /**
  * Strip the leading `skills/**\/` segment from a project glob pattern so it can
- * be globbed against an env SkillSource root (which has no `skills/` prefix and
+ * be globbed against a plugin SkillSource root (which has no `skills/` prefix and
  * no skill-name segment). E.g. `skills/**\/tasks/*.md` → `**\/tasks/*.md`.
  */
 function toSourcePattern(globPattern: string): string {
@@ -135,12 +135,12 @@ function toSourcePattern(globPattern: string): string {
 }
 
 /**
- * Derive a namespaced artifact name for a file found under an env SkillSource.
+ * Derive a namespaced artifact name for a file found under a plugin SkillSource.
  *
  * - `<concern>/<kind>/<artifact>.md` → `${name}:${concern}:${artifact}`
  * - flat `<kind>/<artifact>.md`     → `${name}:${artifact}`
  */
-function deriveEnvArtifactName(source: SkillSource, filePath: string): string {
+function derivePluginArtifactName(source: SkillSource, filePath: string): string {
   const rel = relative(source.root, filePath).replace(/\\/g, '/');
   const parts = rel.split('/');
   const artifact = (parts[parts.length - 1] ?? '').replace(/\.md$/, '');
@@ -182,7 +182,7 @@ export function loadSchemaFile(schemaFilePath: string): Record<string, object> {
 }
 
 /**
- * Re-anchor a relative `$ref` that crossed into a sibling env SkillSource.
+ * Re-anchor a relative `$ref` that crossed into a sibling plugin SkillSource.
  *
  * Cross-skill relative refs (e.g. `../../designbook/css-generate/schemas.yml`
  * authored in skill `designbook-css-tailwind`) are written for the *project*
@@ -201,10 +201,10 @@ export function loadSchemaFile(schemaFilePath: string): Record<string, object> {
  * Returns the re-anchored absolute path, or `undefined` when no env source name
  * appears in the path (so the caller keeps the original resolution).
  */
-function reanchorRelativeRefToEnvSource(resolvedPath: string, sources?: SkillSource[]): string | undefined {
-  const envs = envSources(sources);
-  if (envs.length === 0) return undefined;
-  const byName = new Map(envs.map((s) => [s.name, s]));
+function reanchorRelativeRefToPluginSource(resolvedPath: string, sources?: SkillSource[]): string | undefined {
+  const plugins = pluginSources(sources);
+  if (plugins.length === 0) return undefined;
+  const byName = new Map(plugins.map((s) => [s.name, s]));
   const segments = resolvedPath.replace(/\\/g, '/').split('/');
   for (let i = segments.length - 2; i >= 0; i--) {
     const source = byName.get(segments[i]!);
@@ -246,20 +246,20 @@ export function resolveSchemaRef(
     schemaFilePath = resolve(dirname(taskFilePath), filePart);
     // Plugin-cache layout: a relative ref that crosses into a sibling skill is
     // off-by-one (extra `<hash>` segment) and resolves to a non-existent path.
-    // Re-anchor it via the env SkillSource that owns the target skill name.
+    // Re-anchor it via the plugin SkillSource that owns the target skill name.
     if (!existsSync(schemaFilePath)) {
-      const reanchored = reanchorRelativeRefToEnvSource(schemaFilePath, sources);
+      const reanchored = reanchorRelativeRefToPluginSource(schemaFilePath, sources);
       if (reanchored) schemaFilePath = reanchored;
     }
   } else {
     // Skill-qualified: `<skillName>/sub/schemas.yml`. When <skillName> matches an
-    // env SkillSource, resolve against that source's content root; otherwise keep
+    // plugin SkillSource, resolve against that source's content root; otherwise keep
     // the legacy resolution relative to the project skills root.
     const skillName = filePart.split('/')[0] ?? '';
-    const envSource = envSources(sources).find((s) => s.name === skillName);
-    if (envSource) {
+    const pluginSource = pluginSources(sources).find((s) => s.name === skillName);
+    if (pluginSource) {
       const rest = filePart.slice(skillName.length + 1); // strip `<skillName>/`
-      schemaFilePath = resolve(envSource.root, rest);
+      schemaFilePath = resolve(pluginSource.root, rest);
     } else {
       schemaFilePath = resolve(skillsRoot, filePart);
     }
@@ -635,7 +635,7 @@ export function deriveArtifactName(
   agentsDir: string,
   frontmatter?: Record<string, unknown> | null,
   /**
-   * When the file was discovered under an env SkillSource (not the project
+   * When the file was discovered under an plugin SkillSource (not the project
    * `agentsDir`), pass the source so the namespace is derived from the source
    * name + the path relative to the source root, instead of relative to
    * `<agentsDir>/skills`.
@@ -661,9 +661,9 @@ export function deriveArtifactName(
     return frontmatter.name;
   }
 
-  // Env-source file: derive namespace from source name + rel-within-root path.
+  // Plugin-source file: derive namespace from source name + rel-within-root path.
   if (source) {
-    return deriveEnvArtifactName(source, filePath);
+    return derivePluginArtifactName(source, filePath);
   }
 
   // Derive from filesystem path: skills/<skill>[/<concern>]/<kind>/<artifact>.md
@@ -927,7 +927,7 @@ export function resolveFiles(
     candidates.push({ filePath });
   }
   const sourcePattern = toSourcePattern(globPattern);
-  for (const source of envSources(sources)) {
+  for (const source of pluginSources(sources)) {
     for (const filePath of globSync(sourcePattern, { cwd: source.root, absolute: true })) {
       candidates.push({ filePath, source });
     }
@@ -1065,15 +1065,15 @@ export function deduplicateByNameAs(files: ResolvedFile[], agentsDir: string, wa
  * Returns empty array if no task files match (callers skip the step).
  */
 /**
- * Try to resolve an explicit `skill:task` path against env SkillSource roots.
+ * Try to resolve an explicit `skill:task` path against plugin SkillSource roots.
  * Checks the flat `<source.root>/tasks/<name>.md` first, then `**\/tasks/<name>.md`.
  */
-function resolveExplicitTaskInEnvSources(
+function resolveExplicitTaskInPluginSources(
   skillName: string,
   taskName: string,
   sources?: SkillSource[],
 ): string | undefined {
-  const source = envSources(sources).find((s) => s.name === skillName);
+  const source = pluginSources(sources).find((s) => s.name === skillName);
   if (!source) return undefined;
   const flat = resolve(source.root, 'tasks', `${taskName}.md`);
   if (existsSync(flat)) return flat;
@@ -1111,12 +1111,12 @@ export function resolveTaskFiles(
       );
       return [taskPath];
     }
-    const envTaskPath = resolveExplicitTaskInEnvSources(skillName, taskName, sources);
-    if (envTaskPath) {
+    const pluginTaskPath = resolveExplicitTaskInPluginSources(skillName, taskName, sources);
+    if (pluginTaskPath) {
       console.warn(
-        `[designbook] task "${envTaskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
+        `[designbook] task "${pluginTaskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
       );
-      return [envTaskPath];
+      return [pluginTaskPath];
     }
     return [];
   }
@@ -1180,15 +1180,15 @@ export function resolveTaskFilesRich(
       const name = deriveArtifactName(taskPath, agentsDir, frontmatter);
       return [{ path: taskPath, name, specificity: 0, frontmatter }];
     }
-    const envTaskPath = resolveExplicitTaskInEnvSources(skillName, taskName, sources);
-    if (envTaskPath) {
+    const pluginTaskPath = resolveExplicitTaskInPluginSources(skillName, taskName, sources);
+    if (pluginTaskPath) {
       console.warn(
-        `[designbook] task "${envTaskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
+        `[designbook] task "${pluginTaskPath}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`,
       );
-      const frontmatter = parseFrontmatter(envTaskPath);
-      const envSource = envSources(sources).find((s) => s.name === skillName);
-      const name = deriveArtifactName(envTaskPath, agentsDir, frontmatter, envSource);
-      return [{ path: envTaskPath, name, specificity: 0, frontmatter }];
+      const frontmatter = parseFrontmatter(pluginTaskPath);
+      const pluginSource = pluginSources(sources).find((s) => s.name === skillName);
+      const name = deriveArtifactName(pluginTaskPath, agentsDir, frontmatter, pluginSource);
+      return [{ path: pluginTaskPath, name, specificity: 0, frontmatter }];
     }
     return [];
   }
