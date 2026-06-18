@@ -45,16 +45,6 @@ stages:
     isolate: true
   validate:
     steps: [validate]
-  setup-compare:
-    steps: [setup-compare]
-  capture:
-    steps: [capture]
-    isolate: true
-  compare:
-    steps: [compare]
-    isolate: true
-  outtake:
-    steps: [outtake]
 engine: direct
 before:
   - workflow: css-generate

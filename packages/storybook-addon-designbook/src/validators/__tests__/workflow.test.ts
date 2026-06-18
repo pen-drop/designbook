@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, utimesSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { load as parseYaml, dump as stringifyYaml } from 'js-yaml';
 import {
@@ -8,10 +8,6 @@ import {
   workflowPlan,
   workflowList,
   workflowDone,
-  workflowMerge,
-  isGitRepo,
-  createGitWorktree,
-  checkPreflightClean,
   expandTasksFromParams,
   type WorkflowFile,
 } from '../../workflow.js';
@@ -240,145 +236,6 @@ describe('workflowPlan', () => {
     workflowPlan(dist, name, [{ id: 'task1', title: 'T1', type: 'data' }]);
     const data = readWorkflowFile(dist, name);
     expect(data.status).toBe('running');
-  });
-
-  it('stores write_root and workspace_root when provided', () => {
-    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
-    const writeRoot = join(dist, 'worktree');
-    const rootDir = join(dist, 'root');
-    workflowPlan(dist, name, [], undefined, undefined, writeRoot, rootDir);
-    const data = readWorkflowFile(dist, name);
-    expect(data.write_root).toBe(writeRoot);
-    expect(data.workspace_root).toBe(rootDir);
-  });
-
-  it('does not write write_root when not provided', () => {
-    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
-    workflowPlan(dist, name, []);
-    const data = readWorkflowFile(dist, name);
-    expect(data.write_root).toBeUndefined();
-    expect(data.workspace_root).toBeUndefined();
-  });
-});
-
-// ── WORKTREE: workflowDone bulk copy + touch + cleanup ────────────────────────
-
-describe('workflowDone with WORKTREE', () => {
-  let dist: string;
-  let rootDir: string;
-  let writeRoot: string;
-
-  beforeEach(() => {
-    dist = mkdtempSync(resolve(tmpdir(), 'wf-worktree-'));
-    rootDir = resolve(dist, 'project-root');
-    writeRoot = resolve(dist, 'worktree');
-    mkdirSync(rootDir, { recursive: true });
-    mkdirSync(writeRoot, { recursive: true });
-  });
-
-  it('non-final task: no copy, no WORKTREE removal', async () => {
-    const fileA = resolve(writeRoot, 'file-a.yml');
-    const fileB = resolve(writeRoot, 'file-b.yml');
-    writeFileSync(fileA, 'a: 1');
-    writeFileSync(fileB, 'b: 2');
-
-    const name = workflowCreate(dist, 'debo-test', 'Test', [
-      {
-        id: 'task1',
-        title: 'T1',
-        type: 'data',
-        step: 'do-task1',
-        stage: 'execute',
-        files: [{ path: fileA, key: 'file-a', validators: [] }],
-      },
-      {
-        id: 'task2',
-        title: 'T2',
-        type: 'data',
-        step: 'do-task2',
-        stage: 'execute',
-        files: [{ path: fileB, key: 'file-b', validators: [] }],
-      },
-    ]);
-    workflowPlan(
-      dist,
-      name,
-      [
-        {
-          id: 'task1',
-          title: 'T1',
-          type: 'data',
-          step: 'do-task1',
-          stage: 'execute',
-          files: [{ path: fileA, key: 'file-a', validators: [] }],
-        },
-        {
-          id: 'task2',
-          title: 'T2',
-          type: 'data',
-          step: 'do-task2',
-          stage: 'execute',
-          files: [{ path: fileB, key: 'file-b', validators: [] }],
-        },
-      ],
-      { execute: { steps: ['do-task1', 'do-task2'] } },
-      undefined,
-      writeRoot,
-      rootDir,
-    );
-
-    // Manually mark task1's file as written+validated
-    const data = readWorkflowFile(dist, name);
-    data.tasks[0]!.files![0]!.validation_result = { file: fileA, type: 'data', valid: true, last_validated: '' };
-    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
-
-    const result = await await workflowDone(dist, name, 'task1');
-    expect(result.archived).toBe(false);
-
-    // WORKTREE still exists (not yet committed)
-    expect(existsSync(writeRoot)).toBe(true);
-    // Files not yet in rootDir
-    expect(existsSync(resolve(rootDir, 'file-a.yml'))).toBe(false);
-  });
-
-  it('final task without write_root: archives immediately (direct engine behavior)', async () => {
-    const realFile = resolve(rootDir, 'data.yml');
-    writeFileSync(realFile, 'real: true');
-
-    const name = workflowCreate(dist, 'debo-test', 'Test', [
-      {
-        id: 'task1',
-        title: 'T1',
-        type: 'data',
-        step: 'do-task',
-        stage: 'execute',
-        files: [{ path: realFile, key: 'data', validators: [] }],
-      },
-    ]);
-    workflowPlan(
-      dist,
-      name,
-      [
-        {
-          id: 'task1',
-          title: 'T1',
-          type: 'data',
-          step: 'do-task',
-          stage: 'execute',
-          files: [{ path: realFile, key: 'data', validators: [] }],
-        },
-      ],
-      { execute: { steps: ['do-task'] } },
-    ); // no write_root, no engine → defaults to archive path
-
-    const data = readWorkflowFile(dist, name);
-    data.tasks[0]!.files![0]!.validation_result = { file: realFile, type: 'data', valid: true, last_validated: '' };
-    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
-
-    const result = await await workflowDone(dist, name, 'task1');
-    expect(result.archived).toBe(true);
-    // File still exists at real path
-    expect(existsSync(realFile)).toBe(true);
   });
 });
 
@@ -611,234 +468,6 @@ describe('workflowDone', () => {
   });
 });
 
-// ── Git worktree helpers ──────────────────────────────────────────────────────
-
-describe('isGitRepo', () => {
-  let execFileSync: Mock;
-
-  beforeEach(async () => {
-    const childProcess = await import('node:child_process');
-    execFileSync = childProcess.execFileSync as unknown as Mock;
-    vi.resetAllMocks();
-  });
-
-  it('returns true when git rev-parse succeeds', () => {
-    execFileSync.mockReturnValue(undefined);
-    expect(isGitRepo('/some/dir')).toBe(true);
-    expect(execFileSync).toHaveBeenCalledWith('git', ['rev-parse', '--git-dir'], { cwd: '/some/dir', stdio: 'ignore' });
-  });
-
-  it('returns false when git rev-parse throws', () => {
-    execFileSync.mockImplementation(() => {
-      throw new Error('not a git repo');
-    });
-    expect(isGitRepo('/some/dir')).toBe(false);
-  });
-});
-
-describe('createGitWorktree', () => {
-  let execFileSync: Mock;
-
-  beforeEach(async () => {
-    const childProcess = await import('node:child_process');
-    execFileSync = childProcess.execFileSync as unknown as Mock;
-    vi.resetAllMocks();
-  });
-
-  it('calls git worktree add with full checkout (no --no-checkout, no sparse-checkout)', () => {
-    execFileSync.mockReturnValue(undefined);
-    createGitWorktree('/tmp/wt', 'workflow/test', '/repo');
-    expect(execFileSync).toHaveBeenCalledWith('git', ['worktree', 'add', '/tmp/wt', '-b', 'workflow/test'], {
-      cwd: '/repo',
-    });
-    const calls = execFileSync.mock.calls as string[][];
-    expect(calls.some((c) => c[1]?.includes('--no-checkout'))).toBe(false);
-    expect(calls.some((c) => c[1]?.includes('sparse-checkout'))).toBe(false);
-  });
-});
-
-describe('workflowDone with git worktree', () => {
-  let execFileSync: Mock;
-  let dist: string;
-  let rootDir: string;
-  let writeRoot: string;
-
-  beforeEach(async () => {
-    const childProcess = await import('node:child_process');
-    execFileSync = childProcess.execFileSync as unknown as Mock;
-    vi.resetAllMocks();
-    execFileSync.mockReturnValue(undefined);
-    dist = mkdtempSync(resolve(tmpdir(), 'wf-git-done-'));
-    rootDir = resolve(dist, 'project-root');
-    writeRoot = resolve(dist, 'worktree');
-    mkdirSync(rootDir, { recursive: true });
-    mkdirSync(writeRoot, { recursive: true });
-  });
-
-  it('commits to worktree branch + removes worktree (no merge) when worktree_branch is set', async () => {
-    const outputFile = resolve(writeRoot, 'components', 'btn.twig');
-    mkdirSync(resolve(writeRoot, 'components'), { recursive: true });
-    writeFileSync(outputFile, 'twig content');
-
-    const name = workflowCreate(dist, 'debo-test', 'Test', [
-      {
-        id: 'task1',
-        title: 'T1',
-        type: 'component',
-        step: 'do-task',
-        stage: 'execute',
-        files: [{ path: outputFile, key: 'template', validators: [] }],
-      },
-    ]);
-    workflowPlan(
-      dist,
-      name,
-      [
-        {
-          id: 'task1',
-          title: 'T1',
-          type: 'component',
-          step: 'do-task',
-          stage: 'execute',
-          files: [{ path: outputFile, key: 'template', validators: [] }],
-        },
-      ],
-      { execute: { steps: ['do-task'] } },
-      undefined,
-      writeRoot,
-      rootDir,
-      'workflow/test',
-    );
-
-    const data = readWorkflowFile(dist, name);
-    data.tasks[0]!.files![0]!.validation_result = {
-      file: outputFile,
-      type: 'component',
-      valid: true,
-      last_validated: '',
-    };
-    writeFileSync(tasksYmlPath(dist, name), stringifyYaml(data));
-
-    const result = await await workflowDone(dist, name, 'task1');
-    // Worktree path: not archived — stays in changes/ until workflow merge
-    expect(result.archived).toBe(false);
-    const calls = execFileSync.mock.calls as string[][];
-    // Should have committed in the worktree
-    expect(calls.some((c) => c[1]?.includes('commit'))).toBe(true);
-    // Should have removed the worktree directory
-    expect(calls.some((c) => c[1]?.includes('remove'))).toBe(true);
-    // Should NOT have done a git merge
-    expect(calls.some((c) => c[1]?.includes('merge'))).toBe(false);
-  });
-});
-
-// ── checkPreflightClean ───────────────────────────────────────────────────────
-
-describe('checkPreflightClean', () => {
-  let execFileSync: Mock;
-
-  beforeEach(async () => {
-    const childProcess = await import('node:child_process');
-    execFileSync = childProcess.execFileSync as unknown as Mock;
-    vi.resetAllMocks();
-  });
-
-  it('returns clean=true when git status outputs nothing', () => {
-    execFileSync.mockReturnValue('');
-    const result = checkPreflightClean('/repo', '/repo/packages/theme');
-    expect(result.clean).toBe(true);
-    expect(result.files).toEqual([]);
-  });
-
-  it('returns clean=false with file list when uncommitted changes exist', () => {
-    execFileSync.mockReturnValue(' M packages/theme/components/btn.twig\n?? packages/theme/tokens.yml\n');
-    const result = checkPreflightClean('/repo', '/repo/packages/theme');
-    expect(result.clean).toBe(false);
-    expect(result.files).toContain('packages/theme/components/btn.twig');
-    expect(result.files).toContain('packages/theme/tokens.yml');
-  });
-
-  it('returns clean=true when git command throws (non-git directory)', () => {
-    execFileSync.mockImplementation(() => {
-      throw new Error('not a git repo');
-    });
-    const result = checkPreflightClean('/repo', '/repo/packages/theme');
-    expect(result.clean).toBe(true);
-  });
-
-  it('passes the relative outputsRoot path to git status', () => {
-    execFileSync.mockReturnValue('');
-    checkPreflightClean('/repo', '/repo/packages/theme');
-    expect(execFileSync).toHaveBeenCalledWith('git', ['-C', '/repo', 'status', '--porcelain', '--', 'packages/theme'], {
-      encoding: 'utf-8',
-    });
-  });
-});
-
-// ── workflowMerge ─────────────────────────────────────────────────────────────
-
-describe('workflowMerge', () => {
-  let execFileSync: Mock;
-  let dist: string;
-  let rootDir: string;
-
-  beforeEach(async () => {
-    const childProcess = await import('node:child_process');
-    execFileSync = childProcess.execFileSync as unknown as Mock;
-    vi.resetAllMocks();
-    execFileSync.mockReturnValue(undefined);
-    dist = mkdtempSync(resolve(tmpdir(), 'wf-wmerge-'));
-    rootDir = resolve(dist, 'project-root');
-    mkdirSync(rootDir, { recursive: true });
-  });
-
-  function makeWorkflow(worktreeBranch?: string) {
-    const name = workflowCreate(dist, 'debo-test', 'Test', [{ id: 'task1', title: 'T1', type: 'data' }]);
-    workflowPlan(
-      dist,
-      name,
-      [{ id: 'task1', title: 'T1', type: 'data' }],
-      undefined,
-      undefined,
-      undefined,
-      rootDir,
-      worktreeBranch,
-    );
-    return name;
-  }
-
-  it('calls git merge --squash + commit + branch delete', () => {
-    const name = makeWorkflow('workflow/test');
-    workflowMerge(dist, name);
-    const calls = execFileSync.mock.calls as string[][];
-    expect(
-      calls.some((c) => c[1]?.includes('merge') && c[1]?.includes('--squash') && c[1]?.includes('workflow/test')),
-    ).toBe(true);
-    expect(calls.some((c) => c[1]?.includes('commit') && c[1]?.includes('workflow: debo-test'))).toBe(true);
-    expect(calls.some((c) => c[1]?.includes('-D') && c[1]?.includes('workflow/test'))).toBe(true);
-  });
-
-  it('archives workflow after merge', () => {
-    const name = makeWorkflow('workflow/test');
-    workflowMerge(dist, name);
-    // Workflow moved to archive
-    expect(existsSync(resolve(dist, 'workflows', 'archive', name, 'tasks.yml'))).toBe(true);
-    expect(existsSync(tasksYmlPath(dist, name))).toBe(false);
-  });
-
-  it('throws when worktree_branch is not set', () => {
-    const name = makeWorkflow(); // no branch → resolves to direct engine
-    expect(() => workflowMerge(dist, name)).toThrow('does not support merge');
-  });
-
-  it('returns branch and workspace_root', () => {
-    const name = makeWorkflow('workflow/test');
-    const result = workflowMerge(dist, name);
-    expect(result.branch).toBe('workflow/test');
-    expect(result.workspace_root).toBe(rootDir);
-  });
-});
-
 // ── Engine: direct ───────────────────────────────────────────────────────────
 
 describe('workflowDone with engine: direct', () => {
@@ -850,17 +479,9 @@ describe('workflowDone with engine: direct', () => {
 
   it('archives immediately when all tasks done', async () => {
     const name = workflowCreate(dist, 'debo-test', 'Test', [{ id: 'task1', title: 'T1', type: 'data' }]);
-    workflowPlan(
-      dist,
-      name,
-      [{ id: 'task1', title: 'T1', type: 'data', step: 'do-task', stage: 'execute' }],
-      { execute: { steps: ['do-task'] } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
-    );
+    workflowPlan(dist, name, [{ id: 'task1', title: 'T1', type: 'data', step: 'do-task', stage: 'execute' }], {
+      execute: { steps: ['do-task'] },
+    });
 
     const result = await await workflowDone(dist, name, 'task1');
     expect(result.archived).toBe(true);
@@ -875,75 +496,13 @@ describe('workflowDone with engine: direct', () => {
     mock.mockClear();
 
     const name = workflowCreate(dist, 'debo-test', 'Test', [{ id: 'task1', title: 'T1', type: 'data' }]);
-    workflowPlan(
-      dist,
-      name,
-      [{ id: 'task1', title: 'T1', type: 'data', step: 'do-task', stage: 'execute' }],
-      { execute: { steps: ['do-task'] } },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
-    );
+    workflowPlan(dist, name, [{ id: 'task1', title: 'T1', type: 'data', step: 'do-task', stage: 'execute' }], {
+      execute: { steps: ['do-task'] },
+    });
 
     mock.mockClear();
     await workflowDone(dist, name, 'task1');
     expect(mock).not.toHaveBeenCalled();
-  });
-});
-
-describe('workflowPlan engine storage', () => {
-  let dist: string;
-
-  beforeEach(() => {
-    dist = mkdtempSync(resolve(tmpdir(), 'wf-engine-'));
-  });
-
-  it('stores engine field in tasks.yml', () => {
-    const name = workflowCreate(dist, 'debo-test', 'Test', []);
-    workflowPlan(dist, name, [], undefined, undefined, undefined, undefined, undefined, 'direct');
-    const data = readWorkflowFile(dist, name);
-    expect(data.engine).toBe('direct');
-  });
-
-  it('stores git-worktree engine field in tasks.yml', () => {
-    const name = workflowCreate(dist, 'debo-test', 'Test', []);
-    workflowPlan(dist, name, [], undefined, undefined, undefined, undefined, undefined, 'git-worktree');
-    const data = readWorkflowFile(dist, name);
-    expect(data.engine).toBe('git-worktree');
-  });
-
-  it('does not store engine field when not provided', () => {
-    const name = workflowCreate(dist, 'debo-test', 'Test', []);
-    workflowPlan(dist, name, []);
-    const data = readWorkflowFile(dist, name);
-    expect(data.engine).toBeUndefined();
-  });
-});
-
-describe('workflowMerge with engine: direct', () => {
-  let dist: string;
-
-  beforeEach(() => {
-    dist = mkdtempSync(resolve(tmpdir(), 'wf-merge-direct-'));
-  });
-
-  it('throws when engine is direct (nothing to merge)', () => {
-    const name = workflowCreate(dist, 'debo-test', 'Test', [{ id: 'task1', title: 'T1', type: 'data' }]);
-    workflowPlan(
-      dist,
-      name,
-      [{ id: 'task1', title: 'T1', type: 'data' }],
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
-    );
-
-    expect(() => workflowMerge(dist, name)).toThrow();
   });
 });
 
@@ -977,11 +536,6 @@ describe('workflowDone stage-based response', () => {
         { id: 'task2', title: 'T2', type: 'scene', step: 'create-scene', stage: 'execute' },
       ],
       stages,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     const result = await await workflowDone(dist, name, 'task1');
@@ -1015,11 +569,6 @@ describe('workflowDone stage-based response', () => {
         { id: 'task2', title: 'T2', type: 'test', step: 'visual-diff', stage: 'test' },
       ],
       stages,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     const result = await await workflowDone(dist, name, 'task1');
@@ -1054,11 +603,6 @@ describe('workflowDone stage-based response', () => {
         { id: 'task2', title: 'T2', type: 'validation', step: 'storybook-preview', stage: 'preview' },
       ],
       stages,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     const result = await await workflowDone(dist, name, 'task1');
@@ -1082,11 +626,6 @@ describe('workflowDone stage-based response', () => {
       name,
       [{ id: 'task1', title: 'T1', type: 'tokens', step: 'create-tokens', stage: 'execute' }],
       stages,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     const result = await await workflowDone(dist, name, 'task1');
@@ -1118,11 +657,6 @@ describe('workflowDone stage-based response', () => {
         { id: 'task2', title: 'T2', type: 'test', step: 'visual-diff', stage: 'test' },
       ],
       stages,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     await expect(() => workflowDone(dist, name, 'task1')).rejects.toThrow(
@@ -1153,11 +687,6 @@ describe('workflowDone stage-based response', () => {
         { id: 'task2', title: 'T2', type: 'scene', step: 'create-scene-file', stage: 'scene' },
       ],
       stages,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      'direct',
     );
 
     const result = await workflowDone(dist, name, 'task1');

@@ -97,8 +97,10 @@ export async function resolveParams(
     }
 
     const input = outputParams[key];
-    // Skip if no input and no from: dependency — nothing to resolve
-    if (input === undefined && !decl.from) return;
+    // Skip if no input and no from: dependency — nothing to resolve.
+    // Producer resolvers (requiresInput === false) generate their value from
+    // the environment, so they run even without an input.
+    if (input === undefined && !decl.from && resolver.requiresInput !== false) return;
 
     let effectiveInput: string;
     if (decl.from) {

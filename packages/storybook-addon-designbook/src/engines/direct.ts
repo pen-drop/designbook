@@ -13,10 +13,6 @@ function stashPath(data: WorkflowFile, fileEntry: { path: string }): string {
 }
 
 export const directEngine: WorkflowEngine = {
-  setup(ctx) {
-    return { envMap: ctx.envMap };
-  },
-
   writeFile(data: WorkflowFile, task: WorkflowTask, key: string, content: string | Buffer): { path: string } {
     const fileEntry = (task.files ?? []).find((f) => f.key === key);
     if (!fileEntry) throw new Error(`No file entry with key '${key}' in task '${task.id}'`);
@@ -63,12 +59,6 @@ export const directEngine: WorkflowEngine = {
     return Promise.resolve();
   },
 
-  commit() {
-    /* noop — files already written to real paths */
-  },
-  merge() {
-    throw new Error('Engine "direct" does not support merge — files are already written to real paths');
-  },
   done() {
     return { archive: true };
   },

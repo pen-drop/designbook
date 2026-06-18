@@ -9,8 +9,27 @@ function toKebab(input: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+// Storybook sanitises a section scene's story title `Designbook/Sections/<Name>/Scenes`
+// into the id `designbook-sections-<name>-scenes` (plus `--<variant>`); the design-system
+// shell becomes `designbook-design-system-scenes`. The `story_id` resolver returns these
+// sanitised ids (no slashes), so reverse them back to the section id here.
+const SECTION_STORY_ID = /^designbook-sections-(.+?)-scenes$/;
+const DESIGN_SYSTEM_STORY_ID = /^designbook-design-system-scenes$/;
+
 function normaliseToSectionId(input: string): { id: string } | null {
   const [withoutVariant = input] = input.split('--');
+
+  // Sanitised Storybook story id (no path separators).
+  if (!withoutVariant.includes('/')) {
+    if (DESIGN_SYSTEM_STORY_ID.test(withoutVariant)) {
+      return { id: 'shell' };
+    }
+    const storyMatch = SECTION_STORY_ID.exec(withoutVariant);
+    if (storyMatch?.[1]) {
+      return { id: storyMatch[1] };
+    }
+  }
+
   const segments = withoutVariant
     .split('/')
     .map((s) => s.trim())

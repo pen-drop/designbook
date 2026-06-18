@@ -21,6 +21,13 @@ export interface ResolverContext {
 
 export interface ParamResolver {
   name: string;
+  /**
+   * When `false`, this is a producer resolver: it generates its value from the
+   * environment (e.g. the live Storybook index) rather than transforming an
+   * input, so the registry runs it even when no input value and no `from:`
+   * dependency are present. Defaults to `true` (skip when there is no input).
+   */
+  requiresInput?: boolean;
   resolve(
     input: string,
     config: Record<string, unknown>,

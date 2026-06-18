@@ -2,6 +2,7 @@ import { resolve, dirname } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
+import { resolveSkillSources } from '../skill-resolver.js';
 import {
   workflowCreate,
   workflowResult,
@@ -11,7 +12,6 @@ import {
   workflowAbandon,
   workflowWait,
   workflowResume,
-  workflowMerge,
   readWorkflow,
   expandTasksFromParams,
   registerChild,
@@ -143,9 +143,10 @@ export async function runWorkflowCreate(
   const rawConfig = configPath ? ((parseYaml(readFileSync(configPath, 'utf-8')) as Record<string, unknown>) ?? {}) : {};
   const configDir = configPath ? dirname(configPath) : process.cwd();
   const agentsDir = resolveSkillsRoot(configDir);
+  const sources = resolveSkillSources(configDir);
 
-  const workflowFilePath = resolveWorkflowFile(opts.workflow, agentsDir);
-  const resolved = await resolveAllStages(workflowFilePath, config, rawConfig, agentsDir);
+  const workflowFilePath = resolveWorkflowFile(opts.workflow, agentsDir, sources);
+  const resolved = await resolveAllStages(workflowFilePath, config, rawConfig, agentsDir, sources);
 
   // ── Resolve phase: run param resolvers ────────────────────────
   const wfFm = parseFrontmatter(workflowFilePath) as Record<string, unknown> | null;
@@ -240,7 +241,7 @@ export async function runWorkflowCreate(
       for (const [key, decl] of Object.entries(resultDeclProperties)) {
         // Top-level $ref: replace schema with the resolved definition
         if (decl.$ref && firstResult[key]) {
-          const { typeName, schema } = resolveSchemaRef(decl.$ref, firstResolved.task_file, skillsRoot);
+          const { typeName, schema } = resolveSchemaRef(decl.$ref, firstResolved.task_file, skillsRoot, sources);
           firstSchemas[typeName] = schema;
           firstResult[key]!.schema = schema;
         }
@@ -252,6 +253,7 @@ export async function runWorkflowCreate(
             firstResolved.task_file,
             skillsRoot,
             firstSchemas,
+            sources,
           );
         }
       }
@@ -470,13 +472,14 @@ export function register(program: Command): void {
       const configPath = findConfig();
       const configDir = configPath ? dirname(configPath) : process.cwd();
       const agentsDir = resolveSkillsRoot(configDir);
+      const sources = resolveSkillSources(configDir);
       if (!workflowId) {
-        const ids = listWorkflowDefinitions(agentsDir);
+        const ids = listWorkflowDefinitions(agentsDir, sources);
         for (const id of ids) console.log(id);
         return;
       }
       try {
-        const def = loadWorkflowDefinition(workflowId, agentsDir);
+        const def = loadWorkflowDefinition(workflowId, agentsDir, sources);
         console.log(JSON.stringify(def, null, 2));
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
@@ -678,7 +681,8 @@ export function register(program: Command): void {
           const configPath = findConfig();
           const configDir = configPath ? dirname(configPath) : process.cwd();
           const agentsDir = resolveSkillsRoot(configDir);
-          allAfter = loadWorkflowDefinition(workflowId, agentsDir).after;
+          const sources = resolveSkillSources(configDir);
+          allAfter = loadWorkflowDefinition(workflowId, agentsDir, sources).after;
           parentParams = parentMeta.params ?? {};
         } catch (lookupErr) {
           console.warn(`Could not load after: declarations — proceeding without: ${(lookupErr as Error).message}`);
@@ -806,24 +810,6 @@ export function register(program: Command): void {
         log({ cmd: 'workflow abandon', args: { workflow: opts.workflow } });
         console.log(`Workflow ${opts.workflow} archived as incomplete`);
         console.log(`  Summary: ${data.summary}`);
-      } catch (err) {
-        console.error(`Error: ${(err as Error).message}`);
-        process.exitCode = 1;
-      }
-    });
-
-  workflow
-    .command('merge')
-    .description('Squash-merge a workflow branch, kill preview, and archive the workflow')
-    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-vision-2026-03-17-a3f7)')
-    .action((opts: { workflow: string }) => {
-      const config = loadConfig();
-      try {
-        const result = workflowMerge(config.data, opts.workflow);
-        log({ cmd: 'workflow merge', args: { workflow: opts.workflow }, result: { branch: result.branch } });
-        console.log(`✓ Workflow ${opts.workflow} merged and archived`);
-        console.log(`  Branch:  ${result.branch} (deleted)`);
-        console.log(`  Commit:  workflow: ${opts.workflow}`);
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;

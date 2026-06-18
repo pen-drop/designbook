@@ -46,7 +46,7 @@ function setupWorkflow(
   opts?: { scope?: Record<string, unknown>; schemas?: Record<string, object> },
 ): string {
   const name = workflowCreate(dist, 'debo-test', 'Test Workflow', []);
-  workflowPlan(dist, name, tasks, stages, undefined, undefined, undefined, undefined, 'direct');
+  workflowPlan(dist, name, tasks, stages);
 
   // Patch tasks.yml with result declarations and optional scope/schemas
   const data = readTasksYml(dist, name);
