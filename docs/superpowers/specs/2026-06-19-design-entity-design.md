@@ -56,7 +56,7 @@ rendered standalone in Storybook, and with the mapping itself visible.
    exactly what a mapping-docs table needs — no new analysis required.
 5. **`map-entity` task already produces the JSONata file.** It is currently
    triggered only by `design-screen:map-entity`; the trigger must be extended to
-   `design-entity:entity-mapping`.
+   `design-entity:map-entity`.
 
 ## Architecture
 
@@ -139,7 +139,7 @@ Stages: `intake → component → entity-mapping → demo-data`
 |---|---|---|
 | intake | `intake--design-entity.md` | **new** — pick `entity_type.bundle` + `view_mode` from the data model; plan components. No section/shell/reference logic. |
 | component | `create-component` | reuse |
-| entity-mapping | `map-entity` | reuse — extend its trigger to include `design-entity:entity-mapping`. Intake outputs a one-element `entity_mappings` array. |
+| entity-mapping | `map-entity` | reuse — extend its trigger to include `design-entity:map-entity`. Intake outputs a one-element `entity_mappings` array. |
 | demo-data | `create-entity-demo.md` | **new** — trimmed `create-sample-data`: generate ~3 records for the single bundle → `entity-mapping/<type>.<bundle>.demo.yml`; idempotent (read existing, append missing). Reuses the field-value generation rules from the `sample-data` concern. |
 
 `design-entity` lives in the `design/` concern (alongside `design-screen.md`,

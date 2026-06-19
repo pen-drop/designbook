@@ -959,7 +959,7 @@ to:
 
 ```yaml
 trigger:
-  steps: [design-screen:map-entity, design-entity:entity-mapping]
+  steps: [design-screen:map-entity, design-entity:map-entity]
 ```
 
 (The task body is unchanged — it already emits one JSONata file per
@@ -968,13 +968,13 @@ trigger:
 - [ ] **Step 3: Validate**
 
 Run: `pnpm check`
-Expected: PASS — `design-entity:entity-mapping` now resolves to this task.
+Expected: PASS — `design-entity:map-entity` now resolves to this task.
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add .agents/skills/designbook/design/tasks/map-entity--design-screen.md
-git commit -m "feat(skill): map-entity also triggers from design-entity:entity-mapping"
+git commit -m "feat(skill): map-entity also triggers from design-entity:map-entity"
 ```
 
 ---
@@ -1024,7 +1024,7 @@ before:
 
 > Map the stage names to the right tasks via the step names:
 > `intake → design-entity:intake` (Task 7), `create-component` (existing),
-> `map-entity → design-entity:entity-mapping` (Task 8), `create-entity-demo`
+> `map-entity → design-entity:map-entity` (Task 8), `create-entity-demo`
 > (Task 6). Confirm the param-resolution conventions against `design-screen.md`
 > — if `entity_type`/`bundle`/`view_mode` need resolvers, add them following the
 > same `resolve:`/`from:` pattern used there. No `after: design-verify` (no
