@@ -44,16 +44,9 @@ records, append only what is missing.
 Target **3 records** for `{{ entity_type }}.{{ bundle }}`. Read the existing file
 first; if it already has N records, append `max(0, 3 - N)`.
 
-## Field values
-
-Apply the field-value generation precedence defined in
-`sample-data/tasks/create-sample-data.md` (Field Value Generation):
-explicit `sample_template` → `field_type` rule → realistic plain string.
-Reference fields on content entities store the target record `id` as a plain string.
-Config listing reference fields use the object form.
-
 ## Output format
 
-`{{ entity_type }}.{{ bundle }}.demo.yml` uses the same `content:`/`config:` top-level
-namespacing as section sample data, scoped to the single `{{ entity_type }}.{{ bundle }}`
-bundle.
+`{{ entity_type }}.{{ bundle }}.demo.yml` uses the `content:`/`config:` top-level
+namespacing defined by the `field-values` rule, scoped to the single `{{ entity_type }}.{{ bundle }}`
+bundle. Field value generation, reference field forms, idempotent append, and validation
+are governed by that rule.
