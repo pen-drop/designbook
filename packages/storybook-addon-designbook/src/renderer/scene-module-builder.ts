@@ -40,7 +40,7 @@ import type {
  * Default import path resolver for SDC (.component.yml) components.
  * Resolves 'provider:component' → absolute path to component.yml
  */
-function defaultSdcResolver(componentId: string, designbookDir: string): string | null {
+export function defaultSdcResolver(componentId: string, designbookDir: string): string | null {
   const parts = componentId.split(':');
   if (parts.length !== 2 || !parts[1]) return null;
 
@@ -61,7 +61,7 @@ function defaultSdcResolver(componentId: string, designbookDir: string): string 
 
 // ── Data loading ────────────────────────────────────────────────────────
 
-function loadDataModel(designbookDir: string): DataModel {
+export function loadDataModel(designbookDir: string): DataModel {
   const dataModelPath = join(designbookDir, 'data-model.yml');
   try {
     return parseYaml(readFileSync(dataModelPath, 'utf-8')) as DataModel;

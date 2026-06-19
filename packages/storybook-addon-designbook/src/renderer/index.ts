@@ -49,3 +49,6 @@ export { sceneBuilder } from './builders/scene-builder';
 // CSF prep
 export { buildCsfModule } from './csf-prep';
 export type { CsfPrepOptions, CsfPrepScene } from './csf-prep';
+
+// Entity module builder
+export { buildEntityModule, titleCaseBundle } from './entity-module-builder';
