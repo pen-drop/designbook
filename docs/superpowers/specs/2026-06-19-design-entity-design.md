@@ -133,7 +133,7 @@ stories opt into autodocs so the mapping is visible.
 
 New sub-command `/debo design-entity`. One view-mode per run.
 
-Stages: `intake → component → entity-mapping → demo-data`
+Stages: `intake → component → demo-data → entity-mapping`
 
 | Stage | Task | New / Reuse |
 |---|---|---|
