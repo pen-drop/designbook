@@ -1336,6 +1336,34 @@ export async function workflowDone(
     const currentStage = data.current_stage;
     const configForExpansion = options?.config ?? { data: dataDir, technology: 'html' as const, extensions: [] };
 
+    /**
+     * Steps whose each-driver resolved to an empty array during scope expansion.
+     * These are treated as satisfied (stage skipped) rather than "not materialized".
+     * Populated by expandStageIfNeeded; consulted by getMissingStageSteps.
+     */
+    const emptyEachSteps = new Set<string>();
+
+    /**
+     * Returns the EachDeclaration for a step: task-level frontmatter `each` first,
+     * then stage-level `each` as fallback. Returns undefined for singleton steps.
+     */
+    const eachDeclForStep = (step: string, stageDef: StageDefinition): EachDeclaration | undefined => {
+      const stageLoadedEntry = (data.stage_loaded as Record<string, ResolvedStep | ResolvedStep[]> | undefined)?.[step];
+      if (stageLoadedEntry) {
+        const entries = Array.isArray(stageLoadedEntry) ? stageLoadedEntry : [stageLoadedEntry];
+        for (const resolved of entries) {
+          const taskFm = parseFrontmatter(resolved.task_file);
+          if (taskFm?.each && typeof taskFm.each === 'object') {
+            return taskFm.each as EachDeclaration;
+          }
+        }
+      }
+      if (stageDef.each) {
+        return { [stageDef.each]: stageDef.each };
+      }
+      return undefined;
+    };
+
     const getMissingStageSteps = (stageName: string): string[] => {
       const stageDef = stages[stageName];
       if (!stageDef?.steps) return [];
@@ -1343,7 +1371,9 @@ export async function workflowDone(
         data.tasks.some((t) => t.stage === stageName && typeof t.step === 'string' && t.step.length > 0) ||
         stageDef.steps.some((step) => Boolean(data.stage_loaded?.[step]));
       if (!stageHasTrackedSteps) return [];
-      return stageDef.steps.filter((step) => !data.tasks.some((t) => t.stage === stageName && t.step === step));
+      return stageDef.steps.filter(
+        (step) => !data.tasks.some((t) => t.stage === stageName && t.step === step) && !emptyEachSteps.has(step),
+      );
     };
 
     const expandStageIfNeeded = async (
@@ -1370,6 +1400,24 @@ export async function workflowDone(
         resolverErrors = Object.fromEntries(
           Object.entries(resolveResult.unresolved).map(([k, v]) => [k, { input: v.input, error: v.error }]),
         );
+      }
+
+      // Detect each-driven steps whose driver is present-but-empty ([]).
+      // Mirrors the lookup expandTasksFromParams builds: scope takes precedence over params.
+      const expansionLookup = { ...resolveResult.params, ...(data.scope ?? {}) };
+      for (const step of stageDef.steps ?? []) {
+        const eachDecl = eachDeclForStep(step, stageDef);
+        if (!eachDecl) continue;
+        // Evaluate the first axis expression. If it resolves to [] (not undefined/null),
+        // the driver is present-but-empty → stage step should be skipped, not errored.
+        const firstEntry = Object.entries(eachDecl)[0];
+        if (!firstEntry) continue;
+        const [, firstAxis] = firstEntry;
+        const expr = typeof firstAxis === 'string' ? firstAxis : firstAxis.expr;
+        const driverValue = await jsonata(expr).evaluate(expansionLookup);
+        if (Array.isArray(driverValue) && driverValue.length === 0) {
+          emptyEachSteps.add(step);
+        }
       }
 
       const expanded = await expandTasksFromParams(
