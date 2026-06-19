@@ -1,13 +1,13 @@
 ---
 name: debo
-argument-hint: "[install|vision|tokens|data-model|design-component|design-screen|design-shell|design-verify|sections|shape-section|sample-data|css-generate|import|sb] [--optimize]"
+argument-hint: "[install|vision|tokens|data-model|design-component|design-screen|design-entity|design-shell|design-verify|sections|shape-section|sample-data|css-generate|import|sb] [--optimize]"
 description: >
   Designbook design system. Use ALWAYS when creating, modifying, or
   deleting components, screens, scenes, design tokens, CSS, or any
   design system artifact — whether the user asks directly or the need
   arises during other work. Never create component files without this
   skill. Sub-commands: install, vision, tokens, data-model, design-component,
-  design-screen, design-shell, sections,
+  design-screen, design-entity, design-shell, sections,
   shape-section, sample-data, css-generate, import.
 ---
 
@@ -47,6 +47,7 @@ When the user references one of these files or topics in conversation, start the
 | css, css-generate | `css-generate` | `$DESIGNBOOK_CSS_DIR/*.src.css` + `$DESIGNBOOK_DATA/designbook-css-*/*.jsonata` |
 | shell, design-shell | `design-shell` | design-system.scenes.yml + shell components |
 | screen, design-screen | `design-screen` | section scenes + screen components |
+| entity, design-entity | `design-entity` | `$DESIGNBOOK_DATA/entity-mapping/*.demo.yml` + `*.jsonata` |
 | verify, design-verify | `design-verify` | visual testing of existing scenes against references |
 | import | `import` | full design system import from a design reference |
 
