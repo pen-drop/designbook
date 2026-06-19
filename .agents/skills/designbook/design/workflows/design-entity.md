@@ -12,10 +12,10 @@ stages:
   component:
     steps: [create-component]
     isolate: true
-  entity-mapping:
-    steps: [map-entity]
   demo-data:
     steps: [create-entity-demo]
+  entity-mapping:
+    steps: [map-entity]
 engine: direct
 before:
   - workflow: css-generate
