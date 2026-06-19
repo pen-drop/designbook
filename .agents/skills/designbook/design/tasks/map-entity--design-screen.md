@@ -1,6 +1,6 @@
 ---
 trigger:
-  steps: [design-screen:map-entity]
+  steps: [design-screen:map-entity, design-entity:entity-mapping]
 params:
   type: object
   required: [mapping, data_model]
