@@ -2,15 +2,56 @@ import { designbookLoadPlugin } from './vite-plugin';
 import { loadConfig, findConfig } from './config';
 import { buildExportName, extractScenes, extractGroup, fileBaseName } from './renderer/scene-metadata';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
+import { titleCaseBundle } from './renderer/entity-module-builder';
 
-import { readFileSync, mkdirSync } from 'node:fs';
-import { resolve, dirname, relative } from 'node:path';
+import { readFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { resolve, dirname, relative, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { load as parseYaml } from 'js-yaml';
 
 const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = dirname(__filename);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function indexEntityDemo(fileName: string): any[] {
+  const parts = basename(fileName).split('.'); // [type, bundle, 'demo', 'yml']
+  const entity_type = parts[0] ?? '';
+  const bundle = parts[1] ?? '';
+  const prefix = `${entity_type}.${bundle}.`;
+  const dir = dirname(fileName);
+  const relativePath = './' + relative(process.cwd(), fileName);
+  const title = `Entities/${entity_type}/${titleCaseBundle(bundle)}`;
+
+  const viewModes = readdirSync(dir)
+    .filter((f) => f.startsWith(prefix) && f.endsWith('.jsonata'))
+    .map((f) => f.slice(prefix.length, -'.jsonata'.length))
+    .sort();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const entries: any[] = [];
+  for (const vm of viewModes) {
+    entries.push({
+      type: 'story' as const,
+      importPath: relativePath,
+      exportName: buildExportName(vm),
+      title,
+      name: vm,
+      tags: ['entity', 'autodocs'],
+    });
+  }
+  if (viewModes.length > 0) {
+    entries.push({
+      type: 'docs' as const,
+      importPath: relativePath,
+      exportName: '__docs',
+      title,
+      name: 'Docs',
+      tags: ['autodocs'],
+    });
+  }
+  return entries;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const viteFinal = async (config: any, options: any) => {
@@ -69,6 +110,7 @@ export const stories = async (entry: string[] = [], options: any) => {
 
   // Ensure standard directories exist so the glob can discover files added later
   mkdirSync(resolve(distDir, 'sections'), { recursive: true });
+  mkdirSync(resolve(distDir, 'entity-mapping'), { recursive: true });
 
   // Storybook resolves story globs relative to configDir (.storybook/).
   // The storybookTest() vitest plugin also uses configDir as base.
@@ -77,6 +119,7 @@ export const stories = async (entry: string[] = [], options: any) => {
     options?.configDir ||
     resolve((designbookConfig['designbook.home'] as string | undefined) || process.cwd(), '.storybook');
   const scenesGlob = resolve(distDir, '{sections,design-system}/**/*.scenes.yml');
+  const entityGlob = resolve(distDir, 'entity-mapping/*.demo.yml');
 
   // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections.
   // File-name order is Storybook 10's sort mechanism when no storySort is configured.
@@ -84,7 +127,14 @@ export const stories = async (entry: string[] = [], options: any) => {
   const designSystemGlob = resolve(__dirname, 'pages/design-system.stories.js');
   const sectionsGlob = resolve(__dirname, 'pages/sections.stories.js');
 
-  return [foundationGlob, designSystemGlob, sectionsGlob, relative(configDir, scenesGlob), ...entry];
+  return [
+    foundationGlob,
+    designSystemGlob,
+    sectionsGlob,
+    relative(configDir, scenesGlob),
+    relative(configDir, entityGlob),
+    ...entry,
+  ];
 };
 
 /**
@@ -152,7 +202,12 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
     },
   };
 
-  return [...existingIndexers, scenesIndexer];
+  const entityIndexer = {
+    test: /entity-mapping\/[^/]+\.demo\.yml$/,
+    createIndex: async (fileName: string) => indexEntityDemo(fileName),
+  };
+
+  return [...existingIndexers, scenesIndexer, entityIndexer];
 };
 
 export const indexers = experimental_indexers;

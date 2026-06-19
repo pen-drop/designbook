@@ -1,0 +1,33 @@
+fixtures:
+  - vision
+  - tokens
+  - data-model-entity
+  - design-component
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "node.pet" entity, "teaser" view mode.
+  Do NOT ask any questions. The product is "PetMatch".
+  Reuse the EXISTING "pet-card" component — do NOT create any new components.
+  Map the pet's fields to pet-card props: title→name, field_breed→breed,
+  field_age→age, field_media→image_url, field_status→status.
+  The workflow must produce:
+    - designbook/entity-mapping/node.pet.teaser.jsonata (the mapping)
+    - designbook/entity-mapping/node.pet.demo.yml (co-located demo records)
+  After generating all files, run `pnpm build-storybook` to verify everything renders.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.endsWith('entity-mapping/node.pet.teaser.jsonata'))
+  - type: javascript
+    value: output.newFiles.some(f => f.endsWith('entity-mapping/node.pet.demo.yml'))
+  - type: javascript
+    value: output.archivedWorkflows['design-entity']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-entity']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: |
+      return output.text.includes('build-storybook') || output.text.includes('Build completed');
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
