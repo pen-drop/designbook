@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { resolve, basename, join } from 'node:path';
+import { resolve, basename, join, dirname } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 import jsonata from 'jsonata';
 import type { ValidationResult } from './types.js';
@@ -73,6 +73,12 @@ export async function validateEntityMapping(file: string, config: DesignbookConf
   }
   const rootData = resolve(config.data, 'data.yml');
   if (existsSync(rootData)) dataPaths.push(rootData);
+
+  // Co-located demo file: <type>.<bundle>.demo.yml sibling of the .jsonata file
+  if (targetEntityType && targetBundle) {
+    const demoData = join(dirname(file), `${targetEntityType}.${targetBundle}.demo.yml`);
+    if (existsSync(demoData)) dataPaths.push(demoData);
+  }
 
   if (dataPaths.length === 0) {
     return { valid: false, errors: [`No sample data found in sections or at ${rootData}`], warnings: [] };

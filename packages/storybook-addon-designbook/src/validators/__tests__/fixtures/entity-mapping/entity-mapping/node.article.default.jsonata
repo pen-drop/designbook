@@ -1,0 +1,6 @@
+[
+  {
+    "component": "article-card",
+    "props": { "title": title, "body": field_body }
+  }
+]

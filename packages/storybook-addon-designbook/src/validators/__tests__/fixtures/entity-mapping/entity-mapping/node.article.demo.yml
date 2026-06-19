@@ -1,0 +1,6 @@
+content:
+  node:
+    article:
+      - id: "1"
+        title: "Demo Article"
+        field_body: "<p>Hello demo</p>"
