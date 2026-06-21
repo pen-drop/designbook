@@ -179,11 +179,14 @@ git commit -m "refactor(renderer): parser passes entity select through, drops re
 
 **Files:**
 - Modify: `packages/storybook-addon-designbook/src/renderer/builders/entity-builder.ts:40-101`
+- Modify: `packages/storybook-addon-designbook/src/components/MappingDetail.tsx:128` (display `select` instead of `record`)
 - Test: `packages/storybook-addon-designbook/src/renderer/__tests__/entity-builder.test.ts`
 
 **Interfaces:**
 - Consumes: `EntitySceneNode.select` (Task 1), `ctx.sampleData` (`SampleData`).
 - Produces: `entityBuilder.build(node, ctx)` resolves the record by evaluating `node.select` (JSONata) against the bundle's record array; passes the result (or `{}` when absent/empty) into the view-mode mapping JSONata.
+
+**Note:** `MappingDetail.tsx:128` currently renders `` — record #${entity.record} ``. Since `EntityOrigin.record` was replaced by `select` (Task 1), change it to render the selector, e.g. `{entity.select !== undefined && \` — select: ${entity.select}\`}`. This clears the remaining `record` type error outside `entity-builder.ts`.
 
 - [ ] **Step 1: Update the test sample data and add select cases**
 
