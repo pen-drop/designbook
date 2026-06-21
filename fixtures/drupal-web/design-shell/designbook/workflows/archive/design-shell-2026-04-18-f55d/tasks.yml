@@ -3722,15 +3722,16 @@ schemas:
       view_mode:
         type: string
         description: Which view mode to use for entity mapping.
-      select:
-        type: string
-        description: JSONata expression selecting a record from the bundle pool (e.g. "$[0]").
+      record:
+        type: integer
+        default: 0
+        description: Sample data record index.
       records:
         type: array
         items:
-          type: string
+          type: integer
         description: >
-          Demo-only shorthand. Expands to separate entries per select expression. Do NOT use
+          Demo-only shorthand. Expands to separate entries per index. Do NOT use
           for listing pages — use view.* entities instead.
   SceneRefNode:
     type: object
