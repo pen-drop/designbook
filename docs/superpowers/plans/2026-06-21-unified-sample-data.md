@@ -10,7 +10,8 @@
 
 ## Global Constraints
 
-- **No migration / back-compat code.** Existing on-disk artifacts are disposable; testing is from scratch. Update writers/readers to the new shape — never read or upgrade old artifacts. (CLAUDE.md)
+- **No migration / back-compat code, no fallback paths.** Existing on-disk artifacts are disposable; testing is from scratch. Update writers/readers to the new shape — never read or upgrade old artifacts, and never keep an old-path fallback alongside the new one. Delete the per-section and global `data.yml` read paths outright. (CLAUDE.md)
+- **Tests exercise only the new logic.** No test retains a legacy `data.yml`/`sections/{id}/data.yml` fixture or asserts old-path behavior. Every converted fixture uses `data/<type>.<bundle>.yml` + `select:`.
 - **`pnpm check` must pass** (typecheck → lint → test, fail-fast) before any commit that touches `packages/storybook-addon-designbook`.
 - **Skill files are edited only via `designbook-skill-creator`.** Before creating or editing ANY file under `.agents/skills/designbook/` or `.agents/skills/designbook-*/`, load `designbook-skill-creator` first, plus the matching per-file-type rule (`rules/task-files.md`, `rules/workflow-files.md`, `rules/rule-files.md`, `rules/schema-files.md`, always `rules/common-rules.md`). This is a hard rule.
 - **`.claude/skills/` is a symlink to `.agents/skills/`** — edit only under `.agents/skills/`.
@@ -21,20 +22,29 @@
 
 ## File Structure
 
+**Created (TypeScript):**
+- `packages/storybook-addon-designbook/src/renderer/data-pool.ts` — shared `readBundleFiles(dataDir)` helper (filename→`entity_type.bundle` parse + per-file record-array read). Single source for the three consumers below.
+
 **Modified (TypeScript):**
 - `packages/storybook-addon-designbook/src/renderer/types.ts` — `EntitySceneNode` / `EntityOrigin`: `select?: string` replaces `record?: number`.
-- `packages/storybook-addon-designbook/src/renderer/scene-module-builder.ts` — `loadSampleData` rewritten to merge `data/*.yml`; new `mergeDataDir` helper.
+- `packages/storybook-addon-designbook/src/renderer/scene-module-builder.ts` — `loadSampleData` rewritten to merge `data/*.yml` via `readBundleFiles`. The old per-section path AND the old global `data.yml` fallback are **deleted** — no fallback. `firstSceneSection` param removed.
 - `packages/storybook-addon-designbook/src/renderer/parser.ts` — `expandEntries`: drop `record`/`records` handling, pass `select` through.
 - `packages/storybook-addon-designbook/src/renderer/builders/entity-builder.ts` — JSONata `select` selection replaces positional pick.
-- `packages/storybook-addon-designbook/src/validators/data.ts` — validate the merged `data/` pool; skip `__designbook`; validate `section` shape.
+- `packages/storybook-addon-designbook/src/validators/data.ts` — validate the merged `data/` pool (via `readBundleFiles`); skip `__designbook`; validate `section` shape.
+- `packages/storybook-addon-designbook/src/validators/entity-mapping.ts` — load sample data from `data/` only (via `readBundleFiles`). The section-dir + root `data.yml` fallback is **deleted**.
 - `packages/storybook-addon-designbook/src/validation-registry.ts` — pass the `data/` directory to the data validator.
+- `packages/storybook-addon-designbook/src/cli.ts` — `validate-section`/data CLI paths point at the `data/` directory, not `sections/{id}/data.yml`.
 
-**Modified (tests + fixtures):**
+**Modified (tests + fixtures) — all converted to the new logic, no legacy cases:**
 - `packages/storybook-addon-designbook/src/renderer/__tests__/entity-builder.test.ts`
-- `packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/test.scenes.yml`
-- `packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/data*.yml` (new `data/` fixture dir)
-- `packages/storybook-addon-designbook/src/validators/__tests__/data.test.ts` + `fixtures/data/**`
-- `packages/storybook-addon-designbook/src/renderer/parser` tests (if present)
+- `packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/test.scenes.yml` (`record:` → `select:`)
+- `packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/data.yml` → `.../fixtures/data/<type>.<bundle>.yml`
+- `packages/storybook-addon-designbook/src/renderer/__tests__/parser.test.ts` (create)
+- `packages/storybook-addon-designbook/src/renderer/__tests__/load-sample-data.test.ts` (create) + `fixtures/load-data/`
+- `packages/storybook-addon-designbook/src/validators/__tests__/data.test.ts` + `fixtures/data/**` (per-case `data/` dirs)
+- `packages/storybook-addon-designbook/src/validators/__tests__/fixtures/scene/valid.scenes.yml` (`record:` → `select:`)
+- `packages/storybook-addon-designbook/src/validators/__tests__/` entity-mapping fixtures (point at `data/`)
+- `packages/storybook-addon-designbook/src/validators/__tests__/workflow-write-file.test.ts` (sample-data example path → `data/`)
 
 **Modified (skill files — via designbook-skill-creator):**
 - `.agents/skills/designbook/sample-data/tasks/create-sample-data.md`
@@ -282,16 +292,17 @@ git commit -m "feat(renderer): select entity records via JSONata predicate at bu
 
 ---
 
-## Task 4: Loader — merge `data/*.yml` into one pool
+## Task 4: Shared `data-pool` reader + loader merge
 
 **Files:**
-- Modify: `packages/storybook-addon-designbook/src/renderer/scene-module-builder.ts:91-111` (`loadSampleData`)
+- Create: `packages/storybook-addon-designbook/src/renderer/data-pool.ts` (`readBundleFiles`)
+- Modify: `packages/storybook-addon-designbook/src/renderer/scene-module-builder.ts:11` (import), `:91-111` (`loadSampleData` — delete old per-section + global `data.yml` paths)
 - Test: `packages/storybook-addon-designbook/src/renderer/__tests__/load-sample-data.test.ts` (create)
 - Test fixtures: `packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/load-data/` (create)
 
 **Interfaces:**
-- Consumes: `data-model.yml` (to place each bundle under `content`/`config`), `data/<entity_type>.<bundle>.yml` files (each a YAML record array).
-- Produces: `loadSampleData(designbookDir): SampleData` — merged in-memory pool of the existing `SampleData` shape. The `id`/`firstSceneSection` parameters are removed; selection no longer depends on section directories.
+- Produces: `readBundleFiles(dataDir): BundleFile[]` where `BundleFile = { entityType: string; bundle: string; records: Record<string, unknown>[] }`. Consumed by `loadSampleData` here and by both validators in Task 5.
+- Produces: `loadSampleData(designbookDir): SampleData` — merged in-memory pool of the existing `SampleData` shape. The `id`/`firstSceneSection` parameters are removed; there is **no** section-path and **no** global `data.yml` fallback.
 
 - [ ] **Step 1: Create test fixtures**
 
@@ -378,69 +389,105 @@ describe('loadSampleData — merged data/ pool', () => {
 Run: `pnpm --filter storybook-addon-designbook exec vitest run src/renderer/__tests__/load-sample-data.test.ts`
 Expected: FAIL — `loadSampleData` is not exported and has the old signature.
 
-- [ ] **Step 4: Rewrite `loadSampleData` + add `mergeDataDir`**
+- [ ] **Step 4: Create the shared `data-pool.ts` reader**
 
-In `scene-module-builder.ts` add `readdirSync` to the `node:fs` import (`:11`):
+Create `packages/storybook-addon-designbook/src/renderer/data-pool.ts`. This is the single source of the "read `data/` directory" logic, imported by the loader (this task), the data validator (Task 5) and the entity-mapping validator (Task 5):
 
 ```typescript
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-```
+import { join } from 'node:path';
+import { load as parseYaml } from 'js-yaml';
+import type { DataModel } from './types';
 
-Replace `loadSampleData` (`:91-111`) with:
+/** One per-bundle file's parsed records. */
+export interface BundleFile {
+  entityType: string;
+  bundle: string;
+  records: Record<string, unknown>[];
+}
 
-```typescript
 /**
  * Look a bundle up in the data model and return its namespace.
  * Returns 'content', 'config', or null when the bundle is unknown.
  */
-function namespaceFor(dataModel: DataModel, entityType: string, bundle: string): 'content' | 'config' | null {
+export function namespaceFor(
+  dataModel: DataModel,
+  entityType: string,
+  bundle: string,
+): 'content' | 'config' | null {
   if (dataModel.content?.[entityType]?.[bundle]) return 'content';
   if (dataModel.config?.[entityType]?.[bundle]) return 'config';
   return null;
 }
 
 /**
- * Merge every `data/<entity_type>.<bundle>.yml` file into one SampleData pool.
- * Each file holds a bare record array; its content/config namespace is
- * resolved by looking the bundle up in the data model.
+ * Read every `data/<entity_type>.<bundle>.yml` file in `dataDir`.
+ * Each file holds a bare record array. Non-array files and files whose
+ * basename has no `.` separator are skipped with a warning.
+ * Returns [] when `dataDir` does not exist. No fallback to any other path.
  */
-export function loadSampleData(designbookDir: string): SampleData {
-  const dataDir = join(designbookDir, 'data');
-  if (!existsSync(dataDir)) return {};
+export function readBundleFiles(dataDir: string): BundleFile[] {
+  if (!existsSync(dataDir)) return [];
 
-  const dataModel = loadDataModel(designbookDir);
-  const pool: SampleData = {};
-
+  const out: BundleFile[] = [];
   for (const file of readdirSync(dataDir)) {
     if (!file.endsWith('.yml')) continue;
     const base = file.slice(0, -'.yml'.length);
     const dot = base.indexOf('.');
-    if (dot < 1) continue;
-    const entityType = base.slice(0, dot);
-    const bundle = base.slice(dot + 1);
-
-    const ns = namespaceFor(dataModel, entityType, bundle);
-    if (!ns) {
-      console.warn(`[Designbook] data/${file}: bundle ${entityType}.${bundle} not in data-model — skipped`);
+    if (dot < 1) {
+      console.warn(`[Designbook] data/${file}: name must be <entity_type>.<bundle>.yml — skipped`);
       continue;
     }
-
     const records = parseYaml(readFileSync(join(dataDir, file), 'utf-8'));
     if (!Array.isArray(records)) {
       console.warn(`[Designbook] data/${file}: expected a record array — skipped`);
       continue;
     }
+    out.push({
+      entityType: base.slice(0, dot),
+      bundle: base.slice(dot + 1),
+      records: records as Record<string, unknown>[],
+    });
+  }
+  return out;
+}
+```
 
+- [ ] **Step 5: Rewrite `loadSampleData` to use the helper (delete both old paths)**
+
+In `scene-module-builder.ts` import the helper near the other renderer imports:
+
+```typescript
+import { readBundleFiles, namespaceFor } from './data-pool';
+```
+
+**Delete the entire old `loadSampleData` (`:91-111`)** — including the `sections/{sectionId}/data.yml` path AND the global `data.yml` fallback. Replace with:
+
+```typescript
+/**
+ * Merge every `data/<entity_type>.<bundle>.yml` file into one SampleData pool.
+ * Namespace (content/config) is resolved by data-model lookup. No fallback.
+ */
+export function loadSampleData(designbookDir: string): SampleData {
+  const dataModel = loadDataModel(designbookDir);
+  const pool: SampleData = {};
+
+  for (const { entityType, bundle, records } of readBundleFiles(join(designbookDir, 'data'))) {
+    const ns = namespaceFor(dataModel, entityType, bundle);
+    if (!ns) {
+      console.warn(`[Designbook] data/${entityType}.${bundle}.yml: not in data-model — skipped`);
+      continue;
+    }
     pool[ns] ??= {};
     pool[ns]![entityType] ??= {};
-    pool[ns]![entityType]![bundle] = records as Record<string, unknown>[];
+    pool[ns]![entityType]![bundle] = records;
   }
 
   return pool;
 }
 ```
 
-- [ ] **Step 5: Update the caller in `buildSceneModule`**
+- [ ] **Step 6: Update the caller in `buildSceneModule`**
 
 Replace the `loadSampleData(...)` call (`:147-151`) with:
 
@@ -448,32 +495,36 @@ Replace the `loadSampleData(...)` call (`:147-151`) with:
   const sampleData = loadSampleData(designbookDir);
 ```
 
-Remove the now-unused `firstScene` variable (`:146`) if nothing else uses it.
+Remove the now-unused `firstScene` variable (`:146`) if nothing else uses it. The `loadSampleData` no longer takes `id` or `firstSceneSection`.
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [ ] **Step 7: Run tests to verify they pass**
 
 Run: `pnpm --filter storybook-addon-designbook exec vitest run src/renderer/__tests__/load-sample-data.test.ts`
 Expected: PASS (all three).
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add packages/storybook-addon-designbook/src/renderer/scene-module-builder.ts packages/storybook-addon-designbook/src/renderer/__tests__/load-sample-data.test.ts packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/load-data
-git commit -m "feat(renderer): merge per-bundle data/ files into one sample-data pool"
+git add packages/storybook-addon-designbook/src/renderer/data-pool.ts packages/storybook-addon-designbook/src/renderer/scene-module-builder.ts packages/storybook-addon-designbook/src/renderer/__tests__/load-sample-data.test.ts packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/load-data
+git commit -m "feat(renderer): read per-bundle data/ pool via shared reader, drop data.yml fallback"
 ```
 
 ---
 
-## Task 5: data validator — validate the merged pool, skip `__designbook`
+## Task 5: Validators + CLI read the merged `data/` pool
+
+Both data validators currently read the old `sections/{id}/data.yml` + root `data.yml`. They are rewritten to read `data/` via `readBundleFiles`; the old fallback is deleted.
 
 **Files:**
 - Modify: `packages/storybook-addon-designbook/src/validators/data.ts:28-123`
+- Modify: `packages/storybook-addon-designbook/src/validators/entity-mapping.ts:63-98` (sample-data loading)
 - Modify: `packages/storybook-addon-designbook/src/validation-registry.ts` (data validator registration)
-- Test: `packages/storybook-addon-designbook/src/validators/__tests__/data.test.ts` + `fixtures/data/**`
+- Modify: `packages/storybook-addon-designbook/src/cli.ts` (validate-section / data path → `data/` dir)
+- Test: `packages/storybook-addon-designbook/src/validators/__tests__/data.test.ts` + `fixtures/data/**`; entity-mapping test fixtures.
 
 **Interfaces:**
-- Consumes: `data-model.yml`, the `data/` directory.
-- Produces: `validateData(dataModelPath, dataDir): ValidationResult` — merges `data/*.yml` into a pool (same logic as Task 4), then runs the existing entity/bundle/field/reference checks. `__designbook` is never reported as an unknown field; `__designbook.section` must be a string or string array.
+- Consumes: `readBundleFiles`, `namespaceFor` from `../renderer/data-pool` (Task 4); `data-model.yml`; the `data/` directory.
+- Produces: `validateData(dataModelPath, dataDir): ValidationResult` — merges `data/*.yml` into a pool, then runs the existing entity/bundle/field/reference checks. `__designbook` is never reported as an unknown field; `__designbook.section` must be a string or string array. `validateEntityMapping(file, config)` evaluates the mapping against records read from `config.data/data/` only.
 
 - [ ] **Step 1: Build the new fixture layout**
 
@@ -517,7 +568,13 @@ Expected: FAIL — `validateData` still expects a single file path and warns on 
 
 - [ ] **Step 4: Rewrite `validateData` to merge the pool**
 
-Change the signature to `validateData(dataModelPath: string, dataDir: string)`. Replace the single-file read (`:35-40`) with a directory merge mirroring Task 4 (`namespaceFor` + per-file parse into `content`/`config`). Then run the existing loops unchanged, with two additions inside the per-record field loop (`:69`):
+Change the signature to `validateData(dataModelPath: string, dataDir: string)`. Import the shared helpers:
+
+```typescript
+import { readBundleFiles, namespaceFor } from '../renderer/data-pool.js';
+```
+
+Replace the single-file read (`:35-40`) with: parse the data model, then build `contentData`/`configData` by iterating `readBundleFiles(dataDir)` and placing each `BundleFile` under the namespace from `namespaceFor(dataModel, entityType, bundle)` (bundles with no namespace produce the existing "not in data-model" error). Then run the existing loops unchanged, with two additions inside the per-record field loop (`:69`):
 
 ```typescript
         for (const field of Object.keys(rec as Record<string, unknown>)) {
@@ -539,41 +596,101 @@ Change the signature to `validateData(dataModelPath: string, dataDir: string)`. 
 
 Keep the existing missing-data-model and missing-`data/` guards (return `valid:false` with a clear message when `data/` is absent).
 
-- [ ] **Step 5: Update the registration**
+- [ ] **Step 5: Rewrite `validateEntityMapping` sample-data loading**
 
-In `validation-registry.ts`, change the `data` entry so it passes the data directory. The validator runs against the whole pool, so resolve `data/` from the config data root:
+In `entity-mapping.ts`, **delete** the section-dir + root `data.yml` block (`:63-98`) and replace it with `readBundleFiles`. Import:
+
+```typescript
+import { readBundleFiles } from '../renderer/data-pool.js';
+```
+
+Build `mergedMap` from the `data/` directory, keeping only the bundle matching the `.jsonata` filename (`targetEntityType.targetBundle`) — namespace is irrelevant here since matching is by filename:
+
+```typescript
+  const dataDir = resolve(config.data, 'data');
+  const mergedMap: Record<string, Record<string, unknown[]>> = {};
+  for (const { entityType, bundle, records } of readBundleFiles(dataDir)) {
+    (mergedMap[entityType] ??= {})[bundle] = records;
+  }
+  if (Object.keys(mergedMap).length === 0) {
+    return { valid: false, errors: [`No sample data found in ${dataDir}`], warnings: [] };
+  }
+```
+
+The downstream loop (filter by `targetEntityType`/`targetBundle`, evaluate the mapping per record) is unchanged. `__designbook` on a record is an inert extra field during evaluation.
+
+- [ ] **Step 6: Update the registration and CLI paths**
+
+In `validation-registry.ts`, change the `data` entry so it passes the data directory:
 
 ```typescript
   data: async (_file, config) =>
     toFileResult(validateData(resolve(config.data, 'data-model.yml'), resolve(config.data, 'data')), resolve(config.data, 'data'), 'data'),
 ```
 
-Update `cli.ts`'s direct call similarly (pass the `data/` dir).
+In `cli.ts`, replace the `validate-section` data path `resolve(config.data, 'sections', sectionId, 'data.yml')` with `resolve(config.data, 'data')`, and update the `validateData(...)` call to pass that directory. (The entity-mapping CLI call is unchanged — it already passes the `.jsonata` file + `config`.)
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [ ] **Step 7: Run tests to verify they pass**
 
-Run: `pnpm --filter storybook-addon-designbook exec vitest run src/validators/__tests__/data.test.ts`
-Expected: PASS.
+Run: `pnpm --filter storybook-addon-designbook exec vitest run src/validators`
+Expected: PASS (data + entity-mapping validator tests).
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add packages/storybook-addon-designbook/src/validators packages/storybook-addon-designbook/src/validation-registry.ts packages/storybook-addon-designbook/src/cli.ts
-git commit -m "feat(validators): validate merged data/ pool and __designbook.section shape"
+git commit -m "feat(validators): read merged data/ pool, validate __designbook.section, drop fallback"
 ```
 
 ---
 
-## Task 6: Update addon scene fixture + full package check
+## Task 6: Convert remaining addon fixtures + full package check
+
+This task converts every remaining addon fixture to the new layout so the integration tests run on the new logic only.
 
 **Files:**
-- Modify: `packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/test.scenes.yml`
-- Modify: any remaining fixtures/tests referencing `record:` in `packages/storybook-addon-designbook`
+- Modify: `packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/test.scenes.yml` (`record:` → `select:`)
+- Move: `packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/data.yml` → `.../fixtures/data/node.article.yml` + `.../fixtures/data/user.user.yml`
+- Modify: `packages/storybook-addon-designbook/src/validators/__tests__/fixtures/scene/valid.scenes.yml` (`record:` → `select:`)
+- Modify: `packages/storybook-addon-designbook/src/validators/__tests__/workflow-write-file.test.ts` (sample-data example path → `data/`)
+- Verify: `scene-module-builder.test.ts` integration test passes against the new `data/` fixture (no edits expected — it calls `loadSampleData(FIXTURES_DIR)`).
 
 **Interfaces:**
-- Consumes: the `select` scene model (Tasks 1–3).
+- Consumes: the `select` scene model (Tasks 1–3) and the `data/` loader (Task 4).
 
-- [ ] **Step 1: Convert `record:` to `select:` in `test.scenes.yml`**
+- [ ] **Step 1: Split the renderer integration fixture into `data/`**
+
+Delete `packages/storybook-addon-designbook/src/renderer/__tests__/fixtures/data.yml`. Create `.../fixtures/data/node.article.yml` (the two article records as a bare array, each given an `id` and a `__designbook.section`):
+
+```yaml
+- id: "1"
+  __designbook: { section: blog }
+  title: "Understanding Modern Architecture"
+  field_body: "<p>Architecture has evolved significantly over the past century...</p>"
+  field_media: { url: "/images/architecture-hero.jpg", alt: "Modern building with glass facade" }
+  field_category: { name: "Architecture", id: 1 }
+  field_teaser: "A deep dive into the evolution of modern architecture and its impact."
+- id: "2"
+  __designbook: { section: blog }
+  title: "The Art of Minimalism"
+  field_body: "<p>Minimalism in design focuses on simplicity...</p>"
+  field_media: { url: "/images/minimalism.jpg", alt: "Clean minimal interior" }
+  field_category: { name: "Design", id: 2 }
+  field_teaser: "Exploring how less becomes more in contemporary design."
+```
+
+Create `.../fixtures/data/user.user.yml`:
+
+```yaml
+- id: "1"
+  __designbook: { section: blog }
+  name: "Jane Doe"
+  field_avatar: "/images/jane.jpg"
+```
+
+(The fixture `data-model.yml` already defines `node.article` and `user.user` under `content`, and `view.recent_articles` under `config` — no change needed.)
+
+- [ ] **Step 2: Convert `record:` to `select:` in `test.scenes.yml`**
 
 Replace each entity item's `record: 0` with `select: "$[0]"`. For example the `Flat` scene becomes:
 
@@ -585,23 +702,41 @@ Replace each entity item's `record: 0` with `select: "$[0]"`. For example the `F
         select: "$[0]"
 ```
 
-Apply the same to `EntityInEntity`, `EntityInComponentSlot`, and `WithShell`. Leave `ViewEntity` (no record) unchanged.
+Apply the same to `EntityInEntity`, `EntityInComponentSlot`, and the nested entity inside `WithShell`. Leave `ViewEntity` (no record) unchanged.
 
-- [ ] **Step 2: Find any stragglers**
+- [ ] **Step 3: Convert the scene-validator fixture**
+
+In `packages/storybook-addon-designbook/src/validators/__tests__/fixtures/scene/valid.scenes.yml`, replace the entity item's `record: 0` with `select: "$[0]"`.
+
+- [ ] **Step 3b: Convert nested entity refs in the `.jsonata` mapping fixtures**
+
+Several mapping fixtures emit nested entity refs using the old `"record": 0` key. The recursive resolver now reads `select`, so replace `"record": 0` with `"select": "$[0]"` in each emitted ref object in:
+- `src/renderer/__tests__/fixtures/entity-mapping/node.article.with-author.jsonata` (user.user ref)
+- `src/renderer/__tests__/fixtures/entity-mapping/node.article.card.jsonata` (author ref)
+- `src/renderer/__tests__/fixtures/entity-mapping/view.recent_articles.default.jsonata` (node.article ref)
+- `src/renderer/__tests__/fixtures/entity-mapping/view.mixed_content.default.jsonata` (node.article ref)
+
+Each emitted ref becomes e.g. `{ "entity": "node.article", "view_mode": "teaser", "select": "$[0]" }`. Without this, `EntityInEntity`, `EntityInComponentSlot`, and `ViewEntity` integration tests resolve empty (`{}`) and fail.
+
+- [ ] **Step 4: Fix the workflow-write-file example path**
+
+In `workflow-write-file.test.ts`, change the sample-data example `{ file: '$DATA/sections/{{ id }}/data.yml', ... }` and its expected `'/d/sections/dashboard/data.yml'` to the new shape (`$DATA/data/node.{{ id }}.yml` → `/d/data/node.dashboard.yml`), or to any non-section path that still exercises the interpolation. Keep the assertion meaningful. (The `section.yml` / `*.section.scenes.yml` cases are a different artifact — leave them.)
+
+- [ ] **Step 5: Find any stragglers**
 
 Run: `git grep -n "record:" packages/storybook-addon-designbook/src`
-Expected: no matches in scene YAML or scene-building code (matches only in unrelated contexts, if any — inspect each).
+Expected: no matches in scene YAML or scene-building code. Inspect any remaining match and convert or confirm it is unrelated.
 
-- [ ] **Step 3: Run the full package check**
+- [ ] **Step 6: Run the full package check**
 
-Run: `pnpm --filter storybook-addon-designbook check` (or repo `pnpm check`)
-Expected: typecheck, lint, and all tests PASS.
+Run: `pnpm --filter storybook-addon-designbook check`
+Expected: typecheck, lint, and ALL tests PASS — including `scene-module-builder.test.ts` (Flat → "Understanding Modern Architecture", ViewEntity items resolve from the `data/` pool).
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add packages/storybook-addon-designbook
-git commit -m "test(renderer): convert scene fixtures to select model"
+git commit -m "test: convert addon fixtures to data/ pool and select model"
 ```
 
 ---
@@ -700,21 +835,26 @@ git commit -m "docs(skill): canvas rule references per-bundle data/ storage"
 ## Task 9: Regenerate repo fixtures + end-to-end verification
 
 **Files:**
-- Delete: `fixtures/**/sections/*/data.yml`
+- Delete: `fixtures/**/sections/*/data.yml` (3 files)
 - Create: `fixtures/**/data/*.yml`
 - Modify: `fixtures/**/*.section.scenes.yml` (entity items → `select:`)
+- Modify: `fixtures/**/entity-mapping/*.jsonata` nested entity refs (`record` → `select`) — 12 fixture files reference `record`.
 
 **Interfaces:**
-- Consumes: all prior tasks (loader, builder, validator, skill output shape).
+- Consumes: all prior tasks (loader, builder, validators, skill output shape).
 
 - [ ] **Step 1: Inventory existing fixture data**
 
-Run: `git grep -l --name-only "" -- 'fixtures/**/sections/**/data.yml'` and `find fixtures -path '*/sections/*/data.yml'`
+Run: `find fixtures -path '*/sections/*/data.yml'` (3 files) and `rg -rln 'record' fixtures --glob '*.jsonata' --glob '*.scenes.yml'` (12 files).
 Record each section's records to redistribute into per-bundle files.
 
-- [ ] **Step 2: Convert each fixture**
+- [ ] **Step 2: Convert each section's data + scenes**
 
-For every `fixtures/<suite>/.../sections/<id>/data.yml`, split its `content:`/`config:` records into `fixtures/<suite>/.../data/<entity_type>.<bundle>.yml` (bare arrays), adding `__designbook: { section: <id> }` to each record. Remove the old `sections/*/data.yml`. Update each `*.section.scenes.yml` entity item: replace `record: N` with a `select:` predicate (`"$['<id>' in __designbook.section and id='<id-of-record>'][0]"`, or `"$[N]"` where positional is fine for the fixture).
+For every `fixtures/<suite>/.../sections/<id>/data.yml`, split its `content:`/`config:` records into `fixtures/<suite>/.../data/<entity_type>.<bundle>.yml` (bare arrays), adding `__designbook: { section: <id> }` to each record. Remove the old `sections/*/data.yml`. Update each `*.section.scenes.yml` entity item: replace `record: N` with a `select:` predicate (`"$['<id>' in __designbook.section and id='<record-id>'][0]"`, or `"$[N]"` where a positional pick is fine for the fixture).
+
+- [ ] **Step 2b: Convert nested entity refs in repo `.jsonata` mappings**
+
+In every `fixtures/**/entity-mapping/*.jsonata` that emits a nested entity ref with `"record": N`, replace it with `"select": "$[N]"` (e.g. `{ "entity": "node.article", "view_mode": "teaser", "select": "$[0]" }`). Mirror Task 6 Step 3b for the repo fixtures.
 
 - [ ] **Step 3: Verify a fixture builds**
 
@@ -741,17 +881,18 @@ git commit -m "test(fixtures): migrate sample data to per-bundle data/ with sect
 ## Self-Review
 
 **Spec coverage:**
-- Storage per-bundle `data/` → Tasks 4, 7, 9. ✓
+- Storage per-bundle `data/` → Tasks 4 (read), 7 (write), 9 (fixtures). ✓
 - `__designbook.section` tag (string/array) → Tasks 3 (test data), 5 (validation), 7 (generation). ✓
-- Section generic (not canvas) → loader/validator are entity-agnostic; canvas rule only notes storage (Task 8). ✓
+- Section generic (not canvas) → loader/validators are entity-agnostic; canvas rule only notes storage (Task 8). ✓
 - JSONata `select` at build time, replaces `record: N` → Tasks 1–3. ✓
 - Multiplicity (no enforcement, `[0]` convention) → Task 3 (builder passes result through), Global Constraints. ✓
 - `in` operator for string/array → Task 3 test, Global Constraints. ✓
-- Loader merges, content/config via data-model → Task 4. ✓
-- Affected: `loadSampleData` (4), `entity-builder` (3), sample-data skill (7), validator (5), fixtures (6, 9). ✓
-- No migration → Global Constraints; fixtures regenerated not upgraded (Task 9). ✓
+- Loader merges, content/config via data-model → Task 4 (`readBundleFiles` + `namespaceFor`). ✓
+- **All sample-data readers updated:** scene loader (4), data validator (5), entity-mapping validator (5), CLI (5). No reader still touches `sections/{id}/data.yml` or root `data.yml`. ✓
+- **No fallback, tests new-logic-only** → Global Constraints; old paths deleted in Tasks 4–5; every fixture converted in Tasks 6 & 9 (renderer integration fixture, scene-validator fixture, data-validator fixtures, workflow-write-file example, repo fixtures). ✓
+- DRY: the read-`data/` logic lives once in `data-pool.ts`, imported by all three consumers. ✓
 - Out of scope (Drupal export, mapping mechanism, declarative sugar) → not planned. ✓
 
 **Placeholder scan:** No TBD/TODO. Skill-file tasks (7, 8) intentionally defer exact wording to `designbook-skill-creator` rules per the hard project constraint, but specify the concrete target content and the gating step — this is a real constraint, not a placeholder.
 
-**Type consistency:** `select?: string` defined in Task 1 (`EntitySceneNode`, `EntityOrigin`), consumed identically in Tasks 2–3. `loadSampleData(designbookDir)` signature defined in Task 4, used in Task 4 Step 5. `validateData(dataModelPath, dataDir)` defined in Task 5, registered in Task 5 Step 5. `namespaceFor` helper appears in Tasks 4 and 5 (same logic — Task 5 references Task 4's implementation). Consistent.
+**Type consistency:** `select?: string` defined in Task 1 (`EntitySceneNode`, `EntityOrigin`), consumed identically in Tasks 2–3. `readBundleFiles(dataDir): BundleFile[]` and `namespaceFor(dataModel, entityType, bundle)` defined once in `data-pool.ts` (Task 4) and imported by `loadSampleData` (Task 4), `validateData` (Task 5), `validateEntityMapping` (Task 5). `loadSampleData(designbookDir)` and `validateData(dataModelPath, dataDir)` signatures are used consistently at every call site (Task 4 Step 6; Task 5 Step 6 registration + CLI). No drift.
