@@ -1,7 +1,7 @@
 ---
 title: "Map Entity: {{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.view_mode }}"
 trigger:
-  steps: [design-screen:map-entity]
+  steps: [design-screen:map-entity, design-entity:map-entity]
 params:
   type: object
   required: [mapping, data_model]

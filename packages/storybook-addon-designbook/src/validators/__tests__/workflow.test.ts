@@ -858,3 +858,116 @@ describe('expandTasksFromParams filter-condition filtering', () => {
     expect(tasks).toHaveLength(0);
   });
 });
+
+// ── Each-driven stage: empty array skips stage, absent key still errors ────
+
+describe('each-driven stage with empty or absent driver', () => {
+  let dist: string;
+  let taskDir: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-each-skip-'));
+    taskDir = mkdtempSync(resolve(tmpdir(), 'wf-each-tasks-'));
+
+    // Task file for intake step (singleton, no each)
+    writeFileSync(
+      resolve(taskDir, 'do-intake.md'),
+      ['---', 'trigger:', '  steps: [do-intake]', 'params: {}', 'files: []', '---', '# Do Intake'].join('\n'),
+    );
+
+    // Task file for create-component step (each-driven by "components" scope key)
+    writeFileSync(
+      resolve(taskDir, 'create-component.md'),
+      [
+        '---',
+        'trigger:',
+        '  steps: [create-component]',
+        'each:',
+        '  component:',
+        '    expr: "components"',
+        'params:',
+        '  component: { type: object }',
+        'files: []',
+        '---',
+        '# Create Component',
+      ].join('\n'),
+    );
+
+    // Task file for create-scene step (singleton, no each)
+    writeFileSync(
+      resolve(taskDir, 'create-scene.md'),
+      ['---', 'trigger:', '  steps: [create-scene]', 'params: {}', 'files: []', '---', '# Create Scene'].join('\n'),
+    );
+  });
+
+  /**
+   * Build a tasks.yml for [intake → component → scene] with current_stage=intake
+   * and a pre-set scope. stage_loaded maps the create-component step to its task file
+   * so expandStageIfNeeded can detect the each-declaration.
+   */
+  function setupWorkflow(scopeComponents: unknown[] | undefined): string {
+    const stages = {
+      intake: { steps: ['do-intake'] },
+      component: { steps: ['create-component'] },
+      scene: { steps: ['create-scene'] },
+    };
+
+    const name = workflowCreate(
+      dist,
+      'debo-test',
+      'Test',
+      [
+        { id: 'task-intake', title: 'Intake', type: 'data', step: 'do-intake', stage: 'intake' },
+        { id: 'task-scene', title: 'Scene', type: 'scene', step: 'create-scene', stage: 'scene' },
+      ],
+      stages,
+    );
+
+    // Write stage_loaded for create-component so the engine knows this step has an each-decl
+    const filePath = resolve(dist, 'workflows', 'changes', name, 'tasks.yml');
+    const raw = parseYaml(readFileSync(filePath, 'utf-8')) as WorkflowFile;
+
+    raw.stage_loaded = {
+      ...((raw.stage_loaded as Record<string, unknown>) ?? {}),
+      'create-component': {
+        task_file: resolve(taskDir, 'create-component.md'),
+        rules: [],
+        blueprints: [],
+        config_rules: [],
+        config_instructions: [],
+      },
+    };
+
+    // Set scope: if scopeComponents is defined, include the key; if undefined, omit it
+    if (scopeComponents !== undefined) {
+      raw.scope = { components: scopeComponents };
+    }
+
+    writeFileSync(filePath, stringifyYaml(raw));
+    return name;
+  }
+
+  it('skips the each-driven stage and proceeds to the next stage when driver resolves to []', async () => {
+    // scope has components: [] — empty array, driver present
+    const name = setupWorkflow([]);
+
+    // Complete the intake task (first and only task in intake stage)
+    const result = await workflowDone(dist, name, 'task-intake');
+
+    // Should NOT throw; should transition past the component stage (0 tasks) to scene
+    expect(result.archived).toBe(false);
+    expect(result.response).toBeDefined();
+    expect(result.response!.stage).toBe('scene');
+    expect(result.response!.next_step).toBe('create-scene');
+  });
+
+  it('still throws "not materialized" when the each driver key is absent from scope', async () => {
+    // scope has no "components" key at all — driver absent
+    const name = setupWorkflow(undefined);
+
+    // Complete the intake task — should throw because the driver is missing
+    await expect(() => workflowDone(dist, name, 'task-intake')).rejects.toThrow(
+      "Cannot enter stage 'component' — step(s) not materialized: create-component",
+    );
+  });
+});

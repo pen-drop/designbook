@@ -1,0 +1,4 @@
+- id: "1"
+  __designbook: { section: demo }
+  title: "Demo Article"
+  field_body: "<p>Hello demo</p>"

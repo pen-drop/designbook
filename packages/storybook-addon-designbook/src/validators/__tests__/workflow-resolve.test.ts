@@ -296,6 +296,25 @@ describe('resolveTaskFiles', () => {
     const result = resolveTaskFiles('design-shell:intake', baseConfig, agentsDir);
     expect(result).toEqual([taskPath]);
   });
+
+  // Regression: design-entity:map-entity token (step name, not stage name)
+  // The entity-mapping stage in design-entity has steps: [map-entity], so the runtime
+  // constructs "design-entity:map-entity" — NOT "design-entity:entity-mapping".
+  it('resolves design-entity:map-entity via trigger.steps on multi-workflow -- task file', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const taskPath = writeSkillTaskFile(
+      agentsDir,
+      'designbook',
+      'map-entity--design-screen',
+      'trigger:\n  steps: [design-screen:map-entity, design-entity:map-entity]',
+    );
+
+    const resultScreen = resolveTaskFiles('design-screen:map-entity', baseConfig, agentsDir);
+    expect(resultScreen).toEqual([taskPath]);
+
+    const resultEntity = resolveTaskFiles('design-entity:map-entity', baseConfig, agentsDir);
+    expect(resultEntity).toEqual([taskPath]);
+  });
 });
 
 // 5.2: File path expansion — covered by template/__tests__/interpolate.test.ts
