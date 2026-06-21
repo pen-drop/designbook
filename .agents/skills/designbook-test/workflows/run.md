@@ -36,7 +36,13 @@ Report the Storybook URL to the user (`_debo storybook status` returns the `url`
 1. Read `fixtures/<suite>/cases/<case>.yaml`
 2. Display the `prompt` field to the user
 3. Ask: "Execute this prompt in the workspace? (y/n)"
-4. If **yes**: `cd` into the workspace and execute the prompt (run the workflow)
+4. If **yes**: dispatch **one** subagent to run the whole workflow — do NOT execute it inline on this thread. The subagent is the workflow driver; give it:
+   - the workspace path as its working directory (run all `_debo` / `npx storybook-addon-designbook` commands from there),
+   - the case `prompt` verbatim as the task to execute,
+   - this instruction: *drive the full designbook workflow lifecycle per `resources/workflow-execution.md` (`workflow create` → task loop → `workflow done`) entirely inline within your own context. You are already a subagent and cannot spawn further subagents, so run every stage inline — including stages marked `isolate: true` (read their task/rules/blueprints and call `workflow done` yourself; do not dispatch a stage executor).*
+   - report contract: return only the final `workflow summary --json` plus one line per stage on what it produced — no task bodies, rule text, or file contents.
+
+   When the subagent returns, relay its summary to the user.
 5. If **no**: Tell the user the workspace is ready for manual use
 
 Use `_debo storybook stop` to stop Storybook when the session ends or the user requests it.
