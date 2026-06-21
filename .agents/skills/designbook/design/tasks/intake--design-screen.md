@@ -26,7 +26,7 @@ params:
       $ref: ../../scenes/schemas.yml#/SceneFile
 result:
   type: object
-  required: [components, output_path, entity_mappings, section_id, section_title]
+  required: [components, output_path, entity_mappings, section_id, section_title, scenes, scene_path]
   properties:
     components:
       type: array
@@ -42,6 +42,15 @@ result:
       type: string
     section_title:
       type: string
+    scenes:
+      type: array
+      items:
+        $ref: ../../scenes/schemas.yml#/SceneDef
+    scene_path:
+      type: string
+      description: >
+        Path of the target SceneFile relative to $DESIGNBOOK_DATA — the section's
+        scenes file that create-scene fills.
 ---
 
 # Intake: Design Screen
@@ -64,3 +73,12 @@ One entry per **new** component. When `$reference_dir/extract.json` exists, incl
 ## Result: output_path
 
 `$DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml`
+
+## Result: scenes
+
+Emit the screen `SceneDef[]` that `create-scene` fills into the section's
+SceneFile — normally a single scene for the screen. Each scene is composed from
+the planned components and the section's entity nodes (per the entity mappings),
+injected into the shell at its `content` point. The section spec's empty
+`scenes: []` is populated from this result; `create-scene` derives each scene's
+component tree from the binding rather than from any pre-existing scene.
