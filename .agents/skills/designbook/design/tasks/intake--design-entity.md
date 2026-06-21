@@ -24,7 +24,7 @@ params:
       $ref: ../../data-model/schemas.yml#/DataModel
 result:
   type: object
-  required: [components, entity_mappings, entity_type, bundle, view_mode]
+  required: [components, entity_mappings, sample_data_bundles, section_id, entity_type, bundle, view_mode]
   properties:
     components:
       type: array
@@ -34,6 +34,13 @@ result:
       type: array
       items:
         $ref: ../schemas.yml#/EntityMapping
+    sample_data_bundles:
+      type: array
+      items:
+        $ref: ../../sample-data/schemas.yml#/BundleRef
+    section_id:
+      type: string
+      description: Tag value written to __designbook.section on the generated records (use the bundle name; the entity view selects records by index, so the tag is just a label).
     entity_type:
       type: string
       description: Resolved entity type key for the chosen view-mode.
@@ -63,3 +70,7 @@ One entry per **new** component to create. Empty array when all required compone
 ## Result: entity_mappings
 
 A one-element array containing the single `{ entity_type, bundle, view_mode }` mapping the `entity-mapping` stage will produce.
+
+## Result: sample_data_bundles
+
+The `entity_type` + `bundle` pairs that need sample data: the chosen bundle plus every bundle reached by traversing its `type: reference` fields (leaf-first). `create-sample-data` expands one `data/<entity_type>.<bundle>.yml` per entry; the standalone entity view renders the chosen view-mode against those pool records.

@@ -1,6 +1,6 @@
 ---
 title: Design Entity
-description: Build one entity view-mode (mapping + demo data) and preview it standalone
+description: Build one entity view-mode (mapping + sample data) and preview it standalone
 params:
   entity_type: { type: string, default: "" }
   bundle: { type: string, default: "" }
@@ -12,8 +12,8 @@ stages:
   component:
     steps: [create-component]
     isolate: true
-  demo-data:
-    steps: [create-entity-demo]
+  sample-data:
+    steps: [create-sample-data]
   entity-mapping:
     steps: [map-entity]
 engine: direct
