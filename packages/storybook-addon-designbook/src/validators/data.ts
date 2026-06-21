@@ -53,11 +53,6 @@ export function validateData(dataModelPath: string, dataDir: string): Validation
   for (const [entityType, bundles] of Object.entries(contentData)) {
     if (typeof bundles !== 'object' || bundles === null) continue;
 
-    if (!(entityType in contentModel)) {
-      errors.push(`Entity type "${entityType}" not in data-model`);
-      continue;
-    }
-
     for (const [bundle, records] of Object.entries(bundles)) {
       if (!Array.isArray(records)) continue;
 
