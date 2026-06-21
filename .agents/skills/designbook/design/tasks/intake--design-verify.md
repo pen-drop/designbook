@@ -1,4 +1,5 @@
 ---
+title: "Intake"
 trigger:
   steps: [design-verify:intake]
 domain: [design.verify]

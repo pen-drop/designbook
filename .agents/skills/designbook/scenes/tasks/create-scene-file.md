@@ -1,4 +1,5 @@
 ---
+title: "Create Scene File: {{ section.id }}"
 trigger:
   steps: [create-scene-file]
 params:

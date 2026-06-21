@@ -2121,32 +2121,19 @@ export function inferTaskType(stage: string): string {
 export async function generateTaskTitle(
   stage: string,
   params: Record<string, unknown>,
-  schemaParams?: Record<string, unknown>,
+  _schemaParams?: Record<string, unknown>,
   explicitTitle?: string,
 ): Promise<string> {
   if (explicitTitle) {
     return interpolate(explicitTitle, params);
   }
 
-  // Derive title from step name
+  // Default title: just the step name, title-cased. No param-value guessing —
+  // an explicit `title:` in the task frontmatter is the only source of a
+  // descriptive title. (Scanning params for a "good" suffix picked up
+  // scope-injected paths like reference_folder and produced garbage titles.)
   const base = stage.includes(':') ? stage.split(':')[1]! : stage;
-  const words = base.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-
-  if (schemaParams) {
-    for (const [key, defaultValue] of Object.entries(schemaParams)) {
-      if (defaultValue === null && typeof params[key] === 'string' && (params[key] as string).length > 0) {
-        return `${words}: ${params[key]}`;
-      }
-    }
-  }
-
-  for (const value of Object.values(params)) {
-    if (typeof value === 'string' && value.length > 0) {
-      return `${words}: ${value}`;
-    }
-  }
-
-  return words;
+  return base.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**

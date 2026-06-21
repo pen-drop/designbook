@@ -1,4 +1,5 @@
 ---
+title: "Intake"
 trigger:
   steps: [css-generate:intake]
 domain: [css, tokens]

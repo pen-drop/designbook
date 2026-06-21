@@ -1,4 +1,5 @@
 ---
+title: "Detect Backend"
 trigger:
   steps: [detect-backend]
 result:

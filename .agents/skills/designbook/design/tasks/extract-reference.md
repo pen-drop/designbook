@@ -1,4 +1,5 @@
 ---
+title: "Extract Reference"
 trigger:
   steps: [extract-reference]
 domain: [references]

@@ -1,4 +1,5 @@
 ---
+title: "Verify Install"
 trigger:
   steps: [verify-install]
 result:

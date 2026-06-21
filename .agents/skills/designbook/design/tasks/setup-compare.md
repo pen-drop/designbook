@@ -1,4 +1,5 @@
 ---
+title: "Setup Compare"
 trigger:
   steps: [setup-compare]
 params:
