@@ -26,7 +26,7 @@ params:
       $ref: ../../scenes/schemas.yml#/SceneFile
 result:
   type: object
-  required: [components, output_path, entity_mappings, section_id, section_title, scenes, scene_path]
+  required: [components, output_path, entity_mappings, sample_data_bundles, section_id, section_title, scenes, scene_path]
   properties:
     components:
       type: array
@@ -38,6 +38,10 @@ result:
       type: array
       items:
         $ref: ../schemas.yml#/EntityMapping
+    sample_data_bundles:
+      type: array
+      items:
+        $ref: ../../sample-data/schemas.yml#/BundleRef
     section_id:
       type: string
     section_title:
@@ -73,6 +77,10 @@ One entry per **new** component. When `$reference_dir/extract.json` exists, incl
 ## Result: output_path
 
 `$DESIGNBOOK_DATA/sections/{{ section_id }}/{{ section_id }}.section.scenes.yml`
+
+## Result: sample_data_bundles
+
+The distinct `entity_type` + `bundle` pairs that need sample data for this screen: every entity the screen renders (from the entity mappings) plus every bundle reached by traversing their `type: reference` fields, ordered leaf-first. `create-sample-data` expands one task (and one `data/` file) per entry.
 
 ## Result: scenes
 

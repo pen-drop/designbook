@@ -1,5 +1,19 @@
 # Sample data concern schemas
 
+BundleRef:
+  type: object
+  description: One entity_type + bundle pair — the each-binding that scopes a create-sample-data task to a single data/ file.
+  required: [entity_type, bundle]
+  properties:
+    entity_type:
+      type: string
+      description: Entity type key from the data model (e.g. node, taxonomy_term, media, view).
+      examples: [node, taxonomy_term, media]
+    bundle:
+      type: string
+      description: Bundle key under the entity type (e.g. topic, event, image, recent_articles).
+      examples: [topic, event, image]
+
 SampleData:
   type: object
   properties:
