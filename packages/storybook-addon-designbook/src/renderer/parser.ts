@@ -1,10 +1,9 @@
 /**
  * Scene Parser — parses *.scenes.yml files.
  *
- * Reads the YAML, validates structure, and expands shorthand
- * (e.g. records: [0, 1, 2] → 3 separate entity entries).
- *
- * Items are passed through as SceneNode[] (duck-typed YAML objects).
+ * Reads the YAML, validates structure, and returns items as SceneNode[].
+ * Entries pass through unchanged; record selection is resolved later via
+ * the `select:` predicate in entity-builder (JSONata).
  */
 
 import type { SceneDef, SceneNode } from './types';

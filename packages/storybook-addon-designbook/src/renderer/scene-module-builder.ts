@@ -92,13 +92,15 @@ function loadDesignbookConfig(designbookDir: string): DesignbookConfig | undefin
 /**
  * Merge every `data/<entity_type>.<bundle>.yml` file into one SampleData pool.
  * Namespace (content/config) is resolved by data-model lookup. No fallback.
+ *
+ * @param dataModel - optional pre-loaded DataModel; when omitted, loaded from disk.
  */
-export function loadSampleData(designbookDir: string): SampleData {
-  const dataModel = loadDataModel(designbookDir);
+export function loadSampleData(designbookDir: string, dataModel?: DataModel): SampleData {
+  const resolvedDataModel = dataModel ?? loadDataModel(designbookDir);
   const pool: SampleData = {};
 
   for (const { entityType, bundle, records } of readBundleFiles(join(designbookDir, 'data'))) {
-    const ns = namespaceFor(dataModel, entityType, bundle);
+    const ns = namespaceFor(resolvedDataModel, entityType, bundle);
     if (!ns) {
       console.warn(`[Designbook] data/${entityType}.${bundle}.yml: not in data-model — skipped`);
       continue;
@@ -144,7 +146,7 @@ export async function buildSceneModule(
 
   // ── 2. Load data model + sample data ──────────────────────────────
   const dataModel = loadDataModel(designbookDir);
-  const sampleData = loadSampleData(designbookDir);
+  const sampleData = loadSampleData(designbookDir, dataModel);
 
   // ── 2b. Load designbook config ──────────────────────────────��─────
   const config = loadDesignbookConfig(designbookDir);

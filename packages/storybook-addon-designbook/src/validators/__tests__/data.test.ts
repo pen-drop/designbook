@@ -73,4 +73,11 @@ describe('validateData', () => {
     const bad = validateData(validDataModel, resolve(fixtures, 'invalid-section', 'data'));
     expect(bad.errors.some((e) => e.includes('__designbook.section'))).toBe(true);
   });
+
+  it('reports __designbook.section error on config records', () => {
+    const result = validateData(validDataModel, resolve(fixtures, 'invalid-config-section', 'data'));
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes('__designbook.section'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('view.recent_articles'))).toBe(true);
+  });
 });

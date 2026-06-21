@@ -17,6 +17,21 @@ interface BundleDef {
   fields?: Record<string, FieldDef>;
 }
 
+function validateDesignbookSection(
+  rec: Record<string, unknown>,
+  entityType: string,
+  bundle: string,
+  errors: string[],
+): void {
+  const meta = rec.__designbook as { section?: unknown } | undefined;
+  const sec = meta?.section;
+  const okSection = typeof sec === 'string' || (Array.isArray(sec) && sec.every((s) => typeof s === 'string'));
+  if (sec !== undefined && !okSection) {
+    const rid = rec.id ?? '?';
+    errors.push(`Invalid __designbook.section on ${entityType}.${bundle} id=${rid} — must be string or string[]`);
+  }
+}
+
 export function validateData(dataModelPath: string, dataDir: string): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -69,15 +84,7 @@ export function validateData(dataModelPath: string, dataDir: string): Validation
         for (const field of Object.keys(rec as Record<string, unknown>)) {
           if (field === 'id') continue;
           if (field === '__designbook') {
-            const meta = (rec as Record<string, unknown>).__designbook as { section?: unknown };
-            const sec = meta?.section;
-            const okSection =
-              typeof sec === 'string' || (Array.isArray(sec) && sec.every((s) => typeof s === 'string'));
-            if (sec !== undefined && !okSection) {
-              errors.push(
-                `Invalid __designbook.section on ${entityType}.${bundle} id=${rid} — must be string or string[]`,
-              );
-            }
+            validateDesignbookSection(rec as Record<string, unknown>, entityType, bundle, errors);
             continue;
           }
 
@@ -124,9 +131,16 @@ export function validateData(dataModelPath: string, dataDir: string): Validation
       continue;
     }
 
-    for (const [bundle] of Object.entries(bundles)) {
+    for (const [bundle, records] of Object.entries(bundles)) {
       if (!(bundle in configModel[entityType]!)) {
         errors.push(`Config bundle "${entityType}.${bundle}" not in data-model config`);
+        continue;
+      }
+
+      if (Array.isArray(records)) {
+        for (const rec of records) {
+          validateDesignbookSection(rec as Record<string, unknown>, entityType, bundle, errors);
+        }
       }
     }
   }
