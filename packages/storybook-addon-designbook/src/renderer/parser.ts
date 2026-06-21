@@ -41,8 +41,8 @@ export function parseScene(raw: unknown): SceneDef {
 
 /**
  * Expand entries in a scene items array.
- * - Entity entries with `records: [0, 1, 2]` become 3 separate entries
- * - Component, config, scene entries pass through as-is
+ * - Entity, component, config, scene entries pass through as-is
+ * - Record selection is a JSONata `select:` predicate resolved in entity-builder
  */
 export function expandEntries(entries: unknown[]): SceneNode[] {
   const result: SceneNode[] = [];
@@ -51,30 +51,9 @@ export function expandEntries(entries: unknown[]): SceneNode[] {
     if (!entry || typeof entry !== 'object') {
       continue;
     }
-
-    const obj = entry as Record<string, unknown>;
-
-    // Entity entry with records shorthand — expand into individual entries
-    if ('entity' in obj && typeof obj.entity === 'string' && Array.isArray(obj.records)) {
-      for (const recordIdx of obj.records as number[]) {
-        result.push({
-          entity: obj.entity,
-          view_mode: obj.view_mode,
-          record: recordIdx,
-        } as SceneNode);
-      }
-    }
-    // Single entity entry — default record to 0
-    else if ('entity' in obj && typeof obj.entity === 'string') {
-      result.push({
-        ...obj,
-        record: obj.record ?? 0,
-      } as SceneNode);
-    }
-    // Component, config, scene entries — pass through as-is
-    else {
-      result.push(obj as SceneNode);
-    }
+    // Entity, component, config, scene entries — pass through as-is.
+    // Record selection is a JSONata `select:` predicate resolved in entity-builder.
+    result.push(entry as SceneNode);
   }
 
   return result;
