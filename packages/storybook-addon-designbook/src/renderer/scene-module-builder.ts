@@ -11,6 +11,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
+import { readBundleFiles, namespaceFor } from './data-pool';
 
 import { extractGroup, buildExportName, fileBaseName, extractScenes } from './scene-metadata';
 import { expandEntries } from './parser';
@@ -88,26 +89,26 @@ function loadDesignbookConfig(designbookDir: string): DesignbookConfig | undefin
   }
 }
 
-function loadSampleData(id: string, designbookDir: string, firstSceneSection?: string): SampleData {
-  let sectionId = firstSceneSection;
-  if (!sectionId) {
-    const match = id.match(/sections\/([^/]+)\//);
-    if (match) sectionId = match[1];
-  }
+/**
+ * Merge every `data/<entity_type>.<bundle>.yml` file into one SampleData pool.
+ * Namespace (content/config) is resolved by data-model lookup. No fallback.
+ */
+export function loadSampleData(designbookDir: string): SampleData {
+  const dataModel = loadDataModel(designbookDir);
+  const pool: SampleData = {};
 
-  if (sectionId) {
-    const sectionDataPath = join(designbookDir, 'sections', sectionId, 'data.yml');
-    if (existsSync(sectionDataPath)) {
-      return parseYaml(readFileSync(sectionDataPath, 'utf-8')) as SampleData;
+  for (const { entityType, bundle, records } of readBundleFiles(join(designbookDir, 'data'))) {
+    const ns = namespaceFor(dataModel, entityType, bundle);
+    if (!ns) {
+      console.warn(`[Designbook] data/${entityType}.${bundle}.yml: not in data-model — skipped`);
+      continue;
     }
+    pool[ns] ??= {};
+    pool[ns]![entityType] ??= {};
+    pool[ns]![entityType]![bundle] = records;
   }
 
-  const globalDataPath = join(designbookDir, 'data.yml');
-  if (existsSync(globalDataPath)) {
-    return parseYaml(readFileSync(globalDataPath, 'utf-8')) as SampleData;
-  }
-
-  return {};
+  return pool;
 }
 
 // ── Main entry point ────────────────────────────────────────────────────
@@ -143,12 +144,7 @@ export async function buildSceneModule(
 
   // ── 2. Load data model + sample data ──────────────────────────────
   const dataModel = loadDataModel(designbookDir);
-  const firstScene = scenesArray[0] as Record<string, unknown> | undefined;
-  const sampleData = loadSampleData(
-    id,
-    designbookDir,
-    typeof firstScene?.section === 'string' ? firstScene.section : undefined,
-  );
+  const sampleData = loadSampleData(designbookDir);
 
   // ── 2b. Load designbook config ──────────────────────────────��─────
   const config = loadDesignbookConfig(designbookDir);
