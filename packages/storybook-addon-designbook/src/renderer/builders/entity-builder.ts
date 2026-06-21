@@ -51,12 +51,12 @@ export const entityBuilder: SceneNodeBuilder = {
       bundle = (node['bundle'] as string) ?? '';
     }
     const view_mode = (node['view_mode'] as string) ?? '';
-    const record = (node['record'] as number) ?? 0;
+    const select = (node['select'] as string) ?? '';
 
     // 1. Locate the .jsonata expression file
     const jsonataPath = resolve(ctx.designbookDir, 'entity-mapping', `${entity_type}.${bundle}.${view_mode}.jsonata`);
 
-    const entity: EntityOrigin = { entity_type, bundle, view_mode, record, mapping: jsonataPath };
+    const entity: EntityOrigin = { entity_type, bundle, view_mode, select, mapping: jsonataPath };
     const meta = { kind: 'entity' as const, entity };
 
     if (!existsSync(jsonataPath)) {
@@ -64,10 +64,17 @@ export const entityBuilder: SceneNodeBuilder = {
       return { nodes: [missingPlaceholder(`missing expression: ${entity_type}.${bundle}.${view_mode}.jsonata`)], meta };
     }
 
-    // 2. Get sample data record — content entities from content namespace, config entities (e.g. view.*) from config namespace
-    const entityData = (ctx.sampleData?.content?.[entity_type]?.[bundle] ??
-      ctx.sampleData?.config?.[entity_type]?.[bundle]) as Record<string, unknown>[] | undefined;
-    const recordData: Record<string, unknown> = entityData?.[record] ?? {};
+    // 2. Get the bundle's record array — content first, config fallback.
+    const entityArray = (ctx.sampleData?.content?.[entity_type]?.[bundle] ??
+      ctx.sampleData?.config?.[entity_type]?.[bundle] ?? []) as Record<string, unknown>[];
+
+    // Resolve the record(s) via the JSONata select predicate over the array (`$`).
+    // No select (e.g. view entities) → evaluate the mapping with {}.
+    let recordData: unknown = {};
+    if (select) {
+      const selected = await jsonata(select).evaluate(entityArray);
+      recordData = selected ?? {};
+    }
 
     // 3. Compile and evaluate the JSONata expression
     const source = readFileSync(jsonataPath, 'utf-8');
