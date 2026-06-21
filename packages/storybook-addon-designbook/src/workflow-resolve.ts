@@ -958,6 +958,30 @@ export function resolveFiles(
   return results;
 }
 
+// ── Root Precedence ──────────────────────────────────────────────────
+
+/** Path lives under a plugin-cache skills root (installed plugin / user copy). */
+function isPluginRootPath(p: string): boolean {
+  return /\/(?:\.cli-skills-root[^/]*|plugins\/cache)\//.test(p.replace(/\\/g, '/'));
+}
+
+/**
+ * Apply project-over-user (plugin) root precedence: first hit wins by root.
+ *
+ * Search order is project first, then user. If the project root yields ANY
+ * match, the user/plugin matches are discarded wholesale — never merged. The
+ * installed plugin is only a fallback for steps the project does not define.
+ *
+ * Without this, the same step resolves task files from BOTH roots, and
+ * `each:`-expansion materializes every task once per root (a `create-component`
+ * present in both roots expands every component twice; sample-data runs twice,
+ * the stale plugin copy writing the legacy per-section data.yml).
+ */
+export function preferProjectRoot(files: ResolvedFile[]): ResolvedFile[] {
+  const projectMatches = files.filter((f) => !isPluginRootPath(f.path));
+  return projectMatches.length > 0 ? projectMatches : files;
+}
+
 // ── Name/As Deduplication & Priority Sorting ─────────────────────────
 
 /**
@@ -1193,9 +1217,11 @@ export function resolveTaskFilesRich(
     return [];
   }
 
-  // Generic stage: return ALL broad-scan matches, deduplicated
+  // Generic stage: return ALL broad-scan matches, deduplicated.
+  // Collapse same-logical-file copies across roots (project + plugin cache) first,
+  // so each-expansion does not materialize a task once per source root.
   if (broadMatches.length > 0) {
-    return deduplicateByNameAs(broadMatches, agentsDir);
+    return deduplicateByNameAs(preferProjectRoot(broadMatches), agentsDir);
   }
 
   // Fallback: filename-based resolution with deprecation warning
@@ -1211,7 +1237,7 @@ export function resolveTaskFilesRich(
     for (const m of filenameMatches) {
       console.warn(`[designbook] task "${m.path}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`);
     }
-    return deduplicateByNameAs(filenameMatches, agentsDir);
+    return deduplicateByNameAs(preferProjectRoot(filenameMatches), agentsDir);
   }
 
   return [];
