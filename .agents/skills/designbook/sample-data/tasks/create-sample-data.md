@@ -111,7 +111,7 @@ One file per `<entity_type>.<bundle>` is written to the data directory (`result.
 
 Scenes select records from the pool via JSONata `select:` expressions (see scenes authoring), for example:
 ```
-select: "$[__designbook.section = 'getting-started' and id = '3'][0]"
+select: "$['getting-started' in __designbook.section and id = '3'][0]"
 ```
 
 ## Field Value Generation

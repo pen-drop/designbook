@@ -28,7 +28,7 @@ Every record carries a `__designbook` block with a `section` tag:
 Scenes select records from the shared pool via JSONata `select:` expressions. Example:
 
 ```
-select: "$[__designbook.section = 'getting-started' and id = '3'][0]"
+select: "$['getting-started' in __designbook.section and id = '3'][0]"
 ```
 
 ## Idempotency

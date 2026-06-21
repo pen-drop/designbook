@@ -19,10 +19,19 @@ SampleDataBundle:
     properties:
       id:
         type: string
+        description: Unique record identifier within the bundle.
+        examples: ["1", "2", "shelter-1"]
       __designbook:
         type: object
         required: [section]
         properties:
           section:
-            type: string
-            description: Section tag — used by JSONata select: expressions in scenes
+            description: >-
+              Section tag used by JSONata `in` operator in scene select: expressions.
+              A record may belong to one section (string) or multiple sections (array of strings).
+              Use '$["my-section" in __designbook.section]' — works for both forms.
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
