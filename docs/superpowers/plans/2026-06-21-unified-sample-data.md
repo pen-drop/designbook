@@ -180,6 +180,7 @@ git commit -m "refactor(renderer): parser passes entity select through, drops re
 **Files:**
 - Modify: `packages/storybook-addon-designbook/src/renderer/builders/entity-builder.ts:40-101`
 - Modify: `packages/storybook-addon-designbook/src/components/MappingDetail.tsx:128` (display `select` instead of `record`)
+- Modify: `packages/storybook-addon-designbook/src/renderer/__tests__/view.test.ts:20` (`EntityOrigin` literal `record: 0` → `select: "$[0]"`)
 - Test: `packages/storybook-addon-designbook/src/renderer/__tests__/entity-builder.test.ts`
 
 **Interfaces:**
