@@ -1,0 +1,16 @@
+- id: "1"
+  name: "Framework Docs"
+  __designbook:
+    section: "docs"
+- id: "2"
+  name: "Advanced"
+  __designbook:
+    section: "docs"
+- id: "3"
+  name: "Architecture"
+  __designbook:
+    section: "docs"
+- id: "4"
+  name: "DevOps"
+  __designbook:
+    section: "docs"

@@ -10,7 +10,7 @@
       },
       "slots": {
         "topics": $map($fields.field_topic, function($id) {
-          { "entity": "taxonomy_term.topic", "view_mode": "full", "record": $number($id) - 1 }
+          { "entity": "taxonomy_term.topic", "view_mode": "full", "select": "$[" & $string($number($id) - 1) & "]" }
         })
       }
     }

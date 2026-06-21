@@ -1,0 +1,30 @@
+- id: "1"
+  field_body: "<h2>Getting Started with Designbook</h2><p>Designbook bridges the gap between design and development by providing AI-powered workflows that analyze your designs and generate production-ready code.</p><p>This guide walks you through the core concepts and helps you set up your first project.</p>"
+  field_topic: "1"
+  __designbook:
+    section: "homepage"
+- id: "2"
+  field_body: "<h2>Component Architecture</h2><p>Learn how Designbook structures components using the <strong>Single Directory Component</strong> (SDC) pattern. Each component is self-contained with its template, metadata, and stories.</p>"
+  field_topic: "1"
+  __designbook:
+    section: "homepage"
+- id: "3"
+  field_body: "<h2>Design Token Integration</h2><p>Design tokens define the visual properties of your design system — colors, typography, spacing, and more. Designbook extracts these from your design reference automatically.</p>"
+  field_topic: "2"
+  __designbook:
+    section: "homepage"
+- id: "4"
+  field_body: "<h2>AI-Powered Workflows</h2><p>Explore how Designbook uses AI to analyze design references, generate component schemas, and create sample data for your CMS.</p>"
+  field_topic: "2"
+  __designbook:
+    section: "homepage"
+- id: "5"
+  field_body: "<h2>Canvas Page Builder</h2><p>Canvas is a visual page builder that lets you assemble pages from reusable section and component blocks. Learn how to model landing pages with Canvas.</p>"
+  field_topic: "1"
+  __designbook:
+    section: "homepage"
+- id: "6"
+  field_body: "<h2>Storybook Integration</h2><p>Designbook uses Storybook as its preview engine. Learn how stories, scenes, and visual testing work together to validate your design implementation.</p>"
+  field_topic: "2"
+  __designbook:
+    section: "homepage"
