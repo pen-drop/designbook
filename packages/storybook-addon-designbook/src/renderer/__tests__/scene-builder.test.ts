@@ -74,7 +74,7 @@ describe('sceneBuilder', () => {
           {
             entity: 'node.article',
             view_mode: 'teaser',
-            record: 0,
+            select: '$[0]',
           },
         ],
       },
