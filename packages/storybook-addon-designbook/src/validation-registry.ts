@@ -43,7 +43,12 @@ function toFileResult(result: ValidatorResult, file: string, type: string): Vali
 const validators: Record<string, ValidatorFn> = {
   // JSON-Schema-only validators (component, data-model, tokens) removed —
   // schema validation now happens via $ref on result: declarations (see workflowResult).
-  data: async (file, config) => toFileResult(validateData(resolve(config.data, 'data-model.yml'), file), file, 'data'),
+  data: async (_file, config) =>
+    toFileResult(
+      validateData(resolve(config.data, 'data-model.yml'), resolve(config.data, 'data')),
+      resolve(config.data, 'data'),
+      'data',
+    ),
   'entity-mapping': async (file, config) => {
     const { validateEntityMapping } = await import('./validators/entity-mapping.js');
     return toFileResult(await validateEntityMapping(file, config), file, 'entity-mapping');

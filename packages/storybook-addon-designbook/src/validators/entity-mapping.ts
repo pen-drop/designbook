@@ -1,9 +1,9 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { resolve, basename, join } from 'node:path';
-import { load as parseYaml } from 'js-yaml';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve, basename } from 'node:path';
 import jsonata from 'jsonata';
 import type { ValidationResult } from './types.js';
 import type { DesignbookConfig } from '../config.js';
+import { readBundleFiles } from '../renderer/data-pool.js';
 
 interface ComponentNode {
   component: string;
@@ -60,41 +60,14 @@ export async function validateEntityMapping(file: string, config: DesignbookConf
   const targetEntityType = parts.length >= 3 ? parts[0] : undefined;
   const targetBundle = parts.length >= 3 ? parts[1] : undefined;
 
-  // Load sample data: try section data files first, then root data.yml
-  const dataPaths: string[] = [];
-  const sectionsDir = resolve(config.data, 'sections');
-  if (existsSync(sectionsDir)) {
-    for (const entry of readdirSync(sectionsDir, { withFileTypes: true })) {
-      if (entry.isDirectory()) {
-        const sectionData = join(sectionsDir, entry.name, 'data.yml');
-        if (existsSync(sectionData)) dataPaths.push(sectionData);
-      }
-    }
-  }
-  const rootData = resolve(config.data, 'data.yml');
-  if (existsSync(rootData)) dataPaths.push(rootData);
-
-  if (dataPaths.length === 0) {
-    return { valid: false, errors: [`No sample data found in sections or at ${rootData}`], warnings: [] };
-  }
-
-  // Merge all data sources
+  // Load sample data from the merged data/ directory
+  const dataDir = resolve(config.data, 'data');
   const mergedMap: Record<string, Record<string, unknown[]>> = {};
-  for (const dataPath of dataPaths) {
-    const rawData = parseYaml(readFileSync(dataPath, 'utf-8')) as Record<string, unknown>;
-    const entityMap: Record<string, Record<string, unknown[]>> = rawData['content'] &&
-    typeof rawData['content'] === 'object'
-      ? (rawData['content'] as Record<string, Record<string, unknown[]>>)
-      : (rawData as Record<string, Record<string, unknown[]>>);
-    for (const [entityType, bundles] of Object.entries(entityMap)) {
-      if (typeof bundles !== 'object' || bundles === null) continue;
-      if (!mergedMap[entityType]) mergedMap[entityType] = {};
-      for (const [bundle, records] of Object.entries(bundles)) {
-        if (!Array.isArray(records)) continue;
-        if (!mergedMap[entityType][bundle]) mergedMap[entityType][bundle] = [];
-        mergedMap[entityType][bundle].push(...records);
-      }
-    }
+  for (const { entityType, bundle, records } of readBundleFiles(dataDir)) {
+    (mergedMap[entityType] ??= {})[bundle] = records;
+  }
+  if (Object.keys(mergedMap).length === 0) {
+    return { valid: false, errors: [`No sample data found in ${dataDir}`], warnings: [] };
   }
 
   const errors: string[] = [];

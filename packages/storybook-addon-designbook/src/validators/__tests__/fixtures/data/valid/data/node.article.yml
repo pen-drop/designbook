@@ -1,0 +1,11 @@
+- id: "1"
+  __designbook: { section: section_a }
+  title: "First Article"
+  field_body: "<p>Content here</p>"
+  field_media: "img-1"
+  field_category: "cat-1"
+- id: "2"
+  title: "Second Article"
+  field_body: "<p>More content</p>"
+  field_media: "img-1"
+  field_category: "cat-2"
