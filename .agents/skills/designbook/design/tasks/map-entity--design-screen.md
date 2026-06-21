@@ -1,4 +1,5 @@
 ---
+title: "Map Entity: {{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.view_mode }}"
 trigger:
   steps: [design-screen:map-entity]
 params:

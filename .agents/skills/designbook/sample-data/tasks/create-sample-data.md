@@ -1,4 +1,5 @@
 ---
+title: "Create Sample Data: {{ bundle.entity_type }}.{{ bundle.bundle }}"
 trigger:
   steps: [create-sample-data]
 domain: [sample-data]
