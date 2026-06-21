@@ -728,8 +728,12 @@ In `workflow-write-file.test.ts`, change the sample-data example `{ file: '$DATA
 
 - [ ] **Step 5: Find any stragglers**
 
-Run: `git grep -n "record:" packages/storybook-addon-designbook/src`
-Expected: no matches in scene YAML or scene-building code. Inspect any remaining match and convert or confirm it is unrelated.
+Run: `git grep -n "record" packages/storybook-addon-designbook/src` (match the bare word, not just `record:`, to catch comments).
+Known leftovers to fix (flagged in Task 3 review):
+- `src/renderer/builders/entity-builder.ts:41-42` — stale comment mentions `record`; update to `select`.
+- `src/renderer/builders/__tests__/scene-builder.test.ts` (~`:77`) — entity node literal `record: 0` → `select: "$[0]"`.
+- `src/validators/entity-mapping.ts:19` — `EntityRefNode.record: number` field; replace with `select?: string` (the type-guard only checks `type === 'entity'`, so this is cosmetic but keeps the model consistent).
+Inspect any other match and convert or confirm it is unrelated.
 
 - [ ] **Step 6: Run the full package check**
 
