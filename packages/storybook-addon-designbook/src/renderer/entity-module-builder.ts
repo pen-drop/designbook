@@ -1,22 +1,23 @@
 /**
- * Entity Module Builder — demo.yml + sibling .jsonata mappings → CSF string.
+ * Entity Module Builder — `.jsonata` mappings + shared data/ pool → CSF string.
  *
- * Parses a per-bundle `entity-mapping/<type>.<bundle>.demo.yml`, discovers
- * sibling `<type>.<bundle>.<view_mode>.jsonata` files, resolves every demo
- * record through each mapping using the shared render context, and emits a
- * CSF module via buildEntityCsfModule.
+ * Anchored on any `entity-mapping/<type>.<bundle>.<view_mode>.jsonata` file: it
+ * derives the bundle, discovers every sibling `<type>.<bundle>.*.jsonata`
+ * view-mode mapping, pulls that bundle's records from the shared sample-data
+ * pool (`data/<type>.<bundle>.yml`), resolves each record through each mapping,
+ * and emits a per-bundle CSF module via buildEntityCsfModule (one story per
+ * view-mode, a `record` Controls select over the pool records).
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, basename, dirname } from 'node:path';
-import { load as parseYaml } from 'js-yaml';
 
-import { buildRenderContext, defaultSdcResolver, loadDataModel } from './scene-module-builder';
+import { buildRenderContext, defaultSdcResolver, loadDataModel, loadSampleData } from './scene-module-builder';
 import { view } from './view';
 import { buildEntityCsfModule, type EntityCsfViewMode } from './csf-prep';
 import { extractFieldMappings } from './jsonata-mapping-analyzer';
 import { buildExportName } from './scene-metadata';
-import type { SampleData, SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
+import type { SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -27,8 +28,8 @@ export function titleCaseBundle(bundle: string): string {
     .join(' ');
 }
 
-/** Parse "<type>.<bundle>.demo.yml" → { entity_type, bundle }. */
-function parseDemoName(file: string): { entity_type: string; bundle: string } {
+/** Parse "<type>.<bundle>.<view_mode>.jsonata" → { entity_type, bundle }. */
+function parseMappingName(file: string): { entity_type: string; bundle: string } {
   const parts = basename(file).split('.');
   return { entity_type: parts[0] ?? '', bundle: parts[1] ?? '' };
 }
@@ -36,7 +37,7 @@ function parseDemoName(file: string): { entity_type: string; bundle: string } {
 // ── Main entry point ───────────────────────────────────────────────────
 
 export async function buildEntityModule(
-  demoFilePath: string,
+  mappingFilePath: string,
   designbookDir: string,
   options: {
     builders?: SceneNodeBuilder[];
@@ -44,26 +45,25 @@ export async function buildEntityModule(
     wrapImport?: (alias: string) => string;
   } = {},
 ): Promise<string> {
-  const { entity_type, bundle } = parseDemoName(demoFilePath);
-  const dir = dirname(demoFilePath);
+  const { entity_type, bundle } = parseMappingName(mappingFilePath);
+  const dir = dirname(mappingFilePath);
 
-  const sampleData = (parseYaml(readFileSync(demoFilePath, 'utf-8')) as SampleData) ?? {};
-
-  // Discover view-modes from sibling mapping files: <type>.<bundle>.<view_mode>.jsonata
+  // Discover all view-modes for this bundle: <type>.<bundle>.<view_mode>.jsonata
   const prefix = `${entity_type}.${bundle}.`;
   const viewModeNames = readdirSync(dir)
     .filter((f) => f.startsWith(prefix) && f.endsWith('.jsonata'))
     .map((f) => f.slice(prefix.length, -'.jsonata'.length))
     .sort();
 
-  // Record count from the demo data
+  // Records come from the shared sample-data pool (data/<type>.<bundle>.yml),
+  // not a co-located demo file. entity-builder selects them via `select`.
+  const sampleData = loadSampleData(designbookDir);
   const records =
     (sampleData.content?.[entity_type]?.[bundle] as unknown[] | undefined) ??
     (sampleData.config?.[entity_type]?.[bundle] as unknown[] | undefined) ??
     [];
   const recordCount = Math.max(records.length, 1);
 
-  // Load data model via shared loader (reuses scene-module-builder's logic)
   const dataModel = loadDataModel(designbookDir);
 
   const ctx = buildRenderContext({
@@ -87,7 +87,11 @@ export async function buildEntityModule(
     const recordsNodes: ComponentNode[][] = [];
     for (let r = 0; r < recordCount; r++) {
       const tree: SceneTreeNode[] = [];
-      const built = await ctx.buildNode({ entity: `${entity_type}.${bundle}`, view_mode: vm, record: r } as SceneNode);
+      const built = await ctx.buildNode({
+        entity: `${entity_type}.${bundle}`,
+        view_mode: vm,
+        select: `$[${r}]`,
+      } as SceneNode);
       tree.push(...built);
       recordsNodes.push(view(tree));
     }
@@ -102,7 +106,7 @@ export async function buildEntityModule(
 
   return buildEntityCsfModule({
     group: `Entities/${entity_type}/${titleCaseBundle(bundle)}`,
-    source: basename(demoFilePath),
+    source: basename(mappingFilePath),
     mappingBasename: (vm) => `${prefix}${vm}.jsonata`,
     viewModes,
     resolveImportPath,
