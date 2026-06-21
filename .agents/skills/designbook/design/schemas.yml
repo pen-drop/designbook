@@ -310,7 +310,17 @@ Component:
   type: object
   required: [component, group]
   properties:
-    component: { type: string }
+    component:
+      type: string
+      pattern: "^[a-z][a-z0-9_]*$"
+      description: >
+        Bare component name in snake_case — NO `provider:` namespace prefix and no
+        hyphens (e.g. `hero`, `content_card`; never `test_integration_drupal:hero`).
+        Becomes the component directory and file basename
+        (`components/<component>/<component>.component.yml`), so a namespace colon
+        produces an invalid directory and breaks import resolution. The provider
+        namespace is configured separately and is not part of this name.
+      examples: [hero, content_card, stage_teaser]
     slots:
       type: array
       items: { type: string }
