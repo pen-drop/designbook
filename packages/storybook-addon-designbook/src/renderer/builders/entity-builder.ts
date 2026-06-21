@@ -38,8 +38,8 @@ export const entityBuilder: SceneNodeBuilder = {
   },
 
   async build(node: SceneNode, ctx: BuildContext): Promise<BuildResult> {
-    // Support raw YAML format: { entity: "node.article", view_mode, record }
-    // as well as normalized format: { entity_type, bundle, view_mode, record }
+    // Support raw YAML format: { entity: "node.article", view_mode, select }
+    // as well as normalized format: { entity_type, bundle, view_mode, select }
     let entity_type: string;
     let bundle: string;
     if (typeof node['entity'] === 'string') {
@@ -66,7 +66,8 @@ export const entityBuilder: SceneNodeBuilder = {
 
     // 2. Get the bundle's record array — content first, config fallback.
     const entityArray = (ctx.sampleData?.content?.[entity_type]?.[bundle] ??
-      ctx.sampleData?.config?.[entity_type]?.[bundle] ?? []) as Record<string, unknown>[];
+      ctx.sampleData?.config?.[entity_type]?.[bundle] ??
+      []) as Record<string, unknown>[];
 
     // Resolve the record(s) via the JSONata select predicate over the array (`$`).
     // No select (e.g. view entities) → evaluate the mapping with {}.

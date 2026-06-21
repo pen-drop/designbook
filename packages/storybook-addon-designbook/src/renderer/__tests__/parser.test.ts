@@ -8,7 +8,7 @@ describe('parseScene', () => {
       section: 'blog',
       items: [
         { component: 'heading', props: { level: 'h1' }, slots: { text: 'Blog' } },
-        { entity: 'node.article', view_mode: 'full', select: "$[0]" },
+        { entity: 'node.article', view_mode: 'full', select: '$[0]' },
       ],
     };
 
@@ -104,9 +104,7 @@ describe('parseScene', () => {
 
 describe('expandEntries — select model', () => {
   it('passes entity entries through with select preserved', () => {
-    const out = expandEntries([
-      { entity: 'node.doc', view_mode: 'full', select: "$[id='3'][0]" },
-    ]);
+    const out = expandEntries([{ entity: 'node.doc', view_mode: 'full', select: "$[id='3'][0]" }]);
     expect(out).toEqual([{ entity: 'node.doc', view_mode: 'full', select: "$[id='3'][0]" }]);
   });
 

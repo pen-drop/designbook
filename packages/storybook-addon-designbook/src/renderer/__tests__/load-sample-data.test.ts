@@ -21,7 +21,7 @@ describe('loadSampleData — merged data/ pool', () => {
   });
 
   it('returns empty pool when data/ is absent', () => {
-    const data = loadSampleData(resolve(__dirname, 'fixtures'));
+    const data = loadSampleData(resolve(__dirname, 'fixtures', 'entity-mapping'));
     expect(data).toEqual({});
   });
 });

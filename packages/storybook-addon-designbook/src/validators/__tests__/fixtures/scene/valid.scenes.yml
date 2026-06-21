@@ -16,7 +16,7 @@ scenes:
     items:
       - entity: node.article
         view_mode: teaser
-        record: 0
+        select: "$[0]"
 
   - name: Scene ref with slots
     items:

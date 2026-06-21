@@ -16,7 +16,7 @@ interface EntityRefNode {
   entity_type: string;
   bundle: string;
   view_mode: string;
-  record: number;
+  select?: string;
 }
 
 function isComponentNode(val: unknown): val is ComponentNode {

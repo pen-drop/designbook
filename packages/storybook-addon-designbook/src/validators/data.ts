@@ -72,8 +72,7 @@ export function validateData(dataModelPath: string, dataDir: string): Validation
             const meta = (rec as Record<string, unknown>).__designbook as { section?: unknown };
             const sec = meta?.section;
             const okSection =
-              typeof sec === 'string' ||
-              (Array.isArray(sec) && sec.every((s) => typeof s === 'string'));
+              typeof sec === 'string' || (Array.isArray(sec) && sec.every((s) => typeof s === 'string'));
             if (sec !== undefined && !okSection) {
               errors.push(
                 `Invalid __designbook.section on ${entityType}.${bundle} id=${rid} — must be string or string[]`,

@@ -14,11 +14,7 @@ export interface BundleFile {
  * Look a bundle up in the data model and return its namespace.
  * Returns 'content', 'config', or null when the bundle is unknown.
  */
-export function namespaceFor(
-  dataModel: DataModel,
-  entityType: string,
-  bundle: string,
-): 'content' | 'config' | null {
+export function namespaceFor(dataModel: DataModel, entityType: string, bundle: string): 'content' | 'config' | null {
   if (dataModel.content?.[entityType]?.[bundle]) return 'content';
   if (dataModel.config?.[entityType]?.[bundle]) return 'config';
   return null;
