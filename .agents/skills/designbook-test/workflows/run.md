@@ -40,9 +40,12 @@ Report the Storybook URL to the user (`_debo storybook status` returns the `url`
    - the workspace path as its working directory (run all `_debo` / `npx storybook-addon-designbook` commands from there),
    - the case `prompt` verbatim as the task to execute,
    - this instruction: *drive the full designbook workflow lifecycle per `resources/workflow-execution.md` (`workflow create` → task loop → `workflow done`) entirely inline within your own context. You are already a subagent and cannot spawn further subagents, so run every stage inline — including stages marked `isolate: true` (read their task/rules/blueprints and call `workflow done` yourself; do not dispatch a stage executor).*
-   - report contract: return only the final `workflow summary --json` plus one line per stage on what it produced — no task bodies, rule text, or file contents.
+   - **ask, don't guess:** *whenever a task body or stage asks the user to choose/confirm something you cannot answer from the case prompt + data model alone (screen type, which entities, component plan, layout decisions), STOP and return `status: needs_user` with the workflow name and the exact question(s). Do NOT invent an answer.*
+   - report contract: return `status: needs_user` (with questions) or `status: done` plus the final `workflow summary --json` and one line per stage on what it produced — no task bodies, rule text, or file contents.
 
-   When the subagent returns, relay its summary to the user.
+   **Interactive loop.** When the driver returns:
+   - `needs_user` → relay its question(s) to the user verbatim, get the answer, then dispatch a **fresh** driver subagent told to **resume** the existing workflow by name (the lifecycle state is on disk — `workflow list`/`workflow instructions` re-surface it) with the user's answer in its context. Repeat until `done`.
+   - `done` → relay the summary to the user.
 5. If **no**: Tell the user the workspace is ready for manual use
 
 Use `_debo storybook stop` to stop Storybook when the session ends or the user requests it.
