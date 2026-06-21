@@ -6,15 +6,14 @@ params:
   type: object
   required: [section_id, data_model, components_dir]
   properties:
-    section_id: { type: string }
+    section_id:
+      type: string
+      description: Section identifier — becomes the __designbook.section tag value on every generated record
     entities: { type: array, default: [] }
     data_model:
       path: $DESIGNBOOK_DATA/data-model.yml
       workflow: /debo-data-model
       type: object
-    sections_dir:
-      path: $DESIGNBOOK_DATA/sections/
-      type: string
     components_dir:
       path: $DESIGNBOOK_DIRS_COMPONENTS
       type: string
@@ -24,29 +23,20 @@ result:
   required: [sample-data]
   properties:
     sample-data:
-      path: $DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml
-      type: object
+      path: $DESIGNBOOK_DATA/data/
+      $ref: ../schemas.yml#/SampleDataBundle
       validators: [data]
 ---
 
 # Sample Data
 
-Generate sample data for a section. Idempotent — reads existing data.yml, preserves records, appends missing.
+Generate sample data for a section. Idempotent — reads existing per-bundle files, preserves records, appends missing.
 
 ## Gathering
 
 ### Select Section
 
-If `section_id` is not provided, list all directories under the sections directory. Present the available sections:
-
-> "Which section should get sample data?
->
-> 1. **getting-started**
-> 2. **blog**
->
-> (Enter number or section id)"
-
-Wait for response. Set `section_id` to the selected section's directory name.
+If `section_id` is not provided, list all sections available in the data model. Present the available sections and wait for selection.
 
 ### Analyze Data Needs
 
@@ -67,15 +57,15 @@ Wait for response. Iterate until approved.
 
 ## Generation
 
-### Step 1: Read existing data.yml
+### Step 1: Read existing per-bundle files
 
-Read `$DESIGNBOOK_DATA/sections/{{ section_id }}/data.yml` if it exists. Build an inventory:
+For each `<entity_type>.<bundle>` in the data model, read the corresponding file under the data directory if it exists. Build an inventory of records already tagged with `__designbook.section` matching `{{ section_id }}`:
 
 ```
-existing_counts[entity_type][bundle] = number of records
+existing_counts[entity_type][bundle] = number of records where __designbook.section == section_id
 ```
 
-If the file does not exist, treat all counts as 0.
+If a file does not exist, treat the count as 0.
 
 ### Step 2: Determine required record counts
 
@@ -117,25 +107,12 @@ For each bundle where `existing_count < required_count`:
 
 ## Output Format
 
-`data.yml` MUST use `content:` and `config:` as top-level section keys — mirroring the data model structure:
+One file per `<entity_type>.<bundle>` is written to the data directory (`result.sample-data.path`). Each file is a bare record array — no `content:` or `config:` wrapper (the loader derives the namespace from the data model). Every record carries a `__designbook` block with a `section` tag set to `{{ section_id }}`.
 
-```yaml
-content:
-  {entity_type}:       # e.g. node, media, taxonomy_term, canvas_page
-    {bundle}:          # e.g. article, image, tags, landing_page
-      - id: "1"
-        {field}: {value}
-
-config:
-  {entity_type}:       # e.g. view
-    {bundle}:
-      - id: "1"
-        {field}: {value}
+Scenes select records from the pool via JSONata `select:` expressions (see scenes authoring), for example:
 ```
-
-- Content entities from the data model `content:` section → write under `content:` in `data.yml`
-- Config entities from the data model `config:` section → write under `config:` in `data.yml`
-- Omit `config:` entirely if there are no config entities
+select: "$[__designbook.section = 'getting-started' and id = '3'][0]"
+```
 
 ## Field Value Generation
 

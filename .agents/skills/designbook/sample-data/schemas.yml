@@ -9,3 +9,20 @@ SampleData:
     config:
       type: object
       additionalProperties: true
+
+SampleDataBundle:
+  type: array
+  description: Bare record array for one entity_type.bundle file under data/; every record carries a __designbook block
+  items:
+    type: object
+    required: [id]
+    properties:
+      id:
+        type: string
+      __designbook:
+        type: object
+        required: [section]
+        properties:
+          section:
+            type: string
+            description: Section tag — used by JSONata select: expressions in scenes
