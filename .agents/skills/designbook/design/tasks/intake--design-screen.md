@@ -91,3 +91,8 @@ the planned components and the section's entity nodes (per the entity mappings),
 injected into the shell at its `content` point. The section spec's empty
 `scenes: []` is populated from this result; `create-scene` derives each scene's
 component tree from the binding rather than from any pre-existing scene.
+
+⛔ **Scene `name` must NOT be `overview`** — it is a reserved export (the section
+overview/management story). Name each scene meaningfully (the `section_id`, or
+`default` for a single-scene screen), never after the screen *type* word
+`overview`. The `scene` validator rejects `overview`.
