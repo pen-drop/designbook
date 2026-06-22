@@ -86,7 +86,7 @@ The record index is derived from the reference field value (entity ID) mapped to
 - Use dot notation for field access: `$fields.field_image.alt`
 - Static values (no `$`): `"h1"`, `true`, `42`
 - Provider prefix must be resolved at generation time: `DESIGNBOOK_COMPONENT_NAMESPACE:component-name`
-- Reference fields (`type: reference`) emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": N }` — typically as slot values inside a wrapper component. **Exception:** parent entities that orchestrate child sections (e.g. a landing page emitting its paragraph sections) MAY emit entity refs as top-level array items.
+- Reference fields (`type: reference`) emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": N }` nodes **as slot values of the wrapping component — NEVER in `props`** (the renderer resolves refs only inside slots and at top level; a ref in `props` is never resolved and renders empty — see scenes-constraints). The **only** exception is a pure delegation parent that has no wrapping markup of its own (e.g. a landing page stacking its paragraph sections), which MAY emit the refs as top-level array items.
 - Image fields: see [image-fields rule](../rules/image-fields.md) — `type: image` → ImageNode in slot, `type: reference` → EntityNode in slot
 - Conditional components: use `$fields.field_x ? { ... }` to omit when field is empty
 
