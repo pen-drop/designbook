@@ -94,8 +94,10 @@ Check:
     selector:
       type: string
       description: >
-        Optional CSS selector — limits the capture to a subregion of the
-        story render. When empty, the full story viewport area is used.
+        Optional CSS selector — the region crop target applied to BOTH the story
+        and the reference capture (element-capture mode). When empty, the full
+        viewport / full page is used. A selector that matches no element on one
+        side falls back to that side's full capture (never fails).
     type:
       type: string
       description: Check type (e.g. `screenshot`, `dom`). Determines the capture strategy.

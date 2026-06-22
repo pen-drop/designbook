@@ -55,6 +55,12 @@ npx playwright-cli close
 
 If the element is best identified by CSS selector, use `eval` to confirm it exists, then `snapshot` to get its ref.
 
+This mode applies to **both** the reference and the Storybook story, keyed on
+`check.selector`. The reference and the story are captured from different DOMs, so a
+selector may match one and not the other — when it matches nothing, fall back to full-page
+(skip-with-warning), never fail. This is what lets an entity selector (present only on the
+reference) crop the reference while the isolated component story stays full-viewport.
+
 ## Constraints
 
 - **Pin the session to the workspace** — pass `-s=<workspace>` on every `playwright-cli` call (`open`, `goto`, `resize`, `snapshot`, `screenshot`, `eval`, `close`). The unnamed default session is process-global and shared across workspaces; a concurrent run in another workspace can hijack it mid-capture and silently photograph the wrong Storybook. Use a session name unique to this workspace.
