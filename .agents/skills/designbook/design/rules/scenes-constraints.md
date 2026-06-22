@@ -75,6 +75,31 @@ Slots accept three value types:
         value: "Welcome to the Blog"
 ```
 
+> ⛔ **Rendered content belongs in slots — never props.** Markup strings, component
+> reference nodes, and entity reference nodes (`{ entity, view_mode, record }`) MUST be
+> slot values. `props` carry scalar data only (strings, numbers, booleans, plain data
+> objects/arrays) — never markup, never component/entity nodes. The renderer resolves
+> component and entity references only inside `slots` (and at the top level of a scene /
+> mapping); a reference placed in `props` is passed through verbatim and never resolved,
+> so the component receives `{ entity, … }` objects instead of rendered content and
+> renders empty. This applies identically to `*.scenes.yml` and to `map-entity` `.jsonata`
+> output — a mapping output is a scene node tree.
+
+```yaml
+# ✅ Correct — entity ref in a slot → resolved into the parent's rendered output
+- component: "$DESIGNBOOK_COMPONENT_NAMESPACE:signage"
+  props: { overlapping: true }
+  slots:
+    items:
+      - { entity: "paragraph.signage_item", view_mode: "full", record: 0 }
+
+# ❌ Wrong — entity ref in a prop → never resolved, renders empty
+- component: "$DESIGNBOOK_COMPONENT_NAMESPACE:signage"
+  props:
+    items:
+      - { entity: "paragraph.signage_item", view_mode: "full", record: 0 }
+```
+
 > ⛔ **Select a component variant via `props.variant` only.** The renderer passes
 > only a node's `props` to the component — a top-level `variant:` key on a scene/story
 > node is silently ignored and the component renders its default. Put the variant id
@@ -109,5 +134,7 @@ slots:
   logo: '<img src="/logo.png" alt="Logo" class="h-12 w-auto">'
 ```
 
-This applies to all markup strings in scene files — both in `slots:` and in `props:` that accept HTML. Component templates can use utility classes freely since they are in configured source paths.
+This applies to all markup strings in slot values. Props never carry markup (see the
+rendered-content rule above). Component templates can use utility classes freely since
+they are in configured source paths.
 
