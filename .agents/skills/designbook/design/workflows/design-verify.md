@@ -11,6 +11,7 @@ params:
     type: string
     resolve: reference_folder
     from: reference_url
+  selector: { type: string, default: "" }
 stages:
   reference:
     steps: [extract-reference]
