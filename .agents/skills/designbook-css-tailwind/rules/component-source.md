@@ -2,7 +2,7 @@
 trigger:
   domain: components
 filter:
-  frameworks.style: tailwind
+  frameworks.css: tailwind
 ---
 
 # Tailwind Component Source Registration

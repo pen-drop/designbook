@@ -2,7 +2,7 @@
 trigger:
   steps: [create-component]
 filter:
-  frameworks.style: tailwind
+  frameworks.css: tailwind
 ---
 
 # Region Properties — Tailwind output
