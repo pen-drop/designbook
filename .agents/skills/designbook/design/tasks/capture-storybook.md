@@ -44,7 +44,7 @@ Captures a Storybook screenshot at the given breakpoint viewport width via Playw
 
 2. **Capture screenshot** using the `playwright-capture` rule (staged file flow):
 
-   a. **Resolve viewport width** from `design-tokens.yml` and **selector** from the check's `selector` field.
+   a. **Resolve viewport width** from `design-tokens.yml` and the **story selector** from the check's `selector` field. When `selector` is empty, element-capture `#storybook-root` (the rendered story container) — NOT `--full-page`, which would capture the empty 1600px viewport around an isolated component (see `playwright-capture`).
 
    b. **Capture** using the method from the `playwright-capture` rule (full-page CLI or element Node API depending on region type). When `check.steps` are present, they run against the iframe before capture so the story is in the check's interaction state.
 

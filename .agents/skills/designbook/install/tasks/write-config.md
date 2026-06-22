@@ -1,4 +1,5 @@
 ---
+title: "Write Config"
 trigger:
   steps: [write-config]
 params:

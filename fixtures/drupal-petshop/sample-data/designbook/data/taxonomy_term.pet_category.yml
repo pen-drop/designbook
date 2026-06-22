@@ -1,0 +1,15 @@
+- id: cat-dogs
+  name: Dogs
+  description: All dog breeds and mixes
+  __designbook:
+    section: "homepage"
+- id: cat-cats
+  name: Cats
+  description: Domestic and purebred cats
+  __designbook:
+    section: "homepage"
+- id: cat-others
+  name: Other Animals
+  description: Rabbits, birds, reptiles, and more
+  __designbook:
+    section: "homepage"

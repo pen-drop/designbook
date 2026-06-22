@@ -1,4 +1,5 @@
 ---
+title: "Create Data Model"
 trigger:
   steps: [create-data-model]
 domain: [data-model, vision]

@@ -7,6 +7,7 @@ import { load as parseYaml } from 'js-yaml';
 
 import type { SceneNodeBuilder } from './renderer/types';
 import { buildSceneModule } from './renderer/scene-module-builder';
+import { buildEntityModule } from './renderer/entity-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { scanAllWorkflows } from './workflow-utils';
 import { StoryMeta } from './story-entity';
@@ -21,6 +22,10 @@ function globMatch(pattern: string, filePath: string): boolean {
     .map((part) => part.replace(/\./g, '\\.').replace(/\*/g, '[^/]*'))
     .join('(?:[^/]+/)*');
   return new RegExp('^' + regexStr + '$').test(filePath);
+}
+
+export function isEntityMappingFile(id: string): boolean {
+  return /(?:^|\/)entity-mapping\/[^/]+\.jsonata$/.test(id);
 }
 
 // Resolve React from the addon's own dependencies (works in pnpm strict mode)
@@ -192,6 +197,10 @@ export function designbookLoadPlugin(
         if (importer) return resolve(dirname(importer), cleanId);
         return cleanId;
       }
+      if (isEntityMappingFile(cleanId)) {
+        if (importer) return resolve(dirname(importer), cleanId);
+        return cleanId;
+      }
     },
 
     async load(id: string) {
@@ -215,6 +224,14 @@ export function designbookLoadPlugin(
 
       if (id === RESOLVED_VIRTUAL_THEMES) {
         return buildThemesModule(designbookDir);
+      }
+
+      if (isEntityMappingFile(id)) {
+        return loadEntityModule(id, designbookDir, {
+          builders: options.builders,
+          resolveImportPath: options.resolveImportPath,
+          wrapImport: options.wrapImport,
+        });
       }
 
       const match = matchHandler(id, defaultHandlers);
@@ -646,6 +663,25 @@ export function buildThemesModule(designbookDir: string): string {
 // ---------------------------------------------------------------------------
 // Main scene loader
 // ---------------------------------------------------------------------------
+
+async function loadEntityModule(
+  id: string,
+  designbookDir: string,
+  options: {
+    builders?: SceneNodeBuilder[];
+    resolveImportPath?: (componentId: string) => string | null;
+    wrapImport?: (alias: string) => string;
+  },
+): Promise<string | null> {
+  try {
+    const code = await buildEntityModule(id, designbookDir, options);
+    const result = await transformWithEsbuild(code, id + '.js', { loader: 'js' });
+    return result.code;
+  } catch (e: unknown) {
+    console.error('[Designbook] Error loading entity module:', id, e);
+    return buildErrorModule(id, e);
+  }
+}
 
 async function loadSceneModule(
   id: string,

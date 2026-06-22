@@ -14,4 +14,4 @@ scenes:
           content:
             - entity: "canvas_page.landing_page"
               view_mode: "full"
-              record: 0
+              select: "$[0]"

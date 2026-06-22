@@ -1,0 +1,15 @@
+- id: "1"
+  field_media_image:
+    alt: "Abstract geometric pattern with blue gradient representing AI-driven design automation"
+  __designbook:
+    section: "homepage"
+- id: "2"
+  field_media_image:
+    alt: "Dashboard showing component library with card and button previews"
+  __designbook:
+    section: "homepage"
+- id: "3"
+  field_media_image:
+    alt: "Code editor with Twig template syntax highlighting"
+  __designbook:
+    section: "homepage"

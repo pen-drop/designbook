@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseScene } from '../parser';
+import { parseScene, expandEntries } from '../parser';
 
 describe('parseScene', () => {
   it('parses a valid scene definition with items', () => {
@@ -8,7 +8,7 @@ describe('parseScene', () => {
       section: 'blog',
       items: [
         { component: 'heading', props: { level: 'h1' }, slots: { text: 'Blog' } },
-        { entity: 'node.article', view_mode: 'full', record: 0 },
+        { entity: 'node.article', view_mode: 'full', select: '$[0]' },
       ],
     };
 
@@ -19,7 +19,7 @@ describe('parseScene', () => {
     expect(scene.items).toHaveLength(2);
   });
 
-  it('expands records shorthand into individual entries', () => {
+  it('passes entity with records shorthand through as-is', () => {
     const raw = {
       name: 'Listing',
       items: [{ entity: 'node.article', view_mode: 'teaser', records: [0, 1, 2] }],
@@ -27,13 +27,11 @@ describe('parseScene', () => {
 
     const scene = parseScene(raw);
 
-    expect(scene.items).toHaveLength(3);
-    expect(scene.items[0]).toEqual({ entity: 'node.article', view_mode: 'teaser', record: 0 });
-    expect(scene.items[1]).toEqual({ entity: 'node.article', view_mode: 'teaser', record: 1 });
-    expect(scene.items[2]).toEqual({ entity: 'node.article', view_mode: 'teaser', record: 2 });
+    expect(scene.items).toHaveLength(1);
+    expect(scene.items[0]).toEqual({ entity: 'node.article', view_mode: 'teaser', records: [0, 1, 2] });
   });
 
-  it('defaults record to 0 when not specified', () => {
+  it('passes entity without record or select through as-is', () => {
     const raw = {
       name: 'Detail',
       items: [{ entity: 'node.article', view_mode: 'full' }],
@@ -41,7 +39,7 @@ describe('parseScene', () => {
 
     const scene = parseScene(raw);
 
-    expect(scene.items[0]).toEqual({ entity: 'node.article', view_mode: 'full', record: 0 });
+    expect(scene.items[0]).toEqual({ entity: 'node.article', view_mode: 'full' });
   });
 
   it('passes through component entries', () => {
@@ -85,8 +83,11 @@ describe('parseScene', () => {
 
     const scene = parseScene(raw);
 
-    // 1 component + 2 expanded entities + 1 component = 4
-    expect(scene.items).toHaveLength(4);
+    // 1 component + 1 entity (records array passed through) + 1 component = 3
+    expect(scene.items).toHaveLength(3);
+    expect(scene.items[0]).toEqual({ component: 'heading', props: { level: 'h1' }, slots: { text: 'Title' } });
+    expect(scene.items[1]).toEqual({ entity: 'node.article', view_mode: 'teaser', records: [0, 1] });
+    expect(scene.items[2]).toEqual({ component: 'text-block', slots: { content: 'Footer text' } });
   });
 
   it('preserves optional group field', () => {
@@ -98,5 +99,22 @@ describe('parseScene', () => {
 
     const scene = parseScene(raw);
     expect(scene.group).toBe('Custom/Path');
+  });
+});
+
+describe('expandEntries — select model', () => {
+  it('passes entity entries through with select preserved', () => {
+    const out = expandEntries([{ entity: 'node.doc', view_mode: 'full', select: "$[id='3'][0]" }]);
+    expect(out).toEqual([{ entity: 'node.doc', view_mode: 'full', select: "$[id='3'][0]" }]);
+  });
+
+  it('does not inject a record field', () => {
+    const out = expandEntries([{ entity: 'node.doc', view_mode: 'full' }]);
+    expect(out[0]).not.toHaveProperty('record');
+  });
+
+  it('passes component entries through untouched', () => {
+    const out = expandEntries([{ component: 'p:heading', props: { level: 'h1' } }]);
+    expect(out).toEqual([{ component: 'p:heading', props: { level: 'h1' } }]);
   });
 });

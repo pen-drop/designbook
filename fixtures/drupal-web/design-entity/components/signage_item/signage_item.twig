@@ -1,0 +1,50 @@
+<div{{ attributes.addClass(['flex', 'flex-col', 'gap-6', 'p-8', 'h-full']) }}>
+  {% if icon %}
+    <div class="flex items-center justify-center w-[74px] h-[74px] rounded-full bg-surface flex-shrink-0">
+      <span class="material-symbols-outlined text-primary text-4xl">{{ icon }}</span>
+    </div>
+  {% endif %}
+
+  {% if title %}
+    <h3 class="text-xl font-bold text-on-surface leading-snug">{{ title }}</h3>
+  {% endif %}
+
+  {% if description %}
+    <div class="text-base text-on-surface leading-normal">{{ description|raw }}</div>
+  {% endif %}
+
+  {% if links %}
+    <ul class="flex flex-col gap-2 list-none p-0 m-0">
+      {% for link in links %}
+        <li>
+          {% if link.url is defined %}
+            <a href="{{ link.url }}" class="text-primary hover:underline text-sm">{{ link.title }}</a>
+          {% else %}
+            {{ link|raw }}
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="flex flex-col gap-3 mt-auto">
+    {% if button_anonymous %}
+      <div>
+        {% if button_anonymous.url is defined %}
+          <a href="{{ button_anonymous.url }}" class="inline-flex items-center justify-center h-[56px] px-6 bg-primary text-inverse rounded-md font-bold text-sm w-full hover:bg-primary-medium transition-colors">{{ button_anonymous.title }}</a>
+        {% else %}
+          {{ button_anonymous|raw }}
+        {% endif %}
+      </div>
+    {% endif %}
+    {% if button_authenticated %}
+      <div>
+        {% if button_authenticated.url is defined %}
+          <a href="{{ button_authenticated.url }}" class="inline-flex items-center justify-center h-[56px] px-6 bg-surface-variant text-primary border border-primary rounded-md font-bold text-sm w-full hover:bg-primary hover:text-inverse transition-colors">{{ button_authenticated.title }}</a>
+        {% else %}
+          {{ button_authenticated|raw }}
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>

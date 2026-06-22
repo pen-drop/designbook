@@ -958,6 +958,30 @@ export function resolveFiles(
   return results;
 }
 
+// ── Root Precedence ──────────────────────────────────────────────────
+
+/** Path lives under a plugin-cache skills root (installed plugin / user copy). */
+function isPluginRootPath(p: string): boolean {
+  return /\/(?:\.cli-skills-root[^/]*|plugins\/cache)\//.test(p.replace(/\\/g, '/'));
+}
+
+/**
+ * Apply project-over-user (plugin) root precedence: first hit wins by root.
+ *
+ * Search order is project first, then user. If the project root yields ANY
+ * match, the user/plugin matches are discarded wholesale — never merged. The
+ * installed plugin is only a fallback for steps the project does not define.
+ *
+ * Without this, the same step resolves task files from BOTH roots, and
+ * `each:`-expansion materializes every task once per root (a `create-component`
+ * present in both roots expands every component twice; sample-data runs twice,
+ * the stale plugin copy writing the legacy per-section data.yml).
+ */
+export function preferProjectRoot(files: ResolvedFile[]): ResolvedFile[] {
+  const projectMatches = files.filter((f) => !isPluginRootPath(f.path));
+  return projectMatches.length > 0 ? projectMatches : files;
+}
+
 // ── Name/As Deduplication & Priority Sorting ─────────────────────────
 
 /**
@@ -1193,9 +1217,11 @@ export function resolveTaskFilesRich(
     return [];
   }
 
-  // Generic stage: return ALL broad-scan matches, deduplicated
+  // Generic stage: return ALL broad-scan matches, deduplicated.
+  // Collapse same-logical-file copies across roots (project + plugin cache) first,
+  // so each-expansion does not materialize a task once per source root.
   if (broadMatches.length > 0) {
-    return deduplicateByNameAs(broadMatches, agentsDir);
+    return deduplicateByNameAs(preferProjectRoot(broadMatches), agentsDir);
   }
 
   // Fallback: filename-based resolution with deprecation warning
@@ -1211,7 +1237,7 @@ export function resolveTaskFilesRich(
     for (const m of filenameMatches) {
       console.warn(`[designbook] task "${m.path}" resolved by filename — add trigger.steps: [${stage}] to frontmatter`);
     }
-    return deduplicateByNameAs(filenameMatches, agentsDir);
+    return deduplicateByNameAs(preferProjectRoot(filenameMatches), agentsDir);
   }
 
   return [];
@@ -2095,32 +2121,19 @@ export function inferTaskType(stage: string): string {
 export async function generateTaskTitle(
   stage: string,
   params: Record<string, unknown>,
-  schemaParams?: Record<string, unknown>,
+  _schemaParams?: Record<string, unknown>,
   explicitTitle?: string,
 ): Promise<string> {
   if (explicitTitle) {
     return interpolate(explicitTitle, params);
   }
 
-  // Derive title from step name
+  // Default title: just the step name, title-cased. No param-value guessing —
+  // an explicit `title:` in the task frontmatter is the only source of a
+  // descriptive title. (Scanning params for a "good" suffix picked up
+  // scope-injected paths like reference_folder and produced garbage titles.)
   const base = stage.includes(':') ? stage.split(':')[1]! : stage;
-  const words = base.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-
-  if (schemaParams) {
-    for (const [key, defaultValue] of Object.entries(schemaParams)) {
-      if (defaultValue === null && typeof params[key] === 'string' && (params[key] as string).length > 0) {
-        return `${words}: ${params[key]}`;
-      }
-    }
-  }
-
-  for (const value of Object.values(params)) {
-    if (typeof value === 'string' && value.length > 0) {
-      return `${words}: ${value}`;
-    }
-  }
-
-  return words;
+  return base.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**

@@ -65,6 +65,8 @@ describe('buildSceneModule integration', () => {
     expect(module).toContain('figure');
     expect(module).toContain('heading');
     expect(module).toContain('text-block');
+    // Verify the selected record's data flows through (select resolves record 0)
+    expect(module).toContain('Understanding Modern Architecture');
   });
 
   it('exports EntityInEntity scene with heading and badge (recursive entity resolution)', async () => {

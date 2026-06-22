@@ -10,6 +10,9 @@ prompt: |
   Run the /debo design-verify workflow. Do NOT ask any questions.
   Verify the Design System (shell) scene only.
   The reference is https://leando.de/
+  Verify two regions, each with a story selector AND the reference's real selector:
+    - id "header", story selector ".page__header", reference_selector "app-site-header"
+    - id "footer", story selector ".page__footer", reference_selector "app-footer"
   Use breakpoints sm and xl with threshold 3%.
   Execute the workflow now.
 

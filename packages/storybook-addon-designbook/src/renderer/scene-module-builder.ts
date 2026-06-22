@@ -11,6 +11,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
+import { readBundleFiles, namespaceFor } from './data-pool';
 
 import { extractGroup, buildExportName, fileBaseName, extractScenes } from './scene-metadata';
 import { expandEntries } from './parser';
@@ -24,6 +25,7 @@ import { view } from './view';
 import { validateSceneNodes } from './validate-scene-nodes';
 
 import type {
+  BuildContext,
   DataModel,
   DesignbookConfig,
   SampleData,
@@ -39,7 +41,7 @@ import type {
  * Default import path resolver for SDC (.component.yml) components.
  * Resolves 'provider:component' → absolute path to component.yml
  */
-function defaultSdcResolver(componentId: string, designbookDir: string): string | null {
+export function defaultSdcResolver(componentId: string, designbookDir: string): string | null {
   const parts = componentId.split(':');
   if (parts.length !== 2 || !parts[1]) return null;
 
@@ -60,7 +62,7 @@ function defaultSdcResolver(componentId: string, designbookDir: string): string 
 
 // ── Data loading ────────────────────────────────────────────────────────
 
-function loadDataModel(designbookDir: string): DataModel {
+export function loadDataModel(designbookDir: string): DataModel {
   const dataModelPath = join(designbookDir, 'data-model.yml');
   try {
     return parseYaml(readFileSync(dataModelPath, 'utf-8')) as DataModel;
@@ -88,26 +90,53 @@ function loadDesignbookConfig(designbookDir: string): DesignbookConfig | undefin
   }
 }
 
-function loadSampleData(id: string, designbookDir: string, firstSceneSection?: string): SampleData {
-  let sectionId = firstSceneSection;
-  if (!sectionId) {
-    const match = id.match(/sections\/([^/]+)\//);
-    if (match) sectionId = match[1];
-  }
+/**
+ * Merge every `data/<entity_type>.<bundle>.yml` file into one SampleData pool.
+ * Namespace (content/config) is resolved by data-model lookup. No fallback.
+ *
+ * @param dataModel - optional pre-loaded DataModel; when omitted, loaded from disk.
+ */
+export function loadSampleData(designbookDir: string, dataModel?: DataModel): SampleData {
+  const resolvedDataModel = dataModel ?? loadDataModel(designbookDir);
+  const pool: SampleData = {};
 
-  if (sectionId) {
-    const sectionDataPath = join(designbookDir, 'sections', sectionId, 'data.yml');
-    if (existsSync(sectionDataPath)) {
-      return parseYaml(readFileSync(sectionDataPath, 'utf-8')) as SampleData;
+  for (const { entityType, bundle, records } of readBundleFiles(join(designbookDir, 'data'))) {
+    const ns = namespaceFor(resolvedDataModel, entityType, bundle);
+    if (!ns) {
+      console.warn(`[Designbook] data/${entityType}.${bundle}.yml: not in data-model — skipped`);
+      continue;
     }
+    pool[ns] ??= {};
+    pool[ns]![entityType] ??= {};
+    pool[ns]![entityType]![bundle] = records;
   }
 
-  const globalDataPath = join(designbookDir, 'data.yml');
-  if (existsSync(globalDataPath)) {
-    return parseYaml(readFileSync(globalDataPath, 'utf-8')) as SampleData;
-  }
+  return pool;
+}
 
-  return {};
+// ── Render context ──────────────────────────────────────────────────────
+
+export function buildRenderContext(args: {
+  dataModel: DataModel;
+  sampleData: SampleData;
+  designbookDir: string;
+  config: DesignbookConfig | undefined;
+  builders?: SceneNodeBuilder[];
+}): BuildContext {
+  const registry = new BuilderRegistry();
+  registry.register(componentBuilder);
+  registry.register(entityBuilder);
+  registry.register(sceneBuilder);
+  registry.register(imageStyleBuilder);
+  for (const builder of args.builders ?? []) {
+    registry.register(builder);
+  }
+  return registry.createContext({
+    dataModel: args.dataModel,
+    sampleData: args.sampleData,
+    designbookDir: args.designbookDir,
+    config: args.config,
+  });
 }
 
 // ── Main entry point ────────────────────────────────────────────────────
@@ -143,29 +172,13 @@ export async function buildSceneModule(
 
   // ── 2. Load data model + sample data ──────────────────────────────
   const dataModel = loadDataModel(designbookDir);
-  const firstScene = scenesArray[0] as Record<string, unknown> | undefined;
-  const sampleData = loadSampleData(
-    id,
-    designbookDir,
-    typeof firstScene?.section === 'string' ? firstScene.section : undefined,
-  );
+  const sampleData = loadSampleData(designbookDir, dataModel);
 
   // ── 2b. Load designbook config ──────────────────────────────��─────
   const config = loadDesignbookConfig(designbookDir);
 
   // ── 3. Build registry with built-in + custom builders ─────────────
-  const registry = new BuilderRegistry();
-  // Built-ins registered first (lowest priority — custom builders override)
-  registry.register(componentBuilder);
-  registry.register(entityBuilder);
-  registry.register(sceneBuilder);
-  registry.register(imageStyleBuilder);
-  // Custom builders registered last (highest priority)
-  for (const builder of options.builders ?? []) {
-    registry.register(builder);
-  }
-
-  const ctx = registry.createContext({ dataModel, sampleData, designbookDir, config });
+  const ctx = buildRenderContext({ dataModel, sampleData, designbookDir, config, builders: options.builders });
 
   // ── 4. Scene metadata ─────────────────────────────────────────────
   const fileBase = fileBaseName(id);

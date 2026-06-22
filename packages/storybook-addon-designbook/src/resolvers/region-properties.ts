@@ -75,7 +75,11 @@ export const regionPropertiesResolver: ParamResolver = {
       return { resolved: true, value: undefined, input: url };
     }
 
-    const label = pickRegionLabel(context.params);
+    // An explicit `selector` param targets a specific element by its tag/label
+    // (e.g. an Angular custom element `<app-signage>` → label "app-signage").
+    // It overrides the component-name heuristic. Falls back to pickRegionLabel.
+    const selector = context.params.selector;
+    const label = typeof selector === 'string' && selector.trim() ? selector.trim() : pickRegionLabel(context.params);
     const region = locateRegion(captured, label);
     return { resolved: true, value: region as unknown as Record<string, unknown>, input: url };
   },

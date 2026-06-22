@@ -1,7 +1,7 @@
 ---
 when:
   steps: [design-shell:create-scene, design-screen:create-scene]
-  frameworks.style: tailwind
+  frameworks.css: tailwind
 ---
 
 # Tailwind Scene Constraints

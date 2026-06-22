@@ -1,4 +1,5 @@
 ---
+title: "Find Target"
 trigger:
   steps: [find-target]
 result:

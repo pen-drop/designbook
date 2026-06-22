@@ -1,4 +1,5 @@
 ---
+title: "Create Vision"
 trigger:
   steps: [create-vision]
 params:

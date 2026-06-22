@@ -79,14 +79,14 @@ program
 const validate = program.command('validate').description('Validate Designbook artifacts against schemas');
 
 validate
-  .command('data <section-id>')
-  .description('Validate section data.yml against data-model.yml')
-  .action((sectionId: string) => {
+  .command('data')
+  .description('Validate data/ pool against data-model.yml')
+  .action(() => {
     const config = loadConfig();
     const dataModelPath = resolve(config.data, 'data-model.yml');
-    const dataPath = resolve(config.data, 'sections', sectionId, 'data.yml');
-    const result = validateData(dataModelPath, dataPath);
-    printJson(sectionId, result.valid, result.errors, result.warnings);
+    const dataDir = resolve(config.data, 'data');
+    const result = validateData(dataModelPath, dataDir);
+    printJson('data', result.valid, result.errors, result.warnings);
   });
 
 validate

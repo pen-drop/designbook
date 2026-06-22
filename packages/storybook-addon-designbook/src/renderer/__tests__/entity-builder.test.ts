@@ -10,15 +10,25 @@ const sampleData = {
     node: {
       article: [
         {
+          id: '1',
+          __designbook: { section: 'section_a' },
           title: 'Understanding Modern Architecture',
           field_body: '<p>Architecture...</p>',
           field_media: { url: '/images/arch.jpg', alt: 'Building' },
           field_teaser: 'A deep dive.',
         },
+        {
+          id: '2',
+          __designbook: { section: 'section_b' },
+          title: 'Second Article',
+          field_body: '<p>Second...</p>',
+          field_media: { url: '/images/two.jpg', alt: 'Two' },
+          field_teaser: 'Another.',
+        },
       ],
     },
     user: {
-      user: [{ name: 'Jane Doe', field_avatar: '/images/jane.jpg' }],
+      user: [{ id: '1', name: 'Jane Doe', field_avatar: '/images/jane.jpg' }],
     },
   },
 };
@@ -47,7 +57,7 @@ describe('entityBuilder', () => {
       entity_type: 'node',
       bundle: 'article',
       view_mode: 'teaser',
-      record: 0,
+      select: '$[0]',
     };
 
     const ctx = makeCtx();
@@ -77,7 +87,7 @@ describe('entityBuilder', () => {
       entity_type: 'node',
       bundle: 'article',
       view_mode: 'with-author',
-      record: 0,
+      select: '$[0]',
     };
 
     const ctx = makeCtx();
@@ -90,13 +100,49 @@ describe('entityBuilder', () => {
     expect(types).toContain('component');
   });
 
+  it('build() selects the record matching the section tag', async () => {
+    const node = {
+      type: 'entity',
+      entity_type: 'node',
+      bundle: 'article',
+      view_mode: 'teaser',
+      select: "$['section_b' in __designbook.section][0]",
+    };
+
+    const ctx = makeCtx();
+    const result = await entityBuilder.build(node, ctx);
+
+    // teaser maps `title` into the heading slot — section_b record has "Second Article"
+    const json = JSON.stringify(result.nodes);
+    expect(json).toContain('Second Article');
+    expect(json).not.toContain('Understanding Modern Architecture');
+  });
+
+  it('build() selects the record by numeric `record` index when no select (nested ref form)', async () => {
+    const node = {
+      type: 'entity',
+      entity_type: 'node',
+      bundle: 'article',
+      view_mode: 'teaser',
+      record: 1,
+    };
+
+    const ctx = makeCtx();
+    const result = await entityBuilder.build(node, ctx);
+
+    // record:1 → article[1] = "Second Article"
+    const json = JSON.stringify(result.nodes);
+    expect(json).toContain('Second Article');
+    expect(json).not.toContain('Understanding Modern Architecture');
+  });
+
   it('build() returns placeholder for missing jsonata file', async () => {
     const node = {
       type: 'entity',
       entity_type: 'node',
       bundle: 'article',
       view_mode: 'nonexistent',
-      record: 0,
+      select: '$[0]',
     };
 
     const ctx = makeCtx();
@@ -113,7 +159,7 @@ describe('entityBuilder', () => {
       entity_type: 'node',
       bundle: 'article',
       view_mode: 'teaser',
-      record: 99,
+      select: "$[id='999'][0]",
     };
 
     const ctx = makeCtx();

@@ -5,7 +5,6 @@ fixtures:
   - css-generate
   - sections
   - design-shell
-  - design-verify-shell
 
 prompt: |
   You are working in the directory {{workspace}}.

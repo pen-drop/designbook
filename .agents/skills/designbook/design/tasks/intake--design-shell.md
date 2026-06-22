@@ -1,4 +1,5 @@
 ---
+title: "Intake"
 trigger:
   steps: [design-shell:intake]
 domain: [components, components.shell]

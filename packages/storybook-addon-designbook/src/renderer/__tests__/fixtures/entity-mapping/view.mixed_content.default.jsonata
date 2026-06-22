@@ -7,7 +7,7 @@
       "component": "stack",
       "slots": {
         "items": [
-          { "entity": "node.article", "view_mode": "teaser", "record": 0 }
+          { "entity": "node.article", "view_mode": "teaser", "select": "$[0]" }
         ]
       }
     }

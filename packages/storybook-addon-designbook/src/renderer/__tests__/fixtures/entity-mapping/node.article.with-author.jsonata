@@ -10,6 +10,6 @@
     "entity_type": "user",
     "bundle": "user",
     "view_mode": "compact",
-    "record": 0
+    "select": "$[0]"
   }
 ]

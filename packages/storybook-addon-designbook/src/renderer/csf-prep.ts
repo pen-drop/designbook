@@ -8,7 +8,7 @@
  * 4. Emit CSF module: default export + story exports with args.__scene + renderComponent
  */
 
-import type { ComponentNode, SceneTreeNode } from './types';
+import type { ComponentNode, SceneTreeNode, FieldMapping } from './types';
 import { builtInComponents } from './built-in-components';
 
 // ── Options ────────────────────────────────────────────────────────────
@@ -48,12 +48,12 @@ export interface CsfPrepOptions {
 // ── Import tracking ────────────────────────────────────────────────────
 
 /** Sanitize a component ID to a valid JS identifier. */
-function toAlias(componentId: string): string {
+export function toAlias(componentId: string): string {
   return componentId.replace(/[^a-zA-Z0-9]/g, '');
 }
 
 /** Walk a ComponentNode tree and collect all unique component IDs. */
-function collectComponentIds(nodes: ComponentNode[], seen = new Set<string>()): Set<string> {
+export function collectComponentIds(nodes: ComponentNode[], seen = new Set<string>()): Set<string> {
   for (const node of nodes) {
     if (node.component) seen.add(node.component);
     if (node.slots) {
@@ -154,6 +154,109 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
       `    __scene: ${nodesJson},`,
       '  },',
       '  render: (args) => renderComponent(args.__scene, __imports),',
+      '};',
+    ].join('\n');
+  });
+
+  return [importLines.join('\n'), '', importsMap, '', defaultExport, '', storyExports.join('\n\n'), ''].join('\n');
+}
+
+// ── Entity CSF ────────────────────────────────────────────────────────
+
+export interface EntityCsfViewMode {
+  view_mode: string;
+  exportName: string;
+  recordsNodes: ComponentNode[][];
+  source: string;
+  fieldMappings: FieldMapping[];
+}
+
+export interface EntityCsfOptions {
+  group: string;
+  source: string;
+  mappingBasename: (vm: string) => string;
+  viewModes: EntityCsfViewMode[];
+  resolveImportPath: (componentId: string) => string | null;
+  wrapImport?: (alias: string) => string;
+}
+
+function fieldTableMarkdown(mappings: FieldMapping[]): string {
+  if (!mappings.length) return '_No field mappings extracted._';
+  const head = '| field | component | target | kind | conditional |\n|---|---|---|---|---|';
+  const rows = mappings.map(
+    (m) => `| ${m.field} | ${m.component} | ${m.target} | ${m.type} | ${m.conditional ? 'yes' : '—'} |`,
+  );
+  return [head, ...rows].join('\n');
+}
+
+function docsDescription(mappingFile: string, source: string, mappings: FieldMapping[]): string {
+  return [
+    `#### Mapping \`${mappingFile}\``,
+    '',
+    '```jsonata',
+    source.trimEnd(),
+    '```',
+    '',
+    fieldTableMarkdown(mappings),
+  ].join('\n');
+}
+
+export function buildEntityCsfModule(opts: EntityCsfOptions): string {
+  const { group, source, mappingBasename, viewModes, resolveImportPath, wrapImport } = opts;
+
+  // Collect component IDs across every record of every view-mode
+  const allIds = new Set<string>();
+  for (const vm of viewModes) {
+    for (const nodes of vm.recordsNodes) collectComponentIds(nodes, allIds);
+  }
+
+  const importLines: string[] = ["import { renderComponent } from 'storybook-addon-designbook/renderer';"];
+  const importsMapEntries: string[] = [];
+  for (const componentId of allIds) {
+    if (componentId.startsWith('designbook:') && builtInComponents[componentId]) {
+      importsMapEntries.push(`  '${componentId}': { render: ${builtInComponents[componentId].render.toString()} },`);
+      continue;
+    }
+    const alias = toAlias(componentId);
+    const importPath = resolveImportPath(componentId);
+    if (importPath) {
+      importLines.push(`import * as ${alias} from '${importPath}';`);
+      importsMapEntries.push(`  '${componentId}': ${wrapImport ? wrapImport(alias) : alias},`);
+    } else {
+      importsMapEntries.push(
+        `  '${componentId}': { render: (_p, _s) => { console.warn('[Designbook] Missing component: ${componentId}'); return ''; } },`,
+      );
+    }
+  }
+  const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
+
+  // `entity` parameter mirrors the scene module's `scene` param — it marks the
+  // story as a designbook entity story so the visual-compare toolbar shows for
+  // entity stories too (the overlay reads the same per-story meta.yml).
+  const defaultExport = [
+    'export default {',
+    `  title: '${group.replace(/'/g, "\\'")}',`,
+    "  tags: ['autodocs'],",
+    '  parameters: {',
+    "    layout: 'fullscreen',",
+    '    entity: {',
+    `      source: '${source.replace(/'/g, "\\'")}',`,
+    '    },',
+    '  },',
+    '};',
+  ].join('\n');
+
+  const storyExports = viewModes.map((vm, index) => {
+    const recordsJson = JSON.stringify(vm.recordsNodes);
+    const options = vm.recordsNodes.map((_, i) => i);
+    const description = JSON.stringify(docsDescription(mappingBasename(vm.view_mode), vm.source, vm.fieldMappings));
+    return [
+      `export const ${vm.exportName} = {`,
+      `  name: '${vm.view_mode.replace(/'/g, "\\'")}',`,
+      `  parameters: { designbook: { order: ${100 + index} }, docs: { description: { story: ${description} } } },`,
+      `  argTypes: { record: { name: 'record', control: { type: 'select' }, options: [${options.join(', ')}] } },`,
+      `  args: { record: 0, __records: ${recordsJson} },`,
+      '  render: (args) => renderComponent(args.__records[args.record], __imports),',
       '};',
     ].join('\n');
   });

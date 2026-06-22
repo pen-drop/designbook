@@ -1,4 +1,5 @@
 ---
+title: "Prepare Fonts"
 trigger:
   steps: [prepare-fonts]
 domain: [css]

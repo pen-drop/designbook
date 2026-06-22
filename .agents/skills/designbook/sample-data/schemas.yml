@@ -1,5 +1,19 @@
 # Sample data concern schemas
 
+BundleRef:
+  type: object
+  description: One entity_type + bundle pair — the each-binding that scopes a create-sample-data task to a single data/ file.
+  required: [entity_type, bundle]
+  properties:
+    entity_type:
+      type: string
+      description: Entity type key from the data model (e.g. node, taxonomy_term, media, view).
+      examples: [node, taxonomy_term, media]
+    bundle:
+      type: string
+      description: Bundle key under the entity type (e.g. topic, event, image, recent_articles).
+      examples: [topic, event, image]
+
 SampleData:
   type: object
   properties:
@@ -9,3 +23,29 @@ SampleData:
     config:
       type: object
       additionalProperties: true
+
+SampleDataBundle:
+  type: array
+  description: Bare record array for one entity_type.bundle file under data/; every record carries a __designbook block
+  items:
+    type: object
+    required: [id]
+    properties:
+      id:
+        type: string
+        description: Unique record identifier within the bundle.
+        examples: ["1", "2", "shelter-1"]
+      __designbook:
+        type: object
+        required: [section]
+        properties:
+          section:
+            description: >-
+              Section tag used by JSONata `in` operator in scene select: expressions.
+              A record may belong to one section (string) or multiple sections (array of strings).
+              Use '$["my-section" in __designbook.section]' — works for both forms.
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string

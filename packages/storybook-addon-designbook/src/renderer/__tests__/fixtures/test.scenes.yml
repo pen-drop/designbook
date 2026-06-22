@@ -5,19 +5,19 @@ scenes:
     items:
       - entity: node.article
         view_mode: teaser
-        record: 0
+        select: "$[0]"
 
   - name: EntityInEntity
     items:
       - entity: node.article
         view_mode: with-author
-        record: 0
+        select: "$[0]"
 
   - name: EntityInComponentSlot
     items:
       - entity: node.article
         view_mode: card
-        record: 0
+        select: "$[0]"
 
   - name: ViewEntity
     items:
@@ -88,4 +88,4 @@ scenes:
           content:
             - entity: node.article
               view_mode: teaser
-              record: 0
+              select: "$[0]"

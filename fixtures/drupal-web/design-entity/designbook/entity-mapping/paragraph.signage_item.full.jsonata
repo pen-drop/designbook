@@ -1,0 +1,13 @@
+[
+  {
+    "component": "test_integration_drupal:signage_item",
+    "props": {
+      "title": field_title,
+      "description": field_description,
+      "icon": field_icon,
+      "links": field_links,
+      "button_anonymous": field_button_anonymous,
+      "button_authenticated": field_button_authenticated
+    }
+  }
+]

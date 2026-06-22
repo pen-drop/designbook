@@ -10,6 +10,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml';
 import { glob } from 'glob';
 import { buildExportName } from './renderer/scene-metadata.js';
+import { hashReferenceUrl } from './resolvers/reference-folder.js';
 import type { DesignbookConfig } from './config.js';
 
 // ---------------------------------------------------------------------------
@@ -40,11 +41,31 @@ export interface StoryMetaReference {
   hasMarkup?: boolean;
 }
 
+export interface StoryMetaRegionJSON {
+  /** CSS selector cropping the STORY capture. Empty ⇒ full story viewport. */
+  selector: string;
+  /** CSS selector cropping the REFERENCE capture. Empty ⇒ full reference page. */
+  reference_selector: string;
+}
+
+export interface StoryMetaBreakpointJSON {
+  threshold: number | null;
+  regions: Record<string, StoryMetaRegionJSON>;
+}
+
 export interface StoryMetaJSON {
   storyId: string;
   section: string;
   storyDir: string;
   reference: StoryMetaReference;
+  /**
+   * Reference-screenshot folder relative to the designbook dir
+   * (`references/{hash}` of `reference.url`), or null when no reference URL is
+   * set. The in-app visual-compare overlay loads `{referenceDir}/{bp}--{region}.png`.
+   */
+  referenceDir: string | null;
+  /** Per-breakpoint region configuration, derived from meta.yml. */
+  breakpoints: Record<string, StoryMetaBreakpointJSON>;
 }
 
 // ---------------------------------------------------------------------------
@@ -53,6 +74,7 @@ export interface StoryMetaJSON {
 
 interface MetaRegion {
   selector?: string;
+  reference_selector?: string;
   threshold?: number;
 }
 
@@ -341,11 +363,28 @@ export class StoryMeta {
   // -------------------------------------------------------------------------
 
   toJSON(): StoryMetaJSON {
+    const breakpoints: Record<string, StoryMetaBreakpointJSON> = {};
+    const bpData = this._meta.reference?.breakpoints ?? {};
+    for (const [bp, cfg] of Object.entries(bpData)) {
+      const regions: Record<string, StoryMetaRegionJSON> = {};
+      for (const [id, region] of Object.entries(cfg.regions ?? {})) {
+        regions[id] = {
+          selector: region.selector ?? '',
+          reference_selector: region.reference_selector ?? '',
+        };
+      }
+      breakpoints[bp] = { threshold: cfg.threshold ?? null, regions };
+    }
+
+    const referenceDir = this.reference.url ? `references/${hashReferenceUrl(this.reference.url)}` : null;
+
     return {
       storyId: this.storyId,
       section: this.section,
       storyDir: this.storyDir,
       reference: this.reference,
+      referenceDir,
+      breakpoints,
     };
   }
 

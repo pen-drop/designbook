@@ -12,7 +12,7 @@ Applies **only to bundles where `purpose: landing-page`** is set in `data-model.
 
 ## Entity Type
 
-Canvas pages use the `canvas_page` entity type (not `node`). In `data-model.yml` these appear under `content.canvas_page.<bundle>`. In `data.yml` they appear under `canvas_page.<bundle>`.
+Canvas pages use the `canvas_page` entity type (not `node`). In `data-model.yml` these appear under `content.canvas_page.<bundle>`. In `data/canvas_page.<bundle>.yml` they appear as a bare record array, each record carrying the `__designbook.section` tag.
 
 ## Step 0: Scan available components (mandatory)
 

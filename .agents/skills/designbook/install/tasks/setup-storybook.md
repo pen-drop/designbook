@@ -1,4 +1,5 @@
 ---
+title: "Setup Storybook"
 trigger:
   steps: [setup-storybook]
 params:

@@ -45,10 +45,10 @@ describe('expandFileDeclarations', () => {
 
   it('expands {{ param }} in file path', async () => {
     const declarations: TaskFileDeclaration[] = [
-      { file: '$DATA/sections/{{ id }}/data.yml', key: 'data', validators: ['data'] },
+      { file: '$DATA/data/node.{{ id }}.yml', key: 'data', validators: ['data'] },
     ];
     const result = await expandFileDeclarations(declarations, { id: 'dashboard' }, { DATA: '/d' });
-    expect(result[0]!.path).toBe('/d/sections/dashboard/data.yml');
+    expect(result[0]!.path).toBe('/d/data/node.dashboard.yml');
   });
 
   it('throws on duplicate key', async () => {

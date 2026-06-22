@@ -1,0 +1,9 @@
+content:
+  node:
+    article:
+      - id: "1"
+        title: "First Article"
+        field_body: "<p>One</p>"
+      - id: "2"
+        title: "Second Article"
+        field_body: "<p>Two</p>"
