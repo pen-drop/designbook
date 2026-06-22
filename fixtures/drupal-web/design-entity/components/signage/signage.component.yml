@@ -1,0 +1,25 @@
+name: Signage
+status: experimental
+group: Navigation
+description: Signpost / topic-navigation section holding up to three navigation items
+variants:
+  main:
+    title: Main
+props:
+  type: object
+  properties:
+    paragraph_style:
+      type: string
+      title: Paragraph Style
+      description: Optional style variant for the paragraph
+    overlapping_top:
+      type: boolean
+      title: Overlapping Top
+      description: When true, the section overlaps the preceding section with negative margin
+slots:
+  field_signage_item:
+    title: Signage Items
+    description: Rendered signage_item child components (up to 3)
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

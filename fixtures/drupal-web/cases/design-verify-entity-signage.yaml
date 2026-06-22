@@ -1,0 +1,21 @@
+fixtures:
+  - vision
+  - data-model
+  - tokens
+  - css-generate
+  - design-entity
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the "/debo design-verify signage" workflow.
+  Verify the "paragraph.signage" entity — the "Entities/paragraph/Signage › full" story.
+  The design reference is https://leando.de/ (the Wegweiser element, CSS selector "app-signage").
+  Execute the workflow now and Do NOT ask any questions; pick the largest available breakpoint if asked.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['design-verify']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-verify']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
