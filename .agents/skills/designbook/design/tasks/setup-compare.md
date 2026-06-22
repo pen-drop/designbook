@@ -28,7 +28,7 @@ result:
   required: [story-meta, checks]
   properties:
     story-meta:
-      path: designbook/stories/{story_id}/meta.yml
+      path: designbook/stories/{{ story_id }}/meta.yml
       type: object
       $ref: ../schemas.yml#/StoryMeta
     checks:

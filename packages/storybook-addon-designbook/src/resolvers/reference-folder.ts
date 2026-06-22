@@ -7,7 +7,13 @@ function normalizeUrl(url: string): string {
   return url.toLowerCase().replace(/\/+$/, '');
 }
 
-function hashUrl(url: string): string {
+/**
+ * Hash a reference URL to its stable folder name (sha256, first 12 hex chars).
+ * Exported so server-side consumers (e.g. StoryMeta.toJSON) can resolve the
+ * `references/{hash}` directory from a story's reference URL without
+ * re-implementing the hashing — keeping the on-disk path single-sourced.
+ */
+export function hashReferenceUrl(url: string): string {
   const normalized = normalizeUrl(url);
   return createHash('sha256').update(normalized).digest('hex').slice(0, 12);
 }
@@ -34,7 +40,7 @@ export const referenceFolderResolver: ParamResolver = {
       };
     }
 
-    const hash = hashUrl(url);
+    const hash = hashReferenceUrl(url);
     const folder = resolve(context.config.data, 'references', hash);
     mkdirSync(folder, { recursive: true });
 

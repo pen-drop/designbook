@@ -302,7 +302,19 @@ StoryMeta:
                   properties:
                     selector:
                       type: string
-                      description: CSS selector for this region. Empty = full viewport.
+                      description: >
+                        CSS selector cropping the STORY (Storybook) capture to this
+                        region. Empty = full story viewport. Persisted so the
+                        in-app visual-compare overlay can position itself over the
+                        matching story DOM element. Distinct from `reference_selector`.
+                    reference_selector:
+                      type: string
+                      description: >
+                        CSS selector cropping the REFERENCE (design source) capture
+                        to this region. Empty = full reference page. Persisted so a
+                        re-capture reuses the same crop without re-running
+                        setup-compare. Distinct from `selector` because the reference
+                        DOM differs from the story DOM.
                     threshold:
                       type: number
                       description: Per-region override of the breakpoint threshold.
