@@ -9,7 +9,8 @@ prompt: |
   You are working in the directory {{workspace}}.
   Run the "/debo design-verify signage" workflow.
   Verify the "paragraph.signage" entity — the "Entities/paragraph/Signage › full" story.
-  The design reference is https://leando.de/ (the Wegweiser element, CSS selector "app-signage").
+  The design reference is https://leando.de/.
+  Verify ONE region: id "full", selector "app-signage" (the Wegweiser element on the reference).
   Execute the workflow now and Do NOT ask any questions; pick the largest available breakpoint if asked.
 
 assert:

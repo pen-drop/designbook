@@ -22,45 +22,66 @@ build workflows now have.
 
 ## Principle
 
-A check defines one **region target** — a CSS selector — applied to both the story
-capture and the reference capture via the existing Playwright element-capture mode
-(`snapshot` → `screenshot <ref>`). The selector is resolved per region:
-- `full` → the workflow's `selector` param (e.g. `app-signage`); empty ⇒ full page.
-- `header` → `header, [role=banner]`
-- `footer` → `footer, [role=contentinfo]`
+**A region IS a named selector** — not a fixed semantic landmark. The old model
+(`RegionId` enum `full`/`header`/`footer` + a separate `selector` + a hardcoded
+landmark→selector map) is misleading: it pretends header/footer are fixed things, when
+each is just an identifier for a CSS selector that differs per reference site.
 
-The existing rule "if a selector matches no elements, skip with a warning — do NOT fail"
-gracefully handles story↔reference DOM differences: `app-signage` matches only the
-reference, so the reference is cropped while the story (already just the component) falls
-back to its full viewport. For shell, `header`/`footer` match both DOMs → both cropped.
+Diagnosis on leando.de (Angular): `header, [role=banner]` matches **nothing** (count 0) —
+the real header is `<app-site-header>`; the footer is `<app-footer>`; signage is
+`<app-signage>`. Hardcoded landmark defaults can never be right across sites.
+
+So a region is modelled as a pair:
+
+```yaml
+Region: { id: <string>, selector: <css> }   # selector "" ⇒ full page (no crop)
+```
+
+- `id` — clean label used for the screenshot filename and score (`header`, `footer`, `full`, `signage`)
+- `selector` — the actual crop target, applied to BOTH the story and the reference capture
+  (element-capture mode). The **caller provides the real selectors** (no guessing).
+
+`Check.region` carries the `id`; `Check.selector` comes from the region's `selector`.
+The existing rule "if a selector matches no elements, fall back / skip with a warning —
+do NOT fail" handles story↔reference DOM differences: an entity selector present only on
+the reference crops the reference while the isolated component story stays full-viewport.
+
+Examples:
+- Entity: `regions: [{ id: full, selector: app-signage }]`
+- Shell:  `regions: [{ id: header, selector: app-site-header }, { id: footer, selector: app-footer }]`
+- Full page: `{ id: full, selector: "" }`
 
 ## Changes (skill-only — capture is agent-driven via `playwright-cli`, no addon code)
 
-### 1. `design/workflows/design-verify.md`
-Add `selector: { type: string, default: "" }` param (mirrors design-entity). Thread it
-into `setup-compare` (and it is available to the capture stages via scope).
+### 1. `design/schemas.yml` — `Region` object; loosen `RegionId`
+- `RegionId`: drop the `enum [full, header, footer]` → free string (region identifier).
+- Add `Region: { id: RegionId, selector: string }` (selector "" ⇒ full page).
+- `Check.region` stays the `id`. `Check.selector` description: the crop target for BOTH
+  story and reference, sourced from the region's selector; "" ⇒ full capture; non-match ⇒
+  fall back to full (never fail).
 
-### 2. `design/tasks/setup-compare.md`
-Populate each emitted check's `selector` from a region→selector map:
-- `full` → the workflow `selector` param (may be empty → no crop)
-- `header` → `header, [role=banner]`
-- `footer` → `footer, [role=contentinfo]`
-Document the map in the task body. (The check matrix shape — breakpoint × region × state —
-is unchanged.)
+### 2. `design/workflows/design-verify.md`
+Replace the single `selector` param with `regions: { type: array, default: [] }` — a list
+of `Region {id, selector}` provided by the caller. Threaded into `setup-compare`.
 
-### 3. `design/tasks/capture-reference.md`
-Honor `check.selector` for the reference: when set, use the **element-capture** mode
-(crop the reference to that element); when empty, full-page (region `full`) or the existing
-landmark behavior. Mirror what `capture-storybook` already does for the story.
+### 3. `design/tasks/setup-compare.md`
+`regions` param becomes a list of `Region {id, selector}` (was `RegionId` enum). Remove the
+hardcoded landmark→selector map. Each emitted check carries `region = region.id` and
+`selector = region.selector`. Default when none provided: `[{ id: full, selector: "" }]`.
+(Matrix shape — breakpoint × region × state — unchanged.)
 
-### 4. `design/rules/playwright-capture.md`
-Clarify that the element-capture mode applies to the **reference** as well as the story,
-keyed on `check.selector`; the "selector matches nothing → fall back / skip with warning"
-constraint is what keeps the entity story full while the reference crops.
+### 4. `design/tasks/capture-reference.md`
+Honor `check.selector` for the reference: non-empty ⇒ element-capture (crop the reference
+to that selector); empty ⇒ full-page. Mirror `capture-storybook`. *(Already done.)*
 
-### 5. `design/schemas.yml` — `Check.selector`
-Update the description: the selector targets the region in **both** the story and the
-reference capture (was "limits the capture to a subregion of the story render").
+### 5. `design/rules/playwright-capture.md`
+Element-capture mode applies to the **reference** as well as the story, keyed on
+`check.selector`; non-match ⇒ full-page fallback. *(Already done.)*
+
+### 6. Verify cases provide real selectors
+- `cases/design-verify-entity-signage.yaml`: regions `[{id: full, selector: app-signage}]`.
+- Shell verify: regions `[{id: header, selector: app-site-header}, {id: footer, selector: app-footer}]`.
+- design-shell after-hook passing region selectors is a follow-on (noted, not in scope).
 
 ## Out of scope
 - Cropping the cached full-page reference screenshot by bbox (region_properties). We reuse

@@ -16,7 +16,7 @@ params:
       type: object
 result:
   type: object
-  required: [reference, breakpoints]
+  required: [reference, breakpoints, regions]
   properties:
     reference:
       type: array
@@ -25,6 +25,10 @@ result:
     breakpoints:
       type: array
       items: { type: string }
+    regions:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Region
 ---
 
 # Intake: Design Verify
@@ -57,6 +61,24 @@ Breakpoints are collected as a required result -- the workflow engine triggers `
 
 List available breakpoints from the design tokens with pixel values.
 
+## Step 2b: Resolve Regions
+
+Emit `regions` — the review surfaces as `Region { id, selector }` pairs. A region is a
+named selector; `id` is the clean filename/score label, `selector` is the CSS crop target
+applied to BOTH the story and the reference capture (`""` ⇒ full page).
+
+- **Shell** verification → one region per shell landmark, with the reference's **real**
+  selector — e.g. `{ id: header, selector: <reference header selector> }`,
+  `{ id: footer, selector: <reference footer selector> }`. Do NOT assume semantic
+  landmarks (`header`/`[role=banner]`); use the actual element of the reference site
+  (e.g. an Angular app exposes `app-site-header` / `app-footer`).
+- **Entity / component / screen** with a target element → `[{ id: full, selector: <selector> }]`
+  (e.g. `app-signage`).
+- **No specific surface** → `[{ id: full, selector: "" }]` (whole page).
+
+Take selectors from the workflow input / case prompt when given. A selector that matches
+no element on one side falls back to that side's full capture (never fails).
+
 ## Step 3: Ensure Storybook is running
 
 ```bash
@@ -69,7 +91,8 @@ _debo storybook status
 
 ## Step 4: Write Results and Complete
 
-Pass `reference` and `breakpoints` to the next stage via data results.
+Pass `reference`, `breakpoints`, and `regions` to the next stage via data results.
 
 - `reference`: the array from Step 1
 - `breakpoints`: from user input (Step 2)
+- `regions`: the `Region { id, selector }` list from Step 2b

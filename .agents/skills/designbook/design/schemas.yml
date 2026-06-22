@@ -59,10 +59,29 @@ BreakpointId:
 
 RegionId:
   type: string
-  enum: [full, header, footer]
   description: >
-    Capture region of the page. `full` = entire page,
-    `header`/`footer` = only the landmark area for targeted verification.
+    Region identifier — a label for a selector-defined region, used as the
+    screenshot filename/score key. Common ids: `full` (entire page), `header`,
+    `footer`, or any component id (e.g. `signage`). Not a fixed enum: a region is
+    just a named selector (see `Region`).
+
+Region:
+  type: object
+  title: Verification Region
+  description: >
+    A region is an identifier paired with the CSS selector that defines it. The
+    selector is the crop target applied to BOTH the story and the reference
+    capture. The caller supplies the real selector (no hardcoded landmark guessing).
+  required: [id, selector]
+  properties:
+    id:
+      $ref: "#/RegionId"
+    selector:
+      type: string
+      description: >
+        CSS selector for the region crop, applied to both story and reference
+        (element-capture). Empty `""` ⇒ no crop (full page). A selector that
+        matches no element on one side falls back to that side's full capture.
 
 ReferenceFolder:
   type: string
