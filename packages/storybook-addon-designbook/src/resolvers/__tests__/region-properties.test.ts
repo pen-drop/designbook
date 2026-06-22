@@ -115,6 +115,27 @@ describe('regionPropertiesResolver (orchestration)', () => {
     expect(r.value).toBeDefined();
   });
 
+  it('uses an explicit selector param as the locate label, overriding component name', async () => {
+    // component would role-match n_header; selector "page" must win and label/heading-match n_root.
+    const r = await regionPropertiesResolver.resolve(
+      'https://example.com',
+      {},
+      buildContext({ selector: 'page', component: { component: 'header' } }),
+    );
+    const region = r.value as { root_id?: string };
+    expect(region.root_id).toBe('n_root');
+  });
+
+  it('falls back to pickRegionLabel when selector is blank', async () => {
+    const r = await regionPropertiesResolver.resolve(
+      'https://example.com',
+      {},
+      buildContext({ selector: '   ', component: { component: 'header' } }),
+    );
+    const region = r.value as { root_id?: string };
+    expect(region.root_id).toBe('n_header');
+  });
+
   it('returns value: undefined when captured nodes[] is missing', async () => {
     const fs = await import('node:fs/promises');
     (fs.readFile as ReturnType<typeof vi.fn>).mockResolvedValueOnce(JSON.stringify({ source_kind: 'url-dom' }));
