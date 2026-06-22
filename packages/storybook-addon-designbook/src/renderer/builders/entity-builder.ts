@@ -69,12 +69,17 @@ export const entityBuilder: SceneNodeBuilder = {
       ctx.sampleData?.config?.[entity_type]?.[bundle] ??
       []) as Record<string, unknown>[];
 
-    // Resolve the record(s) via the JSONata select predicate over the array (`$`).
-    // No select (e.g. view entities) → evaluate the mapping with {}.
+    // Resolve the record: a `select` JSONata predicate over the array (`$`) takes
+    // precedence; otherwise a numeric `record` indexes the bundle's pool array
+    // (the documented form for nested entity refs, e.g. `{ entity, view_mode, record }`).
+    // Neither (e.g. view entities) → evaluate the mapping with {}.
+    const record = node['record'];
     let recordData: unknown = {};
     if (select) {
       const selected = await jsonata(select).evaluate(entityArray);
       recordData = selected ?? {};
+    } else if (typeof record === 'number') {
+      recordData = entityArray[record] ?? {};
     }
 
     // 3. Compile and evaluate the JSONata expression

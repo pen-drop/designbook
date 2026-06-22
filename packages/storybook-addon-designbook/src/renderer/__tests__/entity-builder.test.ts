@@ -118,6 +118,24 @@ describe('entityBuilder', () => {
     expect(json).not.toContain('Understanding Modern Architecture');
   });
 
+  it('build() selects the record by numeric `record` index when no select (nested ref form)', async () => {
+    const node = {
+      type: 'entity',
+      entity_type: 'node',
+      bundle: 'article',
+      view_mode: 'teaser',
+      record: 1,
+    };
+
+    const ctx = makeCtx();
+    const result = await entityBuilder.build(node, ctx);
+
+    // record:1 → article[1] = "Second Article"
+    const json = JSON.stringify(result.nodes);
+    expect(json).toContain('Second Article');
+    expect(json).not.toContain('Understanding Modern Architecture');
+  });
+
   it('build() returns placeholder for missing jsonata file', async () => {
     const node = {
       type: 'entity',
