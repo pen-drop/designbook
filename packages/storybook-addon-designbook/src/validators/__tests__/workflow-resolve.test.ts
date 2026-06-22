@@ -23,6 +23,7 @@ import {
   deriveArtifactName,
   resolveShortName,
   deduplicateByNameAs,
+  preferProjectRoot,
   collectAndResolveSchemas,
   resolveSchemaRef,
   resolveParamsRef,
@@ -1523,6 +1524,33 @@ describe('when conditions with named artifacts', () => {
     expect(matches).toHaveLength(2);
     const names = matches.map((m) => m.name).sort();
     expect(names).toEqual(['designbook-css:inspect-tokens', 'designbook:design:playwright-session']);
+  });
+});
+
+// ── preferProjectRoot ─────────────────────────────────────────────
+
+describe('preferProjectRoot', () => {
+  const rf = (path: string): ResolvedFile => ({ path, name: path, specificity: 0, frontmatter: null });
+  const PROJECT_COMPONENT = '/ws/.claude/skills/designbook-drupal/components/tasks/create-component.md';
+  const PROJECT_VARIANT = '/ws/.claude/skills/designbook-drupal/components/tasks/create-variant-story.md';
+  const PLUGIN_COMPONENT =
+    '/home/u/.claude/plugins/cache/designbook/.cli-skills-root-abc/skills/designbook-drupal/components/tasks/create-component.md';
+  const PLUGIN_VARIANT =
+    '/home/u/.claude/plugins/cache/designbook/.cli-skills-root-abc/skills/designbook-drupal/components/tasks/create-variant-story.md';
+
+  it('drops ALL plugin matches when the project root has any match (first-hit-by-root, no merge)', () => {
+    const out = preferProjectRoot([rf(PLUGIN_COMPONENT), rf(PROJECT_COMPONENT), rf(PLUGIN_VARIANT)]);
+    expect(out.map((f) => f.path)).toEqual([PROJECT_COMPONENT]);
+  });
+
+  it('keeps all distinct project matches (component + variant-story)', () => {
+    const out = preferProjectRoot([rf(PROJECT_COMPONENT), rf(PROJECT_VARIANT)]);
+    expect(out.map((f) => f.path)).toEqual([PROJECT_COMPONENT, PROJECT_VARIANT]);
+  });
+
+  it('falls back to plugin matches only when the project root has none', () => {
+    const out = preferProjectRoot([rf(PLUGIN_COMPONENT), rf(PLUGIN_VARIANT)]);
+    expect(out.map((f) => f.path)).toEqual([PLUGIN_COMPONENT, PLUGIN_VARIANT]);
   });
 });
 

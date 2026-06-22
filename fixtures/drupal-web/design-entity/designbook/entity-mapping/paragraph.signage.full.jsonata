@@ -1,0 +1,15 @@
+[
+  {
+    "component": "test_integration_drupal:signage",
+    "props": {
+      "paragraph_style": field_paragraph_style,
+      "overlapping_top": field_overlapping_top
+    },
+    "slots": {
+      "field_signage_item": field_signage_item.(
+        $index := $number($) - 1;
+        { "entity": "paragraph.signage_item", "view_mode": "full", "record": $index }
+      )
+    }
+  }
+]

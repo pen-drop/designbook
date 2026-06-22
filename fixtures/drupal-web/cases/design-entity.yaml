@@ -1,0 +1,39 @@
+fixtures:
+  - vision
+  - tokens
+  - data-model
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-entity workflow for the "paragraph.signage" entity, "full" view mode.
+  Do NOT ask any questions. The product is "LEANDO".
+  Use this graphical reference for the design:
+    reference_url: https://leando.de/
+    selector: app-signage
+  The selector "app-signage" targets the exact Wegweiser element on the reference page —
+  use its captured region properties to drive the component's layout and styling.
+  Create a "signage" component: a signpost / topic-navigation section holding up to three
+  navigation items, each with an icon, title, description, a list of links, and an anonymous
+  and an authenticated call-to-action button.
+  Map the signage paragraph's fields to the signage component:
+    field_paragraph_style→style, field_overlapping_top→overlapping,
+    field_signage_item→items (each signage_item: field_title→title, field_description→description,
+    field_icon→icon, field_links→links, field_button_anonymous→buttonAnonymous,
+    field_button_authenticated→buttonAuthenticated).
+  The workflow must produce:
+    - designbook/entity-mapping/paragraph.signage.full.jsonata (the mapping)
+    - designbook/data/paragraph.signage.yml (sample-data pool records, each tagged __designbook.section)
+  After generating all files, run `pnpm build-storybook` to verify everything renders.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.endsWith('entity-mapping/paragraph.signage.full.jsonata'))
+  - type: javascript
+    value: output.newFiles.some(f => f.endsWith('data/paragraph.signage.yml'))
+  - type: javascript
+    value: output.archivedWorkflows['design-entity']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-entity']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

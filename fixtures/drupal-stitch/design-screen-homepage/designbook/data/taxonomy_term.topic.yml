@@ -1,0 +1,8 @@
+- id: "1"
+  name: "Guides"
+  __designbook:
+    section: "homepage"
+- id: "2"
+  name: "Reference"
+  __designbook:
+    section: "homepage"

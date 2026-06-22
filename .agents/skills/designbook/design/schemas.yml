@@ -59,10 +59,39 @@ BreakpointId:
 
 RegionId:
   type: string
-  enum: [full, header, footer]
   description: >
-    Capture region of the page. `full` = entire page,
-    `header`/`footer` = only the landmark area for targeted verification.
+    Region identifier — a label for a selector-defined region, used as the
+    screenshot filename/score key. Common ids: `full` (entire page), `header`,
+    `footer`, or any component id (e.g. `signage`). Not a fixed enum: a region is
+    just a named selector (see `Region`).
+
+Region:
+  type: object
+  title: Verification Region
+  description: >
+    A region is an identifier paired with TWO crop selectors — one per surface,
+    because the Storybook story DOM (the design-system components) differs from
+    the reference site DOM. The caller supplies the real selectors (no hardcoded
+    landmark guessing). A region is just a named selector pair.
+  required: [id]
+  properties:
+    id:
+      $ref: "#/RegionId"
+    selector:
+      type: string
+      default: ""
+      description: >
+        CSS selector that crops the STORY (Storybook) capture to this region.
+        Empty `""` ⇒ full story viewport (e.g. an isolated component story).
+        Example (shell header): `.page__header`.
+    reference_selector:
+      type: string
+      default: ""
+      description: >
+        CSS selector that crops the REFERENCE (design source) capture to this
+        region. Empty `""` ⇒ full reference page. Example (shell header):
+        `app-site-header`; entity: `app-signage`. A selector that matches no
+        element falls back to that side's full capture (never fails).
 
 ReferenceFolder:
   type: string
@@ -94,8 +123,16 @@ Check:
     selector:
       type: string
       description: >
-        Optional CSS selector — limits the capture to a subregion of the
-        story render. When empty, the full story viewport area is used.
+        CSS selector cropping the STORY capture to this region (element-capture).
+        Empty ⇒ full story viewport. Consumed by capture-storybook + the in-app
+        visual-compare tool.
+    reference_selector:
+      type: string
+      description: >
+        CSS selector cropping the REFERENCE capture to this region. Empty ⇒ full
+        reference page. Consumed by capture-reference. Distinct from `selector`
+        because the reference DOM differs from the story DOM. A selector that
+        matches nothing falls back to that side's full capture (never fails).
     type:
       type: string
       description: Check type (e.g. `screenshot`, `dom`). Determines the capture strategy.
@@ -265,7 +302,19 @@ StoryMeta:
                   properties:
                     selector:
                       type: string
-                      description: CSS selector for this region. Empty = full viewport.
+                      description: >
+                        CSS selector cropping the STORY (Storybook) capture to this
+                        region. Empty = full story viewport. Persisted so the
+                        in-app visual-compare overlay can position itself over the
+                        matching story DOM element. Distinct from `reference_selector`.
+                    reference_selector:
+                      type: string
+                      description: >
+                        CSS selector cropping the REFERENCE (design source) capture
+                        to this region. Empty = full reference page. Persisted so a
+                        re-capture reuses the same crop without re-running
+                        setup-compare. Distinct from `selector` because the reference
+                        DOM differs from the story DOM.
                     threshold:
                       type: number
                       description: Per-region override of the breakpoint threshold.
@@ -310,7 +359,17 @@ Component:
   type: object
   required: [component, group]
   properties:
-    component: { type: string }
+    component:
+      type: string
+      pattern: "^[a-z][a-z0-9_]*$"
+      description: >
+        Bare component name in snake_case — NO `provider:` namespace prefix and no
+        hyphens (e.g. `hero`, `content_card`; never `test_integration_drupal:hero`).
+        Becomes the component directory and file basename
+        (`components/<component>/<component>.component.yml`), so a namespace colon
+        produces an invalid directory and breaks import resolution. The provider
+        namespace is configured separately and is not part of this name.
+      examples: [hero, content_card, stage_teaser]
     slots:
       type: array
       items: { type: string }

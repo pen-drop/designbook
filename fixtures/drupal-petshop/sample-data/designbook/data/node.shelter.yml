@@ -1,0 +1,16 @@
+- id: shelter-1
+  title: Happy Paws Rescue
+  field_location: Munich, Germany
+  field_contact_email: info@happypaws.org
+  field_contact_phone: "+49 89 12345678"
+  field_description: A volunteer-run rescue caring for abandoned dogs and cats since 2015.
+  __designbook:
+    section: "homepage"
+- id: shelter-2
+  title: Second Chance Animal Haven
+  field_location: Berlin, Germany
+  field_contact_email: adopt@secondchance.de
+  field_contact_phone: "+49 30 87654321"
+  field_description: Full-service shelter accepting all species with in-house veterinary care.
+  __designbook:
+    section: "homepage"

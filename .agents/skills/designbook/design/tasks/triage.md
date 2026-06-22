@@ -1,6 +1,6 @@
 ---
 name: designbook:design:triage--design-verify
-title: "Triage: {story_id}"
+title: "Triage: {{ story_id }}"
 trigger:
   steps: [triage]
 priority: 10

@@ -1,4 +1,5 @@
 ---
+title: "Run Workflow: {{ workflow.workflow }}"
 trigger:
   steps: [run-workflow]
 params:

@@ -125,7 +125,7 @@ function EntityDetail({ node }: { node: SceneTreeNode }) {
     <div>
       <div style={styles.subtitle}>
         mapping: {entity.mapping.split('/').slice(-3).join('/')}
-        {entity.record !== undefined && ` — record #${entity.record}`}
+        {entity.select !== undefined && ` — select: ${entity.select}`}
       </div>
 
       <div style={styles.columns}>

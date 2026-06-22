@@ -13,37 +13,45 @@ const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = dirname(__filename);
 
+// Indexes one entity-mapping `.jsonata` file as a single view-mode story. The
+// indexer fires once per mapping; all view-modes of a bundle point at the same
+// canonical module (the bundle's first sorted mapping) so Storybook loads one
+// module per bundle (no duplicate-title conflict) while each `.jsonata` adds its
+// own story. Records come from the shared data/ pool at render time.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function indexEntityDemo(fileName: string): any[] {
-  const parts = basename(fileName).split('.'); // [type, bundle, 'demo', 'yml']
+export function indexEntity(fileName: string): any[] {
+  const parts = basename(fileName).split('.'); // [type, bundle, view_mode, 'jsonata']
   const entity_type = parts[0] ?? '';
   const bundle = parts[1] ?? '';
+  const view_mode = parts.slice(2, -1).join('.');
   const prefix = `${entity_type}.${bundle}.`;
   const dir = dirname(fileName);
-  const relativePath = './' + relative(process.cwd(), fileName);
   const title = `Entities/${entity_type}/${titleCaseBundle(bundle)}`;
 
-  const viewModes = readdirSync(dir)
-    .filter((f) => f.startsWith(prefix) && f.endsWith('.jsonata'))
-    .map((f) => f.slice(prefix.length, -'.jsonata'.length))
-    .sort();
+  // Canonical module for the bundle = its first sorted mapping. Every view-mode
+  // story imports it, so there is exactly one module instance per bundle.
+  const canonical =
+    readdirSync(dir)
+      .filter((f) => f.startsWith(prefix) && f.endsWith('.jsonata'))
+      .sort()[0] ?? basename(fileName);
+  const importPath = './' + relative(process.cwd(), resolve(dir, canonical));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const entries: any[] = [];
-  for (const vm of viewModes) {
-    entries.push({
+  const entries: any[] = [
+    {
       type: 'story' as const,
-      importPath: relativePath,
-      exportName: buildExportName(vm),
+      importPath,
+      exportName: buildExportName(view_mode),
       title,
-      name: vm,
+      name: view_mode,
       tags: ['entity', 'autodocs'],
-    });
-  }
-  if (viewModes.length > 0) {
+    },
+  ];
+  // One Docs entry per bundle, emitted by the canonical mapping only.
+  if (basename(fileName) === canonical) {
     entries.push({
       type: 'docs' as const,
-      importPath: relativePath,
+      importPath,
       exportName: '__docs',
       title,
       name: 'Docs',
@@ -119,7 +127,7 @@ export const stories = async (entry: string[] = [], options: any) => {
     options?.configDir ||
     resolve((designbookConfig['designbook.home'] as string | undefined) || process.cwd(), '.storybook');
   const scenesGlob = resolve(distDir, '{sections,design-system}/**/*.scenes.yml');
-  const entityGlob = resolve(distDir, 'entity-mapping/*.demo.yml');
+  const entityGlob = resolve(distDir, 'entity-mapping/*.jsonata');
 
   // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections.
   // File-name order is Storybook 10's sort mechanism when no storySort is configured.
@@ -203,8 +211,8 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
   };
 
   const entityIndexer = {
-    test: /entity-mapping\/[^/]+\.demo\.yml$/,
-    createIndex: async (fileName: string) => indexEntityDemo(fileName),
+    test: /entity-mapping\/[^/]+\.jsonata$/,
+    createIndex: async (fileName: string) => indexEntity(fileName),
   };
 
   return [...existingIndexers, scenesIndexer, entityIndexer];

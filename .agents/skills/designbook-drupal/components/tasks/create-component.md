@@ -63,4 +63,5 @@ When `component.design_hint.markup` is empty, fall back to the blueprint default
 1. Read the blueprint for `component.group` if present.
 2. If `component.design_hint.markup` is set, lift the markup into `<name>.twig` and clean up Angular-isms (handlers, `[innerHTML]`, etc.) per the migration rules.
 3. Derive `<name>.component.yml` from `component.slots` + `component.design_hint.props`.
-4. Generate the default story exercising every slot and the default of every prop.
+4. **Render referenced children via slots, not props.** When `component.slots` includes a slot that holds rendered child entities (a `type: reference` field that targets a renderable bundle, e.g. a Wegweiser's `signage_item` cards), declare it as a **slot** in `<name>.component.yml` and render it in the Twig with `{{ slotName }}` (or `{% block slotName %}{% endblock %}`) — the resolved child component markup is injected there. Do NOT declare referenced children as a flat data prop and do NOT iterate per-child fields in the parent Twig; each child bundle has its own component + mapping that renders those fields.
+5. Generate the default story exercising every slot and the default of every prop.

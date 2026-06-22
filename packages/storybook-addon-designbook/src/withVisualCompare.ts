@@ -14,18 +14,21 @@ interface RegionDef {
   selector: string;
 }
 
-interface StoryCheck {
-  breakpoint: string;
-  region: string;
+interface RegionJSON {
   selector?: string;
+  reference_selector?: string;
+}
+
+interface BreakpointJSON {
+  threshold?: number | null;
+  regions?: Record<string, RegionJSON>;
 }
 
 interface StoryJSON {
-  checks: StoryCheck[];
+  referenceDir?: string | null;
+  breakpoints?: Record<string, BreakpointJSON>;
 }
 
-// Cache fetched regions keyed by storyId/breakpoint
-const regionCache = new Map<string, RegionDef[]>();
 // Cache the full story fetch to avoid multiple requests per breakpoint
 const storyCache = new Map<string, Promise<StoryJSON | null>>();
 
@@ -41,23 +44,18 @@ function fetchStory(storyId: string): Promise<StoryJSON | null> {
   return promise;
 }
 
-async function fetchRegions(storyId: string, breakpoint: string): Promise<RegionDef[]> {
-  const cacheKey = `${storyId}/${breakpoint}`;
-  const cached = regionCache.get(cacheKey);
-  if (cached) return cached;
-
-  const story = await fetchStory(storyId);
-  if (!story?.checks) return [];
-
-  const regions = story.checks
-    .filter((c) => c.breakpoint === breakpoint)
-    .map((c) => ({ name: c.region, selector: c.selector ?? c.region }));
-
-  regionCache.set(cacheKey, regions);
-  return regions;
+function regionsFor(story: StoryJSON, breakpoint: string): RegionDef[] {
+  const regions = story.breakpoints?.[breakpoint]?.regions;
+  if (!regions) return [];
+  return Object.entries(regions).map(([name, r]) => ({ name, selector: r.selector ?? '' }));
 }
 
-function applyOverlays(canvasElement: HTMLElement, storyId: string, state: VisualCompareState, regions: RegionDef[]) {
+function applyOverlays(
+  canvasElement: HTMLElement,
+  referenceDir: string,
+  state: VisualCompareState,
+  regions: RegionDef[],
+) {
   if (!canvasElement.isConnected) return;
 
   const position = getComputedStyle(canvasElement).position;
@@ -69,10 +67,10 @@ function applyOverlays(canvasElement: HTMLElement, storyId: string, state: Visua
   const canvasRect = canvasElement.getBoundingClientRect();
 
   for (const region of filtered) {
-    const src = `/__designbook/load?path=stories/${encodeURIComponent(storyId)}/screenshots/reference/${encodeURIComponent(state.breakpoint!)}--${encodeURIComponent(region.name)}.png`;
+    const src = `/__designbook/load?path=${referenceDir}/${encodeURIComponent(state.breakpoint!)}--${encodeURIComponent(region.name)}.png`;
 
-    if (!region.selector || region.selector === region.name) {
-      // "full" region or region without explicit CSS selector — full-page overlay
+    if (!region.selector) {
+      // "full" region (empty selector) — full-page overlay
       createOverlayImg(canvasElement, src, state.opacity, {
         top: '0',
         left: '0',
@@ -138,10 +136,12 @@ export const withVisualCompare: DecoratorFunction = (storyFn, context) => {
   const storyId = context.id;
 
   requestAnimationFrame(() => {
-    fetchRegions(storyId, state.breakpoint!).then((regions) => {
+    fetchStory(storyId).then((story) => {
       // Clean again in case of race
       canvasElement.querySelectorAll('[data-visual-compare-overlay]').forEach((el) => el.remove());
-      applyOverlays(canvasElement, storyId, state, regions);
+      if (!story?.referenceDir) return;
+      const regions = regionsFor(story, state.breakpoint!);
+      applyOverlays(canvasElement, story.referenceDir, state, regions);
     });
   });
 

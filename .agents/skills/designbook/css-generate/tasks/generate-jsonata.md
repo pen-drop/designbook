@@ -1,4 +1,5 @@
 ---
+title: "Generate JSONata: {{ artifact.group }}"
 trigger:
   steps: [generate-jsonata]
 domain: [css]

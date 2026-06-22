@@ -24,8 +24,8 @@ function globMatch(pattern: string, filePath: string): boolean {
   return new RegExp('^' + regexStr + '$').test(filePath);
 }
 
-export function isEntityDemoFile(id: string): boolean {
-  return /(?:^|\/)entity-mapping\/[^/]+\.demo\.yml$/.test(id);
+export function isEntityMappingFile(id: string): boolean {
+  return /(?:^|\/)entity-mapping\/[^/]+\.jsonata$/.test(id);
 }
 
 // Resolve React from the addon's own dependencies (works in pnpm strict mode)
@@ -197,7 +197,7 @@ export function designbookLoadPlugin(
         if (importer) return resolve(dirname(importer), cleanId);
         return cleanId;
       }
-      if (cleanId.endsWith('.demo.yml')) {
+      if (isEntityMappingFile(cleanId)) {
         if (importer) return resolve(dirname(importer), cleanId);
         return cleanId;
       }
@@ -226,7 +226,7 @@ export function designbookLoadPlugin(
         return buildThemesModule(designbookDir);
       }
 
-      if (isEntityDemoFile(id)) {
+      if (isEntityMappingFile(id)) {
         return loadEntityModule(id, designbookDir, {
           builders: options.builders,
           resolveImportPath: options.resolveImportPath,

@@ -1,0 +1,14 @@
+content:
+  node:
+    doc:
+      fields:
+        field_body: { type: text }
+  taxonomy_term:
+    topic:
+      fields:
+        name: { type: string, required: true }
+config:
+  view:
+    recent_articles:
+      view_modes:
+        default: { template: view-entity }

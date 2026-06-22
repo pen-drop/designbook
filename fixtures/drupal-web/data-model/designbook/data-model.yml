@@ -527,3 +527,43 @@ content:
               - page
               - landing_page
               - topic
+    signage:
+      title: Wegweiser
+      description: Signpost / topic-navigation paragraph holding up to three navigation items
+      fields:
+        field_paragraph_style:
+          type: string
+          title: Stil
+        field_overlapping_top:
+          type: boolean
+          title: Überlappend
+        field_signage_item:
+          type: reference
+          title: Wegweiser Element
+          multiple: true
+          settings:
+            target_type: paragraph
+            target_bundle: signage_item
+    signage_item:
+      title: Wegweiser Element
+      description: One navigation item within a Wegweiser — icon, title, description, links, and CTA buttons
+      fields:
+        field_title:
+          type: string
+          title: Titel
+        field_description:
+          type: text
+          title: Beschreibung
+        field_icon:
+          type: string
+          title: Icon
+        field_links:
+          type: link
+          title: Links
+          multiple: true
+        field_button_anonymous:
+          type: link
+          title: Button anonym
+        field_button_authenticated:
+          type: link
+          title: Button angemeldet

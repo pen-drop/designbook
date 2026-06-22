@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { isEntityDemoFile } from '../vite-plugin';
+import { isEntityMappingFile } from '../vite-plugin';
 
-describe('isEntityDemoFile', () => {
-  it('matches demo files under entity-mapping/', () => {
-    expect(isEntityDemoFile('/x/designbook/entity-mapping/node.article.demo.yml')).toBe(true);
+describe('isEntityMappingFile', () => {
+  it('matches .jsonata mappings under entity-mapping/', () => {
+    expect(isEntityMappingFile('/x/designbook/entity-mapping/node.article.full.jsonata')).toBe(true);
   });
-  it('rejects scenes and non-demo yml', () => {
-    expect(isEntityDemoFile('/x/designbook/sections/blog/blog.section.scenes.yml')).toBe(false);
-    expect(isEntityDemoFile('/x/designbook/entity-mapping/node.article.full.jsonata')).toBe(false);
-    expect(isEntityDemoFile('/x/designbook/data.yml')).toBe(false);
+  it('rejects scenes, demo.yml, and pool data files', () => {
+    expect(isEntityMappingFile('/x/designbook/sections/blog/blog.section.scenes.yml')).toBe(false);
+    expect(isEntityMappingFile('/x/designbook/entity-mapping/node.article.demo.yml')).toBe(false);
+    expect(isEntityMappingFile('/x/designbook/data/node.article.yml')).toBe(false);
   });
 });

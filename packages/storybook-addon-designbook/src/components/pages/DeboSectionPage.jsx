@@ -4,7 +4,6 @@ import { DeboSection } from '../DeboSection.jsx';
 import { DeboTabs } from '../ui/DeboTabs.jsx';
 
 import { DeboProse } from '../ui/DeboTypography.jsx';
-import { DeboSampleData } from '../display/DeboSampleData.jsx';
 import { DeboSceneGrid } from '../display/DeboSceneGrid.jsx';
 import { parseScreenshots } from '../parsers.js';
 import { load as parseYaml } from 'js-yaml';
@@ -101,23 +100,6 @@ export function DeboSectionPage({ sectionId, title }) {
                       )}
                     </DeboGrid>
                   )}
-                />
-              </TabContent>
-            ),
-          },
-          {
-            id: 'data',
-            title: 'Sample Data',
-            children: () => (
-              <TabContent>
-                <DeboSection
-                  title="Sample Data"
-                  dataPath={`sections/${sectionId}/data.yml`}
-                  parser={yamlParser}
-                  command={`/debo sample-data ${sectionId}`}
-                  emptyMessage="No sample data defined yet"
-                  filePath={`designbook/sections/${sectionId}/data.yml`}
-                  renderContent={(data) => <DeboSampleData data={data} />}
                 />
               </TabContent>
             ),

@@ -17,7 +17,7 @@ describe('view()', () => {
           entity_type: 'node',
           bundle: 'page',
           view_mode: 'full',
-          record: 0,
+          select: '$[0]',
           mapping: '/path/to/mapping.jsonata',
         },
         props: { title: 'Hello' },

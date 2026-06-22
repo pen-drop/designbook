@@ -13,7 +13,7 @@ prompt: |
   field_age→age, field_media→image_url, field_status→status.
   The workflow must produce:
     - designbook/entity-mapping/node.pet.teaser.jsonata (the mapping)
-    - designbook/entity-mapping/node.pet.demo.yml (co-located demo records)
+    - designbook/data/node.pet.yml (sample-data pool records, each tagged __designbook.section)
   After generating all files, run `pnpm build-storybook` to verify everything renders.
   Execute the workflow now.
 
@@ -21,7 +21,7 @@ assert:
   - type: javascript
     value: output.newFiles.some(f => f.endsWith('entity-mapping/node.pet.teaser.jsonata'))
   - type: javascript
-    value: output.newFiles.some(f => f.endsWith('entity-mapping/node.pet.demo.yml'))
+    value: output.newFiles.some(f => f.endsWith('data/node.pet.yml'))
   - type: javascript
     value: output.archivedWorkflows['design-entity']?.status === 'completed'
   - type: javascript

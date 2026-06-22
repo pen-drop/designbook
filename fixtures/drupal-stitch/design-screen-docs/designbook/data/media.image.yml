@@ -1,0 +1,15 @@
+- id: "1"
+  field_media_image:
+    alt: "Abstract geometric pattern representing hyperstructure dynamics"
+  __designbook:
+    section: "docs"
+- id: "2"
+  field_media_image:
+    alt: "Dark atmospheric layers showing depth and transparency effects"
+  __designbook:
+    section: "docs"
+- id: "3"
+  field_media_image:
+    alt: "Component architecture diagram with nested modules"
+  __designbook:
+    section: "docs"

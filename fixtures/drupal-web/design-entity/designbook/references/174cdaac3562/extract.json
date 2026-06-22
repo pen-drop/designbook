@@ -1,0 +1,794 @@
+{
+  "source": "https://leando.de/",
+  "extracted": "2026-06-22T08:45:00.000Z",
+  "strategy": "playwright+vision",
+  "assets_dir": "assets",
+  "fonts": [
+    {
+      "family": "Reef",
+      "source": "self-hosted",
+      "weights": [
+        700
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        {
+          "weight": 700,
+          "style": "normal",
+          "format": "woff2",
+          "src_url": "https://leando.de/media/Reef-Bold-63SHKTIS.woff2",
+          "local_path": "assets/fonts/Reef-Bold.woff2"
+        }
+      ]
+    },
+    {
+      "family": "Sarabun Regular",
+      "source": "self-hosted",
+      "weights": [
+        400
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        {
+          "weight": 400,
+          "style": "normal",
+          "format": "woff2",
+          "src_url": "https://leando.de/media/Sarabun-Regular-55DSS7OY.woff2",
+          "local_path": "assets/fonts/Sarabun-Regular.woff2"
+        }
+      ]
+    },
+    {
+      "family": "Sarabun Light",
+      "source": "self-hosted",
+      "weights": [
+        300
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        {
+          "weight": 300,
+          "style": "normal",
+          "format": "woff2",
+          "src_url": "https://leando.de/media/Sarabun-Light-TIR2Y6KP.woff2",
+          "local_path": "assets/fonts/Sarabun-Light.woff2"
+        }
+      ]
+    },
+    {
+      "family": "Sarabun Bold",
+      "source": "self-hosted",
+      "weights": [
+        700
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        {
+          "weight": 700,
+          "style": "normal",
+          "format": "woff2",
+          "src_url": "https://leando.de/media/Sarabun-Bold-F6D2F3LB.woff2",
+          "local_path": "assets/fonts/Sarabun-Bold.woff2"
+        }
+      ]
+    },
+    {
+      "family": "Sarabun Medium",
+      "source": "self-hosted",
+      "weights": [
+        400
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        {
+          "weight": 400,
+          "style": "normal",
+          "format": "woff2",
+          "src_url": "https://leando.de/media/Sarabun-SemiBold-7R7AXDT6.woff2",
+          "local_path": "assets/fonts/Sarabun-SemiBold.woff2"
+        }
+      ]
+    },
+    {
+      "family": "Sarabun Semi Bold",
+      "source": "self-hosted",
+      "weights": [
+        700
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        {
+          "weight": 700,
+          "style": "normal",
+          "format": "woff2",
+          "src_url": "https://leando.de/media/Sarabun-SemiBold-7R7AXDT6.woff2",
+          "local_path": "assets/fonts/Sarabun-SemiBold.woff2"
+        }
+      ]
+    },
+    {
+      "family": "Sarabun Italic",
+      "source": "self-hosted",
+      "weights": [
+        400
+      ],
+      "styles": [
+        "italic"
+      ],
+      "files": [
+        {
+          "weight": 400,
+          "style": "italic",
+          "format": "woff2",
+          "src_url": "https://leando.de/media/Sarabun-Italic-26OQWIQI.woff2",
+          "local_path": "assets/fonts/Sarabun-Italic.woff2"
+        }
+      ]
+    },
+    {
+      "family": "Sarabun Bold Italic",
+      "source": "self-hosted",
+      "weights": [
+        400
+      ],
+      "styles": [
+        "italic"
+      ],
+      "files": [
+        {
+          "weight": 400,
+          "style": "italic",
+          "format": "woff2",
+          "src_url": "https://leando.de/media/Sarabun-ExtraBoldItalic-P6OS2LLB.woff2",
+          "local_path": "assets/fonts/Sarabun-ExtraBoldItalic.woff2"
+        }
+      ]
+    },
+    {
+      "family": "Material Icons",
+      "source": "self-hosted",
+      "weights": [
+        400
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": [
+        {
+          "weight": 400,
+          "style": "normal",
+          "format": "woff2",
+          "src_url": "https://leando.de/media/Angular-Material-CN2J7AYH.woff2",
+          "local_path": "assets/fonts/Material-Icons.woff2"
+        }
+      ]
+    },
+    {
+      "family": "system-ui",
+      "source": "system",
+      "weights": [
+        400
+      ],
+      "styles": [
+        "normal"
+      ],
+      "files": []
+    }
+  ],
+  "typography": [
+    {
+      "element": "body",
+      "font_family": "\"Sarabun Regular\", sans-serif",
+      "font_size": "16px",
+      "line_height": "24px",
+      "font_weight": 400,
+      "color": "#212529"
+    },
+    {
+      "element": "h1",
+      "font_family": "Reef, sans-serif",
+      "font_size": "48px",
+      "line_height": "1.2",
+      "font_weight": 700,
+      "color": "#ffffff"
+    },
+    {
+      "element": "h2",
+      "font_family": "Reef, sans-serif",
+      "font_size": "32px",
+      "line_height": "1.25",
+      "font_weight": 700,
+      "color": "#00336a"
+    },
+    {
+      "element": "h3",
+      "font_family": "\"Sarabun Bold\", sans-serif",
+      "font_size": "20px",
+      "line_height": "1.4",
+      "font_weight": 700,
+      "color": "#212529"
+    }
+  ],
+  "colors": [
+    {
+      "hex": "#00336a",
+      "usage": [
+        "primary brand",
+        "buttons",
+        "links",
+        "headings"
+      ]
+    },
+    {
+      "hex": "#ececec",
+      "usage": [
+        "header utility bar",
+        "signage card background",
+        "footer middle menu",
+        "secondary button background"
+      ]
+    },
+    {
+      "hex": "#95c11f",
+      "usage": [
+        "accent green",
+        "carousel nav button"
+      ]
+    },
+    {
+      "hex": "#056336",
+      "usage": [
+        "search submit button"
+      ]
+    },
+    {
+      "hex": "#ffffff",
+      "usage": [
+        "page background",
+        "icon container in signage"
+      ]
+    },
+    {
+      "hex": "#212529",
+      "usage": [
+        "body text",
+        "default foreground"
+      ]
+    },
+    {
+      "hex": "linear-gradient(110deg, rgb(85,115,123) 3%, rgb(121,144,29) 10%, rgb(121,144,29) 40%, rgb(110,136,57) 45%, rgb(72,105,156) 79%)",
+      "usage": [
+        "banner hero background",
+        "cookie consent background"
+      ]
+    },
+    {
+      "hex": "linear-gradient(61deg, rgb(72,105,156) 9%, rgb(85,115,123) 14%, rgb(121,144,29) 25%, rgb(110,136,57) 65%, rgb(72,105,156) 79%)",
+      "usage": [
+        "newsletter section background"
+      ]
+    }
+  ],
+  "spacing": {
+    "container_max_width": "1267px",
+    "edge_padding": "0",
+    "section_gap": "0",
+    "values": [
+      "8px",
+      "16px",
+      "24px",
+      "32px",
+      "48px",
+      "56px",
+      "60px"
+    ]
+  },
+  "landmarks": {
+    "header": {
+      "rows": [
+        {
+          "tag": "div",
+          "bg": "#ececec",
+          "height": "60px",
+          "padding": "10px 0",
+          "layout": "flex row center",
+          "gap": "0",
+          "content": "BIBB logo (img, 180x40px)",
+          "treatment": "institutional brand strip"
+        },
+        {
+          "tag": "div",
+          "bg": "#ffffff",
+          "height": "102px",
+          "padding": "0",
+          "layout": "flex row space-between center",
+          "gap": "0",
+          "content": "Leando logo (link+img, 200x47px), main navigation (Suche button, Über uns link, Anmelden button, Menü burger button)",
+          "treatment": "brand + navigation row"
+        }
+      ]
+    },
+    "footer": {
+      "rows": [
+        {
+          "tag": "app-newsletter-molecules",
+          "bg": "linear-gradient(61deg, rgb(72,105,156) 9%, rgb(85,115,123) 14%, rgb(121,144,29) 25%, rgb(110,136,57) 65%, rgb(72,105,156) 79%)",
+          "height": "299px",
+          "padding": "32px 0",
+          "layout": "flex row space-between",
+          "gap": "24px",
+          "content": "Newsletter abonnieren heading, description text, email input + submit form, social bar",
+          "treatment": "newsletter signup band"
+        },
+        {
+          "tag": "app-footer-top",
+          "bg": "#ffffff",
+          "height": "182px",
+          "padding": "32px 0",
+          "layout": "flex row space-between",
+          "gap": "0",
+          "content": "BIBB address block + link, social icons (3 icons, 88x122px, 63x122px), EU NextGenerationEU logo (200x52px), BIBB logo footer (195x47px)",
+          "treatment": "partner logos + address row"
+        },
+        {
+          "tag": "app-footer-middle-menu",
+          "bg": "#ececec",
+          "height": "72px",
+          "padding": "18px 0",
+          "layout": "flex row start center",
+          "gap": "24px",
+          "content": "Footer navigation links (2+ items)",
+          "treatment": "utility navigation row"
+        },
+        {
+          "tag": "app-footer-secondary-menu",
+          "bg": "#ececec",
+          "height": "55px",
+          "padding": "0",
+          "layout": "flex row space-between",
+          "gap": "16px",
+          "content": "Impressum, Datenschutz, Kontakt, support@leando.de links",
+          "treatment": "legal navigation row"
+        }
+      ]
+    }
+  },
+  "interactive": [
+    {
+      "element": "filled primary button",
+      "selector": "button.btn-primary, .btn[style*='#00336a']",
+      "bg": "#00336a",
+      "color": "#ffffff",
+      "border_radius": "0",
+      "padding": "16px 24px",
+      "font": "\"Sarabun Regular\" 16px 400",
+      "states": [
+        {
+          "name": "rest"
+        }
+      ]
+    },
+    {
+      "element": "accent CTA button (Anmelden)",
+      "selector": "button[class*='anmelden'], [aria-label*='Anmelden']",
+      "bg": "#00336a",
+      "color": "#ffffff",
+      "border_radius": "0",
+      "padding": "14px 24px",
+      "font": "\"Sarabun Regular\" 16px 400",
+      "states": [
+        {
+          "name": "rest"
+        }
+      ]
+    },
+    {
+      "element": "search submit button",
+      "selector": "button[type=submit]",
+      "bg": "#056336",
+      "color": "#ffffff",
+      "border_radius": "0",
+      "padding": "16px",
+      "font": "\"Sarabun Regular\" 16px 400",
+      "states": [
+        {
+          "name": "rest"
+        }
+      ]
+    },
+    {
+      "element": "ghost/utility button (Suche)",
+      "selector": "button[aria-label='Suche']",
+      "bg": "#ffffff",
+      "color": "#00336a",
+      "border_radius": "0",
+      "padding": "8px 16px",
+      "font": "\"Sarabun Regular\" 16px 400",
+      "behavior": "overlay",
+      "target": "[role='search'], .search-overlay",
+      "aria": "aria-expanded",
+      "states": [
+        {
+          "name": "rest"
+        },
+        {
+          "name": "open",
+          "steps": [
+            {
+              "action": "click",
+              "selector": "button[aria-label='Suche']",
+              "timeout": 500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "element": "burger menu button (Menü)",
+      "selector": "button[aria-label='Menü']",
+      "bg": "#ececec",
+      "color": "#212529",
+      "border_radius": "0",
+      "padding": "12px",
+      "font": "\"Sarabun Regular\" 16px 400",
+      "behavior": "menu",
+      "target": "nav[aria-label='Hauptmenü'] ul",
+      "aria": "aria-expanded",
+      "states": [
+        {
+          "name": "rest"
+        },
+        {
+          "name": "expanded",
+          "steps": [
+            {
+              "action": "click",
+              "selector": "button[aria-label='Menü']",
+              "timeout": 500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "element": "carousel nav button (accent)",
+      "selector": ".slick-arrow, button[class*='carousel']",
+      "bg": "#95c11f",
+      "color": "#ffffff",
+      "border_radius": "50%",
+      "padding": "0",
+      "font": "\"Material Icons\" 16px 400",
+      "states": [
+        {
+          "name": "rest"
+        }
+      ]
+    },
+    {
+      "element": "text link",
+      "selector": "a",
+      "bg": "",
+      "color": "#00336a",
+      "border_radius": "0",
+      "padding": "0",
+      "font": "\"Sarabun Regular\" 16px 400",
+      "states": [
+        {
+          "name": "rest"
+        }
+      ]
+    }
+  ],
+  "navigation": [
+    {
+      "role": "main",
+      "items": [
+        {
+          "label": "Über uns",
+          "url": "/artikel/willkommen"
+        },
+        {
+          "label": "Anmelden",
+          "url": ""
+        },
+        {
+          "label": "Menü",
+          "url": ""
+        }
+      ]
+    },
+    {
+      "role": "footer",
+      "items": [
+        {
+          "label": "Impressum",
+          "url": "/impressum"
+        },
+        {
+          "label": "Datenschutz",
+          "url": "/datenschutz"
+        },
+        {
+          "label": "Kontakt",
+          "url": "/kontakt"
+        },
+        {
+          "label": "support@leando.de",
+          "url": "mailto:support@leando.de"
+        }
+      ]
+    }
+  ],
+  "images": [
+    {
+      "url": "https://leando.de/assets/img/leando_logo.png",
+      "role": "logo",
+      "alt": "Leando - ausbilden, prüfen, vernetzen",
+      "location": "header",
+      "width": "200px",
+      "height": "47px",
+      "local_path": "/assets/leando_logo.png"
+    },
+    {
+      "url": "https://leando.de/assets/img/leando_short_logo.png",
+      "role": "logo",
+      "alt": "Leando - ausbilden, prüfen, vernetzen",
+      "location": "header",
+      "width": "200px",
+      "height": "47px",
+      "local_path": "/assets/leando_short_logo.png"
+    },
+    {
+      "url": "https://leando.de/assets/img/bibb_logo.svg",
+      "role": "logo",
+      "alt": "Bundesinstitut für Berufsbildung (BIBB)",
+      "location": "header",
+      "width": "180px",
+      "height": "40px",
+      "local_path": "/assets/bibb_logo.svg"
+    },
+    {
+      "url": "https://leando.de/assets/img/bibb_logo.svg",
+      "role": "logo",
+      "alt": "BIBB Logo",
+      "location": "footer",
+      "width": "195px",
+      "height": "43px",
+      "local_path": "/assets/bibb_logo.svg"
+    }
+  ],
+  "forms": [
+    {
+      "name": "search",
+      "location": "banner hero",
+      "fields": [
+        {
+          "type": "search",
+          "label": "Suche",
+          "placeholder": "Suche",
+          "name": "q"
+        }
+      ],
+      "submit_label": "Suchen",
+      "submit_button": "filled green (#056336) with search icon"
+    },
+    {
+      "name": "newsletter",
+      "location": "footer newsletter band",
+      "fields": [
+        {
+          "type": "email",
+          "label": "E-Mail-Adresse",
+          "placeholder": "",
+          "name": "email"
+        }
+      ],
+      "submit_label": "Abonnieren",
+      "submit_button": "primary filled (#00336a)",
+      "description_text": "Erhalten Sie aktuelle Nachrichten, Infos, Tipps und Veranstaltungshinweise rund um das Thema Ausbildungs- und Prüfungspersonal - kostenfrei!"
+    }
+  ],
+  "sections": [
+    {
+      "type": "hero",
+      "bg": "linear-gradient(110deg, rgb(85,115,123) 3%, rgb(121,144,29) 10%, rgb(121,144,29) 40%, rgb(110,136,57) 45%, rgb(72,105,156) 79%)",
+      "layout": "two-column",
+      "content_summary": "Search box on left, YouTube video thumbnail on right (454px tall hero with gradient background)",
+      "order": 1
+    },
+    {
+      "type": "features",
+      "bg": "#ececec",
+      "layout": "grid-3",
+      "content_summary": "Three target-group cards (ausbilden, prüfen, vernetzen) each with white icon circle, heading, body text, and filled blue CTA link (app-signage)",
+      "order": 2
+    },
+    {
+      "type": "content",
+      "bg": "#ffffff",
+      "layout": "two-column",
+      "content_summary": "Aktuelle Themen section: large featured article (hero image + text) on left, two smaller articles stacked on right, with footer link",
+      "order": 3
+    },
+    {
+      "type": "gallery",
+      "bg": "#ffffff",
+      "layout": "full-width",
+      "content_summary": "Media slider (ngx-slick-carousel) with article card thumbnails and titles, horizontal scroll",
+      "order": 4
+    },
+    {
+      "type": "content",
+      "bg": "#ececec",
+      "layout": "full-width",
+      "content_summary": "Lernwelt section: carousel with 4 person/group avatar cards (180x180px) and text",
+      "order": 5
+    },
+    {
+      "type": "content",
+      "bg": "#ffffff",
+      "layout": "full-width",
+      "content_summary": "Communitys section: carousel with person avatar cards",
+      "order": 6
+    }
+  ],
+  "breakpoints": [
+    {
+      "px": 1440,
+      "token_id": "xl",
+      "description": "Full desktop: three-column signage grid, side-by-side hero layout, full horizontal nav"
+    },
+    {
+      "px": 768,
+      "token_id": "md",
+      "description": "Tablet: nav collapses to burger menu, single column content"
+    },
+    {
+      "px": 375,
+      "token_id": "sm",
+      "description": "Mobile: stacked layout, full-width cards"
+    }
+  ],
+  "components": [
+    {
+      "name": "site-header",
+      "count": 1,
+      "location": [
+        "header"
+      ],
+      "variants": [
+        "desktop with full nav",
+        "mobile with burger"
+      ],
+      "props": {
+        "bg_row1": "#ececec",
+        "bg_row2": "#ffffff",
+        "logo_width": "200px",
+        "nav_type": "horizontal + burger"
+      }
+    },
+    {
+      "name": "signage-card",
+      "count": 3,
+      "location": [
+        "main/features"
+      ],
+      "variants": [
+        "ausbilden",
+        "prüfen",
+        "vernetzen"
+      ],
+      "props": {
+        "bg": "#ececec",
+        "icon_bg": "#ffffff",
+        "icon_size": "74x74px",
+        "cta_bg": "#00336a",
+        "cta_color": "#ffffff",
+        "cta_height": "56px",
+        "layout": "grid-3 equal columns"
+      }
+    },
+    {
+      "name": "article-card",
+      "count": 10,
+      "location": [
+        "main/current-topics",
+        "main/media-slider"
+      ],
+      "variants": [
+        "featured large",
+        "small stacked",
+        "carousel thumb"
+      ],
+      "props": {
+        "thumb_ratio": "16:9",
+        "thumb_size_carousel": "357x172px",
+        "bg": "#ffffff"
+      }
+    },
+    {
+      "name": "banner-hero",
+      "count": 1,
+      "location": [
+        "main"
+      ],
+      "variants": [
+        "with search + video"
+      ],
+      "props": {
+        "height": "454px",
+        "bg": "multi-color gradient",
+        "search_bg": "#ffffff",
+        "search_submit_bg": "#056336"
+      }
+    },
+    {
+      "name": "carousel",
+      "count": 3,
+      "location": [
+        "main/media-slider"
+      ],
+      "variants": [
+        "article cards",
+        "person avatars"
+      ],
+      "props": {
+        "nav_button_bg": "#95c11f",
+        "nav_button_shape": "circle"
+      }
+    },
+    {
+      "name": "newsletter-signup",
+      "count": 1,
+      "location": [
+        "footer"
+      ],
+      "variants": [
+        "email input + submit"
+      ],
+      "props": {
+        "bg": "multi-color gradient",
+        "color": "#ffffff"
+      }
+    }
+  ],
+  "tokens": {
+    "colors": {
+      "primary": "#00336a",
+      "primary-bg": "#ececec",
+      "accent": "#95c11f",
+      "cta-alt": "#056336",
+      "text": "#212529",
+      "background": "#ffffff"
+    },
+    "fonts": {
+      "heading": "Reef",
+      "body": "\"Sarabun Regular\"",
+      "body-light": "\"Sarabun Light\"",
+      "body-bold": "\"Sarabun Bold\"",
+      "icons": "\"Material Icons\""
+    },
+    "spacing": [
+      "8px",
+      "16px",
+      "24px",
+      "32px",
+      "48px"
+    ],
+    "radii": [
+      "0"
+    ]
+  }
+}

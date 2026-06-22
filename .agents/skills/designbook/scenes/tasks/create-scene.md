@@ -1,4 +1,5 @@
 ---
+title: "Create Scene: {{ scene.name }}"
 trigger:
   steps: [create-scene]
 domain: [components, scenes]

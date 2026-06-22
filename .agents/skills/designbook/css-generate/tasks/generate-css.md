@@ -1,4 +1,5 @@
 ---
+title: "Generate CSS"
 trigger:
   steps: [generate-css]
 domain: [css]

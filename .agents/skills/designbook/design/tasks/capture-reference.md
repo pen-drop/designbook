@@ -56,9 +56,16 @@ the captured image is the interaction state the check names (handled by the
    ```
    Then use `file:///tmp/reference-${storyId}.html` as the capture URL.
 
-2. **Capture screenshot** for this breakpoint/region combination using the `playwright-capture` rule.
+2. **Capture screenshot** for this breakpoint/region using the `playwright-capture` rule.
 
-   Follow the capture protocol defined in `playwright-capture.md` — it handles viewport resolution, region-based capture mode selection, and the staged file flow.
+   - When `check.reference_selector` is non-empty, use **element-capture** mode — crop the
+     reference to that selector (this is the REFERENCE-side selector, distinct from the
+     story's `check.selector`). If it matches no element on the reference page, fall back to
+     full-page and warn (per `playwright-capture`); do not fail.
+   - When `check.reference_selector` is empty, full-page capture.
+
+   Follow `playwright-capture.md` for viewport resolution, the element-capture protocol
+   (`snapshot` → `screenshot <ref>`), and the staged file flow.
 
 ## Output
 

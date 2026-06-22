@@ -1,0 +1,229 @@
+- id: "1"
+  components:
+    - component: "test_integration_drupal:section"
+      props:
+        max_width: "lg"
+        padding_top: "lg"
+        padding_bottom: "md"
+        columns: 1
+      slots:
+        column_1:
+          - component: "test_integration_drupal:hero"
+            props:
+              preheadline: "AI-Driven Architecture"
+              heading: "Structure your design for CMS."
+              description: "Bridge the gap between visual intent and technical reality. Designbook analyzes your designs and generates production-ready component schemas, sample data, and CMS blueprints."
+            slots:
+              actions:
+                - component: "test_integration_drupal:button"
+                  props:
+                    variant: "primary"
+                    label: "Get Started"
+                    url: "/get-started"
+                - component: "test_integration_drupal:button"
+                  props:
+                    variant: "secondary"
+                    label: "View API Docs"
+                    url: "/docs"
+              media:
+                - component: "test_integration_drupal:code-preview"
+                  props:
+                    label: "schema.yml"
+                    title: "Component Schema"
+                  slots:
+                    code: "name: hero\ngroup: Content\nslots:\n  content:\n    title: Content\n  actions:\n    title: Actions"
+    - component: "test_integration_drupal:section"
+      props:
+        max_width: "lg"
+        padding_top: "md"
+        padding_bottom: "md"
+        columns: 1
+      slots:
+        header: "Start from Anywhere"
+        column_1:
+          - component: "test_integration_drupal:grid"
+            props:
+              columns: 3
+              gap: "md"
+            slots:
+              items:
+                - component: "test_integration_drupal:feature-card"
+                  props:
+                    icon: "token"
+                    title: "Figma Plugin"
+                    description: "Import designs directly from Figma with automatic component detection and token extraction."
+                - component: "test_integration_drupal:feature-card"
+                  props:
+                    icon: "grid_view"
+                    title: "Stitch Weaver"
+                    description: "Visual design-to-code workflows powered by Google Stitch AI generation."
+                - component: "test_integration_drupal:feature-card"
+                  props:
+                    icon: "upload_file"
+                    title: "Schema Import"
+                    description: "Import existing component schemas from JSON, YAML, or any design system format."
+    - component: "test_integration_drupal:section"
+      props:
+        max_width: "lg"
+        padding_top: "md"
+        padding_bottom: "md"
+        columns: 1
+      slots:
+        header: "AI-Guided Workflow"
+        column_1:
+          - component: "test_integration_drupal:grid"
+            props:
+              columns: 3
+              gap: "md"
+            slots:
+              items:
+                - component: "test_integration_drupal:feature-card"
+                  props:
+                    icon: "auto_awesome"
+                    title: "Analyze"
+                    description: "AI scans your design reference and extracts components, tokens, and layout patterns automatically."
+                - component: "test_integration_drupal:feature-card"
+                  props:
+                    icon: "architecture"
+                    title: "Architect"
+                    description: "Generate component schemas, data models, and CMS blueprints from the analyzed design."
+                - component: "test_integration_drupal:feature-card"
+                  props:
+                    icon: "rocket_launch"
+                    title: "Deploy"
+                    description: "Export production-ready Twig templates, YAML configs, and entity mappings to your CMS."
+    - component: "test_integration_drupal:section"
+      props:
+        max_width: "lg"
+        padding_top: "md"
+        padding_bottom: "md"
+        columns: 2
+        gap: "lg"
+      slots:
+        column_1:
+          - component: "test_integration_drupal:code-preview"
+            props:
+              label: "AI Recommendation"
+              title: "Landing Page Hero"
+              image: "https://placehold.co/600x400/111/333"
+        column_2:
+          - component: "test_integration_drupal:code-preview"
+            props:
+              label: "Generated Output"
+              title: "hero.twig"
+            slots:
+              code: "{% set variant = variant|default('primary') %}\n<div{{ attributes.addClass(['hero']) }}>\n  {% if heading %}\n    <h1>{{ heading }}</h1>\n  {% endif %}\n  {{ actions }}\n</div>"
+    - component: "test_integration_drupal:section"
+      props:
+        max_width: "lg"
+        padding_top: "md"
+        padding_bottom: "md"
+        columns: 1
+      slots:
+        column_1:
+          - component: "test_integration_drupal:grid"
+            props:
+              columns: 2
+              gap: "lg"
+            slots:
+              items:
+                - component: "test_integration_drupal:stat"
+                  props:
+                    value: "90%"
+                    label: "Faster Handoff"
+                - component: "test_integration_drupal:stat"
+                  props:
+                    value: "2-way"
+                    label: "Bi-directional Sync"
+    - component: "test_integration_drupal:section"
+      props:
+        max_width: "md"
+        padding_top: "lg"
+        padding_bottom: "lg"
+        columns: 1
+      slots:
+        column_1:
+          - component: "test_integration_drupal:cta-block"
+            props:
+              heading: "Ready to automate?"
+              description: "Start building your design system with AI-powered workflows today."
+            slots:
+              actions:
+                - component: "test_integration_drupal:button"
+                  props:
+                    variant: "primary"
+                    label: "Get Started"
+                    url: "/get-started"
+                - component: "test_integration_drupal:button"
+                  props:
+                    variant: "secondary"
+                    label: "Book a Demo"
+                    url: "/demo"
+  __designbook:
+    section: "homepage"
+- id: "2"
+  components:
+    - component: "test_integration_drupal:section"
+      props:
+        max_width: "lg"
+        padding_top: "lg"
+        padding_bottom: "md"
+        columns: 1
+      slots:
+        column_1:
+          - component: "test_integration_drupal:hero"
+            props:
+              preheadline: "Design System Automation"
+              heading: "From pixels to production."
+              description: "Let AI handle the repetitive work. Focus on design decisions while Designbook generates the technical implementation."
+            slots:
+              actions:
+                - component: "test_integration_drupal:button"
+                  props:
+                    variant: "primary"
+                    label: "Try It Free"
+                    url: "/try"
+    - component: "test_integration_drupal:section"
+      props:
+        max_width: "lg"
+        padding_top: "md"
+        padding_bottom: "lg"
+        columns: 1
+      slots:
+        column_1:
+          - component: "test_integration_drupal:cta-block"
+            props:
+              heading: "Join the community"
+              description: "Thousands of developers are already using Designbook."
+            slots:
+              actions:
+                - component: "test_integration_drupal:button"
+                  props:
+                    variant: "primary"
+                    label: "Sign Up"
+                    url: "/signup"
+  __designbook:
+    section: "homepage"
+- id: "3"
+  components:
+    - component: "test_integration_drupal:section"
+      props:
+        max_width: "lg"
+        padding_top: "lg"
+        padding_bottom: "lg"
+        columns: 1
+      slots:
+        column_1:
+          - component: "test_integration_drupal:hero"
+            props:
+              heading: "Ship faster with confidence."
+              description: "Designbook validates your implementation against the original design reference at every step."
+            slots:
+              actions:
+                - component: "test_integration_drupal:button"
+                  props:
+                    variant: "primary"
+                    label: "Learn More"
+                    url: "/learn"
+  __designbook:
+    section: "homepage"

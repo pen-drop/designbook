@@ -1,6 +1,6 @@
 ---
 name: designbook:design:verify
-title: "Verify: {story_id} ({breakpoint}/{region})"
+title: "Verify: {{ story_id }} ({{ breakpoint }}/{{ region }})"
 trigger:
   steps: [verify]
 priority: 60
@@ -11,7 +11,7 @@ params:
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
     story_meta:
-      path: designbook/stories/{story_id}/meta.yml
+      path: designbook/stories/{{ story_id }}/meta.yml
       type: object
       $ref: ../schemas.yml#/StoryMeta
     issues:

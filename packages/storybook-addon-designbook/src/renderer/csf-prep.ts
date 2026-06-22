@@ -202,7 +202,7 @@ function docsDescription(mappingFile: string, source: string, mappings: FieldMap
 }
 
 export function buildEntityCsfModule(opts: EntityCsfOptions): string {
-  const { group, source: _source, mappingBasename, viewModes, resolveImportPath, wrapImport } = opts;
+  const { group, source, mappingBasename, viewModes, resolveImportPath, wrapImport } = opts;
 
   // Collect component IDs across every record of every view-mode
   const allIds = new Set<string>();
@@ -230,11 +230,19 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
   }
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
 
+  // `entity` parameter mirrors the scene module's `scene` param — it marks the
+  // story as a designbook entity story so the visual-compare toolbar shows for
+  // entity stories too (the overlay reads the same per-story meta.yml).
   const defaultExport = [
     'export default {',
     `  title: '${group.replace(/'/g, "\\'")}',`,
     "  tags: ['autodocs'],",
-    "  parameters: { layout: 'fullscreen' },",
+    '  parameters: {',
+    "    layout: 'fullscreen',",
+    '    entity: {',
+    `      source: '${source.replace(/'/g, "\\'")}',`,
+    '    },',
+    '  },',
     '};',
   ].join('\n');
 

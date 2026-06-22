@@ -1,4 +1,5 @@
 ---
+title: "Validate"
 trigger:
   steps: [validate]
 params:

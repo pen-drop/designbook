@@ -1,0 +1,17 @@
+component: test_integration_drupal:signage_item
+name: Default
+props:
+  title: Ausbilden
+  description: Materialien und Werkzeuge für Ausbilderinnen und Ausbilder in Betrieb und überbetrieblicher Ausbildung.
+  icon: school
+  links:
+    - url: /themen/ausbilden
+      title: Alle Themen rund ums Ausbilden
+    - url: /materialien/ausbilden
+      title: Materialien für Ausbilder
+  button_anonymous:
+    url: /registrieren
+    title: Jetzt registrieren
+  button_authenticated:
+    url: /ausbilden
+    title: Zum Bereich Ausbilden

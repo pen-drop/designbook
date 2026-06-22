@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
 import type { ValidationResult } from './types.js';
+import { readBundleFiles } from '../renderer/data-pool.js';
+import type { DataModel } from '../renderer/types.js';
 
 interface FieldDef {
   type?: string;
@@ -15,43 +17,56 @@ interface BundleDef {
   fields?: Record<string, FieldDef>;
 }
 
-interface DataModel {
-  content?: Record<string, Record<string, BundleDef>>;
-  config?: Record<string, Record<string, BundleDef>>;
+function validateDesignbookSection(
+  rec: Record<string, unknown>,
+  entityType: string,
+  bundle: string,
+  errors: string[],
+): void {
+  const meta = rec.__designbook as { section?: unknown } | undefined;
+  const sec = meta?.section;
+  const okSection = typeof sec === 'string' || (Array.isArray(sec) && sec.every((s) => typeof s === 'string'));
+  if (sec !== undefined && !okSection) {
+    const rid = rec.id ?? '?';
+    errors.push(`Invalid __designbook.section on ${entityType}.${bundle} id=${rid} — must be string or string[]`);
+  }
 }
 
-interface SampleData {
-  content?: Record<string, Record<string, Record<string, unknown>[]>>;
-  config?: Record<string, Record<string, Record<string, unknown>[]>>;
-}
-
-export function validateData(dataModelPath: string, dataPath: string): ValidationResult {
+export function validateData(dataModelPath: string, dataDir: string): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
   if (!existsSync(dataModelPath)) {
     return { valid: false, errors: [`data-model.yml not found: ${dataModelPath}`], warnings: [] };
   }
-  if (!existsSync(dataPath)) {
-    return { valid: false, errors: [`data.yml not found: ${dataPath}`], warnings: [] };
+  if (!existsSync(dataDir)) {
+    return { valid: false, errors: [`data/ directory not found: ${dataDir}`], warnings: [] };
   }
 
   const dataModel = parseYaml(readFileSync(dataModelPath, 'utf-8')) as DataModel;
-  const sampleData = parseYaml(readFileSync(dataPath, 'utf-8')) as SampleData;
+
+  // Build content/config pools from the merged data/ directory.
+  // Route by entity type presence: if the entity type exists in content → contentData,
+  // if in config → configData, otherwise report unknown (bundle errors are caught later).
+  const contentData: Record<string, Record<string, Record<string, unknown>[]>> = {};
+  const configData: Record<string, Record<string, Record<string, unknown>[]>> = {};
+
+  for (const { entityType, bundle, records } of readBundleFiles(dataDir)) {
+    if (dataModel.content?.[entityType]) {
+      (contentData[entityType] ??= {})[bundle] = records;
+    } else if (dataModel.config?.[entityType]) {
+      (configData[entityType] ??= {})[bundle] = records;
+    } else {
+      errors.push(`Entity type "${entityType}" not in data-model`);
+    }
+  }
 
   const contentModel = dataModel.content ?? {};
-  const configModel = dataModel.config ?? {};
-  const contentData = sampleData.content ?? {};
-  const configData = sampleData.config ?? {};
+  const configModel = (dataModel.config ?? {}) as Record<string, Record<string, BundleDef>>;
 
   // ── Validate content entities ──────────────────────────────────────
   for (const [entityType, bundles] of Object.entries(contentData)) {
     if (typeof bundles !== 'object' || bundles === null) continue;
-
-    if (!(entityType in contentModel)) {
-      errors.push(`Entity type "${entityType}" not in data-model`);
-      continue;
-    }
 
     for (const [bundle, records] of Object.entries(bundles)) {
       if (!Array.isArray(records)) continue;
@@ -61,13 +76,17 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
         continue;
       }
 
-      const dmFields = contentModel[entityType]![bundle]!.fields ?? {};
+      const dmFields = (contentModel[entityType]![bundle] as BundleDef).fields ?? {};
 
       for (const rec of records) {
         const rid = (rec as Record<string, unknown>).id ?? '?';
 
         for (const field of Object.keys(rec as Record<string, unknown>)) {
           if (field === 'id') continue;
+          if (field === '__designbook') {
+            validateDesignbookSection(rec as Record<string, unknown>, entityType, bundle, errors);
+            continue;
+          }
 
           if (!(field in dmFields)) {
             warnings.push(`Field "${field}" on ${entityType}.${bundle} id=${rid} not in data-model`);
@@ -95,7 +114,7 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
         }
 
         for (const [fieldName, fieldDef] of Object.entries(dmFields)) {
-          if (fieldDef?.required && !(fieldName in (rec as Record<string, unknown>))) {
+          if ((fieldDef as FieldDef)?.required && !(fieldName in (rec as Record<string, unknown>))) {
             warnings.push(`Required field "${fieldName}" missing on ${entityType}.${bundle} id=${rid}`);
           }
         }
@@ -112,9 +131,16 @@ export function validateData(dataModelPath: string, dataPath: string): Validatio
       continue;
     }
 
-    for (const [bundle] of Object.entries(bundles)) {
+    for (const [bundle, records] of Object.entries(bundles)) {
       if (!(bundle in configModel[entityType]!)) {
         errors.push(`Config bundle "${entityType}.${bundle}" not in data-model config`);
+        continue;
+      }
+
+      if (Array.isArray(records)) {
+        for (const rec of records) {
+          validateDesignbookSection(rec as Record<string, unknown>, entityType, bundle, errors);
+        }
       }
     }
   }

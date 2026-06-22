@@ -36,27 +36,19 @@ const KNOWN_BREAKPOINTS: Record<string, number> = {
   '2xl': 1536,
 };
 
-interface StoryCheck {
-  breakpoint: string;
-  region: string;
+interface RegionJSON {
   selector?: string;
-  result?: 'pass' | 'fail';
-  diff?: number;
-  threshold: number;
-  issues?: string[];
+  reference_selector?: string;
 }
 
-interface StorySummary {
-  total: number;
-  pass: number;
-  fail: number;
-  unchecked: number;
-  maxDiff: number | null;
+interface BreakpointJSON {
+  threshold?: number | null;
+  regions?: Record<string, RegionJSON>;
 }
 
 interface StoryJSON {
-  checks: StoryCheck[];
-  summary: StorySummary;
+  referenceDir?: string | null;
+  breakpoints?: Record<string, BreakpointJSON>;
 }
 
 async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
@@ -64,35 +56,25 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
     const res = await fetch(`/__designbook/story/${encodeURIComponent(storyId)}`);
     if (!res.ok) return [];
     const story = (await res.json()) as StoryJSON;
-    if (!story.checks || story.checks.length === 0) return [];
-
-    // Group checks by breakpoint
-    const bpMap = new Map<string, StoryCheck[]>();
-    for (const check of story.checks) {
-      const arr = bpMap.get(check.breakpoint) ?? [];
-      arr.push(check);
-      bpMap.set(check.breakpoint, arr);
-    }
+    const bpData = story.breakpoints;
+    if (!bpData || Object.keys(bpData).length === 0) return [];
 
     const breakpoints: BreakpointInfo[] = [];
-    for (const [name, checks] of bpMap) {
+    for (const [name, bp] of Object.entries(bpData)) {
       const width = KNOWN_BREAKPOINTS[name] ?? 0;
-      const regions: RegionInfo[] = checks.map((c) => ({
-        name: c.region,
-        selector: c.selector ?? c.region,
-        diffPercent: c.diff ?? null,
-        threshold: c.threshold ?? null,
-        pass: c.result === 'pass' ? true : c.result === 'fail' || c.result === 'review' ? false : null,
-        issues: c.issues ?? [],
+      const threshold = bp.threshold ?? null;
+      // Compare results (diff/pass/issues) are runtime-only and not persisted —
+      // the dropdown lists the configured regions; status badges show "—".
+      const regions: RegionInfo[] = Object.entries(bp.regions ?? {}).map(([id, r]) => ({
+        name: id,
+        selector: r.selector ?? '',
+        diffPercent: null,
+        threshold,
+        pass: null,
+        issues: [],
       }));
 
-      breakpoints.push({
-        name,
-        width,
-        hasReference: true,
-        threshold: checks[0]?.threshold ?? null,
-        regions,
-      });
+      breakpoints.push({ name, width, hasReference: true, threshold, regions });
     }
 
     return breakpoints.sort((a, b) => a.width - b.width);
@@ -291,7 +273,10 @@ const DropdownContent = memo(function DropdownContent({
 });
 
 export const VisualCompareTool = memo(function VisualCompareTool() {
+  // Scene stories set a `scene` param; entity stories set an `entity` param.
+  // Show the visual-compare tool for either — both have per-story reference meta.
   const scene = useParameter<Record<string, unknown> | undefined>('scene');
+  const entity = useParameter<Record<string, unknown> | undefined>('entity');
   const [globals, updateGlobals] = useGlobals();
   const api = useStorybookApi();
 
@@ -327,7 +312,7 @@ export const VisualCompareTool = memo(function VisualCompareTool() {
     [state, updateGlobals],
   );
 
-  if (!scene || !storyId) return null;
+  if ((!scene && !entity) || !storyId) return null;
 
   return (
     <WithTooltip

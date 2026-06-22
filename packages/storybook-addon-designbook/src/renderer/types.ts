@@ -78,7 +78,8 @@ export interface EntitySceneNode extends SceneNode {
   entity_type: string;
   bundle: string;
   view_mode: string;
-  record?: number;
+  /** JSONata predicate over the bundle's record array (`$`). */
+  select?: string;
 }
 
 // ─── Scene Definition Types ─────────────────────────────────────────
@@ -189,7 +190,8 @@ export interface EntityOrigin {
   entity_type: string;
   bundle: string;
   view_mode: string;
-  record?: number;
+  /** JSONata selector used to pick the record(s). */
+  select?: string;
   /** Path to the .jsonata mapping file. */
   mapping: string;
   /** Field mappings extracted from the JSONata AST at build time. */

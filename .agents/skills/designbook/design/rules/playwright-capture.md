@@ -27,7 +27,7 @@ Screenshots MUST go through the workflow staging pipeline. Before capturing:
 
 ## Capture Modes
 
-### Full-page capture (region `full` or empty selector)
+### Full capture (empty selector)
 
 ```bash
 npx playwright-cli open
@@ -37,6 +37,15 @@ npx playwright-cli run-code "async (page) => { await page.waitForTimeout(3000) }
 npx playwright-cli screenshot --full-page --filename "${STAGED}"
 npx playwright-cli close
 ```
+
+> ⛔ **A Storybook STORY's full capture is its rendered content, not the viewport.**
+> When capturing a **story** with an empty `selector`, element-capture `#storybook-root`
+> (the container Storybook renders the story into) instead of `--full-page`. A
+> `--full-page` story shot is the full 1600px viewport — for an isolated component
+> (e.g. an entity story ~440px tall) that is mostly empty space, which then drifts
+> dimensionally against a region-cropped reference. `#storybook-root` is the actual
+> rendered story (the component as-rendered). Reference URLs (not stories) still use
+> `--full-page` for an empty `reference_selector`.
 
 ### Element capture (region with CSS selector)
 
@@ -54,6 +63,16 @@ npx playwright-cli close
 ```
 
 If the element is best identified by CSS selector, use `eval` to confirm it exists, then `snapshot` to get its ref.
+
+This mode applies to **both** captures, but each side uses its OWN selector — the story
+DOM (design-system components) differs from the reference DOM:
+- the **Storybook story** capture crops to `check.selector`
+- the **reference** capture crops to `check.reference_selector`
+
+A selector may match its side or not — when it matches nothing, fall back to full-page
+(skip-with-warning), never fail. This lets a shell header verify use `.page__header` for the
+story and `app-site-header` for the reference, or an entity use an empty story selector
+(full component) with `app-signage` for the reference.
 
 ## Constraints
 

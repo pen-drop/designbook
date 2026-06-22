@@ -1,0 +1,6 @@
+- id: "1"
+  __designbook: { section: section_a }
+  field_body: "<p>One</p>"
+- id: "2"
+  __designbook: { section: section_b }
+  field_body: "<p>Two</p>"

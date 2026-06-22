@@ -1,0 +1,53 @@
+component: test_integration_drupal:signage
+name: Main
+variant: main
+props:
+  paragraph_style: ''
+  overlapping_top: true
+slots:
+  field_signage_item:
+    - type: component
+      component: test_integration_drupal:signage_item
+      props:
+        title: Ausbilden
+        description: Materialien und Werkzeuge für Ausbilderinnen und Ausbilder in Betrieb und überbetrieblicher Ausbildung.
+        icon: school
+        links:
+          - url: /themen/ausbilden
+            title: Alle Themen rund ums Ausbilden
+        button_anonymous:
+          url: /registrieren
+          title: Jetzt registrieren
+        button_authenticated:
+          url: /ausbilden
+          title: Zum Bereich Ausbilden
+    - type: component
+      component: test_integration_drupal:signage_item
+      props:
+        title: Prüfen
+        description: Ressourcen, Prüfungsaufgaben und Handreichungen für Mitglieder von Prüfungsausschüssen.
+        icon: fact_check
+        links:
+          - url: /themen/pruefen
+            title: Alle Themen rund ums Prüfen
+        button_anonymous:
+          url: /registrieren
+          title: Jetzt registrieren
+        button_authenticated:
+          url: /pruefen
+          title: Zum Bereich Prüfen
+    - type: component
+      component: test_integration_drupal:signage_item
+      props:
+        title: Vernetzen
+        description: Austausch und Vernetzung mit Kolleginnen und Kollegen aus dem Ausbildungs- und Prüfungsbereich.
+        icon: groups
+        links:
+          - url: /themen/vernetzen
+            title: Alle Themen rund ums Vernetzen
+        button_anonymous:
+          url: /registrieren
+          title: Jetzt registrieren
+        button_authenticated:
+          url: /vernetzen
+          title: Zum Bereich Vernetzen
