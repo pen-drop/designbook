@@ -63,21 +63,26 @@ List available breakpoints from the design tokens with pixel values.
 
 ## Step 2b: Resolve Regions
 
-Emit `regions` — the review surfaces as `Region { id, selector }` pairs. A region is a
-named selector; `id` is the clean filename/score label, `selector` is the CSS crop target
-applied to BOTH the story and the reference capture (`""` ⇒ full page).
+Emit `regions` — the review surfaces as `Region { id, selector, reference_selector }`. A
+region is a named selector PAIR: `id` is the clean filename/score label, `selector` crops
+the STORY capture, `reference_selector` crops the REFERENCE capture. Two selectors because
+the story DOM (design-system components) differs from the reference DOM. `""` ⇒ full
+capture on that side.
 
-- **Shell** verification → one region per shell landmark, with the reference's **real**
-  selector — e.g. `{ id: header, selector: <reference header selector> }`,
-  `{ id: footer, selector: <reference footer selector> }`. Do NOT assume semantic
-  landmarks (`header`/`[role=banner]`); use the actual element of the reference site
-  (e.g. an Angular app exposes `app-site-header` / `app-footer`).
-- **Entity / component / screen** with a target element → `[{ id: full, selector: <selector> }]`
-  (e.g. `app-signage`).
-- **No specific surface** → `[{ id: full, selector: "" }]` (whole page).
+- **Shell** verification → one region per shell landmark, with BOTH selectors: the story's
+  component selector AND the reference's **real** element — e.g.
+  `{ id: header, selector: ".page__header", reference_selector: "app-site-header" }`,
+  `{ id: footer, selector: ".page__footer", reference_selector: "app-footer" }`.
+  Do NOT assume semantic landmarks (`header`/`[role=banner]`); use the actual elements
+  (an Angular reference exposes `app-site-header` / `app-footer`).
+- **Entity / component** rendered as an isolated story → story is already just the
+  component, so `selector: ""`; crop only the reference:
+  `[{ id: full, selector: "", reference_selector: <selector> }]` (e.g. `app-signage`).
+- **Screen / no specific surface** → `[{ id: full, selector: "", reference_selector: "" }]`
+  (whole page on both sides).
 
 Take selectors from the workflow input / case prompt when given. A selector that matches
-no element on one side falls back to that side's full capture (never fails).
+no element on its side falls back to that side's full capture (never fails).
 
 ## Step 3: Ensure Storybook is running
 
@@ -95,4 +100,4 @@ Pass `reference`, `breakpoints`, and `regions` to the next stage via data result
 
 - `reference`: the array from Step 1
 - `breakpoints`: from user input (Step 2)
-- `regions`: the `Region { id, selector }` list from Step 2b
+- `regions`: the `Region { id, selector, reference_selector }` list from Step 2b

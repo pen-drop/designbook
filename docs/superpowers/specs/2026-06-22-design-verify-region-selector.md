@@ -31,25 +31,32 @@ Diagnosis on leando.de (Angular): `header, [role=banner]` matches **nothing** (c
 the real header is `<app-site-header>`; the footer is `<app-footer>`; signage is
 `<app-signage>`. Hardcoded landmark defaults can never be right across sites.
 
-So a region is modelled as a pair:
+A region is a named selector **pair** — one selector per surface, because the story DOM
+(design-system components) differs from the reference DOM:
 
 ```yaml
-Region: { id: <string>, selector: <css> }   # selector "" ⇒ full page (no crop)
+Region: { id: <string>, selector: <story css>, reference_selector: <reference css> }
+# selector "" ⇒ full story viewport; reference_selector "" ⇒ full reference page
 ```
 
-- `id` — clean label used for the screenshot filename and score (`header`, `footer`, `full`, `signage`)
-- `selector` — the actual crop target, applied to BOTH the story and the reference capture
-  (element-capture mode). The **caller provides the real selectors** (no guessing).
+- `id` — clean label for the screenshot filename and score (`header`, `footer`, `full`)
+- `selector` — crops the STORY capture (e.g. shell `.page__header`); `""` ⇒ full story
+- `reference_selector` — crops the REFERENCE capture (e.g. `app-site-header`); `""` ⇒ full page
 
-`Check.region` carries the `id`; `Check.selector` comes from the region's `selector`.
-The existing rule "if a selector matches no elements, fall back / skip with a warning —
-do NOT fail" handles story↔reference DOM differences: an entity selector present only on
-the reference crops the reference while the isolated component story stays full-viewport.
+`Check.region` = `id`; `Check.selector` = story crop (consumed by capture-storybook + the
+in-app visual-compare tool — unchanged addon contract); `Check.reference_selector` =
+reference crop (consumed by capture-reference). The "selector matches nothing → fall back
+to full / skip with warning" rule still holds per side.
+
+Why two: leando.de's header is `<app-site-header>` while the rendered shell story's header
+is `.page__header` — a single selector can crop one DOM but not the other. An entity story
+is an isolated component (story `selector: ""` = full), so only the reference needs cropping.
 
 Examples:
-- Entity: `regions: [{ id: full, selector: app-signage }]`
-- Shell:  `regions: [{ id: header, selector: app-site-header }, { id: footer, selector: app-footer }]`
-- Full page: `{ id: full, selector: "" }`
+- Entity: `[{ id: full, selector: "", reference_selector: app-signage }]`
+- Shell:  `[{ id: header, selector: .page__header, reference_selector: app-site-header },
+            { id: footer, selector: .page__footer, reference_selector: app-footer }]`
+- Screen / whole page: `[{ id: full, selector: "", reference_selector: "" }]`
 
 ## Changes (skill-only — capture is agent-driven via `playwright-cli`, no addon code)
 

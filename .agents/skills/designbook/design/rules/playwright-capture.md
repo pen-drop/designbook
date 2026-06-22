@@ -55,11 +55,15 @@ npx playwright-cli close
 
 If the element is best identified by CSS selector, use `eval` to confirm it exists, then `snapshot` to get its ref.
 
-This mode applies to **both** the reference and the Storybook story, keyed on
-`check.selector`. The reference and the story are captured from different DOMs, so a
-selector may match one and not the other — when it matches nothing, fall back to full-page
-(skip-with-warning), never fail. This is what lets an entity selector (present only on the
-reference) crop the reference while the isolated component story stays full-viewport.
+This mode applies to **both** captures, but each side uses its OWN selector — the story
+DOM (design-system components) differs from the reference DOM:
+- the **Storybook story** capture crops to `check.selector`
+- the **reference** capture crops to `check.reference_selector`
+
+A selector may match its side or not — when it matches nothing, fall back to full-page
+(skip-with-warning), never fail. This lets a shell header verify use `.page__header` for the
+story and `app-site-header` for the reference, or an entity use an empty story selector
+(full component) with `app-signage` for the reference.
 
 ## Constraints
 

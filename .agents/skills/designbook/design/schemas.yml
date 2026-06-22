@@ -69,19 +69,29 @@ Region:
   type: object
   title: Verification Region
   description: >
-    A region is an identifier paired with the CSS selector that defines it. The
-    selector is the crop target applied to BOTH the story and the reference
-    capture. The caller supplies the real selector (no hardcoded landmark guessing).
-  required: [id, selector]
+    A region is an identifier paired with TWO crop selectors — one per surface,
+    because the Storybook story DOM (the design-system components) differs from
+    the reference site DOM. The caller supplies the real selectors (no hardcoded
+    landmark guessing). A region is just a named selector pair.
+  required: [id]
   properties:
     id:
       $ref: "#/RegionId"
     selector:
       type: string
+      default: ""
       description: >
-        CSS selector for the region crop, applied to both story and reference
-        (element-capture). Empty `""` ⇒ no crop (full page). A selector that
-        matches no element on one side falls back to that side's full capture.
+        CSS selector that crops the STORY (Storybook) capture to this region.
+        Empty `""` ⇒ full story viewport (e.g. an isolated component story).
+        Example (shell header): `.page__header`.
+    reference_selector:
+      type: string
+      default: ""
+      description: >
+        CSS selector that crops the REFERENCE (design source) capture to this
+        region. Empty `""` ⇒ full reference page. Example (shell header):
+        `app-site-header`; entity: `app-signage`. A selector that matches no
+        element falls back to that side's full capture (never fails).
 
 ReferenceFolder:
   type: string
@@ -113,10 +123,16 @@ Check:
     selector:
       type: string
       description: >
-        Optional CSS selector — the region crop target applied to BOTH the story
-        and the reference capture (element-capture mode). When empty, the full
-        viewport / full page is used. A selector that matches no element on one
-        side falls back to that side's full capture (never fails).
+        CSS selector cropping the STORY capture to this region (element-capture).
+        Empty ⇒ full story viewport. Consumed by capture-storybook + the in-app
+        visual-compare tool.
+    reference_selector:
+      type: string
+      description: >
+        CSS selector cropping the REFERENCE capture to this region. Empty ⇒ full
+        reference page. Consumed by capture-reference. Distinct from `selector`
+        because the reference DOM differs from the story DOM. A selector that
+        matches nothing falls back to that side's full capture (never fails).
     type:
       type: string
       description: Check type (e.g. `screenshot`, `dom`). Determines the capture strategy.
