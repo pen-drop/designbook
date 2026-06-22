@@ -19,6 +19,7 @@ params:
       default: []
       items:
         $ref: ../schemas.yml#/RegionId
+    selector: { type: string, default: "" }
     breakpoints: { type: array }
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
@@ -64,3 +65,19 @@ check per additional state. For each check set `state`, `steps` (the interaction
 that reach it — empty for `rest`), and `file_suffix` (`""` for `rest`, `--{state}`
 otherwise). A story with no behaviors yields rest-only checks — identical to the
 prior breakpoint × region matrix, no new screenshots.
+
+## Region selector
+
+Each emitted check carries a `selector` — the crop target applied to both the story and
+the reference capture. Resolve it per region:
+
+| Region | `check.selector` |
+|--------|------------------|
+| `full` | the workflow `selector` param (e.g. `app-signage`); empty ⇒ no crop (full page) |
+| `header` | `header, [role=banner]` |
+| `footer` | `footer, [role=contentinfo]` |
+
+The selector targets the region in both DOMs. A selector that matches nothing on one side
+falls back to that side's full capture (see `playwright-capture`) — so an entity selector
+that exists only on the reference crops the reference while the story (already just the
+component) stays full.
