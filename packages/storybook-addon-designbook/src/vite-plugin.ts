@@ -11,6 +11,7 @@ import { buildEntityModule } from './renderer/entity-module-builder';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { scanAllWorkflows } from './workflow-utils';
 import { StoryMeta } from './story-entity';
+import { Reference } from './reference-entity';
 import { USES_WITH_SELECTOR_SOURCE } from './use-sync-with-selector-source';
 
 /** Minimal glob matcher — supports * (no slash) and **-slash (zero or more dirs). */
@@ -531,9 +532,12 @@ export function designbookLoadPlugin(
             return;
           }
 
+          const storyJson = story.toJSON();
+          const ref = storyJson.reference ? Reference.load(config, storyJson.reference) : null;
+          const payload = { ...storyJson, referenceElements: ref ? ref.toJSON().elements : [] };
           res.setHeader('Content-Type', 'application/json');
           res.statusCode = 200;
-          res.end(JSON.stringify(story.toJSON()));
+          res.end(JSON.stringify(payload));
         } catch (err: unknown) {
           res.statusCode = 500;
           res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));

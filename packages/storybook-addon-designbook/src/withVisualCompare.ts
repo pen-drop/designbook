@@ -9,24 +9,16 @@ interface VisualCompareState {
   opacity: number;
 }
 
-interface RegionDef {
+interface ElementDef {
   name: string;
   selector: string;
 }
 
-interface RegionJSON {
-  selector?: string;
-  reference_selector?: string;
-}
-
-interface BreakpointJSON {
-  threshold?: number | null;
-  regions?: Record<string, RegionJSON>;
-}
-
 interface StoryJSON {
   referenceDir?: string | null;
-  breakpoints?: Record<string, BreakpointJSON>;
+  reference?: string | null;
+  elements?: Array<{ id: string; selector: string }>;
+  referenceElements?: Array<{ id: string; selector: string; breakpoints: string[]; states: Array<{ name: string }> }>;
 }
 
 // Cache the full story fetch to avoid multiple requests per breakpoint
@@ -44,17 +36,26 @@ function fetchStory(storyId: string): Promise<StoryJSON | null> {
   return promise;
 }
 
-function regionsFor(story: StoryJSON, breakpoint: string): RegionDef[] {
-  const regions = story.breakpoints?.[breakpoint]?.regions;
-  if (!regions) return [];
-  return Object.entries(regions).map(([name, r]) => ({ name, selector: r.selector ?? '' }));
+function regionsFor(story: StoryJSON, breakpoint: string): ElementDef[] {
+  const refElements = story.referenceElements;
+  if (!refElements || refElements.length === 0) return [];
+
+  // Build a map of element id → story selector for overlay positioning
+  const storyElements: Record<string, string> = {};
+  for (const el of story.elements ?? []) {
+    storyElements[el.id] = el.selector;
+  }
+
+  return refElements
+    .filter((el) => el.breakpoints.includes(breakpoint))
+    .map((el) => ({ name: el.id, selector: storyElements[el.id] ?? '' }));
 }
 
 function applyOverlays(
   canvasElement: HTMLElement,
   referenceDir: string,
   state: VisualCompareState,
-  regions: RegionDef[],
+  regions: ElementDef[],
 ) {
   if (!canvasElement.isConnected) return;
 
