@@ -527,7 +527,7 @@ git commit -m "feat(ensure-baseline): idempotent frozen reference baseline captu
 ```yaml
 result:
   type: object
-  required: [reference_dir, reference]
+  required: [reference_dir]   # `reference` is conditional — the no-reference path (empty url) returns reference_dir: "" and does NOT submit reference, so it must NOT be required
   properties:
     reference_dir: { type: string }
     reference:
