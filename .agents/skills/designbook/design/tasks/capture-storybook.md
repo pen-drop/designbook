@@ -1,68 +1,45 @@
 ---
 name: designbook:design:capture-storybook
-title: "Capture Storybook: {{ check.story_id }} ({{ check.breakpoint }}/{{ check.region }})"
+title: "Capture Storybook: {{ story_id }} ({{ screenshot.breakpoint }}/{{ screenshot.element }}--{{ screenshot.state }})"
 trigger:
   steps: [capture, re-capture]
-filter:
-  check.type: screenshot
-priority: 20
 params:
   type: object
-  required: [check]
+  required: [screenshot, story_id]
   properties:
-    check:
-      type: object
-      $ref: ../schemas.yml#/Check
+    screenshot:
+      $ref: ../schemas.yml#/Screenshot
+    story_id:
+      $ref: ../../scenes/schemas.yml#/StoryId
     story_url:
       type: string
       resolve: story_url
-      from: check.story_id
+      from: story_id
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
 result:
   type: object
-  required: [screenshot]
+  required: [screenshot_file]
   properties:
-    screenshot:
-      path: "designbook/stories/{{ check.story_id }}/screenshots/{{ check.breakpoint }}--{{ check.region }}{{ check.file_suffix }}.png"
+    screenshot_file:
+      path: "designbook/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png"
       submission: direct
       validators: [image]
 each:
-  check:
-    expr: "checks"
-    schema: { $ref: ../schemas.yml#/Check }
+  screenshot:
+    expr: "story_screenshots"
+    schema: { $ref: ../schemas.yml#/Screenshot }
 ---
 
 # Capture Storybook
 
-Captures a Storybook screenshot at the given breakpoint viewport width via Playwright.
+Captures one story screenshot at the given breakpoint and element/state combination via Playwright.
 
 ## Execution
 
-1. **Use the Storybook URL from the resolved param**: the `story_url` param is pre-resolved to the iframe URL (`http://localhost:<port>/iframe.html?id=<storyId>&viewMode=story`).
+1. **Use the Storybook URL from the resolved param**: `story_url` is pre-resolved to the iframe URL for `story_id`.
 
-2. **Capture screenshot** using the `playwright-capture` rule (staged file flow):
+2. **When `screenshot.state` is not `rest`**, run `screenshot.state`'s steps against the iframe BEFORE isolating, so the story is in the target interaction state.
 
-   a. **Resolve viewport width** from `design-tokens.yml` and the **story selector**
-      from the check's `selector` field. When `selector` is empty, use
-      `#storybook-root` as the selector (the rendered story container) — NOT
-      `--full-page`, which would capture the empty 1600px viewport around an isolated
-      component.
-
-   b. **Capture** using the **isolate-and-capture** mode of the `playwright-capture`
-      rule: hoist the first matched element (the resolved `selector`, or
-      `#storybook-root` when empty) to the `body` root and screenshot full-page
-      transparent — NOT a bbox crop and NOT a `screenshot <ref>`. When `check.steps`
-      are present, run them against the iframe BEFORE isolating, so the story is in
-      the check's interaction state.
-
-   c. **Verify** by reading the captured image.
-
-## Output
-
-| Breakpoint | Region | Path |
-|-----------|--------|------|
-| sm | header | `screenshots/sm--header.png` |
-| sm | footer | `screenshots/sm--footer.png` |
-| xl | full | `screenshots/xl--full.png` |
+3. **Capture** using the `playwright-capture` rule in isolate-and-capture mode: the selector is `screenshot.selector` (use `#storybook-root` when empty). Viewport width comes from `design_tokens` at `screenshot.breakpoint`.
