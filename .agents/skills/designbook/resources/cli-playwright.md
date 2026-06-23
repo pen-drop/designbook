@@ -93,6 +93,61 @@ npx playwright-cli snapshot                                # find the ref for he
 npx playwright-cli screenshot <header-ref> --filename "header.png"
 ```
 
+### Isolate-and-capture (Element freistellen, full-page transparent)
+
+Statt das Bounding-Box-Rechteck eines Elements zu croppen: das erste gematchte
+Element ans `body`-Root heben, alles andere entfernen, Hintergrund transparent,
+dann den ganzen Viewport full-page transparent screenshoten. Das Element rendert
+self-sizing am Breakpoint-Viewport; überlappende Fremd-Elemente und Hintergrund
+fallen weg.
+
+> **Wichtig:** Der zweite Parameter von `eval` ist ein **Element-Ref**, kein Wert —
+> daher KANN ein Selektor nicht als Argument übergeben werden. Treffer-Erkennung
+> per `eval` (Trefferzahl, branchbar in der Shell); das Freistellen per `run-code` +
+> `page.evaluate` mit **inline eingebettetem** Selektor.
+
+```bash
+SEL='<css-selector>'   # in den run-code-String eingebettet (Single-Quotes außen)
+npx playwright-cli -s=$WS open
+npx playwright-cli -s=$WS goto "${url}"
+npx playwright-cli -s=$WS resize ${viewportWidth} 1600
+npx playwright-cli -s=$WS run-code "async (page) => { await page.waitForTimeout(3000) }"
+# (optional) check.steps hier ausführen — im VOLLEN Layout, vor dem Freistellen
+
+# 1) Treffer-Erkennung (gibt die Zahl auf stdout zurück):
+COUNT=$(npx playwright-cli -s=$WS eval "() => document.querySelectorAll('${SEL}').length")
+if [ "$COUNT" = "0" ]; then
+  # full-page-Fallback + Warnung (NIE fail)
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.screenshot({ path: '${STAGED}', fullPage: true }) }"
+else
+  # 2) Freistellen (Hoist ans body-Root):
+  npx playwright-cli -s=$WS run-code "async (page) => {
+    await page.evaluate(() => {
+      const el = document.querySelector('${SEL}');
+      document.body.replaceChildren(el);
+      el.style.margin = '0';
+      el.style.inset = 'auto';
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+      document.body.style.margin = '0';
+    });
+  }"
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.waitForTimeout(1000) }"
+  # 3) Full-page transparent capturen:
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.screenshot({ path: '${STAGED}', fullPage: true, omitBackground: true }) }"
+fi
+npx playwright-cli -s=$WS close
+```
+
+- Trefferzahl `0` → full-page-Fallback + Warnung (nie fail). Expliziter Branch.
+- Dem Element wird KEINE Breite aufgezwungen — Media-Queries reagieren auf die
+  Breakpoint-Viewport-Breite. Container-Queries siehe Spec-Limitations.
+- `omitBackground: true` + transparenter body-bg → Leerraum ist transparent.
+- Selektor mit Single-Quotes (z.B. `[data-x='y']`) bricht das Inline-Quoting —
+  in dem seltenen Fall doppelte Quotes im Selektor verwenden oder escapen.
+- Limitations (akzeptiert): `querySelector` pierct nicht in Shadow-DOM/iframes;
+  out-of-flow Descendants können trotz full-page abgeschnitten werden.
+
 ### DOM extraction for design reference
 
 ```bash
