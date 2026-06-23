@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
 import { StoryMeta, resolveScene } from '../story-entity.js';
+import { hashReferenceUrl } from '../resolvers/reference-folder.js';
 import type { DesignbookConfig } from '../config.js';
 
 const tmpDir = resolve(import.meta.dirname, '__fixtures_story_entity__');
@@ -17,49 +18,28 @@ function writeMeta(storyId: string, meta: unknown) {
   writeFileSync(resolve(dir, 'meta.yml'), dumpYaml(meta, { lineWidth: -1 }));
 }
 
+const shellHash = hashReferenceUrl('https://example.com/shell');
+
 function setupFixtures() {
   rmSync(tmpDir, { recursive: true, force: true });
   mkdirSync(resolve(tmpDir, 'stories'), { recursive: true });
 
   writeMeta('design-system--shell', {
-    reference: {
-      source: { url: 'https://example.com/shell', origin: 'stitch', hasMarkup: true },
-      breakpoints: {
-        sm: {
-          threshold: 3,
-          regions: {
-            header: { selector: 'header' },
-            footer: { selector: 'footer' },
-          },
-        },
-        xl: {
-          threshold: 3,
-          regions: {
-            header: { selector: 'header' },
-            footer: { selector: 'footer' },
-          },
-        },
-      },
-    },
+    reference: shellHash,
+    elements: [
+      { id: 'header', selector: 'header' },
+      { id: 'footer', selector: 'footer' },
+    ],
   });
 
   writeMeta('galerie--product-detail', {
-    reference: {
-      source: { url: 'https://example.com/product', origin: 'stitch' },
-      breakpoints: {
-        sm: { threshold: 3, regions: { full: { selector: '' } } },
-        xl: { threshold: 3, regions: { full: { selector: '' } } },
-      },
-    },
+    reference: hashReferenceUrl('https://example.com/product'),
+    elements: [{ id: 'full', selector: '' }],
   });
 
   writeMeta('galerie--overview', {
-    reference: {
-      source: { url: 'https://example.com/overview', origin: 'manual' },
-      breakpoints: {
-        sm: { threshold: 5, regions: { full: { selector: '' } } },
-      },
-    },
+    reference: hashReferenceUrl('https://example.com/overview'),
+    elements: [{ id: 'full', selector: '' }],
   });
 
   mkdirSync(resolve(tmpDir, 'stories', 'galerie--empty'), { recursive: true });
@@ -85,16 +65,12 @@ describe('StoryMeta', () => {
       expect(story).not.toBeNull();
       expect(story!.storyId).toBe('design-system--shell');
       expect(story!.section).toBe('design-system');
-      expect(story!.reference.url).toBe('https://example.com/shell');
-      expect(story!.reference.origin).toBe('stitch');
-      expect(story!.reference.hasMarkup).toBe(true);
     });
 
     it('loads story without meta.yml', () => {
       const story = StoryMeta.load(config, 'galerie--empty');
       expect(story).not.toBeNull();
       expect(story!.storyId).toBe('galerie--empty');
-      expect(story!.reference.url).toBeUndefined();
     });
 
     it('returns null for non-existent story', () => {
@@ -106,7 +82,7 @@ describe('StoryMeta', () => {
   describe('loadOrCreate', () => {
     it('returns existing story without mutation', () => {
       const story = StoryMeta.loadOrCreate(config, 'design-system--shell');
-      expect(story.reference.url).toBe('https://example.com/shell');
+      expect(story.storyId).toBe('design-system--shell');
     });
 
     it('creates story directory and meta.yml when missing', () => {
@@ -120,10 +96,10 @@ describe('StoryMeta', () => {
       expect(story.storyId).toBe(storyId);
 
       const meta = parseYaml(readFileSync(resolve(storyDir, 'meta.yml'), 'utf-8')) as {
-        reference?: { breakpoints?: Record<string, unknown> };
+        reference?: string;
       };
-      expect(Object.keys(meta.reference?.breakpoints ?? {})).toContain('sm');
-      expect(Object.keys(meta.reference?.breakpoints ?? {})).toContain('xl');
+      // new format: reference is a hash string or null, no nested breakpoints
+      expect(meta).toBeDefined();
 
       rmSync(storyDir, { recursive: true, force: true });
     });
@@ -143,12 +119,25 @@ describe('StoryMeta', () => {
   });
 
   describe('toJSON', () => {
-    it('returns a minimal entity snapshot', () => {
+    it('returns the reference binding + story elements', () => {
       const story = StoryMeta.load(config, 'design-system--shell')!;
       const json = story.toJSON();
       expect(json.storyId).toBe('design-system--shell');
       expect(json.section).toBe('design-system');
-      expect(json.reference.url).toBe('https://example.com/shell');
+      expect(json.reference).toBe(shellHash);
+      expect(json.referenceDir).toBe(`references/${shellHash}`);
+      expect(json.elements).toEqual([
+        { id: 'header', selector: 'header' },
+        { id: 'footer', selector: 'footer' },
+      ]);
+    });
+
+    it('returns null reference + empty elements when no meta', () => {
+      const story = StoryMeta.load(config, 'galerie--empty')!;
+      const json = story.toJSON();
+      expect(json.reference).toBeNull();
+      expect(json.referenceDir).toBeNull();
+      expect(json.elements).toEqual([]);
     });
   });
 });
