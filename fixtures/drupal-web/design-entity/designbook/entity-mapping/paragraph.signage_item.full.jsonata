@@ -1,13 +1,16 @@
-[
-  {
-    "component": "test_integration_drupal:signage_item",
-    "props": {
-      "title": field_title,
-      "description": field_description,
-      "icon": field_icon,
-      "links": field_links,
-      "button_anonymous": field_button_anonymous,
-      "button_authenticated": field_button_authenticated
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:signage_item",
+      "props": {
+        "title": $fields.field_title,
+        "description": $fields.field_description,
+        "icon": $fields.field_icon,
+        "links": $fields.field_links,
+        "buttonAnonymous": $fields.field_button_anonymous,
+        "buttonAuthenticated": $fields.field_button_authenticated
+      }
     }
-  }
-]
+  ]
+)

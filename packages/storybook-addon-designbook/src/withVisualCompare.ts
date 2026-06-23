@@ -2,6 +2,7 @@ import { useGlobals } from 'storybook/preview-api';
 import type { DecoratorFunction } from 'storybook/internal/types';
 
 import { VISUAL_COMPARE_KEY } from './constants';
+import { referenceImagePath } from './visual-compare-path';
 
 interface VisualCompareState {
   breakpoint: string | null;
@@ -9,24 +10,17 @@ interface VisualCompareState {
   opacity: number;
 }
 
-interface RegionDef {
+interface ElementDef {
   name: string;
   selector: string;
-}
-
-interface RegionJSON {
-  selector?: string;
-  reference_selector?: string;
-}
-
-interface BreakpointJSON {
-  threshold?: number | null;
-  regions?: Record<string, RegionJSON>;
+  state: string;
 }
 
 interface StoryJSON {
   referenceDir?: string | null;
-  breakpoints?: Record<string, BreakpointJSON>;
+  reference?: string | null;
+  elements?: Array<{ id: string; selector: string }>;
+  referenceElements?: Array<{ id: string; selector: string; breakpoints: string[]; states: Array<{ name: string }> }>;
 }
 
 // Cache the full story fetch to avoid multiple requests per breakpoint
@@ -44,17 +38,30 @@ function fetchStory(storyId: string): Promise<StoryJSON | null> {
   return promise;
 }
 
-function regionsFor(story: StoryJSON, breakpoint: string): RegionDef[] {
-  const regions = story.breakpoints?.[breakpoint]?.regions;
-  if (!regions) return [];
-  return Object.entries(regions).map(([name, r]) => ({ name, selector: r.selector ?? '' }));
+function regionsFor(story: StoryJSON, breakpoint: string): ElementDef[] {
+  const refElements = story.referenceElements;
+  if (!refElements || refElements.length === 0) return [];
+
+  // Build a map of element id → story selector for overlay positioning
+  const storyElements: Record<string, string> = {};
+  for (const el of story.elements ?? []) {
+    storyElements[el.id] = el.selector;
+  }
+
+  return refElements
+    .filter((el) => el.breakpoints.includes(breakpoint))
+    .map((el) => ({
+      name: el.id,
+      selector: storyElements[el.id] ?? '',
+      state: el.states.find((state) => state.name === 'rest')?.name ?? el.states[0]?.name ?? 'rest',
+    }));
 }
 
 function applyOverlays(
   canvasElement: HTMLElement,
   referenceDir: string,
   state: VisualCompareState,
-  regions: RegionDef[],
+  regions: ElementDef[],
 ) {
   if (!canvasElement.isConnected) return;
 
@@ -67,7 +74,7 @@ function applyOverlays(
   const canvasRect = canvasElement.getBoundingClientRect();
 
   for (const region of filtered) {
-    const src = `/__designbook/load?path=${referenceDir}/${encodeURIComponent(state.breakpoint!)}--${encodeURIComponent(region.name)}.png`;
+    const src = referenceImagePath(referenceDir, state.breakpoint!, region);
 
     if (!region.selector) {
       // "full" region (empty selector) — full-page overlay

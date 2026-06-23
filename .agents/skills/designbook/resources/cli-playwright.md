@@ -87,11 +87,93 @@ npx playwright-cli close
 
 ### Element screenshot via snapshot ref
 
+> ⛔ **Do NOT use this recipe for design-verify element capture.** The `snapshot` +
+> `screenshot <ref>` approach crops the element's bounding box, which drags in
+> overlapping neighbours and wrong layout widths. Use the **Isolate-and-capture**
+> pattern below instead.
+
 ```bash
 npx playwright-cli goto "https://example.com"
 npx playwright-cli snapshot                                # find the ref for header
 npx playwright-cli screenshot <header-ref> --filename "header.png"
 ```
+
+### Isolate-and-capture (isolate element, full-page transparent)
+
+Instead of cropping the bounding-box rectangle of an element: hoist the first
+matched element to the `body` root, remove everything else, set background
+transparent, force the isolated capture surface to the breakpoint width, then
+capture the full viewport full-page transparent. The screenshot keeps the
+breakpoint width even when the rendered content is narrower; overlapping foreign
+elements and backgrounds fall away.
+
+> **Important:** The second parameter of `eval` is an **element ref**, not a value —
+> therefore a selector CANNOT be passed as an argument. Use `eval` for match
+> detection (returns the count, branchable in the shell); use `run-code` +
+> `page.evaluate` with the selector **inlined** for the hoist step.
+
+```bash
+SEL='<css-selector>'   # in den run-code-String eingebettet (Single-Quotes außen)
+npx playwright-cli -s=$WS open
+npx playwright-cli -s=$WS goto "${url}"
+npx playwright-cli -s=$WS resize ${viewportWidth} 1600
+npx playwright-cli -s=$WS run-code "async (page) => {
+  try { await page.waitForLoadState('networkidle'); } catch {}
+  try { await page.waitForSelector('${SEL}', { state: 'visible', timeout: 8000 }); } catch {}
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+}"
+# (optional) check.steps hier ausführen — im VOLLEN Layout, vor dem Freistellen
+
+# 1) Treffer-Erkennung (gibt die Zahl auf stdout zurück):
+COUNT=$(npx playwright-cli -s=$WS eval "() => document.querySelectorAll('${SEL}').length")
+if [ "$COUNT" = "0" ]; then
+  # full-page-Fallback + Warnung (NIE fail)
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.screenshot({ path: '${STAGED}', fullPage: true }) }"
+else
+  # 2) Freistellen (Hoist ans body-Root):
+  npx playwright-cli -s=$WS run-code "async (page) => {
+    await page.evaluate((viewportWidth) => {
+      const el = document.querySelector('${SEL}');
+      const surface = document.createElement('div');
+      surface.setAttribute('data-designbook-capture-surface', '');
+      surface.style.boxSizing = 'border-box';
+      surface.style.width = viewportWidth + 'px';
+      surface.style.minWidth = viewportWidth + 'px';
+      surface.style.margin = '0';
+      surface.style.padding = '0';
+      surface.style.background = 'transparent';
+      surface.appendChild(el);
+      document.body.replaceChildren(surface);
+      el.style.margin = '0';
+      el.style.inset = 'auto';
+      document.documentElement.style.background = 'transparent';
+      document.documentElement.style.width = viewportWidth + 'px';
+      document.documentElement.style.minWidth = viewportWidth + 'px';
+      document.body.style.background = 'transparent';
+      document.body.style.margin = '0';
+      document.body.style.width = viewportWidth + 'px';
+      document.body.style.minWidth = viewportWidth + 'px';
+      document.body.style.overflowX = 'hidden';
+    }, ${viewportWidth});
+  }"
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))) }"
+  # 3) Full-page transparent capturen:
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.screenshot({ path: '${STAGED}', fullPage: true, omitBackground: true }) }"
+fi
+npx playwright-cli -s=$WS close
+```
+
+- Match count `0` → full-page fallback + warning (never fail). Explicit branch.
+- The transparent capture surface is forced to the breakpoint width. The component's
+  own element and inner content may still be narrower via max-width/container styles,
+  but the PNG width must match the breakpoint on reference and story captures.
+- `omitBackground: true` + transparent body background → whitespace is transparent.
+- A selector with single quotes (e.g. `[data-x='y']`) breaks the inline quoting —
+  in that rare case use double quotes in the selector or escape them.
+- `document.fonts.ready` alone is insufficient for client-side rendering; `waitForSelector(<target>)` is the real CSR signal (the target exists and is visible). Both `waitForLoadState` and `waitForSelector` are in `try/catch` so a no-match dovetails with the COUNT gate (→ full-page fallback), never fails.
+- Limitations (accepted): `querySelector` does not pierce Shadow DOM / iframes;
+  out-of-flow descendants may be clipped despite full-page.
 
 ### DOM extraction for design reference
 

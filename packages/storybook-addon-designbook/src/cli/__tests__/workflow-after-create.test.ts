@@ -124,6 +124,45 @@ describe('workflow done: after-workflow auto-create', () => {
     expect(parentMeta.children).toEqual([{ name: next[0]!.name, workflow: 'child-wf' }]);
   });
 
+  it('creates the first workflow step when multiple task files match that step', async () => {
+    const skill = 'multi-match-first-step';
+
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'workflows', 'multi-match.md'),
+      {
+        title: 'Multi Match',
+        stages: {
+          reference: { steps: ['extract-reference'] },
+          intake: { steps: ['intake'] },
+        },
+        engine: 'direct',
+      },
+      '# multi-match',
+    );
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'tasks', 'extract-reference.md'),
+      { trigger: { steps: ['extract-reference'] } },
+      '# extract-reference',
+    );
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'tasks', 'also-extract-reference.md'),
+      { trigger: { steps: ['extract-reference'] } },
+      '# also-extract-reference',
+    );
+    writeMd(resolve(agentsDir, 'skills', skill, 'tasks', 'intake.md'), { trigger: { steps: ['intake'] } }, '# intake');
+
+    const config = loadConfig();
+    const created = await runWorkflowCreate({ workflow: 'multi-match' }, config);
+    const wf = readTasksYml(created.name);
+
+    expect(created.task_ids).toEqual({ 'extract-reference': 'extract-reference' });
+    expect(wf.current_stage).toBe('reference');
+    expect(wf.tasks).toHaveLength(1);
+    expect(wf.tasks[0]!.step).toBe('extract-reference');
+    expect(wf.tasks[0]!.stage).toBe('reference');
+    expect(wf.tasks[0]!.task_file).toContain('tasks/extract-reference.md');
+  });
+
   it('idempotent re-run: second createAfterWorkflows call skips creation, parent has exactly 1 child', async () => {
     const config = loadConfig();
 

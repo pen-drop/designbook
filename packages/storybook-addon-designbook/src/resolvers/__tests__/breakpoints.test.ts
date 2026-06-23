@@ -64,18 +64,15 @@ describe('breakpointsResolver', () => {
     expect(result.value).not.toContain('$extensions');
   });
 
-  it('returns breakpoints from meta.yml when story exists', async () => {
+  it('falls back to design-tokens when story exists (breakpoints no longer stored in meta)', async () => {
     const storiesDir = join(tmpDir, 'stories', 'foo--bar');
     mkdirSync(storiesDir, { recursive: true });
-    writeFileSync(
-      join(storiesDir, 'meta.yml'),
-      `reference:\n  source: { url: "https://example.com" }\n  breakpoints:\n    md: { threshold: 3, regions: { full: { selector: "body" } } }\n    lg: { threshold: 3, regions: { full: { selector: "body" } } }\n`,
-    );
+    writeFileSync(join(storiesDir, 'meta.yml'), `reference: abc123\nelements:\n  - id: full\n    selector: body\n`);
 
     const ctx = makeContext({ story_id: 'foo--bar' });
     const result = await breakpointsResolver.resolve('', { from: 'story_id' }, ctx);
     expect(result.resolved).toBe(true);
-    expect(result.value).toBe('md,lg');
+    expect(result.value).toBe('sm,xl');
   });
 
   it('falls back to design-tokens when story_id not in meta', async () => {
@@ -85,10 +82,10 @@ describe('breakpointsResolver', () => {
     expect(result.value).toBe('sm,xl');
   });
 
-  it('falls back to design-tokens when meta has no breakpoints', async () => {
+  it('falls back to design-tokens when meta has no reference', async () => {
     const storiesDir = join(tmpDir, 'stories', 'empty--meta');
     mkdirSync(storiesDir, { recursive: true });
-    writeFileSync(join(storiesDir, 'meta.yml'), `reference:\n  source: { url: "https://example.com" }\n`);
+    writeFileSync(join(storiesDir, 'meta.yml'), `elements: []\n`);
 
     const ctx = makeContext({ story_id: 'empty--meta' });
     const result = await breakpointsResolver.resolve('', { from: 'story_id' }, ctx);

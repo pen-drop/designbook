@@ -78,6 +78,17 @@ shelter: shelter-1
 category: cat-dogs
 ```
 
+Multi-value reference fields (`multiple: true`) store an array of target record
+ids. Keep the same field boundary as Drupal: the array is one field value, not
+separate parent fields.
+
+```yaml
+field_signage_item:
+  - "1"
+  - "2"
+  - "3"
+```
+
 ### Entity reference fields on config listing entities (rows)
 
 Config listing bundles that aggregate content use the **object form**:

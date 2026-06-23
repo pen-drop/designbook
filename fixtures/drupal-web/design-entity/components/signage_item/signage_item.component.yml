@@ -1,60 +1,32 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
 name: Signage Item
-status: experimental
+status: stable
 group: Navigation
-description: One navigation item within a Wegweiser — icon, title, description, links, and CTA buttons
-variants:
-  main:
-    title: Main
+description: One LEANDO Wegweiser topic item with icon, title, description, links, and CTA buttons.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
 props:
   type: object
   properties:
     title:
       type: string
       title: Title
-      description: Heading for the navigation item
     description:
       type: string
       title: Description
-      description: Body text for the navigation item
     icon:
       type: string
       title: Icon
-      description: Material icon name (ligature)
     links:
       type: array
       title: Links
-      description: List of navigation links
       items:
         type: object
-        properties:
-          url:
-            type: string
-            title: URL
-          title:
-            type: string
-            title: Link text
-    button_anonymous:
+    buttonAnonymous:
       type: object
-      title: CTA Button (anonymous)
-      description: Call-to-action button for anonymous users
-      properties:
-        url:
-          type: string
-          title: URL
-        title:
-          type: string
-          title: Button label
-    button_authenticated:
+      title: Anonymous CTA
+    buttonAuthenticated:
       type: object
-      title: CTA Button (authenticated)
-      description: Call-to-action button for authenticated users
-      properties:
-        url:
-          type: string
-          title: URL
-        title:
-          type: string
-          title: Button label
-thirdPartySettings:
-  sdcStorybook:
-    disableBasicStory: true
+      title: Authenticated CTA

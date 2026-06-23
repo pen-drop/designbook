@@ -36,19 +36,11 @@ const KNOWN_BREAKPOINTS: Record<string, number> = {
   '2xl': 1536,
 };
 
-interface RegionJSON {
-  selector?: string;
-  reference_selector?: string;
-}
-
-interface BreakpointJSON {
-  threshold?: number | null;
-  regions?: Record<string, RegionJSON>;
-}
-
 interface StoryJSON {
   referenceDir?: string | null;
-  breakpoints?: Record<string, BreakpointJSON>;
+  reference?: string | null;
+  elements?: Array<{ id: string; selector: string }>;
+  referenceElements?: Array<{ id: string; selector: string; breakpoints: string[]; states: Array<{ name: string }> }>;
 }
 
 async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
@@ -56,25 +48,39 @@ async function discoverBreakpoints(storyId: string): Promise<BreakpointInfo[]> {
     const res = await fetch(`/__designbook/story/${encodeURIComponent(storyId)}`);
     if (!res.ok) return [];
     const story = (await res.json()) as StoryJSON;
-    const bpData = story.breakpoints;
-    if (!bpData || Object.keys(bpData).length === 0) return [];
+    const refElements = story.referenceElements;
+    if (!refElements || refElements.length === 0) return [];
+
+    // Build a map of element id → story selector for overlay positioning
+    const storyElements: Record<string, string> = {};
+    for (const el of story.elements ?? []) {
+      storyElements[el.id] = el.selector;
+    }
+
+    // Collect all unique breakpoints across all reference elements
+    const bpMap = new Map<string, RegionInfo[]>();
+    for (const element of refElements) {
+      for (const bp of element.breakpoints) {
+        if (!bpMap.has(bp)) {
+          bpMap.set(bp, []);
+        }
+        // Compare results (diff/pass/issues) are runtime-only and not persisted —
+        // the dropdown lists the configured elements; status badges show "—".
+        bpMap.get(bp)!.push({
+          name: element.id,
+          selector: storyElements[element.id] ?? '',
+          diffPercent: null,
+          threshold: null,
+          pass: null,
+          issues: [],
+        });
+      }
+    }
 
     const breakpoints: BreakpointInfo[] = [];
-    for (const [name, bp] of Object.entries(bpData)) {
+    for (const [name, regions] of bpMap.entries()) {
       const width = KNOWN_BREAKPOINTS[name] ?? 0;
-      const threshold = bp.threshold ?? null;
-      // Compare results (diff/pass/issues) are runtime-only and not persisted —
-      // the dropdown lists the configured regions; status badges show "—".
-      const regions: RegionInfo[] = Object.entries(bp.regions ?? {}).map(([id, r]) => ({
-        name: id,
-        selector: r.selector ?? '',
-        diffPercent: null,
-        threshold,
-        pass: null,
-        issues: [],
-      }));
-
-      breakpoints.push({ name, width, hasReference: true, threshold, regions });
+      breakpoints.push({ name, width, hasReference: true, threshold: null, regions });
     }
 
     return breakpoints.sort((a, b) => a.width - b.width);

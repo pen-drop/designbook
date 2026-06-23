@@ -21,9 +21,11 @@ Rules and resources for Drupal-compatible data model creation (`when: backend: d
 
 Rules and resources for mapping Drupal fields to component props in the `map-entity` stage (`when: backend: drupal`).
 
-- [data-mapping/rules/field-map.md](data-mapping/rules/field-map.md) — Template rule for `template: field-map`; generates JSONata mapping Drupal fields to `ComponentNode[]`
-- [data-mapping/rules/canvas.md](data-mapping/rules/canvas.md) — Canvas-specific mapping rules
-- [data-mapping/rules/layout-builder.md](data-mapping/rules/layout-builder.md) — Layout Builder mapping rules
+- [data-mapping/blueprints/field-map.md](data-mapping/blueprints/field-map.md) — Blueprint for `template: field-map`; generates JSONata mapping Drupal fields to `ComponentNode[]`
+- [data-mapping/rules/image-fields.md](data-mapping/rules/image-fields.md) — Hard constraints for image and reference field mapping
+- [data-mapping/rules/field-cardinality.md](data-mapping/rules/field-cardinality.md) — Cardinality boundary: multi-value fields render as field-level collections; single-value fields may be unwrapped
+- [data-mapping/blueprints/canvas.md](data-mapping/blueprints/canvas.md) — Canvas-specific mapping blueprint
+- [data-mapping/blueprints/layout-builder.md](data-mapping/blueprints/layout-builder.md) — Layout Builder mapping blueprint
 - [data-mapping/resources/field-mapping.md](data-mapping/resources/field-mapping.md) — Drupal field type → component mapping guide
 
 ## Sample Data
@@ -43,6 +45,7 @@ Rules, tasks, and blueprints for creating Drupal SDC components (`when: framewor
 - [components/schemas.yml](components/schemas.yml) — `SdcComponent` / `SdcStory` / `SdcStoryNode` / `SdcTemplate` — naming, slot rules, YAML quoting, variants, placeholder images, Twig conventions (single source)
 - [components/tasks/create-component.md](components/tasks/create-component.md) — Creates all three SDC files; phase-based generation with per-component validation
 - [components/rules/sdc-components.md](components/rules/sdc-components.md) — Constraints for `.component.yml`, `.twig`, `.story.yml` (global naming + per-file-type rules)
+- [components/rules/reference-field-semantics.md](components/rules/reference-field-semantics.md) — Prevents raw field values, placeholder links, and duplicate action fields from leaking into reference-derived component markup
 - [components/rules/layout-constraints.md](components/rules/layout-constraints.md) — Layout component constraints
 
 ## Blueprints

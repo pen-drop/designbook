@@ -16,6 +16,16 @@ params:
       path: $DESIGNBOOK_DATA/vision.yml
       type: object
       $ref: ../../vision/schemas.yml#/Vision
+    elements:
+      type: array
+      description: "Named comparison subjects (id + reference selector). When not supplied, ask the user which page regions to capture."
+      items:
+        $ref: ../schemas.yml#/Element
+    breakpoints:
+      type: array
+      description: "Breakpoint ids to capture (e.g. sm, md, lg). When not supplied, ask the user which breakpoints to include."
+      items:
+        $ref: ../schemas.yml#/BreakpointId
 result:
   type: object
   required: [reference_dir]
@@ -24,22 +34,55 @@ result:
       $ref: ../schemas.yml#/ReferenceFolder
     reference:
       type: object
-      path: "{{ reference_folder }}/extract.json"
-      $ref: ../schemas.yml#/DesignReference
-    screenshot:
-      type: string
-      default: ""
+      path: "{{ reference_folder }}/meta.yml"
+      $ref: ../schemas.yml#/Reference
+    reference_screenshots:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Screenshot
 ---
 
 # Extract Reference
 
-Resolves a design reference URL from `vision.yml` and extracts structure into a `DesignReference` (`extract.json`).
+Resolves a design reference URL from `vision.yml`, extracts structure into a `DesignReference` (`extract.json`), writes the `Reference` (`meta.yml`), and emits the baseline screenshot matrix.
 
 ## No reference
 
-When `reference_folder` is empty (the project has no design reference), there is nothing to extract. Complete the task with `reference_dir: ""` and do not submit the `reference` result key — no extraction, no asset download, no file written. Downstream stages run reference-free.
+When `reference_folder` is empty (the project has no design reference), there is nothing to extract. Complete the task with `reference_dir: ""`, do not submit `reference`, and return an empty `reference_screenshots` list — no extraction, no asset download, no files written. Downstream stages run reference-free.
 
-If `{reference_folder}/extract.json` already exists, return results from it — no extraction needed.
+## Stable baseline — reuse or accumulate
+
+When `{{ reference_dir }}/meta.yml` already exists and `--refresh-reference` is not set, load the existing `Reference` from `meta.yml` and reconstruct `reference_screenshots` from it — no re-extraction needed. Any baseline PNG that already exists alongside `meta.yml` is frozen and will be reused by `ensure-baseline` without re-capturing. With `--refresh-reference`, delete all `*.png` files in `{{ reference_dir }}/` before proceeding so every baseline is re-captured fresh; `extract.json` and `meta.yml` are still regenerated.
+
+If `{{ reference_dir }}/extract.json` already exists (and neither `meta.yml` is missing nor `--refresh-reference` is set), return results from it without re-extracting.
+
+## Ask: elements and breakpoints
+
+When `elements` or `breakpoints` are not supplied as params, ask the user before extracting:
+
+- **Breakpoints**: which viewport sizes to cover (e.g. `sm`, `md`, `lg`, `xl`). Default to all breakpoints found in `design-tokens.yml`.
+- **Elements**: which named subjects to compare (id + CSS selector on the reference page). Use stable surface ids such as `scene-header`, `scene-footer`, `scene-hero`, `entity-<entity_type>-<bundle>-<view_mode>`, or `component-<name>`. Reserve `full` for a true whole-page or whole-screen comparison; use an empty selector to express full-area capture instead of naming the subject `full`. Ask the user to confirm or extend the default set derived from extracted landmarks.
+
+Persist the confirmed values into the `Reference` `elements` array written to `meta.yml`.
+
+## Write meta.yml
+
+After extraction completes, write `{{ reference_dir }}/meta.yml` as a `Reference`:
+
+- `source`: populate from the reference URL's resolved origin, screenId (when available from vision.yml), and hasMarkup flag.
+- `elements`: the confirmed element list. For each element, derive `states` from `extract.json`'s `interactive[]` entries whose selector matches the element's selector — add each `CaptureState` found (name + steps). If no interactive behavior is found, default to `[{ name: rest }]`.
+- `extract`: `"extract.json"` (relative path to the DesignReference).
+- `assets_dir`: `"assets/"`.
+
+## Result: reference_screenshots
+
+Materialize `reference_screenshots` as the full element × state × breakpoint matrix. For each element in `Reference.elements`, for each state in `element.states`, for each breakpoint in `element.breakpoints` (or the task-level `breakpoints` param when the element carries none), emit one `Screenshot`:
+
+```
+{ element: element.id, state: state.name, breakpoint: bp, selector: element.selector }
+```
+
+`ensure-baseline` receives this list via its `each` expansion and captures any PNG that does not yet exist beside `meta.yml`.
 
 ## Completeness Requirements
 

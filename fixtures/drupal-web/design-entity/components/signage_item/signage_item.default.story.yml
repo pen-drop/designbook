@@ -1,17 +1,15 @@
 component: test_integration_drupal:signage_item
 name: Default
 props:
-  title: Ausbilden
-  description: Materialien und Werkzeuge für Ausbilderinnen und Ausbilder in Betrieb und überbetrieblicher Ausbildung.
+  title: ausbilden
+  description: Ausbilderinnen und Ausbilder finden auf Leando anwendungsbezogene Themenbeiträge, qualitätsgesicherte Informationen zu aktuellen Trends sowie nützliche Praxis-Tipps.
   icon: school
   links:
-    - url: /themen/ausbilden
-      title: Alle Themen rund ums Ausbilden
-    - url: /materialien/ausbilden
-      title: Materialien für Ausbilder
-  button_anonymous:
-    url: /registrieren
-    title: Jetzt registrieren
-  button_authenticated:
-    url: /ausbilden
-    title: Zum Bereich Ausbilden
+    - title: Ausbildung
+      url: /de/ausbildung
+  buttonAnonymous:
+    title: Registrieren
+    url: /de/user/register
+  buttonAuthenticated:
+    title: Community öffnen
+    url: /de/community

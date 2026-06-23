@@ -10,7 +10,6 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml';
 import { glob } from 'glob';
 import { buildExportName } from './renderer/scene-metadata.js';
-import { hashReferenceUrl } from './resolvers/reference-folder.js';
 import type { DesignbookConfig } from './config.js';
 
 // ---------------------------------------------------------------------------
@@ -34,67 +33,40 @@ function toStoryId(title: string, exportName: string): string {
 // Types
 // ---------------------------------------------------------------------------
 
-export interface StoryMetaReference {
-  url?: string;
-  origin?: string;
-  screenId?: string;
-  hasMarkup?: boolean;
-}
-
-export interface StoryMetaRegionJSON {
-  /** CSS selector cropping the STORY capture. Empty ⇒ full story viewport. */
+export interface StoryMetaElementJSON {
+  id: string;
   selector: string;
-  /** CSS selector cropping the REFERENCE capture. Empty ⇒ full reference page. */
-  reference_selector: string;
-}
-
-export interface StoryMetaBreakpointJSON {
-  threshold: number | null;
-  regions: Record<string, StoryMetaRegionJSON>;
 }
 
 export interface StoryMetaJSON {
   storyId: string;
   section: string;
   storyDir: string;
-  reference: StoryMetaReference;
+  /** Hash of the reference URL, or null when no reference is set. */
+  reference: string | null;
   /**
    * Reference-screenshot folder relative to the designbook dir
-   * (`references/{hash}` of `reference.url`), or null when no reference URL is
-   * set. The in-app visual-compare overlay loads `{referenceDir}/{bp}--{region}.png`.
+   * (`references/{hash}`), or null when no reference is set.
    */
   referenceDir: string | null;
-  /** Per-breakpoint region configuration, derived from meta.yml. */
-  breakpoints: Record<string, StoryMetaBreakpointJSON>;
+  /** Story elements bound to this reference. */
+  elements: StoryMetaElementJSON[];
 }
 
 // ---------------------------------------------------------------------------
 // Internal meta.yml types
 // ---------------------------------------------------------------------------
 
-interface MetaRegion {
+interface MetaElement {
+  id: string;
   selector?: string;
-  reference_selector?: string;
-  threshold?: number;
-}
-
-interface MetaBreakpoint {
-  threshold?: number;
-  regions?: Record<string, MetaRegion>;
-}
-
-interface MetaSource {
-  url?: string;
-  origin?: string;
-  screenId?: string;
-  hasMarkup?: boolean;
+  states?: Array<{ name: string; steps: unknown[] }>;
 }
 
 export interface StoryMetaData {
-  reference?: {
-    source?: MetaSource;
-    breakpoints?: Record<string, MetaBreakpoint>;
-  };
+  /** Hash string of the associated reference, or undefined. */
+  reference?: string;
+  elements?: MetaElement[];
 }
 
 // ---------------------------------------------------------------------------
@@ -181,7 +153,6 @@ export class StoryMeta {
   readonly storyId: string;
   readonly section: string;
   readonly storyDir: string;
-  reference: StoryMetaReference;
 
   private _meta: StoryMetaData;
   private readonly _metaPath: string;
@@ -192,12 +163,6 @@ export class StoryMeta {
     this.storyDir = storyDir;
     this._meta = meta;
     this._metaPath = metaPath;
-    this.reference = {
-      url: meta.reference?.source?.url,
-      origin: meta.reference?.source?.origin,
-      screenId: meta.reference?.source?.screenId,
-      hasMarkup: meta.reference?.source?.hasMarkup,
-    };
   }
 
   get data(): Readonly<StoryMetaData> {
@@ -276,22 +241,8 @@ export class StoryMeta {
 
     const metaPath = resolve(storyDir, 'meta.yml');
     const section = StoryMeta._deriveSection(storyId);
-    const tmpStory = new StoryMeta(storyId, section, storyDir, {}, metaPath);
-    const breakpoints = tmpStory._getBreakpoints(config);
-    const regions = tmpStory._deriveRegions(config);
 
     const meta: StoryMetaData = {};
-    if (breakpoints.length > 0) {
-      meta.reference = { breakpoints: {} };
-      for (const bp of breakpoints) {
-        const regionMap: Record<string, MetaRegion> = {};
-        for (const region of regions) {
-          regionMap[region.name] = { selector: region.selector };
-        }
-        meta.reference.breakpoints![bp] = { threshold: 3, regions: regionMap };
-      }
-    }
-
     writeFileSync(metaPath, dumpYaml(meta, { lineWidth: -1 }), 'utf-8');
 
     return new StoryMeta(storyId, section, storyDir, meta, metaPath);
@@ -299,8 +250,7 @@ export class StoryMeta {
 
   /**
    * Create or load a story by scene reference. Creates the story directory if
-   * missing, optionally seeds meta.yml with provided data, then fills in
-   * breakpoints/regions from design tokens.
+   * missing, optionally seeds meta.yml with provided data.
    */
   static createByScene(
     config: DesignbookConfig,
@@ -324,33 +274,11 @@ export class StoryMeta {
       meta = (parseYaml(content) as StoryMetaData) ?? {};
     }
 
-    if (metaSeed?.reference) {
-      if (!meta.reference) meta.reference = {};
-      if (metaSeed.reference.source) {
-        meta.reference.source = { ...meta.reference.source, ...metaSeed.reference.source };
-      }
-      if (metaSeed.reference.breakpoints) {
-        meta.reference.breakpoints = { ...meta.reference.breakpoints, ...metaSeed.reference.breakpoints };
-      }
+    if (metaSeed?.reference !== undefined) {
+      meta.reference = metaSeed.reference;
     }
-
-    if (!meta.reference?.breakpoints || Object.keys(meta.reference.breakpoints).length === 0) {
-      const section = StoryMeta._deriveSection(storyId);
-      const tmpStory = new StoryMeta(storyId, section, storyDir, meta, metaPath);
-      const breakpoints = tmpStory._getBreakpoints(config);
-      const regions = tmpStory._deriveRegions(config);
-
-      if (breakpoints.length > 0) {
-        if (!meta.reference) meta.reference = {};
-        meta.reference.breakpoints = {};
-        for (const bp of breakpoints) {
-          const regionMap: Record<string, MetaRegion> = {};
-          for (const region of regions) {
-            regionMap[region.name] = { selector: region.selector };
-          }
-          meta.reference.breakpoints[bp] = { threshold: 3, regions: regionMap };
-        }
-      }
+    if (metaSeed?.elements !== undefined) {
+      meta.elements = metaSeed.elements;
     }
 
     writeFileSync(metaPath, dumpYaml(meta, { lineWidth: -1 }), 'utf-8');
@@ -363,28 +291,19 @@ export class StoryMeta {
   // -------------------------------------------------------------------------
 
   toJSON(): StoryMetaJSON {
-    const breakpoints: Record<string, StoryMetaBreakpointJSON> = {};
-    const bpData = this._meta.reference?.breakpoints ?? {};
-    for (const [bp, cfg] of Object.entries(bpData)) {
-      const regions: Record<string, StoryMetaRegionJSON> = {};
-      for (const [id, region] of Object.entries(cfg.regions ?? {})) {
-        regions[id] = {
-          selector: region.selector ?? '',
-          reference_selector: region.reference_selector ?? '',
-        };
-      }
-      breakpoints[bp] = { threshold: cfg.threshold ?? null, regions };
-    }
-
-    const referenceDir = this.reference.url ? `references/${hashReferenceUrl(this.reference.url)}` : null;
-
+    const reference = this._meta.reference ?? null;
+    const referenceDir = reference ? `references/${reference}` : null;
+    const elements = (this._meta.elements ?? []).map((e) => ({
+      id: e.id,
+      selector: e.selector ?? '',
+    }));
     return {
       storyId: this.storyId,
       section: this.section,
       storyDir: this.storyDir,
-      reference: this.reference,
+      reference,
       referenceDir,
-      breakpoints,
+      elements,
     };
   }
 
@@ -411,25 +330,5 @@ export class StoryMeta {
   private static _deriveSection(storyId: string): string {
     const idx = storyId.indexOf('--');
     return idx > 0 ? storyId.substring(0, idx) : storyId;
-  }
-
-  private _getBreakpoints(config: DesignbookConfig): string[] {
-    const tokensPath = resolve(config.data, 'design-system', 'design-tokens.yml');
-    if (!existsSync(tokensPath)) return [];
-
-    const content = readFileSync(tokensPath, 'utf-8');
-    const tokens = parseYaml(content) as {
-      breakpoints?: Record<string, unknown>;
-      semantic?: { breakpoints?: Record<string, unknown> };
-    };
-
-    const bpObj = tokens.breakpoints ?? tokens.semantic?.breakpoints;
-    if (!bpObj) return [];
-
-    return Object.keys(bpObj).filter((k) => !k.startsWith('$'));
-  }
-
-  private _deriveRegions(_config: DesignbookConfig): Array<{ name: string; selector: string }> {
-    return [{ name: 'full', selector: '' }];
   }
 }

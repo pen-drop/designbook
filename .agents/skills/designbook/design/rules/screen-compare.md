@@ -1,7 +1,7 @@
 ---
 name: designbook:design:screen-compare
 trigger:
-  steps: [compare]
+  steps: [compare, re-compare]
 ---
 
 # Screen Compare
@@ -17,9 +17,9 @@ Use the task-provided values only:
 - `story_url` — pre-resolved iframe URL for the story under review
 - `reference_folder` — resolved folder that contains `extract.json` and any
   reference screenshots
-- `check` when present — provides `story_id`, `breakpoint`, `region`,
+- `screenshot` when present — provides `story_id`, `breakpoint`, `element`,
   `selector`, and threshold context for the compare stage
-- `breakpoints[]` and `regions[]` when present — the requested review surface
+- `breakpoints[]` and `elements[]` when present — the requested review surface
 
 If `story_url` or `reference_folder` is empty, skip the compare and emit a
 non-passing compare artifact instead of fabricating a result.
@@ -33,7 +33,7 @@ When the values are present, the stage MUST do all of the following:
 3. Wait for the story render to settle before capturing.
 4. Capture the story screenshot:
    - full-page for `full` or empty selector
-   - element-specific capture for named regions/selectors
+   - element-specific capture for named elements/selectors
 5. Compare the captured screenshot against the reference screenshot in
    `reference_folder` with the **measurement CLI** — do not eyeball the diff:
    ```
@@ -41,8 +41,8 @@ When the values are present, the stage MUST do all of the following:
      --reference <ref.png> --actual <story.png> --diff <out-diff.png>
    ```
    `--reference` is the comparison base. Pair story and reference by the full
-   `(breakpoint, region, state)` triple — the screenshots for a check share the
-   same `file_suffix`, so a non-rest state never compares against the rest image.
+   `(breakpoint, element, state)` triple — screenshot filenames follow
+   `<bp>--<element>--<state>.png`, so a non-rest state never compares against the rest image.
    When `check.steps` are present, run them before capturing the story side so both
    sides are in the same interaction state. Take `diff_percent`, `diff_path`, and the
    issue `severity` from the CLI's JSON. The CLI does **not** emit `passed` — derive
@@ -55,14 +55,14 @@ When the values are present, the stage MUST do all of the following:
 
 For the compare stage:
 - emit actionable `issues`
-- emit one compare artifact per check (one per breakpoint × region × state)
+- emit one compare artifact per check (one per breakpoint × element × state)
 - save any diff/report file needed by that artifact
 
 ## Structural Dimension Drift
 
-Before interpreting pixel diff quality, compare the reference screenshot dimensions with the Storybook screenshot dimensions for the same breakpoint and region.
+Before interpreting pixel diff quality, compare the reference screenshot dimensions with the Storybook screenshot dimensions for the same breakpoint and element.
 
-When width or height differs enough to indicate missing or extra structure, emit an issue that names the dimension drift and treat it as a structural mismatch. Continue writing the normal diff artifact when possible, but do not let screenshot resizing hide missing landmark regions.
+When width or height differs enough to indicate missing or extra structure, emit an issue that names the dimension drift and treat it as a structural mismatch. Continue writing the normal diff artifact when possible, but do not let screenshot resizing hide missing landmark sections.
 
 ## Severity Is Measured, Not Judged
 

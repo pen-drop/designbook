@@ -1,36 +1,37 @@
 - id: '1'
   __designbook:
     section: signage
-  field_title: Ausbilden
-  field_description: <p>Alles Wichtige rund um Ausbildung und Berufsbildungspersonal — Qualifizierung, Prüfungen und Unterstützung für Ausbilder.</p>
+  field_title: ausbilden
+  field_description: Ausbilderinnen und Ausbilder finden auf Leando anwendungsbezogene Themenbeiträge, qualitätsgesicherte Informationen zu aktuellen Trends sowie nützliche Praxis-Tipps.
   field_icon: school
   field_links:
-    - <a href="/thema/ausbildung">Ausbildung im Überblick</a>
-    - <a href="/thema/qualifizierung">Qualifizierung & Weiterbildung</a>
-    - <a href="/thema/foerderung">Förderung & Finanzierung</a>
-  field_button_anonymous: <a href="/registrieren">Jetzt registrieren</a>
-  field_button_authenticated: <a href="/mein-bereich">Mein LEANDO</a>
+    - title: Ausbildung
+      url: /de/ausbildung
+  field_button_anonymous:
+    title: Registrieren
+    url: /de/user/register
+  field_button_authenticated: <a href="/de/ausbildung">Ausbildung öffnen</a>
 - id: '2'
   __designbook:
     section: signage
-  field_title: Prüfen
-  field_description: '<p>Informationen für Prüferinnen und Prüfer: Prüfungsplanung, Prüfungsrecht, Qualitätssicherung und Prüfungsausschüsse.</p>'
+  field_title: prüfen
+  field_description: Prüferinnen und Prüfer finden auf Leando nützliche Informationen für die Praxis - von gesetzlichen Grundlagen und Basiswissen bis zu Arbeitshilfen.
   field_icon: fact_check
   field_links:
-    - <a href="/thema/pruefungsrecht">Prüfungsrecht</a>
-    - <a href="/thema/pruefungsplanung">Prüfungsplanung</a>
-    - <a href="/thema/qualitaetssicherung">Qualitätssicherung</a>
-  field_button_anonymous: <a href="/registrieren">Jetzt registrieren</a>
-  field_button_authenticated: <a href="/pruefungsbereich">Mein Prüfungsbereich</a>
+    - title: Prüfung
+      url: /de/pruefung
+  field_button_anonymous:
+    title: Registrieren
+    url: /de/user/register
+  field_button_authenticated: <a href="/de/pruefung">Prüfung öffnen</a>
 - id: '3'
   __designbook:
     section: signage
-  field_title: Vernetzen
-  field_description: <p>Vernetzen Sie sich mit anderen Ausbilderinnen und Ausbildern, tauschen Sie Erfahrungen aus und finden Sie Ihre Community.</p>
+  field_title: vernetzen
+  field_description: Tauschen Sie sich aus und teilen Sie Ihre Erfahrungen in unseren Communitys. Angemeldet steht Ihnen der volle Funktionsumfang von Leando zur Verfügung.
   field_icon: groups
-  field_links:
-    - <a href="/community">Community beitreten</a>
-    - <a href="/veranstaltungen">Veranstaltungen</a>
-    - <a href="/expertennetzwerk">Expertennetzwerk</a>
-  field_button_anonymous: <a href="/registrieren">Jetzt registrieren</a>
-  field_button_authenticated: <a href="/netzwerk">Mein Netzwerk</a>
+  field_links: []
+  field_button_anonymous:
+    title: Registrieren
+    url: /de/user/register
+  field_button_authenticated: <a href="/de/community">Community öffnen</a>
