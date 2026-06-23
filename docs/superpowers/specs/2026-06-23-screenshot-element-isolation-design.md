@@ -82,7 +82,7 @@ entfällt **vollständig** — es gibt keinen Pfad mehr, der mit Element-Refs ar
 open
 goto <url>
 resize <breakpoint> × 1600
-settle 3s
+settle (CSR-robust, siehe „Settle")  ← kein fixes waitForTimeout
 check.steps ausführen        ← falls vorhanden, im VOLLEN Layout (Reihenfolge wichtig)
 eval: COUNT = querySelectorAll(selector).length
   ├─ COUNT == 0 → full-page-Fallback + Warnung, fertig   ← expliziter Branch, nie fail
@@ -96,6 +96,35 @@ close
 **Reihenfolge:** `check.steps` laufen **vor** dem Freistellen. So funktionieren auch
 Interaktionen, die ein Element außerhalb des Ziels antippen (z.B. ein Toggle). Der
 resultierende DOM-State bleibt nach dem Heben erhalten.
+
+### Settle (CSR-robust)
+
+Ein fixes `waitForTimeout(3000)` ist die schwache Stelle: wartet immer 3s (langsam)
+und reicht bei client-side Rendering trotzdem nicht zuverlässig — `document.fonts.ready`
+allein sagt nichts darüber, ob das JS-Framework die DOM schon gerendert/hydriert hat.
+Stattdessen ein deterministischer Settle, der auf das tatsächliche Vorhandensein des
+Ziels wartet:
+
+```js
+async (page) => {
+  try { await page.waitForLoadState('networkidle'); } catch {}            // async Daten settled
+  try { await page.waitForSelector('<target>', { state: 'visible', timeout: 8000 }); } catch {}  // CSR hat Ziel gemalt
+  await page.evaluate(() => document.fonts.ready);                         // Fonts gemalt (FOUT-Drift vermeiden)
+  await page.evaluate(() => new Promise(r =>                               // Layout stabil
+    requestAnimationFrame(() => requestAnimationFrame(r))));
+}
+```
+
+- `<target>` = der Selektor der gerade gecapturet wird (`check.selector` /
+  `check.reference_selector` / `#storybook-root`). Das ist das echte CSR-Signal:
+  das Ziel existiert + sichtbar.
+- Beide `waitForSelector`/`waitForLoadState` in `try/catch` ohne fail — matcht das
+  Ziel nichts, fällt der Ablauf durch zum eval-Trefferzahl-Gate (→ full-page-Fallback).
+  Kein Widerspruch zum no-match-Branch.
+- Full-page-Capture (leerer Selektor, Referenz): kein einzelnes Ziel → ohne
+  `waitForSelector`, nur networkidle + fonts.ready + double-rAF.
+- Nach dem Freistellen (replaceChildren + Style-Änderungen) folgt ein double-rAF
+  statt eines fixen `waitForTimeout` zur Relayout-Stabilisierung.
 
 **Treffer-Erkennung getrennt vom Freistellen:** Erst per `eval` die Trefferzahl
 abfragen (gibt einen Wert auf stdout, branchbar in der Shell), dann nur bei

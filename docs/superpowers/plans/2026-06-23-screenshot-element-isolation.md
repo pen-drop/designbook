@@ -299,6 +299,43 @@ git commit -m "feat(capture-reference): use isolate-and-capture for selector reg
 
 ---
 
+### Task 6: CSR-robuster Settle statt fixem waitForTimeout
+
+**Files:**
+- Modify: `.agents/skills/designbook/resources/cli-playwright.md` (Isolate-and-capture Pattern: pre-detection settle + post-isolate stabilisation)
+- Modify: `.agents/skills/designbook/design/rules/playwright-capture.md` (Full-capture recipe, element-capture protocol, settle-Constraint)
+
+**Interfaces:**
+- Consumes: ISOLATE-Protokoll (Tasks 1+2).
+
+- [ ] **Step 1: Skill-Gate (zwingend)** — `designbook-skill-creator` laden, `rules/rule-files.md` + `rules/common-rules.md` lesen (für die Rule-Datei). cli-playwright.md ist Resource (kein Gate).
+
+- [ ] **Step 2: Settle-Snippet definieren.** Der CSR-robuste Settle (ersetzt `waitForTimeout(3000)` PRE-capture). `<SEL>` = das gerade gecapturete Ziel (`check.selector` / `check.reference_selector` / `#storybook-root`):
+
+```bash
+npx playwright-cli -s=<ws> run-code "async (page) => {
+  try { await page.waitForLoadState('networkidle'); } catch {}
+  try { await page.waitForSelector('${SEL}', { state: 'visible', timeout: 8000 }); } catch {}
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+}"
+```
+
+- [ ] **Step 3: cli-playwright.md Isolate-Pattern** — `waitForTimeout(3000)` (pre-detection) durch das Settle-Snippet ersetzen; den post-isolate `waitForTimeout(1000)` durch double-rAF ersetzen:
+
+```bash
+npx playwright-cli -s=$WS run-code "async (page) => { await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))) }"
+```
+  Note-Bullet ergänzen: fonts.ready allein reicht bei CSR nicht; `waitForSelector(<target>)` ist das CSR-Signal; try/catch ohne fail dovetailt mit dem COUNT-Gate.
+
+- [ ] **Step 4: playwright-capture.md** — (a) im element-capture Protokoll-Block das Settle-Snippet VOR die COUNT-Detection setzen + post-isolate `waitForTimeout(1000)` → double-rAF; (b) Full-capture recipe (empty selector): `waitForTimeout(3000)` durch Settle OHNE `waitForSelector` ersetzen (networkidle + fonts.ready + double-rAF; kein einzelnes Ziel); (c) Constraint-Bullet „`run-code ... waitForTimeout(3000)` MUST be used to allow rendering to settle" umschreiben → den CSR-robusten Settle mandatieren.
+
+- [ ] **Step 5: `pnpm check`** — Run: `pnpm check`. Expected: PASS. Kein `pnpm install`; bei pnpm-lock-Drift `git checkout -- pnpm-lock.yaml`, nur die 2 md-Dateien stagen.
+
+- [ ] **Step 6: Commit** — `fix(playwright-capture,cli-playwright): CSR-robust settle (networkidle + waitForSelector + fonts.ready + double-rAF) instead of fixed waitForTimeout`.
+
+---
+
 ## Self-Review
 
 **Spec coverage:**
