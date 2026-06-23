@@ -671,14 +671,19 @@ git commit -m "feat(compare-screenshots): pair story vs frozen baseline by eleme
 
 **Files:**
 - Modify: `design/workflows/design-verify.md` (stages 14–34)
+- Modify: `tasks/intake--design-verify.md` — emits `regions: Region{id,selector,reference_selector}` → emit `elements: Element{id, selector}` (story-side id + selector) for `setup-compare`; the reference-side selectors live on the `Reference` (from extract-reference). Update the body's "Region = named selector PAIR" guidance to single-`selector` `Element`s; the shell/entity/screen examples become `[{id: header, selector: ".page__header"}, …]` / `[{id: full, selector: ""}]`.
+- Modify: `tasks/verify.md` — polish-time single-check verify keyed by `region`/`#/RegionId` → `element`/`#/ElementId`; paths `{bp}--{region}.png` → `{bp}--{element}--{state}.png` (reference `references/<hash>/…`, story `stories/<id>/screenshots/…`); the threshold lookup `story_meta.reference.breakpoints.<bp>.regions.<region>` no longer exists (StoryMeta is the thin binding) — drop the per-region threshold lookup or read a flat threshold.
+- Modify: `tasks/outtake--design-workflow.md` — `regions: #/RegionId` → `elements: #/ElementId`; the "breakpoints[] × regions[] × …" matrix language → "× elements[] ×".
 - Verify (no change expected): `design-entity.md`, `design-screen.md`, `design-shell.md` reference stages already run `extract-reference` (now baseline-authoring via Task 5).
 
 **Interfaces:**
 - Consumes: Tasks 4–8.
 
-- [ ] **Step 1: Load gate** — `designbook-skill-creator` + `rules/workflow-files.md` + `rules/common-rules.md`. Read `design-verify.md`.
+- [ ] **Step 1: Load gate** — `designbook-skill-creator` + `rules/workflow-files.md` + `rules/task-files.md` + `rules/common-rules.md`. Read `design-verify.md`, `intake--design-verify.md`, `verify.md`, `outtake--design-workflow.md`.
 
 - [ ] **Step 2: Update verify stages** — `reference` stage ensures the baseline (runs `extract-reference`/`ensure-baseline` so any asked element×bp×state has a frozen PNG). `capture` and `re-capture` stages run ONLY `capture-storybook` (drop `capture-reference` — it no longer exists). `setup-compare`, `compare`/`re-compare` stay but now drive the new `story_screenshots` list. Confirm no stage still references `capture-reference` or `Check`/`region`/`file_suffix`.
+
+- [ ] **Step 2b: Update the remaining verify task files** — apply the transforms listed in **Files** to `intake--design-verify.md` (emit `elements`, single selector), `verify.md` (region→element, new filenames, drop per-region threshold lookup), `outtake--design-workflow.md` (regions→elements). No `#/Region`/`#/RegionId`/`#/Check`/`reference_selector`/`file_suffix` may remain in any of them.
 
 - [ ] **Step 3: Grep guard (skills + addon)** — Run:
   `grep -rn "capture-reference\|file_suffix\|reference_selector\|#/Check\|#/Region\b\|RegionId" .agents/skills/designbook/design`
@@ -691,8 +696,8 @@ git commit -m "feat(compare-screenshots): pair story vs frozen baseline by eleme
 - [ ] **Step 5: Commit**
 
 ```bash
-git add design/workflows/design-verify.md
-git commit -m "feat(design-verify): capture story-only; reference stage ensures frozen baseline"
+git add design/workflows/design-verify.md .agents/skills/designbook/design/tasks/intake--design-verify.md .agents/skills/designbook/design/tasks/verify.md .agents/skills/designbook/design/tasks/outtake--design-workflow.md
+git commit -m "feat(design-verify): story-only capture; sweep intake/verify/outtake to element model"
 ```
 
 ---
