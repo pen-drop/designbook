@@ -58,14 +58,16 @@ the captured image is the interaction state the check names (handled by the
 
 2. **Capture screenshot** for this breakpoint/region using the `playwright-capture` rule.
 
-   - When `check.reference_selector` is non-empty, use **element-capture** mode — crop the
-     reference to that selector (this is the REFERENCE-side selector, distinct from the
-     story's `check.selector`). If it matches no element on the reference page, fall back to
-     full-page and warn (per `playwright-capture`); do not fail.
+   - When `check.reference_selector` is non-empty, use **isolate-and-capture** mode —
+     hoist the first matched element to the `body` root and screenshot full-page
+     transparent (this is the REFERENCE-side selector, distinct from the story's
+     `check.selector`). If it matches no element, fall back to full-page and warn
+     (per `playwright-capture`); do not fail.
    - When `check.reference_selector` is empty, full-page capture.
 
-   Follow `playwright-capture.md` for viewport resolution, the element-capture protocol
-   (`snapshot` → `screenshot <ref>`), and the staged file flow.
+   Follow `playwright-capture.md` for viewport resolution, the isolate-and-capture
+   protocol (`eval` hoist → `run-code` `page.screenshot({ fullPage, omitBackground })`),
+   and the staged file flow.
 
 ## Output
 
