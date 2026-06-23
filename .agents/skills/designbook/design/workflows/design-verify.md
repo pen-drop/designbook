@@ -13,7 +13,7 @@ params:
     from: reference_url
 stages:
   reference:
-    steps: [extract-reference]
+    steps: [ensure-baseline]
   intake:
     steps: [intake]
   setup-compare:

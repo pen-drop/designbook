@@ -48,8 +48,8 @@ npx playwright-cli close
 > via the **isolate-and-capture** mode (see the Element capture section below) — NOT a
 > `--full-page` viewport shot. A `--full-page` viewport shot of a story includes the
 > full 1600px empty canvas around the isolated component, causing dimensional drift
-> against any region-cropped reference. Reference URLs (not stories) still use
-> `--full-page` for an empty `reference_selector`.
+> against the reference. Reference URLs (not stories) still use
+> `--full-page` for an empty element selector.
 
 ### Element capture (region with CSS selector)
 
@@ -94,8 +94,10 @@ fi
 
 This mode applies to **both** captures, but each side uses its OWN selector — the
 story DOM (design-system components) differs from the reference DOM:
-- the **Storybook story** capture isolates `check.selector`
-- the **reference** capture isolates `check.reference_selector`
+- the **Storybook story** capture isolates the element's `selector` from the story's
+  `StoryMeta` binding (the story-side selector for that element)
+- the **reference** capture isolates the element's `selector` from the Reference
+  `meta.yml` (the reference-side selector for that element)
 
 Why isolate instead of crop: cropping the bbox drags in overlapping neighbors and
 background pixels (false diffs), and crops the element inside its original layout

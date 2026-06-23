@@ -41,8 +41,8 @@ When the values are present, the stage MUST do all of the following:
      --reference <ref.png> --actual <story.png> --diff <out-diff.png>
    ```
    `--reference` is the comparison base. Pair story and reference by the full
-   `(breakpoint, region, state)` triple — the screenshots for a check share the
-   same `file_suffix`, so a non-rest state never compares against the rest image.
+   `(breakpoint, element, state)` triple — screenshot filenames follow
+   `<bp>--<element>--<state>.png`, so a non-rest state never compares against the rest image.
    When `check.steps` are present, run them before capturing the story side so both
    sides are in the same interaction state. Take `diff_percent`, `diff_path`, and the
    issue `severity` from the CLI's JSON. The CLI does **not** emit `passed` — derive
