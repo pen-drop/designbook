@@ -123,9 +123,10 @@ scroll height and can be clipped despite full-page.
 - **Dismiss consent/cookie overlays before reference captures** — a consent banner overlaying the reference page corrupts the reference screenshot (and every diff against it). Close it (click reject/accept) before the first reference `screenshot`, and pass the same instruction to any compare/verify subagent that recaptures.
 - Viewport height MUST be 1600px for consistency across captures
 - The CSR-robust settle MUST be used to allow rendering to settle: `waitForLoadState('networkidle')` + `waitForSelector(<target>, {state:'visible'})` in `try/catch` + `document.fonts.ready` + double-rAF. For element captures `<target>` is the CSS selector being captured; for full-page captures (no single target) omit `waitForSelector`. A fixed `waitForTimeout` MUST NOT be used as the settle — it is both slow and unreliable for client-side rendering where the DOM may not yet exist when the timeout fires.
-- **Run `check.steps` before the screenshot** when present (a non-rest state). After resize + settle, execute each step in order via `playwright-cli` (`click`/`hover`/`focus` against `step.selector`, or a bare wait), settling `step.timeout` ms after each, THEN capture. `rest` has no steps — capture the as-rendered view. State steps mutate page state, so load the session fresh per state-check (or navigate back) rather than carrying an opened state into the next check.
+- **Run state steps before the screenshot** when the state is non-rest. After resize + settle, execute each step in order via `playwright-cli` (`click`/`hover`/`focus` against `step.selector`, or a bare wait), settling `step.timeout` ms after each, THEN capture. `rest` has no steps — capture the as-rendered view. State steps mutate page state, so load the session fresh per state (or navigate back) rather than carrying an opened state into the next capture.
 - If a selector matches no elements, skip with a warning — do NOT fail the task
-- Output directories MUST be created before capture (`mkdir -p`)
+- **Filename convention** — every captured PNG is named `<breakpoint>--<element>--<state>.png` (e.g. `sm--header--rest.png`, `xl--nav--open.png`). The `rest` state is included literally, never omitted.
+- **Output directories** — reference baselines write to `references/<hash>/`; story captures write to `stories/<id>/screenshots/`. Directories MUST be created before capture (`mkdir -p`).
 - Reuse an open session across multiple captures for the same URL — only `open`/`close` once
 
 ## Storybook Restart
