@@ -688,8 +688,8 @@ git commit -m "feat(compare-screenshots): pair story vs frozen baseline by eleme
 - [ ] **Step 3: Grep guard (skills + addon)** — Run:
   `grep -rn "capture-reference\|file_suffix\|reference_selector\|#/Check\|#/Region\b\|RegionId" .agents/skills/designbook/design`
   and
-  `grep -rnE "reference_selector|\.regions\b|StoryMetaRegionJSON|StoryMetaBreakpointJSON" packages/storybook-addon-designbook/src --include='*.ts' --include='*.tsx' | grep -v __tests__`.
-  Expected: no matches in either (the only surviving `Region*` token anywhere is `RegionProperties`/region-properties grounding layer, which is out of scope). Fix any straggler in its owning task.
+  `grep -rnE "reference_selector|story\.breakpoints|\.breakpoints\?\.\[|StoryMetaRegionJSON|StoryMetaBreakpointJSON" packages/storybook-addon-designbook/src --include='*.ts' --include='*.tsx' | grep -v __tests__`.
+  Expected: no matches in the skills grep; the addon grep targets the OLD StoryMeta-JSON shape (`story.breakpoints[...].regions`, the removed JSON types, `reference_selector`) — internal render-layer field names like `BreakpointInfo.regions` are cosmetic and acceptable, so do NOT grep bare `.regions`. The only surviving `Region*` token in skills is `RegionProperties` (grounding layer, out of scope). Fix any straggler in its owning task.
 
 - [ ] **Step 4: `pnpm check`** — Run: `pnpm check`. Expected: PASS.
 
