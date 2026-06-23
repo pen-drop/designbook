@@ -27,27 +27,27 @@ Ein `Screenshot` beschreibt **genau ein** aufgenommenes Bild, identisch auf Refe
 
 ```yaml
 Screenshot:
-  part: full          # benannter Vergleichs-Gegenstand (vormals "region")
+  element: full          # benannter Vergleichs-Gegenstand (vormals "region")
   state: rest         # rest | <interaction-state>
   breakpoint: xl      # token-breakpoint id
   selector: app-signage   # CSS-Selektor DIESER Seite; "" ⇒ isolierte Wurzel / full
-  # path abgeleitet: <breakpoint>--<part>--<state>.png  (file_suffix entfällt; rest ⇒ ...--rest)
+  # path abgeleitet: <breakpoint>--<element>--<state>.png  (file_suffix entfällt; rest ⇒ ...--rest)
 ```
 
-Identität = `(part, state, breakpoint)`. Reference-Baseline und Story sind je eine Liste von
-`Screenshot`s; der Vergleich paart sie über `(part, state, breakpoint)`. Der **`selector` lebt am
+Identität = `(element, state, breakpoint)`. Reference-Baseline und Story sind je eine Liste von
+`Screenshot`s; der Vergleich paart sie über `(element, state, breakpoint)`. Der **`selector` lebt am
 Screenshot** (denormalisiert) — jede Capture-Zeile ist standalone lesbar. Damit entfällt der
 `reference_selector`/`selector`-Split: jede Seite hat in ihrer meta schlicht `selector`, der
 Kontext (welche meta) disambiguiert.
 
-### `part` statt `region`
+### `element` statt `region`
 
-Der benannte Vergleichs-Gegenstand heißt **`part`** (id wie `full`, `header`, `footer`). „region"
+Der benannte Vergleichs-Gegenstand heißt **`element`** (id wie `full`, `header`, `footer`). „region"
 implizierte ein rechteckiges Gebiet (passte zum alten bbox-Crop); die Isolate-Mechanik isoliert ein
-benanntes Element/Teil. Ein `Part` (Definition) trägt:
+benanntes Element/Teil. Ein `Element` (Definition) trägt:
 
 ```yaml
-Part:
+Element:
   id: full
   selector: app-signage     # diese Seite (Reference: reference-Selektor; Story: story-Selektor)
   states:                   # rest + jeder interaktive State
@@ -56,8 +56,8 @@ Part:
   breakpoints: [xl, lg]
 ```
 
-Die materialisierten `Screenshot`-Dateien sind aus `parts × states × breakpoints` ableitbar; die meta
-listet die `Part`-Definitionen, die PNG-Dateien liegen daneben.
+Die materialisierten `Screenshot`-Dateien sind aus `elements × states × breakpoints` ableitbar; die meta
+listet die `Element`-Definitionen, die PNG-Dateien liegen daneben.
 
 ### `Reference` — first-class Objekt (löst Upstream-Issue #4)
 
@@ -67,13 +67,13 @@ Serialisiert nach `references/<hash>/meta.yml`. `<hash>` = SHA256(normalisierte 
 ```yaml
 Reference:
   source: { url: https://leando.de/, ... }
-  parts: [ Part{ selector = reference-Selektor }, ... ]
+  elements: [ Element{ selector = reference-Selektor }, ... ]
   extract: extract.json     # bestehende DesignReference (Struktur, assets, fonts)
   assets_dir: assets/
-  # Baseline-PNGs daneben: <bp>--<part>--<state>.png
+  # Baseline-PNGs daneben: <bp>--<element>--<state>.png
 ```
 
-Das Objekt **akkumuliert**: jede neue `(part, state, breakpoint)` wird **einmal** gegriffen,
+Das Objekt **akkumuliert**: jede neue `(element, state, breakpoint)` wird **einmal** gegriffen,
 eingefroren, **nie** neu — bis explizites Refresh (siehe unten). Bestehende Baseline-PNGs werden
 reused.
 
@@ -84,10 +84,10 @@ reused.
 ```yaml
 StoryMeta:
   reference: <hash>          # Verweis auf das Reference-Objekt
-  parts: [ Part{ selector = story-Selektor } ]   # story_selector pro part; "" ⇒ isolierte Story (#storybook-root)
+  elements: [ Element{ selector = story-Selektor } ]   # story_selector pro element; "" ⇒ isolierte Story (#storybook-root)
 ```
 
-Story-Screenshots: `stories/<id>/screenshots/<bp>--<part>--<state>.png`, verglichen gegen die fixe
+Story-Screenshots: `stories/<id>/screenshots/<bp>--<element>--<state>.png`, verglichen gegen die fixe
 Baseline unter `references/<hash>/`.
 
 ## Capture-Ownership
@@ -97,7 +97,7 @@ Baseline unter `references/<hash>/`.
 Reference-Baseline-Capture wird ein **idempotenter, geteilter** Task (das heutige `capture-reference`
 umgebaut):
 
-> Für `(part, state, breakpoint)`: existiert das PNG unter `references/<hash>/`? Ja → reuse. Nein →
+> Für `(element, state, breakpoint)`: existiert das PNG unter `references/<hash>/`? Ja → reuse. Nein →
 > isolate-and-capture (PR #112: `selector` ans body-Root heben → full-page transparent) → schreiben.
 
 Aufrufbar aus **beiden** Workflow-Familien. Schreibt in die **Reference**, nie in die Story.
@@ -114,20 +114,20 @@ Determinismus gewahrt.
 
 ### design-entity / design-screen / design-shell · reference-Stage (`extract-reference`)
 
-- **Fragt** (falls nicht aus Prompt/meta ableitbar): welche Breakpoints, welche Parts (id +
+- **Fragt** (falls nicht aus Prompt/meta ableitbar): welche Breakpoints, welche Elements (id +
   reference-Selektor). Werte werden in der Reference **persistiert** → keine Re-Frage bei Folgeläufen.
 - Extrahiert `extract.json` + assets/fonts (wie heute) **und** schreibt `references/<hash>/meta.yml`
-  (das `Reference`-Objekt) **und** greift die Baseline für die abgefragten `(part,state,breakpoint)`
+  (das `Reference`-Objekt) **und** greift die Baseline für die abgefragten `(element,state,breakpoint)`
   über die `ensure-baseline`-Einheit.
 
 ### design-verify
 
-- **Fragt ebenfalls** Breakpoints + Parts/Selektoren; **ergänzt** fehlende Baselines über dieselbe
+- **Fragt ebenfalls** Breakpoints + Elements/Selektoren; **ergänzt** fehlende Baselines über dieselbe
   `ensure-baseline`-Einheit (vorhandene reused — akkumuliert in dieselbe Reference).
 - `setup-compare` → schreibt nur die **Story-Bindung** (`stories/<id>/meta.yml`: `reference: <hash>`
-  + `story_selector` pro Part) und liefert die `Screenshot`-Liste der Story-Seite.
+  + `story_selector` pro Element) und liefert die `Screenshot`-Liste der Story-Seite.
 - `capture` → **nur Story** (kein reference-capture mehr).
-- `compare` → Story-`Screenshot` vs. fixe Baseline-`Screenshot`, gepaart über `(part,state,breakpoint)`.
+- `compare` → Story-`Screenshot` vs. fixe Baseline-`Screenshot`, gepaart über `(element,state,breakpoint)`.
 - `re-capture` nach polish → **nur Story** (Baseline bleibt fix → genau der „stabil"-Gewinn: der Diff
   misst Story-Drift, nicht Referenz-Rauschen).
 
@@ -140,15 +140,15 @@ Test-Cases).
 ## Addon-Read-Pfad
 
 Panel liest `stories/<id>/meta.yml` → folgt `reference: <hash>` → `references/<hash>/meta.yml` für
-`parts`/`states`/`breakpoints` + Baseline-PNGs (Reference-Overlay); Story-PNGs aus
+`elements`/`states`/`breakpoints` + Baseline-PNGs (Reference-Overlay); Story-PNGs aus
 `stories/<id>/screenshots/`. `StoryMeta.toJSON()` (story-entity.ts) und der `/__designbook/story/<id>`
-Endpoint (vite-plugin.ts) lösen die Reference auf und liefern `parts` (statt `breakpoints.regions`)
-sowie `referenceDir`. `VisualCompareTool.tsx` liest `parts` statt der heutigen `regions`-Struktur.
+Endpoint (vite-plugin.ts) lösen die Reference auf und liefern `elements` (statt `breakpoints.regions`)
+sowie `referenceDir`. `VisualCompareTool.tsx` liest `elements` statt der heutigen `regions`-Struktur.
 
 ## Schema-Konsolidierung
 
-- **Neu:** `Screenshot { part, state, breakpoint, selector }`, `Part { id, selector, states[{name,steps}], breakpoints[] }`, `Reference { source, parts, extract, assets_dir }`.
-- **Umgebaut:** `StoryMeta` → `{ reference, parts[{id, selector}] }`.
+- **Neu:** `Screenshot { element, state, breakpoint, selector }`, `Element { id, selector, states[{name,steps}], breakpoints[] }`, `Reference { source, elements, extract, assets_dir }`.
+- **Umgebaut:** `StoryMeta` → `{ reference, elements[{id, selector}] }`.
 - **Entfällt:** `Check` (region/selector/reference_selector/breakpoint/state/file_suffix), `Region`
   (id/selector/reference_selector), das lose `ReferenceFolder`-only-Modell, das `file_suffix`-Feld
   (Pfad leitet `state` direkt ab).
@@ -160,7 +160,7 @@ sowie `referenceDir`. `VisualCompareTool.tsx` liest `parts` statt der heutigen `
   (PR #112). Gilt für Reference- wie Story-Seite.
 - **States:** aus `extract.json` Behaviors. Reference-Steps laufen auf Reference-DOM, Story-Steps auf
   Story-DOM — gleiche `state`-Namen, Selektoren ggf. seitenspezifisch (jede Seite hält ihre `steps`
-  in ihrer `Part`-Definition).
+  in ihrer `Element`-Definition).
 - **Geteilte Reference:** mehrere Stories (Shell, mehrere Screens) binden denselben `<hash>` → eine
   Baseline, kein Doppel-Capture.
 - **Reference-Limitationen** (von PR #112 geerbt): `querySelector` pierct nicht Shadow-DOM/iframe;
@@ -170,9 +170,9 @@ sowie `referenceDir`. `VisualCompareTool.tsx` liest `parts` statt der heutigen `
 
 From-scratch (keine Migration — bestehende Artefakte disposable):
 
-1. design-entity (signage, leando.de, part `full`/`app-signage`, bp xl) → schreibt
+1. design-entity (signage, leando.de, element `full`/`app-signage`, bp xl) → schreibt
    `references/<hash>/meta.yml` (Reference-Objekt) + `xl--full--rest.png` Baseline + `extract.json`.
-2. design-verify (signage, parts `full`, bp xl+lg) → reused `xl` Baseline, greift `lg` Baseline
+2. design-verify (signage, elements `full`, bp xl+lg) → reused `xl` Baseline, greift `lg` Baseline
    einmal, schreibt `stories/<id>/meta.yml` (Bindung), capturet nur Story-PNGs, vergleicht.
 3. Addon-Dropdown gefüllt (Reference-Overlay + Story-Screenshots).
 4. Zweiter verify-Lauf → Baseline unverändert (stabil); nur Story neu gegriffen.
