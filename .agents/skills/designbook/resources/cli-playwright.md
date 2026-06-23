@@ -116,7 +116,12 @@ SEL='<css-selector>'   # in den run-code-String eingebettet (Single-Quotes auße
 npx playwright-cli -s=$WS open
 npx playwright-cli -s=$WS goto "${url}"
 npx playwright-cli -s=$WS resize ${viewportWidth} 1600
-npx playwright-cli -s=$WS run-code "async (page) => { await page.waitForTimeout(3000) }"
+npx playwright-cli -s=$WS run-code "async (page) => {
+  try { await page.waitForLoadState('networkidle'); } catch {}
+  try { await page.waitForSelector('${SEL}', { state: 'visible', timeout: 8000 }); } catch {}
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+}"
 # (optional) check.steps hier ausführen — im VOLLEN Layout, vor dem Freistellen
 
 # 1) Treffer-Erkennung (gibt die Zahl auf stdout zurück):
@@ -137,7 +142,7 @@ else
       document.body.style.margin = '0';
     });
   }"
-  npx playwright-cli -s=$WS run-code "async (page) => { await page.waitForTimeout(1000) }"
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))) }"
   # 3) Full-page transparent capturen:
   npx playwright-cli -s=$WS run-code "async (page) => { await page.screenshot({ path: '${STAGED}', fullPage: true, omitBackground: true }) }"
 fi
@@ -150,6 +155,7 @@ npx playwright-cli -s=$WS close
 - `omitBackground: true` + transparent body background → whitespace is transparent.
 - A selector with single quotes (e.g. `[data-x='y']`) breaks the inline quoting —
   in that rare case use double quotes in the selector or escape them.
+- `document.fonts.ready` alone is insufficient for client-side rendering; `waitForSelector(<target>)` is the real CSR signal (the target exists and is visible). Both `waitForLoadState` and `waitForSelector` are in `try/catch` so a no-match dovetails with the COUNT gate (→ full-page fallback), never fails.
 - Limitations (accepted): `querySelector` does not pierce Shadow DOM / iframes;
   out-of-flow descendants may be clipped despite full-page.
 
