@@ -11,6 +11,7 @@
 ## Global Constraints
 
 - **Skill-creator gate (CLAUDE.md):** before editing ANY task/rule/workflow/`schemas.yml` under `.agents/skills/designbook/`, load `designbook-skill-creator` first, plus the matching per-file-type rule (`rules/schema-files.md`, `rules/task-files.md`, `rules/workflow-files.md`) and always `rules/common-rules.md`.
+- **Addon-skills gate (CLAUDE.md Part 2):** before editing ANY TypeScript under `packages/storybook-addon-designbook/`, load `designbook-addon-skills` first (Tasks 2 & 3).
 - **Canonical path:** edit `.agents/skills/` only; `.claude/skills/` is a symlink — never edit it, never edit the main-repo copy `/home/cw/projects/designbook/.agents/...`. Only worktree paths.
 - **No backwards-compat / migration code:** existing on-disk artifacts (meta.yml, references/, screenshots) are disposable; testing is from-scratch. Update writers/readers to the new shape; do not read or upgrade old shapes.
 - **Builds on PR #112** (isolate-and-capture): all screenshot capture (baseline + story) uses the isolate flow + CSR-robust settle.
@@ -27,12 +28,15 @@
 **Schema (1 file):**
 - `.agents/skills/designbook/design/schemas.yml` — add `Screenshot`, `Element`, `Reference`; rebuild `StoryMeta`; remove `Check`, `Region`, `file_suffix`. (`RegionId` → `ElementId`.)
 
-**Addon TS (4 files + tests):**
+**Addon TS (5 files + tests):**
 - `packages/storybook-addon-designbook/src/reference-entity.ts` *(new)* — `Reference` loader/model for `references/<hash>/meta.yml`.
-- `packages/storybook-addon-designbook/src/story-entity.ts` — `StoryMeta` reads `{reference, elements[]}`; `toJSON()` resolves the `Reference` and returns `elements` + `referenceDir`.
+- `packages/storybook-addon-designbook/src/story-entity.ts` — `StoryMeta` reads `{reference, elements[]}`; `toJSON()` resolves the `Reference` and returns `elements` + `referenceDir`. Delete `StoryMetaRegionJSON`/`StoryMetaBreakpointJSON`.
 - `packages/storybook-addon-designbook/src/vite-plugin.ts` — `/__designbook/story` returns the resolved shape.
-- `packages/storybook-addon-designbook/src/components/VisualCompareTool.tsx` — reads `elements` (not `breakpoints.regions`).
+- `packages/storybook-addon-designbook/src/components/VisualCompareTool.tsx` — reads `elements`/`referenceElements` (not `breakpoints.regions`); the ENTIRE component (dropdown rows, status badges at lines ~171–191) drops `bp.regions` for the element list.
+- `packages/storybook-addon-designbook/src/withVisualCompare.ts` — decorator reading `story.breakpoints?.[bp].regions` + `reference_selector` (lines 19, 48); rework to the element/referenceElements shape.
 - Tests: `src/__tests__/story-entity.test.ts`, `src/__tests__/reference-entity.test.ts` *(new)*.
+
+**Out of scope (cosmetic, does NOT block compile):** `resolvers/region-properties.ts`, `inspect/region.ts` (`locateRegion`, `pickRegionLabel`), and the `RegionProperties` schema keep their "region" naming — they are the element-grounding locator and do NOT depend on the removed `RegionId`. A region→element rename there is a separate follow-up.
 
 **Skill tasks/workflows (markdown):**
 - `tasks/ensure-baseline.md` *(rebuild of `capture-reference.md`)* — idempotent reference baseline capture into `references/<hash>/`.
@@ -166,7 +170,11 @@ StoryMeta:
                 steps: { type: array, default: [], items: *CaptureStep }
 ```
 
-- [ ] **Step 4: Remove obsolete schemas** — delete the `Check` block (105–162), the `Region` block (68–95), the `ReferenceFolder` block (96–103) **unless** still referenced by the resolver (keep a minimal `ReferenceFolder: { type: string }` only if `reference-folder.ts` still `$ref`s it; otherwise remove). Rename `RegionId` → `ElementId` (already added in Step 2 — delete the old `RegionId`). Grep the file for `file_suffix`, `reference_selector` and remove every remaining occurrence.
+- [ ] **Step 4: Remove obsolete schemas + finish the RegionId→ElementId rename.**
+  - Delete the `Check` block (105–162), the `Region` block (68–95), and the old `RegionId` block (60–67). Keep a minimal `ReferenceFolder: { type: string }` only if `reference-folder.ts` still `$ref`s it (it resolves the folder path); otherwise remove the 96–103 block.
+  - `RegionId` is also `$ref`d by the verify **score/outtake** schemas (~line 177 the per-check score block with `breakpoint`/`region`/`state`; ~line 238 + ~line 876 the "regions covered by the final compare/review pass" Score list). In each of those, rename the `region` field → `element` and point it at `#/ElementId`. These are the verify-result schemas — they must speak `element` to match the new `Screenshot`/filename model.
+  - **Do NOT touch `RegionProperties` (878+) or `PropertyNode`** — they are the grounding locator's output, do not use `RegionId`, and are out of scope (see File Structure note).
+  - Grep the file for `file_suffix`, `reference_selector`, `RegionId`, `#/Check`, `#/Region\b` and remove/rename every remaining occurrence (the only surviving `Region*` name should be `RegionProperties`/`Region Properties`).
 
 - [ ] **Step 5: `pnpm check`** — Run: `pnpm check`. Expected: PASS. If a TS file fails to compile because it imports a now-removed type, that is expected and handled in Tasks 2–3 — but `schemas.yml` is YAML (not compiled), so `pnpm check` should still pass on schema-only change unless a schema-validation test asserts the old shape. If a vitest schema test fails on the old shape, note it; it is fixed in Task 2.
 
@@ -192,6 +200,8 @@ git commit -m "feat(schema): Reference/Element/Screenshot objects, rebuild Story
   - `Reference.load(config, hash): Reference | null`; `reference.toJSON(): { source, elements, dir }` where `elements: Array<{id, selector, states, breakpoints}>`.
   - `StoryMeta.toJSON(): { storyId, section, storyDir, reference: string | null, referenceDir: string | null, elements: Array<{id, selector}> }`.
   - `hashReferenceUrl(url)` stays in `resolvers/reference-folder.ts` (reuse).
+
+- [ ] **Step 0: Load gate** — load `designbook-addon-skills` before editing any addon TypeScript.
 
 - [ ] **Step 1: Write the failing test — Reference loader** (`src/__tests__/reference-entity.test.ts`):
 
@@ -374,15 +384,18 @@ git commit -m "feat(addon): Reference model + StoryMeta reference-binding toJSON
 
 ---
 
-### Task 3: Addon — read path (vite-plugin endpoint + VisualCompareTool)
+### Task 3: Addon — read path (vite-plugin endpoint + VisualCompareTool + withVisualCompare)
 
 **Files:**
 - Modify: `packages/storybook-addon-designbook/src/vite-plugin.ts` (`/__designbook/story` handler 503–541)
-- Modify: `packages/storybook-addon-designbook/src/components/VisualCompareTool.tsx` (`discoverBreakpoints` 54–84 + the `StoryJSON`/`BreakpointJSON` interfaces 49–52)
+- Modify: `packages/storybook-addon-designbook/src/components/VisualCompareTool.tsx` (`StoryJSON`/`BreakpointJSON` ifaces 49–52, `discoverBreakpoints` 54–84, AND the render block 171–191 that maps `bp.regions`)
+- Modify: `packages/storybook-addon-designbook/src/withVisualCompare.ts` (lines 19 `reference_selector?`, 48 `story.breakpoints?.[breakpoint]?.regions`)
 
 **Interfaces:**
 - Consumes: Task 2 `StoryMeta.toJSON()` (`{reference, referenceDir, elements[]}`), `Reference.load/.toJSON()`.
 - Produces: `/__designbook/story/<id>` JSON = `{ ...storyJSON, referenceElements: ReferenceElement[] }` — story selectors + the reference's element/state/breakpoint matrix for the overlay.
+
+- [ ] **Step 0: Load gate** — load `designbook-addon-skills` before editing any addon TS (this task + Task 2).
 
 - [ ] **Step 1: Update the endpoint** — after `StoryMeta.load`, resolve the Reference and merge its elements:
 
@@ -410,15 +423,17 @@ interface StoryJSON {
 }
 ```
 
-Rebuild the dropdown rows from `referenceElements`: for each reference element, for each of its `breakpoints`, list `{ name: element.id, breakpoint, states: element.states.map(s => s.name), storySelector: storyElements[id]?.selector ?? '' }`. Keep the existing `KNOWN_BREAKPOINTS[name]` width lookup and sort. Status badges stay `null` (runtime-only), as today.
+Rebuild the dropdown rows from `referenceElements`: for each reference element, for each of its `breakpoints`, list `{ name: element.id, breakpoint, states: element.states.map(s => s.name), storySelector: storyElements[id]?.selector ?? '' }`. Keep the existing `KNOWN_BREAKPOINTS[name]` width lookup and sort. Status badges stay `null` (runtime-only), as today. **Also update the render block (lines ~171–191)** that maps `bp.regions` — rename to the element list (`bp.elements` or the rebuilt `RegionInfo[]` renamed to `ElementInfo[]`), so the component compiles and renders element rows. Remove the `reference_selector` field from the local interfaces (line 41) — the story side carries only `selector`.
 
-- [ ] **Step 3: `pnpm check`** — Run: `pnpm check`. Expected: PASS (typecheck clean, all 985+ tests green).
+- [ ] **Step 3: Rework `withVisualCompare.ts`** — line 19 drops `reference_selector?`; line 48 `const regions = story.breakpoints?.[breakpoint]?.regions;` becomes a read of the resolved `elements`/`referenceElements` shape (match whatever `VisualCompareTool` consumes). The decorator must pull the per-element story `selector` for overlay positioning. Keep its behavior; only the data shape changes.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: `pnpm check`** — Run: `pnpm check`. Expected: PASS (typecheck clean, all 985+ tests green). A failing test that asserts the old `breakpoints.regions` shape is fixed here (update it to the element shape).
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add packages/storybook-addon-designbook/src/vite-plugin.ts packages/storybook-addon-designbook/src/components/VisualCompareTool.tsx
-git commit -m "feat(addon): story endpoint + VisualCompareTool resolve reference elements"
+git add packages/storybook-addon-designbook/src/vite-plugin.ts packages/storybook-addon-designbook/src/components/VisualCompareTool.tsx packages/storybook-addon-designbook/src/withVisualCompare.ts
+git commit -m "feat(addon): story endpoint + VisualCompareTool + withVisualCompare resolve reference elements"
 ```
 
 ---
@@ -665,7 +680,11 @@ git commit -m "feat(compare-screenshots): pair story vs frozen baseline by eleme
 
 - [ ] **Step 2: Update verify stages** — `reference` stage ensures the baseline (runs `extract-reference`/`ensure-baseline` so any asked element×bp×state has a frozen PNG). `capture` and `re-capture` stages run ONLY `capture-storybook` (drop `capture-reference` — it no longer exists). `setup-compare`, `compare`/`re-compare` stay but now drive the new `story_screenshots` list. Confirm no stage still references `capture-reference` or `Check`/`region`/`file_suffix`.
 
-- [ ] **Step 3: Grep guard** — Run: `grep -rn "capture-reference\|file_suffix\|reference_selector\|#/Check\|#/Region\b" .agents/skills/designbook/design`. Expected: no matches (every reference removed across Tasks 1–9). Fix any straggler in its owning task.
+- [ ] **Step 3: Grep guard (skills + addon)** — Run:
+  `grep -rn "capture-reference\|file_suffix\|reference_selector\|#/Check\|#/Region\b\|RegionId" .agents/skills/designbook/design`
+  and
+  `grep -rnE "reference_selector|\.regions\b|StoryMetaRegionJSON|StoryMetaBreakpointJSON" packages/storybook-addon-designbook/src --include='*.ts' --include='*.tsx' | grep -v __tests__`.
+  Expected: no matches in either (the only surviving `Region*` token anywhere is `RegionProperties`/region-properties grounding layer, which is out of scope). Fix any straggler in its owning task.
 
 - [ ] **Step 4: `pnpm check`** — Run: `pnpm check`. Expected: PASS.
 
@@ -708,7 +727,10 @@ git commit -m "feat(design-verify): capture story-only; reference stage ensures 
 - `element` rename, no `reference_selector`/`file_suffix`/`Check`/`Region` → Task 1 + Task 9 grep guard. ✔
 - Story binding references reference → Task 1 (`StoryMeta`) + Task 2 (`toJSON`). ✔
 - design-verify story-only capture + compare vs baseline → Tasks 6,7,8,9. ✔
-- Addon read path resolves reference → Task 3. ✔
+- Addon read path resolves reference → Task 3 (vite-plugin endpoint, full VisualCompareTool incl. render block, withVisualCompare decorator). ✔
+- Addon-skills gate for TS edits → Global Constraints + Task 2 Step 0 + Task 3 Step 0. ✔
+- Verify score/outtake schemas rename region→element (RegionId→ElementId) → Task 1 Step 4. ✔
+- RegionProperties / region-properties resolver / inspect region.ts left intact (grounding layer, no RegionId dep) → File Structure out-of-scope note. ✔
 - Refresh policy → Task 4 / Task 5 (`--refresh-reference`) + Task 10 Step 5. ✔
 - Builds on PR #112 isolate-and-capture → Tasks 4,7 bodies. ✔
 
