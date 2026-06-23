@@ -38,6 +38,13 @@ describe('validateSceneBuild', () => {
     expect(result.type).toBe('scene');
   });
 
+  it('returns invalid for a scene named "overview" (reserved export name)', async () => {
+    const result = await validateSceneBuild(resolve(fixtures, 'reserved-overview.scenes.yml'), configWith(fixtures));
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/reserved/i);
+    expect(result.error).toMatch(/overview/);
+  });
+
   it('does not crash on string values in slot arrays ($content placeholder)', async () => {
     const result = await validateSceneBuild(resolve(fixtures, 'broken-build.scenes.yml'), configWith(fixtures));
     // After needsBuilding() fix, string values are handled gracefully — build succeeds

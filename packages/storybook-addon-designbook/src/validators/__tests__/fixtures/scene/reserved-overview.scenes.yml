@@ -1,0 +1,7 @@
+id: homepage
+group: Designbook/Sections/Homepage
+title: Homepage
+scenes:
+  - name: overview
+    section: homepage
+    items: []
