@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { resolve } from 'node:path';
-import { mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs';
-import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { dump as dumpYaml } from 'js-yaml';
 import { StoryMeta, resolveScene } from '../story-entity.js';
 import { hashReferenceUrl } from '../resolvers/reference-folder.js';
 import type { DesignbookConfig } from '../config.js';
@@ -95,11 +95,10 @@ describe('StoryMeta', () => {
       expect(existsSync(resolve(storyDir, 'meta.yml'))).toBe(true);
       expect(story.storyId).toBe(storyId);
 
-      const meta = parseYaml(readFileSync(resolve(storyDir, 'meta.yml'), 'utf-8')) as {
-        reference?: string;
-      };
       // new format: reference is a hash string or null, no nested breakpoints
-      expect(meta).toBeDefined();
+      const json = story.toJSON();
+      expect(json.reference).toBeNull();
+      expect(json.elements).toEqual([]);
 
       rmSync(storyDir, { recursive: true, force: true });
     });

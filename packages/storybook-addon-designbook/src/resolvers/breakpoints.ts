@@ -5,24 +5,10 @@ import type { ParamResolver, ResolverContext, ResolverResult } from './types.js'
 
 const TOKENS_PATH = 'design-system/design-tokens.yml';
 
-function breakpointsFromMeta(_context: ResolverContext, _config: Record<string, unknown>): string[] | null {
-  // Breakpoints are no longer stored in story meta — they come from design-tokens.yml only.
-  return null;
-}
-
 export const breakpointsResolver: ParamResolver = {
   name: 'breakpoints',
 
-  resolve(_input: string, config: Record<string, unknown>, context: ResolverContext): ResolverResult {
-    const metaBreakpoints = breakpointsFromMeta(context, config);
-    if (metaBreakpoints) {
-      return {
-        resolved: true,
-        value: metaBreakpoints.join(','),
-        input: '',
-      };
-    }
-
+  resolve(_input: string, _config: Record<string, unknown>, context: ResolverContext): ResolverResult {
     const tokensFile = join(context.config.data, TOKENS_PATH);
 
     if (!existsSync(tokensFile)) {
