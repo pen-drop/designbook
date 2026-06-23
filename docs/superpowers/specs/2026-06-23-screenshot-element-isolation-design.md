@@ -45,8 +45,9 @@ Konsequenz und Intention:
 
 Dem Element wird **keine** Breite aufgezwungen. Viewport = Breakpoint-Breite; das
 Element rendert mit seiner eigenen CSS-Breite. Header spannt 100% weil sein CSS das
-sagt, ein Button bleibt button-groß. Media-/Container-Queries reagieren auf den
-Breakpoint-Viewport — genau das behebt Schmerzpunkt 3.
+sagt, ein Button bleibt button-groß. **Media-Queries** (viewport-basiert) reagieren
+auf den Breakpoint-Viewport — genau das behebt Schmerzpunkt 3. Für
+**Container-Queries** siehe Limitations.
 
 ### Hintergrund: Transparent
 
@@ -56,16 +57,22 @@ identisch heraus. Behebt Schmerzpunkt 1.
 
 ## Scope
 
-Betroffen ist **ausschließlich der Selector-Pfad** ("Element capture"). Symmetrisch
-auf beiden Seiten:
+Der Selector-Pfad ("Element capture") wird umgestellt. Symmetrisch auf beiden Seiten:
 
 - **Story** nutzt `check.selector`.
 - **Referenz** nutzt `check.reference_selector`.
 
+**Empty-Selector:** Der Ref-basierte Element-Crop (`snapshot`→`screenshot <ref>`)
+entfällt **vollständig** — es gibt keinen Pfad mehr, der mit Element-Refs arbeitet.
+
+- Leerer Story-Selektor → `#storybook-root` wird **ebenfalls isoliert** (ans
+  body-Root gehoben + full-page transparent), nicht mehr per Ref gecroppt. Ein
+  einheitlicher Isolations-Modus für alle Story-Captures.
+- Leerer Referenz-Selektor → `--full-page` der Seite (wie bisher; keine Isolation,
+  da kein einzelnes Ziel benannt ist).
+
 **Unberührt:**
 
-- Leerer Selektor → Story = `#storybook-root` Element-Capture, Referenz =
-  `--full-page` (wie bisher).
 - Staged-File-Flow, Viewport-Höhe 1600px, Settle-Timeouts (3s), Session-Pinning
   (`-s=<workspace>`), Consent-Overlay-Dismissal, Storybook-Restart vor Recapture.
 
@@ -77,9 +84,12 @@ goto <url>
 resize <breakpoint> × 1600
 settle 3s
 check.steps ausführen        ← falls vorhanden, im VOLLEN Layout (Reihenfolge wichtig)
-eval: ISOLATE(selector)      ← erstes Match freistellen
-settle                       ← Container-/Media-Queries reagieren neu
-run-code: page.screenshot({ fullPage: true, omitBackground: true, path: STAGED })
+eval: COUNT = querySelectorAll(selector).length
+  ├─ COUNT == 0 → full-page-Fallback + Warnung, fertig   ← expliziter Branch, nie fail
+  └─ COUNT  > 0 → weiter:
+       run-code: ISOLATE(selector)   ← erstes Match freistellen
+       settle                         ← Media-/Container-Queries reagieren neu
+       run-code: page.screenshot({ fullPage: true, omitBackground: true, path: STAGED })
 close
 ```
 
@@ -87,55 +97,88 @@ close
 Interaktionen, die ein Element außerhalb des Ziels antippen (z.B. ein Toggle). Der
 resultierende DOM-State bleibt nach dem Heben erhalten.
 
-### ISOLATE-Funktion (browser-context `eval`)
+**Treffer-Erkennung getrennt vom Freistellen:** Erst per `eval` die Trefferzahl
+abfragen (gibt einen Wert auf stdout, branchbar in der Shell), dann nur bei
+COUNT > 0 isolieren + screenshoten. So kann der Befehlsablauf nicht versehentlich
+die unveränderte Seite ablichten.
+
+### ISOLATE-Funktion (via `run-code` → `page.evaluate`)
+
+Die Selektor-Zeichenkette wird in den `run-code`-String eingebettet (der zweite
+`eval`-Parameter von `playwright-cli` ist ein **Element-Ref**, kein Wert — daher
+nicht für eine Selektor-Übergabe nutzbar; deshalb `run-code` + `page.evaluate`):
 
 ```js
-(sel) => {
-  const el = document.querySelector(sel);   // erstes Match
-  if (!el) return false;                      // kein Treffer → Aufrufer: full-page-Fallback + Warnung
-  document.body.replaceChildren(el);          // body enthält nur noch das Ziel
-  el.style.margin = '0';                       // Offset-Reste neutralisieren
-  document.documentElement.style.background = 'transparent';
-  document.body.style.background = 'transparent';
-  document.body.style.margin = '0';
-  return true;
+async (page) => {
+  await page.evaluate(() => {
+    const el = document.querySelector('<selector>');  // erstes Match (inlined)
+    document.body.replaceChildren(el);                 // body enthält nur noch das Ziel
+    el.style.margin = '0';                              // Margin-Reste neutralisieren
+    el.style.inset = 'auto';                            // top/left/right/bottom zurücksetzen
+    document.documentElement.style.background = 'transparent';
+    document.body.style.background = 'transparent';
+    document.body.style.margin = '0';
+  });
 }
 ```
 
-Die Höhe des Full-Page-Screenshots = natürliche Höhe des freigestellten Elements
-(body enthält nur noch dieses); die Breite = Viewport (Breakpoint). Overflow
-(Schatten, Dropdowns) wird damit vollständig erfasst.
+Die Höhe des Full-Page-Screenshots = Scroll-Höhe des freigestellten Elements (body
+enthält nur noch dieses); die Breite = Viewport (Breakpoint). In-Flow-Overflow
+(z.B. Dropdowns im Fluss, lange Inhalte) wird damit erfasst. **Caveat:**
+out-of-flow Descendants (`position: absolute/fixed`) tragen u.U. nicht zur
+Scroll-Höhe bei und können trotz full-page abgeschnitten werden — siehe Limitations.
 
 ## Nebeneffekt-Gewinn
 
-Der Wechsel auf `--full-page`/`page.screenshot` im Selector-Pfad **eliminiert den
-Ref-Footgun**: heute invalidiert jedes `resize` die `snapshot`-Refs, und ein
-`screenshot <ref>` gegen einen stale Ref fällt still auf full-page zurück. Ohne
-`snapshot`/`<ref>` im Selector-Pfad verschwindet diese ganze Fehlerklasse samt der
-zugehörigen Constraint.
+Der Wechsel auf `page.screenshot` **eliminiert den Ref-Footgun**: heute invalidiert
+jedes `resize` die `snapshot`-Refs, und ein `screenshot <ref>` gegen einen stale Ref
+fällt still auf full-page zurück. Da nach der Umstellung **kein** Capture-Pfad mehr
+mit Element-Refs arbeitet (auch der empty-selector Story-Pfad isoliert jetzt
+`#storybook-root` statt zu croppen), verschwindet diese ganze Fehlerklasse samt der
+zugehörigen Constraint vollständig.
 
 ## Edge Cases
 
-- **Kein Treffer:** `document.querySelector(sel)` liefert `null` → full-page-Fallback
+- **Kein Treffer:** `querySelectorAll(sel).length == 0` → full-page-Fallback
   + Warnung. Skip-with-warning, **nie fail** (wie heute).
 - **States:** `rest` = keine Steps, as-rendered. State-Checks laden die Session frisch
   pro State (Steps mutieren Page-State).
-- **Element mit `position: absolute/fixed` oder Offsets:** `margin: 0` neutralisiert
-  Margin-Reste; nach dem Heben ans Root sitzt das Element am Ursprung.
+- **Element mit Offsets:** `margin: 0` + `inset: auto` neutralisieren Margin- und
+  Top/Left-Reste. Das deckt den Normalfall ab; `transform`, `position: fixed` und
+  positionierte Containing-Blocks können Offsets unabhängig davon behalten — siehe
+  Limitations.
+
+## Limitations
+
+Bewusst akzeptierte Grenzen des Isolations-Ansatzes:
+
+- **Container-Queries:** `body.replaceChildren(el)` entfernt den Container-Ancestor.
+  Container-Query-Regeln (`@container`), die auf einen entfernten Ancestor zielen,
+  greifen nach dem Heben ggf. nicht mehr. Akzeptiert: eine standalone-Komponente
+  sollte ihren Query-Container selbst mitbringen; tut sie das nicht, ist die
+  Abweichung ein realer Befund.
+- **Shadow DOM:** `document.querySelector` pierct nicht in Shadow-Roots. Selektoren,
+  die auf Inhalt innerhalb einer Web-Component (open/closed shadow root) zielen,
+  matchen nicht → full-page-Fallback. Für Referenzen mit Web-Components ist ein
+  Light-DOM-Selektor (Host-Element) zu wählen.
+- **Iframes:** `document.querySelector` läuft nur im Top-Page-Kontext. Ziel-Inhalt
+  in einem `<iframe>` der Referenzseite matcht nicht → full-page-Fallback.
+- **Out-of-flow Overflow:** `position: absolute/fixed` Descendants tragen u.U. nicht
+  zur Scroll-Höhe bei und können trotz full-page abgeschnitten werden.
 
 ## Geänderte Dateien
 
 - `.agents/skills/designbook/design/rules/playwright-capture.md`
-  — "Element capture"-Sektion neu: ISOLATE-Protokoll statt `snapshot`→`screenshot
-  <ref>`. Die Stale-Ref-Constraint streichen (nur noch im — entfallenden —
-  Ref-Pfad relevant).
+  — "Element capture"-Sektion neu: ISOLATE-Protokoll (eval-Trefferzahl-Branch →
+  `run-code` `page.evaluate` Hoist → `run-code` `page.screenshot`) statt
+  `snapshot`→`screenshot <ref>`. Stale-Ref-Constraint streichen (kein Ref-Pfad mehr).
 - `.agents/skills/designbook/design/tasks/capture-storybook.md`
-  — Schritt 2b auf den Isolations-Modus umformulieren.
+  — Schritt 2 auf Isolations-Modus; empty-selector → `#storybook-root` isolieren.
 - `.agents/skills/designbook/design/tasks/capture-reference.md`
   — Schritt 2 auf den Isolations-Modus umformulieren.
 - `.agents/skills/designbook/resources/cli-playwright.md`
-  — Pattern "isolate-and-capture" ergänzen (eval ISOLATE + run-code
-  `page.screenshot({ fullPage, omitBackground })`).
+  — Pattern "isolate-and-capture" ergänzen (`run-code` `page.evaluate` Hoist +
+  `run-code` `page.screenshot({ fullPage, omitBackground })`).
 
 ## Testing
 

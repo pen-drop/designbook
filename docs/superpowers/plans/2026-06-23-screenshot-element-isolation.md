@@ -53,32 +53,52 @@ dann den ganzen Viewport full-page transparent screenshoten. Das Element rendert
 self-sizing am Breakpoint-Viewport; überlappende Fremd-Elemente und Hintergrund
 fallen weg.
 
+> **Wichtig:** Der zweite Parameter von `eval` ist ein **Element-Ref**, kein Wert —
+> daher KANN ein Selektor nicht als Argument übergeben werden. Treffer-Erkennung
+> per `eval` (Trefferzahl, branchbar in der Shell); das Freistellen per `run-code` +
+> `page.evaluate` mit **inline eingebettetem** Selektor.
+
 ```bash
+SEL='<css-selector>'   # in den run-code-String eingebettet (Single-Quotes außen)
 npx playwright-cli -s=$WS open
 npx playwright-cli -s=$WS goto "${url}"
 npx playwright-cli -s=$WS resize ${viewportWidth} 1600
 npx playwright-cli -s=$WS run-code "async (page) => { await page.waitForTimeout(3000) }"
 # (optional) check.steps hier ausführen — im VOLLEN Layout, vor dem Freistellen
-npx playwright-cli -s=$WS eval "(sel) => {
-  const el = document.querySelector(sel);
-  if (!el) return false;
-  document.body.replaceChildren(el);
-  el.style.margin = '0';
-  document.documentElement.style.background = 'transparent';
-  document.body.style.background = 'transparent';
-  document.body.style.margin = '0';
-  return true;
-}" "${selector}"
-npx playwright-cli -s=$WS run-code "async (page) => { await page.waitForTimeout(1000) }"
-npx playwright-cli -s=$WS run-code "async (page) => { await page.screenshot({ path: '${STAGED}', fullPage: true, omitBackground: true }) }"
+
+# 1) Treffer-Erkennung (gibt die Zahl auf stdout zurück):
+COUNT=$(npx playwright-cli -s=$WS eval "() => document.querySelectorAll('${SEL}').length")
+if [ "$COUNT" = "0" ]; then
+  # full-page-Fallback + Warnung (NIE fail)
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.screenshot({ path: '${STAGED}', fullPage: true }) }"
+else
+  # 2) Freistellen (Hoist ans body-Root):
+  npx playwright-cli -s=$WS run-code "async (page) => {
+    await page.evaluate(() => {
+      const el = document.querySelector('${SEL}');
+      document.body.replaceChildren(el);
+      el.style.margin = '0';
+      el.style.inset = 'auto';
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+      document.body.style.margin = '0';
+    });
+  }"
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.waitForTimeout(1000) }"
+  # 3) Full-page transparent capturen:
+  npx playwright-cli -s=$WS run-code "async (page) => { await page.screenshot({ path: '${STAGED}', fullPage: true, omitBackground: true }) }"
+fi
 npx playwright-cli -s=$WS close
 ```
 
-- `eval` gibt `false` zurück, wenn der Selektor nichts matcht → Aufrufer macht
-  full-page-Fallback + Warnung (nie fail).
-- Dem Element wird KEINE Breite aufgezwungen — Media-/Container-Queries reagieren
-  auf die Breakpoint-Viewport-Breite.
+- Trefferzahl `0` → full-page-Fallback + Warnung (nie fail). Expliziter Branch.
+- Dem Element wird KEINE Breite aufgezwungen — Media-Queries reagieren auf die
+  Breakpoint-Viewport-Breite. Container-Queries siehe Spec-Limitations.
 - `omitBackground: true` + transparenter body-bg → Leerraum ist transparent.
+- Selektor mit Single-Quotes (z.B. `[data-x='y']`) bricht das Inline-Quoting —
+  in dem seltenen Fall doppelte Quotes im Selektor verwenden oder escapen.
+- Limitations (akzeptiert): `querySelector` pierct nicht in Shadow-DOM/iframes;
+  out-of-flow Descendants können trotz full-page abgeschnitten werden.
 ````
 
 - [ ] **Step 3: `pnpm check`** — Run: `pnpm check`. Expected: PASS (Markdown-Änderung berührt keinen TS/Test).
@@ -111,22 +131,34 @@ git commit -m "docs(cli-playwright): add isolate-and-capture pattern"
 Do NOT crop the element's bounding box. Instead **isolate** the first matched
 element and capture the whole viewport full-page & transparent — see the
 **Isolate-and-capture** pattern in [cli-playwright.md](../../resources/cli-playwright.md).
+There is NO `snapshot`/`screenshot <ref>` path any more.
 
 Protocol after `resize` + settle (and after any `check.steps`):
 
 ```bash
-npx playwright-cli -s=<ws> eval "(sel) => {
-  const el = document.querySelector(sel);
-  if (!el) return false;
-  document.body.replaceChildren(el);
-  el.style.margin = '0';
-  document.documentElement.style.background = 'transparent';
-  document.body.style.background = 'transparent';
-  document.body.style.margin = '0';
-  return true;
-}" "<selector>"
-npx playwright-cli -s=<ws> run-code "async (page) => { await page.waitForTimeout(1000) }"
-npx playwright-cli -s=<ws> run-code "async (page) => { await page.screenshot({ path: '<STAGED>', fullPage: true, omitBackground: true }) }"
+SEL='<css-selector>'
+# 1) Detect matches (eval prints the count; branch in the shell):
+COUNT=$(npx playwright-cli -s=<ws> eval "() => document.querySelectorAll('${SEL}').length")
+if [ "$COUNT" = "0" ]; then
+  # selector matched nothing → full-page fallback + warn, never fail
+  npx playwright-cli -s=<ws> run-code "async (page) => { await page.screenshot({ path: '<STAGED>', fullPage: true }) }"
+else
+  # 2) isolate (hoist first match to body root):
+  npx playwright-cli -s=<ws> run-code "async (page) => {
+    await page.evaluate(() => {
+      const el = document.querySelector('${SEL}');
+      document.body.replaceChildren(el);
+      el.style.margin = '0';
+      el.style.inset = 'auto';
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+      document.body.style.margin = '0';
+    });
+  }"
+  npx playwright-cli -s=<ws> run-code "async (page) => { await page.waitForTimeout(1000) }"
+  # 3) full-page transparent capture:
+  npx playwright-cli -s=<ws> run-code "async (page) => { await page.screenshot({ path: '<STAGED>', fullPage: true, omitBackground: true }) }"
+fi
 ```
 
 This mode applies to **both** captures, but each side uses its OWN selector — the
@@ -137,18 +169,25 @@ story DOM (design-system components) differs from the reference DOM:
 Why isolate instead of crop: cropping the bbox drags in overlapping neighbors and
 background pixels (false diffs), and crops the element inside its original layout
 container so its responsive width is wrong. Isolating hoists the first match to the
-`body` root — the element self-sizes against the breakpoint viewport, media/container
-queries respond correctly, and transparent background drops out of the diff on both
-sides. A component is standalone by design; if a reference element breaks once
-detached from its ancestors, that is a real finding, not noise.
+`body` root — the element self-sizes against the breakpoint viewport, media queries
+respond correctly, and transparent background drops out of the diff on both sides.
+A component is standalone by design; if a reference element breaks once detached
+from its ancestors, that is a real finding, not noise.
 
-When `eval` returns `false` (selector matches nothing), fall back to full-page
-(skip-with-warning), never fail. This lets a shell header verify use `.page__header`
-for the story and `app-site-header` for the reference, or an entity use an empty
-story selector (full component) with `app-signage` for the reference.
+When the match count is `0`, fall back to full-page (skip-with-warning), never fail.
+This lets a shell header verify use `.page__header` for the story and `app-site-header`
+for the reference, or an entity use an empty story selector (full component) with
+`app-signage` for the reference.
+
+**Known limitations (accepted):** `document.querySelector` does not pierce Shadow
+DOM or iframes — selectors into a web component's shadow root or an embedded iframe
+match nothing and fall back to full-page (use a light-DOM/host selector instead).
+`@container` queries whose container ancestor is removed by the hoist may stop
+applying. Out-of-flow descendants (`position: absolute/fixed`) may not extend the
+scroll height and can be clipped despite full-page.
 ````
 
-- [ ] **Step 3: Stale-Ref-Constraint streichen.** In der "## Constraints"-Liste den Bullet entfernen, der mit **`resize` invalidates element refs.** beginnt (gilt nur für den entfallenden `snapshot`/`<ref>`-Pfad). Den Bullet "Reuse an open session across multiple captures for the same URL — only `open`/`close` once" behalten.
+- [ ] **Step 3: Stale-Ref-Constraint streichen.** In der "## Constraints"-Liste den Bullet entfernen, der mit **`resize` invalidates element refs.** beginnt — nach der Umstellung gibt es KEINEN `snapshot`/`<ref>`-Pfad mehr (auch empty-selector Story isoliert, siehe Task 3), also ist die Constraint gegenstandslos. Den Bullet "Reuse an open session across multiple captures for the same URL — only `open`/`close` once" behalten.
 
 - [ ] **Step 4: `pnpm check`** — Run: `pnpm check`. Expected: PASS.
 
@@ -175,16 +214,17 @@ git commit -m "feat(playwright-capture): isolate element instead of bbox crop"
 
 ````markdown
    a. **Resolve viewport width** from `design-tokens.yml` and the **story selector**
-      from the check's `selector` field. When `selector` is empty, element-capture
-      `#storybook-root` (the rendered story container) — NOT `--full-page`, which
-      would capture the empty 1600px viewport around an isolated component (see
-      `playwright-capture`).
+      from the check's `selector` field. When `selector` is empty, use
+      `#storybook-root` as the selector (the rendered story container) — NOT
+      `--full-page`, which would capture the empty 1600px viewport around an isolated
+      component.
 
-   b. **Capture** using the `playwright-capture` rule. When `selector` is present,
-      use the **isolate-and-capture** mode: hoist the first matched element to the
-      `body` root and screenshot full-page transparent (NOT a bbox crop). When
-      `check.steps` are present, run them against the iframe BEFORE isolating, so the
-      story is in the check's interaction state.
+   b. **Capture** using the **isolate-and-capture** mode of the `playwright-capture`
+      rule: hoist the first matched element (the resolved `selector`, or
+      `#storybook-root` when empty) to the `body` root and screenshot full-page
+      transparent — NOT a bbox crop and NOT a `screenshot <ref>`. When `check.steps`
+      are present, run them against the iframe BEFORE isolating, so the story is in
+      the check's interaction state.
 ````
 
 - [ ] **Step 3: `pnpm check`** — Run: `pnpm check`. Expected: PASS.
@@ -265,13 +305,15 @@ git commit -m "feat(capture-reference): use isolate-and-capture for selector reg
 - Schmerzpunkt 1 (Hintergrund) → Task 1/2 `omitBackground` + transparent body; Task 5 Step 3 verifiziert. ✔
 - Schmerzpunkt 2 (Überlappung) → Task 1/2 `body.replaceChildren(el)`; Task 5 Step 3. ✔
 - Schmerzpunkt 3 (responsive) → Self-Sizing, kein erzwungenes width; Task 5 Step 3 Breakpoint-Vergleich. ✔
-- Mechanik "ans body-Root heben" → ISOLATE-Funktion in Task 1/2. ✔
-- Scope (nur Selector-Pfad, leerer Selektor unberührt) → Task 3 Step 2a, Task 4 Step 2. ✔
+- Mechanik "ans body-Root heben" → `page.evaluate`-Hoist in Task 1/2. ✔
+- Treffer-Erkennung getrennt + expliziter Fallback-Branch → eval-COUNT + `if`/`else` in Task 1/2; Task 5 Step 4. ✔
+- Empty-Selector Story isoliert `#storybook-root` (kein Ref-Pfad) → Task 3 Step 2a/2b. ✔
+- Empty-Selector Referenz = full-page → Task 4 Step 2. ✔
 - Symmetrie Story/Referenz → Tasks 3 + 4. ✔
-- Nebeneffekt (Stale-Ref-Constraint streichen) → Task 2 Step 3. ✔
-- Kein-Treffer-Fallback → Task 2/3/4 Wortlaut + Task 5 Step 4. ✔
+- Nebeneffekt (Stale-Ref-Constraint streichen, kein Ref-Pfad) → Task 2 Step 3. ✔
+- Limitations (Shadow-DOM/iframe/Container-Query/out-of-flow Overflow) → Rule-Text Task 2 Step 2 + Task 1 Step 2 Notizen. ✔
 - 4 geänderte Dateien aus Spec → Tasks 1–4. ✔
 
 **Placeholder scan:** Keine TBD/TODO; jeder Edit-Step zeigt den vollständigen Ziel-Text. ✔
 
-**Type consistency:** ISOLATE-Funktion identisch in Task 1 und Task 2 (`replaceChildren`, `margin:0`, transparent, return false). Screenshot-Aufruf identisch (`fullPage: true, omitBackground: true`). ✔
+**Type consistency:** Hoist-Funktion identisch in Task 1 und Task 2 (`replaceChildren`, `margin:0`, `inset:auto`, transparent). Detection identisch (`querySelectorAll('${SEL}').length` via `eval`). Screenshot-Aufruf identisch (`fullPage: true, omitBackground: true`; Fallback ohne `omitBackground`). Kein `eval`-mit-Selektor-Argument mehr (Codex-Blocker behoben: Selektor inline in `run-code`/`page.evaluate`). ✔
