@@ -1,7 +1,7 @@
 ---
 name: designbook:design:playwright-capture
 trigger:
-  steps: [capture, recapture, compare, polish, extract-reference]
+  steps: [ensure-baseline, capture, re-capture, compare, re-compare, polish, extract-reference]
 ---
 
 # Playwright Capture
@@ -54,7 +54,8 @@ npx playwright-cli close
 ### Element capture (region with CSS selector)
 
 Do NOT crop the element's bounding box. Instead **isolate** the first matched
-element and capture the whole viewport full-page & transparent — see the
+element, force the isolated capture surface to the breakpoint width, and capture
+the whole viewport full-page & transparent — see the
 **Isolate-and-capture** pattern in [cli-playwright.md](../../resources/cli-playwright.md).
 There is NO `snapshot`/`screenshot <ref>` path any more.
 
@@ -76,15 +77,29 @@ if [ "$COUNT" = "0" ]; then
 else
   # 2) isolate (hoist first match to body root):
   npx playwright-cli -s=<ws> run-code "async (page) => {
-    await page.evaluate(() => {
+    await page.evaluate((viewportWidth) => {
       const el = document.querySelector('${SEL}');
-      document.body.replaceChildren(el);
+      const surface = document.createElement('div');
+      surface.setAttribute('data-designbook-capture-surface', '');
+      surface.style.boxSizing = 'border-box';
+      surface.style.width = viewportWidth + 'px';
+      surface.style.minWidth = viewportWidth + 'px';
+      surface.style.margin = '0';
+      surface.style.padding = '0';
+      surface.style.background = 'transparent';
+      surface.appendChild(el);
+      document.body.replaceChildren(surface);
       el.style.margin = '0';
       el.style.inset = 'auto';
       document.documentElement.style.background = 'transparent';
+      document.documentElement.style.width = viewportWidth + 'px';
+      document.documentElement.style.minWidth = viewportWidth + 'px';
       document.body.style.background = 'transparent';
       document.body.style.margin = '0';
-    });
+      document.body.style.width = viewportWidth + 'px';
+      document.body.style.minWidth = viewportWidth + 'px';
+      document.body.style.overflowX = 'hidden';
+    }, ${viewportWidth});
   }"
   npx playwright-cli -s=<ws> run-code "async (page) => { await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))) }"
   # 3) full-page transparent capture:
@@ -102,8 +117,10 @@ story DOM (design-system components) differs from the reference DOM:
 Why isolate instead of crop: cropping the bbox drags in overlapping neighbors and
 background pixels (false diffs), and crops the element inside its original layout
 container so its responsive width is wrong. Isolating hoists the first match to the
-`body` root — the element self-sizes against the breakpoint viewport, media queries
-respond correctly, and transparent background drops out of the diff on both sides.
+`body` root inside a transparent capture surface pinned to the breakpoint width —
+the screenshot dimensions stay identical on reference and story sides even when the
+component content uses a narrower max-width. Media queries respond to the
+breakpoint viewport, and transparent background drops out of the diff on both sides.
 A component is standalone by design; if a reference element breaks once detached
 from its ancestors, that is a real finding, not noise.
 

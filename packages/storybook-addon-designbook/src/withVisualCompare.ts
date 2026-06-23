@@ -2,6 +2,7 @@ import { useGlobals } from 'storybook/preview-api';
 import type { DecoratorFunction } from 'storybook/internal/types';
 
 import { VISUAL_COMPARE_KEY } from './constants';
+import { referenceImagePath } from './visual-compare-path';
 
 interface VisualCompareState {
   breakpoint: string | null;
@@ -12,6 +13,7 @@ interface VisualCompareState {
 interface ElementDef {
   name: string;
   selector: string;
+  state: string;
 }
 
 interface StoryJSON {
@@ -48,7 +50,11 @@ function regionsFor(story: StoryJSON, breakpoint: string): ElementDef[] {
 
   return refElements
     .filter((el) => el.breakpoints.includes(breakpoint))
-    .map((el) => ({ name: el.id, selector: storyElements[el.id] ?? '' }));
+    .map((el) => ({
+      name: el.id,
+      selector: storyElements[el.id] ?? '',
+      state: el.states.find((state) => state.name === 'rest')?.name ?? el.states[0]?.name ?? 'rest',
+    }));
 }
 
 function applyOverlays(
@@ -68,7 +74,7 @@ function applyOverlays(
   const canvasRect = canvasElement.getBoundingClientRect();
 
   for (const region of filtered) {
-    const src = `/__designbook/load?path=${referenceDir}/${encodeURIComponent(state.breakpoint!)}--${encodeURIComponent(region.name)}.png`;
+    const src = referenceImagePath(referenceDir, state.breakpoint!, region);
 
     if (!region.selector) {
       // "full" region (empty selector) — full-page overlay

@@ -7,17 +7,17 @@ params:
     resolve: story_id
     sources: [scenes]
   reference_url: { type: string, default: "" }
-  reference_folder:
+  reference_dir:
     type: string
     resolve: reference_folder
     from: reference_url
 stages:
-  reference:
-    steps: [ensure-baseline]
   intake:
     steps: [intake]
   setup-compare:
     steps: [setup-compare]
+  reference:
+    steps: [ensure-baseline]
   capture:
     steps: [capture]
   compare:

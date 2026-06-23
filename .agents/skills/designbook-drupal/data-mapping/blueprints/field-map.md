@@ -61,9 +61,9 @@ When the data-model declares `type: image`, image data lives on the entity. Emit
 }
 ```
 
-### `type: reference` (Media) — EntityNode
+### `type: reference` — EntityNode
 
-When the data-model declares `type: reference` pointing to a media entity, emit an EntityNode. The media entity renders itself via its own mapping:
+When the data-model declares `type: reference`, emit an EntityNode. The referenced entity renders itself via its own mapping:
 
 ```jsonata
 {

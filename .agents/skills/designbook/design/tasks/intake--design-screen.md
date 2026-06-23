@@ -66,7 +66,7 @@ Gather section, screen type, entity mappings, and component plan for one screen.
 
 1. **Confirm section** — use provided section or ask the user
 2. **Determine screen type** — landing, overview, or detail page; for landing pages ask about embedded entity lists
-3. **Plan entities** — collect `entity:` nodes from section spec scenes, deduplicate by entity+view_mode, traverse `type: reference` fields recursively, order leaf-first; present table and confirm
+3. **Plan entities** — collect `entity:` nodes from section spec scenes, deduplicate by entity+view_mode, produce the renderable entity closure required by the loaded rules, and present table and confirm
 4. **Plan components** — scan existing components, identify new ones needed per entity and screen-level; if `$reference_dir/extract.json` exists, derive from landmark structure; present grouped table and confirm
 5. **Summary** — present complete build plan, wait for confirmation
 6. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection. Because `extract-reference` runs *after* this stage, the plan is formed without reference data — state `reference: none` in the preview so the user knows the structure was inferred from the section spec and data model, not an observed design.
@@ -81,7 +81,9 @@ One entry per **new** component. When `$reference_dir/extract.json` exists, incl
 
 ## Result: sample_data_bundles
 
-The distinct `entity_type` + `bundle` pairs that need sample data for this screen: every entity the screen renders (from the entity mappings) plus every bundle reached by traversing their `type: reference` fields, ordered leaf-first. `create-sample-data` expands one task (and one `data/` file) per entry.
+The distinct `entity_type` + `bundle` pairs that need sample data for this screen. The
+loaded rules define which referenced bundles are part of the renderable entity closure.
+`create-sample-data` expands one task per entry.
 
 ## Result: scenes
 

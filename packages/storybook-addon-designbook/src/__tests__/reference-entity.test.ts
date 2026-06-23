@@ -17,7 +17,7 @@ function workspace(): string {
       'source:',
       `  url: ${url}`,
       'elements:',
-      '  - id: full',
+      '  - id: entity-paragraph-signage-full',
       '    selector: app-signage',
       '    breakpoints: [xl]',
       '    states:',
@@ -39,7 +39,12 @@ describe('Reference', () => {
     expect(json.source.url).toBe('https://leando.de/');
     expect(json.dir).toBe(`references/${hash}`);
     expect(json.elements).toEqual([
-      { id: 'full', selector: 'app-signage', breakpoints: ['xl'], states: [{ name: 'rest', steps: [] }] },
+      {
+        id: 'entity-paragraph-signage-full',
+        selector: 'app-signage',
+        breakpoints: ['xl'],
+        states: [{ name: 'rest', steps: [] }],
+      },
     ]);
   });
 

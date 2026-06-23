@@ -50,18 +50,26 @@ CaptureState: &CaptureState
       description: Interactions to reach this state from rest. Empty for `rest`.
       items: *CaptureStep
 
-BreakpointId:
+BreakpointId: &BreakpointId
   type: string
   description: >
     Viewport breakpoint identifier from `design-tokens.yml` (sm, md, lg, xl, ...).
     Determines the viewport width for capture/verify operations.
   examples: [sm, md, lg, xl]
 
-ElementId:
+ElementId: &ElementId
   type: string
-  description: Clean label for a named comparison subject (e.g. `full`, `header`, `footer`).
+  description: >
+    Stable label for the comparison subject, used in filenames and scores. Name
+    the rendered surface, not the capture area: entity stories use
+    `entity-<entity_type>-<bundle>-<view_mode>` (for example
+    `entity-paragraph-signage-full`, where `full` is the view mode), scene regions use names such as
+    `scene-header` or `scene-footer`, and components use `component-<name>`.
+    Use `selector: ""` to capture the isolated story root; do not encode that
+    capture mode as `id: full`. A trailing `full` in an entity id is valid when it
+    is the entity view mode.
 
-Screenshot:
+Screenshot: &Screenshot
   type: object
   title: Screenshot
   description: >
@@ -70,9 +78,9 @@ Screenshot:
     filename is derived: `<breakpoint>--<element>--<state>.png`.
   required: [element, state, breakpoint, selector]
   properties:
-    element: { $ref: "#/ElementId" }
+    element: *ElementId
     state: { type: string, description: "rest | interaction-state name" }
-    breakpoint: { $ref: "#/BreakpointId" }
+    breakpoint: *BreakpointId
     selector:
       type: string
       description: >
@@ -80,15 +88,17 @@ Screenshot:
         side uses the Reference element's selector, story side uses the StoryMeta
         element's selector — context (which meta) disambiguates.
 
-Element:
+Element: &Element
   type: object
   title: Element
   description: >
-    Named comparison subject. Carries this side's selector plus the state × breakpoint
+    Named comparison subject. The `id` identifies the rendered surface
+    (`entity-paragraph-signage-full`, `scene-header`, `component-card`), not the
+    capture-area label. Carries this side's selector plus the state × breakpoint
     matrix that materializes into Screenshots.
   required: [id]
   properties:
-    id: { $ref: "#/ElementId" }
+    id: *ElementId
     selector: { type: string, default: "" }
     states:
       type: array
@@ -102,7 +112,7 @@ Element:
     breakpoints:
       type: array
       default: []
-      items: { $ref: "#/BreakpointId" }
+      items: *BreakpointId
 
 Reference:
   type: object
@@ -122,7 +132,7 @@ Reference:
         origin: { type: string }
         screenId: { type: string }
         hasMarkup: { type: boolean }
-    elements: { type: array, items: { $ref: "#/Element" } }
+    elements: { type: array, items: *Element }
     extract: { type: string, default: "extract.json", description: "Relative path to the DesignReference extract." }
     assets_dir: { type: string, default: "assets/" }
 

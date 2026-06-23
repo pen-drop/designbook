@@ -1,7 +1,7 @@
 ---
 name: designbook:design:screen-compare
 trigger:
-  steps: [compare]
+  steps: [compare, re-compare]
 ---
 
 # Screen Compare

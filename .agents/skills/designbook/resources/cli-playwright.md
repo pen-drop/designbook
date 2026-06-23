@@ -102,9 +102,10 @@ npx playwright-cli screenshot <header-ref> --filename "header.png"
 
 Instead of cropping the bounding-box rectangle of an element: hoist the first
 matched element to the `body` root, remove everything else, set background
-transparent, then capture the full viewport full-page transparent. The element
-renders self-sizing at the breakpoint viewport; overlapping foreign elements and
-backgrounds fall away.
+transparent, force the isolated capture surface to the breakpoint width, then
+capture the full viewport full-page transparent. The screenshot keeps the
+breakpoint width even when the rendered content is narrower; overlapping foreign
+elements and backgrounds fall away.
 
 > **Important:** The second parameter of `eval` is an **element ref**, not a value —
 > therefore a selector CANNOT be passed as an argument. Use `eval` for match
@@ -132,15 +133,29 @@ if [ "$COUNT" = "0" ]; then
 else
   # 2) Freistellen (Hoist ans body-Root):
   npx playwright-cli -s=$WS run-code "async (page) => {
-    await page.evaluate(() => {
+    await page.evaluate((viewportWidth) => {
       const el = document.querySelector('${SEL}');
-      document.body.replaceChildren(el);
+      const surface = document.createElement('div');
+      surface.setAttribute('data-designbook-capture-surface', '');
+      surface.style.boxSizing = 'border-box';
+      surface.style.width = viewportWidth + 'px';
+      surface.style.minWidth = viewportWidth + 'px';
+      surface.style.margin = '0';
+      surface.style.padding = '0';
+      surface.style.background = 'transparent';
+      surface.appendChild(el);
+      document.body.replaceChildren(surface);
       el.style.margin = '0';
       el.style.inset = 'auto';
       document.documentElement.style.background = 'transparent';
+      document.documentElement.style.width = viewportWidth + 'px';
+      document.documentElement.style.minWidth = viewportWidth + 'px';
       document.body.style.background = 'transparent';
       document.body.style.margin = '0';
-    });
+      document.body.style.width = viewportWidth + 'px';
+      document.body.style.minWidth = viewportWidth + 'px';
+      document.body.style.overflowX = 'hidden';
+    }, ${viewportWidth});
   }"
   npx playwright-cli -s=$WS run-code "async (page) => { await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))) }"
   # 3) Full-page transparent capturen:
@@ -150,8 +165,9 @@ npx playwright-cli -s=$WS close
 ```
 
 - Match count `0` → full-page fallback + warning (never fail). Explicit branch.
-- The element is NOT forced to any width — media queries respond to the
-  breakpoint viewport width. For container queries see the Spec-Limitations note.
+- The transparent capture surface is forced to the breakpoint width. The component's
+  own element and inner content may still be narrower via max-width/container styles,
+  but the PNG width must match the breakpoint on reference and story captures.
 - `omitBackground: true` + transparent body background → whitespace is transparent.
 - A selector with single quotes (e.g. `[data-x='y']`) breaks the inline quoting —
   in that rare case use double quotes in the selector or escape them.

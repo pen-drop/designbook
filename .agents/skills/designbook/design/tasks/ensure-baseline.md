@@ -2,7 +2,7 @@
 name: designbook:design:ensure-baseline
 title: "Ensure Baseline: {{ screenshot.element }} ({{ screenshot.breakpoint }}/{{ screenshot.state }})"
 trigger:
-  steps: [extract-reference, ensure-baseline]
+  steps: [ensure-baseline]
 priority: 10
 params:
   type: object

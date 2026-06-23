@@ -54,38 +54,32 @@ result:
 
 # Intake: Design Entity
 
-Gather one entity view-mode and its component plan. No section, shell, or reference logic — this workflow renders a single entity standalone.
+Gather one entity view-mode and its component plan. No section or shell planning — this
+workflow renders one standalone entity root plus any renderable entity references required
+by the shared entity-reference rendering rule.
 
 ## Steps
 
 1. **Resolve the bundle + view-mode.** Use the provided `entity_type`, `bundle`, and `view_mode` params when non-empty. Otherwise read `{{ data_model }}.content`, list available bundles and their view modes, and ask the user to pick one `entity_type.bundle` + one `view_mode`.
 2. **Read the template.** From `{{ data_model }}.content[entity_type][bundle].view_modes[view_mode]` read the `template` and settings — this is what the mapping must target.
-3. **Plan components and mappings (leaf-first).** Traverse the chosen bundle's
-   `type: reference` fields that target renderable bundles (`paragraph`/`node`/`media`).
-   For the chosen bundle and each referenced child bundle: (a) add a `{ entity_type, bundle,
-   view_mode }` entry to `entity_mappings`; (b) if no component exists for it, add a
-   `components` entry; (c) on the parent, plan each child-holding reference field as a
-   **slot** (`component.slots`), not a flat prop. Scan existing components to avoid
-   duplicates. Present the plan and confirm.
+3. **Plan components and mappings.** Produce the renderable entity closure required by
+   the loaded rules, then add component entries for bundles that need new components.
+   Scan existing components to avoid duplicates. Present the plan and confirm.
 4. **Summary.** Present the build plan (entity type, bundle, view-mode, template, new components) and wait for confirmation.
 
 ## Result: components
 
-One entry per **new** component the build needs — the parent bundle's component **and** a
-component for every referenced child bundle (from `entity_mappings`) that has none yet.
-Each child bundle renders as its own component. A `type: reference` field on a parent that
-holds rendered children is planned as a **slot** on the parent component (`component.slots`),
-never as a flat data prop. Empty array only when every required component already exists.
+One entry per **new** component the build needs for the planned entity mappings. A
+referenced child bundle that needs visual output gets its own component when no suitable
+component already exists. Empty array only when every required component already exists.
 
 ## Result: entity_mappings
 
-One mapping per **renderable** bundle, leaf-first: the chosen bundle plus every bundle
-reached by traversing its `type: reference` fields that target a renderable entity
-(`paragraph`, `node`, `media`). Each entry is `{ entity_type, bundle, view_mode }`; the
-`entity-mapping` stage's `each: mapping` produces one `<entity_type>.<bundle>.<view_mode>.jsonata`
-per entry. A child rendered inside a parent slot needs its own mapping or the parent's
-slot ref resolves to nothing.
+One mapping per renderable bundle in the entity closure. Each entry is
+`{ entity_type, bundle, view_mode }`; the `entity-mapping` stage's `each: mapping`
+produces one mapping per entry.
 
 ## Result: sample_data_bundles
 
-The `entity_type` + `bundle` pairs that need sample data: the chosen bundle plus every bundle reached by traversing its `type: reference` fields (leaf-first). `create-sample-data` expands one `data/<entity_type>.<bundle>.yml` per entry; the standalone entity view renders the chosen view-mode against those pool records.
+The `entity_type` + `bundle` pairs that need sample data for the entity closure. Every
+entry in `entity_mappings` has a corresponding pair here.

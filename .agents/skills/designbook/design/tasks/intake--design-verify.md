@@ -64,20 +64,23 @@ List available breakpoints from the design tokens with pixel values.
 ## Step 2b: Resolve Elements
 
 Emit `elements` — the story-side comparison subjects as `Element { id, selector }`. `id`
-is the clean label used in filenames and scores; `selector` is the CSS selector that
-isolates this element in the **story** DOM. `""` ⇒ full story root (`#storybook-root`).
+is the semantic subject label used in filenames and scores; `selector` is the CSS
+selector that isolates this element in the **story** DOM. `""` ⇒ isolated story
+root (`#storybook-root`). Do not use `id: full` merely because `selector: ""`;
+`full` belongs in an entity id when it is the view mode.
 Reference-side selectors live on the Reference (written by extract-reference /
 ensure-baseline) and are resolved from `references/<hash>/meta.yml` downstream.
 
-- **Shell** verification → one element per shell landmark with the story-side selector — e.g.
-  `[{ id: header, selector: ".page__header" }, { id: footer, selector: ".page__footer" }]`.
+- **Shell / scene** verification → one element per scene landmark with the story-side selector — e.g.
+  `[{ id: scene-header, selector: ".page__header" }, { id: scene-footer, selector: ".page__footer" }]`.
   Do NOT assume semantic landmarks (`header`/`[role=banner]`); use the actual component
   elements rendered by the design-system.
-- **Entity / component** rendered as an isolated story → story is already just the
-  component, so `selector: ""`:
-  `[{ id: full, selector: "" }]`.
-- **Screen / no specific surface** → `[{ id: full, selector: "" }]`
-  (full story root).
+- **Entity / component** rendered as an isolated story → use a subject-specific
+  element id such as the entity bundle or component name, and `selector: ""`
+  because the story root is already isolated:
+  `[{ id: entity-paragraph-signage-full, selector: "" }]`.
+- **Screen / no specific surface** → use the screen or page subject name with
+  `selector: ""`, e.g. `[{ id: scene-overview, selector: "" }]`.
 
 Take selectors from the workflow input / case prompt when given. A selector that matches
 no element in the story DOM falls back to the full story root (never fails).

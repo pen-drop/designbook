@@ -34,7 +34,7 @@ result:
       $ref: ../schemas.yml#/ReferenceFolder
     reference:
       type: object
-      path: "{{ reference_dir }}/meta.yml"
+      path: "{{ reference_folder }}/meta.yml"
       $ref: ../schemas.yml#/Reference
     reference_screenshots:
       type: array
@@ -61,7 +61,7 @@ If `{{ reference_dir }}/extract.json` already exists (and neither `meta.yml` is 
 When `elements` or `breakpoints` are not supplied as params, ask the user before extracting:
 
 - **Breakpoints**: which viewport sizes to cover (e.g. `sm`, `md`, `lg`, `xl`). Default to all breakpoints found in `design-tokens.yml`.
-- **Elements**: which named page regions to compare (id + CSS selector on the reference page). Common subjects: `full` (full page), `header`, `footer`, `hero`, named content sections. Ask the user to confirm or extend the default set derived from extracted landmarks.
+- **Elements**: which named subjects to compare (id + CSS selector on the reference page). Use stable surface ids such as `scene-header`, `scene-footer`, `scene-hero`, `entity-<entity_type>-<bundle>-<view_mode>`, or `component-<name>`. Reserve `full` for a true whole-page or whole-screen comparison; use an empty selector to express full-area capture instead of naming the subject `full`. Ask the user to confirm or extend the default set derived from extracted landmarks.
 
 Persist the confirmed values into the `Reference` `elements` array written to `meta.yml`.
 
