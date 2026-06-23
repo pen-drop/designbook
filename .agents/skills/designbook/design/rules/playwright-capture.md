@@ -49,30 +49,63 @@ npx playwright-cli close
 
 ### Element capture (region with CSS selector)
 
-Use `snapshot` to get element refs, then `screenshot` with the ref:
+Do NOT crop the element's bounding box. Instead **isolate** the first matched
+element and capture the whole viewport full-page & transparent — see the
+**Isolate-and-capture** pattern in [cli-playwright.md](../../resources/cli-playwright.md).
+There is NO `snapshot`/`screenshot <ref>` path any more.
+
+Protocol after `resize` + settle (and after any `check.steps`):
 
 ```bash
-npx playwright-cli open
-npx playwright-cli goto "${url}"
-npx playwright-cli resize ${viewportWidth} 1600
-npx playwright-cli run-code "async (page) => { await page.waitForTimeout(3000) }"
-npx playwright-cli snapshot
-# Find the ref for the target element (e.g. header, footer)
-npx playwright-cli screenshot <ref> --filename "${STAGED}"
-npx playwright-cli close
+SEL='<css-selector>'
+# 1) Detect matches (eval prints the count; branch in the shell):
+COUNT=$(npx playwright-cli -s=<ws> eval "() => document.querySelectorAll('${SEL}').length")
+if [ "$COUNT" = "0" ]; then
+  # selector matched nothing → full-page fallback + warn, never fail
+  npx playwright-cli -s=<ws> run-code "async (page) => { await page.screenshot({ path: '<STAGED>', fullPage: true }) }"
+else
+  # 2) isolate (hoist first match to body root):
+  npx playwright-cli -s=<ws> run-code "async (page) => {
+    await page.evaluate(() => {
+      const el = document.querySelector('${SEL}');
+      document.body.replaceChildren(el);
+      el.style.margin = '0';
+      el.style.inset = 'auto';
+      document.documentElement.style.background = 'transparent';
+      document.body.style.background = 'transparent';
+      document.body.style.margin = '0';
+    });
+  }"
+  npx playwright-cli -s=<ws> run-code "async (page) => { await page.waitForTimeout(1000) }"
+  # 3) full-page transparent capture:
+  npx playwright-cli -s=<ws> run-code "async (page) => { await page.screenshot({ path: '<STAGED>', fullPage: true, omitBackground: true }) }"
+fi
 ```
 
-If the element is best identified by CSS selector, use `eval` to confirm it exists, then `snapshot` to get its ref.
+This mode applies to **both** captures, but each side uses its OWN selector — the
+story DOM (design-system components) differs from the reference DOM:
+- the **Storybook story** capture isolates `check.selector`
+- the **reference** capture isolates `check.reference_selector`
 
-This mode applies to **both** captures, but each side uses its OWN selector — the story
-DOM (design-system components) differs from the reference DOM:
-- the **Storybook story** capture crops to `check.selector`
-- the **reference** capture crops to `check.reference_selector`
+Why isolate instead of crop: cropping the bbox drags in overlapping neighbors and
+background pixels (false diffs), and crops the element inside its original layout
+container so its responsive width is wrong. Isolating hoists the first match to the
+`body` root — the element self-sizes against the breakpoint viewport, media queries
+respond correctly, and transparent background drops out of the diff on both sides.
+A component is standalone by design; if a reference element breaks once detached
+from its ancestors, that is a real finding, not noise.
 
-A selector may match its side or not — when it matches nothing, fall back to full-page
-(skip-with-warning), never fail. This lets a shell header verify use `.page__header` for the
-story and `app-site-header` for the reference, or an entity use an empty story selector
-(full component) with `app-signage` for the reference.
+When the match count is `0`, fall back to full-page (skip-with-warning), never fail.
+This lets a shell header verify use `.page__header` for the story and `app-site-header`
+for the reference, or an entity use an empty story selector (full component) with
+`app-signage` for the reference.
+
+**Known limitations (accepted):** `document.querySelector` does not pierce Shadow
+DOM or iframes — selectors into a web component's shadow root or an embedded iframe
+match nothing and fall back to full-page (use a light-DOM/host selector instead).
+`@container` queries whose container ancestor is removed by the hoist may stop
+applying. Out-of-flow descendants (`position: absolute/fixed`) may not extend the
+scroll height and can be clipped despite full-page.
 
 ## Constraints
 
@@ -84,11 +117,6 @@ story and `app-site-header` for the reference, or an entity use an empty story s
 - If a selector matches no elements, skip with a warning — do NOT fail the task
 - Output directories MUST be created before capture (`mkdir -p`)
 - Reuse an open session across multiple captures for the same URL — only `open`/`close` once
-- **`resize` invalidates element refs.** Any `resize` (or other layout-affecting op) makes the
-  refs from a prior `snapshot` stale; a `screenshot <ref>` against a stale ref silently falls back
-  to a full-page capture. So within a reused session, after EACH `resize`, settle (`waitForTimeout`)
-  and re-run `snapshot` to re-acquire the ref, then `screenshot <ref>` immediately — never reuse a
-  ref captured at a different viewport.
 
 ## Storybook Restart
 
