@@ -38,13 +38,13 @@ npx playwright-cli screenshot --full-page --filename "${STAGED}"
 npx playwright-cli close
 ```
 
-> ⛔ **A Storybook STORY's full capture is its rendered content, not the viewport.**
-> When capturing a **story** with an empty `selector`, element-capture `#storybook-root`
-> (the container Storybook renders the story into) instead of `--full-page`. A
-> `--full-page` story shot is the full 1600px viewport — for an isolated component
-> (e.g. an entity story ~440px tall) that is mostly empty space, which then drifts
-> dimensionally against a region-cropped reference. `#storybook-root` is the actual
-> rendered story (the component as-rendered). Reference URLs (not stories) still use
+> ⛔ **A Storybook STORY's full capture is its rendered content, not a viewport screenshot.**
+> When capturing a **story** with an empty `selector`, the selector resolves to
+> `#storybook-root` (the container Storybook renders the story into) and is captured
+> via the **isolate-and-capture** mode (see the Element capture section below) — NOT a
+> `--full-page` viewport shot. A `--full-page` viewport shot of a story includes the
+> full 1600px empty canvas around the isolated component, causing dimensional drift
+> against any region-cropped reference. Reference URLs (not stories) still use
 > `--full-page` for an empty `reference_selector`.
 
 ### Element capture (region with CSS selector)

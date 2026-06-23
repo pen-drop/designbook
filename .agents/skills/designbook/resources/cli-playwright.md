@@ -87,24 +87,29 @@ npx playwright-cli close
 
 ### Element screenshot via snapshot ref
 
+> ⛔ **Do NOT use this recipe for design-verify element capture.** The `snapshot` +
+> `screenshot <ref>` approach crops the element's bounding box, which drags in
+> overlapping neighbours and wrong layout widths. Use the **Isolate-and-capture**
+> pattern below instead.
+
 ```bash
 npx playwright-cli goto "https://example.com"
 npx playwright-cli snapshot                                # find the ref for header
 npx playwright-cli screenshot <header-ref> --filename "header.png"
 ```
 
-### Isolate-and-capture (Element freistellen, full-page transparent)
+### Isolate-and-capture (isolate element, full-page transparent)
 
-Statt das Bounding-Box-Rechteck eines Elements zu croppen: das erste gematchte
-Element ans `body`-Root heben, alles andere entfernen, Hintergrund transparent,
-dann den ganzen Viewport full-page transparent screenshoten. Das Element rendert
-self-sizing am Breakpoint-Viewport; überlappende Fremd-Elemente und Hintergrund
-fallen weg.
+Instead of cropping the bounding-box rectangle of an element: hoist the first
+matched element to the `body` root, remove everything else, set background
+transparent, then capture the full viewport full-page transparent. The element
+renders self-sizing at the breakpoint viewport; overlapping foreign elements and
+backgrounds fall away.
 
-> **Wichtig:** Der zweite Parameter von `eval` ist ein **Element-Ref**, kein Wert —
-> daher KANN ein Selektor nicht als Argument übergeben werden. Treffer-Erkennung
-> per `eval` (Trefferzahl, branchbar in der Shell); das Freistellen per `run-code` +
-> `page.evaluate` mit **inline eingebettetem** Selektor.
+> **Important:** The second parameter of `eval` is an **element ref**, not a value —
+> therefore a selector CANNOT be passed as an argument. Use `eval` for match
+> detection (returns the count, branchable in the shell); use `run-code` +
+> `page.evaluate` with the selector **inlined** for the hoist step.
 
 ```bash
 SEL='<css-selector>'   # in den run-code-String eingebettet (Single-Quotes außen)
@@ -139,14 +144,14 @@ fi
 npx playwright-cli -s=$WS close
 ```
 
-- Trefferzahl `0` → full-page-Fallback + Warnung (nie fail). Expliziter Branch.
-- Dem Element wird KEINE Breite aufgezwungen — Media-Queries reagieren auf die
-  Breakpoint-Viewport-Breite. Container-Queries siehe Spec-Limitations.
-- `omitBackground: true` + transparenter body-bg → Leerraum ist transparent.
-- Selektor mit Single-Quotes (z.B. `[data-x='y']`) bricht das Inline-Quoting —
-  in dem seltenen Fall doppelte Quotes im Selektor verwenden oder escapen.
-- Limitations (akzeptiert): `querySelector` pierct nicht in Shadow-DOM/iframes;
-  out-of-flow Descendants können trotz full-page abgeschnitten werden.
+- Match count `0` → full-page fallback + warning (never fail). Explicit branch.
+- The element is NOT forced to any width — media queries respond to the
+  breakpoint viewport width. For container queries see the Spec-Limitations note.
+- `omitBackground: true` + transparent body background → whitespace is transparent.
+- A selector with single quotes (e.g. `[data-x='y']`) breaks the inline quoting —
+  in that rare case use double quotes in the selector or escape them.
+- Limitations (accepted): `querySelector` does not pierce Shadow DOM / iframes;
+  out-of-flow descendants may be clipped despite full-page.
 
 ### DOM extraction for design reference
 
