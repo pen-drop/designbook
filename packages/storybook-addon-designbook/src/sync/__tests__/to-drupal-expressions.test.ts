@@ -315,3 +315,43 @@ describe('image_style config-entity to_drupal', () => {
     }
   });
 });
+
+describe('media entity-type to_drupal', () => {
+  it('media bundle → media.type + field config', async () => {
+    const out = await runComposed('designbook-drupal/data-model/blueprints/media.md', 'to_drupal', {
+      bundle: 'image',
+      def: { fields: { field_media_image: { type: 'image', settings: { image_style: 'thumbnail' } } } },
+    });
+    const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
+    expect(items).toContainEqual(expect.objectContaining({ config_name: 'media.type.image' }));
+    expect(items).toContainEqual(expect.objectContaining({ config_name: 'field.field.media.image.field_media_image' }));
+  });
+});
+
+describe('block_content entity-type to_drupal', () => {
+  it('block_content bundle → block_content.type + field config', async () => {
+    const out = await runComposed('designbook-drupal/data-model/blueprints/block_content.md', 'to_drupal', {
+      bundle: 'basic',
+      def: { fields: { field_description: { type: 'text', required: false } } },
+    });
+    const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
+    expect(items).toContainEqual(expect.objectContaining({ config_name: 'block_content.type.basic' }));
+    expect(items).toContainEqual(
+      expect.objectContaining({ config_name: 'field.field.block_content.basic.field_description' }),
+    );
+  });
+});
+
+describe('taxonomy_term entity-type to_drupal', () => {
+  it('taxonomy_term bundle → taxonomy.vocabulary + field config', async () => {
+    const out = await runComposed('designbook-drupal/data-model/blueprints/taxonomy_term.md', 'to_drupal', {
+      bundle: 'tags',
+      def: { fields: { field_color: { type: 'string', required: false } } },
+    });
+    const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
+    expect(items).toContainEqual(expect.objectContaining({ config_name: 'taxonomy.vocabulary.tags' }));
+    expect(items).toContainEqual(
+      expect.objectContaining({ config_name: 'field.field.taxonomy_term.tags.field_color' }),
+    );
+  });
+});

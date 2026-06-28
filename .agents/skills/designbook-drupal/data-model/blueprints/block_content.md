@@ -22,3 +22,54 @@ base_fields:
     type: boolean
     required: true
 ```
+
+## Drupal Config Export
+
+The `to_drupal` block below transforms a block_content bundle definition into
+`DrupalConfigEntity[]` suitable for Drupal config/sync. Input shape:
+
+```
+{
+  bundle: "<bundle-machine-name>",
+  def: { fields: { <field_name>: { type: "<type>", ... } } }
+}
+```
+
+Output: `[block_content.type.<bundle>, ...field.storage.block_content.<name>, ...field.field.block_content.<bundle>.<name>]`
+
+### to_drupal
+
+```jsonata
+(
+  /* ── block_content.type.<bundle> config entity ── */
+  $blockType := {
+    "config_name": "block_content.type." & bundle,
+    "data": {
+      "langcode":     "en",
+      "status":       true,
+      "dependencies": {},
+      "id":           bundle,
+      "label":        bundle,
+      "revision":     false,
+      "description":  def.purpose ? def.purpose : ""
+    }
+  };
+
+  /* ── field configs for every entry in def.fields ── */
+  $fieldNames := $keys(def.fields);
+  $fieldConfigs := $fieldNames.(
+    $name  := $;
+    $field := $lookup($$.def.fields, $name);
+    [
+      $fieldToStorage('block_content', $name, $field),
+      $fieldToInstance('block_content', $$.bundle, $name, $field)
+    ]
+  );
+
+  /* ── combine: block_content type first, then all field configs ── */
+  $append([$blockType], $fieldConfigs)
+)
+```
+
+`$fieldToStorage` and `$fieldToInstance` are assumed in scope via the `field-types.md`
+prelude — do not redefine them here.
