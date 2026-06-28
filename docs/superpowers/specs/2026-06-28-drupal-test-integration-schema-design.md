@@ -38,8 +38,13 @@ part 1 provides.
 
 ## Non-Goals
 
-- No PHP transform module (rejected — not debo logic; transform stays AI-generated
-  JSONata). A *small* Drupal-side validation command is acceptable (config_inspector).
+- **No backend-specific code in our codebase.** No new drush-specific or Drupal-specific
+  code anywhere — no PHP transform module, no custom drush command/plugin, no
+  Drupal-specific TypeScript (e.g. a typed-config→JSON-Schema converter in the addon).
+  The core engine primitives stay **backend-neutral**; all Drupal/drush specifics are
+  **command strings + config declared in the `designbook-drupal` skill** (data, not
+  code), executed by generic primitives. We rely on **existing** drush + the existing
+  `config_inspector` contrib — nothing new authored on the Drupal side.
 - JSON:API is **not** used for config schema; it is reserved for **content-data**
   (Plan 4, entity CRUD).
 - No schema caching (staleness/invalidation) — the schema is fetched **fresh** at the
@@ -56,10 +61,12 @@ project** instead of a bare theme+Storybook dir.
   `site:install`. From-scratch for the theme/config we test, fast for the Drupal base.
 - **Theme via `debo install`** into `web/themes/custom/<theme>` (today's
   `test-integration-drupal` content becomes that theme); Storybook runs from the docroot.
-- **`DESIGNBOOK_DRUSH`** — a configured drush wrapper (analogous to `DESIGNBOOK_CMD`),
-  declared in `designbook.config.yml` (e.g. `backend.drush: "ddev drush"`), emitted by
-  `debo config`. Every drush call (sync, prepare-schema, validation) goes through
-  `$DESIGNBOOK_DRUSH`, so the mechanism is portable (ddev/lando/plain drush).
+- **Backend command config (not core code).** `designbook-drupal` config declares the
+  backend command strings — e.g. `backend.cmd: "ddev drush"` plus the `schema_cmd` /
+  `validate_cmd` / apply commands built on it (using existing drush + `config_inspector`).
+  Core only interpolates `{{ backend.* }}` into the opaque commands that `prepare:` /
+  `cmd:` validators run; it never references drush itself. Portable (ddev/lando/plain
+  drush) and keeps all Drupal specifics as data in the integration skill.
 - Result: one workspace = a full Drupal site; `cim`/render/introspection are local.
 - **`config_inspector`** (contrib) is included in the base composer for config-schema
   validation (Part B).
@@ -89,40 +96,48 @@ result:
   required: [view-mode-config]
   properties:
     view-mode-config:
-      prepare:                                   # KEY 1 — fetch the expected schema, fresh
-        drupal-config-schema:
-          config_name: "core.entity_view_display.{{ slice.entity_type }}.{{ slice.bundle }}.{{ slice.view_mode }}"
+      prepare:                                   # KEY 1 — run a skill-declared command → schema, fresh
+        command: "{{ backend.schema_cmd }} core.entity_view_display.{{ slice.entity_type }}.{{ slice.bundle }}.{{ slice.view_mode }}"
+        as: prepared
       generator:                                 # KEY 2 — produce this result via the jsonata generator
         jsonata: "$DESIGNBOOK_DATA/sync/{{ slice.entity_type }}.{{ slice.bundle }}.{{ slice.view_mode }}.jsonata"
       validators:
         - "schema:prepared"                      # against the prepare-fetched schema
-        - "cmd:$DESIGNBOOK_DRUSH config:inspect ..."   # authoritative, via Drupal (config_inspector)
+        - "cmd:{{ backend.validate_cmd }} {{ file }}"   # authoritative, via the backend (data, not core code)
 ```
 
-**`prepare:`** — `<hook-name>: <args>`. Before this result resolves, the engine runs the
-registered prepare hook. `drupal-config-schema` calls `$DESIGNBOOK_DRUSH` to dump the
-typed-config definition for `config_name`, converts it to JSON Schema, and exposes it as
-the schema named `prepared`. Fresh each run, no cache. This is a **new engine
-primitive**: a result whose validation schema is prepared at runtime (today's schemas
-are static `$ref` resolved at workflow-resolve time). It is the AI's generation guide
-**and** the validation source.
+The `prepare.command` and `validate_cmd` shown here are **declared in the
+`designbook-drupal` override** of this task (resolving to existing drush /
+`config_inspector` capability). Core never names drush/Drupal — it runs opaque commands.
 
-**`generator:`** — `<kind>: <path>`. Declares the result is produced by the named
-generator and where the generated artifact persists. `jsonata: <path>` tells the AI to
-produce this result via the **jsonata generator** (debo `generate-jsonata` lineage): it
-authors a `.jsonata` at `<path>`, conforming to the `prepared` schema, then runs it over
-the data-model slice to yield the result. The `.jsonata` is **persisted and
-re-runnable** — re-export = re-run it (offline, if re-validation is skipped). Also a
-**new engine primitive** (formalizes what is today task-body prose into a declarative,
+**`prepare:`** — generic, **command-based** (mirrors `cmd:` validators: core runs an
+opaque command, zero backend knowledge). Before this result resolves, the engine runs
+`prepare.command`, captures stdout as a JSON Schema, and registers it under `prepare.as`
+(here `prepared`). Fresh each run, no cache. The command lives in the `designbook-drupal`
+task override and resolves to existing drush / `config_inspector` capability that emits
+the typed-config schema as JSON Schema — a config string, not authored code. This is a
+**new, backend-neutral engine primitive**: a result whose validation schema is prepared
+at runtime (today's schemas are static `$ref` resolved at workflow-resolve time). The
+prepared schema is the AI's generation guide **and** the validation source.
+
+**`generator:`** — `<kind>: <path>`, backend-neutral. Declares the result is produced by
+the named generator and where the generated artifact persists. `jsonata: <path>` tells
+the AI to produce this result via the **jsonata generator** (debo `generate-jsonata`
+lineage): it authors a `.jsonata` at `<path>`, conforming to the `prepared` schema, then
+runs it over the data-model slice to yield the result. The `.jsonata` is **persisted and
+re-runnable** — re-export = re-run it (offline, if re-validation is skipped). The
+`jsonata` generator is generic; the generated content is Drupal-shaped but authored by
+the AI from the skill blueprint + prepared schema — no backend code. Also a **new engine
+primitive** (formalizes what is today task-body prose into a declarative,
 machine-readable production directive).
 
 ### Flow the engine/AI derives
 
 ```
-1. prepare:   $DESIGNBOOK_DRUSH → typed-config(config_name) → convert → schema "prepared"
+1. prepare:   run prepare.command (skill-declared, backend) → stdout = JSON Schema "prepared"
 2. generator: AI authors generator.jsonata (guided by "prepared"), persists it
 3. run:       jsonata over the data-model slice → result value (the config)
-4. validate:  schema:prepared (up-front) + cmd config_inspector (authoritative, via Drupal)
+4. validate:  schema:prepared (up-front) + cmd validate_cmd (authoritative, via the backend)
 ```
 
 Because `prepared` carries Drupal's required keys/defaults/types, the generated config
@@ -143,42 +158,47 @@ Symmetric: a per-task generated reverse `.jsonata` reads Drupal config → data-
 slice, with `prepare` supplying the same schema to distinguish structural keys from
 ignorable ones (`uuid`, `_core`, schema defaults).
 
-## New Engine Primitives
+## New Engine Primitives (backend-neutral)
 
-These require addon/engine support:
+These require addon/engine support and contain **no** Drupal/drush knowledge:
 
-- **`prepare:` on a result property** — a registry of prepare-hooks (like resolvers /
-  validators). A hook receives the interpolated args, runs (here: `$DESIGNBOOK_DRUSH`
-  typed-config dump + convert), and registers a named schema (`prepared`) for that
-  result's validation + for the generation context. Runs at result-resolution, fresh.
-- **`generator:` on a result property** — declares the production method + artifact
-  path. `jsonata` is the first generator kind. The engine exposes the persisted path and
-  the AI authors the artifact; running it yields the result value.
-- **typed-config → JSON-Schema converter** (addon TS, unit-testable): maps Drupal
-  typed-data (`mapping`→object, `sequence`→array, scalar types, `required`) to JSON
-  Schema consumed by `schema:prepared`.
+- **`prepare:` on a result property** — `{ command, as }`. The engine runs `command`
+  (an opaque string, exactly like `cmd:` validators), captures stdout as a JSON Schema,
+  and registers it under `as` for that result's validation + generation context. Runs at
+  result-resolution, fresh. The command is supplied by the skill/task override; core has
+  no idea it is drush.
+- **`generator:` on a result property** — `{ <kind>: <path> }`. Declares the production
+  method + artifact path. `jsonata` is the first generator kind (generic). The engine
+  exposes the persisted path; the AI authors the artifact; running it yields the result
+  value.
+
+No converter, no drush wrapper, no Drupal command lives in core. The
+typed-config→JSON-Schema emission is done by **existing** drush / `config_inspector`
+invoked through `prepare.command` — a string declared in `designbook-drupal`, never
+authored code in our repo.
 
 ## Components
 
-- `setup-workspace.sh` ddev-Drupal provisioning (codebase template + DB snapshot,
-  `debo install` theme, `config_inspector` in base composer).
-- `DESIGNBOOK_DRUSH` config field + `debo config` emit.
-- `prepare`-hook registry + the `drupal-config-schema` hook (`$DESIGNBOOK_DRUSH` fetch).
-- typed-config → JSON-Schema converter (addon TS).
-- `generator` result-key support + the `jsonata` generator kind.
-- Named overridable sync tasks (`export-<unit>`) using `prepare` + `generator`, with
-  per-strategy overrides (display-builder, etc.).
+- **Core (backend-neutral):** `prepare:` + `generator:` result-key support in the addon;
+  the generic `jsonata` generator kind.
+- **`designbook-drupal` (data/config, no code):** the `export-<unit>` task overrides that
+  declare `prepare.command` / `validate_cmd` (resolving to existing drush /
+  `config_inspector`), and the per-strategy display-builder override.
+- **Backend command config:** `designbook-drupal` config supplies the backend command
+  strings (e.g. a drush prefix); core just interpolates `{{ backend.* }}` and runs them.
+- **Test infra:** `setup-workspace.sh` ddev-Drupal provisioning (codebase template + DB
+  snapshot, `debo install` theme, `config_inspector` in base composer). Lives in the
+  Drupal test-integration area, not core.
 
 ## Data Flow
 
 ```
-debo config → DESIGNBOOK_DRUSH
 sync-to → per slice, the named (possibly overridden) export task:
-  result.prepare   → $DESIGNBOOK_DRUSH typed-config(config_name) → convert → "prepared"
+  result.prepare   → run backend command (skill-declared) → stdout JSON Schema "prepared"
   result.generator → AI authors <path>.jsonata (guided by "prepared"), persists
   run jsonata(slice) → config
-  validators: schema:prepared + cmd:$DESIGNBOOK_DRUSH config:inspect
-→ write to config-sync dir → drush cim → outtake
+  validators: schema:prepared + cmd:{{ backend.validate_cmd }}
+→ write to config-sync dir → backend apply (e.g. drush cim, via skill command) → outtake
 ```
 
 ## Impact on Plan 1 (already merged-pending)
@@ -191,49 +211,58 @@ This supersedes parts of Plan 1:
 - `write-config` and the dependency-closure step may simplify (Drupal supplies
   deps/defaults; `cim`/export handle dependency wiring). Re-evaluate during planning.
 
-The sync concern skeleton, workflow, named tasks, `config-sync-dir` resolver, and
-`DESIGNBOOK_DRUSH` remain.
+The sync concern skeleton, workflow, named tasks, `config-sync-dir` resolver, and the
+backend command config remain.
 
 ## Error Handling
 
-- `$DESIGNBOOK_DRUSH` unreachable / no live Drupal → `prepare` stops + reports.
-- `config_name` has no typed-config definition → stop + report (no silent skip).
-- Generated jsonata output fails `schema:prepared` or `config:inspect` → validation
-  failure in the workflow, before `cim`.
+- `prepare.command` fails / backend unreachable → `prepare` stops + reports its output.
+- The requested config schema has no definition → stop + report (no silent skip).
+- Generated jsonata output fails `schema:prepared` or the `validate_cmd` → validation
+  failure in the workflow, before the apply step.
 
 ## Testing
 
-- typed-config → JSON-Schema converter: unit tests (typed-data fixtures → expected JSON
-  Schema).
+- Core `prepare:`/`generator:` primitives: unit tests with a **fake backend command**
+  (a stub script that echoes a known JSON Schema) — no Drupal needed, proves the generic
+  mechanism (command run → schema captured → result validated; generator path authored +
+  run).
 - Workspace provisioning: smoke (ddev up + snapshot restore + `drush status`).
 - e2e: `sync-to` against the workspace site; the gate catches a deliberately broken
-  generated transform (e.g. omitting `field_type`) **at validation time**, not at `cim`.
+  generated transform (e.g. omitting `field_type`) **at validation time**, not at apply.
 - Re-export: re-running a persisted `.jsonata` reproduces identical config.
 
 ## Plan Split
 
-1. **ddev workspace + `DESIGNBOOK_DRUSH`** — `setup-workspace.sh` Drupal mode, codebase
-   template + DB snapshot, `debo install` theme, `config_inspector`, drush wrapper.
-   Prerequisite for everything below and for the existing Plan 5 (verify).
-2. **`prepare:`/`generator:` engine primitives + converter** — result-key support,
-   prepare-hook registry, `drupal-config-schema` hook, typed-config→JSON-Schema
-   converter, `jsonata` generator kind. Addon/engine work, unit-tested.
+1. **ddev workspace + backend command config** — `setup-workspace.sh` Drupal mode,
+   codebase template + DB snapshot, `debo install` theme, `config_inspector` in base
+   composer, `backend.cmd`/`schema_cmd`/`validate_cmd` config in `designbook-drupal`.
+   Prerequisite for everything below and for the existing Plan 5 (verify). No core code.
+2. **`prepare:`/`generator:` engine primitives** — backend-neutral result-key support in
+   the addon (command-run-→-schema for `prepare:`, the `jsonata` generator kind for
+   `generator:`). Unit-tested with a fake backend command. No Drupal knowledge in core.
 3. **Migrate sync tasks to schema-driven generation** — convert the named export tasks
-   to `prepare` + `generator`; retire static blueprint `to_drupal`; wire config_inspector
-   validation. Re-verify against the workspace.
+   to `prepare` + `generator`; the `designbook-drupal` overrides declare the backend
+   commands; retire static blueprint `to_drupal`; wire the `validate_cmd`. Re-verify
+   against the workspace.
 
 ## Decision Log
 
+- **No backend-specific code in our codebase** — core primitives are backend-neutral;
+  all Drupal/drush specifics are command strings + config in `designbook-drupal`, using
+  existing drush + `config_inspector`. No new converter/module/drush-command authored.
 - **Workspace = full ddev Drupal** with the theme via `debo install`; pre-built codebase
   + DB snapshot for speed; `config_inspector` in base composer.
-- **`DESIGNBOOK_DRUSH`** configured drush wrapper, emitted by `debo config`.
-- **Schema source = Drupal typed-config**, fetched fresh via `$DESIGNBOOK_DRUSH` (not
-  JSON:API, not cached). JSON:API reserved for content-data (Plan 4).
+- **Backend commands as config** (`backend.cmd`/`schema_cmd`/`validate_cmd`) in
+  `designbook-drupal`; core interpolates + runs them opaquely (never names drush).
+- **Schema source = Drupal typed-config**, emitted by the skill-declared `prepare.command`
+  (existing drush/`config_inspector`), fresh, not cached. JSON:API reserved for
+  content-data (Plan 4).
 - **Transforms = per-task generated, re-runnable `.jsonata`** (not static blueprint
   pairs); blueprint = pattern.
-- **Two new result keys:** `prepare:` (runtime schema prep) + `generator:` (production
-  method + artifact path).
+- **Two new backend-neutral result keys:** `prepare:` (`{command, as}` → runtime schema)
+  + `generator:` (`{jsonata: path}` → production method + artifact).
 - **One task** per named unit does prepare+generate+run+validate (not the css two-step).
-- **Drupal validation via `config_inspector`** (`cmd:$DESIGNBOOK_DRUSH config:inspect`).
+- **Validation via `config_inspector`** through `cmd:{{ backend.validate_cmd }}`.
 - **Supersedes** Plan 1's static `to_drupal` + `DrupalConfigEntity` validation; sync
   skeleton retained.
