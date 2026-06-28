@@ -53,9 +53,18 @@ gebaut").
   stage tasks. Says WHAT each stage produces (a config category). Backend-neutral.
 - **`designbook-drupal/export/`**: JSONata transform blueprints that say HOW —
   producing concrete Drupal config shapes. Gated by `filter: backend: drupal`.
-- **Export-strategy extension** (e.g. `display-builder`): provides the display
-  mapping transform for the field-map / generic SDC-tree case. Gated by
-  `filter: extensions: <id>`. v1 bundles one strategy: `display-builder`.
+- **Strategy skills** — each display/mapping strategy is its **own integration
+  skill** (like `designbook-drupal` / `designbook-css-tailwind`), declared as an
+  extension in `designbook.config.yml`:
+  - **`designbook-ui-patterns`** — UI Suite / UI Patterns family base. Exposes SDC
+    components as UI Patterns and provides the shared concepts reused by every
+    UI-Suite strategy. Display Builder belongs to this family.
+  - **`designbook-display-builder`** — the concrete `export-displays` strategy.
+    Depends on `designbook-ui-patterns`. Provides the field-map / generic SDC-tree
+    transform that produces Display Builder display config (entity view display with
+    UI Patterns sources mapping component props/slots ← fields). v1 ships this
+    strategy.
+  - Future strategies (e.g. a Twig strategy) are added as their own skills.
 - **Core `export-verify` concern**: a verify workflow mirroring `design-verify`,
   with a fix loop.
 
@@ -92,15 +101,110 @@ directory. Transforms live as blueprints/templates in `designbook-drupal/export`
   or `canvas` — translate to their native Drupal config (Layout Builder section
   config, Views config, Experience Builder config) **independent of the chosen
   strategy extension**.
-- **`field-map` / generic SDC trees** — translated by the **active export-strategy
-  extension** (project-global, declared in `designbook.config.yml`). v1 ships
-  `display-builder`. A new strategy is a new blueprint with `filter: extensions:
-  <id>` — no core change.
+- **`field-map` / generic SDC trees** — translated by the **active strategy skill**
+  (project-global, declared in `designbook.config.yml`). v1 ships
+  `designbook-display-builder` (UI Patterns family). Designbook's ComponentNode
+  (component + props + slots, fields plugged in) maps cleanly to a UI Patterns
+  display (pattern + props sources + slots sources), so the
+  `entity-mapping → display-builder` JSONata transform is close to 1:1. A new
+  strategy is a new skill — no core change.
 
-Strategy is chosen **project-global** via the active extension (decision:
+Strategy is chosen **project-global** via the active strategy skill (decision:
 "Projekt-global via Extension"). All field-map view modes in a project export the
 same way; a different project picks a different strategy by declaring a different
-extension.
+strategy skill in its `extensions`.
+
+## Workflows & Folder Structure
+
+### Workflow names (sub-commands)
+
+Each sub-command is one workflow file under `<concern>/workflows/<name>.md`
+(established convention; e.g. `design/` holds `design-component`, `design-screen`,
+…). Each `export-*` workflow syncs itself standalone; the umbrella `export` writes
+everything and syncs **once** at the end.
+
+| Workflow         | Purpose                                          |
+|------------------|--------------------------------------------------|
+| `export`         | Umbrella — all categories + one final sync       |
+| `export-bundles` | bundles + fields                                 |
+| `export-displays`| view modes + displays (mapping via strategy)     |
+| `export-config`  | views, image styles, media, taxonomy             |
+| `export-content` | sample data → content entities                   |
+| `export-verify`  | round-trip verify (fix loop)                     |
+
+### Core concern — `designbook/export/`
+
+```
+export/
+  schemas.yml
+  workflows/
+    export.md            # umbrella
+    export-bundles.md
+    export-displays.md
+    export-config.md
+    export-content.md
+    export-verify.md
+  tasks/
+    intake--export.md
+    transform.md         # run a JSONata transform → [{config_name,data}]
+    write-config.md      # serialize → YAML into config-sync dir
+    resolve-deps.md      # dependency closure (--with-deps)
+    sync.md              # drush config:import --partial
+    outtake--export.md
+    intake--export-verify.md
+    capture-storybook.md # reference side (may reuse design/ capture)
+    capture-drupal.md    # actual side (live render)
+    compare.md
+    triage.md
+    polish.md
+    outtake--export-verify.md
+  rules/
+  resources/
+```
+
+### Backend — `designbook-drupal/export/`
+
+Native (strategy-independent) transforms + Drupal config rules. Blueprints are
+**flat**, selected by frontmatter (`type` + `name` + `trigger`/`filter`) — mirroring
+the existing `data-mapping` blueprints (`field-map.md`, `canvas.md`,
+`layout-builder.md`, `views.md`). Discovery glob is `skills/**/blueprints/*.md`, so
+files sit directly in a `blueprints/` dir.
+
+```
+export/
+  blueprints/
+    bundles.md           # content.* → node.type / field.storage / field.field
+    displays.md          # native view_mode + entity_view_display scaffold (LB/views/canvas)
+    config.md            # views.view / image.style / media / taxonomy
+    content.md           # data.yml → content entities
+    capture-drupal.md    # per-entity/per-view-mode URL render (verify)
+  rules/
+    drupal-config.md     # dependencies, langcode/status/uuid, field.storage dedup
+```
+
+### Strategy skills (UI Patterns family)
+
+```
+designbook-ui-patterns/        # UI Suite base — SDC exposed as UI Patterns
+  SKILL.md
+  rules/                       # SDC → ui_patterns exposure (filter: frameworks.component: sdc)
+  install/rules/               # detect ui_patterns / ui_suite modules
+  blueprints/                  # shared UI-Patterns concepts
+
+designbook-display-builder/    # concrete export-displays strategy; depends on ui-patterns
+  SKILL.md
+  export/
+    blueprints/
+      display-map.md           # type: export-display, name: display-builder
+                               #   entity-mapping → Display Builder display config
+  install/rules/               # detect display_builder module
+```
+
+Both are declared in `designbook.config.yml` `extensions:` (`{id, skill}`).
+`export-displays` selects the strategy because `designbook-display-builder` is the
+active strategy skill. Strategy-variant blueprints follow the **flat + frontmatter**
+convention (Option A); a strategy that outgrows one file can be promoted to its own
+sub-concern dir later.
 
 ## Data Flow
 
@@ -226,8 +330,18 @@ the verify workflow.
   intermediate format).
 - **Output form:** config/sync YAML written into the live site's config-sync dir,
   applied with `drush config:import --partial`.
-- **Strategy level:** project-global via an export-strategy extension; native
-  templates export independent of strategy.
+- **Strategy level:** project-global via an active strategy skill; native templates
+  export independent of strategy.
+- **Strategy packaging:** each strategy is its own integration skill, not a feature
+  flag. v1: `designbook-ui-patterns` (UI Suite family base) + `designbook-display-builder`
+  (concrete strategy, depends on ui-patterns). Display Builder belongs to the UI
+  Patterns ecosystem.
+- **Blueprint organization:** flat files + frontmatter selection within each skill's
+  `blueprints/` (Option A), mirroring `data-mapping`; promote to a sub-concern dir
+  only if a strategy outgrows one file.
+- **Workflow naming:** `export`, `export-bundles`, `export-displays`, `export-config`,
+  `export-content`, `export-verify`; each `export-*` syncs standalone, umbrella syncs
+  once.
 - **Scope:** bundles+fields, view-modes+displays, config-entities, sample-content —
   each separately exportable, plus "all".
 - **Transformation:** JSONata, reusing the addon runtime.
