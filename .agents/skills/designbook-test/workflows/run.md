@@ -70,7 +70,7 @@ Display the full JSON output, including the `after.*` block (e.g. `after.design-
 
 After the workflow completes:
 
-1. `cd` into the workspace directory
+1. `cd` into the theme dir (`workspaces/<suite>/web/themes/custom/test_integration_drupal`) — that is the git repo root for the workspace
 2. Run `git diff --name-only` and `git ls-files --others --exclude-standard` to find changed/new files
 3. Exclude `.agents/`, `.claude/`, `.storybook/`, `node_modules/` from the list
 4. Display the list of changed files to the user

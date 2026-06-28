@@ -84,6 +84,7 @@ fi
 
 # Nested theme dir — designbook.config.yml, .storybook, and designbook data live here
 THEME_REL="web/themes/custom/test_integration_drupal"
+mkdir -p "$TARGET_DIR/$THEME_REL"
 
 echo "Layering fixtures into workspace: $TARGET_DIR"
 echo "  Suite: $SUITE"
@@ -96,7 +97,8 @@ if [[ ! -d "$TARGET_DIR" ]]; then
 fi
 
 # 1. Reset workspace to init commit (clean slate for re-runs)
-cd "$TARGET_DIR"
+# git repo root is the theme dir (setup-workspace.sh runs git init there)
+cd "$TARGET_DIR/$THEME_REL"
 INIT_COMMIT=$(git log --reverse --format='%H' | head -1)
 if [[ -n "$INIT_COMMIT" ]]; then
   git reset --hard "$INIT_COMMIT" --quiet
@@ -129,7 +131,8 @@ for FIXTURE in $FIXTURES; do
 done
 
 # 3. Commit fixture layer as baseline for diff tracking
-cd "$TARGET_DIR"
+# git repo root is the theme dir (setup-workspace.sh runs git init there)
+cd "$TARGET_DIR/$THEME_REL"
 git add -A
 git commit -q -m "fixtures: $SUITE/$CASE" --allow-empty
 

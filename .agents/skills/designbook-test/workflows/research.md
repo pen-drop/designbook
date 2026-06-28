@@ -55,7 +55,7 @@ direction: min
    npx storybook-addon-designbook storybook start
    ```
 4. **Tag the case-agnostic workspace baseline BEFORE layering any case fixtures:**
-   `cd workspaces/$SUITE && git tag workspace-baseline`. The baseline must contain
+   `cd workspaces/$SUITE/web/themes/custom/test_integration_drupal && git tag workspace-baseline` (the theme dir is the workspace git repo root). The baseline must contain
    NO case fixtures so the train case and every val case are layered onto a clean tree.
 5. Tag the repo baseline: `cd <repo-root> && git tag research-baseline-$(date +%Y-%m-%d-%H%M)`.
 6. Resolve the cases:
@@ -70,8 +70,9 @@ direction: min
 
 Given an iteration number `N` and a case `c`, produce its metric value:
 
-1. Reset + clean the workspace to the case-agnostic baseline:
+1. Reset + clean the workspace to the case-agnostic baseline (run in the workspace theme dir — the git repo root):
    ```
+   cd workspaces/$SUITE/web/themes/custom/test_integration_drupal
    git reset --hard workspace-baseline
    git clean -fdx designbook/ workflows/
    ```
