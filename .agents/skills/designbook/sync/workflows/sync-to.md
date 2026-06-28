@@ -31,6 +31,8 @@ stages:
     steps: [resolve-filter]
   transform:
     steps: [transform]
+  resolve-deps:
+    steps: [resolve-deps]
   write-config:
     steps: [write-config]
   outtake:
