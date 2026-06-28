@@ -114,3 +114,26 @@ ExportSummary:
     count:
       type: integer
       description: Total number of config YAML files written.
+
+SyncResult:
+  type: object
+  title: Sync Result
+  description: >
+    Outcome of applying config to the live Drupal site via drush config:import.
+    Captures the drush command summary text and the list of config names applied.
+  required: [drush_summary, applied_config_names]
+  properties:
+    drush_summary:
+      type: string
+      description: >
+        Full stdout/stderr output from the drush config:import invocation,
+        captured verbatim. Used for reporting and error surfacing.
+    applied_config_names:
+      type: array
+      description: >
+        List of Drupal config names that drush reported as imported/applied
+        during this run. Derived from the drush output.
+      items:
+        type: string
+        description: Drupal config name, e.g. "node.type.article".
+        pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
