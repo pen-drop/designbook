@@ -202,6 +202,28 @@ serializes to `<config_name>.yml` and `sync` applies `drush cim --partial`. For
 | config         | `config.*` → `views.view.*`, `image.style.*`, media/taxonomy              | → `config.*`                                |
 | content-data   | `data.yml` → content entities                                            | → `data.yml`                                |
 
+### Schema-first principle
+
+Push as much correctness into the schema as possible — the more the schema enforces,
+the simpler and safer the transforms. Prefer declarative `provides`/`constrains`
+extensions + validators over imperative prose rules. Concrete applications:
+
+- **`fields.<>.type` → enum.** `field-types.md` constrains the (currently free-form)
+  type to the known field-type set, so unknown types fail validation up front instead
+  of inside a transform.
+- **Per-type required settings.** `image` requires `image_style`, `reference` requires
+  `target_type`/handler, etc. — enforced by the per-type settings schema, not by a
+  runtime check.
+- **`view_modes.<>.template` → enum**, constrained by the active extensions/strategy
+  skill (e.g. `field-map` always allowed; `layout-builder` only with the LB extension).
+- **Drupal-config output schema (validator).** A schema describing a valid
+  `{ config_name, data }` entity (required `langcode`/`status`/`uuid`/`dependencies`)
+  used as a `validators:` check on `to_drupal` output — so emission invariants are a
+  schema, not just the `drupal-config.md` rule. This output schema is a *new* schema
+  (validating Drupal output), not a duplicate of `DataModel`.
+
+Transforms therefore assume a validated input shape and produce schema-checked output.
+
 ### Logic placement — three layers
 
 The transform logic lives in blueprints, co-located with the definition it serializes,
@@ -371,6 +393,9 @@ Paired `to_drupal`/`from_drupal` + near-bijective UI Patterns mapping ⇒
 - **Logic layers:** per entity-type (blueprint) → per field-type (shared
   `field-types.md`) → per display/mapping (data-mapping blueprint + strategy skill).
   Field serialization lives once in `field-types.md`, never duplicated per entity-type.
+- **Schema-first:** maximize schema enforcement (type enum, per-type required settings,
+  view-mode template enum, Drupal-config output validator) via `provides`/`constrains`
+  + validators; transforms assume validated input and emit schema-checked output.
 - **New surface:** one thin `designbook/sync/` concern (orchestration, no new
   schema/rules) + strategy skills.
 - **Import source (sync-from):** live Drupal via `drush`.
