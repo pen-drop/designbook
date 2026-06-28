@@ -121,6 +121,7 @@ describe('sync-to smoke: node bundle article → DrupalConfigEntity[]', () => {
     const entity = entities.find((e) => e.config_name === 'field.field.node.article.field_body');
     expect(entity).toBeDefined();
     assertValidConfigEntity(entity!, 'field.field.node.article.field_body');
+    expect(entity!.data['field_type']).toBe('text_with_summary');
   });
 
   it('includes field.storage.node.field_subtitle', () => {
@@ -184,15 +185,14 @@ describe('sync-to smoke: YAML serialisation round-trip', () => {
         (r) => r as DrupalConfigEntity[],
       ),
     ]);
+    // Write all YAML files here so every `it` block can read them regardless of order.
+    for (const entity of [...nodeEntities, ...imageEntities]) {
+      writeConfigYml(entity);
+    }
   });
 
   it('writes expected YAML files to disk', () => {
-    const allEntities = [...nodeEntities, ...imageEntities];
-    for (const entity of allEntities) {
-      writeConfigYml(entity);
-    }
-
-    // Verify expected file names exist
+    // Pure existence check — files are written in beforeAll above.
     const expectedNames = [
       'node.type.article',
       'field.storage.node.field_body',
@@ -229,6 +229,11 @@ describe('sync-to smoke: YAML serialisation round-trip', () => {
   it('field.storage.node.field_body YAML has text_with_summary type', () => {
     const parsed = readConfigYml('field.storage.node.field_body');
     expect(parsed['type']).toBe('text_with_summary');
+  });
+
+  it('field.field.node.article.field_body YAML has field_type text_with_summary', () => {
+    const parsed = readConfigYml('field.field.node.article.field_body');
+    expect(parsed['field_type']).toBe('text_with_summary');
   });
 
   it('field.storage.node.field_subtitle YAML has string type', () => {
