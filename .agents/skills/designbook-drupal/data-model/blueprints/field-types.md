@@ -174,6 +174,7 @@ $fieldToInstance := function($et, $bundle, $name, $field) {(
       "required":      $field.required = true,
       "translatable":  true,
       "default_value": [],
+      "field_type":    $drupalType($ft),
       "settings":      $ft = 'image'
                          ? {"image_style": $field.settings.image_style}
                          : $ft = 'reference'
