@@ -73,7 +73,7 @@ describe('field-types to_drupal', () => {
   it('text_with_summary field → field.storage + field.field with text_with_summary type', async () => {
     const out = await fieldToDrupal({
       et: 'node',
-      bundle: 'page',
+      bundle: 'article',
       name: 'field_body',
       field: { type: 'text_with_summary', required: false },
     });
@@ -85,7 +85,12 @@ describe('field-types to_drupal', () => {
     );
     expect(out).toContainEqual(
       expect.objectContaining({
-        config_name: 'field.field.node.page.field_body',
+        config_name: 'field.field.node.article.field_body',
+        data: expect.objectContaining({
+          dependencies: expect.objectContaining({
+            config: expect.arrayContaining(['field.storage.node.field_body', 'node.type.article']),
+          }),
+        }),
       }),
     );
   });
@@ -172,6 +177,45 @@ describe('field-types to_drupal', () => {
       expect(item.data).toHaveProperty('langcode', 'en');
       expect(item.data).toHaveProperty('status', true);
     }
+  });
+
+  it('taxonomy_term field → field.field dependencies.config contains taxonomy.vocabulary.<bundle>', async () => {
+    const out = await fieldToDrupal({
+      et: 'taxonomy_term',
+      bundle: 'tags',
+      name: 'field_color',
+      field: { type: 'string', required: false },
+    });
+    expect(out).toContainEqual(
+      expect.objectContaining({
+        config_name: 'field.field.taxonomy_term.tags.field_color',
+        data: expect.objectContaining({
+          dependencies: expect.objectContaining({
+            config: expect.arrayContaining([
+              'field.storage.taxonomy_term.field_color',
+              'taxonomy.vocabulary.tags',
+            ] as string[]),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('user field → field.field dependencies.config omits bundle dep (user has no bundle entity)', async () => {
+    const out = await fieldToDrupal({
+      et: 'user',
+      bundle: 'user',
+      name: 'field_bio',
+      field: { type: 'text', required: false },
+    });
+    const instance = (out as Array<{ config_name: string; data: Record<string, unknown> }>).find(
+      (e) => e.config_name === 'field.field.user.user.field_bio',
+    );
+    expect(instance).toBeDefined();
+    const config = (instance!.data.dependencies as Record<string, unknown>).config as string[];
+    expect(config).toEqual(expect.arrayContaining(['field.storage.user.field_bio']));
+    // Must not emit a bogus 'user.type.user' or similar
+    expect(config.some((c) => c.startsWith('user.'))).toBe(false);
   });
 });
 

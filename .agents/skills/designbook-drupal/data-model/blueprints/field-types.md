@@ -151,13 +151,26 @@ $fieldToStorage := function($et, $name, $field) {(
   }
 )};
 
+/* ── bundle type config name lookup ── */
+$bundleConfigName := function($et, $bundle) {(
+  $et = 'node'          ? 'node.type.'          & $bundle :
+  $et = 'media'         ? 'media.type.'         & $bundle :
+  $et = 'block_content' ? 'block_content.type.' & $bundle :
+  $et = 'taxonomy_term' ? 'taxonomy.vocabulary.' & $bundle :
+  null
+)};
+
 /* ── build field.field.<et>.<bundle>.<name> ── */
 $fieldToInstance := function($et, $bundle, $name, $field) {(
-  $ft      := $field.type;
-  $mod     := $moduleFor($ft);
+  $ft         := $field.type;
+  $mod        := $moduleFor($ft);
+  $bundleDep  := $bundleConfigName($et, $bundle);
+  $configDeps := $bundleDep
+    ? $sort(["field.storage." & $et & "." & $name, $bundleDep])
+    : ["field.storage." & $et & "." & $name];
   $deps    := $merge([
     $mod = 'core' ? {} : {"module": [$mod]},
-    {"config": ["field.storage." & $et & "." & $name]}
+    {"config": $configDeps}
   ]);
   {
     "config_name": "field.field." & $et & "." & $bundle & "." & $name,
