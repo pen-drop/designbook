@@ -17,7 +17,8 @@ and a subagent proposes edits as the gradient step. The approach mirrors Microso
 | weights | the skill files in `scope.txt` (tasks, blueprints, addon `src/**`) |
 | forward pass | a workflow run (e.g. `design-entity`) producing artifacts |
 | loss function | `design-verify` score-report (visual diff vs a design reference) |
-| optimizer | a subagent that reads the audit + logs and proposes **one** diff |
+| trajectory | the driver's `friction` log — where it guessed or hit ambiguous/contradictory skill prose |
+| optimizer | a subagent that reads the audit + logs + friction and proposes **one** diff |
 | gradient step | that diff applied to a scope file |
 | mini-batch | mean score across the **train** case-set |
 | validation gate | keep the edit only if a **held-out val** case-set also improves |
@@ -102,7 +103,7 @@ Each run writes `research-runs/<slug>/`:
 
 - `score-history.tsv` — one row per iteration: `iter, hypothesis, train, val, gate, delta, decision`.
 - `iterations/<N>/hypothesis.md` + `proposed.patch` — what the optimizer tried.
-- `iterations/<N>/cases/<case>/` — per-case `summary.json`, `audit.md`, `log-digest.json`.
+- `iterations/<N>/cases/<case>/` — per-case `summary.json`, `audit.md`, `log-digest.json`, `friction.json` (where the driver guessed / hit ambiguity).
 - `overview.md` — config, baseline vs best train/val, kept hypotheses.
 
 Kept hypotheses are real commits on the repo (`experiment: <headline>`); review them

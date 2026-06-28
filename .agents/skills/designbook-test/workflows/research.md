@@ -96,10 +96,24 @@ Given an iteration number `N` and a case `c`, produce its metric value:
      defect — fix the fixture, not the loop.
    - Report contract: return `status: done` plus the `workflow summary --json`, or
      `status: error` with the reason. No task bodies, rule text, or file contents.
+   - **Friction log (the trajectory signal).** In the same report, return a `friction`
+     list capturing where the driver had to guess, found a task/rule/blueprint
+     ambiguous or contradictory, or could not answer from the inputs. This is the
+     compressed rollout trajectory SkillOpt edits from — far cheaper than the raw
+     transcript and pointed straight at the skill prose that caused trouble. Each entry:
+     ```yaml
+     friction:
+       - locus: <task|rule|blueprint name, e.g. map-entity--design-screen>
+         issue: <one line: what was unclear / contradictory / missing>
+         guessed: <true|false>   # true = had to invent an answer
+     ```
+     Empty list if the run was unambiguous. On `status: error`, the blocking question
+     MUST appear here with `guessed: false`.
 4. Score: `npx storybook-addon-designbook workflow summary --workflow <id> --case ../../fixtures/$SUITE/cases/c.yaml --metric "$METRIC" --json` → write to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`. The returned `metric` value is this case's score.
 5. Generate the audit per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `iterations/<NNN>/cases/c/audit.md`.
 6. Save the dbo.log digest (`digestLog` JSON) → `iterations/<NNN>/cases/c/log-digest.json`.
-7. Return the case's `metric` value, or treat as **crash** if the summary CLI exits non-zero or `metric: null`.
+7. Save the driver's `friction` list → `iterations/<NNN>/cases/c/friction.json` (`[]` if none).
+8. Return the case's `metric` value, or treat as **crash** if the summary CLI exits non-zero or `metric: null`.
 
 **Score-a-set(`N`, cases):** run Score-a-case for each case in order; the set score is
 the **arithmetic mean** of the case metric values (mini-batch). If ANY case in the set
@@ -139,6 +153,7 @@ Goal: propose ONE change to improve the mean train score across the train case-s
 Context bundle (read these files for EACH train case <c> in <train-cases>):
 - research-runs/<slug>/iterations/<N-1>/cases/<c>/audit.md
 - research-runs/<slug>/iterations/<N-1>/cases/<c>/log-digest.json
+- research-runs/<slug>/iterations/<N-1>/cases/<c>/friction.json   ← where the driver guessed / hit ambiguity; prioritise fixing these
 - research-runs/<slug>/iterations/<N-1>/cases/<c>/summary.json
 Plus:
 - research-runs/<slug>/score-history.tsv
@@ -148,6 +163,9 @@ Plus:
 Constraints:
 - One change. One file. Smallest possible diff.
 - Only edit files listed in scope.txt.
+- Prefer a change that resolves a `friction` entry (especially `guessed: true` or an
+  error locus) — ambiguity the driver hit is higher-signal than score noise. Make the
+  skill prose answer it so the next run need not guess.
 - Aim for a change that generalises across ALL train cases, not a fix tuned to one fixture.
 - Avoid hypotheses already discarded (see decision column in score-history.tsv).
 - Read the file before editing.
