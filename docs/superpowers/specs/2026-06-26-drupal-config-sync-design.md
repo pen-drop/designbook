@@ -98,7 +98,8 @@ files, no new rules.
 
 ```
 designbook-drupal/data-model/blueprints/
-  node.md            # + to_drupal / from_drupal   (bundle ⇄ node.type + field.storage + field.field)
+  field-types.md     [NEU] shared: field type ⇄ field.storage + field.field (string/image/reference/…)
+  node.md            # + to_drupal / from_drupal   (bundle ⇄ node.type; calls field-types per field)
   media.md           # + to_drupal / from_drupal
   view.md            # + to_drupal / from_drupal   (⇄ views.view)
   block_content.md   # + to_drupal / from_drupal
@@ -198,6 +199,28 @@ serializes to `<config_name>.yml` and `sync` applies `drush cim --partial`. For
 | displays       | `view_modes` + `entity-mapping` → `entity_view_mode.*`, `entity_view_display.*` | → `view_modes` (+ `entity-mapping`)    |
 | config         | `config.*` → `views.view.*`, `image.style.*`, media/taxonomy              | → `config.*`                                |
 | content-data   | `data.yml` → content entities                                            | → `data.yml`                                |
+
+### Logic placement — three layers
+
+The transform logic lives in blueprints, co-located with the definition it serializes,
+split across three layers so nothing is duplicated:
+
+1. **Per entity-type / config-type** — `designbook-drupal/data-model/blueprints/<type>.md`
+   (`node`, `media`, `view`, `block_content`, `taxonomy_term`, `canvas_page`). How a
+   bundle becomes `<et>.type.*` and iterates its fields; how a config-type becomes
+   `views.view.*` / `image.style.*`. Its `to_drupal`/`from_drupal` **calls layer 2 per
+   field**.
+2. **Per field-type (shared, one place)** —
+   `designbook-drupal/data-model/blueprints/field-types.md`. How a single field becomes
+   `field.storage.*` + `field.field.*` and back (`string`, `image`, `reference`,
+   `text_with_summary`, …). Cross-cutting; used by every entity-type blueprint — never
+   repeated per type.
+3. **Per display/mapping** — `designbook-drupal/data-mapping/blueprints/<template>.md`
+   (+ strategy skill for `field-map`). The view-mode rendering.
+
+`sync/tasks/transform.md` resolves the matching blueprint (via `trigger`/`filter`) and
+runs the direction's expression; entity-type expressions delegate field serialization
+to `field-types.md`.
 
 ### Display strategy: native vs pluggable
 
@@ -330,6 +353,9 @@ Paired `to_drupal`/`from_drupal` + near-bijective UI Patterns mapping ⇒
   rules (`designbook-drupal/data-model`, `data-mapping`) reused as-is.
 - **Transforms:** JSONata `to_drupal` / `from_drupal` **co-located in the existing
   blueprints** — forward and reverse next to the definition.
+- **Logic layers:** per entity-type (blueprint) → per field-type (shared
+  `field-types.md`) → per display/mapping (data-mapping blueprint + strategy skill).
+  Field serialization lives once in `field-types.md`, never duplicated per entity-type.
 - **New surface:** one thin `designbook/sync/` concern (orchestration, no new
   schema/rules) + strategy skills.
 - **Import source (sync-from):** live Drupal via `drush`.
