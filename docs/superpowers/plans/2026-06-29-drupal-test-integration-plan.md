@@ -1,70 +1,70 @@
-# Drupal Test-Integration — Implementation Plan (Plan 1 of 3: ddev workspace + backend command config)
+# Drupal Test-Integration — Implementation Plan (Plan 1 of 3: unified Drupal-layout workspace, ddev lazy)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `./scripts/setup-workspace.sh --drupal <name>` provisions a runnable ddev Drupal 11 site with the Designbook theme installed into it (Storybook from the docroot), `config_inspector` available, and the backend command config (`backend.cmd`/`schema_cmd`/`validate_cmd`) declared in `designbook-drupal` — the live target for sync/verify.
+**Goal:** `./scripts/setup-workspace.sh <name>` always produces a **Drupal-layout** workspace (the fixture theme at `web/themes/custom/<theme>` inside a cloned Drupal codebase) **without starting ddev**; `design-*`/Storybook run from the theme with no Drupal; a separate `--start` step boots ddev + restores the DB + enables the theme only when sync/verify need live Drupal. Worktree-safe.
 
-**Architecture:** A one-time cached Drupal base (composer-installed Drupal 11 + drush + config_inspector + an installed-site DB snapshot) is built by a helper script. `setup-workspace.sh` gains a `--drupal` mode that clones that base, `ddev start`s it, restores the snapshot, runs `debo install` to scaffold the theme + Storybook into `web/themes/custom/<theme>`, and links the local addon. All Drupal/drush specifics are command strings/config in `designbook-drupal` — no backend code in core.
+**Architecture:** A one-time cached Drupal base (composer-installed Drupal 11 + drush + `config_inspector` + an installed-site DB dump) is built once and stored at the **git common root** so all worktrees share it. `setup-workspace.sh` clones the base into the workspace, rsyncs the (upgraded, complete) fixture theme into the docroot, configures ddev with a worktree-namespaced project name, and stops there. A lazy `--start` step runs `ddev start` + DB import + `theme:enable`. All Drupal/drush specifics are command strings/config in `designbook-drupal` — no backend code in core.
 
-**Tech Stack:** Bash, ddev (v1.25), Docker, Composer, Drupal 11, Drush 13, `drupal/config_inspector` (contrib), Designbook CLI (`debo`/`storybook-addon-designbook`), pnpm.
+**Tech Stack:** Bash, ddev (v1.25), Docker, Composer, Drupal 11, Drush 13, `drupal/config_inspector`, Designbook CLI, pnpm.
 
 ## Global Constraints
 
-- **No backend-specific code in our codebase.** Core stays backend-neutral; Drupal/drush specifics are command strings + config in `designbook-drupal` (data, not code). Rely on existing drush + existing `config_inspector`. (Spec Non-Goals.)
-- **No compat/migration code;** artifacts disposable, test from scratch (CLAUDE.md).
-- **`pnpm check` before commit** for any addon/TS change (none expected in Plan 1).
+- **No backend-specific code in our codebase.** Core stays backend-neutral; Drupal/drush specifics are command strings + config in `designbook-drupal` (data, not code). Use existing drush + existing `config_inspector`. (Spec Non-Goals.)
+- **ddev is lazy** — never started by `setup-workspace`; only by the explicit `--start` step. `design-*` must work with no ddev.
+- **Unified layout** — every workspace is Drupal-layout (theme in docroot); no theme-only variant.
+- **Worktree-safe** — workspaces at `<worktree-root>/workspaces/<name>`; base cache shared at git common root; ddev project name namespaced per worktree.
+- **No compat/migration code;** test from scratch (CLAUDE.md).
 - **`.claude/skills/` is a symlink to `.agents/skills/`** — edit only `.agents/skills/`.
-- **Skill-authoring gate:** before editing any file under `.agents/skills/designbook*/`, load `designbook-skill-creator` first (CLAUDE.md).
-- **This plan adds no core TS** — it is test-infra (scripts/, the drupal integration template, and `designbook-drupal` config). Keep it out of the addon core.
-- ddev project names must be unique per workspace; derive from the workspace name.
+- **Skill-authoring gate:** load `designbook-skill-creator` before editing any `.agents/skills/designbook*/` file.
+- **No core TS in this plan** — scripts, the fixture theme, and `designbook-drupal` config only.
 
 ---
 
 ## Plan Split (roadmap)
 
-1. **ddev workspace + backend command config** — THIS PLAN. Live Drupal workspace + `backend.*` config. Prerequisite for 2, 3, and the existing sync Plan 5 (verify).
-2. **`prepare:`/`generator:` engine primitives** — backend-neutral result-key support in the addon (`prepare: {command, as}` runs an opaque command → schema; `generator: {jsonata: path}`). Unit-tested with a fake backend command, no Drupal. Its own plan doc.
-3. **Migrate sync tasks to schema-driven generation** — convert `export-<unit>` tasks to `prepare` + `generator`; `designbook-drupal` overrides declare the backend commands; retire static blueprint `to_drupal`; wire `validate_cmd`. Its own plan doc.
+1. **Unified Drupal-layout workspace, ddev lazy** — THIS PLAN. Prerequisite for 2, 3, and sync Plan 5 (verify).
+2. **`prepare:`/`generator:` engine primitives** — backend-neutral result-key support in the addon, unit-tested with a fake backend command (no Drupal). Own plan doc.
+3. **Migrate sync tasks to schema-driven generation** — `prepare`+`generator` on `export-<unit>` tasks; `designbook-drupal` overrides declare backend commands; retire static `to_drupal`. Own plan doc.
 
 ---
 
 ## File Structure (Plan 1)
 
-- Create: `scripts/build-drupal-base.sh` — builds the cached Drupal base once (gitignored cache dir).
-- Modify: `.gitignore` — ignore the base cache dir.
-- Modify: `scripts/setup-workspace.sh` — add `--drupal` mode (clone base → ddev start → snapshot restore → `debo install` theme → link addon).
-- Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md` — add the `backend:` command block (`cmd`/`schema_cmd`/`validate_cmd`) to the emitted `designbook.config.yml` starting point.
-- Create: `scripts/smoke-drupal-workspace.sh` — provisions a throwaway `--drupal` workspace and asserts ddev up + drush bootstrap + theme enabled + config_inspector present.
+- Create: `scripts/build-drupal-base.sh` — builds the shared cached base at the git common root.
+- Create: `scripts/start-drupal-workspace.sh` — lazy `ddev start` + DB import + `theme:enable` for a workspace.
+- Modify: `.gitignore` — ignore `.cache/`.
+- Modify: `scripts/setup-workspace.sh` — always Drupal-layout (clone base + rsync fixture theme + ddev config, no start); worktree-namespaced project; reuse existing symlink/addon-link logic.
+- Modify (upgrade to a real Drupal theme): `packages/integrations/test-integration-drupal/` — add `test_integration_drupal.info.yml`, `test_integration_drupal.libraries.yml`, and ensure SDC live under `components/`.
+- Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md` — add the `backend_cmd:` block.
+- Create: `scripts/smoke-drupal-workspace.sh` — smoke: design-path (no ddev) + start-path (ddev bootstrap + config_inspector + theme enabled), worktree-safe, self-cleaning.
 
-No addon/core TS changes in this plan.
+No addon/core TS changes.
 
 ---
 
-## Task 1: Cached Drupal base builder
+## Task 1: Shared cached Drupal base builder
 
 **Files:**
 - Create: `scripts/build-drupal-base.sh`
 - Modify: `.gitignore`
 
 **Interfaces:**
-- Produces: a cached base at `$REPO_ROOT/.cache/drupal-base/` containing a composer-installed Drupal 11 (`web/`, `vendor/`, `composer.json`), a `.ddev/` config, and a snapshot `db.sql.gz` of an installed standard site with `drupal/config_inspector` enabled. `setup-workspace.sh --drupal` (Task 3) consumes this dir.
+- Produces: a cached base at `<git-common-root>/.cache/drupal-base/` containing a composer-installed Drupal 11 (`web/`, `vendor/`, `composer.json`, `.ddev/`) and `db.sql.gz` (installed standard site, `config_inspector` enabled). Consumed by Tasks 4 & 5. Shared across worktrees.
 
 - [ ] **Step 1: Write the builder script**
 
 Create `scripts/build-drupal-base.sh`:
 ```bash
 #!/usr/bin/env bash
-# Builds a cached, composer-installed Drupal 11 base (drush + config_inspector,
-# installed standard profile) + a DB dump. Run once; setup-workspace --drupal
-# clones from here. Re-run to refresh. Idempotent: removes the cache first.
+# Builds the SHARED cached Drupal 11 base (drush + config_inspector, installed
+# standard profile) + a DB dump, at the git common root so all worktrees reuse it.
+# Run once; re-run to refresh (removes the cache first).
 set -euo pipefail
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BASE_DIR="$REPO_ROOT/.cache/drupal-base"
+COMMON_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd -P)"
+BASE_DIR="$COMMON_ROOT/.cache/drupal-base"
 
-rm -rf "$BASE_DIR"
-mkdir -p "$BASE_DIR"
-cd "$BASE_DIR"
-
+rm -rf "$BASE_DIR"; mkdir -p "$BASE_DIR"; cd "$BASE_DIR"
 ddev config --project-name=designbook-drupal-base --project-type=drupal11 --docroot=web
 ddev start
 ddev composer create-project drupal/recommended-project:^11 -y
@@ -72,184 +72,283 @@ ddev composer require drush/drush drupal/config_inspector
 ddev drush site:install standard --account-name=admin --account-pass=admin -y
 ddev drush pm:enable config_inspector -y
 ddev drush status
-# Dump the installed DB for fast restore by consumers.
 ddev export-db --file="$BASE_DIR/db.sql.gz"
-# Stop the base project so it doesn't hold ports; consumers clone the dir.
-ddev stop
+ddev stop                                   # free ports; consumers clone the dir
 echo "✓ Drupal base cached at $BASE_DIR"
 ```
 
 - [ ] **Step 2: Ignore the cache dir**
 
-Add to `.gitignore` (if not already covered):
+Add to `.gitignore`:
 ```
 .cache/
 ```
 
-- [ ] **Step 3: Run the builder and verify**
+- [ ] **Step 3: Run + verify**
 
 Run: `bash scripts/build-drupal-base.sh`
-Expected: ends with `✓ Drupal base cached at …/.cache/drupal-base`; `ls .cache/drupal-base/db.sql.gz web/index.php composer.json` all exist.
+Expected: ends `✓ Drupal base cached at …/.cache/drupal-base`; `ls "$(git rev-parse --git-common-dir)/../.cache/drupal-base/db.sql.gz"` exists.
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add scripts/build-drupal-base.sh .gitignore
-git commit -m "feat(test-infra): cached Drupal base builder (drush + config_inspector + DB snapshot)"
+git commit -m "feat(test-infra): shared cached Drupal base (drush + config_inspector + DB snapshot)"
 ```
 
 ---
 
-## Task 2: Backend command config in the install blueprint
+## Task 2: Upgrade the fixture into a complete Drupal theme
+
+**Files:**
+- Create: `packages/integrations/test-integration-drupal/test_integration_drupal.info.yml`
+- Create: `packages/integrations/test-integration-drupal/test_integration_drupal.libraries.yml`
+- Verify/relocate: SDC components under `packages/integrations/test-integration-drupal/components/`
+
+**Interfaces:**
+- Produces: a droppable, enableable Drupal theme named `test_integration_drupal` (matching the `component.namespace` in the fixture's `designbook.config.yml`). Consumed by Task 4 (rsynced into the docroot) and Task 5 (`theme:enable`).
+
+- [ ] **Step 1: Add the theme info file**
+
+Create `test_integration_drupal.info.yml`:
+```yaml
+name: 'Test Integration Drupal'
+type: theme
+description: 'Designbook test-integration theme (fixture).'
+core_version_requirement: ^11
+base theme: false
+libraries:
+  - test_integration_drupal/global
+regions:
+  header: Header
+  content: Content
+  sidebar: Sidebar
+  footer: Footer
+```
+
+- [ ] **Step 2: Add the libraries file**
+
+Create `test_integration_drupal.libraries.yml`:
+```yaml
+global:
+  css:
+    theme:
+      css/app.css: {}
+```
+(Use the fixture's actual built CSS entry; `css/app.src.css` is the source — point `global` at the compiled output the existing Storybook/vite build emits, or the source if Drupal compiles it. Confirm the emitted CSS path under `css/` before finalizing.)
+
+- [ ] **Step 3: Ensure SDC components are present under `components/`**
+
+Confirm `components/` exists with `*.component.yml` SDC (the fixture's `designbook.config.yml` declares `component.src: components`, namespace `test_integration_drupal`). If the SDC live elsewhere or aren't built, place/build them under `components/` so Drupal's SDC discovery finds `test_integration_drupal:<name>`.
+
+Run: `ls packages/integrations/test-integration-drupal/components/*/*.component.yml | head`
+Expected: at least one SDC component file.
+
+- [ ] **Step 4: Sanity-check the theme parses (offline)**
+
+Run: `npx js-yaml packages/integrations/test-integration-drupal/test_integration_drupal.info.yml >/dev/null && echo OK`
+Expected: `OK` (valid YAML; full Drupal validation happens at `theme:enable` in Task 5/smoke).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/integrations/test-integration-drupal/test_integration_drupal.info.yml packages/integrations/test-integration-drupal/test_integration_drupal.libraries.yml packages/integrations/test-integration-drupal/components
+git commit -m "feat(fixture): upgrade test-integration-drupal to a complete Drupal theme (info/libraries/SDC)"
+```
+
+---
+
+## Task 3: Backend command config in the install blueprint
 
 **Files:**
 - Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md`
 
 **Interfaces:**
-- Produces: a `backend:` block in the `designbook.config.yml` starting point that later sync tasks read via `{{ backend.* }}`:
-  - `backend.cmd` — the base backend command prefix (e.g. `ddev drush`).
-  - `backend.schema_cmd` — command that, given a config name, prints its expected schema as JSON Schema on stdout (built on existing drush/config_inspector).
-  - `backend.validate_cmd` — command that validates a config YAML file against Drupal's schema (built on config_inspector).
+- Produces: a `backend_cmd:` block in the emitted `designbook.config.yml` starting point, read by sync tasks (Plan 3) via `{{ backend_cmd.* }}`: `cmd`, `schema_cmd`, `validate_cmd`.
 
 - [ ] **Step 1: Load skill-creator**
 
-Invoke `designbook-skill-creator`; read `rules/blueprint-files.md`, `rules/common-rules.md`. Read the current `designbook-config.md` blueprint to match its format.
+Invoke `designbook-skill-creator`; read `rules/blueprint-files.md`, `rules/common-rules.md`. Read the current blueprint.
 
-- [ ] **Step 2: Add the `backend:` block to the emitted config**
+- [ ] **Step 2: Add the `backend_cmd:` block**
 
-In `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md`, extend the YAML starting point with:
+In the blueprint's emitted YAML, add:
 ```yaml
-backend: drupal
-# Backend command strings — interpolated as {{ backend.* }} by sync tasks.
-# Core runs these opaquely; no drush/Drupal knowledge lives in core.
+# Backend command strings — interpolated as {{ backend_cmd.* }} by sync tasks.
+# Core runs these opaquely; no drush/Drupal knowledge lives in core. Built on
+# existing drush + config_inspector. Exact schema_cmd/validate_cmd realization is
+# finalized in Plan 3 (still data strings, not authored code).
 backend_cmd:
   cmd: "ddev drush"
-  # Prints the expected JSON Schema for a config name on stdout (existing drush + config_inspector).
-  schema_cmd: "ddev drush designbook:config-schema"   # resolves to existing config_inspector/typed-config capability
-  # Validates a config YAML file against Drupal's schema; non-zero exit on violation.
-  validate_cmd: "ddev drush config:inspect --detail"
+  schema_cmd: "ddev drush designbook:config-schema"   # prints JSON Schema for a config name (existing typed-config/config_inspector capability)
+  validate_cmd: "ddev drush config:inspect --detail"  # non-zero exit on schema violation
 ```
-Document in the blueprint prose: these are **data**, consumed via `{{ backend_cmd.* }}` interpolation by sync tasks; the exact `schema_cmd`/`validate_cmd` resolution to existing drush/config_inspector capability is finalized in Plan 3. (If `config_inspector` exposes no direct "emit JSON Schema for one config name" command, `schema_cmd` is realized in Plan 3 via an existing `drush php:eval` one-liner string — still data, not authored code.)
+Document the semantics in prose (data consumed by interpolation; finalized in Plan 3).
 
-- [ ] **Step 3: Validate the skill file**
+- [ ] **Step 3: Validate**
 
-Run the designbook-skill-creator validator over `designbook-config.md`. Expected: zero errors.
+Run the designbook-skill-creator validator over the blueprint. Expected: zero errors.
 
 - [ ] **Step 4: Touch + commit**
 
 ```bash
 touch .agents/skills/designbook-drupal/install/blueprints/designbook-config.md
 git add .agents/skills/designbook-drupal/install/blueprints/designbook-config.md
-git commit -m "feat(drupal): backend command config (cmd/schema_cmd/validate_cmd) in install blueprint"
+git commit -m "feat(drupal): backend_cmd config (cmd/schema_cmd/validate_cmd) in install blueprint"
 ```
 
 ---
 
-## Task 3: `--drupal` mode in setup-workspace.sh
+## Task 4: setup-workspace.sh — unified Drupal layout (no ddev start)
 
 **Files:**
 - Modify: `scripts/setup-workspace.sh`
 
 **Interfaces:**
-- Consumes: the cached base from Task 1 (`.cache/drupal-base/`).
-- Produces: a workspace at `workspaces/<name>/` that is a running ddev Drupal site with the theme installed at `web/themes/custom/<theme>`, the local addon linked, and the backend config present. Invoked as `./scripts/setup-workspace.sh --drupal <name>`.
+- Consumes: the base from Task 1; the theme fixture from Task 2.
+- Produces: `workspaces/<name>/` = a Drupal-layout workspace (cloned base + fixture theme at `web/themes/custom/test_integration_drupal`), ddev configured with a worktree-namespaced project name but **not started**, agent dirs symlinked, local addon linked. Invocation unchanged: `./scripts/setup-workspace.sh <name>`.
 
-- [ ] **Step 1: Add `--drupal` flag parsing**
+- [ ] **Step 1: Resolve roots + worktree id at the top of the script**
 
-In `scripts/setup-workspace.sh` argument loop, add a `--drupal` boolean flag (default off). When off, behavior is unchanged (current theme+Storybook workspace).
-
-- [ ] **Step 2: Branch into Drupal provisioning when `--drupal` is set**
-
-After computing `WORKSPACE_DIR`, when `--drupal` is set, replace the rsync-from-`test-integration-drupal` step with:
+Add near `REPO_ROOT`:
 ```bash
-BASE_DIR="$REPO_ROOT/.cache/drupal-base"
-if [ ! -d "$BASE_DIR" ]; then
-  echo "Drupal base missing — run scripts/build-drupal-base.sh first" >&2; exit 1
-fi
+COMMON_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd -P)"
+BASE_DIR="$COMMON_ROOT/.cache/drupal-base"
+WT_ID="$(printf '%s' "$REPO_ROOT" | cksum | cut -d' ' -f1)"   # stable per-worktree id
+THEME="test_integration_drupal"
+```
+
+- [ ] **Step 2: Replace the body: clone base, drop in theme, configure ddev (no start)**
+
+Replace the rsync-from-`test-integration-drupal` step with:
+```bash
+[ -d "$BASE_DIR" ] || { echo "Run scripts/build-drupal-base.sh first" >&2; exit 1; }
+rm -rf "$WORKSPACE_DIR"; mkdir -p "$WORKSPACE_DIR"
 rsync -a --exclude='.ddev/.gitignore' "$BASE_DIR/" "$WORKSPACE_DIR/"
-cd "$WORKSPACE_DIR"
-ddev config --project-name="db-$WORKSPACE_NAME" --project-type=drupal11 --docroot=web
-ddev start
-ddev import-db --file="$WORKSPACE_DIR/db.sql.gz"
-ddev drush status
+# Drop the fixture theme into the docroot.
+rsync -a --exclude='node_modules' --exclude='.git' \
+  "$REPO_ROOT/packages/integrations/test-integration-drupal/" \
+  "$WORKSPACE_DIR/web/themes/custom/$THEME/"
+# Configure ddev with a worktree-namespaced project; DO NOT start it.
+( cd "$WORKSPACE_DIR" && ddev config --project-name="db-$WT_ID-$WORKSPACE_NAME" --project-type=drupal11 --docroot=web )
 ```
 
-- [ ] **Step 3: Install the theme + Storybook via `debo install`**
+- [ ] **Step 3: Keep symlinks + addon link, rooted at the theme dir**
 
-Still under the `--drupal` branch, after the site is up, run the Designbook install so the theme + Storybook land in the docroot:
-```bash
-# Link the local addon first so debo resolves the repo build.
-(cd "$REPO_ROOT/packages/storybook-addon-designbook" && pnpm run build)
-ddev exec "cd web && npx --yes storybook-addon-designbook install" || \
-  echo "NOTE: if debo install is agent-driven, run it via the CLI/agent against $WORKSPACE_DIR/web"
-```
-(If `debo install` is not a single headless CLI command in this repo, document that the theme is installed by running the `install` workflow against `$WORKSPACE_DIR/web`; the workspace is otherwise ready. Confirm by checking which form exists — `npx storybook-addon-designbook install --help`.)
+Point the existing `.claude/.cursor/.codex/.agents` symlink logic and the `pnpm add -D link:` addon-link + `pnpm install` at `$WORKSPACE_DIR/web/themes/custom/$THEME` (where `designbook.config.yml`, `.storybook`, `package.json` now live). Build the addon first (existing `pnpm run build` step stays).
 
-- [ ] **Step 4: Symlink agent dirs + link addon (reuse existing logic)**
+- [ ] **Step 4: Update the final message**
 
-Apply the same `.claude`/`.cursor`/`.codex`/`.agents` symlinks and `pnpm add -D link:` addon linking the script already does for the theme workspace, rooted at the theme dir inside the docroot.
+Print: workspace ready (Drupal layout, ddev NOT started); to use Storybook/design-*: `cd web/themes/custom/$THEME`; to boot Drupal for sync/verify: `./scripts/start-drupal-workspace.sh <name>`.
 
-- [ ] **Step 5: Verify provisioning**
+- [ ] **Step 5: Verify (no ddev started)**
 
-Run: `./scripts/setup-workspace.sh --drupal smoke1`
-Expected: `ddev drush status` shows `Drupal bootstrap : Successful`; `ls workspaces/smoke1/web/themes/custom/` shows the scaffolded theme; `ddev drush pm:list --status=enabled | grep config_inspector` is non-empty.
+Run: `./scripts/setup-workspace.sh ws1`
+Expected: `ls workspaces/ws1/web/themes/custom/test_integration_drupal/.storybook` exists; `ls workspaces/ws1/.ddev/config.yaml` exists; `ddev list` does NOT show `db-*-ws1` as running (configured, not started).
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add scripts/setup-workspace.sh
-git commit -m "feat(test-infra): --drupal mode — ddev Drupal workspace with theme via debo install"
+git commit -m "feat(test-infra): unified Drupal-layout workspace (clone base + fixture theme, ddev not started, worktree-namespaced)"
 ```
 
 ---
 
-## Task 4: Drupal-workspace smoke check
+## Task 5: Lazy ddev start
+
+**Files:**
+- Create: `scripts/start-drupal-workspace.sh`
+
+**Interfaces:**
+- Consumes: a workspace produced by Task 4 + the base's `db.sql.gz`.
+- Produces: a running ddev site for that workspace, DB restored, theme enabled — the live target for sync/verify.
+
+- [ ] **Step 1: Write the start script**
+
+Create `scripts/start-drupal-workspace.sh`:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+NAME="${1:?usage: start-drupal-workspace.sh <name>}"
+WS="$REPO_ROOT/workspaces/$NAME"
+THEME="test_integration_drupal"
+[ -d "$WS" ] || { echo "No workspace $WS — run setup-workspace.sh $NAME first" >&2; exit 1; }
+cd "$WS"
+ddev start
+[ -f "$WS/db.sql.gz" ] && ddev import-db --file="$WS/db.sql.gz"
+ddev drush theme:enable "$THEME" -y
+ddev drush status
+echo "✓ Drupal up for workspace $NAME (theme $THEME enabled)"
+```
+
+- [ ] **Step 2: Make executable + verify**
+
+Run: `chmod +x scripts/start-drupal-workspace.sh && ./scripts/start-drupal-workspace.sh ws1`
+Expected: `ddev drush status` shows `Drupal bootstrap : Successful`; ends `✓ Drupal up for workspace ws1 …`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add scripts/start-drupal-workspace.sh
+git commit -m "feat(test-infra): lazy ddev start (start + db import + theme:enable) for a workspace"
+```
+
+---
+
+## Task 6: Smoke — design-path (no ddev) + start-path
 
 **Files:**
 - Create: `scripts/smoke-drupal-workspace.sh`
 
 **Interfaces:**
-- Consumes: Task 1 base + Task 3 `--drupal` mode.
-- Produces: a self-contained smoke that provisions a throwaway workspace, asserts the integration, and cleans up. Returns non-zero on any failure.
+- Consumes: Tasks 1, 4, 5.
+- Produces: a self-cleaning smoke asserting (a) a fresh workspace exists in Drupal layout with the theme, no ddev running (design-* path); (b) after start, Drupal boots, `config_inspector` enabled, theme enabled. Worktree-safe naming. Non-zero on failure.
 
-- [ ] **Step 1: Write the smoke script**
+- [ ] **Step 1: Write the smoke**
 
 Create `scripts/smoke-drupal-workspace.sh`:
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-NAME="smoke-$$"
-WS="$REPO_ROOT/workspaces/$NAME"
+NAME="smoke-$$"; WS="$REPO_ROOT/workspaces/$NAME"; THEME="test_integration_drupal"
 cleanup() { (cd "$WS" 2>/dev/null && ddev delete -Oy) || true; rm -rf "$WS"; }
 trap cleanup EXIT
 
-"$REPO_ROOT/scripts/setup-workspace.sh" --drupal "$NAME"
-cd "$WS"
+"$REPO_ROOT/scripts/setup-workspace.sh" "$NAME"
+# (a) design-* path: theme present in Drupal layout, NO ddev running
+ls "$WS/web/themes/custom/$THEME/.storybook" >/dev/null || { echo "FAIL: theme/storybook missing"; exit 1; }
+( cd "$WS" && ddev describe -j 2>/dev/null | grep -q '"status":"running"' ) && { echo "FAIL: ddev should not be running after setup"; exit 1; } || true
 
+# (b) start path: boot + assertions
+"$REPO_ROOT/scripts/start-drupal-workspace.sh" "$NAME"
+cd "$WS"
 ddev drush status | grep -q "Drupal bootstrap : Successful" || { echo "FAIL: no bootstrap"; exit 1; }
 ddev drush pm:list --status=enabled --field=name | grep -qx "config_inspector" || { echo "FAIL: config_inspector not enabled"; exit 1; }
-ls web/themes/custom/*/.storybook >/dev/null 2>&1 || { echo "FAIL: theme/storybook not installed"; exit 1; }
-echo "✓ Drupal workspace smoke passed"
+ddev drush pm:list --type=theme --status=enabled --field=name | grep -qx "$THEME" || { echo "FAIL: theme not enabled"; exit 1; }
+echo "✓ Drupal workspace smoke passed (design-path no-ddev + start-path)"
 ```
 
-- [ ] **Step 2: Make it executable + run**
+- [ ] **Step 2: Make executable + run**
 
 Run: `chmod +x scripts/smoke-drupal-workspace.sh && bash scripts/smoke-drupal-workspace.sh`
-Expected: `✓ Drupal workspace smoke passed`; exit 0; the throwaway workspace + ddev project are removed.
+Expected: `✓ Drupal workspace smoke passed …`; exit 0; throwaway workspace + ddev project removed.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add scripts/smoke-drupal-workspace.sh
-git commit -m "test(test-infra): smoke for --drupal workspace (bootstrap + config_inspector + theme)"
+git commit -m "test(test-infra): smoke for unified Drupal-layout workspace (no-ddev design path + start path)"
 ```
 
 ---
 
 ## Self-Review (Plan 1)
 
-- **Spec coverage (Part A):** cached codebase + DB snapshot (T1), `debo install` theme + ddev workspace (T3), `config_inspector` in base composer (T1) + enabled (T1) + asserted (T4), backend command config as data in `designbook-drupal` (T2), no backend code in core (entire plan is scripts + skill config). Part B (prepare/generator primitives, schema-driven transforms) → Plans 2–3 (intentionally out of scope).
-- **Placeholder scan:** the only soft spot is T3 Step 3 — `debo install`'s exact headless invocation must be confirmed against the repo (`npx storybook-addon-designbook install --help`); the step says how to confirm and the fallback, not a vague TODO. T2 notes `schema_cmd`'s exact realization is finalized in Plan 3 (data string), which is correct scoping, not a placeholder in core.
-- **Consistency:** base dir `.cache/drupal-base/` (T1) consumed verbatim in T3; ddev project naming `db-<name>` (T3) and `designbook-drupal-base` (T1) are distinct (no port clash); `config_inspector` enabled in T1, asserted in T4; `backend_cmd.*` config (T2) is consumed in Plan 3, not this plan.
-- **Infra caveat:** ddev/composer/site:install require Docker; tasks verify via `ddev drush status` rather than unit tests — appropriate for provisioning scripts.
+- **Spec coverage (Part A):** unified Drupal layout (T4), ddev lazy (T4 no start, T5 start), shared worktree-safe base (T1 common-root, T4 `WT_ID` namespacing), fixture upgraded to complete theme (T2), `config_inspector` in base + enabled + asserted (T1/T6), backend_cmd config as data (T3), no backend code in core (all scripts + skill config), design-* works without ddev (T6 assertion a). Part B → Plans 2–3.
+- **Placeholder scan:** T2 Step 2 (libraries CSS path) and Step 3 (SDC location) say *how to confirm* against the fixture rather than a vague TODO; T3 notes `schema_cmd` finalized in Plan 3 (correct scoping). No bare TODOs.
+- **Consistency:** base at `<common-root>/.cache/drupal-base` (T1) consumed in T4/T5; theme machine name `test_integration_drupal` consistent across T2 (.info.yml), T4 (rsync target), T5/T6 (`theme:enable`/assert); ddev project `db-$WT_ID-$NAME` (T4) deleted by name via the workspace dir in T6 cleanup; `config_inspector` enabled in T1, asserted in T6.
+- **Worktree note:** `WT_ID=cksum(REPO_ROOT)` gives a stable per-worktree ddev namespace; base cache shared at common root; workspaces under the worktree's own `workspaces/`.
+- **Infra caveat:** ddev/Docker required for T1/T5/T6; verification is smoke (`ddev drush status`) not unit tests — appropriate for provisioning scripts. T2/T3 are offline (YAML + validator).

@@ -50,26 +50,39 @@ part 1 provides.
 - No schema caching (staleness/invalidation) — the schema is fetched **fresh** at the
   task's result-resolution point.
 
-## Part A — The workspace IS the Drupal
+## Part A — Unified Drupal-layout workspace, ddev lazy
 
-`setup-workspace.sh` is extended (or a `--drupal` mode) to provision a **ddev Drupal
-project** instead of a bare theme+Storybook dir.
+Every workspace uses **one unified layout: the Drupal layout** — the theme lives in the
+docroot at `web/themes/custom/<theme>` inside a Drupal codebase. There is no
+"theme-only vs --drupal" split. **ddev is lazy:** `setup-workspace` does **not** start
+it. `design-*` / Storybook run from the theme **without ddev**; only sync/verify (which
+need live Drupal: `cim`, render, schema fetch) start ddev on demand.
 
-- **Pre-built codebase + DB snapshot.** A cached, composer-installed Drupal codebase
-  template is rsynced (as the theme content is today); `ddev start`; a DB snapshot of an
-  installed site is restored. Seconds, not the minutes of `composer create` +
-  `site:install`. From-scratch for the theme/config we test, fast for the Drupal base.
-- **Theme via `debo install`** into `web/themes/custom/<theme>` (today's
-  `test-integration-drupal` content becomes that theme); Storybook runs from the docroot.
+- **Pre-built codebase + DB snapshot (shared, worktree-safe).** A cached,
+  composer-installed Drupal 11 base (drush + `config_inspector` + an installed-site DB
+  dump) is built once by a helper and stored at the **git common root**
+  (`git rev-parse --git-common-dir`/..`/.cache/drupal-base`), so all worktrees reuse one
+  base. `setup-workspace` clones it into the workspace; ddev is configured but **not
+  started**. When a test needs Drupal, a separate step (`--start` / a start command)
+  runs `ddev start` + restores the DB snapshot — seconds, not minutes.
+- **Theme = the upgraded fixture.** `packages/integrations/test-integration-drupal` is
+  upgraded into a **complete Drupal theme** (adds `<theme>.info.yml`, libraries, regions;
+  SDC under `components/`). `setup-workspace` rsyncs it into `web/themes/custom/<theme>`.
+  Storybook runs from there (host, no ddev). `theme:enable` happens lazily on first
+  ddev start. (No `debo install` at provision time — the fixture is the curated, droppable
+  theme; the install path is tested separately.)
+- **Worktree-capable.** Workspaces live at `<worktree-root>/workspaces/<name>` (already
+  per-worktree by path). The ddev project name is namespaced `db-<worktree>-<name>` to
+  avoid global ddev collisions across parallel worktrees. The base cache is shared at the
+  common root (built once, read-only source).
 - **Backend command config (not core code).** `designbook-drupal` config declares the
-  backend command strings — e.g. `backend.cmd: "ddev drush"` plus the `schema_cmd` /
+  backend command strings — e.g. `backend_cmd.cmd: "ddev drush"` plus `schema_cmd` /
   `validate_cmd` / apply commands built on it (using existing drush + `config_inspector`).
-  Core only interpolates `{{ backend.* }}` into the opaque commands that `prepare:` /
-  `cmd:` validators run; it never references drush itself. Portable (ddev/lando/plain
-  drush) and keeps all Drupal specifics as data in the integration skill.
-- Result: one workspace = a full Drupal site; `cim`/render/introspection are local.
-- **`config_inspector`** (contrib) is included in the base composer for config-schema
-  validation (Part B).
+  Core only interpolates `{{ backend_cmd.* }}` into the opaque commands that `prepare:` /
+  `cmd:` validators run; it never references drush itself. Portable and keeps all Drupal
+  specifics as data in the integration skill.
+- **`config_inspector`** (contrib) is in the base composer for config-schema validation
+  (Part B).
 
 ## Part B — Schema-driven, per-task generated transforms
 
