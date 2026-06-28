@@ -95,3 +95,22 @@ DrupalConfigSet:
     JSONata transform. Each item must satisfy DrupalConfigEntity.
   items:
     $ref: '#/DrupalConfigEntity'
+
+ExportSummary:
+  type: object
+  title: Export Summary
+  description: >
+    Summary of the Drupal config files written in one export run.
+    Produced by the outtake stage from the write-config stage results.
+  required: [config_names, count]
+  properties:
+    config_names:
+      type: array
+      description: Sorted list of Drupal config names (without .yml extension) written in this run.
+      items:
+        type: string
+        description: Drupal config name, e.g. "node.type.article".
+        pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+    count:
+      type: integer
+      description: Total number of config YAML files written.

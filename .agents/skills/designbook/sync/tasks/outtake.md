@@ -2,37 +2,26 @@
 title: Outtake
 trigger:
   steps: [sync-to:outtake]
-params:
-  type: object
-  required: [written-files]
-  properties:
-    written-files:
-      type: array
-      description: Paths of all YAML files written by the write-config stage.
-      items:
-        type: string
-        description: Absolute path to a written Drupal config YAML file.
 result:
   type: object
   required: [summary]
   properties:
     summary:
-      type: object
-      description: Export summary — config names written and total count.
-      required: [config_names, count]
-      properties:
-        config_names:
-          type: array
-          description: Sorted list of Drupal config names (without .yml extension) written in this run.
-          items:
-            type: string
-            description: Drupal config name, e.g. "node.type.article".
-            pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
-        count:
-          type: integer
-          description: Total number of config YAML files written.
+      $ref: ../schemas.yml#/ExportSummary
 ---
 
 # Outtake
 
-Report the set of Drupal config names written in this run.
+Assemble the `ExportSummary` from this workflow's own written-file results and
+submit it as the task result.
+
+## Result: summary
+
+The config files come from the workflow's task results in scope — no params are
+passed in for them:
+
+- `config_names` is the sorted list of `config_name` values sourced from the
+  `write-config` stage results (one `config-file` result per `DrupalConfigEntity`
+  written in that stage).
+- `count` is the total number of config YAML files written, derived from the
+  same `write-config` stage results.
