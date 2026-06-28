@@ -19,6 +19,7 @@ result:
     summary:
       type: object
       description: Export summary — config names written and total count.
+      required: [config_names, count]
       properties:
         config_names:
           type: array
@@ -26,7 +27,7 @@ result:
           items:
             type: string
             description: Drupal config name, e.g. "node.type.article".
-            pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+'
+            pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
         count:
           type: integer
           description: Total number of config YAML files written.

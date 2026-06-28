@@ -7,7 +7,6 @@ params:
   required: [config-set, config_sync_dir]
   properties:
     config-set:
-      type: array
       description: DrupalConfigEntity items to serialize, from the transform stage.
       $ref: ../schemas.yml#/DrupalConfigSet
     config_sync_dir:
@@ -16,17 +15,18 @@ params:
       resolve: config_sync_dir
 result:
   type: object
-  required: [written-files]
+  required: [config-file]
   properties:
-    written-files:
-      type: array
-      description: One entry per written YAML file — the absolute path of the file on disk.
-      items:
-        type: string
-        description: Absolute path to the written Drupal config YAML file.
-        examples: ["/var/www/html/config/sync/node.type.article.yml"]
+    config-file:
+      path: "{{ config_sync_dir }}/{{ config_entity.config_name }}.yml"
+      $ref: ../schemas.yml#/DrupalConfigEntity
       validators:
         - "cmd:npx js-yaml {{ file }}"
+each:
+  config_entity:
+    expr: "config-set"
+    schema:
+      $ref: ../schemas.yml#/DrupalConfigEntity
 ---
 
 # Write Config

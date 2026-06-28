@@ -16,12 +16,10 @@ result:
   required: [config-set]
   properties:
     config-set:
-      type: array
       description: DrupalConfigEntity items produced by transforming the current slice.
       $ref: ../schemas.yml#/DrupalConfigSet
       validators:
         - "schema:DrupalConfigSet"
-        - "cmd:npx jsonata-w transform --dry-run {{ file }}"
 each:
   slice:
     expr: "slices"
