@@ -2,6 +2,48 @@
 # DrupalConfigEntity is the contract every to_drupal JSONata transform item must satisfy.
 # DrupalConfigSet is the full array a transform returns.
 
+ExportSlice:
+  type: object
+  title: Export Slice
+  description: >
+    One independently transformable unit of the data model. Either a content entity
+    type + bundle pair (kind: content) or a config key (kind: config).
+  required: [kind]
+  additionalProperties: false
+  properties:
+    kind:
+      type: string
+      description: Discriminator — "content" for entity type/bundle slices; "config" for config.* keys.
+      enum: [content, config]
+    entity_type:
+      type: string
+      description: >
+        Drupal entity type machine name (e.g. "node", "media", "taxonomy_term").
+        Present when kind is "content".
+      examples: [node, media, taxonomy_term, block_content]
+    bundle:
+      type: string
+      description: >
+        Bundle machine name within the entity type (e.g. "article", "image").
+        Present when kind is "content".
+      examples: [article, page, image]
+    def:
+      type: object
+      description: >
+        The bundle definition object from the data model (fields, view_modes, purpose, etc.).
+        Present when kind is "content".
+    config_key:
+      type: string
+      description: >
+        Dot-separated config key as it appears under data_model.config (e.g. "views.listing").
+        Present when kind is "config".
+      pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)*$'
+    config_def:
+      type: object
+      description: >
+        The config definition object from data_model.config.<config_key>.
+        Present when kind is "config".
+
 DrupalConfigEntity:
   type: object
   title: Drupal Config Entity
