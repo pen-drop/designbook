@@ -85,7 +85,9 @@ already exists.
 - No neutral/backend-agnostic intermediate format.
 - No migration/backwards-compat of prior syncs. Re-runs overwrite; testing from
   scratch (per CLAUDE.md).
-- No new schema or rules that restate data-model / data-mapping knowledge.
+- No new *parallel* schema file or rules that restate data-model / data-mapping
+  knowledge. (Blueprints may still **extend** the existing `DataModel` schema in-place
+  via the established `provides`/`constrains` merge mechanism — see field-types below.)
 - The existing `import` workflow (design-reference import) is untouched — `sync-from`
   avoids the name, so **no rename is needed**.
 
@@ -211,10 +213,23 @@ split across three layers so nothing is duplicated:
    `views.view.*` / `image.style.*`. Its `to_drupal`/`from_drupal` **calls layer 2 per
    field**.
 2. **Per field-type (shared, one place)** —
-   `designbook-drupal/data-model/blueprints/field-types.md`. How a single field becomes
-   `field.storage.*` + `field.field.*` and back (`string`, `image`, `reference`,
-   `text_with_summary`, …). Cross-cutting; used by every entity-type blueprint — never
-   repeated per type.
+   `designbook-drupal/data-model/blueprints/field-types.md`. The field-type **names**
+   already exist as the data-model vocabulary (used in the existing entity-type
+   blueprints; many are already Drupal field-type machine names). This file does **not**
+   redefine types — it only adds the missing **serialization**: field type ⇄
+   `field.storage.*` + `field.field.*`. Because the types are already Drupal-compatible,
+   the mapping is mostly **identity**, with a few special cases (`image` → image +
+   target settings, `reference` → `entity_reference` + target_type/handler). Reverse
+   (`from_drupal`) is usually identity. Cross-cutting; used by every entity-type
+   blueprint — never repeated per type. (Distinct from the existing config map
+   `sample_data.field_types`, which maps type → sample_template for dummy data only.)
+
+   As a blueprint, `field-types.md` also **extends the `DataModel` schema in-place** via
+   the established `provides`/`constrains` merge mechanism (same pattern as component
+   tokens): per field type it declares the **settings schema** (e.g. `image` requires
+   `image_style`, `reference` requires `target_type`) alongside its `to_drupal` /
+   `from_drupal`. One file per-type = validation + forward + reverse. In-place schema
+   extension, not a new schema file.
 3. **Per display/mapping** — `designbook-drupal/data-mapping/blueprints/<template>.md`
    (+ strategy skill for `field-map`). The view-mode rendering.
 
