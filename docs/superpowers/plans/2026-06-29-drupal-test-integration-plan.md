@@ -39,8 +39,9 @@
 - Modify (upgrade to a real Drupal theme): `packages/integrations/test-integration-drupal/` — add `test_integration_drupal.info.yml`, `test_integration_drupal.libraries.yml`, and ensure SDC live under `components/`.
 - Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md` — add the `backend_cmd:` block.
 - Create: `scripts/smoke-drupal-workspace.sh` — smoke: design-path (no ddev) + start-path (ddev bootstrap + config_inspector + theme enabled), worktree-safe, self-cleaning.
+- Modify (consumers of the new layout): `scripts/setup-test.sh`, `.agents/skills/designbook-test/workflows/run.md`, `.agents/skills/designbook-test/workflows/research.md`, `packages/storybook-addon-designbook/src/config.ts` (error-hint string only).
 
-No addon/core TS changes.
+Only `config.ts`'s change is a one-line error-hint string; no functional core TS.
 
 ---
 
@@ -365,9 +366,52 @@ git commit -m "test(test-infra): smoke for unified Drupal-layout workspace (no-d
 
 ---
 
+## Task 7: Update consumers to the nested theme working dir
+
+**Files:**
+- Modify: `scripts/setup-test.sh`
+- Modify: `.agents/skills/designbook-test/workflows/run.md`
+- Modify: `.agents/skills/designbook-test/workflows/research.md`
+- Modify: `packages/storybook-addon-designbook/src/config.ts` (error-hint string only)
+
+**Interfaces:**
+- Consumes: the new layout from Task 4 — the designbook working dir (where `designbook.config.yml`, `.storybook`, designbook data live) is now `<workspace>/web/themes/custom/test_integration_drupal`, not the workspace root.
+- Produces: design-* test flows (setup-test + designbook-test run/research) that operate against the nested theme dir, so they keep working under the unified Drupal layout.
+
+- [ ] **Step 1: Load skill-creator** (for the two designbook-test workflow `.md` edits): invoke `designbook-skill-creator`; read `rules/workflow-files.md`, `rules/common-rules.md`.
+
+- [ ] **Step 2: setup-test.sh — point fixture layering at the nested theme dir**
+
+In `scripts/setup-test.sh`, define `THEME_REL="web/themes/custom/test_integration_drupal"` and make the designbook-root operations target `$TARGET_DIR/$THEME_REL` instead of `$TARGET_DIR`:
+- the `designbook.config.yml` copy (lines ~108–110) → `$TARGET_DIR/$THEME_REL/designbook.config.yml`;
+- the fixture-completeness check and any sample-data/designbook layering → under `$TARGET_DIR/$THEME_REL/`;
+- the clean-slate reset (`cd "$TARGET_DIR"` + git reset, lines ~95–102) stays at `$TARGET_DIR` (the workspace git repo root is still the workspace), but fixture files land in the theme dir.
+
+- [ ] **Step 3: designbook-test run.md + research.md — cd into the theme dir**
+
+In both workflow files, update the "Setup workspace" / run steps so `_debo` / `npx storybook-addon-designbook` commands run from `workspaces/<suite>/web/themes/custom/test_integration_drupal` (the designbook working dir), and `setup-test.sh ... --into workspaces/<suite>` is unchanged (it now lands fixtures in the theme dir per Step 2). State the working dir explicitly where the current text says "the workspace path as its working directory".
+
+- [ ] **Step 4: config.ts — update the error hint**
+
+In `packages/storybook-addon-designbook/src/config.ts` (~line 166), change the hint string from `Run from a workspace (cd workspaces/<suite>) …` to reference the nested dir, e.g. `Run from a workspace theme dir (cd workspaces/<suite>/web/themes/custom/<theme>) or set DESIGNBOOK_DATA explicitly.` String only — no logic change.
+
+- [ ] **Step 5: Validate + check**
+
+Run the designbook-skill-creator validator over run.md + research.md (zero errors). Run `pnpm check` (config.ts string change must stay green). Optionally re-run `bash scripts/smoke-drupal-workspace.sh` — still green.
+
+- [ ] **Step 6: Touch + commit**
+
+```bash
+touch .agents/skills/designbook-test/workflows/run.md .agents/skills/designbook-test/workflows/research.md
+git add scripts/setup-test.sh .agents/skills/designbook-test/workflows/run.md .agents/skills/designbook-test/workflows/research.md packages/storybook-addon-designbook/src/config.ts
+git commit -m "refactor(test): point setup-test + designbook-test + config hint at nested theme dir (Drupal layout)"
+```
+
+---
+
 ## Self-Review (Plan 1)
 
-- **Spec coverage (Part A):** unified Drupal layout (T4), ddev lazy (T4 no start, T5 start), committed Drupal fixture + worktree-safe namespacing (T1 fixture, T4 `WT_ID`), fixture upgraded to complete theme (T2), `config_inspector` in fixture + enabled + asserted (T1/T6), backend_cmd config as data (T3), no backend code in core (all scripts + skill config), design-* works without ddev (T6 assertion a). Part B → Plans 2–3.
+- **Spec coverage (Part A):** unified Drupal layout (T4), ddev lazy (T4 no start, T5 start), committed Drupal fixture + worktree-safe namespacing (T1 fixture, T4 `WT_ID`), fixture upgraded to complete theme (T2), `config_inspector` in fixture + enabled + asserted (T1/T6), backend_cmd config as data (T3), no backend code in core (all scripts + skill config), design-* works without ddev (T6 assertion a), consumers migrated to the nested theme dir so design-* test flows keep working (T7). Part B → Plans 2–3.
 - **Placeholder scan:** T2 Step 2 (libraries CSS path) and Step 3 (SDC location) say *how to confirm* against the fixture rather than a vague TODO; T3 notes `schema_cmd` finalized in Plan 3 (correct scoping). No bare TODOs.
 - **Consistency:** the committed fixture `packages/integrations/drupal-fixture` (T1) is materialized + cloned in T4 (and started in T5); theme machine name `test_integration_drupal` consistent across T2 (.info.yml), T4 (rsync target), T5/T6 (`theme:enable`/assert); ddev project `db-$WT_ID-$NAME` (T4) removed via the workspace dir in T6 cleanup; `config_inspector` enabled in the fixture (T1), asserted in T6; `db.sql.gz` committed in the fixture (T1), rsynced into the workspace (T4), imported on start (T5).
 - **Worktree note:** `WT_ID=cksum(REPO_ROOT)` gives a stable per-worktree ddev namespace; the Drupal fixture is committed (shared via checkout), its composer tree materialized once per worktree; workspaces under the worktree's own `workspaces/`.
