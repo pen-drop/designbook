@@ -1,19 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { runJsonata, loadJsonata } from './helpers.js';
+import { runJsonata, loadJsonata, composeJsonata, runComposed } from './helpers.js';
 
 // Path to the field-types blueprint relative to .agents/skills/
-const BLUEPRINT_REL = 'designbook-drupal/data-model/blueprints/field-types.md';
+const FIELD_TYPES_REL = 'designbook-drupal/data-model/blueprints/field-types.md';
 
-// Wrap expression in a call that dispatches based on the input shape
-// The blueprint exports $fieldToStorage and $fieldToInstance; we call both and concat results.
+// Call $fieldToStorage + $fieldToInstance via the prelude composed with a tiny caller expression.
+// The prelude block exposes the functions; the caller body invokes them and returns [storage, instance].
 async function fieldToDrupal(opts: {
   et: string;
   bundle: string;
   name: string;
   field: Record<string, unknown>;
 }): Promise<unknown[]> {
-  const expr = loadJsonata(BLUEPRINT_REL, 'to_drupal');
-  const out = await runJsonata(expr, opts);
+  const prelude = loadJsonata(FIELD_TYPES_REL, 'prelude');
+  const callerBody = `
+    [
+      $fieldToStorage(et, name, field),
+      $fieldToInstance(et, bundle, name, field)
+    ]
+  `;
+  const out = await runJsonata(composeJsonata(prelude, callerBody), opts);
   return out as unknown[];
 }
 
@@ -171,8 +177,7 @@ describe('field-types to_drupal', () => {
 
 describe('node entity-type to_drupal', () => {
   it('node bundle → node.type + field config', async () => {
-    const NODE = loadJsonata('designbook-drupal/data-model/blueprints/node.md', 'to_drupal');
-    const out = await runJsonata(NODE, {
+    const out = await runComposed('designbook-drupal/data-model/blueprints/node.md', 'to_drupal', {
       bundle: 'article',
       def: { fields: { field_body: { type: 'text_with_summary' } } },
     });

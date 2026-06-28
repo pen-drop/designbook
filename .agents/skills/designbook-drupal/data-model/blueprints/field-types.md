@@ -92,109 +92,106 @@ load a block with `loadJsonata(blueprintRelPath, 'to_drupal')`.
   type is `entity_reference`. Optionally `settings.handler` overrides the selection
   handler (default `"default"`).
 
-### to_drupal
+### prelude
 
 ```jsonata
-(
-  /* ── module dependency lookup ── */
-  $moduleFor := function($t) {(
-    $t = 'string'            ? 'text'  :
-    $t = 'text'              ? 'text'  :
-    $t = 'text_with_summary' ? 'text'  :
-    $t = 'formatted_text'    ? 'text'  :
-    $t = 'integer'           ? 'core'  :
-    $t = 'boolean'           ? 'core'  :
-    $t = 'link'              ? 'link'  :
-    $t = 'image'             ? 'image' :
-    $t = 'reference'         ? 'core'  :
-    'core'
-  )};
+/* ── module dependency lookup ── */
+$moduleFor := function($t) {(
+  $t = 'string'            ? 'text'  :
+  $t = 'text'              ? 'text'  :
+  $t = 'text_with_summary' ? 'text'  :
+  $t = 'formatted_text'    ? 'text'  :
+  $t = 'integer'           ? 'core'  :
+  $t = 'boolean'           ? 'core'  :
+  $t = 'link'              ? 'link'  :
+  $t = 'image'             ? 'image' :
+  $t = 'reference'         ? 'core'  :
+  'core'
+)};
 
-  /* ── Drupal storage type lookup ── */
-  $drupalType := function($t) {(
-    $t = 'string'            ? 'string'           :
-    $t = 'text'              ? 'text_long'         :
-    $t = 'text_with_summary' ? 'text_with_summary' :
-    $t = 'formatted_text'    ? 'text_long'         :
-    $t = 'integer'           ? 'integer'           :
-    $t = 'boolean'           ? 'boolean'           :
-    $t = 'link'              ? 'link'              :
-    $t = 'image'             ? 'image'             :
-    $t = 'reference'         ? 'entity_reference'  :
-    $t
-  )};
+/* ── Drupal storage type lookup ── */
+$drupalType := function($t) {(
+  $t = 'string'            ? 'string'           :
+  $t = 'text'              ? 'text_long'         :
+  $t = 'text_with_summary' ? 'text_with_summary' :
+  $t = 'formatted_text'    ? 'text_long'         :
+  $t = 'integer'           ? 'integer'           :
+  $t = 'boolean'           ? 'boolean'           :
+  $t = 'link'              ? 'link'              :
+  $t = 'image'             ? 'image'             :
+  $t = 'reference'         ? 'entity_reference'  :
+  $t
+)};
 
-  /* ── build field.storage.<et>.<name> ── */
-  $fieldToStorage := function($et, $name, $field) {(
-    $ft      := $field.type;
-    $dt      := $drupalType($ft);
-    $mod     := $moduleFor($ft);
-    $deps    := $mod = 'core' ? {} : {"module": [$mod]};
-    {
-      "config_name": "field.storage." & $et & "." & $name,
-      "data": {
-        "langcode":     "en",
-        "status":       true,
-        "dependencies": $deps,
-        "id":           $et & "." & $name,
-        "field_name":   $name,
-        "entity_type":  $et,
-        "type":         $dt,
-        "settings":     $ft = 'reference'
-                          ? {"target_type": $field.settings.target_type}
-                          : {},
-        "module":       $mod,
-        "locked":       false,
-        "cardinality":  $field.multiple = true ? -1 : 1,
-        "translatable": true,
-        "indexes":      {}
-      }
+/* ── build field.storage.<et>.<name> ── */
+$fieldToStorage := function($et, $name, $field) {(
+  $ft      := $field.type;
+  $dt      := $drupalType($ft);
+  $mod     := $moduleFor($ft);
+  $deps    := $mod = 'core' ? {} : {"module": [$mod]};
+  {
+    "config_name": "field.storage." & $et & "." & $name,
+    "data": {
+      "langcode":     "en",
+      "status":       true,
+      "dependencies": $deps,
+      "id":           $et & "." & $name,
+      "field_name":   $name,
+      "entity_type":  $et,
+      "type":         $dt,
+      "settings":     $ft = 'reference'
+                        ? {"target_type": $field.settings.target_type}
+                        : {},
+      "module":       $mod,
+      "locked":       false,
+      "cardinality":  $field.multiple = true ? -1 : 1,
+      "translatable": true,
+      "indexes":      {}
     }
-  )};
+  }
+)};
 
-  /* ── build field.field.<et>.<bundle>.<name> ── */
-  $fieldToInstance := function($et, $bundle, $name, $field) {(
-    $ft      := $field.type;
-    $mod     := $moduleFor($ft);
-    $deps    := $merge([
-      $mod = 'core' ? {} : {"module": [$mod]},
-      {"config": ["field.storage." & $et & "." & $name]}
-    ]);
-    {
-      "config_name": "field.field." & $et & "." & $bundle & "." & $name,
-      "data": {
-        "langcode":      "en",
-        "status":        true,
-        "dependencies":  $deps,
-        "id":            $et & "." & $bundle & "." & $name,
-        "field_name":    $name,
-        "entity_type":   $et,
-        "bundle":        $bundle,
-        "label":         $field.title ? $field.title : $name,
-        "description":   $field.description ? $field.description : "",
-        "required":      $field.required = true,
-        "translatable":  true,
-        "default_value": [],
-        "settings":      $ft = 'image'
-                           ? {"image_style": $field.settings.image_style}
-                           : $ft = 'reference'
-                           ? {
-                               "handler": $field.settings.handler
-                                            ? $field.settings.handler
-                                            : "default",
-                               "handler_settings": {
-                                 "target_bundles": null
-                               }
+/* ── build field.field.<et>.<bundle>.<name> ── */
+$fieldToInstance := function($et, $bundle, $name, $field) {(
+  $ft      := $field.type;
+  $mod     := $moduleFor($ft);
+  $deps    := $merge([
+    $mod = 'core' ? {} : {"module": [$mod]},
+    {"config": ["field.storage." & $et & "." & $name]}
+  ]);
+  {
+    "config_name": "field.field." & $et & "." & $bundle & "." & $name,
+    "data": {
+      "langcode":      "en",
+      "status":        true,
+      "dependencies":  $deps,
+      "id":            $et & "." & $bundle & "." & $name,
+      "field_name":    $name,
+      "entity_type":   $et,
+      "bundle":        $bundle,
+      "label":         $field.title ? $field.title : $name,
+      "description":   $field.description ? $field.description : "",
+      "required":      $field.required = true,
+      "translatable":  true,
+      "default_value": [],
+      "settings":      $ft = 'image'
+                         ? {"image_style": $field.settings.image_style}
+                         : $ft = 'reference'
+                         ? {
+                             "handler": $field.settings.handler
+                                          ? $field.settings.handler
+                                          : "default",
+                             "handler_settings": {
+                               "target_bundles": null
                              }
-                           : {}
-      }
+                           }
+                         : {}
     }
-  )};
-
-  /* ── entry point: return [storage, instance] for the input ── */
-  [
-    $fieldToStorage(et, name, field),
-    $fieldToInstance(et, bundle, name, field)
-  ]
-)
+  }
+)};
 ```
+
+Entity-type blueprints (e.g. `node.md`, `media.md`) assume these functions are already in
+scope — they must NOT redefine them. The transform step prepends this prelude block to the
+entity-type `to_drupal` expression before evaluation, producing one composited JSONata
+program.

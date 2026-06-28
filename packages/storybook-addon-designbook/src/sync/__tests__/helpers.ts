@@ -28,6 +28,41 @@ export async function runJsonata(expr: string, input: unknown): Promise<unknown>
 }
 
 /**
+ * Compose multiple JSONata source strings into a single evaluable program.
+ *
+ * Wraps the concatenated sources in a single `( ... )` block so that
+ * a prelude of `$name := function(...){ ... };` assignments is in scope
+ * for the body expression that follows.
+ *
+ * @param sources - one or more raw JSONata source strings (no wrapping parens required)
+ * @returns a single JSONata expression string ready for evaluation
+ */
+export function composeJsonata(...sources: string[]): string {
+  return '(' + sources.join('\n') + '\n)';
+}
+
+/**
+ * Load the `field-types.md` prelude, compose it with a named block from another
+ * blueprint, and evaluate the result against the given input.
+ *
+ * This is the canonical way to evaluate entity-type `to_drupal` expressions in tests:
+ * the prelude brings `$fieldToStorage`, `$fieldToInstance`, and their helpers into scope.
+ *
+ * @param bodyBlueprintRelPath - blueprint path relative to `.agents/skills/`
+ * @param bodyBlockName - named block heading within that blueprint (e.g. `'to_drupal'`)
+ * @param input - JSONata input value
+ */
+export async function runComposed(
+  bodyBlueprintRelPath: string,
+  bodyBlockName: string,
+  input: unknown,
+): Promise<unknown> {
+  const prelude = loadJsonata('designbook-drupal/data-model/blueprints/field-types.md', 'prelude');
+  const body = loadJsonata(bodyBlueprintRelPath, bodyBlockName);
+  return runJsonata(composeJsonata(prelude, body), input);
+}
+
+/**
  * Load a named JSONata block from a blueprint markdown file.
  *
  * Convention: the block is a fenced ```jsonata code fence that
