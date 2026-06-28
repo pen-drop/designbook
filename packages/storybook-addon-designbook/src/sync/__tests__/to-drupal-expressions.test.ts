@@ -185,3 +185,111 @@ describe('node entity-type to_drupal', () => {
     expect(out).toContainEqual(expect.objectContaining({ config_name: 'field.field.node.article.field_body' }));
   });
 });
+
+describe('view config-entity to_drupal', () => {
+  it('view config entry → views.view.<key> with required Drupal keys', async () => {
+    const out = await runComposed('designbook-drupal/data-model/blueprints/view.md', 'to_drupal', {
+      key: 'listing',
+      def: {
+        items_per_page: 12,
+        view_modes: ['teaser'],
+      },
+    });
+    const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        config_name: 'views.view.listing',
+        data: expect.objectContaining({
+          langcode: 'en',
+          status: true,
+          dependencies: expect.any(Object),
+          base_table: expect.any(String),
+          display: expect.any(Object),
+        }),
+      }),
+    );
+  });
+
+  it('view config entity has langcode en and status true', async () => {
+    const out = await runComposed('designbook-drupal/data-model/blueprints/view.md', 'to_drupal', {
+      key: 'news',
+      def: {
+        items_per_page: 6,
+        view_modes: ['card'],
+      },
+    });
+    const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
+    expect(items.length).toBeGreaterThanOrEqual(1);
+    for (const item of items) {
+      expect(item.data).toHaveProperty('langcode', 'en');
+      expect(item.data).toHaveProperty('status', true);
+      expect(item.data).toHaveProperty('dependencies');
+    }
+  });
+});
+
+describe('image_style config-entity to_drupal', () => {
+  it('image_style config entry → image.style.<key> with label and effects', async () => {
+    const out = await runComposed('designbook/data-model/blueprints/image_style.md', 'to_drupal', {
+      key: 'ratio_16_9',
+      def: {
+        aspect_ratio: '16:9',
+      },
+    });
+    const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        config_name: 'image.style.ratio_16_9',
+        data: expect.objectContaining({
+          langcode: 'en',
+          status: true,
+          dependencies: expect.any(Object),
+          label: expect.any(String),
+          effects: expect.any(Object),
+        }),
+      }),
+    );
+  });
+
+  it('image_style with breakpoints → image.style.<key> with label and effects', async () => {
+    const out = await runComposed('designbook/data-model/blueprints/image_style.md', 'to_drupal', {
+      key: 'hero',
+      def: {
+        aspect_ratio: '21:9',
+        breakpoints: {
+          xl: { width: 1200 },
+          md: { width: 768, aspect_ratio: '16:9' },
+        },
+      },
+    });
+    const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        config_name: 'image.style.hero',
+        data: expect.objectContaining({
+          langcode: 'en',
+          status: true,
+          dependencies: expect.any(Object),
+          label: expect.any(String),
+          effects: expect.any(Object),
+        }),
+      }),
+    );
+  });
+
+  it('image_style config entity has langcode en and status true', async () => {
+    const out = await runComposed('designbook/data-model/blueprints/image_style.md', 'to_drupal', {
+      key: 'ratio_4_3',
+      def: {
+        aspect_ratio: '4:3',
+      },
+    });
+    const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
+    expect(items.length).toBeGreaterThanOrEqual(1);
+    for (const item of items) {
+      expect(item.data).toHaveProperty('langcode', 'en');
+      expect(item.data).toHaveProperty('status', true);
+      expect(item.data).toHaveProperty('dependencies');
+    }
+  });
+});

@@ -33,6 +33,92 @@ view_modes:
   required: true
 ```
 
+## Drupal Config Export
+
+The `to_drupal` block transforms a `config.view.<key>` definition into a `DrupalConfigEntity[]`
+suitable for Drupal config/sync. Input shape:
+
+```
+{
+  key: "<view-machine-name>",
+  def: { items_per_page?: <number>, view_modes?: [<string>], ... }
+}
+```
+
+Output: `[views.view.<key>]`
+
+### to_drupal
+
+```jsonata
+(
+  /* ── views.view.<key> config entity ── */
+  $itemsPerPage := def.items_per_page ? def.items_per_page : 10;
+
+  /* Build a default display with pager settings */
+  $defaultDisplay := {
+    "default": {
+      "id": "default",
+      "display_title": "Default",
+      "display_plugin": "default",
+      "position": 0,
+      "display_options": {
+        "pager": {
+          "type": "some",
+          "options": {
+            "items_per_page": $itemsPerPage,
+            "offset": 0
+          }
+        },
+        "use_more": false,
+        "use_more_always": false,
+        "use_more_text": "more",
+        "link_display": "",
+        "exposed_block": false,
+        "filters": {},
+        "sorts": {},
+        "row": {
+          "type": "entity:node",
+          "options": {}
+        },
+        "fields": {},
+        "access": {
+          "type": "none",
+          "options": {}
+        },
+        "cache": {
+          "type": "tag",
+          "options": {}
+        }
+      },
+      "cache_metadata": {
+        "max-age": -1,
+        "contexts": ["languages:language_interface", "url.query_args", "user.permissions"],
+        "tags": []
+      }
+    }
+  };
+
+  [{
+    "config_name": "views.view." & key,
+    "data": {
+      "langcode":     "en",
+      "status":       true,
+      "dependencies": {
+        "module": ["views"]
+      },
+      "id":          key,
+      "label":       key,
+      "module":      "views",
+      "description": "",
+      "tag":         "",
+      "base_table":  "node_field_data",
+      "base_field":  "nid",
+      "display":     $defaultDisplay
+    }
+  }]
+)
+```
+
 ## Rules
 
 - `rows` is generated at sample data time from context (entity_type, bundle, view_mode of the targeted content) — do NOT manually declare row values in the data model

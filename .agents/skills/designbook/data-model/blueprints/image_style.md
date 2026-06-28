@@ -32,6 +32,66 @@ bundle_properties:
         required: false
 ```
 
+## Drupal Config Export
+
+The `to_drupal` block transforms a `config.image_style.<key>` definition into a `DrupalConfigEntity[]`
+suitable for Drupal config/sync. Input shape:
+
+```
+{
+  key: "<image-style-machine-name>",
+  def: { aspect_ratio: "W:H", breakpoints?: { <name>: { width: <n>, aspect_ratio?: "W:H" } } }
+}
+```
+
+Output: `[image.style.<key>]`
+
+### to_drupal
+
+```jsonata
+(
+  /* Parse aspect_ratio string "W:H" into width/height integers */
+  $parseRatio := function($ratio) {(
+    $parts := $split($ratio, ":");
+    $w := $number($parts[0]);
+    $h := $number($parts[1]);
+    { "width": $w, "height": $h }
+  )};
+
+  $ratio := $parseRatio(def.aspect_ratio);
+
+  /* Build the scale-and-crop effect entry */
+  $effectId := "scale_and_crop_" & key;
+  $effects := $merge([{
+    $effectId: {
+      "uuid": $effectId,
+      "id": "image_scale_and_crop",
+      "weight": 1,
+      "data": {
+        "width": $ratio.width * 100,
+        "height": $ratio.height * 100,
+        "anchor": "center-center",
+        "upscale": false
+      }
+    }
+  }]);
+
+  [{
+    "config_name": "image.style." & key,
+    "data": {
+      "langcode":     "en",
+      "status":       true,
+      "dependencies": {
+        "module": ["image"]
+      },
+      "name":   key,
+      "label":  key,
+      "effects": $effects
+    }
+  }]
+)
+```
+
 ## Naming Convention
 
 **Ratio-based names** — when the aspect ratio is the same across all viewports. Use `ratio_` prefix followed by the ratio with underscores. The prefix avoids YAML parsing numeric-looking keys as integers:
