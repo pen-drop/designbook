@@ -132,25 +132,23 @@ load a block with `loadJsonata(blueprintRelPath, 'to_drupal')`.
     $deps    := $mod = 'core' ? {} : {"module": [$mod]};
     {
       "config_name": "field.storage." & $et & "." & $name,
-      "data": $merge([
-        {
-          "langcode":     "en",
-          "status":       true,
-          "dependencies": $deps,
-          "id":           $et & "." & $name,
-          "field_name":   $name,
-          "entity_type":  $et,
-          "type":         $dt,
-          "settings":     $ft = 'reference'
-                            ? {"target_type": $field.settings.target_type}
-                            : {},
-          "module":       $mod,
-          "locked":       false,
-          "cardinality":  $field.multiple = true ? -1 : 1,
-          "translatable": true,
-          "indexes":      {}
-        }
-      ])
+      "data": {
+        "langcode":     "en",
+        "status":       true,
+        "dependencies": $deps,
+        "id":           $et & "." & $name,
+        "field_name":   $name,
+        "entity_type":  $et,
+        "type":         $dt,
+        "settings":     $ft = 'reference'
+                          ? {"target_type": $field.settings.target_type}
+                          : {},
+        "module":       $mod,
+        "locked":       false,
+        "cardinality":  $field.multiple = true ? -1 : 1,
+        "translatable": true,
+        "indexes":      {}
+      }
     }
   )};
 
@@ -164,34 +162,32 @@ load a block with `loadJsonata(blueprintRelPath, 'to_drupal')`.
     ]);
     {
       "config_name": "field.field." & $et & "." & $bundle & "." & $name,
-      "data": $merge([
-        {
-          "langcode":      "en",
-          "status":        true,
-          "dependencies":  $deps,
-          "id":            $et & "." & $bundle & "." & $name,
-          "field_name":    $name,
-          "entity_type":   $et,
-          "bundle":        $bundle,
-          "label":         $field.title ? $field.title : $name,
-          "description":   $field.description ? $field.description : "",
-          "required":      $field.required = true,
-          "translatable":  true,
-          "default_value": [],
-          "settings":      $ft = 'image'
-                             ? {"image_style": $field.settings.image_style}
-                             : $ft = 'reference'
-                             ? {
-                                 "handler": $field.settings.handler
-                                              ? $field.settings.handler
-                                              : "default",
-                                 "handler_settings": {
-                                   "target_bundles": null
-                                 }
+      "data": {
+        "langcode":      "en",
+        "status":        true,
+        "dependencies":  $deps,
+        "id":            $et & "." & $bundle & "." & $name,
+        "field_name":    $name,
+        "entity_type":   $et,
+        "bundle":        $bundle,
+        "label":         $field.title ? $field.title : $name,
+        "description":   $field.description ? $field.description : "",
+        "required":      $field.required = true,
+        "translatable":  true,
+        "default_value": [],
+        "settings":      $ft = 'image'
+                           ? {"image_style": $field.settings.image_style}
+                           : $ft = 'reference'
+                           ? {
+                               "handler": $field.settings.handler
+                                            ? $field.settings.handler
+                                            : "default",
+                               "handler_settings": {
+                                 "target_bundles": null
                                }
-                             : {}
-        }
-      ])
+                             }
+                           : {}
+      }
     }
   )};
 

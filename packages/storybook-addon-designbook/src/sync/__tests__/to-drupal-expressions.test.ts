@@ -57,6 +57,9 @@ describe('field-types to_drupal', () => {
     expect(out).toContainEqual(
       expect.objectContaining({
         config_name: 'field.field.node.article.field_hero',
+        data: expect.objectContaining({
+          settings: { image_style: 'hero' },
+        }),
       }),
     );
   });
@@ -136,12 +139,18 @@ describe('field-types to_drupal', () => {
     expect(out).toContainEqual(
       expect.objectContaining({
         config_name: 'field.storage.node.field_author',
-        data: expect.objectContaining({ type: 'entity_reference' }),
+        data: expect.objectContaining({
+          type: 'entity_reference',
+          settings: expect.objectContaining({ target_type: 'user' }),
+        }),
       }),
     );
     expect(out).toContainEqual(
       expect.objectContaining({
         config_name: 'field.field.node.article.field_author',
+        data: expect.objectContaining({
+          settings: expect.objectContaining({ handler: 'default' }),
+        }),
       }),
     );
   });
