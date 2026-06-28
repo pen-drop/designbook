@@ -40,6 +40,7 @@ the `field-types` blueprint, and run the composed expression against
 
 For config slices (`slice.kind = "config"`): resolve the config-type blueprint for
 `slice.config_key` and run its `### to_drupal` block against
-`{ config_key: slice.config_key, def: slice.config_def }`.
+`{ key: slice.config_key, def: slice.config_def }`.
+The blueprint is resolved by stripping the namespace prefix from `config_key` (e.g. `views.listing` → blueprint `view`; `image_style.hero` → blueprint `image_style`).
 
 The result is the `DrupalConfigEntity[]` array emitted by the expression.

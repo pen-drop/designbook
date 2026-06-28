@@ -35,8 +35,8 @@ stages:
     steps: [resolve-deps]
   write-config:
     steps: [write-config]
-  outtake:
-    steps: [outtake]
   sync:
     steps: [sync]
+  outtake:
+    steps: [outtake]
 ---
