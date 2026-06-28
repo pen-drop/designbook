@@ -168,3 +168,15 @@ describe('field-types to_drupal', () => {
     }
   });
 });
+
+describe('node entity-type to_drupal', () => {
+  it('node bundle → node.type + field config', async () => {
+    const NODE = loadJsonata('designbook-drupal/data-model/blueprints/node.md', 'to_drupal');
+    const out = await runJsonata(NODE, {
+      bundle: 'article',
+      def: { fields: { field_body: { type: 'text_with_summary' } } },
+    });
+    expect(out).toContainEqual(expect.objectContaining({ config_name: 'node.type.article' }));
+    expect(out).toContainEqual(expect.objectContaining({ config_name: 'field.field.node.article.field_body' }));
+  });
+});
