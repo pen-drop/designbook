@@ -58,23 +58,28 @@ docroot at `web/themes/custom/<theme>` inside a Drupal codebase. There is no
 it. `design-*` / Storybook run from the theme **without ddev**; only sync/verify (which
 need live Drupal: `cim`, render, schema fetch) start ddev on demand.
 
-- **Pre-built codebase + DB snapshot (shared, worktree-safe).** A cached,
-  composer-installed Drupal 11 base (drush + `config_inspector` + an installed-site DB
-  dump) is built once by a helper and stored at the **git common root**
-  (`git rev-parse --git-common-dir`/..`/.cache/drupal-base`), so all worktrees reuse one
-  base. `setup-workspace` clones it into the workspace; ddev is configured but **not
-  started**. When a test needs Drupal, a separate step (`--start` / a start command)
-  runs `ddev start` + restores the DB snapshot — seconds, not minutes.
-- **Theme = the upgraded fixture.** `packages/integrations/test-integration-drupal` is
-  upgraded into a **complete Drupal theme** (adds `<theme>.info.yml`, libraries, regions;
-  SDC under `components/`). `setup-workspace` rsyncs it into `web/themes/custom/<theme>`.
-  Storybook runs from there (host, no ddev). `theme:enable` happens lazily on first
-  ddev start. (No `debo install` at provision time — the fixture is the curated, droppable
-  theme; the install path is tested separately.)
+- **Committed Drupal fixture (not a built cache).** Drupal is a **committed, usable
+  fixture** at `packages/integrations/drupal-fixture/`, parallel to the theme fixture:
+  `composer.json` + `composer.lock` (pinning Drupal 11 + drush + `config_inspector`),
+  `.ddev/`, the scaffolded `web/sites` + settings, and a committed `db.sql.gz` (installed
+  standard site, `config_inspector` enabled). The composer-managed tree (`vendor/`,
+  `web/core`, `web/modules|themes|profiles/contrib`, `web/libraries`) is **gitignored**
+  and materialized **once** via `ddev composer install` (deterministic from the lock).
+  `setup-workspace` rsyncs the fixture (incl. its materialized tree) into the workspace;
+  ddev is configured but **not started**. A separate `--start` step runs `ddev start` +
+  restores `db.sql.gz` — seconds, not minutes. Reproducible + versioned, no opaque cache.
+- **Theme = the upgraded fixture, kept separate.** `packages/integrations/test-integration-drupal`
+  is upgraded into a **complete Drupal theme** (adds `<theme>.info.yml`, libraries,
+  regions; SDC under `components/`) and stays its own editable fixture. `setup-workspace`
+  rsyncs it into `web/themes/custom/<theme>` of the cloned Drupal fixture. Storybook runs
+  from there (host, no ddev). `theme:enable` happens lazily on first ddev start. (No
+  `debo install` at provision time — the fixture is the curated, droppable theme; the
+  install path is tested separately.)
 - **Worktree-capable.** Workspaces live at `<worktree-root>/workspaces/<name>` (already
   per-worktree by path). The ddev project name is namespaced `db-<worktree>-<name>` to
-  avoid global ddev collisions across parallel worktrees. The base cache is shared at the
-  common root (built once, read-only source).
+  avoid global ddev collisions across parallel worktrees. The Drupal fixture is committed
+  in the repo (shared by every worktree via the checkout); its gitignored composer tree is
+  materialized once per worktree.
 - **Backend command config (not core code).** `designbook-drupal` config declares the
   backend command strings — e.g. `backend_cmd.cmd: "ddev drush"` plus `schema_cmd` /
   `validate_cmd` / apply commands built on it (using existing drush + `config_inspector`).

@@ -31,9 +31,10 @@
 
 ## File Structure (Plan 1)
 
-- Create: `scripts/build-drupal-base.sh` — builds the shared cached base at the git common root.
+- Create: `packages/integrations/drupal-fixture/` — committed Drupal fixture (composer.json/lock, `.ddev/`, web settings, `db.sql.gz`; composer-managed tree gitignored).
+- Create: `scripts/prepare-drupal-fixture.sh` — materializes the fixture's gitignored composer tree once (`ddev composer install`).
 - Create: `scripts/start-drupal-workspace.sh` — lazy `ddev start` + DB import + `theme:enable` for a workspace.
-- Modify: `.gitignore` — ignore `.cache/`.
+- Modify: `packages/integrations/drupal-fixture/.gitignore` — ignore vendor + web composer-managed dirs.
 - Modify: `scripts/setup-workspace.sh` — always Drupal-layout (clone base + rsync fixture theme + ddev config, no start); worktree-namespaced project; reuse existing symlink/addon-link logic.
 - Modify (upgrade to a real Drupal theme): `packages/integrations/test-integration-drupal/` — add `test_integration_drupal.info.yml`, `test_integration_drupal.libraries.yml`, and ensure SDC live under `components/`.
 - Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md` — add the `backend_cmd:` block.
@@ -43,57 +44,75 @@ No addon/core TS changes.
 
 ---
 
-## Task 1: Shared cached Drupal base builder
+## Task 1: Create the committed Drupal fixture + prepare script
 
 **Files:**
-- Create: `scripts/build-drupal-base.sh`
-- Modify: `.gitignore`
+- Create: `packages/integrations/drupal-fixture/` (committed: `composer.json`, `composer.lock`, `.ddev/`, `web/sites/default/settings*`, `db.sql.gz`, `.gitignore`)
+- Create: `scripts/prepare-drupal-fixture.sh`
 
 **Interfaces:**
-- Produces: a cached base at `<git-common-root>/.cache/drupal-base/` containing a composer-installed Drupal 11 (`web/`, `vendor/`, `composer.json`, `.ddev/`) and `db.sql.gz` (installed standard site, `config_inspector` enabled). Consumed by Tasks 4 & 5. Shared across worktrees.
+- Produces: a committed, versioned Drupal 11 fixture at `packages/integrations/drupal-fixture/`. After `scripts/prepare-drupal-fixture.sh`, its gitignored composer-managed tree (`vendor/`, `web/core`, `web/modules|themes|profiles/contrib`, `web/libraries`) is materialized from `composer.lock`. Consumed by Tasks 4 & 5.
 
-- [ ] **Step 1: Write the builder script**
+- [ ] **Step 1: One-time author the fixture (produces the committed artifacts)**
 
-Create `scripts/build-drupal-base.sh`:
+Run once to generate the lock + installed DB, then keep only the committed artifacts:
 ```bash
-#!/usr/bin/env bash
-# Builds the SHARED cached Drupal 11 base (drush + config_inspector, installed
-# standard profile) + a DB dump, at the git common root so all worktrees reuse it.
-# Run once; re-run to refresh (removes the cache first).
-set -euo pipefail
-COMMON_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd -P)"
-BASE_DIR="$COMMON_ROOT/.cache/drupal-base"
-
-rm -rf "$BASE_DIR"; mkdir -p "$BASE_DIR"; cd "$BASE_DIR"
-ddev config --project-name=designbook-drupal-base --project-type=drupal11 --docroot=web
+cd packages/integrations/drupal-fixture
+ddev config --project-name=designbook-drupal-fixture --project-type=drupal11 --docroot=web
 ddev start
 ddev composer create-project drupal/recommended-project:^11 -y
 ddev composer require drush/drush drupal/config_inspector
 ddev drush site:install standard --account-name=admin --account-pass=admin -y
 ddev drush pm:enable config_inspector -y
 ddev drush status
-ddev export-db --file="$BASE_DIR/db.sql.gz"
-ddev stop                                   # free ports; consumers clone the dir
-echo "✓ Drupal base cached at $BASE_DIR"
+ddev export-db --file=db.sql.gz
+ddev stop
 ```
 
-- [ ] **Step 2: Ignore the cache dir**
+- [ ] **Step 2: Add the fixture `.gitignore` (commit the lock + db, ignore the composer tree)**
 
-Add to `.gitignore`:
+Create `packages/integrations/drupal-fixture/.gitignore`:
 ```
-.cache/
+/vendor/
+/web/core/
+/web/modules/contrib/
+/web/themes/contrib/
+/web/profiles/contrib/
+/web/libraries/
+.ddev/.gitignore
+```
+Commit `composer.json`, `composer.lock`, `.ddev/config.yaml`, `web/sites/default/settings*.php`, `web/.gitignore` (scaffold), and `db.sql.gz`. The composer-managed tree stays ignored — `prepare-drupal-fixture.sh` regenerates it deterministically from the lock.
+
+- [ ] **Step 3: Write the prepare script**
+
+Create `scripts/prepare-drupal-fixture.sh`:
+```bash
+#!/usr/bin/env bash
+# Materializes the committed Drupal fixture's gitignored composer tree from the
+# committed composer.lock (deterministic). Idempotent: skips if already present.
+set -euo pipefail
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FIX="$REPO_ROOT/packages/integrations/drupal-fixture"
+if [ -f "$FIX/web/core/core.api.php" ] && [ -d "$FIX/vendor" ]; then
+  echo "Fixture already materialized"; exit 0
+fi
+cd "$FIX"
+ddev start
+ddev composer install
+ddev stop
+echo "✓ Drupal fixture materialized from composer.lock"
 ```
 
-- [ ] **Step 3: Run + verify**
+- [ ] **Step 4: Verify**
 
-Run: `bash scripts/build-drupal-base.sh`
-Expected: ends `✓ Drupal base cached at …/.cache/drupal-base`; `ls "$(git rev-parse --git-common-dir)/../.cache/drupal-base/db.sql.gz"` exists.
+Run: `chmod +x scripts/prepare-drupal-fixture.sh && bash scripts/prepare-drupal-fixture.sh`
+Expected: ends `✓ Drupal fixture materialized …`; `ls packages/integrations/drupal-fixture/web/core/core.api.php packages/integrations/drupal-fixture/db.sql.gz` both exist.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit (committed artifacts only; composer tree ignored)**
 
 ```bash
-git add scripts/build-drupal-base.sh .gitignore
-git commit -m "feat(test-infra): shared cached Drupal base (drush + config_inspector + DB snapshot)"
+git add packages/integrations/drupal-fixture/composer.json packages/integrations/drupal-fixture/composer.lock packages/integrations/drupal-fixture/.ddev/config.yaml packages/integrations/drupal-fixture/.gitignore packages/integrations/drupal-fixture/db.sql.gz packages/integrations/drupal-fixture/web/sites scripts/prepare-drupal-fixture.sh
+git commit -m "feat(test-infra): committed Drupal fixture (composer.lock + db snapshot + config_inspector) + prepare script"
 ```
 
 ---
@@ -205,27 +224,28 @@ git commit -m "feat(drupal): backend_cmd config (cmd/schema_cmd/validate_cmd) in
 - Modify: `scripts/setup-workspace.sh`
 
 **Interfaces:**
-- Consumes: the base from Task 1; the theme fixture from Task 2.
-- Produces: `workspaces/<name>/` = a Drupal-layout workspace (cloned base + fixture theme at `web/themes/custom/test_integration_drupal`), ddev configured with a worktree-namespaced project name but **not started**, agent dirs symlinked, local addon linked. Invocation unchanged: `./scripts/setup-workspace.sh <name>`.
+- Consumes: the committed (and materialized) Drupal fixture from Task 1; the theme fixture from Task 2.
+- Produces: `workspaces/<name>/` = a Drupal-layout workspace (cloned fixture + theme at `web/themes/custom/test_integration_drupal`), ddev configured with a worktree-namespaced project name but **not started**, agent dirs symlinked, local addon linked. Invocation unchanged: `./scripts/setup-workspace.sh <name>`.
 
 - [ ] **Step 1: Resolve roots + worktree id at the top of the script**
 
 Add near `REPO_ROOT`:
 ```bash
-COMMON_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd -P)"
-BASE_DIR="$COMMON_ROOT/.cache/drupal-base"
+FIX="$REPO_ROOT/packages/integrations/drupal-fixture"
 WT_ID="$(printf '%s' "$REPO_ROOT" | cksum | cut -d' ' -f1)"   # stable per-worktree id
 THEME="test_integration_drupal"
 ```
 
-- [ ] **Step 2: Replace the body: clone base, drop in theme, configure ddev (no start)**
+- [ ] **Step 2: Replace the body: clone the committed fixture, drop in theme, configure ddev (no start)**
 
 Replace the rsync-from-`test-integration-drupal` step with:
 ```bash
-[ -d "$BASE_DIR" ] || { echo "Run scripts/build-drupal-base.sh first" >&2; exit 1; }
+[ -d "$FIX" ] || { echo "Missing $FIX — fixture not committed" >&2; exit 1; }
+# Ensure the fixture's gitignored composer tree is materialized (deterministic, once).
+"$REPO_ROOT/scripts/prepare-drupal-fixture.sh"
 rm -rf "$WORKSPACE_DIR"; mkdir -p "$WORKSPACE_DIR"
-rsync -a --exclude='.ddev/.gitignore' "$BASE_DIR/" "$WORKSPACE_DIR/"
-# Drop the fixture theme into the docroot.
+rsync -a --exclude='.git' "$FIX/" "$WORKSPACE_DIR/"
+# Drop the (separate) fixture theme into the docroot.
 rsync -a --exclude='node_modules' --exclude='.git' \
   "$REPO_ROOT/packages/integrations/test-integration-drupal/" \
   "$WORKSPACE_DIR/web/themes/custom/$THEME/"
@@ -347,8 +367,8 @@ git commit -m "test(test-infra): smoke for unified Drupal-layout workspace (no-d
 
 ## Self-Review (Plan 1)
 
-- **Spec coverage (Part A):** unified Drupal layout (T4), ddev lazy (T4 no start, T5 start), shared worktree-safe base (T1 common-root, T4 `WT_ID` namespacing), fixture upgraded to complete theme (T2), `config_inspector` in base + enabled + asserted (T1/T6), backend_cmd config as data (T3), no backend code in core (all scripts + skill config), design-* works without ddev (T6 assertion a). Part B → Plans 2–3.
+- **Spec coverage (Part A):** unified Drupal layout (T4), ddev lazy (T4 no start, T5 start), committed Drupal fixture + worktree-safe namespacing (T1 fixture, T4 `WT_ID`), fixture upgraded to complete theme (T2), `config_inspector` in fixture + enabled + asserted (T1/T6), backend_cmd config as data (T3), no backend code in core (all scripts + skill config), design-* works without ddev (T6 assertion a). Part B → Plans 2–3.
 - **Placeholder scan:** T2 Step 2 (libraries CSS path) and Step 3 (SDC location) say *how to confirm* against the fixture rather than a vague TODO; T3 notes `schema_cmd` finalized in Plan 3 (correct scoping). No bare TODOs.
-- **Consistency:** base at `<common-root>/.cache/drupal-base` (T1) consumed in T4/T5; theme machine name `test_integration_drupal` consistent across T2 (.info.yml), T4 (rsync target), T5/T6 (`theme:enable`/assert); ddev project `db-$WT_ID-$NAME` (T4) deleted by name via the workspace dir in T6 cleanup; `config_inspector` enabled in T1, asserted in T6.
-- **Worktree note:** `WT_ID=cksum(REPO_ROOT)` gives a stable per-worktree ddev namespace; base cache shared at common root; workspaces under the worktree's own `workspaces/`.
+- **Consistency:** the committed fixture `packages/integrations/drupal-fixture` (T1) is materialized + cloned in T4 (and started in T5); theme machine name `test_integration_drupal` consistent across T2 (.info.yml), T4 (rsync target), T5/T6 (`theme:enable`/assert); ddev project `db-$WT_ID-$NAME` (T4) removed via the workspace dir in T6 cleanup; `config_inspector` enabled in the fixture (T1), asserted in T6; `db.sql.gz` committed in the fixture (T1), rsynced into the workspace (T4), imported on start (T5).
+- **Worktree note:** `WT_ID=cksum(REPO_ROOT)` gives a stable per-worktree ddev namespace; the Drupal fixture is committed (shared via checkout), its composer tree materialized once per worktree; workspaces under the worktree's own `workspaces/`.
 - **Infra caveat:** ddev/Docker required for T1/T5/T6; verification is smoke (`ddev drush status`) not unit tests — appropriate for provisioning scripts. T2/T3 are offline (YAML + validator).
