@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# Setup a local workspace from the test-integration-drupal template.
+# Setup a local Drupal-layout workspace for testing design-* integrations.
 # Always rebuilds from scratch — removes any existing workspace first.
+# Layout: Drupal fixture at workspace root, theme fixture at
+#   web/themes/custom/test_integration_drupal (where Storybook/design-* run from).
+# ddev is configured (worktree-namespaced project) but NOT started — use
+#   ./scripts/start-drupal-workspace.sh <name> when you need Drupal running.
+#
 # Copies .agents, .claude, .cursor and .codex from the current working directory
 # (CWD), so workspaces created from a git worktree reflect that worktree's skill
 # state for Claude Code, Cursor and Codex alike.
@@ -16,6 +21,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FIX="$REPO_ROOT/packages/integrations/drupal-fixture"
+WT_ID="$(printf '%s' "$REPO_ROOT" | cksum | cut -d' ' -f1)"   # stable per-worktree id
+THEME="test_integration_drupal"
 
 WORKSPACE_NAME=""
 FEATURE_ARGS=()
@@ -34,34 +42,35 @@ while [ $# -gt 0 ]; do
 done
 WORKSPACE_NAME="${WORKSPACE_NAME:-drupal}"
 WORKSPACE_DIR="$REPO_ROOT/workspaces/$WORKSPACE_NAME"
-SOURCE_DIR="$REPO_ROOT/packages/integrations/test-integration-drupal"
+THEME_DIR="$WORKSPACE_DIR/web/themes/custom/$THEME"
 
 echo "Setting up workspace: $WORKSPACE_DIR"
 
-if [ -d "$WORKSPACE_DIR" ]; then
-  echo "Removing existing workspace..."
-  rm -rf "$WORKSPACE_DIR"
-fi
+# Verify fixture is committed.
+[ -d "$FIX" ] || { echo "Missing $FIX — fixture not committed" >&2; exit 1; }
 
+# Ensure the fixture's gitignored composer tree is materialized (deterministic, once).
+"$REPO_ROOT/scripts/prepare-drupal-fixture.sh"
+
+# Clone the committed Drupal fixture into a fresh workspace.
+rm -rf "$WORKSPACE_DIR"
 mkdir -p "$WORKSPACE_DIR"
+rsync -a --exclude='.git' "$FIX/" "$WORKSPACE_DIR/"
 
-# Copy source files, excluding generated/build artifacts
-rsync -a \
-  --exclude='.git' \
-  --exclude='node_modules' \
-  --exclude='dist' \
-  --exclude='storybook-static' \
-  --exclude='playwright-report' \
-  --exclude='test-results' \
-  --exclude='debug-storybook.log' \
-  --exclude='tmp' \
-  "$SOURCE_DIR/" "$WORKSPACE_DIR/"
+# Drop the (separate) fixture theme into the Drupal docroot.
+mkdir -p "$THEME_DIR"
+rsync -a --exclude='node_modules' --exclude='.git' \
+  "$REPO_ROOT/packages/integrations/test-integration-drupal/" \
+  "$THEME_DIR/"
 
-# Apply feature-flag overrides into the copied designbook.config.yml.
+# Configure ddev with a worktree-namespaced project name; DO NOT start it.
+( cd "$WORKSPACE_DIR" && ddev config --project-name="db-$WT_ID-$WORKSPACE_NAME" --project-type=drupal11 --docroot=web )
+
+# Apply feature-flag overrides into the theme's designbook.config.yml.
 # Note: this rewrites the YAML (comments are dropped) — only runs when flags
 # are passed; a flag-less setup keeps the template config verbatim.
 if [ ${#FEATURE_ARGS[@]} -gt 0 ]; then
-  CONFIG_FILE="$WORKSPACE_DIR/designbook.config.yml" \
+  CONFIG_FILE="$THEME_DIR/designbook.config.yml" \
   FEATURE_PAIRS="${FEATURE_ARGS[*]}" \
   NODE_PATH="$REPO_ROOT/node_modules" \
   node -e '
@@ -85,22 +94,22 @@ if [ ${#FEATURE_ARGS[@]} -gt 0 ]; then
   '
 fi
 
-# Symlink agent directories so the CLI and every agent (Claude, Cursor, Codex)
-# can resolve skills and commands from the workspace. The skills/commands inside
-# .claude, .cursor and .codex are themselves relative symlinks into .agents, so
-# .agents must also be present alongside them.
-ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
-ln -sfn "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
-ln -sfn "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
-ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
+# Symlink agent directories into the theme dir so the CLI and every agent
+# (Claude, Cursor, Codex) can resolve skills and commands from there.
+# The skills/commands inside .claude, .cursor and .codex are themselves relative
+# symlinks into .agents, so .agents must also be present alongside them.
+ln -sfn "$REPO_ROOT/.claude" "$THEME_DIR/.claude"
+ln -sfn "$REPO_ROOT/.cursor" "$THEME_DIR/.cursor"
+ln -sfn "$REPO_ROOT/.codex" "$THEME_DIR/.codex"
+ln -sfn "$REPO_ROOT/.agents" "$THEME_DIR/.agents"
 
-# Initialize git repo
-cd "$WORKSPACE_DIR"
+# Initialize git repo in the theme dir (where Storybook runs from).
+cd "$THEME_DIR"
 git init
 git config user.email "workspace@designbook.local"
 git config user.name "Designbook Workspace"
 git add .
-git commit -m "init: test-integration-drupal workspace"
+git commit -m "init: test_integration_drupal workspace"
 
 rm -r -f node_modules
 
@@ -110,7 +119,7 @@ rm -r -f node_modules
 echo "Building storybook-addon-designbook..."
 (cd "$REPO_ROOT/packages/storybook-addon-designbook" && pnpm run build)
 
-# Install dependencies.
+# Install dependencies in the theme dir.
 # workspaces/* is a pnpm workspace member, so this resolves the whole monorepo.
 #   --no-frozen-lockfile: a fresh workspace name is not yet in pnpm-lock.yaml; the
 #     lockfile MUST be allowed to update (frozen is the default under CI=true and
@@ -119,10 +128,12 @@ echo "Building storybook-addon-designbook..."
 #     root node_modules otherwise triggers an interactive purge prompt that hangs
 #     in a non-TTY script, leaving deps unlinked (e.g. @tailwindcss/vite missing →
 #     Storybook fails to boot).
+cd "$THEME_DIR"
 pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false
 
-# Link the LOCAL addon build into the workspace so that `npx storybook-addon-designbook`
-# resolves the repo dist instead of falling back to the registry/cache.
+# Link the LOCAL addon build into the theme workspace so that
+# `npx storybook-addon-designbook` resolves the repo dist instead of falling
+# back to the registry/cache.
 #
 # Use `link:` (symlink), NOT `file:` (hard copy). A `file:` dep is copied into
 # node_modules/.pnpm/storybook-addon-designbook@file+.../, so a later
@@ -136,9 +147,15 @@ echo "Linking local storybook-addon-designbook..."
 pnpm add -D "link:$REPO_ROOT/packages/storybook-addon-designbook"
 
 echo ""
-echo "✓ Workspace ready at $WORKSPACE_DIR"
+echo "✓ Workspace ready (Drupal layout, ddev NOT started)"
 echo ""
-echo "To use with the CLI:"
-echo "  cd $WORKSPACE_DIR"
+echo "  Workspace root : $WORKSPACE_DIR"
+echo "  Theme dir      : $THEME_DIR"
+echo ""
+echo "For Storybook / design-* commands:"
+echo "  cd $THEME_DIR"
 echo "  npx storybook-addon-designbook <command>"
 echo "  # or directly: node $REPO_ROOT/packages/storybook-addon-designbook/dist/cli.js <command>"
+echo ""
+echo "To boot Drupal for sync/verify:"
+echo "  ./scripts/start-drupal-workspace.sh $WORKSPACE_NAME"
