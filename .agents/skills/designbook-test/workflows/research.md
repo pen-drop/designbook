@@ -48,8 +48,9 @@ direction: min
 
 1. Resolve workspace path: `workspaces/$SUITE`.
 2. Run `./scripts/setup-workspace.sh $SUITE`. This deletes any prior workspace and rebuilds from scratch (rsync, symlinks, `git init`, `pnpm install`, baseline commit).
-3. Start Storybook via the addon CLI (cd into the workspace first):
+3. Start Storybook via the addon CLI from the designbook working dir (`workspaces/$SUITE/web/themes/custom/test_integration_drupal`):
    ```
+   cd workspaces/$SUITE/web/themes/custom/test_integration_drupal
    eval "$(npx storybook-addon-designbook config)"
    npx storybook-addon-designbook storybook start
    ```
