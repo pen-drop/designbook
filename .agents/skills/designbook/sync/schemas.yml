@@ -1,0 +1,55 @@
+# Sync concern schemas — output shapes for Drupal config export transforms.
+# DrupalConfigEntity is the contract every to_drupal JSONata transform item must satisfy.
+# DrupalConfigSet is the full array a transform returns.
+
+DrupalConfigEntity:
+  type: object
+  title: Drupal Config Entity
+  description: >
+    A single Drupal configuration object as exported by a to_drupal JSONata transform.
+    Maps 1:1 to one entry in a Drupal config/sync directory
+    (e.g. node.type.article.yml or field.storage.node.field_body.yml).
+  required: [config_name, data]
+  additionalProperties: false
+  properties:
+    config_name:
+      type: string
+      description: >
+        Drupal configuration object name. Matches the config/sync filename without
+        the .yml extension. Uses dot-separated segments of lowercase letters, digits,
+        and underscores (e.g. node.type.article, field.storage.node.field_body).
+      pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+    data:
+      type: object
+      description: >
+        The configuration payload written verbatim to the Drupal config entity file.
+        Must contain the three keys Drupal requires on every config object; all other
+        keys are config-type-specific and are allowed via additionalProperties.
+      required: [langcode, status, dependencies]
+      additionalProperties: true
+      properties:
+        langcode:
+          type: string
+          description: >
+            BCP-47 language code the config was created under (almost always "en").
+          examples: [en, de]
+        status:
+          type: boolean
+          description: >
+            Whether the config entity is enabled (true) or disabled (false) in Drupal.
+        dependencies:
+          type: object
+          description: >
+            Drupal config dependency map. Keys are dependency types (module, config,
+            theme, enforced); values are arrays of dependency names. An empty object
+            is valid when the config has no declared dependencies.
+          additionalProperties: true
+
+DrupalConfigSet:
+  type: array
+  title: Drupal Config Set
+  description: >
+    The full set of Drupal configuration objects emitted by a single to_drupal
+    JSONata transform. Each item must satisfy DrupalConfigEntity.
+  items:
+    $ref: '#/DrupalConfigEntity'
