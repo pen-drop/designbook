@@ -87,15 +87,18 @@ debo-test research <suite> <case> --baseline-only
 
 Key flags (full list in `debo-test/SKILL.md`):
 
-| Flag | Meaning |
-|---|---|
-| `--train-cases a,b` | extra train cases; train set = `[<case>] + these` |
-| `--val-cases x,y` | held-out gate set (default empty = single-set mode) |
-| `--scope <glob,…>` | which files the optimizer may edit |
-| `--metric <jsonata>` / `--direction min\|max` | override the case yaml |
-| `--iterations` / `--target` / `--plateau` | stop conditions |
+| Flag | Default | What it does | Example |
+|---|---|---|---|
+| `--train-cases` | just `<case>` | Cases the optimizer optimizes on. The train set is `[<case>] + these`. More cases = the per-iteration score is a mean over all of them, so an edit must help on average, not just one fixture. | `--train-cases card,banner` → train set = `<case>, card, banner` |
+| `--val-cases` | empty | The **held-out** cases used only to decide keep/discard. The optimizer never sees them. Empty = single-set mode: no separate gate, keep decided on the train score itself (overfit-prone). | `--val-cases hero,footer` |
+| `--scope` | files from `tasks.yml` + addon `src/**` | The allow-list of files the optimizer may edit. A proposed diff touching anything outside this is rejected before it runs. Narrow it to focus the search on one area. | `--scope ".agents/skills/designbook/design/blueprints/**"` |
+| `--metric` | the case yaml `metric:` field | A JSONata expression picking the number to optimize out of the `workflow summary` JSON. Overrides the yaml. | `--metric "after.\`design-verify\`.\`score-report\`.first_shot.score"` |
+| `--direction` | the case yaml `direction:` field | `min` = lower score is better (visual diff), `max` = higher is better (flow-rate %). | `--direction min` |
+| `--iterations` | 25 | Hard cap on loop iterations (= max edits tried). | `--iterations 40` |
+| `--target` | 100 | Stop early once the best score reaches this (interpreted per `--direction`: `max` → ≥ target, `min` → ≤ target). | `--target 95` |
+| `--plateau` | 5 | Stop early if this many iterations in a row are all non-keep (no progress). | `--plateau 8` |
 
-Train and val sets must be **disjoint**.
+**Train vs val in one line:** train = what the optimizer *tries to improve* and *looks at*; val = the *separate exam* it never sees, used only to keep or throw away an edit. The two sets must be **disjoint** — a case can't be in both, or the exam isn't held-out.
 
 ## Reading the results
 
