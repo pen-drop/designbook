@@ -76,9 +76,26 @@ Given an iteration number `N` and a case `c`, produce its metric value:
    git clean -fdx designbook/ workflows/
    ```
 2. Layer case `c`'s fixtures: `./scripts/setup-test.sh $SUITE c --into workspaces/$SUITE`.
-3. Run case `c`'s prompt (read `fixtures/$SUITE/cases/c.yaml` `prompt:` field). Every
-   `npx storybook-addon-designbook workflow …` CLI call MUST be invoked with `--log`
-   so dbo.log entries are tagged.
+3. Run case `c`'s prompt via a **driver subagent** (do NOT run the workflow inline on
+   the research thread — that would flood the loop's context across 25 iterations × N
+   cases). Use the `Agent` tool, `subagent_type: "general-purpose"`, with the workspace
+   path as its working directory. The driver contract is run.md's, with one override:
+   **research runs never have a user.**
+   - Give it the case `prompt:` (from `fixtures/$SUITE/cases/c.yaml`) verbatim.
+   - Instruct it to drive the full workflow lifecycle inline per
+     `resources/workflow-execution.md` (`workflow create` → task loop → `workflow done`),
+     running every stage inline including `isolate: true` ones (it cannot spawn further
+     subagents).
+   - Every `npx storybook-addon-designbook workflow …` CLI call MUST be invoked with
+     `--log` so dbo.log entries are tagged.
+   - **No user, ever:** if a task/stage needs a decision it cannot answer from the case
+     prompt + data model + fixtures, it MUST fail the run (return `status: error` with
+     the unanswered question) — it must NOT return `status: needs_user` and it must NOT
+     stall waiting. The research loop treats such a return, and any thrown error, as a
+     **crash** for this case (see Decide). A case that keeps needing a user is a fixture
+     defect — fix the fixture, not the loop.
+   - Report contract: return `status: done` plus the `workflow summary --json`, or
+     `status: error` with the reason. No task bodies, rule text, or file contents.
 4. Score: `npx storybook-addon-designbook workflow summary --workflow <id> --case ../../fixtures/$SUITE/cases/c.yaml --metric "$METRIC" --json` → write to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`. The returned `metric` value is this case's score.
 5. Generate the audit per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `iterations/<NNN>/cases/c/audit.md`.
 6. Save the dbo.log digest (`digestLog` JSON) → `iterations/<NNN>/cases/c/log-digest.json`.
@@ -168,7 +185,7 @@ Compare the **gate metric** (val_score if VAL non-empty, else train_score) again
 |---|---|---|
 | keep | gate metric `improves(best_gate)` | Repo root: `git commit -am "experiment: <hypothesis-headline>"`. Update `best_gate`, `best_train`, `best_val`. |
 | discard | gate metric does not improve, no crash (includes "train improved but val did not") | Repo root: `git restore <files-touched-by-patch>`. |
-| crash | any case re-run threw / summary CLI exits non-zero / `metric: null` | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
+| crash | any case driver returned `status: error` (incl. would-need-user) / threw / summary CLI exits non-zero / `metric: null` | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
 | blocked | crash count ≥ 3 | Log as blocked, ideate again next iteration with this discard recorded. |
 
 Write `iterations/<N>/decision.txt` with one of: `keep`, `discard`, `crash`, `blocked`.
@@ -213,6 +230,7 @@ If `research-runs/<slug>/` already exists at launch:
 | Failure | Recovery |
 |---|---|
 | Workflow crash mid-run (any case) | `git restore`, retry same hypothesis up to 3, then `blocked`. |
+| Driver returns `status: error` / would-need-user | Treated as `crash`. Recurring need-user on a case = fixture defect; fix the fixture, not the loop. |
 | `workflow summary` exits non-zero or returns `metric: null` | Treated as `crash` (see Decide). After 3 retries, bail. Print `summary CLI failed — inspect <path>`. |
 | Subagent returns invalid patch | Re-dispatch with hint, max 3 in a row, then bail. |
 | Workspace reset fails | Bail. Tell user to rebuild via `debo-test run $SUITE $CASE`. |

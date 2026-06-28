@@ -36,7 +36,10 @@ For a run `debo-test research <suite> <case> [--val-cases …]`:
    case-sets.
 2. **Iteration 0 (baseline)** — score the train set and the val set. A "score" =
    run each case's prompt, then `workflow summary --metric <jsonata>`; the set score
-   is the mean over its cases (mini-batch).
+   is the mean over its cases (mini-batch). Each case is driven by its own
+   **autonomous subagent** (keeps the loop's context clean and bounds each run). Runs
+   never have a user: if a case cannot be answered from its prompt + fixtures, the run
+   fails (counts as a crash) rather than stalling — that signals a fixture defect.
 3. **Iteration N**
    1. Dispatch the optimizer subagent. It sees **only the train set's** audits, logs,
       and score history, and must return one minimal unified diff touching one file
