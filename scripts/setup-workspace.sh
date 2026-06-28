@@ -111,8 +111,6 @@ git config user.name "Designbook Workspace"
 git add .
 git commit -m "init: test_integration_drupal workspace"
 
-rm -r -f node_modules
-
 # Build the local addon so dist/ is current before the workspace install.
 # Always build (deterministic beats fast) — tsup is fast and avoids stale-dist
 # bugs when new CLI features exist only in source.
@@ -120,7 +118,8 @@ echo "Building storybook-addon-designbook..."
 (cd "$REPO_ROOT/packages/storybook-addon-designbook" && pnpm run build)
 
 # Install dependencies in the theme dir.
-# workspaces/* is a pnpm workspace member, so this resolves the whole monorepo.
+# workspaces/*/web/themes/custom/* is a pnpm workspace member, so this resolves
+# workspace:* deps (e.g. storybook-addon-designbook) against the monorepo.
 #   --no-frozen-lockfile: a fresh workspace name is not yet in pnpm-lock.yaml; the
 #     lockfile MUST be allowed to update (frozen is the default under CI=true and
 #     would abort with ERR_PNPM_OUTDATED_LOCKFILE).
@@ -128,7 +127,6 @@ echo "Building storybook-addon-designbook..."
 #     root node_modules otherwise triggers an interactive purge prompt that hangs
 #     in a non-TTY script, leaving deps unlinked (e.g. @tailwindcss/vite missing →
 #     Storybook fails to boot).
-cd "$THEME_DIR"
 pnpm install --no-frozen-lockfile --config.confirmModulesPurge=false
 
 # Link the LOCAL addon build into the theme workspace so that

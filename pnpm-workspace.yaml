@@ -4,3 +4,4 @@ packages:
   - "promptfoo/fixtures/*"
   - "promptfoo/workspaces/*"
   - "workspaces/*"
+  - "workspaces/*/web/themes/custom/*"
