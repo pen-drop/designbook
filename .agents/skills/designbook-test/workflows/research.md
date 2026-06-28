@@ -1,25 +1,24 @@
 ---
 name: research
-description: Autonomous skill-improvement loop with train/val split. Score a train case-set → ideate one change via subagent → re-score → keep only if a held-out val case-set also improves → repeat until target / iteration cap / plateau.
+description: Autonomous skill-improvement loop with a held-out val gate. Score the train case → ideate one change via subagent → re-score → keep only if a held-out val case-set also improves → repeat until target / iteration cap / plateau.
 ---
 
 # research subcommand
 
 Loaded by `debo-test/SKILL.md` when `debo-test research <suite> <case>` is invoked.
 
-This loop is text-space gradient descent over skill files: the **train** case-set is
+This loop is text-space gradient descent over skill files: the **train case** is
 the forward pass + loss the optimizer sees, a subagent proposes one bounded edit
 (the gradient step), and a **held-out val** case-set is the validation gate that
-decides keep/discard. With no val set it degrades to single-set gating.
+decides keep/discard. With no val set it degrades to gating on the train score itself.
 
 ## Inputs
 
 | Variable | Source |
 |---|---|
 | `$SUITE` | arg 2 (`research <suite> ...`) |
-| `$CASE` | arg 3 (`research <suite> <case>`) — the primary train case |
-| `$TRAIN_CASES` | `--train-cases <a,b,...>`, default = `[$CASE]`. If given, the train set is `[$CASE] + these` (deduped). |
-| `$VAL_CASES` | `--val-cases <x,y,...>`, default = `[]` (empty → no val gate, single-set behaviour) |
+| `$CASE` | arg 3 (`research <suite> <case>`) — the train case (the one the optimizer optimizes on; also the metric-default source and slug name) |
+| `$VAL_CASES` | `--val-cases <x,y,...>`, default = `[]` (empty → no held-out gate; keep decided on the train score itself) |
 | `$ITERATIONS` | `--iterations N`, default 25 |
 | `$TARGET` | `--target T`, default 100 |
 | `$PLATEAU` | `--plateau M`, default 5 |
@@ -28,10 +27,10 @@ decides keep/discard. With no val set it degrades to single-set gating.
 | `$METRIC` | `--metric <jsonata>`, default = case yaml `metric:` field, fallback `flowRate` |
 | `$DIRECTION` | `--direction min\|max`, default = case yaml `direction:` field, fallback `max` |
 
-**One metric for the whole loop.** Every case in the train and val sets is scored
-with the SAME `$METRIC` and `$DIRECTION`. Mixing per-case metrics across a set
-would make the mean meaningless. `$METRIC`/`$DIRECTION` resolve from the positional
-`$CASE` yaml (or the CLI flags) and apply to all cases.
+**One metric for the whole loop.** The train case and every val case are scored
+with the SAME `$METRIC` and `$DIRECTION`. Mixing per-case metrics would make the val
+mean meaningless. `$METRIC`/`$DIRECTION` resolve from the `$CASE` yaml (or the CLI
+flags) and apply to every case.
 
 ## Case yaml fields
 
@@ -56,15 +55,15 @@ direction: min
    ```
 4. **Tag the case-agnostic workspace baseline BEFORE layering any case fixtures:**
    `cd workspaces/$SUITE && git tag workspace-baseline`. The baseline must contain
-   NO case fixtures so every case in the train/val sets is layered onto a clean tree.
+   NO case fixtures so the train case and every val case are layered onto a clean tree.
 5. Tag the repo baseline: `cd <repo-root> && git tag research-baseline-$(date +%Y-%m-%d-%H%M)`.
-6. Resolve the case sets:
-   - `TRAIN = dedupe([$CASE] + $TRAIN_CASES)`
-   - `VAL = $VAL_CASES`
-   - `TRAIN` and `VAL` must be disjoint — if any case appears in both, error and stop.
+6. Resolve the cases:
+   - train case = `$CASE` (single).
+   - `VAL = $VAL_CASES`.
+   - `$CASE` must NOT appear in `VAL` — if it does, error and stop (the gate must be held-out).
    - Every named case must exist as `fixtures/$SUITE/cases/<case>.yaml` — else list available cases and stop.
 7. Compute the slug: `<YYYY-MM-DD-HHMM>-$SUITE-$CASE`.
-8. Create the run dir: `research-runs/<slug>/` with empty `score-history.tsv` (header row), `overview.md`, `scope.txt`. Write `config.json` recording `TRAIN`, `VAL`, `$METRIC`, `$DIRECTION`, `$TARGET`.
+8. Create the run dir: `research-runs/<slug>/` with empty `score-history.tsv` (header row), `overview.md`, `scope.txt`. Write `config.json` recording `$CASE`, `VAL`, `$METRIC`, `$DIRECTION`, `$TARGET`.
 
 ## Score-a-case procedure (reused everywhere)
 
@@ -116,12 +115,12 @@ Given an iteration number `N` and a case `c`, produce its metric value:
 8. Return the case's `metric` value, or treat as **crash** if the summary CLI exits non-zero or `metric: null`.
 
 **Score-a-set(`N`, cases):** run Score-a-case for each case in order; the set score is
-the **arithmetic mean** of the case metric values (mini-batch). If ANY case in the set
-crashes, the whole set score is `crash` (no partial mean).
+the **arithmetic mean** of the case metric values (mini-batch — used for the val set).
+If ANY case in the set crashes, the whole set score is `crash` (no partial mean).
 
 ## Iteration 0 — baseline
 
-1. `train_score` = Score-a-set(`000-baseline`, TRAIN).
+1. `train_score` = Score-a-case(`000-baseline`, `$CASE`).
 2. `val_score` = Score-a-set(`000-baseline`, VAL) if VAL non-empty, else `—`.
 3. Set `best_train = train_score`; `best_val = val_score`. The **gate metric** is
    `val_score` when VAL is non-empty, otherwise `train_score`. `best_gate` tracks it.
@@ -143,18 +142,17 @@ Write/refresh these files under `research-runs/<slug>/`:
 ### 2. Dispatch subagent
 
 Use the `Agent` tool with `subagent_type: "general-purpose"`. The optimizer sees the
-**train** set only — never the val set (that would defeat the held-out gate). When the
-train set has multiple cases, point it at every train case's audit/log/summary. Pass
-this prompt verbatim, replacing `<slug>`, `<N-1>`, and `<train-cases>`:
+**train case** only — never the val set (that would defeat the held-out gate). Pass
+this prompt verbatim, replacing `<slug>`, `<N-1>`, and `<case>`:
 
 ```
-Goal: propose ONE change to improve the mean train score across the train case-set on this run.
+Goal: propose ONE change to improve the train score on this run.
 
-Context bundle (read these files for EACH train case <c> in <train-cases>):
-- research-runs/<slug>/iterations/<N-1>/cases/<c>/audit.md
-- research-runs/<slug>/iterations/<N-1>/cases/<c>/log-digest.json
-- research-runs/<slug>/iterations/<N-1>/cases/<c>/friction.json   ← where the driver guessed / hit ambiguity; prioritise fixing these
-- research-runs/<slug>/iterations/<N-1>/cases/<c>/summary.json
+Context bundle (read these files for the train case <case>):
+- research-runs/<slug>/iterations/<N-1>/cases/<case>/audit.md
+- research-runs/<slug>/iterations/<N-1>/cases/<case>/log-digest.json
+- research-runs/<slug>/iterations/<N-1>/cases/<case>/friction.json   ← where the driver guessed / hit ambiguity; prioritise fixing these
+- research-runs/<slug>/iterations/<N-1>/cases/<case>/summary.json
 Plus:
 - research-runs/<slug>/score-history.tsv
 - research-runs/<slug>/scope.txt
@@ -166,7 +164,7 @@ Constraints:
 - Prefer a change that resolves a `friction` entry (especially `guessed: true` or an
   error locus) — ambiguity the driver hit is higher-signal than score noise. Make the
   skill prose answer it so the next run need not guess.
-- Aim for a change that generalises across ALL train cases, not a fix tuned to one fixture.
+- Aim for a change that generalises, not one tuned to this single fixture — the held-out val set will reject overfits.
 - Avoid hypotheses already discarded (see decision column in score-history.tsv).
 - Read the file before editing.
 
@@ -180,10 +178,10 @@ Return: a one-paragraph hypothesis followed by a unified diff in your final mess
 3. Validate scope: `git apply --check iterations/<N>/proposed.patch` from the repo root. If patch fails check, OR diff touches a file not in scope.txt → mark as `ideate-failed`, re-dispatch with hint (max 3 ideate-failures in a row → bail).
 4. Apply: `git apply iterations/<N>/proposed.patch` (no commit yet).
 
-### 4. Re-score the train set
+### 4. Re-score the train case
 
-`train_score` = Score-a-set(`<NNN>`, TRAIN). (The Score-a-case procedure handles the
-per-case workspace reset + fixture re-layer, so cases never contaminate each other.)
+`train_score` = Score-a-case(`<NNN>`, `$CASE`). (Score-a-case handles the workspace
+reset + fixture re-layer, so runs never contaminate each other.)
 
 ### 5. Validation gate
 
@@ -232,8 +230,8 @@ Otherwise continue to iteration N+1.
 ## Termination
 
 1. Append final row to `score-history.tsv` with `decision: terminate-<reason>`.
-2. Run audit one last time (over the train set) per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `research-runs/<slug>/final-audit.md`.
-3. Write `overview.md` with: config (train set, val set, metric, direction, target), baseline train/val scores, best train/val scores, total kept/discarded/crashed, list of kept hypotheses (one per line).
+2. Run audit one last time (over the train case) per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `research-runs/<slug>/final-audit.md`.
+3. Write `overview.md` with: config (train case, val set, metric, direction, target), baseline train/val scores, best train/val scores, total kept/discarded/crashed, list of kept hypotheses (one per line).
 4. Print overview to stdout.
 5. Leave workspace + Storybook running so the user can inspect.
 
@@ -252,5 +250,5 @@ If `research-runs/<slug>/` already exists at launch:
 | `workflow summary` exits non-zero or returns `metric: null` | Treated as `crash` (see Decide). After 3 retries, bail. Print `summary CLI failed — inspect <path>`. |
 | Subagent returns invalid patch | Re-dispatch with hint, max 3 in a row, then bail. |
 | Workspace reset fails | Bail. Tell user to rebuild via `debo-test run $SUITE $CASE`. |
-| Train and val sets overlap | Error at setup; sets must be disjoint. |
+| `$CASE` also listed in `--val-cases` | Error at setup; the val set must be held-out. |
 | User Ctrl-C | Stop after current iteration completes. Print partial summary. |
