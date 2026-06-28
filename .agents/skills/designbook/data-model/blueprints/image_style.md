@@ -46,6 +46,8 @@ suitable for Drupal config/sync. Input shape:
 
 Output: `[image.style.<key>]`
 
+**Effect UUID rationale:** The effect uuid (e.g. `scale_and_crop_ratio_16_9`) is a deterministic stable identifier derived from the style key and effect type, not a random RFC-4122 UUID. This is intentional: repeated `sync-to` runs must be idempotent — a random UUID per run would produce a different value on every export, causing config churn and duplicate effects on re-import. Drupal's `config:import` accepts any string as a uuid on first import and preserves it on subsequent imports because the config name (`image.style.<key>`) is the primary lookup key. Full RFC-4122 round-trip handling (e.g. reading back an existing uuid from a prior export) is a later concern if ever needed.
+
 ### to_drupal
 
 ```jsonata

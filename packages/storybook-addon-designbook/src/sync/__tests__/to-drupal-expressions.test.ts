@@ -208,6 +208,16 @@ describe('view config-entity to_drupal', () => {
         }),
       }),
     );
+
+    // items_per_page: 12 (≠ default 10) must propagate into the pager options
+    const entity = items.find((i) => i.config_name === 'views.view.listing');
+    expect(entity).toBeDefined();
+    const display = entity!.data.display as Record<string, unknown>;
+    const defaultDisplay = display['default'] as Record<string, unknown>;
+    const displayOptions = defaultDisplay['display_options'] as Record<string, unknown>;
+    const pager = displayOptions['pager'] as Record<string, unknown>;
+    const pagerOptions = pager['options'] as Record<string, unknown>;
+    expect(pagerOptions['items_per_page']).toBe(12);
   });
 
   it('view config entity has langcode en and status true', async () => {
@@ -229,7 +239,8 @@ describe('view config-entity to_drupal', () => {
 });
 
 describe('image_style config-entity to_drupal', () => {
-  it('image_style config entry → image.style.<key> with label and effects', async () => {
+  it('image_style config entry → image.style.<key> with computed effect width/height', async () => {
+    // aspect_ratio 16:9 → width = 16*100 = 1600, height = 9*100 = 900
     const out = await runComposed('designbook/data-model/blueprints/image_style.md', 'to_drupal', {
       key: 'ratio_16_9',
       def: {
@@ -237,18 +248,23 @@ describe('image_style config-entity to_drupal', () => {
       },
     });
     const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
-    expect(items).toContainEqual(
-      expect.objectContaining({
-        config_name: 'image.style.ratio_16_9',
-        data: expect.objectContaining({
-          langcode: 'en',
-          status: true,
-          dependencies: expect.any(Object),
-          label: expect.any(String),
-          effects: expect.any(Object),
-        }),
-      }),
-    );
+    const entity = items.find((i) => i.config_name === 'image.style.ratio_16_9');
+    expect(entity).toBeDefined();
+    expect(entity!.data).toMatchObject({
+      langcode: 'en',
+      status: true,
+      dependencies: expect.objectContaining({ module: expect.arrayContaining(['image']) }),
+      label: 'ratio_16_9',
+    });
+    const effects = entity!.data['effects'] as Record<string, unknown>;
+    const effectKey = 'scale_and_crop_ratio_16_9';
+    expect(effects).toHaveProperty(effectKey);
+    const effect = effects[effectKey] as Record<string, unknown>;
+    expect(effect['id']).toBe('image_scale_and_crop');
+    expect(effect['uuid']).toBe(effectKey);
+    const effectData = effect['data'] as Record<string, unknown>;
+    expect(effectData['width']).toBe(1600);
+    expect(effectData['height']).toBe(900);
   });
 
   it('image_style with breakpoints → image.style.<key> with label and effects', async () => {
@@ -263,18 +279,24 @@ describe('image_style config-entity to_drupal', () => {
       },
     });
     const items = out as Array<{ config_name: string; data: Record<string, unknown> }>;
-    expect(items).toContainEqual(
-      expect.objectContaining({
-        config_name: 'image.style.hero',
-        data: expect.objectContaining({
-          langcode: 'en',
-          status: true,
-          dependencies: expect.any(Object),
-          label: expect.any(String),
-          effects: expect.any(Object),
-        }),
-      }),
-    );
+    const entity = items.find((i) => i.config_name === 'image.style.hero');
+    expect(entity).toBeDefined();
+    expect(entity!.data).toMatchObject({
+      langcode: 'en',
+      status: true,
+      dependencies: expect.objectContaining({ module: expect.arrayContaining(['image']) }),
+      label: 'hero',
+    });
+    // Default ratio 21:9 → effect key scale_and_crop_hero, width = 21*100 = 2100, height = 9*100 = 900
+    const effects = entity!.data['effects'] as Record<string, unknown>;
+    const effectKey = 'scale_and_crop_hero';
+    expect(effects).toHaveProperty(effectKey);
+    const effect = effects[effectKey] as Record<string, unknown>;
+    expect(effect['id']).toBe('image_scale_and_crop');
+    expect(effect['uuid']).toBe(effectKey);
+    const effectData = effect['data'] as Record<string, unknown>;
+    expect(effectData['width']).toBe(2100);
+    expect(effectData['height']).toBe(900);
   });
 
   it('image_style config entity has langcode en and status true', async () => {
