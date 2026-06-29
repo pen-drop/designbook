@@ -1030,3 +1030,98 @@ describe('workflow done --data', () => {
     );
   });
 });
+
+// ── prepare: hook — run command, validate against fetched schema ───────────
+
+const FAKE = resolve(import.meta.dirname, '../../sync/__tests__/fake-schema-cmd.sh');
+
+describe('workflow result: prepare hook', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-result-prepare-'));
+  });
+
+  it('prepare: validates the result against the fetched schema (conforming → valid)', async () => {
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            data: {
+              prepare: { cmd: `bash ${FAKE}`, as: 'prepared' },
+              submission: 'data' as const,
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    const value = { config_name: 'node.type.article', data: { langcode: 'en' } };
+    const r = await workflowResult(dist, name, 'task1', 'data', value, mockConfig);
+    expect(r.valid).toBe(true);
+    expect(r.errors).toEqual([]);
+  });
+
+  it('prepare: rejects a result missing a fetched-schema-required key', async () => {
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            data: {
+              prepare: { cmd: `bash ${FAKE}`, as: 'prepared' },
+              submission: 'data' as const,
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    // missing data.langcode
+    const value = { config_name: 'node.type.article', data: {} };
+    const r = await workflowResult(dist, name, 'task1', 'data', value, mockConfig);
+    expect(r.valid).toBe(false);
+    expect(r.errors.join(' ')).toMatch(/langcode/);
+  });
+
+  it('prepare: a failing command makes the result invalid', async () => {
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            data: {
+              prepare: { cmd: 'false', as: 'prepared' },
+              submission: 'data' as const,
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    const r = await workflowResult(dist, name, 'task1', 'data', { any: 1 }, mockConfig);
+    expect(r.valid).toBe(false);
+  });
+});

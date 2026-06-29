@@ -6,6 +6,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { resolve, relative, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { homedir } from 'node:os';
@@ -1987,6 +1988,17 @@ async function validateResultEntry(
   mode: 'file' | 'data',
 ): Promise<string[]> {
   const errors: string[] = [];
+
+  // 0. Prepare hook: run backend-neutral command, use its stdout as JSON Schema
+  if (entry.prepare) {
+    try {
+      const out = execSync(entry.prepare.cmd, { timeout: 30_000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+      entry = { ...entry, schema: JSON.parse(out) };
+    } catch (err: unknown) {
+      const execErr = err as { stderr?: string; message?: string };
+      return [`prepare command failed: ${execErr.stderr?.trim() ?? execErr.message ?? String(err)}`];
+    }
+  }
 
   // 1. JSON Schema validation
   if (entry.schema) {
