@@ -72,6 +72,10 @@ export interface ResultDeclaration {
   submission?: 'data' | 'direct';
   /** When the file lands on disk. `deferred` (default) = at stage flush; `immediate` = on `workflow done`. Ignored when `submission: direct`. */
   flush?: 'deferred' | 'immediate';
+  /** Backend-neutral prepare step: run a command before AI submission and bind its output as `as`. */
+  prepare?: { cmd: string; as: string };
+  /** Backend-neutral generator: a JSONata expression file that produces the result value. */
+  generator?: { jsonata: string };
   type?: string; // inline JSON Schema type
   items?: unknown; // inline JSON Schema items (for arrays)
   [key: string]: unknown; // additional JSON Schema properties
@@ -1393,6 +1397,8 @@ export async function expandResultDeclarations(
         provider_rule?: string;
         /** Whether this entry is in the result schema's `required` list. */
         required?: boolean;
+        prepare?: { cmd: string; as: string };
+        generator?: { jsonata: string };
       }
     >
   | undefined
@@ -1439,6 +1445,8 @@ export async function expandResultDeclarations(
         flush?: 'deferred' | 'immediate';
         provider_rule?: string;
         required?: boolean;
+        prepare?: { cmd: string; as: string };
+        generator?: { jsonata: string };
       }
     > = {};
     for (const [key, decl] of Object.entries(properties)) {
@@ -1484,7 +1492,7 @@ export async function expandResultDeclarations(
         }
       }
 
-      // Build inline schema from declaration (exclude path, validators, $ref, submission, flush)
+      // Build inline schema from declaration (exclude path, validators, $ref, submission, flush, prepare, generator)
       let schema: object | undefined;
       const {
         path: _path,
@@ -1492,6 +1500,8 @@ export async function expandResultDeclarations(
         $ref: _ref,
         submission: _sub,
         flush: _flush,
+        prepare: _prepare,
+        generator: _generator,
         ...schemaProps
       } = decl;
       if (Object.keys(schemaProps).length > 0) {
@@ -1506,6 +1516,8 @@ export async function expandResultDeclarations(
         flush?: 'deferred' | 'immediate';
         provider_rule?: string;
         required?: boolean;
+        prepare?: { cmd: string; as: string };
+        generator?: { jsonata: string };
       } = { submission };
       if (flush !== undefined) entry.flush = flush;
       if (decl.path) {
@@ -1517,6 +1529,17 @@ export async function expandResultDeclarations(
       // Only record requiredness when the schema declares a `required` list.
       // No list → leave undefined → gate enforces all entries (back-compat).
       if (requiredList) entry.required = requiredList.includes(key);
+      if (decl.prepare) {
+        entry.prepare = {
+          cmd: await interpolate(decl.prepare.cmd, params, { envMap, lenient }),
+          as: decl.prepare.as,
+        };
+      }
+      if (decl.generator) {
+        entry.generator = {
+          jsonata: await interpolate(decl.generator.jsonata, params, { envMap, lenient }),
+        };
+      }
 
       result[key] = entry;
     }

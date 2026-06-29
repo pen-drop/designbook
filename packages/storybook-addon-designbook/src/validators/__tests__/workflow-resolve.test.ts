@@ -30,6 +30,7 @@ import {
   resolveStageTaskParams,
   matchDomain,
   resolveAllStages,
+  expandResultDeclarations,
   type ResolvedFile,
   type ResolvedTask,
   type ResolvedStep,
@@ -2529,5 +2530,27 @@ describe('resolveAllStages — interactive flag', () => {
     expect(Array.isArray(output)).toBe(false);
     expect(intake.interactive).toBe(true);
     expect(output.interactive).toBeUndefined();
+  });
+});
+
+describe('expandResultDeclarations — prepare/generator fields', () => {
+  it('expands prepare.cmd and generator.jsonata with interpolation', async () => {
+    const decls = {
+      type: 'object',
+      properties: {
+        'view-mode-config': {
+          prepare: { cmd: '{{ backend_cmd.schema_cmd }} core.entity_view_display.node.article.teaser', as: 'prepared' },
+          generator: { jsonata: '$DESIGNBOOK_DATA/sync/{{ slice.bundle }}.jsonata' },
+        },
+      },
+    };
+    const params = { backend_cmd: { schema_cmd: 'fake-schema' }, slice: { bundle: 'article' } };
+    const out = await expandResultDeclarations(decls, undefined, params, { DESIGNBOOK_DATA: '/data' });
+    const entry = out!['view-mode-config']!;
+    expect(entry.prepare).toEqual({
+      cmd: 'fake-schema core.entity_view_display.node.article.teaser',
+      as: 'prepared',
+    });
+    expect(entry.generator).toEqual({ jsonata: '/data/sync/article.jsonata' });
   });
 });

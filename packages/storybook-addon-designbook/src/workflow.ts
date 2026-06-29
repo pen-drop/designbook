@@ -113,6 +113,10 @@ export interface TaskResult {
    * `false` = optional — skipped when not submitted (not validated, no path written).
    */
   required?: boolean;
+  /** Backend-neutral prepare step: run a command before AI submission and bind its output as `as`. */
+  prepare?: { cmd: string; as: string };
+  /** Backend-neutral generator: a JSONata expression file that produces the result value. */
+  generator?: { jsonata: string };
   /** Whether the result has been written and validated. */
   valid?: boolean;
   /** Validation error message, if any. */
