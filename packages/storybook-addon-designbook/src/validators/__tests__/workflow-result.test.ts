@@ -1107,6 +1107,88 @@ describe('workflow result: generator artifact check', () => {
   });
 });
 
+// ── prepare + generator: end-to-end wiring ────────────────────────────────
+
+const FAKE_CMD = resolve(import.meta.dirname, '../../sync/__tests__/fake-schema-cmd.sh');
+
+describe('workflow result: prepare+generator end-to-end', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-e2e-'));
+  });
+
+  it('prepare(fake cmd)+generator(artifact present)+conforming data → valid', async () => {
+    const artifact = resolve(tmpdir(), `e2e-${process.pid}.jsonata`);
+    writeFileSync(artifact, '$');
+    try {
+      const name = setupWorkflow(
+        dist,
+        [
+          {
+            id: 'task1',
+            title: 'E2E Task',
+            type: 'data',
+            step: 'do-task',
+            stage: 'execute',
+            status: 'pending',
+            result: {
+              cfg: {
+                prepare: { cmd: `bash ${FAKE_CMD}`, as: 'prepared' },
+                generator: { jsonata: artifact },
+                submission: 'data' as const,
+              },
+            },
+          } as WorkflowTask,
+        ],
+        { execute: { steps: ['do-task'] } },
+      );
+
+      const value = { config_name: 'x', data: { langcode: 'en' } };
+      const r = await workflowResult(dist, name, 'task1', 'cfg', value, mockConfig);
+      expect(r.valid).toBe(true);
+      expect(r.errors).toEqual([]);
+    } finally {
+      try {
+        const { unlinkSync } = await import('node:fs');
+        unlinkSync(artifact);
+      } catch {
+        // ignore
+      }
+    }
+  });
+
+  it('prepare(fake cmd)+generator(artifact missing)+conforming data → invalid', async () => {
+    const missingArtifact = `/tmp/nope-e2e-${process.pid}.jsonata`;
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'E2E Task Missing Artifact',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            cfg: {
+              prepare: { cmd: `bash ${FAKE_CMD}`, as: 'prepared' },
+              generator: { jsonata: missingArtifact },
+              submission: 'data' as const,
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    const value = { config_name: 'x', data: { langcode: 'en' } };
+    const r = await workflowResult(dist, name, 'task1', 'cfg', value, mockConfig);
+    expect(r.valid).toBe(false);
+    expect(r.errors.join(' ')).toMatch(/generator|jsonata|artifact/i);
+  });
+});
+
 // ── prepare: hook — run command, validate against fetched schema ───────────
 
 const FAKE = resolve(import.meta.dirname, '../../sync/__tests__/fake-schema-cmd.sh');
