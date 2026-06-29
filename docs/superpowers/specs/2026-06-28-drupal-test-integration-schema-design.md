@@ -115,22 +115,27 @@ result:
   properties:
     view-mode-config:
       prepare:                                   # KEY 1 — run a skill-declared command → schema, fresh
-        command: "{{ backend.schema_cmd }} core.entity_view_display.{{ slice.entity_type }}.{{ slice.bundle }}.{{ slice.view_mode }}"
+        cmd: "{{ backend.schema_cmd }} core.entity_view_display.{{ slice.entity_type }}.{{ slice.bundle }}.{{ slice.view_mode }}"
         as: prepared
       generator:                                 # KEY 2 — produce this result via the jsonata generator
         jsonata: "$DESIGNBOOK_DATA/sync/{{ slice.entity_type }}.{{ slice.bundle }}.{{ slice.view_mode }}.jsonata"
       validators:
-        - "schema:prepared"                      # against the prepare-fetched schema
-        - "cmd:{{ backend.validate_cmd }} {{ file }}"   # authoritative, via the backend (data, not core code)
+        - "cmd:{{ backend.validate_cmd }} {{ file }}"   # authoritative backend cross-check (data, not core code)
 ```
 
-The `prepare.command` and `validate_cmd` shown here are **declared in the
+`prepare` itself applies the fetched schema as the result's validation schema (the
+result is AJV-validated against it) — there is **no `schema:prepared` validator**; the
+schema set by `prepare` is the validation schema. The `cmd:` validator above is an
+additional authoritative backend cross-check. `generator` additionally requires the
+jsonata artifact to exist at submission.
+
+The `prepare.cmd` and `validate_cmd` shown here are **declared in the
 `designbook-drupal` override** of this task (resolving to existing drush /
 `config_inspector` capability). Core never names drush/Drupal — it runs opaque commands.
 
 **`prepare:`** — generic, **command-based** (mirrors `cmd:` validators: core runs an
 opaque command, zero backend knowledge). Before this result resolves, the engine runs
-`prepare.command`, captures stdout as a JSON Schema, and registers it under `prepare.as`
+`prepare.cmd`, captures stdout as a JSON Schema, and registers it under `prepare.as`
 (here `prepared`). Fresh each run, no cache. The command lives in the `designbook-drupal`
 task override and resolves to existing drush / `config_inspector` capability that emits
 the typed-config schema as JSON Schema — a config string, not authored code. This is a
@@ -152,10 +157,10 @@ machine-readable production directive).
 ### Flow the engine/AI derives
 
 ```
-1. prepare:   run prepare.command (skill-declared, backend) → stdout = JSON Schema "prepared"
+1. prepare:   run prepare.cmd (skill-declared, backend) → stdout = JSON Schema "prepared"
 2. generator: AI authors generator.jsonata (guided by "prepared"), persists it
 3. run:       jsonata over the data-model slice → result value (the config)
-4. validate:  schema:prepared (up-front) + cmd validate_cmd (authoritative, via the backend)
+4. validate:  result AJV-validated against the prepared schema (set by prepare) + cmd validate_cmd (authoritative)
 ```
 
 Because `prepared` carries Drupal's required keys/defaults/types, the generated config
@@ -192,7 +197,7 @@ These require addon/engine support and contain **no** Drupal/drush knowledge:
 
 No converter, no drush wrapper, no Drupal command lives in core. The
 typed-config→JSON-Schema emission is done by **existing** drush / `config_inspector`
-invoked through `prepare.command` — a string declared in `designbook-drupal`, never
+invoked through `prepare.cmd` — a string declared in `designbook-drupal`, never
 authored code in our repo.
 
 ## Components
@@ -200,7 +205,7 @@ authored code in our repo.
 - **Core (backend-neutral):** `prepare:` + `generator:` result-key support in the addon;
   the generic `jsonata` generator kind.
 - **`designbook-drupal` (data/config, no code):** the `export-<unit>` task overrides that
-  declare `prepare.command` / `validate_cmd` (resolving to existing drush /
+  declare `prepare.cmd` / `validate_cmd` (resolving to existing drush /
   `config_inspector`), and the per-strategy display-builder override.
 - **Backend command config:** `designbook-drupal` config supplies the backend command
   strings (e.g. a drush prefix); core just interpolates `{{ backend.* }}` and runs them.
@@ -215,7 +220,7 @@ sync-to → per slice, the named (possibly overridden) export task:
   result.prepare   → run backend command (skill-declared) → stdout JSON Schema "prepared"
   result.generator → AI authors <path>.jsonata (guided by "prepared"), persists
   run jsonata(slice) → config
-  validators: schema:prepared + cmd:{{ backend.validate_cmd }}
+  validate: prepared schema (set by prepare) + cmd:{{ backend.validate_cmd }}
 → write to config-sync dir → backend apply (e.g. drush cim, via skill command) → outtake
 ```
 
@@ -224,7 +229,7 @@ sync-to → per slice, the named (possibly overridden) export task:
 This supersedes parts of Plan 1:
 - Static blueprint `to_drupal` expressions → per-task **generated** `.jsonata` (blueprint
   becomes the pattern/guidance, not the final expression).
-- Static `DrupalConfigEntity` `$ref` validation → `schema:prepared` (Drupal-derived) +
+- Static `DrupalConfigEntity` `$ref` validation → the prepare-fetched schema (Drupal-derived, set by `prepare`) +
   config_inspector.
 - `write-config` and the dependency-closure step may simplify (Drupal supplies
   deps/defaults; `cim`/export handle dependency wiring). Re-evaluate during planning.
@@ -234,9 +239,9 @@ backend command config remain.
 
 ## Error Handling
 
-- `prepare.command` fails / backend unreachable → `prepare` stops + reports its output.
+- `prepare.cmd` fails / backend unreachable → `prepare` stops + reports its output.
 - The requested config schema has no definition → stop + report (no silent skip).
-- Generated jsonata output fails `schema:prepared` or the `validate_cmd` → validation
+- Generated jsonata output fails the prepared schema or the `validate_cmd` → validation
   failure in the workflow, before the apply step.
 
 ## Testing
@@ -273,7 +278,7 @@ backend command config remain.
   + DB snapshot for speed; `config_inspector` in base composer.
 - **Backend commands as config** (`backend.cmd`/`schema_cmd`/`validate_cmd`) in
   `designbook-drupal`; core interpolates + runs them opaquely (never names drush).
-- **Schema source = Drupal typed-config**, emitted by the skill-declared `prepare.command`
+- **Schema source = Drupal typed-config**, emitted by the skill-declared `prepare.cmd`
   (existing drush/`config_inspector`), fresh, not cached. JSON:API reserved for
   content-data (Plan 4).
 - **Transforms = per-task generated, re-runnable `.jsonata`** (not static blueprint
