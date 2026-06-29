@@ -1123,5 +1123,6 @@ describe('workflow result: prepare hook', () => {
 
     const r = await workflowResult(dist, name, 'task1', 'data', { any: 1 }, mockConfig);
     expect(r.valid).toBe(false);
+    expect(r.errors.some((e) => /prepare command failed/.test(e))).toBe(true);
   });
 });

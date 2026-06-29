@@ -1996,7 +1996,7 @@ async function validateResultEntry(
       entry = { ...entry, schema: JSON.parse(out) };
     } catch (err: unknown) {
       const execErr = err as { stderr?: string; message?: string };
-      return [`prepare command failed: ${execErr.stderr?.trim() ?? execErr.message ?? String(err)}`];
+      return [`prepare command failed: ${execErr.stderr?.trim() || execErr.message || String(err)}`];
     }
   }
 
