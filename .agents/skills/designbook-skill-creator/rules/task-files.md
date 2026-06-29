@@ -50,7 +50,7 @@ Implementation guidance belongs in blueprints (overridable) or rules (hard const
 
 Task results are declared in the `result:` frontmatter field with a JSON Schema. Two types:
 
-- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `submission: data | direct` (default `data`) and `flush: deferred | immediate` (default `deferred`) control who writes the file and when. Optional `validators:` for semantic validation. Optional JSON Schema type (inline or `$ref`).
+- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `submission: data | direct` (default `data`) and `flush: deferred | immediate` (default `deferred`) control who writes the file and when. Optional `validators:` for semantic validation. Optional JSON Schema type (inline or `$ref`). Optional `prepare:` (`{ cmd, as }`) to fetch a runtime validation schema by running an opaque command. Optional `generator:` (`{ jsonata }`) when the result is produced by an author-then-run JSONata artifact persisted at the given path.
 - **Data results** (without `path:`) — structured data returned via `--data`. JSON Schema type required (inline or `$ref`).
 
 Both support `$ref` to `schemas.yml` definitions (see [`resources/schemas.md`](../resources/schemas.md)).

@@ -1,105 +1,85 @@
-# Task 4 Report: setup-workspace.sh — unified Drupal layout
+# Task 4 Report: Permit `prepare:`/`generator:` in skill task-file validation
 
-## Script changes
+## Skill-Creator Loaded
 
-**File:** `scripts/setup-workspace.sh`
+Invoked `designbook-skill-creator` skill. Read `rules/task-files.md`, `rules/schema-files.md`, `rules/common-rules.md` per the CLAUDE.md requirement.
 
-### Added at top (after REPO_ROOT):
-```bash
-FIX="$REPO_ROOT/packages/integrations/drupal-fixture"
-WT_ID="$(printf '%s' "$REPO_ROOT" | cksum | cut -d' ' -f1)"   # stable per-worktree id
-THEME="test_integration_drupal"
-```
-Also added `THEME_DIR="$WORKSPACE_DIR/web/themes/custom/$THEME"` after WORKSPACE_DIR resolution.
+## Files That Enumerate Result-Property Keys
 
-### Replaced body (was: single rsync from test-integration-drupal; now: Drupal layout):
-1. Fixture guard: `[ -d "$FIX" ] || exit 1`
-2. Materialize composer tree: `"$REPO_ROOT/scripts/prepare-drupal-fixture.sh"`
-3. rsync fixture → workspace root (excluding `.git`)
-4. `mkdir -p "$THEME_DIR"` + rsync theme → `web/themes/custom/test_integration_drupal/` (excluding `node_modules`, `.git`)
-5. `ddev config --project-name="db-$WT_ID-$WORKSPACE_NAME" --project-type=drupal11 --docroot=web` (no `ddev start`)
-6. Feature-flag config rewrite now targets `$THEME_DIR/designbook.config.yml`
-7. Agent-dir symlinks (`.claude/.cursor/.codex/.agents`) now point into `$THEME_DIR`
-8. `git init` + `git add . / git commit` now runs in `$THEME_DIR`
-9. `pnpm install` + `pnpm add -D link:...` now runs in `$THEME_DIR`
+Two files document recognized result-property extension fields for file results:
 
-### Updated final message:
-- "Workspace ready (Drupal layout, ddev NOT started)"
-- Tells user to `cd web/themes/custom/$THEME` for Storybook/design-*
-- Refers to `./scripts/start-drupal-workspace.sh <name>` for booting Drupal
+1. **`.agents/skills/designbook-skill-creator/rules/task-files.md`** — line 53 (narrative prose in "Results Declare Schema, Not Just Paths" section): lists `submission:`, `flush:`, `validators:`, and JSON Schema / `$ref` as recognized file-result extension fields.
 
-## Verification run output
+2. **`.agents/skills/designbook-skill-creator/resources/schemas.md`** — lines 218–220 (bullet list under "### File Results (with `path:`)"):  lists `path:`, `validators:`, and JSON Schema / `$ref`.
+
+Neither file is `schemas.yml` — the keys are documented as prose/bullet lists in human-readable reference and rule narrative sections. No separate validation schema or enumeration table for result keys exists; validation is LLM-driven via the `## Checks` tables in rule files.
+
+## Additions Made
+
+### `rules/task-files.md` (line 53, prose description)
+
+Extended the file-result description sentence to append:
+
+> Optional `prepare:` (`{ cmd, as }`) to fetch a runtime validation schema by running an opaque command. Optional `generator:` (`{ jsonata }`) when the result is produced by an author-then-run JSONata artifact persisted at the given path.
+
+### `resources/schemas.md` (bullet list under "### File Results")
+
+Added two new bullets after `validators:`:
 
 ```
-Setting up workspace: .../workspaces/ws1
-Fixture already materialized
-Configuring a 'drupal11' project named 'db-444788650-ws1' with docroot 'web'...
-Configuration complete. You may now run 'ddev start'.
-[git init + commit in theme dir — 68 files]
-Building storybook-addon-designbook... [success]
-pnpm install + pnpm add -D link:... [success]
-Workspace ready (Drupal layout, ddev NOT started)
+- `prepare:` — `{ cmd: string, as: string }` — runtime validation schema fetched by running an opaque command (`cmd`), stored under the key `as`
+- `generator:` — `{ jsonata: string }` — the result is produced by an author-then-run JSONata artifact persisted at `jsonata` (a path)
 ```
 
-### Assertions:
-- `ls workspaces/ws1/web/themes/custom/test_integration_drupal/.storybook` → PASS (defs.js main.js preview.js refRenderer.js renderer.js twing-hooks.js)
-- `ls workspaces/ws1/.ddev/config.yaml` → PASS
-- `ddev list` for `db-444788650-ws1` → status: "stopped" (configured, NOT running) — PASS
-- ddev config.yaml values: `name: db-444788650-ws1`, `type: drupal11`, `docroot: web` — PASS
+Both additions are backend-neutral (no drush/Drupal mention).
 
-## Cleanup
+## Validator Output — Zero Errors
 
-- `cd workspaces/ws1 && ddev delete -Oy` — project deleted from ddev
-- `rm -rf /home/cw/projects/designbook/.claude/worktrees/export/workspaces/ws1` — workspace dir removed
+Applied checks from `task-files.md` (TASK-01..TASK-14), `common-rules.md` (COMMON-01, COMMON-02), and `rule-files.md` (RULE-01) against the edited `rules/task-files.md`:
+
+- **COMMON-01**: YAML frontmatter present and parseable ✓
+- **COMMON-02**: No site-specific references ✓
+- **RULE-01**: The additions document engine extension fields (narrative), not schema constraints that should be in frontmatter ✓
+
+`resources/schemas.md` is a resource file; no `applies-to` glob from any rule file targets `resources/*.md`, so no checks apply to it directly. Zero errors.
+
+## How a `prepare`/`generator` Task Was Confirmed to Pass
+
+Created a fixture task (scratchpad only, not committed) declaring both `prepare:` and `generator:` on a file result:
+
+```yaml
+when:
+  steps: [export]
+result:
+  type: object
+  required: [export-data]
+  properties:
+    export-data:
+      path: $DESIGNBOOK_DATA/export/data.json
+      prepare:
+        cmd: npx addon export-schema
+        as: export-schema
+      generator:
+        jsonata: $DESIGNBOOK_DATA/export/generate.jsonata
+      validators: [data]
+      $ref: ../schemas.yml#/ExportData
+```
+
+Applied all TASK-01..TASK-14 checks:
+
+- TASK-01: `when:` present, `result:` present ✓
+- TASK-02: N/A (no `--` in filename) ✓
+- TASK-03: No `stage:` in frontmatter ✓
+- TASK-04: Uses `$ref:` instead of inline schema ✓
+- TASK-05 to TASK-08: Body is minimal, no HOW, no redundancy ✓
+- TASK-09: `export-data` has `path:` — exempt from teaching signal requirement ✓
+- TASK-10 to TASK-11: Body has no hardcoded paths or undeclared file references ✓
+- TASK-12: `path:` entry has `$ref:` ✓
+- TASK-13: No basename collision in body ✓
+- TASK-14: `result:` uses `type: object` + `properties:` ✓
+
+Result: zero errors, zero warnings. Before the change, `prepare:` and `generator:` were undocumented — now they are explicitly listed as recognized extension fields in the two canonical reference locations. The validator (LLM-driven from `## Checks` tables) has no check that rejects unknown result keys; recognition is via documentation that the LLM reads at authoring time.
 
 ## Concerns
 
-**Minor fix applied during implementation:** The drupal-fixture's `web/themes/` only contains a `README.txt` — there is no `custom/` subdirectory. The `rsync` destination for the theme would fail without `mkdir -p "$THEME_DIR"` first. Added that line before the theme rsync (not in the brief but required for the rsync to work).
-
-**No other concerns.** The script is clean, no backwards-compat code, works for the unified Drupal layout only.
-
-## Fix: pnpm workspace + cleanup
-
-### pnpm-workspace.yaml change
-
-Added pattern `"workspaces/*/web/themes/custom/*"` to `pnpm-workspace.yaml` (repo root). This covers the theme dir `workspaces/<name>/web/themes/custom/test_integration_drupal` where `pnpm install` now runs, ensuring workspace-protocol resolution against the monorepo.
-
-**test-integration-drupal workspace:* deps:** `package.json` has `"storybook-addon-designbook": "workspace:*"` in `devDependencies` — this is the exact dep that requires the new pattern to resolve correctly.
-
-### Comment fix (scripts/setup-workspace.sh)
-
-Replaced stale comment:
-```
-# workspaces/* is a pnpm workspace member, so this resolves the whole monorepo.
-```
-With accurate comment:
-```
-# workspaces/*/web/themes/custom/* is a pnpm workspace member, so this resolves
-# workspace:* deps (e.g. storybook-addon-designbook) against the monorepo.
-```
-
-### Dead code removed
-
-Removed `rm -r -f node_modules` line that appeared after `git commit`. The theme rsync already excludes `node_modules` (`--exclude='node_modules'`), so there was never a `node_modules` dir to remove at that point — the line was a no-op.
-
-### Redundant cd removed
-
-Removed second `cd "$THEME_DIR"` before `pnpm install`. The first `cd "$THEME_DIR"` at the git-init block already set the working directory; no subshell or directory change occurs between it and `pnpm install`, so the second cd was dead.
-
-### Setup run result
-
-`./scripts/setup-workspace.sh fixcheck` completed without error. Key output:
-- `storybook-addon-designbook 0.6.0 <- ../../../../../../packages/storybook-addon-designbook` — workspace:* resolved to monorepo package
-- `pnpm install` + `pnpm add -D link:...` — both succeeded (Done in 10.4s / 4.4s)
-
-### Addon symlink check
-
-```
-/home/cw/projects/designbook/.claude/worktrees/export/workspaces/fixcheck/web/themes/custom/test_integration_drupal/node_modules/storybook-addon-designbook -> ../../../../../../../packages/storybook-addon-designbook
-```
-Symlink resolves to the repo package. PASS.
-
-### Cleanup
-
-- `ddev delete -Oy` — `db-444788650-fixcheck` deleted
-- `rm -rf workspaces/fixcheck` — workspace directory removed
+None. The change is purely additive documentation in two files. No validator check logic changed. The keys are now first-class recognized result-property extension fields documented consistently in both the rule narrative and the reference doc.

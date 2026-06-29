@@ -217,6 +217,8 @@ result:
 
 - `path:` — template with `$ENV` vars and `{{ param }}` substitution (resolved at plan time)
 - `validators:` — semantic validators: `data`, `entity-mapping`, `scene`, `image`, `cmd:<command>`
+- `prepare:` — `{ cmd: string, as: string }` — runtime validation schema fetched by running an opaque command (`cmd`), stored under the key `as`
+- `generator:` — `{ jsonata: string }` — the result is produced by an author-then-run JSONata artifact persisted at `jsonata` (a path)
 - JSON Schema (inline or `$ref`) — optional, for structural validation
 
 ### Data Results (without `path:`)
