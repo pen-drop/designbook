@@ -1031,6 +1031,82 @@ describe('workflow done --data', () => {
   });
 });
 
+// ── generator: jsonata artifact-exists check ──────────────────────────────
+
+describe('workflow result: generator artifact check', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-result-generator-'));
+  });
+
+  it('generator: result is invalid when the jsonata artifact is missing', async () => {
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            data: {
+              generator: { jsonata: '/tmp/does-not-exist-xyz.jsonata' },
+              submission: 'data' as const,
+              schema: { type: 'object' },
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    const r = await workflowResult(dist, name, 'task1', 'data', {}, mockConfig);
+    expect(r.valid).toBe(false);
+    expect(r.errors.join(' ')).toMatch(/generator|jsonata|artifact/i);
+  });
+
+  it('generator: result is valid when the artifact exists and data matches schema', async () => {
+    const p = resolve(tmpdir(), `gen-${process.pid}.jsonata`);
+    writeFileSync(p, '$'); // any persisted transform
+    try {
+      const name = setupWorkflow(
+        dist,
+        [
+          {
+            id: 'task1',
+            title: 'T1',
+            type: 'data',
+            step: 'do-task',
+            stage: 'execute',
+            status: 'pending',
+            result: {
+              data: {
+                generator: { jsonata: p },
+                submission: 'data' as const,
+                schema: { type: 'object' },
+              },
+            },
+          } as WorkflowTask,
+        ],
+        { execute: { steps: ['do-task'] } },
+      );
+
+      const r = await workflowResult(dist, name, 'task1', 'data', {}, mockConfig);
+      expect(r.valid).toBe(true);
+    } finally {
+      try {
+        const { unlinkSync } = await import('node:fs');
+        unlinkSync(p);
+      } catch {
+        // ignore
+      }
+    }
+  });
+});
+
 // ── prepare: hook — run command, validate against fetched schema ───────────
 
 const FAKE = resolve(import.meta.dirname, '../../sync/__tests__/fake-schema-cmd.sh');

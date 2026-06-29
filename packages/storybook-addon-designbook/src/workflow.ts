@@ -1989,7 +1989,12 @@ async function validateResultEntry(
 ): Promise<string[]> {
   const errors: string[] = [];
 
-  // 0. Prepare hook: run backend-neutral command, use its stdout as JSON Schema
+  // 0a. Generator artifact check: the jsonata file must exist (agent must persist the transform)
+  if (entry.generator?.jsonata && !existsSync(entry.generator.jsonata)) {
+    return [`generator artifact missing: ${entry.generator.jsonata}`];
+  }
+
+  // 0b. Prepare hook: run backend-neutral command, use its stdout as JSON Schema
   if (entry.prepare) {
     try {
       const out = execSync(entry.prepare.cmd, { timeout: 30_000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });

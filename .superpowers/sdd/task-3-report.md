@@ -1,61 +1,58 @@
-# Task 3 Report: Backend command config in the install blueprint
+# Task 3 Report: `generator:` — surface to the agent + artifact-exists check
 
-## Skill-creator loaded
+## Artifact-check insertion
 
-`designbook-skill-creator` was invoked via Skill tool before editing any skill file.
-Rule files read: `rules/blueprint-files.md`, `rules/common-rules.md`.
-Current blueprint read: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md`.
+**File:** `packages/storybook-addon-designbook/src/workflow.ts`
+**Function:** `validateResultEntry` (async, ~line 1983)
+**Where:** New step `0a`, inserted BEFORE the existing `0b` prepare hook:
 
-## Files changed
-
-- **Modified**: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md`
-
-No other files were modified.
-
-## Block added
-
-The `backend_cmd:` block was added inside the emitted YAML code fence (after the `extensions:` list),
-with inline comments matching the brief verbatim, plus a prose section `## backend_cmd — data for
-sync task interpolation` in the blueprint body explaining the semantics.
-
-**Exact YAML added (inside emitted config fence):**
-```yaml
-# Backend command strings — interpolated as {{ backend_cmd.* }} by sync tasks.
-# Core runs these opaquely; no drush/Drupal knowledge lives in core. Built on
-# existing drush + config_inspector. Exact schema_cmd/validate_cmd realization is
-# finalized in Plan 3 (still data strings, not authored code).
-backend_cmd:
-  cmd: "ddev drush"
-  schema_cmd: "ddev drush designbook:config-schema"   # prints JSON Schema for a config name (existing typed-config/config_inspector capability)
-  validate_cmd: "ddev drush config:inspect --detail"  # non-zero exit on schema violation
+```ts
+// 0a. Generator artifact check: the jsonata file must exist (agent must persist the transform)
+if (entry.generator?.jsonata && !existsSync(entry.generator.jsonata)) {
+  return [`generator artifact missing: ${entry.generator.jsonata}`];
+}
 ```
 
-**Prose added in body:**
-The `## backend_cmd — data for sync task interpolation` section explains:
-- Values consumed via `{{ backend_cmd.cmd }}`, `{{ backend_cmd.schema_cmd }}`, `{{ backend_cmd.validate_cmd }}` by sync tasks (Plan 3)
-- Core runs command strings opaquely; no drush/Drupal knowledge in core
-- Built on existing `drush` CLI and `config_inspector` module capability
-- Exact realization of `schema_cmd` and `validate_cmd` finalized in Plan 3; strings are data only
+`existsSync` was already imported from `node:fs` at the top of the file — no new import needed.
 
-## Validator output (manual check against checks tables)
+## Surfacing insertion
 
-Checks applied to `designbook-config.md` per `blueprint-files.md` + `common-rules.md`:
+**File:** `packages/storybook-addon-designbook/src/cli/submit-results-hint.ts`
+**Function:** `renderSubmitResultsHint`
 
-| ID | Severity | Result | Notes |
-|---|---|---|---|
-| COMMON-01 | error | PASS | Valid YAML frontmatter present (lines 1–6): `trigger.steps`, `filter.backend` |
-| COMMON-02 | warning | N/A | File is in integration skill `designbook-drupal/`, not core `designbook/`; no site-specific content present |
-| BLUEPRINT-01 | error | PASS | No `provides:` or `constrains:` in frontmatter; only `trigger:` and `filter:` |
-| BLUEPRINT-02 | warning | PASS | No site-specific brand/URL references; `ddev`/`drush`/`config_inspector` are standard Drupal toolchain identifiers, not customer-specific |
-| BLUEPRINT-03 | warning | PASS | Prose describes semantics and interpolation convention only; no inline enum/required/type/default values in body prose |
-| BLUEPRINT-04 | warning | PASS | No references to rule files in body |
-| BLUEPRINT-05 | warning | PASS | No fixed pixel/rem measurements or hardcoded layout counts |
+Changes:
+1. Added `generator?: { jsonata: string }` to the `ResultProperty` interface.
+2. The function now collects a `generators` array alongside `data` and `direct`.
+3. When generator entries exist, a `## Generator results` section is prepended to the output, with one line per entry:
+   `- **<key>**: author a JSONata at \`<path>\` and run it to produce the result value.`
+4. The early-return guard was updated: `if (data.length === 0 && generators.length === 0) return null`.
 
-**Errors: 0 | Warnings: 0 — Score: 100/100**
+This surfacing is wired — not merely documented. The `renderSubmitResultsHint` is called from two sites:
+- `buildInstructions` in `src/cli/workflow.ts` (the `workflow next`/instructions path) via `schema.result` from the SchemaBlock. Generator fields flow through `buildSchemaBlock` → `resolveEntry` because only `path`, `$ref`, and `workflow` are excluded from copy.
+- `workflowDone` in `src/workflow.ts` (the direct-write rejection path) via the manually-built hint map. That map only carries `path`/`submission`/`flush`/`$ref`/`type` — it does NOT forward `generator`. Generator entries don't have `path`, so they don't appear in that hint map. This is acceptable: the direct-write rejection path is for file results only; generator results are data results and are not relevant there.
+
+## Test red → green
+
+New describe block: `workflow result: generator artifact check`
+
+**Test 1 — missing artifact → invalid:**
+- Sets up a task with `result: { data: { generator: { jsonata: '/tmp/does-not-exist-xyz.jsonata' }, submission: 'data', schema: { type: 'object' } } }`
+- Calls `workflowResult(...)` → expects `r.valid === false` and `r.errors.join(' ')` matches `/generator|jsonata|artifact/i`
+- RED: `r.valid` was `true` (no check existed)
+- GREEN: after adding the artifact-exists check
+
+**Test 2 — artifact present + data matches → valid:**
+- Writes a real `.jsonata` file to tmpdir, same task shape
+- Expects `r.valid === true`
+- Was already GREEN (no schema violation, no missing file)
+
+## pnpm check result
+
+All phases green:
+- `typecheck`: 0 errors
+- `lint`: 0 errors (prettier fix applied via `lint:fix`)
+- `test`: 96 test files, 1028 tests, all passed
 
 ## Concerns
 
-None. The `backend_cmd` values (`ddev drush ...`) are installation-profile defaults for a ddev-based
-Drupal environment. Sites not using ddev would override the blueprint — correct blueprint behavior
-(overridable starting point, not a hard constraint). The exact realization of `schema_cmd` and
-`validate_cmd` is deferred to Plan 3 as specified in the brief.
+None blocking. One minor note: the `workflowDone` direct-write hint builder (lines ~1209-1223 of workflow.ts) constructs the hint map manually from `path`/`submission`/`flush`/schema fields and does not forward `generator`. Generator entries (data results without path) are irrelevant in that code path — no gap.
