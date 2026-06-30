@@ -23,56 +23,17 @@ base_fields:
     required: true
 ```
 
-## Drupal Config Export
+## Drupal Config Export Pattern
 
-> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
-> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The pattern below describes the mapping intent for authoring that transform.
 
-The `to_drupal` block below transforms a block_content bundle definition into
-config-name/data pairs suitable for Drupal config/sync. Input shape:
+**Input:** `{ bundle, def: { fields: { <name>: { type, required?, multiple?, settings? } } } }`
 
-```
-{
-  bundle: "<bundle-machine-name>",
-  def: { fields: { <field_name>: { type: "<type>", ... } } }
-}
-```
+**Output config-name units:**
+- `block_content.type.<bundle>` — the bundle entity; keys include `id`, `label` (both from `bundle`), `description` (from `def.purpose`), `revision: false`
+- `field.storage.block_content.<name>` — one per field, via the field-types serialization pattern
+- `field.field.block_content.<bundle>.<name>` — one per field, via the field-types serialization pattern
 
-Output: `[block_content.type.<bundle>, ...field.storage.block_content.<name>, ...field.field.block_content.<bundle>.<name>]`
-
-### to_drupal
-
-```jsonata
-(
-  /* ── block_content.type.<bundle> config entity ── */
-  $blockType := {
-    "config_name": "block_content.type." & bundle,
-    "data": {
-      "langcode":     "en",
-      "status":       true,
-      "dependencies": {},
-      "id":           bundle,
-      "label":        bundle,
-      "revision":     false,
-      "description":  def.purpose ? def.purpose : ""
-    }
-  };
-
-  /* ── field configs for every entry in def.fields ── */
-  $fieldNames := $keys(def.fields);
-  $fieldConfigs := $fieldNames.(
-    $name  := $;
-    $field := $lookup($$.def.fields, $name);
-    [
-      $fieldToStorage('block_content', $name, $field),
-      $fieldToInstance('block_content', $$.bundle, $name, $field)
-    ]
-  );
-
-  /* ── combine: block_content type first, then all field configs ── */
-  $append([$blockType], $fieldConfigs)
-)
-```
-
-`$fieldToStorage` and `$fieldToInstance` are assumed in scope via the `field-types.md`
-prelude — do not redefine them here.
+All emitted units carry `langcode: "en"`, `status: true`, and a `dependencies` object.
+Field configs are serialized using `$fieldToStorage` / `$fieldToInstance` — see `field-types.md` for the mapping.

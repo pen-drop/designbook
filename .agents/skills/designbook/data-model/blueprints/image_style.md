@@ -32,69 +32,20 @@ bundle_properties:
         required: false
 ```
 
-## Drupal Config Export
+## Drupal Config Export Pattern
 
-> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
-> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The pattern below describes the mapping intent for authoring that transform.
 
-The `to_drupal` block transforms a `config.image_style.<key>` definition into one or more config-name units per config-file entry suitable for Drupal config/sync. Input shape:
+**Input:** `{ key, def: { aspect_ratio: "W:H", breakpoints?: { <name>: { width: <n>, aspect_ratio?: "W:H" } } } }`
 
-```
-{
-  key: "<image-style-machine-name>",
-  def: { aspect_ratio: "W:H", breakpoints?: { <name>: { width: <n>, aspect_ratio?: "W:H" } } }
-}
-```
+**Output config-name units:**
+- `image.style.<key>` — one image style entity; keys include `name`, `label` (both from `key`), module dependency `["image"]`, and an `effects` map
+- Effect key: `"scale_and_crop_" + key` — used for both the map key and `uuid`; deterministic so repeated sync runs stay idempotent (Drupal uses config-name as primary key, not uuid)
+- Effect `id`: `"image_scale_and_crop"`, `weight: 1`, `anchor: "center-center"`, `upscale: false`
+- Effect `data.width` / `data.height`: parse `aspect_ratio` as `"W:H"` → multiply each component by 100 (e.g. `16:9` → width 1600, height 900)
 
-Output: `[image.style.<key>]`
-
-**Effect UUID rationale:** The effect uuid (e.g. `scale_and_crop_ratio_16_9`) is a deterministic stable identifier derived from the style key and effect type, not a random RFC-4122 UUID. This is intentional: repeated `sync-to` runs must be idempotent — a random UUID per run would produce a different value on every export, causing config churn and duplicate effects on re-import. Drupal's `config:import` accepts any string as a uuid on first import and preserves it on subsequent imports because the config name (`image.style.<key>`) is the primary lookup key. Full RFC-4122 round-trip handling (e.g. reading back an existing uuid from a prior export) is a later concern if ever needed.
-
-### to_drupal
-
-```jsonata
-(
-  /* Parse aspect_ratio string "W:H" into width/height integers */
-  $parseRatio := function($ratio) {(
-    $parts := $split($ratio, ":");
-    $w := $number($parts[0]);
-    $h := $number($parts[1]);
-    { "width": $w, "height": $h }
-  )};
-
-  $ratio := $parseRatio(def.aspect_ratio);
-
-  /* Build the scale-and-crop effect entry */
-  $effectId := "scale_and_crop_" & key;
-  $effects := $merge([{
-    $effectId: {
-      "uuid": $effectId,
-      "id": "image_scale_and_crop",
-      "weight": 1,
-      "data": {
-        "width": $ratio.width * 100,
-        "height": $ratio.height * 100,
-        "anchor": "center-center",
-        "upscale": false
-      }
-    }
-  }]);
-
-  [{
-    "config_name": "image.style." & key,
-    "data": {
-      "langcode":     "en",
-      "status":       true,
-      "dependencies": {
-        "module": ["image"]
-      },
-      "name":   key,
-      "label":  key,
-      "effects": $effects
-    }
-  }]
-)
-```
+All emitted units carry `langcode: "en"`, `status: true`, and a `dependencies` object.
 
 ## Naming Convention
 

@@ -22,59 +22,17 @@ base_fields:
     required: false
 ```
 
-## Drupal Config Export
+## Drupal Config Export Pattern
 
-> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
-> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The pattern below describes the mapping intent for authoring that transform.
 
-The `to_drupal` block below transforms a node bundle definition into config-name/data pairs
-suitable for Drupal config/sync. Input shape:
+**Input:** `{ bundle, def: { fields: { <name>: { type, required?, multiple?, title?, description?, settings? } } } }`
 
-```
-{
-  bundle: "<bundle-machine-name>",
-  def: { fields: { <field_name>: { type: "<type>", ... } } }
-}
-```
+**Output config-name units:**
+- `node.type.<bundle>` — the bundle entity; keys include `name`, `type`, `description` (from `def.purpose`), `new_revision`, `preview_mode`, `display_submitted`
+- `field.storage.node.<name>` — one per field, via the field-types serialization pattern
+- `field.field.node.<bundle>.<name>` — one per field, via the field-types serialization pattern
 
-Output: `[node.type.<bundle>, ...field.storage.node.<name>, ...field.field.node.<bundle>.<name>]`
-
-### to_drupal
-
-```jsonata
-(
-  /* ── node.type.<bundle> config entity ── */
-  $nodeType := {
-    "config_name": "node.type." & bundle,
-    "data": {
-      "langcode":     "en",
-      "status":       true,
-      "dependencies": {},
-      "name":         bundle,
-      "type":         bundle,
-      "description":  def.purpose ? def.purpose : "",
-      "help":         "",
-      "new_revision": false,
-      "preview_mode": 1,
-      "display_submitted": true
-    }
-  };
-
-  /* ── field configs for every entry in def.fields ── */
-  $fieldNames := $keys(def.fields);
-  $fieldConfigs := $fieldNames.(
-    $name  := $;
-    $field := $lookup($$.def.fields, $name);
-    [
-      $fieldToStorage('node', $name, $field),
-      $fieldToInstance('node', $$.bundle, $name, $field)
-    ]
-  );
-
-  /* ── combine: node type first, then all field configs ── */
-  $append([$nodeType], $fieldConfigs)
-)
-```
-
-`$fieldToStorage` and `$fieldToInstance` are assumed in scope via the `field-types.md`
-prelude — do not redefine them here.
+All emitted units carry `langcode: "en"`, `status: true`, and a `dependencies` object.
+Field configs are serialized using `$fieldToStorage` / `$fieldToInstance` — see `field-types.md` for the mapping.

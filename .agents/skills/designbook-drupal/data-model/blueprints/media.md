@@ -26,60 +26,17 @@ base_fields:
     required: true
 ```
 
-## Drupal Config Export
+## Drupal Config Export Pattern
 
-> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
-> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The pattern below describes the mapping intent for authoring that transform.
 
-The `to_drupal` block below transforms a media bundle definition into config-name/data pairs
-suitable for Drupal config/sync. Input shape:
+**Input:** `{ bundle, def: { fields: { <name>: { type, required?, multiple?, settings? } }, source? } }`
 
-```
-{
-  bundle: "<bundle-machine-name>",
-  def: { fields: { <field_name>: { type: "<type>", ... } } }
-}
-```
+**Output config-name units:**
+- `media.type.<bundle>` — the bundle entity; keys include `name`, `id`, `description` (from `def.purpose`), `source` (defaults to `"image"` if not set), `source_configuration: {}`, `field_map: {}`; module dependency: `["media"]`
+- `field.storage.media.<name>` — one per field, via the field-types serialization pattern
+- `field.field.media.<bundle>.<name>` — one per field, via the field-types serialization pattern
 
-Output: `[media.type.<bundle>, ...field.storage.media.<name>, ...field.field.media.<bundle>.<name>]`
-
-The `source` plugin defaults to `"image"` — override per bundle in project configuration.
-
-### to_drupal
-
-```jsonata
-(
-  /* ── media.type.<bundle> config entity ── */
-  $mediaType := {
-    "config_name": "media.type." & bundle,
-    "data": {
-      "langcode":     "en",
-      "status":       true,
-      "dependencies": { "module": ["media"] },
-      "name":         bundle,
-      "id":           bundle,
-      "description":  def.purpose ? def.purpose : "",
-      "source":       def.source ? def.source : "image",
-      "source_configuration": {},
-      "field_map":    {}
-    }
-  };
-
-  /* ── field configs for every entry in def.fields ── */
-  $fieldNames := $keys(def.fields);
-  $fieldConfigs := $fieldNames.(
-    $name  := $;
-    $field := $lookup($$.def.fields, $name);
-    [
-      $fieldToStorage('media', $name, $field),
-      $fieldToInstance('media', $$.bundle, $name, $field)
-    ]
-  );
-
-  /* ── combine: media type first, then all field configs ── */
-  $append([$mediaType], $fieldConfigs)
-)
-```
-
-`$fieldToStorage` and `$fieldToInstance` are assumed in scope via the `field-types.md`
-prelude — do not redefine them here.
+All emitted units carry `langcode: "en"`, `status: true`, and a `dependencies` object.
+Field configs are serialized using `$fieldToStorage` / `$fieldToInstance` — see `field-types.md` for the mapping.

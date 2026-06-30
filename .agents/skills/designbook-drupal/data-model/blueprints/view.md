@@ -33,94 +33,18 @@ view_modes:
   required: true
 ```
 
-## Drupal Config Export
+## Drupal Config Export Pattern
 
-> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
-> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The pattern below describes the mapping intent for authoring that transform.
 
-The `to_drupal` block transforms a `config.view.<key>` definition into config-name/data pairs
-suitable for Drupal config/sync. Input shape:
+**Input:** `{ key, def: { items_per_page?, view_modes?: [<string>] } }`
 
-```
-{
-  key: "<view-machine-name>",
-  def: { items_per_page?: <number>, view_modes?: [<string>], ... }
-}
-```
+**Output config-name units:**
+- `views.view.<key>` — a single Views config entity; keys include `id`, `label` (both from `key`), `base_table: "node_field_data"`, `base_field: "nid"`, module dependency `["views"]`, and a `display` map with a `"default"` display entry
+- The default display's pager uses `items_per_page` from `def.items_per_page` (falls back to `10`); access type `"none"`, cache type `"tag"`
 
-Output: `[views.view.<key>]`
-
-### to_drupal
-
-```jsonata
-(
-  /* ── views.view.<key> config entity ── */
-  $itemsPerPage := def.items_per_page ? def.items_per_page : 10;
-
-  /* Build a default display with pager settings */
-  $defaultDisplay := {
-    "default": {
-      "id": "default",
-      "display_title": "Default",
-      "display_plugin": "default",
-      "position": 0,
-      "display_options": {
-        "pager": {
-          "type": "some",
-          "options": {
-            "items_per_page": $itemsPerPage,
-            "offset": 0
-          }
-        },
-        "use_more": false,
-        "use_more_always": false,
-        "use_more_text": "more",
-        "link_display": "",
-        "exposed_block": false,
-        "filters": {},
-        "sorts": {},
-        "row": {
-          "type": "entity:node",
-          "options": {}
-        },
-        "fields": {},
-        "access": {
-          "type": "none",
-          "options": {}
-        },
-        "cache": {
-          "type": "tag",
-          "options": {}
-        }
-      },
-      "cache_metadata": {
-        "max-age": -1,
-        "contexts": ["languages:language_interface", "url.query_args", "user.permissions"],
-        "tags": []
-      }
-    }
-  };
-
-  [{
-    "config_name": "views.view." & key,
-    "data": {
-      "langcode":     "en",
-      "status":       true,
-      "dependencies": {
-        "module": ["views"]
-      },
-      "id":          key,
-      "label":       key,
-      "module":      "views",
-      "description": "",
-      "tag":         "",
-      "base_table":  "node_field_data",
-      "base_field":  "nid",
-      "display":     $defaultDisplay
-    }
-  }]
-)
-```
+All emitted units carry `langcode: "en"`, `status: true`, and a `dependencies` object.
 
 ## Rules
 

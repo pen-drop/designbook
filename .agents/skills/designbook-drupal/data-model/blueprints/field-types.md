@@ -58,20 +58,12 @@ suggests:
 
 # Blueprint: Field Types
 
-> **Generator pattern.** The JSONata prelude below is the reference pattern for the generated transform.
-> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
-
-Shared JSONata serialization layer for Drupal config export. Provides
-`$fieldToStorage` and `$fieldToInstance` functions that transform one
-Designbook field definition into a config-name/data pair — one
-`field.storage.*` record and one `field.field.*` record — following the
+Shared serialization pattern for Drupal config export. Describes how to map a Designbook
+field definition into a `field.storage.*` record and a `field.field.*` record, following the
 config-name/data shape used by the sync transform stage.
 
-## JSONata block naming convention
-
-Named blocks are fenced ` ```jsonata ` code fences that appear immediately
-after a level-3 heading (`### <block-name>`). Tests and other blueprints
-load a block with `loadJsonata(blueprintRelPath, 'to_drupal')`.
+The concrete `.jsonata` per config-name is authored against the prepare-fetched schema.
+This blueprint provides the mapping rules an AI uses when authoring that transform.
 
 ## Field-type mapping
 
@@ -95,120 +87,30 @@ load a block with `loadJsonata(blueprintRelPath, 'to_drupal')`.
   type is `entity_reference`. Optionally `settings.handler` overrides the selection
   handler (default `"default"`).
 
-### prelude
+## Field serialization pattern
 
-```jsonata
-/* ── module dependency lookup ── */
-$moduleFor := function($t) {(
-  $t = 'string'            ? 'text'  :
-  $t = 'text'              ? 'text'  :
-  $t = 'text_with_summary' ? 'text'  :
-  $t = 'formatted_text'    ? 'text'  :
-  $t = 'integer'           ? 'core'  :
-  $t = 'boolean'           ? 'core'  :
-  $t = 'link'              ? 'link'  :
-  $t = 'image'             ? 'image' :
-  $t = 'reference'         ? 'core'  :
-  'core'
-)};
+The transform produces two config-name/data units per field — one `field.storage.*` and one
+`field.field.*` — using the type mapping table above.
 
-/* ── Drupal storage type lookup ── */
-$drupalType := function($t) {(
-  $t = 'string'            ? 'string'           :
-  $t = 'text'              ? 'text_long'         :
-  $t = 'text_with_summary' ? 'text_with_summary' :
-  $t = 'formatted_text'    ? 'text_long'         :
-  $t = 'integer'           ? 'integer'           :
-  $t = 'boolean'           ? 'boolean'           :
-  $t = 'link'              ? 'link'              :
-  $t = 'image'             ? 'image'             :
-  $t = 'reference'         ? 'entity_reference'  :
-  $t
-)};
+**`field.storage.<et>.<name>` shape:**
+- `config_name`: `"field.storage." + et + "." + name`
+- `data.type`: Drupal storage type from the mapping table
+- `data.module`: module from the mapping table; omit from `dependencies` if `"core"`
+- `data.settings`: `{ target_type }` for `reference` fields; `{}` otherwise
+- `data.cardinality`: `-1` if `field.multiple = true`, else `1`
+- `data.id`: `et + "." + name`; `data.field_name`: `name`; `data.entity_type`: `et`
+- Always: `langcode: "en"`, `status: true`, `locked: false`, `translatable: true`, `indexes: {}`
 
-/* ── build field.storage.<et>.<name> ── */
-$fieldToStorage := function($et, $name, $field) {(
-  $ft      := $field.type;
-  $dt      := $drupalType($ft);
-  $mod     := $moduleFor($ft);
-  $deps    := $mod = 'core' ? {} : {"module": [$mod]};
-  {
-    "config_name": "field.storage." & $et & "." & $name,
-    "data": {
-      "langcode":     "en",
-      "status":       true,
-      "dependencies": $deps,
-      "id":           $et & "." & $name,
-      "field_name":   $name,
-      "entity_type":  $et,
-      "type":         $dt,
-      "settings":     $ft = 'reference'
-                        ? {"target_type": $field.settings.target_type}
-                        : {},
-      "module":       $mod,
-      "locked":       false,
-      "cardinality":  $field.multiple = true ? -1 : 1,
-      "translatable": true,
-      "indexes":      {}
-    }
-  }
-)};
-
-/* ── bundle type config name lookup ── */
-$bundleConfigName := function($et, $bundle) {(
-  $et = 'node'          ? 'node.type.'          & $bundle :
-  $et = 'media'         ? 'media.type.'         & $bundle :
-  $et = 'block_content' ? 'block_content.type.' & $bundle :
-  $et = 'taxonomy_term' ? 'taxonomy.vocabulary.' & $bundle :
-  null
-)};
-
-/* ── build field.field.<et>.<bundle>.<name> ── */
-$fieldToInstance := function($et, $bundle, $name, $field) {(
-  $ft         := $field.type;
-  $mod        := $moduleFor($ft);
-  $bundleDep  := $bundleConfigName($et, $bundle);
-  $configDeps := $bundleDep
-    ? $sort(["field.storage." & $et & "." & $name, $bundleDep])
-    : ["field.storage." & $et & "." & $name];
-  $deps    := $merge([
-    $mod = 'core' ? {} : {"module": [$mod]},
-    {"config": $configDeps}
-  ]);
-  {
-    "config_name": "field.field." & $et & "." & $bundle & "." & $name,
-    "data": {
-      "langcode":      "en",
-      "status":        true,
-      "dependencies":  $deps,
-      "id":            $et & "." & $bundle & "." & $name,
-      "field_name":    $name,
-      "entity_type":   $et,
-      "bundle":        $bundle,
-      "label":         $field.title ? $field.title : $name,
-      "description":   $field.description ? $field.description : "",
-      "required":      $field.required = true,
-      "translatable":  true,
-      "default_value": [],
-      "field_type":    $drupalType($ft),
-      "settings":      $ft = 'image'
-                         ? {"image_style": $field.settings.image_style}
-                         : $ft = 'reference'
-                         ? {
-                             "handler": $field.settings.handler
-                                          ? $field.settings.handler
-                                          : "default",
-                             "handler_settings": {
-                               "target_bundles": null
-                             }
-                           }
-                         : {}
-    }
-  }
-)};
-```
-
-Entity-type blueprints (e.g. `node.md`, `media.md`) assume these functions are already in
-scope — they must NOT redefine them. The transform step prepends this prelude block to the
-entity-type `to_drupal` expression before evaluation, producing one composited JSONata
-program.
+**`field.field.<et>.<bundle>.<name>` shape:**
+- `config_name`: `"field.field." + et + "." + bundle + "." + name`
+- `data.dependencies.config`: sorted array containing `"field.storage.<et>.<name>"` and the
+  bundle config name (e.g. `node.type.<bundle>`, `media.type.<bundle>`, `block_content.type.<bundle>`,
+  `taxonomy.vocabulary.<bundle>`); omit bundle dep for entity types without a bundle config (e.g. `user`)
+- `data.dependencies.module`: module if not `"core"`
+- `data.settings` special cases:
+  - `image`: `{ image_style: field.settings.image_style }`
+  - `reference`: `{ handler: field.settings.handler ?? "default", handler_settings: { target_bundles: null } }`
+  - all others: `{}`
+- `data.field_type`: Drupal storage type from the mapping table
+- `data.label`: `field.title ?? name`; `data.required`: `field.required === true`
+- Always: `langcode: "en"`, `status: true`, `translatable: true`, `default_value: []`

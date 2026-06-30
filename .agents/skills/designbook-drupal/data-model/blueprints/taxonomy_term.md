@@ -25,60 +25,18 @@ base_fields:
     required: false
 ```
 
-## Drupal Config Export
+## Drupal Config Export Pattern
 
-> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
-> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+The pattern below describes the mapping intent for authoring that transform.
 
-The `to_drupal` block below transforms a taxonomy bundle (vocabulary) definition into
-config-name/data pairs suitable for Drupal config/sync. Input shape:
+**Input:** `{ bundle, def: { fields: { <name>: { type, required?, multiple?, settings? } } } }`
 
-```
-{
-  bundle: "<vocabulary-machine-name>",
-  def: { fields: { <field_name>: { type: "<type>", ... } } }
-}
-```
+**Output config-name units:**
+- `taxonomy.vocabulary.<bundle>` — the vocabulary entity (note: config name uses `taxonomy.vocabulary.*`, NOT `taxonomy_term.type.*`); keys include `name`, `vid` (both from `bundle`), `description` (from `def.purpose`), `hierarchy: 0`, `weight: 0`
+- `field.storage.taxonomy_term.<name>` — one per field (entity type key is `taxonomy_term`), via the field-types serialization pattern
+- `field.field.taxonomy_term.<bundle>.<name>` — one per field, via the field-types serialization pattern
+  - The bundle config dependency in `field.field.*` is `taxonomy.vocabulary.<bundle>`, not `taxonomy_term.type.<bundle>`
 
-Output: `[taxonomy.vocabulary.<bundle>, ...field.storage.taxonomy_term.<name>, ...field.field.taxonomy_term.<bundle>.<name>]`
-
-Note: the Drupal config object name for a taxonomy vocabulary is `taxonomy.vocabulary.<bundle>`,
-not `taxonomy_term.type.<bundle>`. The entity type used for field config keys is `taxonomy_term`.
-
-### to_drupal
-
-```jsonata
-(
-  /* ── taxonomy.vocabulary.<bundle> config entity ── */
-  $vocabulary := {
-    "config_name": "taxonomy.vocabulary." & bundle,
-    "data": {
-      "langcode":    "en",
-      "status":      true,
-      "dependencies": {},
-      "name":        bundle,
-      "vid":         bundle,
-      "description": def.purpose ? def.purpose : "",
-      "hierarchy":   0,
-      "weight":      0
-    }
-  };
-
-  /* ── field configs for every entry in def.fields ── */
-  $fieldNames := $keys(def.fields);
-  $fieldConfigs := $fieldNames.(
-    $name  := $;
-    $field := $lookup($$.def.fields, $name);
-    [
-      $fieldToStorage('taxonomy_term', $name, $field),
-      $fieldToInstance('taxonomy_term', $$.bundle, $name, $field)
-    ]
-  );
-
-  /* ── combine: vocabulary first, then all field configs ── */
-  $append([$vocabulary], $fieldConfigs)
-)
-```
-
-`$fieldToStorage` and `$fieldToInstance` are assumed in scope via the `field-types.md`
-prelude — do not redefine them here.
+All emitted units carry `langcode: "en"`, `status: true`, and a `dependencies` object.
+Field configs are serialized using `$fieldToStorage` / `$fieldToInstance` — see `field-types.md` for the mapping.
