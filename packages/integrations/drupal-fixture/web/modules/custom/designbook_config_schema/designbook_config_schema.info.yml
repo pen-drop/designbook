@@ -1,0 +1,7 @@
+name: 'Designbook Config Schema'
+type: module
+description: 'Drush helper commands for designbook sync: emit JSON Schema and validate config YAML via the typed-config API.'
+core_version_requirement: ^11
+package: Custom
+dependencies:
+  - drupal:config_inspector

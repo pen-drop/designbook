@@ -33,13 +33,14 @@ extensions:
   - id: drupal
     skill: designbook-drupal
 # Backend command strings — interpolated as {{ backend_cmd.* }} by sync tasks.
-# Core runs these opaquely; no drush/Drupal knowledge lives in core. Built on
-# existing drush + config_inspector. Exact schema_cmd/validate_cmd realization is
-# finalized in Plan 3 (still data strings, not authored code).
+# Core runs these opaquely; no drush/Drupal knowledge lives in core.
+# Both commands are provided by the designbook_config_schema drush helper module
+# shipped under web/modules/custom/designbook_config_schema/ in this integration
+# and enabled automatically by scripts/start-drupal-workspace.sh.
 backend_cmd:
   cmd: "ddev drush"
-  schema_cmd: "ddev drush designbook:config-schema"   # prints JSON Schema for a config name (existing typed-config/config_inspector capability)
-  validate_cmd: "ddev drush config:inspect --detail"  # non-zero exit on schema violation
+  schema_cmd: "ddev drush designbook:config-schema"   # prints JSON Schema for a config name; append config name
+  validate_cmd: "ddev drush designbook:config-validate"  # exit non-zero + violations on stderr when invalid; append config name + yaml path
 ```
 
 The port in `designbook.url` must match the `-p` argument of the `storybook` script in
@@ -57,9 +58,11 @@ during install for plain CSS.
 
 The `backend_cmd` block is **data only** — its values are consumed as
 `{{ backend_cmd.cmd }}`, `{{ backend_cmd.schema_cmd }}`, and
-`{{ backend_cmd.validate_cmd }}` by sync tasks (Plan 3). Core runs the resulting
-command strings opaquely: no drush or Drupal knowledge lives in core. The three
-commands are built on the existing `drush` CLI and the `config_inspector` module
-capability already present in a Drupal install. The exact realization of
-`schema_cmd` and `validate_cmd` is finalized in Plan 3; they remain plain data
-strings here.
+`{{ backend_cmd.validate_cmd }}` by sync tasks. Core runs the resulting command strings
+opaquely: no drush or Drupal knowledge lives in core.
+
+`schema_cmd` calls `designbook:config-schema <config_name>` → JSON Schema on stdout,
+exit 0. `validate_cmd` calls `designbook:config-validate <config_name> <yaml_path>` →
+exit 0 when valid; exit 1 + violation JSON on stderr when invalid. Both commands are
+implemented in `web/modules/custom/designbook_config_schema/` (shipped with this
+integration) and enabled by `scripts/start-drupal-workspace.sh`.

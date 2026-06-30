@@ -9,5 +9,6 @@ cd "$WS"
 ddev start
 [ -f "$WS/db.sql.gz" ] && ddev import-db --file="$WS/db.sql.gz"
 ddev drush theme:enable "$THEME" -y
+ddev drush pm:enable designbook_config_schema -y
 ddev drush status
 echo "✓ Drupal up for workspace $NAME (theme $THEME enabled)"
