@@ -40,10 +40,9 @@ Each unit is one Drupal configuration object (one `.yml` file in the config/sync
 
 **For a content bundle slice** (`data_model.content.<entity_type>.<bundle>`) that matches the filter, emit these units in order:
 
-1. One bundle-type unit: `config_name = <et>.type.<bundle>` (e.g. `node.type.article`). Carries `entity_type`, `bundle`, `def`.
-   - For `taxonomy_term` use `taxonomy.vocabulary.<bundle>` instead of `taxonomy_term.type.<bundle>`.
-   - For `media` use `media.type.<bundle>`.
-   - For `block_content` use `block_content.type.<bundle>`.
+1. One bundle-type unit: `config_name = <et>.type.<bundle>` (e.g. `node.type.article`, `media.type.image`, `block_content.type.basic`). Carries `entity_type`, `bundle`, `def`.
+   - The standard pattern is `<et>.type.<bundle>` — applies to `node`, `media`, `block_content`, and all other content entity types.
+   - The single exception is `taxonomy_term`: use `taxonomy.vocabulary.<bundle>` instead of `taxonomy_term.type.<bundle>`.
 2. For each field in `def.fields`, one storage unit: `config_name = field.storage.<et>.<field_name>`. Carries `entity_type`, `field_name`, `def` (the field def from `def.fields.<field_name>`). Deduplicate storage units by `config_name` across all bundles — emit only once per unique `field.storage.*` name.
 3. For each field in `def.fields`, one instance unit: `config_name = field.field.<et>.<bundle>.<field_name>`. Carries `entity_type`, `bundle`, `field_name`, `def` (the field def).
 4. For each view mode in `def.view_modes` (if present), one display unit: `config_name = core.entity_view_display.<et>.<bundle>.<view_mode>`. Carries `entity_type`, `bundle`, `def` (the view-mode def from `def.view_modes.<view_mode>`).

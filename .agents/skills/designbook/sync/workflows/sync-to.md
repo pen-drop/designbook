@@ -13,12 +13,6 @@ params:
       defined in the data model. Non-empty keys narrow the export to the specified
       entity types / bundles or config keys.
     default: {}
-  with_deps:
-    type: boolean
-    description: >
-      When true, follow inter-entity dependencies (e.g. field storage shared across
-      bundles) and include them in the export even if not explicitly filtered.
-    default: true
   config_sync_dir:
     type: string
     description: Absolute path to the Drupal config-sync directory where YAML files are written.
@@ -31,10 +25,6 @@ stages:
     steps: [resolve-filter]
   transform:
     steps: [transform]
-  resolve-deps:
-    steps: [resolve-deps]
-  write-config:
-    steps: [write-config]
   sync:
     steps: [sync]
   outtake:

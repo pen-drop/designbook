@@ -1,10 +1,10 @@
 ---
-title: "Transform config-name unit to Drupal config data"
+title: "Transform config-name unit to Drupal config YAML"
 trigger:
   steps: [sync-to:transform]
 params:
   type: object
-  required: [units, backend_cmd]
+  required: [units, backend_cmd, config_sync_dir]
   properties:
     units:
       type: array
@@ -32,16 +32,20 @@ params:
             the config name and yaml path before running
             (e.g. "ddev drush designbook:config-validate").
           examples: ["ddev drush designbook:config-validate"]
+    config_sync_dir:
+      type: string
+      description: Absolute path to the Drupal config-sync directory where YAML files are written.
+      resolve: config_sync_dir
 result:
   type: object
-  required: [data]
+  required: [config-file]
   properties:
-    data:
-      path: "$DESIGNBOOK_DATA/sync/{{ unit.config_name }}.yml"
+    config-file:
+      path: "{{ config_sync_dir }}/{{ unit.config_name }}.yml"
       description: >
-        The Drupal configuration payload for this unit. Written verbatim to the
-        config/sync directory by write-config. Shape is authoritative from the
-        prepare-fetched schema (stored as prepared).
+        The Drupal configuration YAML file written directly to the config-sync directory.
+        Filename derives from the iteration binding unit.config_name. Shape is
+        authoritative from the prepare-fetched schema (stored as prepared).
       prepare:
         cmd: "{{ backend_cmd.schema_cmd }} {{ unit.config_name }}"
         as: prepared
@@ -58,12 +62,12 @@ each:
 
 # Transform
 
-Author and run a per-config-name JSONata to produce the Drupal configuration data for one unit.
+Author and run a per-config-name JSONata to produce the Drupal configuration YAML for one unit, written directly to the config-sync directory.
 
-## Result: data
+## Result: config-file
 
-For each unit, the result is the configuration payload object — not an envelope; the `config_name` comes from the iteration binding `unit.config_name`.
+For each unit, the result is the Drupal config YAML file at `{{ config_sync_dir }}/{{ unit.config_name }}.yml` — one file per config name, written as the terminal step.
 
 The shape is authoritative from `prepared` (the JSON Schema fetched by the `prepare` cmd for this config name). Use `prepared` as the primary guide for what properties to produce and which are required.
 
-For the JSONata at the generator path: read the matching blueprint's `### to_drupal` block (the blueprint for `unit.entity_type` + the `field-types` prelude for field units, or the config-type blueprint for config-slice units) — this is the pattern to follow when authoring the transform. Run the authored JSONata over `unit` (binding `unit.entity_type`, `unit.bundle`, `unit.field_name`, `unit.def` as needed) to produce the config payload.
+For the JSONata at the generator path: read the matching blueprint's `### to_drupal` block (the blueprint for `unit.entity_type` + the `field-types` prelude for field units, or the config-type blueprint for config-slice units) — this is the pattern to follow when authoring the transform. Run the authored JSONata over `unit` (binding `unit.entity_type`, `unit.bundle`, `unit.field_name`, `unit.def` as needed) to produce the config payload written to `{{ file }}`.

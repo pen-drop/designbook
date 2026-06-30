@@ -118,3 +118,52 @@ None blocking.
 Minor: write-config re-declares `units` as a param (mirrors transform). The engine uses scope flow between stages — this is consistent with how the current write-config declared `config-set` as an explicit param. Both TASK-12 warnings are intentional and documented above.
 
 `resolve-deps.md` still exists and references `DrupalConfigSet`; its retirement is Task 4 scope per the brief.
+
+---
+
+## Fix: transform terminal write
+
+**Date:** 2026-06-30
+
+### Root cause resolved
+
+The data handoff between transform and write-config was split across two stages, with transform writing intermediate data to `$DESIGNBOOK_DATA/sync/` and write-config copying it to `config_sync_dir`. The `validate_cmd` requires a YAML file (`{{ file }}`), the Plan-2 engine validates a FILE result's parsed content against the prepare-fetched schema, and `generator` requires the `.jsonata` artifact. This means transform must be the terminal writer and write-config is redundant.
+
+### Changes
+
+**`tasks/transform.md`**
+- Result key renamed `data` → `config-file` (file result)
+- Path changed from `$DESIGNBOOK_DATA/sync/{{ unit.config_name }}.yml` → `{{ config_sync_dir }}/{{ unit.config_name }}.yml` (terminal config-sync dir)
+- `config_sync_dir` added to `params` (with `resolve: config_sync_dir`, mirroring sync-to.md / old write-config.md)
+- `prepare`, `generator`, `validators` retained on the `config-file` result
+- Body updated: instructs agent that this is the terminal write step; uses `{{ file }}` reference
+
+**`workflows/sync-to.md`**
+- Dropped `resolve-deps` stage (Drupal `cim` owns dependency wiring; resolve-deps.md file kept for Task 4)
+- Dropped `write-config` stage (transform is now the terminal writer)
+- New stage order: `intake → resolve-filter → transform → sync → outtake`
+- `with_deps` param removed (consumed only by resolve-deps which is now dropped from the pipeline)
+
+**`tasks/write-config.md`**
+- Deleted via `git rm` — transform is the terminal writer
+
+**`tasks/resolve-filter.md`**
+- Fixed bundle-type exception wording: `media` and `block_content` are NOT exceptions — they follow the standard `<et>.type.<bundle>` pattern. Only `taxonomy_term` is a real exception (`taxonomy.vocabulary.<bundle>`).
+
+### Validator results
+
+| File | Errors | Warnings | Notes |
+|---|---|---|---|
+| `sync/tasks/transform.md` | 0 | 1 | TASK-12 on `config-file`: file result without $ref — expected/intentional (prepare-fetched dynamic schema) |
+| `sync/workflows/sync-to.md` | 0 | 0 | Clean; WORKFLOW-01 pass (all step names plain) |
+| `sync/tasks/resolve-filter.md` | 0 | 0 | Clean |
+
+### pnpm check
+
+**Green.** 96 test files, 1030 tests passed.
+
+### Pipeline param flow confirmed
+
+- resolve-filter outputs `units: ConfigNameUnit[]`
+- transform consumes `units` + `backend_cmd` + `config_sync_dir`, iterates via `each: unit`, writes `{{ config_sync_dir }}/{{ unit.config_name }}.yml` as the terminal file
+- No further write step
