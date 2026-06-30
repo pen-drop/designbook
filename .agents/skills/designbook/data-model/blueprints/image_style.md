@@ -34,8 +34,7 @@ bundle_properties:
 
 ## Drupal Config Export
 
-The `to_drupal` block transforms a `config.image_style.<key>` definition into a `DrupalConfigEntity[]`
-suitable for Drupal config/sync. Input shape:
+The `to_drupal` block transforms a `config.image_style.<key>` definition into one or more config-name units per config-file entry suitable for Drupal config/sync. Input shape:
 
 ```
 {

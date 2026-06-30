@@ -58,11 +58,14 @@ suggests:
 
 # Blueprint: Field Types
 
+> **Generator pattern.** The JSONata prelude below is the reference pattern for the generated transform.
+> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+
 Shared JSONata serialization layer for Drupal config export. Provides
 `$fieldToStorage` and `$fieldToInstance` functions that transform one
-Designbook field definition into a `DrupalConfigEntity[]` pair — one
-`field.storage.*` record and one `field.field.*` record — satisfying the
-`DrupalConfigEntity` contract from `designbook/sync/schemas.yml`.
+Designbook field definition into a config-name/data pair — one
+`field.storage.*` record and one `field.field.*` record — following the
+config-name/data shape used by the sync transform stage.
 
 ## JSONata block naming convention
 

@@ -35,7 +35,10 @@ view_modes:
 
 ## Drupal Config Export
 
-The `to_drupal` block transforms a `config.view.<key>` definition into a `DrupalConfigEntity[]`
+> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
+> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+
+The `to_drupal` block transforms a `config.view.<key>` definition into config-name/data pairs
 suitable for Drupal config/sync. Input shape:
 
 ```

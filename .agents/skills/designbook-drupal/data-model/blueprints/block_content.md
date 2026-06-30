@@ -25,8 +25,11 @@ base_fields:
 
 ## Drupal Config Export
 
+> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
+> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+
 The `to_drupal` block below transforms a block_content bundle definition into
-`DrupalConfigEntity[]` suitable for Drupal config/sync. Input shape:
+config-name/data pairs suitable for Drupal config/sync. Input shape:
 
 ```
 {

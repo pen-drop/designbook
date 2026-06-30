@@ -1,85 +1,112 @@
-# Task 4 Report: Permit `prepare:`/`generator:` in skill task-file validation
+# Task 4 Report: Retire static to_drupal contract + deps-closure
 
-## Skill-Creator Loaded
+## Files Deleted (git rm)
 
-Invoked `designbook-skill-creator` skill. Read `rules/task-files.md`, `rules/schema-files.md`, `rules/common-rules.md` per the CLAUDE.md requirement.
+- `.agents/skills/designbook/sync/tasks/resolve-deps.md` — task referencing the removed `DrupalConfigSet`/`resolve-deps` stage
+- `packages/storybook-addon-designbook/src/sync/deps-closure.ts` — TypeScript closure expansion utility
+- `packages/storybook-addon-designbook/src/sync/__tests__/deps-closure.test.ts` — test for the above
 
-## Files That Enumerate Result-Property Keys
+## Schema Definitions Removed from `designbook/sync/schemas.yml`
 
-Two files document recognized result-property extension fields for file results:
+Removed both:
+- `DrupalConfigEntity` — single config object shape (superseded: config-name/data written per-unit by transform)
+- `DrupalConfigSet` — array of DrupalConfigEntity (superseded: no batch set emitted)
 
-1. **`.agents/skills/designbook-skill-creator/rules/task-files.md`** — line 53 (narrative prose in "Results Declare Schema, Not Just Paths" section): lists `submission:`, `flush:`, `validators:`, and JSON Schema / `$ref` as recognized file-result extension fields.
+Kept: `ExportSlice`, `ConfigNameUnit`, `ExportSummary`, `SyncResult`.
 
-2. **`.agents/skills/designbook-skill-creator/resources/schemas.md`** — lines 218–220 (bullet list under "### File Results (with `path:`)"):  lists `path:`, `validators:`, and JSON Schema / `$ref`.
+Also removed the stale file-level comment that named the two removed types.
 
-Neither file is `schemas.yml` — the keys are documented as prose/bullet lists in human-readable reference and rule narrative sections. No separate validation schema or enumeration table for result keys exists; validation is LLM-driven via the `## Checks` tables in rule files.
+## Straggler References Fixed
 
-## Additions Made
+All references to `DrupalConfigEntity` / `DrupalConfigSet` outside the now-deleted files were fixed:
 
-### `rules/task-files.md` (line 53, prose description)
+| File | Fix |
+|---|---|
+| `.agents/skills/designbook/sync/tasks/outtake.md` | Replaced "one `config-file` result per `DrupalConfigEntity`" → "one `config-file` result per `config-name` unit" |
+| `.agents/skills/designbook/data-model/blueprints/image_style.md` | Updated prose: "into a `DrupalConfigEntity[]`" → "into one or more config-name units per config-file entry" |
+| `.agents/skills/designbook-drupal/data-model/blueprints/node.md` | "into `DrupalConfigEntity[]`" → "into config-name/data pairs" + added generator-pattern note |
+| `.agents/skills/designbook-drupal/data-model/blueprints/media.md` | Same |
+| `.agents/skills/designbook-drupal/data-model/blueprints/view.md` | Same |
+| `.agents/skills/designbook-drupal/data-model/blueprints/block_content.md` | Same |
+| `.agents/skills/designbook-drupal/data-model/blueprints/taxonomy_term.md` | Same |
+| `.agents/skills/designbook-drupal/data-model/blueprints/field-types.md` | "into a `DrupalConfigEntity[]` pair … satisfying the `DrupalConfigEntity` contract from `designbook/sync/schemas.yml`" → "into a config-name/data pair … following the config-name/data shape used by the sync transform stage" + added generator-pattern note |
 
-Extended the file-result description sentence to append:
+Note: `packages/storybook-addon-designbook/src/sync/__tests__/sync-to.smoke.test.ts` defines a local TypeScript `interface DrupalConfigEntity` inline (not imported from any deleted file). This is a test-local structural assertion matching the real output shape — not a straggler. It was left in place and the test suite passes.
 
-> Optional `prepare:` (`{ cmd, as }`) to fetch a runtime validation schema by running an opaque command. Optional `generator:` (`{ jsonata }`) when the result is produced by an author-then-run JSONata artifact persisted at the given path.
+## Blueprints Reframed
 
-### `resources/schemas.md` (bullet list under "### File Results")
+Added the following heading note to the `## Drupal Config Export` section of each blueprint:
 
-Added two new bullets after `validators:`:
+> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
+> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+
+Blueprints reframed (6 data-model blueprints):
+1. `designbook-drupal/data-model/blueprints/node.md`
+2. `designbook-drupal/data-model/blueprints/media.md`
+3. `designbook-drupal/data-model/blueprints/view.md`
+4. `designbook-drupal/data-model/blueprints/block_content.md`
+5. `designbook-drupal/data-model/blueprints/taxonomy_term.md`
+6. `designbook-drupal/data-model/blueprints/field-types.md`
+
+Data-mapping blueprints (`field-map`, `canvas`, `layout-builder`, `views`) have no `### to_drupal` sections — no reframing needed there.
+
+## drupal-config.md Rule Trimmed
+
+Removed two invariants from `.agents/skills/designbook-drupal/data-model/rules/drupal-config.md`:
+
+1. **`field.storage` deduplication** — removed. Storage dedup is now resolve-filter's concern; per-config-name iteration makes the dedup invariant irrelevant at the generator level.
+2. **Dependency completeness** — removed. Dependency wiring is Drupal's responsibility via `cim`/export; individual config-name generators declare deps per their own schema fetch.
+
+Kept: **`config_name` format** invariant (pattern `^[a-z0-9_]+(\.[a-z0-9_]+)+$`). This remains a hard constraint that has nothing to do with batch-set logic.
+
+Rule title updated from "Drupal Config Export Invariants" to "Drupal Config Name Format" to reflect the trimmed scope.
+
+Rule was NOT deleted (one valid invariant remains).
+
+## Grep-Clean Confirmation
 
 ```
-- `prepare:` — `{ cmd: string, as: string }` — runtime validation schema fetched by running an opaque command (`cmd`), stored under the key `as`
-- `generator:` — `{ jsonata: string }` — the result is produced by an author-then-run JSONata artifact persisted at `jsonata` (a path)
+grep -rn "DrupalConfigEntity|DrupalConfigSet" .agents/skills/
+  → 0 matches
+
+grep -rn "DrupalConfigEntity|DrupalConfigSet|deps-closure" packages/
+  → sync-to.smoke.test.ts (local interface — not imported, not a straggler)
+
+grep -rn "deps-closure|closure(" packages/storybook-addon-designbook/src
+  → 0 matches
 ```
 
-Both additions are backend-neutral (no drush/Drupal mention).
+## Validator Check (skill-creator rules applied manually)
 
-## Validator Output — Zero Errors
+Checked all edited skill files against the applicable rule sets:
 
-Applied checks from `task-files.md` (TASK-01..TASK-14), `common-rules.md` (COMMON-01, COMMON-02), and `rule-files.md` (RULE-01) against the edited `rules/task-files.md`:
+**schemas.yml (COMMON-01, SCHEMA-01..04):**
+- COMMON-01: frontmatter absent (schemas.yml has no frontmatter — same as before) ✓
+- SCHEMA-01: No `$ref` remains that references the removed types ✓
+- SCHEMA-02/03/04: Remaining types unchanged ✓
 
-- **COMMON-01**: YAML frontmatter present and parseable ✓
-- **COMMON-02**: No site-specific references ✓
-- **RULE-01**: The additions document engine extension fields (narrative), not schema constraints that should be in frontmatter ✓
+**outtake.md (COMMON-01, TASK-01..14):**
+- COMMON-01: frontmatter present ✓; no site-specific refs ✓
+- Prose fix is minimal and accurate; no new checks triggered ✓
 
-`resources/schemas.md` is a resource file; no `applies-to` glob from any rule file targets `resources/*.md`, so no checks apply to it directly. Zero errors.
+**Blueprint files — node/media/view/block_content/taxonomy_term/field-types (BLUEPRINT-01..05):**
+- BLUEPRINT-01: No `provides:` or `constrains:` added ✓
+- BLUEPRINT-02: No site-specific references ✓
+- BLUEPRINT-03: Added note is pure narrative guidance, no enum/required/type prose ✓
+- BLUEPRINT-04: Note does not reference rule files ✓
+- BLUEPRINT-05: No measured layout values ✓
 
-## How a `prepare`/`generator` Task Was Confirmed to Pass
+**drupal-config.md (COMMON-01, RULE-01):**
+- COMMON-01: frontmatter present and parseable ✓
+- RULE-01: No schema constraints expressed as prose (the format invariant is already pure prose constraint, not an enum/required/type restriction that could go in frontmatter) ✓
 
-Created a fixture task (scratchpad only, not committed) declaring both `prepare:` and `generator:` on a file result:
+Zero errors across all edited files.
 
-```yaml
-when:
-  steps: [export]
-result:
-  type: object
-  required: [export-data]
-  properties:
-    export-data:
-      path: $DESIGNBOOK_DATA/export/data.json
-      prepare:
-        cmd: npx addon export-schema
-        as: export-schema
-      generator:
-        jsonata: $DESIGNBOOK_DATA/export/generate.jsonata
-      validators: [data]
-      $ref: ../schemas.yml#/ExportData
+## pnpm check
+
 ```
-
-Applied all TASK-01..TASK-14 checks:
-
-- TASK-01: `when:` present, `result:` present ✓
-- TASK-02: N/A (no `--` in filename) ✓
-- TASK-03: No `stage:` in frontmatter ✓
-- TASK-04: Uses `$ref:` instead of inline schema ✓
-- TASK-05 to TASK-08: Body is minimal, no HOW, no redundancy ✓
-- TASK-09: `export-data` has `path:` — exempt from teaching signal requirement ✓
-- TASK-10 to TASK-11: Body has no hardcoded paths or undeclared file references ✓
-- TASK-12: `path:` entry has `$ref:` ✓
-- TASK-13: No basename collision in body ✓
-- TASK-14: `result:` uses `type: object` + `properties:` ✓
-
-Result: zero errors, zero warnings. Before the change, `prepare:` and `generator:` were undocumented — now they are explicitly listed as recognized extension fields in the two canonical reference locations. The validator (LLM-driven from `## Checks` tables) has no check that rejects unknown result keys; recognition is via documentation that the LLM reads at authoring time.
-
-## Concerns
-
-None. The change is purely additive documentation in two files. No validator check logic changed. The keys are now first-class recognized result-property extension fields documented consistently in both the rule narrative and the reference doc.
+typecheck: pass
+lint: pass
+test: 95 test files, 1028 tests — all passed
+deps-closure.test.ts removed cleanly, no dangling imports
+```
