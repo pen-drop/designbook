@@ -4,7 +4,7 @@
 
 **Goal:** Migrate the Drupal sync export from static blueprint `to_drupal` JSONata + static `DrupalConfigEntity` validation to the schema-driven `prepare`/`generator` model: the AI generates a per-slice `.jsonata` guided by Drupal's *fetched* config schema, and the result is validated against that fetched schema + `config_inspector` — with the real backend command strings declared in `designbook-drupal` (no new backend code).
 
-**Architecture:** The `sync-to` `transform` task's result gains `prepare: {cmd: <schema_cmd> <config_name>, as: prepared}` (fetch Drupal's expected schema for that config) + `generator: {jsonata: <persisted path>}` (the AI authors the transform, guided by the fetched schema + the blueprint pattern). Validation moves from `schema:DrupalConfigSet` to the prepare-fetched schema + a `cmd: <validate_cmd>` config_inspector cross-check. The static `### to_drupal` blocks become pattern guidance; `DrupalConfigEntity` static `$ref` validation and the dependency-closure step retire (Drupal `cim`/export own dependency wiring).
+**Architecture:** The unit of work shifts from a slice-that-emits-an-array to **one Drupal config name** — because the Plan-2 engine sets ONE `prepare`-fetched schema per ONE result, and a Drupal config schema describes a single config object, not an array. `resolve-filter` expands a slice into its **config-name units** (a node bundle → `node.type.<bundle>` + `field.storage.node.<field>` + `field.field.node.<bundle>.<field>` …, derived from the data model + naming conventions). The `transform` task iterates per config-name: `prepare: {cmd: "<schema_cmd> <config_name>", as: prepared}` fetches that config's schema, `generator: {jsonata: <persisted path>}` has the AI author its transform (guided by the fetched schema + the blueprint pattern), and the result IS the config **data**, validated against the fetched schema + a `cmd: <validate_cmd>` config_inspector cross-check. `write-config` writes `data` → `<config_name>.yml` (config_name from the iteration binding). The static `### to_drupal` blocks become pattern guidance; **`DrupalConfigEntity`/`DrupalConfigSet` are removed entirely** (no envelope needed — config_name is the iteration key, data is the result); the dependency-closure step retires (Drupal `cim`/export own dependency wiring).
 
 **Tech Stack:** Designbook skill files (sync tasks + designbook-drupal blueprints/config), JSONata, the `prepare`/`generator` engine primitives (Plan 2), ddev Drupal fixture (Plan 1) + `config_inspector`, `drush`.
 
@@ -34,9 +34,11 @@ The whole plan hinges on **`schema_cmd`**: a command using only existing drush/`
 ## File Structure (Plan 3)
 
 - Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md` — finalize `backend_cmd.schema_cmd` / `validate_cmd` to the verified real commands (from Task 1).
-- Modify: `.agents/skills/designbook/sync/tasks/transform.md` — result declares `prepare` + `generator`; drop `schema:DrupalConfigSet`; body instructs AI to generate the per-slice jsonata guided by the fetched schema + blueprint pattern.
+- Modify: `.agents/skills/designbook/sync/tasks/resolve-filter.md` — expand each slice into its **config-name units** (a content bundle → `<et>.type.<bundle>` + `field.storage.<et>.<field>` + `field.field.<et>.<bundle>.<field>` …; a config slice → its config name), each carrying the data-model context needed to generate that one config. Emits a list of config-name units.
+- Modify: `.agents/skills/designbook/sync/tasks/transform.md` — `each` iterates config-name units; result per unit declares `prepare` + `generator`; the result IS the config `data` (validated against the fetched schema), not an array; drop `schema:DrupalConfigSet`.
+- Modify: `.agents/skills/designbook/sync/tasks/write-config.md` — write the unit's `data` to `{{ config_sync_dir }}/{{ unit.config_name }}.yml` (config_name from the iteration, no envelope).
 - Modify: `.agents/skills/designbook/sync/workflows/sync-to.md` — drop the `resolve-deps` stage (Drupal owns dependency wiring); keep intake→resolve-filter→transform→write-config→sync→outtake.
-- Modify: `.agents/skills/designbook/sync/schemas.yml` — drop `DrupalConfigSet` (the transform validation contract); KEEP a thin `DrupalConfigEntity` (config_name + data) purely as write-config's write-target shape; keep `ExportSlice`/`ExportSummary`/`SyncResult`.
+- Modify: `.agents/skills/designbook/sync/schemas.yml` — **remove `DrupalConfigEntity` AND `DrupalConfigSet` entirely**; add a thin `ConfigNameUnit` (config_name + the gen context) for resolve-filter's output; keep `ExportSlice`/`ExportSummary`/`SyncResult`.
 - Modify: `.agents/skills/designbook-drupal/data-model/blueprints/{node,media,view,block_content,taxonomy_term,field-types}.md` + `data-mapping/blueprints/{field-map,...}.md` — reframe the `### to_drupal` blocks as **pattern guidance** for the generator (not the executed expression).
 - Delete/retire: `.agents/skills/designbook/sync/tasks/resolve-deps.md` + `packages/storybook-addon-designbook/src/sync/deps-closure.ts` (+ its test) — if Task 4 confirms deps are owned by Drupal.
 - Modify: `.agents/skills/designbook-drupal/data-model/rules/drupal-config.md` — drop the field.storage-dedup/deps invariants that Drupal now owns; keep only what still applies.
@@ -117,17 +119,17 @@ git commit -m "feat(drupal): finalize backend_cmd schema_cmd/validate_cmd to ver
 
 - [ ] **Step 1: Load skill-creator** (task-files + schema-files + common rules). Re-read the current `transform.md`.
 
-- [ ] **Step 2: Rewrite the result declaration**
+- [ ] **Step 2: Iterate per config-name unit + rewrite the result declaration**
 
-Replace the `config-set` result with a per-slice result that:
-- `prepare: { cmd: "{{ backend_cmd.schema_cmd }} {{ slice.<config-name-expr> }}", as: prepared }` — where `<config-name-expr>` resolves the Drupal config name for the slice (content bundle → `<et>.type.<bundle>`; config slice → the `config_key` namespace). The result is validated against this fetched schema.
-- `generator: { jsonata: "$DESIGNBOOK_DATA/sync/{{ slice ... }}.jsonata" }` — the persisted, re-runnable transform path.
+Change `each` to iterate the config-name units from `resolve-filter` (binding e.g. `unit`, each with `unit.config_name` + its gen context). The single result (the config `data`) declares:
+- `prepare: { cmd: "{{ backend_cmd.schema_cmd }} {{ unit.config_name }}", as: prepared }` — fetch that config's Drupal schema; the result `data` is validated against it.
+- `generator: { jsonata: "$DESIGNBOOK_DATA/sync/{{ unit.config_name }}.jsonata" }` — the persisted, re-runnable transform for this one config.
 - `validators: [ "cmd:{{ backend_cmd.validate_cmd }} {{ file }}" ]` — config_inspector cross-check.
-Remove `schema:DrupalConfigSet` and the `$ref: ../schemas.yml#/DrupalConfigSet`.
+Remove `config-set`, `schema:DrupalConfigSet`, and the `$ref: ../schemas.yml#/DrupalConfigSet`. The result is the config `data` object (no `{config_name,data}` envelope — config_name is the iteration key).
 
 - [ ] **Step 3: Rewrite the body**
 
-Instruct the AI: read the matching blueprint `### to_drupal` as the PATTERN; using `prepared` (Drupal's expected schema for this config) as the authoritative shape, author the `.jsonata` at the generator path conforming to it; run it over the slice to produce the config; it is validated against `prepared` + `validate_cmd`. Keep the content/config slice resolution (entity-type vs config-type blueprint) from the current body.
+Instruct the AI: for this config-name unit, read the matching blueprint pattern (entity-type/config-type/field-types `### to_drupal` block) for HOW this config maps from the data model; using `prepared` (Drupal's expected schema for `unit.config_name`) as the authoritative shape, author the `.jsonata` at the generator path conforming to it; run it over `unit`'s gen context to produce the config `data`; it is validated against `prepared` + `validate_cmd`.
 
 - [ ] **Step 4: Validate + check** — skill-creator validator zero errors; `pnpm check` (update any addon test that asserted the old `schema:DrupalConfigSet` transform result). `touch` the file.
 
@@ -144,7 +146,7 @@ git commit -m "feat(sync): transform via prepare/generator (fetched schema + con
 
 **Files:**
 - Modify: `.agents/skills/designbook/sync/workflows/sync-to.md` (drop `resolve-deps` stage)
-- Modify: `.agents/skills/designbook/sync/schemas.yml` (retire `DrupalConfigEntity`/`DrupalConfigSet` as the validation contract)
+- Modify: `.agents/skills/designbook/sync/schemas.yml` (remove `DrupalConfigEntity` AND `DrupalConfigSet` entirely)
 - Delete: `.agents/skills/designbook/sync/tasks/resolve-deps.md`, `packages/storybook-addon-designbook/src/sync/deps-closure.ts` + `__tests__/deps-closure.test.ts`
 - Modify: the `### to_drupal` blueprints (data-model + data-mapping) — reframe as pattern guidance
 - Modify: `.agents/skills/designbook-drupal/data-model/rules/drupal-config.md`
@@ -156,7 +158,7 @@ git commit -m "feat(sync): transform via prepare/generator (fetched schema + con
 
 - [ ] **Step 2: Drop `resolve-deps`** from `sync-to.md` stages; delete `resolve-deps.md` + `deps-closure.ts` + its test. (Drupal `cim`/export own dependency wiring — confirm Task 1/5 import works without our closure.)
 
-- [ ] **Step 3: Retire the static *validation* contract** — drop `DrupalConfigSet` and the `schema:DrupalConfigSet` validator from the transform (done in T3). KEEP a thin `DrupalConfigEntity` (`config_name` + `data`) in `sync/schemas.yml` purely as write-config's write-target shape (write-config still `$ref`s it for the file shape + js-yaml parse). Keep `ExportSlice`, `ExportSummary`, `SyncResult`.
+- [ ] **Step 3: Remove `DrupalConfigEntity` + `DrupalConfigSet` entirely** from `sync/schemas.yml` — both are superseded (config_name = iteration key; data-shape = the prepare-fetched Drupal schema). write-config no longer `$ref`s them (Task 3 repointed it to write `unit.data` → `{{ unit.config_name }}.yml` with a `cmd:npx js-yaml {{ file }}` parse check). Keep `ExportSlice`, `ExportSummary`, `SyncResult`; the new `ConfigNameUnit` is added (File Structure).
 
 - [ ] **Step 4: Reframe the `### to_drupal` blocks** in `node/media/view/block_content/taxonomy_term/field-types` (+ data-mapping `field-map` etc.) as **pattern/guidance** for the generator (a heading note: "Pattern for the generated transform; the concrete jsonata is authored per task against the prepare-fetched schema"). Do NOT delete the patterns — they guide generation.
 
@@ -205,4 +207,5 @@ git commit --allow-empty -m "test(sync): e2e schema-driven export verified again
 - **Spec coverage:** schema_cmd/validate_cmd realized + verified (T1/T2); transform → prepare/generator with fetched-schema validation (T3); static `to_drupal`/`DrupalConfigEntity`/deps-closure retired, blueprints become patterns (T4); e2e + negative + re-export against the fixture (T5). Backend-neutral (commands as config; no new backend code). design-*/entity-mapping untouched.
 - **Linchpin honesty:** Task 1 is an explicit GO/NO-GO; if existing drush can't emit JSON Schema, the plan stops for a fallback decision rather than inventing backend code. Tasks 2–5 are contingent on Task 1 GO.
 - **Placeholder scan:** Task 1 is investigation (no fabricated commands — it derives them); later tasks reference Task 1's verified strings rather than guessing. The `<config-name-expr>` in T3 is described by its mapping rule (content → `<et>.type.<bundle>`; config → config_key) — confirm exact JSONata against the slice shape when implementing.
-- **Type consistency:** `ExportSlice`/`ExportSummary`/`SyncResult` retained; `DrupalConfigSet` (transform validation contract) removed from transform; thin `DrupalConfigEntity` KEPT as write-config's write-target shape — so write-config's per-entity `$ref: DrupalConfigEntity` stays valid. No dangling `$ref`.
+- **Type consistency:** `ExportSlice`/`ExportSummary`/`SyncResult` retained; `DrupalConfigEntity` AND `DrupalConfigSet` removed entirely. New `ConfigNameUnit` (resolve-filter output) flows into transform's `each`. write-config no longer `$ref`s a removed schema — it writes `unit.data` → `{{ unit.config_name }}.yml`. Confirm NO file still `$ref`s `DrupalConfigEntity`/`DrupalConfigSet` after T3/T4 (grep `.agents/skills/designbook/sync`).
+- **Granularity note:** the unit is one Drupal config name (forced by Plan-2's one-schema-per-result `prepare`). A bundle expands to many units (type + per-field storage/instance) → more, smaller `.jsonata` files + a schema fetch per config name. Accepted: this is what makes `prepare`/`generator` validate correctly.
