@@ -1,18 +1,24 @@
 ---
 name: research
-description: Autonomous skill-improvement loop for a single test case. Run case → score → ideate one change via subagent → re-run → keep or discard → repeat until target / iteration cap / plateau.
+description: Autonomous skill-improvement loop with a held-out val gate. Score the train case → ideate one change via subagent → re-score → keep only if a held-out val case-set also improves → repeat until target / iteration cap / plateau.
 ---
 
 # research subcommand
 
 Loaded by `debo-test/SKILL.md` when `debo-test research <suite> <case>` is invoked.
 
+This loop is text-space gradient descent over skill files: the **train case** is
+the forward pass + loss the optimizer sees, a subagent proposes one bounded edit
+(the gradient step), and a **held-out val** case-set is the validation gate that
+decides keep/discard. With no val set it degrades to gating on the train score itself.
+
 ## Inputs
 
 | Variable | Source |
 |---|---|
 | `$SUITE` | arg 2 (`research <suite> ...`) |
-| `$CASE` | arg 3 (`research <suite> <case>`) |
+| `$CASE` | arg 3 (`research <suite> <case>`) — the train case (the one the optimizer optimizes on; also the metric-default source and slug name) |
+| `$VAL_CASES` | `--val-cases <x,y,...>`, default = `[]` (empty → no held-out gate; keep decided on the train score itself) |
 | `$ITERATIONS` | `--iterations N`, default 25 |
 | `$TARGET` | `--target T`, default 100 |
 | `$PLATEAU` | `--plateau M`, default 5 |
@@ -20,6 +26,11 @@ Loaded by `debo-test/SKILL.md` when `debo-test research <suite> <case>` is invok
 | `$SCOPE` | `--scope <glob,glob,...>`, default = files resolved from `tasks.yml` + `packages/storybook-addon-designbook/src/**` |
 | `$METRIC` | `--metric <jsonata>`, default = case yaml `metric:` field, fallback `flowRate` |
 | `$DIRECTION` | `--direction min\|max`, default = case yaml `direction:` field, fallback `max` |
+
+**One metric for the whole loop.** The train case and every val case are scored
+with the SAME `$METRIC` and `$DIRECTION`. Mixing per-case metrics would make the val
+mean meaningless. `$METRIC`/`$DIRECTION` resolve from the `$CASE` yaml (or the CLI
+flags) and apply to every case.
 
 ## Case yaml fields
 
@@ -37,32 +48,88 @@ direction: min
 
 1. Resolve workspace path: `workspaces/$SUITE`.
 2. Run `./scripts/setup-workspace.sh $SUITE`. This deletes any prior workspace and rebuilds from scratch (rsync, symlinks, `git init`, `pnpm install`, baseline commit).
-3. Run `./scripts/setup-test.sh $SUITE $CASE --into workspaces/$SUITE` to layer the case fixtures.
-4. Start Storybook via the addon CLI (cd into the workspace first):
+3. Start Storybook via the addon CLI (cd into the workspace first):
    ```
    eval "$(npx storybook-addon-designbook config)"
    npx storybook-addon-designbook storybook start
    ```
-5. Tag the workspace baseline: `cd workspaces/$SUITE && git tag workspace-baseline`.
-6. Tag the repo baseline: `cd <repo-root> && git tag research-baseline-$(date +%Y-%m-%d-%H%M)`.
+4. **Tag the case-agnostic workspace baseline BEFORE layering any case fixtures:**
+   `cd workspaces/$SUITE && git tag workspace-baseline`. The baseline must contain
+   NO case fixtures so the train case and every val case are layered onto a clean tree.
+5. Tag the repo baseline: `cd <repo-root> && git tag research-baseline-$(date +%Y-%m-%d-%H%M)`.
+6. Resolve the cases:
+   - train case = `$CASE` (single).
+   - `VAL = $VAL_CASES`.
+   - `$CASE` must NOT appear in `VAL` — if it does, error and stop (the gate must be held-out).
+   - Every named case must exist as `fixtures/$SUITE/cases/<case>.yaml` — else list available cases and stop.
 7. Compute the slug: `<YYYY-MM-DD-HHMM>-$SUITE-$CASE`.
-8. Create the run dir: `research-runs/<slug>/` with empty `score-history.tsv` (header row), `overview.md`, `scope.txt`.
+8. Create the run dir: `research-runs/<slug>/` with empty `score-history.tsv` (header row), `overview.md`, `scope.txt`. Write `config.json` recording `$CASE`, `VAL`, `$METRIC`, `$DIRECTION`, `$TARGET`.
+
+## Score-a-case procedure (reused everywhere)
+
+Given an iteration number `N` and a case `c`, produce its metric value:
+
+1. Reset + clean the workspace to the case-agnostic baseline:
+   ```
+   git reset --hard workspace-baseline
+   git clean -fdx designbook/ workflows/
+   ```
+2. Layer case `c`'s fixtures: `./scripts/setup-test.sh $SUITE c --into workspaces/$SUITE`.
+3. Run case `c`'s prompt via a **driver subagent** (do NOT run the workflow inline on
+   the research thread — that would flood the loop's context across 25 iterations × N
+   cases). Use the `Agent` tool, `subagent_type: "general-purpose"`, with the workspace
+   path as its working directory. The driver contract is run.md's, with one override:
+   **research runs never have a user.**
+   - Give it the case `prompt:` (from `fixtures/$SUITE/cases/c.yaml`) verbatim.
+   - Instruct it to drive the full workflow lifecycle inline per
+     `resources/workflow-execution.md` (`workflow create` → task loop → `workflow done`),
+     running every stage inline including `isolate: true` ones (it cannot spawn further
+     subagents).
+   - Every `npx storybook-addon-designbook workflow …` CLI call MUST be invoked with
+     `--log` so dbo.log entries are tagged.
+   - **No user, ever:** if a task/stage needs a decision it cannot answer from the case
+     prompt + data model + fixtures, it MUST fail the run (return `status: error` with
+     the unanswered question) — it must NOT return `status: needs_user` and it must NOT
+     stall waiting. The research loop treats such a return, and any thrown error, as a
+     **crash** for this case (see Decide). A case that keeps needing a user is a fixture
+     defect — fix the fixture, not the loop.
+   - Report contract: return `status: done` plus the `workflow summary --json`, or
+     `status: error` with the reason. No task bodies, rule text, or file contents.
+   - **Friction log (the trajectory signal).** In the same report, return a `friction`
+     list capturing where the driver had to guess, found a task/rule/blueprint
+     ambiguous or contradictory, or could not answer from the inputs. This is the
+     compressed rollout trajectory SkillOpt edits from — far cheaper than the raw
+     transcript and pointed straight at the skill prose that caused trouble. Each entry:
+     ```yaml
+     friction:
+       - locus: <task|rule|blueprint name, e.g. map-entity--design-screen>
+         issue: <one line: what was unclear / contradictory / missing>
+         guessed: <true|false>   # true = had to invent an answer
+     ```
+     Empty list if the run was unambiguous. On `status: error`, the blocking question
+     MUST appear here with `guessed: false`.
+4. Score: `npx storybook-addon-designbook workflow summary --workflow <id> --case ../../fixtures/$SUITE/cases/c.yaml --metric "$METRIC" --json` → write to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`. The returned `metric` value is this case's score.
+5. Generate the audit per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `iterations/<NNN>/cases/c/audit.md`.
+6. Save the dbo.log digest (`digestLog` JSON) → `iterations/<NNN>/cases/c/log-digest.json`.
+7. Save the driver's `friction` list → `iterations/<NNN>/cases/c/friction.json` (`[]` if none).
+8. Return the case's `metric` value, or treat as **crash** if the summary CLI exits non-zero or `metric: null`.
+
+**Score-a-set(`N`, cases):** run Score-a-case for each case in order; the set score is
+the **arithmetic mean** of the case metric values (mini-batch — used for the val set).
+If ANY case in the set crashes, the whole set score is `crash` (no partial mean).
 
 ## Iteration 0 — baseline
 
-1. Inside the workspace, run the case prompt (read `fixtures/$SUITE/cases/$CASE.yaml` `prompt:` field).
-2. Every `npx storybook-addon-designbook workflow …` CLI call inside the case run MUST be invoked with `--log` so dbo.log entries are tagged.
-3. After the run completes, inside the workspace:
-   - `npx storybook-addon-designbook workflow summary --workflow <id> --case ../../fixtures/$SUITE/cases/$CASE.yaml --metric "$METRIC" --json` → write to `research-runs/<slug>/iterations/000-baseline/summary.json`. The returned `metric` value is the score for this iteration.
-4. Generate the audit table per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `research-runs/<slug>/iterations/000-baseline/audit.md`.
-5. Save the dbo.log digest: copy the JSON output of `digestLog` (or run a small node one-liner that imports it) → `iterations/000-baseline/log-digest.json`.
-6. Append a row to `score-history.tsv`:
+1. `train_score` = Score-a-case(`000-baseline`, `$CASE`).
+2. `val_score` = Score-a-set(`000-baseline`, VAL) if VAL non-empty, else `—`.
+3. Set `best_train = train_score`; `best_val = val_score`. The **gate metric** is
+   `val_score` when VAL is non-empty, otherwise `train_score`. `best_gate` tracks it.
+4. Append a row to `score-history.tsv`:
    ```
-   iter	hypothesis	score	flow_rate	first_shot	final	delta	decision
-   0	baseline	<score>	<flow_rate or —>	<first_shot or —>	<final or —>	—	keep
+   iter	hypothesis	train	val	gate	delta	decision
+   0	baseline	<train_score>	<val_score or —>	<best_gate>	—	keep
    ```
-   Where `score` is the `metric` value returned by the summary CLI; `flow_rate`, `first_shot`, and `final` are logged from the summary JSON when present, otherwise `—`.
-7. If `$BASELINE_ONLY`: print the baseline score and stop.
+5. If `$BASELINE_ONLY`: print the baseline train/val scores and stop.
 
 ## Loop iteration N (N ≥ 1)
 
@@ -74,15 +141,19 @@ Write/refresh these files under `research-runs/<slug>/`:
 
 ### 2. Dispatch subagent
 
-Use the `Agent` tool with `subagent_type: "general-purpose"`. Pass this prompt verbatim, replacing `<slug>` and `<N-1>`:
+Use the `Agent` tool with `subagent_type: "general-purpose"`. The optimizer sees the
+**train case** only — never the val set (that would defeat the held-out gate). Pass
+this prompt verbatim, replacing `<slug>`, `<N-1>`, and `<case>`:
 
 ```
-Goal: propose ONE change to improve composite score on this run.
+Goal: propose ONE change to improve the train score on this run.
 
-Context bundle (read these files):
-- research-runs/<slug>/iterations/<N-1>/audit.md
-- research-runs/<slug>/iterations/<N-1>/log-digest.json
-- research-runs/<slug>/iterations/<N-1>/summary.json
+Context bundle (read these files for the train case <case>):
+- research-runs/<slug>/iterations/<N-1>/cases/<case>/audit.md
+- research-runs/<slug>/iterations/<N-1>/cases/<case>/log-digest.json
+- research-runs/<slug>/iterations/<N-1>/cases/<case>/friction.json   ← where the driver guessed / hit ambiguity; prioritise fixing these
+- research-runs/<slug>/iterations/<N-1>/cases/<case>/summary.json
+Plus:
 - research-runs/<slug>/score-history.tsv
 - research-runs/<slug>/scope.txt
 - research-runs/<slug>/last-kept.patch  (skip if missing)
@@ -90,6 +161,10 @@ Context bundle (read these files):
 Constraints:
 - One change. One file. Smallest possible diff.
 - Only edit files listed in scope.txt.
+- Prefer a change that resolves a `friction` entry (especially `guessed: true` or an
+  error locus) — ambiguity the driver hit is higher-signal than score noise. Make the
+  skill prose answer it so the next run need not guess.
+- Aim for a change that generalises, not one tuned to this single fixture — the held-out val set will reject overfits.
 - Avoid hypotheses already discarded (see decision column in score-history.tsv).
 - Read the file before editing.
 
@@ -103,48 +178,50 @@ Return: a one-paragraph hypothesis followed by a unified diff in your final mess
 3. Validate scope: `git apply --check iterations/<N>/proposed.patch` from the repo root. If patch fails check, OR diff touches a file not in scope.txt → mark as `ideate-failed`, re-dispatch with hint (max 3 ideate-failures in a row → bail).
 4. Apply: `git apply iterations/<N>/proposed.patch` (no commit yet).
 
-### 4. Reset workspace
+### 4. Re-score the train case
 
-Inside the workspace:
-```
-git reset --hard workspace-baseline
-git clean -fdx designbook/ workflows/
-```
+`train_score` = Score-a-case(`<NNN>`, `$CASE`). (Score-a-case handles the workspace
+reset + fixture re-layer, so runs never contaminate each other.)
 
-### 5. Re-verify + score
+### 5. Validation gate
 
-Re-run the case prompt with `--log` on every `npx storybook-addon-designbook workflow …` call, then:
-- `npx storybook-addon-designbook workflow summary --workflow <id> --case <path> --metric "$METRIC" --json` → `iterations/<N>/summary.json`. The returned `metric` value is the score for this iteration.
-- Generate audit per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `iterations/<N>/audit.md`
-- Generate digest → `iterations/<N>/log-digest.json`
+- If `train_score` is `crash` → handle as **crash** (see Decide), skip val.
+- If VAL is empty → the gate metric is `train_score`; skip to Decide.
+- If VAL is non-empty → only compute val when the train step improved on `best_train`
+  per `$DIRECTION` (no point gating an edit the optimizer itself didn't help on):
+  - train did NOT improve → decision is `discard` immediately; record `val: —`.
+  - train improved → `val_score` = Score-a-set(`<NNN>`, VAL). The gate metric is `val_score`.
 
 ### 6. Decide
 
-Read the `metric` value from `iterations/<N>/summary.json` and compare it with the **best-so-far** score (best from previous keeps + baseline), applying `$DIRECTION`:
-- `max` (higher-is-better): new score is an improvement when `new > best`.
-- `min` (lower-is-better): new score is an improvement when `new < best`.
+`improves(a, b)` = `a < b` when `$DIRECTION` is `min`, `a > b` when `max`.
+Compare the **gate metric** (val_score if VAL non-empty, else train_score) against `best_gate`:
 
 | Outcome | Condition | Action |
 |---|---|---|
-| keep | new score is better than best per `$DIRECTION` | Repo root: `git commit -am "experiment: <hypothesis-headline>"`. Update best. |
-| discard | new score is not better, no crash | Repo root: `git restore <files-touched-by-patch>`. |
-| crash | re-run threw / summary CLI exits non-zero / `metric: null` in summary JSON (e.g. parent stuck awaiting-after, missing score-report) | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
+| keep | gate metric `improves(best_gate)` | Repo root: `git commit -am "experiment: <hypothesis-headline>"`. Update `best_gate`, `best_train`, `best_val`. |
+| discard | gate metric does not improve, no crash (includes "train improved but val did not") | Repo root: `git restore <files-touched-by-patch>`. |
+| crash | any case driver returned `status: error` (incl. would-need-user) / threw / summary CLI exits non-zero / `metric: null` | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
 | blocked | crash count ≥ 3 | Log as blocked, ideate again next iteration with this discard recorded. |
 
 Write `iterations/<N>/decision.txt` with one of: `keep`, `discard`, `crash`, `blocked`.
+
+The keep gate is the held-out val set: an edit that overfits a single train fixture
+lowers train but fails to improve val, so it is discarded. This is the SkillOpt
+"accept only on held-out improvement" rule.
 
 ### 7. Append history
 
 Append to `score-history.tsv`:
 ```
-<N>	<hypothesis-headline>	<score>	<flow_rate or —>	<first_shot or —>	<final or —>	<delta>	<decision>
+<N>	<hypothesis-headline>	<train_score>	<val_score or —>	<gate metric>	<delta>	<decision>
 ```
-Where `score` is the `metric` value from the summary JSON; `flow_rate`, `first_shot`, and `final` are logged from the summary when present, otherwise `—`; `delta` = `first_shot − final` when both are present, otherwise `—`.
+Where `delta` = gate metric − `best_gate` (signed), or `—` on crash.
 
 ### 8. Termination check (after EVERY iteration)
 
-Stop if any condition holds:
-- Best score meets `$TARGET` per `$DIRECTION` (max: best ≥ target; min: best ≤ target) → terminate-target
+Stop if any condition holds (evaluated on the **gate metric**'s best, `best_gate`):
+- `best_gate` meets `$TARGET` per `$DIRECTION` (max: best ≥ target; min: best ≤ target) → terminate-target
 - N ≥ `$ITERATIONS` → terminate-cap
 - Last `$PLATEAU` iterations all have decision != `keep` → terminate-plateau
 
@@ -153,8 +230,8 @@ Otherwise continue to iteration N+1.
 ## Termination
 
 1. Append final row to `score-history.tsv` with `decision: terminate-<reason>`.
-2. Run audit one last time per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `research-runs/<slug>/final-audit.md`.
-3. Write `overview.md` with: config, baseline score, best score, total kept/discarded/crashed, list of kept hypotheses (one per line).
+2. Run audit one last time (over the train case) per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `research-runs/<slug>/final-audit.md`.
+3. Write `overview.md` with: config (train case, val set, metric, direction, target), baseline train/val scores, best train/val scores, total kept/discarded/crashed, list of kept hypotheses (one per line).
 4. Print overview to stdout.
 5. Leave workspace + Storybook running so the user can inspect.
 
@@ -168,8 +245,10 @@ If `research-runs/<slug>/` already exists at launch:
 
 | Failure | Recovery |
 |---|---|
-| Workflow crash mid-run | `git restore`, retry same hypothesis up to 3, then `blocked`. |
-| `npx storybook-addon-designbook workflow summary` exits non-zero or returns `metric: null` | Treated as `crash` (see step 6). After 3 retries, bail. Print `summary CLI failed — inspect <path>`. |
+| Workflow crash mid-run (any case) | `git restore`, retry same hypothesis up to 3, then `blocked`. |
+| Driver returns `status: error` / would-need-user | Treated as `crash`. Recurring need-user on a case = fixture defect; fix the fixture, not the loop. |
+| `workflow summary` exits non-zero or returns `metric: null` | Treated as `crash` (see Decide). After 3 retries, bail. Print `summary CLI failed — inspect <path>`. |
 | Subagent returns invalid patch | Re-dispatch with hint, max 3 in a row, then bail. |
 | Workspace reset fails | Bail. Tell user to rebuild via `debo-test run $SUITE $CASE`. |
+| `$CASE` also listed in `--val-cases` | Error at setup; the val set must be held-out. |
 | User Ctrl-C | Stop after current iteration completes. Print partial summary. |

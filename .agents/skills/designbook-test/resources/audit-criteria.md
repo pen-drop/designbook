@@ -9,7 +9,7 @@ Systematic file-level review applied after a workflow completes. Output is a Mar
 
 ## When applied
 
-- After each `debo-test research` iteration: reads tasks.yml + dbo.log digest, produces `research-runs/<slug>/iterations/<N>/audit.md`.
+- After each `debo-test research` case run within an iteration: reads tasks.yml + dbo.log digest, produces `research-runs/<slug>/iterations/<N>/cases/<case>/audit.md`.
 - After a research run terminates: produces `research-runs/<slug>/final-audit.md`.
 
 ## Inputs
@@ -69,6 +69,6 @@ For each error/retry/unresolved entry in the friction signal, identify which loa
 | ... | ... | ... | ... |
 ```
 
-Save to `research-runs/<slug>/iterations/<N>/audit.md`.
+Save to `research-runs/<slug>/iterations/<N>/cases/<case>/audit.md` (one per case run).
 
 The final-audit (post-loop) writes the same shape to `research-runs/<slug>/final-audit.md`.
