@@ -110,3 +110,14 @@ lint: pass
 test: 95 test files, 1028 tests — all passed
 deps-closure.test.ts removed cleanly, no dangling imports
 ```
+
+## Fix: image_style reframe
+
+`designbook/data-model/blueprints/image_style.md` was missing the generator-pattern blockquote
+that the 6 `designbook-drupal` data-model blueprints received in Task 4. Added verbatim after
+`### to_drupal`, before the JSONata fence:
+
+> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
+> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+
+Validator result (COMMON-01, COMMON-02, BLUEPRINT-01..05): **zero errors, zero warnings.**

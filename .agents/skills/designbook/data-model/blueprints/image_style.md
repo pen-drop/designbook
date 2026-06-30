@@ -49,6 +49,9 @@ Output: `[image.style.<key>]`
 
 ### to_drupal
 
+> **Generator pattern.** The JSONata below is the reference pattern for the generated transform.
+> The concrete `.jsonata` is authored per config-name task against the prepare-fetched schema.
+
 ```jsonata
 (
   /* Parse aspect_ratio string "W:H" into width/height integers */
