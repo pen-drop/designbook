@@ -135,10 +135,36 @@ max`.
   `designbook_config_schema`. `existence_rate` = present / `expected_config`-count, into the
   summary.
 
+### Isolation & parallelism (worktree-per-run + per-case Drupal reset)
+
+The research loop is single-workspace + sequential and was **Storybook-only**: Score-a-case
+does `git reset --hard workspace-baseline` in the one theme-dir git root, relayers the case
+fixtures, runs the subagent. Adding a **live ddev Drupal** target needs two things the loop
+does not yet have:
+
+- **Per-case Drupal-state reset (loop addition).** `git reset` reverts the filesystem only —
+  NOT the Drupal DB/config. Case N's synced config would leak into case N+1's existence-check.
+  So Score-a-case, for a sync case, must additionally reset Drupal to the committed baseline
+  **before** layering the case: re-import the fixture's `db.sql.gz` (the already-committed
+  baseline DB) — i.e. fold `start-drupal-workspace`'s import step into the per-case reset, or
+  a `drush` config reset to baseline. This makes the existence-check honest (only THIS case's
+  config is present).
+- **Worktree-per-run for parallel runs.** One ddev per workspace. The ddev project name is
+  already worktree-namespaced (`db-$WT_ID-$NAME`, `WT_ID = cksum(REPO_ROOT)`), so distinct
+  git worktrees get distinct ddev projects (ddev auto-routes by name) with no port/router
+  clash — but `setup-workspace.sh` does not create the worktree. To run **N research runs in
+  parallel** (different hypotheses / suites), an **init step provisions one git worktree per
+  run** (`git worktree add`), then `setup-workspace.sh` + `start-drupal-workspace.sh` inside
+  it → its own isolated theme-dir git root (so each run's `git reset --hard` is independent)
+  AND its own ddev. A single sequential run stays in one worktree/ddev — the worktree fan-out
+  is only for concurrency. (This is also why Score-a-case's baseline reset must stay scoped to
+  the run's own theme-dir git root — already true in the loop.)
+
 ### Where it runs
 
 `debo-test research <suite> <case> --val-cases <others>` — local, agent-in-loop. Not CI.
-`--baseline-only` for a single measurement (no optimization loop).
+`--baseline-only` for a single measurement (no optimization loop). For >1 concurrent run,
+each run gets its own git worktree (own ddev) via the init step above.
 
 ## Error / edge handling
 
@@ -180,3 +206,8 @@ max`.
   round-trip deferred (sync-from is a future plan).
 - **sync-to changes:** summary exposes per-unit validate outcomes + cim + existence; an
   eval (soft-gate) mode so the run completes and yields the gradient.
+- **Loop changes for ddev:** Score-a-case resets Drupal to the committed `db.sql.gz` baseline
+  before each sync case (the `git reset` alone leaves prior synced config live, poisoning the
+  existence-check). For parallel runs, an init step provisions a git worktree per run (own
+  theme-dir git root + own worktree-namespaced ddev `db-$WT_ID-$NAME`); a single sequential
+  run needs no fan-out.
