@@ -21,7 +21,7 @@ The config files come from the workflow's task results in scope — no params ar
 passed in for them:
 
 - `config_names` is the sorted list of `config_name` values sourced from the
-  `write-config` stage results (one `config-file` result per `config-name` unit
-  written in that stage).
+  `transform` stage results (one `config-file` result per `config-name` unit
+  produced in that stage).
 - `count` is the total number of config YAML files written, derived from the
-  same `write-config` stage results.
+  same `transform` stage results.

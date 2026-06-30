@@ -47,7 +47,7 @@ ExportSummary:
   title: Export Summary
   description: >
     Summary of the Drupal config files written in one export run.
-    Produced by the outtake stage from the write-config stage results.
+    Produced by the outtake stage from the transform stage results.
   required: [config_names, count]
   properties:
     config_names:
