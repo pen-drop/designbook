@@ -38,13 +38,19 @@ part 1 provides.
 
 ## Non-Goals
 
-- **No backend-specific code in our codebase.** No new drush-specific or Drupal-specific
-  code anywhere — no PHP transform module, no custom drush command/plugin, no
-  Drupal-specific TypeScript (e.g. a typed-config→JSON-Schema converter in the addon).
-  The core engine primitives stay **backend-neutral**; all Drupal/drush specifics are
-  **command strings + config declared in the `designbook-drupal` skill** (data, not
-  code), executed by generic primitives. We rely on **existing** drush + the existing
-  `config_inspector` contrib — nothing new authored on the Drupal side.
+- **No backend-specific code in CORE.** The core engine/addon stays **backend-neutral** —
+  no drush/Drupal knowledge, no Drupal-specific TypeScript. All Drupal/drush specifics
+  live in the `designbook-drupal` integration as command strings/config executed by
+  generic primitives.
+  - **Exception (decided after the Plan-3 spike):** schema introspection + validation
+    genuinely require PHP — Drupal's typed-config → JSON-Schema and config validation
+    cannot be done with pure existing CLI (`config:inspect` is reporting-only, always
+    exits 0). So a **small, readable drush helper module is permitted IN the
+    `designbook-drupal` integration** (NOT core): it exposes `drush
+    designbook:config-schema <name>` (→ JSON Schema) and `drush designbook:config-validate
+    <name> <yaml>` (exit≠0 on violation), which `backend_cmd` points at. This is preferred
+    over an unreadable ~1300-char `php:eval` config string. Core remains neutral; the PHP
+    lives only in the backend integration.
 - JSON:API is **not** used for config schema; it is reserved for **content-data**
   (Plan 4, entity CRUD).
 - No schema caching (staleness/invalidation) — the schema is fetched **fresh** at the

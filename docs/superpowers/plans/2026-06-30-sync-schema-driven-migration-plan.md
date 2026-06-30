@@ -10,16 +10,18 @@
 
 ## Global Constraints
 
-- **No backend-specific code in our codebase.** `schema_cmd`/`validate_cmd` are command STRINGS in `designbook-drupal` config built on EXISTING drush + `config_inspector` (incl. `drush php:eval` one-liners as data). No new PHP module, no custom drush command, no backend TS. (Spec Non-Goals.)
+- **No backend-specific code in CORE.** Core/addon stays backend-neutral (no Drupal/drush, no backend TS). **Approved exception:** a small readable drush helper module `designbook_config_schema` lives in the `designbook-drupal` integration (shipped under the fixture's `web/modules/custom/`) providing `designbook:config-schema`/`designbook:config-validate`; `backend_cmd` points at it. (Spec Non-Goals exception — decided after the Task-1 spike: pure CLI can't emit a config JSON Schema.)
 - **Backend-neutral engine.** Reuse the Plan-2 `prepare`/`generator` result keys; the engine stays untouched here (this plan is skill files + config).
 - **No backwards-compat/migration code.** Retire the superseded artifacts outright; testing is from scratch.
 - **`.claude/skills/` is a symlink to `.agents/skills/`** — edit only `.agents/skills/`; load `designbook-skill-creator` before editing any `.agents/skills/designbook*/` file.
 - **`pnpm check` green** for any addon change (this plan should need none; if a test references retired schemas, update it).
 - **design-* / entity-mapping untouched** — this plan only reworks the Drupal config *sync* path.
 
-## ⚠️ Linchpin risk (read before starting)
+## Linchpin — RESOLVED (Task 1 spike, GO)
 
-The whole plan hinges on **`schema_cmd`**: a command using only existing drush/`config_inspector` that, given a Drupal config name, prints a **JSON Schema** on stdout describing what Drupal expects. This is **unverified**. Task 1 is a **go/no-go spike**. If no existing-drush path can emit usable JSON Schema (typed-config → JSON Schema is non-trivial), STOP and escalate — the options would be (a) loosen "validate against a real JSON Schema" to "validate by attempting `cim --partial` + `config:inspect` only" (drop the prepare-fetched-schema AJV step for Drupal, keep the config_inspector cmd validator as the authoritative gate), or (b) revisit the no-new-code constraint. Do not invent a PHP module to force it.
+The spike (Task 1, done) confirmed: **pure-CLI cannot do it** (`config:inspect` is reporting-only, always exits 0), but Drupal's `config.typed` service DOES expose a definition tree that converts cleanly to JSON Schema, and typed-config validation works against arbitrary YAML (no DB import needed). The proven PHP is in `.superpowers/sdd/task-1-report.md`.
+
+**Decision (escalated + approved):** the schema/validate logic lives in a **small committed drush helper module in the `designbook-drupal` integration** (NOT core) — readable/testable, preferred over a ~1300-char `php:eval` config string. It exposes `drush designbook:config-schema <name>` (→ JSON Schema on stdout) and `drush designbook:config-validate <name> <yaml>` (exit≠0 on violation). `backend_cmd` points at these. This is the documented exception to "no backend code" (spec Non-Goals): core stays neutral; the PHP is backend-integration only.
 
 ---
 
@@ -33,7 +35,8 @@ The whole plan hinges on **`schema_cmd`**: a command using only existing drush/`
 
 ## File Structure (Plan 3)
 
-- Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md` — finalize `backend_cmd.schema_cmd` / `validate_cmd` to the verified real commands (from Task 1).
+- Create: a small drush helper module `designbook_config_schema` committed under the fixture at `packages/integrations/drupal-fixture/web/modules/custom/designbook_config_schema/` (`.info.yml`, `*.drush.services.yml` or a Drush command class) — two commands: `designbook:config-schema <name>` (typed-config → JSON Schema, from the spike's proven walker) and `designbook:config-validate <name> <yaml>` (buildDataDefinition+validate → exit≠0). Enable it in the fixture (via `start-drupal-workspace.sh` `pm:enable` or the committed db snapshot).
+- Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md` — finalize `backend_cmd.schema_cmd` / `validate_cmd` to point at the helper commands; document that the integration ships + enables the helper module.
 - Modify: `.agents/skills/designbook/sync/tasks/resolve-filter.md` — expand each slice into its **config-name units** (a content bundle → `<et>.type.<bundle>` + `field.storage.<et>.<field>` + `field.field.<et>.<bundle>.<field>` …; a config slice → its config name), each carrying the data-model context needed to generate that one config. Emits a list of config-name units.
 - Modify: `.agents/skills/designbook/sync/tasks/transform.md` — `each` iterates config-name units; result per unit declares `prepare` + `generator`; the result IS the config `data` (validated against the fetched schema), not an array; drop `schema:DrupalConfigSet`.
 - Modify: `.agents/skills/designbook/sync/tasks/write-config.md` — write the unit's `data` to `{{ config_sync_dir }}/{{ unit.config_name }}.yml` (config_name from the iteration, no envelope).
@@ -81,29 +84,40 @@ If schema emission is not achievable with existing drush/config_inspector, STOP 
 
 ---
 
-## Task 2: Finalize `backend_cmd` to the verified commands
+## Task 2: Build the drush helper module + finalize `backend_cmd`
 
 **Files:**
-- Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md`
+- Create: `packages/integrations/drupal-fixture/web/modules/custom/designbook_config_schema/` — `designbook_config_schema.info.yml` + a Drush command class (e.g. `src/Commands/ConfigSchemaCommands.php`) + `drush.services.yml` (or the modern `#[CLI\Command]` attribute style — match the fixture's Drush 13).
+- Modify: `scripts/start-drupal-workspace.sh` — `ddev drush pm:enable designbook_config_schema -y` (so the helper is available after boot).
+- Modify: `.agents/skills/designbook-drupal/install/blueprints/designbook-config.md` — point `backend_cmd.schema_cmd`/`validate_cmd` at the helper; document that the integration ships + enables the module.
 
 **Interfaces:**
-- Consumes: the verified `schema_cmd`/`validate_cmd` strings from Task 1.
-- Produces: the emitted `designbook.config.yml` `backend_cmd` block carries the REAL commands (not the Plan-1 placeholders).
+- Consumes: the proven typed-config→JSON-Schema walker + the validate logic from the Task-1 spike report.
+- Produces: `drush designbook:config-schema <config_name>` → JSON Schema on stdout; `drush designbook:config-validate <config_name> <yaml_path>` → exit≠0 + violation detail on stderr when the YAML violates the schema. `backend_cmd.schema_cmd`/`validate_cmd` invoke these.
 
-- [ ] **Step 1: Load skill-creator** (blueprint-files + common rules).
+- [ ] **Step 1: Write the module from the spike's proven PHP**
 
-- [ ] **Step 2: Replace the placeholder commands** with Task 1's verified strings:
-  - `schema_cmd:` → the verified config-name → JSON-Schema command.
-  - `validate_cmd:` → the verified config_inspector validation command.
-  Keep `cmd: "ddev drush"` as the base prefix; keep the data-not-code framing prose; note these were verified against the committed fixture.
+Create the module. The `config-schema` command: `\Drupal::service('config.typed')->getDefinition($name)` → walk to JSON Schema (mapping→object+required, sequence→array, scalars, depth guard) — lift the EXACT walker the spike verified (it's in `.superpowers/sdd/task-1-report.md`) into readable PHP. The `config-validate` command: parse the YAML, `buildDataDefinition` + `create` + `validate`; on violations print detail to stderr and `exit(1)`. Use the fixture's Drush 13 command conventions.
 
-- [ ] **Step 3: Validate** — skill-creator validator zero errors. `touch` the file.
+- [ ] **Step 2: Enable + verify against the fixture**
+
+Provision: `./scripts/setup-workspace.sh p3t2 && ./scripts/start-drupal-workspace.sh p3t2` (the start script now enables the module). From `workspaces/p3t2`:
+- `ddev drush designbook:config-schema node.type.article` → valid JSON Schema (pipe to `jq .`).
+- Write a valid + an invalid `node.type.article` YAML to a temp file; `ddev drush designbook:config-validate node.type.article <good>` exits 0; `<bad>` exits ≠0 with detail.
+Record outputs. Clean up: `(cd workspaces/p3t2 && ddev delete -Oy); rm -rf workspaces/p3t2`.
+
+- [ ] **Step 3: Point backend_cmd at the helper**
+
+Load `designbook-skill-creator`; in `designbook-config.md` set:
+- `schema_cmd: "ddev drush designbook:config-schema"` (config name appended by the caller)
+- `validate_cmd: "ddev drush designbook:config-validate"` (name + yaml path appended)
+Note the integration ships the module under `web/modules/custom/` and enables it. skill-creator validator zero errors; `touch`.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add .agents/skills/designbook-drupal/install/blueprints/designbook-config.md
-git commit -m "feat(drupal): finalize backend_cmd schema_cmd/validate_cmd to verified commands"
+git add packages/integrations/drupal-fixture/web/modules/custom/designbook_config_schema scripts/start-drupal-workspace.sh .agents/skills/designbook-drupal/install/blueprints/designbook-config.md
+git commit -m "feat(drupal): designbook_config_schema drush helper (config-schema/validate) + backend_cmd"
 ```
 
 ---
@@ -204,8 +218,8 @@ git commit --allow-empty -m "test(sync): e2e schema-driven export verified again
 
 ## Self-Review (Plan 3)
 
-- **Spec coverage:** schema_cmd/validate_cmd realized + verified (T1/T2); transform → prepare/generator with fetched-schema validation (T3); static `to_drupal`/`DrupalConfigEntity`/deps-closure retired, blueprints become patterns (T4); e2e + negative + re-export against the fixture (T5). Backend-neutral (commands as config; no new backend code). design-*/entity-mapping untouched.
-- **Linchpin honesty:** Task 1 is an explicit GO/NO-GO; if existing drush can't emit JSON Schema, the plan stops for a fallback decision rather than inventing backend code. Tasks 2–5 are contingent on Task 1 GO.
+- **Spec coverage:** spike GO + decision (T1, done); drush helper module + backend_cmd (T2); transform → prepare/generator per config-name with fetched-schema validation (T3); static `to_drupal`/`DrupalConfigEntity`/`DrupalConfigSet`/deps-closure retired, blueprints become patterns (T4); e2e + negative + re-export against the fixture (T5). Core stays backend-neutral; the PHP lives only in the designbook-drupal helper module (approved exception). design-*/entity-mapping untouched.
+- **Linchpin:** RESOLVED by the Task-1 spike (GO). The helper-module decision is the approved exception to "no backend code" — core neutral, PHP in the backend integration. Tasks 2–5 proceed.
 - **Placeholder scan:** Task 1 is investigation (no fabricated commands — it derives them); later tasks reference Task 1's verified strings rather than guessing. The `<config-name-expr>` in T3 is described by its mapping rule (content → `<et>.type.<bundle>`; config → config_key) — confirm exact JSONata against the slice shape when implementing.
 - **Type consistency:** `ExportSlice`/`ExportSummary`/`SyncResult` retained; `DrupalConfigEntity` AND `DrupalConfigSet` removed entirely. New `ConfigNameUnit` (resolve-filter output) flows into transform's `each`. write-config no longer `$ref`s a removed schema — it writes `unit.data` → `{{ unit.config_name }}.yml`. Confirm NO file still `$ref`s `DrupalConfigEntity`/`DrupalConfigSet` after T3/T4 (grep `.agents/skills/designbook/sync`).
 - **Granularity note:** the unit is one Drupal config name (forced by Plan-2's one-schema-per-result `prepare`). A bundle expands to many units (type + per-field storage/instance) → more, smaller `.jsonata` files + a schema fetch per config name. Accepted: this is what makes `prepare`/`generator` validate correctly.
