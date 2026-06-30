@@ -38,19 +38,66 @@ discard on the held-out val set. The Drupal-layout workspace + `start-drupal-wor
 
 ## Components
 
-### Fixtures — multiple focused cases (split by config-type slice)
+### Suite = `drupal-web`, drastically reduced in place
 
-One case per slice, each independently runnable + mixable as train/val:
+The sync eval needs **real data-mapping** — sample data + the view-mapping/entity-mapping
+JSONata — which synthetic mini-slices lack but `drupal-web` already has. So the suite is
+**`drupal-web`, with its data-model drastically reduced in place** to a minimal REAL slice
+that carries BOTH mapping paths the engine has: the **entity-mapping** (field-map view-mode
+on a real bundle, with sample data) AND the **view-mapping** (a `views.view` rendering
+entities in a view-mode). `drupal-web` becomes the lean reference suite for everything
+(sync eval + the adapted design cases).
 
-- `sync-node-type` — a node bundle + a few field types (text / image / reference) →
-  `node.type.*` + `field.storage.*` + `field.field.*` + field-types.
-- `sync-display` — a view-mode `core.entity_view_display.*`.
-- `sync-image-style` — an `image.style.*` config entity.
-- Extensible: `sync-media`, `sync-taxonomy`, `sync-view`.
+- **Surviving slice (explicit — no plan-time spike needed):**
+  - **design-entity (signage)** — the `paragraph.signage` / `paragraph.signage_item`
+    bundles + their fields, the two existing `entity-mapping/paragraph.signage*.full.jsonata`
+    (field-map full), and the existing sample data
+    (`designbook/data/paragraph.signage*.yml`). This is the real entity-mapping island that
+    already exists — kept verbatim.
+  - **`node.landing_page`** — slimmed to a **teaser** view-mode (only the fields the teaser
+    renders), its field-map display, + sample data for the teaser.
+  - **`node.article`** (page) hosting a **`views.view`** that lists `landing_page` entities
+    in the **teaser** view-mode — this is the **view-mapping path** (the view + its
+    view-mapping JSONata), which the signage slice alone does not cover.
+  - **`config.image_style.ratio_16_9` / `ratio_4_3` / `ratio_1_1`** — referenced by the
+    displays.
+- **To author (does not exist yet):** the `node.article` bundle, the `views.view` listing
+  (landing_page teaser) + its view-mapping JSONata, the `landing_page` teaser view-mode +
+  field-map display, and sample data for both.
+- **Drop:** `banner_typ2` / `content_teaser` paragraphs, the `landing_page_types` taxonomy,
+  unused media, the rest of the `landing_page` field sprawl (keep only teaser fields), and
+  any sections/screens not needed.
+- **Adapt the existing `drupal-web` design cases** to the reduced model (cases referencing
+  removed bundles/sections are slimmed or dropped). This is a real side-effect of the
+  in-place reduction and is part of the work.
 
-Each case is `fixtures/<suite>/cases/<case>.yaml` with a data model targeting its slice +
-a `prompt` to run `sync-to`. Multiple runs = the loop trains on one case, validates on the
-held-out others (the existing train/val split).
+### Fixtures — sync cases over the reduced real model
+
+Each case = `fixtures/drupal-web/cases/sync-*.yaml`, targeting a slice of the REDUCED
+drupal-web data-model (real bundle/fields/view, not synthetic):
+
+- `sync-paragraph` — the signage paragraphs + their entity-mapping (field-map full) →
+  `paragraph.paragraph_type.signage{,_item}` + `field.storage.paragraph.*` +
+  `field.field.paragraph.signage*.*` + `core.entity_view_display.paragraph.signage*.full`.
+- `sync-node` — the node bundles + displays → `node.type.landing_page` + `node.type.article`
+  + `field.storage.node.*` + `field.field.node.*` + `core.entity_view_mode.node.teaser` +
+  `core.entity_view_display.node.landing_page.teaser`.
+- `sync-view` — the article's listing view (landing_page teasers) + its view-mapping →
+  `views.view.<article_listing>`. **This is the view-mapping path the signage slice lacks.**
+- `sync-image-style` — the referenced `image.style.ratio_16_9` / `ratio_4_3` / `ratio_1_1`.
+
+Each case is independently runnable + mixable as train + held-out val (the existing
+train/val split). Exact config names are pinned by the reduced model authored above.
+
+### Eval lives IN the case fixture
+
+Each `sync-*.yaml` is self-contained — the eval is data in the fixture, not separate:
+- `fixtures:` — the reduced data-model slice + sample data (layered).
+- `prompt:` — run `/debo sync-to`.
+- `assert:` — JS over `output` (sync-to workflow completed).
+- **`expected_config:`** (NEW field) — the list of Drupal config names this case must
+  produce; the existence-rate + validate scoring measure against it.
+- `metric:` / `direction: max` — the composite score JSONata.
 
 ### Composite metric (per case → one number, `direction: max`)
 
@@ -83,9 +130,10 @@ max`.
   true`) records each unit's pass/fail and CONTINUES, so the summary captures pass/total
   across ALL units instead of aborting on the first invalid. (The default production run
   stays hard-gating.)
-- **Existence check.** After cim, verify each expected config name is active — via existing
-  drush (`config:get`/`config:status`) or a thin command alongside `designbook_config_schema`.
-  Reports the present/expected fraction into the summary.
+- **Existence check.** After cim, verify each name in the case's `expected_config` is active
+  — via existing drush (`config:get`/`config:status`) or a thin command alongside
+  `designbook_config_schema`. `existence_rate` = present / `expected_config`-count, into the
+  summary.
 
 ### Where it runs
 
@@ -112,8 +160,19 @@ max`.
 
 - **Primary goal:** AI-generation-quality eval (scored), not a deterministic CI gate.
 - **Harness:** reuse the `debo-test` research loop (cases + metric + summary fields).
-- **Fixtures:** multiple focused cases (one per config-type slice), run as train + held-out
-  val — not one big fixture.
+- **Suite:** `drupal-web`, **reduced in place** to a minimal REAL slice that carries BOTH
+  mapping paths — NOT a synthetic `drupal-sync` suite (synthetic slices lack real
+  data-mapping). Surviving slice (explicit, no spike): **design-entity signage paragraphs**
+  (existing entity-mapping + sample data, kept verbatim) + **`node.landing_page`** (teaser
+  view-mode) + **`node.article`** hosting a **`views.view`** that lists landing_page teasers
+  (the view-mapping path) + the `ratio_*` image styles. The article + view + landing_page
+  teaser display + sample data are authored; banner/content_teaser/taxonomy/media/landing_page
+  field-sprawl/sections are dropped. drupal-web becomes the lean reference suite; its design
+  cases are adapted to the reduced model.
+- **Fixtures:** sync cases (`sync-paragraph`/`sync-node`/`sync-view`/`sync-image-style`) over
+  the reduced real model, run as train + held-out val — not one big fixture.
+- **Eval lives in the case fixture:** each `sync-*.yaml` carries an `expected_config:` list
+  (the Drupal config names it must produce); validate + existence score against it.
 - **Metric:** composite — `validate_pass_rate` (gradient) + cim gate + `existence_rate`
   (semantic, existence-only), folded to one `direction: max` score with a non-zero cim-fail
   floor.
