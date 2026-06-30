@@ -137,3 +137,53 @@ SyncResult:
         type: string
         description: Drupal config name, e.g. "node.type.article".
         pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+
+ConfigNameUnit:
+  type: object
+  title: Config Name Unit
+  description: >
+    One Drupal configuration object name together with the data-model context
+    needed to author its generator JSONata. Emitted by resolve-filter (one unit
+    per Drupal config file a slice yields) and consumed by transform (one result
+    per unit).
+  required: [config_name]
+  additionalProperties: false
+  properties:
+    config_name:
+      type: string
+      description: >
+        Drupal configuration object name matching the config/sync filename without
+        the .yml extension. Dot-separated lowercase segments
+        (e.g. node.type.article, field.storage.node.field_body,
+        field.field.node.article.field_body, core.entity_view_display.node.article.teaser).
+      pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+    entity_type:
+      type: string
+      description: >
+        Drupal entity type machine name. Present for content-derived units
+        (e.g. "node", "media", "taxonomy_term", "block_content").
+      examples: [node, media, taxonomy_term, block_content]
+    bundle:
+      type: string
+      description: >
+        Bundle machine name within the entity type. Present for content-derived
+        units (e.g. "article", "image", "tag").
+      examples: [article, page, image, tag]
+    field_name:
+      type: string
+      description: >
+        Field machine name. Present for field.storage.* and field.field.* units.
+        Absent for bundle-type and view-display units.
+      examples: [field_body, field_subtitle, field_image]
+    config_key:
+      type: string
+      description: >
+        Original dot-separated config key from data_model.config. Present for
+        config-slice-derived units (e.g. "views.listing", "image_style.hero").
+      pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)*$'
+    def:
+      type: object
+      description: >
+        The relevant definition object from the data model — bundle def (fields,
+        view_modes, purpose, etc.) for content-derived units, or config def for
+        config-slice units. Used by the generator to author the JSONata transform.

@@ -4,11 +4,13 @@ trigger:
   steps: [sync-to:write-config]
 params:
   type: object
-  required: [config-set, config_sync_dir]
+  required: [units, config_sync_dir]
   properties:
-    config-set:
-      description: DrupalConfigEntity items to serialize, from the transform stage.
-      $ref: ../schemas.yml#/DrupalConfigSet
+    units:
+      type: array
+      description: Config-name units from the resolve-filter stage. Drives the iteration — one output file per unit.
+      items:
+        $ref: ../schemas.yml#/ConfigNameUnit
     config_sync_dir:
       type: string
       description: Absolute path to the Drupal config-sync directory.
@@ -18,18 +20,21 @@ result:
   required: [config-file]
   properties:
     config-file:
-      path: "{{ config_sync_dir }}/{{ config_entity.config_name }}.yml"
-      $ref: ../schemas.yml#/DrupalConfigEntity
+      path: "{{ config_sync_dir }}/{{ unit.config_name }}.yml"
+      description: >
+        The Drupal config YAML file written to the config-sync directory.
+        Filename derives from the iteration binding unit.config_name.
+        Content is the transform data for this unit.
       validators:
         - "cmd:npx js-yaml {{ file }}"
 each:
-  config_entity:
-    expr: "config-set"
+  unit:
+    expr: "units"
     schema:
-      $ref: ../schemas.yml#/DrupalConfigEntity
+      $ref: ../schemas.yml#/ConfigNameUnit
 ---
 
 # Write Config
 
-Write each `DrupalConfigEntity` from `config-set` as a YAML file into `{{ config_sync_dir }}`.
-One file per entity; the filename derives from the entity's `config_name`.
+Write each per-unit config data as a YAML file into `{{ config_sync_dir }}`.
+One file per unit; the filename derives from `unit.config_name`.

@@ -1,46 +1,69 @@
 ---
-title: "Transform slice to Drupal config"
+title: "Transform config-name unit to Drupal config data"
 trigger:
   steps: [sync-to:transform]
 params:
   type: object
-  required: [slices]
+  required: [units, backend_cmd]
   properties:
-    slices:
+    units:
       type: array
-      description: Ordered list of export slices from the resolve-filter stage.
+      description: Ordered list of config-name units from the resolve-filter stage.
       items:
-        $ref: ../schemas.yml#/ExportSlice
+        $ref: ../schemas.yml#/ConfigNameUnit
+    backend_cmd:
+      type: object
+      description: >
+        Backend command strings from designbook.config.yml. Provides schema_cmd
+        (append config name → JSON Schema on stdout) and validate_cmd (append
+        config name + yaml path → exit non-zero on violation).
+      required: [schema_cmd, validate_cmd]
+      properties:
+        schema_cmd:
+          type: string
+          description: >
+            Command prefix for fetching a config JSON Schema. The engine appends
+            the config name before running (e.g. "ddev drush designbook:config-schema").
+          examples: ["ddev drush designbook:config-schema"]
+        validate_cmd:
+          type: string
+          description: >
+            Command prefix for validating a config YAML file. The engine appends
+            the config name and yaml path before running
+            (e.g. "ddev drush designbook:config-validate").
+          examples: ["ddev drush designbook:config-validate"]
 result:
   type: object
-  required: [config-set]
+  required: [data]
   properties:
-    config-set:
-      description: DrupalConfigEntity items produced by transforming the current slice.
-      $ref: ../schemas.yml#/DrupalConfigSet
+    data:
+      path: "$DESIGNBOOK_DATA/sync/{{ unit.config_name }}.yml"
+      description: >
+        The Drupal configuration payload for this unit. Written verbatim to the
+        config/sync directory by write-config. Shape is authoritative from the
+        prepare-fetched schema (stored as prepared).
+      prepare:
+        cmd: "{{ backend_cmd.schema_cmd }} {{ unit.config_name }}"
+        as: prepared
+      generator:
+        jsonata: "$DESIGNBOOK_DATA/sync/{{ unit.config_name }}.jsonata"
       validators:
-        - "schema:DrupalConfigSet"
+        - "cmd:{{ backend_cmd.validate_cmd }} {{ unit.config_name }} {{ file }}"
 each:
-  slice:
-    expr: "slices"
+  unit:
+    expr: "units"
     schema:
-      $ref: ../schemas.yml#/ExportSlice
+      $ref: ../schemas.yml#/ConfigNameUnit
 ---
 
 # Transform
 
-Transform one export slice into a set of Drupal configuration entities.
+Author and run a per-config-name JSONata to produce the Drupal configuration data for one unit.
 
-## Result: config-set
+## Result: data
 
-For content slices (`slice.kind = "content"`): resolve the entity-type blueprint for
-`slice.entity_type`, compose its `### to_drupal` block with the `### prelude` from
-the `field-types` blueprint, and run the composed expression against
-`{ bundle: slice.bundle, def: slice.def }`.
+For each unit, the result is the configuration payload object — not an envelope; the `config_name` comes from the iteration binding `unit.config_name`.
 
-For config slices (`slice.kind = "config"`): resolve the config-type blueprint for
-`slice.config_key` and run its `### to_drupal` block against
-`{ key: slice.config_key, def: slice.config_def }`.
-The blueprint is resolved by stripping the namespace prefix from `config_key` (e.g. `views.listing` → blueprint `view`; `image_style.hero` → blueprint `image_style`).
+The shape is authoritative from `prepared` (the JSON Schema fetched by the `prepare` cmd for this config name). Use `prepared` as the primary guide for what properties to produce and which are required.
 
-The result is the `DrupalConfigEntity[]` array emitted by the expression.
+For the JSONata at the generator path: read the matching blueprint's `### to_drupal` block (the blueprint for `unit.entity_type` + the `field-types` prelude for field units, or the config-type blueprint for config-slice units) — this is the pattern to follow when authoring the transform. Run the authored JSONata over `unit` (binding `unit.entity_type`, `unit.bundle`, `unit.field_name`, `unit.def` as needed) to produce the config payload.
