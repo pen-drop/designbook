@@ -138,6 +138,14 @@ class ConfigSchemaCommands extends DrushCommands {
         }
       }
 
+      // Drupal-managed keys at the config-entity root: drush config:import
+      // generates "uuid" and "_core" when absent, so sync-authored config
+      // that omits them still imports successfully. They must stay allowed
+      // (kept in "properties") but must not be required.
+      if ($depth === 0) {
+        $schema['required'] = array_values(array_diff($schema['required'] ?? [], ['uuid', '_core']));
+      }
+
       if (empty($schema['required'])) {
         unset($schema['required']);
       }
