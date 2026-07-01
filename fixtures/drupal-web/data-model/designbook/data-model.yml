@@ -25,22 +25,22 @@ config:
 content:
   node:
     landing_page:
-      label: Landing Page
-      purpose: A landing page; surfaced as a teaser in the article listing view.
+      title: Landing Page
+      description: A landing page; surfaced as a teaser in the article listing view.
       fields:
         field_short_title:
           type: string
-          label: Short title
+          title: Short title
         field_landing_page_image:
           type: entity_reference
-          label: Teaser image
+          title: Teaser image
           settings:
             target_type: media
             handler: 'default:media'
             target_bundles: [image]
         field_landing_page_type:
           type: entity_reference
-          label: Type
+          title: Type
           settings:
             target_type: taxonomy_term
             handler: 'default:taxonomy_term'
@@ -49,12 +49,12 @@ content:
         teaser:
           template: field-map
     article:
-      label: Article
-      purpose: An editorial page that embeds the landing-page teaser listing view.
+      title: Article
+      description: An editorial page that embeds the landing-page teaser listing view.
       fields:
         field_body:
           type: text_long
-          label: Body
+          title: Body
       view_modes:
         full:
           template: field-map
