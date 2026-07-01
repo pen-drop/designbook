@@ -4,6 +4,17 @@
 **Status:** Approved, ready for implementation planning
 **Pilot:** `design-screen` (mechanism is workflow-agnostic)
 
+## Naming (resolves a collision)
+
+A `debo plan <wf>` command **already exists**: a static compiler that flattens a
+workflow definition + every task body + rules + blueprints + schemas into one
+self-contained markdown reference (`src/cli/plan.ts`, `src/plan/`). Its logic stays.
+
+- **Existing static compiler → renamed `debo runbook <wf>`.** (`src/plan/` →
+  `src/runbook/`, `src/cli/plan.ts` → `src/cli/runbook.ts`.) Frees the `plan` name.
+- **This feature owns `plan`:** `debo <wf> --plan` (capture) and
+  `debo <wf> --from-plan <file>` (replay). New code lives in the freed `src/plan/`.
+
 ## Problem
 
 `debo` workflows need a human present. Params resolve in two phases — deterministic
