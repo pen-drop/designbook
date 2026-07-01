@@ -10,6 +10,7 @@
     "@anthropic-ai/claude-agent-sdk": "^0.2.81",
     "auto": "^11.3.0",
     "glob": "^11.0.1",
+    "jsonata": "^2.1.0",
     "js-yaml": "^4.1.1",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.5.3",
@@ -17,7 +18,6 @@
     "promptfoo": "^0.120.24"
   },
   "dependencies": {
-    "jsonata": "^2.1.0",
     "storybook-addon-designbook": "workspace:*"
   },
   "scripts": {
