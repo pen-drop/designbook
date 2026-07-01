@@ -105,7 +105,6 @@ export function buildInstructions(
     ...(schema ? { schema } : {}),
     ...(submitResults ? { submit_results: submitResults } : {}),
     ...(stage.isolate ? { isolate: true } : {}),
-    ...(stage.interactive ? { interactive: true } : {}),
   };
 }
 
