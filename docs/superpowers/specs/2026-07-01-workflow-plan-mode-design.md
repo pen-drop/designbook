@@ -78,10 +78,17 @@ where plan capture stops, and which stages read the plan on replay.
 ### `debo <wf> --plan` (capture)
 
 1. `workflow create` — resolve code params, interactively fill any `unresolved`.
-2. Run the linear prefix **up to and including the last `interactive` stage**, asking
-   the human normally.
-3. As each interactive stage completes, write its decisions to `<wf>.plan.md`.
+2. Run the **linear prefix**: every stage in order up to and including the last
+   `interactive` stage. Deterministic stages inside that prefix (e.g. `reference`
+   extraction) run normally and produce their artifacts — so the interactive stage has
+   that context and can ask **better** questions. Stop before the first stage after the
+   last interactive one.
+3. As each interactive stage completes, write its decisions to the plan file.
 4. Stop. Abandon the throwaway instance — the plaintext plan is the portable artifact.
+
+The capture/replay behaviour is **generic and flag-driven** — it lives once in
+`resources/workflow-execution.md`, keyed off `interactive: true`, and applies to any
+workflow's interactive stage(s). It is **not** duplicated into each intake task file.
 
 ### `debo <wf> --from-plan <name|hint>` (replay, autonomous)
 
@@ -142,14 +149,19 @@ subagent. **No extra structural handover is needed** beyond the three plan-file 
    emits its decisions to `<wf>.plan.md`.
 3. `--from-plan <file>`: the interactive task reads the plan instead of asking the user.
 
-## Known caveat → concrete action
+## Stage ordering — deterministic context before interactive
 
-Plan phase runs the **linear prefix**, so a late interactive stage forces deterministic
-work (e.g. browser reference extraction) before it. **Design rule: interactive stages go
-first.** `design-screen` currently lists `reference` before `intake`, but intake declares
-no dependency on reference data (its body even notes reference runs after intake).
-**Action: move `intake` ahead of `reference`** so the plan phase is `intake` only — cheap,
-no browser extraction.
+An interactive stage asks **better** questions when the deterministic stages it benefits
+from have already run. `design-screen`'s `intake` uses the extracted reference
+(`$reference_dir/extract.json`, landmark structure) to plan entities/components and the
+structure preview. **Design rule: order deterministic context-providers before the
+interactive stage that consumes them.** So `reference` (isolate) runs **before** `intake`
+(interactive).
+
+Consequence: the `--plan` capture prefix therefore includes `reference` — capture runs the
+browser extraction before asking. That cost is accepted deliberately: question quality
+beats a cheap capture. On replay, `reference` re-runs deterministically (read fresh, no
+snapshot); only the interactive decisions come from the plan.
 
 ## Rollout
 
