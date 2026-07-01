@@ -43,6 +43,7 @@ direction: min
 
 - `metric` — JSONata expression evaluated against the `eval-score.mjs` JSON output (which extends the `workflow summary --json` shape); selects the value used as the decision metric throughout the research loop. Backtick-quote path segments containing dashes (e.g. `` `design-verify` ``). Defaults to `flowRate` if omitted.
 - `direction` — `min` or `max`; controls whether lower or higher metric values are considered improvements. `min` means lower-is-better (e.g. visual diff score); `max` means higher-is-better (e.g. flow-rate percentage). Defaults to `max` if omitted.
+- `expected_config` — (sync cases only) list of Drupal config keys (e.g. `system.site`) that the workflow is expected to sync to the Drupal DB. Presence of this field marks the case as a sync case: `eval-score.mjs` checks these keys as the existence component of the metric, and Score-a-case resets the Drupal DB baseline (step 1b) before layering the case so a prior case's synced config cannot leak.
 
 ## Setup
 
@@ -76,6 +77,7 @@ Given an iteration number `N` and a case `c`, produce its metric value:
    git reset --hard workspace-baseline
    git clean -fdx designbook/ workflows/
    ```
+1b. **(sync cases only) Reset Drupal config state to baseline:** if `cases/c.yaml` contains `expected_config:`, run `./scripts/reset-drupal-config.sh $SUITE`. The `git reset` in step 1 reverts the filesystem but NOT the live Drupal DB; without this re-import, a prior case's synced config stays active and poisons this case's existence-check.
 2. Layer case `c`'s fixtures: `./scripts/setup-test.sh $SUITE c --into workspaces/$SUITE`.
 3. Run case `c`'s prompt via a **driver subagent** (do NOT run the workflow inline on
    the research thread — that would flood the loop's context across 25 iterations × N
