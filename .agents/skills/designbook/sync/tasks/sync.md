@@ -28,9 +28,10 @@ drush config:import --partial --source={{ config_sync_dir }} -y
 
 Capture stdout, stderr, and the exit code.
 
-On non-zero exit code: STOP immediately and surface the full drush output verbatim. Do not continue or swallow the error.
+Do NOT abort on a non-zero exit code — record the outcome and continue so the scorer can read it.
 
 ## Result: sync-result
 
 - `drush_summary`: the complete captured stdout/stderr from the drush invocation.
 - `applied_config_names`: the list of config names that drush reported as imported during this run, parsed from the drush output.
+- `cim_ok`: `true` if `drush config:import --partial` exited 0; `false` otherwise.

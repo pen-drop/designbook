@@ -67,7 +67,7 @@ SyncResult:
   description: >
     Outcome of applying config to the live Drupal site via drush config:import.
     Captures the drush command summary text and the list of config names applied.
-  required: [drush_summary, applied_config_names]
+  required: [drush_summary, applied_config_names, cim_ok]
   properties:
     drush_summary:
       type: string
@@ -83,6 +83,9 @@ SyncResult:
         type: string
         description: Drupal config name, e.g. "node.type.article".
         pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+    cim_ok:
+      type: boolean
+      description: True when the drush config:import (--partial) invocation exited 0.
 
 ConfigNameUnit:
   type: object
