@@ -37,6 +37,16 @@ export const configSyncDirResolver: ParamResolver = {
   name: 'config_sync_dir',
 
   resolve(input: string, config: Record<string, unknown>): ResolverResult {
+    // Idempotency contract: the engine re-runs param resolvers on every stage
+    // transition, seeding `input` from the param's current value — which, on
+    // reruns, is this resolver's own previous output. An already-absolute
+    // `input` is therefore either an explicit `--params` value to respect, or
+    // this resolver's prior result; both must pass through unchanged so the
+    // sync-dir suffix is never appended more than once.
+    if (input.startsWith('/')) {
+      return { resolved: true, value: input, input };
+    }
+
     const docroot = typeof config.docroot === 'string' ? config.docroot : input;
     if (!docroot) {
       return { resolved: false, input: '', error: 'config_sync_dir: docroot is required' };
