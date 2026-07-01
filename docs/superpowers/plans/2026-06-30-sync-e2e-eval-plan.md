@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - **No backwards-compat / migration code.** On-disk artifacts are disposable; testing is always from scratch. Update writers/readers to the new shape; never read or upgrade old artifacts.
-- **No backend-specific code in CORE.** Drupal/drush specifics = command strings + config in the integration skill. The ONE approved exception is the small readable drush helper module `designbook_config_schema` in `packages/integrations/drupal-fixture` — new drush helper subcommands go THERE, not in core.
+- **No backend-specific code in CORE, and NO new Drupal module code for this eval.** Drupal/drush specifics = command strings + config in the integration/test skill layer. The existence check uses **stock `drush config:get`** from a skill script — NOT a new drush command and NOT an addition to the pre-existing `designbook_config_schema` module (that module stays as-is, used only by sync-to's prepare/validate). All eval logic is skill scripts under `.agents/skills/designbook-test/`.
 - **Schema-first.** Prefer enums / required keys / validators in `schemas.yml` over imperative rules.
 - **Skill files:** Before creating OR editing any task/rule/blueprint/workflow/`schemas.yml` under `.agents/skills/designbook*/`, you MUST load `designbook-skill-creator` first. `.agents/skills/` is canonical; `.claude/skills/` is a symlink — never edit it directly.
 - **`pnpm check` before every commit** (typecheck → lint → test, fail-fast). After ANY skill-file change, self-run `pnpm check` (a stray blockquote once broke `loadJsonata`'s fence regex).
@@ -34,19 +34,16 @@
 - `.agents/skills/designbook/sync/tasks/sync.md` + `.agents/skills/designbook/sync/schemas.yml` — `SyncResult` records `cim_ok` (drush config:import exit), so the scorer can read it without re-parsing text.
 - `.agents/skills/designbook/sync/workflows/sync-to.md` — `gate` param → `scope.validation_gate`.
 
-**Existence helper — Phase C:**
-- `packages/integrations/drupal-fixture/web/modules/custom/designbook_config_schema/**` — new `designbook:config-exists` drush subcommand (JSON presence map). No core-addon change.
-
-**Eval scorer + sync cases — Phase D (all eval logic lives here, test/integration layer):**
-- `.agents/skills/designbook-test/resources/sync-eval-score.mjs` — standalone scorer: reads archived `tasks.yml` (per-unit `valid` → validate_pass_rate; `SyncResult.cim_ok`), the case `expected_config` + live `drush designbook:config-exists` → existence_rate, applies the case `metric:` JSONata → emits `{ validate_pass_rate, cim_ok, existence_rate, metric }`.
+**Eval scorer + sync cases — Phase C (all eval logic lives here as skill scripts — no Drupal module, no core-addon change):**
+- `.agents/skills/designbook-test/resources/sync-eval-score.mjs` — standalone scorer: reads archived `tasks.yml` (per-unit `valid` → validate_pass_rate; `SyncResult.cim_ok`), the case `expected_config` + existence via **stock `drush config:get`** (`--drush-cmd`, no custom command) → existence_rate, applies the case `metric:` JSONata → emits `{ validate_pass_rate, cim_ok, existence_rate, metric }`.
 - `fixtures/drupal-web/cases/sync-{paragraph,node,view,image-style}.yaml`.
 
-**Loop / ddev — Phase E:**
+**Loop / ddev — Phase D:**
 - `.agents/skills/designbook-test/workflows/research.md` — Score-a-case branches to the scorer for sync cases; per-case Drupal reset; parallel-run note.
 - `scripts/reset-drupal-config.sh` — re-import baseline DB.
 - `scripts/init-research-worktree.sh` — worktree-per-run provisioning.
 
-**Validity — Phase F:**
+**Validity — Phase E:**
 - `.agents/skills/designbook-test/workflows/research.md` (Testing section) + a one-shot validation run.
 
 ---
@@ -432,67 +429,11 @@ git commit -m "feat(workflow): soft-gate eval mode records per-unit validation a
 
 ---
 
-## Phase C — Existence helper (drush, integration layer)
+## Phase C — Eval scorer + sync cases
 
-### Task C1: `designbook:config-exists` drush helper
+### Task C1: Standalone sync-eval scorer
 
-**Files:**
-- Modify: `packages/integrations/drupal-fixture/web/modules/custom/designbook_config_schema/src/Commands/*.php` (the existing drush command class) — add a `config-exists` command.
-- Modify: the module's `drush.services.yml` / command registration if needed.
-
-**Interfaces:**
-- Produces: `drush designbook:config-exists <name1> <name2> …` → JSON to stdout: `{ "<name>": true|false, … }` where the bool is "this config object is active in the running site" (`\Drupal::config(<name>)->isNew() === false`). Exit 0 always (presence is in the payload, not the exit code).
-
-> This is the approved exception: a small readable drush helper in the integration fixture. Keep it minimal + readable. No logic leaks into core.
-
-- [ ] **Step 1: Add the command method**
-
-In the existing Drush command class (mirror the style of `designbook:config-schema`):
-
-```php
-/**
- * Report which config objects are active in the running site.
- *
- * @command designbook:config-exists
- * @param string $names One or more config names (variadic).
- * @aliases dbce
- */
-public function configExists(array $names): void {
-  $out = [];
-  foreach ($names as $name) {
-    // A config object that has never been saved is "new"; active config is not.
-    $out[$name] = !\Drupal::config($name)->isNew();
-  }
-  $this->io()->writeln(json_encode($out, JSON_UNESCAPED_SLASHES));
-}
-```
-(Adjust the method signature / annotation style to match the class's Drush major version — copy the pattern from the sibling `config-schema` command exactly.)
-
-- [ ] **Step 2: Verify against a live workspace**
-
-```bash
-cd /home/cw/projects/designbook/.claude/worktrees/export
-./scripts/start-drupal-workspace.sh evalwt
-cd workspaces/evalwt
-ddev drush designbook:config-exists system.site no.such.config
-```
-Expected: `{"system.site":true,"no.such.config":false}`.
-
-- [ ] **Step 3: Commit**
-
-```bash
-cd /home/cw/projects/designbook/.claude/worktrees/export
-git add packages/integrations/drupal-fixture/web/modules/custom/designbook_config_schema
-git commit -m "feat(drupal-fixture): designbook:config-exists drush helper (JSON presence map)"
-```
-
----
-
-## Phase D — Eval scorer + sync cases
-
-### Task D1: Standalone sync-eval scorer
-
-All eval-specific logic lives HERE (test/integration layer), not in production sync-to or the core addon. A standalone Node script reads the archived run + the case + live drush, folds the composite via the case's own `metric:` JSONata, and emits a `metric` number — a drop-in for `workflow summary --metric --json` (Score-a-case swaps to it for sync cases, Task E1b).
+All eval-specific logic lives HERE (test/integration layer) as a **skill script** — NO Drupal module, NO core-addon change. A standalone Node script reads the archived run + the case, checks existence with **stock drush** (`config:get`, no custom command), folds the composite via the case's own `metric:` JSONata, and emits a `metric` number — a drop-in for `workflow summary --metric --json` (Score-a-case swaps to it for sync cases, Task D1 step 2b).
 
 **Files:**
 - Create: `.agents/skills/designbook-test/resources/sync-eval-score.mjs`
@@ -501,17 +442,18 @@ All eval-specific logic lives HERE (test/integration layer), not in production s
 - Consumes:
   - archived `tasks.yml` at `<data-dir>/workflows/archive/<workflow>/tasks.yml` — per-unit transform results (`result['config-file'].valid`) → `validate_pass_rate`; the `SyncResult` value (`cim_ok`) → `cim_ok`.
   - the case yaml — `expected_config` (existence denominator), `metric` (the fold), `direction`.
-  - `designbook:config-exists` (Task C1) via `--config-exists-cmd` (default `ddev drush designbook:config-exists`) → `existence_rate`.
+  - stock drush via `--drush-cmd` (default `ddev drush`): `<drush-cmd> config:get <name> --format=json` exits 0 iff the config is active → `existence_rate`. No custom drush command / module.
 - Produces (stdout JSON): `{ validate_pass_rate, cim_ok, existence_rate, metric }`, where `metric` is the case `metric:` JSONata evaluated over `{ validate_pass_rate, cim_ok, existence_rate }`. Same output contract as `workflow summary --metric --json` (the loop reads `.metric`).
 
-> This is a skill-resource script, not core addon TS. It imports `js-yaml` + `jsonata` from the workspace `node_modules` (both are addon deps, resolvable from the theme dir).
+> This is a skill-resource script, not core addon TS and not a Drupal module. It imports `js-yaml` + `jsonata` from the workspace `node_modules` (both are addon deps, resolvable from the theme dir).
 
 - [ ] **Step 1: Write the scorer**
 
 ```js
 #!/usr/bin/env node
-// sync-eval-score.mjs — composite sync-to eval score. Kept OUT of production
-// sync-to + the core addon: reads the archived run + case + live drush.
+// sync-eval-score.mjs — composite sync-to eval score. A skill script: kept OUT
+// of production sync-to, the core addon, AND any Drupal module. Reads the
+// archived run + case; existence via stock `drush config:get`.
 import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { load as parseYaml } from 'js-yaml';
@@ -525,7 +467,7 @@ function arg(name, def) {
 const dataDir = arg('data-dir');
 const workflow = arg('workflow');
 const caseFile = arg('case');
-const existsCmd = arg('config-exists-cmd', 'ddev drush designbook:config-exists');
+const drushCmd = arg('drush-cmd', 'ddev drush');
 
 const tasks = parseYaml(readFileSync(`${dataDir}/workflows/archive/${workflow}/tasks.yml`, 'utf-8'));
 const caseDoc = parseYaml(readFileSync(caseFile, 'utf-8'));
@@ -549,18 +491,19 @@ for (const t of tasks.tasks ?? []) {
   }
 }
 
-// existence_rate: fraction of expected_config names active post-cim (live drush)
-const expected = caseDoc.expected_config ?? [];
-let existence_rate = 0;
-if (expected.length > 0) {
+// existence_rate: fraction of expected_config names active post-cim, via stock
+// `drush config:get` — exit 0 = the config object is active in the site.
+function configExists(name) {
   try {
-    const out = execSync(`${existsCmd} ${expected.map((n) => `'${n}'`).join(' ')}`, { encoding: 'utf-8' });
-    const map = JSON.parse(out);
-    existence_rate = expected.filter((n) => map[n] === true).length / expected.length;
+    execSync(`${drushCmd} config:get '${name}' --format=json`, { stdio: 'pipe' });
+    return true;
   } catch {
-    existence_rate = 0;
+    return false;
   }
 }
+const expected = caseDoc.expected_config ?? [];
+const existence_rate =
+  expected.length > 0 ? expected.filter(configExists).length / expected.length : 0;
 
 const components = { validate_pass_rate, cim_ok, existence_rate };
 const expr = caseDoc.metric ?? 'validate_pass_rate';
@@ -570,31 +513,36 @@ console.log(JSON.stringify({ ...components, metric: typeof metric === 'number' ?
 
 - [ ] **Step 2: Verify with a crafted archive + stub drush**
 
-Assemble a throwaway `tasks.yml` (3 passing `config-file` results, 1 failing; one result value `{ cim_ok: true }`) + a stub exists-cmd (`printf '{"a":true,"b":false}'`) + a case yaml with `expected_config: [a, b]` and the composite `metric:` from Task D2. Run:
+Assemble a throwaway `tasks.yml` (3 passing `config-file` results, 1 failing; one result value `{ cim_ok: true }`) + a stub drush that exits 0 for one name and non-zero for the other + a case yaml with `expected_config: [a, b]` and the composite `metric:` from Task C2. Stub drush (`/tmp/.../stub-drush`, chmod +x) — invoked as `<stub> config:get <name> --format=json`, so the name is `$2`:
+```bash
+#!/usr/bin/env bash
+case "$2" in a) echo '{}' ;; *) exit 1 ;; esac
+```
+Run:
 ```bash
 node .agents/skills/designbook-test/resources/sync-eval-score.mjs \
   --data-dir <tmp> --workflow sync-to --case <tmp-case.yaml> \
-  --config-exists-cmd 'printf {"a":true,"b":false}'
+  --drush-cmd /tmp/.../stub-drush
 ```
-Expected: `validate_pass_rate` = 0.75, `existence_rate` = 0.5, `cim_ok` = true, `metric` = `(0.6*0.75 + 0.4*0.5)*100` = 65.
+Expected: `validate_pass_rate` = 0.75, `existence_rate` = 0.5 (a exists, b not), `cim_ok` = true, `metric` = `(0.6*0.75 + 0.4*0.5)*100` = 65.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 cd /home/cw/projects/designbook/.claude/worktrees/export
 git add .agents/skills/designbook-test/resources/sync-eval-score.mjs
-git commit -m "feat(research): standalone sync-eval scorer (validate + cim + existence → composite)"
+git commit -m "feat(research): standalone sync-eval scorer (validate + cim + existence via stock drush)"
 ```
 
 ---
 
-### Task D2: Author the four sync cases
+### Task C2: Author the four sync cases
 
 **Files:**
 - Create: `fixtures/drupal-web/cases/sync-paragraph.yaml`, `sync-node.yaml`, `sync-view.yaml`, `sync-image-style.yaml`.
 
 **Interfaces:**
-- Consumes: the reduced data-model (A1); scored by the D1 scorer.
+- Consumes: the reduced data-model (A1); scored by the C1 scorer.
 - Produces: four independently-runnable cases. The metric JSONata (identical across all four) reads the scorer's flat component object:
   - `validate_pass_rate`, `cim_ok`, `existence_rate`.
 
@@ -679,7 +627,7 @@ expected_config:
 
 - [ ] **Step 5: Smoke-run one case end-to-end via `--baseline-only`**
 
-Run the research loop on `sync-image-style` (the simplest case) with `--baseline-only` against the live `evalwt` workspace (the loop's Score-a-case invokes the D1 scorer for sync cases per Task E1). Expected: a numeric metric value (0..100), not `crash` / `metric: null`. If `metric: null`, run the scorer directly against the archived run to isolate: a missing `config-file` result → validate_pass_rate 0 (revisit soft-gate B2); a missing `cim_ok` → SyncResult (revisit B1); existence 0 → drush helper / `--config-exists-cmd` (revisit C1 / D1).
+Run the research loop on `sync-image-style` (the simplest case) with `--baseline-only` against the live `evalwt` workspace (the loop's Score-a-case invokes the C1 scorer for sync cases per Task D1). Expected: a numeric metric value (0..100), not `crash` / `metric: null`. If `metric: null`, run the scorer directly against the archived run to isolate: a missing `config-file` result → validate_pass_rate 0 (revisit soft-gate B2); a missing `cim_ok` → SyncResult (revisit B1); existence 0 → stock drush / `--drush-cmd` (revisit C1).
 
 - [ ] **Step 6: Commit**
 
@@ -690,16 +638,16 @@ git commit -m "fixture(drupal-web): four sync-to eval cases with composite metri
 
 ---
 
-## Phase E — Loop / ddev changes
+## Phase D — Loop / ddev changes
 
-### Task E1: Per-case Drupal-state reset in Score-a-case
+### Task D1: Per-case Drupal-state reset in Score-a-case
 
 **Files:**
 - Create: `scripts/reset-drupal-config.sh`
 - Modify: `.agents/skills/designbook-test/workflows/research.md` (Score-a-case procedure)
 
 **Interfaces:**
-- Produces: a Score-a-case that (1) for a sync case resets Drupal to the committed `db.sql.gz` baseline BEFORE layering the case — so case N's synced config never leaks into case N+1's existence-check; and (2) scores sync cases via the D1 scorer instead of `workflow summary --metric`.
+- Produces: a Score-a-case that (1) for a sync case resets Drupal to the committed `db.sql.gz` baseline BEFORE layering the case — so case N's synced config never leaks into case N+1's existence-check; and (2) scores sync cases via the C1 scorer instead of `workflow summary --metric`.
 
 > REQUIRED: load `designbook-skill-creator` before editing `research.md`.
 
@@ -731,7 +679,7 @@ Also add `expected_config:` to the documented case-yaml field list in research.m
 
 - [ ] **Step 2b: Branch Score-a-case scoring to the eval scorer for sync cases**
 
-In Score-a-case's scoring step (currently `workflow summary --metric "$METRIC" --json`), add a branch: when the case is a sync case (has `expected_config:`), score via the D1 scorer instead — it returns the same `.metric` contract:
+In Score-a-case's scoring step (currently `workflow summary --metric "$METRIC" --json`), add a branch: when the case is a sync case (has `expected_config:`), score via the C1 scorer instead — it returns the same `.metric` contract:
 
 > **Score (sync cases):** `node ../../.agents/skills/designbook-test/resources/sync-eval-score.mjs --data-dir <designbook-data-dir> --workflow <id> --case ../../fixtures/$SUITE/cases/c.yaml` → the returned `metric` value is this case's score. (Design cases keep using `workflow summary --metric`.) Both write the JSON to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`; a non-numeric/`null` `metric` is a **crash** (same as today).
 
@@ -762,7 +710,7 @@ git commit -m "feat(research): per-case Drupal-state reset for sync cases"
 
 ---
 
-### Task E2: Worktree-per-run init for parallel runs
+### Task D2: Worktree-per-run init for parallel runs
 
 **Files:**
 - Create: `scripts/init-research-worktree.sh`
@@ -816,9 +764,9 @@ git commit -m "feat(research): worktree-per-run init for parallel sync evals"
 
 ---
 
-## Phase F — Eval validity
+## Phase E — Eval validity
 
-### Task F1: Prove the metric discriminates
+### Task E1: Prove the metric discriminates
 
 **Files:**
 - Modify: `.agents/skills/designbook-test/workflows/research.md` (Testing section — record the validation procedure)
@@ -856,17 +804,17 @@ git commit -m "docs(research): sync-eval validity checks + baseline reference"
 **Spec coverage (each spec section → task):**
 - Suite = reduced `drupal-web` (signage + landing_page/article view) → A1–A4. ✓
 - Sync cases (`sync-paragraph`/`sync-node`/`sync-view`/`sync-image-style`) → D2. ✓
-- Eval-in-fixture (`expected_config:`) → D2 (authoring) + D1 scorer (reads it) + E1 (research.md field doc). ✓
-- Composite metric (validate_pass_rate + cim gate + existence_rate, cim-fail floor) → D2 (case `metric:` expression) folded by the D1 scorer over its `{validate_pass_rate, cim_ok, existence_rate}` components. ✓
-- **Eval kept separate from production result** → all eval logic in the D1 scorer (test/integration layer); the only core-addon touch is the soft-gate run-mode (B2). ✓
-- sync-to signal: per-unit validate available (soft-gate so all units run) → B2; cim outcome → B1 (`SyncResult.cim_ok`); existence → C1 (drush helper) + D1 (scorer). ✓
-- Worktree-per-run isolation + per-case Drupal reset + scorer branch → E1+E2. ✓
-- Testing (baseline-high / broken-lower / train-val gate) → F1. ✓
+- Eval-in-fixture (`expected_config:`) → C2 (authoring) + C1 scorer (reads it) + D1 (research.md field doc). ✓
+- Composite metric (validate_pass_rate + cim gate + existence_rate, cim-fail floor) → C2 (case `metric:` expression) folded by the C1 scorer over its `{validate_pass_rate, cim_ok, existence_rate}` components. ✓
+- **Eval kept separate from production result** → all eval logic in the C1 scorer as skill scripts (no Drupal module, no core-addon change); the only core-addon touch is the soft-gate run-mode (B2). ✓
+- sync-to signal: per-unit validate available (soft-gate so all units run) → B2; cim outcome → B1 (`SyncResult.cim_ok`); existence → C1 scorer via stock `drush config:get`. ✓
+- Worktree-per-run isolation + per-case Drupal reset + scorer branch → D1+D2. ✓
+- Testing (baseline-high / broken-lower / train-val gate) → E1. ✓
 
-**Placeholder scan:** Field-name lists in D2 step 2 say "plus whatever `field.storage.node.*` the reduced model yields" — bounded by the A1 model (the implementer reads the model and lists the exact names); not an open-ended TODO. All code steps carry real code.
+**Placeholder scan:** Field-name lists in C2 step 2 say "plus whatever `field.storage.node.*` the reduced model yields" — bounded by the A1 model (the implementer reads the model and lists the exact names); not an open-ended TODO. All code steps carry real code.
 
-**Type consistency:** the scorer emits flat `{ validate_pass_rate, cim_ok, existence_rate }` (snake_case), and every case `metric:` JSONata (D2) reads exactly those names — confirmed identical in D1's `components` object and D2's expression. `cim_ok` is spelled identically in B1 (`SyncResult` schema), the D1 scorer (reads `value.cim_ok`), and D2 (metric). `validation_gate` (scope) ↔ `gate` (sync-to param) mapping is explicit in B2 step 5. The scorer keys off the transform result key `config-file` (per resolve-filter/transform) — verify that key name against `transform.md` when implementing D1 (if the per-unit result key differs, update the scorer's `t.result?.['config-file']` lookup).
+**Type consistency:** the scorer emits flat `{ validate_pass_rate, cim_ok, existence_rate }` (snake_case), and every case `metric:` JSONata (C2) reads exactly those names — confirmed identical in C1's `components` object and C2's expression. `cim_ok` is spelled identically in B1 (`SyncResult` schema), the C1 scorer (reads `value.cim_ok`), and C2 (metric). `validation_gate` (scope) ↔ `gate` (sync-to param) mapping is explicit in B2 step 5. The scorer keys off the transform result key `config-file` (per resolve-filter/transform) — verify that key name against `transform.md` when implementing C1 (if the per-unit result key differs, update the scorer's `t.result?.['config-file']` lookup).
 
 **Open seams (flagged, not gaps):**
-- Existence uses a live `drush` check (spec's explicit choice) via the C1 helper, overridable with `--config-exists-cmd`. Fallback if live-drush proves brittle: intersect `expected_config` with `SyncResult.applied_config_names` (no live call) — a small change localized to the D1 scorer. Spec wants the honest post-cim check, so live drush is the default.
+- Existence uses a live `drush` check (spec's explicit choice) via stock `drush config:get`, overridable with `--drush-cmd` — no custom drush command or module. Fallback if live-drush proves brittle: intersect `expected_config` with `SyncResult.applied_config_names` (no live call) — a small change localized to the C1 scorer. Spec wants the honest post-cim check, so live drush is the default.
 - The scorer reads the archived `tasks.yml` shape directly (per-unit `config-file` results + a `cim_ok`-bearing result value). This couples the eval to an internal on-disk shape — acceptable for an in-repo eval tool, and the coupling is confined to the single scorer file.
