@@ -1058,6 +1058,10 @@ export async function workflowDone(
     throw new Error(`Task '${taskId}' is already done`);
   }
 
+  // Soft-gate eval mode: when scope.validation_gate === 'soft', record per-entry
+  // valid/error but fall through to archive even when validation fails.
+  const validationGate = (data.scope?.validation_gate as 'hard' | 'soft') ?? 'hard';
+
   // ── Process --data: distribute keys to result entries ──────────────
   if (options?.data && task.result) {
     const dataPayload = options.data;
@@ -1176,8 +1180,10 @@ export async function workflowDone(
       }
     }
 
-    // 1.4: Return validation errors instead of proceeding
-    if (validationErrors.length > 0) {
+    // 1.4: Return validation errors instead of proceeding (hard gate).
+    // Soft gate (scope.validation_gate === 'soft') skips the early return so the
+    // workflow archives even when units fail — per-entry valid/error already recorded above.
+    if (validationErrors.length > 0 && validationGate === 'hard') {
       writeWorkflowAtomic(filePath, data);
       return {
         archived: false,
@@ -1269,7 +1275,7 @@ export async function workflowDone(
     );
   }
   const failed = (task.files ?? []).filter((f) => f.validation_result?.valid === false);
-  if (failed.length > 0) {
+  if (failed.length > 0 && validationGate === 'hard') {
     throw new Error(
       `Cannot mark '${taskId}' as done — ${failed.length} file(s) have errors:\n` +
         failed.map((f) => `  · file \`${f.key}\` has errors: ${f.validation_result?.error ?? 'invalid'}`).join('\n'),
@@ -1301,7 +1307,7 @@ export async function workflowDone(
       );
     }
     const failedResults = Object.entries(task.result).filter(([, r]) => r.valid === false);
-    if (failedResults.length > 0) {
+    if (failedResults.length > 0 && validationGate === 'hard') {
       throw new Error(
         `Cannot mark '${taskId}' as done — ${failedResults.length} result(s) have errors:\n` +
           failedResults.map(([k, r]) => `  · result \`${k}\` has errors: ${r.error ?? 'invalid'}`).join('\n'),

@@ -17,6 +17,14 @@ params:
     type: string
     description: Absolute path to the Drupal config-sync directory where YAML files are written.
     resolve: config_sync_dir
+  gate:
+    type: string
+    enum: [hard, soft]
+    default: hard
+    description: >
+      Validation gate mode. `hard` (default) aborts the workflow on the first
+      config-import failure. `soft` records per-unit valid/error and continues
+      to archive — used by the eval scorer to read pass/fail across all units.
 engine: direct
 stages:
   intake:

@@ -1284,3 +1284,78 @@ describe('workflow result: prepare hook', () => {
     expect(r.errors.some((e) => /prepare command failed/.test(e))).toBe(true);
   });
 });
+
+// ── soft-gate eval mode ───────────────────────────────────────────────────────
+
+/**
+ * Helper: set up a workflow with `totalUnits` data-result tasks and run workflowDone
+ * on each, with `failingUnits` of them submitting data that fails schema validation.
+ * Returns the workflowDone result of the LAST task.
+ *
+ * The schema expects `{ value: number }`. Failing units send `'not-an-object'`.
+ */
+async function runWorkflowDoneWith(opts: {
+  gate: 'hard' | 'soft';
+  failingUnits: number;
+  totalUnits?: number;
+}): Promise<{ archived: boolean; data: WorkflowFile; response: { validation_errors?: string[] } }> {
+  const { gate, failingUnits, totalUnits = failingUnits } = opts;
+  const dist = mkdtempSync(resolve(tmpdir(), 'wf-softgate-'));
+  const config: DesignbookConfig = { data: dist, technology: 'html', extensions: [] };
+  const schema = { type: 'object', required: ['value'], properties: { value: { type: 'number' } } };
+
+  const tasks: WorkflowTask[] = Array.from({ length: totalUnits }, (_, i) => ({
+    id: `unit-${i}`,
+    title: `Unit ${i}`,
+    type: 'data' as const,
+    step: `unit-${i}`,
+    stage: 'execute',
+    status: 'pending' as const,
+    result: { cfg: { schema } },
+  }));
+
+  const scopeOverride: Record<string, unknown> = {};
+  if (gate === 'soft') scopeOverride.validation_gate = 'soft';
+
+  const name = setupWorkflow(
+    dist,
+    tasks,
+    { execute: { steps: tasks.map((t) => t.step as string) } },
+    {
+      scope: scopeOverride,
+    },
+  );
+
+  let lastResult!: Awaited<ReturnType<typeof workflowDone>>;
+  for (let i = 0; i < totalUnits; i++) {
+    const failing = i < failingUnits;
+    const value = failing ? 'not-an-object' : { value: i };
+    lastResult = await workflowDone(dist, name, `unit-${i}`, undefined, {
+      data: { cfg: value },
+      config,
+    });
+  }
+
+  return {
+    archived: lastResult.archived,
+    data: lastResult.data,
+    response: (lastResult.response ?? {}) as { validation_errors?: string[] },
+  };
+}
+
+describe('workflowDone soft-gate eval mode', () => {
+  it('hard gate (default): a failing unit blocks archive', async () => {
+    const res = await runWorkflowDoneWith({ gate: 'hard', failingUnits: 1 });
+    expect(res.archived).toBe(false);
+    expect(res.response.validation_errors!.length).toBeGreaterThan(0);
+  });
+
+  it('soft gate: a failing unit is recorded but the workflow archives', async () => {
+    const res = await runWorkflowDoneWith({ gate: 'soft', failingUnits: 1, totalUnits: 3 });
+    expect(res.archived).toBe(true);
+    // failing unit recorded on its result entry
+    const entries = res.data.tasks.flatMap((t) => Object.values(t.result ?? {}));
+    expect(entries.filter((e) => e.valid === false).length).toBe(1);
+    expect(entries.filter((e) => e.valid === true).length).toBe(2);
+  });
+});

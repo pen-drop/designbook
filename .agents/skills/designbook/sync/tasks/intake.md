@@ -16,6 +16,11 @@ params:
         Raw filter from workflow params. An empty object means "export everything".
         Non-empty keys constrain which entity types, bundles, or config keys are exported.
       default: {}
+    gate:
+      type: string
+      enum: [hard, soft]
+      default: hard
+      description: Validation gate mode from workflow params.
 result:
   type: object
   required: [data_model]
@@ -27,8 +32,16 @@ result:
     filter:
       type: object
       description: The filter as supplied by the workflow caller. Empty object means export all.
+    validation_gate:
+      type: string
+      enum: [hard, soft]
+      description: >
+        Forwarded from the `gate` workflow param into scope so workflowDone can
+        read `scope.validation_gate` for the soft-gate eval mode.
 ---
 
 # Intake
 
 Load the data model and capture the workflow filter so downstream stages have a consistent starting point.
+
+Set `validation_gate` to the value of the `gate` param (default `hard`) so `workflowDone` can read `scope.validation_gate` to decide whether to block on validation errors (hard) or record them and continue (soft).
