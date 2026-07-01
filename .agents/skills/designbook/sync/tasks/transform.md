@@ -15,8 +15,9 @@ params:
       type: object
       description: >
         Backend command strings from designbook.config.yml. Provides schema_cmd
-        (append config name → JSON Schema on stdout) and validate_cmd (append
-        config name + yaml path → exit non-zero on violation).
+        (append config name → JSON Schema on stdout), validate_cmd (append
+        config name + yaml path → exit non-zero on violation), and import (run
+        as-is by the sync stage to apply the config-sync directory).
       required: [schema_cmd, validate_cmd]
       properties:
         schema_cmd:
@@ -32,6 +33,14 @@ params:
             the config name and yaml path before running
             (e.g. "ddev drush designbook:config-validate").
           examples: ["ddev drush designbook:config-validate"]
+        import:
+          type: string
+          description: >
+            Complete command run as-is by the sync stage to import the
+            config-sync directory into the live backend. Not used by transform
+            itself; declared here so the shared backend_cmd shape validates
+            when the config supplies it.
+          examples: ["ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"]
     config_sync_dir:
       type: string
       description: Absolute path to the Drupal config-sync directory where YAML files are written.

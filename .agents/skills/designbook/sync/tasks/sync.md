@@ -4,12 +4,23 @@ trigger:
   steps: [sync-to:sync]
 params:
   type: object
-  required: [config_sync_dir]
+  required: [backend_cmd]
   properties:
-    config_sync_dir:
-      type: string
-      description: Absolute path to the Drupal config-sync directory containing the written YAML files.
-      resolve: config_sync_dir
+    backend_cmd:
+      type: object
+      description: >
+        Backend command strings from designbook.config.yml. Provides import
+        (runs config-import against the backend's view of the config-sync
+        directory).
+      required: [import]
+      properties:
+        import:
+          type: string
+          description: >
+            Complete command that imports the config-sync directory into the
+            live backend. The engine runs this string opaquely — no
+            drush/Drupal/path knowledge lives in this task.
+          examples: ["ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"]
 result:
   type: object
   required: [sync-result]
@@ -23,7 +34,7 @@ result:
 Apply the config-sync directory to the live Drupal site by running:
 
 ```
-drush config:import --partial --source={{ config_sync_dir }} -y
+{{ backend_cmd.import }}
 ```
 
 Capture stdout, stderr, and the exit code.

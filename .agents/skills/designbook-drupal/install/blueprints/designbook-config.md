@@ -41,6 +41,7 @@ backend_cmd:
   cmd: "ddev drush"
   schema_cmd: "ddev drush designbook:config-schema"   # prints JSON Schema for a config name; append config name
   validate_cmd: "ddev drush designbook:config-validate"  # exit non-zero + violations on stderr when invalid; append config name + yaml path
+  import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"  # container path is the in-container view of the host config_sync_dir that write-config's YAML lands in
 ```
 
 The port in `designbook.url` must match the `-p` argument of the `storybook` script in
@@ -57,8 +58,8 @@ during install for plain CSS.
 ## backend_cmd — data for sync task interpolation
 
 The `backend_cmd` block is **data only** — its values are consumed as
-`{{ backend_cmd.cmd }}`, `{{ backend_cmd.schema_cmd }}`, and
-`{{ backend_cmd.validate_cmd }}` by sync tasks. Core runs the resulting command strings
+`{{ backend_cmd.cmd }}`, `{{ backend_cmd.schema_cmd }}`, `{{ backend_cmd.validate_cmd }}`,
+and `{{ backend_cmd.import }}` by sync tasks. Core runs the resulting command strings
 opaquely: no drush or Drupal knowledge lives in core.
 
 `schema_cmd` calls `designbook:config-schema <config_name>` → JSON Schema on stdout,
@@ -66,3 +67,9 @@ exit 0. `validate_cmd` calls `designbook:config-validate <config_name> <yaml_pat
 exit 0 when valid; exit 1 + violation JSON on stderr when invalid. Both commands are
 implemented in `web/modules/custom/designbook_config_schema/` (shipped with this
 integration) and enabled by `scripts/start-drupal-workspace.sh`.
+
+`import` is a complete, ready-to-run command that applies the config-sync directory to
+the live backend. `write-config`'s YAML lands host-side at the resolved
+`config_sync_dir`; `import` targets that same directory from the backend's own vantage
+point (e.g. a ddev container sees the host `<workspace>/web/sites/default/files/sync`
+at `/var/www/html/web/sites/default/files/sync`) — same physical files, two path views.
