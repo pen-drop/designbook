@@ -47,6 +47,21 @@ direction: min
 
 ## Setup
 
+**Parallel runs.** A single sequential run uses the current worktree and its ddev
+project unchanged — no extra setup needed. To run more than one research loop
+concurrently without ddev or git collisions, provision each run with:
+
+```bash
+./scripts/init-research-worktree.sh <run-id> [suite]
+```
+
+This creates an isolated git worktree under `.research-worktrees/<run-id>/` and
+runs `setup-workspace.sh` + `start-drupal-workspace.sh` inside it. Because the
+ddev project name is `db-$WT_ID-$SUITE` (where `WT_ID = cksum(REPO_ROOT)`) each
+worktree gets a distinct project name and port allocation — runs never collide.
+Start the research loop from the provisioned worktree as CWD. Cleanup:
+`git worktree remove --force .research-worktrees/<run-id>`.
+
 1. Resolve workspace path: `workspaces/$SUITE`.
 2. Run `./scripts/setup-workspace.sh $SUITE`. This deletes any prior workspace and rebuilds from scratch (rsync, symlinks, `git init`, `pnpm install`, baseline commit).
 3. Start Storybook via the addon CLI from the designbook working dir (`workspaces/$SUITE/web/themes/custom/test_integration_drupal`):
