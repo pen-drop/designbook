@@ -60,7 +60,7 @@ result:
 
 # Intake: Design Screen
 
-Gather section, screen type, entity mappings, and component plan for one screen. The `extract-reference` stage runs after intake — design reference data is not available during intake.
+Gather section, screen type, entity mappings, and component plan for one screen. The `extract-reference` stage runs before intake — when `$reference_dir/extract.json` exists, use it to inform entity/component planning and the structure preview.
 
 ## Steps
 
@@ -69,7 +69,7 @@ Gather section, screen type, entity mappings, and component plan for one screen.
 3. **Plan entities** — collect `entity:` nodes from section spec scenes, deduplicate by entity+view_mode, produce the renderable entity closure required by the loaded rules, and present table and confirm
 4. **Plan components** — scan existing components, identify new ones needed per entity and screen-level; if `$reference_dir/extract.json` exists, derive from landmark structure; present grouped table and confirm
 5. **Summary** — present complete build plan, wait for confirmation
-6. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection. Because `extract-reference` runs *after* this stage, the plan is formed without reference data — state `reference: none` in the preview so the user knows the structure was inferred from the section spec and data model, not an observed design.
+6. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection. When `$reference_dir/extract.json` exists, base the preview on the observed reference structure; only when no reference exists, state `reference: none` in the preview so the user knows the structure was inferred from the section spec and data model, not an observed design.
 
 ## Result: components
 

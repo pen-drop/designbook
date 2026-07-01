@@ -5,7 +5,7 @@ import { validateData } from './validators/data.js';
 import { validateEntityMapping } from './validators/entity-mapping.js';
 import { register as registerWorkflow } from './cli/workflow.js';
 import { register as registerStorybook } from './cli/storybook.js';
-import { register as registerPlan } from './cli/plan.js';
+import { register as registerRunbook } from './cli/runbook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
@@ -130,7 +130,7 @@ program
 // Register submodules
 registerWorkflow(program);
 registerStorybook(program);
-registerPlan(program);
+registerRunbook(program);
 registerCompareImages(program);
 
 // parseAsync (not parse) so async action handlers are awaited; a rejected

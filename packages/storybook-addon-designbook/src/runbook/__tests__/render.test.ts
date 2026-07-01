@@ -95,7 +95,7 @@ describe('renderPlan', () => {
 
   it('starts with the workflow heading and description blockquote', () => {
     expect(out.split('\n').slice(0, 3)).toEqual([
-      '# Plan: Design Shell',
+      '# Runbook: Design Shell',
       '',
       '> Design the application shell -- header/content/footer slots',
     ]);
