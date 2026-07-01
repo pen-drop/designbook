@@ -1,0 +1,48 @@
+fixtures:
+  - vision
+  - data-model
+  - design-entity
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo sync-to workflow in eval mode (gate: soft) to export the
+  paragraph.signage and paragraph.signage_item bundles to Drupal config.
+  Filter the export to entity_type=paragraph. Author the per-config-name JSONata
+  against the prepare-fetched schema, write each config YAML, validate, and run
+  drush config:import. Do NOT ask any questions; if a decision cannot be made
+  from the data model + fixtures, fail the run.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['sync-to']?.status === 'completed'
+
+expected_config:
+  - paragraph.paragraph_type.signage
+  - paragraph.paragraph_type.signage_item
+  - field.storage.paragraph.field_paragraph_style
+  - field.storage.paragraph.field_overlapping_top
+  - field.storage.paragraph.field_signage_item
+  - field.field.paragraph.signage.field_paragraph_style
+  - field.field.paragraph.signage.field_overlapping_top
+  - field.field.paragraph.signage.field_signage_item
+  - field.storage.paragraph.field_title
+  - field.storage.paragraph.field_description
+  - field.storage.paragraph.field_icon
+  - field.storage.paragraph.field_links
+  - field.storage.paragraph.field_button_anonymous
+  - field.storage.paragraph.field_button_authenticated
+  - field.field.paragraph.signage_item.field_title
+  - field.field.paragraph.signage_item.field_description
+  - field.field.paragraph.signage_item.field_icon
+  - field.field.paragraph.signage_item.field_links
+  - field.field.paragraph.signage_item.field_button_anonymous
+  - field.field.paragraph.signage_item.field_button_authenticated
+
+metric: |
+  (
+    $vpr := validate_pass_rate;
+    $er := existence_rate;
+    $base := 0.6 * $vpr + 0.4 * $er;
+    cim_ok ? $base * 100 : $base * 50
+  )
+direction: max

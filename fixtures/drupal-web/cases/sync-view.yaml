@@ -1,0 +1,29 @@
+fixtures:
+  - vision
+  - data-model
+  - design-entity
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo sync-to workflow in eval mode (gate: soft) to export the
+  views.view.landing_teasers config to Drupal config.
+  Filter the export to config_key=views.view.landing_teasers. Author the
+  per-config-name JSONata against the prepare-fetched schema, write the config
+  YAML, validate, and run drush config:import. Do NOT ask any questions; if a
+  decision cannot be made from the data model + fixtures, fail the run.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['sync-to']?.status === 'completed'
+
+expected_config:
+  - views.view.landing_teasers
+
+metric: |
+  (
+    $vpr := validate_pass_rate;
+    $er := existence_rate;
+    $base := 0.6 * $vpr + 0.4 * $er;
+    cim_ok ? $base * 100 : $base * 50
+  )
+direction: max

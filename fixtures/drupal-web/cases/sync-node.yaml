@@ -1,0 +1,40 @@
+fixtures:
+  - vision
+  - data-model
+  - design-entity
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo sync-to workflow in eval mode (gate: soft) to export the
+  node.landing_page and node.article bundles to Drupal config.
+  Filter the export to entity_type=node. Author the per-config-name JSONata
+  against the prepare-fetched schema, write each config YAML, validate, and run
+  drush config:import. Do NOT ask any questions; if a decision cannot be made
+  from the data model + fixtures, fail the run.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['sync-to']?.status === 'completed'
+
+expected_config:
+  - node.type.landing_page
+  - node.type.article
+  - core.entity_view_display.node.landing_page.teaser
+  - core.entity_view_display.node.article.full
+  - field.storage.node.field_short_title
+  - field.storage.node.field_landing_page_image
+  - field.storage.node.field_landing_page_type
+  - field.field.node.landing_page.field_short_title
+  - field.field.node.landing_page.field_landing_page_image
+  - field.field.node.landing_page.field_landing_page_type
+  - field.storage.node.field_body
+  - field.field.node.article.field_body
+
+metric: |
+  (
+    $vpr := validate_pass_rate;
+    $er := existence_rate;
+    $base := 0.6 * $vpr + 0.4 * $er;
+    cim_ok ? $base * 100 : $base * 50
+  )
+direction: max
