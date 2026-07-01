@@ -45,7 +45,7 @@ export function renderPlan(ctx: RenderContext): string {
 
 function renderHeader(ctx: RenderContext): string[] {
   return [
-    `# Plan: ${ctx.workflowFrontmatter.title ?? ctx.workflowId}`,
+    `# Runbook: ${ctx.workflowFrontmatter.title ?? ctx.workflowId}`,
     '',
     `> ${ctx.workflowFrontmatter.description ?? ''}`,
     '',

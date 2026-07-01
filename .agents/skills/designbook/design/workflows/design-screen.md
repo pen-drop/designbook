@@ -26,6 +26,7 @@ stages:
   intake:
     steps: [intake]
     domain: [data-model]
+    interactive: true
   component:
     steps: [create-component]
     isolate: true

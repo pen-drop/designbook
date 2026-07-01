@@ -68,9 +68,9 @@ describe('smoke: design-shell plan', () => {
     }
   });
 
-  it('renders to a single string starting with `# Plan: Design Shell`', async () => {
+  it('renders to a single string starting with `# Runbook: Design Shell`', async () => {
     const ctx = await buildRenderContext(WORKFLOW, AGENTS_DIR);
     const md = renderPlan(ctx);
-    expect(md.split('\n')[0]).toBe('# Plan: Design Shell');
+    expect(md.split('\n')[0]).toBe('# Runbook: Design Shell');
   });
 });

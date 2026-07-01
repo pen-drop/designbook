@@ -103,6 +103,7 @@ interface StageDefinitionFm {
   each?: string;
   domain?: string[];
   isolate?: boolean;
+  interactive?: boolean;
   params?: Record<string, { type: string; prompt: string }>;
 }
 
@@ -1779,6 +1780,8 @@ export interface ResolvedStep {
   schema?: SchemaBlock;
   /** True when the step's stage declared `isolate: true`. Drives subagent dispatch in the driver. */
   isolate?: boolean;
+  /** True when the step's stage declared `interactive: true`. Drives plan capture/replay. */
+  interactive?: boolean;
 }
 
 export interface ExpectedParam {
@@ -1852,8 +1855,9 @@ export async function resolveAllStages(
         }
       }
     }
-    // Also include domain from the stage definition (if any), and pick up the isolate flag
+    // Also include domain from the stage definition (if any), and pick up the isolate/interactive flags
     let isolate = false;
+    let interactive = false;
     if (stageDefs) {
       for (const [, stageDef] of Object.entries(stageDefs)) {
         if (!stageDef.steps?.includes(step)) continue;
@@ -1863,6 +1867,7 @@ export async function resolveAllStages(
           }
         }
         if (stageDef.isolate) isolate = true;
+        if (stageDef.interactive) interactive = true;
       }
     }
 
@@ -1975,6 +1980,7 @@ export async function resolveAllStages(
         config_instructions,
         ...(hasSchema ? { schema: schemaBlock } : {}),
         ...(isolate ? { isolate: true } : {}),
+        ...(interactive ? { interactive: true } : {}),
       };
     } else {
       // Multiple tasks per step: ordered by priority (from deduplicateByNameAs)
@@ -1986,6 +1992,7 @@ export async function resolveAllStages(
         config_instructions,
         ...(hasSchema ? { schema: schemaBlock } : {}),
         ...(isolate ? { isolate: true } : {}),
+        ...(interactive ? { interactive: true } : {}),
       }));
     }
     resolvedSteps.push(step);

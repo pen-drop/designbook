@@ -275,3 +275,91 @@ Runs after hooks, only when `--optimize` was passed at workflow invocation.
 1. Collect every file written during the workflow (from the `result` submissions).
 2. Review for performance, maintainability, accessibility, design-system consistency.
 3. Output numbered suggestions — do not apply them, only suggest.
+
+---
+
+## 9. Plan Mode — Capture (`--plan`)
+
+When `--plan` is passed, the AI runs the linear prefix of the workflow — every stage from the start up to and including the last stage that carries `interactive: true` — then writes a plaintext plan file and stops. Deterministic stages in the prefix run normally; only stages that follow the last interactive stage are skipped.
+
+### Control flow
+
+When `--plan` is active:
+
+1. Create the workflow and run the task loop from the very first stage, in order. Run every stage up to and including the last stage that carries `interactive: true`. Deterministic stages in that prefix (stages without `interactive: true` that precede the last interactive stage) run normally and produce their artifacts — this gives interactive stages access to context those deterministic stages produce (for example, reference extraction data is available when the intake stage runs).
+2. After the last interactive step is `done`, do NOT continue into stages that follow the last interactive stage. Instead determine the plan slug (see below), write `$DESIGNBOOK_DATA/plans/<workflow>/<slug>.plan.md` using the format below, then `_debo workflow abandon --workflow $WORKFLOW_NAME`.
+3. Report the written plan path to the user.
+
+**Plan slug:** The execution loop derives the slug itself after the last interactive stage completes. Slugify the most identifying decision value established by the interactive stage(s) — this is the primary target being designed: the section, screen, entity, shell element, or equivalent. Convert to lowercase kebab-case (e.g. `"About Us"` → `about-us`). Interactive task files do NOT provide or derive the slug — the loop picks the most identifying result value from the completed interactive stage. If a plan file at `$DESIGNBOOK_DATA/plans/<workflow>/<slug>.plan.md` already exists, append `-2`, `-3`, … until the path is unique.
+
+**Authorship boundary:** The execution loop (this step 2) is solely responsible for creating the plan file and writing the full scaffold: the `# Plan:` header and the `## Params` section (populated from resolved workflow params). Interactive task files do NOT create the file or write `## Params` — they only append their per-decision lines to `## Decisions` and freeform notes to `## Notes`.
+
+**Decision capture (generic):** For each interactive stage, after the user confirms the stage's decisions, the AI appends those decisions to the plan file's `## Decisions` section (one line per decision) and any freeform user intent to `## Notes`. This applies to every interactive stage in every workflow — no per-task plan-mode instructions are needed in task files.
+
+### Plan file format
+
+The plan file is a plaintext Markdown document written to `$DESIGNBOOK_DATA/plans/<workflow>/<slug>.plan.md` (per-workflow subfolder). It captures resolved params, per-decision prose, and freeform notes from the user. The exact template:
+
+```markdown
+# Plan: <workflow-id>
+
+## Params
+<key>: <resolved value>   # one per resolved workflow param, including any the user corrected
+
+## Decisions
+<one prose line or short block per interactive decision, e.g.>
+Section: blog
+Screen type: landing
+Embedded entity lists: article (teaser)
+Entities: article, author
+Components (new): hero, article-card, author-badge
+
+## Notes
+<freeform tacit intent the schema does not capture, verbatim from the user; empty if none>
+```
+
+Section names (`## Params`, `## Decisions`, `## Notes`) are fixed — the `--from-plan` reader and interactive tasks that append to the file depend on these exact headings.
+
+The `# Plan:` header value remains `<workflow-id>` (unchanged); only the file path layout changed to the per-workflow subfolder scheme.
+
+---
+
+## 10. Plan Mode — Replay (`--from-plan`)
+
+When `--from-plan <name|hint>` is active, the AI runs the full workflow autonomously — interactive stages read decisions from the plan file instead of asking the user, and all deterministic stages run to completion.
+
+### Control flow
+
+When `--from-plan <name|hint>` is active:
+
+**Step 0 — Resolve the plan file path.**
+
+`<name|hint>` is resolved to an absolute file path before anything else runs:
+
+1. If `<name|hint>` is an existing file path (absolute or resolvable relative to cwd) → use it directly.
+2. Else look in `$DESIGNBOOK_DATA/plans/<workflow>/` for `<name|hint>.plan.md` (exact filename match, no suffix needed) → use it if found.
+3. Else substring-match `<name|hint>` against all `*.plan.md` filenames in `$DESIGNBOOK_DATA/plans/<workflow>/`:
+   - Exactly one match → use it.
+   - Multiple matches → list the candidates and ask the user to pick one; resume when picked.
+   - No matches → report an error and list all available plan files in that folder (emit the basenames without path).
+
+Once a path is resolved, use it as `<file>` in all steps below.
+
+1. Read `<file>`. Extract the `## Params` section and pass its key/value pairs as `--params` to `workflow create`.
+2. For each interactive stage (stage with `interactive: true`): do NOT call `workflow wait`. Instead, source that stage's user decisions from the plan's `## Decisions` + `## Notes` sections and otherwise run the stage's normal task logic (its `## Result:` derivations against the current on-disk files — read fresh at replay time, not from the plan). Then call `workflow done` with the derived result. No per-task replay instructions are needed in task files — this step applies generically to every interactive stage in every workflow.
+3. Run all deterministic stages (stages without `interactive: true`) normally, exactly as in a standard non-plan run. No user interaction.
+4. The engine auto-archives when every task is done — that is completion.
+
+**Degrade rule:** If an interactive step needs a decision that is absent from the plan's `## Decisions` section, fall back to `workflow wait` for that ONE decision and ask the user. Once the user answers, resume and continue autonomously. Never guess a missing decision.
+
+**Authorship boundary (read side):** The execution loop (step 1 above) is solely responsible for reading the `## Params` section and passing its values to `workflow create`. Individual interactive task files read ONLY `## Decisions` and `## Notes` — they never parse `## Params`. This is the symmetric counterpart to the write-side boundary in § 9.
+
+### Reading the plan file
+
+The plan file sections consumed by replay are:
+
+- `## Params` — parsed as `key: value` lines and passed to `workflow create --params`.
+- `## Decisions` — one line or short block per interactive decision; the execution loop (step 2 above) extracts the fields each interactive stage needs from this section.
+- `## Notes` — freeform context; the interactive task may use this to resolve ambiguities without asking the user.
+
+These heading names are identical to those the capture step writes (§ 9) — never invent alternate names.
