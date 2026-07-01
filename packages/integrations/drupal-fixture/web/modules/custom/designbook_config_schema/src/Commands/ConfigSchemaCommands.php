@@ -142,6 +142,10 @@ class ConfigSchemaCommands extends DrushCommands {
         unset($schema['required']);
       }
 
+      if (empty($schema['properties'])) {
+        unset($schema['properties']);
+      }
+
       return $schema;
     }
 
