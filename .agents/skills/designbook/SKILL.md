@@ -25,7 +25,7 @@ description: >
 | `--plan` | User-facing | Run only the interactive prefix (stages with `interactive: true`) with the user, then write `$DESIGNBOOK_DATA/plans/<workflow>.plan.md` and stop. Do not run deterministic stages. |
 | `--from-plan <file>` | User-facing | Autonomous run: interactive stages read `<file>` instead of asking the user; deterministic stages run to completion. |
 
-Parse flags from `$ARGUMENTS` before dispatch. Flags are not sub-commands and do not affect workflow selection. Multiple flags can be combined as needed.
+Parse flags from `$ARGUMENTS` before dispatch. Flags are not sub-commands and do not affect workflow selection. Multiple flags can be combined as needed. `--from-plan` takes a `<file>` argument: the value immediately following `--from-plan` in `$ARGUMENTS` is the plan file path (unlike bare flags `--plan` and `--optimize` which carry no argument).
 
 ## Dispatch
 

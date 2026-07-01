@@ -315,3 +315,30 @@ Components (new): hero, article-card, author-badge
 ```
 
 Section names (`## Params`, `## Decisions`, `## Notes`) are fixed — the `--from-plan` reader and interactive tasks that append to the file depend on these exact headings.
+
+---
+
+## 10. Plan Mode — Replay (`--from-plan`)
+
+When `--from-plan <file>` is active, the AI runs the full workflow autonomously — interactive stages read decisions from the plan file instead of asking the user, and all deterministic stages run to completion.
+
+### Control flow
+
+When `--from-plan <file>` is active:
+
+1. Read `<file>`. Extract the `## Params` section and pass its key/value pairs as `--params` to `workflow create`.
+2. For every step whose stage has `interactive: true`: do NOT call `workflow wait`. Instead, derive the step's result from the plan's `## Decisions` + `## Notes` sections, resolved against the CURRENT on-disk files (data-model, vision, section scenes — read fresh at replay time, not from the plan). Then call `workflow done` with the derived result.
+3. Run all deterministic stages (stages without `interactive: true`) normally, exactly as in a standard non-plan run. No user interaction.
+4. The engine auto-archives when every task is done — that is completion.
+
+**Degrade rule:** If an interactive step needs a decision that is absent from the plan's `## Decisions` section, fall back to `workflow wait` for that ONE decision and ask the user. Once the user answers, resume and continue autonomously. Never guess a missing decision.
+
+### Reading the plan file
+
+The plan file sections consumed by replay are:
+
+- `## Params` — parsed as `key: value` lines and passed to `workflow create --params`.
+- `## Decisions` — one line or short block per interactive decision; the interactive task file for each step is responsible for extracting the specific fields it needs from this section.
+- `## Notes` — freeform context; the interactive task may use this to resolve ambiguities without asking the user.
+
+These heading names are identical to those the capture step writes (§ 9) — never invent alternate names.

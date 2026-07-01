@@ -62,6 +62,22 @@ result:
 
 Gather section, screen type, entity mappings, and component plan for one screen. The `extract-reference` stage runs after intake — design reference data is not available during intake.
 
+## Replay Mode (`--from-plan`)
+
+When running under `--from-plan <file>`, skip the interactive steps below entirely. Instead:
+
+1. Read `<file>`. Locate the `## Decisions` and `## Notes` sections.
+2. Derive the following from those sections, resolved against the CURRENT on-disk `data-model.yml` and section scenes (read fresh — do not use stale plan values when the on-disk file has the authoritative shape):
+   - `section_id` — from the `Section:` line in `## Decisions`
+   - Screen type — from the `Screen type:` line in `## Decisions`
+   - Embedded entity lists — from the `Embedded entity lists:` line in `## Decisions` (if present)
+   - Entity mappings — from the `Entities:` line in `## Decisions`, cross-referenced against the current data-model
+   - Component plan — from the `Components (new):` line in `## Decisions`
+   - Freeform intent — from `## Notes` (use to resolve any ambiguity without asking the user)
+3. Compose the full result from the derived values and call `workflow done` without user interaction.
+
+**Degrade rule:** If a required decision is absent from `## Decisions` (e.g. the `Screen type:` line is missing), call `workflow wait` for that single decision and ask the user. Once answered, resume and continue autonomously. Never guess a missing decision.
+
 ## Steps
 
 1. **Confirm section** — use provided section or ask the user
