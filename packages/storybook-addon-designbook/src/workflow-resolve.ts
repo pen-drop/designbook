@@ -1524,7 +1524,11 @@ export async function expandResultDeclarations(
         entry.path = await interpolate(decl.path, params, { envMap, lenient });
       }
       if (schema) entry.schema = schema;
-      if (validators.length > 0) entry.validators = validators;
+      if (validators.length > 0) {
+        entry.validators = await Promise.all(
+          validators.map((v) => interpolate(v, { ...params, file: '{{ file }}' }, { envMap, lenient })),
+        );
+      }
       if (providerByKey[key]) entry.provider_rule = providerByKey[key];
       // Only record requiredness when the schema declares a `required` list.
       // No list → leave undefined → gate enforces all entries (back-compat).

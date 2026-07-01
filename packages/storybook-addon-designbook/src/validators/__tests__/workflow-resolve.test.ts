@@ -2554,3 +2554,23 @@ describe('expandResultDeclarations — prepare/generator fields', () => {
     expect(entry.generator).toEqual({ jsonata: '/data/sync/article.jsonata' });
   });
 });
+
+describe('expandResultDeclarations — cmd: validator interpolation', () => {
+  it('interpolates params into cmd: validator templates while preserving {{ file }}', async () => {
+    const decls = {
+      type: 'object',
+      properties: {
+        'image-style-config': {
+          validators: ['cmd:{{ backend_cmd.validate_cmd }} {{ unit.config_name }} {{ file }}'],
+        },
+      },
+    };
+    const params = {
+      backend_cmd: { validate_cmd: 'ddev drush designbook:config-validate' },
+      unit: { config_name: 'image.style.ratio_16_9' },
+    };
+    const out = await expandResultDeclarations(decls, undefined, params, {});
+    const entry = out!['image-style-config']!;
+    expect(entry.validators).toEqual(['cmd:ddev drush designbook:config-validate image.style.ratio_16_9 {{ file }}']);
+  });
+});
