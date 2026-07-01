@@ -42,6 +42,7 @@ backend_cmd:
   schema_cmd: "ddev drush designbook:config-schema"   # prints JSON Schema for a config name; append config name
   validate_cmd: "ddev drush designbook:config-validate"  # exit non-zero + violations on stderr when invalid; append config name + yaml path
   import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"  # container path is the in-container view of the host config_sync_dir that write-config's YAML lands in
+  exists_cmd: "ddev drush config:get"  # exit 0 iff a config object already exists; append config name. Used by resolve-filter to skip config that is already present.
 ```
 
 The port in `designbook.url` must match the `-p` argument of the `storybook` script in
@@ -59,8 +60,8 @@ during install for plain CSS.
 
 The `backend_cmd` block is **data only** — its values are consumed as
 `{{ backend_cmd.cmd }}`, `{{ backend_cmd.schema_cmd }}`, `{{ backend_cmd.validate_cmd }}`,
-and `{{ backend_cmd.import }}` by sync tasks. Core runs the resulting command strings
-opaquely: no drush or Drupal knowledge lives in core.
+`{{ backend_cmd.import }}`, and `{{ backend_cmd.exists_cmd }}` by sync tasks. Core runs
+the resulting command strings opaquely: no drush or Drupal knowledge lives in core.
 
 `schema_cmd` calls `designbook:config-schema <config_name>` → JSON Schema on stdout,
 exit 0. `validate_cmd` calls `designbook:config-validate <config_name> <yaml_path>` →
@@ -73,3 +74,10 @@ the live backend. `write-config`'s YAML lands host-side at the resolved
 `config_sync_dir`; `import` targets that same directory from the backend's own vantage
 point (e.g. a ddev container sees the host `<workspace>/web/sites/default/files/sync`
 at `/var/www/html/web/sites/default/files/sync`) — same physical files, two path views.
+
+`exists_cmd` calls `config:get <config_name>` → exit 0 when the config object already
+exists in the live backend, non-zero when it is absent. `resolve-filter` appends each
+candidate `config_name` to this command to decide whether to keep or drop that unit —
+this is how the sync workflow skips config that already exists (core view modes,
+previously-synced bundles/fields, environment-provided config) without any data-model
+markers or pre-seeding.

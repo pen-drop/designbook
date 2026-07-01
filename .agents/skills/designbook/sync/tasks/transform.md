@@ -41,6 +41,15 @@ params:
             itself; declared here so the shared backend_cmd shape validates
             when the config supplies it.
           examples: ["ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"]
+        exists_cmd:
+          type: string
+          description: >
+            Command prefix that exits 0 iff a config object already exists in
+            the live backend; append the config name. Not used by transform
+            itself (the resolve-filter stage already dropped existing units);
+            declared here so the shared backend_cmd shape validates when the
+            config supplies it.
+          examples: ["ddev drush config:get"]
     config_sync_dir:
       type: string
       description: Absolute path to the Drupal config-sync directory where YAML files are written.

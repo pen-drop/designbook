@@ -27,6 +27,9 @@ backend_cmd:
   # Container view of the host config_sync_dir that `transform` writes to
   # (host: <workspace>/web/sites/default/files/sync; container: /var/www/html/…).
   import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"
+  # Exits 0 iff a config object already exists; append config name.
+  # Used by resolve-filter's existence filter to skip already-present config.
+  exists_cmd: "ddev drush config:get"
 # Feature flags — on unless set to false. Override per run with
 # DESIGNBOOK_FEATURE_<NAME> (e.g. DESIGNBOOK_FEATURE_REGION_PROPERTIES=off).
 features:
