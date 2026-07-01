@@ -60,8 +60,6 @@ result:
         as: prepared
       generator:
         jsonata: "$DESIGNBOOK_DATA/sync/{{ unit.config_name }}.jsonata"
-      validators:
-        - "cmd:{{ backend_cmd.validate_cmd }} {{ unit.config_name }} {{ file }}"
 each:
   unit:
     expr: "units"
@@ -80,3 +78,5 @@ For each unit, the result is the Drupal config YAML file at `{{ config_sync_dir 
 The shape is authoritative from `prepared` (the JSON Schema fetched by the `prepare` cmd for this config name). Use `prepared` as the primary guide for what properties to produce and which are required.
 
 For the JSONata at the generator path: read the matching blueprint's `### to_drupal` block (the blueprint for `unit.entity_type` + the `field-types` prelude for field units, or the config-type blueprint for config-slice units) — this is the pattern to follow when authoring the transform. Run the authored JSONata over `unit` (binding `unit.entity_type`, `unit.bundle`, `unit.field_name`, `unit.def` as needed) to produce the config payload written to `{{ file }}`.
+
+Schema conformance for `config-file` is validated against `prepared` — the live Drupal typed-config JSON Schema fetched by `prepare` — checked against the submitted content on completion. Live validation via the backend's config-validate command is deferred: it takes a file path argument, and the staged file lives on the host while the command executes inside the backend container, so the path does not resolve there. `backend_cmd.validate_cmd` is declared for this future capability but is currently unused by transform.
