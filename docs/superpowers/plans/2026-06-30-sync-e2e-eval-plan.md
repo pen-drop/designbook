@@ -257,6 +257,8 @@ git commit -m "fixture(drupal-web): drop screens/sections/form-components + obso
 
 ### Task A4: Author sample data for landing_page + article + the view
 
+> **DEFERRED (not built in this plan).** sync-to exports config only; the sync eval's existence-check is config-only, and no surviving design case renders landing_page/article — so content sample data has no consumer here. It is needed for the planned **sync-to-verify** follow-up (which renders/verifies content), and will be authored there. Left below for that plan's reference.
+
 **Files:**
 - Create: `fixtures/drupal-web/design-entity/designbook/data/node.landing_page.yml` (or the suite's canonical sample-data dir — match where `paragraph.signage.yml` lives).
 - Create: `fixtures/drupal-web/design-entity/designbook/data/node.article.yml`.
