@@ -330,7 +330,7 @@ Update `required: [drush_summary, applied_config_names]` → `required: [drush_s
 
 - [ ] **Step 2: Set `cim_ok` in `sync.md`**
 
-In `sync.md`, extend the result prose so the sync stage sets `cim_ok: true` iff `drush config:import --partial` exited 0 (and `false` otherwise — the stage still records `drush_summary` verbatim for the audit). Do NOT make the stage abort on a non-zero import here; the eval needs the run to complete so the scorer can read the outcome.
+In `sync.md`, extend the result prose so the sync stage sets `cim_ok: true` iff `drush config:import --partial` exited 0 (and `false` otherwise — the stage still records `drush_summary` verbatim for the audit). Gate the abort behavior on the run mode: in eval/soft mode (`scope.validation_gate == 'soft'`, wired by B2's `gate` param) the stage records `cim_ok: false` and CONTINUES so the scorer gets a gradient; otherwise (default `hard`) it ABORTS on a non-zero import as before — production must surface a failed import loudly. (Eval stays separate from production.)
 
 - [ ] **Step 3: Self-run pnpm check (skill prose can break fence regexes)**
 
