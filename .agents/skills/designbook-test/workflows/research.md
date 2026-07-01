@@ -41,7 +41,7 @@ metric: after.`design-verify`.`score-report`.first_shot.score
 direction: min
 ```
 
-- `metric` — JSONata expression evaluated against the `workflow summary` JSON; selects the value used as the decision metric throughout the research loop. Backtick-quote path segments containing dashes (e.g. `` `design-verify` ``). Defaults to `flowRate` if omitted.
+- `metric` — JSONata expression evaluated against the `eval-score.mjs` JSON output (which extends the `workflow summary --json` shape); selects the value used as the decision metric throughout the research loop. Backtick-quote path segments containing dashes (e.g. `` `design-verify` ``). Defaults to `flowRate` if omitted.
 - `direction` — `min` or `max`; controls whether lower or higher metric values are considered improvements. `min` means lower-is-better (e.g. visual diff score); `max` means higher-is-better (e.g. flow-rate percentage). Defaults to `max` if omitted.
 
 ## Setup
@@ -95,7 +95,7 @@ Given an iteration number `N` and a case `c`, produce its metric value:
      stall waiting. The research loop treats such a return, and any thrown error, as a
      **crash** for this case (see Decide). A case that keeps needing a user is a fixture
      defect — fix the fixture, not the loop.
-   - Report contract: return `status: done` plus the `workflow summary --json`, or
+   - Report contract: return `status: done` plus the workflow ID (the scorer will call `workflow summary --json` internally), or
      `status: error` with the reason. No task bodies, rule text, or file contents.
    - **Friction log (the trajectory signal).** In the same report, return a `friction`
      list capturing where the driver had to guess, found a task/rule/blueprint
@@ -110,11 +110,11 @@ Given an iteration number `N` and a case `c`, produce its metric value:
      ```
      Empty list if the run was unambiguous. On `status: error`, the blocking question
      MUST appear here with `guessed: false`.
-4. Score: `npx storybook-addon-designbook workflow summary --workflow <id> --case ../../fixtures/$SUITE/cases/c.yaml --metric "$METRIC" --json` → write to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`. The returned `metric` value is this case's score.
+4. Score: `node ../../.agents/skills/designbook-test/resources/eval-score.mjs --workflow <id> --case ../../fixtures/$SUITE/cases/c.yaml --data-dir <designbook-data-dir>` → write the full JSON output to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`. The returned `.metric` field is this case's score. The scorer reads the case `metric:` field (default `flowRate`) and applies it internally by shelling `workflow summary --json`.
 5. Generate the audit per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `iterations/<NNN>/cases/c/audit.md`.
 6. Save the dbo.log digest (`digestLog` JSON) → `iterations/<NNN>/cases/c/log-digest.json`.
 7. Save the driver's `friction` list → `iterations/<NNN>/cases/c/friction.json` (`[]` if none).
-8. Return the case's `metric` value, or treat as **crash** if the summary CLI exits non-zero or `metric: null`.
+8. Return the case's `metric` value, or treat as **crash** if `eval-score.mjs` exits non-zero or `.metric` is `null`.
 
 **Score-a-set(`N`, cases):** run Score-a-case for each case in order; the set score is
 the **arithmetic mean** of the case metric values (mini-batch — used for the val set).
@@ -203,7 +203,7 @@ Compare the **gate metric** (val_score if VAL non-empty, else train_score) again
 |---|---|---|
 | keep | gate metric `improves(best_gate)` | Repo root: `git commit -am "experiment: <hypothesis-headline>"`. Update `best_gate`, `best_train`, `best_val`. |
 | discard | gate metric does not improve, no crash (includes "train improved but val did not") | Repo root: `git restore <files-touched-by-patch>`. |
-| crash | any case driver returned `status: error` (incl. would-need-user) / threw / summary CLI exits non-zero / `metric: null` | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
+| crash | any case driver returned `status: error` (incl. would-need-user) / threw / `eval-score.mjs` exits non-zero / `.metric: null` | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
 | blocked | crash count ≥ 3 | Log as blocked, ideate again next iteration with this discard recorded. |
 
 Write `iterations/<N>/decision.txt` with one of: `keep`, `discard`, `crash`, `blocked`.
@@ -249,7 +249,7 @@ If `research-runs/<slug>/` already exists at launch:
 |---|---|
 | Workflow crash mid-run (any case) | `git restore`, retry same hypothesis up to 3, then `blocked`. |
 | Driver returns `status: error` / would-need-user | Treated as `crash`. Recurring need-user on a case = fixture defect; fix the fixture, not the loop. |
-| `workflow summary` exits non-zero or returns `metric: null` | Treated as `crash` (see Decide). After 3 retries, bail. Print `summary CLI failed — inspect <path>`. |
+| `eval-score.mjs` exits non-zero or returns `.metric: null` | Treated as `crash` (see Decide). After 3 retries, bail. Print `eval-score.mjs failed — inspect <path>`. |
 | Subagent returns invalid patch | Re-dispatch with hint, max 3 in a row, then bail. |
 | Workspace reset fails | Bail. Tell user to rebuild via `debo-test run $SUITE $CASE`. |
 | `$CASE` also listed in `--val-cases` | Error at setup; the val set must be held-out. |
