@@ -275,3 +275,41 @@ Runs after hooks, only when `--optimize` was passed at workflow invocation.
 1. Collect every file written during the workflow (from the `result` submissions).
 2. Review for performance, maintainability, accessibility, design-system consistency.
 3. Output numbered suggestions — do not apply them, only suggest.
+
+---
+
+## 9. Plan Mode — Capture (`--plan`)
+
+When `--plan` is passed, the AI runs only the interactive prefix of the workflow — stages whose declaration carries `interactive: true` — then writes a plaintext plan file and stops. No deterministic (artifact-producing) stages run.
+
+### Control flow
+
+When `--plan` is active:
+
+1. Create the workflow and run the task loop normally for every step whose stage has `interactive: true` (ask the user as usual).
+2. After the last interactive step is `done`, do NOT continue into deterministic stages. Instead write `$DESIGNBOOK_DATA/plans/<workflow>.plan.md` using the format below, then `_debo workflow abandon --workflow $WORKFLOW_NAME`.
+3. Report the plan path to the user.
+
+### Plan file format
+
+The plan file is a plaintext Markdown document written to `$DESIGNBOOK_DATA/plans/<workflow-id>.plan.md`. It captures resolved params, per-decision prose, and freeform notes from the user. The exact template:
+
+```markdown
+# Plan: <workflow-id>
+
+## Params
+<key>: <resolved value>   # one per resolved workflow param, including any the user corrected
+
+## Decisions
+<one prose line or short block per interactive decision, e.g.>
+Section: blog
+Screen type: landing
+Embedded entity lists: article (teaser)
+Entities: article, author
+Components (new): hero, article-card, author-badge
+
+## Notes
+<freeform tacit intent the schema does not capture, verbatim from the user; empty if none>
+```
+
+Section names (`## Params`, `## Decisions`, `## Notes`) are fixed — the `--from-plan` reader and interactive tasks that append to the file depend on these exact headings.

@@ -91,3 +91,15 @@ the planned components and the section's entity nodes (per the entity mappings),
 injected into the shell at its `content` point. The section spec's empty
 `scenes: []` is populated from this result; `create-scene` derives each scene's
 component tree from the binding rather than from any pre-existing scene.
+
+## Plan Mode (`--plan`)
+
+When running under `--plan`, after the user confirms the build plan in step 5, append the confirmed decisions to the plan file's `## Decisions` and `## Notes` sections (per `resources/workflow-execution.md` § 9). Write one line per decision:
+
+- `Section: <section-id>`
+- `Screen type: <type>`
+- `Embedded entity lists: <entity> (<view_mode>), …` (if any)
+- `Entities: <entity>, …`
+- `Components (new): <name>, …`
+
+If the user added freeform notes during intake, append them verbatim under `## Notes`. The normal (non-plan) flow is unchanged — this step is only active when `--plan` is set.
