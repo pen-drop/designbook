@@ -1,4 +1,0 @@
-component: test_integration_drupal:submit
-name: Default
-props:
-  value: Anmelden
