@@ -12,6 +12,9 @@ importers:
 
   .:
     dependencies:
+      jsonata:
+        specifier: ^2.1.0
+        version: 2.1.0
       storybook-addon-designbook:
         specifier: workspace:*
         version: link:packages/storybook-addon-designbook
