@@ -92,14 +92,14 @@ class ConfigSchemaCommands extends DrushCommands {
    * @param int $depth
    *   Current recursion depth. Hard-stopped at 4 to avoid infinite loops on
    *   self-referential types (e.g. views display_options). At depth ≥ 4 the
-   *   property degrades to {type: string}.
+   *   property degrades to an empty (permissive) schema.
    *
    * @return array
    *   JSON Schema fragment (associative array; json_encode-ready).
    */
   private function walkDefinition(array $definition, TypedConfigManagerInterface $tcm, int $depth = 0): array {
     if ($depth > 4) {
-      return ['type' => 'string'];
+      return [];
     }
 
     $type  = $definition['type']  ?? '';
@@ -159,7 +159,7 @@ class ConfigSchemaCommands extends DrushCommands {
 
     // --- Sequence (array) ---------------------------------------------------
     if (isset($definition['sequence']) || str_contains($class, 'Sequence')) {
-      $schema = ['type' => 'array'];
+      $schema = ['type' => ['array', 'object']];
       if (isset($definition['sequence'])) {
         $schema['items'] = $this->walkDefinition($definition['sequence'], $tcm, $depth + 1);
       }
@@ -184,7 +184,7 @@ class ConfigSchemaCommands extends DrushCommands {
       }
     }
 
-    return ['type' => 'string'];
+    return [];
   }
 
   // ---------------------------------------------------------------------------
@@ -206,8 +206,46 @@ class ConfigSchemaCommands extends DrushCommands {
   public function configSchema(string $config_name): void {
     $definition = $this->typedConfig->getDefinition($config_name);
     $schema     = $this->walkDefinition($definition, $this->typedConfig);
+    $schema     = empty($schema) ? new \stdClass() : $this->forceEmptySchemasToObjects($schema);
     // Write directly to stdout — Drush formatters are not involved.
     fwrite(STDOUT, json_encode($schema, JSON_THROW_ON_ERROR) . PHP_EOL);
+  }
+
+  /**
+   * Recursively rewrites empty-array schema fragments to stdClass.
+   *
+   * walkDefinition() returns PHP `[]` for a permissive ("accept anything")
+   * schema fragment — see the depth-cap and unresolvable-type fallbacks.
+   * PHP's json_encode() always renders an empty array as JSON `[]`, but a
+   * bare `[]` is not a valid value wherever a JSON Schema is expected (e.g.
+   * "items" must be an object or boolean per the JSON Schema meta-schema,
+   * and AJV rejects `"items": []`). This walks the "items" and "properties"
+   * schema-fragment slots and swaps any empty-array fragment for
+   * `new \stdClass()` so it encodes as `{}` instead — semantically identical
+   * ("no constraints"), but valid at every position a schema is expected.
+   *
+   * @param array $schema
+   *   A JSON Schema fragment as produced by walkDefinition().
+   *
+   * @return array|\stdClass
+   *   The same fragment with empty-array sub-schemas normalized to objects.
+   */
+  private function forceEmptySchemasToObjects(array $schema): array|\stdClass {
+    if (isset($schema['items'])) {
+      $schema['items'] = empty($schema['items'])
+        ? new \stdClass()
+        : $this->forceEmptySchemasToObjects($schema['items']);
+    }
+
+    if (isset($schema['properties'])) {
+      foreach ($schema['properties'] as $key => $propSchema) {
+        $schema['properties'][$key] = empty($propSchema)
+          ? new \stdClass()
+          : $this->forceEmptySchemasToObjects($propSchema);
+      }
+    }
+
+    return $schema;
   }
 
   /**
