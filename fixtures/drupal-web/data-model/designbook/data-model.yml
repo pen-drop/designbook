@@ -48,6 +48,9 @@ content:
       view_modes:
         teaser:
           template: field-map
+        card:
+          template: field-map
+          label: Card
     article:
       title: Article
       description: An editorial page that embeds the landing-page teaser listing view.

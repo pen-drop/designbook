@@ -15,7 +15,9 @@ prompt: |
 expected_config:
   - node.type.landing_page
   - node.type.article
+  - core.entity_view_mode.node.card
   - core.entity_view_display.node.landing_page.teaser
+  - core.entity_view_display.node.landing_page.card
   - core.entity_view_display.node.article.full
   - field.storage.node.field_short_title
   - field.storage.node.field_landing_page_image
