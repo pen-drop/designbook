@@ -32,8 +32,8 @@
 **Workflow eval surface — Phase B (skill prose + addon TS):**
 - `.agents/skills/designbook/sync/schemas.yml` — `ExportSummary` gains `validation` + `cim`.
 - `.agents/skills/designbook/sync/tasks/{transform,sync,outtake}.md` — soft-gate eval param; aggregate per-unit validate + cim into `ExportSummary`.
-- `packages/storybook-addon-designbook/src/workflow.ts` — soft-gate eval mode in `workflowDone()`.
-- `packages/storybook-addon-designbook/src/cli/workflow-summary.ts` — surface `ExportSummary` into `SummaryResult.exportSummary`.
+- `packages/storybook-addon-designbook/src/workflow.ts` — soft-gate eval mode in `workflowDone()`; promote `ExportSummary` into `workflow_output` in `archiveWorkflow` (via `findResultValue`).
+- `packages/storybook-addon-designbook/src/cli/workflow-summary.ts` — map `workflow_output.export_summary` → `SummaryResult.exportSummary`.
 
 **Existence check — Phase C:**
 - `packages/integrations/drupal-fixture/web/modules/custom/designbook_config_schema/**` — new `designbook:config-exists` drush subcommand.
@@ -452,43 +452,106 @@ git commit -m "feat(workflow): soft-gate eval mode records per-unit validation a
 
 ---
 
-### Task B3: `readSummary` surfaces `ExportSummary` into `SummaryResult`
+### Task B3: Promote `ExportSummary` into `workflow_output` at archive time; map it in `readSummary`
+
+Follows the EXISTING result-object pipeline: `archiveWorkflow` → `injectFlowRate` writes `scope.workflow_output` → `readSummary` maps `workflow_output` → `SummaryResult` → `evaluateMetric` runs the JSONata over `SummaryResult`. `success_rate` / `score-report` already ride this path; the sync-to `ExportSummary` must ride it too (rather than a separate own-tasks scan in `readSummary`).
 
 **Files:**
-- Modify: `packages/storybook-addon-designbook/src/cli/workflow-summary.ts` (SummaryResult ~21-33; readSummary ~45-138)
-- Test: `packages/storybook-addon-designbook/src/cli/workflow-summary.test.ts`
+- Modify: `packages/storybook-addon-designbook/src/workflow.ts` (`archiveWorkflow` ~252-271; reuse `findResultValue` ~217)
+- Modify: `packages/storybook-addon-designbook/src/cli/workflow-summary.ts` (`WorkflowOutput` ~35-43; `SummaryResult` ~21-33; `readSummary` mapping block ~89-107)
+- Test: `packages/storybook-addon-designbook/src/__tests__/workflow-archive-score.test.ts` (archive-time promotion) + `packages/storybook-addon-designbook/src/cli/__tests__/workflow-summary.test.ts` (mapping)
 
 **Interfaces:**
-- Consumes: the sync-to workflow's own `tasks.yml`, where the outtake stage's `summary` result holds the `ExportSummary` value.
-- Produces: `SummaryResult.exportSummary?: { config_names, count, validation: { passing_units, total_units }, cim: { ok } }`. This is what the composite metric JSONata reads `validate_pass_rate` and `cim.ok` from.
+- Consumes: the outtake stage's `summary` result value (the `ExportSummary`) from the archiving workflow's own `wf.tasks[].result.summary.value`, via the existing `findResultValue(wf, 'summary')` helper.
+- Produces: `scope.workflow_output.export_summary` (snake_case, on-disk) → `SummaryResult.exportSummary` (camelCase). Shape: `{ config_names, count, validation: { passing_units, total_units }, cim: { ok } }`. This is what the composite metric JSONata reads `validate_pass_rate` and `cim.ok` from.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing archive-time test**
+
+In `workflow-archive-score.test.ts` (mirror its existing `injectFlowRate`/scope style):
 
 ```ts
-it('surfaces the outtake ExportSummary under exportSummary', () => {
-  // fixture: a tasks.yml whose outtake task has result.summary.value = an ExportSummary
-  const r = readSummary({ dataDir: FIXTURE_DIR, workflowName: 'sync-to' })!;
-  expect(r.exportSummary).toBeDefined();
-  expect(r.exportSummary!.validation.passing_units).toBe(3);
-  expect(r.exportSummary!.validation.total_units).toBe(4);
-  expect(r.exportSummary!.cim.ok).toBe(true);
+it('promotes the outtake ExportSummary into workflow_output.export_summary', () => {
+  const wf = makeWorkflowFixture({
+    tasks: [
+      { title: 'Outtake', type: 'data',
+        result: { summary: { value: {
+          config_names: ['node.type.article'], count: 1,
+          validation: { passing_units: 3, total_units: 4 }, cim: { ok: true },
+        } } } },
+    ],
+  });
+  archiveWorkflowForTest(DATA_DIR, 'sync-to', wf); // helper that runs archiveWorkflow + reads back tasks.yml
+  const wo = readBackScope(DATA_DIR, 'sync-to').workflow_output;
+  expect(wo.export_summary.validation.passing_units).toBe(3);
+  expect(wo.export_summary.cim.ok).toBe(true);
 });
 ```
-(Create a `tasks.yml` fixture under the test dir mirroring the real archive shape: `tasks: [ { result: { summary: { value: { config_names: [...], count: 4, validation: { passing_units: 3, total_units: 4 }, cim: { ok: true } } } } } ]`.)
+(Use the file's existing fixture/readback helpers; if `archiveWorkflow` is not exported, export it for the test as the sibling functions already are.)
 
 - [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-pnpm --filter storybook-addon-designbook test -- workflow-summary.test.ts -t "exportSummary"
+cd /home/cw/projects/designbook/.claude/worktrees/export
+pnpm --filter storybook-addon-designbook test -- workflow-archive-score.test.ts -t "export_summary"
 ```
-Expected: FAIL — `r.exportSummary` is undefined.
+Expected: FAIL — `wo.export_summary` is undefined.
 
-- [ ] **Step 3: Add the type + the aggregation**
+- [ ] **Step 3: Promote at archive time**
 
-Add to the `SummaryResult` interface (after `after?`):
+In `archiveWorkflow` (workflow.ts ~261, right after `injectFlowRate(dataDir, scope);`):
 
 ```ts
-  /** The sync-to outtake ExportSummary, lifted from this workflow's own task results. */
+  // Promote the outtake ExportSummary (if the workflow produced one) so the
+  // metric can read validation + cim, same path as flow_rate/score-report.
+  const exportSummary = findResultValue(wf, 'summary');
+  if (exportSummary && typeof exportSummary === 'object') {
+    (scope.workflow_output as Record<string, unknown>).export_summary = exportSummary;
+  }
+```
+(`findResultValue` already walks `wf.tasks[].result[key].value` and returns the first defined — no new helper.)
+
+- [ ] **Step 4: Run the archive test to verify it passes**
+
+```bash
+pnpm --filter storybook-addon-designbook test -- workflow-archive-score.test.ts -t "export_summary"
+```
+Expected: PASS.
+
+- [ ] **Step 5: Write the failing mapping test**
+
+In `workflow-summary.test.ts` (mirror the existing `workflow_output` fixture style at its top):
+
+```ts
+it('maps export_summary from workflow_output into SummaryResult.exportSummary', () => {
+  const wo = {
+    flow_rate: 100,
+    export_summary: {
+      config_names: ['node.type.article'], count: 1,
+      validation: { passing_units: 3, total_units: 4 }, cim: { ok: true },
+    },
+  };
+  const r = readSummaryFromFixture({ scope: { workflow_output: wo } })!;
+  expect(r.exportSummary!.validation.total_units).toBe(4);
+  expect(r.exportSummary!.cim.ok).toBe(true);
+});
+```
+
+- [ ] **Step 6: Add the type + the mapping**
+
+In `workflow-summary.ts`, extend `WorkflowOutput` (~35-43):
+
+```ts
+  export_summary?: {
+    config_names?: string[];
+    count?: number;
+    validation?: { passing_units?: number; total_units?: number };
+    cim?: { ok?: boolean };
+  };
+```
+Add to `SummaryResult` (~21-33):
+
+```ts
+  /** The sync-to outtake ExportSummary, promoted into workflow_output at archive time. */
   exportSummary?: {
     config_names: string[];
     count: number;
@@ -496,31 +559,36 @@ Add to the `SummaryResult` interface (after `after?`):
     cim: { ok: boolean };
   };
 ```
-In `readSummary`, after the `after` aggregation block (~line 135), scan THIS workflow's own tasks for a `summary` result value and attach it:
+In `readSummary`'s result-object spread (~89-107), add a mapping line alongside the others (only when present + well-formed):
 
 ```ts
-  // Lift this workflow's own outtake ExportSummary (if present) so metrics can read it.
-  for (const t of tasksData?.tasks ?? []) {
-    const v = t.result?.summary?.value as SummaryResult['exportSummary'] | undefined;
-    if (v && typeof v === 'object' && 'validation' in v && 'cim' in v) {
-      result.exportSummary = v;
-      break;
-    }
-  }
+    ...(wo.export_summary?.validation && wo.export_summary.cim
+      ? {
+          exportSummary: {
+            config_names: wo.export_summary.config_names ?? [],
+            count: wo.export_summary.count ?? 0,
+            validation: {
+              passing_units: wo.export_summary.validation.passing_units ?? 0,
+              total_units: wo.export_summary.validation.total_units ?? 0,
+            },
+            cim: { ok: wo.export_summary.cim.ok ?? false },
+          },
+        }
+      : {}),
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [ ] **Step 7: Run the tests to verify they pass**
 
 ```bash
-pnpm --filter storybook-addon-designbook test -- workflow-summary.test.ts
+pnpm --filter storybook-addon-designbook test -- workflow-summary.test.ts workflow-archive-score.test.ts
 ```
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add packages/storybook-addon-designbook/src/cli/workflow-summary.ts packages/storybook-addon-designbook/src/cli/workflow-summary.test.ts
-git commit -m "feat(summary): surface sync-to ExportSummary (validation + cim) into SummaryResult"
+git add packages/storybook-addon-designbook/src/workflow.ts packages/storybook-addon-designbook/src/cli/workflow-summary.ts packages/storybook-addon-designbook/src/__tests__/workflow-archive-score.test.ts packages/storybook-addon-designbook/src/cli/__tests__/workflow-summary.test.ts
+git commit -m "feat(summary): promote sync-to ExportSummary into workflow_output → SummaryResult"
 ```
 
 ---
