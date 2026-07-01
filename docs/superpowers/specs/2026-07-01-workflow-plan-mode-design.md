@@ -83,8 +83,13 @@ where plan capture stops, and which stages read the plan on replay.
 3. As each interactive stage completes, write its decisions to `<wf>.plan.md`.
 4. Stop. Abandon the throwaway instance — the plaintext plan is the portable artifact.
 
-### `debo <wf> --from-plan <file>` (replay, autonomous)
+### `debo <wf> --from-plan <name|hint>` (replay, autonomous)
 
+0. **Resolve the hint to a plan file** (mirrors the engine's `unresolved` candidate
+   pattern): an existing path is used directly; otherwise look in
+   `$DESIGNBOOK_DATA/plans/<workflow>/` for `<hint>.plan.md` (exact); otherwise
+   substring-match `*.plan.md` — unique match is used, multiple candidates are listed
+   for the user to pick, none is an error listing the available plans.
 1. `workflow create` — resolve params from the plan.
 2. The interactive stage runs but **reads the plan instead of asking the human**, and
    emits its normal structured result from the plan + **current files**.
@@ -96,7 +101,13 @@ where plan capture stops, and which stages read the plan on replay.
 (stale plan, new branch), pause and ask the human. Autonomy is best-effort; it never
 guesses a wrong answer.
 
-## Plan file — `<wf>.plan.md` (plaintext)
+## Plan file — `plans/<workflow>/<slug>.plan.md` (plaintext)
+
+Multiple plans per workflow coexist, so a plan is NOT named after the workflow alone.
+Capture **auto-generates** `<slug>` from the interactive stage's primary target decision
+(design-screen: the section/screen id, e.g. `homepage`); a collision appends `-2`, `-3`.
+Capture reports the written path. Replay selects a plan by name/hint (see the replay
+flow above) — no need to type the full path.
 
 Human-readable and human-editable. Contains exactly three things:
 
