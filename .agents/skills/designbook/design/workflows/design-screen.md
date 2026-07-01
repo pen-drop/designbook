@@ -20,13 +20,13 @@ params:
     resolve: breakpoints
     from: story_id
 stages:
+  reference:
+    steps: [extract-reference]
+    isolate: true
   intake:
     steps: [intake]
     domain: [data-model]
     interactive: true
-  reference:
-    steps: [extract-reference]
-    isolate: true
   component:
     steps: [create-component]
     isolate: true

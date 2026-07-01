@@ -60,23 +60,7 @@ result:
 
 # Intake: Design Screen
 
-Gather section, screen type, entity mappings, and component plan for one screen. The `extract-reference` stage runs after intake — design reference data is not available during intake.
-
-## Replay Mode (`--from-plan`)
-
-When running under `--from-plan <file>`, skip the interactive steps below entirely. Instead:
-
-1. Read `<file>`. Locate the `## Decisions` and `## Notes` sections.
-2. Derive the following from those sections, resolved against the CURRENT on-disk `data-model.yml` and section scenes (read fresh — do not use stale plan values when the on-disk file has the authoritative shape):
-   - `section_id` — from the `Section:` line in `## Decisions`
-   - Screen type — from the `Screen type:` line in `## Decisions`
-   - Embedded entity lists — from the `Embedded entity lists:` line in `## Decisions` (if present)
-   - Entity mappings — from the `Entities:` line in `## Decisions`, cross-referenced against the current data-model
-   - Component plan — from the `Components (new):` line in `## Decisions`
-   - Freeform intent — from `## Notes` (use to resolve any ambiguity without asking the user)
-3. Compose the full result from the derived values and call `workflow done` without user interaction. Only `section_id` / screen type / embedded entity lists / entity mappings / component plan come from `## Decisions` + `## Notes`; all other required result fields (`scenes`, `scene_path`, `sample_data_bundles`, `section_title`, `output_path`) are derived using the standard logic in the `## Result:` sections below, exactly as in interactive mode.
-
-**Degrade rule:** If a required decision is absent from `## Decisions` (e.g. the `Screen type:` line is missing), call `workflow wait` for that single decision and ask the user. Once answered, resume and continue autonomously. Never guess a missing decision.
+Gather section, screen type, entity mappings, and component plan for one screen. The `extract-reference` stage runs before intake — when `$reference_dir/extract.json` exists, use it to inform entity/component planning and the structure preview.
 
 ## Steps
 
@@ -85,7 +69,7 @@ When running under `--from-plan <file>`, skip the interactive steps below entire
 3. **Plan entities** — collect `entity:` nodes from section spec scenes, deduplicate by entity+view_mode, traverse `type: reference` fields recursively, order leaf-first; present table and confirm
 4. **Plan components** — scan existing components, identify new ones needed per entity and screen-level; if `$reference_dir/extract.json` exists, derive from landmark structure; present grouped table and confirm
 5. **Summary** — present complete build plan, wait for confirmation
-6. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection. Because `extract-reference` runs *after* this stage, the plan is formed without reference data — state `reference: none` in the preview so the user knows the structure was inferred from the section spec and data model, not an observed design.
+6. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection. When `$reference_dir/extract.json` exists, base the preview on the observed reference structure; only when no reference exists, state `reference: none` in the preview so the user knows the structure was inferred from the section spec and data model, not an observed design.
 
 ## Result: components
 
@@ -108,16 +92,3 @@ injected into the shell at its `content` point. The section spec's empty
 `scenes: []` is populated from this result; `create-scene` derives each scene's
 component tree from the binding rather than from any pre-existing scene.
 
-## Plan Mode (`--plan`)
-
-When running under `--plan`, after the user confirms the build plan in step 5, append the confirmed decisions to the plan file's `## Decisions` and `## Notes` sections (per `resources/workflow-execution.md` § 9). The execution loop (§ 9 step 2) writes the `# Plan:` header and `## Params` section — this task only appends to `## Decisions` and `## Notes`. Write one line per decision:
-
-- `Section: <section-id>`
-- `Screen type: <type>`
-- `Embedded entity lists: <entity> (<view_mode>), …` (if any)
-- `Entities: <entity>, …`
-- `Components (new): <name>, …`
-
-**Plan slug:** This task must also provide the plan slug to the execution loop. The slug is derived from `section_id`: lowercase, kebab-case (e.g. `section_id = "ausbildung"` → slug `ausbildung`; `section_id = "About Us"` → slug `about-us`). Return it to the execution loop so the loop can write to `$DESIGNBOOK_DATA/plans/design-screen/<slug>.plan.md`. The slug must be a pure derived value from `section_id` — no user input needed.
-
-If the user added freeform notes during intake, append them verbatim under `## Notes`. The normal (non-plan) flow is unchanged — this step is only active when `--plan` is set.

@@ -22,7 +22,7 @@ description: >
 | Flag | Visibility | Effect |
 |---|---|---|
 | `--optimize` | User-facing | After the workflow completes, review all created/modified artifacts and suggest concrete optimizations (performance, maintainability, accessibility, design-system consistency). Output as a numbered list. Do not apply changes — only suggest. |
-| `--plan` | User-facing | Run only the interactive prefix (stages with `interactive: true`) with the user, then write `$DESIGNBOOK_DATA/plans/<workflow>/<slug>.plan.md` (slug auto-generated from the interactive stage's primary target) and stop. Do not run deterministic stages. |
+| `--plan` | User-facing | Run the workflow up to and including the last `interactive: true` stage (deterministic stages in that prefix run too, so interactive stages have their context), then write `$DESIGNBOOK_DATA/plans/<workflow>/<slug>.plan.md` (slug auto-generated from the primary target the interactive stage(s) established) and stop. Stages after the last interactive stage do not run. |
 | `--from-plan <name\|hint>` | User-facing | Autonomous run: resolve `<name\|hint>` to a plan file (exact path → exact name in `plans/<workflow>/` → substring match; see `workflow-execution.md` § 10 step 0), then read decisions from that file instead of asking the user; deterministic stages run to completion. |
 
 Parse flags from `$ARGUMENTS` before dispatch. Flags are not sub-commands and do not affect workflow selection. Multiple flags can be combined as needed. `--from-plan` takes a `<file>` argument: the value immediately following `--from-plan` in `$ARGUMENTS` is the plan file path (unlike bare flags `--plan` and `--optimize` which carry no argument).
