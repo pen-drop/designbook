@@ -74,7 +74,7 @@ When running under `--from-plan <file>`, skip the interactive steps below entire
    - Entity mappings — from the `Entities:` line in `## Decisions`, cross-referenced against the current data-model
    - Component plan — from the `Components (new):` line in `## Decisions`
    - Freeform intent — from `## Notes` (use to resolve any ambiguity without asking the user)
-3. Compose the full result from the derived values and call `workflow done` without user interaction.
+3. Compose the full result from the derived values and call `workflow done` without user interaction. Only `section_id` / screen type / embedded entity lists / entity mappings / component plan come from `## Decisions` + `## Notes`; all other required result fields (`scenes`, `scene_path`, `sample_data_bundles`, `section_title`, `output_path`) are derived using the standard logic in the `## Result:` sections below, exactly as in interactive mode.
 
 **Degrade rule:** If a required decision is absent from `## Decisions` (e.g. the `Screen type:` line is missing), call `workflow wait` for that single decision and ask the user. Once answered, resume and continue autonomously. Never guess a missing decision.
 

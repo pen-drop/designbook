@@ -333,6 +333,8 @@ When `--from-plan <file>` is active:
 
 **Degrade rule:** If an interactive step needs a decision that is absent from the plan's `## Decisions` section, fall back to `workflow wait` for that ONE decision and ask the user. Once the user answers, resume and continue autonomously. Never guess a missing decision.
 
+**Authorship boundary (read side):** The execution loop (step 1 above) is solely responsible for reading the `## Params` section and passing its values to `workflow create`. Individual interactive task files read ONLY `## Decisions` and `## Notes` — they never parse `## Params`. This is the symmetric counterpart to the write-side boundary in § 9.
+
 ### Reading the plan file
 
 The plan file sections consumed by replay are:
