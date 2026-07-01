@@ -47,6 +47,7 @@ export interface InstructionsResult {
   schema?: import('../schema-block.js').SchemaBlock;
   submit_results?: string;
   isolate?: boolean;
+  interactive?: boolean;
 }
 
 export type InstructionsError = { error: string; availableStages: string[] | null };
@@ -104,6 +105,7 @@ export function buildInstructions(
     ...(schema ? { schema } : {}),
     ...(submitResults ? { submit_results: submitResults } : {}),
     ...(stage.isolate ? { isolate: true } : {}),
+    ...(stage.interactive ? { interactive: true } : {}),
   };
 }
 

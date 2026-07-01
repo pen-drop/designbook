@@ -2491,3 +2491,43 @@ describe('resolveAllStages — isolate flag', () => {
     expect(beta.isolate).toBeUndefined();
   });
 });
+
+describe('resolveAllStages — interactive flag', () => {
+  let agentsDir: string;
+  let config: DesignbookConfig;
+
+  beforeEach(() => {
+    agentsDir = makeTmpDir();
+    writeSkillTaskFile(agentsDir, 'demo', 'intake', 'trigger:\n  steps: [intake]', 'intake body');
+    writeSkillTaskFile(agentsDir, 'demo', 'output', 'trigger:\n  steps: [output]', 'output body');
+    config = { data: makeTmpDir() } as unknown as DesignbookConfig;
+  });
+
+  it('surfaces interactive:true on a step whose stage declares it', async () => {
+    const wfDir = resolve(agentsDir, 'skills', 'demo', 'workflows');
+    mkdirSync(wfDir, { recursive: true });
+    const wfPath = resolve(wfDir, 'demo.md');
+    writeFileSync(
+      wfPath,
+      [
+        '---',
+        'title: Demo',
+        'stages:',
+        '  intake:',
+        '    steps: [intake]',
+        '    interactive: true',
+        '  output:',
+        '    steps: [output]',
+        '---',
+      ].join('\n'),
+    );
+
+    const resolved = await resolveAllStages(wfPath, config, {}, agentsDir);
+    const intake = resolved.step_resolved['intake'] as ResolvedStep;
+    const output = resolved.step_resolved['output'] as ResolvedStep;
+    expect(Array.isArray(intake)).toBe(false);
+    expect(Array.isArray(output)).toBe(false);
+    expect(intake.interactive).toBe(true);
+    expect(output.interactive).toBeUndefined();
+  });
+});

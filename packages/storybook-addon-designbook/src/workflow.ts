@@ -58,6 +58,8 @@ export interface StageLoaded {
   schema?: import('./schema-block.js').SchemaBlock; // unified schema block (params, result, definitions)
   /** True when this step's stage is isolated. Mirrors ResolvedStep.isolate. */
   isolate?: boolean;
+  /** True when this step's stage declared interactive: true. Mirrors ResolvedStep.interactive. */
+  interactive?: boolean;
 }
 
 export type StageLoadedEntry = StageLoaded | StageLoaded[];
