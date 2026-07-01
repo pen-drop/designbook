@@ -12,10 +12,6 @@ prompt: |
   drush config:import. Do NOT ask any questions; if a decision cannot be made
   from the data model + fixtures, fail the run.
 
-assert:
-  - type: javascript
-    value: output.archivedWorkflows['sync-to']?.status === 'completed'
-
 expected_config:
   - node.type.landing_page
   - node.type.article

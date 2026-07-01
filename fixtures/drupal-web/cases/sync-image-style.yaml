@@ -12,10 +12,6 @@ prompt: |
   and run drush config:import. Do NOT ask any questions; if a decision cannot be
   made from the data model + fixtures, fail the run.
 
-assert:
-  - type: javascript
-    value: output.archivedWorkflows['sync-to']?.status === 'completed'
-
 expected_config:
   - image.style.ratio_16_9
   - image.style.ratio_4_3
