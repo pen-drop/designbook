@@ -28,7 +28,10 @@ drush config:import --partial --source={{ config_sync_dir }} -y
 
 Capture stdout, stderr, and the exit code.
 
-Do NOT abort on a non-zero exit code — record the outcome and continue so the scorer can read it.
+**On a non-zero exit code:**
+
+- If `scope.validation_gate` is `'soft'` (eval/gradient-scoring mode) — record the outcome in `sync-result` and **continue**. The scorer needs the result even on failure.
+- Otherwise (`scope.validation_gate` is `'hard'` or absent) — record `drush_summary` and `cim_ok: false`, then **abort** the stage immediately and surface the drush output as the failure reason.
 
 ## Result: sync-result
 
