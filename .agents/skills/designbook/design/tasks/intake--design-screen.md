@@ -118,4 +118,6 @@ When running under `--plan`, after the user confirms the build plan in step 5, a
 - `Entities: <entity>, …`
 - `Components (new): <name>, …`
 
+**Plan slug:** This task must also provide the plan slug to the execution loop. The slug is derived from `section_id`: lowercase, kebab-case (e.g. `section_id = "ausbildung"` → slug `ausbildung`; `section_id = "About Us"` → slug `about-us`). Return it to the execution loop so the loop can write to `$DESIGNBOOK_DATA/plans/design-screen/<slug>.plan.md`. The slug must be a pure derived value from `section_id` — no user input needed.
+
 If the user added freeform notes during intake, append them verbatim under `## Notes`. The normal (non-plan) flow is unchanged — this step is only active when `--plan` is set.

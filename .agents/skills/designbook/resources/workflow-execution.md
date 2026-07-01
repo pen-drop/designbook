@@ -287,14 +287,16 @@ When `--plan` is passed, the AI runs only the interactive prefix of the workflow
 When `--plan` is active:
 
 1. Create the workflow and run the task loop normally for every step whose stage has `interactive: true` (ask the user as usual).
-2. After the last interactive step is `done`, do NOT continue into deterministic stages. Instead write `$DESIGNBOOK_DATA/plans/<workflow>.plan.md` using the format below, then `_debo workflow abandon --workflow $WORKFLOW_NAME`.
-3. Report the plan path to the user.
+2. After the last interactive step is `done`, do NOT continue into deterministic stages. Instead determine the plan slug (see below), write `$DESIGNBOOK_DATA/plans/<workflow>/<slug>.plan.md` using the format below, then `_debo workflow abandon --workflow $WORKFLOW_NAME`.
+3. Report the written plan path to the user.
 
-**Authorship boundary:** The execution loop (this step 2) is solely responsible for creating the plan file and writing the full scaffold: the `# Plan:` header and the `## Params` section (populated from resolved workflow params). Interactive task files (e.g. `intake--design-screen.md`) do NOT create the file or write `## Params` — they only append their per-decision lines to `## Decisions` and freeform notes to `## Notes`.
+**Plan slug:** The slug is auto-generated from the interactive stage's primary target decision. For `design-screen`'s intake stage that is the `section_id` result (e.g. `homepage`, `ausbildung`). The interactive task file is responsible for choosing and providing the slug — it knows its own domain target. The slug must be lowercase kebab-case. If a plan file at `$DESIGNBOOK_DATA/plans/<workflow>/<slug>.plan.md` already exists, append `-2`, `-3`, … until the path is unique.
+
+**Authorship boundary:** The execution loop (this step 2) is solely responsible for creating the plan file and writing the full scaffold: the `# Plan:` header and the `## Params` section (populated from resolved workflow params). Interactive task files (e.g. `intake--design-screen.md`) do NOT create the file or write `## Params` — they only append their per-decision lines to `## Decisions` and freeform notes to `## Notes`. The interactive task file MUST also provide the slug to the execution loop (as a data result or inline note) so the loop can construct the correct path.
 
 ### Plan file format
 
-The plan file is a plaintext Markdown document written to `$DESIGNBOOK_DATA/plans/<workflow-id>.plan.md`. It captures resolved params, per-decision prose, and freeform notes from the user. The exact template:
+The plan file is a plaintext Markdown document written to `$DESIGNBOOK_DATA/plans/<workflow>/<slug>.plan.md` (per-workflow subfolder). It captures resolved params, per-decision prose, and freeform notes from the user. The exact template:
 
 ```markdown
 # Plan: <workflow-id>
@@ -316,15 +318,30 @@ Components (new): hero, article-card, author-badge
 
 Section names (`## Params`, `## Decisions`, `## Notes`) are fixed — the `--from-plan` reader and interactive tasks that append to the file depend on these exact headings.
 
+The `# Plan:` header value remains `<workflow-id>` (unchanged); only the file path layout changed to the per-workflow subfolder scheme.
+
 ---
 
 ## 10. Plan Mode — Replay (`--from-plan`)
 
-When `--from-plan <file>` is active, the AI runs the full workflow autonomously — interactive stages read decisions from the plan file instead of asking the user, and all deterministic stages run to completion.
+When `--from-plan <name|hint>` is active, the AI runs the full workflow autonomously — interactive stages read decisions from the plan file instead of asking the user, and all deterministic stages run to completion.
 
 ### Control flow
 
-When `--from-plan <file>` is active:
+When `--from-plan <name|hint>` is active:
+
+**Step 0 — Resolve the plan file path.**
+
+`<name|hint>` is resolved to an absolute file path before anything else runs:
+
+1. If `<name|hint>` is an existing file path (absolute or resolvable relative to cwd) → use it directly.
+2. Else look in `$DESIGNBOOK_DATA/plans/<workflow>/` for `<name|hint>.plan.md` (exact filename match, no suffix needed) → use it if found.
+3. Else substring-match `<name|hint>` against all `*.plan.md` filenames in `$DESIGNBOOK_DATA/plans/<workflow>/`:
+   - Exactly one match → use it.
+   - Multiple matches → list the candidates and ask the user to pick one; resume when picked.
+   - No matches → report an error and list all available plan files in that folder (emit the basenames without path).
+
+Once a path is resolved, use it as `<file>` in all steps below.
 
 1. Read `<file>`. Extract the `## Params` section and pass its key/value pairs as `--params` to `workflow create`.
 2. For every step whose stage has `interactive: true`: do NOT call `workflow wait`. Instead, derive the step's result from the plan's `## Decisions` + `## Notes` sections, resolved against the CURRENT on-disk files (data-model, vision, section scenes — read fresh at replay time, not from the plan). Then call `workflow done` with the derived result.
