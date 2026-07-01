@@ -27,11 +27,11 @@ params:
       default: []
       items:
         $ref: ../schemas.yml#/BreakpointId
-    regions:
+    elements:
       type: array
       default: []
       items:
-        $ref: ../schemas.yml#/RegionId
+        $ref: ../schemas.yml#/ElementId
 result:
   type: object
   required: [workflow_output]
@@ -58,7 +58,7 @@ task focused on collecting the current run facts and computing the final
    - `diff_path`
    - `issues_count`
    - `breakpoints_checked`
-   - `regions_checked`
+   - `elements_checked`
    - `reference_folder`
 4. Derive `compare_passed`, `issues_count`, and the most relevant `diff_path`
    from the aggregated `compare_artifacts` and `issues`.
@@ -82,7 +82,7 @@ task focused on collecting the current run facts and computing the final
      configured): visual fidelity is genuinely unmeasured → `success_rate = 1.0`.
    - **A `reference_folder` was set but `compare_artifacts` is empty**: compare was
      expected but produced nothing → `success_rate = 0.0`, never default to perfect.
-   - **Fewer artifacts than the configured check matrix** (`breakpoints[] × regions[] ×
+   - **Fewer artifacts than the configured check matrix** (`breakpoints[] × elements[] ×
      states`): each expected-but-absent check counts as `effective_deviation = 1.0`,
      so dropping the worst check cannot raise the score.
 6. Return a short `summary`, any non-fatal `warnings`, and relevant `artifacts`.

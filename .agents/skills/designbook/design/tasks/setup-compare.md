@@ -4,78 +4,107 @@ trigger:
   steps: [setup-compare]
 params:
   type: object
-  required: [story_id, breakpoints]
+  required: [story_id, reference_dir, elements]
   properties:
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
       resolve: story_id
       from: scene_id
-    reference: { type: array, default: [] }
-    reference_folder:
-      $ref: ../schemas.yml#/ReferenceFolder
+    reference_url:
+      type: string
       default: ""
-    regions:
+      description: "Source URL for the design reference."
+    reference_dir:
+      type: string
+      description: "Absolute path to the Reference directory. The directory basename is the Reference hash used by story meta."
+    elements:
       type: array
-      default: []
+      description: "Per-element id, story-side selector, reference-side selector, states, and which breakpoints to cover."
       items:
-        $ref: ../schemas.yml#/Region
-    breakpoints: { type: array }
+        type: object
+        required: [id, selector]
+        properties:
+          id: { $ref: ../schemas.yml#/ElementId }
+          selector:
+            type: string
+            description: "CSS selector on the story DOM; '' ⇒ isolated story root."
+          breakpoints:
+            type: array
+            description: "Breakpoints to capture for this element. Defaults to all breakpoints in design_tokens."
+            items: { $ref: ../schemas.yml#/BreakpointId }
+          reference_selector:
+            type: string
+            description: "CSS selector on the reference page. Defaults to selector when omitted."
+          states:
+            type: array
+            items:
+              $ref: ../schemas.yml#/CaptureState
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
 result:
   type: object
-  required: [story-meta, checks]
+  required: [story-meta, reference-meta, story_screenshots, reference_screenshots]
   properties:
     story-meta:
       path: designbook/stories/{{ story_id }}/meta.yml
-      type: object
       $ref: ../schemas.yml#/StoryMeta
-    checks:
+    reference-meta:
+      path: "{{ reference_dir }}/meta.yml"
+      $ref: ../schemas.yml#/Reference
+    story_screenshots:
       type: array
       items:
-        $ref: ../schemas.yml#/Check
+        $ref: ../schemas.yml#/Screenshot
+    reference_screenshots:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Screenshot
 ---
 
 # Setup Compare
 
-Build the `meta.yml` configuration for the story and return the runtime
-`checks` matrix that drives the capture and compare stages.
+Write the story binding `stories/{{ story_id }}/meta.yml`, write the Reference
+binding `{{ reference_dir }}/meta.yml`, and emit the two screenshot lists that
+drive capture and baseline-filling downstream.
 
-`regions` is a list of `Region { id, selector, reference_selector }` provided by the
-caller. Use it when the workflow chose explicit review surfaces (e.g. shell → header/footer
-with their real story + reference selectors; an entity → its reference selector). When
-`regions` is empty, default to a single full-page region:
-`[{ id: full, selector: "", reference_selector: "" }]`.
+## Result: story-meta
 
-Use the first item from `reference[]` when it is already present. If it is
-empty and `{reference_folder}/extract.json` exists, derive the reference source
-from that file instead.
+Write `{ reference: <hash>, elements: [{ id, selector }] }` — one entry per
+element from `elements`, carrying the story-side selector. The reference hash
+is the basename of `reference_dir` and binds the story to the Reference at
+`references/<hash>/meta.yml`.
 
-If no reference source can be derived, still emit the breakpoint × region
-matrix so downstream stages can reuse existing reference screenshots from the
-reference folder.
+## Result: reference-meta
 
-## States
+Write a `Reference` to `{{ reference_dir }}/meta.yml`:
 
-The check matrix is breakpoint × region × **state**. Every region has at least the
-`rest` state. When a region contains an `interactive[]` element with a `behavior`
-(from `extract.json`, or persisted under the region's `states` in `meta.yml`), add a
-check per additional state. For each check set `state`, `steps` (the interactions
-that reach it — empty for `rest`), and `file_suffix` (`""` for `rest`, `--{state}`
-otherwise). A story with no behaviors yields rest-only checks — identical to the
-prior breakpoint × region matrix, no new screenshots.
+- `source.url`: `reference_url` when supplied.
+- `elements`: one entry per element from `elements`, carrying the reference-side
+  selector. Use `reference_selector` when present, otherwise `selector`.
+- `id`: keep the stable comparison subject id from intake. Entity stories use
+  `entity-<entity_type>-<bundle>-<view_mode>`; scene regions use ids such as
+  `scene-header`. The `<view_mode>` segment may be `full`; that is different
+  from full-area capture. The id names what is being compared, not whether
+  capture uses the story root.
+- `states`: each element's supplied states, defaulting to `[{ name: rest, steps: [] }]`.
+- `breakpoints`: each element's supplied breakpoints, defaulting to every
+  breakpoint id in `design_tokens`.
+- `extract`: `"extract.json"`.
+- `assets_dir`: `"assets/"`.
 
-## Region = id + two selectors
+## Result: story_screenshots
 
-A region is a `{ id, selector, reference_selector }` triple. For each emitted check, set:
-- `region` = `region.id` (the clean label used in the screenshot filename and score, e.g. `header`, `footer`, `full`)
-- `selector` = `region.selector` (crops the STORY; `""` ⇒ full story viewport)
-- `reference_selector` = `region.reference_selector` (crops the REFERENCE; `""` ⇒ full reference page)
+The story-side capture matrix: element × state × breakpoint, each as a
+`Screenshot { element, state, breakpoint, selector: <story selector> }`.
 
-Two selectors because the story DOM (design-system components, e.g. `.page__header`) differs
-from the reference DOM (e.g. Angular `app-site-header`). There is no landmark guessing — the
-caller supplies the real selector per surface. A selector that matches nothing on one side
-falls back to that side's full capture (see `playwright-capture`), so an entity whose story
-is an isolated component (`selector: ""`) keeps the full component while the reference crops
-to `reference_selector`.
+States: every element has at least `rest`. Add one entry per interactive state
+that the element records. Story steps for non-rest states run against the story
+DOM.
+
+## Result: reference_screenshots
+
+The reference-side capture matrix: the same element × state × breakpoint triples
+as `story_screenshots`, each as a `Screenshot { element, state, breakpoint,
+selector: <reference selector> }`. These are consumed by `ensure-baseline` to
+fill any missing reference baselines.

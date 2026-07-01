@@ -1,7 +1,7 @@
-<section{{ attributes.addClass(['bg-surface-variant', 'py-12', overlapping_top ? '-mt-10' : '']|filter(c => c)) }}>
-  <div class="max-w-[var(--container-xl,1267px)] mx-auto px-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {% if field_signage_item %}{{ field_signage_item }}{% endif %}
-    </div>
+<section{{ attributes.addClass(['signage', 'w-full', overlapping ? '-mt-16' : '', style ? 'signage--' ~ style : '']|filter(c => c)) }}>
+  <div class="signage__inner mx-auto max-w-[1200px] px-4 pt-0 pb-12 md:px-8 lg:px-10">
+    {% if items %}
+      <div class="signage__items grid gap-6 md:grid-cols-3 lg:gap-8">{{ items }}</div>
+    {% endif %}
   </div>
 </section>

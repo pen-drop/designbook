@@ -1,7 +1,7 @@
 ---
 name: designbook:design:playwright-capture
 trigger:
-  steps: [capture, recapture, compare, polish, extract-reference]
+  steps: [ensure-baseline, capture, re-capture, compare, re-compare, polish, extract-reference]
 ---
 
 # Playwright Capture
@@ -33,62 +33,120 @@ Screenshots MUST go through the workflow staging pipeline. Before capturing:
 npx playwright-cli open
 npx playwright-cli goto "${url}"
 npx playwright-cli resize ${viewportWidth} 1600
-npx playwright-cli run-code "async (page) => { await page.waitForTimeout(3000) }"
+npx playwright-cli run-code "async (page) => {
+  try { await page.waitForLoadState('networkidle'); } catch {}
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+}"
 npx playwright-cli screenshot --full-page --filename "${STAGED}"
 npx playwright-cli close
 ```
 
-> ⛔ **A Storybook STORY's full capture is its rendered content, not the viewport.**
-> When capturing a **story** with an empty `selector`, element-capture `#storybook-root`
-> (the container Storybook renders the story into) instead of `--full-page`. A
-> `--full-page` story shot is the full 1600px viewport — for an isolated component
-> (e.g. an entity story ~440px tall) that is mostly empty space, which then drifts
-> dimensionally against a region-cropped reference. `#storybook-root` is the actual
-> rendered story (the component as-rendered). Reference URLs (not stories) still use
-> `--full-page` for an empty `reference_selector`.
+> ⛔ **A Storybook STORY's full capture is its rendered content, not a viewport screenshot.**
+> When capturing a **story** with an empty `selector`, the selector resolves to
+> `#storybook-root` (the container Storybook renders the story into) and is captured
+> via the **isolate-and-capture** mode (see the Element capture section below) — NOT a
+> `--full-page` viewport shot. A `--full-page` viewport shot of a story includes the
+> full 1600px empty canvas around the isolated component, causing dimensional drift
+> against the reference. Reference URLs (not stories) still use
+> `--full-page` for an empty element selector.
 
 ### Element capture (region with CSS selector)
 
-Use `snapshot` to get element refs, then `screenshot` with the ref:
+Do NOT crop the element's bounding box. Instead **isolate** the first matched
+element, force the isolated capture surface to the breakpoint width, and capture
+the whole viewport full-page & transparent — see the
+**Isolate-and-capture** pattern in [cli-playwright.md](../../resources/cli-playwright.md).
+There is NO `snapshot`/`screenshot <ref>` path any more.
+
+Protocol after `resize` + settle (and after any `check.steps`):
 
 ```bash
-npx playwright-cli open
-npx playwright-cli goto "${url}"
-npx playwright-cli resize ${viewportWidth} 1600
-npx playwright-cli run-code "async (page) => { await page.waitForTimeout(3000) }"
-npx playwright-cli snapshot
-# Find the ref for the target element (e.g. header, footer)
-npx playwright-cli screenshot <ref> --filename "${STAGED}"
-npx playwright-cli close
+SEL='<css-selector>'
+npx playwright-cli -s=<ws> run-code "async (page) => {
+  try { await page.waitForLoadState('networkidle'); } catch {}
+  try { await page.waitForSelector('${SEL}', { state: 'visible', timeout: 8000 }); } catch {}
+  await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+}"
+# 1) Detect matches (eval prints the count; branch in the shell):
+COUNT=$(npx playwright-cli -s=<ws> eval "() => document.querySelectorAll('${SEL}').length")
+if [ "$COUNT" = "0" ]; then
+  # selector matched nothing → full-page fallback + warn, never fail
+  npx playwright-cli -s=<ws> run-code "async (page) => { await page.screenshot({ path: '<STAGED>', fullPage: true }) }"
+else
+  # 2) isolate (hoist first match to body root):
+  npx playwright-cli -s=<ws> run-code "async (page) => {
+    await page.evaluate((viewportWidth) => {
+      const el = document.querySelector('${SEL}');
+      const surface = document.createElement('div');
+      surface.setAttribute('data-designbook-capture-surface', '');
+      surface.style.boxSizing = 'border-box';
+      surface.style.width = viewportWidth + 'px';
+      surface.style.minWidth = viewportWidth + 'px';
+      surface.style.margin = '0';
+      surface.style.padding = '0';
+      surface.style.background = 'transparent';
+      surface.appendChild(el);
+      document.body.replaceChildren(surface);
+      el.style.margin = '0';
+      el.style.inset = 'auto';
+      document.documentElement.style.background = 'transparent';
+      document.documentElement.style.width = viewportWidth + 'px';
+      document.documentElement.style.minWidth = viewportWidth + 'px';
+      document.body.style.background = 'transparent';
+      document.body.style.margin = '0';
+      document.body.style.width = viewportWidth + 'px';
+      document.body.style.minWidth = viewportWidth + 'px';
+      document.body.style.overflowX = 'hidden';
+    }, ${viewportWidth});
+  }"
+  npx playwright-cli -s=<ws> run-code "async (page) => { await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))) }"
+  # 3) full-page transparent capture:
+  npx playwright-cli -s=<ws> run-code "async (page) => { await page.screenshot({ path: '<STAGED>', fullPage: true, omitBackground: true }) }"
+fi
 ```
 
-If the element is best identified by CSS selector, use `eval` to confirm it exists, then `snapshot` to get its ref.
+This mode applies to **both** captures, but each side uses its OWN selector — the
+story DOM (design-system components) differs from the reference DOM:
+- the **Storybook story** capture isolates the element's `selector` from the story's
+  `StoryMeta` binding (the story-side selector for that element)
+- the **reference** capture isolates the element's `selector` from the Reference
+  `meta.yml` (the reference-side selector for that element)
 
-This mode applies to **both** captures, but each side uses its OWN selector — the story
-DOM (design-system components) differs from the reference DOM:
-- the **Storybook story** capture crops to `check.selector`
-- the **reference** capture crops to `check.reference_selector`
+Why isolate instead of crop: cropping the bbox drags in overlapping neighbors and
+background pixels (false diffs), and crops the element inside its original layout
+container so its responsive width is wrong. Isolating hoists the first match to the
+`body` root inside a transparent capture surface pinned to the breakpoint width —
+the screenshot dimensions stay identical on reference and story sides even when the
+component content uses a narrower max-width. Media queries respond to the
+breakpoint viewport, and transparent background drops out of the diff on both sides.
+A component is standalone by design; if a reference element breaks once detached
+from its ancestors, that is a real finding, not noise.
 
-A selector may match its side or not — when it matches nothing, fall back to full-page
-(skip-with-warning), never fail. This lets a shell header verify use `.page__header` for the
-story and `app-site-header` for the reference, or an entity use an empty story selector
-(full component) with `app-signage` for the reference.
+When the match count is `0`, fall back to full-page (skip-with-warning), never fail.
+This lets a shell header verify use `.page__header` for the story and `app-site-header`
+for the reference, or an entity use an empty story selector (full component) with
+`app-signage` for the reference.
+
+**Known limitations (accepted):** `document.querySelector` does not pierce Shadow
+DOM or iframes — selectors into a web component's shadow root or an embedded iframe
+match nothing and fall back to full-page (use a light-DOM/host selector instead).
+`@container` queries whose container ancestor is removed by the hoist may stop
+applying. Out-of-flow descendants (`position: absolute/fixed`) may not extend the
+scroll height and can be clipped despite full-page.
 
 ## Constraints
 
 - **Pin the session to the workspace** — pass `-s=<workspace>` on every `playwright-cli` call (`open`, `goto`, `resize`, `snapshot`, `screenshot`, `eval`, `close`). The unnamed default session is process-global and shared across workspaces; a concurrent run in another workspace can hijack it mid-capture and silently photograph the wrong Storybook. Use a session name unique to this workspace.
 - **Dismiss consent/cookie overlays before reference captures** — a consent banner overlaying the reference page corrupts the reference screenshot (and every diff against it). Close it (click reject/accept) before the first reference `screenshot`, and pass the same instruction to any compare/verify subagent that recaptures.
 - Viewport height MUST be 1600px for consistency across captures
-- `run-code "(page) => { await page.waitForTimeout(3000) }"` MUST be used to allow rendering to settle
-- **Run `check.steps` before the screenshot** when present (a non-rest state). After resize + settle, execute each step in order via `playwright-cli` (`click`/`hover`/`focus` against `step.selector`, or a bare wait), settling `step.timeout` ms after each, THEN capture. `rest` has no steps — capture the as-rendered view. State steps mutate page state, so load the session fresh per state-check (or navigate back) rather than carrying an opened state into the next check.
+- The CSR-robust settle MUST be used to allow rendering to settle: `waitForLoadState('networkidle')` + `waitForSelector(<target>, {state:'visible'})` in `try/catch` + `document.fonts.ready` + double-rAF. For element captures `<target>` is the CSS selector being captured; for full-page captures (no single target) omit `waitForSelector`. A fixed `waitForTimeout` MUST NOT be used as the settle — it is both slow and unreliable for client-side rendering where the DOM may not yet exist when the timeout fires.
+- **Run state steps before the screenshot** when the state is non-rest. After resize + settle, execute each step in order via `playwright-cli` (`click`/`hover`/`focus` against `step.selector`, or a bare wait), settling `step.timeout` ms after each, THEN capture. `rest` has no steps — capture the as-rendered view. State steps mutate page state, so load the session fresh per state (or navigate back) rather than carrying an opened state into the next capture.
 - If a selector matches no elements, skip with a warning — do NOT fail the task
-- Output directories MUST be created before capture (`mkdir -p`)
+- **Filename convention** — every captured PNG is named `<breakpoint>--<element>--<state>.png` (e.g. `sm--header--rest.png`, `xl--nav--open.png`). The `rest` state is included literally, never omitted.
+- **Output directories** — reference baselines write to `references/<hash>/`; story captures write to `stories/<id>/screenshots/`. Directories MUST be created before capture (`mkdir -p`).
 - Reuse an open session across multiple captures for the same URL — only `open`/`close` once
-- **`resize` invalidates element refs.** Any `resize` (or other layout-affecting op) makes the
-  refs from a prior `snapshot` stale; a `screenshot <ref>` against a stale ref silently falls back
-  to a full-page capture. So within a reused session, after EACH `resize`, settle (`waitForTimeout`)
-  and re-run `snapshot` to re-acquire the ref, then `screenshot <ref>` immediately — never reuse a
-  ref captured at a different viewport.
 
 ## Storybook Restart
 

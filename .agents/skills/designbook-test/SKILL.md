@@ -7,8 +7,8 @@ subcommands:
     hint: "<suite> [<case>]"
     description: Set up a test workspace and run a workflow case
   research:
-    hint: "<suite> <case> [--iterations N] [--target T] [--plateau M] [--baseline-only] [--scope <glob>] [--metric <jsonata>] [--direction min|max]"
-    description: Autonomous skill-improvement loop; --baseline-only for a single audit pass
+    hint: "<suite> <case> [--val-cases <x,y>] [--iterations N] [--target T] [--plateau M] [--baseline-only] [--scope <glob>] [--metric <jsonata>] [--direction min|max]"
+    description: Autonomous skill-improvement loop with a held-out val gate; --baseline-only for a single audit pass
   is-clear:
     hint: "<workflow> <task> <question>"
     description: Audit whether a specific question is answered by the loaded rules, blueprints, and schema of a workflow task. Suggests rule, schema, or task-body changes when the answer is missing.
@@ -42,6 +42,7 @@ Load `workflows/run.md` and follow it.
 ## research
 
 Parse from `$ARGUMENTS` (after `research <suite> <case>`):
+- `--val-cases <x,y,...>` (comma-separated held-out gate set; default empty = gate on the train score itself)
 - `--iterations N` (default 25)
 - `--target T` (default 100)
 - `--plateau M` (default 5)

@@ -1,4 +1,4 @@
-import { resolve, dirname } from 'node:path';
+import { basename, resolve, dirname } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import type { Command } from 'commander';
 import { loadConfig, findConfig, resolveSkillsRoot } from '../config.js';
@@ -126,6 +126,17 @@ export interface RunWorkflowCreateResult {
   task_ids?: Record<string, string>;
 }
 
+function selectPrimaryResolvedStep(
+  step: string,
+  raw: ResolvedStep | ResolvedStep[] | undefined,
+): ResolvedStep | undefined {
+  if (!raw) return undefined;
+  if (!Array.isArray(raw)) return raw;
+
+  const stepBasename = `${step.split(':').pop()}.md`;
+  return raw.find((entry) => basename(entry.task_file) === stepBasename) ?? raw[0];
+}
+
 /**
  * Create a workflow from its definition: resolve stages, run param resolvers,
  * build the initial task list (with intake-skip pre-expansion), and persist via
@@ -208,8 +219,7 @@ export async function runWorkflowCreate(
     for (const [stageName, stageDef] of Object.entries(resolved.stages)) {
       const step = (stageDef as { steps?: string[] }).steps?.[0];
       if (!step) continue;
-      const raw = resolved.step_resolved[step];
-      const res = raw && !Array.isArray(raw) ? raw : undefined;
+      const res = selectPrimaryResolvedStep(step, resolved.step_resolved[step]);
       if (res) {
         firstStepName = step;
         firstStageName = stageName;

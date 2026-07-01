@@ -60,6 +60,26 @@ export async function validateSceneBuild(file: string, config: DesignbookConfig)
     return { file, type: 'scene', valid: true, last_validated: ts, last_passed: ts };
   }
 
+  // Reserved scene names: every scenes file gets an auto-generated `overview`
+  // story export (the DeboSectionPage / section overview). A scene named
+  // "overview" produces a second `export const overview` in the same module,
+  // collides with that reserved export, and silently renders the section page
+  // instead of the scene. Reject it so the workflow renames the scene.
+  const RESERVED_SCENE_NAMES = new Set(['overview']);
+  for (const scene of raw.scenes as Array<Record<string, unknown>>) {
+    const name = typeof scene?.name === 'string' ? scene.name.trim().toLowerCase() : '';
+    if (RESERVED_SCENE_NAMES.has(name)) {
+      return {
+        file,
+        type: 'scene',
+        valid: false,
+        error: `Scene name "${(scene.name as string)?.trim()}" is reserved — every scenes file already exports an "overview" story (the section overview page). A scene named "overview" collides with it and renders the section page instead of the scene. Rename the scene (e.g. to the section id or a descriptive label like "default").`,
+        last_validated: ts,
+        last_failed: ts,
+      };
+    }
+  }
+
   const designbookDir = findDesignbookDir(file, config);
 
   try {

@@ -57,6 +57,10 @@ pnpm run dev          # Addon watcher + Storybook (parallel)
 pnpm run lint         # ESLint + Prettier
 ```
 
+**Training the skills** — Designbook can improve its own skill files via an
+autonomous, SkillOpt-style train/val loop (`debo-test research`). See
+[TRAINING.md](./TRAINING.md).
+
 ## License
 
 [MIT](./LICENSE)

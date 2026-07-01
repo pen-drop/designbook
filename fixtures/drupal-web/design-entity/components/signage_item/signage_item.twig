@@ -1,50 +1,20 @@
-<div{{ attributes.addClass(['flex', 'flex-col', 'gap-6', 'p-8', 'h-full']) }}>
-  {% if icon %}
-    <div class="flex items-center justify-center w-[74px] h-[74px] rounded-full bg-surface flex-shrink-0">
-      <span class="material-symbols-outlined text-primary text-4xl">{{ icon }}</span>
+<article{{ attributes.addClass(['signage-item', 'relative', 'flex', 'h-full', 'min-h-[428px]', 'flex-col', 'rounded-2xl', 'border', 'border-[var(--color-accent)]', 'bg-[var(--color-surface-variant)]', 'px-7', 'pb-5']) }}>
+  <div class="signage-item__header flex min-h-[44px] items-start gap-4">
+    {% if icon %}
+      <div class="signage-item__icon mt-[-34px] flex h-[86px] w-[86px] shrink-0 items-center justify-center rounded-full bg-white text-[42px] leading-none text-[var(--color-secondary)]" aria-hidden="true">
+        <span style="font-family: 'Material Symbols Outlined'; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;">{{ icon }}</span>
+      </div>
+    {% endif %}
+    {% if title %}<h2 class="signage-item__title mt-[-6px] font-heading text-[34px] font-medium leading-tight text-black">{{ title }}</h2>{% endif %}
+  </div>
+  {% if description %}<p class="signage-item__description mt-5 pl-[104px] text-[18px] leading-normal text-black">{{ description }}</p>{% endif %}
+  {% set cta = links|default([])|first %}
+  {% if not cta and buttonAnonymous %}
+    {% set cta = buttonAnonymous %}
+  {% endif %}
+  {% if cta %}
+    <div class="signage-item__actions mt-auto flex justify-center pt-6">
+      <a class="rounded-md bg-[var(--color-primary)] px-7 py-3 font-heading text-[18px] leading-none text-white" href="{{ cta.url|default('#') }}">{{ cta.title|default(cta.text|default('Link')) }}</a>
     </div>
   {% endif %}
-
-  {% if title %}
-    <h3 class="text-xl font-bold text-on-surface leading-snug">{{ title }}</h3>
-  {% endif %}
-
-  {% if description %}
-    <div class="text-base text-on-surface leading-normal">{{ description|raw }}</div>
-  {% endif %}
-
-  {% if links %}
-    <ul class="flex flex-col gap-2 list-none p-0 m-0">
-      {% for link in links %}
-        <li>
-          {% if link.url is defined %}
-            <a href="{{ link.url }}" class="text-primary hover:underline text-sm">{{ link.title }}</a>
-          {% else %}
-            {{ link|raw }}
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-
-  <div class="flex flex-col gap-3 mt-auto">
-    {% if button_anonymous %}
-      <div>
-        {% if button_anonymous.url is defined %}
-          <a href="{{ button_anonymous.url }}" class="inline-flex items-center justify-center h-[56px] px-6 bg-primary text-inverse rounded-md font-bold text-sm w-full hover:bg-primary-medium transition-colors">{{ button_anonymous.title }}</a>
-        {% else %}
-          {{ button_anonymous|raw }}
-        {% endif %}
-      </div>
-    {% endif %}
-    {% if button_authenticated %}
-      <div>
-        {% if button_authenticated.url is defined %}
-          <a href="{{ button_authenticated.url }}" class="inline-flex items-center justify-center h-[56px] px-6 bg-surface-variant text-primary border border-primary rounded-md font-bold text-sm w-full hover:bg-primary hover:text-inverse transition-colors">{{ button_authenticated.title }}</a>
-        {% else %}
-          {{ button_authenticated|raw }}
-        {% endif %}
-      </div>
-    {% endif %}
-  </div>
-</div>
+</article>

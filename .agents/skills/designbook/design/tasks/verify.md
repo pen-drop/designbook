@@ -1,12 +1,12 @@
 ---
 name: designbook:design:verify
-title: "Verify: {{ story_id }} ({{ breakpoint }}/{{ region }})"
+title: "Verify: {{ story_id }} ({{ breakpoint }}/{{ element }}--{{ state }})"
 trigger:
   steps: [verify]
 priority: 60
 params:
   type: object
-  required: [story_id, breakpoint, region, reference_folder]
+  required: [story_id, breakpoint, element, state, reference_folder]
   properties:
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
@@ -20,8 +20,11 @@ params:
         $ref: ../schemas.yml#/Issue
     breakpoint:
       $ref: ../schemas.yml#/BreakpointId
-    region:
-      $ref: ../schemas.yml#/RegionId
+    element:
+      $ref: ../schemas.yml#/ElementId
+    state:
+      type: string
+      description: "Interaction state name (e.g. rest, expanded, open)."
     reference_folder:
       $ref: ../schemas.yml#/ReferenceFolder
     design_tokens:
@@ -50,10 +53,10 @@ Verify compares existing screenshots (captured by the `recapture` task) — it d
 2. **Re-compare based on issue source:**
 
    **For screenshot issues** — read both images side by side:
-   - Reference: `{reference_folder}/{breakpoint}--{region}.png`
-   - Storybook (after polish): `designbook/stories/{story_id}/screenshots/{breakpoint}--{region}.png`
+   - Reference: `{{ reference_folder }}/{{ breakpoint }}--{{ element }}--{{ state }}.png`
+   - Storybook (after polish): `designbook/stories/{{ story_id }}/screenshots/{{ breakpoint }}--{{ element }}--{{ state }}.png`
 
-   Compare visually and determine if the issue is resolved. Use per-region threshold from `story_meta.reference.breakpoints.<bp>.regions.<region>.threshold`.
+   Compare visually and determine if the issue is resolved.
 
    **For extraction issues** — if extraction files exist, re-diff the specific properties mentioned in the issue. Otherwise evaluate visually from screenshots.
 

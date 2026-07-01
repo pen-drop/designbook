@@ -1,25 +1,17 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
 name: Signage
-status: experimental
+status: stable
 group: Navigation
-description: Signpost / topic-navigation section holding up to three navigation items
-variants:
-  main:
-    title: Main
-props:
-  type: object
-  properties:
-    paragraph_style:
-      type: string
-      title: Paragraph Style
-      description: Optional style variant for the paragraph
-    overlapping_top:
-      type: boolean
-      title: Overlapping Top
-      description: When true, the section overlaps the preceding section with negative margin
-slots:
-  field_signage_item:
-    title: Signage Items
-    description: Rendered signage_item child components (up to 3)
+description: LEANDO Wegweiser signpost section for up to three rendered topic-navigation items.
+provider: test_integration_drupal
 thirdPartySettings:
   sdcStorybook:
     disableBasicStory: true
+slots:
+  items:
+    title: Items
+    description: Rendered signage item entities.
+variants:
+  full:
+    title: Full
+    description: Three-item topic navigation section.
