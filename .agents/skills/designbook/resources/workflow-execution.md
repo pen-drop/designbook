@@ -290,6 +290,8 @@ When `--plan` is active:
 2. After the last interactive step is `done`, do NOT continue into deterministic stages. Instead write `$DESIGNBOOK_DATA/plans/<workflow>.plan.md` using the format below, then `_debo workflow abandon --workflow $WORKFLOW_NAME`.
 3. Report the plan path to the user.
 
+**Authorship boundary:** The execution loop (this step 2) is solely responsible for creating the plan file and writing the full scaffold: the `# Plan:` header and the `## Params` section (populated from resolved workflow params). Interactive task files (e.g. `intake--design-screen.md`) do NOT create the file or write `## Params` — they only append their per-decision lines to `## Decisions` and freeform notes to `## Notes`.
+
 ### Plan file format
 
 The plan file is a plaintext Markdown document written to `$DESIGNBOOK_DATA/plans/<workflow-id>.plan.md`. It captures resolved params, per-decision prose, and freeform notes from the user. The exact template:

@@ -94,7 +94,7 @@ component tree from the binding rather than from any pre-existing scene.
 
 ## Plan Mode (`--plan`)
 
-When running under `--plan`, after the user confirms the build plan in step 5, append the confirmed decisions to the plan file's `## Decisions` and `## Notes` sections (per `resources/workflow-execution.md` § 9). Write one line per decision:
+When running under `--plan`, after the user confirms the build plan in step 5, append the confirmed decisions to the plan file's `## Decisions` and `## Notes` sections (per `resources/workflow-execution.md` § 9). The execution loop (§ 9 step 2) writes the `# Plan:` header and `## Params` section — this task only appends to `## Decisions` and `## Notes`. Write one line per decision:
 
 - `Section: <section-id>`
 - `Screen type: <type>`
