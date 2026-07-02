@@ -1,3 +1,0 @@
-{% set attrs = attributes|default({}) %}
-<input class="input"{% for k, v in attrs %} {{ k }}="{{ v }}"{% endfor %}{% if pattern %} pattern="{{ pattern }}"{% endif %}/>
-{% block children %}{% if children %}{{ children }}{% endif %}{% endblock %}

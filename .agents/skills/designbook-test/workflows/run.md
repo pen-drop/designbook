@@ -1,3 +1,8 @@
+---
+name: run
+description: Set up a fresh test workspace from a fixture case and execute its prompt.
+---
+
 # run
 
 Set up a fresh test workspace from a fixture case and execute its prompt.
@@ -21,9 +26,10 @@ Always create a fresh workspace — never reuse an existing one.
 
 ## 3. Start Storybook
 
-After setup, start Storybook via the addon CLI:
+After setup, start Storybook via the addon CLI. Run these commands from the designbook working dir (`workspaces/<suite>/web/themes/custom/test_integration_drupal`):
 
 ```bash
+cd workspaces/<suite>/web/themes/custom/test_integration_drupal
 _debo() { npx storybook-addon-designbook "$@"; }
 eval "$(_debo config)"
 _debo storybook start
@@ -37,7 +43,7 @@ Report the Storybook URL to the user (`_debo storybook status` returns the `url`
 2. Display the `prompt` field to the user
 3. Ask: "Execute this prompt in the workspace? (y/n)"
 4. If **yes**: dispatch **one** subagent to run the whole workflow — do NOT execute it inline on this thread. The subagent is the workflow driver; give it:
-   - the workspace path as its working directory (run all `_debo` / `npx storybook-addon-designbook` commands from there),
+   - `workspaces/<suite>/web/themes/custom/test_integration_drupal` as its working directory (run all `_debo` / `npx storybook-addon-designbook` commands from there),
    - the case `prompt` verbatim as the task to execute,
    - this instruction: *drive the full designbook workflow lifecycle per `resources/workflow-execution.md` (`workflow create` → task loop → `workflow done`) entirely inline within your own context. You are already a subagent and cannot spawn further subagents, so run every stage inline — including stages marked `isolate: true` (read their task/rules/blueprints and call `workflow done` yourself; do not dispatch a stage executor).*
    - **ask, don't guess:** *whenever a task body or stage asks the user to choose/confirm something you cannot answer from the case prompt + data model alone (screen type, which entities, component plan, layout decisions), STOP and return `status: needs_user` with the workflow name and the exact question(s). Do NOT invent an answer.*
@@ -64,7 +70,7 @@ Display the full JSON output, including the `after.*` block (e.g. `after.design-
 
 After the workflow completes:
 
-1. `cd` into the workspace directory
+1. `cd` into the theme dir (`workspaces/<suite>/web/themes/custom/test_integration_drupal`) — that is the git repo root for the workspace
 2. Run `git diff --name-only` and `git ls-files --others --exclude-standard` to find changed/new files
 3. Exclude `.agents/`, `.claude/`, `.storybook/`, `node_modules/` from the list
 4. Display the list of changed files to the user

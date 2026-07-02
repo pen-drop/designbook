@@ -1,0 +1,138 @@
+# Sync concern schemas — output shapes for Drupal config export transforms.
+
+ExportSlice:
+  type: object
+  title: Export Slice
+  description: >
+    One independently transformable unit of the data model. Either a content entity
+    type + bundle pair (kind: content) or a config key (kind: config).
+  required: [kind]
+  additionalProperties: false
+  properties:
+    kind:
+      type: string
+      description: Discriminator — "content" for entity type/bundle slices; "config" for config.* keys.
+      enum: [content, config]
+    entity_type:
+      type: string
+      description: >
+        Drupal entity type machine name (e.g. "node", "media", "taxonomy_term").
+        Present when kind is "content".
+      examples: [node, media, taxonomy_term, block_content]
+    bundle:
+      type: string
+      description: >
+        Bundle machine name within the entity type (e.g. "article", "image").
+        Present when kind is "content".
+      examples: [article, page, image]
+    def:
+      type: object
+      description: >
+        The bundle definition object from the data model (fields, view_modes, purpose, etc.).
+        Present when kind is "content".
+    config_key:
+      type: string
+      description: >
+        Dot-separated config key as it appears under data_model.config (e.g. "views.listing").
+        Present when kind is "config".
+      pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)*$'
+    config_def:
+      type: object
+      description: >
+        The config definition object from data_model.config.<config_key>.
+        Present when kind is "config".
+
+ExportSummary:
+  type: object
+  title: Export Summary
+  description: >
+    Summary of the Drupal config files written in one export run.
+    Produced by the outtake stage from the transform stage results.
+  required: [config_names, count]
+  properties:
+    config_names:
+      type: array
+      description: Sorted list of Drupal config names (without .yml extension) written in this run.
+      items:
+        type: string
+        description: Drupal config name, e.g. "node.type.article".
+        pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+    count:
+      type: integer
+      description: Total number of config YAML files written.
+
+SyncResult:
+  type: object
+  title: Sync Result
+  description: >
+    Outcome of applying config to the live Drupal site via drush config:import.
+    Captures the drush command summary text and the list of config names applied.
+  required: [drush_summary, applied_config_names, cim_ok]
+  properties:
+    drush_summary:
+      type: string
+      description: >
+        Full stdout/stderr output from the drush config:import invocation,
+        captured verbatim. Used for reporting and error surfacing.
+    applied_config_names:
+      type: array
+      description: >
+        List of Drupal config names that drush reported as imported/applied
+        during this run. Derived from the drush output.
+      items:
+        type: string
+        description: Drupal config name, e.g. "node.type.article".
+        pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+    cim_ok:
+      type: boolean
+      description: True when the drush config:import (--partial) invocation exited 0.
+
+ConfigNameUnit:
+  type: object
+  title: Config Name Unit
+  description: >
+    One Drupal configuration object name together with the data-model context
+    needed to author its generator JSONata. Emitted by resolve-filter (one unit
+    per Drupal config file a slice yields) and consumed by transform (one result
+    per unit).
+  required: [config_name]
+  additionalProperties: false
+  properties:
+    config_name:
+      type: string
+      description: >
+        Drupal configuration object name matching the config/sync filename without
+        the .yml extension. Dot-separated lowercase segments
+        (e.g. node.type.article, field.storage.node.field_body,
+        field.field.node.article.field_body, core.entity_view_display.node.article.teaser).
+      pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+    entity_type:
+      type: string
+      description: >
+        Drupal entity type machine name. Present for content-derived units
+        (e.g. "node", "media", "taxonomy_term", "block_content").
+      examples: [node, media, taxonomy_term, block_content]
+    bundle:
+      type: string
+      description: >
+        Bundle machine name within the entity type. Present for content-derived
+        units (e.g. "article", "image", "tag").
+      examples: [article, page, image, tag]
+    field_name:
+      type: string
+      description: >
+        Field machine name. Present for field.storage.* and field.field.* units.
+        Absent for bundle-type and view-display units.
+      examples: [field_body, field_subtitle, field_image]
+    config_key:
+      type: string
+      description: >
+        Original dot-separated config key from data_model.config. Present for
+        config-slice-derived units (e.g. "views.listing", "image_style.hero").
+      pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)*$'
+    def:
+      type: object
+      description: >
+        The relevant definition object from the data model — bundle def (fields,
+        view_modes, purpose, etc.) for content-derived units, or config def for
+        config-slice units. Used by the generator to author the JSONata transform.

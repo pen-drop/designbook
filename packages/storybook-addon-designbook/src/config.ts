@@ -163,7 +163,7 @@ function assertNotRepoRoot(dataDir: string): void {
   if (hasPnpmWorkspace && hasGit) {
     throw new Error(
       `designbook CLI cannot write runtime data to the repo root (resolved DESIGNBOOK_DATA=${dataDir}). ` +
-        `Run from a workspace (cd workspaces/<suite>) or set DESIGNBOOK_DATA explicitly.`,
+        `Run from a workspace theme dir (cd workspaces/<suite>/web/themes/custom/<theme>) or set DESIGNBOOK_DATA explicitly.`,
     );
   }
 }

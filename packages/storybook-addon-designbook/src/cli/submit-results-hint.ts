@@ -4,6 +4,7 @@ interface ResultProperty {
   type?: string;
   submission?: 'data' | 'direct';
   flush?: 'deferred' | 'immediate';
+  generator?: { jsonata: string };
   [key: string]: unknown;
 }
 
@@ -28,8 +29,12 @@ function typeLabel(prop: ResultProperty): string {
 export function renderSubmitResultsHint(taskId: string, results: ResultMap): string | null {
   const data: Array<[string, ResultProperty]> = [];
   const direct: Array<[string, ResultProperty]> = [];
+  const generators: Array<[string, ResultProperty]> = [];
 
   for (const [key, prop] of Object.entries(results)) {
+    if (prop.generator?.jsonata) {
+      generators.push([key, prop]);
+    }
     if (!prop.path) continue;
     const sub = prop.submission ?? 'data';
     if (sub === 'direct') {
@@ -39,25 +44,43 @@ export function renderSubmitResultsHint(taskId: string, results: ResultMap): str
     }
   }
 
-  if (data.length === 0) return null;
+  if (data.length === 0 && generators.length === 0) return null;
 
   const lines: string[] = [];
-  lines.push('## Submit results');
-  lines.push('');
-  lines.push('Return every `submission: data` result in a single call:');
-  lines.push('');
-  lines.push(`    workflow done --task ${taskId} --data '<json>'`);
-  lines.push('');
-  lines.push('The JSON must match:');
-  lines.push('');
-  lines.push('    {');
-  for (let i = 0; i < data.length; i++) {
-    const [key, prop] = data[i]!;
-    const comma = i < data.length - 1 ? ',' : '';
-    const flushNote = prop.flush === 'immediate' ? ' (flush: immediate)' : '';
-    lines.push(`      "${key}": ${typeLabel(prop)}${comma}    // → ${prop.path}${flushNote}`);
+
+  if (generators.length > 0) {
+    lines.push('## Generator results');
+    lines.push('');
+    lines.push('Produce these results by authoring and running a JSONata transform:');
+    lines.push('');
+    for (const [key, prop] of generators) {
+      lines.push(
+        `- **${key}**: author a JSONata at \`${prop.generator!.jsonata}\` and run it to produce the result value.`,
+      );
+    }
+    lines.push('');
+    lines.push('The JSONata file must exist on disk before submitting the result.');
   }
-  lines.push('    }');
+
+  if (data.length > 0) {
+    if (lines.length > 0) lines.push('');
+    lines.push('## Submit results');
+    lines.push('');
+    lines.push('Return every `submission: data` result in a single call:');
+    lines.push('');
+    lines.push(`    workflow done --task ${taskId} --data '<json>'`);
+    lines.push('');
+    lines.push('The JSON must match:');
+    lines.push('');
+    lines.push('    {');
+    for (let i = 0; i < data.length; i++) {
+      const [key, prop] = data[i]!;
+      const comma = i < data.length - 1 ? ',' : '';
+      const flushNote = prop.flush === 'immediate' ? ' (flush: immediate)' : '';
+      lines.push(`      "${key}": ${typeLabel(prop)}${comma}    // → ${prop.path}${flushNote}`);
+    }
+    lines.push('    }');
+  }
 
   if (direct.length > 0) {
     lines.push('');
