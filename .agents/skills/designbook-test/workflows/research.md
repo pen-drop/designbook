@@ -41,20 +41,37 @@ metric: after.`design-verify`.`score-report`.first_shot.score
 direction: min
 ```
 
-- `metric` — JSONata expression evaluated against the `workflow summary` JSON; selects the value used as the decision metric throughout the research loop. Backtick-quote path segments containing dashes (e.g. `` `design-verify` ``). Defaults to `flowRate` if omitted.
+- `metric` — JSONata expression evaluated against the `eval-score.mjs` JSON output (which extends the `workflow summary --json` shape); selects the value used as the decision metric throughout the research loop. Backtick-quote path segments containing dashes (e.g. `` `design-verify` ``). Defaults to `flowRate` if omitted.
 - `direction` — `min` or `max`; controls whether lower or higher metric values are considered improvements. `min` means lower-is-better (e.g. visual diff score); `max` means higher-is-better (e.g. flow-rate percentage). Defaults to `max` if omitted.
+- `expected_config` — (sync cases only) list of Drupal config keys (e.g. `system.site`) that the workflow is expected to sync to the Drupal DB. Presence of this field marks the case as a sync case: `eval-score.mjs` checks these keys as the existence component of the metric, and Score-a-case resets the Drupal DB baseline (step 1b) before layering the case so a prior case's synced config cannot leak.
 
 ## Setup
 
+**Parallel runs.** A single sequential run uses the current worktree and its ddev
+project unchanged — no extra setup needed. To run more than one research loop
+concurrently without ddev or git collisions, provision each run with:
+
+```bash
+./scripts/init-research-worktree.sh <run-id> [suite]
+```
+
+This creates an isolated git worktree under `.research-worktrees/<run-id>/` and
+runs `setup-workspace.sh` + `start-drupal-workspace.sh` inside it. Because the
+ddev project name is `db-$WT_ID-$SUITE` (where `WT_ID = cksum(REPO_ROOT)`) each
+worktree gets a distinct project name and port allocation — runs never collide.
+Start the research loop from the provisioned worktree as CWD. Cleanup:
+`git worktree remove --force .research-worktrees/<run-id>`.
+
 1. Resolve workspace path: `workspaces/$SUITE`.
 2. Run `./scripts/setup-workspace.sh $SUITE`. This deletes any prior workspace and rebuilds from scratch (rsync, symlinks, `git init`, `pnpm install`, baseline commit).
-3. Start Storybook via the addon CLI (cd into the workspace first):
+3. Start Storybook via the addon CLI from the designbook working dir (`workspaces/$SUITE/web/themes/custom/test_integration_drupal`):
    ```
+   cd workspaces/$SUITE/web/themes/custom/test_integration_drupal
    eval "$(npx storybook-addon-designbook config)"
    npx storybook-addon-designbook storybook start
    ```
 4. **Tag the case-agnostic workspace baseline BEFORE layering any case fixtures:**
-   `cd workspaces/$SUITE && git tag workspace-baseline`. The baseline must contain
+   `cd workspaces/$SUITE/web/themes/custom/test_integration_drupal && git tag workspace-baseline` (the theme dir is the workspace git repo root). The baseline must contain
    NO case fixtures so the train case and every val case are layered onto a clean tree.
 5. Tag the repo baseline: `cd <repo-root> && git tag research-baseline-$(date +%Y-%m-%d-%H%M)`.
 6. Resolve the cases:
@@ -69,11 +86,13 @@ direction: min
 
 Given an iteration number `N` and a case `c`, produce its metric value:
 
-1. Reset + clean the workspace to the case-agnostic baseline:
+1. Reset + clean the workspace to the case-agnostic baseline (run in the workspace theme dir — the git repo root):
    ```
+   cd workspaces/$SUITE/web/themes/custom/test_integration_drupal
    git reset --hard workspace-baseline
    git clean -fdx designbook/ workflows/
    ```
+1b. **(sync cases only) Reset Drupal config state to baseline:** if `cases/c.yaml` contains `expected_config:`, run `./scripts/reset-drupal-config.sh $SUITE`. The `git reset` in step 1 reverts the filesystem but NOT the live Drupal DB; without this re-import, a prior case's synced config stays active and poisons this case's existence-check.
 2. Layer case `c`'s fixtures: `./scripts/setup-test.sh $SUITE c --into workspaces/$SUITE`.
 3. Run case `c`'s prompt via a **driver subagent** (do NOT run the workflow inline on
    the research thread — that would flood the loop's context across 25 iterations × N
@@ -93,7 +112,7 @@ Given an iteration number `N` and a case `c`, produce its metric value:
      stall waiting. The research loop treats such a return, and any thrown error, as a
      **crash** for this case (see Decide). A case that keeps needing a user is a fixture
      defect — fix the fixture, not the loop.
-   - Report contract: return `status: done` plus the `workflow summary --json`, or
+   - Report contract: return `status: done` plus the workflow ID (the scorer will call `workflow summary --json` internally), or
      `status: error` with the reason. No task bodies, rule text, or file contents.
    - **Friction log (the trajectory signal).** In the same report, return a `friction`
      list capturing where the driver had to guess, found a task/rule/blueprint
@@ -108,11 +127,11 @@ Given an iteration number `N` and a case `c`, produce its metric value:
      ```
      Empty list if the run was unambiguous. On `status: error`, the blocking question
      MUST appear here with `guessed: false`.
-4. Score: `npx storybook-addon-designbook workflow summary --workflow <id> --case ../../fixtures/$SUITE/cases/c.yaml --metric "$METRIC" --json` → write to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`. The returned `metric` value is this case's score.
+4. Score: `node ../../.agents/skills/designbook-test/resources/eval-score.mjs --workflow <id> --case ../../fixtures/$SUITE/cases/c.yaml --data-dir <designbook-data-dir>` → write the full JSON output to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`. The returned `.metric` field is this case's score. The scorer reads the case `metric:` field (default `flowRate`) and applies it internally by shelling `workflow summary --json`.
 5. Generate the audit per [`resources/audit-criteria.md`](resources/audit-criteria.md) → `iterations/<NNN>/cases/c/audit.md`.
 6. Save the dbo.log digest (`digestLog` JSON) → `iterations/<NNN>/cases/c/log-digest.json`.
 7. Save the driver's `friction` list → `iterations/<NNN>/cases/c/friction.json` (`[]` if none).
-8. Return the case's `metric` value, or treat as **crash** if the summary CLI exits non-zero or `metric: null`.
+8. Return the case's `metric` value, or treat as **crash** if `eval-score.mjs` exits non-zero or `.metric` is `null`.
 
 **Score-a-set(`N`, cases):** run Score-a-case for each case in order; the set score is
 the **arithmetic mean** of the case metric values (mini-batch — used for the val set).
@@ -201,7 +220,7 @@ Compare the **gate metric** (val_score if VAL non-empty, else train_score) again
 |---|---|---|
 | keep | gate metric `improves(best_gate)` | Repo root: `git commit -am "experiment: <hypothesis-headline>"`. Update `best_gate`, `best_train`, `best_val`. |
 | discard | gate metric does not improve, no crash (includes "train improved but val did not") | Repo root: `git restore <files-touched-by-patch>`. |
-| crash | any case driver returned `status: error` (incl. would-need-user) / threw / summary CLI exits non-zero / `metric: null` | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
+| crash | any case driver returned `status: error` (incl. would-need-user) / threw / `eval-score.mjs` exits non-zero / `.metric: null` | Repo root: `git restore`. Retry SAME hypothesis up to 3 times. |
 | blocked | crash count ≥ 3 | Log as blocked, ideate again next iteration with this discard recorded. |
 
 Write `iterations/<N>/decision.txt` with one of: `keep`, `discard`, `crash`, `blocked`.
@@ -247,7 +266,7 @@ If `research-runs/<slug>/` already exists at launch:
 |---|---|
 | Workflow crash mid-run (any case) | `git restore`, retry same hypothesis up to 3, then `blocked`. |
 | Driver returns `status: error` / would-need-user | Treated as `crash`. Recurring need-user on a case = fixture defect; fix the fixture, not the loop. |
-| `workflow summary` exits non-zero or returns `metric: null` | Treated as `crash` (see Decide). After 3 retries, bail. Print `summary CLI failed — inspect <path>`. |
+| `eval-score.mjs` exits non-zero or returns `.metric: null` | Treated as `crash` (see Decide). After 3 retries, bail. Print `eval-score.mjs failed — inspect <path>`. |
 | Subagent returns invalid patch | Re-dispatch with hint, max 3 in a row, then bail. |
 | Workspace reset fails | Bail. Tell user to rebuild via `debo-test run $SUITE $CASE`. |
 | `$CASE` also listed in `--val-cases` | Error at setup; the val set must be held-out. |

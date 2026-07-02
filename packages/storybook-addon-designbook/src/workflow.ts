@@ -6,6 +6,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { resolve, relative, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { homedir } from 'node:os';
@@ -113,6 +114,10 @@ export interface TaskResult {
    * `false` = optional — skipped when not submitted (not validated, no path written).
    */
   required?: boolean;
+  /** Backend-neutral prepare step: run a command before AI submission and bind its output as `as`. */
+  prepare?: { cmd: string; as: string };
+  /** Backend-neutral generator: a JSONata expression file that produces the result value. */
+  generator?: { jsonata: string };
   /** Whether the result has been written and validated. */
   valid?: boolean;
   /** Validation error message, if any. */
@@ -1053,6 +1058,10 @@ export async function workflowDone(
     throw new Error(`Task '${taskId}' is already done`);
   }
 
+  // Soft-gate eval mode: when scope.validation_gate === 'soft', record per-entry
+  // valid/error but fall through to archive even when validation fails.
+  const validationGate = (data.scope?.validation_gate as 'hard' | 'soft') ?? 'hard';
+
   // ── Process --data: distribute keys to result entries ──────────────
   if (options?.data && task.result) {
     const dataPayload = options.data;
@@ -1171,8 +1180,10 @@ export async function workflowDone(
       }
     }
 
-    // 1.4: Return validation errors instead of proceeding
-    if (validationErrors.length > 0) {
+    // 1.4: Return validation errors instead of proceeding (hard gate).
+    // Soft gate (scope.validation_gate === 'soft') skips the early return so the
+    // workflow archives even when units fail — per-entry valid/error already recorded above.
+    if (validationErrors.length > 0 && validationGate === 'hard') {
       writeWorkflowAtomic(filePath, data);
       return {
         archived: false,
@@ -1264,7 +1275,7 @@ export async function workflowDone(
     );
   }
   const failed = (task.files ?? []).filter((f) => f.validation_result?.valid === false);
-  if (failed.length > 0) {
+  if (failed.length > 0 && validationGate === 'hard') {
     throw new Error(
       `Cannot mark '${taskId}' as done — ${failed.length} file(s) have errors:\n` +
         failed.map((f) => `  · file \`${f.key}\` has errors: ${f.validation_result?.error ?? 'invalid'}`).join('\n'),
@@ -1296,7 +1307,7 @@ export async function workflowDone(
       );
     }
     const failedResults = Object.entries(task.result).filter(([, r]) => r.valid === false);
-    if (failedResults.length > 0) {
+    if (failedResults.length > 0 && validationGate === 'hard') {
       throw new Error(
         `Cannot mark '${taskId}' as done — ${failedResults.length} result(s) have errors:\n` +
           failedResults.map(([k, r]) => `  · result \`${k}\` has errors: ${r.error ?? 'invalid'}`).join('\n'),
@@ -1983,6 +1994,22 @@ async function validateResultEntry(
   mode: 'file' | 'data',
 ): Promise<string[]> {
   const errors: string[] = [];
+
+  // 0a. Generator artifact check: the jsonata file must exist (agent must persist the transform)
+  if (entry.generator?.jsonata && !existsSync(entry.generator.jsonata)) {
+    return [`generator artifact missing: ${entry.generator.jsonata}`];
+  }
+
+  // 0b. Prepare hook: run backend-neutral command, use its stdout as JSON Schema
+  if (entry.prepare) {
+    try {
+      const out = execSync(entry.prepare.cmd, { timeout: 30_000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+      entry = { ...entry, schema: JSON.parse(out) };
+    } catch (err: unknown) {
+      const execErr = err as { stderr?: string; message?: string };
+      return [`prepare command failed: ${execErr.stderr?.trim() || execErr.message || String(err)}`];
+    }
+  }
 
   // 1. JSON Schema validation
   if (entry.schema) {

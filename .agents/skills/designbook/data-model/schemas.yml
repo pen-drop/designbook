@@ -21,6 +21,9 @@ DataModel:
                 required: [template]
                 properties:
                   template: { type: string }
+                  label:
+                    type: string
+                    description: Human-readable name for a custom view mode, e.g. "Card". Required by sync-to when emitting a core.entity_view_mode.<entity_type>.<mode> definition for a non-standard view mode.
                   settings: { type: object, additionalProperties: true }
                 additionalProperties: false
             fields:

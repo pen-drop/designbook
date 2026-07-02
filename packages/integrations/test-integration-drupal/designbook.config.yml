@@ -16,6 +16,20 @@ css:
 component:
   namespace: 'test_integration_drupal'
   src: components
+# Backend command strings for the sync-to workflow (data only; core runs them
+# opaquely). Provided by the designbook_config_schema drush helper module,
+# enabled by scripts/start-drupal-workspace.sh. See
+# designbook-drupal/install/blueprints/designbook-config.md.
+backend_cmd:
+  cmd: "ddev drush"
+  schema_cmd: "ddev drush designbook:config-schema"
+  validate_cmd: "ddev drush designbook:config-validate"
+  # Container view of the host config_sync_dir that `transform` writes to
+  # (host: <workspace>/web/sites/default/files/sync; container: /var/www/html/…).
+  import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"
+  # Exits 0 iff a config object already exists; append config name.
+  # Used by resolve-filter's existence filter to skip already-present config.
+  exists_cmd: "ddev drush config:get"
 # Feature flags — on unless set to false. Override per run with
 # DESIGNBOOK_FEATURE_<NAME> (e.g. DESIGNBOOK_FEATURE_REGION_PROPERTIES=off).
 features:

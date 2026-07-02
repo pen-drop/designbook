@@ -1,0 +1,6 @@
+services:
+  designbook_config_schema.commands:
+    class: Drupal\designbook_config_schema\Commands\ConfigSchemaCommands
+    arguments: ['@config.typed']
+    tags:
+      - { name: drush.command }
