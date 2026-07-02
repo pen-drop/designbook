@@ -42,7 +42,8 @@ while [ $# -gt 0 ]; do
 done
 WORKSPACE_NAME="${WORKSPACE_NAME:-drupal}"
 WORKSPACE_DIR="$REPO_ROOT/workspaces/$WORKSPACE_NAME"
-THEME_DIR="$WORKSPACE_DIR/web/themes/custom/$THEME"
+THEME_REL="web/themes/custom/$THEME"
+THEME_DIR="$WORKSPACE_DIR/$THEME_REL"
 
 echo "Setting up workspace: $WORKSPACE_DIR"
 
@@ -63,14 +64,55 @@ rsync -a --exclude='node_modules' --exclude='.git' \
   "$REPO_ROOT/packages/integrations/test-integration-drupal/" \
   "$THEME_DIR/"
 
+# Generate the WORKSPACE-ROOT designbook.config.yml from the theme fixture's
+# config. The designbook CLI resolves everything from configDir (findConfig
+# walks UP from cwd), and sync-to targets the Drupal root (config/sync, drush,
+# ddev) — so the config must live at the workspace root, not the theme dir.
+# `designbook.home` stays pointed at the theme so DESIGNBOOK_DATA (data,
+# workflows, data-model) keeps its current physical location inside the theme.
+THEME_REL="$THEME_REL" \
+WORKSPACE_DIR="$WORKSPACE_DIR" \
+SRC_CONFIG="$REPO_ROOT/packages/integrations/test-integration-drupal/designbook.config.yml" \
+NODE_PATH="$REPO_ROOT/node_modules" \
+node -e '
+  const fs = require("fs");
+  const path = require("path");
+  const yaml = require("js-yaml");
+  const themeRel = process.env.THEME_REL;
+  const cfg = yaml.load(fs.readFileSync(process.env.SRC_CONFIG, "utf8")) || {};
+
+  cfg.designbook = cfg.designbook || {};
+  cfg.designbook.home = themeRel;
+
+  cfg.dirs = cfg.dirs || {};
+  if (cfg.dirs.components) cfg.dirs.components = path.join(themeRel, cfg.dirs.components);
+  cfg.dirs.css = cfg.dirs.css || {};
+  if (cfg.dirs.css.tokens) cfg.dirs.css.tokens = path.join(themeRel, cfg.dirs.css.tokens);
+  if (cfg.dirs.css.themes) cfg.dirs.css.themes = path.join(themeRel, cfg.dirs.css.themes);
+
+  cfg.css = cfg.css || {};
+  if (cfg.css.app) cfg.css.app = path.join(themeRel, cfg.css.app);
+
+  cfg.component = cfg.component || {};
+  if (cfg.component.src) cfg.component.src = path.join(themeRel, cfg.component.src);
+
+  fs.writeFileSync(
+    path.join(process.env.WORKSPACE_DIR, "designbook.config.yml"),
+    yaml.dump(cfg, { lineWidth: -1 })
+  );
+'
+# The theme dir must NOT keep its own config — findConfig walking up from the
+# theme would otherwise find this one first and shadow the root config.
+rm -f "$THEME_DIR/designbook.config.yml"
+
 # Configure ddev with a worktree-namespaced project name; DO NOT start it.
 ( cd "$WORKSPACE_DIR" && ddev config --project-name="db-$WT_ID-$WORKSPACE_NAME" --project-type=drupal11 --docroot=web )
 
-# Apply feature-flag overrides into the theme's designbook.config.yml.
+# Apply feature-flag overrides into the workspace-root designbook.config.yml.
 # Note: this rewrites the YAML (comments are dropped) — only runs when flags
-# are passed; a flag-less setup keeps the template config verbatim.
+# are passed; a flag-less setup keeps the generated config verbatim.
 if [ ${#FEATURE_ARGS[@]} -gt 0 ]; then
-  CONFIG_FILE="$THEME_DIR/designbook.config.yml" \
+  CONFIG_FILE="$WORKSPACE_DIR/designbook.config.yml" \
   FEATURE_PAIRS="${FEATURE_ARGS[*]}" \
   NODE_PATH="$REPO_ROOT/node_modules" \
   node -e '
@@ -94,14 +136,15 @@ if [ ${#FEATURE_ARGS[@]} -gt 0 ]; then
   '
 fi
 
-# Symlink agent directories into the theme dir so the CLI and every agent
-# (Claude, Cursor, Codex) can resolve skills and commands from there.
+# Symlink agent directories into the WORKSPACE ROOT (not the theme) so the CLI
+# and every agent (Claude, Cursor, Codex) can resolve skills and commands from
+# where designbook.config.yml now lives.
 # The skills/commands inside .claude, .cursor and .codex are themselves relative
 # symlinks into .agents, so .agents must also be present alongside them.
-ln -sfn "$REPO_ROOT/.claude" "$THEME_DIR/.claude"
-ln -sfn "$REPO_ROOT/.cursor" "$THEME_DIR/.cursor"
-ln -sfn "$REPO_ROOT/.codex" "$THEME_DIR/.codex"
-ln -sfn "$REPO_ROOT/.agents" "$THEME_DIR/.agents"
+ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
+ln -sfn "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
+ln -sfn "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
+ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
 
 # Initialize git repo in the theme dir (where Storybook runs from).
 cd "$THEME_DIR"
@@ -150,10 +193,14 @@ echo ""
 echo "  Workspace root : $WORKSPACE_DIR"
 echo "  Theme dir      : $THEME_DIR"
 echo ""
-echo "For Storybook / design-* commands:"
-echo "  cd $THEME_DIR"
+echo "designbook.config.yml lives at the workspace root — run designbook CLI"
+echo "commands (including sync-to) from there:"
+echo "  cd $WORKSPACE_DIR"
 echo "  npx storybook-addon-designbook <command>"
 echo "  # or directly: node $REPO_ROOT/packages/storybook-addon-designbook/dist/cli.js <command>"
+echo ""
+echo "Storybook itself still runs from the theme dir:"
+echo "  cd $THEME_DIR && npx storybook dev"
 echo ""
 echo "To boot Drupal for sync/verify:"
 echo "  ./scripts/start-drupal-workspace.sh $WORKSPACE_NAME"
