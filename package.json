@@ -8,13 +8,14 @@
   "type": "module",
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.81",
+    "auto": "^11.3.0",
     "glob": "^11.0.1",
+    "jsonata": "^2.1.0",
     "js-yaml": "^4.1.1",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "promptfoo": "^0.120.24",
-    "auto": "^11.3.0"
+    "promptfoo": "^0.120.24"
   },
   "dependencies": {
     "storybook-addon-designbook": "workspace:*"

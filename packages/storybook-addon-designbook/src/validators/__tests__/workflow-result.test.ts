@@ -1030,3 +1030,332 @@ describe('workflow done --data', () => {
     );
   });
 });
+
+// ── generator: jsonata artifact-exists check ──────────────────────────────
+
+describe('workflow result: generator artifact check', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-result-generator-'));
+  });
+
+  it('generator: result is invalid when the jsonata artifact is missing', async () => {
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            data: {
+              generator: { jsonata: '/tmp/does-not-exist-xyz.jsonata' },
+              submission: 'data' as const,
+              schema: { type: 'object' },
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    const r = await workflowResult(dist, name, 'task1', 'data', {}, mockConfig);
+    expect(r.valid).toBe(false);
+    expect(r.errors.join(' ')).toMatch(/generator|jsonata|artifact/i);
+  });
+
+  it('generator: result is valid when the artifact exists and data matches schema', async () => {
+    const p = resolve(tmpdir(), `gen-${process.pid}.jsonata`);
+    writeFileSync(p, '$'); // any persisted transform
+    try {
+      const name = setupWorkflow(
+        dist,
+        [
+          {
+            id: 'task1',
+            title: 'T1',
+            type: 'data',
+            step: 'do-task',
+            stage: 'execute',
+            status: 'pending',
+            result: {
+              data: {
+                generator: { jsonata: p },
+                submission: 'data' as const,
+                schema: { type: 'object' },
+              },
+            },
+          } as WorkflowTask,
+        ],
+        { execute: { steps: ['do-task'] } },
+      );
+
+      const r = await workflowResult(dist, name, 'task1', 'data', {}, mockConfig);
+      expect(r.valid).toBe(true);
+    } finally {
+      try {
+        const { unlinkSync } = await import('node:fs');
+        unlinkSync(p);
+      } catch {
+        // ignore
+      }
+    }
+  });
+});
+
+// ── prepare + generator: end-to-end wiring ────────────────────────────────
+
+const FAKE_CMD = resolve(import.meta.dirname, '../../sync/__tests__/fake-schema-cmd.sh');
+
+describe('workflow result: prepare+generator end-to-end', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-e2e-'));
+  });
+
+  it('prepare(fake cmd)+generator(artifact present)+conforming data → valid', async () => {
+    const artifact = resolve(tmpdir(), `e2e-${process.pid}.jsonata`);
+    writeFileSync(artifact, '$');
+    try {
+      const name = setupWorkflow(
+        dist,
+        [
+          {
+            id: 'task1',
+            title: 'E2E Task',
+            type: 'data',
+            step: 'do-task',
+            stage: 'execute',
+            status: 'pending',
+            result: {
+              cfg: {
+                prepare: { cmd: `bash ${FAKE_CMD}`, as: 'prepared' },
+                generator: { jsonata: artifact },
+                submission: 'data' as const,
+              },
+            },
+          } as WorkflowTask,
+        ],
+        { execute: { steps: ['do-task'] } },
+      );
+
+      const value = { config_name: 'x', data: { langcode: 'en' } };
+      const r = await workflowResult(dist, name, 'task1', 'cfg', value, mockConfig);
+      expect(r.valid).toBe(true);
+      expect(r.errors).toEqual([]);
+    } finally {
+      try {
+        const { unlinkSync } = await import('node:fs');
+        unlinkSync(artifact);
+      } catch {
+        // ignore
+      }
+    }
+  });
+
+  it('prepare(fake cmd)+generator(artifact missing)+conforming data → invalid', async () => {
+    const missingArtifact = `/tmp/nope-e2e-${process.pid}.jsonata`;
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'E2E Task Missing Artifact',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            cfg: {
+              prepare: { cmd: `bash ${FAKE_CMD}`, as: 'prepared' },
+              generator: { jsonata: missingArtifact },
+              submission: 'data' as const,
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    const value = { config_name: 'x', data: { langcode: 'en' } };
+    const r = await workflowResult(dist, name, 'task1', 'cfg', value, mockConfig);
+    expect(r.valid).toBe(false);
+    expect(r.errors.join(' ')).toMatch(/generator|jsonata|artifact/i);
+  });
+});
+
+// ── prepare: hook — run command, validate against fetched schema ───────────
+
+const FAKE = resolve(import.meta.dirname, '../../sync/__tests__/fake-schema-cmd.sh');
+
+describe('workflow result: prepare hook', () => {
+  let dist: string;
+
+  beforeEach(() => {
+    dist = mkdtempSync(resolve(tmpdir(), 'wf-result-prepare-'));
+  });
+
+  it('prepare: validates the result against the fetched schema (conforming → valid)', async () => {
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            data: {
+              prepare: { cmd: `bash ${FAKE}`, as: 'prepared' },
+              submission: 'data' as const,
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    const value = { config_name: 'node.type.article', data: { langcode: 'en' } };
+    const r = await workflowResult(dist, name, 'task1', 'data', value, mockConfig);
+    expect(r.valid).toBe(true);
+    expect(r.errors).toEqual([]);
+  });
+
+  it('prepare: rejects a result missing a fetched-schema-required key', async () => {
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            data: {
+              prepare: { cmd: `bash ${FAKE}`, as: 'prepared' },
+              submission: 'data' as const,
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    // missing data.langcode
+    const value = { config_name: 'node.type.article', data: {} };
+    const r = await workflowResult(dist, name, 'task1', 'data', value, mockConfig);
+    expect(r.valid).toBe(false);
+    expect(r.errors.join(' ')).toMatch(/langcode/);
+  });
+
+  it('prepare: a failing command makes the result invalid', async () => {
+    const name = setupWorkflow(
+      dist,
+      [
+        {
+          id: 'task1',
+          title: 'T1',
+          type: 'data',
+          step: 'do-task',
+          stage: 'execute',
+          status: 'pending',
+          result: {
+            data: {
+              prepare: { cmd: 'false', as: 'prepared' },
+              submission: 'data' as const,
+            },
+          },
+        } as WorkflowTask,
+      ],
+      { execute: { steps: ['do-task'] } },
+    );
+
+    const r = await workflowResult(dist, name, 'task1', 'data', { any: 1 }, mockConfig);
+    expect(r.valid).toBe(false);
+    expect(r.errors.some((e) => /prepare command failed/.test(e))).toBe(true);
+  });
+});
+
+// ── soft-gate eval mode ───────────────────────────────────────────────────────
+
+/**
+ * Helper: set up a workflow with `totalUnits` data-result tasks and run workflowDone
+ * on each, with `failingUnits` of them submitting data that fails schema validation.
+ * Returns the workflowDone result of the LAST task.
+ *
+ * The schema expects `{ value: number }`. Failing units send `'not-an-object'`.
+ */
+async function runWorkflowDoneWith(opts: {
+  gate: 'hard' | 'soft';
+  failingUnits: number;
+  totalUnits?: number;
+}): Promise<{ archived: boolean; data: WorkflowFile; response: { validation_errors?: string[] } }> {
+  const { gate, failingUnits, totalUnits = failingUnits } = opts;
+  const dist = mkdtempSync(resolve(tmpdir(), 'wf-softgate-'));
+  const config: DesignbookConfig = { data: dist, technology: 'html', extensions: [] };
+  const schema = { type: 'object', required: ['value'], properties: { value: { type: 'number' } } };
+
+  const tasks: WorkflowTask[] = Array.from({ length: totalUnits }, (_, i) => ({
+    id: `unit-${i}`,
+    title: `Unit ${i}`,
+    type: 'data' as const,
+    step: `unit-${i}`,
+    stage: 'execute',
+    status: 'pending' as const,
+    result: { cfg: { schema } },
+  }));
+
+  const scopeOverride: Record<string, unknown> = {};
+  if (gate === 'soft') scopeOverride.validation_gate = 'soft';
+
+  const name = setupWorkflow(
+    dist,
+    tasks,
+    { execute: { steps: tasks.map((t) => t.step as string) } },
+    {
+      scope: scopeOverride,
+    },
+  );
+
+  let lastResult!: Awaited<ReturnType<typeof workflowDone>>;
+  for (let i = 0; i < totalUnits; i++) {
+    const failing = i < failingUnits;
+    const value = failing ? 'not-an-object' : { value: i };
+    lastResult = await workflowDone(dist, name, `unit-${i}`, undefined, {
+      data: { cfg: value },
+      config,
+    });
+  }
+
+  return {
+    archived: lastResult.archived,
+    data: lastResult.data,
+    response: (lastResult.response ?? {}) as { validation_errors?: string[] },
+  };
+}
+
+describe('workflowDone soft-gate eval mode', () => {
+  it('hard gate (default): a failing unit blocks archive', async () => {
+    const res = await runWorkflowDoneWith({ gate: 'hard', failingUnits: 1 });
+    expect(res.archived).toBe(false);
+    expect(res.response.validation_errors!.length).toBeGreaterThan(0);
+  });
+
+  it('soft gate: a failing unit is recorded but the workflow archives', async () => {
+    const res = await runWorkflowDoneWith({ gate: 'soft', failingUnits: 1, totalUnits: 3 });
+    expect(res.archived).toBe(true);
+    // failing unit recorded on its result entry
+    const entries = res.data.tasks.flatMap((t) => Object.values(t.result ?? {}));
+    expect(entries.filter((e) => e.valid === false).length).toBe(1);
+    expect(entries.filter((e) => e.valid === true).length).toBe(2);
+  });
+});

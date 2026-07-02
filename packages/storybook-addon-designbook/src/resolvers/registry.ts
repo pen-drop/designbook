@@ -7,6 +7,7 @@ import { breakpointsResolver } from './breakpoints.js';
 import { scenePathResolver } from './scene-path.js';
 import { componentsIndexResolver } from './components-index.js';
 import { regionPropertiesResolver } from './region-properties.js';
+import { configSyncDirResolver } from './config-sync-dir.js';
 
 interface ParamDeclaration {
   type?: string;
@@ -39,6 +40,7 @@ register(breakpointsResolver);
 register(scenePathResolver);
 register(componentsIndexResolver);
 register(regionPropertiesResolver);
+register(configSyncDirResolver);
 
 export const resolverRegistry = {
   get(name: string): ParamResolver | undefined {

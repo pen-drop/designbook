@@ -82,6 +82,10 @@ if [[ "$TARGET_DIR" != /* ]]; then
   TARGET_DIR="$REPO_ROOT/$TARGET_DIR"
 fi
 
+# Nested theme dir — designbook.config.yml, .storybook, and designbook data live here
+THEME_REL="web/themes/custom/test_integration_drupal"
+mkdir -p "$TARGET_DIR/$THEME_REL"
+
 echo "Layering fixtures into workspace: $TARGET_DIR"
 echo "  Suite: $SUITE"
 echo "  Case:  $CASE"
@@ -93,7 +97,8 @@ if [[ ! -d "$TARGET_DIR" ]]; then
 fi
 
 # 1. Reset workspace to init commit (clean slate for re-runs)
-cd "$TARGET_DIR"
+# git repo root is the theme dir (setup-workspace.sh runs git init there)
+cd "$TARGET_DIR/$THEME_REL"
 INIT_COMMIT=$(git log --reverse --format='%H' | head -1)
 if [[ -n "$INIT_COMMIT" ]]; then
   git reset --hard "$INIT_COMMIT" --quiet
@@ -101,13 +106,13 @@ if [[ -n "$INIT_COMMIT" ]]; then
 fi
 cd - > /dev/null
 
-# 2. Copy suite base config (or config override if specified in case)
+# 2. Copy suite base config (or config override if specified in case) into the theme dir
 CONFIG_OVERRIDE=$(sed -n 's/^config: *//p' "$CASE_FILE")
 if [[ -n "$CONFIG_OVERRIDE" && -f "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" ]]; then
   echo "  Config override: $CONFIG_OVERRIDE"
-  cp "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" "$TARGET_DIR/designbook.config.yml"
+  cp "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" "$TARGET_DIR/$THEME_REL/designbook.config.yml"
 elif [[ -f "$FIXTURES_DIR/designbook.config.yml" ]]; then
-  cp "$FIXTURES_DIR/designbook.config.yml" "$TARGET_DIR/"
+  cp "$FIXTURES_DIR/designbook.config.yml" "$TARGET_DIR/$THEME_REL/"
 fi
 
 # 3. Parse fixtures list from case YAML and layer them
@@ -122,11 +127,12 @@ for FIXTURE in $FIXTURES; do
     exit 1
   fi
   echo "  Layering fixture: $FIXTURE"
-  cp -r "$FIXTURE_DIR/." "$TARGET_DIR/"
+  cp -r "$FIXTURE_DIR/." "$TARGET_DIR/$THEME_REL/"
 done
 
 # 3. Commit fixture layer as baseline for diff tracking
-cd "$TARGET_DIR"
+# git repo root is the theme dir (setup-workspace.sh runs git init there)
+cd "$TARGET_DIR/$THEME_REL"
 git add -A
 git commit -q -m "fixtures: $SUITE/$CASE" --allow-empty
 

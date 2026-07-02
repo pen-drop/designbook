@@ -1,7 +1,0 @@
-reference: 174cdaac3562
-elements:
-  - id: entity-paragraph-signage-full
-    selector: ''
-    states:
-      - name: rest
-        steps: []
