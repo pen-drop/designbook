@@ -1,3 +1,0 @@
-{% set attrs = attributes|default({}) %}
-<input type="checkbox" class="checkbox"{% for k, v in attrs %} {{ k }}="{{ v }}"{% endfor %}/>
-{% block children %}{% if children %}{{ children }}{% endif %}{% endblock %}

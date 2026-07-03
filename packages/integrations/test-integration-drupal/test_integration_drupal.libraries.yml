@@ -1,0 +1,5 @@
+global:
+  css:
+    theme:
+      # Built by the theme's CSS build (e.g. pnpm build / css-generate) → css/app.css
+      css/app.css: {}

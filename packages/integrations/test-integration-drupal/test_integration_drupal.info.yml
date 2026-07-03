@@ -1,0 +1,12 @@
+name: 'Test Integration Drupal'
+type: theme
+description: 'Designbook test-integration theme (fixture).'
+core_version_requirement: ^11
+base theme: false
+libraries:
+  - test_integration_drupal/global
+regions:
+  header: Header
+  content: Content
+  sidebar: Sidebar
+  footer: Footer
