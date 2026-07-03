@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Setup a local workspace from the test-integration-drupal template.
 # Always rebuilds from scratch — removes any existing workspace first.
-# Copies .agents, .claude, .cursor and .codex from the current working directory
-# (CWD), so workspaces created from a git worktree reflect that worktree's skill
-# state for Claude Code, Cursor and Codex alike.
+#
+# Skills/commands are NOT wired into the workspace anymore. Claude Code and Codex
+# resolve them globally (~/.agents/skills for Codex, ~/.claude/skills for Claude)
+# and Codex additionally walks .agents/skills upward to the repo root, so the
+# repo's own skills stay reachable without a per-workspace copy/symlink.
 #
 # Usage: ./scripts/setup-workspace.sh [name] [--feature name=value]... [--features a=on,b=off]
 #   name             Workspace name (default: drupal)
@@ -84,15 +86,6 @@ if [ ${#FEATURE_ARGS[@]} -gt 0 ]; then
     console.log("Applied feature flags:", JSON.stringify(cfg.features));
   '
 fi
-
-# Symlink agent directories so the CLI and every agent (Claude, Cursor, Codex)
-# can resolve skills and commands from the workspace. The skills/commands inside
-# .claude, .cursor and .codex are themselves relative symlinks into .agents, so
-# .agents must also be present alongside them.
-ln -sfn "$REPO_ROOT/.claude" "$WORKSPACE_DIR/.claude"
-ln -sfn "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
-ln -sfn "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
-ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
 
 # Initialize git repo
 cd "$WORKSPACE_DIR"
