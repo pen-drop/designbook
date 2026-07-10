@@ -45,7 +45,12 @@ final class PreviewRouteTest extends BrowserTestBase {
     $this->drupalLogin($this->drupalCreateUser(['access designbook preview']));
     $this->drupalGet('/designbook/preview/node/' . $this->node->id() . '/full');
     $this->assertSession()->statusCodeEquals(200);
+    // The entity label surfaces via the page title callback (full view mode
+    // otherwise omits it), giving the screenshot its subject.
     $this->assertSession()->pageTextContains('Preview me');
+    // The node was actually rendered by the entity view builder (theme-agnostic
+    // marker emitted for any rendered node).
+    $this->assertSession()->responseContains('data-history-node-id="' . $this->node->id() . '"');
   }
 
   /**
