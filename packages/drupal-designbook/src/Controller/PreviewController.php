@@ -26,6 +26,12 @@ final class PreviewController extends ControllerBase {
    *   A render array; Drupal wraps it in the themed page (HTTP 200).
    */
   public function preview(string $entity_type, string $entity, string $view_mode): array {
+    // Access is gated solely by the 'access designbook preview' route
+    // permission; we deliberately do NOT call $entity->access('view') here.
+    // This is a dev-only tool (never enabled on production — see README) whose
+    // purpose is unconditional screenshot capture of any entity in any view
+    // mode, so per-entity view access must not filter what a holder of the
+    // preview permission can render.
     return $this->entityTypeManager()
       ->getViewBuilder($entity_type)
       ->view($this->loadOr404($entity_type, $entity), $view_mode);

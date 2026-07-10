@@ -17,7 +17,7 @@ component:
   namespace: 'test_integration_drupal'
   src: components
 # Backend command strings for the sync-to workflow (data only; core runs them
-# opaquely). Provided by the designbook_config_schema drush helper module,
+# opaquely). Provided by the designbook drush module,
 # enabled by scripts/start-drupal-workspace.sh. See
 # designbook-drupal/install/blueprints/designbook-config.md.
 backend_cmd:
