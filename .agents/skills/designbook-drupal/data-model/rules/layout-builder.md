@@ -22,3 +22,5 @@ When a bundle has `purpose: landing-page`:
 - `layout_builder__layout` is a base field — no `field_` prefix
 - `block_content` bundles always use `view_modes.default.template: field-map` — regardless of purpose
 - `block_content` sections are **one layer deep only** — no nested block_content references
+- Per-entity Layout Builder overrides are out of scope — displays are authored with `allow_custom: false`
+- On export, a `block_content` bundle's `default` display and a landing-page `full` display render as a UI-Patterns-section display (the `layout-builder-display` mapping), not a field-map display
