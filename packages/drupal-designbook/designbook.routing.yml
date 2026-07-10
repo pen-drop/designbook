@@ -1,7 +1,0 @@
-designbook.preview:
-  path: '/designbook/preview/{entity_type}/{entity}/{view_mode}'
-  defaults:
-    _controller: '\Drupal\designbook\Controller\PreviewController::preview'
-    _title_callback: '\Drupal\designbook\Controller\PreviewController::title'
-  requirements:
-    _permission: 'access designbook preview'

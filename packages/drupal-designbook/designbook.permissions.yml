@@ -1,4 +1,0 @@
-access designbook preview:
-  title: 'Access designbook preview'
-  description: 'Render any entity in any view mode via the designbook preview route. Dev-only.'
-  restrict access: true
