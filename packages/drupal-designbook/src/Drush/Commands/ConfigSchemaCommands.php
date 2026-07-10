@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Drupal\designbook_config_schema\Commands;
+namespace Drupal\designbook\Drush\Commands;
 
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\config_inspector\ConfigInspectorManager;
+use Drush\Attributes as CLI;
+use Drush\Commands\AutowireTrait;
 use Drush\Commands\DrushCommands;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -21,22 +24,21 @@ use Symfony\Component\Yaml\Yaml;
  *   Drupal's typed-config constraint system, and exits 0 (valid) or 1 (with
  *   violation detail on stderr).
  */
-class ConfigSchemaCommands extends DrushCommands {
+final class ConfigSchemaCommands extends DrushCommands {
 
-  /**
-   * Typed configuration manager.
-   */
-  protected TypedConfigManagerInterface $typedConfig;
+  use AutowireTrait;
 
   /**
    * Constructs ConfigSchemaCommands.
    *
-   * @param \Drupal\Core\Config\TypedConfigManagerInterface $typed_config
+   * @param \Drupal\Core\Config\TypedConfigManagerInterface $typedConfig
    *   The typed config manager.
    */
-  public function __construct(TypedConfigManagerInterface $typed_config) {
+  public function __construct(
+    #[Autowire(service: 'config.typed')]
+    protected TypedConfigManagerInterface $typedConfig,
+  ) {
     parent::__construct();
-    $this->typedConfig = $typed_config;
   }
 
   // ---------------------------------------------------------------------------
@@ -187,30 +189,6 @@ class ConfigSchemaCommands extends DrushCommands {
     return [];
   }
 
-  // ---------------------------------------------------------------------------
-  // Drush commands
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Emits the JSON Schema for a Drupal config name on stdout.
-   *
-   * @param string $config_name
-   *   The Drupal config object name, e.g. "node.type.article".
-   *
-   * @usage drush designbook:config-schema node.type.article
-   *   Print the JSON Schema for node.type.article.
-   *
-   * @command designbook:config-schema
-   * @aliases dcs
-   */
-  public function configSchema(string $config_name): void {
-    $definition = $this->typedConfig->getDefinition($config_name);
-    $schema     = $this->walkDefinition($definition, $this->typedConfig);
-    $schema     = empty($schema) ? new \stdClass() : $this->forceEmptySchemasToObjects($schema);
-    // Write directly to stdout — Drush formatters are not involved.
-    fwrite(STDOUT, json_encode($schema, JSON_THROW_ON_ERROR) . PHP_EOL);
-  }
-
   /**
    * Recursively rewrites empty-array schema fragments to stdClass.
    *
@@ -248,23 +226,34 @@ class ConfigSchemaCommands extends DrushCommands {
     return $schema;
   }
 
+  // ---------------------------------------------------------------------------
+  // Drush commands
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Emits the JSON Schema for a Drupal config name on stdout.
+   */
+  #[CLI\Command(name: 'designbook:config-schema', aliases: ['dcs'])]
+  #[CLI\Argument(name: 'config_name', description: 'The Drupal config object name, e.g. node.type.article.')]
+  #[CLI\Usage(name: 'drush designbook:config-schema node.type.article', description: 'Print the JSON Schema for node.type.article.')]
+  public function configSchema(string $config_name): void {
+    $definition = $this->typedConfig->getDefinition($config_name);
+    $schema     = $this->walkDefinition($definition, $this->typedConfig);
+    $schema     = empty($schema) ? new \stdClass() : $this->forceEmptySchemasToObjects($schema);
+    // Write directly to stdout — Drush formatters are not involved.
+    fwrite(STDOUT, json_encode($schema, JSON_THROW_ON_ERROR) . PHP_EOL);
+  }
+
   /**
    * Validates a YAML file against a Drupal config schema.
    *
    * Exits 0 when the YAML conforms; exits 1 and writes violation detail to
    * stderr when violations are found.
-   *
-   * @param string $config_name
-   *   The Drupal config object name, e.g. "node.type.article".
-   * @param string $yaml_path
-   *   Absolute path (inside the container) to the YAML file to validate.
-   *
-   * @usage drush designbook:config-validate node.type.article /tmp/test.yml
-   *   Validate /tmp/test.yml against the node.type.article schema.
-   *
-   * @command designbook:config-validate
-   * @aliases dcv
    */
+  #[CLI\Command(name: 'designbook:config-validate', aliases: ['dcv'])]
+  #[CLI\Argument(name: 'config_name', description: 'The Drupal config object name, e.g. node.type.article.')]
+  #[CLI\Argument(name: 'yaml_path', description: 'Absolute path (inside the container) to the YAML file to validate.')]
+  #[CLI\Usage(name: 'drush designbook:config-validate node.type.article /tmp/test.yml', description: 'Validate /tmp/test.yml against the node.type.article schema.')]
   public function configValidate(string $config_name, string $yaml_path): void {
     if (!file_exists($yaml_path)) {
       fwrite(STDERR, "File not found: $yaml_path" . PHP_EOL);
@@ -273,10 +262,10 @@ class ConfigSchemaCommands extends DrushCommands {
 
     $data = Yaml::parse(file_get_contents($yaml_path));
 
-    $definition  = $this->typedConfig->getDefinition($config_name);
+    $definition     = $this->typedConfig->getDefinition($config_name);
     $dataDefinition = $this->typedConfig->buildDataDefinition($definition, $data);
-    $typedData   = $this->typedConfig->create($dataDefinition, $data, $config_name);
-    $violations  = $typedData->validate();
+    $typedData      = $this->typedConfig->create($dataDefinition, $data, $config_name);
+    $violations     = $typedData->validate();
 
     if (count($violations) === 0) {
       // Valid — exit 0 (Drush default).

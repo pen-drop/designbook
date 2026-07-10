@@ -58,6 +58,21 @@ rm -rf "$WORKSPACE_DIR"
 mkdir -p "$WORKSPACE_DIR"
 rsync -a --exclude='.git' "$FIX/" "$WORKSPACE_DIR/"
 
+# Rewrite the designbook module bind mount to an ABSOLUTE host path. The
+# committed fixture uses a path relative to its own .ddev dir
+# (../../../drupal-designbook = packages/drupal-designbook), which is correct
+# only in-place. After rsync into workspaces/<name>/.ddev the same relative path
+# resolves to <repo>/drupal-designbook (nonexistent), so a `ddev composer
+# install` in the workspace would mount an empty dir and drop drupal/designbook.
+# The workspace is machine-local and always rebuilt, so a machine-absolute path
+# is safe here (it must stay relative in the committed fixture for portability).
+cat > "$WORKSPACE_DIR/.ddev/docker-compose.designbook.yaml" <<YAML
+services:
+  web:
+    volumes:
+      - "$REPO_ROOT/packages/drupal-designbook:/var/www/designbook:ro"
+YAML
+
 # Drop the (separate) fixture theme into the Drupal docroot.
 mkdir -p "$THEME_DIR"
 rsync -a --exclude='node_modules' --exclude='.git' \
