@@ -1,0 +1,24 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:hero",
+      "props": {
+        "heading_level": 1,
+        "reverse": false
+      },
+      "slots": {
+        "title": $fields.field_title,
+        "text": $fields.field_content,
+        "button": [
+          {
+            "component": "test_integration_drupal:button",
+            "variant": "primary",
+            "props": { "url": $fields.field_action.uri },
+            "slots": { "label": $fields.field_action.title }
+          }
+        ]
+      }
+    }
+  ]
+)

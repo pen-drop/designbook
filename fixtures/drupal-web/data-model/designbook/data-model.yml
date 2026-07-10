@@ -76,6 +76,26 @@ content:
           template: field-map
         ratio_1_1:
           template: field-map
+  block_content:
+    hero:
+      title: Hero
+      description: >
+        A block_content component bundle rendered as a single UI-Patterns hero
+        section on the Layout Builder path — exercises the layout-builder-display
+        sync-to blueprint (string, formatted-text, and nested-SDC action slots).
+      fields:
+        field_title:
+          type: string
+          title: Title
+        field_content:
+          type: text_long
+          title: Content
+        field_action:
+          type: link
+          title: Action
+      view_modes:
+        default:
+          template: field-map
   paragraph:
     signage:
       title: Wegweiser
