@@ -47,10 +47,12 @@ aspects:
 
 ```yaml
 # ui_or_design handled by the `design` aspect (execute the spec's plans with `debo` --from-plan).
-# The verify tooling below is designbook-specific: a real Storybook test workspace + `pnpm check`.
+# The verify tooling below is designbook-specific. Any change to a designbook skill
+# (workflow/task/rule/blueprint/schema) is verified through the matching `debo-test`
+# tester — never ad-hoc — over the suite/case whose fixture exercises the change.
 sub_decisions:
   - if: runtime_surface
-    then: verify the built design artifacts render — build a designbook test workspace with `./scripts/setup-workspace.sh <name>`, confirm the components load in the running Storybook, then run `pnpm check` (typecheck → lint → test)
+    then: verify the change end-to-end through the matching `debo-test` tester (never ad-hoc) — pick the suite/case whose fixture exercises the changed skill and run `debo-test run <suite> <case>` for a single functional pass, or `debo-test research <suite> <case> --baseline-only` for a scored audit; the tester provisions the test workspace (and, for a Drupal `sync-*` case, the live Drupal target via `start-drupal-workspace.sh`) and exercises the changed workflow. If no fixture exercises the change yet, author it first. Run `pnpm check` (typecheck → lint → test) in addition when the change touches the addon/TS. NOTE: `debo-test`'s setup scripts run `git reset --hard`/`git clean -fd` and assume the workspace theme dir is its own git repo; run the tester from a plain checkout, not from inside a git worktree, until that isolation is guarded.
   - if: app_change
     then: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root
   - if: conductor_change
