@@ -34,10 +34,7 @@ describe('render_url resolver', () => {
 
     await renderUrlResolver.resolve('node.article.default', {}, ctx);
 
-    expect(execSyncMock).toHaveBeenCalledWith(
-      'drush db:url node.article.default',
-      expect.anything(),
-    );
+    expect(execSyncMock).toHaveBeenCalledWith('drush db:url node.article.default', expect.anything());
   });
 
   it('fails cleanly when no render command is configured', async () => {
