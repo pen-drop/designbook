@@ -30,6 +30,8 @@ the SDC prop's declared type:
 
 - Literal value + SDC prop type `boolean` → `source_id: checkbox`, `source: { value: <literal> }`.
 - Literal value + SDC prop enum `string` → `source_id: select`, `source: { value: <literal> }`.
+- Literal value + SDC prop enum `integer`/`number` → `source_id: select`, `source: { value: <literal> }`.
+- Literal value + SDC prop non-enum `string` → `source_id: textfield`, `source: { value: <literal> }`.
 - Literal value + SDC prop `$ref: "ui-patterns://url"` → `source_id: url`, `source: { value: <literal> }`.
 - The implicit `attributes` prop (or a literal attribute string) → `source_id: attributes`,
   `source: { value: <literal or ''> }`.
