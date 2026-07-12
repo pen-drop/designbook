@@ -44,7 +44,7 @@ stages:
   compare:
     steps: [compare]
   triage:
-    steps: [triage]
+    steps: [triage-config]
   polish:
     steps: [polish-config]
   re-capture:
@@ -77,8 +77,11 @@ render as the frozen baseline instead of a design reference.
 
 The `capture`/`re-capture` stages screenshot the **backend render** at `render_url` as the
 candidate; `compare`/`re-compare` diff it against the frozen Storybook baseline with the
-same `compare-images` CLI (severity / diff_percent). `triage`/`polish` apply a single fix
-pass on the **backend config** — never the Storybook component, which is the reference.
+same `compare-images` CLI (severity / diff_percent). The `triage`/`polish` stages apply a
+single fix pass on the **backend config** — never the Storybook component, which is the
+reference. They use the config-verify-specific `triage-config`/`polish-config` steps (not the
+component-oriented `triage`/`polish` of design-verify) so the consolidated fix instructions
+name the backend config as the fix surface, not the frozen reference component.
 
 Always regenerate CSS before measuring (`before: css-generate, execute: always`) — same
 rationale as design-verify: measure against fresh CSS, not stale utilities or undefined

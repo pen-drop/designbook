@@ -67,6 +67,16 @@ describe('render_url resolver', () => {
     expect(res.error).toMatch(/drush: command not found/);
   });
 
+  it('rejects a config id with shell-unsafe characters instead of interpolating it', async () => {
+    const ctx = makeContext({ renderUrlCommand: 'drush db:url {config_id}' });
+
+    const res = await renderUrlResolver.resolve('node.article.default; rm -rf /', {}, ctx);
+
+    expect(res.resolved).toBe(false);
+    expect(res.error).toMatch(/config id/i);
+    expect(execSyncMock).not.toHaveBeenCalled();
+  });
+
   it('is idempotent: an already-resolved http URL passes through unchanged', async () => {
     const url = 'https://host/node/1';
     const ctx = makeContext({ renderUrlCommand: 'drush db:url {config_id}' });

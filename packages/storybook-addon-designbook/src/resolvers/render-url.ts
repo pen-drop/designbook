@@ -10,11 +10,15 @@ import type { ParamResolver, ResolverContext, ResolverResult } from './types.js'
  * It never mentions any specific backend — the Drupal integration supplies the
  * drush command via config; core adds no backend code.
  *
- * Idempotency: the engine re-runs param resolvers on every stage transition,
- * seeding `input` from the param's current value — which, on reruns, is this
- * resolver's own previous output (a URL). An input that is already an http(s)
- * URL therefore passes through unchanged so the command is not re-run.
+ * Defensive passthrough: the config-verify workflow seeds this param from the
+ * config id (`from: config`), so `input` is normally a config id. Should a caller
+ * ever seed it with an already-resolved http(s) URL, pass it through unchanged
+ * rather than re-running the command.
  */
+
+// A backend config id is a dotted machine name (e.g. `node.article.default`);
+// reject anything outside that shape before interpolating it into a shell command.
+const CONFIG_ID_SHAPE = /^[a-z0-9_.]+$/;
 export const renderUrlResolver: ParamResolver = {
   name: 'render_url',
 
@@ -29,6 +33,14 @@ export const renderUrlResolver: ParamResolver = {
         resolved: false,
         input,
         error: 'render_url: no render command configured (set `renderUrlCommand` in the designbook config)',
+      };
+    }
+
+    if (!CONFIG_ID_SHAPE.test(input)) {
+      return {
+        resolved: false,
+        input,
+        error: `render_url: config id \`${input}\` has an unexpected shape (allowed: lowercase letters, digits, \`.\`, \`_\`)`,
       };
     }
 
