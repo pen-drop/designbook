@@ -99,7 +99,20 @@ fi
 # 1. Reset workspace to init commit (clean slate for re-runs)
 # git repo root is the theme dir (setup-workspace.sh runs git init there)
 cd "$TARGET_DIR/$THEME_REL"
-INIT_COMMIT=$(git log --reverse --format='%H' | head -1)
+# SAFETY: the reset --hard/clean below MUST target THIS theme repo, never an enclosing
+# checkout/worktree. If setup-workspace.sh did not `git init` here, git resolves upward and
+# the reset would wipe the parent repo. Assert the toplevel is this dir; abort otherwise.
+THEME_PWD="$(pwd -P)"
+THEME_TOP="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+[[ -n "$THEME_TOP" ]] && THEME_TOP="$(cd "$THEME_TOP" && pwd -P)"
+if [[ "$THEME_TOP" != "$THEME_PWD" ]]; then
+  echo "FATAL: $THEME_PWD is not its own git repo (git toplevel: ${THEME_TOP:-none})." >&2
+  echo "       Refusing 'git reset --hard'/'git clean' — it would hit the enclosing repo." >&2
+  echo "       Re-run ./scripts/setup-workspace.sh to (re)create the isolated theme repo." >&2
+  exit 1
+fi
+# Robust against SIGPIPE under pipefail (git log --reverse | head closes the pipe early).
+INIT_COMMIT=$(git rev-list --max-parents=0 HEAD | tail -1)
 if [[ -n "$INIT_COMMIT" ]]; then
   git reset --hard "$INIT_COMMIT" --quiet
   git clean -fd --quiet
