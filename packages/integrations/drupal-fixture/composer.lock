@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9dfffaf954c341db2e0aaa46a2074781",
+    "content-hash": "9da692ed241b7c4957f386bc897373b0",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -1409,24 +1409,44 @@
         },
         {
             "name": "drupal/designbook",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "/var/www/designbook",
-                "reference": "d8747ba780e2cf531a194788bea019a42330ee1f"
+            "version": "dev-1.x",
+            "source": {
+                "type": "git",
+                "url": "https://git.drupalcode.org/project/designbook.git",
+                "reference": "6fb429e6ada9b5c8633bf29aa0eade748a41a620"
             },
             "require": {
                 "drupal/config_inspector": "^2",
                 "drupal/core": "^10 || ^11"
             },
             "type": "drupal-module",
+            "extra": {
+                "branch-alias": {
+                    "dev-1.x": "1.x-dev"
+                },
+                "drupal": {
+                    "version": "1.x-dev",
+                    "datestamp": "1783687750",
+                    "security-coverage": {
+                        "status": "not-covered",
+                        "message": "Project has not opted into security advisory coverage!"
+                    }
+                }
+            },
+            "notification-url": "https://packages.drupal.org/8/downloads",
             "license": [
                 "GPL-2.0-or-later"
             ],
+            "authors": [
+                {
+                    "name": "christian.wiedemann",
+                    "homepage": "https://www.drupal.org/user/861002"
+                }
+            ],
             "description": "Dev-only designbook backend: config-schema drush commands + per-entity/view-mode preview rendering. Never enable on production.",
-            "transport-options": {
-                "symlink": false,
-                "relative": false
+            "homepage": "https://www.drupal.org/project/designbook",
+            "support": {
+                "source": "https://git.drupalcode.org/project/designbook"
             }
         },
         {

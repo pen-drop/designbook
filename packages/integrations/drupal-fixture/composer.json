@@ -14,17 +14,14 @@
             "url": "https://packages.drupal.org/8"
         },
         {
-            "type": "path",
-            "url": "/var/www/designbook",
-            "options": {
-                "symlink": false
-            }
+            "type": "vcs",
+            "url": "https://git.drupalcode.org/project/designbook.git"
         }
     ],
     "require": {
         "composer/installers": "^2.3",
         "drupal/config_inspector": "^2.1",
-        "drupal/designbook": "@dev",
+        "drupal/designbook": "dev-1.x",
         "drupal/core-composer-scaffold": "^11.3",
         "drupal/core-project-message": "^11.3",
         "drupal/core-recipe-unpack": "^11.3",

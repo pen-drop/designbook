@@ -1,4 +1,0 @@
-services:
-  web:
-    volumes:
-      - "../../../drupal-designbook:/var/www/designbook:ro"

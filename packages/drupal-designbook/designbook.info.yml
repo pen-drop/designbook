@@ -1,7 +1,0 @@
-name: Designbook
-type: module
-description: 'Dev-only designbook backend: config-schema introspection/validation drush commands + per-entity/view-mode preview rendering. Never enable on production.'
-core_version_requirement: ^10 || ^11
-package: Development
-dependencies:
-  - config_inspector:config_inspector
