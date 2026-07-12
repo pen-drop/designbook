@@ -19,6 +19,14 @@ type and bundle, `<field>` a mapped field, `<view_mode>` the display's view mode
 Distinct from `layout-builder.md` (the renderer sample-data passthrough) — this authors the Drupal
 export config, not the ComponentNode array.
 
+## View-mode template — config display vs content override
+
+This pattern authors sections only for a **`field-map`** view mode — the config-managed display
+(`allow_custom: false`, sections in `core.entity_view_display.*`). A **`layout-builder`**-template
+view mode is a per-entity content override: its sections live in the entity's `layout_builder__layout`
+base field (content, not config). For such a unit author only `enabled: true` + `allow_custom: true`
+with an empty `sections: [ ]` — never author component sections into config for it.
+
 ## Input resolution
 
 Read the bundle's `entity-mapping/<et>.<bundle>.<view_mode>.jsonata` for the ComponentNode(s), and
