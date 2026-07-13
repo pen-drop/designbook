@@ -100,6 +100,14 @@ Element: &Element
   properties:
     id: *ElementId
     selector: { type: string, default: "" }
+    reference_selector:
+      type: string
+      description: >
+        Optional selector for the reference (baseline) side when it differs from
+        the candidate `selector`. Used when the two sides isolate the same subject
+        with different selectors — e.g. config-verify, where `selector` isolates
+        the subject in the backend render and `reference_selector` isolates the
+        Storybook story root. Defaults to `selector` when omitted.
     states:
       type: array
       default: [{ name: rest, steps: [] }]
@@ -247,6 +255,46 @@ ScoreReport:
       type: object
       description: LLM tokens summed across the capture + fix subagents. Best-effort.
       properties: { input: { type: integer }, output: { type: integer } }
+
+ConfigType:
+  type: string
+  title: Config Type
+  description: >
+    The kind of backend config that drives a config-verify run. v1 supports only
+    `entity_view_display`; the dispatch stays open so further config-types can be
+    added later without reworking the workflow (YAGNI).
+  enum: [entity_view_display]
+  examples: [entity_view_display]
+
+ConfigTarget:
+  type: object
+  title: Config Target
+  description: >
+    The resolved subject of a config-verify run — the backend config plus the two
+    values derived from it: the Storybook story it maps to (the reference/baseline)
+    and the backend render URL (the candidate). Backend-neutral: `config_id` is an
+    opaque backend identifier; how it maps to a story and a URL is supplied
+    per-config-type (core) and per-backend (integration), never hardcoded here.
+  required: [config_type, config_id, story_id, render_url]
+  properties:
+    config_type:
+      $ref: "#/ConfigType"
+    config_id:
+      type: string
+      description: >
+        Opaque backend config identifier for this config_type. For
+        `entity_view_display` this is the view-display id,
+        `<entity_type>.<bundle>.<view_mode>`.
+      examples: ["node.article.default", "paragraph.signage.full"]
+    story_id:
+      $ref: ../scenes/schemas.yml#/StoryId
+    render_url:
+      type: string
+      description: >
+        URL at which the backend renders the configured output, resolved by the
+        `render_url` param resolver from a project-supplied command. The capture
+        stage screenshots this URL as the candidate against the Storybook baseline.
+      examples: ["https://drupal.ddev.site/node/1"]
 
 StoryMeta:
   type: object

@@ -8,6 +8,7 @@ import { scenePathResolver } from './scene-path.js';
 import { componentsIndexResolver } from './components-index.js';
 import { regionPropertiesResolver } from './region-properties.js';
 import { configSyncDirResolver } from './config-sync-dir.js';
+import { renderUrlResolver } from './render-url.js';
 
 interface ParamDeclaration {
   type?: string;
@@ -41,6 +42,7 @@ register(scenePathResolver);
 register(componentsIndexResolver);
 register(regionPropertiesResolver);
 register(configSyncDirResolver);
+register(renderUrlResolver);
 
 export const resolverRegistry = {
   get(name: string): ParamResolver | undefined {

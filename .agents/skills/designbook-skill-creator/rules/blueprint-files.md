@@ -214,6 +214,11 @@ filter:
 
 `trigger.domain:` uses prefix matching (via `matchDomain()`); other `filter:` keys use exact matching against config values.
 
+`trigger.config_name:` (glob) — a **sync-to routing** key, distinct from the create-time
+`trigger.domain`/`trigger.steps` loading keys. At `sync-to:transform` time the router follows the
+`### to_drupal` of the loaded blueprint whose `trigger.config_name` glob matches the unit's
+`config_name`. Extension/framework gating still comes from `filter:`.
+
 ## Checks
 
 | ID | Severity | What to verify | Where |

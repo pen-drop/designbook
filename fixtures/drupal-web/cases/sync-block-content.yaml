@@ -1,0 +1,37 @@
+config: layout-builder.yml
+
+fixtures:
+  - vision
+  - data-model
+  - design-entity
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo sync-to workflow in eval mode (gate: soft) to export the
+  block_content.hero bundle to Drupal config.
+  Filter the export to entity_type=block_content. Read designbook.config.yml and
+  the data model, and route each config unit per the sync-to transform guidance —
+  the active extensions decide how the entity view display is authored (do not
+  assume a path or name a blueprint yourself). Author the per-config-name JSONata
+  against the prepare-fetched schema, write each config YAML, validate, and run
+  drush config:import. Do NOT ask any questions; if a decision cannot be made
+  from the data model + fixtures, fail the run.
+
+expected_config:
+  - block_content.type.hero
+  - field.storage.block_content.field_title
+  - field.storage.block_content.field_content
+  - field.storage.block_content.field_action
+  - field.field.block_content.hero.field_title
+  - field.field.block_content.hero.field_content
+  - field.field.block_content.hero.field_action
+  - core.entity_view_display.block_content.hero.default
+
+metric: |
+  (
+    $vpr := validate_pass_rate;
+    $er := existence_rate;
+    $base := 0.6 * $vpr + 0.4 * $er;
+    cim_ok ? $base * 100 : $base * 50
+  )
+direction: max

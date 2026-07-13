@@ -34,9 +34,9 @@ extensions:
     skill: designbook-drupal
 # Backend command strings — interpolated as {{ backend_cmd.* }} by sync tasks.
 # Core runs these opaquely; no drush/Drupal knowledge lives in core.
-# Both commands are provided by the designbook_config_schema drush helper module
-# shipped under web/modules/custom/designbook_config_schema/ in this integration
-# and enabled automatically by scripts/start-drupal-workspace.sh.
+# Both commands are provided by the designbook module, published to drupal.org
+# (drupal/designbook, https://www.drupal.org/project/designbook, 1.x) and required
+# like any other contrib module.
 backend_cmd:
   cmd: "ddev drush"
   schema_cmd: "ddev drush designbook:config-schema"   # prints JSON Schema for a config name; append config name
@@ -66,8 +66,9 @@ the resulting command strings opaquely: no drush or Drupal knowledge lives in co
 `schema_cmd` calls `designbook:config-schema <config_name>` → JSON Schema on stdout,
 exit 0. `validate_cmd` calls `designbook:config-validate <config_name> <yaml_path>` →
 exit 0 when valid; exit 1 + violation JSON on stderr when invalid. Both commands are
-implemented in `web/modules/custom/designbook_config_schema/` (shipped with this
-integration) and enabled by `scripts/start-drupal-workspace.sh`.
+implemented in the `designbook` module (published to drupal.org as
+`drupal/designbook`, https://www.drupal.org/project/designbook, 1.x) and required like
+any other contrib module.
 
 `import` is a complete, ready-to-run command that applies the config-sync directory to
 the live backend. `write-config`'s YAML lands host-side at the resolved
