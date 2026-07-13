@@ -4,6 +4,7 @@ name: layout-builder-display
 priority: 20
 trigger:
   domain: data-mapping
+  config_name: 'core.entity_view_display.*'
 filter:
   extensions: layout_builder
 ---
@@ -18,6 +19,9 @@ type and bundle, `<field>` a mapped field, `<view_mode>` the display's view mode
 
 Distinct from `layout-builder.md` (the renderer sample-data passthrough) — this authors the Drupal
 export config, not the ComponentNode array.
+
+This blueprint self-selects for `core.entity_view_display.*` config units via `trigger.config_name`;
+`filter.extensions: layout_builder` gates it to Layout-Builder projects.
 
 ## View-mode template — config display vs content override
 
