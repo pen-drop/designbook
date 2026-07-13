@@ -1,6 +1,6 @@
 ---
 title: Config Verify
-description: Reconcile a backend render (produced from a config) against the Storybook render as the frozen reference
+description: Reconcile a backend render (produced from a config) against the Storybook render as the live reference
 params:
   config:
     type: string
@@ -38,7 +38,7 @@ stages:
   setup-compare:
     steps: [setup-compare]
   reference:
-    steps: [ensure-baseline]
+    steps: [ensure-baseline-live]
   capture:
     steps: [capture-backend]
   compare:
@@ -64,7 +64,7 @@ reference axis flipped:
 
 | | design-verify | config-verify |
 |---|---|---|
-| Reference (frozen baseline) | design image / reference URL | **Storybook render** |
+| Reference (live baseline) | design image / reference URL | **Storybook render** |
 | Candidate (measured) | Storybook render | **backend render** (from a config) |
 | Fix-pass target | Storybook component / CSS | **backend config** |
 
@@ -72,16 +72,19 @@ reference axis flipped:
 resolves the Storybook story the config maps to; `render_url` resolves the backend render
 URL via the `render_url` resolver (which runs a project-supplied command — the backend
 integration provides it, core adds no backend code); `reference_url` resolves to that
-story's Storybook iframe, so the reused `ensure-baseline` stage freezes the **Storybook**
-render as the frozen baseline instead of a design reference.
+story's Storybook iframe, and the `ensure-baseline-live` stage **re-captures** that
+Storybook render every run instead of reusing a stored PNG — the reference is live, not
+frozen. That's exactly why `config-verify` uses its own `ensure-baseline-live` reference
+step instead of reusing `design-verify`'s `ensure-baseline` stage, which freezes its
+baseline on first capture.
 
 The `capture`/`re-capture` stages screenshot the **backend render** at `render_url` as the
-candidate; `compare`/`re-compare` diff it against the frozen Storybook baseline with the
+candidate; `compare`/`re-compare` diff it against the live Storybook baseline with the
 same `compare-images` CLI (severity / diff_percent). The `triage`/`polish` stages apply a
 single fix pass on the **backend config** — never the Storybook component, which is the
 reference. They use the config-verify-specific `triage-config`/`polish-config` steps (not the
 component-oriented `triage`/`polish` of design-verify) so the consolidated fix instructions
-name the backend config as the fix surface, not the frozen reference component.
+name the backend config as the fix surface, not the Storybook reference component.
 
 Always regenerate CSS before measuring (`before: css-generate, execute: always`) — same
 rationale as design-verify: measure against fresh CSS, not stale utilities or undefined
