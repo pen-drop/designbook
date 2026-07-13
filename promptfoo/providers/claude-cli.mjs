@@ -8,6 +8,10 @@
  *   output.archivedWorkflows — keyed by workflow id, parsed tasks.yml
  *   output.pendingWorkflows  — keyed by workflow id (indicates failure)
  *   output.fileContents    — parsed YAML/text content of new files
+ *   output.fileHashes      — sha256 (hex) of every output file, computed by the
+ *                            harness itself (never self-reported by the agent), so
+ *                            binary artifacts (e.g. reference PNGs) can be compared
+ *                            for identity/difference in a trustworthy way.
  *
  * Workspace setup:
  *   If vars contain `suite` + `case`, runs scripts/setup-test.sh automatically.
@@ -16,6 +20,7 @@
 import { execFile, execFileSync } from "node:child_process";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { readFileSync as readFileSyncFs, existsSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join, relative, resolve } from "node:path";
 import { createRequire } from "node:module";
 
@@ -134,6 +139,7 @@ class ClaudeCliProvider {
       archivedWorkflows: {},
       pendingWorkflows: {},
       fileContents: {},
+      fileHashes: {},
     };
 
     try {
@@ -164,6 +170,19 @@ class ClaudeCliProvider {
               result.fileContents[filePath] = raw;
             }
           }
+        } catch {
+          // skip unreadable
+        }
+      }
+
+      // 2b. Harness-computed sha256 of every output file (bytes, not text) — the
+      //     tester hashes the artifact itself so assertions never trust an
+      //     agent-self-reported digest. Enables identity/difference checks on
+      //     binary artifacts (e.g. reference PNGs) that are too large for fileContents.
+      for (const filePath of result.newFiles) {
+        try {
+          const bytes = await readFile(join(workspaceDir, filePath));
+          result.fileHashes[filePath] = createHash("sha256").update(bytes).digest("hex");
         } catch {
           // skip unreadable
         }

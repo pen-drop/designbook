@@ -71,10 +71,19 @@ assert:
   - type: javascript
     value: output.fileContents['designbook/config-verify-recapture.yml']?.run2_status === 'completed'
   # AC-1/AC-2: the run-2 reference baseline was RECAPTURED (differs from run-1), not reused stale.
+  # The authoritative check is TESTER-computed — the harness hashes the two reference PNGs itself
+  # (output.fileHashes, sha256 of the file bytes) rather than trusting the agent-authored marker.
+  # The evidence marker's own sha fields are kept only as human-readable corroboration.
+  # (a) the run-1 reference copy the agent archived aside is present and was hashed by the harness:
   - type: javascript
-    value: output.fileContents['designbook/config-verify-recapture.yml']?.reference_recaptured === true
+    value: typeof output.fileHashes?.['designbook/config-verify-run1-reference.png'] === 'string'
+  # (b) a run-2 reference PNG exists and its harness-computed hash DIFFERS from the run-1 copy:
   - type: javascript
-    value: output.fileContents['designbook/config-verify-recapture.yml']?.run1_reference_sha !== output.fileContents['designbook/config-verify-recapture.yml']?.run2_reference_sha
+    value: |
+      const run1 = output.fileHashes?.['designbook/config-verify-run1-reference.png'];
+      const run2Path = output.newFiles.find(p => /designbook\/references\/.*--entity-paragraph-signage-full--rest\.png$/.test(p));
+      const run2 = run2Path ? output.fileHashes?.[run2Path] : undefined;
+      return typeof run1 === 'string' && typeof run2 === 'string' && run1 !== run2;
   # The last config-verify run archived cleanly and nothing was left pending.
   - type: javascript
     value: output.archivedWorkflows['config-verify']?.status === 'completed'

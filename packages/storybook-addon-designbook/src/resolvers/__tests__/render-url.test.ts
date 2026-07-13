@@ -9,8 +9,8 @@ vi.mock('node:child_process', () => ({
 // Imported after the mock is registered.
 const { renderUrlResolver } = await import('../render-url.js');
 
-function makeContext(config: Record<string, unknown> = {}): ResolverContext {
-  return { config: config as ResolverContext['config'], params: {} };
+function makeContext(config: Record<string, unknown> = {}, params: Record<string, unknown> = {}): ResolverContext {
+  return { config: config as ResolverContext['config'], params };
 }
 
 describe('render_url resolver', () => {
@@ -74,6 +74,43 @@ describe('render_url resolver', () => {
 
     expect(res.resolved).toBe(false);
     expect(res.error).toMatch(/config id/i);
+    expect(execSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('substitutes {story_id} from the resolved params into the command template', async () => {
+    execSyncMock.mockReturnValue(
+      'http://localhost:6009/iframe.html?id=entities-paragraph-signage--full&viewMode=story',
+    );
+    const ctx = makeContext(
+      { renderUrlCommand: 'echo http://localhost:6009/iframe.html?id={story_id}\\&viewMode=story' },
+      { story_id: 'entities-paragraph-signage--full' },
+    );
+
+    await renderUrlResolver.resolve('paragraph.signage.full', {}, ctx);
+
+    expect(execSyncMock).toHaveBeenCalledWith(
+      'echo http://localhost:6009/iframe.html?id=entities-paragraph-signage--full\\&viewMode=story',
+      expect.anything(),
+    );
+  });
+
+  it('fails cleanly when the command references {story_id} but none is resolved', async () => {
+    const ctx = makeContext({ renderUrlCommand: 'echo {config_id} {story_id}' }, {});
+
+    const res = await renderUrlResolver.resolve('paragraph.signage.full', {}, ctx);
+
+    expect(res.resolved).toBe(false);
+    expect(res.error).toMatch(/story_id/i);
+    expect(execSyncMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a shell-unsafe {story_id} value instead of interpolating it', async () => {
+    const ctx = makeContext({ renderUrlCommand: 'echo {story_id}' }, { story_id: 'foo; rm -rf /' });
+
+    const res = await renderUrlResolver.resolve('paragraph.signage.full', {}, ctx);
+
+    expect(res.resolved).toBe(false);
+    expect(res.error).toMatch(/story_id/i);
     expect(execSyncMock).not.toHaveBeenCalled();
   });
 
