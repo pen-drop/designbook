@@ -1,0 +1,31 @@
+workspace: .
+
+backend: drupal
+frameworks:
+  component: sdc
+  css: tailwind
+designbook:
+  cmd: npx storybook dev
+  home: .
+  url: "http://localhost:6009"
+dirs:
+  components: components
+  css:
+    tokens: css/tokens
+    themes: css/themes
+css:
+  app: css/app.src.css
+component:
+  namespace: 'test_integration_drupal'
+  src: components
+# config-verify needs a backend render URL (candidate side) from the `render_url` resolver,
+# which runs `renderUrlCommand` with `{config_id}` substituted. A real Drupal render would
+# need a live target (start-drupal-workspace.sh, a heavy sync-* case). For THIS case the
+# ticket's changed surface is reference-side (ensure-baseline-live recapture), so the backend
+# render is held constant: renderUrlCommand resolves the SAME Storybook story iframe the
+# reference resolves to (reading the live daemon port from `storybook status`, so it survives
+# Storybook's dynamic port and any --force restart). Backend == reference ⇒ `compare` finds no
+# deviation ⇒ triage-config emits an empty issues array ⇒ polish-config (`each: issues`) expands
+# to zero fix passes ⇒ no drush needed and the workflow completes, while the reference is still
+# recaptured every run. The iframe URL format mirrors StorybookDaemon.iframeUrl().
+renderUrlCommand: 'echo "$(npx storybook-addon-designbook storybook status | grep -o ''http://localhost:[0-9]*'' | head -1)/iframe.html?id=entities-paragraph-signage--full&viewMode=story"'
