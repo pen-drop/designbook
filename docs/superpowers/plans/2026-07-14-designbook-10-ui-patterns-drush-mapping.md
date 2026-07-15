@@ -302,6 +302,34 @@ Update the `backend_cmd — data for sync task interpolation` prose to document 
 
 ---
 
+## Implementation notes (as-built, verified live against ui_patterns 2.0.17)
+
+Refinements found during the live verification pass (kept the hand-built `entity_field` block per decision):
+
+- **Explicit `#[Autowire(service: …)]`** on every constructor param (`plugin.manager.sdc`,
+  `plugin.manager.ui_patterns_prop_type`, `plugin.manager.ui_patterns_source`, `entity_type.manager`).
+  `AutowireTrait` alone cannot resolve plugin-manager services by type — without this the command
+  service fails to instantiate and Drush silently drops the command (mirrors the parent
+  `ConfigSchemaCommands`, which also uses explicit `#[Autowire]`).
+- **Prop type read from the decorated definition** — `props.properties.<prop>.ui_patterns.type_definition`
+  (UI Patterns resolves `$ref: ui-patterns://url` in place), with `guessFromSchema` as fallback.
+- **`entity_field` leaf needs real contexts** — `getDefinitionsForPropType` requires `ContextInterface`
+  objects (`entity` = a sample entity via `entity_type.manager` + `field_name`) plus `tag_filter
+  ['field' => TRUE]`; passing raw strings throws a `TypeError`. Leaf preference is
+  `field_property`/`field_formatter` (field-tagged value sources), not `entity_field` (a context
+  switcher). Resolves to `field_property` for a `:property` hint, `field_formatter` for a whole field.
+- **No `drush.services.yml`** — matches the parent module's pure attribute autodiscovery.
+- **Verified**: AC-1 (module enables), AC-2 (checkbox/select/textfield/url/token/attributes), AC-3
+  (entity_field block + registry-chosen leaf), AC-4 (variant_id select-for-`card` / null-for-`plain`,
+  full block).
+
+**Cross-repo coordination (blocker for the monorepo MR):** the fixture consumes
+`drupal/designbook: dev-1.x`; the submodule lands on the module's `1.x` only when the drupalcode MR
+(`DESIGNBOOK-10-ui-patterns`) merges. Live verification here used a **local, uncommitted** composer
+path-repo override to the module clone. After the module MR merges: regenerate the fixture
+`composer.lock` against `dev-1.x` (it will then include the submodule) — the committed fixture
+`composer.json` already carries `drupal/ui_patterns: ^2` and `dev-1.x`.
+
 ## Self-Review
 
 - **Spec coverage:** AC-1 → Task 1 (+ Task 5 enable); AC-2/AC-3/AC-4 → Task 2 (single whole-block command); AC-5 → Task 6. Fixture/test enablement → Task 5; end-to-end → Task 7. All ACs mapped.
