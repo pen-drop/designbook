@@ -1,0 +1,10 @@
+{#
+/**
+ * Fixture card component.
+ */
+#}
+<div class="card card--{{ variant|default('default') }}"{{ attributes|default('') }}>
+  {% if title %}<h3 class="card__title">{{ title }}</h3>{% endif %}
+  {% if link %}<a class="card__link" href="{{ link }}">{{ title }}</a>{% endif %}
+  <div class="card__content">{{ content }}</div>
+</div>

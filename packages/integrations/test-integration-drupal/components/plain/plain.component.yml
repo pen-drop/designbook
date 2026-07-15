@@ -1,0 +1,12 @@
+name: Plain
+status: experimental
+description: 'Fixture SDC for designbook_ui_patterns: no variants (variant_id must resolve to null).'
+props:
+  type: object
+  properties:
+    title:
+      title: Title
+      type: string
+slots:
+  content:
+    title: Content
