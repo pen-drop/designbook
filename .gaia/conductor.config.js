@@ -59,7 +59,7 @@ export default {
     with: { model: local.model ?? 'claude-opus-4-8' },
   },
   workspace: {
-    plugin: '@gaia-ai/plugin-herdr-workspace',
+    plugin: '@gaia-ai/plugin-herdr',
     with: {
       // designbook is a pnpm monorepo, not a DDEV project — a fresh worktree only
       // needs deps installed; the herdr-workspace plugin removes the worktree on done.
