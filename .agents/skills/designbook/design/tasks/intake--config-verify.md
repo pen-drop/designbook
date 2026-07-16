@@ -40,9 +40,9 @@ result:
 # Intake: Config Verify
 
 Reconcile the backend render of `config` against the Storybook render of the resolved
-`story_id`. The Storybook render is the frozen reference; the backend render is the
-candidate. `story_id` and `render_url` are pre-resolved by the workflow engine before this
-task runs.
+`story_id`. The Storybook render is the live reference — re-captured every run by the
+reference stage; the backend render is the candidate. `story_id` and `render_url` are
+pre-resolved by the workflow engine before this task runs.
 
 The loaded config-type rule for `config_type` defines how the config maps to a `story_id`
 and which subjects are compared — read it and apply its mapping.
@@ -64,8 +64,8 @@ are derived from the config.
 ## Step 3: Ensure Storybook is running
 
 The Storybook render is the reference baseline, so Storybook must be running and current
-before the reference stage freezes it. Check status; start (or restart when component files
-are newer) and wait for readiness. On startup failure, report the logs and pause.
+before the reference stage re-captures it. Check status; start (or restart when component
+files are newer) and wait for readiness. On startup failure, report the logs and pause.
 
 ## Step 4: Write Results and Complete
 
