@@ -60,6 +60,7 @@ export default {
   },
   workspace: {
     plugin: '@gaia-ai/plugin-herdr',
+    export: 'herdrWorkspace',
     with: {
       // designbook is a pnpm monorepo, not a DDEV project — a fresh worktree only
       // needs deps installed; the herdr-workspace plugin removes the worktree on done.
