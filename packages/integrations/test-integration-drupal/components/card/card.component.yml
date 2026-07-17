@@ -1,0 +1,30 @@
+name: Card
+status: experimental
+description: 'Fixture SDC for designbook_ui_patterns: exercises boolean/enum/string/url prop types + variants.'
+variants:
+  default:
+    title: Default
+  featured:
+    title: Featured
+props:
+  type: object
+  properties:
+    published:
+      title: Published
+      type: boolean
+    size:
+      title: Size
+      type: string
+      enum:
+        - sm
+        - md
+        - lg
+    title:
+      title: Title
+      type: string
+    link:
+      title: Link
+      $ref: 'ui-patterns://url'
+slots:
+  content:
+    title: Content

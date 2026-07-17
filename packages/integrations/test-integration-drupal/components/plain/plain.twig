@@ -1,0 +1,9 @@
+{#
+/**
+ * Fixture plain component (no variants).
+ */
+#}
+<div class="plain"{{ attributes|default('') }}>
+  {% if title %}<span class="plain__title">{{ title }}</span>{% endif %}
+  <div class="plain__content">{{ content }}</div>
+</div>
