@@ -19,6 +19,7 @@ import { loadConfig } from '../../config.js';
 import { loadWorkflowDefinition } from '../workflow-discovery.js';
 import { workflowDone, workflowAbandon, workflowArchive, type WorkflowFile } from '../../workflow.js';
 import { runWorkflowCreate, createAfterWorkflows, filterActiveAfterDeclarations } from '../workflow.js';
+import { hashReferenceUrl } from '../../resolvers/reference-folder.js';
 
 function writeMd(filePath: string, fm: Record<string, unknown>, body = ''): void {
   mkdirSync(resolve(filePath, '..'), { recursive: true });
@@ -144,6 +145,56 @@ describe('workflow done: after-workflow auto-create', () => {
 
     const child = readTasksYml(next[0]!.name);
     expect(child.params?.story_id).toBe('debo-produced-at-runtime');
+  });
+
+  it('re-resolves a parent param at hook time via the parent definition resolver (M4 story_id class)', async () => {
+    const skill = 'after-test';
+    // Parent whose `ref_dir` param resolves from `reference_url`. On a real run this
+    // stands in for `story_id: {resolve: story_id, from: scene_id}` — a resolver that
+    // is "too early" at create time (the story/index doesn't exist yet) and only
+    // succeeds once the run is complete. The after-hook maps that param to the child.
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'workflows', 'parent-reresolve.md'),
+      {
+        title: 'Parent Re-resolve',
+        params: {
+          reference_url: { type: 'string', default: '' },
+          ref_dir: { type: 'string', resolve: 'reference_folder', from: 'reference_url' },
+        },
+        stages: { execute: { steps: ['do-thing'] } },
+        engine: 'direct',
+        after: [{ workflow: 'child-wf', params: { story_id: 'ref_dir' } }],
+      },
+      '# parent-reresolve',
+    );
+
+    const config = loadConfig();
+    // Persist a parent in awaiting-after whose `ref_dir` was NOT materialized at
+    // create time (absent from params + scope), but `reference_url` IS present.
+    const parentName = 'parent-reresolve-abc';
+    const parentPath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+    mkdirSync(resolve(parentPath, '..'), { recursive: true });
+    writeFileSync(
+      parentPath,
+      dumpYaml({
+        title: 'Parent Re-resolve',
+        workflow: 'parent-reresolve',
+        status: 'awaiting-after',
+        params: { reference_url: 'https://leando.de/' },
+        scope: {},
+        tasks: [],
+        engine: 'direct',
+      }),
+    );
+
+    const declarations = [{ workflow: 'child-wf', params: { story_id: 'ref_dir' } }];
+    // Without the hook-time re-resolution this throws "evaluated to undefined".
+    const next = await createAfterWorkflows(declarations, parentName, {}, config);
+    expect(next).toHaveLength(1);
+
+    const child = readTasksYml(next[0]!.name);
+    expect(typeof child.params?.story_id).toBe('string');
+    expect(child.params?.story_id as string).toContain(`references/${hashReferenceUrl('https://leando.de/')}`);
   });
 
   it('registers the child on the parent when created with --parent (M4a)', async () => {

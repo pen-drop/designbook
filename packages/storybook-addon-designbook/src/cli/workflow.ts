@@ -439,6 +439,35 @@ export async function createAfterWorkflows(
     ...(parentData.scope ?? {}),
   };
 
+  // Re-run the parent definition's param resolvers against that final state (M4):
+  // a resolver that was "too early" at create time — e.g. `story_id` (resolve:
+  // story_id, from: scene_id) needs the running indexed story, which does not exist
+  // until the run completes — never materialized into the stored params. Now that the
+  // run is done and the environment is live, resolving again fills those params so an
+  // after-hook expression like `story_id` no longer evaluates to undefined. Failures
+  // are swallowed: the hook eval below still throws a clear error if a value is truly
+  // missing.
+  const parentWorkflowId = parentData.workflow;
+  if (typeof parentWorkflowId === 'string') {
+    try {
+      const configPath = findConfig();
+      const configDir = configPath ? resolvePath(configPath, '..') : process.cwd();
+      const agentsDir = resolveSkillsRoot(configDir);
+      const sources = resolveSkillSources(configDir);
+      const parentDefPath = resolveWorkflowFile(parentWorkflowId, agentsDir, sources);
+      const parentFm = parseFrontmatter(parentDefPath) as Record<string, unknown> | null;
+      const parentWfParams = parentFm?.params as Record<string, Record<string, unknown>> | undefined;
+      const hasResolvers =
+        parentWfParams && Object.values(parentWfParams).some((d) => d && typeof d === 'object' && 'resolve' in d);
+      if (parentWfParams && hasResolvers) {
+        const res = await resolveParams(parentWfParams, { config, params: finalState });
+        Object.assign(finalState, res.params);
+      }
+    } catch {
+      /* fall back to stored final state */
+    }
+  }
+
   const result: Array<{ name: string; workflow: string }> = [];
   for (const decl of declarations) {
     // Idempotent re-run: skip creation if a child with the same workflow id already exists
