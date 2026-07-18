@@ -146,6 +146,12 @@ ln -sfn "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
 ln -sfn "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
 ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
 
+# debo-test's run.md drives every CLI command from the THEME dir. The addon's
+# resolveSkillsRoot walks up to find these roots, but also link .agents directly
+# into the theme dir so skill resolution works even if a theme-local
+# designbook.config.yml ever shadows the workspace-root one (belt + suspenders).
+ln -sfn "$REPO_ROOT/.agents" "$THEME_DIR/.agents"
+
 # Initialize git repo in the theme dir (where Storybook runs from).
 cd "$THEME_DIR"
 git init

@@ -117,22 +117,34 @@ export function findConfig(startDir: string = process.cwd()): string | null {
  * Resolve the root directory that contains the `skills/` folder.
  *
  * Tries candidate directories relative to `configDir` until one
- * with a `skills/` subdirectory is found. Falls back to `configDir`
- * itself if no candidate matches.
+ * with a `skills/` subdirectory is found, then **walks up** the parent
+ * directories doing the same. Walking up lets the CLI resolve skills when
+ * invoked from a subdirectory of the workspace (e.g. the Storybook theme dir,
+ * where `debo-test`'s run.md runs every command) while the `.agents`/`.claude`
+ * roots live at the workspace root next to `designbook.config.yml`. Falls back
+ * to `<configDir>/.claude` if no ancestor matches.
  *
- * Candidate order: `.claude`, `.agents`, `.` (configDir itself)
+ * Candidate order per directory: `.claude`, `.agents`, `.` (the directory itself)
  */
 export function resolveSkillsRoot(configDir: string): string {
   const candidates = ['.claude', '.agents'];
-  for (const candidate of candidates) {
-    const dir = resolve(configDir, candidate);
-    if (existsSync(resolve(dir, 'skills'))) {
-      return dir;
+  let currentDir = resolve(configDir);
+  const root = parsePath(currentDir).root;
+
+  while (true) {
+    for (const candidate of candidates) {
+      const dir = resolve(currentDir, candidate);
+      if (existsSync(resolve(dir, 'skills'))) {
+        return dir;
+      }
     }
+    if (existsSync(resolve(currentDir, 'skills'))) {
+      return currentDir;
+    }
+    if (currentDir === root) break;
+    currentDir = dirname(currentDir);
   }
-  if (existsSync(resolve(configDir, 'skills'))) {
-    return configDir;
-  }
+
   return resolve(configDir, '.claude');
 }
 
