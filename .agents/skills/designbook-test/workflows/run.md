@@ -56,7 +56,19 @@ Report the Storybook URL to the user (`_debo storybook status` returns the `url`
 
 Use `_debo storybook stop` to stop Storybook when the session ends or the user requests it.
 
-## 5. Workflow summary (after workflow completion)
+## 5. Validate (optional — only if `--validate <workflow>` was passed)
+
+Skip this step entirely when no `--validate` option was given.
+
+After the main workflow reaches `done`, run the validate workflow (e.g. `design-verify`) as a **separate** workflow against the story the main run produced. Dispatch a **fresh** driver subagent (the main run's driver has already returned) and give it:
+- `workspaces/<suite>/web/themes/custom/test_integration_drupal` as its working directory,
+- the task: *run the `<validate-workflow>` workflow to validate the story produced by the just-completed main workflow. Derive the target from that run — pass the same `reference_url` the case used (if any) and let the validate workflow resolve `story_id` from the scene/story that was created. Do NOT ask any questions the case prompt + the main run's summary already answer.*
+- the same lifecycle instruction as step 4 (drive `workflow create` → task loop → `workflow done` inline; run `isolate: true` stages inline yourself),
+- the same **ask, don't guess** rule and **report contract** as step 4.
+
+Run the same **interactive loop** as step 4: relay `needs_user` questions to the user and resume with a fresh driver until `done`, then relay the validate summary.
+
+## 6. Workflow summary (after workflow completion)
 
 After the workflow completes, retrieve and display the summary:
 
@@ -64,9 +76,9 @@ After the workflow completes, retrieve and display the summary:
 npx storybook-addon-designbook workflow summary --workflow <id> --json
 ```
 
-Display the full JSON output, including the `after.*` block (e.g. `after.design-verify.score-report`) when present, so the user can review scores and after-hook results before deciding on a snapshot.
+Display the full JSON output so the user can review scores before deciding on a snapshot. When a validate workflow was run (step 5), also display its summary.
 
-## 6. Snapshot offer
+## 7. Snapshot offer
 
 After the workflow completes:
 

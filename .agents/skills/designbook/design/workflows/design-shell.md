@@ -49,10 +49,4 @@ engine: direct
 before:
   - workflow: css-generate
     execute: if-never-run
-after:
-  - workflow: design-verify
-    when: "reference_url != ''"
-    params:
-      story_id: story_id
-      reference_url: reference_url
 ---

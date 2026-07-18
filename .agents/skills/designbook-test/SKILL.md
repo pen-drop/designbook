@@ -4,8 +4,8 @@ user-invocable: true
 argument-hint: "<subcommand> <suite> <case>"
 subcommands:
   run:
-    hint: "<suite> [<case>]"
-    description: Set up a test workspace and run a workflow case
+    hint: "<suite> [<case>] [--validate <workflow>]"
+    description: Set up a test workspace and run a workflow case (optionally run a validate workflow after)
   research:
     hint: "<suite> <case> [--val-cases <x,y>] [--iterations N] [--target T] [--plateau M] [--baseline-only] [--scope <glob>] [--metric <jsonata>] [--direction min|max]"
     description: Autonomous skill-improvement loop with a held-out val gate; --baseline-only for a single audit pass
@@ -25,7 +25,7 @@ Parse `$ARGUMENTS` as: `<subcommand> <suite> [<case>] [options]`
 
 | Subcommand | Signature | Description |
 |---|---|---|
-| `run` | `<suite> [<case>]` | Set up workspace and run a test case |
+| `run` | `<suite> [<case>] [--validate <workflow>]` | Set up workspace and run a test case; `--validate` runs a validate workflow after (typically `design-verify`) |
 | `research` | `<suite> <case> [options]` | Autonomous improvement loop |
 | `is-clear` | `<workflow> <task> <question>` | Read-only clarity audit against a workflow's plan |
 
@@ -34,6 +34,9 @@ Unknown subcommand → print available subcommands and stop.
 ---
 
 ## run
+
+Parse from `$ARGUMENTS` (after `run <suite> [<case>]`):
+- `--validate <workflow>` — after the main workflow completes, run this workflow to validate the produced story (typically `design-verify`). Default: none (no validation pass).
 
 Load `workflows/run.md` and follow it.
 
