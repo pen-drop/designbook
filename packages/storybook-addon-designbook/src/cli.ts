@@ -7,6 +7,7 @@ import { register as registerWorkflow } from './cli/workflow.js';
 import { register as registerStorybook } from './cli/storybook.js';
 import { register as registerRunbook } from './cli/runbook.js';
 import { register as registerCompareImages } from './cli/compare-images.js';
+import { register as registerInspect } from './cli/inspect-register.js';
 
 function printJson(label: string, valid: boolean, errors?: string[], warnings?: string[]): void {
   const out: Record<string, unknown> = { valid, label };
@@ -132,6 +133,7 @@ registerWorkflow(program);
 registerStorybook(program);
 registerRunbook(program);
 registerCompareImages(program);
+registerInspect(program);
 
 // parseAsync (not parse) so async action handlers are awaited; a rejected
 // action otherwise surfaces as an unhandled promise rejection with no

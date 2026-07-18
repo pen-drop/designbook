@@ -103,4 +103,35 @@ export function register(program: Command): void {
       console.log(JSON.stringify(result));
       process.exit(result.ready ? 0 : 1);
     });
+
+  storybookCmd
+    .command('check <story-url>')
+    .description('Validate a story: staleness preflight, console-error scan, font check, behavior smoke.')
+    .option('--files <list>', 'Comma-separated component files whose mtime gates staleness')
+    .option('--fonts <list>', 'Comma-separated expected font families')
+    .option('--behavior <json>', 'Behavior probe JSON: {"trigger":"<sel>","expect":"<sel|sel@attr=val>"}')
+    .action(async (storyUrl: string, opts: { files?: string; fonts?: string; behavior?: string }) => {
+      const config = loadConfig(process.env['DESIGNBOOK_HOME']);
+      const { runCheckStory, isStorybookStale, componentMtimes } = await import('./check-story.js');
+      try {
+        const sb = new StorybookDaemon(
+          config.data,
+          'http://localhost',
+          config['designbook.home'] as string | undefined,
+        );
+        const list = (v?: string) =>
+          (v ?? '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        const stale = isStorybookStale(componentMtimes(list(opts.files)), sb.status().started_at);
+        const behavior = opts.behavior ? JSON.parse(opts.behavior) : undefined;
+        const result = await runCheckStory(storyUrl, { fonts: list(opts.fonts), behavior, stale }, config);
+        console.log(`CHECK_RESULT: ${JSON.stringify(result)}`);
+        if (!result.ok) process.exitCode = 1;
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
 }
