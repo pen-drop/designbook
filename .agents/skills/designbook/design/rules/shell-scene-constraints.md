@@ -1,6 +1,6 @@
 ---
 trigger:
-  steps: [design-shell and:create-scene]
+  steps: [design-shell:create-scene-file, design-shell:create-scene]
 ---
 
 # Shell Scene Constraints
