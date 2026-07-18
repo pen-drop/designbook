@@ -37,6 +37,7 @@ import {
   type ResolvedStep,
 } from './workflow-resolve.js';
 import jsonata from 'jsonata';
+import { schemasForResultValidation } from './workflow-resolve-components-enum.js';
 import { resolvePluginSkillSources } from './skill-resolver.js';
 import { interpolate } from './template/interpolate.js';
 import { resolveEach, type EachDeclaration } from './template/each.js';
@@ -1062,6 +1063,17 @@ export async function workflowDone(
   // valid/error but fall through to archive even when validation fails.
   const validationGate = (data.scope?.validation_gate as 'hard' | 'soft') ?? 'hard';
 
+  // M3: the injected ComponentNode.component enum lists only already-indexed
+  // components. Pre-component stages (e.g. intake) plan brand-new components that
+  // are not yet indexed, so strip the enum for their result validation; keep it
+  // from the component stage onwards. Fails open when stages can't be located.
+  const validationSchemas = schemasForResultValidation(
+    (data.schemas ?? {}) as Record<string, unknown>,
+    Object.keys(data.stages ?? {}),
+    data.tasks,
+    task.stage,
+  ) as Record<string, object>;
+
   // ── Process --data: distribute keys to result entries ──────────────
   if (options?.data && task.result) {
     const dataPayload = options.data;
@@ -1120,13 +1132,13 @@ export async function workflowDone(
         // Validate: schema against raw data (avoids parsing .md back as YAML),
         // semantic validators against the written file
         const config = options.config ?? { data: dataDir, technology: 'html' as const, extensions: [] };
-        const schemaErrors = await validateResultEntry(resultEntry, value, data.schemas, config, 'data');
+        const schemaErrors = await validateResultEntry(resultEntry, value, validationSchemas, config, 'data');
         const semanticErrors =
           resultEntry.validators && resultEntry.validators.length > 0
             ? await validateResultEntry(
                 { ...resultEntry, schema: undefined },
                 writtenPath,
-                data.schemas,
+                validationSchemas,
                 config,
                 'file',
               )
@@ -1166,7 +1178,7 @@ export async function workflowDone(
       } else {
         // Data result: store inline
         const config = options.config ?? { data: dataDir, technology: 'html' as const, extensions: [] };
-        const errors = await validateResultEntry(resultEntry, value, data.schemas, config, 'data');
+        const errors = await validateResultEntry(resultEntry, value, validationSchemas, config, 'data');
         if (errors.length > 0) {
           validationErrors.push(...errors.map((e) => `${key}: ${e}`));
           resultEntry.valid = false;
@@ -1862,6 +1874,15 @@ export async function workflowResult(
   const isFileResult = !!resultEntry.path;
   const errors: string[] = [];
 
+  // M3: strip the ComponentNode.component enum for pre-component result
+  // validation (see schemasForResultValidation) — mirrors workflowDone.
+  const validationSchemas = schemasForResultValidation(
+    (data.schemas ?? {}) as Record<string, unknown>,
+    Object.keys(data.stages ?? {}),
+    data.tasks,
+    task.stage,
+  ) as Record<string, object>;
+
   // ── File result: only accepted for submission: direct declarations ───────
   if (isFileResult) {
     if (resultEntry.submission !== 'direct') {
@@ -1900,7 +1921,7 @@ export async function workflowResult(
     }
 
     // Validate file content
-    const validationErrors = await validateResultEntry(resultEntry, writtenPath, data.schemas, config, 'file');
+    const validationErrors = await validateResultEntry(resultEntry, writtenPath, validationSchemas, config, 'file');
 
     if (validationErrors.length > 0) {
       errors.push(...validationErrors);
@@ -1957,7 +1978,7 @@ export async function workflowResult(
   }
 
   // Validate data content
-  const validationErrors = await validateResultEntry(resultEntry, dataValue, data.schemas, config, 'data');
+  const validationErrors = await validateResultEntry(resultEntry, dataValue, validationSchemas, config, 'data');
 
   if (validationErrors.length > 0) {
     errors.push(...validationErrors);
