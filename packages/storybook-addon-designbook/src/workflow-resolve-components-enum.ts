@@ -17,27 +17,34 @@ export function injectComponentsEnum(schemas: Record<string, unknown>, inventory
   return clone as unknown as Record<string, unknown>;
 }
 
-/** Minimal task shape needed to locate the component inventory. */
-interface TaskWithInventory {
-  stage?: string;
-  params?: Record<string, unknown>;
-}
-
-/** True when a task's `components` param holds a non-empty inventory of `{id}` entries. */
-function hasComponentInventory(task: TaskWithInventory): boolean {
-  const raw = task.params?.['components'];
-  if (!Array.isArray(raw)) return false;
-  return raw.some((c) => c && typeof c === 'object' && typeof (c as Record<string, unknown>)['id'] === 'string');
+/** Minimal stage-definition shape needed to locate the component stage. */
+interface StageWithSteps {
+  steps?: string[];
 }
 
 /**
- * The stage that owns the component inventory — the first task carrying a
- * `components` param. This is the stage from which the injected
- * `ComponentNode.component` enum (the indexed/created components) becomes
- * authoritative. Returns `undefined` when no task declares an inventory.
+ * The canonical step that creates (and thereby indexes) components. Every design
+ * workflow (design-shell / -component / -screen / -entity) fans this step out over
+ * the planned inventory; it is the boundary from which the injected
+ * `ComponentNode.component` enum becomes authoritative.
  */
-export function componentInventoryStage(tasks: TaskWithInventory[]): string | undefined {
-  return tasks.find(hasComponentInventory)?.stage;
+const COMPONENT_CREATE_STEP = 'create-component';
+
+/**
+ * The stage that owns the component inventory — the stage whose definition declares
+ * the `create-component` step. This is located from the **stage definitions**, not
+ * the task list: on a fresh run the `create-component` tasks are not expanded yet at
+ * pre-component stages, and the `intake` task legitimately carries a `components`
+ * reuse param (the live-index inventory). Locating by task param therefore mis-picks
+ * `intake` as the component stage (review CID 563); the stage definitions carry the
+ * `create-component` step from workflow-create time onward. Returns `undefined` when
+ * no stage declares the step (fail open — the enum is left untouched).
+ */
+export function componentInventoryStage(stages: Record<string, StageWithSteps>): string | undefined {
+  for (const [stage, def] of Object.entries(stages)) {
+    if (def?.steps?.includes(COMPONENT_CREATE_STEP)) return stage;
+  }
+  return undefined;
 }
 
 /** Return a clone of `schemas` with the `ComponentNode.component` enum removed. */
@@ -67,12 +74,12 @@ export function stripComponentsEnum(schemas: Record<string, unknown>): Record<st
  */
 export function schemasForResultValidation(
   schemas: Record<string, unknown>,
-  stageNames: string[],
-  tasks: TaskWithInventory[],
+  stages: Record<string, StageWithSteps>,
   currentStage?: string,
 ): Record<string, unknown> {
-  const componentStage = componentInventoryStage(tasks);
+  const componentStage = componentInventoryStage(stages);
   if (!componentStage || !currentStage) return schemas;
+  const stageNames = Object.keys(stages);
   const currentIdx = stageNames.indexOf(currentStage);
   const componentIdx = stageNames.indexOf(componentStage);
   if (currentIdx === -1 || componentIdx === -1) return schemas;

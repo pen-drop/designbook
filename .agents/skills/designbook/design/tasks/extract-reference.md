@@ -78,6 +78,10 @@ After extraction completes, write `{{ reference_dir }}/meta.yml` as a `Reference
 - `extract`: `"extract.json"` (relative path to the DesignReference).
 - `assets_dir`: `"assets/"`.
 
+## Result: reference_dir
+
+`reference_dir` is the extraction output directory — the resolved `reference_folder` where `extract.json`, `meta.yml`, and the baseline PNGs are written. It is **required on every completion**, including alongside `reference` and `reference_screenshots` on the normal path (only the no-reference case above submits it empty). A completion carrying `reference` without `reference_dir` is rejected.
+
 ## Result: reference_screenshots
 
 Materialize `reference_screenshots` as the full element × state × breakpoint matrix. For each element in `Reference.elements`, for each state in `element.states`, for each breakpoint in `element.breakpoints` (or the task-level `breakpoints` param when the element carries none), emit one `Screenshot`:

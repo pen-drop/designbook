@@ -1095,8 +1095,7 @@ export async function workflowDone(
   // from the component stage onwards. Fails open when stages can't be located.
   const validationSchemas = schemasForResultValidation(
     (data.schemas ?? {}) as Record<string, unknown>,
-    Object.keys(data.stages ?? {}),
-    data.tasks,
+    (data.stages ?? {}) as Record<string, StageDefinition>,
     task.stage,
   ) as Record<string, object>;
 
@@ -1904,8 +1903,7 @@ export async function workflowResult(
   // validation (see schemasForResultValidation) — mirrors workflowDone.
   const validationSchemas = schemasForResultValidation(
     (data.schemas ?? {}) as Record<string, unknown>,
-    Object.keys(data.stages ?? {}),
-    data.tasks,
+    (data.stages ?? {}) as Record<string, StageDefinition>,
     task.stage,
   ) as Record<string, object>;
 
