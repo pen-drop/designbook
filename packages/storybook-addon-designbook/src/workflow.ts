@@ -37,7 +37,6 @@ import {
   type ResolvedStep,
 } from './workflow-resolve.js';
 import jsonata from 'jsonata';
-import { schemasForResultValidation } from './workflow-resolve-components-enum.js';
 import { resolvePluginSkillSources } from './skill-resolver.js';
 import { interpolate } from './template/interpolate.js';
 import { resolveEach, type EachDeclaration } from './template/each.js';
@@ -1089,15 +1088,10 @@ export async function workflowDone(
   // valid/error but fall through to archive even when validation fails.
   const validationGate = (data.scope?.validation_gate as 'hard' | 'soft') ?? 'hard';
 
-  // M3: the injected ComponentNode.component enum lists only already-indexed
-  // components. Pre-component stages (e.g. intake) plan brand-new components that
-  // are not yet indexed, so strip the enum for their result validation; keep it
-  // from the component stage onwards. Fails open when stages can't be located.
-  const validationSchemas = schemasForResultValidation(
-    (data.schemas ?? {}) as Record<string, unknown>,
-    (data.stages ?? {}) as Record<string, StageDefinition>,
-    task.stage,
-  ) as Record<string, object>;
+  // Component existence is validated at done-time by the `scene` validator's
+  // live-index inventory walk (validateSceneAgainstInventory), which always
+  // reflects the current Storybook index — no stale schema-level enum needed.
+  const validationSchemas = (data.schemas ?? {}) as Record<string, object>;
 
   // ── Process --data: distribute keys to result entries ──────────────
   if (options?.data && task.result) {
@@ -1899,13 +1893,9 @@ export async function workflowResult(
   const isFileResult = !!resultEntry.path;
   const errors: string[] = [];
 
-  // M3: strip the ComponentNode.component enum for pre-component result
-  // validation (see schemasForResultValidation) — mirrors workflowDone.
-  const validationSchemas = schemasForResultValidation(
-    (data.schemas ?? {}) as Record<string, unknown>,
-    (data.stages ?? {}) as Record<string, StageDefinition>,
-    task.stage,
-  ) as Record<string, object>;
+  // Component existence is validated by the `scene` validator's live-index
+  // inventory walk (validateSceneAgainstInventory) — mirrors workflowDone.
+  const validationSchemas = (data.schemas ?? {}) as Record<string, object>;
 
   // ── File result: only accepted for submission: direct declarations ───────
   if (isFileResult) {
