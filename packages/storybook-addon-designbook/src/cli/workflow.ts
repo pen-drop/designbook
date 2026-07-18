@@ -846,6 +846,30 @@ export function register(program: Command): void {
     });
 
   workflow
+    .command('batch-done')
+    .description('Submit a directory of per-task result files (each: {task,data,summary?}) via workflow done.')
+    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-design-shell-2026-07-18-a3f7)')
+    .requiredOption('--dir <dir>', 'Directory of *.json result files, one per task')
+    .action(async (opts: { workflow: string; dir: string }) => {
+      const config = loadConfig();
+      try {
+        const { runBatchDone } = await import('./workflow-batch-done.js');
+        const results = await runBatchDone(config.data, opts.workflow, opts.dir, config);
+        log({ cmd: 'workflow batch-done', args: { workflow: opts.workflow, dir: opts.dir }, result: results });
+        const failed = results.filter((r) => !r.valid);
+        for (const r of results) {
+          console.log(`${r.valid ? '✓' : '✗'} ${r.task}${r.valid ? '' : ` — ${r.errors.join('; ')}`}`);
+        }
+        console.log(`\n${results.length - failed.length}/${results.length} tasks submitted`);
+        console.log(`BATCH_RESULT: ${JSON.stringify(results)}`);
+        if (failed.length > 0) process.exitCode = 1;
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
     .command('archive')
     .description('Force-archive a workflow — recovery for a parent stuck in awaiting-after.')
     .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-design-shell-2026-07-18-a3f7)')
