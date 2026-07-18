@@ -36,7 +36,7 @@
 # debo-test task-kind: a tester ticket records its target suite/case here; no design planning.
 sub_decisions:
   - if: the ticket targets a debo-test suite/case (a designbook-test tester run, not a UI/design change)
-    then: determine and record the target debo-test `<suite>` and `<case>` — when unspecified, list options with `debo-test run <suite>` (no case arg) and confirm the pick. That recording is the whole spec — no design/component planning. Write `Task-Art: debo-test` into the spec comment so coding and review pick up the kind.
+    then: determine and record the target debo-test `<suite>` and `<case>` — when unspecified, list options with `debo-test run <suite>` (no case arg) and confirm the pick. That recording is the whole spec — no design/component planning, and no BDD: the executable test IS `debo-test run <suite> <case>`, so the `test` also-author comment just names that invocation (no Gherkin/`.feature`). Write `Task-Art: debo-test` into the spec comment so coding and review pick up the kind.
 ```
 
 - [ ] **Step 2: Edit `## State: coding`** — add a `tasks` knob and one `sub_decisions` entry, keeping the three existing entries:

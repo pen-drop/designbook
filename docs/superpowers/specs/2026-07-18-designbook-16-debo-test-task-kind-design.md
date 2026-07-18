@@ -63,6 +63,12 @@ the stamped value.
   summary JSON); do not hand-edit skill files.* The existing `runtime_surface` /
   `app_change` / `conductor_change` sub_decisions stay — they cover *authoring* changes to
   skills, a different case from a debo-test *ticket*.
+- **No BDD for this kind.** The executable test for a debo-test ticket **is**
+  `debo-test run <suite> <case>` — there is no Gherkin/`.feature` suite. The `bdd` aspect is
+  not enabled for designbook (only `design` is), so no AC↔scenario matrix or `.feature` build
+  runs regardless. The spec `test` also-author comment (engine default) for a debo-test ticket
+  therefore just names the tester invocation as the executable test — it authors no
+  Feature/Scenario Gherkin. The spec-state prose says so explicitly.
 - **`## State: review`** — replace "defaults suffice" with a `sub_decisions` entry: *if
   Task-Art is debo-test → decide, and document in the summary, whether an additional
   `debo-test research <suite> <case> --baseline-only` (scored audit) pass is warranted beyond
