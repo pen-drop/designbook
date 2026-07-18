@@ -35,7 +35,7 @@ result:
 
 Visual testing for a single story. The `story_id` is pre-resolved by the workflow engine's param resolver before this task runs.
 
-Can be called as a subworkflow (from design-shell/screen/component after-hook) or standalone.
+Can be called as a child workflow (with a `--parent` set — e.g. from a build workflow's outtake) or standalone.
 
 ## Step 1: Resolve Reference
 
@@ -46,7 +46,7 @@ If `$reference_dir` is non-empty and `$reference_dir/extract.json` exists (from 
 
 If no `$reference_dir` and `params.reference` is empty:
 
-- **Running as a child workflow** (a parent workflow is set): do not prompt. Proceed reference-free with `params.reference` left empty — verify runs without a reference. (When the parent declares an `after: design-verify` hook gated on a reference being present, this path should not be reached; this guard is defense-in-depth.)
+- **Running as a child workflow** (a parent workflow is set): do not prompt. Proceed reference-free with `params.reference` left empty — verify runs without a reference. (Callers that need a scored reference pass one explicitly — via `params.reference` or a `$reference_dir` — so this reference-free path is the deliberate fallback, not an error.)
 - **Running standalone** (no parent): ask the user.
 
 > "What is the design reference?
