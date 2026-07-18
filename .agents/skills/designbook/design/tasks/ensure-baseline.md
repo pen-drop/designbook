@@ -35,6 +35,8 @@ each:
 
 Capture-once, frozen reference baseline. For this `screenshot`:
 
+When capturing the whole baseline matrix at once, `_debo capture matrix {{ reference_dir }}/meta.yml --url <reference-url> --out {{ reference_dir }}` plans every region × breakpoint from `meta.yml` (widths from `design-tokens.yml`), reuses frozen PNGs, and captures the rest in one browser session (`--consent-selector` dismisses a consent banner once). Per-`screenshot` capture below still applies for isolate-and-capture element shots.
+
 1. **Reuse if present.** If the result PNG already exists and no `--refresh-reference` flag is set, register the existing file as the result and stop — the baseline is stable and never re-captured.
 2. **Otherwise capture** via the `playwright-capture` rule's isolate-and-capture mode:
    resolve the viewport width for `screenshot.breakpoint` from `design-tokens.yml`; run the

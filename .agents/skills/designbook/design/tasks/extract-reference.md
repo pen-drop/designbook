@@ -46,6 +46,10 @@ result:
 
 Resolves a design reference URL from `vision.yml`, extracts structure into a `DesignReference` (`extract.json`), writes the `Reference` (`meta.yml`), and emits the baseline screenshot matrix.
 
+## Extract mechanics
+
+Run `_debo extract <reference-url> --out {{ reference_dir }} [--breakpoints sm,xl] [--fonts <families>]` first — one browser pass that writes an `extract.json` skeleton (landmarks, interactive elements, forms, images/assets, fonts, colors) plus the raw `captured.json`. Then fill the judgment gaps below against that skeleton: the command supplies the mechanics; deciding what matters and what is thin is the model work that stays in this task. Per the `playwright-capture` context-hygiene rule, query `captured.json`/`extract.json` with `jq` — never paste the raw dumps into the conversation.
+
 ## No reference
 
 When `reference_folder` is empty (the project has no design reference), there is nothing to extract. Complete the task with `reference_dir: ""`, do not submit `reference`, and return an empty `reference_screenshots` list — no extraction, no asset download, no files written. Downstream stages run reference-free.

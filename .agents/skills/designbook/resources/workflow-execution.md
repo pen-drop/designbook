@@ -127,6 +127,21 @@ _debo workflow done --workflow $WORKFLOW_NAME --task <task-id> \
 
 The CLI serializes file results to their declared paths, validates every result against `schema.definitions`, and marks the task done. If validation fails, the response reports the errors — fix and call `done` again.
 
+**Batch submission (each-expanded stages).** When a stage expands into many
+sibling tasks (e.g. one `create-component` task per planned component), submit
+them all in one call instead of looping `workflow done` by hand: write one
+`{ "task": "<task-id>", "data": { … }, "summary"?: "…" }` JSON file per task into
+a directory, then
+
+```bash
+_debo workflow batch-done --workflow $WORKFLOW_NAME --dir <dir>
+```
+
+Each entry goes through the same validation path as a single `workflow done`;
+the command prints per-task pass/fail (`BATCH_RESULT` JSON) and exits non-zero if
+any task fails. Repair the failing entries and re-run — passed tasks are already
+`done` and are skipped.
+
 For file results, treat validation errors as a repair loop on the submitted file content itself. Do not stop at reporting the error. Update the artifact so it satisfies the validator feedback exactly, then re-submit the same result key via `workflow done` until the task passes.
 
 `--data` is final content. The engine does not rewrite submitted values. Example: if a Twig file should contain `test_integration_drupal:page`, submit that literal string — not `$DESIGNBOOK_COMPONENT_NAMESPACE:page`.

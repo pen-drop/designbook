@@ -148,6 +148,22 @@ scroll height and can be clipped despite full-page.
 - **Output directories** — reference baselines write to `references/<hash>/`; story captures write to `stories/<id>/screenshots/`. Directories MUST be created before capture (`mkdir -p`).
 - Reuse an open session across multiple captures for the same URL — only `open`/`close` once
 
+## Context Hygiene
+
+Raw browser dumps MUST NOT enter the conversation — they inflate context by
+hundreds of thousands of tokens across a run and crowd out the actual work.
+
+- **Write every raw dump to a file, then query it.** DOM/style/accessibility
+  snapshots, full stylesheets, `/index.json`, and `extract.json` itself go to a
+  file (workspace tmp or `/tmp`); read only the distilled answer back with
+  `jq` / `python3` / `grep`. Never paste a page snapshot or a full stylesheet
+  into the conversation.
+- **Prefer the shipped commands over improvised one-liners.** `_debo extract`
+  writes `extract.json` + `captured.json` to disk in one browser pass — query
+  them with `jq`, do not echo them. `_debo capture matrix` and
+  `_debo storybook check` likewise emit compact JSON result lines; consume those,
+  not raw page state.
+
 ## Storybook Restart
 
 After modifying component templates, scene definitions, or CSS during a polish step, Storybook MUST be restarted before recapture:
@@ -155,3 +171,9 @@ After modifying component templates, scene definitions, or CSS during a polish s
 ```bash
 _debo storybook start --force
 ```
+
+The `_debo capture matrix <meta.yml> --url <url> --out <dir>` command captures the
+whole element × region × breakpoint matrix in one browser session (widths from
+`design-tokens.yml`), reuses frozen PNGs, and takes an optional
+`--consent-selector` to dismiss a consent banner once before capturing. Use it
+for baseline/story capture instead of re-improvising per-breakpoint one-liners.
