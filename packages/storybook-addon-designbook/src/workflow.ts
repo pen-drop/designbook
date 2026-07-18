@@ -344,6 +344,32 @@ export function registerChild(dataDir: string, parentName: string, child: { name
 }
 
 /**
+ * Force-archive a workflow — the supported recovery path for a parent stuck in
+ * `awaiting-after` (e.g. a child that was created out-of-band and never cascaded,
+ * or an after-hook that failed to fire). Mirrors `cascadeParent`'s archive step:
+ * roll up any child result summaries, then archive with the summary kept. Unlike
+ * `cascadeParent`, it does not require every child to be archived first, and it
+ * cascades to a grandparent so a stuck chain unblocks in one call.
+ */
+export function workflowArchive(dataDir: string, name: string): WorkflowFile {
+  const filePath = resolve(dataDir, 'workflows', 'changes', name, 'tasks.yml');
+  if (!existsSync(filePath)) {
+    throw new Error(`Workflow not found in changes: ${name}`);
+  }
+  const data = readWorkflow(filePath);
+  appendChildResultSummary(dataDir, data);
+  archiveWorkflow(dataDir, name, data, { keepSummary: !!data.summary });
+  if (data.parent) {
+    try {
+      cascadeParent(dataDir, data.parent);
+    } catch (err) {
+      console.warn(`cascade to parent failed: ${(err as Error).message}`);
+    }
+  }
+  return data;
+}
+
+/**
  * Archive a workflow as incomplete (user declined to resume).
  * Dispatches engine.cleanup() to tear down any isolation (e.g. git branch).
  */

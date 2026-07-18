@@ -10,6 +10,7 @@ import {
   workflowList,
   workflowDone,
   workflowAbandon,
+  workflowArchive,
   workflowWait,
   workflowResume,
   readWorkflow,
@@ -364,6 +365,13 @@ export async function runWorkflowCreate(
     initialScope,
   );
 
+  // When created under a parent (e.g. a manually recreated after-workflow child),
+  // register it on the parent so cascadeParent unblocks the awaiting-after parent
+  // once this child archives. registerChild is idempotent (dedups by name).
+  if (opts.parent) {
+    registerChild(config.data, opts.parent, { name, workflow: opts.workflow });
+  }
+
   // Output JSON with workflow name + all resolved steps
   const createResult: RunWorkflowCreateResult = {
     name,
@@ -421,6 +429,16 @@ export async function createAfterWorkflows(
   const parentData = readWorkflow(parentFilePath);
   const existingChildren = parentData.children ?? [];
 
+  // Resolve after-hook param expressions lazily at hook time against the parent's
+  // FINAL state — params plus scope (result data such as story_url/story_id flows
+  // into scope at stage completion). Evaluating over params alone (create-time
+  // view) left result-derived expressions undefined (the M4a blocker).
+  const finalState: Record<string, unknown> = {
+    ...parentParams,
+    ...(parentData.params ?? {}),
+    ...(parentData.scope ?? {}),
+  };
+
   const result: Array<{ name: string; workflow: string }> = [];
   for (const decl of declarations) {
     // Idempotent re-run: skip creation if a child with the same workflow id already exists
@@ -433,10 +451,10 @@ export async function createAfterWorkflows(
     const mapped: Record<string, unknown> = {};
     if (decl.params) {
       for (const [key, expr] of Object.entries(decl.params)) {
-        const value = await jsonata(expr).evaluate(parentParams);
+        const value = await jsonata(expr).evaluate(finalState);
         if (value === undefined) {
           throw new Error(
-            `after-workflow '${decl.workflow}': param '${key}' expression '${expr}' evaluated to undefined on parent params`,
+            `after-workflow '${decl.workflow}': param '${key}' expression '${expr}' evaluated to undefined on parent final state (params + scope)`,
           );
         }
         mapped[key] = value;
@@ -820,6 +838,23 @@ export function register(program: Command): void {
         const data = workflowAbandon(config.data, opts.workflow);
         log({ cmd: 'workflow abandon', args: { workflow: opts.workflow } });
         console.log(`Workflow ${opts.workflow} archived as incomplete`);
+        console.log(`  Summary: ${data.summary}`);
+      } catch (err) {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  workflow
+    .command('archive')
+    .description('Force-archive a workflow — recovery for a parent stuck in awaiting-after.')
+    .requiredOption('--workflow <name>', 'Workflow name (e.g., debo-design-shell-2026-07-18-a3f7)')
+    .action((opts: { workflow: string }) => {
+      const config = loadConfig();
+      try {
+        const data = workflowArchive(config.data, opts.workflow);
+        log({ cmd: 'workflow archive', args: { workflow: opts.workflow } });
+        console.log(`Workflow ${opts.workflow} force-archived (status: ${data.status})`);
         console.log(`  Summary: ${data.summary}`);
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
