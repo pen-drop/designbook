@@ -234,23 +234,23 @@ Declared as `after: [...]`. When the parent's final `workflow done` returns `{ "
 - Prompt: "Run `/<workflow-id>` next?"
 - If accepted, start it with `--parent $WORKFLOW_NAME` so the chain is traceable.
 
-### Walk-through — `design-screen` → `design-verify`
+### Walk-through — `tokens` → `css-generate`
 
-The `design-screen` workflow declares:
+The `tokens` workflow declares:
 
 ```yaml
 after:
-  - workflow: /design-verify
+  - workflow: css-generate
+    optional: true
 ```
 
-When `design-screen` archives, its `done` response carries `{ "stage": "done" }`. You ask: "Run `/design-verify` next?" If the user accepts, you run:
+When `tokens` archives, its `done` response carries `{ "stage": "done" }`. You ask: "Run `/css-generate` next?" If the user accepts, you run:
 
 ```bash
-_debo workflow create --workflow design-verify --parent $WORKFLOW_NAME \
-  --params '{"scene": "shell", "product_name": "..."}'
+_debo workflow create --workflow css-generate --parent $WORKFLOW_NAME
 ```
 
-and enter the task loop for `design-verify`. Its own after-hooks run in turn when it archives.
+and enter the task loop for `css-generate`. Its own after-hooks run in turn when it archives.
 
 ---
 

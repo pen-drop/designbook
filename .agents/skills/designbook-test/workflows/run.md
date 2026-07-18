@@ -56,7 +56,23 @@ Report the Storybook URL to the user (`_debo storybook status` returns the `url`
 
 Use `_debo storybook stop` to stop Storybook when the session ends or the user requests it.
 
-## 5. Workflow summary (after workflow completion)
+## 5. Validate (optional — only if `--validate <workflow>` was passed)
+
+Skip this step entirely when no `--validate` option was given.
+
+**Reference gate.** `design-verify` (and any validate workflow that scores against a design reference) needs a reference. If the case has no `reference_url` in its `prompt`, do NOT dispatch the validate workflow — report to the user that validation was skipped (no reference in the case) and continue to step 6. Only proceed below when the case supplied a `reference_url`.
+
+After the main workflow reaches `done`, run the validate workflow (e.g. `design-verify`) as a **separate** workflow against the story the main run produced. Dispatch a **fresh** driver subagent (the main run's driver has already returned) and give it:
+- `workspaces/<suite>/web/themes/custom/test_integration_drupal` as its working directory,
+- the case `prompt` verbatim (so the driver has the `reference_url` and any other case inputs — a fresh subagent starts with empty context and cannot see this thread),
+- the just-completed main run's `workflow summary --json` output (so the driver knows the scene/story id that was produced),
+- the task: *run the `<validate-workflow>` workflow to validate the story the main run produced. Pass the `reference_url` from the case prompt; let the validate workflow resolve `story_id` from the scene/story named in the main-run summary. Do NOT ask any questions the case prompt + the main-run summary already answer.*
+- the same lifecycle instruction as step 4 (drive `workflow create` → task loop → `workflow done` inline; run `isolate: true` stages inline yourself),
+- the same **ask, don't guess** rule and **report contract** as step 4.
+
+Run the same **interactive loop** as step 4: relay `needs_user` questions to the user and resume with a fresh driver until `done`, then relay the validate summary. Note the validate workflow's own id (from `workflow list --workflow <validate-workflow> --include-archived`) for step 6.
+
+## 6. Workflow summary (after workflow completion)
 
 After the workflow completes, retrieve and display the summary:
 
@@ -64,9 +80,9 @@ After the workflow completes, retrieve and display the summary:
 npx storybook-addon-designbook workflow summary --workflow <id> --json
 ```
 
-Display the full JSON output, including the `after.*` block (e.g. `after.design-verify.score-report`) when present, so the user can review scores and after-hook results before deciding on a snapshot.
+Display the full JSON output so the user can review scores before deciding on a snapshot. When a validate workflow ran (step 5), display its summary too, passing that run's id as `<id>`.
 
-## 6. Snapshot offer
+## 7. Snapshot offer
 
 After the workflow completes:
 
