@@ -1,72 +1,85 @@
 # designbook — WORKFLOW
 
-Per-state **policy overrides** for this repo, consumed by the `gaia` skill. Each `## State: <state>`
-section carries a YAML config object with **only the keys this project overrides**; every omitted
-key (and every empty section) takes the engine default.
-
-- **Schema, vocabularies, engine defaults, and the defaults-⊕-overrides merge rule** live in the
-  skill: `.claude/skills/gaia/reference/workflow-config.md`.
-- **Mechanics** (dispatch, auth, payload shapes, merge signature, phase-comment + acceptance→test→
-  .feature lifecycle) live in `.claude/skills/gaia/SKILL.md` + `reference/**`.
-- **No** general prose, decision tables, dropsh `--data` JSON, or step-by-step HOW belong in this
-  file — only this project's overrides. Validate with the `gaia` skill's `workflow:validate` workflow.
-
-In practice the only project-specific content is the enabled **aspects** below (cross-cutting
-behaviour, ≥ 2 states) and the per-state **prose tooling bullets** (`- if …: …`, single-state
-build/verify tooling) under each `## State:` section.
-
-## Aspects
-
-```yaml
-# designbook IS the design surface: the `design` aspect drives every UI artifact through the
-# `debo` skill (design-entity | design-component | sections | design-screen) — planned in spec
-# (--plan), executed in coding (--from-plan). No hand-coded components.
-aspects:
-  - name: design
-```
+Execute only the section matching the ticket's current state, from top to bottom. One run works
+one state. Skills produce outcomes; this file alone owns order, decisions, confirmation,
+destinations, and stopping.
 
 ## State: triage
 
-```yaml
-# defaults suffice
-```
+1. Invoke `@gaia/read-ticket`, including all comments.
+2. Classify the ticket: bug uses workflow `gaia_bug` and destination `diagnose`; feature uses
+   `gaia_feature` and `spec`; chore uses `gaia_chore` and `spec`.
+3. Publish the `acceptance` handoff, including `Task-Art`, with a validated session write.
+4. Invoke `@gaia/transition-ticket` once with the explicit workflow and destination above.
+5. Stop. Do not start or prepare the destination state.
 
 ## State: spec
 
-```yaml
-# ui_or_design handled by the `design` aspect (plan UI artifacts with `debo` in --plan mode)
-# debo-test task-kind — a tester ticket records its target suite/case + validate workflow here; no design planning.
-```
-
-- if the ticket targets a debo-test suite/case (a designbook-test tester run, not a UI/design change): determine and record the target debo-test `<suite>` and `<case>`, plus which validate workflow to run after the main workflow (typically `design-verify`; "none" = no validate pass) — when unspecified, list options with `debo-test run <suite>` (no case arg) and confirm the pick. That recording is the whole spec — no design/component planning, and no BDD: the executable test IS `debo-test run <suite> <case>` (with `--validate <workflow>` when spec recorded one), so the `test` also-author comment just names that invocation (no Gherkin/`.feature`). Write `Task-Art: debo-test` into the spec comment so coding and review pick up the kind.
+1. Invoke `@gaia/read-ticket`, including all comments.
+2. Invoke `@gaia/create-spec` with this project policy:
+   - UI/design surface: designbook IS the design surface — plan each UI artifact with the `debo`
+     skill (sub-command design-entity | design-component | sections | design-screen, run in
+     `--plan` mode); commit the generated `.plan.md` files and reference them in the plan. Build
+     nothing in spec. No hand-coded components.
+   - debo-test tester ticket (a designbook-test tester run, not a UI/design change): the whole
+     spec is recording the target debo-test `<suite>` and `<case>` plus which validate workflow
+     runs after the main workflow (typically `design-verify`; "none" = no validate pass) — when
+     unspecified, list options with `debo-test run <suite>` (no case arg) and confirm the pick.
+     No design/component planning and no BDD: the executable test IS `debo-test run <suite>
+     <case>` (with `--validate <workflow>` when spec recorded one), so the `test` also-author
+     comment just names that invocation (no Gherkin/`.feature`). Write `Task-Art: debo-test` into
+     the spec comment so coding and review pick up the kind.
+3. Ask the human to confirm the specification and implementation plan.
+4. After confirmation, invoke `@gaia/transition-ticket` with destination `coding`.
+5. Stop. Do not start or prepare coding work.
 
 ## State: diagnose
 
-```yaml
-# defaults suffice
-```
+1. Invoke `@gaia/read-ticket`, including all comments.
+2. Invoke `@gaia/diagnose-ticket`; diagnose only and do not implement the fix.
+3. Invoke `@gaia/transition-ticket` with destination `coding`.
+4. Stop. Do not start or prepare coding work.
 
 ## State: coding
 
-```yaml
-# ui_or_design handled by the `design` aspect (execute the spec's plans with `debo` --from-plan).
-# The verify tooling below is designbook-specific. Any change to a designbook skill
-# (workflow/task/rule/blueprint/schema) is verified through the matching `debo-test`
-# tester — never ad-hoc — over the suite/case whose fixture exercises the change.
-tasks:
-  - when: the ticket's Task-Art is debo-test
-    reasoning: []   # the work is running one fixed tester command, not writing code — TDD does not apply
-```
-
-- if the ticket's Task-Art is debo-test: run `debo-test run <suite> <case> --validate <workflow>` for the suite+case and validate workflow recorded by spec (append `--validate` only when spec recorded one) — never ad-hoc — and capture the tester output (the `workflow summary --json` block). Do not hand-edit skill files. Run the tester from a plain checkout, NOT from inside a git worktree (its setup does `git reset --hard`/`git clean -fd`).
-- if the change has a runtime surface: verify it end-to-end through the matching `debo-test` tester (never ad-hoc) — pick the suite/case whose fixture exercises the changed skill and run `debo-test run <suite> <case>` for a single functional pass, or `debo-test research <suite> <case> --baseline-only` for a scored audit; the tester provisions the test workspace (and, for a Drupal `sync-*` case, the live Drupal target via `start-drupal-workspace.sh`) and exercises the changed workflow. If no fixture exercises the change yet, author it first. Run `pnpm check` (typecheck → lint → test) in addition when the change touches the addon/TS. NOTE: `debo-test`'s setup scripts run `git reset --hard`/`git clean -fd` and assume the workspace theme dir is its own git repo; run the tester from a plain checkout, not from inside a git worktree, until that isolation is guarded.
-- on app change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root.
-- on conductor change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root.
+1. Invoke `@gaia/read-ticket`, including all comments and the latest confirmed handoff.
+2. Invoke `@gaia/implement-ticket` with this project policy:
+   - UI/design surface: execute the spec's plans with `debo --from-plan <plan-file>` (path, exact
+     name, or substring); do not hand-code the components.
+   - Task-Art debo-test: run `debo-test run <suite> <case> --validate <workflow>` for the
+     suite+case and validate workflow recorded by spec (append `--validate` only when spec
+     recorded one) — never ad-hoc — and capture the tester output (the `workflow summary --json`
+     block). Do not hand-edit skill files. TDD does not apply — the work is running one fixed
+     tester command, not writing code.
+   - Runtime surface (any change to a designbook skill — workflow/task/rule/blueprint/schema):
+     verify it end-to-end through the matching `debo-test` tester (never ad-hoc) — pick the
+     suite/case whose fixture exercises the changed skill and run `debo-test run <suite> <case>`
+     for a single functional pass, or `debo-test research <suite> <case> --baseline-only` for a
+     scored audit; the tester provisions the test workspace (and, for a Drupal `sync-*` case, the
+     live Drupal target via `start-drupal-workspace.sh`). If no fixture exercises the change yet,
+     author it first.
+   - App or conductor change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo
+     root; also run it when a change touches the addon/TS.
+   - Run every `debo-test` tester from a plain checkout, NOT from inside a git worktree — the
+     tester's setup runs `git reset --hard` / `git clean -fd` and assumes the workspace theme dir
+     is its own git repo.
+3. Ask the human to confirm the implementation summary and MR.
+4. After confirmation, invoke `@gaia/transition-ticket` with destination `review` and resolved
+   MR, pipeline, feature, report, and Designbook links.
+5. Stop. Do not start or prepare review work.
 
 ## State: review
 
-```yaml
-# defaults suffice for non-debo-test tickets (green_pipeline gate, confirm-gate, ok→done / not_ok→coding)
-```
-
-- if the ticket's Task-Art is debo-test: decide — and document the decision in the summary — whether an additional `debo-test research <suite> <case> --baseline-only` (scored audit) pass is warranted beyond coding's `run`. Post the `summary` comment holding the tester/workflow results (run outcome + any research score); that comment is the write-back to the ticket. A debo-test ticket may have no MR/diff — gate on the tester result, not a pipeline.
+1. Invoke `@gaia/read-ticket`, including all comments.
+2. Invoke `@gaia/review-ticket` in a review subagent with this project's gates:
+   - Non-debo-test tickets: require fresh verification and a green pipeline; the verdict is
+     exactly `OK` or `Not OK`.
+   - Task-Art debo-test: decide — and document the decision in the summary — whether an
+     additional `debo-test research <suite> <case> --baseline-only` (scored audit) pass is
+     warranted beyond coding's `run`. Gate on the tester result, not a pipeline: a debo-test
+     ticket may have no MR/diff. Post the `summary` comment holding the tester/workflow results
+     (run outcome + any research score); that comment is the write-back to the ticket.
+3. Ask the human to confirm the verdict.
+4. After confirmation, on `OK` invoke `@gaia/transition-ticket` with destination `done`; on
+   `Not OK` invoke it with destination `coding`. Supply only resolved additive links.
+5. Stop. Do not start or prepare another state.
