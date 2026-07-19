@@ -1,58 +1,38 @@
 # designbook — WORKFLOW
 
-Per-state **policy overrides** for this repo, consumed by the `gaia` skill. Each `## State: <state>`
-section carries a YAML config object with **only the keys this project overrides**; every omitted
-key (and every empty section) takes the engine default.
-
-- **Schema, vocabularies, engine defaults, and the defaults-⊕-overrides merge rule** live in the
-  skill: `.claude/skills/gaia/reference/workflow-config.md`.
-- **Mechanics** (dispatch, auth, payload shapes, merge signature, phase-comment + acceptance→test→
-  .feature lifecycle) live in `.claude/skills/gaia/SKILL.md` + `reference/**`.
-- **No** general prose, decision tables, dropsh `--data` JSON, or step-by-step HOW belong in this
-  file — only this project's overrides. Validate with the `gaia` skill's `workflow:validate` workflow.
-
-In practice the only project-specific content is the enabled **aspects** below (cross-cutting
-behaviour, ≥ 2 states) and the per-state **prose tooling bullets** (`- if …: …`, single-state
-build/verify tooling) under each `## State:` section.
+Per-state **policy** for this repo, consumed by the `gaia` skill. Form: the `## Aspects` list
+(+ optional `with:`), optional mini-YAML knobs per `## State: <state>`, and prose tooling
+bullets. **Override rule: every YAML key set here replaces the engine default completely —
+scalar or list, no append.** Omitted keys and empty sections take the engine default (SKILL.md
+state table); the HOW lives in the skill (`aspects/`, `workflows/`, `reference/`).
 
 ## Aspects
 
 ```yaml
-# designbook IS the design surface: the `design` aspect drives every UI artifact through the
-# `debo` skill (design-entity | design-component | sections | design-screen) — planned in spec
-# (--plan), executed in coding (--from-plan). No hand-coded components.
+# designbook IS the design surface: the `designbook` aspect owns every UI artifact through the
+# `debo` skill — planned in spec (--plan), executed in coding (--from-plan). No hand-coded components.
 aspects:
-  - name: design
+  - name: designbook
 ```
 
 ## State: triage
-
-```yaml
 # defaults suffice
-```
 
 ## State: spec
-
-```yaml
-# ui_or_design handled by the `design` aspect (plan UI artifacts with `debo` in --plan mode)
-# debo-test task-kind — a tester ticket records its target suite/case + validate workflow here; no design planning.
-```
+# UI/design planning is owned by the `designbook` aspect. Project-specific below: the debo-test tester ticket.
 
 - if the ticket targets a debo-test suite/case (a designbook-test tester run, not a UI/design change): determine and record the target debo-test `<suite>` and `<case>`, plus which validate workflow to run after the main workflow (typically `design-verify`; "none" = no validate pass) — when unspecified, list options with `debo-test run <suite>` (no case arg) and confirm the pick. That recording is the whole spec — no design/component planning, and no BDD: the executable test IS `debo-test run <suite> <case>` (with `--validate <workflow>` when spec recorded one), so the `test` also-author comment just names that invocation (no Gherkin/`.feature`). Write `Task-Art: debo-test` into the spec comment so coding and review pick up the kind.
 
 ## State: diagnose
-
-```yaml
 # defaults suffice
-```
 
 ## State: coding
+# UI/design execution is owned by the `designbook` aspect (debo --from-plan). The verify tooling
+# below is designbook-specific: any change to a designbook skill (workflow/task/rule/blueprint/schema)
+# is verified through the matching `debo-test` tester — never ad-hoc — over the suite/case whose
+# fixture exercises the change.
 
 ```yaml
-# ui_or_design handled by the `design` aspect (execute the spec's plans with `debo` --from-plan).
-# The verify tooling below is designbook-specific. Any change to a designbook skill
-# (workflow/task/rule/blueprint/schema) is verified through the matching `debo-test`
-# tester — never ad-hoc — over the suite/case whose fixture exercises the change.
 tasks:
   - when: the ticket's Task-Art is debo-test
     reasoning: []   # the work is running one fixed tester command, not writing code — TDD does not apply
@@ -64,9 +44,6 @@ tasks:
 - on conductor change: run `pnpm check` (typecheck → lint → test, fail-fast) from the repo root.
 
 ## State: review
-
-```yaml
-# defaults suffice for non-debo-test tickets (green_pipeline gate, confirm-gate, ok→done / not_ok→coding)
-```
+# defaults suffice for non-debo-test tickets (green_pipeline gate, confirm-gate, ok → done / not_ok → coding)
 
 - if the ticket's Task-Art is debo-test: decide — and document the decision in the summary — whether an additional `debo-test research <suite> <case> --baseline-only` (scored audit) pass is warranted beyond coding's `run`. Post the `summary` comment holding the tester/workflow results (run outcome + any research score); that comment is the write-back to the ticket. A debo-test ticket may have no MR/diff — gate on the tester result, not a pipeline.

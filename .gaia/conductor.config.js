@@ -54,12 +54,47 @@ export default {
   // executor-forced git-diff pane. Clicking a changed file in that hunk pane
   // opens it editable in a spiceedit overlay (see conductor/README.md).
   executor: { plugin: '@gaia-ai/plugin-herdr' },
-  agent: {
-    plugin: '@gaia-ai/plugin-claude',
-    with: { model: local.model ?? 'claude-opus-4-8' },
-  },
+  // Agent selection by static ticket assessment (GAIA-144): `agent` may be an
+  // array of `{ agent, priority?(ticket) }` candidates. The conductor calls each
+  // priority(ticket) at dispatch (ticket carries sideloaded `labels` +
+  // `environments`), sorts highest-first, and runs the top one; a candidate with
+  // no `priority` scores -Infinity. A label routes to its agent; claude is the
+  // default (baseline priority 0) for everything else.
+  agent: [
+    {
+      agent: { plugin: '@gaia-ai/plugin-codex' },
+      priority: (ticket) =>
+        ticket.labels?.includes('codex') ? 100 : Number.NEGATIVE_INFINITY,
+    },
+    {
+      agent: { plugin: '@gaia-ai/plugin-kimi' },
+      priority: (ticket) =>
+        ticket.labels?.includes('kimi') ? 100 : Number.NEGATIVE_INFINITY,
+    },
+    {
+      agent: { plugin: '@gaia-ai/plugin-opencode', with: { model: 'kimi-for-coding/k3' } },
+      priority: (ticket) =>
+        ticket.labels?.includes('kimi-opencode') ? 100 : Number.NEGATIVE_INFINITY,
+    },
+    {
+      agent: {
+        plugin: '@gaia-ai/plugin-claude',
+        with: { model: local.model ?? 'claude-fable-5' },
+      },
+      priority: (ticket) =>
+        ticket.labels?.includes('fable') ? 100 : Number.NEGATIVE_INFINITY,
+    },
+    {
+      agent: {
+        plugin: '@gaia-ai/plugin-claude',
+        with: { model: local.model ?? 'claude-opus-4-8' },
+      },
+      priority: () => 0,
+    },
+  ],
   workspace: {
     plugin: '@gaia-ai/plugin-herdr',
+    export: 'herdrWorkspace',
     with: {
       // designbook is a pnpm monorepo, not a DDEV project — a fresh worktree only
       // needs deps installed; the herdr-workspace plugin removes the worktree on done.
