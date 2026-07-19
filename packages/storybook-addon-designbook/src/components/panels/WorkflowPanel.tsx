@@ -74,8 +74,7 @@ interface WorkflowData {
   changeName: string;
   title: string;
   workflow: string;
-  status?: 'running' | 'waiting' | 'awaiting-after' | 'completed' | 'incomplete';
-  parent?: string;
+  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
   engine?: 'git-worktree' | 'direct';
   write_root?: string;
   worktree_branch?: string;
@@ -167,14 +166,13 @@ const formatTimestampRange = (start: string | null, end: string | null): string 
 };
 
 function WorkflowStatusDot({ status }: { status?: string }) {
-  const mapped =
-    status === 'completed' ? 'done' : status === 'running' || status === 'awaiting-after' ? 'in-progress' : 'pending';
+  const mapped = status === 'completed' ? 'done' : status === 'running' ? 'in-progress' : 'pending';
   return <StatusDot status={mapped} />;
 }
 
 const collapsibleStatus = (status?: string): 'done' | 'running' | 'pending' => {
   if (status === 'completed') return 'done';
-  if (status === 'running' || status === 'awaiting-after') return 'running';
+  if (status === 'running') return 'running';
   return 'pending';
 };
 
@@ -1086,131 +1084,6 @@ function WorkflowFilesTab({ wf }: { wf: WorkflowData }) {
 }
 
 // ---------------------------------------------------------------------------
-// Workflow tree helpers
-// ---------------------------------------------------------------------------
-
-interface WorkflowTree {
-  roots: WorkflowData[];
-  childrenMap: Map<string, WorkflowData[]>;
-  byName: Map<string, WorkflowData>;
-}
-
-function buildWorkflowTree(workflows: WorkflowData[]): WorkflowTree {
-  const byName = new Map(workflows.map((wf) => [wf.changeName, wf]));
-  const childrenMap = new Map<string, WorkflowData[]>();
-  const roots: WorkflowData[] = [];
-
-  for (const wf of workflows) {
-    if (wf.parent && byName.has(wf.parent)) {
-      const siblings = childrenMap.get(wf.parent) ?? [];
-      siblings.push(wf);
-      childrenMap.set(wf.parent, siblings);
-    } else {
-      roots.push(wf);
-    }
-  }
-
-  return { roots, childrenMap, byName };
-}
-
-function getAncestorChain(wf: WorkflowData, byName: Map<string, WorkflowData>): WorkflowData[] {
-  const chain: WorkflowData[] = [];
-  let current = wf;
-  while (current.parent && byName.has(current.parent)) {
-    current = byName.get(current.parent)!;
-    chain.unshift(current);
-  }
-  return chain;
-}
-
-// ---------------------------------------------------------------------------
-// WorkflowBreadcrumb
-// ---------------------------------------------------------------------------
-
-function WorkflowBreadcrumb({ ancestors }: { ancestors: WorkflowData[] }) {
-  const theme = useTheme();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  if (ancestors.length === 0) return null;
-
-  const chevron = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="10"
-      height="10"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ flexShrink: 0, opacity: 0.4 }}
-    >
-      <polyline points="9 6 15 12 9 18" />
-    </svg>
-  );
-
-  const parent = ancestors[ancestors.length - 1]!;
-  const rest = ancestors.slice(0, -1);
-
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 3,
-        fontSize: '0.85em',
-        opacity: 0.6,
-        flexShrink: 0,
-        overflow: 'hidden',
-      }}
-    >
-      {rest.length > 0 && (
-        <>
-          <span
-            style={{ position: 'relative', cursor: 'pointer', textDecoration: 'underline dotted' }}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setDropdownOpen(!dropdownOpen);
-            }}
-          >
-            &hellip;
-            {dropdownOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '120%',
-                  left: 0,
-                  zIndex: 10,
-                  background: theme.background.content,
-                  border: `1px solid ${theme.appBorderColor}`,
-                  borderRadius: 6,
-                  padding: '4px 0',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {ancestors.map((a) => (
-                  <div key={a.changeName} style={{ padding: '3px 10px', fontSize: 11 }}>
-                    {a.title}
-                  </div>
-                ))}
-              </div>
-            )}
-          </span>
-          {chevron}
-        </>
-      )}
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
-        {parent.title}
-      </span>
-      {chevron}
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // WorkflowsTab
 // ---------------------------------------------------------------------------
 
@@ -1238,31 +1111,18 @@ function WorkflowTabs({ wf }: { wf: WorkflowData }) {
   );
 }
 
-function WorkflowItem({
-  wf,
-  designbookDir,
-  childrenMap,
-  byName,
-}: {
-  wf: WorkflowData;
-  designbookDir: string;
-  childrenMap: Map<string, WorkflowData[]>;
-  byName: Map<string, WorkflowData>;
-}) {
+function WorkflowItem({ wf, designbookDir }: { wf: WorkflowData; designbookDir: string }) {
   const theme = useTheme();
   const S = useMemo(() => createStyles(theme), [theme]);
 
   const done = wf.tasks.filter((t) => t.status === 'done').length;
   const total = wf.tasks.length;
   const isOpen = wf.status === 'running' || wf.status === 'waiting';
-  const ancestors = getAncestorChain(wf, byName);
-  const children = childrenMap.get(wf.changeName) ?? [];
 
   const activeTask = wf.tasks.find((t) => t.status === 'in-progress');
   const wfSummary = (
     <span style={S.summaryRow}>
       <WorkflowStatusDot status={wf.status} />
-      {ancestors.length > 0 && <WorkflowBreadcrumb ancestors={ancestors} />}
       <span style={S.summaryTitle}>{wf.title}</span>
       {activeTask && <span style={S.activeTaskHint}>{activeTask.title}</span>}
       {designbookDir && <ContextAction path={logPath(designbookDir, wf)} />}
@@ -1288,19 +1148,6 @@ function WorkflowItem({
         defaultOpen={isOpen}
       >
         <WorkflowTabs wf={wf} />
-        {children.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
-            {children.map((child) => (
-              <WorkflowItem
-                key={child.changeName}
-                wf={child}
-                designbookDir={designbookDir}
-                childrenMap={childrenMap}
-                byName={byName}
-              />
-            ))}
-          </div>
-        )}
       </DeboCollapsible>
     </DeboRainbowBorder>
   );
@@ -1314,18 +1161,10 @@ function WorkflowsTab({ workflows, designbookDir }: { workflows: WorkflowData[];
     return <div style={S.empty}>No workflow activity yet. Run a /debo * command to see progress here.</div>;
   }
 
-  const { roots, childrenMap, byName } = useMemo(() => buildWorkflowTree(workflows), [workflows]);
-
   return (
     <div style={S.container}>
-      {roots.map((wf) => (
-        <WorkflowItem
-          key={wf.changeName}
-          wf={wf}
-          designbookDir={designbookDir}
-          childrenMap={childrenMap}
-          byName={byName}
-        />
+      {workflows.map((wf) => (
+        <WorkflowItem key={wf.changeName} wf={wf} designbookDir={designbookDir} />
       ))}
     </div>
   );

@@ -14,10 +14,8 @@ import {
   workflowResume,
   readWorkflow,
   expandTasksFromParams,
-  registerChild,
 } from '../workflow.js';
-import jsonata from 'jsonata';
-import type { StageDefinition, AfterDeclaration } from '../workflow-types.js';
+import type { StageDefinition } from '../workflow-types.js';
 import { load as parseYaml } from 'js-yaml';
 import {
   resolveAllStages,
@@ -111,7 +109,6 @@ export function buildInstructions(
 export interface RunWorkflowCreateOpts {
   workflow: string;
   title?: string;
-  parent?: string;
   params?: Record<string, unknown>;
 }
 
@@ -141,9 +138,6 @@ function selectPrimaryResolvedStep(
  * Create a workflow from its definition: resolve stages, run param resolvers,
  * build the initial task list (with intake-skip pre-expansion), and persist via
  * workflowCreate. Returns the create result payload. Throws on resolution errors.
- *
- * Extracted from the `workflow create` action so the after-workflow auto-create
- * path can reuse it without spawning the CLI binary.
  */
 export async function runWorkflowCreate(
   opts: RunWorkflowCreateOpts,
@@ -354,7 +348,6 @@ export async function runWorkflowCreate(
     title,
     firstTask,
     resolved.stages,
-    opts.parent,
     resolved.step_resolved,
     resolved.engine,
     initialParams,
@@ -376,77 +369,6 @@ export async function runWorkflowCreate(
     ...(Object.keys(taskIds).length > 0 ? { task_ids: taskIds } : {}),
   };
   return createResult;
-}
-
-/**
- * Filter a list of AfterDeclarations down to those that are active for the given parent params.
- *
- * A declaration without `when:` is always active. A declaration with `when:` is active only
- * when the JSONata expression evaluates to a truthy value over the parent's params.
- *
- * NOTE: JSONata does not have an `array.length` property — use `$count(array)` instead.
- */
-export async function filterActiveAfterDeclarations(
-  declarations: AfterDeclaration[],
-  parentParams: Record<string, unknown>,
-): Promise<AfterDeclaration[]> {
-  const results: AfterDeclaration[] = [];
-  for (const decl of declarations) {
-    if (decl.when === undefined) {
-      results.push(decl);
-      continue;
-    }
-    const value = await jsonata(decl.when).evaluate(parentParams);
-    if (value) results.push(decl);
-  }
-  return results;
-}
-
-/**
- * Create the child workflows declared in a parent's `after:` block.
- *
- * For each declaration, evaluate every params-mapping value as a JSONata
- * expression over the parent's params, create the child via runWorkflowCreate
- * (with `parent` set), register it on the parent, and return the new child
- * {name, workflow} pairs so the driver can dispatch one subagent per child.
- */
-export async function createAfterWorkflows(
-  declarations: AfterDeclaration[],
-  parentName: string,
-  parentParams: Record<string, unknown>,
-  config: import('../config.js').DesignbookConfig,
-): Promise<Array<{ name: string; workflow: string }>> {
-  const { resolve: resolvePath } = await import('node:path');
-  const parentFilePath = resolvePath(config.data, 'workflows', 'changes', parentName, 'tasks.yml');
-  const parentData = readWorkflow(parentFilePath);
-  const existingChildren = parentData.children ?? [];
-
-  const result: Array<{ name: string; workflow: string }> = [];
-  for (const decl of declarations) {
-    // Idempotent re-run: skip creation if a child with the same workflow id already exists
-    const existing = existingChildren.find((c) => c.workflow === decl.workflow);
-    if (existing) {
-      result.push(existing);
-      continue;
-    }
-
-    const mapped: Record<string, unknown> = {};
-    if (decl.params) {
-      for (const [key, expr] of Object.entries(decl.params)) {
-        const value = await jsonata(expr).evaluate(parentParams);
-        if (value === undefined) {
-          throw new Error(
-            `after-workflow '${decl.workflow}': param '${key}' expression '${expr}' evaluated to undefined on parent params`,
-          );
-        }
-        mapped[key] = value;
-      }
-    }
-    const child = await runWorkflowCreate({ workflow: decl.workflow, parent: parentName, params: mapped }, config);
-    registerChild(config.data, parentName, { name: child.name, workflow: decl.workflow });
-    result.push({ name: child.name, workflow: decl.workflow });
-  }
-  return result;
 }
 
 export function register(program: Command): void {
@@ -503,9 +425,8 @@ export function register(program: Command): void {
     .description('Create a new workflow tracking file.')
     .requiredOption('--workflow <id>', 'Workflow identifier (e.g., vision)')
     .option('--title <title>', 'Human-readable workflow title')
-    .option('--parent <name>', 'Triggering workflow name when started via a hook')
-    .option('--params <json>', 'JSON object of initial params (e.g. from parent dispatch)')
-    .action(async (opts: { workflow: string; title?: string; parent?: string; params?: string }) => {
+    .option('--params <json>', 'JSON object of initial params')
+    .action(async (opts: { workflow: string; title?: string; params?: string }) => {
       const config = loadConfig();
 
       // Parse initial params if provided
@@ -522,7 +443,7 @@ export function register(program: Command): void {
 
       try {
         const createResult = await runWorkflowCreate(
-          { workflow: opts.workflow, title: opts.title, parent: opts.parent, params: initialParams },
+          { workflow: opts.workflow, title: opts.title, params: initialParams },
           config,
         );
         log({
@@ -673,38 +594,10 @@ export function register(program: Command): void {
         }
       }
       try {
-        // Load the workflow definition's `after:` declarations so a final done
-        // can hold the parent and auto-create the declared child workflows.
-        // Filter to active declarations only (when: condition evaluated over parent params).
-        //
-        // Two separate scopes:
-        //   1. Definition lookup — degrades to [] on operational failures (missing skills dir,
-        //      definition not found, etc.), e.g. bare test workspaces without agents.
-        //   2. filterActiveAfterDeclarations — runs OUTSIDE the degrading catch. A JSONata
-        //      error from an invalid `when:` expression is an AUTHORING error and must
-        //      propagate so the author sees it rather than silently skipping after-workflows.
-        let allAfter: AfterDeclaration[] = [];
-        let parentParams: Record<string, unknown> = {};
-        try {
-          const changesPath = resolve(config.data, 'workflows', 'changes', opts.workflow, 'tasks.yml');
-          const parentMeta = readWorkflow(changesPath);
-          const workflowId = parentMeta.workflow;
-          const configPath = findConfig();
-          const configDir = configPath ? dirname(configPath) : process.cwd();
-          const agentsDir = resolveSkillsRoot(configDir);
-          const sources = resolveSkillSources(configDir);
-          allAfter = loadWorkflowDefinition(workflowId, agentsDir, sources).after;
-          parentParams = parentMeta.params ?? {};
-        } catch (lookupErr) {
-          console.warn(`Could not load after: declarations — proceeding without: ${(lookupErr as Error).message}`);
-        }
-        const after = await filterActiveAfterDeclarations(allAfter, parentParams);
-
         const result = await workflowDone(config.data, opts.workflow, opts.task, loaded, {
           summary: opts.summary,
           data: dataPayload,
           config,
-          after,
         });
         const { data, response } = result;
 
@@ -713,17 +606,6 @@ export function register(program: Command): void {
           args: { workflow: opts.workflow, task: opts.task },
           result: { archived: result.archived, stage_complete: response?.stage_complete },
         });
-
-        if (result.awaitingAfter) {
-          const children = await createAfterWorkflows(result.awaitingAfter, opts.workflow, data.params ?? {}, config);
-          console.log(`Workflow ${opts.workflow} awaiting after-workflows`);
-          console.log(`NEXT_WORKFLOWS: ${JSON.stringify(children)}`);
-          console.log(
-            'Dispatch ONE subagent per workflow: "execute workflow <name> to completion". ' +
-              'The parent completes automatically when all children complete.',
-          );
-          return;
-        }
 
         if (result.archived) {
           console.log(`Workflow ${opts.workflow} archived (all tasks done)`);

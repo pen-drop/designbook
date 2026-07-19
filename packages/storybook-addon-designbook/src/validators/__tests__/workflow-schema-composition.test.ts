@@ -270,7 +270,6 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
     title,
     firstTask,
     resolved.stages,
-    undefined,
     resolved.step_resolved,
     resolved.engine,
     undefined,

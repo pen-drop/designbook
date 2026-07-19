@@ -54,9 +54,6 @@ stages:
   outtake:
     steps: [outtake]
 engine: direct
-before:
-  - workflow: css-generate
-    execute: always
 ---
 
 Reconcile a real backend render against Storybook. This is `design-verify` with the
@@ -86,7 +83,8 @@ reference. They use the config-verify-specific `triage-config`/`polish-config` s
 component-oriented `triage`/`polish` of design-verify) so the consolidated fix instructions
 name the backend config as the fix surface, not the Storybook reference component.
 
-Always regenerate CSS before measuring (`before: css-generate, execute: always`) — same
+Always regenerate CSS before measuring: run the `css-generate` workflow to
+completion before starting this workflow — same
 rationale as design-verify: measure against fresh CSS, not stale utilities or undefined
 token variables.
 

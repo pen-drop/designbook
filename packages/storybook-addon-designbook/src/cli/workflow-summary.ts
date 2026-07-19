@@ -24,8 +24,6 @@ export interface SummaryResult {
   summary?: string;
   warnings?: string[];
   scoreReport?: { firstShot: number; final: number; delta: number };
-  /** Aggregated results from after: child workflows. Keyed by child workflow type, then by result key. */
-  after?: Record<string, Record<string, unknown>>;
 }
 
 interface WorkflowOutput {
@@ -45,7 +43,6 @@ export function readSummary(opts: SummaryOptions): SummaryResult | null {
   type TaskEntry = { result?: Record<string, { value?: unknown }> };
   type TasksDoc = {
     scope?: { workflow_output?: WorkflowOutput };
-    children?: Array<{ name: string; workflow: string }>;
     tasks?: TaskEntry[];
   };
   let tasksData: TasksDoc | null = null;
@@ -85,34 +82,6 @@ export function readSummary(opts: SummaryOptions): SummaryResult | null {
     ...(wo.warnings?.length ? { warnings: wo.warnings } : {}),
     ...(scoreReport ? { scoreReport } : {}),
   };
-
-  // Aggregate child workflow results under after.<workflow>
-  const children = tasksData?.children ?? [];
-  if (children.length > 0) {
-    const after: Record<string, Record<string, unknown>> = {};
-    for (const c of children) {
-      const childPath = resolve(opts.dataDir, 'workflows', 'archive', c.name, 'tasks.yml');
-      if (!existsSync(childPath)) continue;
-      let childDoc: { tasks?: TaskEntry[] } | null = null;
-      try {
-        childDoc = parseYaml(readFileSync(childPath, 'utf-8')) as { tasks?: TaskEntry[] } | null;
-      } catch {
-        continue;
-      }
-      const merged: Record<string, unknown> = {};
-      for (const t of childDoc?.tasks ?? []) {
-        for (const [key, entry] of Object.entries(t.result ?? {})) {
-          if (entry?.value !== undefined) merged[key] = entry.value;
-        }
-      }
-      if (Object.keys(merged).length > 0) {
-        after[c.workflow] = merged;
-      }
-    }
-    if (Object.keys(after).length > 0) {
-      result.after = after;
-    }
-  }
 
   return result;
 }

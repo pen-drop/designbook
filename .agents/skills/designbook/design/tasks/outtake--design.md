@@ -65,9 +65,9 @@ Ask the user:
 
 > "Start design-verify?"
 
-- **If yes** → create and run the design-verify workflow as a child workflow with params `{"story_id": "${story_id}", "reference": <params.reference>}`.
+- **If yes** → create and run the design-verify workflow with params `{"story_id": "${story_id}", "reference": <params.reference>}`.
 
-  Execute the child workflow completely. Since screenshots already exist from the inline capture, the capture tasks will auto-skip.
+  Execute the design-verify workflow completely. Since screenshots already exist from the inline capture, the capture tasks will auto-skip.
 
 - **If no** → archive the workflow normally.
 

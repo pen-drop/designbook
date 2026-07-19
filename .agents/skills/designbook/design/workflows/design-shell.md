@@ -46,7 +46,4 @@ stages:
   validate:
     steps: [validate]
 engine: direct
-before:
-  - workflow: css-generate
-    execute: if-never-run
 ---

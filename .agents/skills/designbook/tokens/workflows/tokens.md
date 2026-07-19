@@ -13,7 +13,4 @@ stages:
   create-tokens:
     steps: [create-tokens]
 engine: direct
-after:
-  - workflow: css-generate
-    optional: true
 ---

@@ -35,8 +35,6 @@ result:
 
 Visual testing for a single story. The `story_id` is pre-resolved by the workflow engine's param resolver before this task runs.
 
-Can be called as a child workflow (with a `--parent` set — e.g. from a build workflow's outtake) or standalone.
-
 ## Step 1: Resolve Reference
 
 If `$reference_dir` is non-empty and `$reference_dir/extract.json` exists (from a prior build workflow or the extract-reference stage):
@@ -44,10 +42,7 @@ If `$reference_dir` is non-empty and `$reference_dir/extract.json` exists (from 
 - Build the `reference` array: `[{"type": "url", "url": "<url>", "threshold": 3, "title": "<label>"}]`
 - Skip asking the user for a reference
 
-If no `$reference_dir` and `params.reference` is empty:
-
-- **Running as a child workflow** (a parent workflow is set): do not prompt. Proceed reference-free with `params.reference` left empty — verify runs without a reference. (Callers that need a scored reference pass one explicitly — via `params.reference` or a `$reference_dir` — so this reference-free path is the deliberate fallback, not an error.)
-- **Running standalone** (no parent): ask the user.
+If no `$reference_dir` and `params.reference` is empty, ask the user:
 
 > "What is the design reference?
 > - A URL to the design source

@@ -148,7 +148,6 @@ describe('workflow instructions: submit_results hint', () => {
         },
       ],
       resolved.stages,
-      undefined,
       resolved.step_resolved,
       resolved.engine,
       undefined,
@@ -260,7 +259,6 @@ describe('workflow instructions: submit_results hint', () => {
         },
       ],
       resolved.stages,
-      undefined, // parent
       undefined, // stageLoaded — intentionally omitted; flag must come from workflowDone
       resolved.engine,
       undefined,
@@ -353,7 +351,6 @@ describe('workflow instructions: submit_results hint', () => {
         },
       ],
       resolved.stages,
-      undefined,
       resolved.step_resolved,
       resolved.engine,
       undefined,

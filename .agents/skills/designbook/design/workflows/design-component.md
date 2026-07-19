@@ -22,8 +22,5 @@ stages:
   component:
     steps: [create-component]
 engine: direct
-before:
-  - workflow: css-generate
-    execute: if-never-run
 ---
 
