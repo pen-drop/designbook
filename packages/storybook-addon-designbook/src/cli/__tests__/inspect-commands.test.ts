@@ -1,9 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { load as parseYaml } from 'js-yaml';
 import { buildExtractSkeleton, parseBreakpointNames } from '../extract-page.js';
 import { matrixCellsFromMeta, planCaptureMatrix, ensureCellsPlanned, type MatrixCell } from '../capture-matrix.js';
 import { isStorybookStale } from '../check-story.js';
 import { parseStepsArg } from '../capture-screenshot.js';
 import type { CapturedSource, PropertyNode } from '../../inspect/element-walker.js';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 function node(partial: Partial<PropertyNode> & { id: string; kind: string }): PropertyNode {
   return {
@@ -147,6 +153,35 @@ describe('capture-matrix: planning', () => {
   it('ensureCellsPlanned throws loudly when zero cells are planned', () => {
     expect(() => ensureCellsPlanned([], 'meta.yml')).toThrow(/0 cells/);
     expect(() => ensureCellsPlanned(matrixCellsFromMeta(meta), 'meta.yml')).not.toThrow();
+  });
+
+  it('plans real cells (not a no-op) from an on-disk extract-reference meta.yml', () => {
+    // The actual committed artifact a real run produces — guards against the
+    // fabricated-shape regression that made the command a silent 0-cell no-op.
+    const realMetaPath = resolve(
+      HERE,
+      '../../../../../fixtures/drupal-web/design-entity/designbook/references/174cdaac3562/meta.yml',
+    );
+    const realMeta = parseYaml(readFileSync(realMetaPath, 'utf-8')) as Parameters<typeof matrixCellsFromMeta>[0];
+    const cells = matrixCellsFromMeta(realMeta);
+    expect(() => ensureCellsPlanned(cells, realMetaPath)).not.toThrow();
+    // 1 element (entity-paragraph-signage-full) × 1 rest state × 3 breakpoints (sm, md, lg) = 3
+    expect(cells).toHaveLength(3);
+    const jobs = planCaptureMatrix(
+      cells,
+      [
+        { name: 'sm', width: 640 },
+        { name: 'md', width: 768 },
+        { name: 'lg', width: 1024 },
+      ],
+      '/out',
+      () => false,
+    );
+    expect(jobs.map((j) => j.outPath.split('/').pop()).sort()).toEqual([
+      'lg--entity-paragraph-signage-full--rest.png',
+      'md--entity-paragraph-signage-full--rest.png',
+      'sm--entity-paragraph-signage-full--rest.png',
+    ]);
   });
 });
 
