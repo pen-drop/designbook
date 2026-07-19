@@ -62,6 +62,11 @@ export async function runCheckStory(
   config: DesignbookConfig,
 ): Promise<CheckStoryResult> {
   void config;
+  // Short-circuit a stale daemon: the served story is known-wrong, so launching a
+  // browser to check it wastes a session — the caller must restart Storybook first.
+  if (opts.stale) {
+    return { ok: false, stale: true, console_errors: [], missing_fonts: [] };
+  }
   const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless: true });
   const consoleErrors: string[] = [];

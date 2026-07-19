@@ -143,9 +143,10 @@ export function parseBreakpointNames(raw: string | undefined): string[] {
 }
 
 /**
- * Run one browser pass: capture the DOM tree + style env and write the extract
- * skeleton to `<out>/extract.json`. Also writes the raw captured tree so the
- * task can query it with jq without pasting it into the conversation.
+ * Capture the DOM tree (one pass) and the document style env (a second short pass,
+ * best-effort) and write the extract skeleton to `<out>/extract.json`. Also writes
+ * the raw captured tree so the task can query it with jq without pasting it into
+ * the conversation.
  */
 export async function runExtractPage(
   url: string,
@@ -153,7 +154,6 @@ export async function runExtractPage(
   opts: { breakpoints: string[]; fonts: string[] },
   config: DesignbookConfig,
 ): Promise<string> {
-  void config;
   const { capture } = await import('../inspect/capture.js');
   const { resolveBreakpointWidths } = await import('../inspect/breakpoint-widths.js');
 

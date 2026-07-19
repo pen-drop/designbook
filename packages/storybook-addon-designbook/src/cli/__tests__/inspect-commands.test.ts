@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { buildExtractSkeleton, parseBreakpointNames } from '../extract-page.js';
-import { matrixCellsFromMeta, planCaptureMatrix } from '../capture-matrix.js';
+import { matrixCellsFromMeta, planCaptureMatrix, ensureCellsPlanned, type MatrixCell } from '../capture-matrix.js';
 import { isStorybookStale } from '../check-story.js';
+import { parseStepsArg } from '../capture-screenshot.js';
 import type { CapturedSource, PropertyNode } from '../../inspect/element-walker.js';
 
 function node(partial: Partial<PropertyNode> & { id: string; kind: string }): PropertyNode {
@@ -69,42 +70,104 @@ describe('extract-page: buildExtractSkeleton', () => {
 });
 
 describe('capture-matrix: planning', () => {
+  // The REAL extract-reference meta.yml shape: `source` + top-level `elements[]`,
+  // each with `id` / `selector` / `states[]` / `breakpoints[]`.
   const meta = {
-    reference: {
-      breakpoints: {
-        sm: { regions: { full: {}, hero: {} } },
-        xl: { regions: { full: {} } },
+    source: { url: 'https://ref' },
+    elements: [
+      {
+        id: 'scene-header',
+        selector: 'app-site-header',
+        states: [{ name: 'rest', steps: [] }],
+        breakpoints: ['sm', 'xl'],
       },
-    },
+      {
+        id: 'nav',
+        selector: 'app-nav',
+        states: [
+          { name: 'rest', steps: [] },
+          { name: 'open', steps: [{ action: 'click' as const, selector: '.toggle', timeout: 300 }] },
+        ],
+        breakpoints: ['sm'],
+      },
+    ],
   };
 
-  it('flattens meta breakpoints × regions into cells', () => {
+  it('expands elements × states × breakpoints into cells carrying selector + steps', () => {
     expect(matrixCellsFromMeta(meta)).toEqual([
-      { breakpoint: 'sm', region: 'full' },
-      { breakpoint: 'sm', region: 'hero' },
-      { breakpoint: 'xl', region: 'full' },
+      { element: 'scene-header', selector: 'app-site-header', state: 'rest', steps: [], breakpoint: 'sm' },
+      { element: 'scene-header', selector: 'app-site-header', state: 'rest', steps: [], breakpoint: 'xl' },
+      { element: 'nav', selector: 'app-nav', state: 'rest', steps: [], breakpoint: 'sm' },
+      {
+        element: 'nav',
+        selector: 'app-nav',
+        state: 'open',
+        steps: [{ action: 'click', selector: '.toggle', timeout: 300 }],
+        breakpoint: 'sm',
+      },
     ]);
   });
 
-  it('resolves widths, names PNGs, and marks frozen the ones that already exist', () => {
+  it('defaults a missing states list to the implicit rest state', () => {
+    const cells = matrixCellsFromMeta({
+      source: {},
+      elements: [{ id: 'x', selector: 'x-el', breakpoints: ['sm'] }],
+    });
+    expect(cells).toEqual([{ element: 'x', selector: 'x-el', state: 'rest', steps: [], breakpoint: 'sm' }]);
+  });
+
+  it('yields zero cells for the OLD fabricated shape (proving the no-op is now visible)', () => {
+    expect(matrixCellsFromMeta({ reference: { breakpoints: { sm: { regions: { full: {} } } } } })).toEqual([]);
+  });
+
+  it('names PNGs <breakpoint>--<element>--<state>.png and marks frozen the existing ones', () => {
     const cells = matrixCellsFromMeta(meta);
     const widths = [
       { name: 'sm', width: 640 },
       { name: 'xl', width: 1280 },
     ];
-    const frozen = new Set(['/out/full--sm.png']);
+    const frozen = new Set(['/out/sm--scene-header--rest.png']);
     const jobs = planCaptureMatrix(cells, widths, '/out', (p) => frozen.has(p));
-    expect(jobs).toHaveLength(3);
-    const full_sm = jobs.find((j) => j.region === 'full' && j.breakpoint === 'sm')!;
-    expect(full_sm.width).toBe(640);
-    expect(full_sm.outPath).toBe('/out/full--sm.png');
-    expect(full_sm.frozen).toBe(true);
-    expect(jobs.find((j) => j.region === 'hero')!.frozen).toBe(false);
+    expect(jobs).toHaveLength(4);
+    const headerSm = jobs.find((j) => j.element === 'scene-header' && j.breakpoint === 'sm')!;
+    expect(headerSm.width).toBe(640);
+    expect(headerSm.outPath).toBe('/out/sm--scene-header--rest.png');
+    expect(headerSm.frozen).toBe(true);
+    // two states of one element never collide on the same filename
+    const navOpen = jobs.find((j) => j.element === 'nav' && j.state === 'open')!;
+    expect(navOpen.outPath).toBe('/out/sm--nav--open.png');
+    expect(navOpen.frozen).toBe(false);
   });
 
   it('drops cells whose breakpoint has no known width', () => {
-    const cells = [{ breakpoint: 'unknown', region: 'full' }];
+    const cells: MatrixCell[] = [{ element: 'x', selector: 'x', state: 'rest', steps: [], breakpoint: 'unknown' }];
     expect(planCaptureMatrix(cells, [{ name: 'sm', width: 640 }], '/out', () => false)).toHaveLength(0);
+  });
+
+  it('ensureCellsPlanned throws loudly when zero cells are planned', () => {
+    expect(() => ensureCellsPlanned([], 'meta.yml')).toThrow(/0 cells/);
+    expect(() => ensureCellsPlanned(matrixCellsFromMeta(meta), 'meta.yml')).not.toThrow();
+  });
+});
+
+describe('capture screenshot: parseStepsArg', () => {
+  it('parses a JSON steps array', () => {
+    expect(parseStepsArg('[{"action":"click","selector":".t","timeout":300}]')).toEqual([
+      { action: 'click', selector: '.t', timeout: 300 },
+    ]);
+  });
+
+  it('returns [] for undefined and empty input', () => {
+    expect(parseStepsArg(undefined)).toEqual([]);
+    expect(parseStepsArg('')).toEqual([]);
+  });
+
+  it('throws a clear error on malformed JSON', () => {
+    expect(() => parseStepsArg('{not json')).toThrow(/--steps/);
+  });
+
+  it('rejects a non-array JSON value', () => {
+    expect(() => parseStepsArg('{"action":"click"}')).toThrow(/array/);
   });
 });
 

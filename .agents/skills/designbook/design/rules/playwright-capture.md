@@ -173,7 +173,12 @@ _debo storybook start --force
 ```
 
 The `_debo capture matrix <meta.yml> --url <url> --out <dir>` command captures the
-whole element × region × breakpoint matrix in one browser session (widths from
-`design-tokens.yml`), reuses frozen PNGs, and takes an optional
-`--consent-selector` to dismiss a consent banner once before capturing. Use it
-for baseline/story capture instead of re-improvising per-breakpoint one-liners.
+whole element × state × breakpoint matrix in one browser session (widths from
+`design-tokens.yml`): it expands `meta.elements[]` × `states[]` × `breakpoints[]`,
+isolates each element's `selector`, runs each state's `steps`, names each PNG
+`<breakpoint>--<element>--<state>.png`, reuses frozen PNGs, takes an optional
+`--consent-selector` to dismiss a consent banner once, and fails loudly if the
+meta plans zero cells. For a single element/story shot use
+`_debo capture screenshot --url <url> --selector <sel> --width <px> --out <png>
+[--steps <json>] [--consent-selector <sel>]`. Use these instead of re-improvising
+per-breakpoint one-liners.
