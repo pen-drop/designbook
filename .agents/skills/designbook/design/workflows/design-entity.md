@@ -30,7 +30,4 @@ stages:
   entity-mapping:
     steps: [map-entity]
 engine: direct
-before:
-  - workflow: css-generate
-    execute: if-never-run
 ---

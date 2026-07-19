@@ -23,7 +23,7 @@ Every subcommand writes a JSONL entry to `dbo.log` with `ts`, `cmd`, `args`, and
 **Syntax:**
 
 ```bash
-_debo workflow create --workflow <id> [--title <title>] [--parent <name>] [--params <json>]
+_debo workflow create --workflow <id> [--title <title>] [--params <json>]
 ```
 
 **Options:**
@@ -32,8 +32,7 @@ _debo workflow create --workflow <id> [--title <title>] [--parent <name>] [--par
 |---|---|---|
 | `--workflow <id>` | Yes | Workflow identifier (e.g. `vision`, `design-screen`). |
 | `--title <title>` | No | Human-readable title. Defaults to the workflow file's `title:` frontmatter. |
-| `--parent <name>` | No | Triggering workflow name when started via a hook. |
-| `--params <json>` | No | JSON object of initial params (e.g. from parent dispatch or user-supplied overrides). |
+| `--params <json>` | No | JSON object of initial params (e.g. user-supplied overrides). |
 
 **Response shape:**
 

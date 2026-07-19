@@ -39,7 +39,4 @@ stages:
     domain: [data-model]
     isolate: true
 engine: direct
-before:
-  - workflow: css-generate
-    execute: if-never-run
 ---

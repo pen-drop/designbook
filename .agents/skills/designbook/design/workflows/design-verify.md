@@ -33,17 +33,14 @@ stages:
   outtake:
     steps: [outtake]
 engine: direct
-before:
-  - workflow: css-generate
-    execute: always
 ---
 
-Always regenerate CSS before measuring. Earlier stages (create-component,
+Always regenerate CSS before measuring: run the `css-generate` workflow to
+completion before starting this workflow — every run. Earlier stages (create-component,
 create-scene) may have extended `design-tokens.yml` or introduced new utility
 classes; without a fresh css-generate the Storybook iframe renders against stale
 CSS — undefined token variables and unscanned utilities — so the compare would
-score rendering artifacts, not the design. Hence `execute: always`, not
-`if-never-run`.
+score rendering artifacts, not the design.
 
 The flow is measure → fix once → re-measure. The `compare` stage yields the
 first-shot measurement; `triage`/`polish` apply a single fix pass; the

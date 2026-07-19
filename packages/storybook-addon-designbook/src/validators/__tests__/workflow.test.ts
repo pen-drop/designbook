@@ -100,18 +100,6 @@ describe('workflowCreate', () => {
     expect(data.tasks.map((t) => t.id)).toEqual(['alpha', 'beta']);
   });
 
-  it('writes parent field when provided', () => {
-    const name = workflowCreate(dist, 'debo-tokens', 'Tokens', [], undefined, 'debo-design-component-2026-03-18-a3f7');
-    const data = readWorkflowFile(dist, name);
-    expect(data.parent).toBe('debo-design-component-2026-03-18-a3f7');
-  });
-
-  it('does not write parent field when omitted', () => {
-    const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
-    const data = readWorkflowFile(dist, name);
-    expect(data.parent).toBeUndefined();
-  });
-
   it('creates running workflow with empty tasks', () => {
     const name = workflowCreate(dist, 'debo-vision', 'Vision', []);
     const data = readWorkflowFile(dist, name);

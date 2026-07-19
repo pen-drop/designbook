@@ -146,7 +146,7 @@ The `done` response tells you what's next. Parse the `RESPONSE:` JSON line:
 - **`next_step` in same stage** (`stage_complete: false`) — continue to step 1 with the new step.
 - **Stage transition** (`stage_complete: true`) — `scope_update` shows which data results were collected into scope; `expanded_tasks` lists newly materialized tasks in later stages. Continue to step 1 with the next step.
 - **`waiting_for`** — the engine is asking the user for something the schema requires. Run `workflow wait` with the prompt, ask the user, `workflow resume`, then pass the answer as `--data` on the next `workflow done`.
-- **`{ "stage": "done" }`** — the workflow is archived. Process after-hooks (§6).
+- **`{ "stage": "done" }`** — the workflow is archived.
 
 ---
 
@@ -193,7 +193,7 @@ Results are validated against `schema.definitions` (base + blueprint extensions 
 
 You generally don't read `tasks.yml` directly, but when debugging you'll see:
 
-**Top-level fields:** `title`, `workflow` (workflow ID), `status`, `parent` (optional — parent workflow name), `stages` (list of stage names), `tasks` (list of task entries with `id`, `stage`, `status`, `params`, `task_file`, `rules`, `blueprints`, `result`).
+**Top-level fields:** `title`, `workflow` (workflow ID), `status`, `stages` (list of stage names), `tasks` (list of task entries with `id`, `stage`, `status`, `params`, `task_file`, `rules`, `blueprints`, `result`).
 
 **Workflow-level status:** `running`, `waiting`, `completed`, `incomplete`.
 
@@ -214,47 +214,7 @@ which prints the single value to stdout. Non-zero exit for unknown variables.
 
 ---
 
-## 6. Hooks
-
-### Before hooks
-
-Declared in a workflow's frontmatter as `before: [...]`. After `workflow create` completes, the response surfaces any declared before-hooks. For each entry:
-
-- Check the `reads:` gate if present — skip silently if required reads are unsatisfied.
-- Apply the `execute` policy:
-  - `always` — run it.
-  - `if-never-run` — run only if the hook workflow has never been archived (`workflow list --workflow <hook-id> --include-archived`).
-  - `ask` — prompt the user to decide.
-- Start the hook via `_debo workflow create --workflow <hook-id> --parent $WORKFLOW_NAME` and complete it fully (including its own hooks) before continuing the parent.
-
-### After hooks
-
-Declared as `after: [...]`. When the parent's final `workflow done` returns `{ "stage": "done" }`, iterate the `after:` entries:
-
-- Prompt: "Run `/<workflow-id>` next?"
-- If accepted, start it with `--parent $WORKFLOW_NAME` so the chain is traceable.
-
-### Walk-through — `tokens` → `css-generate`
-
-The `tokens` workflow declares:
-
-```yaml
-after:
-  - workflow: css-generate
-    optional: true
-```
-
-When `tokens` archives, its `done` response carries `{ "stage": "done" }`. You ask: "Run `/css-generate` next?" If the user accepts, you run:
-
-```bash
-_debo workflow create --workflow css-generate --parent $WORKFLOW_NAME
-```
-
-and enter the task loop for `css-generate`. Its own after-hooks run in turn when it archives.
-
----
-
-## 7. Untracked Workflows (`track: false`)
+## 6. Untracked Workflows (`track: false`)
 
 Workflows with `track: false` in frontmatter are utility commands, not artifact-producing workflows. They skip the full lifecycle — no `workflow create`, no `workflow done`, no `tasks.yml`.
 
@@ -266,11 +226,11 @@ For these:
 
 ---
 
-## 8. Optimize Pass
+## 7. Optimize Pass
 
 ### Optimize (`--optimize`)
 
-Runs after hooks, only when `--optimize` was passed at workflow invocation.
+Runs at the end of the workflow, only when `--optimize` was passed at workflow invocation.
 
 1. Collect every file written during the workflow (from the `result` submissions).
 2. Review for performance, maintainability, accessibility, design-system consistency.
@@ -278,7 +238,7 @@ Runs after hooks, only when `--optimize` was passed at workflow invocation.
 
 ---
 
-## 9. Plan Mode — Capture (`--plan`)
+## 8. Plan Mode — Capture (`--plan`)
 
 When `--plan` is passed, the AI runs the linear prefix of the workflow — every stage from the start up to and including the last stage that carries `interactive: true` — then writes a plaintext plan file and stops. Deterministic stages in the prefix run normally; only stages that follow the last interactive stage are skipped.
 
@@ -324,7 +284,7 @@ The `# Plan:` header value remains `<workflow-id>` (unchanged); only the file pa
 
 ---
 
-## 10. Plan Mode — Replay (`--from-plan`)
+## 9. Plan Mode — Replay (`--from-plan`)
 
 When `--from-plan <name|hint>` is active, the AI runs the full workflow autonomously — interactive stages read decisions from the plan file instead of asking the user, and all deterministic stages run to completion.
 

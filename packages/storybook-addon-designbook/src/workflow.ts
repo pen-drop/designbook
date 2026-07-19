@@ -13,13 +13,7 @@ import { homedir } from 'node:os';
 import { digestLog } from './log/digest.js';
 import { computeFlowRate } from './scoring/composite.js';
 import { dump as stringifyYaml, load as parseYaml } from 'js-yaml';
-import type {
-  ValidationFileResult,
-  StageParam,
-  StageDefinition,
-  TaskFile,
-  AfterDeclaration,
-} from './workflow-types.js';
+import type { ValidationFileResult, StageParam, StageDefinition, TaskFile } from './workflow-types.js';
 import { engines } from './engines/index.js';
 import { getNextStage, getNextStep, checkStageParams, interpolatePrompt } from './workflow-lifecycle.js';
 import {
@@ -131,13 +125,10 @@ export interface TaskResult {
 export interface WorkflowFile {
   title: string;
   workflow: string;
-  status?: 'running' | 'waiting' | 'awaiting-after' | 'completed' | 'incomplete';
+  status?: 'running' | 'waiting' | 'completed' | 'incomplete';
   waiting_message?: string; // question/prompt shown when status is 'waiting'
   /** Write engine. Only 'direct' is supported. Stored at plan time. */
   engine?: 'direct';
-  parent?: string;
-  /** Child workflows auto-created from this workflow's after: declarations. */
-  children?: Array<{ name: string; workflow: string }>;
   params?: Record<string, unknown>; // global intake params (accessible to all subagents)
   current_stage?: string; // current lifecycle stage (planned, execute, committed, test, preview, finalizing, done)
   stages?: Record<string, StageDefinition>; // keyed by stage name (execute, test, preview)
@@ -211,44 +202,6 @@ export function writeWorkflowAtomic(filePath: string, data: WorkflowFile): void 
   renameSync(tmpPath, filePath);
 }
 
-/**
- * Walk wf.tasks[].result[key]?.value and return the first defined value.
- */
-function findResultValue(wf: WorkflowFile, key: string): unknown {
-  for (const task of wf.tasks) {
-    const entry = task.result?.[key];
-    if (entry?.value !== undefined) return entry.value;
-  }
-  return undefined;
-}
-
-/**
- * Build a one-line summary from child score-reports and store it on parent.summary.
- * Only called when the parent has registered children (i.e. children.length > 0).
- */
-function appendChildResultSummary(dataDir: string, parent: WorkflowFile): void {
-  const lines: string[] = [];
-  for (const c of parent.children ?? []) {
-    const p = resolve(dataDir, 'workflows', 'archive', c.name, 'tasks.yml');
-    if (!existsSync(p)) continue;
-    let child: WorkflowFile;
-    try {
-      child = readWorkflow(p);
-    } catch {
-      continue;
-    }
-    const report = findResultValue(child, 'score-report') as
-      | { first_shot?: { score?: number }; final?: { score?: number }; delta?: number }
-      | undefined;
-    lines.push(
-      report
-        ? `${c.workflow}: first_shot ${report.first_shot?.score} → final ${report.final?.score} (Δ ${report.delta})`
-        : `${c.workflow}: ${child.status ?? 'unknown'}`,
-    );
-  }
-  if (lines.length) parent.summary = lines.join(' | ');
-}
-
 function archiveWorkflow(dataDir: string, name: string, wf: WorkflowFile, opts?: { keepSummary?: boolean }): void {
   wf.status = 'completed';
   wf.completed_at = timestamp();
@@ -268,78 +221,6 @@ function archiveWorkflow(dataDir: string, name: string, wf: WorkflowFile, opts?:
   const archiveDir = resolve(dataDir, 'workflows', 'archive', name);
   mkdirSync(dirname(archiveDir), { recursive: true });
   renameSync(changesDir, archiveDir);
-}
-
-/**
- * When a child workflow archives, walk up to its parent: if the parent is
- * awaiting-after and ALL its registered children are now archived, archive the
- * parent too. Recurses for grandparents.
- *
- * Design notes (intentional):
- * - Any terminal status (completed OR incomplete) counts as "archived" — the
- *   parent unblocks regardless so its summary/metrics can be evaluated downstream.
- * - A parent with zero registered children is NOT cascaded — it is still waiting
- *   for createAfterWorkflows to register them.
- */
-function cascadeParent(dataDir: string, parentName: string): void {
-  const filePath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
-  if (!existsSync(filePath)) return; // parent already archived or gone
-  const parent = readWorkflow(filePath);
-  if (parent.status !== 'awaiting-after') return;
-  const children = parent.children ?? [];
-  const allArchived =
-    children.length > 0 &&
-    children.every((c) => existsSync(resolve(dataDir, 'workflows', 'archive', c.name, 'tasks.yml')));
-  if (!allArchived) return;
-  appendChildResultSummary(dataDir, parent);
-  archiveWorkflow(dataDir, parentName, parent, { keepSummary: true });
-  if (parent.parent) cascadeParent(dataDir, parent.parent);
-}
-
-/**
- * Archive a workflow and cascade completion to its parent if it is now unblocked.
- */
-function archiveAndCascade(dataDir: string, name: string, data: WorkflowFile): void {
-  archiveWorkflow(dataDir, name, data);
-  if (data.parent) {
-    try {
-      cascadeParent(dataDir, data.parent);
-    } catch (err) {
-      console.warn(`cascade to parent failed: ${(err as Error).message}`);
-    }
-  }
-}
-
-/**
- * Hold an all-tasks-done workflow in awaiting-after instead of archiving when
- * after: declarations are pending. Returns the early result, or null to proceed
- * with archiving.
- */
-function holdForAfter(
-  filePath: string,
-  data: WorkflowFile,
-  after: AfterDeclaration[] | undefined,
-  response: StageResponse | undefined,
-): { archived: false; awaitingAfter: AfterDeclaration[]; data: WorkflowFile; response?: StageResponse } | null {
-  const unsatisfied = after?.filter((a) => !(data.children ?? []).some((c) => c.workflow === a.workflow)) ?? [];
-  if (unsatisfied.length === 0) return null;
-  data.status = 'awaiting-after';
-  writeWorkflowAtomic(filePath, data);
-  return { archived: false, awaitingAfter: unsatisfied, data, response };
-}
-
-/**
- * Register a child workflow on its parent's `children` array.
- * Loads the parent's tasks.yml, appends the child entry (creating the array if
- * absent), and persists. Used when after: workflows are auto-created on final done.
- */
-export function registerChild(dataDir: string, parentName: string, child: { name: string; workflow: string }): void {
-  const filePath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
-  const data = readWorkflow(filePath);
-  data.children = data.children ?? [];
-  if (data.children.some((c) => c.name === child.name)) return;
-  data.children.push(child);
-  writeWorkflowAtomic(filePath, data);
 }
 
 /**
@@ -363,14 +244,6 @@ export function workflowAbandon(dataDir: string, name: string): WorkflowFile {
   const archiveDir = resolve(dataDir, 'workflows', 'archive', name);
   mkdirSync(dirname(archiveDir), { recursive: true });
   renameSync(changesDir, archiveDir);
-
-  if (data.parent) {
-    try {
-      cascadeParent(dataDir, data.parent);
-    } catch (err) {
-      console.warn(`cascade to parent failed: ${(err as Error).message}`);
-    }
-  }
 
   return data;
 }
@@ -537,7 +410,6 @@ export function workflowCreate(
     config_instructions?: string[];
   }>,
   stages?: Record<string, StageDefinition>,
-  parent?: string,
   stageLoaded?: Record<string, StageLoadedEntry>,
   engine?: string,
   initialParams?: Record<string, unknown>,
@@ -556,7 +428,6 @@ export function workflowCreate(
     workflow_id: wfId,
     status: 'running',
     ...(engine ? { engine: engine as WorkflowFile['engine'] } : {}),
-    ...(parent ? { parent } : {}),
     ...(initialParams && Object.keys(initialParams).length > 0 ? { params: initialParams } : {}),
     ...(stages && Object.keys(stages).length > 0 ? { stages } : {}),
     ...(stageLoaded ? { stage_loaded: stageLoaded } : {}),
@@ -1041,9 +912,8 @@ export async function workflowDone(
     summary?: string;
     data?: Record<string, unknown>;
     config?: import('./config.js').DesignbookConfig;
-    after?: AfterDeclaration[];
   },
-): Promise<{ archived: boolean; data: WorkflowFile; response?: StageResponse; awaitingAfter?: AfterDeclaration[] }> {
+): Promise<{ archived: boolean; data: WorkflowFile; response?: StageResponse }> {
   const changesDir = resolve(dataDir, 'workflows', 'changes', name);
   const filePath = resolve(changesDir, 'tasks.yml');
 
@@ -1559,9 +1429,7 @@ export async function workflowDone(
             stage_complete: true,
             ...(Object.keys(scopeUpdate).length > 0 && { scope_update: scopeUpdate }),
           };
-          const held = holdForAfter(filePath, data, options?.after, transitionResponse);
-          if (held) return held;
-          archiveAndCascade(dataDir, name, data);
+          archiveWorkflow(dataDir, name, data);
           return { archived: true, data, response: transitionResponse };
         }
       }
@@ -1636,14 +1504,10 @@ export async function workflowDone(
       }
       const doneResult = engine.done(data);
       if (doneResult.archive) {
-        const held = holdForAfter(filePath, data, options?.after, completionResponse);
-        if (held) return held;
-        archiveAndCascade(dataDir, name, data);
+        archiveWorkflow(dataDir, name, data);
         return { archived: true, data, response: completionResponse };
       }
     }
-    const held = holdForAfter(filePath, data, options?.after, completionResponse);
-    if (held) return held;
     writeWorkflowAtomic(filePath, data);
 
     return { archived: false, data, response: completionResponse };

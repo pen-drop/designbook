@@ -20,3 +20,4 @@ autoresearch-results.tsv
 # gaia / dropsh local state (not committed)
 .dropsh/
 .gaia/conductor.config.local.js
+.gaia-worktrees

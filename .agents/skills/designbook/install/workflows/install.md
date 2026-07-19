@@ -17,7 +17,7 @@ stages:
 
 # Designbook Install
 
-Untracked utility workflow (`track: false`, see `resources/workflow-execution.md` §7) —
+Untracked utility workflow (`track: false`, see `resources/workflow-execution.md` §6) —
 no run state, no `workflow create`, no `engine:`. Install runs before designbook
 exists in the target, so the engine lifecycle is unavailable: the AI executes the
 stages directly. The addon CLI is only reachable from the verify stage onward, once

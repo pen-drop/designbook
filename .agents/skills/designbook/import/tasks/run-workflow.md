@@ -17,7 +17,7 @@ each:
 
 # Task: Run Sub-Workflow
 
-Executes a sub-workflow as part of the import orchestration. The parent import workflow iterates over a list of sub-workflows; this task handles one entry.
+Executes a sub-workflow as part of the import orchestration. The import workflow iterates over a list of sub-workflows; this task handles one entry.
 
 ## Instructions
 
@@ -31,7 +31,7 @@ Executes a sub-workflow as part of the import orchestration. The parent import w
 
 4. **Execute the sub-workflow normally** — follow all standard execution rules (Rules 0–7 from `workflow-execution.md`). The sub-workflow has its own lifecycle, its own `tasks.yml`, and its own task tracking.
 
-5. **On completion** of the sub-workflow, return control to the parent import workflow.
+5. **On completion** of the sub-workflow, return control to the import workflow.
 
 ## Constraints
 
