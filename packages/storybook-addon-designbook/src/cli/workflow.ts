@@ -887,7 +887,8 @@ export function register(program: Command): void {
         log({ cmd: 'workflow batch-done', args: { workflow: opts.workflow, dir: opts.dir }, result: results });
         const failed = results.filter((r) => !r.valid);
         for (const r of results) {
-          console.log(`${r.valid ? '✓' : '✗'} ${r.task}${r.valid ? '' : ` — ${r.errors.join('; ')}`}`);
+          const note = r.skipped ? ' — skipped (already done)' : r.valid ? '' : ` — ${r.errors.join('; ')}`;
+          console.log(`${r.valid ? '✓' : '✗'} ${r.task}${note}`);
         }
         console.log(`\n${results.length - failed.length}/${results.length} tasks submitted`);
         console.log(`BATCH_RESULT: ${JSON.stringify(results)}`);

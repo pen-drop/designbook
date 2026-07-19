@@ -1,6 +1,6 @@
 ---
 trigger:
-  steps: [design-screen:create-scene-file, design-screen:create-scene]
+  steps: [design-screen:create-scene]
 ---
 
 # Screen Scene Constraints

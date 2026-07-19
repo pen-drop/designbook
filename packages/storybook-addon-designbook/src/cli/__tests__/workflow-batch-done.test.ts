@@ -93,8 +93,21 @@ describe('workflow-batch-done: submission', () => {
     writeBatchFile(dir, 'b.json', { task: 'hero', data: { note: 'h' } });
     writeBatchFile(dir, 'a.json', { task: 'card', data: { note: 'c' } });
     writeBatchFile(dir, 'ignore.txt', 'nope');
-    const entries = readBatchEntries(dir);
+    const { entries, failures } = readBatchEntries(dir);
     expect(entries.map((e) => e.task)).toEqual(['card', 'hero']);
+    expect(failures).toEqual([]);
+  });
+
+  it('collects a malformed *.json as a per-file failure instead of aborting the batch', () => {
+    const dir = join(tmpRoot, 'batch');
+    writeBatchFile(dir, 'good.json', { task: 'card', data: { note: 'c' } });
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(resolve(dir, 'broken.json'), '{not json');
+    const { entries, failures } = readBatchEntries(dir);
+    expect(entries.map((e) => e.task)).toEqual(['card']);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]!.task).toBe('broken.json');
+    expect(failures[0]!.valid).toBe(false);
   });
 
   it('submits every task in the directory and reports all valid', async () => {
@@ -108,6 +121,22 @@ describe('workflow-batch-done: submission', () => {
     expect(results).toHaveLength(2);
     expect(results.every((r) => r.valid)).toBe(true);
     expect(results.map((r) => r.task).sort()).toEqual(['card', 'hero']);
+  });
+
+  it('treats an already-done task as skipped/success on re-run', async () => {
+    const config = loadConfig();
+    writeWorkflow('batch-run');
+    const dir = join(tmpRoot, 'batch');
+    writeBatchFile(dir, 'card.json', { task: 'card', data: { note: 'c' } });
+
+    // First run completes the task.
+    await runBatchDone(config.data, 'batch-run', dir, config);
+    // Re-run: the task is already done — must be reported valid + skipped, not a failure.
+    const results = await runBatchDone(config.data, 'batch-run', dir, config);
+    expect(results).toHaveLength(1);
+    expect(results[0]!.task).toBe('card');
+    expect(results[0]!.valid).toBe(true);
+    expect(results[0]!.skipped).toBe(true);
   });
 
   it('records a per-task failure for an unknown task id and keeps going', async () => {

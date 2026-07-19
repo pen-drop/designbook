@@ -27,6 +27,14 @@ export interface BatchDoneResult {
   task: string;
   valid: boolean;
   errors: string[];
+  /** True when the task was already `done` (idempotent re-run) and was skipped, not re-submitted. */
+  skipped?: boolean;
+}
+
+export interface ReadBatchResult {
+  entries: BatchDoneEntry[];
+  /** Per-file parse/shape failures — one malformed file no longer aborts the whole batch. */
+  failures: BatchDoneResult[];
 }
 
 /** Parse and validate one batch entry object read from a file. */
@@ -48,27 +56,35 @@ export function parseBatchEntry(raw: unknown, source: string): BatchDoneEntry {
   };
 }
 
-/** Read `*.json` batch entries from a directory, sorted by filename for determinism. */
-export function readBatchEntries(dir: string): BatchDoneEntry[] {
+/**
+ * Read `*.json` batch entries from a directory, sorted by filename for determinism.
+ * A malformed or wrongly-shaped file is collected as a per-file failure (keyed by
+ * filename) rather than throwing, so one bad file cannot abort the whole batch.
+ */
+export function readBatchEntries(dir: string): ReadBatchResult {
   const files = readdirSync(dir)
     .filter((f) => f.endsWith('.json'))
     .sort();
-  return files.map((f) => {
+  const entries: BatchDoneEntry[] = [];
+  const failures: BatchDoneResult[] = [];
+  for (const f of files) {
     const full = resolve(dir, f);
-    let parsed: unknown;
     try {
-      parsed = JSON.parse(readFileSync(full, 'utf-8'));
+      const parsed = JSON.parse(readFileSync(full, 'utf-8'));
+      entries.push(parseBatchEntry(parsed, f));
     } catch (err) {
-      throw new Error(`${f}: invalid JSON — ${(err as Error).message}`);
+      failures.push({ task: f, valid: false, errors: [(err as Error).message] });
     }
-    return parseBatchEntry(parsed, f);
-  });
+  }
+  return { entries, failures };
 }
 
 /**
  * Submit each entry through `workflowDone`, collecting per-task validation
- * outcomes. A thrown error (unknown/already-done task) or hard-gate
- * `validation_errors` is recorded as a failed task; other tasks still run.
+ * outcomes. An already-`done` task (idempotent re-run of a partially-completed
+ * batch) is reported valid + skipped, so re-running after a repair does not fail
+ * on tasks that already succeeded. Any other thrown error (unknown task) or
+ * hard-gate `validation_errors` is recorded as a failed task; other tasks still run.
  */
 export async function submitBatch(
   dataDir: string,
@@ -87,18 +103,29 @@ export async function submitBatch(
       const validationErrors = (res.response?.validation_errors as string[] | undefined) ?? [];
       results.push({ task: entry.task, valid: validationErrors.length === 0, errors: validationErrors });
     } catch (err) {
-      results.push({ task: entry.task, valid: false, errors: [(err as Error).message] });
+      const message = (err as Error).message;
+      if (/already done/i.test(message)) {
+        results.push({ task: entry.task, valid: true, skipped: true, errors: [] });
+      } else {
+        results.push({ task: entry.task, valid: false, errors: [message] });
+      }
     }
   }
   return results;
 }
 
-/** Read a directory of batch entries and submit them. Returns per-task results. */
+/**
+ * Read a directory of batch entries and submit them. Per-file parse failures are
+ * prepended to the per-task submission results, so the caller sees every file's
+ * outcome in one list. Returns per-task results.
+ */
 export async function runBatchDone(
   dataDir: string,
   name: string,
   dir: string,
   config: DesignbookConfig,
 ): Promise<BatchDoneResult[]> {
-  return submitBatch(dataDir, name, readBatchEntries(dir), config);
+  const { entries, failures } = readBatchEntries(dir);
+  const submitted = await submitBatch(dataDir, name, entries, config);
+  return [...failures, ...submitted];
 }
