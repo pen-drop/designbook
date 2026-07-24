@@ -36,12 +36,18 @@ The project has three parts:
 
 - **Part 1 — Core skill** (`designbook`): Workflows, stages, and component creation
 - **Part 2 — Storybook addon** (`storybook-addon-designbook`): TypeScript package; use `designbook-addon-skills` for changes
-- **Part 3 — Integration skills** (`designbook-css-tailwind`, `designbook-drupal`, `designbook-stitch`, `designbook-devtools`): Extend Part 1 with framework/backend-specific tasks, rules, and blueprints
+- **Part 3 — Integration skills** (`designbook-css-tailwind`, `designbook-drupal`, `designbook-stitch`, `designbook-devtools`, `designbook-gaia`): Extend Part 1 with framework/backend-specific tasks, rules, and blueprints
 
 4-level skill model: **workflow → stage → task/blueprint/rule**
 - Tasks say WHAT to produce, never HOW
 - Blueprints are overridable starting points (directory structure, naming, markup guidance)
 - Rules are hard constraints that cannot be overridden by integrations
+
+`designbook-gaia` is the exception in Part 3: it is a **GAIA integration** that ships only GAIA
+workflow-step `SKILL.md` prose (following the `@gaia/workflow-step` contract), not debo
+task/rule/blueprint/workflow/schemas.yml files. It therefore sits **outside** the 4-level model and
+outside the `designbook-skill-creator` guardrail above — that guardrail matches only the guarded
+debo file types, none of which `designbook-gaia` contains.
 
 ## Test Workspace
 
