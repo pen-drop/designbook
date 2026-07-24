@@ -100,6 +100,23 @@ describe('plugin skills discovery (config `skills` lookup root)', () => {
     expect(name).toBe('designbook:css-generate:emit-tokens');
   });
 
+  it('deriveArtifactName handles a nested sub-skill plugin-source file (skills/<wf>/<kind>/x)', () => {
+    // Plugin-cache layout after the per-workflow sub-skill refactor: the concern
+    // is the dir above the kind dir, not the literal `skills/` segment.
+    const designbookSource = pluginSources().find((s) => s.name === 'designbook')!;
+    const taskFile = resolve(designbookSource.root, 'skills', 'tokens', 'tasks', 'create-tokens.md');
+    const name = deriveArtifactName(taskFile, '/unused/agents', null, designbookSource);
+    expect(name).toBe('designbook:tokens:create-tokens');
+  });
+
+  it('deriveSkillSourcesFromBase detects a content root whose artifacts sit two levels deep', () => {
+    // Nested sub-skill layout under the plugin cache: <base>/<skill>/<hash>/skills/<wf>/<kind>.
+    const base = mkdtempSync(resolve(tmpdir(), 'debo-nested-'));
+    mkdirSync(resolve(base, 'designbook', 'abc', 'skills', 'tokens', 'workflows'), { recursive: true });
+    const sources = deriveSkillSourcesFromBase(base);
+    expect(sources).toEqual([{ name: 'designbook', root: resolve(base, 'designbook', 'abc'), origin: 'plugin' }]);
+  });
+
   it('resolveFiles discovers plugin-source rules from a sibling skill', () => {
     const context = buildRuntimeContext('css-generate:emit-tokens');
     const matches = resolveFiles('skills/**/rules/*.md', context, {}, '/empty/agents', true, pluginSources());

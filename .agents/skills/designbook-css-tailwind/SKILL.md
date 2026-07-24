@@ -30,7 +30,7 @@ Non-standard namespaces (e.g. `--layout-spacing-*`, `--grid-*`) require `var()`:
 ## Install
 
 CSS-framework install rules, loaded by the core install workflow
-(`designbook/install/workflows/install.md`) when their `trigger.steps` match.
+(`designbook/skills/install/workflows/install.md`) when their `trigger.steps` match.
 
 - [install/rules/detect-tailwind.md](install/rules/detect-tailwind.md) — `write-config`: pre-selects Tailwind as the css_framework default
 - [install/rules/tailwind-storybook.md](install/rules/tailwind-storybook.md) — `setup-storybook` (filter `frameworks.css: tailwind`): deps, Vite wiring, app.src.css, config update
