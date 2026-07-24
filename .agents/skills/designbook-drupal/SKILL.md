@@ -59,7 +59,7 @@ Layout component blueprints with tokens, props/slots summary (`when: steps: [cre
 ## Install
 
 Backend-specific install rules and blueprints, loaded by the core install workflow
-(`designbook/install/workflows/install.md`) when their `trigger.steps` match and
+(`designbook/skills/install/workflows/install.md`) when their `trigger.steps` match and
 `filter: backend: drupal` passes.
 
 - [install/rules/detect-drupal.md](install/rules/detect-drupal.md) — `detect-backend` match (composer `drupal/core*`) + docroot resolution

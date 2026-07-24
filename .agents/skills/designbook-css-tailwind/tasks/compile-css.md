@@ -11,7 +11,7 @@ result:
   properties:
     compiled-css:
       path: "$DESIGNBOOK_CSS_DIR/app.css"
-      $ref: ../../designbook/css-generate/schemas.yml#/CompiledCss
+      $ref: ../../designbook/skills/css-generate/schemas.yml#/CompiledCss
 ---
 
 # Compile CSS

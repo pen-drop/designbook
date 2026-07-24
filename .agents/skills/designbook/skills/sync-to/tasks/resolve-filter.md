@@ -7,7 +7,7 @@ params:
   required: [data_model, backend_cmd]
   properties:
     data_model:
-      $ref: designbook/data-model/schemas.yml#/DataModel
+      $ref: designbook/skills/data-model/schemas.yml#/DataModel
       type: object
       description: The loaded data model from the intake stage.
     filter:

@@ -9,13 +9,13 @@ params:
   required: [component]
   properties:
     component:
-      $ref: designbook/design/schemas.yml#/Component
+      $ref: designbook/skills/design/schemas.yml#/Component
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       workflow: debo-design-tokens
       type: object
     region_properties:
-      $ref: designbook/design/schemas.yml#/RegionProperties
+      $ref: designbook/skills/design/schemas.yml#/RegionProperties
       resolve: region_properties
       from: reference_url
 result:
@@ -35,7 +35,7 @@ result:
 each:
   component:
     expr: "components"
-    schema: { $ref: designbook/design/schemas.yml#/Component }
+    schema: { $ref: designbook/skills/design/schemas.yml#/Component }
 ---
 
 # Create Component

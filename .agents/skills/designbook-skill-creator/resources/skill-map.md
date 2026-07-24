@@ -7,17 +7,17 @@ description: Full listing of all Designbook skills across Parts 1–3
 
 ## Part 1 — Core Skill (`designbook`)
 
-Main skill at `.agents/skills/designbook/`. Contains all user-facing workflows.
+Main skill at `.agents/skills/designbook/` — a thin index (`SKILL.md`) over one **nested sub-skill per workflow** under `skills/<workflow>/`. Engine docs live in `resources/`; engine-wide types in `workflow/schemas.yml`.
 
-| Concern | Workflows |
-|---------|-----------|
-| `design` | `design-component`, `design-screen`, `design-shell`, `design-verify` |
-| `data-model` | `data-model` |
-| `tokens` | `tokens` |
-| `css-generate` | `css-generate` |
-| `sections` | `sections`, `shape-section` |
-| `sample-data` | `sample-data` |
-| `vision` | `vision` |
+**Sub-skills (one per workflow):**
+`design-component`, `design-screen`, `design-entity`, `design-shell`, `design-verify`, `config-verify`, `vision`, `tokens`, `data-model`, `sections`, `shape-section`, `sample-data`, `css-generate`, `install`, `import`, `sync-to`, `sb` — each at `skills/<workflow>/` with its own `SKILL.md`, `workflows/<id>.md`, and `tasks/`/`rules/`/`blueprints/`/`schemas.yml`.
+
+**Shared content roots (workflow-less):**
+
+| Root | Shared by | Contents |
+|------|-----------|----------|
+| `skills/design/` | the six design-family workflows | `tasks/`, `rules/`, `blueprints/`, `resources/`, `schemas.yml` |
+| `skills/scenes/` | design + sections workflows | `tasks/`, `schemas.yml` |
 
 ## Part 2 — Storybook Addon (`storybook-addon-designbook`)
 

@@ -11,9 +11,9 @@ params:
   required: [component, variant]
   properties:
     component:
-      $ref: designbook/design/schemas.yml#/Component
+      $ref: designbook/skills/design/schemas.yml#/Component
     variant:
-      $ref: designbook/design/schemas.yml#/Variant
+      $ref: designbook/skills/design/schemas.yml#/Variant
 result:
   type: object
   required: [variant-story]
@@ -24,9 +24,9 @@ result:
 each:
   component:
     expr: "components"
-    schema: { $ref: designbook/design/schemas.yml#/Component }
+    schema: { $ref: designbook/skills/design/schemas.yml#/Component }
   variant:
     expr: "component.variants"
-    schema: { $ref: designbook/design/schemas.yml#/Variant }
+    schema: { $ref: designbook/skills/design/schemas.yml#/Variant }
 ---
 

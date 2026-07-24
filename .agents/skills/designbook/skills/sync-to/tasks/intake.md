@@ -9,7 +9,7 @@ params:
     data_model:
       path: $DESIGNBOOK_DATA/data-model.yml
       type: object
-      $ref: designbook/data-model/schemas.yml#/DataModel
+      $ref: designbook/skills/data-model/schemas.yml#/DataModel
     filter:
       type: object
       description: >
@@ -26,7 +26,7 @@ result:
   required: [data_model]
   properties:
     data_model:
-      $ref: designbook/data-model/schemas.yml#/DataModel
+      $ref: designbook/skills/data-model/schemas.yml#/DataModel
       type: object
       description: The loaded data model, passed unchanged to resolve-filter.
     filter:

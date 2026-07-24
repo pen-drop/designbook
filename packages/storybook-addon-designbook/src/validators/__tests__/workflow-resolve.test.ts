@@ -1266,10 +1266,10 @@ describe('buildEnrichedConfig', () => {
 // ── Artifact Name Derivation ──────────────────────────────────────
 
 describe('deriveArtifactName', () => {
-  it('derives nested skill name: skill/concern/tasks/file.md', () => {
+  it('derives flat-concern integration name: skill/concern/tasks/file.md', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const filePath = resolve(agentsDir, 'skills/designbook/design/tasks/screenshot-reference.md');
-    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook:design:screenshot-reference');
+    const filePath = resolve(agentsDir, 'skills/designbook-drupal/components/tasks/create-component.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook-drupal:components:create-component');
   });
 
   it('derives flat skill name: skill/tasks/file.md', () => {
@@ -1278,10 +1278,28 @@ describe('deriveArtifactName', () => {
     expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook-stitch:stitch-inspect');
   });
 
-  it('derives name for nested rule file', () => {
+  it('derives nested sub-skill name: skill/skills/<wf>/tasks/file.md → concern <wf>', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const filePath = resolve(agentsDir, 'skills/designbook/design/rules/playwright-session.md');
-    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook:design:playwright-session');
+    const filePath = resolve(agentsDir, 'skills/designbook/skills/design/tasks/capture-storybook.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook:design:capture-storybook');
+  });
+
+  it('derives nested sub-skill rule name: skill/skills/<wf>/rules/file.md', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook/skills/tokens/rules/extract-mapping.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook:tokens:extract-mapping');
+  });
+
+  it('derives concern from the dir above the kind dir for a deeply nested file', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook/skills/css-generate/fonts/google/tasks/prepare-fonts.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook:google:prepare-fonts');
+  });
+
+  it('derives name for flat-concern integration rule file', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook-drupal/data-mapping/rules/image-fields.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook-drupal:data-mapping:image-fields');
   });
 
   it('derives name for flat rule file', () => {

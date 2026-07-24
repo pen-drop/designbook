@@ -15,7 +15,7 @@ params:
   components:
     type: array
     items:
-      $ref: ../schemas.yml#/Component
+      $ref: ../../design/schemas.yml#/Component
 stages:
   intake:
     steps: [intake]

@@ -141,16 +141,22 @@ function toSourcePattern(globPattern: string): string {
 /**
  * Derive a namespaced artifact name for a file found under a plugin SkillSource.
  *
- * - `<concern>/<kind>/<artifact>.md` → `${name}:${concern}:${artifact}`
- * - flat `<kind>/<artifact>.md`     → `${name}:${artifact}`
+ * The concern is the directory **directly containing** the kind dir
+ * (`tasks/`|`rules/`|`blueprints/`|`workflows/`) — i.e. the segment two levels
+ * above the artifact file. This holds for both the flat concern layout and the
+ * nested sub-skill layout (`skills/<wf>/<kind>/<artifact>.md` → concern `<wf>`).
+ *
+ * - `<concern>/<kind>/<artifact>.md`        → `${name}:${concern}:${artifact}`
+ * - `skills/<wf>/<kind>/<artifact>.md`      → `${name}:${wf}:${artifact}`
+ * - flat `<kind>/<artifact>.md`             → `${name}:${artifact}`
  */
 function derivePluginArtifactName(source: SkillSource, filePath: string): string {
   const rel = relative(source.root, filePath).replace(/\\/g, '/');
   const parts = rel.split('/');
   const artifact = (parts[parts.length - 1] ?? '').replace(/\.md$/, '');
-  // <concern>/<kind>/<artifact>.md → 3+ segments
+  // <…>/<concern>/<kind>/<artifact>.md → 3+ segments
   if (parts.length >= 3) {
-    const concern = parts[0]!;
+    const concern = parts[parts.length - 3]!;
     return `${source.name}:${concern}:${artifact}`;
   }
   // flat <kind>/<artifact>.md → 2 segments
@@ -608,10 +614,14 @@ function getWorkflowTitle(fm: WorkflowFrontmatter): string {
  * Convention: `<skill>:<concern>:<artifact>` for nested skills,
  * `<skill>:<artifact>` for flat skills.
  *
+ * The concern is the directory directly containing the kind dir — covering both
+ * the flat concern layout (integration skills) and the nested sub-skill layout
+ * (core skill: `skills/designbook/skills/<wf>/<kind>/x`).
+ *
  * Examples:
- * - `skills/designbook/design/tasks/screenshot-reference.md` → `designbook:design:screenshot-reference`
+ * - `skills/designbook/skills/design/tasks/capture-storybook.md` → `designbook:design:capture-storybook`
  * - `skills/designbook-stitch/tasks/stitch-inspect.md` → `designbook-stitch:stitch-inspect`
- * - `skills/designbook/design/rules/playwright-session.md` → `designbook:design:playwright-session`
+ * - `skills/designbook-drupal/components/rules/foo.md` → `designbook-drupal:components:foo`
  * - `skills/designbook-sdc/blueprints/component.md` with type=component, name=section → `designbook-sdc:blueprints:component/section`
  */
 export function deriveArtifactName(
@@ -650,18 +660,19 @@ export function deriveArtifactName(
     return derivePluginArtifactName(source, filePath);
   }
 
-  // Derive from filesystem path: skills/<skill>[/<concern>]/<kind>/<artifact>.md
+  // Derive from filesystem path: skills/<skill>[/…]/<kind>/<artifact>.md
   const rel = relative(resolve(agentsDir, 'skills'), filePath).replace(/\\/g, '/');
   const parts = rel.split('/');
   const skill = parts[0] ?? '';
   const artifact = (parts[parts.length - 1] ?? '').replace(/\.md$/, '');
 
-  // Kind directory is tasks/, rules/, or blueprints/
-  // If there's a concern dir between skill and kind: skill/concern/kind/file → 4 parts
-  // Flat: skill/kind/file → 3 parts
+  // Concern = the directory directly containing the kind dir (tasks/rules/
+  // blueprints/workflows) — the segment two levels above the artifact file.
+  // Covers both the flat concern layout (skills/<skill>/<concern>/<kind>/x) and
+  // the nested sub-skill layout (skills/<skill>/skills/<wf>/<kind>/x → concern <wf>).
+  // Flat (skills/<skill>/<kind>/x → 3 parts) has no concern.
   if (parts.length >= 4) {
-    // Nested: skill/concern/kind/artifact.md (or deeper — take segment after skill)
-    const concern = parts[1]!;
+    const concern = parts[parts.length - 3]!;
     return `${skill}:${concern}:${artifact}`;
   }
 

@@ -50,13 +50,23 @@ export interface SkillSource {
 
 const ARTIFACT_SUBDIRS = ['workflows', 'tasks', 'rules', 'blueprints'] as const;
 
-/** Whether a directory looks like a skill content root (has any artifact subdir, possibly one level deep). */
-function isSkillContentRoot(dir: string): boolean {
-  if (!existsSync(dir)) return false;
+/** Whether a directory has any artifact subdir directly inside it. */
+function hasArtifactSubdir(dir: string): boolean {
   for (const sub of ARTIFACT_SUBDIRS) {
     if (existsSync(resolve(dir, sub))) return true;
   }
-  // Concern-nested layout: <root>/<concern>/{workflows,tasks,...}
+  return false;
+}
+
+/**
+ * Whether a directory looks like a skill content root — it has any artifact
+ * subdir directly, one level deep (concern layout: `<root>/<concern>/<kind>`),
+ * or two levels deep (nested sub-skill layout: `<root>/skills/<name>/<kind>`).
+ */
+function isSkillContentRoot(dir: string): boolean {
+  if (!existsSync(dir)) return false;
+  // depth 0: <root>/<kind>
+  if (hasArtifactSubdir(dir)) return true;
   let children: string[];
   try {
     children = readdirSync(dir);
@@ -66,8 +76,11 @@ function isSkillContentRoot(dir: string): boolean {
   for (const child of children) {
     const childDir = resolve(dir, child);
     if (!isDir(childDir)) continue;
-    for (const sub of ARTIFACT_SUBDIRS) {
-      if (existsSync(resolve(childDir, sub))) return true;
+    // depth 1: <root>/<concern>/<kind>
+    if (hasArtifactSubdir(childDir)) return true;
+    // depth 2: <root>/skills/<name>/<kind> (nested sub-skill layout)
+    for (const grandchild of listDirs(childDir)) {
+      if (hasArtifactSubdir(resolve(childDir, grandchild))) return true;
     }
   }
   return false;
