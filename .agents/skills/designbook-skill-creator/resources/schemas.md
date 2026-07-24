@@ -7,13 +7,15 @@ description: Reference for schemas.yml format, $ref syntax, and result conventio
 
 ## `schemas.yml` Format
 
-Each concern directory (core skill) or skill root (integration skill) can contain a `schemas.yml` file with reusable JSON Schema definitions.
+Each sub-skill / shared content root (core skill) or skill root (integration skill) can contain a `schemas.yml` file with reusable JSON Schema definitions.
 
 ### Placement
 
 ```
-# Core skill — per concern
-.agents/skills/designbook/<concern>/schemas.yml
+# Core skill — per workflow sub-skill or shared content root
+.agents/skills/designbook/skills/<workflow>/schemas.yml
+.agents/skills/designbook/design/schemas.yml              # shared content root (beside skills/)
+.agents/skills/designbook/workflow/schemas.yml            # engine-wide types (parent)
 
 # Integration skill — skill root
 .agents/skills/designbook-drupal/schemas.yml

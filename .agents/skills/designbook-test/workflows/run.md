@@ -42,16 +42,24 @@ Report the Storybook URL to the user (`_debo storybook status` returns the `url`
 1. Read `fixtures/<suite>/cases/<case>.yaml`
 2. Display the `prompt` field to the user
 3. Ask: "Execute this prompt in the workspace? (y/n)"
-4. If **yes**: dispatch **one** subagent to run the whole workflow — do NOT execute it inline on this thread. The subagent is the workflow driver; give it:
-   - `workspaces/<suite>/web/themes/custom/test_integration_drupal` as its working directory (run all `_debo` / `npx storybook-addon-designbook` commands from there),
-   - the case `prompt` verbatim as the task to execute,
-   - this instruction: *drive the full designbook workflow lifecycle per `resources/workflow-execution.md` (`workflow create` → task loop → `workflow done`) entirely inline within your own context. You are already a subagent and cannot spawn further subagents, so run every stage inline — including stages marked `isolate: true` (read their task/rules/blueprints and call `workflow done` yourself; do not dispatch a stage executor).*
-   - **ask, don't guess:** *whenever a task body or stage asks the user to choose/confirm something you cannot answer from the case prompt + data model alone (screen type, which entities, component plan, layout decisions), STOP and return `status: needs_user` with the workflow name and the exact question(s). Do NOT invent an answer.*
-   - report contract: return `status: needs_user` (with questions) or `status: done` plus the final `workflow summary --json` and one line per stage on what it produced — no task bodies, rule text, or file contents.
+4. If **yes**: drive the workflow with **one fresh subagent per stage** (the default). Do NOT run the whole workflow inline on this thread, and do NOT hand the entire lifecycle to a single long-lived subagent — a single driver accumulates the whole run's context (page dumps, task bodies, every stage's rules) and its per-request latency grows across the run. Per-stage subagents keep each driver's context small; the workflow lifecycle state lives on disk, so a fresh subagent resumes it cleanly.
 
-   **Interactive loop.** When the driver returns:
-   - `needs_user` → relay its question(s) to the user verbatim, get the answer, then dispatch a **fresh** driver subagent told to **resume** the existing workflow by name (the lifecycle state is on disk — `workflow list`/`workflow instructions` re-surface it) with the user's answer in its context. Repeat until `done`.
-   - `done` → relay the summary to the user.
+   **Per-stage driver loop (default).**
+   1. **Create** the workflow yourself on this thread: run `workflow create` from the case `prompt` (per `resources/workflow-execution.md`). Keep the `stages` list and `step_resolved` from the response — it is the ordered stage sequence.
+   2. For each stage in order, dispatch **one fresh subagent** for that stage and wait for it before the next. Give the stage subagent:
+      - `workspaces/<suite>/web/themes/custom/test_integration_drupal` as its working directory (run all `_debo` / `npx storybook-addon-designbook` commands from there),
+      - the workflow name and the stage name,
+      - this instruction: *resume the on-disk workflow for this stage — run `workflow instructions --workflow <name> --stage <stage>` to load the stage's task/rules/blueprints, execute the stage's task(s) (loop over `each`-expanded sibling tasks; use `workflow batch-done` for large each-stages), and call `workflow done` yourself for each. Do not touch other stages. When Storybook is stale (component files newer than the running daemon — the `playwright-capture` / `playwright-validate` preflight), you MUST restart it with `_debo storybook start --force` before capturing or validating; restarting is required, never forbidden.*
+      - **ask, don't guess:** *whenever a task body or stage asks the user to choose/confirm something you cannot answer from the case prompt + data model alone (screen type, which entities, component plan, layout decisions), STOP and return `status: needs_user` with the workflow name, the stage, and the exact question(s). Do NOT invent an answer.*
+      - report contract: return `status: needs_user` (with questions) or `status: stage_done` plus the stage's `RESPONSE` JSON and one line on what it produced — no task bodies, rule text, or file contents.
+   3. **Between stages** read only the returned `RESPONSE` JSON to decide the next stage (it carries `stage_complete` and the `next` stage). The final `workflow done` returns `{ "stage": "done" }`; if the workflow declares `after:` hooks it also emits a `NEXT_WORKFLOWS:` line naming the auto-created child workflows — drive each the same per-stage way, and the parent cascades to archived once its children finish. (Validation is **not** an after-hook: `design-verify` runs as a separate `--validate` step — see step 5.)
+
+   **Interactive loop.** When a stage subagent returns:
+   - `needs_user` → relay its question(s) to the user verbatim, get the answer, then dispatch a **fresh** subagent for the **same** stage told to resume it (state is on disk — `workflow instructions --stage` re-surfaces it) with the user's answer in its context. Repeat until the stage returns `stage_done`.
+   - `stage_done` → move to the next stage.
+   - when the last stage (and any after-hook child) is done → relay the final `workflow summary --json` to the user.
+
+   **Single-driver mode (debug only).** With `--single-driver`, fall back to the old behavior: dispatch **one** subagent to drive the whole lifecycle inline in its own context (`workflow create` → task loop → `workflow done`), running every stage inline including `isolate: true` stages, and returning `status: needs_user` or `status: done` + the final `workflow summary --json`. Same storybook-restart mandate applies. Use this only to debug the workflow itself, not for measured runs.
 5. If **no**: Tell the user the workspace is ready for manual use
 
 Use `_debo storybook stop` to stop Storybook when the session ends or the user requests it.

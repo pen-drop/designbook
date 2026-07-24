@@ -10,8 +10,9 @@ WS="$REPO_ROOT/workspaces/$NAME"
 cd "$WS"
 [ -f "$WS/db.sql.gz" ] || { echo "No baseline db.sql.gz in $WS" >&2; exit 1; }
 ddev import-db --file="$WS/db.sql.gz"
-# The committed baseline DB does not have the designbook module enabled;
-# re-enable it after every reset so sync-to's prepare/validate (designbook:config-schema /
-# designbook:config-validate) keep working across per-case resets.
-ddev drush pm:enable designbook -y
-echo "✓ Drupal config reset to baseline for workspace $NAME (helper module re-enabled)"
+# The committed baseline DB does not have the designbook modules enabled;
+# re-enable them after every reset so sync-to's prepare/validate (designbook:config-schema /
+# designbook:config-validate / designbook:ui-pattern) keep working across per-case resets.
+# Keep in sync with the enable list in scripts/start-drupal-workspace.sh.
+ddev drush pm:enable ui_patterns designbook designbook_ui_patterns -y
+echo "✓ Drupal config reset to baseline for workspace $NAME (helper modules re-enabled)"

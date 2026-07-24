@@ -17,8 +17,9 @@ import { join, resolve } from 'node:path';
 import { dump as dumpYaml, load as parseYaml } from 'js-yaml';
 import { loadConfig } from '../../config.js';
 import { loadWorkflowDefinition } from '../workflow-discovery.js';
-import { workflowDone, workflowAbandon, type WorkflowFile } from '../../workflow.js';
+import { workflowDone, workflowAbandon, workflowArchive, type WorkflowFile } from '../../workflow.js';
 import { runWorkflowCreate, createAfterWorkflows, filterActiveAfterDeclarations } from '../workflow.js';
+import { hashReferenceUrl } from '../../resolvers/reference-folder.js';
 
 function writeMd(filePath: string, fm: Record<string, unknown>, body = ''): void {
   mkdirSync(resolve(filePath, '..'), { recursive: true });
@@ -124,6 +125,117 @@ describe('workflow done: after-workflow auto-create', () => {
     expect(parentMeta.children).toEqual([{ name: next[0]!.name, workflow: 'child-wf' }]);
   });
 
+  it('resolves after-hook params lazily from the parent final-state scope (M4a)', async () => {
+    const config = loadConfig();
+
+    // Create the parent WITHOUT a story_id param — the value is produced by the
+    // parent run and lands in scope (result data), not in params.
+    const parent = await runWorkflowCreate({ workflow: 'parent-wf' }, config);
+    const parentName = parent.name;
+
+    // Simulate stage completion flowing a result into scope.
+    const parentPath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+    const parentMeta = parseYaml(readFileSync(parentPath, 'utf-8')) as WorkflowFile;
+    parentMeta.scope = { ...(parentMeta.scope ?? {}), story_id: 'debo-produced-at-runtime' };
+    writeFileSync(parentPath, dumpYaml(parentMeta));
+
+    const declarations = [{ workflow: 'child-wf', params: { story_id: 'story_id' } }];
+    // Pass empty parentParams — the value exists only in the parent's scope.
+    const next = await createAfterWorkflows(declarations, parentName, {}, config);
+
+    const child = readTasksYml(next[0]!.name);
+    expect(child.params?.story_id).toBe('debo-produced-at-runtime');
+  });
+
+  it('re-resolves a parent param at hook time via the parent definition resolver (M4 story_id class)', async () => {
+    const skill = 'after-test';
+    // Parent whose `ref_dir` param resolves from `reference_url`. On a real run this
+    // stands in for `story_id: {resolve: story_id, from: scene_id}` — a resolver that
+    // is "too early" at create time (the story/index doesn't exist yet) and only
+    // succeeds once the run is complete. The after-hook maps that param to the child.
+    writeMd(
+      resolve(agentsDir, 'skills', skill, 'workflows', 'parent-reresolve.md'),
+      {
+        title: 'Parent Re-resolve',
+        params: {
+          reference_url: { type: 'string', default: '' },
+          ref_dir: { type: 'string', resolve: 'reference_folder', from: 'reference_url' },
+        },
+        stages: { execute: { steps: ['do-thing'] } },
+        engine: 'direct',
+        after: [{ workflow: 'child-wf', params: { story_id: 'ref_dir' } }],
+      },
+      '# parent-reresolve',
+    );
+
+    const config = loadConfig();
+    // Persist a parent in awaiting-after whose `ref_dir` was NOT materialized at
+    // create time (absent from params + scope), but `reference_url` IS present.
+    const parentName = 'parent-reresolve-abc';
+    const parentPath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+    mkdirSync(resolve(parentPath, '..'), { recursive: true });
+    writeFileSync(
+      parentPath,
+      dumpYaml({
+        title: 'Parent Re-resolve',
+        workflow: 'parent-reresolve',
+        status: 'awaiting-after',
+        params: { reference_url: 'https://leando.de/' },
+        scope: {},
+        tasks: [],
+        engine: 'direct',
+      }),
+    );
+
+    const declarations = [{ workflow: 'child-wf', params: { story_id: 'ref_dir' } }];
+    // Without the hook-time re-resolution this throws "evaluated to undefined".
+    const next = await createAfterWorkflows(declarations, parentName, {}, config);
+    expect(next).toHaveLength(1);
+
+    const child = readTasksYml(next[0]!.name);
+    expect(typeof child.params?.story_id).toBe('string');
+    expect(child.params?.story_id as string).toContain(`references/${hashReferenceUrl('https://leando.de/')}`);
+  });
+
+  it('registers the child on the parent when created with --parent (M4a)', async () => {
+    const config = loadConfig();
+
+    const parent = await runWorkflowCreate({ workflow: 'parent-wf', params: { story_id: 'x' } }, config);
+    const parentName = parent.name;
+
+    const child = await runWorkflowCreate(
+      { workflow: 'child-wf', parent: parentName, params: { story_id: 'x' } },
+      config,
+    );
+
+    const parentMeta = readTasksYml(parentName);
+    expect(parentMeta.children).toEqual([{ name: child.name, workflow: 'child-wf' }]);
+  });
+
+  it('workflow archive force-archives a stuck awaiting-after parent (M4b)', async () => {
+    const config = loadConfig();
+    const parent = await runWorkflowCreate({ workflow: 'parent-wf', params: { story_id: 'x' } }, config);
+    const parentName = parent.name;
+
+    // Put the parent into the stuck state: awaiting-after with a registered child
+    // that was never archived — cascadeParent would refuse to archive it.
+    const parentPath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+    const parentMeta = parseYaml(readFileSync(parentPath, 'utf-8')) as WorkflowFile;
+    parentMeta.status = 'awaiting-after';
+    parentMeta.children = [{ name: 'nonexistent-child', workflow: 'child-wf' }];
+    writeFileSync(parentPath, dumpYaml(parentMeta));
+
+    const archived = workflowArchive(config.data, parentName);
+    expect(archived.status).toBe('completed');
+    expect(archived.summary).toBeTruthy();
+
+    // Parent moved to archive/, gone from changes/.
+    const parentArchivePath = resolve(dataDir, 'workflows', 'archive', parentName, 'tasks.yml');
+    expect(existsSync(parentArchivePath)).toBe(true);
+    const parentChangesPath = resolve(dataDir, 'workflows', 'changes', parentName, 'tasks.yml');
+    expect(existsSync(parentChangesPath)).toBe(false);
+  });
+
   it('creates the first workflow step when multiple task files match that step', async () => {
     const skill = 'multi-match-first-step';
 
@@ -212,7 +324,7 @@ describe('workflow done: after-workflow auto-create', () => {
     const declarations = [{ workflow: 'child-wf', params: { story_id: 'nonexistent_key' } }];
 
     await expect(createAfterWorkflows(declarations, parentName, {}, config)).rejects.toThrow(
-      "after-workflow 'child-wf': param 'story_id' expression 'nonexistent_key' evaluated to undefined on parent params",
+      "after-workflow 'child-wf': param 'story_id' expression 'nonexistent_key' evaluated to undefined on parent final state (params + scope)",
     );
 
     // No child workflow dir should have been created

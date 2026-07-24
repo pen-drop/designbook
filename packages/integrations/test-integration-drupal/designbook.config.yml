@@ -24,6 +24,9 @@ backend_cmd:
   cmd: "ddev drush"
   schema_cmd: "ddev drush designbook:config-schema"
   validate_cmd: "ddev drush designbook:config-validate"
+  # UI Patterns 2 mapping (designbook_ui_patterns submodule): emits the whole
+  # ui_patterns block (component_id, variant_id, props, slots) as JSON.
+  ui_pattern_cmd: "ddev drush designbook:ui-pattern"
   # Container view of the host config_sync_dir that `transform` writes to
   # (host: <workspace>/web/sites/default/files/sync; container: /var/www/html/…).
   import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"
