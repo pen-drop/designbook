@@ -1,6 +1,7 @@
 ---
-when:
-  steps: [design-shell:create-scene, design-screen:create-scene]
+trigger:
+  steps: [create-scene-file, create-scene]
+filter:
   frameworks.css: tailwind
 ---
 

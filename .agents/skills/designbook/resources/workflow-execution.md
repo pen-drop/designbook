@@ -127,6 +127,23 @@ _debo workflow done --workflow $WORKFLOW_NAME --task <task-id> \
 
 The CLI serializes file results to their declared paths, validates every result against `schema.definitions`, and marks the task done. If validation fails, the response reports the errors — fix and call `done` again.
 
+**Batch submission (each-expanded stages).** When a stage expands into many
+sibling tasks (e.g. one `create-component` task per planned component), submit
+them all in one call instead of looping `workflow done` by hand: write one
+`{ "task": "<task-id>", "data": { … }, "summary"?: "…" }` JSON file per task into
+a directory, then
+
+```bash
+_debo workflow batch-done --workflow $WORKFLOW_NAME --dir <dir>
+```
+
+Each entry goes through the same validation path as a single `workflow done`;
+the command prints per-task pass/fail (`BATCH_RESULT` JSON) and exits non-zero if
+any task fails. Repair the failing entries and re-run the whole directory — a task
+that is already `done` is reported `✓ … skipped (already done)` (`valid`, not a
+failure), and a malformed `*.json` file is reported as its own failed entry
+without aborting the rest of the batch.
+
 For file results, treat validation errors as a repair loop on the submitted file content itself. Do not stop at reporting the error. Update the artifact so it satisfies the validator feedback exactly, then re-submit the same result key via `workflow done` until the task passes.
 
 `--data` is final content. The engine does not rewrite submitted values. Example: if a Twig file should contain `test_integration_drupal:page`, submit that literal string — not `$DESIGNBOOK_COMPONENT_NAMESPACE:page`.
@@ -146,7 +163,7 @@ The `done` response tells you what's next. Parse the `RESPONSE:` JSON line:
 - **`next_step` in same stage** (`stage_complete: false`) — continue to step 1 with the new step.
 - **Stage transition** (`stage_complete: true`) — `scope_update` shows which data results were collected into scope; `expanded_tasks` lists newly materialized tasks in later stages. Continue to step 1 with the next step.
 - **`waiting_for`** — the engine is asking the user for something the schema requires. Run `workflow wait` with the prompt, ask the user, `workflow resume`, then pass the answer as `--data` on the next `workflow done`.
-- **`{ "stage": "done" }`** — the workflow is archived. Process after-hooks (§6).
+- **`{ "stage": "done" }`** — the workflow is done. Any `after:` children are auto-created and listed on the `NEXT_WORKFLOWS:` line; drive each to completion and the parent cascades to archived (§6).
 
 ---
 
@@ -229,10 +246,32 @@ Declared in a workflow's frontmatter as `before: [...]`. After `workflow create`
 
 ### After hooks
 
-Declared as `after: [...]`. When the parent's final `workflow done` returns `{ "stage": "done" }`, iterate the `after:` entries:
+Declared as `after: [...]`. When the parent's final `workflow done` returns
+`{ "stage": "done" }`, the engine **auto-creates** each `after:` child and reports
+them on a `NEXT_WORKFLOWS:` line — you do NOT create them by hand. Each after-param
+expression is resolved lazily **at hook time** against the parent's final state
+(params + collected result scope), so a value that only exists after the run
+finishes (e.g. `story_id` derived from the now-indexed story) resolves correctly
+rather than evaluating to `undefined` at create time.
 
-- Prompt: "Run `/<workflow-id>` next?"
-- If accepted, start it with `--parent $WORKFLOW_NAME` so the chain is traceable.
+For each child named on `NEXT_WORKFLOWS:`:
+
+- Enter its task loop and drive it to completion (its own hooks run in turn when it archives).
+- When the child archives, the parent's `awaiting-after` state cascades automatically
+  (`cascadeParent`): once all after-children are done the parent archives itself, and
+  `workflow summary --json` becomes available.
+
+Do **not** run `workflow create --parent` for an auto-created after-hook — the child
+already exists, and a second create double-registers it, leaving the parent stuck in
+`awaiting-after`. Manual `create --parent` is a **recovery-only** path (a child that
+was never auto-created).
+
+**Recovery.** If a parent is stuck in `awaiting-after` (a child died, or an after-hook
+failed to fire), force-archive it:
+
+```bash
+_debo workflow archive --workflow $WORKFLOW_NAME
+```
 
 ### Walk-through — `tokens` → `css-generate`
 
@@ -244,13 +283,10 @@ after:
     optional: true
 ```
 
-When `tokens` archives, its `done` response carries `{ "stage": "done" }`. You ask: "Run `/css-generate` next?" If the user accepts, you run:
-
-```bash
-_debo workflow create --workflow css-generate --parent $WORKFLOW_NAME
-```
-
-and enter the task loop for `css-generate`. Its own after-hooks run in turn when it archives.
+When `tokens` reaches its final `workflow done`, the response carries `{ "stage": "done" }`
+**and** a `NEXT_WORKFLOWS:` line naming the auto-created `css-generate` child. Enter that
+child's task loop and drive it to completion; when it archives, `tokens` cascades from
+`awaiting-after` to archived automatically — no manual `create` or archival step.
 
 ---
 

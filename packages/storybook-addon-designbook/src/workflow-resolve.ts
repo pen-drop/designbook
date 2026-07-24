@@ -16,7 +16,6 @@ import type { SkillSource } from './skill-sources.js';
 import { buildSchemaBlock } from './schema-block.js';
 import type { SchemaBlock } from './schema-block.js';
 import { interpolate } from './template/interpolate.js';
-import { injectComponentsEnum } from './workflow-resolve-components-enum.js';
 import { computeMergedSchema } from './workflow-schema-merge.js';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -361,11 +360,10 @@ export interface TaskForSchemaResolution {
  * Used at plan time (via `collectAndResolveSchemas`) and again at runtime when new
  * tasks are expanded during stage transitions (e.g. via `expandTasksFromParams`).
  *
- * After $ref resolution, if any task carries a resolved `components` param with
- * an inventory of `{id: string}` entries, returns a clone of the schemas map with
- * `ComponentNode.component` constrained to those ids via `injectComponentsEnum`.
- * Only the first task with a non-empty inventory is used; callers must not stage
- * conflicting inventories across tasks.
+ * Component-existence is NOT enforced here via a schema enum: the `scene` validator's
+ * live-index inventory walk (`validateSceneAgainstInventory`) checks every `component:`
+ * reference against the current Storybook index at `workflow done` time, which stays
+ * correct as components are created within a run.
  */
 export function resolveSchemasForTasks(
   tasks: TaskForSchemaResolution[],
@@ -459,25 +457,6 @@ export function resolveSchemasForTasks(
     }
   }
 
-  // Dynamic enum injection — when a task's `components` param resolved to an
-  // inventory, constrain ComponentNode.component to those ids in the shared
-  // schema map. Affects only the compiled schemas; on-disk scene schema is
-  // untouched.
-  let inventory: string[] | undefined;
-  for (const task of tasks) {
-    const raw = task.params?.['components'];
-    if (!Array.isArray(raw)) continue;
-    const ids = raw
-      .map((c) => (c && typeof c === 'object' ? (c as Record<string, unknown>)['id'] : undefined))
-      .filter((id): id is string => typeof id === 'string');
-    if (ids.length > 0) {
-      inventory = ids;
-      break;
-    }
-  }
-  if (inventory && inventory.length > 0) {
-    return injectComponentsEnum(schemas, inventory) as Record<string, object>;
-  }
   return schemas;
 }
 

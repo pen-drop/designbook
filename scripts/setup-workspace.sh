@@ -146,6 +146,11 @@ ln -sfn "$REPO_ROOT/.cursor" "$WORKSPACE_DIR/.cursor"
 ln -sfn "$REPO_ROOT/.codex" "$WORKSPACE_DIR/.codex"
 ln -sfn "$REPO_ROOT/.agents" "$WORKSPACE_DIR/.agents"
 
+# No theme-dir .agents symlink is needed: debo-test drives CLI commands from the
+# THEME dir, but the addon's resolveSkillsRoot walks UP from the resolved config
+# dir to the workspace root and finds these symlinks there — even when a
+# theme-local designbook.config.yml shadows the workspace-root one.
+
 # Initialize git repo in the theme dir (where Storybook runs from).
 cd "$THEME_DIR"
 git init
