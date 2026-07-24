@@ -14,7 +14,7 @@ Each sub-skill / shared content root (core skill) or skill root (integration ski
 ```
 # Core skill — per workflow sub-skill or shared content root
 .agents/skills/designbook/skills/<workflow>/schemas.yml
-.agents/skills/designbook/skills/design/schemas.yml       # shared content root
+.agents/skills/designbook/design/schemas.yml              # shared content root (beside skills/)
 .agents/skills/designbook/workflow/schemas.yml            # engine-wide types (parent)
 
 # Integration skill — skill root
@@ -29,7 +29,7 @@ Each sub-skill / shared content root (core skill) or skill root (integration ski
 - **Each top-level key is a standalone type** — no nesting of types within types
 
 ```yaml
-# .agents/skills/designbook/skills/design/schemas.yml
+# .agents/skills/designbook/design/schemas.yml
 
 Component:
   type: object

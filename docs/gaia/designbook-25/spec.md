@@ -43,23 +43,32 @@ Die Auflösungs-Engine im Addon (`packages/storybook-addon-designbook/src`) wurd
 
 ## Entscheidungen
 
-### D1 — Geteilter Content: dedizierte workflow-lose Shared-Dirs unter `skills/`
+### D1 — Geteilter Content: workflow-lose Shared-Roots **neben** `skills/` beim Parent (amended)
 
 Die 6-Workflow-`design`-Familie teilt einen Satz Tasks/Rules/Blueprints/Schema; `scenes/` ist
 geteilter Content **ohne eigenen Workflow** (genutzt von design, sections, cross-skill von drupal).
 
-- **Gewählt:** `skills/design/` (geteilte design Tasks/Rules/Blueprints/`schemas.yml`, workflow-los)
-  und `skills/scenes/` (geteilte Scene-Tasks + `schemas.yml`, workflow-los). Die 6 design-Workflow-
-  Sub-Skills bleiben **dünn** (`SKILL.md` + `workflows/<id>.md`).
-- **Warum:** Duplizieren ist durch die Engine ausgeschlossen (globaler Task-Name-Glob, Recherche #2)
-  und verletzt SSOT. Ein einziger Content-Home je geteiltem Concern hält beide ein. Ref-Churn bleibt
-  minimal, weil die relativen Refs selbstheilen (Recherche #4): `../../scenes/…` und `../../design/…`
-  bilden auf `skills/scenes/` bzw. `skills/design/` ab.
-- **Alternative (verworfen):** Geteilte Schema-Typen ins whitelisted Parent-`workflow/schemas.yml`
-  heben — würde alle 134 relativen Refs auf skill-qualifizierte umschreiben (massiver Churn) ohne Gewinn.
-- **AC-Verträglichkeit:** AC1 fordert je 17 Workflow-Dirs mit `SKILL.md` (erfüllt); AC4 fordert exakt 17
-  Workflow-IDs (die Shared-Dirs haben kein `workflows/`, zählen nicht). Die 2 Shared-Dirs sind reine
-  Engine-Content-Roots, kein 18./19. Workflow.
+- **Gewählt (amended, coding):** `designbook/design/` und `designbook/scenes/` liegen **neben** `skills/`
+  beim Parent — **nicht** unter `skills/`. Damit enthält `skills/` **ausschließlich** die 17 echten
+  Workflow-Sub-Skills (alle mit `SKILL.md`); die zwei Shared-Roots maskieren sich nicht als Skills.
+  Die 6 design-Workflow-Sub-Skills bleiben **dünn** (`SKILL.md` + `workflows/<id>.md`).
+- **Ursprünglich (spec):** beide unter `skills/design/` + `skills/scenes/`. Auf Author-Wunsch geändert,
+  weil workflow-lose Ordner unter `skills/` (ohne `SKILL.md`) verwirren.
+- **Warum überhaupt Shared-Roots:** Duplizieren ist durch die Engine ausgeschlossen (globaler
+  Task-Name-Glob, Recherche #2) und verletzt SSOT. Ein einziger Content-Home je geteiltem Concern.
+- **Engine-Verträglichkeit:** Discovery-Globs sind `skills/**/…` = `.agents/skills/**`; `designbook/design/…`
+  liegt weiter darunter → wird unverändert gefunden (kein Glob-Change). `deriveArtifactName` nimmt den
+  Concern aus dem Dir über dem Kind-Dir → `designbook:design:…` bleibt identisch (kein Code-/Namens-Change).
+- **Ref-Kosten der Verlagerung:** relative Refs heilen nur bei **einheitlicher** Tiefe. Da die Shared-Roots
+  jetzt eine Ebene höher als die Workflow-Sub-Skills liegen, werden 8 Cross-Level-Refs angepasst:
+  Workflow→Shared (`../../design` → `../../../design`, 2×) und Shared→Workflow (`../../vision` →
+  `../../skills/vision`, 6×). Skill-qualifizierte Refs von drupal bleiben auf `designbook/design/…`,
+  `designbook/scenes/…` (= Original).
+- **AC-Verträglichkeit:** AC1 (17 Workflow-Dirs mit `SKILL.md`) erfüllt; AC4 (exakt 17 Workflow-IDs) erfüllt
+  (Shared-Roots haben kein `workflows/`). **AC3-Amendment (Author-approved):** die zulässigen Parent-
+  Ausnahmen sind jetzt `resources/`, `workflow/schemas.yml` **und die workflow-losen Shared-Content-Roots
+  `design/` + `scenes/`** — sie sind keine „alten Concern-Ordner mit Workflow-Artefakten", sondern
+  bewusst geteilte Engine-Content-Roots.
 
 ### D2 — Auto-Dispatch wandert in die Sub-Skill-`description`
 
@@ -82,15 +91,15 @@ Sub-Skill-`SKILL.md` das Parsen aus `$ARGUMENTS` anweist und auf die Engine-Doku
   SKILL.md                       # dünn: Sub-Skill-Index + globale Flags + Engine-Pointer
   resources/                     # UNVERÄNDERT (Engine-Doku)
   workflow/schemas.yml           # UNVERÄNDERT (engine-weiter Typ WorkflowOutput)
-  skills/
+  design/            tasks/ rules/ blueprints/ resources/ schemas.yml   # SHARED, workflow-los (neben skills/)
+  scenes/            tasks/ schemas.yml                                 # SHARED, workflow-los (neben skills/)
+  skills/                        # NUR die 17 Workflow-Sub-Skills (alle mit SKILL.md)
     design-component/  SKILL.md  workflows/design-component.md      # thin
     design-screen/     SKILL.md  workflows/design-screen.md         # thin
     design-entity/     SKILL.md  workflows/design-entity.md         # thin
     design-shell/      SKILL.md  workflows/design-shell.md          # thin
     design-verify/     SKILL.md  workflows/design-verify.md         # thin
     config-verify/     SKILL.md  workflows/config-verify.md         # thin
-    design/            tasks/ rules/ blueprints/ schemas.yml        # SHARED, workflow-los
-    scenes/            tasks/ schemas.yml                           # SHARED, workflow-los
     vision/       SKILL.md workflows/ tasks/ rules/ schemas.yml
     tokens/       SKILL.md workflows/ tasks/ rules/ schemas.yml
     data-model/   SKILL.md workflows/ tasks/ rules/ blueprints/ schemas.yml
@@ -111,20 +120,33 @@ starten") gilt für die 16 track-baren Workflows; `sb` behält seine Dispatch-Na
 
 ## Exhaustive `$ref`-Rewrites (AC6)
 
-Nur diese Sites ändern sich; die übrigen 134 relativen Refs heilen selbst.
+Da `data-model`/`css-generate` unter `skills/` wandern, aber `design`/`scenes` als Shared-Roots beim
+Parent bleiben (D1 amended), ergeben sich diese Sites. Alle übrigen relativen Refs heilen selbst.
+
+**Skill-qualifizierte + Workflow-Refs:**
 
 | Datei | alt | neu |
 |---|---|---|
-| `designbook/sync/tasks/intake.md:12,29` | `designbook/data-model/schemas.yml#/DataModel` | `designbook/skills/data-model/schemas.yml#/DataModel` |
-| `designbook/sync/tasks/resolve-filter.md:10` | `designbook/data-model/schemas.yml#/DataModel` | `designbook/skills/data-model/schemas.yml#/DataModel` |
-| `designbook-drupal/components/tasks/create-component.md:12,18,38` | `designbook/design/schemas.yml#/{Component,RegionProperties}` | `designbook/skills/design/schemas.yml#/…` |
-| `designbook-drupal/components/tasks/create-variant-story.md:14,16,27,30` | `designbook/design/schemas.yml#/{Component,Variant}` | `designbook/skills/design/schemas.yml#/…` |
-| `designbook-drupal/data-mapping/blueprints/ui-patterns.md:28` (Prosa) | `designbook/scenes/schemas.yml#/ComponentNode` | `designbook/skills/scenes/schemas.yml#/ComponentNode` |
-| `designbook-css-tailwind/tasks/compile-css.md:14` (relativ) | `../../designbook/css-generate/schemas.yml#/CompiledCss` | `../../designbook/skills/css-generate/schemas.yml#/CompiledCss` |
-| `designbook/design/workflows/design-component.md:18` | `../schemas.yml#/Component` | `../../design/schemas.yml#/Component` |
+| `sync-to/tasks/intake.md:12,29` | `designbook/data-model/schemas.yml#/DataModel` | `designbook/skills/data-model/schemas.yml#/DataModel` |
+| `sync-to/tasks/resolve-filter.md:10` | `designbook/data-model/schemas.yml#/DataModel` | `designbook/skills/data-model/schemas.yml#/DataModel` |
+| `designbook-css-tailwind/tasks/compile-css.md:14` | `../../designbook/css-generate/schemas.yml#/CompiledCss` | `../../designbook/skills/css-generate/schemas.yml#/CompiledCss` |
+| `skills/design-component/workflows/design-component.md:18` | `../schemas.yml#/Component` | `../../../design/schemas.yml#/Component` |
+
+drupal `create-component.md`, `create-variant-story.md` (`designbook/design/…`) und `ui-patterns.md`
+(`designbook/scenes/…`) bleiben auf dem **Original**-Pfad (design/scenes wandern nicht).
+
+**Cross-Level relative Refs (durch die asymmetrische Tiefe Shared-Root↔Sub-Skill):**
+
+| Datei | alt | neu |
+|---|---|---|
+| `skills/tokens/tasks/create-tokens.md:17` | `../../design/schemas.yml#/DesignReference` | `../../../design/schemas.yml#/DesignReference` |
+| `skills/sections/tasks/intake--sections.md:23` | `../../scenes/schemas.yml#/SceneFile` | `../../../scenes/schemas.yml#/SceneFile` |
+| `design/tasks/extract-reference.md:18` | `../../vision/schemas.yml#/Vision` | `../../skills/vision/schemas.yml#/Vision` |
+| `design/tasks/intake--design-screen.md:14,22,45` | `../../{data-model,vision,sample-data}/…` | `../../skills/{data-model,vision,sample-data}/…` |
+| `design/tasks/intake--design-entity.md:24,40` | `../../{data-model,sample-data}/…` | `../../skills/{data-model,sample-data}/…` |
 
 `designbook/workflow/schemas.yml#/WorkflowOutput` (Prosa in `outtake--design-workflow.md:47`) bleibt —
-Parent-Whitelist-Datei.
+Parent-Whitelist-Datei. Verifiziert: alle 148 real-artifact `$ref`s lösen auf.
 
 ## Erzwungene Addon-Code-Änderungen (Part 2 — `designbook-addon-skills`)
 

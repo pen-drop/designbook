@@ -14,7 +14,7 @@ params:
       type: object
     extract:
       path: "{{ reference_dir }}/extract.json"
-      $ref: ../../design/schemas.yml#/DesignReference
+      $ref: ../../../design/schemas.yml#/DesignReference
       type: object
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml

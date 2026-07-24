@@ -15,7 +15,7 @@ params:
     vision:
       path: $DESIGNBOOK_DATA/vision.yml
       type: object
-      $ref: ../../vision/schemas.yml#/Vision
+      $ref: ../../skills/vision/schemas.yml#/Vision
     elements:
       type: array
       description: "Named comparison subjects (id + reference selector). When not supplied, ask the user which page regions to capture."

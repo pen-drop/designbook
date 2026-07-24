@@ -11,7 +11,7 @@ params:
     data_model:
       path: $DESIGNBOOK_DATA/data-model.yml
       type: object
-      $ref: ../../data-model/schemas.yml#/DataModel
+      $ref: ../../skills/data-model/schemas.yml#/DataModel
     design_scenes:
       path: $DESIGNBOOK_DATA/design-system/design-system.scenes.yml
       type: object
@@ -19,7 +19,7 @@ params:
     vision:
       path: $DESIGNBOOK_DATA/vision.yml
       type: object
-      $ref: ../../vision/schemas.yml#/Vision
+      $ref: ../../skills/vision/schemas.yml#/Vision
     section_scenes:
       path: $DESIGNBOOK_DATA/sections/[section-id]/[section-id].section.scenes.yml
       workflow: debo-shape-section
@@ -42,7 +42,7 @@ result:
     sample_data_bundles:
       type: array
       items:
-        $ref: ../../sample-data/schemas.yml#/BundleRef
+        $ref: ../../skills/sample-data/schemas.yml#/BundleRef
     section_id:
       type: string
     section_title:

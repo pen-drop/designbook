@@ -25,7 +25,7 @@ The block has **two halves**:
 ## Emit the block with the drush command
 
 Given a ComponentNode (`{ component, props{}, slots{} }`, schema
-`designbook/skills/scenes/schemas.yml#/ComponentNode`), map each prop to its **scene-intent hint** and pass
+`designbook/scenes/schemas.yml#/ComponentNode`), map each prop to its **scene-intent hint** and pass
 the hints to the command in **one call** — it returns the whole `ui_patterns` block with the
 registry half filled in:
 

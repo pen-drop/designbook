@@ -19,7 +19,7 @@ Part 1 — Core skill (one nested sub-skill per workflow)
     skills/<workflow>/SKILL.md             # per-workflow sub-skill (loads the engine)
     skills/<workflow>/workflows/<id>.md    # workflow definition
     skills/<workflow>/{tasks,rules,blueprints}/  # this workflow's content + schemas.yml
-    skills/design/  skills/scenes/         # shared, workflow-less content roots
+    design/  scenes/                       # shared, workflow-less content roots (beside skills/)
     resources/                             # execution engine docs
     workflow/schemas.yml                   # engine-wide types
 

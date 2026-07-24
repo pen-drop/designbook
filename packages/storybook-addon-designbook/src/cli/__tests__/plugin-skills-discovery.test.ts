@@ -104,9 +104,9 @@ describe('plugin skills discovery (config `skills` lookup root)', () => {
     // Plugin-cache layout after the per-workflow sub-skill refactor: the concern
     // is the dir above the kind dir, not the literal `skills/` segment.
     const designbookSource = pluginSources().find((s) => s.name === 'designbook')!;
-    const taskFile = resolve(designbookSource.root, 'skills', 'design', 'tasks', 'capture-storybook.md');
+    const taskFile = resolve(designbookSource.root, 'skills', 'tokens', 'tasks', 'create-tokens.md');
     const name = deriveArtifactName(taskFile, '/unused/agents', null, designbookSource);
-    expect(name).toBe('designbook:design:capture-storybook');
+    expect(name).toBe('designbook:tokens:create-tokens');
   });
 
   it('deriveSkillSourcesFromBase detects a content root whose artifacts sit two levels deep', () => {

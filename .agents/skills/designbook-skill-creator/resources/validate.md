@@ -24,7 +24,7 @@ Validate all skills
 
 ### Step 1 — Discover files
 
-Scan the skill directory for all `.md` files in `tasks/`, `rules/`, `blueprints/`, and `workflows/`; plus any `schemas.yml`; plus `SKILL.md`. For the core skill (`designbook/`), scan all `skills/<workflow>/tasks/`, `skills/<workflow>/rules/`, `skills/<workflow>/workflows/`, the shared `skills/design/` and `skills/scenes/` content roots, and integration-skill `blueprints/` directories.
+Scan the skill directory for all `.md` files in `tasks/`, `rules/`, `blueprints/`, and `workflows/`; plus any `schemas.yml`; plus `SKILL.md`. For the core skill (`designbook/`), scan all `skills/<workflow>/tasks/`, `skills/<workflow>/rules/`, `skills/<workflow>/workflows/`, the shared `design/` and `scenes/` content roots (beside `skills/`), and integration-skill `blueprints/` directories.
 
 Also locate every `schemas.yml` for `$ref` resolution.
 

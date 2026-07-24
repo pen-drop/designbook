@@ -619,7 +619,8 @@ function getWorkflowTitle(fm: WorkflowFrontmatter): string {
  * (core skill: `skills/designbook/skills/<wf>/<kind>/x`).
  *
  * Examples:
- * - `skills/designbook/skills/design/tasks/capture-storybook.md` → `designbook:design:capture-storybook`
+ * - `skills/designbook/skills/tokens/tasks/create-tokens.md` → `designbook:tokens:create-tokens`  (nested sub-skill)
+ * - `skills/designbook/design/tasks/capture-storybook.md` → `designbook:design:capture-storybook`  (shared content root, parent-level)
  * - `skills/designbook-stitch/tasks/stitch-inspect.md` → `designbook-stitch:stitch-inspect`
  * - `skills/designbook-drupal/components/rules/foo.md` → `designbook-drupal:components:foo`
  * - `skills/designbook-sdc/blueprints/component.md` with type=component, name=section → `designbook-sdc:blueprints:component/section`

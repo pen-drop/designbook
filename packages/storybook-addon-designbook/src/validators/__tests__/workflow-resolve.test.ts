@@ -1280,7 +1280,13 @@ describe('deriveArtifactName', () => {
 
   it('derives nested sub-skill name: skill/skills/<wf>/tasks/file.md → concern <wf>', () => {
     const agentsDir = resolve(tmpDir, '.agents');
-    const filePath = resolve(agentsDir, 'skills/designbook/skills/design/tasks/capture-storybook.md');
+    const filePath = resolve(agentsDir, 'skills/designbook/skills/sample-data/tasks/create-sample-data.md');
+    expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook:sample-data:create-sample-data');
+  });
+
+  it('derives shared content-root name (parent-level concern beside skills/)', () => {
+    const agentsDir = resolve(tmpDir, '.agents');
+    const filePath = resolve(agentsDir, 'skills/designbook/design/tasks/capture-storybook.md');
     expect(deriveArtifactName(filePath, agentsDir)).toBe('designbook:design:capture-storybook');
   });
 

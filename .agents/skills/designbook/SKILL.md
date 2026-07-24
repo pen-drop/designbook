@@ -17,12 +17,14 @@ description: >
 
 ## Architecture
 
-Each of the 17 workflows is its own **nested sub-skill** under `skills/<workflow>/`, holding that workflow's `SKILL.md`, `workflows/<id>.md`, and its `tasks/`/`rules/`/`blueprints/`/`schemas.yml`. Two workflow-less **shared** content roots live alongside them:
+Each of the 17 workflows is its own **nested sub-skill** under `skills/<workflow>/`, holding that workflow's `SKILL.md`, `workflows/<id>.md`, and its `tasks/`/`rules/`/`blueprints/`/`schemas.yml`. `skills/` contains **only** these 17 sub-skills (each with a `SKILL.md`).
 
-- `skills/design/` — tasks/rules/blueprints/schema shared by the six design-family workflows.
-- `skills/scenes/` — scene tasks + schema shared by design and sections workflows.
+Content shared across workflows — which belongs to no single workflow — lives in two workflow-less **shared content roots** beside `skills/` at the parent (not under `skills/`, so `skills/` stays a clean list of real sub-skills):
 
-Engine docs (`resources/`) and the engine-wide `workflow/schemas.yml` stay here at the parent.
+- `design/` — tasks/rules/blueprints/schema shared by the six design-family workflows.
+- `scenes/` — scene tasks + schema shared by design and sections workflows.
+
+Both are still discovered by the engine's `skills/**` globs (they sit under `.agents/skills/designbook/`). Engine docs (`resources/`) and the engine-wide `workflow/schemas.yml` also stay at the parent.
 
 Each sub-skill is independently addressable (its `name` = the workflow ID) and declares its own auto-dispatch triggers in its `description`. To run a workflow, load its sub-skill (e.g. `skills/tokens/SKILL.md`) and follow it — it loads the engine and starts `_debo workflow create --workflow <id>` itself.
 
@@ -60,7 +62,7 @@ Parsed from `$ARGUMENTS` by each sub-skill before it dispatches. Flags are not s
 | `sync-to` | [skills/sync-to/](skills/sync-to/SKILL.md) | Export the data model as Drupal config YAML |
 | `sb` | [skills/sb/](skills/sb/SKILL.md) | Manage the Storybook dev server (CLI passthrough) |
 
-Shared content roots (no workflow): [skills/design/](skills/design/), [skills/scenes/](skills/scenes/).
+Shared content roots (no workflow, beside `skills/` at the parent): [design/](design/), [scenes/](scenes/).
 
 ## Resources
 

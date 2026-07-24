@@ -16,8 +16,8 @@ Main skill at `.agents/skills/designbook/` — a thin index (`SKILL.md`) over on
 
 | Root | Shared by | Contents |
 |------|-----------|----------|
-| `skills/design/` | the six design-family workflows | `tasks/`, `rules/`, `blueprints/`, `resources/`, `schemas.yml` |
-| `skills/scenes/` | design + sections workflows | `tasks/`, `schemas.yml` |
+| `design/` | the six design-family workflows | `tasks/`, `rules/`, `blueprints/`, `resources/`, `schemas.yml` |
+| `scenes/` | design + sections workflows | `tasks/`, `schemas.yml` |
 
 ## Part 2 — Storybook Addon (`storybook-addon-designbook`)
 
