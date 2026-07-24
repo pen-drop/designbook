@@ -16,6 +16,7 @@
 - **Core stays backend-neutral** — Drupal/drush specifics live in the integration skill as command strings + config, no new backend code in core.
 - **Schema-first** — prefer enums/required/validators in schemas over imperative rules.
 - **M3 chosen fork:** skip the injected component-enum constraint for **result validation at pre-component stages** only. Do NOT loosen schema validation anywhere else, and do NOT use the union-enum variant.
+  - **As-built deviation (confirmed intentional, commit `36de6809`):** the enum module was removed entirely instead of being gated per stage. Component existence is now validated at done-time by the `scene` validator's live-index walk (`validateSceneAgainstInventory`), which avoids false-rejecting components created during the same run. Consequence: `ComponentNode.component` in **data** results without a scene validator (e.g. canvas sample-data records) has no component-existence validation.
 - **M5 chosen form:** package helpers as **addon CLI subcommands** (vitest-covered) wherever feasible; a loose skill-resource script is only a fallback when a helper genuinely cannot live in the addon.
 - **debo-test tester runs from a plain checkout, NOT inside this git worktree** — its setup scripts do `git reset --hard` / `git clean -fd` and assume the theme dir is its own git repo.
 - **Touch component files after creation** to defeat the Storybook watcher race; restart Storybook with `npx addon start --force`.

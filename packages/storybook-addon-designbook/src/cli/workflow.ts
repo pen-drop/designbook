@@ -411,6 +411,42 @@ export async function filterActiveAfterDeclarations(
 }
 
 /**
+ * Load a workflow definition's active `after:` declarations for a running
+ * workflow, filtered by `when:` conditions evaluated over the parent's params.
+ * Shared by `workflow done` and `workflow batch-done` so both paths hold the
+ * parent and auto-create the declared child workflows identically.
+ *
+ * Two separate scopes:
+ *   1. Definition lookup — degrades to [] on operational failures (missing skills
+ *      dir, definition not found, etc.), e.g. bare test workspaces without agents.
+ *   2. filterActiveAfterDeclarations — runs OUTSIDE the degrading catch. A JSONata
+ *      error from an invalid `when:` expression is an AUTHORING error and must
+ *      propagate so the author sees it rather than silently skipping after-workflows.
+ */
+export async function loadActiveAfterDeclarations(
+  workflowName: string,
+  config: import('../config.js').DesignbookConfig,
+): Promise<AfterDeclaration[]> {
+  let allAfter: AfterDeclaration[] = [];
+  let parentParams: Record<string, unknown> = {};
+  try {
+    const changesPath = resolve(config.data, 'workflows', 'changes', workflowName, 'tasks.yml');
+    const parentMeta = readWorkflow(changesPath);
+    const workflowId = parentMeta.workflow;
+    const configPath = findConfig();
+    const configDir = configPath ? dirname(configPath) : process.cwd();
+    const agentsDir = resolveSkillsRoot(configDir);
+    const sources = resolveSkillSources(configDir);
+    allAfter = loadWorkflowDefinition(workflowId, agentsDir, sources).after;
+    parentParams = parentMeta.params ?? {};
+  } catch (lookupErr) {
+    console.warn(`Could not load after: declarations — proceeding without: ${(lookupErr as Error).message}`);
+    return [];
+  }
+  return filterActiveAfterDeclarations(allAfter, parentParams);
+}
+
+/**
  * Create the child workflows declared in a parent's `after:` block.
  *
  * For each declaration, evaluate every params-mapping value as a JSONata
@@ -722,30 +758,7 @@ export function register(program: Command): void {
       try {
         // Load the workflow definition's `after:` declarations so a final done
         // can hold the parent and auto-create the declared child workflows.
-        // Filter to active declarations only (when: condition evaluated over parent params).
-        //
-        // Two separate scopes:
-        //   1. Definition lookup — degrades to [] on operational failures (missing skills dir,
-        //      definition not found, etc.), e.g. bare test workspaces without agents.
-        //   2. filterActiveAfterDeclarations — runs OUTSIDE the degrading catch. A JSONata
-        //      error from an invalid `when:` expression is an AUTHORING error and must
-        //      propagate so the author sees it rather than silently skipping after-workflows.
-        let allAfter: AfterDeclaration[] = [];
-        let parentParams: Record<string, unknown> = {};
-        try {
-          const changesPath = resolve(config.data, 'workflows', 'changes', opts.workflow, 'tasks.yml');
-          const parentMeta = readWorkflow(changesPath);
-          const workflowId = parentMeta.workflow;
-          const configPath = findConfig();
-          const configDir = configPath ? dirname(configPath) : process.cwd();
-          const agentsDir = resolveSkillsRoot(configDir);
-          const sources = resolveSkillSources(configDir);
-          allAfter = loadWorkflowDefinition(workflowId, agentsDir, sources).after;
-          parentParams = parentMeta.params ?? {};
-        } catch (lookupErr) {
-          console.warn(`Could not load after: declarations — proceeding without: ${(lookupErr as Error).message}`);
-        }
-        const after = await filterActiveAfterDeclarations(allAfter, parentParams);
+        const after = await loadActiveAfterDeclarations(opts.workflow, config);
 
         const result = await workflowDone(config.data, opts.workflow, opts.task, loaded, {
           summary: opts.summary,
@@ -883,7 +896,19 @@ export function register(program: Command): void {
       const config = loadConfig();
       try {
         const { runBatchDone } = await import('./workflow-batch-done.js');
-        const results = await runBatchDone(config.data, opts.workflow, opts.dir, config);
+        // Same after: handling as single `workflow done`: load the definition's
+        // active declarations once, thread them through every submission, and
+        // auto-create the declared child workflows when the batch completes the
+        // workflow — otherwise a batched final stage would archive the parent
+        // with no hold and no children (the M4 after-hook machinery defeated).
+        const after = await loadActiveAfterDeclarations(opts.workflow, config);
+        const { results, awaitingAfter, parentParams } = await runBatchDone(
+          config.data,
+          opts.workflow,
+          opts.dir,
+          config,
+          after,
+        );
         log({ cmd: 'workflow batch-done', args: { workflow: opts.workflow, dir: opts.dir }, result: results });
         const failed = results.filter((r) => !r.valid);
         for (const r of results) {
@@ -893,6 +918,16 @@ export function register(program: Command): void {
         console.log(`\n${results.length - failed.length}/${results.length} tasks submitted`);
         console.log(`BATCH_RESULT: ${JSON.stringify(results)}`);
         if (failed.length > 0) process.exitCode = 1;
+
+        if (awaitingAfter) {
+          const children = await createAfterWorkflows(awaitingAfter, opts.workflow, parentParams ?? {}, config);
+          console.log(`Workflow ${opts.workflow} awaiting after-workflows`);
+          console.log(`NEXT_WORKFLOWS: ${JSON.stringify(children)}`);
+          console.log(
+            'Dispatch ONE subagent per workflow: "execute workflow <name> to completion". ' +
+              'The parent completes automatically when all children complete.',
+          );
+        }
       } catch (err) {
         console.error(`Error: ${(err as Error).message}`);
         process.exitCode = 1;

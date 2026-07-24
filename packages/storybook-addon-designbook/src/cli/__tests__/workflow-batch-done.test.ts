@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path';
 import { dump as dumpYaml } from 'js-yaml';
 import { loadConfig } from '../../config.js';
 import { parseBatchEntry, readBatchEntries, runBatchDone } from '../workflow-batch-done.js';
-import type { WorkflowFile } from '../../workflow.js';
+import { readWorkflow, type WorkflowFile } from '../../workflow.js';
 
 describe('workflow-batch-done: parsing', () => {
   it('parses a well-formed entry', () => {
@@ -117,7 +117,7 @@ describe('workflow-batch-done: submission', () => {
     writeBatchFile(dir, 'card.json', { task: 'card', data: { note: 'c' }, summary: 'card done' });
     writeBatchFile(dir, 'hero.json', { task: 'hero', data: { note: 'h' } });
 
-    const results = await runBatchDone(config.data, 'batch-run', dir, config);
+    const { results } = await runBatchDone(config.data, 'batch-run', dir, config);
     expect(results).toHaveLength(2);
     expect(results.every((r) => r.valid)).toBe(true);
     expect(results.map((r) => r.task).sort()).toEqual(['card', 'hero']);
@@ -132,7 +132,7 @@ describe('workflow-batch-done: submission', () => {
     // First run completes the task.
     await runBatchDone(config.data, 'batch-run', dir, config);
     // Re-run: the task is already done — must be reported valid + skipped, not a failure.
-    const results = await runBatchDone(config.data, 'batch-run', dir, config);
+    const { results } = await runBatchDone(config.data, 'batch-run', dir, config);
     expect(results).toHaveLength(1);
     expect(results[0]!.task).toBe('card');
     expect(results[0]!.valid).toBe(true);
@@ -146,10 +146,28 @@ describe('workflow-batch-done: submission', () => {
     writeBatchFile(dir, 'card.json', { task: 'card', data: { note: 'c' } });
     writeBatchFile(dir, 'ghost.json', { task: 'does-not-exist', data: { note: 'x' } });
 
-    const results = await runBatchDone(config.data, 'batch-run', dir, config);
+    const { results } = await runBatchDone(config.data, 'batch-run', dir, config);
     const byTask = Object.fromEntries(results.map((r) => [r.task, r]));
     expect(byTask['card']!.valid).toBe(true);
     expect(byTask['does-not-exist']!.valid).toBe(false);
     expect(byTask['does-not-exist']!.errors.join(' ')).toMatch(/Task not found/);
+  });
+
+  it('surfaces awaitingAfter when the batch completes a workflow with after: declarations', async () => {
+    const config = loadConfig();
+    writeWorkflow('batch-run');
+    const dir = join(tmpRoot, 'batch');
+    writeBatchFile(dir, 'card.json', { task: 'card', data: { note: 'c' } });
+    writeBatchFile(dir, 'hero.json', { task: 'hero', data: { note: 'h' } });
+
+    const after = [{ workflow: 'design-verify', params: { story_id: 'story_id' } }];
+    const outcome = await runBatchDone(config.data, 'batch-run', dir, config, after);
+
+    expect(outcome.results.every((r) => r.valid)).toBe(true);
+    // The workflow must be HELD, not archived — the declarations reach the caller
+    // so it can create the child workflows (same contract as single `workflow done`).
+    expect(outcome.awaitingAfter).toEqual(after);
+    const meta = readWorkflow(resolve(dataDir, 'workflows', 'changes', 'batch-run', 'tasks.yml'));
+    expect(meta.status).toBe('awaiting-after');
   });
 });

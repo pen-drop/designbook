@@ -8,6 +8,12 @@
  * `workflow done --data`, so validation is identical — only the loop moves into
  * the addon. Per-task pass/fail is reported and any failure makes the run fail.
  *
+ * After-hooks are identical to the single-done path too: the caller passes the
+ * definition's active `after:` declarations, and when the batch completes the
+ * workflow the outcome carries the unsatisfied declarations (`awaitingAfter`)
+ * plus the parent params, so the CLI can create the child workflows instead of
+ * archiving the parent silently.
+ *
  * Each `*.json` file in the directory is one submission:
  *   { "task": "<task-id>", "data": { <result keys> }, "summary"?: "<text>" }
  */
@@ -16,6 +22,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { workflowDone } from '../workflow.js';
 import type { DesignbookConfig } from '../config.js';
+import type { AfterDeclaration } from '../workflow-types.js';
 
 export interface BatchDoneEntry {
   task: string;
@@ -29,6 +36,18 @@ export interface BatchDoneResult {
   errors: string[];
   /** True when the task was already `done` (idempotent re-run) and was skipped, not re-submitted. */
   skipped?: boolean;
+}
+
+export interface BatchDoneOutcome {
+  results: BatchDoneResult[];
+  /**
+   * Set when the batch completed the workflow and it is now held in
+   * awaiting-after: the still-unsatisfied `after:` declarations. The caller
+   * turns them into child workflows via createAfterWorkflows.
+   */
+  awaitingAfter?: AfterDeclaration[];
+  /** Parent params captured at completion time, for after-hook param resolution. */
+  parentParams?: Record<string, unknown>;
 }
 
 export interface ReadBatchResult {
@@ -85,21 +104,34 @@ export function readBatchEntries(dir: string): ReadBatchResult {
  * batch) is reported valid + skipped, so re-running after a repair does not fail
  * on tasks that already succeeded. Any other thrown error (unknown task) or
  * hard-gate `validation_errors` is recorded as a failed task; other tasks still run.
+ *
+ * The definition's active `after:` declarations are threaded into every
+ * submission (same as single `workflow done`); when the batch completes the
+ * workflow, the outcome surfaces the unsatisfied declarations so the caller can
+ * create the child workflows.
  */
 export async function submitBatch(
   dataDir: string,
   name: string,
   entries: BatchDoneEntry[],
   config: DesignbookConfig,
-): Promise<BatchDoneResult[]> {
+  after: AfterDeclaration[] = [],
+): Promise<BatchDoneOutcome> {
   const results: BatchDoneResult[] = [];
+  let awaitingAfter: AfterDeclaration[] | undefined;
+  let parentParams: Record<string, unknown> | undefined;
   for (const entry of entries) {
     try {
       const res = await workflowDone(dataDir, name, entry.task, undefined, {
         config,
         data: entry.data,
         ...(entry.summary !== undefined ? { summary: entry.summary } : {}),
+        after,
       });
+      if (res.awaitingAfter) {
+        awaitingAfter = res.awaitingAfter;
+        parentParams = res.data.params ?? {};
+      }
       const validationErrors = (res.response?.validation_errors as string[] | undefined) ?? [];
       results.push({ task: entry.task, valid: validationErrors.length === 0, errors: validationErrors });
     } catch (err) {
@@ -111,21 +143,22 @@ export async function submitBatch(
       }
     }
   }
-  return results;
+  return { results, ...(awaitingAfter ? { awaitingAfter, parentParams } : {}) };
 }
 
 /**
  * Read a directory of batch entries and submit them. Per-file parse failures are
  * prepended to the per-task submission results, so the caller sees every file's
- * outcome in one list. Returns per-task results.
+ * outcome in one list.
  */
 export async function runBatchDone(
   dataDir: string,
   name: string,
   dir: string,
   config: DesignbookConfig,
-): Promise<BatchDoneResult[]> {
+  after: AfterDeclaration[] = [],
+): Promise<BatchDoneOutcome> {
   const { entries, failures } = readBatchEntries(dir);
-  const submitted = await submitBatch(dataDir, name, entries, config);
-  return [...failures, ...submitted];
+  const outcome = await submitBatch(dataDir, name, entries, config, after);
+  return { ...outcome, results: [...failures, ...outcome.results] };
 }
