@@ -47,6 +47,16 @@
       "skills": [
         "./"
       ]
+    },
+    {
+      "name": "designbook-gaia",
+      "source": "./.agents/skills/designbook-gaia",
+      "strict": false,
+      "description": "GAIA integration for Designbook — the design-to-designbook and designbook-to-config workflow-step skills (requires the gaia plugin loaded)",
+      "category": "design",
+      "skills": [
+        "./"
+      ]
     }
   ]
 }
