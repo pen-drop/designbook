@@ -343,6 +343,32 @@ export function registerChild(dataDir: string, parentName: string, child: { name
 }
 
 /**
+ * Force-archive a workflow — the supported recovery path for a parent stuck in
+ * `awaiting-after` (e.g. a child that was created out-of-band and never cascaded,
+ * or an after-hook that failed to fire). Mirrors `cascadeParent`'s archive step:
+ * roll up any child result summaries, then archive with the summary kept. Unlike
+ * `cascadeParent`, it does not require every child to be archived first, and it
+ * cascades to a grandparent so a stuck chain unblocks in one call.
+ */
+export function workflowArchive(dataDir: string, name: string): WorkflowFile {
+  const filePath = resolve(dataDir, 'workflows', 'changes', name, 'tasks.yml');
+  if (!existsSync(filePath)) {
+    throw new Error(`Workflow not found in changes: ${name}`);
+  }
+  const data = readWorkflow(filePath);
+  appendChildResultSummary(dataDir, data);
+  archiveWorkflow(dataDir, name, data, { keepSummary: !!data.summary });
+  if (data.parent) {
+    try {
+      cascadeParent(dataDir, data.parent);
+    } catch (err) {
+      console.warn(`cascade to parent failed: ${(err as Error).message}`);
+    }
+  }
+  return data;
+}
+
+/**
  * Archive a workflow as incomplete (user declined to resume).
  * Dispatches engine.cleanup() to tear down any isolation (e.g. git branch).
  */
@@ -1062,6 +1088,11 @@ export async function workflowDone(
   // valid/error but fall through to archive even when validation fails.
   const validationGate = (data.scope?.validation_gate as 'hard' | 'soft') ?? 'hard';
 
+  // Component existence is validated at done-time by the `scene` validator's
+  // live-index inventory walk (validateSceneAgainstInventory), which always
+  // reflects the current Storybook index — no stale schema-level enum needed.
+  const validationSchemas = (data.schemas ?? {}) as Record<string, object>;
+
   // ── Process --data: distribute keys to result entries ──────────────
   if (options?.data && task.result) {
     const dataPayload = options.data;
@@ -1120,13 +1151,13 @@ export async function workflowDone(
         // Validate: schema against raw data (avoids parsing .md back as YAML),
         // semantic validators against the written file
         const config = options.config ?? { data: dataDir, technology: 'html' as const, extensions: [] };
-        const schemaErrors = await validateResultEntry(resultEntry, value, data.schemas, config, 'data');
+        const schemaErrors = await validateResultEntry(resultEntry, value, validationSchemas, config, 'data');
         const semanticErrors =
           resultEntry.validators && resultEntry.validators.length > 0
             ? await validateResultEntry(
                 { ...resultEntry, schema: undefined },
                 writtenPath,
-                data.schemas,
+                validationSchemas,
                 config,
                 'file',
               )
@@ -1166,7 +1197,7 @@ export async function workflowDone(
       } else {
         // Data result: store inline
         const config = options.config ?? { data: dataDir, technology: 'html' as const, extensions: [] };
-        const errors = await validateResultEntry(resultEntry, value, data.schemas, config, 'data');
+        const errors = await validateResultEntry(resultEntry, value, validationSchemas, config, 'data');
         if (errors.length > 0) {
           validationErrors.push(...errors.map((e) => `${key}: ${e}`));
           resultEntry.valid = false;
@@ -1862,6 +1893,10 @@ export async function workflowResult(
   const isFileResult = !!resultEntry.path;
   const errors: string[] = [];
 
+  // Component existence is validated by the `scene` validator's live-index
+  // inventory walk (validateSceneAgainstInventory) — mirrors workflowDone.
+  const validationSchemas = (data.schemas ?? {}) as Record<string, object>;
+
   // ── File result: only accepted for submission: direct declarations ───────
   if (isFileResult) {
     if (resultEntry.submission !== 'direct') {
@@ -1900,7 +1935,7 @@ export async function workflowResult(
     }
 
     // Validate file content
-    const validationErrors = await validateResultEntry(resultEntry, writtenPath, data.schemas, config, 'file');
+    const validationErrors = await validateResultEntry(resultEntry, writtenPath, validationSchemas, config, 'file');
 
     if (validationErrors.length > 0) {
       errors.push(...validationErrors);
@@ -1957,7 +1992,7 @@ export async function workflowResult(
   }
 
   // Validate data content
-  const validationErrors = await validateResultEntry(resultEntry, dataValue, data.schemas, config, 'data');
+  const validationErrors = await validateResultEntry(resultEntry, dataValue, validationSchemas, config, 'data');
 
   if (validationErrors.length > 0) {
     errors.push(...validationErrors);

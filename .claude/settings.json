@@ -9,6 +9,8 @@
       "Grep",
       "WebFetch(*)",
       "WebSearch",
+      "mcp__claude-in-chrome__*",
+      "mcp__stitch__*",
       "Skill(update-config)"
     ]
   },

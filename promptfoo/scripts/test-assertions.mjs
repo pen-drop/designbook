@@ -9,6 +9,7 @@
  *          node promptfoo/scripts/test-assertions.mjs  (runs all for default suite)
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -97,12 +98,22 @@ function buildOutput(workspaceDir) {
     } catch { /* skip */ }
   }
 
+  // Harness-computed sha256 of every output file (bytes) — mirrors the claude-cli
+  // provider so offline assertion checks see the same tester-computed digests.
+  const fileHashes = {};
+  for (const filePath of newFiles) {
+    try {
+      fileHashes[filePath] = createHash("sha256").update(readFileSync(join(workspaceDir, filePath))).digest("hex");
+    } catch { /* skip */ }
+  }
+
   return {
     text: "(simulated — no Claude output)",
     newFiles,
     archivedWorkflows,
     pendingWorkflows,
     fileContents,
+    fileHashes,
   };
 }
 

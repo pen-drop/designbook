@@ -17,3 +17,7 @@ autoresearch-results.tsv
 .pnpm-store/
 /designbook/
 /research-runs/
+# gaia / dropsh local state (not committed)
+.dropsh/
+.gaia/conductor.config.local.js
+.gaia-worktrees

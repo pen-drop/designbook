@@ -7,7 +7,7 @@ import { renderPlan } from '../render.js';
 
 const REPO_ROOT = resolve(__dirname, '..', '..', '..', '..', '..');
 const AGENTS_DIR = resolve(REPO_ROOT, '.agents');
-const WORKFLOW = resolve(AGENTS_DIR, 'skills/designbook/design/workflows/design-shell.md');
+const WORKFLOW = resolve(AGENTS_DIR, 'skills/designbook/skills/design-shell/workflows/design-shell.md');
 
 describe('smoke: design-shell plan', () => {
   let previousCwd: string;

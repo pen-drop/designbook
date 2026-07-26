@@ -1,7 +1,7 @@
 ---
 name: designbook:design:playwright-capture
 trigger:
-  steps: [ensure-baseline, capture, re-capture, compare, re-compare, polish, extract-reference]
+  steps: [ensure-baseline, ensure-baseline-live, capture, re-capture, capture-backend, re-capture-backend, compare, re-compare, polish, polish-config, extract-reference]
 ---
 
 # Playwright Capture
@@ -148,6 +148,22 @@ scroll height and can be clipped despite full-page.
 - **Output directories** — reference baselines write to `references/<hash>/`; story captures write to `stories/<id>/screenshots/`. Directories MUST be created before capture (`mkdir -p`).
 - Reuse an open session across multiple captures for the same URL — only `open`/`close` once
 
+## Context Hygiene
+
+Raw browser dumps MUST NOT enter the conversation — they inflate context by
+hundreds of thousands of tokens across a run and crowd out the actual work.
+
+- **Write every raw dump to a file, then query it.** DOM/style/accessibility
+  snapshots, full stylesheets, `/index.json`, and `extract.json` itself go to a
+  file (workspace tmp or `/tmp`); read only the distilled answer back with
+  `jq` / `python3` / `grep`. Never paste a page snapshot or a full stylesheet
+  into the conversation.
+- **Prefer the shipped commands over improvised one-liners.** `_debo extract`
+  writes `extract.json` + `captured.json` to disk in one browser pass — query
+  them with `jq`, do not echo them. `_debo capture matrix` and
+  `_debo storybook check` likewise emit compact JSON result lines; consume those,
+  not raw page state.
+
 ## Storybook Restart
 
 After modifying component templates, scene definitions, or CSS during a polish step, Storybook MUST be restarted before recapture:
@@ -155,3 +171,14 @@ After modifying component templates, scene definitions, or CSS during a polish s
 ```bash
 _debo storybook start --force
 ```
+
+The `_debo capture matrix <meta.yml> --url <url> --out <dir>` command captures the
+whole element × state × breakpoint matrix in one browser session (widths from
+`design-tokens.yml`): it expands `meta.elements[]` × `states[]` × `breakpoints[]`,
+isolates each element's `selector`, runs each state's `steps`, names each PNG
+`<breakpoint>--<element>--<state>.png`, reuses frozen PNGs, takes an optional
+`--consent-selector` to dismiss a consent banner once, and fails loudly if the
+meta plans zero cells. For a single element/story shot use
+`_debo capture screenshot --url <url> --selector <sel> --width <px> --out <png>
+[--steps <json>] [--consent-selector <sel>]`. Use these instead of re-improvising
+per-breakpoint one-liners.

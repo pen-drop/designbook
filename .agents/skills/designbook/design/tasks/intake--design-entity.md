@@ -21,7 +21,7 @@ params:
     data_model:
       path: $DESIGNBOOK_DATA/data-model.yml
       type: object
-      $ref: ../../data-model/schemas.yml#/DataModel
+      $ref: ../../skills/data-model/schemas.yml#/DataModel
 result:
   type: object
   required: [components, entity_mappings, sample_data_bundles, section_id, entity_type, bundle, view_mode]
@@ -37,7 +37,7 @@ result:
     sample_data_bundles:
       type: array
       items:
-        $ref: ../../sample-data/schemas.yml#/BundleRef
+        $ref: ../../skills/sample-data/schemas.yml#/BundleRef
     section_id:
       type: string
       description: Tag value written to __designbook.section on the generated records (use the bundle name; the entity view selects records by index, so the tag is just a label).

@@ -1,0 +1,7 @@
+<section{{ attributes.addClass(['hero', 'w-full', reverse ? 'hero--reverse' : '']|filter(c => c)) }}>
+  <div class="hero__inner mx-auto max-w-[1200px] px-4 py-12 md:px-8">
+    {% if title %}<h{{ heading_level ?? 1 }} class="hero__title">{{ title }}</h{{ heading_level ?? 1 }}>{% endif %}
+    {% if text %}<div class="hero__text">{{ text }}</div>{% endif %}
+    {% if button %}<div class="hero__button">{{ button }}</div>{% endif %}
+  </div>
+</section>

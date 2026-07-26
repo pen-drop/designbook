@@ -15,7 +15,7 @@ params:
     vision:
       path: $DESIGNBOOK_DATA/vision.yml
       type: object
-      $ref: ../../vision/schemas.yml#/Vision
+      $ref: ../../skills/vision/schemas.yml#/Vision
     elements:
       type: array
       description: "Named comparison subjects (id + reference selector). When not supplied, ask the user which page regions to capture."
@@ -46,6 +46,10 @@ result:
 
 Resolves a design reference URL from `vision.yml`, extracts structure into a `DesignReference` (`extract.json`), writes the `Reference` (`meta.yml`), and emits the baseline screenshot matrix.
 
+## Extract mechanics
+
+Run `_debo extract <reference-url> --out {{ reference_dir }} [--breakpoints sm,xl] [--fonts <families>]` first — one browser pass that writes an `extract.json` skeleton (landmarks, interactive elements, forms, images/assets, fonts, colors) plus the raw `captured.json`. Then fill the judgment gaps below against that skeleton: the command supplies the mechanics; deciding what matters and what is thin is the model work that stays in this task. Per the `playwright-capture` context-hygiene rule, query `captured.json`/`extract.json` with `jq` — never paste the raw dumps into the conversation.
+
 ## No reference
 
 When `reference_folder` is empty (the project has no design reference), there is nothing to extract. Complete the task with `reference_dir: ""`, do not submit `reference`, and return an empty `reference_screenshots` list — no extraction, no asset download, no files written. Downstream stages run reference-free.
@@ -73,6 +77,10 @@ After extraction completes, write `{{ reference_dir }}/meta.yml` as a `Reference
 - `elements`: the confirmed element list. For each element, derive `states` from `extract.json`'s `interactive[]` entries whose selector matches the element's selector — add each `CaptureState` found (name + steps). If no interactive behavior is found, default to `[{ name: rest }]`.
 - `extract`: `"extract.json"` (relative path to the DesignReference).
 - `assets_dir`: `"assets/"`.
+
+## Result: reference_dir
+
+`reference_dir` is the extraction output directory — the resolved `reference_folder` where `extract.json`, `meta.yml`, and the baseline PNGs are written. It is **required on every completion**, including alongside `reference` and `reference_screenshots` on the normal path (only the no-reference case above submits it empty). A completion carrying `reference` without `reference_dir` is rejected.
 
 ## Result: reference_screenshots
 

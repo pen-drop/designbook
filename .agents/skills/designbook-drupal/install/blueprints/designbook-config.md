@@ -34,13 +34,14 @@ extensions:
     skill: designbook-drupal
 # Backend command strings — interpolated as {{ backend_cmd.* }} by sync tasks.
 # Core runs these opaquely; no drush/Drupal knowledge lives in core.
-# Both commands are provided by the designbook_config_schema drush helper module
-# shipped under web/modules/custom/designbook_config_schema/ in this integration
-# and enabled automatically by scripts/start-drupal-workspace.sh.
+# Both commands are provided by the designbook module, published to drupal.org
+# (drupal/designbook, https://www.drupal.org/project/designbook, 1.x) and required
+# like any other contrib module.
 backend_cmd:
   cmd: "ddev drush"
   schema_cmd: "ddev drush designbook:config-schema"   # prints JSON Schema for a config name; append config name
   validate_cmd: "ddev drush designbook:config-validate"  # exit non-zero + violations on stderr when invalid; append config name + yaml path
+  ui_pattern_cmd: "ddev drush designbook:ui-pattern"  # emits the whole ui_patterns block (component_id, variant_id, props, slots) as JSON; append '<set>:<component>' --props=<json ComponentNode props/slots>
   import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"  # container path is the in-container view of the host config_sync_dir that write-config's YAML lands in
   exists_cmd: "ddev drush config:get"  # exit 0 iff a config object already exists; append config name. Used by resolve-filter to skip config that is already present.
 ```
@@ -60,14 +61,20 @@ during install for plain CSS.
 
 The `backend_cmd` block is **data only** — its values are consumed as
 `{{ backend_cmd.cmd }}`, `{{ backend_cmd.schema_cmd }}`, `{{ backend_cmd.validate_cmd }}`,
-`{{ backend_cmd.import }}`, and `{{ backend_cmd.exists_cmd }}` by sync tasks. Core runs
-the resulting command strings opaquely: no drush or Drupal knowledge lives in core.
+`{{ backend_cmd.ui_pattern_cmd }}`, `{{ backend_cmd.import }}`, and `{{ backend_cmd.exists_cmd }}`
+by sync and data-mapping tasks. Core runs the resulting command strings opaquely: no drush or
+Drupal knowledge lives in core.
 
 `schema_cmd` calls `designbook:config-schema <config_name>` → JSON Schema on stdout,
 exit 0. `validate_cmd` calls `designbook:config-validate <config_name> <yaml_path>` →
-exit 0 when valid; exit 1 + violation JSON on stderr when invalid. Both commands are
-implemented in `web/modules/custom/designbook_config_schema/` (shipped with this
-integration) and enabled by `scripts/start-drupal-workspace.sh`.
+exit 0 when valid; exit 1 + violation JSON on stderr when invalid. `ui_pattern_cmd` calls
+`designbook:ui-pattern '<set>:<component>' --props=<json>` → the whole `ui_patterns` block
+(`component_id`, `variant_id`, `props`, `slots`) as JSON on stdout, exit 0; it is the source of
+truth for the Drupal-registry half of the UI Patterns 2 mapping (see the `ui-patterns`
+data-mapping blueprint). `schema_cmd`/`validate_cmd` are implemented in the `designbook` module;
+`ui_pattern_cmd` in its `designbook_ui_patterns` submodule (which depends on `ui_patterns` 2.x).
+All are published to drupal.org as `drupal/designbook`
+(https://www.drupal.org/project/designbook, 1.x) and required like any other contrib module.
 
 `import` is a complete, ready-to-run command that applies the config-sync directory to
 the live backend. `write-config`'s YAML lands host-side at the resolved

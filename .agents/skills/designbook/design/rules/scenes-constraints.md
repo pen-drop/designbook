@@ -1,6 +1,6 @@
 ---
 trigger:
-  steps: [create-scene, map-entity]
+  steps: [create-scene-file, create-scene, map-entity]
 ---
 
 # Scenes Critical Constraints

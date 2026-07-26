@@ -16,7 +16,6 @@ import type { SkillSource } from './skill-sources.js';
 import { buildSchemaBlock } from './schema-block.js';
 import type { SchemaBlock } from './schema-block.js';
 import { interpolate } from './template/interpolate.js';
-import { injectComponentsEnum } from './workflow-resolve-components-enum.js';
 import { computeMergedSchema } from './workflow-schema-merge.js';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -142,16 +141,22 @@ function toSourcePattern(globPattern: string): string {
 /**
  * Derive a namespaced artifact name for a file found under a plugin SkillSource.
  *
- * - `<concern>/<kind>/<artifact>.md` → `${name}:${concern}:${artifact}`
- * - flat `<kind>/<artifact>.md`     → `${name}:${artifact}`
+ * The concern is the directory **directly containing** the kind dir
+ * (`tasks/`|`rules/`|`blueprints/`|`workflows/`) — i.e. the segment two levels
+ * above the artifact file. This holds for both the flat concern layout and the
+ * nested sub-skill layout (`skills/<wf>/<kind>/<artifact>.md` → concern `<wf>`).
+ *
+ * - `<concern>/<kind>/<artifact>.md`        → `${name}:${concern}:${artifact}`
+ * - `skills/<wf>/<kind>/<artifact>.md`      → `${name}:${wf}:${artifact}`
+ * - flat `<kind>/<artifact>.md`             → `${name}:${artifact}`
  */
 function derivePluginArtifactName(source: SkillSource, filePath: string): string {
   const rel = relative(source.root, filePath).replace(/\\/g, '/');
   const parts = rel.split('/');
   const artifact = (parts[parts.length - 1] ?? '').replace(/\.md$/, '');
-  // <concern>/<kind>/<artifact>.md → 3+ segments
+  // <…>/<concern>/<kind>/<artifact>.md → 3+ segments
   if (parts.length >= 3) {
-    const concern = parts[0]!;
+    const concern = parts[parts.length - 3]!;
     return `${source.name}:${concern}:${artifact}`;
   }
   // flat <kind>/<artifact>.md → 2 segments
@@ -361,11 +366,10 @@ export interface TaskForSchemaResolution {
  * Used at plan time (via `collectAndResolveSchemas`) and again at runtime when new
  * tasks are expanded during stage transitions (e.g. via `expandTasksFromParams`).
  *
- * After $ref resolution, if any task carries a resolved `components` param with
- * an inventory of `{id: string}` entries, returns a clone of the schemas map with
- * `ComponentNode.component` constrained to those ids via `injectComponentsEnum`.
- * Only the first task with a non-empty inventory is used; callers must not stage
- * conflicting inventories across tasks.
+ * Component-existence is NOT enforced here via a schema enum: the `scene` validator's
+ * live-index inventory walk (`validateSceneAgainstInventory`) checks every `component:`
+ * reference against the current Storybook index at `workflow done` time, which stays
+ * correct as components are created within a run.
  */
 export function resolveSchemasForTasks(
   tasks: TaskForSchemaResolution[],
@@ -459,25 +463,6 @@ export function resolveSchemasForTasks(
     }
   }
 
-  // Dynamic enum injection — when a task's `components` param resolved to an
-  // inventory, constrain ComponentNode.component to those ids in the shared
-  // schema map. Affects only the compiled schemas; on-disk scene schema is
-  // untouched.
-  let inventory: string[] | undefined;
-  for (const task of tasks) {
-    const raw = task.params?.['components'];
-    if (!Array.isArray(raw)) continue;
-    const ids = raw
-      .map((c) => (c && typeof c === 'object' ? (c as Record<string, unknown>)['id'] : undefined))
-      .filter((id): id is string => typeof id === 'string');
-    if (ids.length > 0) {
-      inventory = ids;
-      break;
-    }
-  }
-  if (inventory && inventory.length > 0) {
-    return injectComponentsEnum(schemas, inventory) as Record<string, object>;
-  }
   return schemas;
 }
 
@@ -629,10 +614,15 @@ function getWorkflowTitle(fm: WorkflowFrontmatter): string {
  * Convention: `<skill>:<concern>:<artifact>` for nested skills,
  * `<skill>:<artifact>` for flat skills.
  *
+ * The concern is the directory directly containing the kind dir — covering both
+ * the flat concern layout (integration skills) and the nested sub-skill layout
+ * (core skill: `skills/designbook/skills/<wf>/<kind>/x`).
+ *
  * Examples:
- * - `skills/designbook/design/tasks/screenshot-reference.md` → `designbook:design:screenshot-reference`
+ * - `skills/designbook/skills/tokens/tasks/create-tokens.md` → `designbook:tokens:create-tokens`  (nested sub-skill)
+ * - `skills/designbook/design/tasks/capture-storybook.md` → `designbook:design:capture-storybook`  (shared content root, parent-level)
  * - `skills/designbook-stitch/tasks/stitch-inspect.md` → `designbook-stitch:stitch-inspect`
- * - `skills/designbook/design/rules/playwright-session.md` → `designbook:design:playwright-session`
+ * - `skills/designbook-drupal/components/rules/foo.md` → `designbook-drupal:components:foo`
  * - `skills/designbook-sdc/blueprints/component.md` with type=component, name=section → `designbook-sdc:blueprints:component/section`
  */
 export function deriveArtifactName(
@@ -671,18 +661,19 @@ export function deriveArtifactName(
     return derivePluginArtifactName(source, filePath);
   }
 
-  // Derive from filesystem path: skills/<skill>[/<concern>]/<kind>/<artifact>.md
+  // Derive from filesystem path: skills/<skill>[/…]/<kind>/<artifact>.md
   const rel = relative(resolve(agentsDir, 'skills'), filePath).replace(/\\/g, '/');
   const parts = rel.split('/');
   const skill = parts[0] ?? '';
   const artifact = (parts[parts.length - 1] ?? '').replace(/\.md$/, '');
 
-  // Kind directory is tasks/, rules/, or blueprints/
-  // If there's a concern dir between skill and kind: skill/concern/kind/file → 4 parts
-  // Flat: skill/kind/file → 3 parts
+  // Concern = the directory directly containing the kind dir (tasks/rules/
+  // blueprints/workflows) — the segment two levels above the artifact file.
+  // Covers both the flat concern layout (skills/<skill>/<concern>/<kind>/x) and
+  // the nested sub-skill layout (skills/<skill>/skills/<wf>/<kind>/x → concern <wf>).
+  // Flat (skills/<skill>/<kind>/x → 3 parts) has no concern.
   if (parts.length >= 4) {
-    // Nested: skill/concern/kind/artifact.md (or deeper — take segment after skill)
-    const concern = parts[1]!;
+    const concern = parts[parts.length - 3]!;
     return `${skill}:${concern}:${artifact}`;
   }
 
