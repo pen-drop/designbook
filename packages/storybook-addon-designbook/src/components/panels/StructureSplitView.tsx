@@ -3,14 +3,32 @@
  *
  * Composition tree on the left, node detail on the right — the single layout
  * used for every scene kind (component, scene-ref, entity) so the Structure tab
- * behaves identically everywhere. Clicking a tree row selects the node shown in
- * the detail pane; the tree stays visible. Inline styles only (manager-styling
- * rule).
+ * behaves identically everywhere. The detail pane follows BOTH a tree-row click
+ * and a click in the scene preview (via `selectedPath`); the tree stays visible.
+ * Inline styles only (manager-styling rule).
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useTheme } from 'storybook/theming';
 import type { SceneTreeNode } from '../../renderer/types';
 import { CompositionTree } from '../CompositionTree';
+
+/** Find the node whose canonical path matches `path`, walking children + slots. */
+function findNodeByPath(nodes: SceneTreeNode[], path: string): SceneTreeNode | null {
+  for (const node of nodes) {
+    if (node.path === path) return node;
+    if (node.children) {
+      const hit = findNodeByPath(node.children, path);
+      if (hit) return hit;
+    }
+    if (node.slots) {
+      for (const slotChildren of Object.values(node.slots)) {
+        const hit = findNodeByPath(slotChildren, path);
+        if (hit) return hit;
+      }
+    }
+  }
+  return null;
+}
 
 interface StructureSplitViewProps {
   tree: SceneTreeNode[];
@@ -89,8 +107,21 @@ export function StructureSplitView({
     setSelectedNode(node);
   }, []);
 
-  // A detail is always shown: the clicked node, else the first root node. The
-  // hint only appears when the tree is empty. Keeps every panel consistent.
+  // A click in the scene preview arrives as `selectedPath` — open that node's
+  // detail too (not just the tree highlight). Most recent selection wins.
+  useEffect(() => {
+    if (!selectedPath) return;
+    const node = findNodeByPath(tree, selectedPath);
+    if (node) setSelectedNode(node);
+  }, [selectedPath, tree]);
+
+  // Reset the manual selection when the shown tree changes (story or record).
+  useEffect(() => {
+    setSelectedNode(null);
+  }, [tree]);
+
+  // A detail is always shown: the selected node (tree row or scene click), else
+  // the first root node. The hint only appears when the tree is empty.
   const activeNode = selectedNode ?? tree[0] ?? null;
 
   return (
