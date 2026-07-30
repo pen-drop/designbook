@@ -286,6 +286,66 @@ extends:
     expect(props).toHaveProperty('custom_group');
   });
 
+  it('bundles transitive same-file $refs when a blueprint extends: injects a $ref type (R1/DESIGNBOOK-30)', () => {
+    tmpDir = mkdtempSync(resolve(tmpdir(), 'merge-'));
+    // A schemas.yml whose root type references sibling types transitively:
+    //   Root.oneOf → #/Child ; Child.allOf → #/GrandChild
+    mkdirSync(resolve(tmpDir, 'blueprints'), { recursive: true });
+    writeFileSync(
+      resolve(tmpDir, 'blueprints/schemas.yml'),
+      `Root:
+  type: object
+  required: [kind, settings]
+  properties:
+    kind: { type: string }
+    settings: { type: object }
+  oneOf:
+    - properties:
+        kind: { const: a }
+        settings: { $ref: "#/Child" }
+Child:
+  allOf:
+    - $ref: "#/GrandChild"
+    - type: object
+      properties:
+        extra: { type: string }
+GrandChild:
+  type: object
+  properties:
+    base: { type: string }
+`,
+    );
+    const bpPath = writeBlueprint(
+      'inject',
+      `---
+extends:
+  DataModel:
+    properties:
+      config:
+        properties:
+          thing:
+            type: object
+            additionalProperties:
+              $ref: ./schemas.yml#/Root
+---
+# Blueprint injects a $ref'd config type`,
+    );
+
+    const schemas: Record<string, object> = {};
+    const result = computeMergedSchema(
+      { 'data-model': { schema: { type: 'object', properties: { config: { type: 'object' } } } } },
+      { blueprintFiles: [bpPath], ruleFiles: [], skillsRoot: tmpDir, schemas, refMap: { 'data-model': 'DataModel' } },
+    );
+
+    expect(result).toBeDefined();
+    // The transitive same-file types must be bundled into the shared schemas map,
+    // otherwise AJV cannot resolve the #/Child and #/GrandChild refs the inlined
+    // Root schema still carries (the DESIGNBOOK-29 class bug, in the extends path).
+    expect(schemas).toHaveProperty('Root');
+    expect(schemas).toHaveProperty('Child');
+    expect(schemas).toHaveProperty('GrandChild');
+  });
+
   it('errors when blueprint uses constrains', () => {
     tmpDir = mkdtempSync(resolve(tmpdir(), 'merge-'));
     const bpPath = writeBlueprint(

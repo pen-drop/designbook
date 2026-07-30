@@ -8,7 +8,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
-import { resolveSchemaRef } from './workflow-resolve.js';
+import { resolveSchemaRef, collectLocalRefsFromSchema } from './workflow-resolve.js';
 import type { SkillSource } from './skill-sources.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -79,8 +79,28 @@ export function resolveRefsInExtension(
 ): void {
   for (const [key, value] of Object.entries(obj)) {
     if (key === '$ref' && typeof value === 'string') {
-      const { typeName, schema } = resolveSchemaRef(value, sourceFilePath, skillsRoot, sources);
+      const { typeName, schema, fileSchemas, schemaFilePath } = resolveSchemaRef(
+        value,
+        sourceFilePath,
+        skillsRoot,
+        sources,
+      );
       schemas[typeName] = schema;
+      // Pull the resolved type's OWN transitive same-file refs into schemas. The
+      // schema is inlined below, but it may still carry bare `#/Type` refs (e.g.
+      // a discriminated `oneOf` → `#/ViewsBlockSettings`). Without hoisting those
+      // definitions AJV throws "can't resolve reference #/ViewsBlockSettings" at
+      // validation time. Mirrors the create-path fix in workflow-resolve.ts /
+      // cli/workflow.ts (DESIGNBOOK-29 class bug, here in the extends: path).
+      collectLocalRefsFromSchema(
+        schema,
+        fileSchemas,
+        schemas,
+        new Set([typeName]),
+        schemaFilePath,
+        skillsRoot,
+        sources,
+      );
       // Replace $ref with the resolved schema properties
       delete obj.$ref;
       Object.assign(obj, schema);
