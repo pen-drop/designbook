@@ -85,6 +85,7 @@ export async function buildEntityModule(
     }
 
     const recordsNodes: ComponentNode[][] = [];
+    const recordsTrees: SceneTreeNode[][] = [];
     for (let r = 0; r < recordCount; r++) {
       const tree: SceneTreeNode[] = [];
       const built = await ctx.buildNode({
@@ -93,10 +94,20 @@ export async function buildEntityModule(
         select: `$[${r}]`,
       } as SceneNode);
       tree.push(...built);
+      // view() projects the render nodes AND stamps the canonical path onto the
+      // IR, so the retained tree stays in lock-step with the rendered record.
       recordsNodes.push(view(tree));
+      recordsTrees.push(tree);
     }
 
-    viewModes.push({ view_mode: vm, exportName: buildExportName(vm), recordsNodes, source, fieldMappings });
+    viewModes.push({
+      view_mode: vm,
+      exportName: buildExportName(vm),
+      recordsNodes,
+      recordsTrees,
+      source,
+      fieldMappings,
+    });
   }
 
   const resolveImportPath =

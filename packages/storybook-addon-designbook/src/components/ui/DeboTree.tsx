@@ -4,7 +4,7 @@
  * Renders a collapsible tree with icons, labels, groups, and path-based
  * highlighting. Framework-agnostic data model via DeboTreeItem.
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { ChevronSmallDownIcon, ChevronSmallRightIcon } from '@storybook/icons';
 import { useTheme } from 'storybook/theming';
 
@@ -17,6 +17,8 @@ export interface DeboTreeItem {
   label: string;
   /** Icon to show before the label. */
   icon?: React.ReactNode;
+  /** Short type indicator rendered as a muted pill (e.g. the node kind). */
+  typeLabel?: string;
   /** Nested children. */
   children?: DeboTreeItem[];
   /** Named groups of children (rendered with a group label). */
@@ -28,8 +30,10 @@ export interface DeboTreeItem {
 export interface DeboTreeProps {
   items: DeboTreeItem[];
   onSelect?: (item: DeboTreeItem) => void;
-  /** Path of the currently highlighted item (matched against item.id). */
-  highlightedId?: string | null;
+  /** Id of the transiently hovered item (matched against item.id). */
+  hoveredId?: string | null;
+  /** Id of the persistently selected item (matched against item.id). */
+  selectedId?: string | null;
   /** Placeholder when items is empty. */
   emptyText?: string;
 }
@@ -76,6 +80,19 @@ function useStyles(theme: any) {
         whiteSpace: 'nowrap' as const,
         flex: 1,
       } as React.CSSProperties,
+      typePill: {
+        flexShrink: 0,
+        fontSize: 9,
+        fontWeight: 600,
+        lineHeight: 1.4,
+        letterSpacing: '0.3px',
+        textTransform: 'uppercase' as const,
+        color: theme.textMutedColor,
+        background: theme.background.hoverable,
+        border: `1px solid ${theme.appBorderColor}`,
+        borderRadius: 8,
+        padding: '0 6px',
+      } as React.CSSProperties,
       children: {
         marginLeft: 7,
         paddingLeft: 4,
@@ -100,17 +117,27 @@ function useStyles(theme: any) {
 function TreeNode({
   item,
   onSelect,
-  highlightedId,
+  hoveredId,
+  selectedId,
 }: {
   item: DeboTreeItem;
   onSelect?: (item: DeboTreeItem) => void;
-  highlightedId?: string | null;
+  hoveredId?: string | null;
+  selectedId?: string | null;
 }) {
   const theme = useTheme();
   const S = useStyles(theme);
   const hasKids = !!(item.children?.length || (item.groups && Object.values(item.groups).some((g) => g.length > 0)));
   const [expanded, setExpanded] = useState(true);
-  const isHighlighted = !!(highlightedId && item.id === highlightedId);
+  const isSelected = !!(selectedId && item.id === selectedId);
+  const isHovered = !!(hoveredId && item.id === hoveredId);
+
+  // Scroll the highlighted row into view within the composition's own scroll
+  // container (block:'nearest' → only scrolls when it is actually off-screen).
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isHovered || isSelected) rowRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [isHovered, isSelected]);
 
   const handleRowClick = useCallback(
     (e: React.MouseEvent) => {
@@ -132,13 +159,18 @@ function TreeNode({
     [item, onSelect],
   );
 
-  const rowStyle = isHighlighted
-    ? { ...S.row, background: 'var(--color-secondary-900, rgba(59,130,246,0.15))' }
-    : S.row;
+  // Selected (persistent, from click) wins over hover; each is visually distinct:
+  // selection is a stronger fill + accent border, hover is a subtle background.
+  const rowStyle: React.CSSProperties = isSelected
+    ? { ...S.row, background: 'rgba(59,130,246,0.28)', boxShadow: `inset 2px 0 0 ${theme.color.secondary}` }
+    : isHovered
+      ? { ...S.row, background: 'rgba(59,130,246,0.12)' }
+      : S.row;
 
   return (
     <div>
       <div
+        ref={rowRef}
         role="treeitem"
         tabIndex={0}
         style={rowStyle}
@@ -162,12 +194,13 @@ function TreeNode({
         ) : (
           <span style={S.name}>{item.label}</span>
         )}
+        {item.typeLabel && <span style={S.typePill}>{item.typeLabel}</span>}
       </div>
 
       {hasKids && expanded && (
         <div style={S.children}>
           {item.children?.map((child) => (
-            <TreeNode key={child.id} item={child} onSelect={onSelect} highlightedId={highlightedId} />
+            <TreeNode key={child.id} item={child} onSelect={onSelect} hoveredId={hoveredId} selectedId={selectedId} />
           ))}
 
           {item.groups &&
@@ -180,7 +213,13 @@ function TreeNode({
                     <span style={S.groupLabel}>{groupName}</span>
                   </div>
                   {groupItems.map((child) => (
-                    <TreeNode key={child.id} item={child} onSelect={onSelect} highlightedId={highlightedId} />
+                    <TreeNode
+                      key={child.id}
+                      item={child}
+                      onSelect={onSelect}
+                      hoveredId={hoveredId}
+                      selectedId={selectedId}
+                    />
                   ))}
                 </div>
               );
@@ -193,7 +232,7 @@ function TreeNode({
 
 // ─── Root ────────────────────────────────────────────────────────────────────
 
-export function DeboTree({ items, onSelect, highlightedId, emptyText }: DeboTreeProps) {
+export function DeboTree({ items, onSelect, hoveredId, selectedId, emptyText }: DeboTreeProps) {
   const theme = useTheme();
   const S = useStyles(theme);
 
@@ -204,7 +243,7 @@ export function DeboTree({ items, onSelect, highlightedId, emptyText }: DeboTree
   return (
     <div role="tree" style={S.root}>
       {items.map((item) => (
-        <TreeNode key={item.id} item={item} onSelect={onSelect} highlightedId={highlightedId} />
+        <TreeNode key={item.id} item={item} onSelect={onSelect} hoveredId={hoveredId} selectedId={selectedId} />
       ))}
     </div>
   );

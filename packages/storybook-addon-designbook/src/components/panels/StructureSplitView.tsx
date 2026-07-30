@@ -1,0 +1,146 @@
+/**
+ * StructureSplitView — shared two-pane layout for the Structure tab.
+ *
+ * Composition tree on the left, node detail on the right — the single layout
+ * used for every scene kind (component, scene-ref, entity) so the Structure tab
+ * behaves identically everywhere. The detail pane follows BOTH a tree-row click
+ * and a click in the scene preview (via `selectedPath`); the tree stays visible.
+ * Inline styles only (manager-styling rule).
+ */
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useTheme } from 'storybook/theming';
+import type { SceneTreeNode } from '../../renderer/types';
+import { CompositionTree } from '../CompositionTree';
+
+/** Find the node whose canonical path matches `path`, walking children + slots. */
+function findNodeByPath(nodes: SceneTreeNode[], path: string): SceneTreeNode | null {
+  for (const node of nodes) {
+    if (node.path === path) return node;
+    if (node.children) {
+      const hit = findNodeByPath(node.children, path);
+      if (hit) return hit;
+    }
+    if (node.slots) {
+      for (const slotChildren of Object.values(node.slots)) {
+        const hit = findNodeByPath(slotChildren, path);
+        if (hit) return hit;
+      }
+    }
+  }
+  return null;
+}
+
+interface StructureSplitViewProps {
+  tree: SceneTreeNode[];
+  hoveredPath?: string | null;
+  selectedPath?: string | null;
+  /** Header label for the right-hand detail pane. */
+  detailHeader: string;
+  /** Shown in the detail pane while no tree node is selected. */
+  emptyHint: string;
+  /** Render the detail pane for the selected node. */
+  renderDetail: (node: SceneTreeNode) => React.ReactNode;
+}
+
+function useStyles() {
+  const theme = useTheme();
+  return useMemo(
+    () => ({
+      container: {
+        display: 'flex',
+        height: '100%',
+        minHeight: 0,
+      } as React.CSSProperties,
+      // Each pane is a column: a fixed header + its own independently scrolling
+      // content region (so composition and detail scroll separately).
+      treePane: {
+        width: '40%',
+        minWidth: 200,
+        borderRight: `1px solid ${theme.appBorderColor}`,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        minHeight: 0,
+      } as React.CSSProperties,
+      detailPane: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        minHeight: 0,
+      } as React.CSSProperties,
+      header: {
+        padding: '8px 12px',
+        fontSize: 11,
+        fontWeight: 600,
+        color: theme.textMutedColor,
+        textTransform: 'uppercase' as const,
+        letterSpacing: '0.5px',
+        borderBottom: `1px solid ${theme.appBorderColor}`,
+        flexShrink: 0,
+      } as React.CSSProperties,
+      scroll: {
+        flex: 1,
+        overflow: 'auto',
+        minHeight: 0,
+      } as React.CSSProperties,
+      hint: {
+        padding: 16,
+        fontSize: 12,
+        color: theme.textMutedColor,
+      } as React.CSSProperties,
+    }),
+    [theme],
+  );
+}
+
+export function StructureSplitView({
+  tree,
+  hoveredPath,
+  selectedPath,
+  detailHeader,
+  emptyHint,
+  renderDetail,
+}: StructureSplitViewProps) {
+  const S = useStyles();
+  const [selectedNode, setSelectedNode] = useState<SceneTreeNode | null>(null);
+
+  const handleSelect = useCallback((node: SceneTreeNode) => {
+    setSelectedNode(node);
+  }, []);
+
+  // A click in the scene preview arrives as `selectedPath` — open that node's
+  // detail too (not just the tree highlight). Most recent selection wins.
+  useEffect(() => {
+    if (!selectedPath) return;
+    const node = findNodeByPath(tree, selectedPath);
+    if (node) setSelectedNode(node);
+  }, [selectedPath, tree]);
+
+  // Reset the manual selection when the shown tree changes (story or record).
+  useEffect(() => {
+    setSelectedNode(null);
+  }, [tree]);
+
+  // A detail is always shown: the selected node (tree row or scene click), else
+  // the first root node. The hint only appears when the tree is empty.
+  const activeNode = selectedNode ?? tree[0] ?? null;
+
+  return (
+    <div style={S.container}>
+      <div style={S.treePane}>
+        <div style={S.header}>Composition</div>
+        <div style={S.scroll}>
+          <CompositionTree
+            tree={tree}
+            onSelectNode={handleSelect}
+            hoveredPath={hoveredPath}
+            selectedPath={selectedPath}
+          />
+        </div>
+      </div>
+      <div style={S.detailPane}>
+        <div style={S.header}>{detailHeader}</div>
+        <div style={S.scroll}>{activeNode ? renderDetail(activeNode) : <div style={S.hint}>{emptyHint}</div>}</div>
+      </div>
+    </div>
+  );
+}

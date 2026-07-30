@@ -142,10 +142,10 @@ function highlightElement(
 
   currentHighlight = { element: el, labelEl };
 
-  // Emit hover event for live highlighting in the Structure panel
-  channel.emit(EVENTS.SELECT_NODE, { component, path });
+  // Transient hover highlight in the Structure panel — distinct from click.
+  channel.emit(EVENTS.HOVER_NODE, { component, path });
 
-  // Click handler
+  // Click handler — persistent selection (a different channel event than hover).
   const onClick = (e: MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -153,6 +153,11 @@ function highlightElement(
     el.removeEventListener('click', onClick);
   };
   el.addEventListener('click', onClick, { once: true });
+}
+
+/** Tell the Structure panel to drop the transient hover highlight (pointer left). */
+function emitHoverClear(channel: ReturnType<typeof addons.getChannel>) {
+  channel.emit(EVENTS.HOVER_NODE, { component: null, path: null });
 }
 
 function removeHighlight() {
@@ -172,6 +177,7 @@ function setupInspect(root: HTMLElement, nodeMap: Map<string, SceneTreeNode>) {
     const target = e.target as HTMLElement;
     if (!target || target === root) {
       removeHighlight();
+      emitHoverClear(channel);
       return;
     }
 
@@ -181,11 +187,13 @@ function setupInspect(root: HTMLElement, nodeMap: Map<string, SceneTreeNode>) {
       highlightElement(boundary.element, boundary.component, boundary.path, node, channel);
     } else {
       removeHighlight();
+      emitHoverClear(channel);
     }
   };
 
   const onMouseLeave = () => {
     removeHighlight();
+    emitHoverClear(channel);
   };
 
   root.addEventListener('mousemove', onMouseMove);
@@ -201,7 +209,12 @@ function setupInspect(root: HTMLElement, nodeMap: Map<string, SceneTreeNode>) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withInspectOverlay(Story: any, context: StoryContext) {
   const [inspectActive, setInspectActive] = useState(false);
-  const sceneTree = context.parameters?.sceneTree as SceneTreeNode[] | undefined;
+  // Scene stories expose a single `sceneTree`; entity stories expose per-record
+  // `sceneTrees` selected by the runtime `record` arg. Both feed the overlay so
+  // hover/click highlighting works on scene and entity stories alike.
+  const sceneTrees = context.parameters?.sceneTrees as SceneTreeNode[][] | undefined;
+  const record = typeof context.args?.record === 'number' ? context.args.record : 0;
+  const sceneTree = (context.parameters?.sceneTree as SceneTreeNode[] | undefined) ?? sceneTrees?.[record];
 
   const handleInspectMode = useCallback((active: boolean) => {
     setInspectActive(active);
