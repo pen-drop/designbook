@@ -48,6 +48,11 @@ The command derives the `source_id`, the `entity_field`/`field_property` structu
 from the SDC prop type + UI Patterns' source registry. It never guesses which field or literal — that
 is the scene-intent you pass in.
 
+The `{ "field": … }` prop hint is for attribute-only/control values a prop legitimately carries (a
+link `url`, a `heading_level`, a variant selector). Field-rendered content — incl. single-value
+`title` and `link`/CTA — belongs in a **slot**, not a prop, per *Field-Rendered Content Maps to a
+Slot, Not a Scalar Prop* in `../../components/rules/reference-field-semantics.md`.
+
 ## `component_id`
 
 `'<set>:<component>'`, taken from the ComponentNode `component` (`provider:name`) — `<set>` is the

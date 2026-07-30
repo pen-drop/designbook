@@ -91,6 +91,11 @@ Each mapped field that fills a slot becomes one UUID-keyed entry under the secti
 
 `region` equals the target SDC slot name. `weight` orders components within one region.
 
+Which mapped values belong here as `field_block` slots at all — every field-rendered value, incl.
+single-value `title` and `link`/CTA — versus the few that stay scalar props is governed by
+*Field-Rendered Content Maps to a Slot, Not a Scalar Prop* in
+`../../components/rules/reference-field-semantics.md`.
+
 ### `formatter.type` by field type
 
 - string / title field → `string`

@@ -46,6 +46,23 @@ If the generated story shows raw icon names, placeholder `Link` labels, duplicat
 buttons, or auth-only actions that are absent from the reference state, the component is not
 complete.
 
+## Field-Rendered Content Maps to a Slot, Not a Scalar Prop
+
+A Drupal field whose formatter output is markup/content — rich text, body, and single-value
+`title` and `link`/CTA — maps to a **slot** (a `field_block` in its slot region), never to a
+scalar prop. Rationale: a scalar prop can carry only an escaped string, so a field piped through
+a prop loses its formatter markup (link wrappers, rich-text structure, cache metadata); a slot /
+`field_block` renders the field through its formatter and preserves that output.
+
+Reserve **props** for values that are not field-rendered content:
+
+- non-field control values — a variant key, a sprite/icon id, a boolean toggle;
+- attribute-only values — an image `src`/`alt`, or a link `url` fed into a nested component's
+  attribute prop (the `url` is an attribute, not the rendered link markup).
+
+This holds regardless of cardinality: a single-value `title` or `link` still renders through a
+formatter, so it is a slot, not a prop.
+
 ## Field Cardinality Boundary
 
 Drupal multi-value fields keep a field-level rendering boundary. If a component
@@ -53,9 +70,11 @@ receives a multi-value field, render it through a repeated field treatment,
 field-level component, slot, or Twig loop that preserves the full item list.
 Do not silently render only the first value as if it were a single scalar.
 
-Single-value fields may expose inner values directly as component props when the
-reference shows an atomic treatment, such as one title, one icon, one image, or
-one CTA.
+Single-value fields may expose inner values directly as component **props** only when the value
+is a genuinely atomic, non-markup control or attribute value — one icon identifier, one boolean
+toggle, or one image `src`/`alt`. A single-value field whose formatter renders markup/content —
+including one `title` or one `link`/CTA — still maps to a **slot** (`field_block`), not a scalar
+prop: see *Field-Rendered Content Maps to a Slot, Not a Scalar Prop* above.
 
 Entity reference fields follow the same rule. A multi-value reference slot must
 render every resolved child entity in the field list. The parent component must
