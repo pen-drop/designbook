@@ -32,7 +32,8 @@ export function StructurePanel({ active }: StructurePanelProps) {
   const sceneTree = useParameter<SceneTreeNode[] | undefined>('sceneTree');
   const sceneTrees = useParameter<SceneTreeNode[][] | undefined>('sceneTrees');
   const [args] = useArgs();
-  const record = typeof args.record === 'number' ? args.record : 0;
+  // `args` may be undefined before the story's args are prepared — default to 0.
+  const record = typeof args?.record === 'number' ? args.record : 0;
 
   const tree: SceneTreeNode[] | undefined = sceneTrees?.length ? (sceneTrees[record] ?? sceneTrees[0]) : sceneTree;
 

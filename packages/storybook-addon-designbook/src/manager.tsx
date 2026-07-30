@@ -5,6 +5,7 @@ import { WorkflowPanel } from './components/panels/WorkflowPanel';
 import { VisualCompareTool } from './components/VisualCompareTool';
 import { InspectTool } from './components/InspectTool';
 import { StructurePanel } from './components/panels/StructurePanel';
+import { isStructureTabDisabled } from './components/panels/structure-tab-visibility';
 import { ADDON_ID, PANEL_ID, INSPECT_TOOL_ID, STRUCTURE_PANEL_ID, VISUAL_TOOL_ID } from './constants';
 import { startWorkflowNotifications } from './manager-notifications';
 
@@ -35,11 +36,13 @@ addons.register(ADDON_ID, (api) => {
     render: () => <InspectTool />,
   });
 
-  // Structure panel — composition tree + mapping detail
+  // Structure panel — composition tree + mapping detail.
+  // Enable the tab for scene stories (`scene`) AND entity stories (`sceneTrees`)
+  // — see isStructureTabDisabled (DESIGNBOOK-32, AC-6).
   addons.add(STRUCTURE_PANEL_ID, {
     type: types.PANEL,
     title: 'Structure',
-    disabled: (parameters) => !parameters?.scene,
+    disabled: (parameters) => isStructureTabDisabled(parameters),
     render: ({ active }) => <StructurePanel active={active} />,
   });
 });
