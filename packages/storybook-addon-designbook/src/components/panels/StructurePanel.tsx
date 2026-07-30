@@ -3,9 +3,9 @@ import { useTheme } from 'storybook/theming';
 import { useParameter, useChannel, useArgs } from 'storybook/manager-api';
 import { AddonPanel } from 'storybook/internal/components';
 import type { SceneTreeNode } from '../../renderer/types';
-import { EntityPanel } from './EntityPanel';
-import { ComponentPanel } from './ComponentPanel';
-import { SceneRefPanel } from './SceneRefPanel';
+import { StructureSplitView } from './StructureSplitView';
+import { EntityMappingDetail, hasEntityMapping } from './EntityMappingDetail';
+import { MappingDetail } from '../MappingDetail';
 import { EVENTS } from '../../constants';
 
 interface StructurePanelProps {
@@ -18,11 +18,13 @@ interface NodePayload {
   path: string | null;
 }
 
-/** Determine the dominant scene type from the root nodes. */
-function detectSceneType(tree: SceneTreeNode[]): SceneTreeNode['kind'] {
-  if (!tree.length) return 'component';
-  // Use the kind of the first root node
-  return tree[0]!.kind;
+/**
+ * Detail for the selected node — always the same split view regardless of scene
+ * kind. Entity nodes with field mappings show the mapping table; every other
+ * node (component, scene-ref, string) shows its props/slots/ref via MappingDetail.
+ */
+function renderNodeDetail(node: SceneTreeNode): React.ReactNode {
+  return hasEntityMapping(node) ? <EntityMappingDetail node={node} /> : <MappingDetail node={node} />;
 }
 
 export function StructurePanel({ active }: StructurePanelProps) {
@@ -59,27 +61,26 @@ export function StructurePanel({ active }: StructurePanelProps) {
     setSelectedPath(null);
   }, [sceneTree, sceneTrees, record]);
 
-  const empty = (
-    <div style={{ padding: 16, fontSize: 13, color: theme.textMutedColor }}>
-      No scene structure available for this story.
-    </div>
-  );
-
   if (!tree?.length) {
-    return <AddonPanel active={active ?? false}>{empty}</AddonPanel>;
+    return (
+      <AddonPanel active={active ?? false}>
+        <div style={{ padding: 16, fontSize: 13, color: theme.textMutedColor }}>
+          No scene structure available for this story.
+        </div>
+      </AddonPanel>
+    );
   }
-
-  const sceneType = detectSceneType(tree);
 
   return (
     <AddonPanel active={active ?? false}>
-      {sceneType === 'entity' ? (
-        <EntityPanel tree={tree} hoveredPath={hoveredPath} selectedPath={selectedPath} />
-      ) : sceneType === 'scene-ref' ? (
-        <SceneRefPanel tree={tree} hoveredPath={hoveredPath} selectedPath={selectedPath} />
-      ) : (
-        <ComponentPanel tree={tree} hoveredPath={hoveredPath} selectedPath={selectedPath} />
-      )}
+      <StructureSplitView
+        tree={tree}
+        hoveredPath={hoveredPath}
+        selectedPath={selectedPath}
+        detailHeader="Detail"
+        emptyHint="Select a node to view its details."
+        renderDetail={renderNodeDetail}
+      />
     </AddonPanel>
   );
 }

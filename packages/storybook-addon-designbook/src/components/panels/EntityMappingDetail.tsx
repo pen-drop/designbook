@@ -1,51 +1,21 @@
 /**
- * EntityPanel — detail view for entity scene nodes (content + config entities).
- *
- * Primary focus: show the JSONata mapping from entity fields to component props/slots.
- * Split view: composition tree on the left, mapping table on the right.
+ * EntityMappingDetail — the JSONata field-mapping table for an entity node
+ * (entity field → component → target prop/slot). Rendered in the Structure
+ * tab's detail pane when the selected node is an entity with field mappings.
+ * Inline styles only (manager-styling rule).
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from 'storybook/theming';
 import type { SceneTreeNode, FieldMapping } from '../../renderer/types';
-import { CompositionTree } from '../CompositionTree';
-
-interface EntityPanelProps {
-  tree: SceneTreeNode[];
-  hoveredPath?: string | null;
-  selectedPath?: string | null;
-}
 
 function useStyles() {
   const theme = useTheme();
   return useMemo(
     () => ({
-      container: {
-        display: 'flex',
-        height: '100%',
-      } as React.CSSProperties,
-      treePane: {
-        width: '40%',
-        minWidth: 200,
-        borderRight: `1px solid ${theme.appBorderColor}`,
-        overflow: 'auto',
-      } as React.CSSProperties,
-      detailPane: {
-        flex: 1,
-        overflow: 'auto',
-      } as React.CSSProperties,
       hint: {
         padding: 16,
         fontSize: 12,
         color: theme.textMutedColor,
-      } as React.CSSProperties,
-      header: {
-        padding: '8px 12px',
-        fontSize: 11,
-        fontWeight: 600,
-        color: theme.textMutedColor,
-        textTransform: 'uppercase' as const,
-        letterSpacing: '0.5px',
-        borderBottom: `1px solid ${theme.appBorderColor}`,
       } as React.CSSProperties,
       entityLabel: {
         padding: '8px 12px',
@@ -121,26 +91,6 @@ function useStyles() {
   );
 }
 
-/** Collect all entity nodes from the tree. */
-function collectEntityNodes(tree: SceneTreeNode[]): SceneTreeNode[] {
-  const entities: SceneTreeNode[] = [];
-  function walk(nodes: SceneTreeNode[]) {
-    for (const node of nodes) {
-      if (node.kind === 'entity' && node.entity?.fieldMappings?.length) {
-        entities.push(node);
-      }
-      if (node.children) walk(node.children);
-      if (node.slots) {
-        for (const slotNodes of Object.values(node.slots)) {
-          walk(slotNodes);
-        }
-      }
-    }
-  }
-  walk(tree);
-  return entities;
-}
-
 function MappingTable({ mappings }: { mappings: FieldMapping[] }) {
   const S = useStyles();
   return (
@@ -173,7 +123,12 @@ function MappingTable({ mappings }: { mappings: FieldMapping[] }) {
   );
 }
 
-function EntityMappingDetail({ node }: { node: SceneTreeNode }) {
+/** Whether this node carries an entity mapping worth showing as a table. */
+export function hasEntityMapping(node: SceneTreeNode): boolean {
+  return node.kind === 'entity' && !!node.entity?.fieldMappings?.length;
+}
+
+export function EntityMappingDetail({ node }: { node: SceneTreeNode }) {
   const S = useStyles();
   const entity = node.entity;
   if (!entity) return null;
@@ -195,41 +150,6 @@ function EntityMappingDetail({ node }: { node: SceneTreeNode }) {
       ) : (
         <div style={S.hint}>No field mappings extracted.</div>
       )}
-    </div>
-  );
-}
-
-export function EntityPanel({ tree, hoveredPath, selectedPath }: EntityPanelProps) {
-  const S = useStyles();
-  const [selectedNode, setSelectedNode] = useState<SceneTreeNode | null>(null);
-
-  const handleSelect = useCallback((node: SceneTreeNode) => {
-    setSelectedNode(node);
-  }, []);
-
-  // Find the entity node to show by default (or the selected one)
-  const entityNodes = collectEntityNodes(tree);
-  const activeEntity = selectedNode?.kind === 'entity' ? selectedNode : (entityNodes[0] ?? null);
-
-  return (
-    <div style={S.container}>
-      <div style={S.treePane}>
-        <div style={S.header}>Composition</div>
-        <CompositionTree
-          tree={tree}
-          onSelectNode={handleSelect}
-          hoveredPath={hoveredPath}
-          selectedPath={selectedPath}
-        />
-      </div>
-      <div style={S.detailPane}>
-        <div style={S.header}>Mapping</div>
-        {activeEntity ? (
-          <EntityMappingDetail node={activeEntity} />
-        ) : (
-          <div style={S.hint}>Select an entity node to view its field mapping.</div>
-        )}
-      </div>
     </div>
   );
 }
