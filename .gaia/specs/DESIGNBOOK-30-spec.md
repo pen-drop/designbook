@@ -6,6 +6,57 @@
 
 ---
 
+## 0. Amendment (2026-07-30, post-review) — settings enforcement re-cut along authoring-time vs. runtime
+
+The first review returned **Not OK** on a single blocking finding: the `settings` enforcement
+vehicle. Decisions **D4/D5** below (closed `oneOf` over a hand-enumerated set of plugin families,
+no catch-all) and the acceptance criteria that mandated them (handoff **AC 4/5**) are **reversed**.
+Everything else in this spec — the `schemas.yml`-type + blueprint-`extends:`-`$ref` vehicle (D1/D2),
+the `component`-required rule (D3), the no-`block.block.*` export pattern (D6), the `exposed_block`
+ownership (D7), the module rule (D8), `block_content:<uuid>` as a plugin (D10), and the no-`widgets:`
+scope (D11) — **stands as written and passed review**.
+
+**Why the reversal.** Drupal's block-plugin space is open and its settings schema is resolved
+**dynamically** per plugin (`block.settings.[%parent.plugin]`, `TypedConfigManager`). A static,
+hand-maintained `oneOf` over four families is *incomplete by construction* — `system_menu_block:*`,
+`webform:*`, `commerce_*`, and every contrib/custom plugin fail validation despite being legitimate —
+and the hand-copied `*Settings` shapes drift from the installed Drupal. The authoritative check
+already runs at runtime: the modelled config is exported and applied to a **live Drupal target** (the
+`config-verify` round-trip), where Drupal's own dynamic config schema resolves — so plugin existence
+and settings-shape validation belong there, against Drupal's own schema, not a frozen static `oneOf`.
+(Note: no dedicated `designbook_drupal` config-schema module exists in-tree today; the runtime path is
+Drupal's own config import/render against the fixture site, surfaced through the `config-verify` workflow.)
+
+**New enforcement split.**
+
+- **Static (authoring-time, in `schemas.yml`, no live Drupal):** `plugin` required + pattern (shape
+  only, incl. optional derivative), `component` required, `layout` optional **closed enum
+  `[default, inline, stacked]`** (D9 now **confirmed in review**), `module` optional string.
+- **Runtime (`config-verify` via `designbook_drupal`, live Drupal):** does the plugin exist? does
+  `settings` match Drupal's real `block.settings.<plugin>`? does a referenced view carry
+  `exposed_block: true`? does a non-core plugin name its `module`? The `settings` object is
+  therefore **open** (`additionalProperties: true`); the closed family `oneOf` and the
+  `ViewsBlockSettings` / `ViewsExposedFilterBlockSettings` / `UserLoginBlockSettings` /
+  `BlockContentSettings` / `BlockSettingsBase` types are **removed**.
+
+**Scope/label.** As flagged at both implementation and review, this ticket expanded from `work:docs`
+into a `work:code` engine fix (`workflow-schema-merge.ts`, `cli/workflow.ts`) that makes blueprint
+`extends:` reach validation — a pre-existing DESIGNBOOK-29-class gap affecting **every** `extends:`
+blueprint, not introduced here. That engine fix **stays** (the blueprint still enforces `plugin`/
+`component`/`layout`/`module` via `extends:` `$ref` into `schemas.yml#/BlockPlugin`). Effective work
+labels: `work:docs` + `work:code` (PM to formalize).
+
+**AC 13** (`debo-test run drupal-web sync-block-plugin`) remains **deferred** to a follow-up: a
+`block_plugin` emits no standalone `block.block.*` (D6) and manifests only inside a `canvas_page`/
+`layout-builder` tree node, none of which references a `block_plugin` key yet — a sync case would
+have no meaningful `expected_config`. Tracked as a follow-up per the review's non-blocking note.
+
+Sections 3–7 below are the **original pre-review plan**, kept for provenance; where they describe the
+closed `oneOf` (D4/D5, §4 `settings` bullet, the AC-4 matrix row, the schema-authoring checklist item)
+they are superseded by this amendment.
+
+---
+
 ## 1. Problem
 
 The data-model has **no home for a block that has no `block_content`**. `grep -rn "block\.block" .agents/skills/` finds nothing; only two things are modelled:

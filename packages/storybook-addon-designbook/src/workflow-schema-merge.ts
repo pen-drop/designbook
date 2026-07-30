@@ -88,8 +88,8 @@ export function resolveRefsInExtension(
       schemas[typeName] = schema;
       // Pull the resolved type's OWN transitive same-file refs into schemas. The
       // schema is inlined below, but it may still carry bare `#/Type` refs (e.g.
-      // a discriminated `oneOf` → `#/ViewsBlockSettings`). Without hoisting those
-      // definitions AJV throws "can't resolve reference #/ViewsBlockSettings" at
+      // an `allOf`/`oneOf` branch → `#/OtherType`). Without hoisting those
+      // definitions AJV throws "can't resolve reference #/OtherType" at
       // validation time. Mirrors the create-path fix in workflow-resolve.ts /
       // cli/workflow.ts (DESIGNBOOK-29 class bug, here in the extends: path).
       collectLocalRefsFromSchema(

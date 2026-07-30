@@ -1,21 +1,28 @@
 # Data-model config schemas — Drupal integration
 #
-# The HARD contract for `config.block_plugin.<key>` entries in data-model.yml.
-# The block_plugin.md blueprint injects `config.block_plugin` into the DataModel
-# result via `extends:` and $refs `#/BlockPlugin` here, so the shape is defined
-# once and never inline-duplicated (skill-creator BLUEPRINT-03).
+# The HARD, authoring-time contract for `config.block_plugin.<key>` entries in
+# data-model.yml. The block_plugin.md blueprint injects `config.block_plugin` into
+# the DataModel result via `extends:` and $refs `#/BlockPlugin` here, so the shape is
+# defined once and never inline-duplicated (skill-creator BLUEPRINT-03).
 #
-# `plugin` is the discriminator on two axes: (1) which *Settings schema applies
-# (mirrors Drupal's `block.settings.[%parent.plugin]` pattern), and (2) which SDC
-# renders (explicit `component`). The `settings` oneOf is CLOSED — a plugin whose
-# family is not one of the four branches fails validation (no silent catch-all).
+# This schema enforces only what can be checked WITHOUT a live Drupal target — the
+# static shape of an entry:
+#   - `plugin`    required, string form of a block plugin ID (optional derivative).
+#   - `component` required, the SDC that renders the block.
+#   - `layout`    optional, closed render-wrapper enum.
+#   - `module`    optional, providing module machine name.
 #
-# *Settings shapes are grounded in Drupal core config schema:
-#   - base block_settings: core.data_types.schema.yml:442
-#   - views_block:          views.schema.yml:140 (both block.settings.views_block:*
-#                           and block.settings.views_exposed_filter_block:* use it)
-#   - user_login_block:     no dedicated core schema → base block_settings only
-#   - block_content:*:      base block_settings only (view_mode already in base)
+# `settings` is deliberately an OPEN object here. Drupal resolves a block's settings
+# schema dynamically per plugin (`block.settings.[%parent.plugin]`,
+# core/modules/block/config/schema/block.schema.yml), so its real shape is only
+# knowable against the installed site. A static, hand-maintained enumeration of a few
+# plugin families would be incomplete by construction (every contrib/custom plugin
+# would fail) and would drift from the actual Drupal schema. Those checks — does the
+# plugin exist, does `settings` match Drupal's own `block.settings.<plugin>`, does a
+# referenced view carry `exposed_block: true` — are not authoring-time concerns: they
+# surface at RUNTIME, when the modelled config is exported and applied to a live Drupal
+# target (the `config-verify` round-trip), where Drupal's own config schema resolves.
+# See block_plugin.md.
 
 BlockPlugin:
   title: Block Plugin Instance
@@ -26,18 +33,20 @@ BlockPlugin:
     in data-model.yml. The `key` is the stable handle a canvas_page / layout-builder
     tree node references; it does NOT emit a `block.block.*` placement entity.
   type: object
-  required: [plugin, component, settings]
+  required: [plugin, component]
   properties:
     plugin:
       type: string
       description: >
-        Drupal block plugin ID with an optional `:derivative` suffix. The family
-        (text before the first `:`) selects the settings branch below.
+        Drupal block plugin ID with an optional `:derivative` suffix. This pattern is
+        a static shape check only; whether the plugin actually exists on the target is
+        a runtime config-verify concern, not enforced here.
       pattern: "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$"
       examples:
         - user_login_block
         - views_block:gaia_tickets-block_1
         - views_exposed_filter_block:gaia_tickets.page_1
+        - system_menu_block:main
         - block_content:2f1c9e34-6b4a-4d2e-9c11-8a7b6c5d4e3f
     component:
       type: string
@@ -48,141 +57,20 @@ BlockPlugin:
     layout:
       type: string
       description: Optional render-wrapper hint for the block. Closed enum.
-      # D9: enum values pending review confirmation
       enum: [default, inline, stacked]
     module:
       type: string
       description: >
-        Providing module machine name. The four core families (views, user,
-        block_content) need none; a non-core provider (e.g. webform) requires it,
-        enforced by the blueprint and checked at config-verify.
+        Providing module machine name. Core families (views, user, block_content)
+        need none; a non-core provider (e.g. webform) names it here. A non-core plugin
+        left without a module is a runtime config-verify failure, not a static error.
       examples: [webform, commerce]
     settings:
       type: object
       description: >
-        Plugin-family-specific block settings, discriminated by `plugin` via the
-        oneOf below. Mirrors Drupal's `block.settings.<plugin>` config schema.
-  oneOf:
-    - title: Views block settings branch
-      description: A `views_block:<view>-<display>` plugin.
-      required: [plugin, settings]
-      properties:
-        plugin:
-          type: string
-          pattern: "^views_block:[A-Za-z0-9_.-]+$"
-        settings:
-          $ref: "#/ViewsBlockSettings"
-    - title: Views exposed-filter block settings branch
-      description: A `views_exposed_filter_block:<view>.<display>` plugin.
-      required: [plugin, settings]
-      properties:
-        plugin:
-          type: string
-          pattern: "^views_exposed_filter_block:[A-Za-z0-9_.-]+$"
-        settings:
-          $ref: "#/ViewsExposedFilterBlockSettings"
-    - title: User login block settings branch
-      description: The core `user_login_block` plugin (no derivative).
-      required: [plugin, settings]
-      properties:
-        plugin:
-          type: string
-          const: user_login_block
-        settings:
-          $ref: "#/UserLoginBlockSettings"
-    - title: Block-content block settings branch
-      description: A `block_content:<uuid>` plugin — the block unit for a content block.
-      required: [plugin, settings]
-      properties:
-        plugin:
-          type: string
-          pattern: "^block_content:[A-Za-z0-9_.-]+$"
-        settings:
-          $ref: "#/BlockContentSettings"
-
-BlockSettingsBase:
-  title: Base Block Settings
-  description: >
-    Shared base for every plugin block, mirroring Drupal core `block_settings`
-    (core.data_types.schema.yml:442). Family types compose this via allOf and add
-    their extras. Not referenced directly by a oneOf branch — use a family type.
-  type: object
-  properties:
-    id:
-      type: string
-      description: Block plugin ID stored in settings (matches the entry `plugin`).
-      examples: [user_login_block, "views_block:gaia_tickets-block_1"]
-    label:
-      type: string
-      description: Admin/display description of the block instance.
-      examples: ["User login", "Recent tickets"]
-    label_display:
-      type: string
-      description: Whether/how the title renders — Drupal stores "visible" or "0".
-      examples: ["visible", "0"]
-    provider:
-      type: string
-      description: Module that provides the plugin.
-      examples: [user, views, block_content]
-    status:
-      type: boolean
-      description: Whether the block instance is enabled.
-    info:
-      type: string
-      description: Administrative label shown in the block listing.
-    view_mode:
-      type: string
-      description: View mode used when the plugin renders an entity (e.g. block_content).
-      examples: [full, teaser]
-    context_mapping:
-      type: object
-      description: >
-        Context assignments (string → context id). Arbitrary context-name keys,
-        each mapping to a Drupal context id string; empty object when none.
-      additionalProperties:
-        type: string
-
-ViewsBlockSettings:
-  title: Views Block Settings
-  description: >
-    Settings for a `views_block:*` plugin — Drupal core `views_block`
-    (views.schema.yml:140) = base block_settings plus `views_label` and
-    `items_per_page`.
-  allOf:
-    - $ref: "#/BlockSettingsBase"
-    - type: object
-      properties:
-        views_label:
-          type: string
-          description: Overridden block title coming from the view. Empty string when unset.
-        items_per_page:
-          type: string
-          description: >
-            Items per block as a string ("none" keeps the display's own pager;
-            a numeric string overrides it).
-          examples: ["none", "5", "10"]
-
-ViewsExposedFilterBlockSettings:
-  title: Views Exposed-Filter Block Settings
-  description: >
-    Settings for a `views_exposed_filter_block:*` plugin. Drupal maps
-    `block.settings.views_exposed_filter_block:*` to the same `views_block` type
-    as `views_block:*`, so the shape is identical to ViewsBlockSettings.
-  allOf:
-    - $ref: "#/ViewsBlockSettings"
-
-UserLoginBlockSettings:
-  title: User Login Block Settings
-  description: >
-    Settings for the core `user_login_block` plugin. It has no dedicated core
-    settings schema, so it uses base block_settings unchanged.
-  allOf:
-    - $ref: "#/BlockSettingsBase"
-
-BlockContentSettings:
-  title: Block-Content Block Settings
-  description: >
-    Settings for a `block_content:<uuid>` plugin. `block_content:*` uses base
-    block_settings (its `view_mode` is already part of the base).
-  allOf:
-    - $ref: "#/BlockSettingsBase"
+        Plugin-specific block settings, mirroring Drupal's `block.settings.<plugin>`.
+        Intentionally open — arbitrary plugin-defined setting keys are permitted here.
+        Its concrete shape is dynamic per plugin and is checked at RUNTIME against the
+        live Drupal target's own config schema (the `config-verify` round-trip), not by
+        this static contract.
+      additionalProperties: true
