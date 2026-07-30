@@ -116,16 +116,12 @@ During the dialog, present available templates with descriptions and ask the aut
 
 ## `view_modes` and `form_modes`
 
-A bundle has two display halves: **reading** and **editing**. `view_modes` is the reading half (how the
-entity is shown); `form_modes` is the editing half (how the entity is edited) — the same concept one step
-over. Both are declared with the identical shape: each mode carries a required `template`, an optional
-`label`, and optional `settings`.
+A bundle has two display halves — `view_modes` (reading) and `form_modes` (editing); the `DataModel`
+schema documents both and their shared shape. During the dialog, ask the author for each half which
+named variants the bundle needs beyond the always-present `default` — e.g. a `teaser` view mode, or a
+`register` form mode alongside the default edit form — and which `template` renders each.
 
-`default` is the mode every bundle always has — the plain read display and the plain edit form. Declare
-additional named modes only when the bundle is shown or edited through more than one variant (e.g. a
-`register` form mode alongside the `default` edit form).
-
-Examples:
+Examples that validate against the schema:
 
 ```yaml
 content:
