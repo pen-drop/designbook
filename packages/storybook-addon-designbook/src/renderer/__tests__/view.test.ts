@@ -5,7 +5,7 @@ import type { SceneTreeNode } from '../types';
 describe('view()', () => {
   it('projects a component node to ComponentNode', () => {
     const tree: SceneTreeNode[] = [{ kind: 'component', component: 'button', props: { label: 'Click' } }];
-    expect(view(tree)).toEqual([{ component: 'button', props: { label: 'Click' }, slots: undefined }]);
+    expect(view(tree)).toEqual([{ component: 'button', props: { label: 'Click' }, slots: undefined, path: '0' }]);
   });
 
   it('projects an entity node to ComponentNode (strips entity metadata)', () => {
@@ -24,7 +24,7 @@ describe('view()', () => {
       },
     ];
     const result = view(tree);
-    expect(result).toEqual([{ component: 'hero_banner', props: { title: 'Hello' }, slots: undefined }]);
+    expect(result).toEqual([{ component: 'hero_banner', props: { title: 'Hello' }, slots: undefined, path: '0' }]);
     // No entity metadata in output
     expect(result[0]).not.toHaveProperty('kind');
     expect(result[0]).not.toHaveProperty('entity');
@@ -99,6 +99,58 @@ describe('view()', () => {
 
   it('handles empty tree', () => {
     expect(view([])).toEqual([]);
+  });
+
+  it('assigns non-empty index paths to root nodes and stamps them on the IR', () => {
+    const tree: SceneTreeNode[] = [
+      { kind: 'component', component: 'a' },
+      { kind: 'component', component: 'b' },
+    ];
+    const result = view(tree);
+    expect(result.map((n) => n.path)).toEqual(['0', '1']);
+    // Same canonical path is stamped back onto the source SceneTreeNode.
+    expect(tree.map((n) => n.path)).toEqual(['0', '1']);
+  });
+
+  it('threads canonical paths through single and multi-item slots', () => {
+    const tree: SceneTreeNode[] = [
+      {
+        kind: 'component',
+        component: 'card',
+        slots: {
+          header: [{ kind: 'component', component: 'heading' }],
+          items: [
+            { kind: 'component', component: 'row0' },
+            { kind: 'component', component: 'row1' },
+          ],
+        },
+      },
+    ];
+    const result = view(tree);
+    const card = result[0]!;
+    expect(card.path).toBe('0');
+    // Single slot child → no index suffix.
+    expect((card.slots!.header as { path: string }).path).toBe('0.header');
+    // Multi-item slot array → index-suffixed paths, stamped on the IR too.
+    const items = card.slots!.items as { path: string }[];
+    expect(items.map((n) => n.path)).toEqual(['0.items.0', '0.items.1']);
+    expect(tree[0]!.slots!.items!.map((n) => n.path)).toEqual(['0.items.0', '0.items.1']);
+  });
+
+  it('keeps render path and IR path identical across scene-ref flattening', () => {
+    const tree: SceneTreeNode[] = [
+      { kind: 'component', component: 'header' },
+      {
+        kind: 'scene-ref',
+        ref: { source: 'shared:footer' },
+        children: [{ kind: 'component', component: 'footer_nav' }],
+      },
+    ];
+    const result = view(tree);
+    // Flattened scene-ref child continues the flat top-level index space.
+    expect(result.map((n) => n.path)).toEqual(['0', '1']);
+    // The IR leaf inside the scene-ref carries the same path the renderer emits.
+    expect(tree[1]!.children![0]!.path).toBe('1');
   });
 
   it('handles nested scene-refs in children', () => {

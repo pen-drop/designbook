@@ -10,7 +10,8 @@ import { MappingDetail } from '../MappingDetail';
 
 interface ComponentPanelProps {
   tree: SceneTreeNode[];
-  highlightedPath?: string | null;
+  hoveredPath?: string | null;
+  selectedPath?: string | null;
 }
 
 const S = {
@@ -20,7 +21,7 @@ const S = {
   } as React.CSSProperties,
 };
 
-export function ComponentPanel({ tree, highlightedPath }: ComponentPanelProps) {
+export function ComponentPanel({ tree, hoveredPath, selectedPath }: ComponentPanelProps) {
   const [selectedNode, setSelectedNode] = useState<SceneTreeNode | null>(null);
 
   const handleSelect = useCallback((node: SceneTreeNode) => {
@@ -37,7 +38,7 @@ export function ComponentPanel({ tree, highlightedPath }: ComponentPanelProps) {
 
   return (
     <div style={S.container}>
-      <CompositionTree tree={tree} onSelectNode={handleSelect} highlightedPath={highlightedPath} />
+      <CompositionTree tree={tree} onSelectNode={handleSelect} hoveredPath={hoveredPath} selectedPath={selectedPath} />
     </div>
   );
 }

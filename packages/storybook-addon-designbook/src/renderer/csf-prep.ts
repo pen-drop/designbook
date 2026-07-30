@@ -167,6 +167,8 @@ export interface EntityCsfViewMode {
   view_mode: string;
   exportName: string;
   recordsNodes: ComponentNode[][];
+  /** Per-record scene IR (parallel to recordsNodes) — feeds the Structure tree. */
+  recordsTrees: SceneTreeNode[][];
   source: string;
   fieldMappings: FieldMapping[];
 }
@@ -248,12 +250,15 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
 
   const storyExports = viewModes.map((vm, index) => {
     const recordsJson = JSON.stringify(vm.recordsNodes);
+    // Per-record scene IR — the Structure panel indexes into it by the `record`
+    // arg to show the tree for the record currently on screen.
+    const treesJson = JSON.stringify(vm.recordsTrees);
     const options = vm.recordsNodes.map((_, i) => i);
     const description = JSON.stringify(docsDescription(mappingBasename(vm.view_mode), vm.source, vm.fieldMappings));
     return [
       `export const ${vm.exportName} = {`,
       `  name: '${vm.view_mode.replace(/'/g, "\\'")}',`,
-      `  parameters: { designbook: { order: ${100 + index} }, docs: { description: { story: ${description} } } },`,
+      `  parameters: { designbook: { order: ${100 + index} }, docs: { description: { story: ${description} } }, sceneTrees: ${treesJson} },`,
       `  argTypes: { record: { name: 'record', control: { type: 'select' }, options: [${options.join(', ')}] } },`,
       `  args: { record: 0, __records: ${recordsJson} },`,
       '  render: (args) => renderComponent(args.__records[args.record], __imports),',

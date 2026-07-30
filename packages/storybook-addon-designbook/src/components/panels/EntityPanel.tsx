@@ -11,7 +11,8 @@ import { CompositionTree } from '../CompositionTree';
 
 interface EntityPanelProps {
   tree: SceneTreeNode[];
-  highlightedPath?: string | null;
+  hoveredPath?: string | null;
+  selectedPath?: string | null;
 }
 
 function useStyles() {
@@ -198,7 +199,7 @@ function EntityMappingDetail({ node }: { node: SceneTreeNode }) {
   );
 }
 
-export function EntityPanel({ tree, highlightedPath }: EntityPanelProps) {
+export function EntityPanel({ tree, hoveredPath, selectedPath }: EntityPanelProps) {
   const S = useStyles();
   const [selectedNode, setSelectedNode] = useState<SceneTreeNode | null>(null);
 
@@ -214,7 +215,12 @@ export function EntityPanel({ tree, highlightedPath }: EntityPanelProps) {
     <div style={S.container}>
       <div style={S.treePane}>
         <div style={S.header}>Composition</div>
-        <CompositionTree tree={tree} onSelectNode={handleSelect} highlightedPath={highlightedPath} />
+        <CompositionTree
+          tree={tree}
+          onSelectNode={handleSelect}
+          hoveredPath={hoveredPath}
+          selectedPath={selectedPath}
+        />
       </div>
       <div style={S.detailPane}>
         <div style={S.header}>Mapping</div>
