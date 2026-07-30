@@ -31,16 +31,23 @@ function useStyles() {
       container: {
         display: 'flex',
         height: '100%',
+        minHeight: 0,
       } as React.CSSProperties,
+      // Each pane is a column: a fixed header + its own independently scrolling
+      // content region (so composition and detail scroll separately).
       treePane: {
         width: '40%',
         minWidth: 200,
         borderRight: `1px solid ${theme.appBorderColor}`,
-        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        minHeight: 0,
       } as React.CSSProperties,
       detailPane: {
         flex: 1,
-        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        minHeight: 0,
       } as React.CSSProperties,
       header: {
         padding: '8px 12px',
@@ -50,6 +57,12 @@ function useStyles() {
         textTransform: 'uppercase' as const,
         letterSpacing: '0.5px',
         borderBottom: `1px solid ${theme.appBorderColor}`,
+        flexShrink: 0,
+      } as React.CSSProperties,
+      scroll: {
+        flex: 1,
+        overflow: 'auto',
+        minHeight: 0,
       } as React.CSSProperties,
       hint: {
         padding: 16,
@@ -84,16 +97,18 @@ export function StructureSplitView({
     <div style={S.container}>
       <div style={S.treePane}>
         <div style={S.header}>Composition</div>
-        <CompositionTree
-          tree={tree}
-          onSelectNode={handleSelect}
-          hoveredPath={hoveredPath}
-          selectedPath={selectedPath}
-        />
+        <div style={S.scroll}>
+          <CompositionTree
+            tree={tree}
+            onSelectNode={handleSelect}
+            hoveredPath={hoveredPath}
+            selectedPath={selectedPath}
+          />
+        </div>
       </div>
       <div style={S.detailPane}>
         <div style={S.header}>{detailHeader}</div>
-        {activeNode ? renderDetail(activeNode) : <div style={S.hint}>{emptyHint}</div>}
+        <div style={S.scroll}>{activeNode ? renderDetail(activeNode) : <div style={S.hint}>{emptyHint}</div>}</div>
       </div>
     </div>
   );

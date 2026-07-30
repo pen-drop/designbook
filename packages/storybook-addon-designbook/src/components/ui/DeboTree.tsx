@@ -4,7 +4,7 @@
  * Renders a collapsible tree with icons, labels, groups, and path-based
  * highlighting. Framework-agnostic data model via DeboTreeItem.
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { ChevronSmallDownIcon, ChevronSmallRightIcon } from '@storybook/icons';
 import { useTheme } from 'storybook/theming';
 
@@ -132,6 +132,13 @@ function TreeNode({
   const isSelected = !!(selectedId && item.id === selectedId);
   const isHovered = !!(hoveredId && item.id === hoveredId);
 
+  // Scroll the highlighted row into view within the composition's own scroll
+  // container (block:'nearest' → only scrolls when it is actually off-screen).
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isHovered || isSelected) rowRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [isHovered, isSelected]);
+
   const handleRowClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -163,6 +170,7 @@ function TreeNode({
   return (
     <div>
       <div
+        ref={rowRef}
         role="treeitem"
         tabIndex={0}
         style={rowStyle}

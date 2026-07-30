@@ -72,7 +72,9 @@ export function StructurePanel({ active }: StructurePanelProps) {
   }
 
   return (
-    <AddonPanel active={active ?? false}>
+    // hasScrollbar={false}: the panel must NOT wrap the split in one shared
+    // ScrollArea — each pane scrolls on its own (see StructureSplitView).
+    <AddonPanel active={active ?? false} hasScrollbar={false}>
       <StructureSplitView
         tree={tree}
         hoveredPath={hoveredPath}
