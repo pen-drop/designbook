@@ -5,6 +5,9 @@ when:
   work_type: designbook-to-config
   workflow: [gaia_feature, gaia_bug, gaia_chore]
   step: [diagnose, spec, coding, review]
+work_type_term:
+  name: "work:designbook-to-config"
+  description: "Sub-work: sync Designbook components into Drupal configuration — built with debo --from-plan, validated with debo config-verify."
 inputs:
   spec:
     description: how to produce the config plan in the spec step (debo, run to the last interactive stage, writing a plan file)

@@ -13,7 +13,12 @@ field-level template, and multi-value fields MUST keep that boundary.
 - Multi-value fields map as one field-level collection: slot, field component,
   repeated field template, or renderable child list.
 - Single-value fields MAY unwrap inner values into component props or slots when
-  the reference-visible treatment is atomic.
+  the reference-visible treatment is atomic. A single-value field whose formatter
+  renders markup/content — including one `title` or one `link`/CTA — is a **slot**
+  (`field_block`), not a scalar prop; scalar props stay reserved for genuinely
+  atomic non-markup values (icon id, boolean, image attribute). See *Field-Rendered
+  Content Maps to a Slot, Not a Scalar Prop* in
+  `../../components/rules/reference-field-semantics.md`.
 - Do not flatten multi-value items into sibling parent props.
 - Do not render only the first item of a multi-value field unless the data model
   explicitly describes a single selected value field.
