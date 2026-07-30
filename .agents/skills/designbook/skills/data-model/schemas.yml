@@ -1,5 +1,6 @@
 # Data model concern schemas
-# Content has a fixed schema (entity_type → bundle → purpose, view_modes, fields).
+# Content has a fixed schema (entity_type → bundle → purpose, view_modes, form_modes, fields).
+# A bundle has two display halves: reading (view_modes) and editing (form_modes) — same shape.
 # Config stays open — each config type brings its own schema via extends/constrains.
 
 DataModel:
@@ -24,6 +25,18 @@ DataModel:
                   label:
                     type: string
                     description: Human-readable name for a custom view mode, e.g. "Card". Required by sync-to when emitting a core.entity_view_mode.<entity_type>.<mode> definition for a non-standard view mode.
+                  settings: { type: object, additionalProperties: true }
+                additionalProperties: false
+            form_modes:
+              type: object
+              additionalProperties:
+                type: object
+                required: [template]
+                properties:
+                  template: { type: string }
+                  label:
+                    type: string
+                    description: Human-readable name for a non-default form mode, e.g. "Register". Required by sync-to when emitting a core.entity_form_mode.<entity_type>.<mode> definition for a non-default form mode.
                   settings: { type: object, additionalProperties: true }
                 additionalProperties: false
             fields:

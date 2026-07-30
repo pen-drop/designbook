@@ -91,6 +91,11 @@ content:
         {view_mode}:    # e.g. teaser, full, card
           template: ~   # required: template name from entity_mapping.templates in config
           settings: {}  # optional: template-specific settings
+      form_modes:
+        {form_mode}:    # e.g. default, register — the edit half of the bundle
+          template: ~   # required: template name from entity_mapping.templates in config
+          label: ~      # optional: human-readable name for a non-default form mode
+          settings: {}  # optional: template-specific settings
       fields:
         {field_name}:
           type: ~        # required: string, text, integer, boolean, reference, ...
@@ -108,3 +113,29 @@ Common templates:
 - `field-map` — structured field mapping, entity fields drive component selection
 
 During the dialog, present available templates with descriptions and ask the author which template applies to each view mode.
+
+## `view_modes` and `form_modes`
+
+A bundle has two display halves: **reading** and **editing**. `view_modes` is the reading half (how the
+entity is shown); `form_modes` is the editing half (how the entity is edited) — the same concept one step
+over. Both are declared with the identical shape: each mode carries a required `template`, an optional
+`label`, and optional `settings`.
+
+`default` is the mode every bundle always has — the plain read display and the plain edit form. Declare
+additional named modes only when the bundle is shown or edited through more than one variant (e.g. a
+`register` form mode alongside the `default` edit form).
+
+Examples:
+
+```yaml
+content:
+  node:
+    article:
+      view_modes: { teaser: { template: card }, full: { template: article } }
+      form_modes: { default: { template: form } }
+  user:
+    user:
+      form_modes:
+        default: { template: form }
+        register: { template: form, label: Register }
+```
