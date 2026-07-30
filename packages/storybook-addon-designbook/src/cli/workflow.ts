@@ -27,6 +27,7 @@ import {
   expandResultDeclarations,
   resolveSchemaRef,
   rewriteRefsInSchema,
+  collectLocalRefsFromSchema,
   type ResolvedStep,
   type ResultDeclaration,
   type ExpectedParam,
@@ -253,8 +254,28 @@ export async function runWorkflowCreate(
       for (const [key, decl] of Object.entries(resultDeclProperties)) {
         // Top-level $ref: replace schema with the resolved definition
         if (decl.$ref && firstResult[key]) {
-          const { typeName, schema } = resolveSchemaRef(decl.$ref, firstResolved.task_file, skillsRoot, sources);
+          const { typeName, schema, fileSchemas, schemaFilePath } = resolveSchemaRef(
+            decl.$ref,
+            firstResolved.task_file,
+            skillsRoot,
+            sources,
+          );
           firstSchemas[typeName] = schema;
+          // Pull the resolved type's OWN transitive same-file refs (e.g.
+          // SceneFile → #/SceneDef) into firstSchemas. rewriteRefsInSchema below
+          // only handles file-system refs; a bare #/Type ref that lives in the
+          // resolved type's own schema file would otherwise dangle and AJV would
+          // throw "can't resolve reference #/SceneDef from id #/SceneFile" at
+          // `workflow done`. Mirrors the shared resolver in workflow-resolve.ts.
+          collectLocalRefsFromSchema(
+            schema,
+            fileSchemas,
+            firstSchemas,
+            new Set([typeName]),
+            schemaFilePath,
+            skillsRoot,
+            sources,
+          );
           firstResult[key]!.schema = schema;
         }
         // Nested $ref at any depth (e.g. items.$ref, properties.foo.$ref):

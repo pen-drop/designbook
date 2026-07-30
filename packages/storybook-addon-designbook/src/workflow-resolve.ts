@@ -292,7 +292,7 @@ export function resolveSchemaRef(
  * Component into the workflow's top-level schemas map, `DesignHint` also needs
  * to live there so AJV can resolve the ref.
  */
-function collectLocalRefsFromSchema(
+export function collectLocalRefsFromSchema(
   node: unknown,
   fileSchemas: Record<string, object>,
   schemas: Record<string, object>,
