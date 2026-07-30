@@ -32,12 +32,45 @@ import {
   type ResultDeclaration,
   type ExpectedParam,
 } from '../workflow-resolve.js';
+import { computeMergedSchema } from '../workflow-schema-merge.js';
 import { resolveParams } from '../resolvers/registry.js';
 import type { ResolverContext } from '../resolvers/types.js';
 import { renderSubmitResultsHint } from './submit-results-hint.js';
 import { initLogger, log } from '../logger.js';
 import { register as registerSummary } from './workflow-summary.js';
 import { listWorkflowDefinitions, loadWorkflowDefinition, resolveWorkflowFile } from './workflow-discovery.js';
+
+/**
+ * Deep-merge a (sparse) schema-composition result INTO a resolved base schema,
+ * in place. Used to fold blueprint/rule `extends:` contributions into the first
+ * task's already-$ref-resolved result schema (DESIGNBOOK-30). Additive by design:
+ * overlapping object nodes recurse (so `content` / `config` subtrees combine),
+ * `required` arrays union, and new keys are added. A scalar/array already present
+ * in the base is kept (the resolved base wins) — `extends:` only adds shape.
+ */
+function deepMergeSchemaInto(target: Record<string, unknown>, source: Record<string, unknown>): void {
+  for (const [key, value] of Object.entries(source)) {
+    if (key === 'required' && Array.isArray(value)) {
+      const cur = Array.isArray(target.required) ? (target.required as unknown[]) : [];
+      target.required = Array.from(new Set([...cur, ...(value as unknown[])]));
+      continue;
+    }
+    const existing = target[key];
+    const bothPlainObjects =
+      value != null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      existing != null &&
+      typeof existing === 'object' &&
+      !Array.isArray(existing);
+    if (bothPlainObjects) {
+      deepMergeSchemaInto(existing as Record<string, unknown>, value as Record<string, unknown>);
+    } else if (!(key in target)) {
+      target[key] = value;
+    }
+    // else: key present as a scalar/array in the base — keep the resolved base value.
+  }
+}
 
 export interface InstructionsResult {
   stage: string;
@@ -288,6 +321,56 @@ export async function runWorkflowCreate(
             firstSchemas,
             sources,
           );
+        }
+      }
+
+      // Apply blueprint/rule `extends:` (schema composition) to the first task's
+      // result schema so an enforced shape contributed via `extends:` (e.g.
+      // `config.block_plugin` from block_plugin.md) actually reaches validation.
+      // resolveAllStages computes this merge into step_resolved, but the persisted
+      // task result is rebuilt here from the task's OWN $ref — so without this the
+      // merge (and its collected $ref defs) were dropped and `extends:` enforced
+      // nothing at `workflow done` (DESIGNBOOK-30). computeMergedSchema also
+      // populates firstSchemas with the extends-collected #/Type definitions
+      // (persisted as data.schemas), so AJV resolves the merged schema's refs.
+      //
+      // The extends merge runs against an EMPTY base (the inline-only result
+      // schema, $ref stripped) — mirroring resolveAllStages — so deepMergeExtends
+      // never hits its duplicate-property guard against the already-$ref-resolved
+      // schema. Its sparse output is then deep-merged INTO the resolved schema.
+      const extBlueprints = firstResolved.blueprints ?? [];
+      const extRules = firstResolved.rules ?? [];
+      if (firstResult && (extBlueprints.length > 0 || extRules.length > 0)) {
+        const baseResult: Record<string, { schema?: object }> = {};
+        const refMap: Record<string, string> = {};
+        for (const [key, decl] of Object.entries(resultDeclProperties)) {
+          if (!firstResult[key]) continue;
+          const { path: _p, $ref: ref, validators: _v, ...inlineSchema } = decl as Record<string, unknown>;
+          baseResult[key] = { schema: Object.keys(inlineSchema).length > 0 ? (inlineSchema as object) : {} };
+          if (typeof ref === 'string') {
+            const defName = ref.split('#/').pop()?.split('/').pop();
+            if (defName) refMap[key] = defName;
+          }
+        }
+        if (Object.keys(baseResult).length > 0) {
+          const merged = computeMergedSchema(baseResult, {
+            blueprintFiles: extBlueprints,
+            ruleFiles: extRules,
+            skillsRoot,
+            schemas: firstSchemas,
+            refMap,
+            sources,
+          });
+          if (merged) {
+            for (const [key, mergedSchema] of Object.entries(merged)) {
+              const target = firstResult[key]?.schema;
+              if (target && typeof target === 'object') {
+                deepMergeSchemaInto(target as Record<string, unknown>, mergedSchema as Record<string, unknown>);
+              } else if (firstResult[key]) {
+                firstResult[key]!.schema = mergedSchema;
+              }
+            }
+          }
         }
       }
     }

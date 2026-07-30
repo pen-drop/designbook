@@ -1,0 +1,76 @@
+# Data-model config schemas — Drupal integration
+#
+# The HARD, authoring-time contract for `config.block_plugin.<key>` entries in
+# data-model.yml. The block_plugin.md blueprint injects `config.block_plugin` into
+# the DataModel result via `extends:` and $refs `#/BlockPlugin` here, so the shape is
+# defined once and never inline-duplicated (skill-creator BLUEPRINT-03).
+#
+# This schema enforces only what can be checked WITHOUT a live Drupal target — the
+# static shape of an entry:
+#   - `plugin`    required, string form of a block plugin ID (optional derivative).
+#   - `component` required, the SDC that renders the block.
+#   - `layout`    optional, closed render-wrapper enum.
+#   - `module`    optional, providing module machine name.
+#
+# `settings` is deliberately an OPEN object here. Drupal resolves a block's settings
+# schema dynamically per plugin (`block.settings.[%parent.plugin]`,
+# core/modules/block/config/schema/block.schema.yml), so its real shape is only
+# knowable against the installed site. A static, hand-maintained enumeration of a few
+# plugin families would be incomplete by construction (every contrib/custom plugin
+# would fail) and would drift from the actual Drupal schema. Those checks — does the
+# plugin exist, does `settings` match Drupal's own `block.settings.<plugin>`, does a
+# referenced view carry `exposed_block: true` — are not authoring-time concerns: they
+# surface at RUNTIME, when the modelled config is exported and applied to a live Drupal
+# target (the `config-verify` round-trip), where Drupal's own config schema resolves.
+# See block_plugin.md.
+
+BlockPlugin:
+  title: Block Plugin Instance
+  description: >
+    A named plugin-block instance placed on a page without a block_content backing
+    (e.g. views_block, views_exposed_filter_block, user_login_block) — plus
+    block_content:<uuid> as a plugin value. Lives under `config.block_plugin.<key>`
+    in data-model.yml. The `key` is the stable handle a canvas_page / layout-builder
+    tree node references; it does NOT emit a `block.block.*` placement entity.
+  type: object
+  required: [plugin, component]
+  properties:
+    plugin:
+      type: string
+      description: >
+        Drupal block plugin ID with an optional `:derivative` suffix. This pattern is
+        a static shape check only; whether the plugin actually exists on the target is
+        a runtime config-verify concern, not enforced here.
+      pattern: "^[a-z][a-z0-9_]*(:[A-Za-z0-9_.-]+)?$"
+      examples:
+        - user_login_block
+        - views_block:gaia_tickets-block_1
+        - views_exposed_filter_block:gaia_tickets.page_1
+        - system_menu_block:main
+        - block_content:2f1c9e34-6b4a-4d2e-9c11-8a7b6c5d4e3f
+    component:
+      type: string
+      description: >
+        SDC name that renders this block. Always required — a blueprint may suggest
+        a per-family default, but the explicit entry always wins.
+      examples: [login-form, exposed-filter, block]
+    layout:
+      type: string
+      description: Optional render-wrapper hint for the block. Closed enum.
+      enum: [default, inline, stacked]
+    module:
+      type: string
+      description: >
+        Providing module machine name. Core families (views, user, block_content)
+        need none; a non-core provider (e.g. webform) names it here. A non-core plugin
+        left without a module is a runtime config-verify failure, not a static error.
+      examples: [webform, commerce]
+    settings:
+      type: object
+      description: >
+        Plugin-specific block settings, mirroring Drupal's `block.settings.<plugin>`.
+        Intentionally open — arbitrary plugin-defined setting keys are permitted here.
+        Its concrete shape is dynamic per plugin and is checked at RUNTIME against the
+        live Drupal target's own config schema (the `config-verify` round-trip), not by
+        this static contract.
+      additionalProperties: true
