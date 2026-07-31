@@ -2,7 +2,8 @@ import { designbookLoadPlugin } from './vite-plugin';
 import { loadConfig, findConfig } from './config';
 import { buildExportName, extractScenes, extractGroup, fileBaseName } from './renderer/scene-metadata';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
-import { titleCaseBundle } from './renderer/entity-module-builder';
+import { entityStoryGroup } from './renderer/entity-module-builder';
+import { loadDataModel } from './renderer/scene-module-builder';
 
 import { readFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { resolve, dirname, relative, basename } from 'node:path';
@@ -26,7 +27,15 @@ export function indexEntity(fileName: string): any[] {
   const view_mode = parts.slice(2, -1).join('.');
   const prefix = `${entity_type}.${bundle}.`;
   const dir = dirname(fileName);
-  const title = `Entities/${entity_type}/${titleCaseBundle(bundle)}`;
+  // entity-mapping/<file>.jsonata lives directly under the designbook dir, so the
+  // model is two levels up. Grouping (Config vs Entities) + the config tag come
+  // from the data-model section via the shared helper — same source as the
+  // module-builder, so indexer titles/tags never diverge from loaded stories.
+  const designbookDir = dirname(dir);
+  const dataModel = loadDataModel(designbookDir);
+  const { title, isConfig } = entityStoryGroup(dataModel, entity_type, bundle);
+  const storyTags = isConfig ? ['entity', 'autodocs', 'config'] : ['entity', 'autodocs'];
+  const docsTags = isConfig ? ['autodocs', 'config'] : ['autodocs'];
 
   // Canonical module for the bundle = its first sorted mapping. Every view-mode
   // story imports it, so there is exactly one module instance per bundle.
@@ -44,7 +53,7 @@ export function indexEntity(fileName: string): any[] {
       exportName: buildExportName(view_mode),
       title,
       name: view_mode,
-      tags: ['entity', 'autodocs'],
+      tags: storyTags,
     },
   ];
   // One Docs entry per bundle, emitted by the canonical mapping only.
@@ -55,7 +64,7 @@ export function indexEntity(fileName: string): any[] {
       exportName: '__docs',
       title,
       name: 'Docs',
-      tags: ['autodocs'],
+      tags: docsTags,
     });
   }
   return entries;
