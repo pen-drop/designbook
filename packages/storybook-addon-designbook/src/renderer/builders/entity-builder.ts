@@ -51,17 +51,26 @@ export const entityBuilder: SceneNodeBuilder = {
       bundle = (node['bundle'] as string) ?? '';
     }
     const view_mode = (node['view_mode'] as string) ?? '';
+    const form_mode = (node['form_mode'] as string) ?? '';
     const select = (node['select'] as string) ?? '';
 
-    // 1. Locate the .jsonata expression file
-    const jsonataPath = resolve(ctx.designbookDir, 'entity-mapping', `${entity_type}.${bundle}.${view_mode}.jsonata`);
+    // 1. Locate the .jsonata expression file. A `form_mode` resolves from the
+    //    sibling `form-mapping/` directory (the editing half of the bundle);
+    //    otherwise the view path is byte-identical to before.
+    const jsonataPath = form_mode
+      ? resolve(ctx.designbookDir, 'form-mapping', `${entity_type}.${bundle}.${form_mode}.jsonata`)
+      : resolve(ctx.designbookDir, 'entity-mapping', `${entity_type}.${bundle}.${view_mode}.jsonata`);
+    const mappingLabel = form_mode
+      ? `${entity_type}.${bundle}.${form_mode}.jsonata (form)`
+      : `${entity_type}.${bundle}.${view_mode}.jsonata`;
 
     const entity: EntityOrigin = { entity_type, bundle, view_mode, select, mapping: jsonataPath };
+    if (form_mode) entity.form_mode = form_mode;
     const meta = { kind: 'entity' as const, entity };
 
     if (!existsSync(jsonataPath)) {
       console.warn(`[Designbook] JSONata expression not found: ${jsonataPath}`);
-      return { nodes: [missingPlaceholder(`missing expression: ${entity_type}.${bundle}.${view_mode}.jsonata`)], meta };
+      return { nodes: [missingPlaceholder(`missing expression: ${mappingLabel}`)], meta };
     }
 
     // 2. Get the bundle's record array — content first, config fallback.
@@ -101,7 +110,7 @@ export const entityBuilder: SceneNodeBuilder = {
     if (!result) {
       console.warn(`[Designbook] JSONata expression returned empty: ${jsonataPath}`);
       return {
-        nodes: [missingPlaceholder(`expression returned empty: ${entity_type}.${bundle}.${view_mode}.jsonata`)],
+        nodes: [missingPlaceholder(`expression returned empty: ${mappingLabel}`)],
         meta,
       };
     }

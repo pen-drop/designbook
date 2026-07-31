@@ -28,6 +28,16 @@ export function buildExportName(sceneName: string): string {
 }
 
 /**
+ * Build the export name for a form-mode story: `Form` + the mode's export name.
+ * "default" → "FormDefault". Shared by the entity module builder (the emitted
+ * export) and the form indexer (the index entry) so the two never diverge —
+ * the same indexer/loader parity the scene path already depends on.
+ */
+export function formExportName(formMode: string): string {
+  return 'Form' + buildExportName(formMode);
+}
+
+/**
  * Extract the scenes array from a parsed YAML object.
  * Supports both the new `scenes[]` format and legacy flat format.
  */

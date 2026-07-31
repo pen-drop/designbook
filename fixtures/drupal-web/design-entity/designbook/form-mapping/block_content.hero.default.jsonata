@@ -1,0 +1,22 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:form_element",
+      "props": {
+        "type": "textfield",
+        "label_display": "before"
+      },
+      "slots": {
+        "label": {
+          "component": "test_integration_drupal:label",
+          "slots": { "title": "Title" }
+        },
+        "children": {
+          "component": "test_integration_drupal:input",
+          "props": { "value": $fields.field_title }
+        }
+      }
+    }
+  ]
+)

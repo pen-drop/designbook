@@ -1,0 +1,19 @@
+[
+  {
+    "type": "component",
+    "component": "test_provider:form_element",
+    "props": { "type": "textfield", "label_display": "before" },
+    "slots": {
+      "label": {
+        "type": "component",
+        "component": "test_provider:label",
+        "slots": { "title": "Title" }
+      },
+      "children": {
+        "type": "component",
+        "component": "test_provider:input",
+        "props": { "value": title }
+      }
+    }
+  }
+]

@@ -173,11 +173,30 @@ export interface EntityCsfViewMode {
   fieldMappings: FieldMapping[];
 }
 
+/**
+ * A form-mode story to append to the bundle's module — the editing counterpart
+ * of EntityCsfViewMode. Same record/tree shape; it renders the form the
+ * `form-mapping/<type>.<bundle>.<form_mode>.jsonata` maps records to.
+ */
+export interface EntityCsfFormMode {
+  form_mode: string;
+  exportName: string;
+  recordsNodes: ComponentNode[][];
+  /** Per-record scene IR (parallel to recordsNodes) — feeds the Structure tree. */
+  recordsTrees: SceneTreeNode[][];
+  source: string;
+  fieldMappings: FieldMapping[];
+}
+
 export interface EntityCsfOptions {
   group: string;
   source: string;
   mappingBasename: (vm: string) => string;
   viewModes: EntityCsfViewMode[];
+  /** Form-mode stories appended after the view stories (same module). */
+  formModes?: EntityCsfFormMode[];
+  /** Maps a form-mode name to its `form-mapping/` basename (for the docs table). */
+  formMappingBasename?: (fm: string) => string;
   resolveImportPath: (componentId: string) => string | null;
   wrapImport?: (alias: string) => string;
 }
@@ -203,13 +222,55 @@ function docsDescription(mappingFile: string, source: string, mappings: FieldMap
   ].join('\n');
 }
 
+/**
+ * Emit a single entity story export. Shared by view-mode and form-mode
+ * emission so the two stay in lock-step; `tags` is omitted for view stories
+ * (keeping their output byte-identical) and set to `['form']` for form stories.
+ */
+function emitEntityStory(params: {
+  exportName: string;
+  name: string;
+  order: number;
+  recordsNodes: ComponentNode[][];
+  recordsTrees: SceneTreeNode[][];
+  mappingFile: string;
+  source: string;
+  fieldMappings: FieldMapping[];
+  tags?: string[];
+}): string {
+  const { exportName, name, order, recordsNodes, recordsTrees, mappingFile, source, fieldMappings, tags } = params;
+  const recordsJson = JSON.stringify(recordsNodes);
+  // Per-record scene IR — the Structure panel indexes into it by the `record`
+  // arg to show the tree for the record currently on screen.
+  const treesJson = JSON.stringify(recordsTrees);
+  const options = recordsNodes.map((_, i) => i);
+  const description = JSON.stringify(docsDescription(mappingFile, source, fieldMappings));
+  const lines = [`export const ${exportName} = {`, `  name: '${name.replace(/'/g, "\\'")}',`];
+  if (tags && tags.length) {
+    lines.push(`  tags: [${tags.map((t) => `'${t}'`).join(', ')}],`);
+  }
+  lines.push(
+    `  parameters: { designbook: { order: ${order} }, docs: { description: { story: ${description} } }, sceneTrees: ${treesJson} },`,
+    `  argTypes: { record: { name: 'record', control: { type: 'select' }, options: [${options.join(', ')}] } },`,
+    `  args: { record: 0, __records: ${recordsJson} },`,
+    '  render: (args) => renderComponent(args.__records[args.record], __imports),',
+    '};',
+  );
+  return lines.join('\n');
+}
+
 export function buildEntityCsfModule(opts: EntityCsfOptions): string {
   const { group, source, mappingBasename, viewModes, resolveImportPath, wrapImport } = opts;
+  const formModes = opts.formModes ?? [];
+  const formMappingBasename = opts.formMappingBasename ?? ((fm: string) => `${fm}.jsonata`);
 
-  // Collect component IDs across every record of every view-mode
+  // Collect component IDs across every record of every view-mode and form-mode
   const allIds = new Set<string>();
   for (const vm of viewModes) {
     for (const nodes of vm.recordsNodes) collectComponentIds(nodes, allIds);
+  }
+  for (const fm of formModes) {
+    for (const nodes of fm.recordsNodes) collectComponentIds(nodes, allIds);
   }
 
   const importLines: string[] = ["import { renderComponent } from 'storybook-addon-designbook/renderer';"];
@@ -248,23 +309,36 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
     '};',
   ].join('\n');
 
-  const storyExports = viewModes.map((vm, index) => {
-    const recordsJson = JSON.stringify(vm.recordsNodes);
-    // Per-record scene IR — the Structure panel indexes into it by the `record`
-    // arg to show the tree for the record currently on screen.
-    const treesJson = JSON.stringify(vm.recordsTrees);
-    const options = vm.recordsNodes.map((_, i) => i);
-    const description = JSON.stringify(docsDescription(mappingBasename(vm.view_mode), vm.source, vm.fieldMappings));
-    return [
-      `export const ${vm.exportName} = {`,
-      `  name: '${vm.view_mode.replace(/'/g, "\\'")}',`,
-      `  parameters: { designbook: { order: ${100 + index} }, docs: { description: { story: ${description} } }, sceneTrees: ${treesJson} },`,
-      `  argTypes: { record: { name: 'record', control: { type: 'select' }, options: [${options.join(', ')}] } },`,
-      `  args: { record: 0, __records: ${recordsJson} },`,
-      '  render: (args) => renderComponent(args.__records[args.record], __imports),',
-      '};',
-    ].join('\n');
-  });
+  const viewExports = viewModes.map((vm, index) =>
+    emitEntityStory({
+      exportName: vm.exportName,
+      name: vm.view_mode,
+      order: 100 + index,
+      recordsNodes: vm.recordsNodes,
+      recordsTrees: vm.recordsTrees,
+      mappingFile: mappingBasename(vm.view_mode),
+      source: vm.source,
+      fieldMappings: vm.fieldMappings,
+    }),
+  );
+
+  // Form-mode stories share the module; each is name `<mode> (form)`, tagged
+  // `form`, ordered after the view stories, distinct from a like-named view.
+  const formExports = formModes.map((fm, index) =>
+    emitEntityStory({
+      exportName: fm.exportName,
+      name: `${fm.form_mode} (form)`,
+      order: 100 + viewModes.length + index,
+      recordsNodes: fm.recordsNodes,
+      recordsTrees: fm.recordsTrees,
+      mappingFile: formMappingBasename(fm.form_mode),
+      source: fm.source,
+      fieldMappings: fm.fieldMappings,
+      tags: ['form'],
+    }),
+  );
+
+  const storyExports = [...viewExports, ...formExports];
 
   return [importLines.join('\n'), '', importsMap, '', defaultExport, '', storyExports.join('\n\n'), ''].join('\n');
 }

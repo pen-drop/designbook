@@ -9,14 +9,14 @@
  * view-mode, a `record` Controls select over the pool records).
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, basename, dirname } from 'node:path';
 
 import { buildRenderContext, defaultSdcResolver, loadDataModel, loadSampleData } from './scene-module-builder';
 import { view } from './view';
-import { buildEntityCsfModule, type EntityCsfViewMode } from './csf-prep';
+import { buildEntityCsfModule, type EntityCsfViewMode, type EntityCsfFormMode } from './csf-prep';
 import { extractFieldMappings } from './jsonata-mapping-analyzer';
-import { buildExportName } from './scene-metadata';
+import { buildExportName, formExportName } from './scene-metadata';
 import type { SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -110,6 +110,52 @@ export async function buildEntityModule(
     });
   }
 
+  // Discover the bundle's form-mapping/ siblings (the editing half). A sibling
+  // directory namespace makes this collision-free — the view glob above never
+  // sees these files, so view stories can never regress. A bundle with no
+  // form-mapping/ dir (or no matching file) yields zero form stories.
+  const formDir = resolve(dir, '..', 'form-mapping');
+  const formModeNames = existsSync(formDir)
+    ? readdirSync(formDir)
+        .filter((f) => f.startsWith(prefix) && f.endsWith('.jsonata'))
+        .map((f) => f.slice(prefix.length, -'.jsonata'.length))
+        .sort()
+    : [];
+
+  const formModes: EntityCsfFormMode[] = [];
+  for (const fm of formModeNames) {
+    const source = readFileSync(resolve(formDir, `${prefix}${fm}.jsonata`), 'utf-8');
+    let fieldMappings = [] as ReturnType<typeof extractFieldMappings>;
+    try {
+      fieldMappings = extractFieldMappings(source);
+    } catch {
+      // Non-critical — panel just won't show mappings
+    }
+
+    const recordsNodes: ComponentNode[][] = [];
+    const recordsTrees: SceneTreeNode[][] = [];
+    for (let r = 0; r < recordCount; r++) {
+      const tree: SceneTreeNode[] = [];
+      const built = await ctx.buildNode({
+        entity: `${entity_type}.${bundle}`,
+        form_mode: fm,
+        select: `$[${r}]`,
+      } as SceneNode);
+      tree.push(...built);
+      recordsNodes.push(view(tree));
+      recordsTrees.push(tree);
+    }
+
+    formModes.push({
+      form_mode: fm,
+      exportName: formExportName(fm),
+      recordsNodes,
+      recordsTrees,
+      source,
+      fieldMappings,
+    });
+  }
+
   const resolveImportPath =
     options.resolveImportPath ?? ((componentId) => defaultSdcResolver(componentId, designbookDir));
   const wrapImport =
@@ -120,6 +166,8 @@ export async function buildEntityModule(
     source: basename(mappingFilePath),
     mappingBasename: (vm) => `${prefix}${vm}.jsonata`,
     viewModes,
+    formModes,
+    formMappingBasename: (fm) => `${prefix}${fm}.jsonata`,
     resolveImportPath,
     wrapImport,
   });
