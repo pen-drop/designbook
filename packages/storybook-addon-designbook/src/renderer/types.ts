@@ -116,7 +116,7 @@ export interface ScenesFile {
 export interface ComponentNode {
   component: string; // component reference key, e.g. 'test_provider:card'
   props?: Record<string, unknown>;
-  slots?: Record<string, ComponentNode | ComponentNode[] | string>;
+  slots?: Record<string, ComponentNode | ComponentNode[] | string | null | undefined>;
   /**
    * Canonical node path — computed once in view() and used by the renderer as
    * the marker suffix (`db:s:${component}@${path}`). The matching SceneTreeNode

@@ -138,4 +138,38 @@ describe('BuilderRegistry', () => {
     expect(author![0]!.kind).toBe('entity');
     expect(author![0]!.component).toBe('test:badge');
   });
+
+  it('normalizes null slot values and ignores absent slots', async () => {
+    const registry = new BuilderRegistry();
+    const componentBuilder: SceneNodeBuilder = {
+      appliesTo: (node) => 'component' in node && typeof node['component'] === 'string',
+      build: vi.fn().mockResolvedValue({
+        nodes: [
+          {
+            component: 'test:video-player',
+            slots: {
+              poster: 'Poster',
+              transcription: null,
+            },
+          },
+        ],
+        meta: { kind: 'component' },
+      }),
+    };
+    registry.register(componentBuilder);
+
+    const ctx = registry.createContext({
+      dataModel: { content: {} },
+      sampleData: {},
+      designbookDir: '/test',
+    });
+
+    const [result] = await registry.buildNode({ component: 'test:video-player' } as SceneNode, ctx);
+
+    expect(result?.slots).toEqual({
+      poster: [{ kind: 'string', value: 'Poster' }],
+      transcription: [],
+    });
+    expect(result?.slots).not.toHaveProperty('body');
+  });
 });

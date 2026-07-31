@@ -60,13 +60,15 @@ function renderNode(node: ComponentNode, imports: Record<string, ComponentModule
 }
 
 function resolveSlots(
-  slots: Record<string, ComponentNode | ComponentNode[] | string>,
+  slots: Record<string, ComponentNode | ComponentNode[] | string | null | undefined>,
   imports: Record<string, ComponentModule>,
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(slots)) {
-    if (typeof value === 'string') {
+    if (value == null) {
+      resolved[key] = '';
+    } else if (typeof value === 'string') {
       // Render unresolved $variable placeholders as a visible grey box
       if (/^\$\w+$/.test(value)) {
         resolved[key] =

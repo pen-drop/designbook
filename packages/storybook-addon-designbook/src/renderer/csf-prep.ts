@@ -58,7 +58,7 @@ export function collectComponentIds(nodes: ComponentNode[], seen = new Set<strin
     if (node.component) seen.add(node.component);
     if (node.slots) {
       for (const slotValue of Object.values(node.slots)) {
-        if (typeof slotValue === 'string') continue;
+        if (slotValue == null || typeof slotValue === 'string') continue;
         if (Array.isArray(slotValue)) {
           collectComponentIds(slotValue, seen);
         } else {

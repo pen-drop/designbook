@@ -44,17 +44,22 @@ function needsBuilding(node: RawNode): node is SceneNode {
  * Returns SceneTreeNode[] for each slot (for the SceneTree).
  */
 async function resolveSlots(
-  slots: Record<string, ComponentNode | ComponentNode[] | string>,
+  slots: Record<string, ComponentNode | ComponentNode[] | string | null | undefined>,
   ctx: BuildContext,
 ): Promise<Record<string, SceneTreeNode[]>> {
   const resolved: Record<string, SceneTreeNode[]> = {};
 
   for (const [key, value] of Object.entries(slots)) {
-    if (typeof value === 'string') {
+    if (value == null) {
+      resolved[key] = [];
+    } else if (typeof value === 'string') {
       resolved[key] = [{ kind: 'string', value }];
     } else if (Array.isArray(value)) {
       const items = await Promise.all(
-        (value as (RawNode | string)[]).map(async (item): Promise<SceneTreeNode[]> => {
+        (value as (RawNode | string | null | undefined)[]).map(async (item): Promise<SceneTreeNode[]> => {
+          if (item == null) {
+            return [];
+          }
           if (typeof item === 'string') {
             return [{ kind: 'string', value: item }];
           }
