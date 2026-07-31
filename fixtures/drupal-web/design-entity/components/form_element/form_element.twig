@@ -1,0 +1,8 @@
+<div{{ attributes.addClass(['form-item', 'mb-4', type ? 'form-item--' ~ type : '']|filter(c => c)) }}>
+  {% if label and label_display != 'after' %}{{ label }}{% endif %}
+  {% if prefix %}<span class="form-item__prefix">{{ prefix }}</span>{% endif %}
+  {{ children }}
+  {% if suffix %}<span class="form-item__suffix">{{ suffix }}</span>{% endif %}
+  {% if label and label_display == 'after' %}{{ label }}{% endif %}
+  {% if errors %}<div class="form-item__errors text-red-600 text-sm mt-1" role="alert">{{ errors }}</div>{% endif %}
+</div>
