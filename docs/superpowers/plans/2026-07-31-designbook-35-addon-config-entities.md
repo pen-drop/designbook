@@ -43,13 +43,13 @@ Tags aus einer Quelle stammen und nie divergieren.
 - Produces: rote Tests, die die neue Einordnung erzwingen.
 
 - [ ] **Step 1:** Test — `buildEntityModule` auf `view.recent_articles.default.jsonata` (config)
-  ⇒ Code enthält `title: 'Config/view/Recent Articles'` **und** `config` in den Default-Export-Tags;
-  **nicht** `Entities/view`.
+  ⇒ Code enthält `title: 'Config/view/recent_articles'` (Entscheidung B: roher Bundle-Name) **und**
+  `config` in den Default-Export-Tags; **nicht** `Entities/view`.
 - [ ] **Step 2:** Test — `buildEntityModule` auf `node.article.teaser.jsonata` (content) ⇒ weiterhin
   `title: 'Entities/node/Article'`, **kein** `config`-Tag (Regression-Guard AC-5).
-- [ ] **Step 3:** Test — `indexEntity` auf ein `view.*` Mapping ⇒ `title` startet mit `Config/view/`,
-  `tags` enthält `config`; auf ein `node.article` Mapping ⇒ `title` `Entities/node/Article`, Tags
-  unverändert (`['entity','autodocs']`).
+- [ ] **Step 3:** Test — `indexEntity` auf ein `view.*` Mapping ⇒ `title` == `Config/view/recent_articles`
+  (roher Name), `tags` enthält `config`; auf ein `node.article` Mapping ⇒ `title` `Entities/node/Article`,
+  Tags unverändert (`['entity','autodocs']`).
 - [ ] **Step 4:** Test — `buildEntityCsfModule({ extraTags: ['config'] })` ⇒ Default-Export-Tags
   `['autodocs','config']`; ohne `extraTags` ⇒ `['autodocs']`.
 - [ ] **Step 5 (AC-4):** Helper-Test `entityStoryGroup` mit synthetischem data-model, das einen

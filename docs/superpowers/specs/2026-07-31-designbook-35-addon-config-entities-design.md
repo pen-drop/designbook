@@ -51,7 +51,10 @@ export function entityStoryGroup(
 ): { title: string; isConfig: boolean } {
   const isConfig = namespaceFor(dataModel, entity_type, bundle) === 'config';
   const top = isConfig ? 'Config' : 'Entities';
-  return { title: `${top}/${entity_type}/${titleCaseBundle(bundle)}`, isConfig };
+  // Entscheidung B (bestätigt): Config-Blatt = roher Bundle-Name (literal <name>);
+  // Content-Blatt bleibt unverändert titleCaseBundle(bundle).
+  const leaf = isConfig ? bundle : titleCaseBundle(bundle);
+  return { title: `${top}/${entity_type}/${leaf}`, isConfig };
 }
 ```
 
@@ -76,16 +79,13 @@ export function entityStoryGroup(
 Titel und Tags werden so an beiden Stellen aus derselben Funktion + demselben data-model abgeleitet
 → keine Divergenz.
 
-### Offene Entscheidung — Blatt-Segment (`<name>`)
+### Entscheidung — Blatt-Segment (`<name>`) — **B bestätigt**
 
 Content-Pfade nutzen `titleCaseBundle(bundle)` (`article` → `Article`). Das Ticket schreibt für
-Config wörtlich `Config/<entity_type>/<name>`. Zwei Varianten:
-
-- **(A, empfohlen) `titleCaseBundle`** → `Config/view/Recent Articles` — visuell symmetrisch zu
-  `Entities/…`, eine gemeinsame Titel-Funktion für beide Zweige.
-- **(B) roher Bundle-Name** → `Config/view/recent_articles` — literal wie im Ticket.
-
-Empfehlung A (Symmetrie, ein Codepfad). Wird vor dem Transition zu `coding` bestätigt.
+Config wörtlich `Config/<entity_type>/<name>`. **Bestätigt: Variante B** — Config-Blatt ist der
+**rohe Bundle-Name** (`Config/view/recent_articles`, `Config/image_style/hero`), literal wie im
+Ticket. Content-Blatt bleibt unverändert `titleCaseBundle`. (Verworfen: A — `titleCaseBundle` auch
+für Config.)
 
 ## Alternativen (verworfen)
 
