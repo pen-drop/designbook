@@ -29,6 +29,29 @@ export function isEntityMappingFile(id: string): boolean {
   return /(?:^|\/)entity-mapping\/[^/]+\.jsonata$/.test(id);
 }
 
+export function isFormMappingFile(id: string): boolean {
+  return /(?:^|\/)form-mapping\/[^/]+\.jsonata$/.test(id);
+}
+
+/**
+ * Map a `form-mapping/<type>.<bundle>.<form_mode>.jsonata` id to the bundle's
+ * canonical entity-mapping file (its first sorted view mapping, one directory
+ * over). Form stories are appended to that entity-mapping module, so a directly
+ * requested form-mapping id resolves to the same module the form index entries
+ * redirect to. Returns null when the bundle has no entity-mapping (form-only
+ * bundle — out of scope).
+ */
+function canonicalEntityMappingFor(formId: string): string | null {
+  const prefixParts = basename(formId).split('.'); // [type, bundle, form_mode, 'jsonata']
+  const prefix = `${prefixParts[0] ?? ''}.${prefixParts[1] ?? ''}.`;
+  const entityDir = resolve(dirname(formId), '..', 'entity-mapping');
+  if (!existsSync(entityDir)) return null;
+  const canonical = readdirSync(entityDir)
+    .filter((f) => f.startsWith(prefix) && f.endsWith('.jsonata'))
+    .sort()[0];
+  return canonical ? resolve(entityDir, canonical) : null;
+}
+
 // Resolve React from the addon's own dependencies (works in pnpm strict mode)
 const addonRequire = createRequire(import.meta.url);
 
@@ -198,7 +221,7 @@ export function designbookLoadPlugin(
         if (importer) return resolve(dirname(importer), cleanId);
         return cleanId;
       }
-      if (isEntityMappingFile(cleanId)) {
+      if (isEntityMappingFile(cleanId) || isFormMappingFile(cleanId)) {
         if (importer) return resolve(dirname(importer), cleanId);
         return cleanId;
       }
@@ -233,6 +256,21 @@ export function designbookLoadPlugin(
           resolveImportPath: options.resolveImportPath,
           wrapImport: options.wrapImport,
         });
+      }
+
+      // A directly-requested form-mapping id resolves to the bundle's canonical
+      // entity-mapping module — buildEntityModule appends the form stories there,
+      // so both ids produce the identical module (and Storybook dedupes by the
+      // canonical importPath the form index entries already point at).
+      if (isFormMappingFile(id)) {
+        const canonical = canonicalEntityMappingFor(id);
+        if (canonical) {
+          return loadEntityModule(canonical, designbookDir, {
+            builders: options.builders,
+            resolveImportPath: options.resolveImportPath,
+            wrapImport: options.wrapImport,
+          });
+        }
       }
 
       const match = matchHandler(id, defaultHandlers);

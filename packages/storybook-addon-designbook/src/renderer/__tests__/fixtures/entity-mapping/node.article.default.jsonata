@@ -1,0 +1,10 @@
+[
+  {
+    "type": "component",
+    "component": "test_provider:card",
+    "props": { "title": title },
+    "slots": {
+      "content": field_body
+    }
+  }
+]

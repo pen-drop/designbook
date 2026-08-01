@@ -1,0 +1,1 @@
+<input{{ attributes.addClass('form-input rounded border border-gray-300 px-3 py-2') }} type="{{ input_type|default('text') }}"{% if value is not empty %} value="{{ value }}"{% endif %}{% if pattern %} pattern="{{ pattern }}"{% endif %}>{{ children }}

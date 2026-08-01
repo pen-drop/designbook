@@ -1,11 +1,11 @@
 import { designbookLoadPlugin } from './vite-plugin';
 import { loadConfig, findConfig } from './config';
-import { buildExportName, extractScenes, extractGroup, fileBaseName } from './renderer/scene-metadata';
+import { buildExportName, extractScenes, extractGroup, fileBaseName, formExportName } from './renderer/scene-metadata';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { entityStoryGroup } from './renderer/entity-module-builder';
 import { loadDataModel } from './renderer/scene-module-builder';
 
-import { readFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, dirname, relative, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { load as parseYaml } from 'js-yaml';
@@ -70,6 +70,56 @@ export function indexEntity(fileName: string): any[] {
   return entries;
 }
 
+// Indexes one form-mapping `.jsonata` file as a single form-mode story. Like
+// view modes, every form entry redirects its importPath to the bundle's
+// canonical ENTITY-mapping module — the form stories are appended to that same
+// module by buildEntityModule, so the two share one module (no duplicate title).
+// The export name derives from the same shared `formExportName` helper the
+// module uses, keeping indexer↔loader parity (R1). No Docs entry — the entity
+// indexer already emits the one per-bundle Docs entry.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function indexForm(fileName: string): any[] {
+  const parts = basename(fileName).split('.'); // [type, bundle, form_mode, 'jsonata']
+  const entity_type = parts[0] ?? '';
+  const bundle = parts[1] ?? '';
+  const form_mode = parts.slice(2, -1).join('.');
+  const prefix = `${entity_type}.${bundle}.`;
+  // form-mapping/<file>.jsonata lives directly under the designbook dir, so the
+  // model is two levels up. Grouping (Config vs Entities) + the config tag come
+  // from the shared helper — the same source the module-builder uses — so a form
+  // story on a config bundle lands under `Config/…` beside its view stories and
+  // the index title never diverges from the (config-aware) module it loads.
+  const dir = dirname(fileName);
+  const designbookDir = dirname(dir);
+  const dataModel = loadDataModel(designbookDir);
+  const { title, isConfig } = entityStoryGroup(dataModel, entity_type, bundle);
+  const storyTags = isConfig ? ['entity', 'form', 'config'] : ['entity', 'form'];
+
+  // Anchor on the bundle's canonical entity-mapping module (its first sorted
+  // view mapping, one directory over). A bundle exposing form_modes always
+  // exposes at least the default view display (form-only bundles are out of
+  // scope) — if none is found, skip rather than crash.
+  const entityDir = resolve(dir, '..', 'entity-mapping');
+  const canonical = existsSync(entityDir)
+    ? readdirSync(entityDir)
+        .filter((f) => f.startsWith(prefix) && f.endsWith('.jsonata'))
+        .sort()[0]
+    : undefined;
+  if (!canonical) return [];
+  const importPath = './' + relative(process.cwd(), resolve(entityDir, canonical));
+
+  return [
+    {
+      type: 'story' as const,
+      importPath,
+      exportName: formExportName(form_mode),
+      title,
+      name: `${form_mode} (form)`,
+      tags: storyTags,
+    },
+  ];
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const viteFinal = async (config: any, options: any) => {
   const { plugins = [] } = config;
@@ -128,6 +178,7 @@ export const stories = async (entry: string[] = [], options: any) => {
   // Ensure standard directories exist so the glob can discover files added later
   mkdirSync(resolve(distDir, 'sections'), { recursive: true });
   mkdirSync(resolve(distDir, 'entity-mapping'), { recursive: true });
+  mkdirSync(resolve(distDir, 'form-mapping'), { recursive: true });
 
   // Storybook resolves story globs relative to configDir (.storybook/).
   // The storybookTest() vitest plugin also uses configDir as base.
@@ -137,6 +188,7 @@ export const stories = async (entry: string[] = [], options: any) => {
     resolve((designbookConfig['designbook.home'] as string | undefined) || process.cwd(), '.storybook');
   const scenesGlob = resolve(distDir, '{sections,design-system}/**/*.scenes.yml');
   const entityGlob = resolve(distDir, 'entity-mapping/*.jsonata');
+  const formGlob = resolve(distDir, 'form-mapping/*.jsonata');
 
   // Built-in pages listed explicitly in sidebar order: Foundation → Design System → Sections.
   // File-name order is Storybook 10's sort mechanism when no storySort is configured.
@@ -150,6 +202,7 @@ export const stories = async (entry: string[] = [], options: any) => {
     sectionsGlob,
     relative(configDir, scenesGlob),
     relative(configDir, entityGlob),
+    relative(configDir, formGlob),
     ...entry,
   ];
 };
@@ -224,7 +277,12 @@ export const experimental_indexers = async (existingIndexers: any[]) => {
     createIndex: async (fileName: string) => indexEntity(fileName),
   };
 
-  return [...existingIndexers, scenesIndexer, entityIndexer];
+  const formIndexer = {
+    test: /form-mapping\/[^/]+\.jsonata$/,
+    createIndex: async (fileName: string) => indexForm(fileName),
+  };
+
+  return [...existingIndexers, scenesIndexer, entityIndexer, formIndexer];
 };
 
 export const indexers = experimental_indexers;

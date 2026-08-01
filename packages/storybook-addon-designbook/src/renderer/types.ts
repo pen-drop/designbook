@@ -196,6 +196,12 @@ export interface EntityOrigin {
   entity_type: string;
   bundle: string;
   view_mode: string;
+  /**
+   * Form mode — present only for form stories (the editing half of a bundle).
+   * When set, the mapping is resolved from `form-mapping/` instead of
+   * `entity-mapping/`. Absent for view-mode entities.
+   */
+  form_mode?: string;
   /** JSONata selector used to pick the record(s). */
   select?: string;
   /** Path to the .jsonata mapping file. */
