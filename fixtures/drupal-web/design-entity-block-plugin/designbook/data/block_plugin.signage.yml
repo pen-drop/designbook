@@ -1,0 +1,9 @@
+- id: '1'
+  __designbook:
+    section: signage
+  field_paragraph_style: default
+  field_overlapping_top: false
+  field_signage_item:
+    - '1'
+    - '2'
+    - '3'

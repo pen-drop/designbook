@@ -1,0 +1,16 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:signage_item",
+      "props": {
+        "title": $fields.field_title,
+        "description": $fields.field_description,
+        "icon": $fields.field_icon,
+        "links": $fields.field_links,
+        "buttonAnonymous": $fields.field_button_anonymous,
+        "buttonAuthenticated": $fields.field_button_authenticated
+      }
+    }
+  ]
+)
