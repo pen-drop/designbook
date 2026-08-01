@@ -199,6 +199,8 @@ export interface EntityCsfOptions {
   formMappingBasename?: (fm: string) => string;
   resolveImportPath: (componentId: string) => string | null;
   wrapImport?: (alias: string) => string;
+  /** Extra story tags appended to the default-export `['autodocs']` (e.g. `['config']`). */
+  extraTags?: string[];
 }
 
 function fieldTableMarkdown(mappings: FieldMapping[]): string {
@@ -260,7 +262,7 @@ function emitEntityStory(params: {
 }
 
 export function buildEntityCsfModule(opts: EntityCsfOptions): string {
-  const { group, source, mappingBasename, viewModes, resolveImportPath, wrapImport } = opts;
+  const { group, source, mappingBasename, viewModes, resolveImportPath, wrapImport, extraTags } = opts;
   const formModes = opts.formModes ?? [];
   const formMappingBasename = opts.formMappingBasename ?? ((fm: string) => `${fm}.jsonata`);
 
@@ -296,10 +298,11 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
   // `entity` parameter mirrors the scene module's `scene` param — it marks the
   // story as a designbook entity story so the visual-compare toolbar shows for
   // entity stories too (the overlay reads the same per-story meta.yml).
+  const tags = ['autodocs', ...(extraTags ?? [])].map((t) => `'${t}'`).join(', ');
   const defaultExport = [
     'export default {',
     `  title: '${group.replace(/'/g, "\\'")}',`,
-    "  tags: ['autodocs'],",
+    `  tags: [${tags}],`,
     '  parameters: {',
     "    layout: 'fullscreen',",
     '    entity: {',

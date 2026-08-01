@@ -34,6 +34,17 @@ describe('buildEntityCsfModule', () => {
     expect(code).toContain("tags: ['autodocs']");
   });
 
+  it('appends extraTags to the default-export tags', () => {
+    const code = buildEntityCsfModule({ ...opts, extraTags: ['config'] });
+    expect(code).toContain("tags: ['autodocs', 'config']");
+  });
+
+  it('keeps the tags at autodocs-only when extraTags is omitted', () => {
+    const code = buildEntityCsfModule(opts);
+    expect(code).toContain("tags: ['autodocs']");
+    expect(code).not.toContain('config');
+  });
+
   it('emits one story per view-mode with a record select over all records', () => {
     const code = buildEntityCsfModule(opts);
     expect(code).toContain('export const Full = {');
