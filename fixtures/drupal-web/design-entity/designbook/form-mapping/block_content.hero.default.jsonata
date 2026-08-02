@@ -1,0 +1,39 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:form_element",
+      "props": {
+        "type": "textfield",
+        "label_display": "before"
+      },
+      "slots": {
+        "label": {
+          "component": "test_integration_drupal:label",
+          "slots": { "title": "Title" }
+        },
+        "children": {
+          "component": "test_integration_drupal:input",
+          "props": { "input_type": "text", "value": $fields.field_title }
+        }
+      }
+    },
+    {
+      "component": "test_integration_drupal:form_element",
+      "props": {
+        "type": "url",
+        "label_display": "before"
+      },
+      "slots": {
+        "label": {
+          "component": "test_integration_drupal:label",
+          "slots": { "title": "Action URL" }
+        },
+        "children": {
+          "component": "test_integration_drupal:input",
+          "props": { "input_type": "url", "value": $fields.field_action.uri }
+        }
+      }
+    }
+  ]
+)

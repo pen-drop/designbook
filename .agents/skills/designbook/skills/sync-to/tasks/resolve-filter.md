@@ -69,6 +69,12 @@ Each unit is one Drupal configuration object (one `.yml` file in the config/sync
 
    The definition unit must exist in Drupal before the display unit can be imported. Core view modes (e.g. `teaser`, `full`) already exist in a stock Drupal install; the existence filter below drops their definition units automatically, leaving only custom view modes (e.g. `card`) to be authored.
 
+5. For each form mode in `def.form_modes` (if present) — the editing-half counterpart of the view-mode expansion above:
+   - For every **non-default** form mode, one form-mode definition unit: `config_name = core.entity_form_mode.<et>.<form_mode>`. Carries `entity_type` and `bundle` (bundle carried through for provenance only — the form-mode definition itself is bundle-agnostic). Deduplicate definition units by `config_name` across all bundles, emitting once per unique `entity_type` + `form_mode` pair. The `default` form mode is built in and gets no definition unit.
+   - One form-display unit: `config_name = core.entity_form_display.<et>.<bundle>.<form_mode>`. Carries `entity_type`, `bundle`, `def` (the form-mode def from `def.form_modes.<form_mode>`).
+
+   As with view modes, the definition unit must exist before the display unit can be imported. Form modes shipped by a stock Drupal install (e.g. `user.register`) already exist; the existence filter below drops their definition units automatically, leaving only genuinely new modes to be authored.
+
 **For a config slice** (`data_model.config.<config_key>`) that matches the filter:
 
 - **General rule:** emit one unit with `config_name = <config_key>` (using the key exactly as it appears in the data model, e.g. `views.listing` → `config_name = views.listing`). Carries `config_key` and `def` (the config def).

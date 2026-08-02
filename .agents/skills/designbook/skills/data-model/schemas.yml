@@ -1,5 +1,6 @@
 # Data model concern schemas
-# Content has a fixed schema (entity_type → bundle → purpose, view_modes, fields).
+# Content has a fixed schema (entity_type → bundle → purpose, view_modes, form_modes, fields).
+# A bundle has two display halves: reading (view_modes) and editing (form_modes) — same shape.
 # Config stays open — each config type brings its own schema via extends/constrains.
 
 DataModel:
@@ -16,6 +17,11 @@ DataModel:
             purpose: { type: string }
             view_modes:
               type: object
+              description: >-
+                The reading half of a bundle — named variants of how the entity is displayed. Each
+                key is a mode name; `default` is the mode every bundle always has (the plain read
+                display). Add named modes (e.g. teaser, full) only for extra display variants. Same
+                shape as form_modes.
               additionalProperties:
                 type: object
                 required: [template]
@@ -24,6 +30,23 @@ DataModel:
                   label:
                     type: string
                     description: Human-readable name for a custom view mode, e.g. "Card". Required by sync-to when emitting a core.entity_view_mode.<entity_type>.<mode> definition for a non-standard view mode.
+                  settings: { type: object, additionalProperties: true }
+                additionalProperties: false
+            form_modes:
+              type: object
+              description: >-
+                The editing half of a bundle — the same concept as view_modes one step over: named
+                variants of how the entity is edited. Each key is a mode name; `default` is the mode
+                every bundle always has (the plain edit form). Add named modes (e.g. register) only
+                for extra edit variants. Same shape as view_modes.
+              additionalProperties:
+                type: object
+                required: [template]
+                properties:
+                  template: { type: string }
+                  label:
+                    type: string
+                    description: Human-readable name for a non-default form mode, e.g. "Register". Required by sync-to when emitting a core.entity_form_mode.<entity_type>.<mode> definition for a non-default form mode.
                   settings: { type: object, additionalProperties: true }
                 additionalProperties: false
             fields:

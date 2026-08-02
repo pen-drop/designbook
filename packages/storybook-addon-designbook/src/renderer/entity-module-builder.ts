@@ -9,15 +9,16 @@
  * view-mode, a `record` Controls select over the pool records).
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, basename, dirname } from 'node:path';
 
 import { buildRenderContext, defaultSdcResolver, loadDataModel, loadSampleData } from './scene-module-builder';
+import { namespaceFor } from './data-pool';
 import { view } from './view';
-import { buildEntityCsfModule, type EntityCsfViewMode } from './csf-prep';
+import { buildEntityCsfModule, type EntityCsfViewMode, type EntityCsfFormMode } from './csf-prep';
 import { extractFieldMappings } from './jsonata-mapping-analyzer';
-import { buildExportName } from './scene-metadata';
-import type { SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
+import { buildExportName, formExportName } from './scene-metadata';
+import type { DataModel, SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
@@ -26,6 +27,25 @@ export function titleCaseBundle(bundle: string): string {
     .split(/[_-]/)
     .map((p) => (p ? p.charAt(0).toUpperCase() + p.slice(1) : p))
     .join(' ');
+}
+
+/**
+ * Resolve the Storybook sidebar group + config flag for an entity, from the
+ * data-model section (`config:` vs. `content:`) — never from a hardcoded type
+ * list, so a newly declared config type lands under `Config/…` with no code
+ * change. Config leaves use the raw bundle name (`Config/view/recent_articles`);
+ * content leaves keep the title-cased form (`Entities/node/Article`). Unknown
+ * bundles fall back to `Entities/…` (today's behaviour, unchanged).
+ */
+export function entityStoryGroup(
+  dataModel: DataModel,
+  entity_type: string,
+  bundle: string,
+): { title: string; isConfig: boolean } {
+  const isConfig = namespaceFor(dataModel, entity_type, bundle) === 'config';
+  const top = isConfig ? 'Config' : 'Entities';
+  const leaf = isConfig ? bundle : titleCaseBundle(bundle);
+  return { title: `${top}/${entity_type}/${leaf}`, isConfig };
 }
 
 /** Parse "<type>.<bundle>.<view_mode>.jsonata" → { entity_type, bundle }. */
@@ -85,6 +105,7 @@ export async function buildEntityModule(
     }
 
     const recordsNodes: ComponentNode[][] = [];
+    const recordsTrees: SceneTreeNode[][] = [];
     for (let r = 0; r < recordCount; r++) {
       const tree: SceneTreeNode[] = [];
       const built = await ctx.buildNode({
@@ -93,10 +114,66 @@ export async function buildEntityModule(
         select: `$[${r}]`,
       } as SceneNode);
       tree.push(...built);
+      // view() projects the render nodes AND stamps the canonical path onto the
+      // IR, so the retained tree stays in lock-step with the rendered record.
       recordsNodes.push(view(tree));
+      recordsTrees.push(tree);
     }
 
-    viewModes.push({ view_mode: vm, exportName: buildExportName(vm), recordsNodes, source, fieldMappings });
+    viewModes.push({
+      view_mode: vm,
+      exportName: buildExportName(vm),
+      recordsNodes,
+      recordsTrees,
+      source,
+      fieldMappings,
+    });
+  }
+
+  // Discover the bundle's form-mapping/ siblings (the editing half). A sibling
+  // directory namespace makes this collision-free — the view glob above never
+  // sees these files, so view stories can never regress. A bundle with no
+  // form-mapping/ dir (or no matching file) yields zero form stories.
+  const formDir = resolve(dir, '..', 'form-mapping');
+  const formModeNames = existsSync(formDir)
+    ? readdirSync(formDir)
+        .filter((f) => f.startsWith(prefix) && f.endsWith('.jsonata'))
+        .map((f) => f.slice(prefix.length, -'.jsonata'.length))
+        .sort()
+    : [];
+
+  const formModes: EntityCsfFormMode[] = [];
+  for (const fm of formModeNames) {
+    const source = readFileSync(resolve(formDir, `${prefix}${fm}.jsonata`), 'utf-8');
+    let fieldMappings = [] as ReturnType<typeof extractFieldMappings>;
+    try {
+      fieldMappings = extractFieldMappings(source);
+    } catch {
+      // Non-critical — panel just won't show mappings
+    }
+
+    const recordsNodes: ComponentNode[][] = [];
+    const recordsTrees: SceneTreeNode[][] = [];
+    for (let r = 0; r < recordCount; r++) {
+      const tree: SceneTreeNode[] = [];
+      const built = await ctx.buildNode({
+        entity: `${entity_type}.${bundle}`,
+        form_mode: fm,
+        select: `$[${r}]`,
+      } as SceneNode);
+      tree.push(...built);
+      recordsNodes.push(view(tree));
+      recordsTrees.push(tree);
+    }
+
+    formModes.push({
+      form_mode: fm,
+      exportName: formExportName(fm),
+      recordsNodes,
+      recordsTrees,
+      source,
+      fieldMappings,
+    });
   }
 
   const resolveImportPath =
@@ -104,11 +181,16 @@ export async function buildEntityModule(
   const wrapImport =
     options.wrapImport ?? ((alias) => `{ render: (p, s) => ${alias}.default.component({...p, ...s}) }`);
 
+  const { title, isConfig } = entityStoryGroup(dataModel, entity_type, bundle);
+
   return buildEntityCsfModule({
-    group: `Entities/${entity_type}/${titleCaseBundle(bundle)}`,
+    group: title,
+    extraTags: isConfig ? ['config'] : [],
     source: basename(mappingFilePath),
     mappingBasename: (vm) => `${prefix}${vm}.jsonata`,
     viewModes,
+    formModes,
+    formMappingBasename: (fm) => `${prefix}${fm}.jsonata`,
     resolveImportPath,
     wrapImport,
   });

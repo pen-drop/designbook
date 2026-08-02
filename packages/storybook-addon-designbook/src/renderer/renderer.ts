@@ -24,7 +24,7 @@ export function renderComponent(
 ): unknown {
   const nodeArray = Array.isArray(nodes) ? nodes : [nodes];
 
-  const rendered = nodeArray.map((node) => renderNode(node, imports, ''));
+  const rendered = nodeArray.map((node) => renderNode(node, imports));
 
   if (rendered.length === 1) return rendered[0];
 
@@ -36,7 +36,7 @@ export function renderComponent(
   return rendered;
 }
 
-function renderNode(node: ComponentNode, imports: Record<string, ComponentModule>, path: string): unknown {
+function renderNode(node: ComponentNode, imports: Record<string, ComponentModule>): unknown {
   const mod = imports[node.component];
 
   if (!mod) {
@@ -45,13 +45,14 @@ function renderNode(node: ComponentNode, imports: Record<string, ComponentModule
   }
 
   const props = node.props ?? {};
-  const slots = resolveSlots(node.slots ?? {}, imports, path);
+  const slots = resolveSlots(node.slots ?? {}, imports);
 
   const result = mod.render(props, slots);
 
-  // Wrap HTML output with comment markers for inspect-overlay lookup
+  // Wrap HTML output with comment markers for inspect-overlay lookup.
+  // The canonical path is threaded from view(); roots are non-empty ("0", …).
   if (typeof result === 'string') {
-    const marker = path ? `${node.component}@${path}` : node.component;
+    const marker = node.path ? `${node.component}@${node.path}` : node.component;
     return `<!--db:s:${marker}-->${result}<!--db:e:${marker}-->`;
   }
 
@@ -59,16 +60,15 @@ function renderNode(node: ComponentNode, imports: Record<string, ComponentModule
 }
 
 function resolveSlots(
-  slots: Record<string, ComponentNode | ComponentNode[] | string>,
+  slots: Record<string, ComponentNode | ComponentNode[] | string | null | undefined>,
   imports: Record<string, ComponentModule>,
-  parentPath: string,
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(slots)) {
-    const slotPath = parentPath ? `${parentPath}.${key}` : key;
-
-    if (typeof value === 'string') {
+    if (value == null) {
+      resolved[key] = '';
+    } else if (typeof value === 'string') {
       // Render unresolved $variable placeholders as a visible grey box
       if (/^\$\w+$/.test(value)) {
         resolved[key] =
@@ -77,12 +77,9 @@ function resolveSlots(
         resolved[key] = value;
       }
     } else if (Array.isArray(value)) {
-      resolved[key] = value.map((item, i) => {
-        const itemPath = value.length > 1 ? `${slotPath}.${i}` : slotPath;
-        return renderNode(item, imports, itemPath);
-      });
+      resolved[key] = value.map((item) => renderNode(item, imports));
     } else {
-      resolved[key] = renderNode(value, imports, slotPath);
+      resolved[key] = renderNode(value, imports);
     }
   }
 

@@ -12,5 +12,8 @@ export const EVENTS = {
   RESULT: `${ADDON_ID}/result`,
   REQUEST: `${ADDON_ID}/request`,
   INSPECT_MODE: `${ADDON_ID}/inspect-mode`,
+  /** Transient highlight from preview hover (payload cleared on pointer leave). */
+  HOVER_NODE: `${ADDON_ID}/hover-node`,
+  /** Persistent selection from a preview click. */
   SELECT_NODE: `${ADDON_ID}/select-node`,
 };

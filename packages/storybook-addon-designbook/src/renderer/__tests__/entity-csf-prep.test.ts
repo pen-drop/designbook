@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { buildEntityCsfModule } from '../csf-prep';
-import type { ComponentNode } from '../types';
+import type { ComponentNode, SceneTreeNode } from '../types';
 
-const card = (title: string): ComponentNode => ({ component: 'ui:card', props: { title } });
+const card = (title: string): ComponentNode => ({ component: 'ui:card', props: { title }, path: '0' });
+const cardTree = (title: string): SceneTreeNode => ({
+  kind: 'entity',
+  component: 'ui:card',
+  props: { title },
+  path: '0',
+});
 
 describe('buildEntityCsfModule', () => {
   const opts = {
@@ -14,6 +20,7 @@ describe('buildEntityCsfModule', () => {
         view_mode: 'full',
         exportName: 'Full',
         recordsNodes: [[card('A')], [card('B')], [card('C')]],
+        recordsTrees: [[cardTree('A')], [cardTree('B')], [cardTree('C')]],
         source: '$.{ "component": "ui:card", "props": { "title": title } }',
         fieldMappings: [{ field: 'title', component: 'ui:card', target: 'title', type: 'prop' as const }],
       },
@@ -27,12 +34,30 @@ describe('buildEntityCsfModule', () => {
     expect(code).toContain("tags: ['autodocs']");
   });
 
+  it('appends extraTags to the default-export tags', () => {
+    const code = buildEntityCsfModule({ ...opts, extraTags: ['config'] });
+    expect(code).toContain("tags: ['autodocs', 'config']");
+  });
+
+  it('keeps the tags at autodocs-only when extraTags is omitted', () => {
+    const code = buildEntityCsfModule(opts);
+    expect(code).toContain("tags: ['autodocs']");
+    expect(code).not.toContain('config');
+  });
+
   it('emits one story per view-mode with a record select over all records', () => {
     const code = buildEntityCsfModule(opts);
     expect(code).toContain('export const Full = {');
     expect(code).toContain('options: [0, 1, 2]');
     expect(code).toContain('record: 0');
     expect(code).toContain('args.__records[args.record]');
+  });
+
+  it('emits the per-record sceneTrees param so the Structure tab tracks the record', () => {
+    const code = buildEntityCsfModule(opts);
+    expect(code).toContain('sceneTrees: [[{');
+    // Canonical path is preserved in the emitted tree so tree ids match markers.
+    expect(code).toContain('"path":"0"');
   });
 
   it('injects the jsonata source and field table into the docs description', () => {

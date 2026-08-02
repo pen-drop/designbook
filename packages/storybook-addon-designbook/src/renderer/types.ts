@@ -116,7 +116,13 @@ export interface ScenesFile {
 export interface ComponentNode {
   component: string; // component reference key, e.g. 'test_provider:card'
   props?: Record<string, unknown>;
-  slots?: Record<string, ComponentNode | ComponentNode[] | string>;
+  slots?: Record<string, ComponentNode | ComponentNode[] | string | null | undefined>;
+  /**
+   * Canonical node path — computed once in view() and used by the renderer as
+   * the marker suffix (`db:s:${component}@${path}`). The matching SceneTreeNode
+   * carries the same value so the structure tree id compares like-for-like.
+   */
+  path?: string;
 }
 
 /**
@@ -190,6 +196,12 @@ export interface EntityOrigin {
   entity_type: string;
   bundle: string;
   view_mode: string;
+  /**
+   * Form mode — present only for form stories (the editing half of a bundle).
+   * When set, the mapping is resolved from `form-mapping/` instead of
+   * `entity-mapping/`. Absent for view-mode entities.
+   */
+  form_mode?: string;
   /** JSONata selector used to pick the record(s). */
   select?: string;
   /** Path to the .jsonata mapping file. */
@@ -235,6 +247,14 @@ export interface SceneTreeNode {
 
   /** Direct children — scene-refs (inlined at render time) or multi-node entities. */
   children?: SceneTreeNode[];
+
+  /**
+   * Canonical node path — stamped by view() onto every node that projects to a
+   * ComponentNode. Equals the ComponentNode.path (and hence the emitted marker
+   * path) so the structure tree can use it verbatim as the DeboTreeItem id.
+   * Absent on structural nodes that never render (scene-ref wrappers, strings).
+   */
+  path?: string;
 }
 
 /**
