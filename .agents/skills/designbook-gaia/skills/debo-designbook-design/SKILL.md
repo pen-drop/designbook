@@ -21,6 +21,17 @@ inputs:
   provision:
     description: command that brings up the test environment
     default: ddev init
+  reference_capture:
+    description: how the spec step surfaces the design reference in the ticket — which reference images/screenshots to list and link
+    default: |
+      After the design `--plan` run, `@designbook/design`'s `extract-reference` has captured the
+      reference into the resolved `reference_folder`: the mobile/desktop overview PNGs
+      (`overview--mobile--<bp>.png`, `overview--desktop--<bp>.png`) plus any downloaded reference
+      assets. List them and pass each as a resolved link with `options.gaia.kind: reference` and a
+      self-describing `title` (e.g. `Reference (mobile) — <breakpoint>`) — both to `@gaia/run-outtake`
+      for display and to `@gaia/transition-ticket` so they land in `gaia_ticket.links[]`. When there
+      is no `reference_url`/`reference_folder` (nothing was captured), name the reference surface
+      explicitly `not_required` and link nothing.
 ---
 
 # Designing to Designbook (work:design-to-designbook)
@@ -56,11 +67,18 @@ starts the same way **without** `@gaia/ensure-qualification`.
 3. Publish the gaia `spec` + `test` handoff (design decision, alternatives, risks, `Task-Art`, the
    written plan path, and the AC↔evidence matrix mapping each acceptance criterion to the
    `@designbook/design-verify` evidence). Commit the plan.
-4. Invoke `@gaia/run-outtake`, leading with the design decision and the plan head.
-5. Ask the human to confirm the design plan.
-6. After confirmation, invoke `@gaia/transition-ticket` with destination `coding`, then
-   `@gaia/publish-origin-status` with `coding`.
-7. Stop. Do not start or prepare coding work.
+4. **Surface the design reference** by running `reference_capture`: the `spec` `--plan` run already
+   executed the `reference` stage (`extract-reference`), so the reference PNGs + assets exist in the
+   `reference_folder`. List them and carry them as `options.gaia.kind: reference` resolved links —
+   shown in the `@gaia/run-outtake` below **and** passed to `@gaia/transition-ticket` in step 7 so
+   they persist in `gaia_ticket.links[]`. When no reference exists, record the reference surface as
+   `not_required`.
+5. Invoke `@gaia/run-outtake`, leading with the design decision and the plan head, and displaying the
+   reference links from step 4.
+6. Ask the human to confirm the design plan.
+7. After confirmation, invoke `@gaia/transition-ticket` with destination `coding` and the reference
+   resolved links from step 4, then `@gaia/publish-origin-status` with `coding`.
+8. Stop. Do not start or prepare coding work.
 
 ## diagnose
 
@@ -100,11 +118,17 @@ starts the same way **without** `@gaia/ensure-qualification`.
    before the transition** (footprint-before-transition; a retired run loses its write scope), per
    `review-ticket/measurements/README.md`.
 5. Invoke `@gaia/run-outtake`, leading with the `@designbook/design-verify` verdict and its
-   statistics, and the **final Storybook link** for the built component(s).
+   statistics. Lead the **Storybook preview link** (`kind: storybook`) **only when the build changed
+   Designbook artifacts** (scene/component files); if it did not, omit it with a one-line documented
+   reason. Lead the **Drupal preview link** (`kind: drupal-preview`) **only when the build changed
+   Drupal config**; a `work:design-to-designbook` build normally changes no config, so record it
+   explicitly as `not_applicable` with a one-line reason otherwise.
 6. Ask the human to confirm the implementation summary and MR.
 7. After confirmation, invoke `@gaia/transition-ticket` with destination `review` and resolved
-   links — the **final Storybook link** (mandatory for this sub-work) plus Designbook, MR, pipeline,
-   and report links.
+   links — the **Storybook preview link** (when Designbook artifacts changed) and the **Drupal
+   preview link** (when Drupal config changed; else omitted as `not_applicable`), each carrying its
+   `options.gaia.kind`, plus Designbook, MR, pipeline, and report links. Both preview links appear
+   here **and** in the `run-outtake` (step 5).
 8. Invoke `@gaia/publish-origin-status` with `review`, then `@gaia/publish-origin-feedback` with an
    interim note.
 9. Stop. Do not start or prepare review work.
