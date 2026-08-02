@@ -88,6 +88,25 @@ Screenshot: &Screenshot
         side uses the Reference element's selector, story side uses the StoryMeta
         element's selector — context (which meta) disambiguates.
 
+Overview: &Overview
+  type: object
+  title: Overview
+  description: >
+    Full-page reference overview at one viewport — a human-facing at-a-glance
+    capture of the whole reference, distinct from the element compare matrix
+    (`Screenshot`) and never a compare cell. The on-disk filename is derived:
+    `overview--<viewport>--<breakpoint>.png`. Two are captured per reference: the
+    narrowest defined breakpoint (mobile) and the widest (desktop).
+  required: [viewport, breakpoint]
+  properties:
+    viewport:
+      type: string
+      enum: [mobile, desktop]
+      description: >
+        `mobile` = narrowest defined breakpoint, `desktop` = widest defined
+        breakpoint. Names the human-facing viewport, not the capture area.
+    breakpoint: *BreakpointId
+
 Element: &Element
   type: object
   title: Element
