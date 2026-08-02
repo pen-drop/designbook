@@ -21,6 +21,17 @@ inputs:
   provision:
     description: command that brings up the test environment
     default: ddev init
+  reference_capture:
+    description: how the spec step surfaces the design reference in the ticket — which reference images/screenshots to list and link
+    default: |
+      After the design `--plan` run, `@designbook/design`'s `extract-reference` has captured the
+      reference into the resolved `reference_folder`: the mobile/desktop overview PNGs
+      (`overview--mobile--<bp>.png`, `overview--desktop--<bp>.png`) plus any downloaded reference
+      assets. List them and pass each as a resolved link with `options.gaia.kind: reference` and a
+      self-describing `title` (e.g. `Reference (mobile) — <breakpoint>`) — both to `@gaia/run-outtake`
+      for display and to `@gaia/transition-ticket` so they land in `gaia_ticket.links[]`. When there
+      is no `reference_url`/`reference_folder` (nothing was captured), name the reference surface
+      explicitly `not_required` and link nothing.
 ---
 
 # Syncing Designbook to config (work:designbook-to-config)
@@ -55,11 +66,18 @@ the same way **without** `@gaia/ensure-qualification`.
 3. Publish the gaia `spec` + `test` handoff (design decision, alternatives, risks, `Task-Art`, the
    written plan path, and the AC↔evidence matrix mapping each acceptance criterion to the
    `@designbook/config-verify` evidence). Commit the plan.
-4. Invoke `@gaia/run-outtake`, leading with the decision and the plan head.
-5. Ask the human to confirm the plan.
-6. After confirmation, invoke `@gaia/transition-ticket` with destination `coding`, then
-   `@gaia/publish-origin-status` with `coding`.
-7. Stop. Do not start or prepare coding work.
+4. **Surface the design reference** by running `reference_capture`. A `work:designbook-to-config`
+   sub-work (`sync-to`) has no `reference_url`/reference stage, so there is normally nothing
+   captured: record the reference surface as `not_required` and link nothing. When a
+   `reference_folder` with overview PNGs does exist (e.g. carried over from an upstream design), list
+   and link them as `options.gaia.kind: reference` in both `@gaia/run-outtake` and
+   `@gaia/transition-ticket` (step 7).
+5. Invoke `@gaia/run-outtake`, leading with the decision and the plan head, and displaying any
+   reference links from step 4.
+6. Ask the human to confirm the plan.
+7. After confirmation, invoke `@gaia/transition-ticket` with destination `coding` and any reference
+   resolved links from step 4, then `@gaia/publish-origin-status` with `coding`.
+8. Stop. Do not start or prepare coding work.
 
 ## diagnose
 
@@ -99,12 +117,17 @@ the same way **without** `@gaia/ensure-qualification`.
    `gaia_ticket.metrics` with **one `session` PATCH before the transition**
    (footprint-before-transition), per `review-ticket/measurements/README.md`.
 5. Invoke `@gaia/run-outtake`, leading with the `@designbook/config-verify` verdict and its
-   statistics, the config diff, the **Storybook link** (the baseline the render was reconciled
-   against), and the **Drupal preview-module link** (the backend render of the synced config).
+   statistics and the config diff. Lead the **Storybook preview link** (`kind: storybook`, the
+   baseline the render was reconciled against) **only when the build changed Designbook artifacts**;
+   else omit it with a one-line reason. Lead the **Drupal preview link** (`kind: drupal-preview`, the
+   backend render of the synced config) **only when the build changed Drupal config**; else record
+   `not_applicable` with a one-line reason.
 6. Ask the human to confirm the implementation summary and MR.
 7. After confirmation, invoke `@gaia/transition-ticket` with destination `review` and resolved
-   links — the **Storybook link** and the **Drupal preview-module link** (both mandatory for this
-   sub-work) plus MR, pipeline, config-diff, and report links.
+   links — the **Storybook preview link** (when Designbook artifacts changed) and the **Drupal
+   preview link** (when Drupal config changed; else omitted as `not_applicable`), each carrying its
+   `options.gaia.kind`, plus MR, pipeline, config-diff, and report links. Both preview links appear
+   here **and** in the `run-outtake` (step 5).
 8. Invoke `@gaia/publish-origin-status` with `review`, then `@gaia/publish-origin-feedback` with an
    interim note.
 9. Stop. Do not start or prepare review work.
