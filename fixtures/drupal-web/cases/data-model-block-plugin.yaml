@@ -1,0 +1,52 @@
+fixtures:
+  - vision
+  - data-model-block-plugin
+
+# DESIGNBOOK-36 — proves `config.block_plugin` is an OPEN config type again (reversal of the
+# DESIGNBOOK-30 `#/BlockPlugin` enforcement). The seeded model carries a
+# `config.block_plugin.promo_grid` entry whose shape would have been REJECTED by the removed
+# `#/BlockPlugin` schema (no `component`; `plugin` breaks the old pattern; `layout` outside the
+# old enum). Under the open model the data-model workflow validates and completes with the entry
+# intact — the RED→GREEN proof for AC8.
+prompt: >
+  You are working in the directory {{workspace}}.
+  Run the /debo data-model workflow. Do NOT ask any questions.
+  The product is "LEANDO". Read the product overview at designbook/vision.md.
+  A data model already exists at designbook/data-model.yml — it was extracted from the existing Drupal installation.
+  Review and validate the existing data model. Ensure it is complete and consistent with the vision.
+  Do not remove existing entity types or fields — only add missing ones if needed.
+  IMPORTANT: the `config.block_plugin.promo_grid` entry is an intentional open-config test entry.
+  Keep it EXACTLY as seeded — do NOT add a `component`, do NOT normalise its `plugin` value, and
+  do NOT change its `layout`. `config.block_plugin` is an open config type: arbitrary keys per
+  entry are valid and must be preserved verbatim.
+  Execute the workflow now.
+
+assert:
+  # The workflow completes — under the old `#/BlockPlugin` schema the offending entry would have
+  # failed result validation at `workflow done` and the workflow would not reach `completed`.
+  - type: javascript
+    value: output.archivedWorkflows['data-model']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['data-model']?.tasks?.every(t => t.status === 'done')
+  # The open entry survives verbatim — it is accepted, not rejected and not "repaired".
+  - type: javascript
+    value: |
+      const c = output.fileContents['designbook/data-model.yml']?.content;
+      return c?.config?.block_plugin?.promo_grid != null;
+  - type: javascript
+    value: |
+      const e = output.fileContents['designbook/data-model.yml']?.content?.config?.block_plugin?.promo_grid;
+      return e?.plugin === 'Promo Block!' && e?.layout === 'grid';
+  # No enforcement smuggled back in: the entry still has no `component` (the old required prop).
+  - type: javascript
+    value: |
+      const e = output.fileContents['designbook/data-model.yml']?.content?.config?.block_plugin?.promo_grid;
+      return e != null && e.component == null;
+  # The data-model stage loaded the drupal data-model rule but NO block_plugin schema is enforced
+  # (the blueprint no longer injects `#/BlockPlugin` via `extends:`).
+  - type: javascript
+    value: |
+      const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
+      return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('drupal-data-model.md')));
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

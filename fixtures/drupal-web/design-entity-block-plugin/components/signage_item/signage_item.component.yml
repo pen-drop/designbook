@@ -1,0 +1,32 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Signage Item
+status: stable
+group: Navigation
+description: One LEANDO Wegweiser topic item with icon, title, description, links, and CTA buttons.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: Title
+    description:
+      type: string
+      title: Description
+    icon:
+      type: string
+      title: Icon
+    links:
+      type: array
+      title: Links
+      items:
+        type: object
+    buttonAnonymous:
+      type: object
+      title: Anonymous CTA
+    buttonAuthenticated:
+      type: object
+      title: Authenticated CTA

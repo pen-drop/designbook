@@ -1,0 +1,17 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:signage",
+      "props": {
+        "style": $fields.field_paragraph_style,
+        "overlapping": $fields.field_overlapping_top
+      },
+      "slots": {
+        "items": $map($fields.field_signage_item, function($id) {
+          { "entity": "paragraph.signage_item", "view_mode": "full", "record": $number($id) - 1 }
+        })
+      }
+    }
+  ]
+)

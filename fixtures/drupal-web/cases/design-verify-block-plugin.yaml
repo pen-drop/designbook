@@ -1,0 +1,29 @@
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - design-entity-block-plugin
+
+# DESIGNBOOK-36 — Facette 2. The Wegweiser (app-signage) region of the real reference page is
+# modelled as a CONFIG entity (`config.block_plugin.signage`), rendered through the same signage
+# component as the content-entity signage. design-verify scores the "Config/block_plugin/signage ›
+# full" story against the real `app-signage` region on https://leando.de/ — proving config entities
+# (post-DESIGNBOOK-35) render and verify exactly like normal content entities against a real
+# reference. Pairs with the schema-open proof in data-model-block-plugin (AC8).
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the "/debo design-verify signage" workflow.
+  Verify the "block_plugin.signage" CONFIG entity — the "Config/block_plugin/signage › full" story.
+  The design reference is https://leando.de/.
+  Verify ONE region: id "entity-block_plugin-signage-full" (config entity block_plugin.signage,
+  view mode full), story selector "" (the story is the isolated signage component),
+  reference_selector "app-signage" (the Wegweiser element on the reference page).
+  Execute the workflow now and Do NOT ask any questions; pick the largest available breakpoint if asked.
+
+assert:
+  - type: javascript
+    value: output.archivedWorkflows['design-verify']?.status === 'completed'
+  - type: javascript
+    value: output.archivedWorkflows['design-verify']?.tasks?.every(t => t.status === 'done')
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0
