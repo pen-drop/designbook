@@ -33,10 +33,8 @@ each:
 
 # Ensure Baseline
 
-Capture-once, frozen reference baseline. For this `screenshot`:
+Verify the frozen reference baseline is present. `extract-reference` captured it during extraction; this step only confirms it and reads it back. For this `screenshot`:
 
-**Capture the whole baseline matrix at once** with `_debo capture matrix {{ reference_dir }}/meta.yml --url <reference-url> --out {{ reference_dir }}`: it expands every `elements[]` × state × breakpoint from `meta.yml` (widths from `design-tokens.yml`), isolates each element's `selector`, runs each state's `steps`, reuses frozen PNGs, and captures the rest in one browser session, naming each `<breakpoint>--<element>--<state>.png` (`--consent-selector` dismisses a consent banner once). It fails loudly rather than silently doing nothing if `meta.yml` plans zero cells. For a single one-off element shot outside the matrix, use `_debo capture screenshot --url <url> --selector <sel> --width <px> --out <png> [--steps <json>]`.
-
-1. **Reuse if present.** If the result PNG already exists and no `--refresh-reference` flag is set, register the existing file as the result and stop — the baseline is stable and never re-captured.
-2. **Otherwise capture** with `_debo capture matrix` (or `_debo capture screenshot` for a single shot); both apply the `playwright-capture` rule's isolate-and-capture mode — resolve the viewport width for the breakpoint, run the element state's `steps` when non-rest, isolate the element `selector` (empty ⇒ full page), and capture full-page transparent to the staged result path. A selector that matches nothing → full-page fallback + warning, never fail.
-3. **Verify** by reading the captured image.
+1. **Verify present.** If the result PNG `{{ reference_dir }}/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png` exists, register it as the result and read it (image validator). The baseline is stable and never re-captured.
+2. **Fallback capture (missing baseline).** If the PNG is absent — e.g. `design-verify` run standalone without a prior `extract-reference` capture — capture it with `_debo capture matrix {{ reference_dir }}/meta.yml --url <reference-url> --out {{ reference_dir }}` (or `_debo capture screenshot --url <url> --selector <sel> --width <px> --out <png>` for a single cell), applying the `playwright-capture` isolate-and-capture mode. This keeps `design-verify` self-healing.
+3. **Read** the (verified or freshly captured) image before returning.
