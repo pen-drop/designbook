@@ -1,78 +1,76 @@
-# DESIGNBOOK-38 — Implementierungsplan (coding)
+# DESIGNBOOK-38 — Implementierungsplan (v2 · coding)
 
-Geordneter Checkbox-Plan. **Vor jeder Änderung an einem Task/Rule/Blueprint/Workflow/`schemas.yml`
-unter `.agents/skills/designbook/**` bzw. `.agents/skills/designbook-*/**` zuerst
-`designbook-skill-creator` laden** (CLAUDE.md-Guardrail) und die passende per-file-type-Rule
-(`task-files.md`/`rule-files.md`/`blueprint-files.md`/`workflow-files.md`/`schema-files.md` +
-`common-rules.md`). Keine Migration/Kompatibilität für alte Artefakte. Core bleibt backend-neutral.
+Geordneter Checkbox-Plan für die v2-Umstrukturierung (kind-Dispatch; `config-verify` → `sync-verify`).
+**Vor jeder Änderung an einem Task/Rule/Blueprint/Workflow/`schemas.yml` unter
+`.agents/skills/designbook/**` bzw. `.agents/skills/designbook-*/**` zuerst `designbook-skill-creator`
+laden** (CLAUDE.md-Guardrail) und die passende per-file-type-Rule. Keine Migration/Kompatibilität für
+alte Artefakte. Core bleibt backend-neutral.
 
-Reihenfolge folgt der Abhängigkeitskette: Schema → Core-Workflow/Tasks → Drupal-Integration →
-Fixture/Verifikation.
+Ausgangspunkt ist der v1-Stand (PR #151): scene-Logik in `sync-to`/`config-verify` — funktioniert, wird
+**verschoben**, nicht neu erfunden. Reihenfolge: Rename → kind-Dispatch → scene-Branch → Drupal → Fixture.
 
-## A. Schema (schema-first)
+## A. Rename `config-verify` → `sync-verify`
 
-- [ ] A1 — `sync-to/schemas.yml`: `ContentUnit` ergänzen (`required: [content_ref, entity_type, bundle]`,
-  Felder `content_ref` = deterministische Identität, `payload`/`def`-Kontext, `build_form`-Diskriminator
-  `layout-builder|canvas`). Optional Scene-Eingabeschema (`SceneUnit`/Scene-Ref) sauber referenziert
-  (kein Inline-Duplikat — Memory `feedback_schema_first`).
-- [ ] A2 — `design/schemas.yml`: `ConfigType.enum` → `[entity_view_display, scene]`; `examples` und
-  Beschreibung ergänzen; `ConfigTarget.config_id`-Doku um die Scene-Variante erweitern (opaque bleibt).
+- [ ] A1 — Verzeichnis/Skill umbenennen: `skills/config-verify/` → `skills/sync-verify/`
+  (`SKILL.md` name/description, `workflows/config-verify.md` → `workflows/sync-verify.md`, Workflow-ID).
+- [ ] A2 — Alle `config-verify`-Referenzen greppen und aktualisieren: Task `trigger.steps`-Prefixe
+  (`config-verify:*` → `sync-verify:*`), das designbook-drupal Rule `trigger.domain: config-verify`,
+  die GAIA-Step-Skill-Prosa (`@designbook-gaia/debo-config-sync` nennt `@designbook/config-verify`),
+  Fixture-`config:`-Overrides, `run.md`/WORKFLOW.md-Erwähnungen. Jede Referenz bewusst updaten/behalten.
 
-## B. Core `sync-to`
+## B. kind-Dispatch (schema-first)
 
-- [ ] B1 — `workflows/sync-to.md`: Scene als Sync-Einheit einführen (Param `unit` akzeptiert `scene`
-  zusätzlich zu `data-model`; Scene-Ref-Param). Der Pfad `unit: data-model` bleibt **unverändert** (AC-6).
-- [ ] B2 — `tasks/intake.md`: bei `unit: scene` die Scene-Datei laden (Pfad über `scene_path`-Konvention),
-  Datenmodell weiterhin verfügbar (für Bundle-`template` → Bauform, D1).
-- [ ] B3 — `tasks/resolve-filter.md`: Scene-Expansion. Bauform aus `view_modes.full.template` des
-  Seiten-Bundles bestimmen (D1). Emittieren in Ordnung (D2): (1) Config der beteiligten Bundles/Displays
-  (bestehende Expansion), (2) Content-Block-Instanzen (nur LB), (3) Seiten-Content (Node+`layout_builder__layout`
-  bzw. `canvas_page`). Content-Units über `backend_cmd.content_exists_cmd` idempotent filtern
-  (analog `exists_cmd`).
-- [ ] B4 — `tasks/transform.md`: Content-Zweig — Payload je Content-Unit erzeugen, deterministische UUID
-  (`uuid5`) als Literal einbetten (re-sync-stabil). Config-Zweig unverändert.
-- [ ] B5 — `tasks/sync.md`: Content über `backend_cmd.content_import_cmd` anlegen (Command opaque
-  ausgeführt); Config weiterhin über `backend_cmd.import`. Soft/hard-Gate-Verhalten beibehalten.
-- [ ] B6 — `tasks/outtake.md`: erreichbare Seiten-URL der gesynchten Scene in den Summary aufnehmen (AC-5).
+- [ ] B1 — `sync-verify/workflows/sync-verify.md`: `config`/`config_type`-Params ersetzen durch
+  `story` (Subjekt) + inferiertes binäres `kind` (`config | scene`) + optionalen `selector`. `kind`-Enum
+  in `design/schemas.yml` (`config | scene`); `ConfigType`→`scene`-Wert aus v1 zurücknehmen. Inferenz-
+  Regel dokumentieren: Story-Group → `kind`; innerhalb `config` wählt `selector`-Präsenz die Sub-Mode
+  (config-entity mit Selektor, sonst entity-view-mapping).
+- [ ] B2 — `sync-to/workflows/sync-to.md`: `unit: scene` entfernen; scene-Sync wird über eine
+  scene-`kind`-Story-Eingabe gewählt, nicht über ein `unit`-Flag. `data-model`-Bulk-Pfad unverändert.
 
-## C. Core `config-verify`
+## C. `sync-verify` — drei kind-Branches
 
-- [ ] C1 — `workflows/config-verify.md`: `config_type`-Enum → `[entity_view_display, scene]`; Dispatch
-  für `scene`: `config` = `SceneId`, `story_id` unverändert (`from: config`, `sources: [scenes]`),
-  Kandidat = echte Seiten-URL (Full-Page, kein Selektor). `ensure-baseline-live`, `measure→fix→re-measure`,
-  `ScoreReport` unverändert (AC-8, AC-11, AC-12).
+- [ ] C1 — **config-entity** (Bestand): der heutige `entity_view_display`-Pfad
+  (Canonical-Page + Selector) bleibt als config-entity-Branch erhalten — Verhalten unverändert.
+- [ ] C2 — **entity-view-mapping** (Bestand): Kandidat = designbook-Modul Preview-Route
+  `/designbook/preview/{entity_type}/{entity}/{view_mode}`, isoliert. Als eigener Branch benannt.
+- [ ] C3 — **scene** (neu, verschoben aus v1): Kandidat = echte Seiten-URL, Full-Page (leerer Selektor);
+  Referenz = Scene-Story. `ensure-baseline-live`/measure→fix→re-measure/`ScoreReport` unverändert.
 
-## D. Drupal-Integration `designbook-drupal`
+## D. `sync-to` — scene-Branch (verschoben aus v1)
 
-- [ ] D1 — `data-mapping/rules/config-verify-render-url.md`: Scene-Variante des `renderUrlCommand`
-  (drush-Command → Canonical-URL der gesynchten Seite via deterministischer Scene-Identität, druckt nur
-  die URL). **Keine** Preview-Route (AC-9). Full-Page: leerer Selektor für die Scene-Variante (AC-10);
-  Isolations-Selektor bleibt nur für `entity_view_display`.
-- [ ] D2 — `data-mapping/blueprints/layout-builder.md` / `canvas.md`: Content-Anlege-Payload-Guidance
-  (LB: Block-Instanzen + `layout_builder__layout`-Referenzen; Canvas: `component_tree` inline) — als
-  überschreibbarer Startpunkt, kein HOW-in-WHAT.
-- [ ] D3 — `install/blueprints/designbook-config.md`: neue `backend_cmd`-Keys `content_exists_cmd` +
-  `content_import_cmd` dokumentieren (data-only, `{{ backend_cmd.* }}`).
+- [ ] D1 — `sync-to/schemas.yml`: `ContentUnit`/`ContentSyncResult` + `ExportSummary.page_url`
+  (aus v1 übernehmen).
+- [ ] D2 — scene-Expansion (aus v1 `resolve-filter`): Bauform aus Full-View-Mode-`template`; geordnete
+  Config- + Content-Units inkl. der Layout-Builder `layout_builder__layout` Field-Storage/-Instance;
+  Content-Existence-Filter (`content_exists_cmd`).
+- [ ] D3 — `transform-content` + `sync-content` Tasks (aus v1): deterministische uuid5-Payloads;
+  Content-Import nach Config-Import.
+- [ ] D4 — `outtake` (aus v1): erreichbare Seiten-URL via `page_url_cmd` in den Summary.
 
-## E. Verifikation (`debo-test`, §9 der Spec)
+## E. Drupal-Integration `designbook-drupal`
 
-- [ ] E1 — Neuen Case in Suite **`drupal-web`** autorieren (Arbeitsname `sync-verify-scene`): Fixture
-  liefert `vision` + `data-model` (Seiten-Bundle mit `view_modes.full.template: layout-builder` +
-  `block_content`-Bundle) + eine **Scene** + `designbook.config.yml` mit vollem `backend_cmd`
-  (inkl. `content_exists_cmd`/`content_import_cmd`) + Scene-`renderUrlCommand` + `config: layout-builder.yml`.
-  Case-Body: `sync-to` über die Scene (Config+Inhalt in live Drupal), dann `config-verify`
-  (`config=<scene>`, `config_type=scene`) Full-Page gegen die echte Seite.
-- [ ] E2 — Case aus dem **Ticket-Worktree** fahren:
-  `debo-test run drupal-web sync-verify-scene --validate config-verify`
-  (falls die `--validate`-Harness das Scene-Subjekt nicht trägt → config-verify im Case-Body,
-  validate=none; R2). Evidenz: `workflow summary --json`, `ScoreReport` (avg/max_diff_percent,
-  checks_passed/total), HTTP-200 der Seiten-URL, zweiter Lauf idempotent (AC-4).
-- [ ] E3 — AC-6-Regression: `git diff` des `unit: data-model`-Pfads = leer/unberührt **und**
-  `debo-test run drupal-web sync-node` grün.
-- [ ] E4 — AC-13-Beleg: `git diff` zeigt keinen Backend-Code in Core; alle Drupal-Spezifika sind
-  Command-String/Config. (Kein `pnpm check` nötig — kein Addon/TS berührt, D5.)
+- [ ] E1 — `data-mapping/rules/*render-url*` (an `sync-verify` angepasst): drei Kandidatenquellen —
+  entity-view-mapping ⇒ Preview-Route; config-entity ⇒ Canonical + Selector; scene ⇒ echte Seiten-URL,
+  Full-Page (keine Preview-Route). `trigger.domain` auf den neuen Workflow-Namen.
+- [ ] E2 — `data-mapping/blueprints/{layout-builder,canvas}.md`: Content-Payload-Guidance (aus v1).
+- [ ] E3 — `install/blueprints/designbook-config.md` + `test-integration-drupal/designbook.config.yml`:
+  `content_exists_cmd`/`content_import_cmd`/`page_url_cmd` als `{content_ref}`-Substitutionstemplates
+  (drush eval; throw-not-exit; `\$`-Escaping — die v1-Live-Fixes übernehmen).
 
-## F. Abschluss
+## F. Verifikation (`debo-test`) — alle drei kinds
 
-- [ ] F1 — Alle 14 AC grün (§5-Mapping der Spec) über die E-Evidenz.
-- [ ] F2 — Kurzzusammenfassung + Evidenzlinks für die coding→review-Transition.
+- [ ] F1 — scene-Case (aus v1 `sync-verify-scene`, an v2 angepasst): `sync-to` scene-Story → echte
+  LB-Seite (HTTP 200), `sync-verify` scene → Full-Page-`ScoreReport`, zweiter Lauf idempotent.
+- [ ] F2 — config-entity + entity-view-mapping grün belegen: bestehende(r) entity-Case(s) unter
+  `sync-verify` laufen lassen (Canonical+Selector **und** Preview-Route). Belegt R2 (keine Regression).
+- [ ] F3 — AC-6-Regression: `sync-to`-`data-model`-Pfad unverändert (`debo-test run drupal-web
+  sync-node` grün + leerer Diff).
+- [ ] F4 — AC-13-Beleg: `git diff` zeigt keinen Backend-/TS-Code in Core.
+
+## G. Abschluss
+
+- [ ] G1 — Alle 14 AC grün (§6-Mapping der Spec), alle drei kinds belegt.
+- [ ] G2 — Live-Workspace aus dem Ticket-Worktree fahren (shared DDEV-Host — Host-Freiheit prüfen).
+- [ ] G3 — PR #151 auf den v2-Stand aktualisieren; Kurzzusammenfassung + Evidenzlinks für
+  coding→review.

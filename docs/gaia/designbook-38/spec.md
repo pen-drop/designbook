@@ -1,231 +1,186 @@
-# DESIGNBOOK-38 — Spec: `sync-to` synchronisiert Scenes (Config **und** Inhalt); `config-verify` gleicht die Scene 1:1 gegen die echte Seite ab
+# DESIGNBOOK-38 — Spec (v2 · redesign): kind-dispatched `sync-to` + `sync-verify`
 
-**Task-Art:** `debo-test` (skill-authoring — designbook-Kern-Workflows `sync-to` + `config-verify` und die
-Drupal-Integration `designbook-drupal`). · **Sub-work:** `work:docs` (explizites Label).
-**Ziel-State nach spec:** `coding`.
-**Scenario:** none — `scenario_required: false`. Kein Gherkin/`.feature`, keine BDD-Oberfläche.
-**Gate (coding/review):** der ausführbare Check ist der `debo-test`-Case (siehe §9), nicht ein bloßer
-Doku-Struktur-Check. Das folgt `WORKFLOW.md` §coding/§review (Projekt-Override; jede Änderung an einem
-designbook-Skill wird über den passenden `debo-test`-Tester verifiziert, nie ad-hoc).
+**Task-Art:** `debo-test` (skill-authoring — designbook core workflows `sync-to` + `sync-verify`
+and the `designbook-drupal` integration). · **Sub-work:** `work:docs`.
+**Ziel-State nach spec:** `coding`. · **Scenario:** none (`scenario_required: false`).
+**Gate (coding/review):** the `debo-test` case(s) that exercise all three render mechanisms (config's
+two sub-modes + scene) against live Drupal.
 
-**Design-Methode:** aus dem Ist-Code (`sync-to`, `config-verify`, `designbook-drupal/data-mapping`,
-Addon-Resolver `render-url.ts`/`story-id.ts`/`story-match.ts`, `capture-*.ts`, `design/schemas.yml`,
-`scenes/schemas.yml`, `data-model/schemas.yml`) erhoben; die fünf offenen Spec-Entscheidungen des
-Tickets sind unten je mit Alternative + Begründung entschieden.
-
-> **Bindende Standards (Repo-Regeln, CLAUDE.md + Memory):**
-> - **`designbook-skill-creator`-Guardrail:** jede Änderung an Task/Rule/Blueprint/Workflow/`schemas.yml`
->   unter `.agents/skills/designbook/**` bzw. `.agents/skills/designbook-*/**` erfordert, dass zuvor
->   `designbook-skill-creator` geladen ist. Gilt in **coding**, nicht in spec (spec baut nichts).
-> - **Keine Migration/Kompatibilität:** On-Disk-Artefakte sind disposable, Tests laufen from scratch —
->   kein Code, der alte gesynchte Artefakte liest/aktualisiert.
-> - **Core bleibt backend-neutral:** kein Backend-Code in Part 1. Drupal-Spezifika ausschließlich als
->   Command-String oder Config in `designbook-drupal` (Rules/Blueprints) bzw. `designbook.config.yml`.
-> - **Schema-first:** so viel wie möglich über Schema-Enums/`required`/Validatoren erzwingen statt über
->   imperative Regelprosa (Enum-Erweiterung `config_type`, neue Content-Unit-Schemas).
+> **This is v2.** v1 (committed `ed39a195`, live-validated in a first coding pass, PR #151) added
+> `unit: scene` to `sync-to` and `config_type: scene` to `config-verify` as two parallel, loosely
+> coupled additions. Review feedback reframed the design around a **single `kind` discriminator**
+> shared by both workflows, and renamed `config-verify` → **`sync-verify`**. v2 supersedes v1; the
+> validated scene logic is preserved but **relocated** into the new structure.
 
 ---
 
-## 1. Problem / Ist-Zustand
+## 1. Problem framing
 
-`sync-to` erzeugt heute **ausschließlich Config**: `resolve-filter` expandiert `data_model.content.*`
-und `data_model.config.*` zu `ConfigNameUnit`s (Bundle-Typ, `field.storage.*`, `field.field.*`,
-`core.entity_view_(mode|display).*`, `core.entity_form_(mode|display).*`, Config-Keys), `transform`
-schreibt YAML, `sync` importiert per `backend_cmd.import`. **`grep -ril scene` über `sync-to/` → 0
-Treffer.** Es gibt weder eine Scene-Eingabe noch echte **Content-Instanzen** — die Seite selbst
-existiert im Backend nicht.
+Everything designbook renders is a **Storybook story**. Three distinct kinds of story map to three
+distinct ways of producing a *real backend render* to sync toward and verify against:
 
-`config-verify` kennt nur `config_type: entity_view_display` (Enum mit genau einem Wert, in
-`config-verify/workflows/config-verify.md` **und** in `design/schemas.yml#/ConfigType`). Der Kandidat
-ist ein per Selektor isolierter Entity-Render (`renderUrlCommand` → Canonical-URL einer
-repräsentativen Entity, Isolations-Selektor `.node`/`article.node`). Es gibt keine echte Seite, gegen
-die Full-Page verglichen werden könnte.
+1. **entity-view-mapping** — a single entity rendered in a view mode via its JSONata→ComponentNode
+   mapping. The **designbook Drupal module already provides** the render: the preview route
+   `/designbook/preview/{entity_type}/{entity}/{view_mode}` (`PreviewController`). Isolated, no page.
+2. **config-entity** — an `entity_view_display` config. Verified by rendering a representative entity
+   on its **canonical page** and isolating the display's output with a **selector**. This is exactly
+   today's `config-verify` behaviour.
+3. **scene** (scene / section / shell / view) — a whole page composition. There is **no** backend page
+   until one is built: `sync-to` must create it (config **+** content **+** layout), and verification
+   is **full-page** (the real page URL vs the scene story) — no isolation selector, no preview route.
 
-**Wiederverwendbar & bereits vorhanden (per Recherche bestätigt, kein Addon-Code nötig):**
-
-| Baustein | Ort | Befund |
-|---|---|---|
-| Full-Page-Capture (leerer Selektor ⇒ ganze Seite) | `packages/storybook-addon-designbook/src/cli/capture-browser.ts:74-77` | `if (!opts.selector) page.screenshot({ fullPage: opts.fullPage ?? true })` — bestätigt |
-| `render_url`-Resolver, backend-neutral | `src/resolvers/render-url.ts` | substituiert `{config_id}` (Z.50) **und** optional `{story_id}` (Z.52-65); `http(s)://`-Passthrough (Z.29-31); führt projektseitiges Command aus |
-| `story_id`/`story_url`/`reference_folder`-Resolver | `src/resolvers/story-id.ts`, `story-url.ts`, `story-match.ts`, `reference-folder.ts` | Scene→Story-Matching über `resolveRunningIndexedStory`; `:`-getrennte Group/Name-Teilmengensuche; `scene_path` re-resolviert Scene-IDs |
-| Scene-Schema (`SceneId`, `StoryId`, `SceneFile`, `SceneDef`) | `.agents/skills/designbook/scenes/schemas.yml` | Scene = `SceneDef.name`; `StoryId` = `Group/Component--variant` |
-| Passthrough-Blueprints Seiten-Bauform | `designbook-drupal/data-mapping/blueprints/layout-builder.md`, `canvas.md`, `layout-builder-display.md`, `ui-patterns.md` | LB: `layout_builder__layout` als `ComponentNode[]`; Canvas: `canvas_page.component_tree` inline; deterministische `uuid5`-Regel für idempotente Sections |
-| `ScoreReport`/`VerifyResult` (avg/max_diff_percent, checks) | `.agents/skills/designbook/design/schemas.yml` (VerifyResult 218-259, ScoreReport 261-276) | unverändert wiederverwendbar |
-| `ensure-baseline-live` (Storybook live pro Lauf) | `.agents/skills/designbook/design/tasks/ensure-baseline-live.md` | „re-captured every run, unconditionally" — unverändert |
-
-**Kein TS-Code kodiert den `config_type`-Enum oder `entity_view_display` hart** (verifiziert per grep
-über `packages/storybook-addon-designbook/src`, ohne Tests: 0 Treffer außer einem Kommentar in
-`render-url.ts`). Der Enum lebt nur in Skill-`.md`/`.yml`. → Enum-Erweiterung ist eine reine
-Skill-Änderung.
+v1's mistake was treating the scene as a second `config_type`/`unit` bolted onto workflows whose only
+prior kind was the config-entity. The kinds are a single axis; the workflows should branch on it once.
 
 ---
 
-## 2. Offene Spec-Entscheidungen (entschieden)
+## 2. Design
 
-### D1 — Bauform (Layout Builder vs. Display Builder) deklarativ bestimmen  *(AC-2)*
+### 2.1 The discriminator — `kind` (`config | scene`), inferred from the story group
 
-**Entscheidung:** aus dem **View-Mode-`template` des Full-View-Mode des Seiten-Bundles im
-`data-model.yml`**, nicht geraten:
-- `view_modes.full.template: layout-builder` ⇒ **Layout Builder**: Block-Content-Instanzen werden
-  angelegt und über `layout_builder__layout` in die Seite (Node) integriert.
-- `view_modes.full.template: canvas` ⇒ **Display Builder**: eine **Page-Entity** (`canvas_page`) mit
-  inline `component_tree`.
+Both workflows take a **story** and branch on a **binary top-level `kind`**, inferred from its
+Storybook group. `config` covers everything that is an isolated single render; `scene` is a whole
+page. Within `config`, a render **sub-mode** is chosen (the two sub-modes are the two existing,
+working candidate mechanisms):
 
-**Begründung:** Die Bauform ist bereits deklarativ im Datenmodell kodiert — die Extension-Rules
-(`designbook-drupal/data-model/rules/canvas.md`, `.../layout-builder.md`) setzen genau diese
-`template`-Werte, und die Passthrough-Blueprints (`layout-builder.md`/`canvas.md`) triggern darauf.
-Die Scene bindet an eine Screen-Komponente → ein Seiten-Bundle → dessen Full-View-Mode-`template`.
-So bleibt die Quelle der Wahrheit das `data-model.yml` (eine einzige deklarative Stelle).
-**Alternative (verworfen):** Bauform aus der Scene selbst oder aus `designbook.config.yml` ableiten —
-verworfen, weil die Scene die *Inhalte* trägt, nicht die Backend-Bauform, und weil `designbook.config.yml`
-projekt-, nicht seitenweit gilt (mehrere Bundles/Templates pro Projekt möglich).
+| story group | `kind` | sub-mode | verify candidate render |
+|---|---|---|---|
+| `Entities/*` (no selector) | **config** | entity-view-mapping | designbook module preview route, isolated |
+| `Entities/*` **+ `selector`** | **config** | config-entity | entity canonical page, isolated by the selector |
+| `Designbook/Sections/*/Scenes`, `Designbook/Design System` | **scene** | — | the real page **URL, full page** |
 
-### D2 — Content-Units: Benennung, Reihenfolge, Idempotenz, Command-Strings  *(AC-1, AC-3, AC-4)*
+The top-level branch (`config` vs `scene`) is what `sync-to` and `sync-verify` dispatch on; the
+`config` sub-mode is a thin choice within the config branch (selector present ⇒ config-entity, else
+entity-view-mapping). All three render mechanisms must function (§4).
 
-**Entscheidung:**
-- **Neue Unit-Art `content`** neben den Config-Units. Schema-first: ein neues Schema (Arbeitsname
-  `ContentUnit` in `sync-to/schemas.yml`) mit `required: [content_ref, entity_type, bundle]`, wobei
-  `content_ref` eine **deterministische Identität** ist, gemint aus Scene + Rolle
-  (`uuid5(<url-namespace>, scene_id + '/' + role)` — analog der bestehenden
-  `layout-builder-display.md`-UUID-Regel), plus dem Payload-Kontext (die aufgelöste `ComponentNode`/
-  Feldwerte aus Scene + Sample-Data).
-- **Reihenfolge (Abhängigkeit vor Nutzer):** `resolve-filter` (bzw. eine Scene-Resolve-Erweiterung)
-  emittiert in dieser Ordnung:
-  1. **Config** der beteiligten Bundles + Displays (bestehender Pfad) — z. B. `block_content.type.hero`
-     + `field.*` + `core.entity_view_display.*` (LB) bzw. `canvas_page`-Bundle + Display (Canvas).
-  2. **Content:** Block-Instanzen (LB) — vor
-  3. **Content:** die **Seite** (Node mit `layout_builder__layout`, das die Block-Instanzen referenziert
-     — LB) bzw. die `canvas_page`-Entity (Canvas). Bei Canvas entfällt Schritt 2 (Inhalt inline).
-- **Idempotenz (Content hat keinen `config:get`):** neuer Backend-Command-String
-  `backend_cmd.content_exists_cmd` (in `designbook.config.yml` + Drupal-Rule), der per deterministischer
-  `content_ref` (UUID/Marker-Feld) exit 0 liefert, wenn die Entity existiert. `resolve-filter` filtert
-  Content-Units über diesen Check genauso wie Config-Units über `exists_cmd` → zweiter Lauf =
-  leere/partielle Liste, keine Duplikate, kein Abbruch.
-- **Anlegen:** `transform` erzeugt den Content-Payload (deterministische UUID im Payload), `sync` legt
-  ihn über einen neuen Command-String `backend_cmd.content_import_cmd` an (z. B. per
-  `default_content`-artigem Import oder drush-Content-Command) — Core führt den String opaque aus,
-  gleiche Transform→Sync-Mechanik wie Config, keine neue Engine-Fähigkeit.
+`view`/`shell` stories are scene-kind (they are whole-page renders); only their fixtures differ, and
+they are out of this ticket's implementation scope (see §5) — the dispatch must accept them without
+special-casing.
 
-**Begründung:** spiegelt den bestehenden Existence-Filter/`each`-Mechanismus 1:1 auf Content, ohne
-Vorab-Markierungen; die deterministische UUID macht LB-Sections **und** Content-Instanzen re-sync-stabil
-(schon als Regel in `layout-builder-display.md` etabliert). Alle Drupal-Spezifika bleiben
-Command-Strings → Core neutral (AC-13). **Alternative (verworfen):** Content ohne Existenz-Check
-immer neu anlegen und auf drush-Idempotenz hoffen — verworfen, verletzt AC-4 (Duplikate).
+### 2.2 `sync-to` (build) — branches on `kind`
 
-### D3 — Scene als `config-verify`-Eingabe + `config_type`-Erweiterung  *(AC-7)*
+- **`config`:** export the entity's display config (incl. the ui-patterns mapping) — the existing
+  `data-model` config-export path, filtered to the story's entity/bundle. No new mechanics. (Same for
+  both config sub-modes — the sub-mode only affects the *verify* candidate, not what is synced.)
+- **`scene`:** create the target page — the ordered unit list of §2.4 (config **+** content **+**
+  layout), **`sync-to` creates the page entity** and the `outtake` returns its reachable URL.
+- The **bulk `data-model` config export** (no story, whole model) is unchanged.
 
-**Entscheidung:** `config_type`-Enum um den Wert **`scene`** erweitern — an **beiden** Stellen:
-`config-verify/workflows/config-verify.md` (Param `config_type`) **und** `design/schemas.yml#/ConfigType`
-(`enum: [entity_view_display, scene]`). Für `config_type: scene` ist `config` die **Scene-Identität**
-(`SceneId`, z. B. `article-detail`). Der bestehende `story_id`-Resolver (`from: config`,
-`sources: [scenes]`) löst daraus die Scene-Story (Referenz) auf — Scene→Story-Matching existiert
-bereits (`story-match.ts`). `reference_url`/`reference_dir` unverändert.
+### 2.3 `sync-verify` (verify) — was `config-verify`; branches on `kind` for the candidate render
 
-**Begründung:** Der Dispatch war laut Schema-Kommentar (`ConfigType`: „stays open so further
-config-types can be added later without reworking the workflow") explizit für genau diese Erweiterung
-gebaut; `ConfigTarget` hält `config_id` opaque und delegiert Story-/URL-Auflösung per-config-type/-backend.
-**Alternative (verworfen):** ein separater Workflow `scene-verify` — verworfen, weil AC-11/AC-12
-(measure→fix→re-measure, Fix nur Backend) und `ensure-baseline-live` identisch bleiben sollen; nur das
-Subjekt + der Kandidat ändern sich.
+`config-verify` is **renamed** to `sync-verify`. Reference stays the live Storybook render of the
+story; `ensure-baseline-live`, `measure → fix once → re-measure`, and the `ScoreReport` are unchanged.
+Only the **candidate render** differs — the shared compare engine is not duplicated:
 
-### D4 — Seiten-URL-Auflösung: eigener Resolver oder bestehendes `renderUrlCommand` + Scene-Token  *(AC-5, AC-9)*
+- **`config`** — isolated single render, one of two sub-modes:
+  - entity-view-mapping: candidate = the module **preview route** render.
+  - config-entity: candidate = the entity's **canonical page**, isolated by `selector` (today's
+    behaviour, preserved verbatim).
+- **`scene`:** candidate = the synced page's **real URL**, captured **full-page** (empty selector).
 
-**Entscheidung:** **kein neuer Core-Resolver.** Der bestehende `render_url`-Resolver wird
-wiederverwendet; die **Drupal-Rule `config-verify-render-url.md`** erhält eine **Scene-Variante** des
-`renderUrlCommand` — ein drush-Command, das die **Canonical-URL der gesynchten Seite** über die
-deterministische Scene-Identität (`content_ref`/Marker) auflöst und nur die URL druckt. Für
-`config_type: scene` substituiert der Resolver `{story_id}` bzw. die Scene-`config_id` in dieses
-Command. Der `sync-to`-`outtake` weist dieselbe erreichbare Seiten-URL aus (AC-5).
+The single fix pass (`polish`) still edits only backend config/content, never the Storybook component.
 
-**Begründung:** `render-url.ts` substituiert bereits `{config_id}`/`{story_id}` und macht http-Passthrough;
-die einzige Backend-Spezifik ist der Command-String → gehört per AC-13 nach `designbook-drupal` /
-`designbook.config.yml`. So bleibt es eine reine Skill-/Config-Änderung. **Wichtig — keine
-Preview-Route:** die Scene-Variante nennt **keine** Preview-Route eines designbook-Drupal-Moduls; sie
-liefert die echte Seiten-URL. Der bisherige Isolations-Selektor-Passus der Rule wird für die
-Scene-Variante durch **Full-Page (leerer Selektor)** ersetzt (AC-9, AC-10).
+### 2.4 Scene sync — units (relocated from v1, validated)
 
-### D5 — Wird eine Addon-/TS-Oberfläche berührt?  *(qualifikationskritisch)*
+For a scene the page bundle's full view-mode `template` gives the build form (`layout-builder` ⇒
+`block_content` instances wired into `layout_builder__layout`; `canvas` ⇒ a page entity with an inline
+component tree). `sync-to` emits, dependency-before-user:
 
-**Entscheidung/Befund:** **Nein — reine Skill-/Config-Änderung.** Verifiziert:
-- Full-Page-Capture existiert (`capture-browser.ts:74-77`).
-- `render_url`-Resolver ist backend-neutral und über Command-String wiederverwendbar.
-- Scene→Story-Auflösung existiert (`story-match.ts`, `scene_path`).
-- Der `config_type`-Enum ist **nicht** in TS hartkodiert (nur in `config-verify.md` + `design/schemas.yml`);
-  `workflow-resolve.ts` lädt `schemas.yml` generisch, `workflow-summary.ts` liest `scoreReport` generisch.
+1. **Config** — page bundle + (Layout Builder) each block bundle: bundle type, fields, displays, and
+   for a Layout-Builder page the `layout_builder__layout` field storage + instance (a real LB export
+   includes them; `config:import` does not synthesise them).
+2. **Content** — (Layout Builder) one `block_content` instance per block, then the page entity wiring
+   the blocks into `layout_builder__layout`; (Canvas) the `canvas_page` with the inline tree.
 
-→ **Kein `work:code`, keine Re-Qualifikation, kein `pnpm check` erforderlich.** Das bestätigt die
-Qualification-Erwartung. *Vorbehalt für coding:* falls sich beim Bauen wider Erwarten doch eine
-zwingende TS-Änderung zeigt (z. B. eine Content-Anlege-Fähigkeit, die nicht über einen Command-String
-abbildbar ist), ist der Fund zu eskalieren und eine Re-Qualifikation mit `work:code` fällig
-(Memory `feedback_subagent_validation`).
+Content identity is a deterministic `uuid5(url-namespace, scene_id + '/' + role)` embedded verbatim as
+the entity uuid → re-sync stable. Config idempotency uses the existing `exists_cmd`; content uses a new
+`content_exists_cmd`. Content is imported after config (a `sync-content` phase follows the config
+`sync` phase). The page URL is resolved at outtake from the page's deterministic identity.
+
+### 2.5 Backend-neutral (unchanged hard constraint)
+
+No backend code in core. All Drupal specifics are drush **command strings** / config in
+`designbook-drupal` + `designbook.config.yml`. Content commands are `{content_ref}`-substitution
+templates (plain `drush eval`; drush ignores PHP `exit()` so absence is signalled by throwing). No
+addon/TS change (Full-Page capture, the `render_url`/`story_id` resolvers already exist).
 
 ---
 
-## 3. Betroffene Dateien (coding)
+## 3. What reworks / relocates from the v1 PR (#151)
 
-**Part 1 — Core (`.agents/skills/designbook`):**
-- `skills/sync-to/schemas.yml` — neues `ContentUnit`-Schema; ggf. `SceneUnit`-Eingabe.
-- `skills/sync-to/workflows/sync-to.md` — Scene als Sync-Einheit (`unit: scene` + Scene-Ref); Config-only-Pfad
-  (`unit: data-model`) unverändert lassen (AC-6).
-- `skills/sync-to/tasks/intake.md` — Scene-Eingabe laden (Scene-Datei-Pfad).
-- `skills/sync-to/tasks/resolve-filter.md` — Content-Unit-Expansion + Ordnung + Content-Existence-Filter.
-- `skills/sync-to/tasks/transform.md` — Content-Payload-Zweig (deterministische UUID).
-- `skills/sync-to/tasks/sync.md` — Content-Anlege-Command (`content_import_cmd`).
-- `skills/sync-to/tasks/outtake.md` — erreichbare Seiten-URL im Summary (AC-5).
-- `skills/config-verify/workflows/config-verify.md` — `config_type`-Enum + `scene`-Dispatch; Kandidat =
-  echte Seiten-URL, Full-Page.
-- `design/schemas.yml` — `ConfigType.enum` += `scene`; ggf. `ConfigTarget` präzisieren.
-
-**Part 3 — Integration (`.agents/skills/designbook-drupal`):**
-- `data-mapping/rules/config-verify-render-url.md` — Scene-Variante des `renderUrlCommand` (echte
-  Seiten-URL, Full-Page, **keine** Preview-Route); Isolations-Selektor nur noch für die
-  `entity_view_display`-Variante.
-- `data-mapping/blueprints/layout-builder.md` / `canvas.md` — ggf. Content-Anlege-Payload-Guidance.
-- `install/blueprints/designbook-config.md` — neue `backend_cmd`-Keys (`content_exists_cmd`,
-  `content_import_cmd`) dokumentieren.
-
-**Verifikation (`fixtures/`):** neuer `debo-test`-Case + Fixture (siehe §9).
-
-Kein Addon-/TS-File. Kein Backend-Modul, keine Preview-Route.
+- **Rename** `skills/config-verify` → `skills/sync-verify` (workflow id, SKILL.md, `workflows/*.md`).
+- **Replace** the `config_type` param with an inferred **`kind`**; the subject param becomes the
+  **story**. The `entity_view_display` path becomes the **config-entity** branch; add the
+  **entity-view-mapping** (preview-route) branch and the **scene** (full-page) branch.
+- **Remove** `unit: scene` from `sync-to`; scene sync is selected by `kind` (a scene story), not a
+  `unit` flag. The `data-model` bulk export stays.
+- **Relocate** the validated scene machinery (`ContentUnit`/`ContentSyncResult` schemas,
+  `transform-content`, `sync-content`, page-URL outtake, `content_exists_cmd`/`content_import_cmd`/
+  `page_url_cmd`, the Drupal scene render-url variant, the fixture) into the scene branches.
+- **Revert** `design/schemas.yml#/ConfigType` `scene` value → the config-verify subject enum is no
+  longer the axis; `kind` is.
 
 ---
 
-## 4. Risiken
+## 4. All render mechanisms must function (verification)
 
-- **R1 — Content-Anlege-Mechanik.** Ob Content-Instanzen (Node + `layout_builder__layout`,
-  `canvas_page.component_tree`) sauber über einen einzelnen Command-String anlegbar sind, ist der
-  größte Unsicherheitsfaktor. Mitigation: gleiche Transform→Sync-Mechanik wie Config (Payload-Datei +
-  Import-Command); wenn der bestehende Engine-`each`/Import-Pfad nicht reicht, **eskalieren** statt TS
-  hinzuzufügen (D5-Vorbehalt).
-- **R2 — `--validate config-verify`-Verdrahtung.** Der `--validate`-Mechanismus (`run.md`) validiert
-  „die vom Hauptlauf produzierte Story" — für einen `sync-to`-Scene-Lauf gibt es keine „produzierte
-  Story". Mitigation: Der Case-Body fährt beide Workflows (sync-to → config-verify mit Scene-Subjekt);
-  `--validate` wird nur genutzt, wenn die Harness das Scene-Subjekt trägt, sonst validate=none und
-  config-verify läuft im Case-Body. Spec fixiert die **Absicht** (Sync + Full-Page-Abgleich gegen die
-  echte Seite), coding fixiert die genaue Harness-Verdrahtung.
-- **R3 — Full-Page-Determinismus.** Ganze Seite inkl. Shell/Header/Footer kann nicht-deterministische
-  Elemente enthalten. Mitigation: Referenz ist die Scene-Story (die die ganze Seite als Story rendert);
-  Full-Page-vs-Full-Page bleibt symmetrisch.
+The coding gate is a `debo-test` run proving **all three render mechanisms** work under the renamed
+`sync-verify` (`config`'s two sub-modes + `scene`):
+
+- **config / entity-view-mapping** — module preview route render vs the entity story (isolated).
+- **config / config-entity** — canonical page + selector vs the entity story (today's case, still green).
+- **scene** — `sync-to` creates the page (HTTP 200), `sync-verify` full-page vs the scene story,
+  `ScoreReport` produced, second sync idempotent.
 
 ---
 
-## 5. Akzeptanzkriterien-Mapping (Kurz)
+## 5. Scope
 
-| AC | Adressiert durch |
+- **Implement:** the `kind` dispatch in both workflows; the **scene** branch end-to-end (rework +
+  re-validate live); preserve **entity-view-mapping** and **config-entity** branches on their existing
+  render mechanisms.
+- **Out of scope (dispatch must accept, fixtures deferred):** `view` and `shell` scene-kind fixtures.
+- **Unchanged:** `sync-to` bulk `data-model` export; gates, measurements, transitions of the GAIA
+  step-skills; no new preview module/route (the preview route already exists).
+
+---
+
+## 6. Acceptance criteria mapping
+
+The ticket's 14 ACs still hold, reframed onto v2:
+
+| AC | v2 home |
 |---|---|
-| 1 | D2 (Content-Units) + sync-to Scene-Eingabe |
-| 2 | D1 (View-Mode-`template`) |
-| 3 | D2 (Reihenfolge Abhängigkeit vor Nutzer) |
-| 4 | D2 (Content-Existence-Filter, deterministische UUID) |
-| 5 | D4 (Seiten-URL im outtake, HTTP 200) |
-| 6 | Config-only-Pfad `unit: data-model` unangetastet — Diff + `sync-node`-Testlauf |
-| 7 | D3 (`config_type` += `scene`, benannt) |
-| 8 | `ensure-baseline-live` unverändert (Storybook live) |
-| 9 | D4 (echte URL, keine Preview-Route in Workflow **und** Rule) |
-| 10 | D4 (Full-Page, kein Isolations-Selektor) |
-| 11 | `ScoreReport`/measure→fix→re-measure unverändert |
-| 12 | `polish-config` fasst nur Backend-Config/-Inhalt an |
-| 13 | D5 (Core neutral, Diff-Beleg) |
-| 14 | §9 `debo-test`-Case |
+| 1 sync accepts a Scene → ordered config+content units | scene branch of `sync-to` (§2.2/2.4) |
+| 2 build form declarative | full view-mode `template` (§2.4) |
+| 3 deps before users, clean import | unit order + `sync-content` after `sync` (§2.4) |
+| 4 second run idempotent | deterministic uuid5 + `content_exists_cmd` (§2.4) |
+| 5 outtake reachable URL (HTTP 200) | scene outtake page URL (§2.2) |
+| 6 bulk `data-model` path unchanged | §2.2, diff |
+| 7 verify accepts a scene subject | scene branch of `sync-verify` (§2.3) |
+| 8 reference = live Storybook story | `ensure-baseline-live` unchanged (§2.3) |
+| 9 candidate = real page URL, no preview route for scenes | scene branch (§2.3) |
+| 10 scene captured full-page, no selector | scene branch (§2.3) |
+| 11 `ScoreReport` (measure→fix→re-measure) | unchanged (§2.3) |
+| 12 fix pass touches only backend | `polish` unchanged (§2.3) |
+| 13 core backend-neutral | §2.5, diff |
+| 14 verified via `debo-test`; all three render mechanisms | §4 |
 
-Siehe `plan.md` für die geordnete Checkbox-Umsetzung.
+---
+
+## 7. Risks
+
+- **R1 — `sync-verify` rename churn.** Renaming a workflow touches its SKILL.md, workflow id, task
+  `trigger.steps` prefixes, and any references (the GAIA `debo-config-sync` step-skill names
+  `config-verify`). Grep every `config-verify` reference; update or knowingly keep.
+- **R2 — three-kind regression.** entity-view-mapping and config-entity must stay green after the
+  restructure, not only scene. The `debo-test` gate must cover all three (§4), not just the new one.
+- **R3 — kind inference.** Group-based inference must correctly separate `Entities/*` from
+  `Designbook/*/Scenes`/`Design System`, and the `selector`-present signal must flip entity stories to
+  config-entity deterministically. A misinference silently picks the wrong candidate render.
+- **R4 — scene content-creation via command string** (carried from v1, resolved there): create
+  `block_content` + node + `layout_builder__layout` via a `drush eval`/`php:script` command string; if
+  a case cannot be expressed without backend module code, escalate (re-qualify `work:code`) rather
+  than add core/backend code.
+
+See `plan.md` for the ordered implementation checklist.
