@@ -1,0 +1,16 @@
+id: landing
+title: Landing
+description: 'Landing page: the shell with a hero block as its content — the Layout Builder page a Scene sync creates and config-verify compares full-page against.'
+status: planned
+order: 1
+group: Designbook/Sections/Landing
+scenes:
+  - name: landing
+    section: landing
+    items:
+      - scene: design-system:shell
+        with:
+          content:
+            - entity: block_content.hero
+              view_mode: default
+              record: 0

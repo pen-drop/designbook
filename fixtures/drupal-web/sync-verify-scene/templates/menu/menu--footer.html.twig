@@ -1,0 +1,2 @@
+{# Minimal override — base theme version needs ui_suite_daisyui (not provisioned). #}
+{% if items %}<ul>{% for item in items %}<li><a href="{{ item.url }}">{{ item.title }}</a></li>{% endfor %}</ul>{% endif %}

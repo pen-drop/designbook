@@ -60,3 +60,12 @@ components:
 - Canvas uses the entity type `canvas_page` (not `node`)
 - Nested components carry their own `props` and `slots` inline — no further resolution needed
 - Sections can have multiple levels of nesting (unlike Layout Builder which is flat)
+
+## Content payload (sync-to Scene sync)
+
+Starting point for the content payload `transform-content` stages when a Scene's page uses
+`build_form: canvas`. Canvas emits a single `role: page` unit — a `canvas_page` entity payload:
+embed the page unit's `content_ref` as the entity `uuid`, and carry the Scene's component tree
+inline as the `component_tree` (`components`) field — no block_content entities, no references.
+Serialize in the backend's content-import format the project's `content_import_cmd` consumes.
+This is an overridable starting point.

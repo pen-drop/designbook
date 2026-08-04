@@ -33,6 +33,15 @@ backend_cmd:
   # Exits 0 iff a config object already exists; append config name.
   # Used by resolve-filter's existence filter to skip already-present config.
   exists_cmd: "ddev drush config:get"
+  # Scene sync (unit: scene) only — content counterparts. content_exists_cmd / page_url_cmd
+  # are SUBSTITUTION templates ({content_ref}, like renderUrlCommand's {config_id});
+  # content_import_cmd runs as-is. All plain drush eval — no custom module needed.
+  # drush eval does NOT propagate PHP exit() codes (always returns 1), so signal
+  # absence by THROWING — drush's own exit code is 0 on normal completion, non-zero
+  # on an uncaught exception. Present => no throw => exit 0 (drop the unit).
+  content_exists_cmd: "ddev drush eval \"if (!(\\Drupal::service('entity.repository')->loadEntityByUuid('block_content','{content_ref}') ?: \\Drupal::service('entity.repository')->loadEntityByUuid('node','{content_ref}'))) throw new \\Exception('absent');\""
+  content_import_cmd: "ddev drush php:script /var/www/html/web/themes/custom/test_integration_drupal/content-import.php"
+  page_url_cmd: "ddev drush eval \"print \\Drupal::service('entity.repository')->loadEntityByUuid('node','{content_ref}')->toUrl('canonical',['absolute'=>TRUE])->toString();\""
 # Feature flags — on unless set to false. Override per run with
 # DESIGNBOOK_FEATURE_<NAME> (e.g. DESIGNBOOK_FEATURE_REGION_PROPERTIES=off).
 features:

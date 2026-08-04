@@ -279,11 +279,13 @@ ConfigType:
   type: string
   title: Config Type
   description: >
-    The kind of backend config that drives a config-verify run. v1 supports only
-    `entity_view_display`; the dispatch stays open so further config-types can be
-    added later without reworking the workflow (YAGNI).
-  enum: [entity_view_display]
-  examples: [entity_view_display]
+    The kind of backend subject that drives a config-verify run. `entity_view_display`
+    verifies one display config against a selector-isolated entity render.
+    `scene` verifies a whole synced page (from sync-to) against the Scene's Storybook
+    story — candidate is the real page URL, captured full-page. The dispatch stays open
+    so further subjects can be added later without reworking the workflow.
+  enum: [entity_view_display, scene]
+  examples: [entity_view_display, scene]
 
 ConfigTarget:
   type: object
@@ -301,10 +303,12 @@ ConfigTarget:
     config_id:
       type: string
       description: >
-        Opaque backend config identifier for this config_type. For
+        Opaque backend subject identifier for this config_type. For
         `entity_view_display` this is the view-display id,
-        `<entity_type>.<bundle>.<view_mode>`.
-      examples: ["node.article.default", "paragraph.signage.full"]
+        `<entity_type>.<bundle>.<view_mode>`. For `scene` it is the Scene id
+        (SceneDef.name), which the story_id resolver matches to the Scene's story
+        and the render_url resolver maps to the synced page's real URL.
+      examples: ["node.article.default", "paragraph.signage.full", "article-detail"]
     story_id:
       $ref: ../scenes/schemas.yml#/StoryId
     render_url:

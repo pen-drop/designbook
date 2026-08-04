@@ -10,6 +10,30 @@ params:
       $ref: designbook/skills/data-model/schemas.yml#/DataModel
       type: object
       description: The loaded data model from the intake stage.
+    unit:
+      type: string
+      enum: [data-model, scene]
+      default: data-model
+      description: Sync unit forwarded from intake. `scene` selects the Scene-expansion path below.
+    scene:
+      type: string
+      default: ""
+      description: >
+        Scene id (SceneDef.name) to expand. Set for a `scene` unit.
+    section:
+      type: string
+      default: ""
+      description: >
+        Section id locating the Scene's scenes file. Set for a `scene` unit.
+    section_scenes:
+      path: $DESIGNBOOK_DATA/sections/[section]/[section].section.scenes.yml
+      workflow: design-screen
+      type: object
+      $ref: ../../../scenes/schemas.yml#/SceneFile
+      description: >
+        The Scene's section scenes file, read for `unit: scene` (absent for a
+        data-model run). The named Scene's component tree and entity nodes are the
+        source of the content units.
     filter:
       type: object
       description: >
@@ -21,7 +45,8 @@ params:
       description: >
         Backend command strings from designbook.config.yml. Provides
         exists_cmd (append config name → exit 0 iff the config already
-        exists in the live backend, non-zero otherwise).
+        exists in the live backend, non-zero otherwise) and, for Scene syncs,
+        content_exists_cmd (the content counterpart keyed by content_ref).
       required: [exists_cmd]
       properties:
         exists_cmd:
@@ -32,6 +57,17 @@ params:
             before running; exit 0 means the config exists, non-zero means
             it is absent.
           examples: ["ddev drush config:get"]
+        content_exists_cmd:
+          type: string
+          description: >
+            Command template for checking whether a content entity already exists,
+            keyed by its deterministic content_ref (uuid). Substitute the
+            `{content_ref}` placeholder (like the render_url resolver substitutes
+            `{config_id}`) — the command exits 0 when the entity exists (drop the
+            unit), non-zero when absent (keep it). Used only on the Scene path;
+            content has no config:get equivalent, so this is a substitution template,
+            not an appended argument.
+          examples: ["ddev drush eval \"if (!\\Drupal::service('entity.repository')->loadEntityByUuid('block_content','{content_ref}')) throw new \\Exception('absent');\""]
 result:
   type: object
   required: [units]
@@ -45,11 +81,21 @@ result:
         each.
       items:
         $ref: ../schemas.yml#/ConfigNameUnit
+    content_units:
+      type: array
+      default: []
+      description: >
+        Ordered list of content units that do NOT yet exist in the live backend,
+        emitted only for `unit: scene` (empty for `unit: data-model`). Ordered
+        dependency-before-user: Layout-Builder block instances before the page.
+        transform-content iterates this array via each; sync-content imports them.
+      items:
+        $ref: ../schemas.yml#/ContentUnit
 ---
 
 # Resolve Filter
 
-Expand the workflow filter into an ordered list of config-name units, then drop units whose config already exists in the live backend.
+For `unit: data-model`, expand the workflow filter into an ordered list of config-name units, then drop units whose config already exists in the live backend; `content_units` is empty. For `unit: scene`, additionally expand the named Scene into content units (see below).
 
 ## Result: units
 
@@ -83,6 +129,21 @@ Each unit is one Drupal configuration object (one `.yml` file in the config/sync
 
 When the filter is empty, include every entity type + bundle and every config key found in the data model.
 
+## Result: content_units
+
+Only for `unit: scene` (otherwise submit `content_units: []`). The named Scene (its `SceneDef` in the section scenes file) is the page; the content units are what make that page exist in the backend.
+
+**Build form (declarative, not guessed).** The page the Scene renders binds to a page bundle in the data model. Read the `template` of that bundle's **full** view mode: `layout-builder` ⇒ the page is assembled with Layout Builder; `canvas` ⇒ the page is a Display-Builder page entity. This value becomes each content unit's `build_form`.
+
+**Config the page depends on.** Add to `units` — using the same content-bundle expansion rules as above — the config for the page bundle and, for the Layout-Builder form, each block_content bundle the Scene uses (bundle type + fields + the full view-mode display). For a Layout-Builder page bundle also emit the page's **layout-override field** config — the storage and instance that back per-entity layouts (`field.storage.<et>.layout_builder__layout` + `field.field.<et>.<bundle>.layout_builder__layout`): a real Layout-Builder config export includes them and `config:import` does not synthesise them on its own, so the page content cannot carry a layout until they exist. This config precedes the content that uses it: config units are imported (in the `sync` stage) before content units (in `sync-content`).
+
+**Content units, ordered dependency-before-user.** Emit in this order:
+
+1. **Layout Builder only** — one unit per block the Scene renders: `role: block`, `entity_type: block_content`, `bundle` the block bundle, `build_form: layout-builder`, `payload` the block's resolved component subtree from the Scene (and its sample data).
+2. **The page** — one unit: `role: page`, `build_form` as determined above, `payload` the page's field values plus, for Layout Builder, the ordered references to the block units (by their `content_ref`) that populate `layout_builder__layout`; for Canvas, `entity_type: canvas_page` carrying the inline component tree. Canvas emits only this page unit (no block units).
+
+Each unit's `content_ref` is a UUIDv5 minted from the Scene id and the unit's role (blocks disambiguated by their position/role in the Scene) — the same deterministic identity `transform-content` embeds in the payload, so re-syncs are stable.
+
 ## Existence Filter
 
 After assembling the full candidate list above, apply the existence filter as the final step, before submitting `units`:
@@ -90,5 +151,7 @@ After assembling the full candidate list above, apply the existence filter as th
 For every candidate unit, run `{{ backend_cmd.exists_cmd }} <config_name>` (substituting the candidate's own `config_name`). Exit code 0 means the config object already exists in the live backend — drop that unit. A non-zero exit means it is absent — keep the unit.
 
 This existence check is the dependency-management mechanism for the whole sync: pre-existing config — core view modes (`teaser`, `full`), bundles or fields already present from a prior sync run, or config shipped by the environment itself — is skipped automatically because it already exists, without any data-model markers or pre-seeding logic. Only config that is genuinely missing is generated by `transform` and imported by `sync`. This also makes the workflow idempotent: re-running `sync-to` against a target that already has some or all of the config produces an empty or partial `units` list instead of re-authoring or failing on config that is already there.
+
+Content has no `config:get`, so content units get the parallel check: for every candidate content unit, run `content_exists_cmd` with its deterministic `content_ref` substituted for the `{content_ref}` placeholder. Exit 0 means the entity already exists — drop the unit; non-zero means it is absent — keep it. This makes a second Scene sync idempotent the same way: an already-synced page and its blocks are skipped, so `content_units` comes back empty or partial with no duplicates and no abort.
 
 Submit only the surviving (non-existent) units, in the same relative order they were assembled above.

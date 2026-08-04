@@ -5,16 +5,19 @@ params:
   config:
     type: string
     description: >
-      Backend config id — the verification subject. Drives both the Storybook
-      story (the reference) and the backend render URL (the candidate).
-    examples: ["node.article.default", "paragraph.signage.full"]
+      The verification subject. For `entity_view_display` this is the display config id;
+      for `scene` it is the Scene id (SceneDef.name). Drives both the Storybook story
+      (the reference) and the backend render URL (the candidate).
+    examples: ["node.article.default", "paragraph.signage.full", "article-detail"]
   config_type:
     type: string
     default: entity_view_display
-    enum: [entity_view_display]
+    enum: [entity_view_display, scene]
     description: >
-      Kind of backend config. v1 supports entity_view_display only; the dispatch
-      stays open so further config-types can be added without reworking the flow.
+      Kind of verification subject. `entity_view_display` compares a display config
+      against a selector-isolated entity render. `scene` compares a whole synced page
+      against the Scene's story — candidate is the page's real URL, captured full-page.
+      The dispatch stays open so further subjects can be added without reworking the flow.
   story_id:
     type: string
     resolve: story_id
@@ -77,6 +80,17 @@ Storybook render every run instead of reusing a stored PNG — the reference is 
 frozen. That's exactly why `config-verify` uses its own `ensure-baseline-live` reference
 step instead of reusing `design-verify`'s `ensure-baseline` stage, which freezes its
 baseline on first capture.
+
+`config_type` selects what the subject is; everything else in the flow is identical.
+For `entity_view_display`, `config` is the display id and the candidate is a
+selector-isolated entity render. For `scene`, `config` is the Scene id: `story_id`
+resolves the Scene's story through the same resolver (`from: config`, `sources: [scenes]`),
+and `render_url` resolves the **real URL of the synced page** — the page as it exists after
+`sync-to` synced the Scene, never a preview route and never an isolated entity render. The
+`scene` candidate is captured **full-page** (no isolation selector), so the whole page —
+shell, header, content, footer — is compared against the Scene's story, which renders the
+same whole page. The backend integration supplies the scene render command as a
+command string; core adds no backend code.
 
 The `capture`/`re-capture` stages screenshot the **backend render** at `render_url` as the
 candidate; `compare`/`re-compare` diff it against the live Storybook baseline with the
