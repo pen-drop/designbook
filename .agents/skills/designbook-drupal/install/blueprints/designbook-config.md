@@ -44,7 +44,7 @@ backend_cmd:
   ui_pattern_cmd: "ddev drush designbook:ui-pattern"  # emits the whole ui_patterns block (component_id, variant_id, props, slots) as JSON; append '<set>:<component>' --props=<json ComponentNode props/slots>
   import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"  # container path is the in-container view of the host config_sync_dir that write-config's YAML lands in
   exists_cmd: "ddev drush config:get"  # exit 0 iff a config object already exists; append config name. Used by resolve-filter to skip config that is already present.
-  # Scene sync (unit: scene) only — content counterparts of exists_cmd/import plus the page URL.
+  # Scene branch (scene sync) only — content counterparts of exists_cmd/import plus the page URL.
   # content_exists_cmd / page_url_cmd are SUBSTITUTION templates ({content_ref}, like renderUrlCommand's
   # {config_id}); content_import_cmd is run as-is. All are plain drush eval — no custom module needed.
   content_exists_cmd: "ddev drush eval \"if (!(\\Drupal::service('entity.repository')->loadEntityByUuid('block_content','{content_ref}') ?: \\Drupal::service('entity.repository')->loadEntityByUuid('node','{content_ref}'))) throw new \\Exception('absent');\""  # exit 0 iff a content entity with content_ref (uuid) exists (drush eval ignores PHP exit(); throw to signal absence → non-zero exit).
@@ -96,7 +96,7 @@ previously-synced bundles/fields, environment-provided config) without any data-
 markers or pre-seeding.
 
 `content_exists_cmd`, `content_import_cmd`, and `page_url_cmd` are used only by a
-`unit: scene` sync (they are absent from a config-only project). They are the content
+scene-branch sync (they are absent from a config-only project). They are the content
 counterparts of `exists_cmd`/`import` plus the page-URL lookup. `content_exists_cmd` and
 `page_url_cmd` are **substitution templates** — the `{content_ref}` placeholder is replaced
 with the unit's deterministic uuid before running (the same mechanism `renderUrlCommand` uses

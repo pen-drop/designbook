@@ -4,7 +4,7 @@ title: "Polish Config {{ issue.id }}"
 description: "{{ issue.description }}"
 trigger:
   steps: [polish-config]
-domain: [config-verify]
+domain: [sync-verify]
 priority: 50
 params:
   type: object
@@ -21,12 +21,13 @@ each:
 
 # Polish Config
 
-Single config fix pass for one consolidated deviation from triage. The candidate is the
+Single backend fix pass for one consolidated deviation from triage. The candidate is the
 backend render; the reference is the Storybook render. Close the deviation by adjusting the
-**backend config**, then hand off to the re-capture stage.
+**backend surface** that produced the render (config for a `config` kind; the synced page's
+config **and** content for a `scene` kind), then hand off to the re-capture stage.
 
 > ⛔ The Storybook component, scene, and story are the **reference** — never edit them here.
-> The only fix surface is the backend config that produced the render.
+> The only fix surface is the backend config/content that produced the render.
 
 ## Step 0: Inspect Before Any Fix
 
@@ -37,16 +38,16 @@ backend render; the reference is the Storybook render. Close the deviation by ad
 
 ## Step 1: Fix the Backend Config
 
-Apply the smallest config change that closes the deviation. The loaded config-type and
-backend-integration rules define which config surface maps to the rendered subject and how
+Apply the smallest backend change that closes the deviation. The loaded subject-mapping and
+backend-integration rules define which backend surface maps to the rendered subject and how
 it is edited.
 
 **Change scope:**
 
 | In scope | Out of scope |
 |----------|-------------|
-| The backend config that produced the render (the entity view display) | The Storybook component, scene, or story (the reference) |
-| Config-to-component field/formatter/mapping | `design-tokens.yml` |
+| The backend surface that produced the render (the display config, and for a scene its content) | The Storybook component, scene, or story (the reference) |
+| Config/content-to-component field/formatter/mapping | `design-tokens.yml` |
 | | The `render_url` resolver / workflow configuration |
 
 ## Step 2: Hand Off to Re-Capture

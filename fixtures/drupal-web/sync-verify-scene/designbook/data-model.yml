@@ -6,7 +6,7 @@ content:
         A landing page assembled with Layout Builder. Its full view mode uses the
         layout-builder template, so a Scene sync creates block_content instances and
         wires them into the node's layout_builder__layout. This is the page a
-        config_type: scene config-verify run compares full-page against the Scene story.
+        kind: scene sync-verify run compares full-page against the Scene story.
       view_modes:
         full:
           template: layout-builder

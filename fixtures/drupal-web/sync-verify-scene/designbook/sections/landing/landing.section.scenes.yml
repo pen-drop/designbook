@@ -1,6 +1,6 @@
 id: landing
 title: Landing
-description: 'Landing page: the shell with a hero block as its content — the Layout Builder page a Scene sync creates and config-verify compares full-page against.'
+description: 'Landing page: the shell with a hero block as its content — the Layout Builder page a Scene sync creates and sync-verify compares full-page against.'
 status: planned
 order: 1
 group: Designbook/Sections/Landing

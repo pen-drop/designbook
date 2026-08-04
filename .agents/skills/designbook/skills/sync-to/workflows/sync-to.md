@@ -2,33 +2,28 @@
 title: Sync to Drupal
 description: Export a filtered subset of the data model as Drupal config YAML into the config-sync directory.
 params:
-  unit:
-    type: string
-    enum: [data-model, scene]
-    description: >
-      What to sync. `data-model` (default) exports the entity mapping as config only —
-      the original path, unchanged. `scene` syncs one Scene as a real page: its config
-      plus the content (block instances + page entity) that make the page exist and be
-      reachable at a URL.
-    default: "data-model"
   scene:
     type: string
     description: >
-      Scene id (SceneDef.name) to sync. Required when `unit: scene`; ignored for
-      `unit: data-model`. Identifies the page whose config and content are synced.
+      Scene id (SceneDef.name) to sync. When set, sync-to takes the **scene branch** —
+      it syncs that Scene as a real page: its config plus the content (block instances +
+      page entity) that make the page exist and be reachable at a URL. Leave empty to take
+      the config/data-model export path instead. The scene branch is selected by this
+      scene-kind story input, not by a flag.
     default: ""
   section:
     type: string
     description: >
       Section id locating the Scene's scenes file under
-      $DESIGNBOOK_DATA/sections/<section>/. Required when `unit: scene`.
+      $DESIGNBOOK_DATA/sections/<section>/. Required when `scene` is set.
     default: ""
   filter:
     type: object
     description: >
-      Slice filter for `unit: data-model`. An empty object exports all content entity
-      types and config keys defined in the data model. Non-empty keys narrow the export
-      to the specified entity types / bundles or config keys. Not used for `unit: scene`.
+      Slice filter for the config/data-model export path (when no `scene` is set). An empty
+      object exports all content entity types and config keys defined in the data model.
+      Non-empty keys narrow the export to the specified entity types / bundles or config
+      keys. Not used on the scene branch.
     default: {}
   config_sync_dir:
     type: string
@@ -60,8 +55,13 @@ stages:
     steps: [outtake]
 ---
 
-The `transform-content` and `sync-content` stages run only for `unit: scene`. They come
+sync-to dispatches on `kind`: a **scene**-kind run (a `scene` is provided) creates the
+target page — config **plus** content; a **config**-kind run (no `scene`) is the existing
+config-only `data-model` export, sliced by `filter` (an empty `filter` is the unchanged bulk
+export of the whole model). The kind is chosen by the story input, not a flag.
+
+The `transform-content` and `sync-content` stages run only on the scene branch. They come
 **after** `sync` so all config (bundles, fields, displays) is imported into the live
-backend before any content that depends on it is created (dependency before user). For
-`unit: data-model` the `resolve-filter` stage emits an empty `content_units` list, so
+backend before any content that depends on it is created (dependency before user). On a
+config/data-model run the `resolve-filter` stage emits an empty `content_units` list, so
 both content stages expand to no work and the config-only path is unaffected.

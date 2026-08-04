@@ -23,7 +23,7 @@ params:
       type: array
       default: []
       description: >
-        The content units resolve-filter produced. Empty for a data-model run — then this
+        The content units resolve-filter produced. Empty on a config/data-model run — then this
         stage is a no-op and records an empty, successful ContentSyncResult.
       items:
         $ref: ../schemas.yml#/ContentUnit

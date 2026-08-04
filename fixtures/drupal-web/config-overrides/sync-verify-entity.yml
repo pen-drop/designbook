@@ -18,7 +18,7 @@ css:
 component:
   namespace: 'test_integration_drupal'
   src: components
-# config-verify needs a backend render URL (candidate side) from the `render_url` resolver,
+# sync-verify needs a backend render URL (candidate side) from the `render_url` resolver,
 # which runs `renderUrlCommand` with `{config_id}` AND `{story_id}` substituted. A real Drupal
 # render would need a live target (start-drupal-workspace.sh, a heavy sync-* case). For THIS case
 # the ticket's changed surface is reference-side (ensure-baseline-live recapture), so the backend

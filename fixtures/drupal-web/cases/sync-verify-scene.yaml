@@ -1,5 +1,5 @@
 # DESIGNBOOK-38: sync-to synchronises a Scene (config AND content) as a real Layout
-# Builder page, then config-verify (config_type: scene) compares that real page full-page
+# Builder page, then sync-verify (kind: scene) compares that real page full-page
 # against the Scene's Storybook story. Exercises both new capabilities end-to-end against
 # a live Drupal (start-drupal-workspace.sh).
 config: sync-verify-scene.yml
@@ -17,8 +17,8 @@ prompt: |
   cannot be made from the data model + fixtures, fail the run.
 
   PART A — Scene sync (config AND content):
-  1. Run the /debo sync-to workflow with `unit: scene`, `scene: landing`, `section: landing`,
-     `gate: soft`. It must:
+  1. Run the /debo sync-to workflow with `scene: landing`, `section: landing`,
+     `gate: soft` (providing a `scene` selects the scene branch). It must:
      - expand the landing Scene into an ordered unit list: the config of the node.landing
        and block_content.hero bundles + their fields + the node.landing.full (Layout Builder)
        and block_content.hero.default displays, THEN the content units — a block_content.hero
@@ -37,16 +37,16 @@ prompt: |
      - the outtake must report the reachable page_url of the synced node (page_url_cmd).
   2. Record the sync-to `workflow summary --json`.
 
-  PART B — config-verify against the real page (full-page):
-  3. Run the /debo config-verify workflow with `config: landing`, `config_type: scene`. Compare
+  PART B — sync-verify against the real page (full-page):
+  3. Run the /debo sync-verify workflow with `story: landing`, `kind: scene`. Compare
      ONE element: id "scene-landing", selector "" (FULL PAGE — no isolation selector on the
      candidate), reference_selector "" (the landing Scene story, full page). The candidate URL is
      the real synced node page (renderUrlCommand); the reference is the live Storybook render of
      the landing Scene story. Run to completion; it must produce a ScoreReport.
-  4. Record the config-verify `workflow summary --json`.
+  4. Record the sync-verify `workflow summary --json`.
 
   PART C — idempotency (AC-4):
-  5. Run the /debo sync-to workflow again with the SAME params (unit: scene, scene: landing).
+  5. Run the /debo sync-to workflow again with the SAME params (scene: landing, section: landing).
      resolve-filter's existence filters (config exists_cmd + content_exists_cmd) must drop the
      already-synced units, so this run's content_units (and units) come back empty or partial —
      no duplicate entities, no abort.
@@ -54,8 +54,8 @@ prompt: |
   WRITE THE EVIDENCE MARKER designbook/sync-verify-scene.yml with EXACTLY these keys and real values:
     page_url: "<the synced node canonical URL>"
     page_http_status: <integer HTTP status from curl -s -o /dev/null -w "%{http_code}" of page_url>
-    scene_config_type: scene
-    score_avg_diff_percent: <number from the config-verify ScoreReport>
+    scene_kind: scene
+    score_avg_diff_percent: <number from the sync-verify ScoreReport>
     score_checks_total: <integer from the ScoreReport>
     run2_content_units: <integer count of content_units the SECOND sync-to run produced>
     run2_config_units: <integer count of config units the SECOND sync-to run produced>
@@ -65,9 +65,9 @@ assert:
   # AC-5: the synced page is reachable (HTTP 200).
   - type: javascript
     value: output.fileContents['designbook/sync-verify-scene.yml']?.page_http_status === 200
-  # AC-7: config-verify accepted the scene subject.
+  # AC-7: sync-verify accepted the scene subject.
   - type: javascript
-    value: output.fileContents['designbook/sync-verify-scene.yml']?.scene_config_type === 'scene'
+    value: output.fileContents['designbook/sync-verify-scene.yml']?.scene_kind === 'scene'
   # AC-11: a ScoreReport was produced (avg_diff_percent + checks_total present).
   - type: javascript
     value: typeof output.fileContents['designbook/sync-verify-scene.yml']?.score_avg_diff_percent === 'number'
@@ -84,6 +84,6 @@ assert:
     value: output.fileContents['designbook/sync-verify-scene.yml']?.run2_content_units === 0
   # Both workflows archived cleanly, nothing left pending.
   - type: javascript
-    value: output.archivedWorkflows['config-verify']?.status === 'completed'
+    value: output.archivedWorkflows['sync-verify']?.status === 'completed'
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

@@ -31,7 +31,7 @@ each:
 
 # Transform Content
 
-Author the content-entity payload for one content unit, written to the content staging directory as the terminal step. Runs once per unit in the ordered `content_units` list (empty for `unit: data-model`, so no instances are emitted there).
+Author the content-entity payload for one content unit, written to the content staging directory as the terminal step. Runs once per unit in the ordered `content_units` list (empty on a config/data-model run, so no instances are emitted there).
 
 ## Result: content-file
 

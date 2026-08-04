@@ -10,23 +10,18 @@ params:
       path: $DESIGNBOOK_DATA/data-model.yml
       type: object
       $ref: designbook/skills/data-model/schemas.yml#/DataModel
-    unit:
-      type: string
-      enum: [data-model, scene]
-      default: data-model
-      description: What to sync, from workflow params. `scene` triggers the Scene sync path.
     scene:
       type: string
       default: ""
       description: >
-        Scene id (SceneDef.name) to sync, from workflow params. Set for `unit: scene`;
-        empty for `unit: data-model`.
+        Scene id (SceneDef.name) to sync, from workflow params. Set to take the scene
+        branch; empty for a config/data-model export run.
     section:
       type: string
       default: ""
       description: >
-        Section id locating the Scene's scenes file, from workflow params. Set for
-        `unit: scene`; empty for `unit: data-model`.
+        Section id locating the Scene's scenes file, from workflow params. Set when
+        `scene` is set; empty for a config/data-model export run.
     filter:
       type: object
       description: >
@@ -46,16 +41,12 @@ result:
       $ref: designbook/skills/data-model/schemas.yml#/DataModel
       type: object
       description: The loaded data model, passed unchanged to resolve-filter.
-    unit:
-      type: string
-      enum: [data-model, scene]
-      description: The sync unit, forwarded so resolve-filter picks the config-only or Scene path.
     scene:
       type: string
-      description: The Scene id to sync, forwarded to resolve-filter. Empty for a data-model run.
+      description: The Scene id to sync, forwarded to resolve-filter. Empty for a config/data-model run.
     section:
       type: string
-      description: The Scene's section id, forwarded to resolve-filter. Empty for a data-model run.
+      description: The Scene's section id, forwarded to resolve-filter. Empty for a config/data-model run.
     filter:
       type: object
       description: The filter as supplied by the workflow caller. Empty object means export all.
@@ -71,6 +62,6 @@ result:
 
 Load the data model and capture the workflow inputs so downstream stages have a consistent starting point.
 
-Forward `unit`, `scene`, and `section` from the workflow params into scope. For a `unit: scene` run these tell resolve-filter which Scene to expand into config and content units; for `unit: data-model` they are empty and resolve-filter takes the config-only path.
+Forward `scene` and `section` from the workflow params into scope. When `scene` is set they tell resolve-filter which Scene to expand into config and content units (the scene branch); when empty, resolve-filter takes the config/data-model export path.
 
 Set `validation_gate` to the value of the `gate` param (default `hard`) so `workflowDone` can read `scope.validation_gate` to decide whether to block on validation errors (hard) or record them and continue (soft).

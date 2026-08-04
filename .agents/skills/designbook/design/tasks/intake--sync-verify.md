@@ -1,20 +1,24 @@
 ---
 title: "Intake"
 trigger:
-  steps: [config-verify:intake]
-domain: [design.verify, config-verify]
+  steps: [sync-verify:intake]
+domain: [design.verify, sync-verify]
 params:
   type: object
-  required: [config, story_id]
+  required: [story, story_id]
   properties:
-    config:
+    story:
       type: string
-      description: "Backend config id — the verification subject."
-    config_type:
+      description: "The verification subject — a Storybook story identifier."
+      examples: ["node.article.default", "paragraph.signage.full", "landing"]
+    kind:
       type: string
-      default: entity_view_display
-      enum: [entity_view_display]
-      description: "Kind of backend config; selects the config-type mapping rule."
+      enum: [config, scene]
+      description: "Top-level render kind, inferred from the story's Storybook group; selects the candidate render."
+    selector:
+      type: string
+      default: ""
+      description: "Optional backend-side isolation selector; its presence selects the config sub-mode (see the subject-mapping rule)."
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
     render_url:
@@ -37,15 +41,16 @@ result:
         $ref: ../schemas.yml#/Element
 ---
 
-# Intake: Config Verify
+# Intake: Sync Verify
 
-Reconcile the backend render of `config` against the Storybook render of the resolved
+Reconcile the backend render of `story` against the Storybook render of the resolved
 `story_id`. The Storybook render is the live reference — re-captured every run by the
 reference stage; the backend render is the candidate. `story_id` and `render_url` are
 pre-resolved by the workflow engine before this task runs.
 
-The loaded config-type rule for `config_type` defines how the config maps to a `story_id`
-and which subjects are compared — read it and apply its mapping.
+The loaded subject-mapping rule defines how the story maps to a `story_id` and which
+subjects are compared for the resolved `kind` (and, within `config`, the `selector`
+sub-mode) — read it and apply its mapping.
 
 ## Step 1: Select Breakpoints
 
@@ -58,8 +63,9 @@ Emit `elements` — the comparison subjects as `Element { id, selector, referenc
 Per element: `id` is the semantic subject label used in filenames and scores; `selector` is
 the selector that isolates the subject in the **backend** render (candidate side);
 `reference_selector` is the selector that isolates the same subject in the **Storybook**
-render (baseline side). The config-type rule states how the subject and each side's selector
-are derived from the config.
+render (baseline side). The subject-mapping rule states, per `kind`, how the subject and
+each side's selector are derived — including the `scene` case where both selectors are
+empty (full-page capture).
 
 ## Step 3: Ensure Storybook is running
 

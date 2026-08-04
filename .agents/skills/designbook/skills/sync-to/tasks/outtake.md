@@ -24,7 +24,7 @@ params:
       default: []
       description: >
         The content units from resolve-filter (in scope). The `role: page` unit's
-        content_ref keys the page URL lookup. Empty for a data-model run.
+        content_ref keys the page URL lookup. Empty on a config/data-model run.
       items:
         $ref: ../schemas.yml#/ContentUnit
 result:
@@ -50,7 +50,7 @@ passed in for them:
   produced in that stage).
 - `count` is the total number of config YAML files written, derived from the
   same `transform` stage results.
-- `page_url` is set only for a `unit: scene` run: run `page_url_cmd` with the `role: page`
+- `page_url` is set only on the scene branch: run `page_url_cmd` with the `role: page`
   unit's `content_ref` substituted for the `{content_ref}` placeholder and record the printed
-  URL — the reachable URL of the page this run synced. Omit it for a `unit: data-model` run
+  URL — the reachable URL of the page this run synced. Omit it on a config/data-model run
   (no content units).

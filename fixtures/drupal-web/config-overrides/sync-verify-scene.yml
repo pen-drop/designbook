@@ -20,7 +20,7 @@ css:
 component:
   namespace: 'test_integration_drupal'
   src: components
-# config-verify (config_type: scene) candidate = the REAL synced page URL, NOT a preview route.
+# sync-verify (kind: scene) candidate = the REAL synced page URL, NOT a preview route.
 # {config_id} is the scene id; there is exactly one synced landing node, so resolve it by bundle
 # and print its canonical URL. Full-page capture (no isolation selector) is set in the case prompt.
 # $ids is escaped (\$ids) so the resolver's `sh -c` does NOT shell-expand it to empty

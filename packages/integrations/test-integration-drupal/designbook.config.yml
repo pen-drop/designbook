@@ -33,7 +33,7 @@ backend_cmd:
   # Exits 0 iff a config object already exists; append config name.
   # Used by resolve-filter's existence filter to skip already-present config.
   exists_cmd: "ddev drush config:get"
-  # Scene sync (unit: scene) only — content counterparts. content_exists_cmd / page_url_cmd
+  # Scene branch (scene sync) only — content counterparts. content_exists_cmd / page_url_cmd
   # are SUBSTITUTION templates ({content_ref}, like renderUrlCommand's {config_id});
   # content_import_cmd runs as-is. All plain drush eval — no custom module needed.
   # drush eval does NOT propagate PHP exit() codes (always returns 1), so signal

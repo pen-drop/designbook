@@ -1,12 +1,12 @@
 ---
-name: config-verify
+name: sync-verify
 description: >
-  Reconcile a backend render (produced from a config) against the Storybook render as the live reference. Use when the user wants to verify a backend config render against Storybook.
+  Reconcile a real backend render against the Storybook render of a story as the live reference, dispatched on the story's kind (config | scene). Use when the user wants to verify a backend render — a config-entity display, an entity-view mapping, or a whole synced scene page — against Storybook.
 ---
 
-# Config Verify
+# Sync Verify
 
-**Workflow ID:** `config-verify`
+**Workflow ID:** `sync-verify`
 
 > ⛔ **Load [`../../resources/workflow-execution.md`](../../resources/workflow-execution.md) immediately upon loading this skill.** It holds the binding execution rules (Rules 0–7) for every `debo` workflow — no stage may start before they are loaded.
 
@@ -19,7 +19,7 @@ Parse `--optimize`, `--plan`, and `--from-plan <name|hint>` from `$ARGUMENTS` be
 ## Start
 
 ```bash
-_debo workflow create --workflow config-verify
+_debo workflow create --workflow sync-verify
 ```
 
 Handle the create response and enter the task loop as described in [`../../resources/workflow-execution.md`](../../resources/workflow-execution.md).

@@ -63,8 +63,8 @@ ExportSummary:
     page_url:
       type: string
       description: >
-        Reachable URL of the synced page, present only for a `unit: scene` run
-        (absent for `unit: data-model`). Resolved at outtake time from the page's
+        Reachable URL of the synced page, present only on the scene branch
+        (absent for a config/data-model run). Resolved at outtake time from the page's
         deterministic content identity and expected to answer HTTP 200.
       examples: ["https://drupal.ddev.site/node/1"]
 
@@ -100,7 +100,7 @@ ContentSyncResult:
   description: >
     Outcome of importing the staged content payloads into the live backend via the
     project's content_import_cmd. The content counterpart of SyncResult. When there
-    were no content units (e.g. a data-model run), reports an empty, successful no-op.
+    were no content units (e.g. a config/data-model run), reports an empty, successful no-op.
   required: [import_summary, content_ok]
   properties:
     import_summary:
@@ -177,8 +177,8 @@ ContentUnit:
     One content-entity instance a Scene sync must create so the page itself exists
     in the backend — a block_content instance (Layout Builder) or the page entity
     (the node carrying layout_builder__layout, or the canvas_page carrying its inline
-    component_tree). Emitted by resolve-filter for a `unit: scene` run (never for
-    `unit: data-model`, whose content_units list is empty) and consumed by
+    component_tree). Emitted by resolve-filter on the scene branch (never for
+    a config/data-model run, whose content_units list is empty) and consumed by
     transform-content (one payload per unit) and sync-content (imported as a group).
     Distinct from ConfigNameUnit: content has no config/sync YAML and no `config:get`
     existence check — its identity and idempotency come from `content_ref`.

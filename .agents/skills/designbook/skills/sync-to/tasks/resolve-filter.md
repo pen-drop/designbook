@@ -10,29 +10,25 @@ params:
       $ref: designbook/skills/data-model/schemas.yml#/DataModel
       type: object
       description: The loaded data model from the intake stage.
-    unit:
-      type: string
-      enum: [data-model, scene]
-      default: data-model
-      description: Sync unit forwarded from intake. `scene` selects the Scene-expansion path below.
     scene:
       type: string
       default: ""
       description: >
-        Scene id (SceneDef.name) to expand. Set for a `scene` unit.
+        Scene id (SceneDef.name) to expand. When set, selects the Scene-expansion (scene)
+        branch below; empty for a config/data-model export run.
     section:
       type: string
       default: ""
       description: >
-        Section id locating the Scene's scenes file. Set for a `scene` unit.
+        Section id locating the Scene's scenes file. Set when `scene` is set.
     section_scenes:
       path: $DESIGNBOOK_DATA/sections/[section]/[section].section.scenes.yml
       workflow: design-screen
       type: object
       $ref: ../../../scenes/schemas.yml#/SceneFile
       description: >
-        The Scene's section scenes file, read for `unit: scene` (absent for a
-        data-model run). The named Scene's component tree and entity nodes are the
+        The Scene's section scenes file, read on the scene branch (absent for a
+        config/data-model run). The named Scene's component tree and entity nodes are the
         source of the content units.
     filter:
       type: object
@@ -86,7 +82,7 @@ result:
       default: []
       description: >
         Ordered list of content units that do NOT yet exist in the live backend,
-        emitted only for `unit: scene` (empty for `unit: data-model`). Ordered
+        emitted only on the scene branch (empty for a config/data-model run). Ordered
         dependency-before-user: Layout-Builder block instances before the page.
         transform-content iterates this array via each; sync-content imports them.
       items:
@@ -95,7 +91,7 @@ result:
 
 # Resolve Filter
 
-For `unit: data-model`, expand the workflow filter into an ordered list of config-name units, then drop units whose config already exists in the live backend; `content_units` is empty. For `unit: scene`, additionally expand the named Scene into content units (see below).
+On a config/data-model run (no `scene`), expand the workflow filter into an ordered list of config-name units, then drop units whose config already exists in the live backend; `content_units` is empty. On the scene branch (`scene` is set), additionally expand the named Scene into content units (see below).
 
 ## Result: units
 
@@ -131,7 +127,7 @@ When the filter is empty, include every entity type + bundle and every config ke
 
 ## Result: content_units
 
-Only for `unit: scene` (otherwise submit `content_units: []`). The named Scene (its `SceneDef` in the section scenes file) is the page; the content units are what make that page exist in the backend.
+Only on the scene branch, when `scene` is set (otherwise submit `content_units: []`). The named Scene (its `SceneDef` in the section scenes file) is the page; the content units are what make that page exist in the backend.
 
 **Build form (declarative, not guessed).** The page the Scene renders binds to a page bundle in the data model. Read the `template` of that bundle's **full** view mode: `layout-builder` ⇒ the page is assembled with Layout Builder; `canvas` ⇒ the page is a Display-Builder page entity. This value becomes each content unit's `build_form`.
 
