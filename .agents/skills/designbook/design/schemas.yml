@@ -285,7 +285,8 @@ Kind:
     config-entity vs entity-view-mapping sub-mode. `scene` is a whole page (a
     `Designbook/Sections/*/Scenes` or `Designbook/Design System` story), captured full-page
     against the Scene's story. This binary is the single dispatch axis shared by both
-    workflows.
+    workflows. The Scene verification subject lives **here** — as the `scene` value of this
+    enum — not in `#/ConfigType`, which stays scoped to the `config` branch.
   enum: [config, scene]
   examples: [config, scene]
 

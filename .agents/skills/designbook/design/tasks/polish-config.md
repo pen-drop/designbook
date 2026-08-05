@@ -23,11 +23,13 @@ each:
 
 Single backend fix pass for one consolidated deviation from triage. The candidate is the
 backend render; the reference is the Storybook render. Close the deviation by adjusting the
-**backend surface** that produced the render (config for a `config` kind; the synced page's
-config **and** content for a `scene` kind), then hand off to the re-capture stage.
+**backend config** that produced the render (the display config for a `config` kind; the
+synced page's block/layout/`page_layout` config for a `scene` kind — a Scene carries its
+visible content inline in that config, so there is no content to edit), then hand off to the
+re-capture stage.
 
 > ⛔ The Storybook component, scene, and story are the **reference** — never edit them here.
-> The only fix surface is the backend config/content that produced the render.
+> The only fix surface is the backend config that produced the render.
 
 ## Step 0: Inspect Before Any Fix
 
@@ -46,8 +48,9 @@ it is edited.
 
 | In scope | Out of scope |
 |----------|-------------|
-| The backend surface that produced the render (the display config, and for a scene its content) | The Storybook component, scene, or story (the reference) |
-| Config/content-to-component field/formatter/mapping | `design-tokens.yml` |
+| The backend config that produced the render (the display / layout / `page_layout` config) | The Storybook component, scene, or story (the reference) |
+| Config-to-component field/formatter/mapping | Any content entity — a Scene's content lives inline in its config |
+| | `design-tokens.yml` |
 | | The `render_url` resolver / workflow configuration |
 
 ## Step 2: Hand Off to Re-Capture

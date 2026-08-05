@@ -52,20 +52,28 @@ drush eval '$p = explode(".", "{config_id}"); [$type, $bundle, $viewMode] = $p; 
 ### `kind: scene` — real synced page (full-page)
 
 `{config_id}` is the Scene id. The command prints the **real, canonical URL of the page that
-`sync-to` synced for that Scene** — the page itself, resolved by its deterministic content
-identity (the same uuid `sync-to` minted from the Scene id). It is **not** a preview route and
-**not** an isolated entity render. Template:
+`sync-to` synced for that Scene** — the page itself, resolved from its **config-derived
+identity**, never a content uuid (a Scene sync creates no content). It is **not** a preview
+route and **not** an isolated entity render. Two forms, selected by the page's build form:
 
-```
-drush eval '$uuid = \Drupal::service("uuid")->…deterministic-from("{config_id}"); $e = \Drupal::service("entity.repository")->loadEntityByUuid("node", $uuid); print $e->toUrl("canonical", ["absolute" => TRUE])->toString();'
-```
+- **Layout Builder** — the page's layout config lives on the full view display of the page
+  bundle; the reachable page is the **canonical URL of a canonical entity of that bundle**
+  (the fixture provides exactly one as a bare-entity test seed). Resolve it by bundle, not by
+  uuid. Template:
+
+  ```
+  drush eval '$ids = \Drupal::entityQuery("node")->accessCheck(FALSE)->condition("type", "<bundle>")->range(0, 1)->execute(); print \Drupal::entityTypeManager()->getStorage("node")->load(reset($ids))->toUrl("canonical", ["absolute" => TRUE])->toString();'
+  ```
+
+- **Display Builder** — the Scene synced a `page_layout` config entity with its own route;
+  the command prints that config route's absolute URL.
 
 - **No isolation selector.** The candidate is captured **full-page** — leave the sync-verify
   element `selector` empty so the whole page (shell, header, content, footer) is compared
   against the Scene's story, which renders the same whole page. The empty-selector full-page
   path already exists in capture.
-- The synced page's URL is stable across re-syncs because its content uuid is deterministic,
-  so the candidate URL is reproducible run to run.
+- The URL is stable across re-syncs because the config identity (bundle / `page_layout` route)
+  is fixed, so the candidate URL is reproducible run to run.
 
 ## Backend fix (polish-config)
 
@@ -84,8 +92,9 @@ Typical fixes that move the score: change a field's `type` (formatter), its `set
 `label` visibility, `weight`/ordering under `content`, or move a field to `hidden`. After the
 edit, the workflow re-captures and re-compares — do not re-render inside the fix pass.
 
-For a `scene`-kind subject the fixable surface is the whole synced page — its display config
-**and** its content (the block_content instances or the page entity's field values /
-layout). Edit those via drush config/content commands (command strings + config only). Never
-touch the Storybook component: on the scene path it is the reference the page is measured
-against.
+For a `scene`-kind subject the fixable surface is the synced page's **config only** — the
+Layout-Builder display/layout config (`core.entity_view_display.<et>.<bundle>.<full>` with its
+`layout_builder.sections`) or the Display-Builder `page_layout` config. The visible content
+lives inline in that config, so there is no content entity to edit. Edit it via the same drush
+`config:get`/`config:set`/`config:export` commands (command strings + config only). Never touch
+the Storybook component: on the scene path it is the reference the page is measured against.

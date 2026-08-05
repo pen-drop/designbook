@@ -33,15 +33,11 @@ backend_cmd:
   # Exits 0 iff a config object already exists; append config name.
   # Used by resolve-filter's existence filter to skip already-present config.
   exists_cmd: "ddev drush config:get"
-  # Scene branch (scene sync) only — content counterparts. content_exists_cmd / page_url_cmd
-  # are SUBSTITUTION templates ({content_ref}, like renderUrlCommand's {config_id});
-  # content_import_cmd runs as-is. All plain drush eval — no custom module needed.
-  # drush eval does NOT propagate PHP exit() codes (always returns 1), so signal
-  # absence by THROWING — drush's own exit code is 0 on normal completion, non-zero
-  # on an uncaught exception. Present => no throw => exit 0 (drop the unit).
-  content_exists_cmd: "ddev drush eval \"if (!(\\Drupal::service('entity.repository')->loadEntityByUuid('block_content','{content_ref}') ?: \\Drupal::service('entity.repository')->loadEntityByUuid('node','{content_ref}'))) throw new \\Exception('absent');\""
-  content_import_cmd: "ddev drush php:script /var/www/html/web/themes/custom/test_integration_drupal/content-import.php"
-  page_url_cmd: "ddev drush eval \"print \\Drupal::service('entity.repository')->loadEntityByUuid('node','{content_ref}')->toUrl('canonical',['absolute'=>TRUE])->toString();\""
+  # Scene branch (scene sync) only — the synced page's URL. page_url_cmd is a SUBSTITUTION
+  # template ({scene}, like renderUrlCommand's {config_id}); it resolves the URL from the
+  # page's config-derived identity — no content uuid, because a Scene sync creates no content.
+  # $ids is escaped (\$ids) so the resolver's `sh -c` does not shell-expand it before drush eval.
+  page_url_cmd: "ddev drush eval \"\\$ids=\\Drupal::entityQuery('node')->accessCheck(FALSE)->condition('type','{scene}')->range(0,1)->execute(); print \\Drupal::entityTypeManager()->getStorage('node')->load(reset(\\$ids))->toUrl('canonical',['absolute'=>TRUE])->toString();\""
 # Feature flags — on unless set to false. Override per run with
 # DESIGNBOOK_FEATURE_<NAME> (e.g. DESIGNBOOK_FEATURE_REGION_PROPERTIES=off).
 features:

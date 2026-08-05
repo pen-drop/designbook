@@ -64,8 +64,9 @@ ExportSummary:
       type: string
       description: >
         Reachable URL of the synced page, present only on the scene branch
-        (absent for a config/data-model run). Resolved at outtake time from the page's
-        deterministic content identity and expected to answer HTTP 200.
+        (absent for a config/data-model run). Resolved at outtake time from the synced
+        page's config-derived identity (Layout-Builder canonical entity URL /
+        Display-Builder `page_layout` route) and expected to answer HTTP 200.
       examples: ["https://drupal.ddev.site/node/1"]
 
 SyncResult:
@@ -93,32 +94,6 @@ SyncResult:
     cim_ok:
       type: boolean
       description: True when the drush config:import (--partial) invocation exited 0.
-
-ContentSyncResult:
-  type: object
-  title: Content Sync Result
-  description: >
-    Outcome of importing the staged content payloads into the live backend via the
-    project's content_import_cmd. The content counterpart of SyncResult. When there
-    were no content units (e.g. a config/data-model run), reports an empty, successful no-op.
-  required: [import_summary, content_ok]
-  properties:
-    import_summary:
-      type: string
-      description: >
-        Full stdout/stderr from the content_import_cmd invocation, captured verbatim
-        for reporting and error surfacing. Empty when there was nothing to import.
-    content_refs:
-      type: array
-      description: The content_ref uuids of the entities imported in this run.
-      default: []
-      items:
-        type: string
-        description: Deterministic content uuid of one imported entity.
-        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    content_ok:
-      type: boolean
-      description: True when the content import exited 0 (or there was nothing to import).
 
 ConfigNameUnit:
   type: object
@@ -169,63 +144,12 @@ ConfigNameUnit:
         The relevant definition object from the data model — bundle def (fields,
         view_modes, purpose, etc.) for content-derived units, or config def for
         config-slice units. Used by the generator to author the JSONata transform.
-
-ContentUnit:
-  type: object
-  title: Content Unit
-  description: >
-    One content-entity instance a Scene sync must create so the page itself exists
-    in the backend — a block_content instance (Layout Builder) or the page entity
-    (the node carrying layout_builder__layout, or the canvas_page carrying its inline
-    component_tree). Emitted by resolve-filter on the scene branch (never for
-    a config/data-model run, whose content_units list is empty) and consumed by
-    transform-content (one payload per unit) and sync-content (imported as a group).
-    Distinct from ConfigNameUnit: content has no config/sync YAML and no `config:get`
-    existence check — its identity and idempotency come from `content_ref`.
-  required: [content_ref, entity_type, bundle]
-  additionalProperties: false
-  properties:
-    content_ref:
-      type: string
-      description: >
-        Deterministic content identity — a UUIDv5 minted at authoring time from the
-        scene id plus this unit's role (uuid5(<url-namespace>, scene_id + '/' + role)),
-        embedded verbatim in the payload as the entity uuid. Stable inputs → stable
-        uuid across re-syncs, so a second run finds the entity already present
-        (content_exists_cmd) and skips it — no duplicates, no churn.
-      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    role:
-      type: string
-      description: >
-        Which piece of the page this unit is. `page` is the entity the URL resolves
-        to (node or canvas_page); `block` is a Layout-Builder block_content instance
-        the page's layout references. Canvas pages emit only a `page` unit.
-      enum: [page, block]
     build_form:
       type: string
       description: >
-        How the page is assembled in the backend, taken (not guessed) from the
+        Page build form for a Scene-derived config unit, taken (not guessed) from the
         full view-mode `template` of the page bundle in the data model. `layout-builder`
-        ⇒ block_content instances placed into the node's layout_builder__layout;
-        `canvas` ⇒ a canvas_page entity with an inline component_tree.
+        ⇒ the unit is Layout-Builder config (block/layout config incl. the page's
+        `layout_builder__layout` section config); `canvas` ⇒ the unit is Display-Builder
+        `page_layout` config. Absent on config/data-model-derived units.
       enum: [layout-builder, canvas]
-    entity_type:
-      type: string
-      description: Drupal content entity type machine name this instance belongs to.
-      examples: [node, block_content, canvas_page]
-    bundle:
-      type: string
-      description: Bundle machine name within the entity type.
-      examples: [page, hero, canvas_page]
-    def:
-      type: object
-      description: >
-        The page bundle definition object from the data model (fields, view_modes,
-        purpose, etc.), carried so the payload author knows the bundle's field set.
-    payload:
-      type: object
-      description: >
-        The resolved content for this unit — the ComponentNode(s) / field values taken
-        from the Scene and its sample data. For a `block` unit, the block's component
-        subtree; for a `page` unit, the field values plus (Layout Builder) the ordered
-        references to the block units' content_refs or (Canvas) the inline component_tree.

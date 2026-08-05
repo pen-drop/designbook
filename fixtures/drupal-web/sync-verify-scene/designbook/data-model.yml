@@ -4,9 +4,12 @@ content:
       title: Landing
       description: >
         A landing page assembled with Layout Builder. Its full view mode uses the
-        layout-builder template, so a Scene sync creates block_content instances and
-        wires them into the node's layout_builder__layout. This is the page a
-        kind: scene sync-verify run compares full-page against the Scene story.
+        layout-builder template, so a Scene sync emits CONFIG ONLY — the
+        core.entity_view_display.node.landing.full display whose default Layout-Builder
+        sections carry the hero component (a block plugin) with its props inline. No
+        content is created. This is the page a kind: scene sync-verify run compares
+        full-page against the Scene story, rendered by one bare canonical node (a fixture
+        test seed).
       view_modes:
         full:
           template: layout-builder

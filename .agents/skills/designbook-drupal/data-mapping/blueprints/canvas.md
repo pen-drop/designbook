@@ -61,11 +61,16 @@ components:
 - Nested components carry their own `props` and `slots` inline — no further resolution needed
 - Sections can have multiple levels of nesting (unlike Layout Builder which is flat)
 
-## Content payload (sync-to Scene sync)
+## Config expansion (sync-to Scene sync)
 
-Starting point for the content payload `transform-content` stages when a Scene's page uses
-`build_form: canvas`. Canvas emits a single `role: page` unit — a `canvas_page` entity payload:
-embed the page unit's `content_ref` as the entity `uuid`, and carry the Scene's component tree
-inline as the `component_tree` (`components`) field — no block_content entities, no references.
-Serialize in the backend's content-import format the project's `content_import_cmd` consumes.
-This is an overridable starting point.
+Starting point for the config unit `sync-to` emits when a Scene's page uses
+`build_form: canvas`. A Scene resolves to **config only** — never a `canvas_page` content
+entity, never a content payload, never a backend content step:
+
+- **Page layout config** — a single `page_layout` config entity carrying the Scene's component
+  tree inline as its `components` field, exactly the nested `ComponentNode[]` shown above. It
+  has its own route/URL; the visible content lives inline in this config, self-contained with
+  no entity references.
+
+Canvas emits only this one config unit. This is an overridable starting point — a project whose
+Display-Builder page config differs replaces it.

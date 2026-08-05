@@ -33,13 +33,14 @@ consolidated `issues` array as workflow params for the polish stage.
 
 This is design-verify's triage with the fix axis flipped. The candidate is the **backend
 render**; the reference is the live **Storybook render**. Every consolidated issue names the
-**backend surface** (config for a `config` kind; the synced page's config **and** content for
-a `scene` kind) as its fix surface, so the single `polish-config` pass adjusts what produced
-the render — never the reference component.
+**backend config** (the display config for a `config` kind; the synced page's block/layout/
+`page_layout` config for a `scene` kind — a Scene's content lives inline in that config) as its
+fix surface, so the single `polish-config` pass adjusts what produced the render — never the
+reference component.
 
 > ⛔ The Storybook component, scene, and story are the **reference**. Never name a
 > component/scene/story file as an issue's fix surface — the only fix surface is the backend
-> config/content. The loaded subject-mapping and backend-integration rules define which backend
+> config. The loaded subject-mapping and backend-integration rules define which backend
 > surface maps to the rendered subject.
 
 ## Step 1: Read All Draft Issues

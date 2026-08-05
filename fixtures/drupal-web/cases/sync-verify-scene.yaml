@@ -1,7 +1,7 @@
-# DESIGNBOOK-38: sync-to synchronises a Scene (config AND content) as a real Layout
-# Builder page, then sync-verify (kind: scene) compares that real page full-page
-# against the Scene's Storybook story. Exercises both new capabilities end-to-end against
-# a live Drupal (start-drupal-workspace.sh).
+# DESIGNBOOK-38: sync-to synchronises a Scene as a real Layout Builder page CONFIG-ONLY,
+# then sync-verify (kind: scene) compares that real page full-page against the Scene's
+# Storybook story. A Scene is a composite CONFIG subject — no content, no content units.
+# Exercises both capabilities end-to-end against a live Drupal (start-drupal-workspace.sh).
 config: sync-verify-scene.yml
 
 fixtures:
@@ -16,48 +16,48 @@ prompt: |
   You are working in the directory {{workspace}}. Do NOT ask any questions; if a decision
   cannot be made from the data model + fixtures, fail the run.
 
-  PART A — Scene sync (config AND content):
+  PART A — Scene sync (CONFIG ONLY, no content):
   1. Run the /debo sync-to workflow with `scene: landing`, `section: landing`,
-     `gate: soft` (providing a `scene` selects the scene branch). It must:
-     - expand the landing Scene into an ordered unit list: the config of the node.landing
-       and block_content.hero bundles + their fields + the node.landing.full (Layout Builder)
-       and block_content.hero.default displays, THEN the content units — a block_content.hero
-       instance (role: block) and the node.landing page (role: page).
-     - author each content payload to $DESIGNBOOK_DATA/sync/content/<content_ref>.yml. Use these
-       EXACT shapes so the project's content_import_cmd (content-import.php) can consume them:
-         block: { uuid: <content_ref>, entity_type: block_content, bundle: hero, role: block,
-                  fields: { field_title: "Ausbildung gestalten",
-                            field_content: { value: "<p>Leando ...</p>", format: basic_html },
-                            field_action: { uri: "internal:/de/registrieren", title: "Jetzt registrieren" } } }
-         page:  { uuid: <content_ref>, entity_type: node, bundle: landing, role: page,
-                  title: "Landing", blocks: [ <block content_ref> ] }
-       content_ref is uuid5(url-namespace, "landing/" + role) — compute it deterministically and
-       embed it verbatim as the entity uuid.
-     - import the config (drush config:import) and then the content (content_import_cmd).
-     - the outtake must report the reachable page_url of the synced node (page_url_cmd).
+     `gate: soft` (providing a `scene` selects the scene branch). It must emit an ordered
+     CONFIG-unit list — and ONLY config units, never content units:
+     - the config of the node.landing and block_content.hero bundles + their fields,
+     - the block_content.hero.default display,
+     - the node.landing.full Layout-Builder display
+       (core.entity_view_display.node.landing.full) whose DEFAULT layout_builder.sections
+       carry the hero component (a block plugin) with the Scene's props inline in its
+       configuration. The visible content lives inline in this config — NO block_content
+       instance, NO node content, NO content payload, NO backend content step.
+     - import the config with drush config:import.
   2. Record the sync-to `workflow summary --json`.
+  3. SEED (fixture test seed, NOT sync-to content): create the one bare canonical node.landing
+     the Layout-Builder page URL resolves to, by running:
+       ddev drush php:script /var/www/html/web/themes/custom/test_integration_drupal/seed.php
+     This creates exactly one node.landing with no field content and no per-entity layout —
+     the synced default display config renders it. It is a fixture prerequisite, not a
+     sync-to mechanism.
 
   PART B — sync-verify against the real page (full-page):
-  3. Run the /debo sync-verify workflow with `story: landing`, `kind: scene`. Compare
+  4. Run the /debo sync-verify workflow with `story: landing`, `kind: scene`. Compare
      ONE element: id "scene-landing", selector "" (FULL PAGE — no isolation selector on the
      candidate), reference_selector "" (the landing Scene story, full page). The candidate URL is
-     the real synced node page (renderUrlCommand); the reference is the live Storybook render of
-     the landing Scene story. Run to completion; it must produce a ScoreReport.
-  4. Record the sync-verify `workflow summary --json`.
+     the real synced node page (renderUrlCommand, resolved by bundle — no content uuid); the
+     reference is the live Storybook render of the landing Scene story. Run to completion; it
+     must produce a ScoreReport.
+  5. Record the sync-verify `workflow summary --json`.
 
   PART C — idempotency (AC-4):
-  5. Run the /debo sync-to workflow again with the SAME params (scene: landing, section: landing).
-     resolve-filter's existence filters (config exists_cmd + content_exists_cmd) must drop the
-     already-synced units, so this run's content_units (and units) come back empty or partial —
-     no duplicate entities, no abort.
+  6. Run the /debo sync-to workflow again with the SAME params (scene: landing, section: landing).
+     resolve-filter's config existence filter (exists_cmd = config:get) must drop the
+     already-synced config units, so this run's config units come back empty or partial —
+     no duplicate config, no abort. On this run the node exists (seeded in step 3), so the
+     outtake resolves the reachable page_url.
 
   WRITE THE EVIDENCE MARKER designbook/sync-verify-scene.yml with EXACTLY these keys and real values:
-    page_url: "<the synced node canonical URL>"
+    page_url: "<the synced node canonical URL, from the outtake / renderUrlCommand>"
     page_http_status: <integer HTTP status from curl -s -o /dev/null -w "%{http_code}" of page_url>
     scene_kind: scene
     score_avg_diff_percent: <number from the sync-verify ScoreReport>
     score_checks_total: <integer from the ScoreReport>
-    run2_content_units: <integer count of content_units the SECOND sync-to run produced>
     run2_config_units: <integer count of config units the SECOND sync-to run produced>
   Execute now.
 
@@ -79,9 +79,12 @@ assert:
       const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
       return /node\.type\.landing/.test(cfg) && /block_content\.type\.hero/.test(cfg)
         && /core\.entity_view_display\.node\.landing\.full/.test(cfg);
-  # AC-4: the second sync is idempotent — no new content units emitted.
+  # AC-4: the second sync is idempotent — no new config units emitted.
   - type: javascript
-    value: output.fileContents['designbook/sync-verify-scene.yml']?.run2_content_units === 0
+    value: output.fileContents['designbook/sync-verify-scene.yml']?.run2_config_units === 0
+  # AC-15: config-only — the sync created NO content-payload staging files (no sync/content/ dir).
+  - type: javascript
+    value: '!output.newFiles.some(p => /sync\/content\//.test(p))'
   # Both workflows archived cleanly, nothing left pending.
   - type: javascript
     value: output.archivedWorkflows['sync-verify']?.status === 'completed'

@@ -80,7 +80,7 @@ reference axis flipped:
 |---|---|---|
 | Reference (live baseline) | design image / reference URL | **Storybook render** |
 | Candidate (measured) | Storybook render | **backend render** |
-| Fix-pass target | Storybook component / CSS | **backend config / content** |
+| Fix-pass target | Storybook component / CSS | **backend config** |
 
 `story` is the only real input; the workflow derives everything else from it. `story_id`
 resolves the Storybook story the subject maps to; `render_url` resolves the backend render
@@ -112,8 +112,10 @@ concrete render command as a command string (core adds no backend code):
 The `capture`/`re-capture` stages screenshot the **backend render** at `render_url` as the
 candidate; `compare`/`re-compare` diff it against the live Storybook baseline with the
 same `compare-images` CLI (severity / diff_percent). The `triage`/`polish` stages apply a
-single fix pass on the **backend config/content** — never the Storybook component, which is
-the reference. They use the sync-verify-specific `triage-config`/`polish-config` steps (not
+single fix pass on the **backend config** — never the Storybook component, which is
+the reference. For a `scene` kind that config is the page's block/layout/`page_layout`
+config; a Scene carries its visible content inline in that config, so the fix pass never
+touches a content entity. They use the sync-verify-specific `triage-config`/`polish-config` steps (not
 the component-oriented `triage`/`polish` of design-verify) so the consolidated fix
 instructions name the backend surface as the fix target, not the Storybook reference
 component.
