@@ -1,0 +1,12 @@
+fixtures:
+  - vision
+  - tokens
+  - data-model-modes
+
+prompt: >
+  This case provisions a Storybook workspace whose designbook/ already carries a
+  MIXED mapping state (a mapped and an unmapped view mode, a mapped and an
+  unmapped form mode, an orphan mapping, a modeless bundle, and a config bundle).
+  No workflow needs to run — answer "no" at the execute prompt. Then verify the
+  Data Model overview in the running Storybook per the ticket scenario:
+  Foundation -> tab "Data Model" -> the mode badges -> click a mapped badge -> story.

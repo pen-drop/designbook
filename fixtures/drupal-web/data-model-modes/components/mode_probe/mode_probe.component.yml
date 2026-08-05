@@ -1,0 +1,15 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Mode Probe
+status: stable
+group: Test
+description: Minimal probe component for the data-model-modes fixture stories.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+props:
+  type: object
+  properties:
+    title:
+      type: string
+      title: Title
