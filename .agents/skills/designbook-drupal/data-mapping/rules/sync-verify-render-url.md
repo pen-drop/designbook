@@ -59,7 +59,9 @@ route and **not** an isolated entity render. Two forms, selected by the page's b
 - **Layout Builder** — the page's layout config lives on the full view display of the page
   bundle; the reachable page is the **canonical URL of a canonical entity of that bundle**
   (the fixture provides exactly one as a bare-entity test seed). Resolve it by bundle, not by
-  uuid. Template:
+  uuid. `{config_id}` carries the scene id; substitute the page **bundle** into the query — a
+  project whose scene id equals its page bundle can use `{config_id}` directly, otherwise it maps
+  scene → bundle first. Template (`<bundle>` = the page bundle machine name):
 
   ```
   drush eval '$ids = \Drupal::entityQuery("node")->accessCheck(FALSE)->condition("type", "<bundle>")->range(0, 1)->execute(); print \Drupal::entityTypeManager()->getStorage("node")->load(reset($ids))->toUrl("canonical", ["absolute" => TRUE])->toString();'

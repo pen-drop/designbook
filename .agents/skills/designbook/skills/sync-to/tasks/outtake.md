@@ -52,4 +52,6 @@ passed in for them:
 - `page_url` is set only on the scene branch (`scene` is set): run `page_url_cmd` with the
   scene id substituted for the `{scene}` placeholder and record the printed URL — the reachable,
   config-derived URL of the page this run synced (expected HTTP 200). Omit it on a
-  config/data-model run.
+  config/data-model run. Also omit it (do not fail the stage) when the command prints nothing —
+  a config-only sync creates no entity, so the page's canonical entity may not exist yet on the
+  first run; the URL becomes resolvable once the page's canonical entity is present.

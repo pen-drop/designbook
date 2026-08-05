@@ -29,7 +29,7 @@ params:
       description: >
         The Scene's section scenes file, read on the scene branch (absent for a
         config/data-model run). The named Scene's component tree and entity nodes are the
-        source of the content units.
+        source of the Scene's config units (block/layout/page_layout config — never content).
     filter:
       type: object
       description: >

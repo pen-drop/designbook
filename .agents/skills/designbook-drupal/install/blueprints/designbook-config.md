@@ -47,8 +47,12 @@ backend_cmd:
   # Scene branch (scene sync) only — the page URL of the synced page. page_url_cmd is a
   # SUBSTITUTION template ({scene}, like renderUrlCommand's {config_id}); it resolves the URL
   # from the page's config-derived identity (no content uuid — a Scene sync creates no content).
-  # Plain drush eval — no custom module needed.
-  page_url_cmd: "ddev drush eval \"\\$ids=\\Drupal::entityQuery('node')->accessCheck(FALSE)->condition('type','{scene}')->range(0,1)->execute(); print \\Drupal::entityTypeManager()->getStorage('node')->load(reset(\\$ids))->toUrl('canonical',['absolute'=>TRUE])->toString();\""  # config-derived canonical URL of the synced page (Layout Builder: canonical URL of the page bundle's entity).
+  # Plain drush eval — no custom module needed. This LAYOUT-BUILDER example resolves the page
+  # bundle's canonical entity; it assumes the scene id equals the page bundle machine name. A
+  # project whose scene id differs supplies a command that maps scene → page bundle first. For a
+  # DISPLAY-BUILDER (canvas) page, replace this with a command that prints the page's page_layout
+  # config route instead (there is no node to query).
+  page_url_cmd: "ddev drush eval \"\\$ids=\\Drupal::entityQuery('node')->accessCheck(FALSE)->condition('type','{scene}')->range(0,1)->execute(); print \\$ids ? \\Drupal::entityTypeManager()->getStorage('node')->load(reset(\\$ids))->toUrl('canonical',['absolute'=>TRUE])->toString() : '';\""  # config-derived canonical URL of the synced Layout-Builder page; prints empty when no canonical entity exists yet.
 ```
 
 The port in `designbook.url` must match the `-p` argument of the `storybook` script in
@@ -100,5 +104,9 @@ before running (the same mechanism `renderUrlCommand` uses for `{config_id}`), s
 plain `drush eval` without a custom module. It resolves the synced page's URL from the page's
 **config-derived identity** (Layout Builder: the canonical URL of the page bundle's entity;
 Display Builder: the `page_layout` config route) — never a content uuid, because a Scene sync
-creates no content. `sync-to`'s outtake runs it to report the reachable page URL. No Drupal
-knowledge lives in core — this is an opaque command string in project config.
+creates no content. The Layout-Builder example above resolves the page **bundle**; it assumes the
+scene id equals the page bundle machine name — a project where they differ supplies a command that
+maps scene → page bundle, and a canvas project supplies the `page_layout`-route form. The command
+prints empty (rather than erroring) when the page's canonical entity does not exist yet, so
+`sync-to`'s outtake can omit `page_url` gracefully on a first run. No Drupal knowledge lives in
+core — this is an opaque command string in project config.

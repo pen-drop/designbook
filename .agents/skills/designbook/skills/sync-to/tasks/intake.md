@@ -62,6 +62,6 @@ result:
 
 Load the data model and capture the workflow inputs so downstream stages have a consistent starting point.
 
-Forward `scene` and `section` from the workflow params into scope. When `scene` is set they tell resolve-filter which Scene to expand into config and content units (the scene branch); when empty, resolve-filter takes the config/data-model export path.
+Forward `scene` and `section` from the workflow params into scope. When `scene` is set they tell resolve-filter which Scene to expand into config units (the scene branch — config only, never content); when empty, resolve-filter takes the config/data-model export path.
 
 Set `validation_gate` to the value of the `gate` param (default `hard`) so `workflowDone` can read `scope.validation_gate` to decide whether to block on validation errors (hard) or record them and continue (soft).

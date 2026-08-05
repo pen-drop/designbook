@@ -21,8 +21,10 @@ component:
   namespace: 'test_integration_drupal'
   src: components
 # sync-verify (kind: scene) candidate = the REAL synced page URL, NOT a preview route.
-# {config_id} is the scene id; there is exactly one synced landing node, so resolve it by bundle
-# and print its canonical URL. Full-page capture (no isolation selector) is set in the case prompt.
+# The scene id (landing) equals the page bundle machine name (landing), so this command resolves
+# the page config-derived — by bundle — rather than substituting {config_id}: it loads the one
+# synced landing node and prints its canonical URL. Full-page capture (no isolation selector) is
+# set in the case prompt.
 # $ids is escaped (\$ids) so the resolver's `sh -c` does NOT shell-expand it to empty
 # before drush eval sees it (the render_url resolver runs the command via execSync/sh).
 renderUrlCommand: 'ddev drush eval "\$ids=\Drupal::entityQuery(''node'')->accessCheck(FALSE)->condition(''type'',''landing'')->range(0,1)->execute(); print \Drupal::entityTypeManager()->getStorage(''node'')->load(reset(\$ids))->toUrl(''canonical'',[''absolute''=>TRUE])->toString();"'
