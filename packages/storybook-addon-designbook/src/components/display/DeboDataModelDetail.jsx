@@ -113,21 +113,21 @@ function FieldsTable({ fields }) {
   );
 }
 
-function ViewModeMapping({ entityType, bundle, viewMode }) {
+function MappingExpression({ dir, entityType, bundle, mode }) {
   const [expression, setExpression] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    loadDesignbookFile(`entity-mapping/${entityType}.${bundle}.${viewMode}.jsonata`)
+    loadDesignbookFile(`${dir}/${entityType}.${bundle}.${mode}.jsonata`)
       .then((content) => {
         setExpression(content);
         setLoading(false);
       });
-  }, [entityType, bundle, viewMode]);
+  }, [dir, entityType, bundle, mode]);
 
   if (loading) return <MetaLine>Loading mapping...</MetaLine>;
-  if (!expression) return <MetaLine style={{ fontStyle: 'italic' }}>No entity-mapping file found</MetaLine>;
+  if (!expression) return <MetaLine style={{ fontStyle: 'italic' }}>No {dir} file found</MetaLine>;
 
   return (
     <div style={{ maxHeight: 300, overflow: 'auto' }}>
@@ -156,7 +156,33 @@ function ViewModesSection({ entityType, bundle, viewModes }) {
             </MetaLine>
           )}
           <DeboCollapsible title="Entity Mapping" defaultOpen={false}>
-            <ViewModeMapping entityType={entityType} bundle={bundle} viewMode={name} />
+            <MappingExpression dir="entity-mapping" entityType={entityType} bundle={bundle} mode={name} />
+          </DeboCollapsible>
+        </ViewModeCard>
+      ))}
+    </>
+  );
+}
+
+function FormModesSection({ entityType, bundle, formModes }) {
+  const entries = Object.entries(formModes || {});
+  if (entries.length === 0) return null;
+
+  return (
+    <>
+      {entries.map(([name, def]) => (
+        <ViewModeCard key={name}>
+          <ViewModeTitle>{name}</ViewModeTitle>
+          <MetaLine>
+            <strong>template:</strong> <DeboTable.Mono>{def.template}</DeboTable.Mono>
+          </MetaLine>
+          {def.settings && (
+            <MetaLine>
+              <strong>settings:</strong> <DeboTable.Mono>{JSON.stringify(def.settings)}</DeboTable.Mono>
+            </MetaLine>
+          )}
+          <DeboCollapsible title="Form Mapping" defaultOpen={false}>
+            <MappingExpression dir="form-mapping" entityType={entityType} bundle={bundle} mode={name} />
           </DeboCollapsible>
         </ViewModeCard>
       ))}
@@ -184,6 +210,12 @@ export function DeboDataModelDetail({ entityType, bundle, def, onBack }) {
       {def.view_modes && Object.keys(def.view_modes).length > 0 && (
         <DeboCollapsible title="View Modes" count={Object.keys(def.view_modes).length} defaultOpen={true}>
           <ViewModesSection entityType={entityType} bundle={bundle} viewModes={def.view_modes} />
+        </DeboCollapsible>
+      )}
+
+      {def.form_modes && Object.keys(def.form_modes).length > 0 && (
+        <DeboCollapsible title="Form Modes" count={Object.keys(def.form_modes).length} defaultOpen={true}>
+          <FormModesSection entityType={entityType} bundle={bundle} formModes={def.form_modes} />
         </DeboCollapsible>
       )}
     </DeboGrid>
