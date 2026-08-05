@@ -90,15 +90,11 @@ export function DeboModeBadges({ label, kind, dataModel, entityType, bundle, dec
             );
           }
           return (
-            <DeboLink
-              key={b.mode}
-              title={title}
-              name={storyName}
-              onClickCapture={stop}
-              style={{ display: 'inline-flex' }}
-            >
-              {badge}
-            </DeboLink>
+            <span key={b.mode} onClick={stop} style={{ display: 'inline-flex' }}>
+              <DeboLink title={title} name={storyName} style={{ display: 'inline-flex' }}>
+                {badge}
+              </DeboLink>
+            </span>
           );
         })}
       </Row>
