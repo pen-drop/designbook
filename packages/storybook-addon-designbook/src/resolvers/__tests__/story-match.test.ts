@@ -14,6 +14,9 @@ const STORY_IDS = [
   'designbook-homepage-scenes--landing',
   'designbook-homepage-scenes--hero',
   'components--card',
+  'entities-paragraph-signage--full',
+  'entities-node-article--default',
+  'entities-node-article--teaser',
 ];
 
 describe('matchStoryId', () => {
@@ -56,6 +59,19 @@ describe('matchStoryId', () => {
     const result = matchStoryId('card', fixtureDir);
     expect(result.resolved).toBe(true);
     expect(result.value).toBe('components--card');
+  });
+
+  it('resolves a dotted config id to its sanitised entity story id', () => {
+    const result = matchStoryId('paragraph.signage.full', fixtureDir);
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('entities-paragraph-signage--full');
+  });
+
+  it('resolves a dotted config id with a shared view-mode term uniquely', () => {
+    // "default" alone would be ambiguous, but entity_type + bundle + view_mode narrows it.
+    const result = matchStoryId('node.article.default', fixtureDir);
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('entities-node-article--default');
   });
 
   it('returns candidates for ambiguous "landing"', () => {

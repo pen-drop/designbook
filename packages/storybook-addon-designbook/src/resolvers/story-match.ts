@@ -21,6 +21,19 @@ export function listStoryIds(dataDir: string): string[] {
 }
 
 /**
+ * Split a story query into lowercase search terms; a candidate story id matches when it
+ * contains EVERY term as a substring. A scene ref uses `:` (`group:name`) and a backend
+ * config id uses `.` (`<entity_type>.<bundle>.<view_mode>`) — both are split so a dotted
+ * config id like `paragraph.signage.full` matches the sanitised story id
+ * `entities-paragraph-signage--full` (dots ≠ dashes, so a plain substring never would).
+ * A term-less input (`shell`, `landing`) stays a single substring — unchanged behaviour.
+ */
+function searchTerms(input: string): string[] {
+  const lower = input.toLowerCase();
+  return /[:.]/.test(input) ? lower.split(/[:.]/).filter(Boolean) : [lower];
+}
+
+/**
  * Match a user-provided string against the list of story IDs.
  * Returns a ResolverResult whose `value` (when resolved) is the matched story ID.
  */
@@ -36,9 +49,12 @@ export function matchStoryId(input: string, dataDir: string): ResolverResult {
     return { resolved: true, value: input, input };
   }
 
-  // Substring match (case-insensitive)
-  const lowerInput = input.toLowerCase();
-  const matches = storyIds.filter((id) => id.toLowerCase().includes(lowerInput));
+  // Term match (case-insensitive): every term must be a substring of the candidate id.
+  const terms = searchTerms(input);
+  const matches = storyIds.filter((id) => {
+    const lowerId = id.toLowerCase();
+    return terms.every((term) => lowerId.includes(term));
+  });
 
   if (matches.length === 1) {
     return { resolved: true, value: matches[0], input };
@@ -98,14 +114,14 @@ async function matchStoryIdFromIndex(
       return { resolved: true, value: input, input };
     }
 
-    // Build search terms. For a scene ref "group:name", every part must be a substring of
-    // the matching story id — otherwise every story that merely shares a scene name would
-    // match (e.g. "shell" matches both scene and shell-component stories in the live index).
-    const lowerInput = input.toLowerCase();
-    const searchTerms = input.includes(':') ? lowerInput.split(':').filter(Boolean) : [lowerInput];
+    // Build search terms (see searchTerms): every part must be a substring of the matching
+    // story id — otherwise every story that merely shares a scene name would match (e.g.
+    // "shell" matches both scene and shell-component stories in the live index). Splitting on
+    // "." also lets a dotted config id resolve to its sanitised entity story id.
+    const terms = searchTerms(input);
     const matches = liveIds.filter((id) => {
       const lowerId = id.toLowerCase();
-      return searchTerms.every((term) => lowerId.includes(term));
+      return terms.every((term) => lowerId.includes(term));
     });
 
     if (matches.length === 1) {
