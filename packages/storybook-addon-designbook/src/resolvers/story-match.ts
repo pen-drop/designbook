@@ -22,15 +22,40 @@ export function listStoryIds(dataDir: string): string[] {
 
 /**
  * Split a story query into lowercase search terms; a candidate story id matches when it
- * contains EVERY term as a substring. A scene ref uses `:` (`group:name`) and a backend
- * config id uses `.` (`<entity_type>.<bundle>.<view_mode>`) — both are split so a dotted
- * config id like `paragraph.signage.full` matches the sanitised story id
- * `entities-paragraph-signage--full` (dots ≠ dashes, so a plain substring never would).
- * A term-less input (`shell`, `landing`) stays a single substring — unchanged behaviour.
+ * contains EVERY term as a substring. A scene ref uses `:` (`group:name`): every part must be
+ * a substring, otherwise every story sharing a scene name would match. A term-less input
+ * (`shell`, `landing`) stays a single substring — unchanged behaviour.
  */
 function searchTerms(input: string): string[] {
   const lower = input.toLowerCase();
-  return /[:.]/.test(input) ? lower.split(/[:.]/).filter(Boolean) : [lower];
+  return input.includes(':') ? lower.split(':').filter(Boolean) : [lower];
+}
+
+/**
+ * Reconstruct the Storybook entity-story id for a backend view-display config id.
+ *
+ * A config id is exactly `<entity_type>.<bundle>.<view_mode>`; its entity story lives under
+ * the group `Entities/<entity_type>/<bundle>` with story name `<view_mode>`, which Storybook
+ * sanitises to `entities-<entity_type>-<bundle>--<view_mode>` (lowercase, each non-alphanumeric
+ * run → `-`). Reconstructing that id and matching it EXACTLY is what disambiguates sibling
+ * bundles whose machine name is a prefix of another — `paragraph.signage.full` must map to
+ * `entities-paragraph-signage--full`, never also to `entities-paragraph-signage-item--full`
+ * (a per-term substring match collides on `signage` ⊂ `signage-item`).
+ *
+ * Returns null for anything that is not a 3-segment dotted id (scene ids, `group:name` refs,
+ * already-sanitised story ids), so those keep the term-matching path unchanged.
+ */
+function configIdToStoryId(input: string): string | null {
+  const parts = input.split('.');
+  if (parts.length !== 3 || parts.some((p) => p === '')) return null;
+  const sanitize = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  const [entityType, bundle, viewMode] = parts.map(sanitize);
+  if (!entityType || !bundle || !viewMode) return null;
+  return `entities-${entityType}-${bundle}--${viewMode}`;
 }
 
 /**
@@ -47,6 +72,13 @@ export function matchStoryId(input: string, dataDir: string): ResolverResult {
   // Exact match
   if (storyIds.includes(input)) {
     return { resolved: true, value: input, input };
+  }
+
+  // Backend config id (`<et>.<bundle>.<view_mode>`) → reconstruct the exact entity story id,
+  // so sibling bundles (signage vs signage_item) never collide the way a substring match would.
+  const configStoryId = configIdToStoryId(input);
+  if (configStoryId && storyIds.includes(configStoryId)) {
+    return { resolved: true, value: configStoryId, input };
   }
 
   // Term match (case-insensitive): every term must be a substring of the candidate id.
@@ -114,10 +146,17 @@ async function matchStoryIdFromIndex(
       return { resolved: true, value: input, input };
     }
 
+    // Backend config id (`<et>.<bundle>.<view_mode>`) → reconstruct the exact entity story id
+    // and match it precisely, so sibling bundles (signage vs signage_item) never collide.
+    const configStoryId = configIdToStoryId(input);
+    if (configStoryId && liveIds.includes(configStoryId)) {
+      StoryMeta.loadOrCreate(config, configStoryId);
+      return { resolved: true, value: configStoryId, input };
+    }
+
     // Build search terms (see searchTerms): every part must be a substring of the matching
     // story id — otherwise every story that merely shares a scene name would match (e.g.
-    // "shell" matches both scene and shell-component stories in the live index). Splitting on
-    // "." also lets a dotted config id resolve to its sanitised entity story id.
+    // "shell" matches both scene and shell-component stories in the live index).
     const terms = searchTerms(input);
     const matches = liveIds.filter((id) => {
       const lowerId = id.toLowerCase();
