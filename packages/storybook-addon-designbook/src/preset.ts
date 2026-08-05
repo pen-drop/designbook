@@ -3,6 +3,7 @@ import { loadConfig, findConfig } from './config';
 import { buildExportName, extractScenes, extractGroup, fileBaseName, formExportName } from './renderer/scene-metadata';
 import { matchHandler, defaultHandlers } from './renderer/scene-handlers';
 import { entityStoryGroup } from './renderer/entity-module-builder';
+import { formStoryName } from './renderer/story-address';
 import { loadDataModel } from './renderer/scene-module-builder';
 
 import { readFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
@@ -114,7 +115,7 @@ export function indexForm(fileName: string): any[] {
       importPath,
       exportName: formExportName(form_mode),
       title,
-      name: `${form_mode} (form)`,
+      name: formStoryName(form_mode),
       tags: storyTags,
     },
   ];
