@@ -105,8 +105,21 @@ node -e '
 # theme would otherwise find this one first and shadow the root config.
 rm -f "$THEME_DIR/designbook.config.yml"
 
-# Configure ddev with a worktree-namespaced project name; DO NOT start it.
-( cd "$WORKSPACE_DIR" && ddev config --project-name="db-$WT_ID-$WORKSPACE_NAME" --project-type=drupal11 --docroot=web )
+# init-worktree: give this workspace its own ddev project via a gitignored
+# config.local.yaml overlay (worktree-namespaced), NOT by mutating the committed
+# .ddev/config.yaml with `ddev config`. config.local.yaml is ddev-gitignored and
+# merges OVER config.yaml, so it overrides only the project name while type
+# (drupal11) and docroot (web) stay as the copied fixture config declares them.
+#
+# Why an overlay, not `ddev config --project-name`: the workspace inherits the
+# fixture's committed name (designbook-drupal-fixture). Rewriting config.yaml in
+# place both dirties the copied fixture config and races ddev's global project
+# registry against the fixture dir (which prepare-drupal-fixture.sh registers
+# under dbfix-<WT_ID>), producing "name already used by another project" errors.
+# A per-worktree config.local.yaml keeps config.yaml pristine and gives each
+# worktree a distinct project so parallel worktrees never collide. DO NOT start it.
+mkdir -p "$WORKSPACE_DIR/.ddev"
+printf 'name: db-%s-%s\n' "$WT_ID" "$WORKSPACE_NAME" > "$WORKSPACE_DIR/.ddev/config.local.yaml"
 
 # Apply feature-flag overrides into the workspace-root designbook.config.yml.
 # Note: this rewrites the YAML (comments are dropped) — only runs when flags

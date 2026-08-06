@@ -21,6 +21,44 @@ export function listStoryIds(dataDir: string): string[] {
 }
 
 /**
+ * Split a story query into lowercase search terms; a candidate story id matches when it
+ * contains EVERY term as a substring. A scene ref uses `:` (`group:name`): every part must be
+ * a substring, otherwise every story sharing a scene name would match. A term-less input
+ * (`shell`, `landing`) stays a single substring — unchanged behaviour.
+ */
+function searchTerms(input: string): string[] {
+  const lower = input.toLowerCase();
+  return input.includes(':') ? lower.split(':').filter(Boolean) : [lower];
+}
+
+/**
+ * Reconstruct the Storybook entity-story id for a backend view-display config id.
+ *
+ * A config id is exactly `<entity_type>.<bundle>.<view_mode>`; its entity story lives under
+ * the group `Entities/<entity_type>/<bundle>` with story name `<view_mode>`, which Storybook
+ * sanitises to `entities-<entity_type>-<bundle>--<view_mode>` (lowercase, each non-alphanumeric
+ * run → `-`). Reconstructing that id and matching it EXACTLY is what disambiguates sibling
+ * bundles whose machine name is a prefix of another — `paragraph.signage.full` must map to
+ * `entities-paragraph-signage--full`, never also to `entities-paragraph-signage-item--full`
+ * (a per-term substring match collides on `signage` ⊂ `signage-item`).
+ *
+ * Returns null for anything that is not a 3-segment dotted id (scene ids, `group:name` refs,
+ * already-sanitised story ids), so those keep the term-matching path unchanged.
+ */
+function configIdToStoryId(input: string): string | null {
+  const parts = input.split('.');
+  if (parts.length !== 3 || parts.some((p) => p === '')) return null;
+  const sanitize = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  const [entityType, bundle, viewMode] = parts.map(sanitize);
+  if (!entityType || !bundle || !viewMode) return null;
+  return `entities-${entityType}-${bundle}--${viewMode}`;
+}
+
+/**
  * Match a user-provided string against the list of story IDs.
  * Returns a ResolverResult whose `value` (when resolved) is the matched story ID.
  */
@@ -36,9 +74,19 @@ export function matchStoryId(input: string, dataDir: string): ResolverResult {
     return { resolved: true, value: input, input };
   }
 
-  // Substring match (case-insensitive)
-  const lowerInput = input.toLowerCase();
-  const matches = storyIds.filter((id) => id.toLowerCase().includes(lowerInput));
+  // Backend config id (`<et>.<bundle>.<view_mode>`) → reconstruct the exact entity story id,
+  // so sibling bundles (signage vs signage_item) never collide the way a substring match would.
+  const configStoryId = configIdToStoryId(input);
+  if (configStoryId && storyIds.includes(configStoryId)) {
+    return { resolved: true, value: configStoryId, input };
+  }
+
+  // Term match (case-insensitive): every term must be a substring of the candidate id.
+  const terms = searchTerms(input);
+  const matches = storyIds.filter((id) => {
+    const lowerId = id.toLowerCase();
+    return terms.every((term) => lowerId.includes(term));
+  });
 
   if (matches.length === 1) {
     return { resolved: true, value: matches[0], input };
@@ -98,14 +146,21 @@ async function matchStoryIdFromIndex(
       return { resolved: true, value: input, input };
     }
 
-    // Build search terms. For a scene ref "group:name", every part must be a substring of
-    // the matching story id — otherwise every story that merely shares a scene name would
-    // match (e.g. "shell" matches both scene and shell-component stories in the live index).
-    const lowerInput = input.toLowerCase();
-    const searchTerms = input.includes(':') ? lowerInput.split(':').filter(Boolean) : [lowerInput];
+    // Backend config id (`<et>.<bundle>.<view_mode>`) → reconstruct the exact entity story id
+    // and match it precisely, so sibling bundles (signage vs signage_item) never collide.
+    const configStoryId = configIdToStoryId(input);
+    if (configStoryId && liveIds.includes(configStoryId)) {
+      StoryMeta.loadOrCreate(config, configStoryId);
+      return { resolved: true, value: configStoryId, input };
+    }
+
+    // Build search terms (see searchTerms): every part must be a substring of the matching
+    // story id — otherwise every story that merely shares a scene name would match (e.g.
+    // "shell" matches both scene and shell-component stories in the live index).
+    const terms = searchTerms(input);
     const matches = liveIds.filter((id) => {
       const lowerId = id.toLowerCase();
-      return searchTerms.every((term) => lowerId.includes(term));
+      return terms.every((term) => lowerId.includes(term));
     });
 
     if (matches.length === 1) {

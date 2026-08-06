@@ -1,6 +1,6 @@
 ---
 name: debo
-argument-hint: "[install|vision|tokens|data-model|design-component|design-screen|design-entity|design-shell|design-verify|config-verify|sections|shape-section|sample-data|css-generate|import|sync-to|sb] [--optimize|--plan|--from-plan <name>]"
+argument-hint: "[install|vision|tokens|data-model|design-component|design-screen|design-entity|design-shell|design-verify|sync-verify|sections|shape-section|sample-data|css-generate|import|sync-to|sb] [--optimize|--plan|--from-plan <name>]"
 description: >
   Designbook design system — thin index over per-workflow sub-skills. Use ALWAYS
   when creating, modifying, or deleting components, screens, scenes, design
@@ -57,7 +57,7 @@ Parsed from `$ARGUMENTS` by each sub-skill before it dispatches. Flags are not s
 | `design-entity` | [skills/design-entity/](skills/design-entity/SKILL.md) | Build one entity view-mode + preview |
 | `design-shell` | [skills/design-shell/](skills/design-shell/SKILL.md) | Design the application shell |
 | `design-verify` | [skills/design-verify/](skills/design-verify/SKILL.md) | Visual testing against the design reference |
-| `config-verify` | [skills/config-verify/](skills/config-verify/SKILL.md) | Reconcile a backend render against Storybook |
+| `sync-verify` | [skills/sync-verify/](skills/sync-verify/SKILL.md) | Reconcile a backend render (config or scene) against Storybook |
 | `import` | [skills/import/](skills/import/SKILL.md) | Import a full design system from a reference |
 | `sync-to` | [skills/sync-to/](skills/sync-to/SKILL.md) | Export the data model as Drupal config YAML |
 | `sb` | [skills/sb/](skills/sb/SKILL.md) | Manage the Storybook dev server (CLI passthrough) |

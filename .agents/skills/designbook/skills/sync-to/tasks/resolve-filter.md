@@ -10,6 +10,26 @@ params:
       $ref: designbook/skills/data-model/schemas.yml#/DataModel
       type: object
       description: The loaded data model from the intake stage.
+    scene:
+      type: string
+      default: ""
+      description: >
+        Scene id (SceneDef.name) to expand. When set, selects the Scene-expansion (scene)
+        branch below; empty for a config/data-model export run.
+    section:
+      type: string
+      default: ""
+      description: >
+        Section id locating the Scene's scenes file. Set when `scene` is set.
+    section_scenes:
+      path: $DESIGNBOOK_DATA/sections/[section]/[section].section.scenes.yml
+      workflow: design-screen
+      type: object
+      $ref: ../../../scenes/schemas.yml#/SceneFile
+      description: >
+        The Scene's section scenes file, read on the scene branch (absent for a
+        config/data-model run). The named Scene's component tree and entity nodes are the
+        source of the Scene's config units (block/layout/page_layout config — never content).
     filter:
       type: object
       description: >
@@ -21,7 +41,8 @@ params:
       description: >
         Backend command strings from designbook.config.yml. Provides
         exists_cmd (append config name → exit 0 iff the config already
-        exists in the live backend, non-zero otherwise).
+        exists in the live backend, non-zero otherwise) — the same config
+        existence check for both the config/data-model and the scene branch.
       required: [exists_cmd]
       properties:
         exists_cmd:
@@ -49,7 +70,7 @@ result:
 
 # Resolve Filter
 
-Expand the workflow filter into an ordered list of config-name units, then drop units whose config already exists in the live backend.
+On a config/data-model run (no `scene`), expand the workflow filter into an ordered list of config-name units, then drop units whose config already exists in the live backend. On the scene branch (`scene` is set), expand the named Scene into **additional config-name units** — never content — over the same `units` list (see the scene section below). Both branches emit only `ConfigNameUnit`s.
 
 ## Result: units
 
@@ -83,6 +104,21 @@ Each unit is one Drupal configuration object (one `.yml` file in the config/sync
 
 When the filter is empty, include every entity type + bundle and every config key found in the data model.
 
+## Scene branch — Scene expands to config units
+
+Only when `scene` is set. The named Scene (its `SceneDef` in the section scenes file) is the page. A Scene is a **composite config subject**: it expands into `ConfigNameUnit`s appended to the same `units` list above — **never content, never content units**.
+
+**Build form (declarative, not guessed).** The page the Scene renders binds to a page bundle in the data model. Read the `template` of that bundle's **full** view mode: `layout-builder` ⇒ Layout Builder; `canvas` ⇒ Display Builder. This value becomes each Scene-derived unit's `build_form`, so the concrete config naming and shape (delegated below) is selected without guessing.
+
+**Units the Scene emits.** Both build forms resolve to config only:
+
+- **Layout Builder** — the page bundle config (bundle type + fields via the same content-bundle expansion rules above), each block bundle the Scene uses (bundle type + fields + full view-mode display), the page's **layout-override field** config (`field.storage.<et>.layout_builder__layout` + `field.field.<et>.<bundle>.layout_builder__layout` — a real Layout-Builder config export includes them and `config:import` does not synthesise them), and the page's **layout config** unit `core.entity_view_display.<et>.<bundle>.<full>` whose `layout_builder.sections` anchor the blocks. The visible content lives inline in that config (SDC props / component tree), not in a content entity.
+- **Display Builder** — the page's **`page_layout` config** unit carrying the inline component tree; its own route/URL. No content entity.
+
+The concrete config names, the per-build-form shape, and how the Scene's component tree is embedded in the config are delegated to the Drupal build-form blueprints (`layout-builder` / `canvas`) — WHAT here, HOW there.
+
+**Ordering.** Append the Scene units to `units` following the same dependency-before-user order the `transform` stage relies on: bundle / block-type / layout config before the page's display/`page_layout` config that references them. Do not restate the ordering — it is the existing config ordering, unchanged.
+
 ## Existence Filter
 
 After assembling the full candidate list above, apply the existence filter as the final step, before submitting `units`:
@@ -90,5 +126,7 @@ After assembling the full candidate list above, apply the existence filter as th
 For every candidate unit, run `{{ backend_cmd.exists_cmd }} <config_name>` (substituting the candidate's own `config_name`). Exit code 0 means the config object already exists in the live backend — drop that unit. A non-zero exit means it is absent — keep the unit.
 
 This existence check is the dependency-management mechanism for the whole sync: pre-existing config — core view modes (`teaser`, `full`), bundles or fields already present from a prior sync run, or config shipped by the environment itself — is skipped automatically because it already exists, without any data-model markers or pre-seeding logic. Only config that is genuinely missing is generated by `transform` and imported by `sync`. This also makes the workflow idempotent: re-running `sync-to` against a target that already has some or all of the config produces an empty or partial `units` list instead of re-authoring or failing on config that is already there.
+
+The same `config:get` existence filter covers the scene branch: a Scene's block/layout/`page_layout` config units are dropped when they already exist, so a second Scene sync comes back with an empty or partial `units` list — no duplicates, no abort. There is no separate content existence check, because a Scene sync creates no content.
 
 Submit only the surviving (non-existent) units, in the same relative order they were assembled above.

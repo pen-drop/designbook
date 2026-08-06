@@ -60,6 +60,14 @@ ExportSummary:
     count:
       type: integer
       description: Total number of config YAML files written.
+    page_url:
+      type: string
+      description: >
+        Reachable URL of the synced page, present only on the scene branch
+        (absent for a config/data-model run). Resolved at outtake time from the synced
+        page's config-derived identity (Layout-Builder canonical entity URL /
+        Display-Builder `page_layout` route) and expected to answer HTTP 200.
+      examples: ["https://drupal.ddev.site/node/1"]
 
 SyncResult:
   type: object
@@ -136,3 +144,12 @@ ConfigNameUnit:
         The relevant definition object from the data model — bundle def (fields,
         view_modes, purpose, etc.) for content-derived units, or config def for
         config-slice units. Used by the generator to author the JSONata transform.
+    build_form:
+      type: string
+      description: >
+        Page build form for a Scene-derived config unit, taken (not guessed) from the
+        full view-mode `template` of the page bundle in the data model. `layout-builder`
+        ⇒ the unit is Layout-Builder config (block/layout config incl. the page's
+        `layout_builder__layout` section config); `canvas` ⇒ the unit is Display-Builder
+        `page_layout` config. Absent on config/data-model-derived units.
+      enum: [layout-builder, canvas]

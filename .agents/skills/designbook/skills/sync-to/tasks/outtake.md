@@ -2,6 +2,30 @@
 title: Outtake
 trigger:
   steps: [sync-to:outtake]
+params:
+  type: object
+  properties:
+    scene:
+      type: string
+      default: ""
+      description: >
+        Scene id (SceneDef.name) of a scene run — keys the config-derived page URL
+        lookup. Empty on a config/data-model run (then no page_url is emitted).
+    backend_cmd:
+      type: object
+      description: >
+        Backend command strings from designbook.config.yml. Provides page_url_cmd
+        for a Scene run (substitute the scene id → prints the config-derived page URL).
+        Run opaquely — no drush/Drupal knowledge lives in this task.
+      properties:
+        page_url_cmd:
+          type: string
+          description: >
+            Command template that prints the reachable URL of a synced page from its
+            config-derived identity (Layout-Builder canonical entity URL / Display-Builder
+            `page_layout` route); substitute the scene id for the `{scene}` placeholder.
+            Used only on the Scene path — keyed by the scene id, since a Scene sync creates no content.
+          examples: ["ddev drush designbook:page-url {scene}"]
 result:
   type: object
   required: [summary]
@@ -25,3 +49,9 @@ passed in for them:
   produced in that stage).
 - `count` is the total number of config YAML files written, derived from the
   same `transform` stage results.
+- `page_url` is set only on the scene branch (`scene` is set): run `page_url_cmd` with the
+  scene id substituted for the `{scene}` placeholder and record the printed URL — the reachable,
+  config-derived URL of the page this run synced (expected HTTP 200). Omit it on a
+  config/data-model run. Also omit it (do not fail the stage) when the command prints nothing —
+  a config-only sync creates no entity, so the page's canonical entity may not exist yet on the
+  first run; the URL becomes resolvable once the page's canonical entity is present.

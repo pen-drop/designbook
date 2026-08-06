@@ -14,6 +14,10 @@ const STORY_IDS = [
   'designbook-homepage-scenes--landing',
   'designbook-homepage-scenes--hero',
   'components--card',
+  'entities-paragraph-signage--full',
+  'entities-paragraph-signage-item--full',
+  'entities-node-article--default',
+  'entities-node-article--teaser',
 ];
 
 describe('matchStoryId', () => {
@@ -56,6 +60,32 @@ describe('matchStoryId', () => {
     const result = matchStoryId('card', fixtureDir);
     expect(result.resolved).toBe(true);
     expect(result.value).toBe('components--card');
+  });
+
+  it('resolves a dotted config id to its sanitised entity story id', () => {
+    const result = matchStoryId('paragraph.signage.full', fixtureDir);
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('entities-paragraph-signage--full');
+  });
+
+  it('does NOT collide with a sibling bundle whose name it is a prefix of', () => {
+    // `signage` is a substring of `signage-item`; a per-term substring match would return BOTH
+    // entities-paragraph-signage--full and entities-paragraph-signage-item--full (ambiguous).
+    // Exact reconstruction must resolve each config id to exactly its own story.
+    const parent = matchStoryId('paragraph.signage.full', fixtureDir);
+    expect(parent.resolved).toBe(true);
+    expect(parent.value).toBe('entities-paragraph-signage--full');
+
+    const sibling = matchStoryId('paragraph.signage_item.full', fixtureDir);
+    expect(sibling.resolved).toBe(true);
+    expect(sibling.value).toBe('entities-paragraph-signage-item--full');
+  });
+
+  it('resolves a dotted config id with a shared view-mode term uniquely', () => {
+    // "default"/"teaser" alone would collide across bundles; reconstruction pins the exact story.
+    const result = matchStoryId('node.article.default', fixtureDir);
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('entities-node-article--default');
   });
 
   it('returns candidates for ambiguous "landing"', () => {

@@ -59,7 +59,7 @@ dynamically per plugin (`block.settings.[%parent.plugin]`). Nothing about an ent
 enforced while authoring — without a site there is no schema to check a `block_plugin`
 entry against, so the whole entry (including its plugin-specific `settings`) stays
 free-form here. Everything that needs the actual Drupal install is deferred to when the
-modelled config is exported and applied to a live target (the `config-verify` round-trip),
+modelled config is exported and applied to a live target (the `sync-verify` round-trip),
 where Drupal's own config schema resolves:
 
 - whether the named `plugin` actually exists on the target,
@@ -98,7 +98,7 @@ is exported twice.
   flag is never re-modelled on the block entry.
 - **Providing module.** A core-provided plugin (e.g. views, user, block_content, system)
   needs no module entry. A block from a non-core provider must name its providing `module`;
-  a non-core plugin left without one is a `config-verify` failure, not a silently empty block.
+  a non-core plugin left without one is a `sync-verify` failure, not a silently empty block.
 
 ## Content blocks as plugins
 

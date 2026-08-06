@@ -2,16 +2,29 @@
 title: Sync to Drupal
 description: Export a filtered subset of the data model as Drupal config YAML into the config-sync directory.
 params:
-  unit:
+  scene:
     type: string
-    description: Data unit to export. Always "data-model" in the current implementation.
-    default: "data-model"
+    description: >
+      Scene id (SceneDef.name) to sync. When set, sync-to takes the **scene branch** —
+      it syncs that Scene as a real page **config-only**: the page's block/layout config
+      (Layout Builder) or page-template/`page_layout` config (Display Builder). No content,
+      no content units — a Scene is a composite *config* subject. Leave empty to take the
+      config/data-model export path instead. The scene branch is selected by this
+      scene-kind story input, not by a flag.
+    default: ""
+  section:
+    type: string
+    description: >
+      Section id locating the Scene's scenes file under
+      $DESIGNBOOK_DATA/sections/<section>/. Required when `scene` is set.
+    default: ""
   filter:
     type: object
     description: >
-      Slice filter. An empty object exports all content entity types and config keys
-      defined in the data model. Non-empty keys narrow the export to the specified
-      entity types / bundles or config keys.
+      Slice filter for the config/data-model export path (when no `scene` is set). An empty
+      object exports all content entity types and config keys defined in the data model.
+      Non-empty keys narrow the export to the specified entity types / bundles or config
+      keys. Not used on the scene branch.
     default: {}
   config_sync_dir:
     type: string
@@ -38,3 +51,16 @@ stages:
   outtake:
     steps: [outtake]
 ---
+
+sync-to dispatches on `kind`: a **scene**-kind run (a `scene` is provided) synchronises the
+target page **config-only** — the block/layout config (Layout Builder) or page-template/
+`page_layout` config (Display Builder) that composes the page; a **config**-kind run (no
+`scene`) is the existing config-only `data-model` export, sliced by `filter` (an empty
+`filter` is the unchanged bulk export of the whole model). The kind is chosen by the story
+input, not a flag.
+
+Both kinds run over the **same config path** (`resolve-filter` → `transform` → `sync`): the
+scene branch only makes `resolve-filter` emit additional `ConfigNameUnit`s (block/layout/
+`page_layout` config). There are no content units and no content stages — a Scene resolves to
+config, never to content. Ordering and idempotency follow the existing pattern: dependency
+before user, and the `config:get` existence filter.

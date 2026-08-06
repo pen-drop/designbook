@@ -10,7 +10,7 @@ description: Full listing of all Designbook skills across Parts 1–3
 Main skill at `.agents/skills/designbook/` — a thin index (`SKILL.md`) over one **nested sub-skill per workflow** under `skills/<workflow>/`. Engine docs live in `resources/`; engine-wide types in `workflow/schemas.yml`.
 
 **Sub-skills (one per workflow):**
-`design-component`, `design-screen`, `design-entity`, `design-shell`, `design-verify`, `config-verify`, `vision`, `tokens`, `data-model`, `sections`, `shape-section`, `sample-data`, `css-generate`, `install`, `import`, `sync-to`, `sb` — each at `skills/<workflow>/` with its own `SKILL.md`, `workflows/<id>.md`, and `tasks/`/`rules/`/`blueprints/`/`schemas.yml`.
+`design-component`, `design-screen`, `design-entity`, `design-shell`, `design-verify`, `sync-verify`, `vision`, `tokens`, `data-model`, `sections`, `shape-section`, `sample-data`, `css-generate`, `install`, `import`, `sync-to`, `sb` — each at `skills/<workflow>/` with its own `SKILL.md`, `workflows/<id>.md`, and `tasks/`/`rules/`/`blueprints/`/`schemas.yml`.
 
 **Shared content roots (workflow-less):**
 

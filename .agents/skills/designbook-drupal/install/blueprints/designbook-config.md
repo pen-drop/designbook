@@ -44,6 +44,15 @@ backend_cmd:
   ui_pattern_cmd: "ddev drush designbook:ui-pattern"  # emits the whole ui_patterns block (component_id, variant_id, props, slots) as JSON; append '<set>:<component>' --props=<json ComponentNode props/slots>
   import: "ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"  # container path is the in-container view of the host config_sync_dir that write-config's YAML lands in
   exists_cmd: "ddev drush config:get"  # exit 0 iff a config object already exists; append config name. Used by resolve-filter to skip config that is already present.
+  # Scene branch (scene sync) only — the page URL of the synced page. page_url_cmd is a
+  # SUBSTITUTION template ({scene}, like renderUrlCommand's {config_id}); it resolves the URL
+  # from the page's config-derived identity (no content uuid — a Scene sync creates no content).
+  # Plain drush eval — no custom module needed. This LAYOUT-BUILDER example resolves the page
+  # bundle's canonical entity; it assumes the scene id equals the page bundle machine name. A
+  # project whose scene id differs supplies a command that maps scene → page bundle first. For a
+  # DISPLAY-BUILDER (canvas) page, replace this with a command that prints the page's page_layout
+  # config route instead (there is no node to query).
+  page_url_cmd: "ddev drush eval \"\\$ids=\\Drupal::entityQuery('node')->accessCheck(FALSE)->condition('type','{scene}')->range(0,1)->execute(); print \\$ids ? \\Drupal::entityTypeManager()->getStorage('node')->load(reset(\\$ids))->toUrl('canonical',['absolute'=>TRUE])->toString() : '';\""  # config-derived canonical URL of the synced Layout-Builder page; prints empty when no canonical entity exists yet.
 ```
 
 The port in `designbook.url` must match the `-p` argument of the `storybook` script in
@@ -88,3 +97,16 @@ candidate `config_name` to this command to decide whether to keep or drop that u
 this is how the sync workflow skips config that already exists (core view modes,
 previously-synced bundles/fields, environment-provided config) without any data-model
 markers or pre-seeding.
+
+`page_url_cmd` is used only by a scene-branch sync (it is absent from a config-only project).
+It is a **substitution template** — the `{scene}` placeholder is replaced with the scene id
+before running (the same mechanism `renderUrlCommand` uses for `{config_id}`), so it works as a
+plain `drush eval` without a custom module. It resolves the synced page's URL from the page's
+**config-derived identity** (Layout Builder: the canonical URL of the page bundle's entity;
+Display Builder: the `page_layout` config route) — never a content uuid, because a Scene sync
+creates no content. The Layout-Builder example above resolves the page **bundle**; it assumes the
+scene id equals the page bundle machine name — a project where they differ supplies a command that
+maps scene → page bundle, and a canvas project supplies the `page_layout`-route form. The command
+prints empty (rather than erroring) when the page's canonical entity does not exist yet, so
+`sync-to`'s outtake can omit `page_url` gracefully on a first run. No Drupal knowledge lives in
+core — this is an opaque command string in project config.

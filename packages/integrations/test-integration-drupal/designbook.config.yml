@@ -33,6 +33,14 @@ backend_cmd:
   # Exits 0 iff a config object already exists; append config name.
   # Used by resolve-filter's existence filter to skip already-present config.
   exists_cmd: "ddev drush config:get"
+  # Scene branch (scene sync) only — the synced page's URL. page_url_cmd is a SUBSTITUTION
+  # template ({scene}, like renderUrlCommand's {config_id}); it resolves the URL from the
+  # page's config-derived identity — no content uuid, because a Scene sync creates no content.
+  # This Layout-Builder command resolves the page bundle's canonical entity; here the scene id
+  # (landing) equals the page bundle machine name (landing). It prints empty (not an error) when
+  # no canonical entity exists yet, so outtake omits page_url gracefully on a first run.
+  # $ids is escaped (\$ids) so the resolver's `sh -c` does not shell-expand it before drush eval.
+  page_url_cmd: "ddev drush eval \"\\$ids=\\Drupal::entityQuery('node')->accessCheck(FALSE)->condition('type','{scene}')->range(0,1)->execute(); print \\$ids ? \\Drupal::entityTypeManager()->getStorage('node')->load(reset(\\$ids))->toUrl('canonical',['absolute'=>TRUE])->toString() : '';\""
 # Feature flags — on unless set to false. Override per run with
 # DESIGNBOOK_FEATURE_<NAME> (e.g. DESIGNBOOK_FEATURE_REGION_PROPERTIES=off).
 features:

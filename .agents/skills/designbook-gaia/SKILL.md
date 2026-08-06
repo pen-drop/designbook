@@ -5,7 +5,7 @@ description: >
   that encode Designbook domain knowledge: `debo-designbook-design`
   (work_type design-to-designbook) and `debo-config-sync`
   (work_type designbook-to-config). Designbook is the sole owner of this
-  knowledge (debo flags, design-verify/config-verify, Storybook & Drupal
+  knowledge (debo flags, design-verify/sync-verify, Storybook & Drupal
   preview links, design_verify/config_verify measurements). Each step-skill is a
   nested sub-skill under `skills/<name>/`, addressable as
   `@designbook-gaia/<name>`. This skill ships only GAIA-step prose — it copies
@@ -16,17 +16,17 @@ description: >
 
 This integration skill is the **home** of the two GAIA workflow-step skills that carry Designbook
 domain knowledge. Designbook is the source of that knowledge (debo flags, `design-verify` /
-`config-verify`, the Storybook and Drupal preview-module links, the `design_verify` /
+`sync-verify`, the Storybook and Drupal preview-module links, the `design_verify` /
 `config_verify` measurements), so the skills live here rather than in the gaia plugin.
 
 | Sub-skill | `work_type` | Steps | Validate | Load as |
 |---|---|---|---|---|
 | `debo-designbook-design` | `design-to-designbook` | `diagnose`, `spec`, `coding`, `review` | `debo design-verify` | `@designbook-gaia/debo-designbook-design` |
-| `debo-config-sync` | `designbook-to-config` | `diagnose`, `spec`, `coding`, `review` | `debo config-verify` | `@designbook-gaia/debo-config-sync` |
+| `debo-config-sync` | `designbook-to-config` | `diagnose`, `spec`, `coding`, `review` | `debo sync-verify` | `@designbook-gaia/debo-config-sync` |
 
 Both follow **plan → build → validate**: `spec` runs the debo workflow with `--plan` to write the
 plan and stop; `coding` runs it with `--from-plan` to build autonomously from that plan; `validate`
-(`debo design-verify` / `debo config-verify`) checks the result.
+(`debo design-verify` / `debo sync-verify`) checks the result.
 
 ## Contract
 
@@ -68,4 +68,4 @@ and (optionally) overrides their inputs inline. Copyable block:
 
 The `spec` / `build` / `validate` inputs default to the debo commands baked into each sub-skill
 (`debo <workflow> --plan`, `debo <workflow> --from-plan <plan>`, `debo design-verify` /
-`debo config-verify`); override any of them the same way if a project needs a different command.
+`debo sync-verify`); override any of them the same way if a project needs a different command.

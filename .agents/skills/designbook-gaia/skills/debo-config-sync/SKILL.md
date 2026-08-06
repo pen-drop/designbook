@@ -1,13 +1,13 @@
 ---
 name: debo-config-sync
-description: Own the diagnose, spec, coding, and review steps for a work:designbook-to-config sub-work — plan by loading the chosen config sub-skill in --plan mode, build the config with --from-plan <plan>, validate with @designbook/config-verify (recording its statistics as the config_verify measurement and resolving the Storybook + Drupal preview-module links), each step with its own transition.
+description: Own the diagnose, spec, coding, and review steps for a work:designbook-to-config sub-work — plan by loading the chosen config sub-skill in --plan mode, build the config with --from-plan <plan>, validate with @designbook/sync-verify (recording its statistics as the config_verify measurement and resolving the Storybook + Drupal preview-module links), each step with its own transition.
 when:
   work_type: designbook-to-config
   workflow: [gaia_feature, gaia_bug, gaia_chore]
   step: [diagnose, spec, coding, review]
 work_type_term:
   name: "work:designbook-to-config"
-  description: "Sub-work: export Designbook display to Drupal config via sync-to; validate via config-verify."
+  description: "Sub-work: export Designbook display to Drupal config via sync-to; validate via sync-verify."
 inputs:
   spec:
     description: how to produce the config plan in the spec step (load the chosen config sub-skill, run to the last interactive stage, writing a plan file)
@@ -17,7 +17,7 @@ inputs:
     default: load the chosen config sub-skill and run it with --from-plan <plan>
   validate:
     description: command that validates the synced Drupal config against the Designbook reference
-    default: "@designbook/config-verify"
+    default: "@designbook/sync-verify"
   provision:
     description: command that brings up the test environment
     default: ddev init
@@ -39,7 +39,7 @@ inputs:
 You own the `diagnose`, `spec`, `coding`, and `review` steps for a `work:designbook-to-config`
 sub-work. The flow is **plan → build → validate**: `spec` loads the chosen config sub-skill and runs
 it with `--plan` to write the plan and stop; `coding` loads it and runs it with `--from-plan <plan>`
-to build the Drupal config autonomously from that plan; `validate` (`@designbook/config-verify`)
+to build the Drupal config autonomously from that plan; `validate` (`@designbook/sync-verify`)
 reconciles the backend render of that config against the Designbook reference. The `--plan` and
 `--from-plan <plan>` flags stay unchanged — the config sub-skill parses them itself from `$ARGUMENTS`
 (per `designbook/SKILL.md` § Global Flags); only *how* the workflow is started changes. One run works
@@ -65,7 +65,7 @@ the same way **without** `@gaia/ensure-qualification`.
    only.
 3. Publish the gaia `spec` + `test` handoff (design decision, alternatives, risks, `Task-Art`, the
    written plan path, and the AC↔evidence matrix mapping each acceptance criterion to the
-   `@designbook/config-verify` evidence). Commit the plan.
+   `@designbook/sync-verify` evidence). Commit the plan.
 4. **Surface the design reference** by running `reference_capture`. A `work:designbook-to-config`
    sub-work (`sync-to`) has no `reference_url`/reference stage, so there is normally nothing
    captured: record the reference surface as `not_required` and link nothing. When a
@@ -84,7 +84,7 @@ the same way **without** `@gaia/ensure-qualification`.
 1. Shared start (RED target gate).
 2. Invoke `@gaia/diagnose-ticket`; diagnose only, do not implement the fix.
 3. Author the QA artifacts: `@gaia/acceptance` → `@gaia/scenario` → the concrete check →
-   `@gaia/verify` with `validate` (`@designbook/config-verify`). **RED gate:** the reported config
+   `@gaia/verify` with `validate` (`@designbook/sync-verify`). **RED gate:** the reported config
    defect still reproduces and the new check fails.
 4. Invoke `@gaia/run-outtake`, leading with the confirmed cause, the RED evidence, and the config
    diff.
@@ -107,16 +107,16 @@ the same way **without** `@gaia/ensure-qualification`.
    and notification.
 3. Drive the acceptance criteria to GREEN. For a feature or chore author the QA artifacts now
    (`@gaia/acceptance` → `@gaia/scenario` → the concrete check) if `spec` did not; a bug reuses the
-   `diagnose` artifacts. Then invoke `@gaia/verify` with `validate` (`@designbook/config-verify`) and
+   `diagnose` artifacts. Then invoke `@gaia/verify` with `validate` (`@designbook/sync-verify`) and
    fix until every applicable criterion reports GREEN. **GREEN gate:** do not proceed until the
-   `@designbook/config-verify` verdict is green; include the config diff and the verdict in the
+   `@designbook/sync-verify` verdict is green; include the config diff and the verdict in the
    handoff.
-4. **Record the measurement.** From the `@designbook/config-verify` `ScoreReport`, record the
+4. **Record the measurement.** From the `@designbook/sync-verify` `ScoreReport`, record the
    `config_verify` measurement (`measurements/definitions/config-verify.json`: `score`, `delta`,
    `avg_diff_percent`, `max_diff_percent`, `checks_passed`, `checks_total`) into
    `gaia_ticket.metrics` with **one `session` PATCH before the transition**
    (footprint-before-transition), per `review-ticket/measurements/README.md`.
-5. Invoke `@gaia/run-outtake`, leading with the `@designbook/config-verify` verdict and its
+5. Invoke `@gaia/run-outtake`, leading with the `@designbook/sync-verify` verdict and its
    statistics and the config diff. Lead the **Storybook preview link** (`kind: storybook`, the
    baseline the render was reconciled against) **only when the build changed Designbook artifacts**;
    else omit it with a one-line reason. Lead the **Drupal preview link** (`kind: drupal-preview`, the
@@ -136,12 +136,12 @@ the same way **without** `@gaia/ensure-qualification`.
 
 1. Shared start **without** the qualification guard (the OK/Not OK decision this run must reach).
 2. Invoke `@gaia/review-ticket` in a review subagent: run `@gaia/verify` with `validate`
-   (`@designbook/config-verify`) **fresh**, re-validating each acceptance criterion from its abstract
+   (`@designbook/sync-verify`) **fresh**, re-validating each acceptance criterion from its abstract
    scenario. Any criterion reporting `fail` or `red`, or left uncovered without written
    justification, forces `Not OK`. The result is exactly `OK` or `Not OK`. Re-record the
-   `config_verify` measurement from this fresh `@designbook/config-verify` `ScoreReport` (session
+   `config_verify` measurement from this fresh `@designbook/sync-verify` `ScoreReport` (session
    PATCH, before the transition).
-3. Invoke `@gaia/run-outtake`, leading with the verdict, the `@designbook/config-verify` statistics,
+3. Invoke `@gaia/run-outtake`, leading with the verdict, the `@designbook/sync-verify` statistics,
    the Storybook link, and the Drupal preview-module link; for `Not OK` the failing criterion.
 4. Ask the human to confirm the verdict.
 5. After confirmation, on `OK` **run the merge gate in this parent before transitioning** — invoke
