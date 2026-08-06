@@ -1,0 +1,9 @@
+(
+  $fields := $;
+  [
+    {
+      "component": "test_integration_drupal:mode_probe",
+      "props": { "title": "Recent Articles" }
+    }
+  ]
+)

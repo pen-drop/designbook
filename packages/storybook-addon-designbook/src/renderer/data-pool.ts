@@ -1,23 +1,15 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
-import type { DataModel } from './types';
+import { namespaceFor } from './story-address';
+
+export { namespaceFor };
 
 /** One per-bundle file's parsed records. */
 export interface BundleFile {
   entityType: string;
   bundle: string;
   records: Record<string, unknown>[];
-}
-
-/**
- * Look a bundle up in the data model and return its namespace.
- * Returns 'content', 'config', or null when the bundle is unknown.
- */
-export function namespaceFor(dataModel: DataModel, entityType: string, bundle: string): 'content' | 'config' | null {
-  if (dataModel.content?.[entityType]?.[bundle]) return 'content';
-  if (dataModel.config?.[entityType]?.[bundle]) return 'config';
-  return null;
 }
 
 /**

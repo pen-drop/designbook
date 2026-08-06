@@ -25,6 +25,21 @@ function globMatch(pattern: string, filePath: string): boolean {
   return new RegExp('^' + regexStr + '$').test(filePath);
 }
 
+/**
+ * List the `.jsonata` basenames under `<designbookDir>/<dir>`. Returns `[]`
+ * when the directory is missing. Throws when `dir` resolves outside
+ * `designbookDir` (path-escape guard) — same convention as the
+ * `/__designbook/load` and `/__designbook/file` middlewares.
+ */
+export function listMappingFiles(designbookDir: string, dir: string): string[] {
+  const full = resolve(designbookDir, dir);
+  if (full !== designbookDir && !full.startsWith(designbookDir + sep)) {
+    throw new Error('Path outside designbook directory');
+  }
+  if (!existsSync(full)) return [];
+  return readdirSync(full).filter((f) => f.endsWith('.jsonata'));
+}
+
 export function isEntityMappingFile(id: string): boolean {
   return /(?:^|\/)entity-mapping\/[^/]+\.jsonata$/.test(id);
 }
@@ -404,6 +419,23 @@ export function designbookLoadPlugin(
           res.end(JSON.stringify(status));
         } catch (err: unknown) {
           res.statusCode = 500;
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+        }
+      });
+
+      // HTTP endpoint: list mapping files in a designbook subdirectory (single request
+      // so the data-model overview resolves every badge's mapped/open state at once).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      server.middlewares.use('/__designbook/list', (req: IncomingMessage, res: any) => {
+        try {
+          const url = new URL(req.url || '', 'http://localhost');
+          const dir = url.searchParams.get('dir') || '';
+          const files = listMappingFiles(designbookDir, dir);
+          res.setHeader('Content-Type', 'application/json');
+          res.statusCode = 200;
+          res.end(JSON.stringify({ dir, files }));
+        } catch (err: unknown) {
+          res.statusCode = 403;
           res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
         }
       });

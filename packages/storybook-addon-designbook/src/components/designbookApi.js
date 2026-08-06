@@ -65,3 +65,23 @@ export async function designbookFileExists(path) {
   const result = await loadDesignbookFile(path);
   return result != null;
 }
+
+const LIST_ENDPOINT = '/__designbook/list';
+
+/**
+ * List the .jsonata mapping files in a designbook subdirectory
+ * ("entity-mapping" or "form-mapping"). Returns [] on any error.
+ *
+ * @param {string} dir
+ * @returns {Promise<string[]>}
+ */
+export async function listDesignbookFiles(dir) {
+  try {
+    const res = await fetch(`${LIST_ENDPOINT}?dir=${encodeURIComponent(dir)}`);
+    if (!res.ok) return [];
+    const json = await res.json();
+    return Array.isArray(json.files) ? json.files : [];
+  } catch {
+    return [];
+  }
+}

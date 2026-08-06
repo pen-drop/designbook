@@ -13,40 +13,16 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, basename, dirname } from 'node:path';
 
 import { buildRenderContext, defaultSdcResolver, loadDataModel, loadSampleData } from './scene-module-builder';
-import { namespaceFor } from './data-pool';
 import { view } from './view';
 import { buildEntityCsfModule, type EntityCsfViewMode, type EntityCsfFormMode } from './csf-prep';
 import { extractFieldMappings } from './jsonata-mapping-analyzer';
 import { buildExportName, formExportName } from './scene-metadata';
-import type { DataModel, SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
+import type { SceneNode, SceneNodeBuilder, SceneTreeNode, ComponentNode } from './types';
+import { entityStoryGroup, titleCaseBundle } from './story-address';
+
+export { entityStoryGroup, titleCaseBundle };
 
 // ── Helpers ────────────────────────────────────────────────────────────
-
-export function titleCaseBundle(bundle: string): string {
-  return bundle
-    .split(/[_-]/)
-    .map((p) => (p ? p.charAt(0).toUpperCase() + p.slice(1) : p))
-    .join(' ');
-}
-
-/**
- * Resolve the Storybook sidebar group + config flag for an entity, from the
- * data-model section (`config:` vs. `content:`) — never from a hardcoded type
- * list, so a newly declared config type lands under `Config/…` with no code
- * change. Config leaves use the raw bundle name (`Config/view/recent_articles`);
- * content leaves keep the title-cased form (`Entities/node/Article`). Unknown
- * bundles fall back to `Entities/…` (today's behaviour, unchanged).
- */
-export function entityStoryGroup(
-  dataModel: DataModel,
-  entity_type: string,
-  bundle: string,
-): { title: string; isConfig: boolean } {
-  const isConfig = namespaceFor(dataModel, entity_type, bundle) === 'config';
-  const top = isConfig ? 'Config' : 'Entities';
-  const leaf = isConfig ? bundle : titleCaseBundle(bundle);
-  return { title: `${top}/${entity_type}/${leaf}`, isConfig };
-}
 
 /** Parse "<type>.<bundle>.<view_mode>.jsonata" → { entity_type, bundle }. */
 function parseMappingName(file: string): { entity_type: string; bundle: string } {
