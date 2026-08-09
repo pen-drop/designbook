@@ -1,0 +1,19 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Landing Teaser
+status: experimental
+group: Data Display
+description: Teaser card for a landing page — teaser image, type label, and short title, rendered in the landing teasers listing.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  image:
+    title: Image
+    description: Rendered teaser image media (media.image via field_landing_page_image).
+  type:
+    title: Type
+    description: Rendered type label term (taxonomy_term.landing_page_types via field_landing_page_type).
+  title:
+    title: Title
+    description: Rendered short title (field_short_title).

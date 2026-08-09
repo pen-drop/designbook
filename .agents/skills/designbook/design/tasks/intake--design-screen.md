@@ -66,10 +66,11 @@ Gather section, screen type, entity mappings, and component plan for one screen.
 
 1. **Confirm section** — use provided section or ask the user
 2. **Determine screen type** — landing, overview, or detail page; for landing pages ask about embedded entity lists
-3. **Plan entities** — collect `entity:` nodes from section spec scenes, deduplicate by entity+view_mode, produce the renderable entity closure required by the loaded rules, and present table and confirm
-4. **Plan components** — scan existing components, identify new ones needed per entity and screen-level; if `$reference_dir/extract.json` exists, derive from landmark structure; present grouped table and confirm
-5. **Summary** — present complete build plan, wait for confirmation
-6. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection. When `$reference_dir/extract.json` exists, base the preview on the observed reference structure; only when no reference exists, state `reference: none` in the preview so the user knows the structure was inferred from the section spec and data model, not an observed design.
+3. **Determine the main content** — resolve which single node in the page `content` slot is the route-bearing main content per [screen-scene-constraints.md](../rules/screen-scene-constraints.md): exactly one Entity or View. When the section spec or reference yields zero or two main candidates, resolve it with the user before continuing (never silently pick). Record which node is the main content for the structure preview.
+4. **Plan entities** — collect `entity:` nodes from section spec scenes, deduplicate by entity+view_mode, produce the renderable entity closure required by the loaded rules, and present table and confirm. For a main content that is a View (`entity: "view.<id>"`), the view's **row bundle** is part of that closure — see the `sample_data_bundles` result.
+5. **Plan components** — scan existing components, identify new ones needed per entity and screen-level; if `$reference_dir/extract.json` exists, derive from landmark structure; present grouped table and confirm
+6. **Summary** — present complete build plan, wait for confirmation
+7. **Structure preview** — ASCII tree per [structure-preview.md](partials/structure-preview.md), starting from `scene: design-system:shell` with `content` injection. Mark the one route-bearing **main content** node in `content` (label it `← main content`) so the user approves which node bears the route before the build; every other `content` node is a block beside it. When `$reference_dir/extract.json` exists, base the preview on the observed reference structure; only when no reference exists, state `reference: none` in the preview so the user knows the structure was inferred from the section spec and data model, not an observed design.
 
 ## Result: components
 
@@ -84,6 +85,12 @@ One entry per **new** component. When `$reference_dir/extract.json` exists, incl
 The distinct `entity_type` + `bundle` pairs that need sample data for this screen. The
 loaded rules define which referenced bundles are part of the renderable entity closure.
 `create-sample-data` expands one task per entry.
+
+When a `content` node is a View (`entity: "view.<id>"`), add the view's **row bundle** — the
+`entity_type` + `bundle` the view lists (the view record's row target) — to
+`sample_data_bundles`, and let the view's rows draw concrete records from that bundle's content
+sample data. The view then lists real content records, so a view mapping has sample records to
+validate against.
 
 ## Result: scenes
 

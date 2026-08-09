@@ -67,7 +67,8 @@ Append one `SceneDef` to the SceneFile at `$DESIGNBOOK_DATA/{{ scene_path }}`. T
 The exact structure depends on the active workflow step (shell or screen); see the applicable constraints rule:
 
 - `shell-scene-constraints.md` when the scene is the design-system shell
-- `screen-scene-constraints.md` when the scene is a section screen
+- `screen-scene-constraints.md` when the scene is a section screen — its page `content` slot
+  carries exactly one route-bearing main content (an Entity or a View), everything else a block
 
 ## Inputs
 

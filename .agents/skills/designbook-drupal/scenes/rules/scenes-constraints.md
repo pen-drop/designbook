@@ -7,6 +7,20 @@ filter:
 
 # Drupal Scene Constraints
 
+## Main Content vs. Block — Drupal Vocabulary
+
+The abstract screen-scene rule names one route-bearing **main content** (an Entity or a View) in
+the page `content` slot, with everything else a **block**. In Drupal terms:
+
+- A route-bearing main **Entity** is a content entity — typically a **node**.
+- A route-bearing main **View** is a view **page display** (it owns a route).
+- **Blocks** (beiwerk, no route) are: a view **block** (`views_block:*`), menus, local tabs, special
+  widgets, `block_content` entities, and `block_plugin` blocks. The same view is main content as a
+  page display and a block as a view block — its **display type** decides the role.
+
+A listing of several contents is a view; the one exception is a listing rendered inside an entity
+through an entity-reference field (the parent node renders its own referenced children).
+
 ## Image Node Format
 
 > ⛔ **Image nodes use the duck-typed `image:` key referencing a config entity.**

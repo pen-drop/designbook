@@ -6,12 +6,25 @@ config:
       aspect_ratio: '4:3'
     ratio_1_1:
       aspect_ratio: '1:1'
+  # Design/render shape (config.view.<id>): the renderer resolves a screen's route-bearing
+  # main-content View from this nested entry. The flat `views.view.landing_teasers` below is the
+  # Drupal config-object-name shape the sync/export path addresses; both describe the same view.
+  view:
+    landing_teasers:
+      label: Landing teasers
+      row:
+        entity_type: node
+        bundle: landing_page
+        view_mode: teaser
+      view_modes:
+        default:
+          template: list-view
   views.view.landing_teasers:
     label: Landing teasers
     purpose: >
       A view that lists node.landing_page entities rendered in the teaser
-      view-mode, embedded on the article page. This is the view-mapping path
-      the sync eval exercises.
+      view-mode. It owns a page display and can be a screen's route-bearing
+      main content; it is also the view-mapping path the sync eval exercises.
     base_table: node_field_data
     row:
       entity_type: node
@@ -22,6 +35,9 @@ config:
       status: 1
     sort:
       created: DESC
+    view_modes:
+      default:
+        template: list-view
 content:
   node:
     landing_page:
@@ -114,9 +130,15 @@ content:
           settings:
             target_type: paragraph
             target_bundle: signage_item
+      view_modes:
+        full:
+          template: field-map
     signage_item:
       title: Wegweiser Element
       description: One navigation item within a Wegweiser — icon, title, description, links, and CTA buttons
+      view_modes:
+        full:
+          template: field-map
       fields:
         field_title:
           type: string
