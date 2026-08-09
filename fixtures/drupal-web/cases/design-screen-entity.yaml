@@ -1,0 +1,48 @@
+fixtures:
+  - vision
+  - data-model
+  - tokens
+  - css-generate
+  - design-shell
+  - sections
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  Run the /debo design-screen workflow for the "startseite" section. Do NOT ask any questions.
+  Read designbook/sections/startseite/startseite.section.scenes.yml for context.
+
+  Build ONE screen scene named "artikel". Its page content slot has exactly one
+  route-bearing main content: a single Entity — a node.article rendered in the "full"
+  view-mode (the page IS this article). Address the main content as `entity: "node.article"`
+  with `view_mode: "full"`.
+
+  Beside the main content, add exactly ONE block that bears no route: the block_content.hero
+  block in its "default" view-mode, addressed as `entity: "block_content.hero"` with
+  `view_mode: "default"`. The hero is beiwerk — it stands beside the main content and never
+  replaces it. Put the main content node FIRST in the content slot and the block after it.
+
+  The single node.article is the route-bearing main content; the hero is a block. Do NOT add a
+  second route-bearing entity or a View as main content, and do NOT use `records: [...]`.
+
+  No design reference is available; infer the structure from the section spec and the
+  data model (state reference: none in the structure preview). Confirm in the structure
+  preview that node.article is labelled as the main content and block_content.hero as a block.
+  Generate any UI components the entity and block need, the entity-mapping (JSONata) files,
+  the sample data, and the scenes file. After generating all files, run
+  `pnpm build-storybook` to verify everything renders.
+  Execute the workflow now.
+
+assert:
+  - type: javascript
+    value: output.newFiles.some(f => f.endsWith('.scenes.yml'))
+  - type: javascript
+    value: |
+      return output.archivedWorkflows['design-screen']?.status === 'completed';
+  - type: javascript
+    value: |
+      return output.archivedWorkflows['design-screen']?.tasks?.every(t => t.status === 'done');
+  - type: javascript
+    value: |
+      return output.text.includes('build-storybook') || output.text.includes('Build completed');
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

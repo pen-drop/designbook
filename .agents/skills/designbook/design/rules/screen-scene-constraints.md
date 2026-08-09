@@ -34,6 +34,13 @@ A screen scene answers one question: *what is this page?* Exactly one node in th
 - `records:` is a demo shorthand that repeats one entity across sample indices; a real listing is
   a **View**. (The schema states the same at `EntityNode.records` — this is the rule that governs
   the scene build.)
+- A direct **entity** node — the single-entity main content, or any entity used as a block — MUST
+  select its sample record with `record:` (an index) or `select:` (a predicate). Without either,
+  the node evaluates its mapping against an **empty context** and renders blank: every field the
+  mapping reads is undefined, so the component appears with empty slots. This empty-context path is
+  reserved for a self-contained **View** node, which enumerates its own rows and therefore takes no
+  `record`. A single entity is never self-contained — omitting its record is the entity-main
+  equivalent of the view fallstrick, and is forbidden.
 - The `design-screen` intake labels the main content in its structure preview, so the user
   approves which node bears the route before the scene is built.
 
@@ -56,8 +63,13 @@ scenes:
             # exactly one route-bearing main content — an Entity …
             - entity: "[ENTITY_TYPE].[ENTITY_BUNDLE]"   # the route-bearer
               view_mode: "[VIEW_MODE]"
-            # … or a View (entity: "view.[VIEW_ID]") — never both
-            # every further node is a block beside the main content
+              record: 0                                 # a direct entity MUST pick its record (or use `select:`)
+            # … or a View (entity: "view.[VIEW_ID]") — never both; a View is self-contained, no record
+            # every further node is a block beside the main content — an entity block picks a record too
+            - entity: "[BLOCK_ENTITY_TYPE].[BLOCK_BUNDLE]"
+              view_mode: "[VIEW_MODE]"
+              record: 0
+            # … or a component block:
             - component: "$DESIGNBOOK_COMPONENT_NAMESPACE:some-block-component"
               slots: ...
 ```

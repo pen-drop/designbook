@@ -1,0 +1,19 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Hero
+status: stable
+group: Data Display
+description: Hero section rendering a title, formatted content body, and a call-to-action link.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  title:
+    title: Title
+    description: Hero heading text.
+  content:
+    title: Content
+    description: Formatted body content.
+  action:
+    title: Action
+    description: Call-to-action link or button.

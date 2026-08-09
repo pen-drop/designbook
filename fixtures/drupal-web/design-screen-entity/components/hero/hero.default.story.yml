@@ -1,0 +1,21 @@
+component: test_integration_drupal:hero
+name: Default
+slots:
+  title:
+    - type: element
+      tag: span
+      value: Willkommen bei LEANDO
+  content:
+    - type: element
+      tag: div
+      value: <p>LEANDO ist das Portal für die Ausbildungspraxis — die Plattform des BIBB für Ausbilderinnen, Prüfer und alle, die in der beruflichen Bildung aktiv sind.</p><p>Finden Sie kuratierte Materialien, vernetzen Sie sich mit der Community und entdecken Sie interaktive Lernangebote.</p>
+  action:
+    - type: component
+      component: test_integration_drupal:button
+      props:
+        type: button
+        variant: primary
+      slots:
+        label:
+          - type: element
+            value: Mehr erfahren
