@@ -75,19 +75,10 @@ Use a flat structure:
 
 ### Core Skill (Part 1 — `designbook`)
 
-Uses a three-level concern-based structure:
-
-```
-.agents/skills/designbook/
-├── SKILL.md
-├── resources/            # Execution engine docs
-└── <concern>/
-    ├── tasks/            # Shared tasks + workflow-specific (intake--<id>.md)
-    ├── rules/            # Concern-level rules
-    ├── resources/        # Concern-level reference docs
-    ├── workflows/        # Workflow definitions (<workflow-id>.md)
-    └── schemas.yml       # Concern-level JSON Schema definitions
-```
+The core skill nests one sub-skill per workflow under `skills/<workflow>/`, beside the shared
+`design/` and `scenes/` content roots. That layout has a single authoritative home — see
+[`SKILL.md`](../SKILL.md) › *Three-Part Project Architecture* — and is not restated here (Single
+Source of Truth; see [writing-files.md](writing-files.md) › Lever 3).
 
 ## `SKILL.md` — Index Only
 
@@ -98,10 +89,30 @@ Required frontmatter:
 ```yaml
 ---
 name: <skill-name>
-user-invocable: false        # true only for skills invoked directly by users
-description: <one-liner>
+user-invocable: false                # true adds the human `/name` reach
+disable-model-invocation: true       # present only when the model must NOT auto-fire the skill
+description: <one-liner or trigger-bearing pointer>
 ---
 ```
+
+### Invocation — two orthogonal keys
+
+`user-invocable` and `disable-model-invocation` are **two independent axes**, not a synonym pair.
+Both are normative; the earlier form that named only `user-invocable` is dropped without a
+compatibility layer.
+
+- `user-invocable: true` adds the human `/name` reach. It never removes model reach.
+- `disable-model-invocation: true` turns the model's autonomous auto-trigger **off**. Omit it (or
+  set `false`) to leave the skill model-invocable.
+
+The `description:` follows directly from the model axis:
+
+- **Model-invocable** (`disable-model-invocation` absent/`false`): the `description:` is the skill's
+  top-level context pointer and **carries the firing triggers** — it is always loaded, so it earns
+  the pruning of [writing-files.md](writing-files.md) (Lever 1).
+- **Model-invocation disabled** (`disable-model-invocation: true`): the `description:` is a purely
+  human-readable one-liner with the trigger ballast stripped — only the human, via `/name`, can
+  reach the skill.
 
 ## Naming Conventions
 
