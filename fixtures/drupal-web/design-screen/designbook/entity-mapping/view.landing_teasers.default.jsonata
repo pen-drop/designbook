@@ -1,0 +1,8 @@
+[
+  { "type": "entity", "entity_type": "node", "bundle": "landing_page", "view_mode": "teaser", "record": 0 },
+  { "type": "entity", "entity_type": "node", "bundle": "landing_page", "view_mode": "teaser", "record": 1 },
+  { "type": "entity", "entity_type": "node", "bundle": "landing_page", "view_mode": "teaser", "record": 2 },
+  { "type": "entity", "entity_type": "node", "bundle": "landing_page", "view_mode": "teaser", "record": 3 },
+  { "type": "entity", "entity_type": "node", "bundle": "landing_page", "view_mode": "teaser", "record": 4 },
+  { "type": "entity", "entity_type": "node", "bundle": "landing_page", "view_mode": "teaser", "record": 5 }
+]

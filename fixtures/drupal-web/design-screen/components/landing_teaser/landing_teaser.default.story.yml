@@ -1,0 +1,15 @@
+component: test_integration_drupal:landing_teaser
+name: Default
+slots:
+  image:
+    - type: image
+      uri: https://placehold.co/640x360
+      attributes:
+        alt: Nachhaltige Energieprojekte in der Region
+  type:
+    - type: element
+      value: Projekt
+  title:
+    - type: element
+      tag: span
+      value: Nachhaltige Energieprojekte in der Region

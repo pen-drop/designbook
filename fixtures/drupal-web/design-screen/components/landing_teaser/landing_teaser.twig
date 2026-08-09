@@ -1,0 +1,22 @@
+<article{{ attributes.addClass([
+  'landing-teaser',
+  'flex',
+  'flex-col',
+  'overflow-hidden',
+  'rounded-lg',
+  'bg-surface',
+]) }}>
+  {% if image %}
+    <div class="aspect-video overflow-hidden [&_img]:h-full [&_img]:w-full [&_img]:object-cover">
+      {{ image }}
+    </div>
+  {% endif %}
+  <div class="flex flex-col gap-[var(--grid-sm)] p-[var(--grid-md)]">
+    {% if type %}
+      <div class="font-body text-sm uppercase text-secondary">{{ type }}</div>
+    {% endif %}
+    {% if title %}
+      <h3 class="font-heading text-foreground">{{ title }}</h3>
+    {% endif %}
+  </div>
+</article>
