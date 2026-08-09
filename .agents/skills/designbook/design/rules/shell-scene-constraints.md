@@ -14,6 +14,7 @@ Constraints specific to shell scenes (design-system layout).
 - **`group:`** must be `"Designbook/Design System"`
 - **`id:`** must be `debo-design-system`
 - **Scene name** -- the shell scene MUST be named `shell`
+- **No main content** -- the shell scene marks the injection point with the `$content` placeholder and holds no route-bearing main content of its own. The screen-scene main-content rule (`screen-scene-constraints.md`) is a screen concern and is out of scope for the shell.
 
 ### Derivation from the reference
 
