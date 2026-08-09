@@ -96,12 +96,17 @@ EntityNode:
   type: object
   required: [entity]
   description: >
-    Render an entity from sample data via JSONata mapping.
-    Entity format: "entity_type.bundle" or "[listing_type].[bundle]" for listings.
+    Render an entity from sample data via JSONata mapping. The same node type addresses two
+    things, distinguished by the value's prefix: a single entity (`entity_type.bundle`) or a
+    View — a listing of several contents (`view.<id>`).
   properties:
     entity:
       type: string
-      description: "entity_type.bundle (e.g. node.article)"
+      description: >
+        A single entity as `entity_type.bundle` (e.g. `node.article`), or a View — a listing —
+        as `view.<id>` (e.g. `view.landing_teasers`). `view.<id>` is the address for any listing
+        of multiple contents; the renderer resolves the view's rows.
+      examples: ["node.article", "view.landing_teasers"]
     view_mode:
       type: string
       description: Which view mode to use for entity mapping.
