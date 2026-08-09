@@ -77,6 +77,16 @@ When `list-view`, `view-summary`, and `pager` components do not exist in the pro
 
 If rows reference entities via `entity` objects, emit them directly. If rows contain inline data, map each to a `ComponentNode` with the appropriate component.
 
-## Validator Limitation
+## A View's Display Type Decides Its Role
 
-> ⚠️ The entity-mapping validator cannot look up `config.view` records in `data.yml` — it only checks the `content:` section. View entity mappings that use `$view.rows` will fail validation with "No sample records found." **Workaround:** use static `ComponentNode[]` arrays that the validator can check, or manually mark the task as done after verifying the output is correct.
+The same view can be a page's main content or beiwerk beside it — its **display type** decides:
+
+- A view **page display** owns a route and can be a screen's route-bearing main content.
+- A view **block** (`views_block:*`) owns no route; it is a block that sits beside the main content.
+
+## Sample Data for View Rows
+
+The `design-screen` intake resolves a view node (`entity: "view.<id>"`) to its **row bundle** — the
+content `entity_type`/`bundle`/`view_mode` the view lists — and draws concrete records from that
+bundle's content sample data. The view's rows are then content-section records the entity-mapping
+validator already checks, so a `$view.rows` mapping validates against real sample records.
