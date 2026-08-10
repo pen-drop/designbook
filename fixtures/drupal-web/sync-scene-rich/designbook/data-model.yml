@@ -1,0 +1,91 @@
+# DESIGNBOOK-42 rich scene fixture — AUTHORED, PENDING LIVE VALIDATION.
+# Exercises the new sync-to paths in one Layout-Builder Scene:
+#   - a block_content block (hero)               → block-decision ⇒ block_content
+#   - a block_plugin block (the view as a block) → block-decision ⇒ block_plugin
+#   - an embedded view with template: list-view  → view-template (UI-Patterns rows)
+#   - a form_mode with template: presenter        → presenter-template (Twig, theme-methods-only)
+# The row bundle (node.landing_page teaser) supplies the view's rows.
+config:
+  # The view a screen renders / a scene embeds as a block. Declared like every display:
+  # a config.view.<id> with its own view_modes.default.template: list-view (the view-template).
+  view:
+    landing_teasers:
+      label: Landing teasers
+      row:
+        entity_type: node
+        bundle: landing_page
+        view_mode: teaser
+      view_modes:
+        default:
+          template: list-view
+  views.view.landing_teasers:
+    label: Landing teasers
+    purpose: >
+      Lists node.landing_page entities in the teaser view-mode. Owns a page display and can be a
+      screen's route-bearing main content; here it is also placed as a block_plugin on the landing
+      page. Its rows bind to their SDC component via UI Patterns; its pager/exposed-filter are
+      theme-methods-only presenter surfaces.
+    base_table: node_field_data
+    row:
+      entity_type: node
+      bundle: landing_page
+      view_mode: teaser
+    filters:
+      type: landing_page
+      status: 1
+    sort:
+      created: DESC
+    view_modes:
+      default:
+        template: list-view
+  # A view rendered as a block reaches the page as a block_plugin (a plugin placement), not a route.
+  block_plugin:
+    landing_teasers_block:
+      plugin: 'views_block:landing_teasers-block_1'
+      component: list-view
+      settings:
+        label: Landing teasers
+content:
+  node:
+    landing:
+      title: Landing
+      description: >
+        A Layout Builder landing page. Its full view mode uses the layout-builder template, so a
+        Scene sync emits CONFIG for the display whose default sections carry the blocks inline. Its
+        edit form_mode uses template: presenter — a theme-methods-only surface, so sync-to also
+        writes a presenter-template (Twig) for it.
+      view_modes:
+        full:
+          template: layout-builder
+      form_modes:
+        default:
+          template: presenter
+    landing_page:
+      title: Landing Page
+      description: The row bundle the landing_teasers view lists in its teaser view-mode.
+      fields:
+        field_short_title:
+          type: string
+          title: Short title
+      view_modes:
+        teaser:
+          template: field-map
+  block_content:
+    hero:
+      title: Hero
+      description: >
+        A block_content component bundle rendered as a single UI-Patterns hero section on the
+        Layout Builder path — the content block a landing Scene places into the page's layout.
+      fields:
+        field_title:
+          type: string
+          title: Title
+        field_content:
+          type: text_long
+          title: Content
+        field_action:
+          type: link
+          title: Action
+      view_modes:
+        default:
+          template: field-map

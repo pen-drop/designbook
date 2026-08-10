@@ -4,11 +4,25 @@ name: views
 priority: 10
 trigger:
   domain: data-mapping
+  config_name: 'views.view.*'
+filter:
+  backend: drupal
 ---
 
 # Blueprint: List View Mapping
 
-Applies when `map-entity` runs for a View (`entity_type: view` — a `config.view` bundle).
+Applies when `map-entity` runs for a View (`entity_type: view` — a `config.view` bundle). The same
+blueprint also binds the view's Drupal config at `sync-to:transform` through its
+`trigger.config_name: 'views.view.*'` — the config-name binding `form-display` and
+`layout-builder-display` use — so a view binds like the other displays, not by prose alone.
+
+## The view-template is a declared template
+
+A view is declared like every other display: its `config.view.<id>` carries a `view_modes` entry
+with `template: list-view` — the view-template. Its **rows** are UI-Patterns-bindable, so the view
+uses this declarative template (config); its **pager** and **exposed filter** are theme-methods-only
+surfaces that carry `template: presenter` and render through a presenter-template (Twig), not
+UI-Patterns config.
 
 ## A view mapping is self-contained
 
@@ -68,3 +82,22 @@ The same view can be a page's main content or beiwerk beside it — its **displa
 A View that a screen renders as its main content is modelled as a `config.view.<id>` bundle (its own
 `view_modes` entry) so the renderer resolves it; the Drupal config-object name `views.view.<id>`
 stays the sync/export address.
+
+## Drupal config export — the `### to_drupal` pattern
+
+At `sync-to:transform` this blueprint authors the `views.view.<id>` config. `prepared` (the
+prepare-fetched schema) is authoritative for the shape; the view's data-model `def` supplies the
+content — base table, row bundle/view-mode, filters, sort, and the `list-view` template.
+
+Bind the view's **row output to its SDC component through the shared UI Patterns block** — the
+`{component_id, variant_id, props, slots}` mechanism (see `ui-patterns.md`): the view's row/style
+plugin carries that block, so a rendered list is a component render — the same UI-Patterns
+manifestation a `field-map` display uses — not a raw view row. The view's `template: list-view`
+names the component the rows bind to.
+
+A view's **pager** and **exposed filter** are theme-methods-only: where present they carry
+`template: presenter` and their markup is a presenter-template (Twig), authored alongside — never
+UI-Patterns config.
+
+The concrete config keys come from `prepared`; treat the row-binding intent here as the starting
+point, not a fixed key layout.

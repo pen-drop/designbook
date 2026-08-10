@@ -1,0 +1,23 @@
+id: landing
+title: Landing
+description: >
+  Landing page (Layout Builder): the shell with two blocks in its content — a block_content hero
+  and a block_plugin rendering the landing_teasers view as a block. Both block kinds appear in one
+  Scene; the node.landing edit form is a template: presenter surface. The page a Scene sync creates
+  and sync-verify compares full-page against. AUTHORED, PENDING LIVE VALIDATION.
+status: planned
+order: 1
+group: Designbook/Sections/Landing
+scenes:
+  - name: landing
+    section: landing
+    items:
+      - scene: design-system:shell
+        with:
+          content:
+            - entity: block_content.hero
+              view_mode: default
+              record: 0
+            - entity: block_plugin.landing_teasers_block
+              view_mode: full
+              record: 0

@@ -60,6 +60,28 @@ ExportSummary:
     count:
       type: integer
       description: Total number of config YAML files written.
+    presenter_templates:
+      type: array
+      description: >
+        Theme-relative paths of the presenter-template Twig files this run wrote — one per
+        theme-methods-only surface (`template: presenter`: form, pager, exposed filter) whose
+        binding cannot be expressed as UI-Patterns display config. Empty when every surface was
+        UI-Patterns-bindable (`template: field-map`). Makes the contract widening (config, plus
+        a presenter-template) visible in the run summary.
+      items:
+        type: string
+        description: Theme-relative path of one written presenter-template, e.g. "templates/presenter/node--landing--full.html.twig".
+    uncovered_units:
+      type: array
+      description: >
+        Config names that reached blueprint-precedence stage 4 (authored from `prepared` alone,
+        with no matching blueprint). Empty in the normal case — every unit kind occurring today
+        has a covering blueprint. A non-empty list is the reported, visible signal that a new
+        unit kind needs a blueprint; it never fails the run silently.
+      items:
+        type: string
+        description: Drupal config name that hit stage 4, e.g. "some.new.config_type".
+        pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
     page_url:
       type: string
       description: >

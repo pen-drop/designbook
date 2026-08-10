@@ -1,0 +1,78 @@
+# DESIGNBOOK-42 — GREEN coverage case. AUTHORED, PENDING LIVE VALIDATION (live run deferred).
+# Extends the DESIGNBOOK-38 sync-verify-scene pattern to one Layout-Builder Scene that exercises
+# every new sync-to path: a block_content block, a block_plugin block (a view as a block), the
+# view-template (list-view, UI-Patterns rows), and a template: presenter form surface (presenter
+# Twig). Live iteration must still supply the render-side components/mappings/sample data for the
+# block_plugin (list-view) and the row bundle so sync-verify can reconcile against Storybook.
+config: sync-verify-scene.yml
+
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - design-shell
+  - design-entity
+  - sync-scene-rich
+
+prompt: |
+  You are working in the directory {{workspace}}. Do NOT ask any questions; if a decision cannot
+  be made from the data model + fixtures, fail the run.
+
+  PART A — Scene sync (config, plus a presenter-template where theme-methods-only):
+  1. Run the /debo sync-to workflow with `scene: landing`, `section: landing`, `gate: soft`.
+     It must emit config units for: the node.landing + block_content.hero + node.landing_page
+     bundles and their fields; the block_content.hero.default display; the views.view.landing_teasers
+     config (rows bound to their SDC via the UI-Patterns block); the block_plugin placement of that
+     view; and the node.landing.full Layout-Builder display whose DEFAULT sections carry the
+     block_content hero AND the block_plugin view-block inline. Because node.landing's edit form_mode
+     is `template: presenter`, ALSO write a presenter-template (Twig) for it. No content units.
+  2. Record the sync-to `workflow summary --json` — including `presenter_templates` (non-empty) and
+     `uncovered_units` (expected empty).
+  3. SEED the one bare canonical node.landing (fixture seed, not sync-to content):
+       ddev drush php:script /var/www/html/web/themes/custom/test_integration_drupal/seed.php
+  4. Import the config with drush config:import.
+
+  PART B — sync-verify against the real page (full-page):
+  5. Run the /debo sync-verify workflow with `story: landing`, `kind: scene`. Compare the full page
+     (id "scene-landing", selector "", reference_selector "") — the real synced node page vs. the
+     live Storybook render of the landing Scene story. Run to completion; it must produce a
+     ScoreReport.
+  6. Record the sync-verify `workflow summary --json`.
+
+  WRITE THE EVIDENCE MARKER designbook/sync-scene-rich.yml with EXACTLY these keys:
+    page_url: "<synced node canonical URL from the outtake>"
+    page_http_status: <integer HTTP status of page_url>
+    scene_kind: scene
+    score_avg_diff_percent: <number from the ScoreReport>
+    score_checks_total: <integer from the ScoreReport>
+    presenter_templates_count: <integer count of presenter-template Twig files sync-to wrote>
+    uncovered_units_count: <integer count of stage-4 uncovered units (expected 0)>
+  Execute now.
+
+assert:
+  # Page reachable.
+  - type: javascript
+    value: output.fileContents['designbook/sync-scene-rich.yml']?.page_http_status === 200
+  # sync-verify accepted the scene subject and produced a ScoreReport.
+  - type: javascript
+    value: output.fileContents['designbook/sync-scene-rich.yml']?.scene_kind === 'scene'
+  - type: javascript
+    value: typeof output.fileContents['designbook/sync-scene-rich.yml']?.score_avg_diff_percent === 'number'
+  # Both block kinds + the view config were authored.
+  - type: javascript
+    value: |
+      const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
+      return /block_content\.type\.hero/.test(cfg)
+        && /views\.view\.landing_teasers/.test(cfg)
+        && /core\.entity_view_display\.node\.landing\.full/.test(cfg);
+  # A presenter-template was written for the theme-methods-only form surface.
+  - type: javascript
+    value: output.fileContents['designbook/sync-scene-rich.yml']?.presenter_templates_count >= 1
+  # Stage 4 stayed empty — every unit had a covering blueprint.
+  - type: javascript
+    value: output.fileContents['designbook/sync-scene-rich.yml']?.uncovered_units_count === 0
+  # config-only — no content-payload staging files.
+  - type: javascript
+    value: '!output.newFiles.some(p => /sync\/content\//.test(p))'
+  - type: javascript
+    value: output.archivedWorkflows['sync-verify']?.status === 'completed'

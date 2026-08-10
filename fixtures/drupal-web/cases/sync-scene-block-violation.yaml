@@ -1,0 +1,42 @@
+# DESIGNBOOK-42 — RED case (block-decision violation). AUTHORED, PENDING LIVE VALIDATION.
+# The landing Scene places node.promo as a block, but the data model gives promo neither a
+# block_content bundle nor a block_plugin entry. The block-decision rule must REPORT the
+# undeterminable block and stop for that unit — never guess a type. Proven RED before the GREEN
+# paths (AC20 / AC24).
+config: sync-verify-scene.yml
+
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - design-shell
+  - design-entity
+  - sync-scene-block-violation
+
+prompt: |
+  You are working in the directory {{workspace}}. Do NOT ask any questions; if a decision cannot
+  be made from the data model + fixtures, fail the run per the rules.
+
+  Run the /debo sync-to workflow with `scene: landing`, `section: landing`, `gate: soft`.
+
+  The Scene places node.promo as a block on the Layout Builder page, but the data model declares
+  NEITHER a block_content bundle NOR a block_plugin entry for promo. Per the block-decision rule the
+  block type is undeterminable: report the node.promo block as undeterminable and stop for that
+  unit. Do NOT author any block config for node.promo by guessing a type.
+
+  WRITE THE EVIDENCE MARKER designbook/sync-scene-block-violation.yml with EXACTLY these keys:
+    reported_undeterminable_block: <true|false — did the run report node.promo as an undeterminable block?>
+    guessed_block_type: <true|false — did the run author any block config for node.promo?>
+  Execute now.
+
+assert:
+  # RED: the undeterminable block is reported.
+  - type: javascript
+    value: output.fileContents['designbook/sync-scene-block-violation.yml']?.reported_undeterminable_block === true
+  # RED: no block type was guessed / no promo block config authored.
+  - type: javascript
+    value: output.fileContents['designbook/sync-scene-block-violation.yml']?.guessed_block_type === false
+  - type: javascript
+    value: |
+      const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
+      return !/block_content\.type\.promo/.test(cfg) && !/block\.block\..*promo/.test(cfg);

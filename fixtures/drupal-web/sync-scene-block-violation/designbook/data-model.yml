@@ -1,0 +1,38 @@
+# DESIGNBOOK-42 violation fixture (RED) — AUTHORED, PENDING LIVE VALIDATION.
+# The landing Scene (Layout Builder) places `node.promo` as a block beside the hero, but the data
+# model declares NEITHER a block_content bundle NOR a block_plugin entry for promo. Per the
+# block-decision rule the block type is undeterminable, so sync-to must REPORT it and stop for that
+# unit — never guess a type. This is the RED case proven before the GREEN paths.
+content:
+  node:
+    landing:
+      title: Landing
+      description: >
+        A Layout Builder landing page. Its full view mode uses the layout-builder template.
+      view_modes:
+        full:
+          template: layout-builder
+    promo:
+      title: Promo
+      description: >
+        A plain content node the Scene places as a block on the Layout Builder page. The data model
+        gives it neither a block_content bundle nor a block_plugin entry, so its block type is
+        undeterminable — sync-to must report and stop, not assign a type.
+      fields:
+        field_headline:
+          type: string
+          title: Headline
+      view_modes:
+        teaser:
+          template: field-map
+  block_content:
+    hero:
+      title: Hero
+      description: A block_content hero — the determinable block the page also carries.
+      fields:
+        field_title:
+          type: string
+          title: Title
+      view_modes:
+        default:
+          template: field-map

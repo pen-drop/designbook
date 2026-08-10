@@ -1,0 +1,2 @@
+{# Minimal override — base theme version needs ui_suite_daisyui (not provisioned). #}
+{% if breadcrumb %}<nav aria-label="breadcrumb"><ol>{% for item in breadcrumb %}<li>{% if item.url %}<a href="{{ item.url }}">{{ item.text }}</a>{% else %}{{ item.text }}{% endif %}</li>{% endfor %}</ol></nav>{% endif %}

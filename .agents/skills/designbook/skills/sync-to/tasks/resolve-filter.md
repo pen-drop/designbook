@@ -70,7 +70,9 @@ result:
 
 # Resolve Filter
 
-On a config/data-model run (no `scene`), expand the workflow filter into an ordered list of config-name units, then drop units whose config already exists in the live backend. On the scene branch (`scene` is set), expand the named Scene into **additional config-name units** — never content — over the same `units` list (see the scene section below). Both branches emit only `ConfigNameUnit`s.
+On a config/data-model run (no `scene`), expand the workflow filter into an ordered list of config-name units, then drop units whose config already exists in the live backend. On the scene branch (`scene` is set), expand the named Scene into **additional config-name units** — never content — over the same `units` list (see the scene section below). Both branches emit only `ConfigNameUnit`s; a unit whose surface is theme-methods-only additionally drives a **presenter-template** (a Twig theme file) authored in `transform` — theme markup, not content, and not a separate unit.
+
+The Scene is carried **unchanged**: it is the source, the emitted config its translation. The live typed-config schema (fetched as `prepared` in `transform`) decides the *form* of each unit; the Scene decides its *content*. Where the Scene does not determine an outcome, the Scene is extended — nothing is decided per-run here.
 
 ## Result: units
 
@@ -110,12 +112,14 @@ Only when `scene` is set. The named Scene (its `SceneDef` in the section scenes 
 
 **Build form (declarative, not guessed).** The page the Scene renders binds to a page bundle in the data model. Each Scene-derived unit's `build_form` is taken — not guessed — from the `template` of that bundle's **full** view mode. Two build forms ship built in (`layout-builder`, `canvas`), and `build_form` is **skill-extensible**: a project skill registers a further form by widening `ConfigNameUnit.build_form` from the `extends:` frontmatter of a rule matched to this step (enum-union) and shipping the blueprint that expands it, matched by its `trigger.config_name` glob (a separate artifact, resolved at `transform`). Dispatch resolves a skill-registered form exactly as it resolves the shipped ones, so the concrete config naming and shape (delegated below) is selected without guessing.
 
-**Units the Scene emits.** Both build forms resolve to config only:
+**Units the Scene emits.** Both build forms resolve to config; a surface that binds only through Drupal theme markup (a form, a pager, an exposed filter) additionally carries `template: presenter`, and its display unit drives a presenter-template (Twig) in `transform` alongside its config. A UI-Patterns-bindable surface stays config (`template: field-map`) and emits no presenter-template. The two build forms:
 
 - **Layout Builder** — the page bundle config (bundle type + fields via the same content-bundle expansion rules above), each block bundle the Scene uses (bundle type + fields + full view-mode display), the page's **layout-override field** config (`field.storage.<et>.layout_builder__layout` + `field.field.<et>.<bundle>.layout_builder__layout` — a real Layout-Builder config export includes them and `config:import` does not synthesise them), and the page's **layout config** unit `core.entity_view_display.<et>.<bundle>.<full>` whose `layout_builder.sections` anchor the blocks. The visible content lives inline in that config (SDC props / component tree), not in a content entity.
 - **Display Builder** — the page's **`page_layout` config** unit carrying the inline component tree; its own route/URL. No content entity.
 
-The concrete config names, the per-build-form shape, and how the Scene's component tree is embedded in the config are delegated to the build form's blueprint — the two shipped forms are `layout-builder` / `canvas`; a skill-registered form ships its own — WHAT here, HOW there.
+The concrete config names, the per-build-form shape, and how the Scene's component tree is embedded in the config are delegated to the build form's blueprint — the two shipped forms are `layout-builder` / `canvas`, and a skill-registered form ships its own; the *how* of any `template: presenter` surface is delegated to the presenter-template blueprint — WHAT here, HOW there.
+
+**Blocks (determined from the data model, not guessed).** Which scene nodes become blocks, and their type, is read from the data model: a node backed by a `block_content` bundle ⇒ `block_content`; a node backed by a `block_plugin` entry ⇒ `block_plugin`; a node with neither, sitting inline in the layout ⇒ no block (an inline component in the layout/`page_layout` config). A node the scene places as a block but the data model types as neither is **reported and its unit stops** — never assigned a type by the sync. The concrete block-type criterion is the Drupal block-decision rule; the WHAT here is that the source decides, so two runs over one scene agree.
 
 **Ordering.** Append the Scene units to `units` following the same dependency-before-user order the `transform` stage relies on: bundle / block-type / layout config before the page's display/`page_layout` config that references them. Do not restate the ordering — it is the existing config ordering, unchanged.
 
