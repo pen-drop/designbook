@@ -113,10 +113,7 @@ Common templates:
 - `field-map` — structured field mapping, entity fields drive component selection (a declarative template: the presentation is display config)
 - `presenter` — a presenter-template: generated backend-native presentation markup for a mode whose presentation the display config cannot express
 
-Every template is either **declarative** (the presentation is display config) or a
-**presenter-template** (`template: presenter`, generated backend-native markup). Which kind a mode
-needs is decided deterministically — declaratively bindable ⇒ a declarative template; presentation
-binds only through backend markup ⇒ `presenter` — so no mode is left to per-case judgement.
+Each mode is a declarative template or a presenter-template, decided deterministically — never per-case.
 
 During the dialog, present available templates with descriptions and ask the author which template applies to each view mode.
 

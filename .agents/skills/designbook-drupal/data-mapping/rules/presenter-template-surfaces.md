@@ -32,7 +32,7 @@ display config — is a presenter-template surface and uses `template: presenter
 
 A mode that is a presenter surface carries `template: presenter`; `sync-to` then generates its
 presenter-template (the Twig *how* is the presenter-template blueprint) alongside the display
-config that binds it. A surface that is UI-Patterns-bindable never carries `presenter`.
+config that binds it.
 
 ## Field content stays in slots, unchanged
 

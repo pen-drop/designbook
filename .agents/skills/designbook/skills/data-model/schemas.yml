@@ -35,8 +35,7 @@ DataModel:
                       **declarative template** (the presentation is display config, e.g.
                       `field-map`) or the reserved **presenter-template** value `presenter`
                       (generated backend-native presentation markup for a presentation the config
-                      layer cannot express). Which kind a mode needs is decided deterministically —
-                      declaratively bindable ⇒ declarative template; markup-only ⇒ `presenter`.
+                      layer cannot express).
                     examples: [field-map, presenter]
                   label:
                     type: string

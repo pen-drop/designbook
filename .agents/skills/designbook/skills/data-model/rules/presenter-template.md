@@ -13,7 +13,7 @@ of two kinds, and which kind a mode needs is **decidable** — never a per-case 
   display layer resolves. This is the normal case.
 - A **presenter-template** (`template: presenter`) renders the mode through generated
   **backend-native presentation markup** (a theme template) for a presentation the config layer
-  cannot express. It stands **beside** the declarative templates; it replaces none of them.
+  cannot express. It stands **beside** the declarative templates — a peer kind, not a replacement.
 
 ## The decision (deterministic)
 
