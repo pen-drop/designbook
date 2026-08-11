@@ -13,10 +13,12 @@ A task's result schema is never just what the task declares. The engine merges c
 
 | Operation | Effect | Allowed in |
 |-----------|--------|------------|
-| `extends:` | Add new properties to the schema | **Rule and Blueprint** |
+| `extends:` | Add new properties; **union enum members** on an existing enum-leaf property | **Rule and Blueprint** |
 | `provides:` | Set default values for existing properties | **Rule only** |
 | `constrains:` | Intersect enum values to narrow allowed options | **Rule only** |
 | `suggests:` | Informational — ignored during merge | **Blueprint only** |
+
+`extends:` and `constrains:` act on a closed enum from opposite directions: `extends:` **widens** it (union — appends allowed values), `constrains:` **narrows** it (intersection — removes disallowed values). See *Widening a closed enum* below.
 
 Blueprints **must not** use `provides:` or `constrains:` — both are rule-exclusive because they enforce hard effects (defaults that affect validation, enum narrowing). Blueprints **may** use `extends:` to add integration-specific properties; added structure is not itself a hard constraint (rules can still narrow or default those properties). Blueprints may also use `suggests:` for machine-readable soft recommendations that do not participate in validation.
 
@@ -44,7 +46,7 @@ extends:
 ---
 ```
 
-Error if a property already exists in the base schema. Use `provides:` to modify existing properties.
+A **new** property is added. A property that **already exists** is a conflict and errors — **except** an enum leaf: when both the base property and the incoming property carry an `enum` array, the members are **unioned** (base order preserved, new members appended, duplicates dropped) instead of erroring. Use `provides:` to modify a non-enum existing property.
 
 ### `provides:` — Set Defaults
 
@@ -91,6 +93,29 @@ constrains:
 ```
 
 The engine intersects the declared enum with the base schema's enum. Only values present in **both** survive. If the intersection is empty, validation will reject all values.
+
+## Widening a Closed Enum (Register a Value)
+
+A closed `enum` is a validated allow-list. A skill **registers** a new allowed value with `extends:` (union), the mirror of `constrains:` (intersection). The union is additive: base order preserved, new members appended, duplicates dropped — so it is idempotent and never removes a shipped value. This reaches an enum leaf on **two** surfaces:
+
+1. **On the merged result schema** — the enum leaf is a property of the task's own `result:` (or of a definition the result `$ref`s at the top level). The result-key merge unions it directly, per the `extends:` rule above.
+
+2. **On a shared definition referenced only through a nested `$ref`** — the enum leaf lives on a `schemas.yml` definition the task reaches via an array `items.$ref` or a nested property `$ref`, so it is **never a top-level result key** and the result-key merge never sees it. Key the `extends:` entry by the **definition name**; the value is unioned into that definition in the schema map `workflow done` validates against.
+
+**Worked example — registering a `sync-to` build form.** `sync-to`'s `resolve-filter` emits a `units` array whose `items.$ref` is `ConfigNameUnit`; the closed `build_form` enum lives on that definition (surface 2). A project skill registers a third build form entirely from its own rule/blueprint frontmatter — no edit inside the designbook addon or its plugin cache:
+
+```yaml
+---
+trigger:
+  steps: [sync-to:resolve-filter]
+extends:
+  ConfigNameUnit:
+    properties:
+      build_form: { enum: [views-page] }
+---
+```
+
+`ConfigNameUnit.build_form.enum` becomes `[layout-builder, canvas, views-page]`, so a unit carrying `build_form: views-page` passes `workflow done` validation. The skill also ships the blueprint that expands the new form (matched by its `trigger.config_name` glob), and `resolve-filter`'s dispatch selects it exactly as it selects the two shipped forms.
 
 ## Merge Order
 

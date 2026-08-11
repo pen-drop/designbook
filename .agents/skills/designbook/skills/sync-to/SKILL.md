@@ -23,3 +23,7 @@ _debo workflow create --workflow sync-to
 ```
 
 Handle the create response and enter the task loop as described in [`../../resources/workflow-execution.md`](../../resources/workflow-execution.md).
+
+## Registering a build form
+
+The scene branch dispatches on `ConfigNameUnit.build_form`; `layout-builder` and `canvas` ship built in. A project skill registers a further form by widening that closed enum from its own rule/blueprint `extends:` frontmatter and shipping the blueprint that expands it (matched by `trigger.config_name`) — no addon or plugin-cache edit. See [`../../../designbook-skill-creator/resources/schema-composition.md`](../../../designbook-skill-creator/resources/schema-composition.md) › *Widening a Closed Enum*.
