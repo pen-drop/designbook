@@ -152,4 +152,7 @@ ConfigNameUnit:
         ⇒ the unit is Layout-Builder config (block/layout config incl. the page's
         `layout_builder__layout` section config); `canvas` ⇒ the unit is Display-Builder
         `page_layout` config. Absent on config/data-model-derived units.
+        The enum lists the two shipped build forms and is **skill-extensible**: a loaded
+        skill registers a further form by widening this enum from its own rule/blueprint
+        `extends:` frontmatter (additive enum-union — see resources/schema-composition.md).
       enum: [layout-builder, canvas]
