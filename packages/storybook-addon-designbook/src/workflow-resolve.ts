@@ -16,7 +16,7 @@ import type { SkillSource } from './skill-sources.js';
 import { buildSchemaBlock } from './schema-block.js';
 import type { SchemaBlock } from './schema-block.js';
 import { interpolate } from './template/interpolate.js';
-import { computeMergedSchema } from './workflow-schema-merge.js';
+import { computeMergedSchema, parseSchemaExtension, widenDefinitionEnums } from './workflow-schema-merge.js';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -357,6 +357,9 @@ export interface TaskForSchemaResolution {
   task_file?: string;
   params?: Record<string, unknown>;
   result?: Record<string, { path?: string; schema?: object; validators?: string[]; flush?: string }>;
+  /** Matched rule/blueprint files — used for definition-level `extends:` enum-union (DESIGNBOOK-46). */
+  rules?: string[];
+  blueprints?: string[];
 }
 
 /**
@@ -460,6 +463,18 @@ export function resolveSchemasForTasks(
         skillsRoot,
         sources,
       );
+    }
+
+    // DESIGNBOOK-46: apply definition-level `extends:` enum-union. A loaded skill (rule or
+    // blueprint) registers a value into a closed enum living on a shared DEFINITION that this
+    // task references only through a nested $ref (e.g. resolve-filter's `units` items.$ref →
+    // ConfigNameUnit.build_form). Such a definition is never a top-level result key, so the
+    // result-key composition merge never reaches it — widen it here, directly in the schemas
+    // map that `workflow done` validates against. This unions enum members only; it never adds
+    // properties or alters `required`.
+    for (const extFile of [...(task.blueprints ?? []), ...(task.rules ?? [])]) {
+      const ext = parseSchemaExtension(extFile);
+      if (ext?.extends) widenDefinitionEnums(ext.extends, schemas);
     }
   }
 

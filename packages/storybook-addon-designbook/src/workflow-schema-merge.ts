@@ -234,6 +234,39 @@ export function mergeConstrains(target: JsonSchema, source: Record<string, unkno
   }
 }
 
+/**
+ * Widen a closed enum that lives on a shared schema DEFINITION referenced only through a
+ * nested `$ref` (array `items.$ref`, nested property `$ref`) — e.g. `ConfigNameUnit.build_form`,
+ * reached via sync-to resolve-filter's `units` items. Such a definition is never a top-level
+ * result key, so the result-key composition merge (`computeMergedSchema`) never reaches it: a
+ * rule's `extends: ConfigNameUnit…` would silently no-op. This applies ONLY additive enum-union
+ * to matching enum leaves on definitions already present in `schemas` (the map AJV registers as
+ * `#/<Type>` at `workflow done`). It never adds properties or alters `required` — non-enum
+ * `extends` content stays the exclusive concern of the result-key merge. Base order is preserved,
+ * new members appended, duplicates dropped (idempotent across repeated stage resolutions).
+ *
+ * @param extendsObj A rule/blueprint `extends:` object, keyed by definition name.
+ * @param schemas    The shared definitions map (becomes AJV's `#/<Type>` registry).
+ */
+export function widenDefinitionEnums(extendsObj: Record<string, unknown>, schemas: Record<string, object>): void {
+  for (const [defName, defExt] of Object.entries(extendsObj)) {
+    const target = schemas[defName] as JsonSchema | undefined;
+    const ext = defExt as { properties?: Record<string, unknown> } | null;
+    if (!target || typeof target !== 'object' || !ext || typeof ext !== 'object' || !ext.properties) continue;
+    const targetProps = target.properties;
+    if (!targetProps) continue;
+    for (const [propName, propExtRaw] of Object.entries(ext.properties)) {
+      const propExt = propExtRaw as JsonSchema | null;
+      const targetProp = targetProps[propName];
+      const base = targetProp?.enum;
+      const add = propExt?.enum;
+      if (targetProp && Array.isArray(base) && Array.isArray(add)) {
+        targetProp.enum = [...base, ...add.filter((v) => !base.includes(v))];
+      }
+    }
+  }
+}
+
 // ── Main Merge Function ──────────────────────────────────────────────────────
 
 export interface MergeInput {

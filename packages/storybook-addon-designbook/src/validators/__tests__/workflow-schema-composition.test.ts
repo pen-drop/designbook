@@ -64,6 +64,13 @@ function writeBlueprint(
   return filePath;
 }
 
+function writeSchemasYml(agentsDir: string, skill: string, defs: Record<string, unknown>): string {
+  const filePath = resolve(agentsDir, 'skills', skill, 'schemas.yml');
+  mkdirSync(resolve(filePath, '..'), { recursive: true });
+  writeFileSync(filePath, stringifyYaml(defs));
+  return filePath;
+}
+
 // ── setup / teardown ────────────────────────────────────────────────────────
 
 let tmpDir: string;
@@ -210,7 +217,11 @@ interface RunWorkflowResult {
  * 3. For each step action: call workflowDone
  * 4. Returns { resolved, name, created, afterSteps }
  */
-async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Promise<RunWorkflowResult> {
+async function runWorkflow(
+  workflowPath: string,
+  steps: StepAction[] = [],
+  workflowName = 'test-compose',
+): Promise<RunWorkflowResult> {
   const resolved = await resolveAllStages(workflowPath, baseConfig, {}, agentsDir);
 
   // Find first stage with a resolved step (mirrors CLI logic)
@@ -266,7 +277,7 @@ async function runWorkflow(workflowPath: string, steps: StepAction[] = []): Prom
 
   const name = workflowCreate(
     baseConfig.data,
-    'test-compose',
+    workflowName,
     title,
     firstTask,
     resolved.stages,
@@ -489,5 +500,136 @@ describe('full lifecycle with schema composition', () => {
 
     // Scope should have both items
     expect(afterIntake.scope!.items).toEqual([{ name: 'alpha' }, { name: 'beta' }]);
+  });
+});
+
+// ── Test 4: DESIGNBOOK-46 — skill-registered enum on a nested-$ref definition ─
+//
+// A skill registers a new value into a CLOSED enum that lives on a shared schema
+// DEFINITION referenced only through a nested `items.$ref` (mirrors sync-to's
+// `ConfigNameUnit.build_form`, reached via resolve-filter's `units` array items). Such a
+// definition is never a top-level result key, so the result-key composition merge never
+// sees it. The registration is a rule whose `extends:` is keyed by the DEFINITION NAME.
+// After the fix, `workflow done` result validation must ACCEPT a unit carrying the
+// registered value; before the fix the closed enum rejects it.
+
+function setupBuildFormRegistryFixtures(): { workflowPath: string } {
+  const workflowPath = writeWorkflow(agentsDir, 'test-reg', 'test-reg', {
+    title: 'Test Registry',
+    stages: {
+      intake: { steps: ['intake'] },
+      execute: { steps: ['register-units'], domain: ['reg'] },
+      // Trailing stage so the workflow stays live (does not archive) after register-units
+      // is done — keeps the readWorkflow(tasksPath) in the changes dir valid.
+      finalize: { steps: ['finalize'] },
+    },
+    engine: 'direct',
+  });
+
+  // Shared definition with a CLOSED enum, referenced only via items.$ref below.
+  writeSchemasYml(agentsDir, 'test-reg', {
+    Unit: {
+      type: 'object',
+      required: ['build_form'],
+      additionalProperties: false,
+      properties: {
+        build_form: { type: 'string', enum: ['layout-builder', 'canvas'] },
+      },
+    },
+  });
+
+  writeTask(agentsDir, 'test-reg', 'intake--test-reg', {
+    trigger: { steps: ['intake'] },
+    result: {
+      type: 'object',
+      required: ['ok'],
+      properties: { ok: { type: 'boolean' } },
+    },
+  });
+
+  // Result `units` is an ARRAY whose items $ref the shared Unit definition —
+  // build_form is NOT a top-level result key, exactly like ConfigNameUnit.build_form.
+  writeTask(agentsDir, 'test-reg', 'register-units', {
+    trigger: { steps: ['register-units'] },
+    domain: ['reg'],
+    result: {
+      type: 'object',
+      required: ['units'],
+      properties: {
+        units: {
+          type: 'array',
+          items: { $ref: '../schemas.yml#/Unit' },
+        },
+      },
+    },
+  });
+
+  // External-skill registration: widen the CLOSED enum on the Unit DEFINITION by name.
+  writeRule(agentsDir, 'test-reg', 'register-views-page', {
+    trigger: { domain: 'reg' },
+    extends: {
+      Unit: {
+        properties: {
+          build_form: { enum: ['views-page'] },
+        },
+      },
+    },
+  });
+
+  writeTask(agentsDir, 'test-reg', 'finalize', {
+    trigger: { steps: ['finalize'] },
+    result: {
+      type: 'object',
+      required: ['done'],
+      properties: { done: { type: 'boolean' } },
+    },
+  });
+
+  return { workflowPath };
+}
+
+describe('DESIGNBOOK-46: skill registers a build_form on a nested-$ref definition', () => {
+  it('workflow done accepts a unit carrying the skill-registered enum value', async () => {
+    const { workflowPath } = setupBuildFormRegistryFixtures();
+
+    const { afterSteps } = await runWorkflow(
+      workflowPath,
+      [
+        { done: 'intake', data: { ok: true } },
+        { done: 'register-units', data: { units: [{ build_form: 'views-page' }] } },
+      ],
+      'test-reg',
+    );
+
+    // Observed right after intake (current stage = execute): the validation schema map
+    // (data.schemas) carries the skill-registered value unioned into the closed enum.
+    const afterIntake = afterSteps[0]!;
+    const unitDef = (afterIntake.schemas as Record<string, { properties?: { build_form?: { enum?: unknown[] } } }>)
+      ?.Unit;
+    expect(unitDef?.properties?.build_form?.enum).toEqual(['layout-builder', 'canvas', 'views-page']);
+
+    // And `workflow done` result validation accepts the unit carrying it (valid, no error).
+    const final = afterSteps[afterSteps.length - 1]!;
+    const registerTask = final.tasks.find((t) => t.step === 'register-units');
+    expect(registerTask).toBeDefined();
+    expect(registerTask!.result!.units!.error).toBeUndefined();
+    expect(registerTask!.result!.units!.valid).toBe(true);
+  });
+
+  it('the two shipped enum values keep validating (regression guard)', async () => {
+    const { workflowPath } = setupBuildFormRegistryFixtures();
+
+    const { afterSteps } = await runWorkflow(
+      workflowPath,
+      [
+        { done: 'intake', data: { ok: true } },
+        { done: 'register-units', data: { units: [{ build_form: 'layout-builder' }, { build_form: 'canvas' }] } },
+      ],
+      'test-reg',
+    );
+
+    const final = afterSteps[afterSteps.length - 1]!;
+    const registerTask = final.tasks.find((t) => t.step === 'register-units');
+    expect(registerTask!.result!.units!.valid).toBe(true);
   });
 });

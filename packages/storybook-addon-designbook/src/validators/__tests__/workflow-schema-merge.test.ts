@@ -8,6 +8,7 @@ import {
   mergeConstrains,
   computeMergedSchema,
   parseSchemaExtension,
+  widenDefinitionEnums,
 } from '../../workflow-schema-merge.js';
 
 // ── deepMergeExtends ─────────────────────────────────────────────────────────
@@ -103,6 +104,70 @@ describe('deepMergeExtends', () => {
     deepMergeExtends(target, { properties: { build_form: { enum: ['canvas', 'views-page'] } } }, 'ext.md');
     const props = target.properties as Record<string, { enum?: unknown[] }>;
     expect(props.build_form!.enum).toEqual(['layout-builder', 'canvas', 'views-page']);
+  });
+});
+
+// ── widenDefinitionEnums (DESIGNBOOK-46) ─────────────────────────────────────
+
+describe('widenDefinitionEnums', () => {
+  it('unions a registered value into a closed enum on a shared definition', () => {
+    const schemas: Record<string, object> = {
+      ConfigNameUnit: {
+        type: 'object',
+        properties: { build_form: { type: 'string', enum: ['layout-builder', 'canvas'] } },
+      },
+    };
+    widenDefinitionEnums({ ConfigNameUnit: { properties: { build_form: { enum: ['views-page'] } } } }, schemas);
+    const def = schemas.ConfigNameUnit as { properties: { build_form: { enum: unknown[] } } };
+    expect(def.properties.build_form.enum).toEqual(['layout-builder', 'canvas', 'views-page']);
+  });
+
+  it('deduplicates and preserves base order', () => {
+    const schemas: Record<string, object> = {
+      ConfigNameUnit: {
+        type: 'object',
+        properties: { build_form: { type: 'string', enum: ['layout-builder', 'canvas'] } },
+      },
+    };
+    widenDefinitionEnums(
+      { ConfigNameUnit: { properties: { build_form: { enum: ['canvas', 'views-page'] } } } },
+      schemas,
+    );
+    const def = schemas.ConfigNameUnit as { properties: { build_form: { enum: unknown[] } } };
+    expect(def.properties.build_form.enum).toEqual(['layout-builder', 'canvas', 'views-page']);
+  });
+
+  it('no-ops when the definition is absent from the schemas map', () => {
+    const schemas: Record<string, object> = {};
+    widenDefinitionEnums({ ConfigNameUnit: { properties: { build_form: { enum: ['views-page'] } } } }, schemas);
+    expect(schemas).toEqual({});
+  });
+
+  it('never adds new properties or alters non-enum leaves', () => {
+    const schemas: Record<string, object> = {
+      ConfigNameUnit: {
+        type: 'object',
+        properties: { build_form: { type: 'string', enum: ['layout-builder'] } },
+      },
+    };
+    // extra property (no enum) + a description on build_form must be ignored
+    widenDefinitionEnums(
+      {
+        ConfigNameUnit: {
+          properties: {
+            build_form: { enum: ['views-page'], description: 'ignored' },
+            new_prop: { type: 'string' },
+          },
+        },
+      },
+      schemas,
+    );
+    const def = schemas.ConfigNameUnit as {
+      properties: { build_form: { enum: unknown[]; description?: string }; new_prop?: unknown };
+    };
+    expect(def.properties.build_form.enum).toEqual(['layout-builder', 'views-page']);
+    expect(def.properties.build_form.description).toBeUndefined();
+    expect(def.properties.new_prop).toBeUndefined();
   });
 });
 
