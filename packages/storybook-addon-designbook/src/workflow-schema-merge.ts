@@ -133,6 +133,22 @@ export function deepMergeExtends(target: JsonSchema, source: Record<string, unkn
         if (propName in target.properties) {
           const existing = target.properties[propName];
           const incoming = propSchema as Record<string, unknown> | null;
+          // Additive enum-union: a loaded skill widens a closed enum leaf (e.g. build_form).
+          // Fires only when both sides carry an enum array; base order preserved, new members
+          // appended, deduplicated. Every other collision falls through to recurse/throw below.
+          if (
+            existing &&
+            typeof existing === 'object' &&
+            incoming &&
+            typeof incoming === 'object' &&
+            Array.isArray(existing.enum) &&
+            Array.isArray((incoming as JsonSchema).enum)
+          ) {
+            const base = existing.enum;
+            const add = (incoming as JsonSchema).enum as unknown[];
+            existing.enum = [...base, ...add.filter((v) => !base.includes(v))];
+            continue;
+          }
           // Recurse into structural schemas (have properties or required) — allows
           // multiple blueprints to contribute sub-properties to the same parent.
           if (

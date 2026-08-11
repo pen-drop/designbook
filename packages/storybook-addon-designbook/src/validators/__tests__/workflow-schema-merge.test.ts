@@ -84,6 +84,26 @@ describe('deepMergeExtends', () => {
       deepMergeExtends(target, { properties: { name: { type: 'number' } } }, 'test.md');
     }).toThrow('already exists');
   });
+
+  it('unions enum members on an existing enum-leaf property', () => {
+    const target = {
+      type: 'object',
+      properties: { build_form: { type: 'string', enum: ['layout-builder', 'canvas'] } },
+    };
+    deepMergeExtends(target, { properties: { build_form: { enum: ['views-page'] } } }, 'ext.md');
+    const props = target.properties as Record<string, { enum?: unknown[] }>;
+    expect(props.build_form!.enum).toEqual(['layout-builder', 'canvas', 'views-page']);
+  });
+
+  it('deduplicates when unioning enum members already present', () => {
+    const target = {
+      type: 'object',
+      properties: { build_form: { type: 'string', enum: ['layout-builder', 'canvas'] } },
+    };
+    deepMergeExtends(target, { properties: { build_form: { enum: ['canvas', 'views-page'] } } }, 'ext.md');
+    const props = target.properties as Record<string, { enum?: unknown[] }>;
+    expect(props.build_form!.enum).toEqual(['layout-builder', 'canvas', 'views-page']);
+  });
 });
 
 // ── mergeProvides ────────────────────────────────────────────────────────────
