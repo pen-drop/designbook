@@ -31,7 +31,7 @@ truth for the open state, and reflect it on the controlled target:
   Drupal.behaviors.<name> = {
     attach(context) {
       once('<name>', '[data-behavior="<name>"]', context).forEach((trigger) => {
-        const target = document.querySelector(trigger.getAttribute('aria-controls'));
+        const target = document.getElementById(trigger.getAttribute('aria-controls'));
         trigger.addEventListener('click', () => {
           const open = trigger.getAttribute('aria-expanded') === 'true';
           trigger.setAttribute('aria-expanded', String(!open));
