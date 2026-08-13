@@ -1,0 +1,6 @@
+<div class="disclosure">
+  <button type="button" data-behavior="disclosure" aria-controls="disclosure-panel" aria-expanded="false">
+    {{ label|default('Toggle') }}
+  </button>
+  <div id="disclosure-panel" hidden>{{ content|default('Panel content') }}</div>
+</div>
