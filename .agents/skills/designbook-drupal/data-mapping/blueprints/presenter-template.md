@@ -46,17 +46,18 @@ key, an icon id, a link `url` fed to an attribute) may be read directly.
 ## Reference shape (illustrative)
 
 ```twig
-{# templates/forms/node--article--edit.html.twig #}
-<form{{ attributes }}>
-  <div class="presenter-form__body">
-    {{ form.field_title }}
-    {{ form.field_body }}
-  </div>
-  <div class="presenter-form__actions">
-    {{ form.actions }}
-  </div>
-</form>
+{# templates/form/node-article-edit.html.twig — a form theme-hook template renders the form's
+   children; the <form> element and its attributes come from the render element. Arrange the
+   fields you place, then emit `form|without(...)` so the form's other children — the actions and
+   the hidden CSRF / form_build_id / form_id inputs — are still output and the form submits. #}
+<div class="presenter-form__body">
+  {{ form.field_title }}
+  {{ form.field_body }}
+</div>
+{{ form|without('field_title', 'field_body') }}
 ```
 
-The concrete element names come from the surface's render array at generation time; treat the
-markup structure here as a starting point a theme may replace wholesale.
+Never cherry-pick only the visible fields: dropping `form|without(...)` (or `{{ children }}`) drops
+the hidden inputs and actions, and the form no longer submits. The concrete field names come from
+the surface's render array at generation time; treat the arrangement here as a starting point a
+theme may replace wholesale.

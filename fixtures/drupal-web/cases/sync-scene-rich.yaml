@@ -1,9 +1,10 @@
 # DESIGNBOOK-42 — GREEN coverage case. AUTHORED, PENDING LIVE VALIDATION (live run deferred).
 # Extends the DESIGNBOOK-38 sync-verify-scene pattern to one Layout-Builder Scene that exercises
 # every new sync-to path: a block_content block, a block_plugin block (a view as a block), the
-# view-template (list-view, UI-Patterns rows), and a template: presenter form surface (presenter
-# Twig). Live iteration must still supply the render-side components/mappings/sample data for the
-# block_plugin (list-view) and the row bundle so sync-verify can reconcile against Storybook.
+# view-template (list-view, UI-Patterns rows), and the View wrapper's pager/exposed-filter as the
+# theme-methods-only presenter surface (presenter Twig). Live iteration must still supply the
+# render-side components/mappings/sample data for the view block (list-view) + its Block display and
+# the row bundle so sync-verify can reconcile against Storybook.
 config: sync-verify-scene.yml
 
 fixtures:
@@ -24,8 +25,9 @@ prompt: |
      bundles and their fields; the block_content.hero.default display; the views.view.landing_teasers
      config (rows bound to their SDC via the UI-Patterns block); the block_plugin placement of that
      view; and the node.landing.full Layout-Builder display whose DEFAULT sections carry the
-     block_content hero AND the block_plugin view-block inline. Because node.landing's edit form_mode
-     is `template: presenter`, ALSO write a presenter-template (Twig) for it. No content units.
+     block_content hero AND the block_plugin view-block inline. The landing_teasers View's wrapper
+     (its pager / exposed filter) is theme-methods-only, so ALSO write a presenter-template (Twig)
+     for the View wrapper. No content units.
   2. Record the sync-to `workflow summary --json` — including `presenter_templates` (non-empty) and
      `uncovered_units` (expected empty).
   3. SEED the one bare canonical node.landing (fixture seed, not sync-to content):
@@ -65,7 +67,7 @@ assert:
       return /block_content\.type\.hero/.test(cfg)
         && /views\.view\.landing_teasers/.test(cfg)
         && /core\.entity_view_display\.node\.landing\.full/.test(cfg);
-  # A presenter-template was written for the theme-methods-only form surface.
+  # A presenter-template was written for the theme-methods-only View wrapper (pager / exposed filter).
   - type: javascript
     value: output.fileContents['designbook/sync-scene-rich.yml']?.presenter_templates_count >= 1
   # Stage 4 stayed empty — every unit had a covering blueprint.
