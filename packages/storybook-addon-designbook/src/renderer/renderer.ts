@@ -59,6 +59,21 @@ function renderNode(node: ComponentNode, imports: Record<string, ComponentModule
   return result;
 }
 
+/**
+ * Run Drupal.attachBehaviors over a rendered story root. Guarded so projects
+ * without the Drupal runtime (no storybook-addon-sdc previewHead) no-op instead
+ * of throwing. `once()` inside each behavior guards re-render double-binding.
+ */
+export function attachDrupalBehaviors(root: HTMLElement | undefined): void {
+  const g = globalThis as unknown as {
+    Drupal?: { attachBehaviors?: (r: Element, s?: unknown) => void };
+    drupalSettings?: unknown;
+  };
+  if (root && g.Drupal?.attachBehaviors) {
+    g.Drupal.attachBehaviors(root, g.drupalSettings);
+  }
+}
+
 function resolveSlots(
   slots: Record<string, ComponentNode | ComponentNode[] | string | null | undefined>,
   imports: Record<string, ComponentModule>,
