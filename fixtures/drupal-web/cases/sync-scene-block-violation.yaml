@@ -36,7 +36,10 @@ assert:
   # RED: no block type was guessed / no promo block config authored.
   - type: javascript
     value: output.fileContents['designbook/sync-scene-block-violation.yml']?.guessed_block_type === false
+  # No guessed content block for promo. (A guessed *plugin* block emits no block.block.* file of
+  # its own — it would sit inline in the LB display — so the filename check can't catch it; the
+  # guessed_block_type flag above is the guard for the plugin case.)
   - type: javascript
     value: |
       const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
-      return !/block_content\.type\.promo/.test(cfg) && !/block\.block\..*promo/.test(cfg);
+      return !/block_content\.type\.promo/.test(cfg);

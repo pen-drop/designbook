@@ -39,6 +39,10 @@ config:
       default:
         template: list-view
   # A view rendered as a block reaches the page as a block_plugin (a plugin placement), not a route.
+  # NOTE (pending live validation): a `views_block:<view>-<display>` plugin requires the view to
+  # expose a Block display. This open view config carries only `view_modes.default`; the concrete
+  # Block-display id (`block_1` here is illustrative) and its wiring are tuned in the deferred live
+  # GREEN pass, where `views.view.landing_teasers` is authored against `prepared`.
   block_plugin:
     landing_teasers_block:
       plugin: 'views_block:landing_teasers-block_1'
