@@ -27,7 +27,9 @@ describe('buildCsfModule — JS load + attach', () => {
       resolveScriptPath: () => null,
       scenes: [scene('Default', 'Default', [{ component: 'test:card', props: {}, path: '0' }])],
     });
-    expect(code).toContain("import { renderComponent, attachDrupalBehaviors } from 'storybook-addon-designbook/renderer';");
+    expect(code).toContain(
+      "import { renderComponent, attachDrupalBehaviors } from 'storybook-addon-designbook/renderer';",
+    );
     expect(code).toContain('play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),');
     expect(code.match(/play:/g)?.length).toBe(1);
   });

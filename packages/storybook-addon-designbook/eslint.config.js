@@ -43,5 +43,11 @@ export default [
     },
   },
   ...storybook.configs['flat/recommended'],
+  {
+    // Drupal behavior fixtures use the Drupal/once globals the SDC previewHead
+    // provides at runtime; declare them so no-undef does not flag the fixture.
+    files: ['**/__tests__/fixtures/**/*.js'],
+    languageOptions: { globals: { Drupal: 'readonly', once: 'readonly' } },
+  },
   prettierRecommended,
 ];
