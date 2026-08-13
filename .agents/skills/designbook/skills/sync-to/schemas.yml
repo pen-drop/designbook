@@ -154,5 +154,5 @@ ConfigNameUnit:
         `page_layout` config. Absent on config/data-model-derived units.
         The enum lists the two shipped build forms and is **skill-extensible**: a loaded
         skill registers a further form by widening this enum from its own rule/blueprint
-        `extends:` frontmatter (additive enum-union — see resources/schema-composition.md).
+        `extends:` frontmatter (additive enum-union).
       enum: [layout-builder, canvas]
