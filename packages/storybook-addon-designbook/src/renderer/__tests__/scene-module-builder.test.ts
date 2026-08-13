@@ -221,7 +221,7 @@ describe('buildSceneModule integration', () => {
   it('has import statements and __imports map', async () => {
     const module = await buildFixtureModule('test.scenes.yml');
 
-    expect(module).toContain('import { renderComponent }');
+    expect(module).toContain('import { renderComponent, attachDrupalBehaviors }');
     expect(module).toContain('const __imports');
   });
 
