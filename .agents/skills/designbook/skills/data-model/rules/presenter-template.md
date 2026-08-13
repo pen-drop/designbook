@@ -12,8 +12,8 @@ of two kinds, and which kind a mode needs is **decidable** — never a per-case 
   the presentation is expressed as data — component bindings, props, slots — that a declarative
   display layer resolves. This is the normal case.
 - A **presenter-template** (`template: presenter`) renders the mode through generated
-  **backend-native presentation markup** (a theme template) for a presentation the config layer
-  cannot express. It stands **beside** the declarative templates — a peer kind, not a replacement.
+  **backend-native presentation markup** (a backend-native template) for a presentation the config
+  layer cannot express. It stands **beside** the declarative templates — a peer kind, not a replacement.
 
 ## The decision (deterministic)
 

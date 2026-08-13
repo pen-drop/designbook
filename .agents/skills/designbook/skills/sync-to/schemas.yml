@@ -63,14 +63,14 @@ ExportSummary:
     presenter_templates:
       type: array
       description: >
-        Theme-relative paths of the presenter-template Twig files this run wrote — one per
-        theme-methods-only surface (`template: presenter`: form, pager, exposed filter) whose
-        binding cannot be expressed as UI-Patterns display config. Empty when every surface was
-        UI-Patterns-bindable (`template: field-map`). Makes the contract widening (config, plus
-        a presenter-template) visible in the run summary.
+        Paths of the presenter-template files this run wrote — one per surface
+        (`template: presenter`) whose presentation the display config cannot express. Empty when
+        every surface was declaratively bindable (`template: field-map`). Makes the contract
+        widening (config, plus a presenter-template) visible in the run summary. The concrete
+        markup form (e.g. Twig) and theme path are a Drupal concern — the paths here are opaque.
       items:
         type: string
-        description: Theme-relative path of one written presenter-template, e.g. "templates/presenter/node--landing--full.html.twig".
+        description: Path of one written presenter-template (theme-relative on a Drupal backend), e.g. "templates/forms/node--landing--edit.html.twig".
     uncovered_units:
       type: array
       description: >

@@ -16,13 +16,24 @@ blueprint also binds the view's Drupal config at `sync-to:transform` through its
 `trigger.config_name: 'views.view.*'` — the config-name binding `form-display` and
 `layout-builder-display` use — so a view binds like the other displays, not by prose alone.
 
-## The view-template is a declared template
+## A view is a combination — presenter-template + UI-Patterns styles
 
-A view is declared like every other display: its `config.view.<id>` carries a `view_modes` entry
-with `template: list-view` — the view-template. Its **rows** are UI-Patterns-bindable, so the view
-uses this declarative template (config); its **pager** and **exposed filter** are theme-methods-only
-surfaces that carry `template: presenter` and render through a presenter-template (Twig), not
-UI-Patterns config.
+Views are not a single-kind surface. Without Display Builder you cannot avoid combining **two**
+templates for one view, and both must be modelled:
+
+- **The view template** — the wrapper that renders the view as a whole: title, the rows region,
+  the **pager**, and the **exposed filter**. This is **theme-methods-only** — there is no
+  config-only way to express it without Display Builder — so it is a **presenter-template** (Twig).
+- **The view styles / row-style template** — how each listed row renders. This binds through **UI
+  Patterns**: the view's style/row plugin carries the shared `{component_id, variant_id, props,
+  slots}` block, so each row is an SDC component render, not a raw view field. This is the
+  declarative half.
+
+So one view declares `template: list-view` in its `config.view.<id>` `view_modes` entry — that
+value is the **UI-Patterns row-style** binding — and `sync-to` **also** generates the
+**presenter-template** for the view wrapper (with its pager and exposed filter). A view therefore
+emits config (the `views.view.<id>` with its UI-Patterns row style) *and* a presenter-template
+(the wrapper); neither alone is a whole view.
 
 ## A view mapping is self-contained
 
@@ -95,9 +106,11 @@ plugin carries that block, so a rendered list is a component render — the same
 manifestation a `field-map` display uses — not a raw view row. The view's `template: list-view`
 names the component the rows bind to.
 
-A view's **pager** and **exposed filter** are theme-methods-only: where present they carry
-`template: presenter` and their markup is a presenter-template (Twig), authored alongside — never
-UI-Patterns config.
+This authors only the **UI-Patterns half** (the row style). The **view wrapper** — the view
+template with its **pager** and **exposed filter** — is theme-methods-only, so `sync-to` also emits
+a **presenter-template** (Twig) for it (the presenter-template blueprint carries the *how*). A view
+is the combination of the two: neither the UI-Patterns row config nor the wrapper presenter-template
+is a whole view on its own.
 
 The concrete config keys come from `prepared`; treat the row-binding intent here as the starting
 point, not a fixed key layout.

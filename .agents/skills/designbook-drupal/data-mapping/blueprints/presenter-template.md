@@ -19,10 +19,11 @@ at. A UI-Patterns-bindable surface (`template: field-map`) needs no presenter-te
 ## Where the file lands
 
 The presenter-template is a Twig file in the active theme's templates directory, generated
-alongside the surface's display config (not in the config-sync directory). A theme-relative path
-under a `presenter/` subfolder keeps generated presenter-templates grouped, e.g.
-`templates/presenter/<entity_type>--<bundle>--<mode>.html.twig`. Adjust the folder and filename to
-the theme's own template-discovery conventions.
+alongside the surface's display config (not in the config-sync directory). Follow the theme's
+normal template layout — group by surface **type** under `templates/<type>/`, not under a
+`presenter/` folder: e.g. `templates/forms/<name>.html.twig` for an edit form,
+`templates/views/<name>.html.twig` for a view template, `templates/pager/<name>.html.twig` for a
+pager. The `<name>` follows Drupal's theme-hook suggestion for that surface.
 
 ## Fields render through their formatter; chrome is the Twig's job
 
@@ -45,7 +46,7 @@ key, an icon id, a link `url` fed to an attribute) may be read directly.
 ## Reference shape (illustrative)
 
 ```twig
-{# templates/presenter/node--article--edit.html.twig #}
+{# templates/forms/node--article--edit.html.twig #}
 <form{{ attributes }}>
   <div class="presenter-form__body">
     {{ form.field_title }}

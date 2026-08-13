@@ -49,9 +49,9 @@ passed in for them:
   produced in that stage).
 - `count` is the total number of config YAML files written, derived from the
   same `transform` stage results.
-- `presenter_templates` is the sorted list of theme-relative Twig paths the `transform` stage
-  wrote for `template: presenter` surfaces — empty when no surface was theme-methods-only. It
-  makes the contract widening (config, plus a presenter-template) visible in the summary.
+- `presenter_templates` is the sorted list of presenter-template paths the `transform` stage
+  wrote for `template: presenter` surfaces — empty when no surface needed one. It makes the
+  contract widening (config, plus a presenter-template) visible in the summary.
 - `uncovered_units` is the list of `config_name`s the `transform` stage recorded as
   blueprint-precedence stage-4 hits (authored from `prepared` alone). Empty in the normal case;
   a non-empty list is the reported signal that a unit kind lacks a covering blueprint — surface
