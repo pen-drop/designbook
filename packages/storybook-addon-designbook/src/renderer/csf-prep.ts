@@ -231,6 +231,11 @@ export interface EntityCsfOptions {
   formMappingBasename?: (fm: string) => string;
   resolveImportPath: (componentId: string) => string | null;
   wrapImport?: (alias: string) => string;
+  /**
+   * Optional sibling-JS resolver: component ID → absolute `<name>.js` path (or null).
+   * When set, a side-effect `import '<path>';` registers the component's Drupal behavior.
+   */
+  resolveScriptPath?: (componentId: string) => string | null;
   /** Extra story tags appended to the default-export `['autodocs']` (e.g. `['config']`). */
   extraTags?: string[];
 }
@@ -288,6 +293,7 @@ function emitEntityStory(params: {
     `  argTypes: { record: { name: 'record', control: { type: 'select' }, options: [${options.join(', ')}] } },`,
     `  args: { record: 0, __records: ${recordsJson} },`,
     '  render: (args) => renderComponent(args.__records[args.record], __imports),',
+    '  play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),',
     '};',
   );
   return lines.join('\n');
@@ -307,24 +313,16 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
     for (const nodes of fm.recordsNodes) collectComponentIds(nodes, allIds);
   }
 
-  const importLines: string[] = ["import { renderComponent } from 'storybook-addon-designbook/renderer';"];
-  const importsMapEntries: string[] = [];
-  for (const componentId of allIds) {
-    if (componentId.startsWith('designbook:') && builtInComponents[componentId]) {
-      importsMapEntries.push(`  '${componentId}': { render: ${builtInComponents[componentId].render.toString()} },`);
-      continue;
-    }
-    const alias = toAlias(componentId);
-    const importPath = resolveImportPath(componentId);
-    if (importPath) {
-      importLines.push(`import * as ${alias} from '${importPath}';`);
-      importsMapEntries.push(`  '${componentId}': ${wrapImport ? wrapImport(alias) : alias},`);
-    } else {
-      importsMapEntries.push(
-        `  '${componentId}': { render: (_p, _s) => { console.warn('[Designbook] Missing component: ${componentId}'); return ''; } },`,
-      );
-    }
-  }
+  const { importLines: componentImportLines, importsMapEntries } = emitComponentImports(
+    allIds,
+    resolveImportPath,
+    opts.resolveScriptPath,
+    wrapImport,
+  );
+  const importLines: string[] = [
+    "import { renderComponent, attachDrupalBehaviors } from 'storybook-addon-designbook/renderer';",
+    ...componentImportLines,
+  ];
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
 
   // `entity` parameter mirrors the scene module's `scene` param — it marks the
