@@ -142,10 +142,14 @@ Rules can extend the merged result schema of a task. Three operations:
 
 | Field | Effect | Allowed in |
 |-------|--------|------------|
-| `extends:` | Add new properties (error on duplicates) | Rule and Blueprint |
+| `extends:` | Add new properties (error on duplicate non-enum leaves); **union enum members** on an existing enum-leaf property | Rule and Blueprint |
 | `provides:` (object) | Set default values (last writer wins) | Rule only |
 | `constrains:` | Intersect enum values | Rule only |
 | `suggests:` | Soft recommendation (not merged into validation schema) | Blueprint only |
+
+**Union vs. intersect.** `extends:` **widens** a closed enum (union — appends allowed values, base order preserved, deduplicated); `constrains:` **narrows** it (intersection — keeps only values present in both). They act on the same enum leaf from opposite directions, so a project skill *registers* a new allowed value with `extends:`, never `constrains:`.
+
+**Registering a value into a shared definition's closed enum.** When the enum leaf lives on a shared `schemas.yml` **definition** that a task references only through a nested `$ref` (an array `items.$ref`, a nested property `$ref`) — as `ConfigNameUnit.build_form` is reached via sync-to `resolve-filter`'s `units` items — key the `extends:` entry by the **definition name** (e.g. `extends: { ConfigNameUnit: { properties: { build_form: { enum: [<new-value>] } } } }`). The value is unioned into that definition in the schema map `workflow done` validates against, with no edit to the addon or the shipping skill. See [`resources/schema-composition.md`](../resources/schema-composition.md).
 
 ```yaml
 ---

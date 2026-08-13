@@ -206,6 +206,8 @@ File results declared in `result:` frontmatter MUST be submitted via `workflow d
 
 Results are validated against `schema.definitions` (base + blueprint extensions + rule constraints). JSON Schema first, then semantic validators listed under `validators:`. If `valid: false`, the response lists errors; fix and resubmit via `workflow done` or `workflow result`.
 
+A loaded skill can **widen a closed enum** on those definitions from its own rule/blueprint `extends:` frontmatter (additive union — the mirror of `constrains:`), including an enum on a shared definition reached only through a nested `$ref` (e.g. a scene-branch `build_form`). The `extends:` entry is keyed by the definition name; the value is unioned into that definition's enum in the schema map validation uses.
+
 ### tasks.yml runtime format
 
 You generally don't read `tasks.yml` directly, but when debugging you'll see:
