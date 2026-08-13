@@ -1,0 +1,13 @@
+"$schema": "https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json"
+name: "Disclosure"
+status: "experimental"
+props:
+  type: "object"
+  properties:
+    label:
+      type: "string"
+    content:
+      type: "string"
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true

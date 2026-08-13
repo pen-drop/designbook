@@ -70,4 +70,21 @@ describe('buildEntityCsfModule', () => {
     const code = buildEntityCsfModule(opts);
     expect(code).toContain("import * as uicard from './card.js';");
   });
+
+  it('emits a side-effect script import for a component with a sibling <name>.js', () => {
+    const code = buildEntityCsfModule({
+      ...opts,
+      resolveImportPath: (id: string) => (id === 'ui:card' ? '/abs/card.component.yml' : null),
+      resolveScriptPath: (id: string) => (id === 'ui:card' ? '/abs/card.js' : null),
+    });
+    expect(code).toContain("import '/abs/card.js';");
+  });
+
+  it('imports attachDrupalBehaviors and emits a play per entity story', () => {
+    const code = buildEntityCsfModule(opts);
+    expect(code).toContain(
+      "import { renderComponent, attachDrupalBehaviors } from 'storybook-addon-designbook/renderer';",
+    );
+    expect(code).toContain('play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),');
+  });
 });

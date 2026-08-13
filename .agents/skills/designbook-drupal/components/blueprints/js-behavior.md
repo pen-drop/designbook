@@ -15,9 +15,10 @@ opens, closes, or activates a target. This is one approach — `<name>.js` holds
 component JS, and a project may script it differently (Alpine, vanilla, a web
 component); as a blueprint this is overridable. The Drupal route is the default
 because it runs unchanged in Drupal and Storybook — the SDC Storybook addon ships the
-Drupal JS runtime, calls `Drupal.attachBehaviors` after every story render, and
-auto-discovers `<name>.js`, so a `Drupal.behaviors` toggle works in the story without
-extra wiring.
+Drupal JS runtime and auto-discovers `<name>.js`, and `Drupal.attachBehaviors` runs
+after each render — both in the component's own story and in the designbook-generated
+scene and entity view-mode stories the component is placed into — so a `Drupal.behaviors`
+toggle stays live wherever the component appears, without extra wiring.
 
 ## Pattern
 
@@ -30,7 +31,7 @@ truth for the open state, and reflect it on the controlled target:
   Drupal.behaviors.<name> = {
     attach(context) {
       once('<name>', '[data-behavior="<name>"]', context).forEach((trigger) => {
-        const target = document.querySelector(trigger.getAttribute('aria-controls'));
+        const target = document.getElementById(trigger.getAttribute('aria-controls'));
         trigger.addEventListener('click', () => {
           const open = trigger.getAttribute('aria-expanded') === 'true';
           trigger.setAttribute('aria-expanded', String(!open));
