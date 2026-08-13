@@ -1,9 +1,11 @@
 id: landing
 title: Landing
 description: >
-  Landing page (Layout Builder) whose content places a block_content hero AND node.promo as a
-  block. node.promo has no block_content/block_plugin backing, so the block-decision rule cannot
-  type it — sync-to must report and stop. AUTHORED, PENDING LIVE VALIDATION.
+  Landing page (Layout Builder), sync-verify-scene pattern: the content lists the page's blocks
+  (the page node.landing is implicit). Beside the block_content hero it places node.promo as a
+  block. Per block-decision, a beiwerk entity node becomes a block only through the data model — and
+  node.promo has no block_content bundle and no block_plugin entry, so its block type is
+  undeterminable: sync-to must report and stop, not guess. AUTHORED, PENDING LIVE VALIDATION.
 status: planned
 order: 1
 group: Designbook/Sections/Landing

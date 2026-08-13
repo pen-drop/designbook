@@ -8,8 +8,9 @@
  * reachable canonical URL for sync-to's outtake and sync-verify's full-page capture.
  *
  * This is a FIXTURE seed, NOT a sync-to mechanism and NOT a content-sync path:
- * sync-to synchronises CONFIG ONLY — the node.landing.full Layout-Builder display whose
- * DEFAULT sections carry the hero component (a block plugin) with the Scene's props inline.
+ * sync-to synchronises CONFIG (plus a presenter-template) ONLY — the node.landing.full
+ * Layout-Builder display whose DEFAULT sections carry the block_content hero AND the
+ * landing_teasers views_block (a block plugin), with the Scene's props inline.
  * The node created here carries no per-entity layout and no field content; the visible
  * content lives in the synced display config, which renders for this bare canonical entity.
  *

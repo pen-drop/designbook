@@ -1,10 +1,14 @@
 id: landing
 title: Landing
 description: >
-  Landing page (Layout Builder): the shell with two blocks in its content — a block_content hero
-  and a block_plugin rendering the landing_teasers view as a block. Both block kinds appear in one
-  Scene; the node.landing edit form is a template: presenter surface. The page a Scene sync creates
-  and sync-verify compares full-page against. AUTHORED, PENDING LIVE VALIDATION.
+  Landing page (Layout Builder): the shell whose content carries the page's blocks — a
+  block_content hero and the landing_teasers View rendered beside it as a views_block
+  (block_plugin). Both block kinds appear in one Scene; the node.landing edit form is a
+  template: presenter surface. Follows the DESIGNBOOK-38 sync-verify-scene pattern: this is a
+  Layout-Builder page-content Scene (the page node.landing is implicit — its full display carries
+  these blocks, and a bare node is seeded), NOT a design-screen scene, so the design-screen
+  route-bearer invariant (screen-scene-constraints, gated to design-screen:create-scene) does not
+  apply. AUTHORED, PENDING LIVE VALIDATION.
 status: planned
 order: 1
 group: Designbook/Sections/Landing
@@ -18,6 +22,6 @@ scenes:
             - entity: block_content.hero
               view_mode: default
               record: 0
-            - entity: block_plugin.landing_teasers_block
-              view_mode: full
-              record: 0
+            # the landing_teasers View placed beside the main content = a views_block (block_plugin);
+            # a View node is self-contained (no record / view_mode).
+            - entity: view.landing_teasers
