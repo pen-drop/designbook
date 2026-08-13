@@ -12,7 +12,13 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, basename, dirname } from 'node:path';
 
-import { buildRenderContext, defaultSdcResolver, loadDataModel, loadSampleData } from './scene-module-builder';
+import {
+  buildRenderContext,
+  defaultSdcResolver,
+  defaultSdcScriptResolver,
+  loadDataModel,
+  loadSampleData,
+} from './scene-module-builder';
 import { view } from './view';
 import { buildEntityCsfModule, type EntityCsfViewMode, type EntityCsfFormMode } from './csf-prep';
 import { extractFieldMappings } from './jsonata-mapping-analyzer';
@@ -39,6 +45,7 @@ export async function buildEntityModule(
     builders?: SceneNodeBuilder[];
     resolveImportPath?: (componentId: string) => string | null;
     wrapImport?: (alias: string) => string;
+    resolveScriptPath?: (componentId: string) => string | null;
   } = {},
 ): Promise<string> {
   const { entity_type, bundle } = parseMappingName(mappingFilePath);
@@ -156,6 +163,8 @@ export async function buildEntityModule(
     options.resolveImportPath ?? ((componentId) => defaultSdcResolver(componentId, designbookDir));
   const wrapImport =
     options.wrapImport ?? ((alias) => `{ render: (p, s) => ${alias}.default.component({...p, ...s}) }`);
+  const resolveScriptPath =
+    options.resolveScriptPath ?? ((componentId) => defaultSdcScriptResolver(componentId, designbookDir));
 
   const { title, isConfig } = entityStoryGroup(dataModel, entity_type, bundle);
 
@@ -169,5 +178,6 @@ export async function buildEntityModule(
     formMappingBasename: (fm) => `${prefix}${fm}.jsonata`,
     resolveImportPath,
     wrapImport,
+    resolveScriptPath,
   });
 }
