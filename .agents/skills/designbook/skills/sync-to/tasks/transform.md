@@ -2,6 +2,7 @@
 title: "Transform config-name unit to Drupal config YAML"
 trigger:
   steps: [sync-to:transform]
+domain: [data-mapping, data-model]
 params:
   type: object
   required: [units, backend_cmd, config_sync_dir]

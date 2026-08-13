@@ -2,6 +2,7 @@
 title: Resolve Filter
 trigger:
   steps: [sync-to:resolve-filter]
+domain: [data-model]
 params:
   type: object
   required: [data_model, backend_cmd]
