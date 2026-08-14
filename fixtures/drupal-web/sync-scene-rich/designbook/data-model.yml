@@ -2,8 +2,8 @@
 # Exercises the new sync-to paths in one Layout-Builder Scene:
 #   - a block_content block (hero)               → block-decision ⇒ block_content
 #   - a block_plugin block (the view as a block) → block-decision ⇒ block_plugin
-#   - an embedded view with template: list-view  → view-template (UI-Patterns rows)
-#   - a form_mode with template: presenter        → presenter-template (Twig, theme-methods-only)
+#   - an embedded view with template: list-view  → view-template (UI-Patterns rows) whose wrapper
+#     (pager / exposed filter) is theme-methods-only → presenter-template (the presenter surface here)
 # The row bundle (node.landing_page teaser) supplies the view's rows.
 config:
   # The view a screen renders / a scene embeds as a block. Declared like every display:
@@ -39,10 +39,10 @@ config:
       default:
         template: list-view
   # A view rendered as a block reaches the page as a block_plugin (a plugin placement), not a route.
-  # NOTE (pending live validation): a `views_block:<view>-<display>` plugin requires the view to
-  # expose a Block display. This open view config carries only `view_modes.default`; the concrete
-  # Block-display id (`block_1` here is illustrative) and its wiring are tuned in the deferred live
-  # GREEN pass, where `views.view.landing_teasers` is authored against `prepared`.
+  # A `views_block:<view>-<display>` plugin needs the view to expose that Block display. This open
+  # view config carries only `view_modes.default`; the `block_1` Block display is authored on
+  # `views.view.landing_teasers` at sync time by the views blueprint (validated live: config:import
+  # succeeded with the block_1 display present, so the plugin id resolves).
   block_plugin:
     landing_teasers_block:
       plugin: 'views_block:landing_teasers-block_1'
@@ -58,13 +58,11 @@ content:
         Scene sync emits CONFIG for the display whose default sections carry the blocks inline. The
         presenter-template this case exercises comes from the landing_teasers View's wrapper (its
         pager / exposed filter — theme-methods-only), not from the page's edit form: a page's edit
-        form is reached over an edit route and is not part of the page/scene sync.
+        form is reached over an edit route and is not part of the page/scene sync, so this bundle
+        declares no presenter form_mode.
       view_modes:
         full:
           template: layout-builder
-      form_modes:
-        default:
-          template: presenter
     landing_page:
       title: Landing Page
       description: The row bundle the landing_teasers view lists in its teaser view-mode.

@@ -38,6 +38,13 @@ For each block node, in this order (first match wins, so two runs never diverge)
 - Otherwise it is a **component node** (`component:`) with no block backing → **no separate
   block**: an inline component in the page's layout/`page_layout` config.
 
+**Matching a node to its entry.** A block node names what it renders (a `component:`, or an
+`entity: <type>.<bundle>` / `entity: view.<id>` address); it maps to the **one** `block_plugin`
+entry (or `block_content` bundle) that places/backs exactly that plugin, component, or view. If the
+model offers **no** matching entry, or **more than one**, the block is undeterminable — reported,
+not guessed (below). The match is by what the entry places, never by proximity or ordering, so two
+runs agree.
+
 ## `suggests` stays a hint
 
 The `component_by_family` suggestions in `block_plugin.md` are a discovery signal only. They never

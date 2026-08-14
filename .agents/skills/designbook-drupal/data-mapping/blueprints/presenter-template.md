@@ -46,7 +46,7 @@ key, an icon id, a link `url` fed to an attribute) may be read directly.
 ## Reference shape (illustrative)
 
 ```twig
-{# templates/form/node-article-edit.html.twig — a form theme-hook template renders the form's
+{# templates/forms/node--article--edit.html.twig — a form theme-hook template renders the form's
    children; the <form> element and its attributes come from the render element. Arrange the
    fields you place, then emit `form|without(...)` so the form's other children — the actions and
    the hidden CSRF / form_build_id / form_id inputs — are still output and the form submits. #}
