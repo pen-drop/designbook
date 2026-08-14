@@ -169,12 +169,11 @@ ConfigNameUnit:
     build_form:
       type: string
       description: >
-        Page build form for a Scene-derived config unit, taken (not guessed) from the
-        full view-mode `template` of the page bundle in the data model. `layout-builder`
-        ⇒ the unit is Layout-Builder config (block/layout config incl. the page's
-        `layout_builder__layout` section config); `canvas` ⇒ the unit is Display-Builder
-        `page_layout` config. Absent on config/data-model-derived units.
-        The enum lists the two shipped build forms and is **skill-extensible**: a loaded
-        skill registers a further form by widening this enum from its own rule/blueprint
-        `extends:` frontmatter (additive enum-union).
-      enum: [layout-builder, canvas]
+        Page build form for a Scene-derived config unit — the presentation surface the page's
+        config is authored against. Taken (not guessed) from the full view-mode `template` of the
+        page bundle in the data model, on the same backend-neutral `template` axis as view- and
+        form-mode templates: a free string whose allowed values come from `entity_mapping.templates`
+        in `designbook.config.yml`, with the concrete technology behind each value set by the config
+        default / active `backend` — not enum-fixed here. The `template → build_form → config`
+        mapping (the *how* of each form) lives in the backend integration's data-mapping blueprints.
+        Absent on config/data-model-derived units.

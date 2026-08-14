@@ -112,14 +112,14 @@ describe("DESIGNBOOK-29: create-path bundles a SceneFile result type's sibling #
     const config = loadConfig();
     const created = await runWorkflowCreate({ workflow: 'build-scene' }, config);
 
-    // Read back the persisted workflow file (schemas + resolved result schema).
-    const tasksPath = resolve(dataDir, 'workflows', 'changes', created.name, 'tasks.yml');
-    const wf = parseYaml(readFileSync(tasksPath, 'utf-8')) as {
-      schemas?: Record<string, object>;
+    // Read back the persisted workflow file (resolved result schema) + the single schema map.
+    const changesDir = resolve(dataDir, 'workflows', 'changes', created.name);
+    const wf = parseYaml(readFileSync(resolve(changesDir, 'tasks.yml'), 'utf-8')) as {
       tasks: Array<{ result?: Record<string, { schema?: object }> }>;
     };
 
-    const schemas = wf.schemas ?? {};
+    // DESIGNBOOK-51: the validation schema map is the single schema.yml, not inline in tasks.yml.
+    const schemas = parseYaml(readFileSync(resolve(changesDir, 'schema.yml'), 'utf-8')) as Record<string, object>;
     // The regression: without the fix, SceneDef (and SceneNode) are absent here.
     expect(Object.keys(schemas)).toEqual(expect.arrayContaining(['SceneFile', 'SceneDef', 'SceneNode']));
 

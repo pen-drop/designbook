@@ -14,9 +14,15 @@ import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 import { dump as stringifyYaml } from 'js-yaml';
-import { resolveAllStages, buildEnvMap, expandResultDeclarations, parseFrontmatter } from '../../workflow-resolve.js';
+import {
+  resolveAllStages,
+  resolveWorkflowSchemaMap,
+  buildEnvMap,
+  expandResultDeclarations,
+  parseFrontmatter,
+} from '../../workflow-resolve.js';
 import type { ResolvedStep, ResolvedSteps } from '../../workflow-resolve.js';
-import { workflowCreate, workflowDone, readWorkflow } from '../../workflow.js';
+import { workflowCreate, workflowDone, readWorkflow, readSchemaMap } from '../../workflow.js';
 import type { WorkflowFile } from '../../workflow.js';
 import type { DesignbookConfig } from '../../config.js';
 
@@ -275,6 +281,10 @@ async function runWorkflow(
         ]
       : [];
 
+  // DESIGNBOOK-51: mirror the real create path — the full validation schema map is generated once
+  // over every step (definition-level enum-union included) and persisted as schema.yml.
+  const workflowSchemas = resolveWorkflowSchemaMap(workflowPath, baseConfig, {}, agentsDir);
+
   const name = workflowCreate(
     baseConfig.data,
     workflowName,
@@ -286,7 +296,7 @@ async function runWorkflow(
     resolved.engine,
     undefined,
     tmpDir,
-    {},
+    workflowSchemas,
     envMap,
   );
 
@@ -592,7 +602,7 @@ describe('DESIGNBOOK-46: skill registers a build_form on a nested-$ref definitio
   it('workflow done accepts a unit carrying the skill-registered enum value', async () => {
     const { workflowPath } = setupBuildFormRegistryFixtures();
 
-    const { afterSteps } = await runWorkflow(
+    const { name, afterSteps } = await runWorkflow(
       workflowPath,
       [
         { done: 'intake', data: { ok: true } },
@@ -601,11 +611,13 @@ describe('DESIGNBOOK-46: skill registers a build_form on a nested-$ref definitio
       'test-reg',
     );
 
-    // Observed right after intake (current stage = execute): the validation schema map
-    // (data.schemas) carries the skill-registered value unioned into the closed enum.
-    const afterIntake = afterSteps[0]!;
-    const unitDef = (afterIntake.schemas as Record<string, { properties?: { build_form?: { enum?: unknown[] } } }>)
-      ?.Unit;
+    // DESIGNBOOK-51: the validation schema map is the single schema.yml, generated once at create
+    // over every step — the closed enum on the nested-$ref Unit definition already carries the
+    // skill-registered value unioned in, statically (no per-stage-transition re-merge).
+    const changesDir = resolve(baseConfig.data, 'workflows', 'changes', name);
+    const unitDef = (
+      readSchemaMap(changesDir) as Record<string, { properties?: { build_form?: { enum?: unknown[] } } }>
+    ).Unit;
     expect(unitDef?.properties?.build_form?.enum).toEqual(['layout-builder', 'canvas', 'views-page']);
 
     // And `workflow done` result validation accepts the unit carrying it (valid, no error).

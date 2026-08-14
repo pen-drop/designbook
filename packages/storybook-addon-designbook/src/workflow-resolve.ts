@@ -466,10 +466,10 @@ export function resolveSchemasForTasks(
     }
 
     // DESIGNBOOK-46: apply definition-level `extends:` enum-union. A loaded skill (rule or
-    // blueprint) registers a value into a closed enum living on a shared DEFINITION that this
-    // task references only through a nested $ref (e.g. resolve-filter's `units` items.$ref →
-    // ConfigNameUnit.build_form). Such a definition is never a top-level result key, so the
-    // result-key composition merge never reaches it — widen it here, directly in the schemas
+    // blueprint) registers a value into a closed enum living on a shared DEFINITION that a task
+    // references only through a nested $ref (e.g. a `units` array whose items.$ref a shared
+    // definition carrying a closed enum). Such a definition is never a top-level result key, so
+    // the result-key composition merge never reaches it — widen it here, directly in the schemas
     // map that `workflow done` validates against. This unions enum members only; it never adds
     // properties or alters `required`.
     for (const extFile of [...(task.blueprints ?? []), ...(task.rules ?? [])]) {
@@ -2086,6 +2086,186 @@ export async function resolveAllStages(
     step_resolved: stepResolved,
     expected_params: expectedParams,
   };
+}
+
+/**
+ * Resolve the ONE full-workflow validation schema map at `workflow create` time.
+ *
+ * DESIGNBOOK-51 (Ziel A): the validation schema map (`{TypeName: schemaObject}`, the shape AJV
+ * registers as `#/<Type>` at `workflow done`) is generated ONCE here, over EVERY workflow step —
+ * not first-task-only at create and re-merged again per stage transition at runtime. It is
+ * persisted next to `tasks.yml` as `schema.yml` and is the single source every validation reads.
+ *
+ * The map is the static full picture (AC 4): every step's task file + matched rules/blueprints are
+ * known at create from step name + config + domain — never from runtime data/scope. A runtime
+ * stage expansion (e.g. a scene branch → N `ConfigNameUnit`s) instantiates N copies of an
+ * already-known fixed shape; it introduces no new type, so no per-stage schema re-merge is needed.
+ *
+ * Per step this reproduces exactly what the create path (first task) and the removed runtime
+ * re-merge (all other steps) produced between them:
+ *   1. `resolveSchemasForTasks` — resolve each result key's `$ref` (top-level and nested), pull in
+ *      transitive local `$ref` definitions, and apply the definition-level `extends:` enum-union
+ *      (`widenDefinitionEnums`, DESIGNBOOK-46) — e.g. resolve-filter's `units` items.$ref →
+ *      ConfigNameUnit widened by a loaded skill.
+ *   2. `computeMergedSchema` — collect the `#/Type` definitions an `extends:` injects by `$ref`
+ *      (DESIGNBOOK-30) into the same map, so AJV resolves the composed result schema's refs.
+ *
+ * The synthetic per-step task carries only the frontmatter result shape (inline schema incl. nested
+ * `$ref`); no item params are needed, so a step whose task declares required params never forces a
+ * value here — the schema shape is param-independent.
+ */
+export function resolveWorkflowSchemaMap(
+  workflowFilePath: string,
+  config: DesignbookConfig,
+  rawConfig: Record<string, unknown>,
+  agentsDir: string,
+  sources?: SkillSource[],
+): Record<string, object> {
+  const wfFm = parseFrontmatter(workflowFilePath) as WorkflowFrontmatter | null;
+  const allSteps = wfFm ? getWorkflowSteps(wfFm) : undefined;
+  const stageDefs = wfFm ? getWorkflowStageDefinitions(wfFm) : undefined;
+  if (!allSteps && !stageDefs) {
+    throw new Error(`No steps found in frontmatter of ${workflowFilePath}`);
+  }
+
+  const workflowId = workflowFilePath.replace(/\\/g, '/').split('/').pop()?.replace(/\.md$/, '');
+  const skillsRoot = resolve(agentsDir, 'skills');
+  const schemas: Record<string, object> = {};
+  // Every step's matched rule/blueprint files — collected for one final definition-level
+  // enum-union pass after all steps are registered (see the closing loop for why).
+  const allExtendsFiles: string[] = [];
+
+  for (const step of allSteps ?? []) {
+    // Resolve task files (mirror resolveAllStages: try workflow-qualified name as fallback).
+    let resolvedTaskFiles = resolveTaskFilesRich(step, config, agentsDir, sources);
+    if (resolvedTaskFiles.length === 0 && !step.includes(':') && workflowId) {
+      resolvedTaskFiles = resolveTaskFilesRich(`${workflowId}:${step}`, config, agentsDir, sources);
+    }
+    if (resolvedTaskFiles.length === 0) continue;
+    const primaryTaskFile = resolvedTaskFiles[0]!.path;
+
+    // effectiveDomains: union of task-file domain(s) + stage-definition domain(s) (mirror resolveAllStages).
+    const effectiveDomains: string[] = [];
+    for (const r of resolvedTaskFiles) {
+      const taskDomain = (parseFrontmatter(r.path) as Record<string, unknown> | null)?.domain;
+      if (taskDomain === undefined) continue;
+      const domains = Array.isArray(taskDomain) ? (taskDomain as string[]).map(String) : [String(taskDomain)];
+      for (const d of domains) if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
+    }
+    if (stageDefs) {
+      for (const [, stageDef] of Object.entries(stageDefs)) {
+        if (!stageDef.steps?.includes(step)) continue;
+        for (const d of stageDef.domain ?? []) if (!effectiveDomains.includes(d)) effectiveDomains.push(d);
+      }
+    }
+    const effectiveDomainsArg = effectiveDomains.length > 0 ? effectiveDomains : undefined;
+
+    // Match rules/blueprints across step name variants (plain + workflow-qualified/base).
+    const isQualified = step.includes(':');
+    const baseStep = isQualified ? step.split(':').pop()! : step;
+    const qualifiedStep = isQualified ? step : workflowId ? `${workflowId}:${step}` : undefined;
+    const stepsToMatch = [step];
+    if (isQualified && baseStep !== step) stepsToMatch.push(baseStep);
+    if (qualifiedStep && qualifiedStep !== step) stepsToMatch.push(qualifiedStep);
+
+    const ruleFiles: string[] = [];
+    const blueprintFiles: string[] = [];
+    for (const s of stepsToMatch) {
+      for (const rf of matchRuleFiles(s, config, agentsDir, undefined, effectiveDomainsArg, sources)) {
+        if (!ruleFiles.includes(rf)) ruleFiles.push(rf);
+      }
+      for (const bf of matchBlueprintFiles(s, config, agentsDir, undefined, effectiveDomainsArg, sources)) {
+        if (!blueprintFiles.includes(bf)) blueprintFiles.push(bf);
+      }
+    }
+
+    // Build the synthetic task result from the primary task's frontmatter result declarations.
+    // Each key carries its INLINE schema (path/$ref/validators/flush stripped), preserving any
+    // nested `$ref` so resolveSchemasForTasks resolves+rewrites it and widens its target enum.
+    const taskFm = parseFrontmatter(primaryTaskFile) as TaskFileFrontmatter | null;
+    const resultProps = (taskFm?.result as Record<string, unknown> | undefined)?.properties as
+      | Record<string, Record<string, unknown>>
+      | undefined;
+
+    const synthResult: Record<string, { schema?: object }> = {};
+    const baseResult: Record<string, { schema?: object }> = {};
+    const refMap: Record<string, string> = {};
+    if (resultProps) {
+      for (const [rk, rv] of Object.entries(resultProps)) {
+        const { path: _path, $ref: ref, validators: _validators, flush: _flush, ...inline } = rv;
+        const inlineSchema = Object.keys(inline).length > 0 ? (structuredClone(inline) as object) : {};
+        synthResult[rk] = { schema: inlineSchema };
+        baseResult[rk] = { schema: Object.keys(inline).length > 0 ? (inline as object) : {} };
+        if (typeof ref === 'string') {
+          const defName = ref.split('#/').pop()?.split('/').pop();
+          if (defName) refMap[rk] = defName;
+        }
+      }
+    }
+
+    for (const f of [...blueprintFiles, ...ruleFiles]) {
+      if (!allExtendsFiles.includes(f)) allExtendsFiles.push(f);
+    }
+
+    // 1. $ref resolution (top-level + nested) + transitive local refs + definition-level enum-union.
+    if (Object.keys(synthResult).length > 0) {
+      resolveSchemasForTasks(
+        [{ task_file: primaryTaskFile, result: synthResult, rules: ruleFiles, blueprints: blueprintFiles }],
+        skillsRoot,
+        schemas,
+        sources,
+      );
+    }
+
+    // 2. Collect the #/Type definitions an `extends:` injects by $ref into the shared map (the
+    //    composed result schema itself is a per-task concern persisted in tasks.yml — discard it).
+    if (Object.keys(baseResult).length > 0 && (ruleFiles.length > 0 || blueprintFiles.length > 0)) {
+      computeMergedSchema(baseResult, {
+        blueprintFiles,
+        ruleFiles,
+        skillsRoot,
+        schemas,
+        refMap,
+        sources,
+      });
+    }
+
+    // Also resolve a params-level `$ref` on the task (mirrors resolveSchemasForTasks' params branch),
+    // so param schemas referenced by later validation are registered too.
+    if (taskFm?.params && typeof taskFm.params === 'object' && '$ref' in taskFm.params) {
+      const ref = (taskFm.params as Record<string, unknown>)['$ref'] as string;
+      const {
+        typeName,
+        schema: refSchema,
+        fileSchemas,
+        schemaFilePath,
+      } = resolveSchemaRef(ref, primaryTaskFile, skillsRoot, sources);
+      schemas[typeName] = refSchema;
+      collectLocalRefsFromSchema(
+        refSchema,
+        fileSchemas,
+        schemas,
+        new Set([typeName]),
+        schemaFilePath,
+        skillsRoot,
+        sources,
+      );
+    }
+  }
+
+  // Final definition-level enum-union pass. Within a step, resolveSchemasForTasks widens after it
+  // registers the step's $ref'd definitions; but a LATER step that references the same shared
+  // definition re-registers it PRISTINE (rewriteRefsInSchema / resolveSchemaRef assign the on-disk
+  // def unconditionally), which would clobber an earlier step's widening in this single shared map.
+  // Re-applying every step's `extends:` enum-union once more, against the now-complete map, makes the
+  // result order-independent. widenDefinitionEnums is additive-enum-only and idempotent, so a def
+  // already widened in-loop is unchanged and one reset pristine is re-widened.
+  for (const extFile of allExtendsFiles) {
+    const ext = parseSchemaExtension(extFile);
+    if (ext?.extends) widenDefinitionEnums(ext.extends, schemas);
+  }
+
+  return schemas;
 }
 
 /**

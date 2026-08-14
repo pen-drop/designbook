@@ -36,6 +36,9 @@ never a content payload, never a backend content step:
   `third_party_settings.layout_builder.sections` hold the page's ordered sections; each
   component in a section carries the Scene's SDC props inline in its `configuration`, so the
   visible content lives in the config itself, not in a referenced entity.
+- **Layout-override field config** — `field.storage.<et>.layout_builder__layout` and
+  `field.field.<et>.<bundle>.layout_builder__layout`. A real Layout-Builder config export
+  includes them and `config:import` does not synthesise them, so both are emitted as units.
 - **Block config** — the block-type config (and any per-block config) for each block the Scene
   places into a section, expanded through the standard content-bundle config rules.
 

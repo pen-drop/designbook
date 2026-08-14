@@ -133,7 +133,7 @@ export function deepMergeExtends(target: JsonSchema, source: Record<string, unkn
         if (propName in target.properties) {
           const existing = target.properties[propName];
           const incoming = propSchema as Record<string, unknown> | null;
-          // Additive enum-union: a loaded skill widens a closed enum leaf (e.g. build_form).
+          // Additive enum-union: a loaded skill widens a closed enum leaf on a shared definition.
           // Fires only when both sides carry an enum array; base order preserved, new members
           // appended, deduplicated. Every other collision falls through to recurse/throw below.
           if (
@@ -236,10 +236,10 @@ export function mergeConstrains(target: JsonSchema, source: Record<string, unkno
 
 /**
  * Widen a closed enum that lives on a shared schema DEFINITION referenced only through a
- * nested `$ref` (array `items.$ref`, nested property `$ref`) — e.g. `ConfigNameUnit.build_form`,
- * reached via sync-to resolve-filter's `units` items. Such a definition is never a top-level
+ * nested `$ref` (array `items.$ref`, nested property `$ref`) — e.g. a `units` array whose
+ * items.$ref a shared definition carrying a closed enum. Such a definition is never a top-level
  * result key, so the result-key composition merge (`computeMergedSchema`) never reaches it: a
- * rule's `extends: ConfigNameUnit…` would silently no-op. This applies ONLY additive enum-union
+ * rule's `extends: <Definition>…` would silently no-op. This applies ONLY additive enum-union
  * to matching enum leaves on definitions already present in `schemas` (the map AJV registers as
  * `#/<Type>` at `workflow done`). It never adds properties or alters `required` — non-enum
  * `extends` content stays the exclusive concern of the result-key merge. Base order is preserved,
