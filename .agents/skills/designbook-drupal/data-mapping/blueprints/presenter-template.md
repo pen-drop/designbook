@@ -21,9 +21,13 @@ at. A UI-Patterns-bindable surface (`template: field-map`) needs no presenter-te
 The presenter-template is a Twig file in the active theme's templates directory, generated
 alongside the surface's display config (not in the config-sync directory). Follow the theme's
 normal template layout — group by surface **type** under `templates/<type>/`, not under a
-`presenter/` folder: e.g. `templates/forms/<name>.html.twig` for an edit form,
-`templates/views/<name>.html.twig` for a view template, `templates/pager/<name>.html.twig` for a
-pager. The `<name>` follows Drupal's theme-hook suggestion for that surface.
+`presenter/` folder, and use Drupal's **base theme-hook** name for the surface — unified, not
+per-entity: `templates/forms/form.html.twig` for a form, `templates/views/views-view.html.twig` for
+a view template, `templates/pager/pager.html.twig` for a pager. A pager uses the generic `pager`
+hook — it is **not** view-template-specific. Reach for the double-hyphen **suggestion**
+(`form--<form-id>.html.twig`, `views-view--<view-id>.html.twig`) only as the **exception**, when one
+specific form or view genuinely needs its own template diverging from the base. Never name a form or
+view presenter after an entity/node display.
 
 ## Fields render through their formatter; chrome is the Twig's job
 
@@ -46,8 +50,9 @@ key, an icon id, a link `url` fed to an attribute) may be read directly.
 ## Reference shape (illustrative)
 
 ```twig
-{# templates/forms/node--article--edit.html.twig — a form theme-hook template renders the form's
-   children; the <form> element and its attributes come from the render element. Arrange the
+{# templates/forms/form.html.twig — the base FORM theme-hook template (not an entity/node display)
+   renders the form's children; the <form> element and its attributes come from the render element.
+   Arrange the
    fields you place, then emit `form|without(...)` so the form's other children — the actions and
    the hidden CSRF / form_build_id / form_id inputs — are still output and the form submits. #}
 <div class="presenter-form__body">

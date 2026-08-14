@@ -70,7 +70,7 @@ ExportSummary:
         markup form (e.g. Twig) and theme path are a Drupal concern — the paths here are opaque.
       items:
         type: string
-        description: Path of one written presenter-template (theme-relative on a Drupal backend), e.g. "templates/forms/node--landing--edit.html.twig".
+        description: Path of one written presenter-template (theme-relative on a Drupal backend), e.g. "templates/views/views-view.html.twig".
     uncovered_units:
       type: array
       description: >
