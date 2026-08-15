@@ -36,10 +36,16 @@ assert:
   # RED: no block type was guessed / no promo block config authored.
   - type: javascript
     value: output.fileContents['designbook/sync-scene-block-violation.yml']?.guessed_block_type === false
-  # No guessed content block for promo. (A guessed *plugin* block emits no block.block.* file of
-  # its own — it would sit inline in the LB display — so the filename check can't catch it; the
-  # guessed_block_type flag above is the guard for the plugin case.)
+  # No guessed content block for promo (filename check).
   - type: javascript
     value: |
       const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
       return !/block_content\.type\.promo/.test(cfg);
+  # OBJECTIVE RED guard (independent of the self-reported flags above): a correct run REPORTS the
+  # undeterminable block and STOPS, so sync-to must NOT archive as `completed`. A run that instead
+  # silently guessed a block_plugin for node.promo, authored it inline in the LB display, and ran to
+  # the end would archive sync-to as completed — this catches that even if it lies on
+  # guessed_block_type. (A guessed *plugin* block emits no block.block.*/block_content.type.* file,
+  # so the filename check alone cannot see it; the stop-state is the real guard.)
+  - type: javascript
+    value: output.archivedWorkflows['sync-to']?.status !== 'completed'

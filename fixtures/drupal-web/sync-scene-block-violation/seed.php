@@ -7,11 +7,12 @@
  * Creates EXACTLY ONE canonical node.landing entity so the Layout-Builder page has a
  * reachable canonical URL for sync-to's outtake and sync-verify's full-page capture.
  *
- * This is a FIXTURE seed, NOT a sync-to mechanism and NOT a content-sync path:
- * sync-to synchronises CONFIG ONLY — the node.landing.full Layout-Builder display whose
- * DEFAULT sections carry the hero component (a block plugin) with the Scene's props inline.
- * The node created here carries no per-entity layout and no field content; the visible
- * content lives in the synced display config, which renders for this bare canonical entity.
+ * This is a FIXTURE seed, NOT a sync-to mechanism and NOT a content-sync path.
+ * This is the RED / violation fixture: the Scene places a determinable block_content.hero AND
+ * node.promo as a block. The data model declares NEITHER a block_content bundle nor a block_plugin
+ * entry for promo (there is NO block plugin here), so the block-decision rule must report promo as
+ * undeterminable and stop — the run should NOT reach a full node.landing.full display. This seed
+ * only creates the bare canonical node.landing so a URL exists if the run is inspected.
  *
  * Idempotent: reuses the existing landing node when one is already present.
  */
