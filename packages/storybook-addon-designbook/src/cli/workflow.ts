@@ -22,6 +22,7 @@ import type { StageDefinition, AfterDeclaration } from '../workflow-types.js';
 import { load as parseYaml } from 'js-yaml';
 import {
   resolveAllStages,
+  resolveWorkflowSchemaMap,
   parseFrontmatter,
   buildEnvMap,
   expandResultDeclarations,
@@ -453,6 +454,16 @@ export async function runWorkflowCreate(
     taskIds[firstStepName] = firstTaskId;
   }
 
+  // DESIGNBOOK-51 (Ziel A): resolve the FULL workflow validation schema map ONCE — over every
+  // step, with definition-level enum-union (widenDefinitionEnums) and extends-injected $ref defs
+  // folded in — and persist it as `schema.yml`. This replaces the first-task-only `firstSchemas`
+  // snapshot as the persisted validation source; `firstSchemas` remains only the local accumulator
+  // that built the first task's composed result schema above (stored in tasks.yml as task.result).
+  const workflowSchemas = resolveWorkflowSchemaMap(workflowFilePath, config, rawConfig, agentsDir, sources);
+  for (const [typeName, schemaDef] of Object.entries(firstSchemas)) {
+    if (!(typeName in workflowSchemas)) workflowSchemas[typeName] = schemaDef;
+  }
+
   const name = workflowCreate(
     config.data,
     opts.workflow,
@@ -464,7 +475,7 @@ export async function runWorkflowCreate(
     resolved.engine,
     initialParams,
     workspaceRoot,
-    firstSchemas,
+    workflowSchemas,
     envMap,
     initialScope,
   );

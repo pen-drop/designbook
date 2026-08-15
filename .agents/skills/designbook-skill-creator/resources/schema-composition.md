@@ -102,20 +102,20 @@ A closed `enum` is a validated allow-list. A skill **registers** a new allowed v
 
 2. **On a shared definition referenced only through a nested `$ref`** — the enum leaf lives on a `schemas.yml` definition the task reaches via an array `items.$ref` or a nested property `$ref`, so it is **never a top-level result key** and the result-key merge never sees it. Key the `extends:` entry by the **definition name**; the value is unioned into that definition in the schema map `workflow done` validates against.
 
-**Worked example — registering a `sync-to` build form.** `sync-to`'s `resolve-filter` emits a `units` array whose `items.$ref` is `ConfigNameUnit`; the closed `build_form` enum lives on that definition (surface 2). A project skill registers a third build form entirely from its own rule/blueprint frontmatter — no edit inside the designbook addon or its plugin cache:
+**Worked example — registering a value on a nested-`$ref` definition.** Suppose a task emits a `units` array whose `items.$ref` is a shared `Unit` definition carrying a closed `kind` enum `[a, b]` (surface 2 — `kind` is never a top-level result key). A project skill registers a third allowed value entirely from its own rule/blueprint frontmatter — no edit inside the designbook addon or its plugin cache:
 
 ```yaml
 ---
 trigger:
-  steps: [sync-to:resolve-filter]
+  steps: [some-workflow:some-step]
 extends:
-  ConfigNameUnit:
+  Unit:
     properties:
-      build_form: { enum: [views-page] }
+      kind: { enum: [c] }
 ---
 ```
 
-`ConfigNameUnit.build_form.enum` becomes `[layout-builder, canvas, views-page]`, so a unit carrying `build_form: views-page` passes `workflow done` validation. The skill also ships the blueprint that expands the new form (matched by its `trigger.config_name` glob), and `resolve-filter`'s dispatch selects it exactly as it selects the two shipped forms.
+`Unit.kind.enum` becomes `[a, b, c]` in the schema map `workflow done` validates against, so a unit carrying `kind: c` passes validation. Because this widening runs at `workflow create` over every step, the persisted `schema.yml` already carries the unioned enum — no per-stage-transition re-merge is involved.
 
 ## Merge Order
 

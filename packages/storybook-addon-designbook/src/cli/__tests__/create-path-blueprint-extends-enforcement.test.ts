@@ -115,9 +115,8 @@ describe('DESIGNBOOK-30: create-path wires a blueprint extends: $ref into the va
     const config = loadConfig();
     const created = await runWorkflowCreate({ workflow: 'wf' }, config);
 
-    const tasksPath = resolve(dataDir, 'workflows', 'changes', created.name, 'tasks.yml');
-    const wf = parseYaml(readFileSync(tasksPath, 'utf-8')) as {
-      schemas?: Record<string, object>;
+    const changesDir = resolve(dataDir, 'workflows', 'changes', created.name);
+    const wf = parseYaml(readFileSync(resolve(changesDir, 'tasks.yml'), 'utf-8')) as {
       tasks: Array<{ result?: Record<string, { schema?: object }> }>;
     };
 
@@ -127,8 +126,8 @@ describe('DESIGNBOOK-30: create-path wires a blueprint extends: $ref into the va
       | undefined;
     expect(dmSchema?.properties?.config?.properties?.thing).toBeDefined();
 
-    // 2. The extends-collected transitive $ref defs must be persisted for AJV.
-    const schemas = wf.schemas ?? {};
+    // 2. The extends-collected transitive $ref defs must be persisted (DESIGNBOOK-51: in schema.yml).
+    const schemas = parseYaml(readFileSync(resolve(changesDir, 'schema.yml'), 'utf-8')) as Record<string, object>;
     expect(Object.keys(schemas)).toEqual(expect.arrayContaining(['Thing', 'AChild', 'Base']));
 
     // 3. Compile exactly like validateResultEntry and check it ENFORCES.
