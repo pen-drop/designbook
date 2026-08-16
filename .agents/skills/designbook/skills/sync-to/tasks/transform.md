@@ -14,6 +14,7 @@ params:
         $ref: ../schemas.yml#/ConfigNameUnit
     backend_cmd:
       type: object
+      resolve: backend_cmd
       description: >
         Backend command strings from designbook.config.yml. Provides schema_cmd
         (append config name → JSON Schema on stdout), validate_cmd (append

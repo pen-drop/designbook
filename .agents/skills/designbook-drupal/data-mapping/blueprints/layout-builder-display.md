@@ -28,8 +28,21 @@ This blueprint self-selects for `core.entity_view_display.*` config units via `t
 This pattern authors sections only for a **`field-map`** view mode — the config-managed display
 (`allow_custom: false`, sections in `core.entity_view_display.*`). A **`layout-builder`**-template
 view mode is a per-entity content override: its sections live in the entity's `layout_builder__layout`
-base field (content, not config). For such a unit author only `enabled: true` + `allow_custom: true`
-with an empty `sections: [ ]` — never author component sections into config for it.
+base field (content, not config). For such a unit author only:
+
+```yaml
+third_party_settings:
+  layout_builder:
+    enabled: true
+    allow_custom: true
+    sections: {  }   # empty map or empty list — never component sections
+```
+
+Never author component sections into config for a `layout-builder` template. Never emit
+`inline_block:*` with `block_serialized` (PHP-serialized arrays or entities) in display config —
+Drupal expects a real block content entity revision when materialising inline blocks; a hand-built
+`block_serialized` breaks `config:import` and bare entity seeds. Place hero / block_content /
+views_block sections on the entity override (fixture seed or content path), not in this config unit.
 
 ## Input resolution
 

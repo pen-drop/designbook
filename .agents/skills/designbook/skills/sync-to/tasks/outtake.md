@@ -13,6 +13,7 @@ params:
         lookup. Empty on a config/data-model run (then no page_url is emitted).
     backend_cmd:
       type: object
+      resolve: backend_cmd
       description: >
         Backend command strings from designbook.config.yml. Provides page_url_cmd
         for a Scene run (substitute the scene id → prints the config-derived page URL).

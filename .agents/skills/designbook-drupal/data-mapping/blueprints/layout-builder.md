@@ -29,19 +29,22 @@ $.layout_builder__layout
 ## Config expansion (sync-to Scene sync)
 
 Starting point for the config units `sync-to` emits when a Scene's page uses
-`build_form: layout-builder`. A Scene resolves to **config only** — never a content entity,
-never a content payload, never a backend content step:
+`build_form: layout-builder` / view-mode `template: layout-builder`. A Scene resolves to
+**config only** — never a content entity, never a content payload, never a backend content step:
 
-- **Page layout config** — `core.entity_view_display.<et>.<bundle>.<full>`. Its
-  `third_party_settings.layout_builder.sections` hold the page's ordered sections; each
-  component in a section carries the Scene's SDC props inline in its `configuration`, so the
-  visible content lives in the config itself, not in a referenced entity.
+- **Page layout config** — `core.entity_view_display.<et>.<bundle>.<full>` with Layout Builder
+  **enabled** and `allow_custom: true`, and **empty** `sections` (see `layout-builder-display.md`).
+  The page's visible section tree is a **per-entity content override** on
+  `layout_builder__layout`, not default sections in this config file. Do not stuff
+  `inline_block` / `block_serialized` / Scene props into display-config sections.
 - **Layout-override field config** — `field.storage.<et>.layout_builder__layout` and
   `field.field.<et>.<bundle>.layout_builder__layout`. A real Layout-Builder config export
   includes them and `config:import` does not synthesise them, so both are emitted as units.
-- **Block config** — the block-type config (and any per-block config) for each block the Scene
-  places into a section, expanded through the standard content-bundle config rules.
+- **Block config** — the block-type config (and field/display units) for each `block_content`
+  bundle the Scene uses, plus view config for any `views_block` / `block_plugin`, expanded
+  through the standard content-bundle and config-slice rules.
 
-The Scene's resolved component subtree becomes the inline `configuration` of the section
-components; the ordering matches the Scene. This is an overridable starting point — a project
-whose Layout-Builder config export differs replaces it.
+The Scene still drives *which* bundles and views become config units (resolve-filter). The
+section *composition* for a `layout-builder` template is not authored into the display YAML;
+tests that need a reachable rendered page seed the override layout after import (fixture seed).
+This is an overridable starting point — a project whose Layout-Builder export differs replaces it.

@@ -1,22 +1,26 @@
 <?php
 
 /**
- * Bare-entity TEST SEED for the sync-verify-scene fixture (run via `drush php:script`
- * from the case prompt, after sync-to has imported the config).
+ * TEST SEED for the sync-scene-rich / sync-verify-scene fixtures (run via
+ * `drush php:script` after sync-to has imported the config).
  *
- * Creates EXACTLY ONE canonical node.landing entity so the Layout-Builder page has a
- * reachable canonical URL for sync-to's outtake and sync-verify's full-page capture.
+ * 1. Creates EXACTLY ONE canonical node.landing so the page has a reachable URL.
+ * 2. Attaches a Layout Builder **entity override** (layout_builder__layout) with:
+ *    - inline_block:hero (real block_content revision — never block_serialized in config)
+ *    - views_block:landing_teasers-block_1
  *
- * This is a FIXTURE seed, NOT a sync-to mechanism and NOT a content-sync path:
- * sync-to synchronises CONFIG (plus a presenter-template) ONLY — the node.landing.full
- * Layout-Builder display whose DEFAULT sections carry the block_content hero AND the
- * landing_teasers views_block (a block plugin), with the Scene's props inline.
- * The node created here carries no per-entity layout and no field content; the visible
- * content lives in the synced display config, which renders for this bare canonical entity.
+ * sync-to synchronises CONFIG only: node.landing.full has LB enabled + empty default
+ * sections (template: layout-builder = content override). Visible section composition
+ * is therefore seeded here, not authored into core.entity_view_display.*.yml.
  *
- * Idempotent: reuses the existing landing node when one is already present.
+ * Idempotent: reuses the existing landing node when one is already present; rewrites
+ * its override layout each run.
  */
 
+use Drupal\block_content\Entity\BlockContent;
+use Drupal\layout_builder\Plugin\SectionStorage\OverridesSectionStorage;
+use Drupal\layout_builder\Section;
+use Drupal\layout_builder\SectionComponent;
 use Drupal\node\Entity\Node;
 
 $ids = \Drupal::entityQuery('node')
@@ -28,6 +32,59 @@ $ids = \Drupal::entityQuery('node')
 $node = $ids ? Node::load(reset($ids)) : Node::create(['type' => 'landing']);
 $node->setTitle('Landing');
 $node->setPublished();
+
+// Non-reusable hero block content (inline block revision).
+$hero = BlockContent::create([
+  'type' => 'hero',
+  'info' => 'Hero',
+  'reusable' => FALSE,
+  'status' => TRUE,
+  'field_title' => [['value' => 'Ausbildung gestalten']],
+  'field_content' => [[
+    'value' => '<p>Leando buendelt Themenbeitraege.</p>',
+    'format' => 'basic_html',
+  ]],
+  'field_action' => [[
+    'uri' => '/de/registrieren',
+    'title' => 'Jetzt registrieren',
+    'options' => [],
+  ]],
+]);
+$hero->save();
+
+$hero_uuid = 'ad1235e9-7216-5869-949c-9bdac4922d12';
+$view_uuid = 'ecb42bea-b7b6-52fd-a863-be3c23e57e0a';
+
+$hero_comp = new SectionComponent($hero_uuid, 'content', [
+  'id' => 'inline_block:hero',
+  'label' => 'Hero',
+  'label_display' => '0',
+  'provider' => 'layout_builder',
+  'view_mode' => 'default',
+  'block_revision_id' => $hero->getRevisionId(),
+  'block_serialized' => NULL,
+  'context_mapping' => [],
+]);
+$view_comp = new SectionComponent($view_uuid, 'content', [
+  'id' => 'views_block:landing_teasers-block_1',
+  'label' => 'Landing teasers',
+  'label_display' => 'visible',
+  'provider' => 'views',
+  'views_label' => 'Landing teasers',
+  'items_per_page' => NULL,
+  'context_mapping' => [],
+]);
+$view_comp->setWeight(1);
+
+$section = new Section('layout_onecol', ['label' => ''], [
+  $hero_uuid => $hero_comp,
+  $view_uuid => $view_comp,
+]);
+
+$node->set(OverridesSectionStorage::FIELD_NAME, [$section]);
 $node->save();
 
-print 'seed: node.landing ' . $node->id() . "\n";
+print 'seed: node.landing ' . $node->id()
+  . ' hero_rev=' . $hero->getRevisionId()
+  . ' url=' . $node->toUrl('canonical', ['absolute' => TRUE])->toString()
+  . "\n";

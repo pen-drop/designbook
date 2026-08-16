@@ -55,7 +55,8 @@ content:
       title: Landing
       description: >
         A Layout Builder landing page. Its full view mode uses the layout-builder template, so a
-        Scene sync emits CONFIG for the display whose default sections carry the blocks inline. The
+        Scene sync emits CONFIG for the LB-enabled display (empty default sections; entity
+        override carries the blocks). The
         presenter-template this case exercises comes from the landing_teasers View's wrapper (its
         pager / exposed filter — theme-methods-only), not from the page's edit form: a page's edit
         form is reached over an edit route and is not part of the page/scene sync, so this bundle

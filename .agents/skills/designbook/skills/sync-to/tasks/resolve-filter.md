@@ -39,6 +39,7 @@ params:
       default: {}
     backend_cmd:
       type: object
+      resolve: backend_cmd
       description: >
         Backend command strings from designbook.config.yml. Provides
         exists_cmd (append config name → exit 0 iff the config already

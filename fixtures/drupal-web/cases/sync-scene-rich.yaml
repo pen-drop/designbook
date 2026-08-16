@@ -1,10 +1,11 @@
-# DESIGNBOOK-42 — GREEN coverage case. AUTHORED, PENDING LIVE VALIDATION (live run deferred).
+# DESIGNBOOK-42 — GREEN coverage case.
 # Extends the DESIGNBOOK-38 sync-verify-scene pattern to one Layout-Builder Scene that exercises
 # every new sync-to path: a block_content block, a block_plugin block (a view as a block), the
 # view-template (list-view, UI-Patterns rows), and the View wrapper's pager/exposed-filter as the
-# theme-methods-only presenter surface (presenter Twig). Live iteration must still supply the
-# render-side components/mappings/sample data for the view block (list-view) + its Block display and
-# the row bundle so sync-verify can reconcile against Storybook.
+# theme-methods-only presenter surface (presenter Twig).
+#
+# Contract: template layout-builder ⇒ display config has empty default sections; the fixture
+# seed.php attaches the entity override layout (hero + views_block) after import.
 config: sync-verify-scene.yml
 
 fixtures:
@@ -16,23 +17,26 @@ fixtures:
   - sync-scene-rich
 
 prompt: |
-  You are working in the directory {{workspace}}. Do NOT ask any questions; if a decision cannot
-  be made from the data model + fixtures, fail the run.
+  You are working in the directory {{workspace}} (workspace root — designbook.config.yml lives
+  here). Do NOT ask any questions; if a decision cannot be made from the data model + fixtures,
+  fail the run.
 
   PART A — Scene sync (config, plus a presenter-template where theme-methods-only):
-  1. Run the /debo sync-to workflow with `scene: landing`, `section: landing`, `gate: soft`.
+  1. Run the /debo sync-to workflow with `scene: landing`, `section: landing`, `gate: soft`
+     from this workspace root. backend_cmd resolves from designbook.config.yml.
      It must emit config units for: the node.landing + block_content.hero + node.landing_page
      bundles and their fields; the block_content.hero.default display; the views.view.landing_teasers
-     config (rows bound to their SDC via the UI-Patterns block); the block_plugin placement of that
-     view; and the node.landing.full Layout-Builder display whose DEFAULT sections carry the
-     block_content hero AND the block_plugin view-block inline. The landing_teasers View's wrapper
-     (its pager / exposed filter) is theme-methods-only, so ALSO write a presenter-template (Twig)
-     for the View wrapper. No content units.
+     config (rows bound to their SDC via the UI-Patterns block); and the node.landing.full
+     Layout-Builder display with layout_builder enabled, allow_custom true, and **empty default
+     sections** (template: layout-builder = content override — never inline_block/block_serialized
+     sections in that YAML). The landing_teasers View's wrapper (pager / exposed filter) is
+     theme-methods-only, so ALSO write a presenter-template (Twig) for the View wrapper.
+     No content units.
   2. Record the sync-to `workflow summary --json` — including `presenter_templates` (non-empty) and
      `uncovered_units` (expected empty).
-  3. SEED the one bare canonical node.landing (fixture seed, not sync-to content):
+  3. Import config if the sync stage did not already: backend_cmd.import (partial cim).
+  4. SEED the canonical node.landing **and** its Layout Builder entity override (hero + views_block):
        ddev drush php:script /var/www/html/web/themes/custom/test_integration_drupal/seed.php
-  4. Import the config with drush config:import.
 
   PART B — sync-verify against the real page (full-page):
   5. Run the /debo sync-verify workflow with `story: landing`, `kind: scene`. Compare the full page
@@ -42,7 +46,7 @@ prompt: |
   6. Record the sync-verify `workflow summary --json`.
 
   WRITE THE EVIDENCE MARKER designbook/sync-scene-rich.yml with EXACTLY these keys:
-    page_url: "<synced node canonical URL from the outtake>"
+    page_url: "<synced node canonical URL from seed/outtake>"
     page_http_status: <integer HTTP status of page_url>
     scene_kind: scene
     score_avg_diff_percent: <number from the ScoreReport>

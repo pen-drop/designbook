@@ -8,6 +8,7 @@ params:
   properties:
     backend_cmd:
       type: object
+      resolve: backend_cmd
       description: >
         Backend command strings from designbook.config.yml. Provides import
         (runs config-import against the backend's view of the config-sync
