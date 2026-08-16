@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ResolverContext } from '../types.js';
-import {
-  resolveConfigSyncDir,
-  configSyncDirResolver,
-  deriveDocrootFromConfig,
-} from '../config-sync-dir.js';
+import { resolveConfigSyncDir, configSyncDirResolver, deriveDocrootFromConfig } from '../config-sync-dir.js';
 import type { DesignbookConfig } from '../../config.js';
 
 function makeContext(config: Partial<DesignbookConfig> = {}, params: Record<string, unknown> = {}): ResolverContext {
@@ -29,7 +25,7 @@ describe('deriveDocrootFromConfig', () => {
     const docroot = deriveDocrootFromConfig({
       workspace: '/tmp/ws-example',
       data: '/tmp/ws-example/web/themes/custom/t/designbook',
-    } as DesignbookConfig);
+    });
     expect(docroot).toMatch(/\/web$/);
   });
 
@@ -37,7 +33,7 @@ describe('deriveDocrootFromConfig', () => {
     const docroot = deriveDocrootFromConfig({
       'designbook.home': '/proj/web/themes/custom/test_integration_drupal',
       data: '/proj/web/themes/custom/test_integration_drupal/designbook',
-    } as DesignbookConfig);
+    });
     expect(docroot).toBe('/proj/web');
   });
 });

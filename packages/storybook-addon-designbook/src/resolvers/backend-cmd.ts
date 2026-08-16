@@ -29,11 +29,7 @@ export const backendCmdResolver: ParamResolver = {
   name: 'backend_cmd',
   requiresInput: false,
 
-  resolve(
-    _input: string,
-    _config: Record<string, unknown>,
-    context: ResolverContext,
-  ): ResolverResult {
+  resolve(_input: string, _config: Record<string, unknown>, context: ResolverContext): ResolverResult {
     // Honour an explicit --params backend_cmd object (or a prior resolve pass).
     // resolveParams only forwards a string `input`; object values stay on context.params.
     const fromParams = context.params.backend_cmd;

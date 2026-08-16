@@ -8,13 +8,18 @@
  * 2. Attaches a Layout Builder **entity override** (layout_builder__layout) with:
  *    - inline_block:hero (real block_content revision — never block_serialized in config)
  *    - views_block:landing_teasers-block_1
+ * 3. Creates the landing_teasers View's row content — one node.landing_page per sample record
+ *    (field_short_title matches designbook/data/node.landing_page.yml). Without these the
+ *    views_block lists nothing and the rendered list is empty; AC9 needs a *rendered* list, so
+ *    the live View must list the same rows the Storybook reference enumerates
+ *    (view.landing_teasers.default.jsonata → list-view wrapper → card rows).
  *
  * sync-to synchronises CONFIG only: node.landing.full has LB enabled + empty default
  * sections (template: layout-builder = content override). Visible section composition
  * is therefore seeded here, not authored into core.entity_view_display.*.yml.
  *
  * Idempotent: reuses the existing landing node when one is already present; rewrites
- * its override layout each run.
+ * its override layout each run; skips row nodes that already exist.
  */
 
 use Drupal\block_content\Entity\BlockContent;
@@ -84,7 +89,37 @@ $section = new Section('layout_onecol', ['label' => ''], [
 $node->set(OverridesSectionStorage::FIELD_NAME, [$section]);
 $node->save();
 
+// Row content the landing_teasers views_block lists. field_short_title values MUST stay
+// byte-identical to designbook/data/node.landing_page.yml so the live list and the Storybook
+// reference render the same rows (1:1 — AC9/AC19).
+$row_titles = [
+  'Ausbildung gestalten',
+  'Praxis-Tipps für den Betrieb',
+  'Qualitätsgesicherte Informationen',
+];
+$rows_created = 0;
+foreach ($row_titles as $row_title) {
+  $exists = \Drupal::entityQuery('node')
+    ->accessCheck(FALSE)
+    ->condition('type', 'landing_page')
+    ->condition('field_short_title', $row_title)
+    ->range(0, 1)
+    ->execute();
+  if ($exists) {
+    continue;
+  }
+  $row = Node::create([
+    'type' => 'landing_page',
+    'title' => $row_title,
+    'field_short_title' => $row_title,
+    'status' => TRUE,
+  ]);
+  $row->save();
+  $rows_created++;
+}
+
 print 'seed: node.landing ' . $node->id()
   . ' hero_rev=' . $hero->getRevisionId()
+  . ' landing_page_rows=' . count($row_titles) . ' (created ' . $rows_created . ')'
   . ' url=' . $node->toUrl('canonical', ['absolute' => TRUE])->toString()
   . "\n";

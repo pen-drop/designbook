@@ -3,21 +3,14 @@ import { backendCmdResolver, unflattenPrefix } from '../backend-cmd.js';
 import type { DesignbookConfig } from '../../config.js';
 import type { ResolverContext, ResolverResult } from '../types.js';
 
-function ctx(
-  config: Record<string, unknown>,
-  params: Record<string, unknown> = {},
-): ResolverContext {
+function ctx(config: Record<string, unknown>, params: Record<string, unknown> = {}): ResolverContext {
   return {
     config: config as DesignbookConfig,
     params,
   };
 }
 
-function resolve(
-  input: string,
-  config: Record<string, unknown>,
-  context: ResolverContext,
-): ResolverResult {
+function resolve(input: string, config: Record<string, unknown>, context: ResolverContext): ResolverResult {
   return backendCmdResolver.resolve(input, config, context) as ResolverResult;
 }
 
@@ -37,9 +30,10 @@ describe('unflattenPrefix', () => {
   });
 
   it('accepts a nested object at the exact prefix key', () => {
-    expect(
-      unflattenPrefix({ backend_cmd: { cmd: 'x', import: 'y' } }, 'backend_cmd'),
-    ).toEqual({ cmd: 'x', import: 'y' });
+    expect(unflattenPrefix({ backend_cmd: { cmd: 'x', import: 'y' } }, 'backend_cmd')).toEqual({
+      cmd: 'x',
+      import: 'y',
+    });
   });
 });
 
@@ -68,10 +62,7 @@ describe('backendCmdResolver', () => {
     const result = resolve(
       '',
       {},
-      ctx(
-        { 'backend_cmd.cmd': 'from-config' },
-        { backend_cmd: { cmd: 'from-params', exists_cmd: 'x' } },
-      ),
+      ctx({ 'backend_cmd.cmd': 'from-config' }, { backend_cmd: { cmd: 'from-params', exists_cmd: 'x' } }),
     );
     expect(result.resolved).toBe(true);
     expect(result.value).toEqual({ cmd: 'from-params', exists_cmd: 'x' });

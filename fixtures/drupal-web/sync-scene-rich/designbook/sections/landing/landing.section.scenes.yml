@@ -7,10 +7,11 @@ description: >
   landing_teasers View's wrapper (its pager / exposed filter — theme-methods-only), not the page's
   edit form (this bundle declares no presenter form_mode). Follows the DESIGNBOOK-38
   sync-verify-scene pattern: this is a
-  Layout-Builder page-content Scene (the page node.landing is implicit — its full display carries
-  these blocks, and a bare node is seeded), NOT a design-screen scene, so the design-screen
+  Layout-Builder page-content Scene (the page node.landing is implicit — its LB-enabled full display
+  has empty default sections; the seed attaches the entity override that carries these blocks and
+  creates the view's row content), NOT a design-screen scene, so the design-screen
   route-bearer invariant (screen-scene-constraints, gated to design-screen:create-scene) does not
-  apply. AUTHORED, PENDING LIVE VALIDATION.
+  apply. Config side live-validated; full render-fidelity re-run pending the next coordinated live run.
 status: planned
 order: 1
 group: Designbook/Sections/Landing

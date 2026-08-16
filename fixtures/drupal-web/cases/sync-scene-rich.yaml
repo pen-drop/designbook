@@ -35,7 +35,10 @@ prompt: |
   2. Record the sync-to `workflow summary --json` — including `presenter_templates` (non-empty) and
      `uncovered_units` (expected empty).
   3. Import config if the sync stage did not already: backend_cmd.import (partial cim).
-  4. SEED the canonical node.landing **and** its Layout Builder entity override (hero + views_block):
+  4. SEED the canonical node.landing **and** its Layout Builder entity override (hero + views_block)
+     **and** the landing_teasers row content (node.landing_page rows the views_block lists — their
+     field_short_title matches designbook/data/node.landing_page.yml so the live list renders the
+     same rows the Storybook reference enumerates):
        ddev drush php:script /var/www/html/web/themes/custom/test_integration_drupal/seed.php
 
   PART B — sync-verify against the real page (full-page):

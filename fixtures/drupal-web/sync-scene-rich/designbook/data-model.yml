@@ -1,4 +1,9 @@
-# DESIGNBOOK-42 rich scene fixture — AUTHORED, PENDING LIVE VALIDATION.
+# DESIGNBOOK-42 rich scene fixture.
+# Validation state (reconciled): the CONFIG side is live-validated (config:import green, 13 units,
+# sync-verify ScoreReport against real Drupal 11.3.13); the RENDER side ships its artifacts here —
+# hero (inline_block via the seed override), the view block, and the view's row content
+# (node.landing_page rows seeded + list-view/card mappings) — with the full render-fidelity re-run
+# PENDING the next coordinated live run on the shared DDEV host.
 # Exercises the new sync-to paths in one Layout-Builder Scene:
 #   - a block_content block (hero)               → block-decision ⇒ block_content
 #   - a block_plugin block (the view as a block) → block-decision ⇒ block_plugin

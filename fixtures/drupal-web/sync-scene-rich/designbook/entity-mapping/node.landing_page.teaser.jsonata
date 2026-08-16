@@ -1,0 +1,13 @@
+(
+  $node := $;
+  [
+    {
+      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:card",
+      "variant": "default",
+      "props": {
+        "title": $node.field_short_title,
+        "published": true
+      }
+    }
+  ]
+)

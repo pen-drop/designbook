@@ -78,7 +78,10 @@ export const configSyncDirResolver: ParamResolver = {
     const declDocroot = typeof config.docroot === 'string' && config.docroot !== '' ? config.docroot : undefined;
     const cfg = (context?.config ?? {}) as DesignbookConfig;
     const derived = deriveDocrootFromConfig(cfg);
-    const docroot = declDocroot ?? (typeof input === 'string' && input !== '' && !input.startsWith('/') ? input : undefined) ?? derived;
+    const docroot =
+      declDocroot ??
+      (typeof input === 'string' && input !== '' && !input.startsWith('/') ? input : undefined) ??
+      derived;
 
     if (!docroot) {
       return {
