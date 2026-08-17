@@ -5,6 +5,7 @@ params:
   entity_type: { type: string, default: "" }
   bundle: { type: string, default: "" }
   view_mode: { type: string, default: "" }
+  form_mode: { type: string, default: "" }
   reference_url: { type: string, default: "" }
   reference_folder:
     type: string

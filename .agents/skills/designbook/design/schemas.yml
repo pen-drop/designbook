@@ -437,11 +437,26 @@ Variant:
 
 EntityMapping:
   type: object
-  required: [entity_type, bundle, view_mode]
+  required: [entity_type, bundle]
   properties:
     entity_type: { type: string }
     bundle: { type: string }
-    view_mode: { type: string }
+    mode_kind:
+      type: string
+      enum: [view, form]
+      default: view
+      description: >
+        Which half of the bundle this mapping builds — `view` (reading half, written to
+        entity-mapping/) or `form` (editing half, written to form-mapping/). Defaults to `view`
+        so a caller that omits it (e.g. design-screen) is unchanged.
+    view_mode:
+      type: string
+      default: ""
+      description: View mode machine name; the mode name when mode_kind = view. Empty for a form mapping.
+    form_mode:
+      type: string
+      default: ""
+      description: Form mode machine name; the mode name when mode_kind = form. Empty for a view mapping.
 
 DesignReference:
   type: object
