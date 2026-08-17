@@ -23,7 +23,7 @@ result:
   required: [screenshot_file]
   properties:
     screenshot_file:
-      path: "designbook/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png"
+      path: "$DESIGNBOOK_DATA/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png"
       submission: direct
       validators: [image]
 each:

@@ -26,7 +26,10 @@ A screen scene answers one question: *what is this page?* Exactly one node in th
   as `entity: "view.<id>"`). A component or decorative widget is never the main content — it
   bears no route.
 - Every other node in `content` is a **block** — beiwerk that carries no route and stands beside
-  the main content, never in place of it.
+  the main content, never in place of it. This rule decides only *which* node is a block; **how a
+  block is realized and typed on the backend is a backend concern** — the backend's block rules
+  read the data model to type each block, and may report a block whose type the model does not
+  determine.
 - A listing of several contents is a **View**. The sole exception is a listing that runs under an
   entity through an entity-reference field: there the parent entity renders its own references
   (see [entity-reference-rendering.md](entity-reference-rendering.md)), and the items live inside

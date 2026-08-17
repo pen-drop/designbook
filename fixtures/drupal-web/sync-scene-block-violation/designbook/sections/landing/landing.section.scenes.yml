@@ -1,0 +1,24 @@
+id: landing
+title: Landing
+description: >
+  Landing page (Layout Builder), sync-verify-scene pattern: the content lists the page's blocks
+  (the page node.landing is implicit). Beside the block_content hero it places node.promo as a
+  block. Per block-decision, a beiwerk entity node becomes a block only through the data model — and
+  node.promo has no block_content bundle and no block_plugin entry, so its block type is
+  undeterminable: sync-to must report and stop, not guess. AUTHORED, PENDING LIVE VALIDATION.
+status: planned
+order: 1
+group: Designbook/Sections/Landing
+scenes:
+  - name: landing
+    section: landing
+    items:
+      - scene: design-system:shell
+        with:
+          content:
+            - entity: block_content.hero
+              view_mode: default
+              record: 0
+            - entity: node.promo
+              view_mode: teaser
+              record: 0

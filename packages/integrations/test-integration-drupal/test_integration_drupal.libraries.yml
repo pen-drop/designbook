@@ -1,5 +1,8 @@
 global:
   css:
     theme:
-      # Built by the theme's CSS build (e.g. pnpm build / css-generate) → css/app.css
-      css/app.css: {}
+      # Built by the theme's CSS build (`npm run build` → vite, outDir: dist) → dist/css/app.css.
+      # The path must match the build output: `css/app.css` holds only the *.src.css sources, so
+      # pointing here at `css/app.css` attaches a file that never exists and the page renders
+      # with browser default styles.
+      dist/css/app.css: {}

@@ -82,7 +82,9 @@ if [[ "$TARGET_DIR" != /* ]]; then
   TARGET_DIR="$REPO_ROOT/$TARGET_DIR"
 fi
 
-# Nested theme dir — designbook.config.yml, .storybook, and designbook data live here
+# Nested theme dir — Storybook + designbook data live here.
+# designbook.config.yml for Drupal-layout workspaces lives at the WORKSPACE ROOT
+# (setup-workspace.sh writes it there and deletes any theme-local copy).
 THEME_REL="web/themes/custom/test_integration_drupal"
 mkdir -p "$TARGET_DIR/$THEME_REL"
 
@@ -119,14 +121,30 @@ if [[ -n "$INIT_COMMIT" ]]; then
 fi
 cd - > /dev/null
 
-# 2. Copy suite base config (or config override if specified in case) into the theme dir
-CONFIG_OVERRIDE=$(sed -n 's/^config: *//p' "$CASE_FILE")
+# 2. Merge suite/case designbook.config into the WORKSPACE ROOT config.
+# Theme-relative overrides (home: ., dirs.components: components, …) are rewritten to
+# live under $THEME_REL so CLI commands run from the workspace root keep working.
+# Never leave a theme-local designbook.config.yml — it would shadow the root config.
+merge_designbook_config() {
+  local SRC_CFG="$1"
+  local ROOT_CFG="$TARGET_DIR/designbook.config.yml"
+  local THEME_CFG="$TARGET_DIR/$THEME_REL/designbook.config.yml"
+  NODE_PATH="$REPO_ROOT/node_modules" \
+  SRC="$SRC_CFG" ROOT_CFG="$ROOT_CFG" THEME_REL="$THEME_REL" \
+    node "$REPO_ROOT/scripts/lib/merge-designbook-config.mjs"
+  rm -f "$THEME_CFG"
+}
+
+CONFIG_OVERRIDE=$(sed -n 's/^config: *//p' "$CASE_FILE" | head -1 | tr -d '\r')
 if [[ -n "$CONFIG_OVERRIDE" && -f "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" ]]; then
-  echo "  Config override: $CONFIG_OVERRIDE"
-  cp "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE" "$TARGET_DIR/$THEME_REL/designbook.config.yml"
+  echo "  Config override → workspace root: $CONFIG_OVERRIDE"
+  merge_designbook_config "$FIXTURES_DIR/config-overrides/$CONFIG_OVERRIDE"
 elif [[ -f "$FIXTURES_DIR/designbook.config.yml" ]]; then
-  cp "$FIXTURES_DIR/designbook.config.yml" "$TARGET_DIR/$THEME_REL/"
+  echo "  Suite config → workspace root: designbook.config.yml"
+  merge_designbook_config "$FIXTURES_DIR/designbook.config.yml"
 fi
+# Fixtures may copy a theme-local designbook.config.yml — always remove after layering.
+rm -f "$TARGET_DIR/$THEME_REL/designbook.config.yml"
 
 # 3. Parse fixtures list from case YAML and layer them
 # Uses a simple grep+sed approach to avoid yq dependency
@@ -141,9 +159,11 @@ for FIXTURE in $FIXTURES; do
   fi
   echo "  Layering fixture: $FIXTURE"
   cp -r "$FIXTURE_DIR/." "$TARGET_DIR/$THEME_REL/"
+  # Fixture trees must not reintroduce a shadowing theme-local config.
+  rm -f "$TARGET_DIR/$THEME_REL/designbook.config.yml"
 done
 
-# 3. Commit fixture layer as baseline for diff tracking
+# 4. Commit fixture layer as baseline for diff tracking
 # git repo root is the theme dir (setup-workspace.sh runs git init there)
 cd "$TARGET_DIR/$THEME_REL"
 git add -A
@@ -151,9 +171,11 @@ git commit -q -m "fixtures: $SUITE/$CASE" --allow-empty
 
 echo ""
 echo "✓ Workspace ready at $TARGET_DIR"
+echo "  CLI cwd (workflows/sync-to): $TARGET_DIR"
+echo "  Storybook cwd:              $TARGET_DIR/$THEME_REL"
 echo ""
 
-# 6. Print the prompt from the case file
+# 5. Print the prompt from the case file
 echo "Prompt:"
 echo "─────────────────────────────────────"
 sed -n '/^prompt:/,/^[a-z]/{/^prompt:/d; /^[a-z]/d; p;}' "$CASE_FILE" | sed 's/^  //'

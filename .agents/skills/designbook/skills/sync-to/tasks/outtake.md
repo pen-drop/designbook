@@ -13,6 +13,7 @@ params:
         lookup. Empty on a config/data-model run (then no page_url is emitted).
     backend_cmd:
       type: object
+      resolve: backend_cmd
       description: >
         Backend command strings from designbook.config.yml. Provides page_url_cmd
         for a Scene run (substitute the scene id → prints the config-derived page URL).
@@ -49,6 +50,13 @@ passed in for them:
   produced in that stage).
 - `count` is the total number of config YAML files written, derived from the
   same `transform` stage results.
+- `presenter_templates` is the sorted list of presenter-template paths the `transform` stage
+  wrote for `template: presenter` surfaces — empty when no surface needed one. It makes the
+  contract widening (config, plus a presenter-template) visible in the summary.
+- `uncovered_units` is the list of `config_name`s the `transform` stage recorded as
+  blueprint-precedence stage-4 hits (authored from `prepared` alone). Empty in the normal case;
+  a non-empty list is the reported signal that a unit kind lacks a covering blueprint — surface
+  it, do not swallow it.
 - `page_url` is set only on the scene branch (`scene` is set): run `page_url_cmd` with the
   scene id substituted for the `{scene}` placeholder and record the printed URL — the reachable,
   config-derived URL of the page this run synced (expected HTTP 200). Omit it on a

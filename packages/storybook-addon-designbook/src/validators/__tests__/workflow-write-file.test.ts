@@ -101,16 +101,19 @@ describe('expandResultDeclarations path interpolation', () => {
     // which the JSONata-based interpolator silently passed through. Task authors
     // must use `{{ param }}` for resolved params; bare `{param}` is reserved for
     // each-expansion iterator placeholders filled at step expansion time.
+    // The template is anchored absolutely so the path-anchor guard is not what
+    // this case measures: the point is that the single-brace segment survives
+    // verbatim instead of being interpolated.
     const resultDecl = {
       properties: {
         reference: {
-          path: '{reference_folder}/extract.json',
+          path: '/d/{reference_folder}/extract.json',
           type: 'object',
         },
       },
     };
-    const result = await expandResultDeclarations(resultDecl, undefined, { reference_folder: '/d/references/abc' }, {});
-    expect(result?.reference?.path).toBe('{reference_folder}/extract.json');
+    const result = await expandResultDeclarations(resultDecl, undefined, { reference_folder: 'references/abc' }, {});
+    expect(result?.reference?.path).toBe('/d/{reference_folder}/extract.json');
   });
 });
 

@@ -6,11 +6,12 @@ params:
     type: string
     description: >
       Scene id (SceneDef.name) to sync. When set, sync-to takes the **scene branch** —
-      it syncs that Scene as a real page **config-only**: the page's block/layout config
-      (Layout Builder) or page-template/`page_layout` config (Display Builder). No content,
-      no content units — a Scene is a composite *config* subject. Leave empty to take the
-      config/data-model export path instead. The scene branch is selected by this
-      scene-kind story input, not by a flag.
+      it syncs that Scene as a real page: the page's block/layout config (Layout Builder)
+      or page-template/`page_layout` config (Display Builder), **plus a presenter-template**
+      for any surface whose presentation the display config cannot express. No content,
+      no content units — a Scene is a composite *config* subject (the presenter-template is
+      generated presentation markup, not content). Leave empty to take the config/data-model
+      export path instead. The scene branch is selected by this scene-kind story input, not by a flag.
     default: ""
   section:
     type: string
@@ -53,14 +54,40 @@ stages:
 ---
 
 sync-to dispatches on `kind`: a **scene**-kind run (a `scene` is provided) synchronises the
-target page **config-only** — the block/layout config (Layout Builder) or page-template/
-`page_layout` config (Display Builder) that composes the page; a **config**-kind run (no
-`scene`) is the existing config-only `data-model` export, sliced by `filter` (an empty
-`filter` is the unchanged bulk export of the whole model). The kind is chosen by the story
-input, not a flag.
+target page as the block/layout config (Layout Builder) or page-template/`page_layout` config
+(Display Builder) that composes the page, **plus a presenter-template** for a surface whose
+presentation the display config cannot express (see *Contract* below); a **config**-kind run
+(no `scene`) is the config `data-model` export, sliced by `filter` (an empty `filter` is the
+unchanged bulk export of the whole model). The kind is chosen by the story input, not a flag.
 
 Both kinds run over the **same config path** (`resolve-filter` → `transform` → `sync`): the
 scene branch only makes `resolve-filter` emit additional `ConfigNameUnit`s (block/layout/
-`page_layout` config). There are no content units and no content stages — a Scene resolves to
-config, never to content. Ordering and idempotency follow the existing pattern: dependency
+`page_layout` config) and, for a surface the display config cannot express, a presenter-template.
+There are no content units and no content stages — a Scene resolves to config (plus presentation
+markup), never to content. Ordering and idempotency follow the existing pattern: dependency
 before user, and the `config:get` existence filter.
+
+## Fidelity — the Scene is the source
+
+The entity model and the Scene are carried to Drupal **unchanged**: the Scene is the source,
+the emitted config is its translation. This is a requirement, not an aspiration — two runs
+over one Scene must yield the same config.
+
+- **The Drupal schema decides the *form*; the Scene decides the *content*.** The live
+  typed-config schema (fetched per unit as `prepared` in `transform`) governs which properties
+  are allowed and required — the *shape*. The Scene supplies the *values* that fill that shape.
+  Where the two meet, shape yields to the Scene's meaning, never the reverse.
+- **Where the Scene does not determine an outcome, the Scene is extended — the sync never
+  guesses.** An ambiguous source cannot produce one config; the answer is to make the source
+  unambiguous (data model / Scene format), not to decide per-run inside the sync.
+
+## Contract — config, plus a presenter-template the display config cannot express
+
+A scene-kind run emits **config always, plus a presenter-template (generated presentation markup)
+for any surface whose presentation the display config cannot express**. A declaratively bindable
+surface stays config (`template: field-map`); a surface that needs presentation markup additionally
+emits a presenter-template (`template: presenter`). The presenter-template is presentation markup,
+not content — the scene branch still creates no content entity. The **kind-dispatch and the
+`resolve-filter → transform → sync` stage chain are unchanged**; only the units `resolve-filter`
+may emit are widened. The concrete presentation-markup form, and which surfaces need it, are a
+`designbook-drupal` concern — no backend code in the core.

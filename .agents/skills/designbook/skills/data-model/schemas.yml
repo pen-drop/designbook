@@ -26,7 +26,17 @@ DataModel:
                 type: object
                 required: [template]
                 properties:
-                  template: { type: string }
+                  template:
+                    type: string
+                    description: >-
+                      Template that renders this view mode. Its allowed values come from
+                      `entity_mapping.templates` in `designbook.config.yml`; not enum-fixed here
+                      because the set is project-configured. Every value is one of two kinds: a
+                      **declarative template** (the presentation is display config, e.g.
+                      `field-map`) or the reserved **presenter-template** value `presenter`
+                      (generated backend-native presentation markup for a presentation the config
+                      layer cannot express).
+                    examples: [field-map, presenter]
                   label:
                     type: string
                     description: Human-readable name for a custom view mode, e.g. "Card". Required by sync-to when emitting a core.entity_view_mode.<entity_type>.<mode> definition for a non-standard view mode.
@@ -43,7 +53,16 @@ DataModel:
                 type: object
                 required: [template]
                 properties:
-                  template: { type: string }
+                  template:
+                    type: string
+                    description: >-
+                      Template that renders this form mode. Same two-kinds model as a view mode's
+                      `template`: a **declarative template** (the form presentation is display
+                      config) or the reserved presenter-template value `presenter` (generated
+                      backend-native markup). A form is the canonical markup-only surface, so an
+                      edit form that a declarative display cannot express uses `presenter`. Allowed
+                      values come from `entity_mapping.templates` in `designbook.config.yml`.
+                    examples: [field-map, presenter]
                   label:
                     type: string
                     description: Human-readable name for a non-default form mode, e.g. "Register". Required by sync-to when emitting a core.entity_form_mode.<entity_type>.<mode> definition for a non-default form mode.

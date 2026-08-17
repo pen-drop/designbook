@@ -1,0 +1,108 @@
+# DESIGNBOOK-42 rich scene fixture.
+# Validation state: BOTH sides live-validated end-to-end on real Drupal 11.3.13, from a clean
+# baseline (2026-08-17).
+#   - CONFIG: sync-to emitted 17 units, config:import green, stage-4 uncovered_units empty, and
+#     2 presenter-templates written for the View wrapper (views-view + pager).
+#   - RENDER: the synced page answers HTTP 200 and renders both block kinds plus the view listing
+#     all three seeded node.landing_page teaser rows through the list-view wrapper; sync-verify
+#     produced a ScoreReport (avg_diff_percent 0.2167, 1 check).
+# Remaining fidelity delta is page CHROME, not this fixture's config: the page still renders
+# Drupal's stock page-template regions instead of the design-system shell header/footer. Closing
+# it is the abgetrennte follow-up DESIGNBOOK-53 (shell regions declared + synced).
+# Exercises the new sync-to paths in one Layout-Builder Scene:
+#   - a block_content block (hero)               → block-decision ⇒ block_content
+#   - a block_plugin block (the view as a block) → block-decision ⇒ block_plugin
+#   - an embedded view with template: list-view  → view-template (UI-Patterns rows) whose wrapper
+#     (pager / exposed filter) is theme-methods-only → presenter-template (the presenter surface here)
+# The row bundle (node.landing_page teaser) supplies the view's rows.
+config:
+  # The view a screen renders / a scene embeds as a block. Declared like every display:
+  # a config.view.<id> with its own view_modes.default.template: list-view (the view-template).
+  view:
+    landing_teasers:
+      label: Landing teasers
+      row:
+        entity_type: node
+        bundle: landing_page
+        view_mode: teaser
+      view_modes:
+        default:
+          template: list-view
+  views.view.landing_teasers:
+    label: Landing teasers
+    purpose: >
+      Lists node.landing_page entities in the teaser view-mode. Owns a page display and can be a
+      screen's route-bearing main content; here it is also placed as a block_plugin on the landing
+      page. Its rows bind to their SDC component via UI Patterns; its pager/exposed-filter are
+      theme-methods-only presenter surfaces.
+    base_table: node_field_data
+    row:
+      entity_type: node
+      bundle: landing_page
+      view_mode: teaser
+    filters:
+      type: landing_page
+      status: 1
+    sort:
+      created: DESC
+    view_modes:
+      default:
+        template: list-view
+  # A view rendered as a block reaches the page as a block_plugin (a plugin placement), not a route.
+  # A `views_block:<view>-<display>` plugin needs the view to expose that Block display. This open
+  # view config carries only `view_modes.default`; the `block_1` Block display is authored on
+  # `views.view.landing_teasers` at sync time by the views blueprint (validated live: after
+  # config:import the block manager resolves `views_block:landing_teasers-block_1`, and the seeded
+  # override renders it). Note the Block display INHERITS its options from `default` and carries no
+  # `defaults` map — Drupal types that key as a flat option->boolean map, so a nested entry there
+  # aborts config:import.
+  block_plugin:
+    landing_teasers_block:
+      plugin: 'views_block:landing_teasers-block_1'
+      component: list-view
+      settings:
+        label: Landing teasers
+content:
+  node:
+    landing:
+      title: Landing
+      description: >
+        A Layout Builder landing page. Its full view mode uses the layout-builder template, so a
+        Scene sync emits CONFIG for the LB-enabled display (empty default sections; entity
+        override carries the blocks). The
+        presenter-template this case exercises comes from the landing_teasers View's wrapper (its
+        pager / exposed filter — theme-methods-only), not from the page's edit form: a page's edit
+        form is reached over an edit route and is not part of the page/scene sync, so this bundle
+        declares no presenter form_mode.
+      view_modes:
+        full:
+          template: layout-builder
+    landing_page:
+      title: Landing Page
+      description: The row bundle the landing_teasers view lists in its teaser view-mode.
+      fields:
+        field_short_title:
+          type: string
+          title: Short title
+      view_modes:
+        teaser:
+          template: field-map
+  block_content:
+    hero:
+      title: Hero
+      description: >
+        A block_content component bundle rendered as a single UI-Patterns hero section on the
+        Layout Builder path — the content block a landing Scene places into the page's layout.
+      fields:
+        field_title:
+          type: string
+          title: Title
+        field_content:
+          type: text_long
+          title: Content
+        field_action:
+          type: link
+          title: Action
+      view_modes:
+        default:
+          template: field-map

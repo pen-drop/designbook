@@ -1,0 +1,13 @@
+# DESIGNBOOK-42 — render-side sample rows for the landing_teasers View (row bundle
+# node.landing_page, teaser view-mode). These records ARE the list the view lists: the Storybook
+# reference renders them through view.landing_teasers.default.jsonata, and the case seed (seed.php)
+# creates matching node.landing_page entities AFTER config:import so the live Drupal view lists the
+# SAME rows — this is the "sample content for the view block / row bundle" the review asked for
+# (AC9/AC19). The bundle carries only field_short_title (see designbook/data-model.yml), so each
+# record is that one field.
+- id: '1'
+  field_short_title: Ausbildung gestalten
+- id: '2'
+  field_short_title: Praxis-Tipps für den Betrieb
+- id: '3'
+  field_short_title: Qualitätsgesicherte Informationen
