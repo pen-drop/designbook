@@ -1,0 +1,24 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Label
+status: stable
+group: Form
+description: A form label rendered inside a form_element's label slot.
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  title:
+    title: Title
+    description: The label text.
+props:
+  type: object
+  properties:
+    title_display:
+      title: Title display
+      type: string
+      enum:
+        - before
+        - after
+        - invisible
+        - hidden

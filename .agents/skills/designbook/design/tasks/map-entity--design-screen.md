@@ -1,5 +1,5 @@
 ---
-title: "Map Entity: {{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.view_mode }}"
+title: "Map Entity: {{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode : mapping.view_mode }}"
 trigger:
   steps: [design-screen:map-entity, design-entity:map-entity]
 domain: [data-mapping]
@@ -23,7 +23,7 @@ result:
   required: [entity-mapping]
   properties:
     entity-mapping:
-      path: "$DESIGNBOOK_DATA/entity-mapping/{{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.view_mode }}.jsonata"
+      path: "$DESIGNBOOK_DATA/{{ mapping.mode_kind = 'form' ? 'form-mapping' : 'entity-mapping' }}/{{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode : mapping.view_mode }}.jsonata"
       validators: [entity-mapping]
 ---
 
@@ -33,7 +33,7 @@ Creates a JSONata expression file that maps an entity's data to `ComponentNode[]
 
 ## Input
 
-- `data-model.yml` → `content.{{ mapping.entity_type }}.{{ mapping.bundle }}.view_modes.{{ mapping.view_mode }}` for template name and settings
+- `data-model.yml` → the chosen half of `content.{{ mapping.entity_type }}.{{ mapping.bundle }}`: `form_modes.{{ mapping.form_mode }}` when `mapping.mode_kind` is `form`, else `view_modes.{{ mapping.view_mode }}` — for template name and settings
 
 ## Output
 
@@ -45,7 +45,7 @@ Read the data-mapping blueprint from `task.blueprints[]` filtered by `type: data
 
 ## Constraints
 
-- One file per `entity_type.bundle.view_mode` combination
+- One file per `entity_type.bundle.<mode>` combination, where `<mode>` is the `view_mode` or `form_mode` selected by `mapping.mode_kind`
 - Provider prefix resolved at generation time (never leave as placeholder)
 - Reference fields emit `{ "entity": "<entity_type>.<bundle>", "view_mode": "...", "record": N }` nodes **in a slot of the wrapping component, never in `props`** — resolved recursively at build time (refs in `props` are never resolved; see scenes-constraints)
 - If no matching data-mapping blueprint found for the template, stop and report the error
