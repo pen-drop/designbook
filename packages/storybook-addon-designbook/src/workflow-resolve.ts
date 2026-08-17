@@ -7,7 +7,7 @@
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve, relative, dirname } from 'node:path';
+import { resolve, relative, dirname, isAbsolute } from 'node:path';
 import fm from 'front-matter';
 import { globSync } from 'glob';
 import { load as parseYaml } from 'js-yaml';
@@ -1376,6 +1376,35 @@ export async function expandFileDeclarations(
  *
  * Also handles `files:` → `result:` fallback for backwards compatibility.
  */
+/**
+ * Reject a declared result path that would resolve against the process CWD.
+ *
+ * Every path template must be anchored — at a `$DESIGNBOOK_*` var, at a param that
+ * carries an absolute path, or absolute outright. A bare relative template
+ * (`designbook/stories/…`) silently lands wherever the CLI happens to be invoked
+ * from, so the artifact ends up beside the workspace instead of inside the
+ * designbook data dir and the workflow's own `get-file` lookup then misses it.
+ * That failure is invisible until something downstream cannot find the file, so it
+ * is rejected here rather than resolved to a guess.
+ */
+function assertAnchoredResultPath(
+  key: string,
+  template: string,
+  resolved: string | undefined,
+  lenient?: boolean,
+): void {
+  // Lenient mode runs before params are known, so an unresolved `{{ param }}`
+  // anchor legitimately has not become absolute yet.
+  if (lenient || !resolved || resolved.includes('{{')) return;
+  if (isAbsolute(resolved)) return;
+  throw new Error(
+    `Result "${key}" declares an unanchored path: "${template}" → "${resolved}". ` +
+      `A result path must be absolute, or start with a $DESIGNBOOK_* var (e.g. ` +
+      `$DESIGNBOOK_DATA/…) or a param holding an absolute path (e.g. {{ reference_dir }}/…). ` +
+      `A bare relative path resolves against the current working directory.`,
+  );
+}
+
 export async function expandResultDeclarations(
   resultDecl: Record<string, unknown> | undefined,
   filesDecl: TaskFileDeclaration[] | undefined,
@@ -1528,6 +1557,7 @@ export async function expandResultDeclarations(
       if (flush !== undefined) entry.flush = flush;
       if (decl.path) {
         entry.path = await interpolate(decl.path, params, { envMap, lenient });
+        assertAnchoredResultPath(key, decl.path, entry.path, lenient);
       }
       if (schema) entry.schema = schema;
       if (validators.length > 0) {

@@ -11,7 +11,7 @@ params:
     story_id:
       $ref: ../../scenes/schemas.yml#/StoryId
     story_meta:
-      path: designbook/stories/{{ story_id }}/meta.yml
+      path: $DESIGNBOOK_DATA/stories/{{ story_id }}/meta.yml
       type: object
       $ref: ../schemas.yml#/StoryMeta
     issues:
@@ -54,7 +54,7 @@ Verify compares existing screenshots (captured by the `recapture` task) — it d
 
    **For screenshot issues** — read both images side by side:
    - Reference: `{{ reference_folder }}/{{ breakpoint }}--{{ element }}--{{ state }}.png`
-   - Storybook (after polish): `designbook/stories/{{ story_id }}/screenshots/{{ breakpoint }}--{{ element }}--{{ state }}.png`
+   - Storybook (after polish): `$DESIGNBOOK_DATA/stories/{{ story_id }}/screenshots/{{ breakpoint }}--{{ element }}--{{ state }}.png`
 
    Compare visually and determine if the issue is resolved.
 

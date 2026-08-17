@@ -47,7 +47,7 @@ result:
   required: [story-meta, reference-meta, story_screenshots, reference_screenshots]
   properties:
     story-meta:
-      path: designbook/stories/{{ story_id }}/meta.yml
+      path: $DESIGNBOOK_DATA/stories/{{ story_id }}/meta.yml
       $ref: ../schemas.yml#/StoryMeta
     reference-meta:
       path: "{{ reference_dir }}/meta.yml"

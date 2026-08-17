@@ -1149,7 +1149,7 @@ describe('each-expansion edge cases', () => {
         '  type: object',
         '  properties:',
         '    variant-story:',
-        '      path: "components/{{ component.component }}/{{ component.component }}.{{ variant.id }}.story.yml"',
+        '      path: "/c/components/{{ component.component }}/{{ component.component }}.{{ variant.id }}.story.yml"',
         'each:',
         '  component:',
         '    expr: "components"',
@@ -1175,8 +1175,8 @@ describe('each-expansion edge cases', () => {
 
     const paths = tasks.map((t) => t.result!['variant-story']!.path);
     expect(paths).toEqual([
-      'components/navigation/navigation.main.story.yml',
-      'components/navigation/navigation.footer.story.yml',
+      '/c/components/navigation/navigation.main.story.yml',
+      '/c/components/navigation/navigation.footer.story.yml',
     ]);
     // Regression: literal placeholders must not leak through
     for (const p of paths) {
@@ -1315,7 +1315,7 @@ describe('each-expansion edge cases', () => {
         '  type: object',
         '  properties:',
         '    out:',
-        '      path: "out/{{ $i }}-of-{{ $total }}.yml"',
+        '      path: "/o/out/{{ $i }}-of-{{ $total }}.yml"',
         'each:',
         '  item:',
         '    expr: "items"',
@@ -1331,8 +1331,8 @@ describe('each-expansion edge cases', () => {
     expect(tasks[0]!.title).toBe('Step 1 of 3: alpha');
     expect(tasks[1]!.title).toBe('Step 2 of 3: beta');
     expect(tasks[2]!.title).toBe('Step 3 of 3: gamma');
-    expect(tasks[0]!.result!.out!.path).toBe('out/0-of-3.yml');
-    expect(tasks[2]!.result!.out!.path).toBe('out/2-of-3.yml');
+    expect(tasks[0]!.result!.out!.path).toBe('/o/out/0-of-3.yml');
+    expect(tasks[2]!.result!.out!.path).toBe('/o/out/2-of-3.yml');
   });
 
   // #35 — filter: with dotted JSONata key reaches into each-bound object
