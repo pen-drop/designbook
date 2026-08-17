@@ -77,6 +77,14 @@ assert:
       return /block_content\.type\.hero/.test(cfg)
         && /views\.view\.landing_teasers/.test(cfg)
         && /core\.entity_view_display\.node\.landing\.full/.test(cfg);
+  # The overridable LB display shipped its override field. Drupal cannot create it during a
+  # config import, so without both objects in the sync set the display imports but no entity can
+  # carry a layout — the seed then dies on an unknown field.
+  - type: javascript
+    value: |
+      const cfg = output.newFiles.filter(p => /files\/sync\/.*\.yml$/.test(p)).join('\n');
+      return /field\.storage\.node\.layout_builder__layout/.test(cfg)
+        && /field\.field\.node\.landing\.layout_builder__layout/.test(cfg);
   # A presenter-template was written for the theme-methods-only View wrapper (pager / exposed filter).
   - type: javascript
     value: output.fileContents['designbook/sync-scene-rich.yml']?.presenter_templates_count >= 1

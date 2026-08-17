@@ -22,5 +22,21 @@ ddev drush pm:enable ui_patterns designbook designbook_ui_patterns -y
 # Layout Builder + UI Patterns layouts are required by scene/sync-to fixtures that
 # set extensions: layout_builder (ignore failures when already enabled).
 ddev drush pm:enable layout_builder layout_discovery ui_patterns_layouts ui_patterns_views ui_patterns_blocks ui_patterns_field_formatters -y 2>/dev/null || true
+
+# Build the theme CSS. The theme library attaches dist/css/app.css, which is the vite build
+# output and is gitignored — so without this step Drupal attaches a file that does not exist
+# and every page renders with browser default styles. Storybook does NOT need it (its vite
+# plugin compiles Tailwind in-process), so the absence is invisible on the reference side and
+# only corrupts the backend candidate — a sync-verify fidelity score that looks plausible and
+# means nothing. Fail loudly rather than let that through.
+THEME_DIR="$WS/web/themes/custom/$THEME"
+echo "→ building theme CSS ($THEME)"
+(cd "$THEME_DIR" && npm run build >/dev/null)
+[ -f "$THEME_DIR/dist/css/app.css" ] || {
+  echo "✗ theme CSS build produced no $THEME_DIR/dist/css/app.css" >&2
+  exit 1
+}
+ddev drush cr
+
 ddev drush status
-echo "✓ Drupal up for workspace $NAME (theme $THEME enabled)"
+echo "✓ Drupal up for workspace $NAME (theme $THEME enabled, CSS built)"
