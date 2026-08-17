@@ -6,13 +6,19 @@
 // machine context (gitignored, user-only) — never committed here.
 //
 // IMPORT-FREE (GAIA-78): the plugin slots + plugins[] are `{ plugin, with }`
-// descriptors naming the REAL published package (`@gaia-ai/plugin-*`,
+// descriptors naming the REAL published package (`@gaia-ai/addon-*`,
 // `@dropsh/plugin-*`), not `import`ed constructors. loadConductorConfig
 // resolves each name ESLint-style (config dir → cwd → conductor install), so
 // config load never depends on a `node_modules/@gaia-ai` symlink beside this
-// file. Each plugin package default-exports its factory, so the resolver's
-// auto-pick needs no `export:` here — only the `@gaia-ai/gaia/plugins` host
-// barrel (many exports) still names one via `export: 'drupalRemote'`.
+// file.
+//
+// NO BARREL (GAIA-224): the `@gaia-ai/core/plugins` + `@gaia-ai/gaia/plugins`
+// host barrels are deleted and the `@gaia-ai/plugin-*` packages are renamed —
+// every impl ships as its own `@gaia-ai/addon-*` package that default-exports
+// its factory, so a slot just names the package and needs no `export:`. The one
+// exception is a package shipping MORE than one slot: `@gaia-ai/addon-herdr`
+// default-exports the EXECUTOR, so the workspace slot names
+// `export: 'herdrWorkspace'` (GAIA-139).
 
 // The user-global machine context: identity + connection (incl. secret), shared
 // by every project on this machine. Never committed.
@@ -24,8 +30,9 @@ async function loadMachine() {
 }
 
 // OPTIONAL per-project override — create conductor.config.local.js beside this
-// file to override any field (machine_id, base_url, model, …). It is loaded only
-// if present and is NOT created by `gaia conductor init`.
+// file to override any field this module reads from it (machine_id, base_url,
+// model, project, jsonapi_prefix, oauth). It is loaded only if present and is
+// NOT created by `gaia conductor init`.
 async function loadLocal() {
   try { return (await import('./conductor.config.local.js')).default ?? {}; } catch {}
   return {};
@@ -46,20 +53,43 @@ export default {
   site: { base_url: baseUrl, jsonapi_prefix: local.jsonapi_prefix ?? '/jsonapi' },
   project,
   machine_id: local.machine_id ?? composedMachineId,
-  states: ['spec', 'diagnose', 'coding', 'review'],
   max_parallel: 5,
-  remote: { plugin: '@gaia-ai/gaia/plugins', export: 'drupalRemote' },
+  remote: { plugin: '@gaia-ai/addon-remote-drupal' },
   // No hard-wired diff pane for review: the review diff surface is hunk
   // (GAIA-55) — agent-driven + opt-in in the human's interactive pane, not an
   // executor-forced git-diff pane. Clicking a changed file in that hunk pane
   // opens it editable in a spiceedit overlay (see conductor/README.md).
-  executor: { plugin: '@gaia-ai/plugin-herdr' },
-  agent: {
-    plugin: '@gaia-ai/plugin-claude',
-    with: { model: local.model ?? 'claude-opus-4-8' },
-  },
+  executor: { plugin: '@gaia-ai/addon-herdr' },
+  // Agent selection by static ticket assessment (GAIA-144): `agent` may be an
+  // ARRAY of `{ agent, priority?(ticket) }` candidates. The conductor calls each
+  // priority(ticket) at dispatch (ticket carries sideloaded `labels` +
+  // `environments`), sorts highest-first, and runs the top one; a candidate with
+  // no `priority` scores -Infinity. Claude is the baseline at priority 0 and
+  // stays last, so a ticket carrying no routing label always dispatches.
+  agent: [
+    {
+      // Grok Build (xAI) — wins only on the `grok` label. The addon ships as a
+      // dependency of @gaia-ai/gaia, so the descriptor resolves without a
+      // separate install; it needs the `grok` CLI on PATH and an authenticated
+      // host, and reads no auth file itself. `grok models` reports grok-4.5 as
+      // the only available model.
+      agent: {
+        plugin: '@gaia-ai/addon-grok',
+        with: { model: 'grok-4.5' },
+      },
+      priority: (ticket) =>
+        ticket.labels?.includes('grok') ? 100 : -1000,
+    },
+    {
+      agent: {
+        plugin: '@gaia-ai/addon-claude',
+        with: { model: local.model ?? 'claude-opus-4-8' },
+      },
+      priority: () => 0,
+    },
+  ],
   workspace: {
-    plugin: '@gaia-ai/plugin-herdr',
+    plugin: '@gaia-ai/addon-herdr',
     export: 'herdrWorkspace',
     with: {
       // designbook is a pnpm monorepo, not a DDEV project — a fresh worktree only
@@ -67,37 +97,4 @@ export default {
       hooks: { after_create: 'pnpm install' },
     },
   },
-  // oauth2 is a real dep of the host (npm installs it alongside @gaia-ai/gaia).
-  // NOTE: plugins[] is consumed by DROPSH, which reloads this config with its OWN
-  // resolver (`export ?? 'default'`, no sole-function auto-pick) on every
-  // `gaia dropsh …` command. @dropsh/plugin-oauth2 has no default export, so
-  // these entries MUST name `export: 'oauth2Plugin'` — unlike the four conductor
-  // slots above, which the conductor resolves and auto-picks.
-  plugins: [
-    {
-      plugin: '@dropsh/plugin-oauth2',
-      export: 'oauth2Plugin',
-      with: {
-        id: 'session',
-        default: true,
-        type: 'oauth2_client_credentials',
-        client_id: clientId,
-        client_secret: clientSecret,
-        token_url: `${baseUrl}/oauth/token`,
-        scope: 'gaia:session',
-      },
-    },
-    {
-      plugin: '@dropsh/plugin-oauth2',
-      export: 'oauth2Plugin',
-      with: {
-        id: 'pm',
-        type: 'oauth2_client_credentials',
-        client_id: clientId,
-        client_secret: clientSecret,
-        token_url: `${baseUrl}/oauth/token`,
-        scope: 'gaia:project_manager',
-      },
-    },
-  ],
 };
