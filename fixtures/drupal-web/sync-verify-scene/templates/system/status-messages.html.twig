@@ -1,0 +1,2 @@
+{# Minimal override — base theme version needs ui_suite_daisyui (not provisioned). #}
+{% for type, messages in message_list %}{% for message in messages %}<div role="contentinfo" aria-label="{{ type }}">{{ message }}</div>{% endfor %}{% endfor %}

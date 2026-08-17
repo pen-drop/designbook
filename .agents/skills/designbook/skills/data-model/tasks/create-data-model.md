@@ -110,7 +110,10 @@ content:
 Each view mode declares a `template` that determines how the entity is mapped to components. Read available templates from `entity_mapping.templates` in `designbook.config.yml` — each has a `description` to explain its purpose.
 
 Common templates:
-- `field-map` — structured field mapping, entity fields drive component selection
+- `field-map` — structured field mapping, entity fields drive component selection (a declarative template: the presentation is display config)
+- `presenter` — a presenter-template: generated backend-native presentation markup for a mode whose presentation the display config cannot express
+
+Each mode is a declarative template or a presenter-template, decided deterministically — never per-case.
 
 During the dialog, present available templates with descriptions and ask the author which template applies to each view mode.
 

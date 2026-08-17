@@ -40,6 +40,10 @@ result:
       type: array
       items:
         $ref: ../schemas.yml#/Screenshot
+    reference_overviews:
+      type: array
+      items:
+        $ref: ../schemas.yml#/Overview
 ---
 
 # Extract Reference
@@ -50,13 +54,22 @@ Resolves a design reference URL from `vision.yml`, extracts structure into a `De
 
 Run `_debo extract <reference-url> --out {{ reference_dir }} [--breakpoints sm,xl] [--fonts <families>]` first — one browser pass that writes an `extract.json` skeleton (landmarks, interactive elements, forms, images/assets, fonts, colors) plus the raw `captured.json`. Then fill the judgment gaps below against that skeleton: the command supplies the mechanics; deciding what matters and what is thin is the model work that stays in this task. Per the `playwright-capture` context-hygiene rule, query `captured.json`/`extract.json` with `jq` — never paste the raw dumps into the conversation.
 
+## Capture the reference baseline
+
+Once `meta.yml` is written (see below), capture the reference PNGs into `{{ reference_dir }}` so a rendered baseline exists immediately — downstream `ensure-baseline` then only verifies them:
+
+1. **Baseline matrix** — `_debo capture matrix {{ reference_dir }}/meta.yml --url <reference-url> --out {{ reference_dir }}`: one browser pass that expands every element × state × breakpoint from `meta.yml`, reuses frozen PNGs, and names each `<breakpoint>--<element>--<state>.png`.
+2. **Mobile + desktop overview** — always capture one full-page overview at the narrowest and one at the widest defined breakpoint, so the reference carries a human-facing at-a-glance view even when no `full` element is defined. Resolve the two pixel widths through the breakpoint→width mapping (token widths in `design-tokens.yml` win over Tailwind defaults) and run `_debo capture screenshot --url <reference-url> --out {{ reference_dir }}/overview--<viewport>--<bp>.png --width <px> --full-page` for `<viewport>` ∈ {`mobile`, `desktop`}. When a `full`/empty-selector element already covers those breakpoints in the matrix, that matrix capture doubles as the overview — reuse it under the `overview--<viewport>--<bp>.png` name rather than capturing twice.
+
+With `--refresh-reference`, delete all `*.png` files in `{{ reference_dir }}/` before this capture so every baseline (matrix and overview) is re-captured fresh; `extract.json` and `meta.yml` are still regenerated.
+
 ## No reference
 
 When `reference_folder` is empty (the project has no design reference), there is nothing to extract. Complete the task with `reference_dir: ""`, do not submit `reference`, and return an empty `reference_screenshots` list — no extraction, no asset download, no files written. Downstream stages run reference-free.
 
 ## Stable baseline — reuse or accumulate
 
-When `{{ reference_dir }}/meta.yml` already exists and `--refresh-reference` is not set, load the existing `Reference` from `meta.yml` and reconstruct `reference_screenshots` from it — no re-extraction needed. Any baseline PNG that already exists alongside `meta.yml` is frozen and will be reused by `ensure-baseline` without re-capturing. With `--refresh-reference`, delete all `*.png` files in `{{ reference_dir }}/` before proceeding so every baseline is re-captured fresh; `extract.json` and `meta.yml` are still regenerated.
+When `{{ reference_dir }}/meta.yml` already exists and `--refresh-reference` is not set, load the existing `Reference` from `meta.yml` and reconstruct `reference_screenshots` from it — no re-extraction needed. Any baseline PNG (matrix or overview) that already exists alongside `meta.yml` is frozen and will be reused without re-capturing. The `--refresh-reference` refresh semantics are governed by the capture section above.
 
 If `{{ reference_dir }}/extract.json` already exists (and neither `meta.yml` is missing nor `--refresh-reference` is set), return results from it without re-extracting.
 
@@ -91,6 +104,10 @@ Materialize `reference_screenshots` as the full element × state × breakpoint m
 ```
 
 `ensure-baseline` receives this list via its `each` expansion and captures any PNG that does not yet exist beside `meta.yml`.
+
+## Result: reference_overviews
+
+Materialize `reference_overviews` as exactly the two full-page overviews captured above — one `mobile` (narrowest defined breakpoint) and one `desktop` (widest). Each carries its `viewport` and the resolved `breakpoint`; the on-disk PNG is `overview--<viewport>--<breakpoint>.png` beside `meta.yml`. They are the human-facing at-a-glance shots the reference surfaces downstream, distinct from the `reference_screenshots` compare matrix. When there is no reference (see above), this list is empty.
 
 ## Completeness Requirements
 

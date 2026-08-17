@@ -5,4 +5,4 @@
  * so this module is safe to import in vitest browser environments without
  * triggering CJS/ESM conflicts from storybook's internal dependencies.
  */
-export { renderComponent } from './renderer/renderer';
+export { renderComponent, attachDrupalBehaviors } from './renderer/renderer';

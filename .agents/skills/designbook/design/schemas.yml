@@ -88,6 +88,25 @@ Screenshot: &Screenshot
         side uses the Reference element's selector, story side uses the StoryMeta
         element's selector — context (which meta) disambiguates.
 
+Overview: &Overview
+  type: object
+  title: Overview
+  description: >
+    Full-page reference overview at one viewport — a human-facing at-a-glance
+    capture of the whole reference, distinct from the element compare matrix
+    (`Screenshot`) and never a compare cell. The on-disk filename is derived:
+    `overview--<viewport>--<breakpoint>.png`. Two are captured per reference: the
+    narrowest defined breakpoint (mobile) and the widest (desktop).
+  required: [viewport, breakpoint]
+  properties:
+    viewport:
+      type: string
+      enum: [mobile, desktop]
+      description: >
+        `mobile` = narrowest defined breakpoint, `desktop` = widest defined
+        breakpoint. Names the human-facing viewport, not the capture area.
+    breakpoint: *BreakpointId
+
 Element: &Element
   type: object
   title: Element
@@ -105,7 +124,7 @@ Element: &Element
       description: >
         Optional selector for the reference (baseline) side when it differs from
         the candidate `selector`. Used when the two sides isolate the same subject
-        with different selectors — e.g. config-verify, where `selector` isolates
+        with different selectors — e.g. sync-verify, where `selector` isolates
         the subject in the backend render and `reference_selector` isolates the
         Storybook story root. Defaults to `selector` when omitted.
     states:
@@ -256,13 +275,29 @@ ScoreReport:
       description: LLM tokens summed across the capture + fix subagents. Best-effort.
       properties: { input: { type: integer }, output: { type: integer } }
 
+Kind:
+  type: string
+  title: Kind
+  description: >
+    The top-level render kind a `sync-verify` (and, by story input, a `sync-to`) run
+    dispatches on, inferred from the story's Storybook group. `config` is an isolated
+    single render (an `Entities/*` story) — within it a `selector`'s presence chooses the
+    config-entity vs entity-view-mapping sub-mode. `scene` is a whole page (a
+    `Designbook/Sections/*/Scenes` or `Designbook/Design System` story), captured full-page
+    against the Scene's story. This binary is the single dispatch axis shared by both
+    workflows. The Scene verification subject lives **here** — as the `scene` value of this
+    enum — not in `#/ConfigType`, which stays scoped to the `config` branch.
+  enum: [config, scene]
+  examples: [config, scene]
+
 ConfigType:
   type: string
   title: Config Type
   description: >
-    The kind of backend config that drives a config-verify run. v1 supports only
-    `entity_view_display`; the dispatch stays open so further config-types can be
-    added later without reworking the workflow (YAGNI).
+    The kind of backend config subject on the `config` branch of a sync-verify run.
+    `entity_view_display` is one display config verified against an isolated entity render.
+    Not the dispatch axis — the top-level kind (`#/Kind`) is; this only names the config
+    object type inside the `config` branch.
   enum: [entity_view_display]
   examples: [entity_view_display]
 
@@ -270,8 +305,8 @@ ConfigTarget:
   type: object
   title: Config Target
   description: >
-    The resolved subject of a config-verify run — the backend config plus the two
-    values derived from it: the Storybook story it maps to (the reference/baseline)
+    The resolved subject of a `config`-kind sync-verify run — the backend config plus the
+    two values derived from it: the Storybook story it maps to (the reference/baseline)
     and the backend render URL (the candidate). Backend-neutral: `config_id` is an
     opaque backend identifier; how it maps to a story and a URL is supplied
     per-config-type (core) and per-backend (integration), never hardcoded here.
@@ -282,7 +317,7 @@ ConfigTarget:
     config_id:
       type: string
       description: >
-        Opaque backend config identifier for this config_type. For
+        Opaque backend subject identifier for this config_type. For
         `entity_view_display` this is the view-display id,
         `<entity_type>.<bundle>.<view_mode>`.
       examples: ["node.article.default", "paragraph.signage.full"]

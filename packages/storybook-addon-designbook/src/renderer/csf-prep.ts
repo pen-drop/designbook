@@ -43,6 +43,12 @@ export interface CsfPrepOptions {
    * Default: alias is used directly (assumes the module already implements ComponentModule).
    */
   wrapImport?: (alias: string) => string;
+  /**
+   * Optional sibling-JS resolver: component ID → absolute `<name>.js` path (or null).
+   * When it returns a path, a side-effect `import '<path>';` is emitted so the
+   * component's Drupal behavior is registered in the generated story's runtime.
+   */
+  resolveScriptPath?: (componentId: string) => string | null;
 }
 
 // ── Import tracking ────────────────────────────────────────────────────
@@ -72,34 +78,36 @@ export function collectComponentIds(nodes: ComponentNode[], seen = new Set<strin
 
 // ── Module generation ─────────────────────────────────────────────────
 
-export function buildCsfModule(opts: CsfPrepOptions): string {
-  const { group, source, scenes, resolveImportPath, wrapImport } = opts;
-
-  // Collect all component IDs across all scenes
-  const allIds = new Set<string>();
-  for (const scene of scenes) {
-    collectComponentIds(scene.nodes, allIds);
-  }
-
-  // Build import statements and __imports map
-  const importLines: string[] = ["import { renderComponent } from 'storybook-addon-designbook/renderer';"];
+/**
+ * Shared import + __imports emission for both generated story kinds.
+ *
+ * For each distinct component ID: emit the module import (markup) and, when a
+ * sibling `<name>.js` resolves, a side-effect `import '<path>';` (behavior).
+ * Built-in `designbook:*` components render inline; unresolved ones emit a
+ * warning stub. Deduped by the caller's `allIds` Set (once per component).
+ */
+function emitComponentImports(
+  allIds: Iterable<string>,
+  resolveImportPath: (componentId: string) => string | null,
+  resolveScriptPath: ((componentId: string) => string | null) | undefined,
+  wrapImport: ((alias: string) => string) | undefined,
+): { importLines: string[]; importsMapEntries: string[] } {
+  const importLines: string[] = [];
   const importsMapEntries: string[] = [];
-
   for (const componentId of allIds) {
     // Built-in components: emit inline render function, no external import
     if (componentId.startsWith('designbook:') && builtInComponents[componentId]) {
-      const renderFn = builtInComponents[componentId].render.toString();
-      importsMapEntries.push(`  '${componentId}': { render: ${renderFn} },`);
+      importsMapEntries.push(`  '${componentId}': { render: ${builtInComponents[componentId].render.toString()} },`);
       continue;
     }
-
     const alias = toAlias(componentId);
     const importPath = resolveImportPath(componentId);
-
     if (importPath) {
       importLines.push(`import * as ${alias} from '${importPath}';`);
-      const mapValue = wrapImport ? wrapImport(alias) : alias;
-      importsMapEntries.push(`  '${componentId}': ${mapValue},`);
+      // Sibling <name>.js: side-effect import registers the component's Drupal behavior.
+      const scriptPath = resolveScriptPath?.(componentId);
+      if (scriptPath) importLines.push(`import '${scriptPath}';`);
+      importsMapEntries.push(`  '${componentId}': ${wrapImport ? wrapImport(alias) : alias},`);
     } else {
       console.warn(`[Designbook] Cannot resolve import path for component: ${componentId}`);
       // Stub goes directly into __imports without wrapImport — avoids alias.default crash
@@ -108,6 +116,29 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
       );
     }
   }
+  return { importLines, importsMapEntries };
+}
+
+export function buildCsfModule(opts: CsfPrepOptions): string {
+  const { group, source, scenes, resolveImportPath, wrapImport, resolveScriptPath } = opts;
+
+  // Collect all component IDs across all scenes
+  const allIds = new Set<string>();
+  for (const scene of scenes) {
+    collectComponentIds(scene.nodes, allIds);
+  }
+
+  // Build import statements and __imports map
+  const { importLines: componentImportLines, importsMapEntries } = emitComponentImports(
+    allIds,
+    resolveImportPath,
+    resolveScriptPath,
+    wrapImport,
+  );
+  const importLines: string[] = [
+    "import { renderComponent, attachDrupalBehaviors } from 'storybook-addon-designbook/renderer';",
+    ...componentImportLines,
+  ];
 
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
 
@@ -154,6 +185,7 @@ export function buildCsfModule(opts: CsfPrepOptions): string {
       `    __scene: ${nodesJson},`,
       '  },',
       '  render: (args) => renderComponent(args.__scene, __imports),',
+      '  play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),',
       '};',
     ].join('\n');
   });
@@ -199,6 +231,11 @@ export interface EntityCsfOptions {
   formMappingBasename?: (fm: string) => string;
   resolveImportPath: (componentId: string) => string | null;
   wrapImport?: (alias: string) => string;
+  /**
+   * Optional sibling-JS resolver: component ID → absolute `<name>.js` path (or null).
+   * When set, a side-effect `import '<path>';` registers the component's Drupal behavior.
+   */
+  resolveScriptPath?: (componentId: string) => string | null;
   /** Extra story tags appended to the default-export `['autodocs']` (e.g. `['config']`). */
   extraTags?: string[];
 }
@@ -256,6 +293,7 @@ function emitEntityStory(params: {
     `  argTypes: { record: { name: 'record', control: { type: 'select' }, options: [${options.join(', ')}] } },`,
     `  args: { record: 0, __records: ${recordsJson} },`,
     '  render: (args) => renderComponent(args.__records[args.record], __imports),',
+    '  play: (ctx) => attachDrupalBehaviors(ctx.canvasElement),',
     '};',
   );
   return lines.join('\n');
@@ -275,24 +313,16 @@ export function buildEntityCsfModule(opts: EntityCsfOptions): string {
     for (const nodes of fm.recordsNodes) collectComponentIds(nodes, allIds);
   }
 
-  const importLines: string[] = ["import { renderComponent } from 'storybook-addon-designbook/renderer';"];
-  const importsMapEntries: string[] = [];
-  for (const componentId of allIds) {
-    if (componentId.startsWith('designbook:') && builtInComponents[componentId]) {
-      importsMapEntries.push(`  '${componentId}': { render: ${builtInComponents[componentId].render.toString()} },`);
-      continue;
-    }
-    const alias = toAlias(componentId);
-    const importPath = resolveImportPath(componentId);
-    if (importPath) {
-      importLines.push(`import * as ${alias} from '${importPath}';`);
-      importsMapEntries.push(`  '${componentId}': ${wrapImport ? wrapImport(alias) : alias},`);
-    } else {
-      importsMapEntries.push(
-        `  '${componentId}': { render: (_p, _s) => { console.warn('[Designbook] Missing component: ${componentId}'); return ''; } },`,
-      );
-    }
-  }
+  const { importLines: componentImportLines, importsMapEntries } = emitComponentImports(
+    allIds,
+    resolveImportPath,
+    opts.resolveScriptPath,
+    wrapImport,
+  );
+  const importLines: string[] = [
+    "import { renderComponent, attachDrupalBehaviors } from 'storybook-addon-designbook/renderer';",
+    ...componentImportLines,
+  ];
   const importsMap = `const __imports = {\n${importsMapEntries.join('\n')}\n};`;
 
   // `entity` parameter mirrors the scene module's `scene` param — it marks the

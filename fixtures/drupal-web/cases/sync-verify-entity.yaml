@@ -1,0 +1,91 @@
+# sync-verify recaptures the LIVE Storybook reference on every run (DESIGNBOOK-9).
+#
+# sync-verify treats the Storybook render as the reference. That render is live, not a
+# frozen design, so the reference baseline PNG must reflect the CURRENT Storybook render on
+# every run — never a stale snapshot from an earlier run. This case runs sync-verify twice
+# with a visible change to the mapped Storybook component in between and asserts the run-2
+# reference PNG differs from run-1 (proves ensure-baseline-live recaptured, did not reuse).
+#
+# Backend-render side is held constant (see config-overrides/sync-verify-entity.yml): renderUrlCommand
+# echoes the same Storybook story iframe the reference resolves to, so `compare` finds no
+# deviation, triage-config emits an empty issues array, polish-config expands to zero fix passes
+# (no drush / no live Drupal needed), and the workflow reaches `completed`. The surface this
+# ticket changes is reference-side recapture, which this case exercises directly.
+config: sync-verify-entity.yml
+
+fixtures:
+  - vision
+  - data-model
+  - tokens
+  - css-generate
+  - design-entity
+
+prompt: |
+  You are working in the directory {{workspace}}.
+  This is a two-run scenario. Execute it exactly; do NOT ask any questions. If a step asks you
+  to choose a breakpoint, pick the largest available one, and use it consistently in both runs.
+
+  Subject: story `paragraph.signage.full` (kind config) — the
+  "Entities/paragraph/Signage › full" story. Compare ONE element:
+    id "entity-paragraph-signage-full", selector "" (the story is the isolated signage
+    component on the backend/candidate side), reference_selector "" (same isolated story on
+    the Storybook/reference side).
+
+  RUN 1:
+  1. Run the "/debo sync-verify paragraph.signage.full" workflow to completion.
+  2. Locate the recaptured reference baseline PNG for the largest breakpoint:
+     designbook/references/<hash>/<bp>--entity-paragraph-signage-full--rest.png
+     (glob designbook/references/*/*--entity-paragraph-signage-full--rest.png). Record its
+     sha256 (run `sha256sum` on it) and copy the file aside to
+     designbook/sync-verify-run1-reference.png so run 2 cannot overwrite your evidence.
+  3. Record run-1 workflow status from: npx storybook-addon-designbook workflow summary --workflow <id> --json
+
+  MUTATE THE REFERENCE (the mapped Storybook component):
+  4. Edit components/signage/signage.twig to make a clearly VISIBLE rendering change — e.g.
+     add a visible background utility class to the outer <section> (such as adding
+     "bg-red-500 min-h-96" to its class list) so the recaptured reference render visibly
+     differs. Save the file.
+  5. Restart Storybook so the change is served: npx storybook-addon-designbook storybook start --force
+     Wait for readiness (npx storybook-addon-designbook storybook status shows a url).
+
+  RUN 2:
+  6. Run the "/debo sync-verify paragraph.signage.full" workflow again to completion.
+  7. Record run-2 workflow status (workflow summary --json).
+  8. Compute the sha256 of the NEW reference baseline PNG at the same
+     designbook/references/<hash>/<bp>--entity-paragraph-signage-full--rest.png path.
+
+  WRITE THE EVIDENCE MARKER (deterministic, machine-checkable):
+  9. Write the file designbook/sync-verify-recapture.yml with EXACTLY these keys and the
+     real recorded values (no placeholders):
+       run1_status: <completed|failed>      # run-1 sync-verify workflow status
+       run2_status: <completed|failed>      # run-2 sync-verify workflow status
+       run1_reference_sha: "<sha256 of the run-1 reference PNG>"
+       run2_reference_sha: "<sha256 of the run-2 reference PNG>"
+       reference_recaptured: <true|false>   # true iff run2_reference_sha != run1_reference_sha
+  Execute the workflow now.
+
+assert:
+  # Both sync-verify runs completed (statuses captured per-run in the evidence marker).
+  - type: javascript
+    value: output.fileContents['designbook/sync-verify-recapture.yml']?.run1_status === 'completed'
+  - type: javascript
+    value: output.fileContents['designbook/sync-verify-recapture.yml']?.run2_status === 'completed'
+  # AC-1/AC-2: the run-2 reference baseline was RECAPTURED (differs from run-1), not reused stale.
+  # The authoritative check is TESTER-computed — the harness hashes the two reference PNGs itself
+  # (output.fileHashes, sha256 of the file bytes) rather than trusting the agent-authored marker.
+  # The evidence marker's own sha fields are kept only as human-readable corroboration.
+  # (a) the run-1 reference copy the agent archived aside is present and was hashed by the harness:
+  - type: javascript
+    value: typeof output.fileHashes?.['designbook/sync-verify-run1-reference.png'] === 'string'
+  # (b) a run-2 reference PNG exists and its harness-computed hash DIFFERS from the run-1 copy:
+  - type: javascript
+    value: |
+      const run1 = output.fileHashes?.['designbook/sync-verify-run1-reference.png'];
+      const run2Path = output.newFiles.find(p => /designbook\/references\/.*--entity-paragraph-signage-full--rest\.png$/.test(p));
+      const run2 = run2Path ? output.fileHashes?.[run2Path] : undefined;
+      return typeof run1 === 'string' && typeof run2 === 'string' && run1 !== run2;
+  # The last sync-verify run archived cleanly and nothing was left pending.
+  - type: javascript
+    value: output.archivedWorkflows['sync-verify']?.status === 'completed'
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0

@@ -6,21 +6,12 @@ trigger:
   domain: data-model
 filter:
   backend: drupal
-extends:
-  DataModel:
-    properties:
-      config:
-        properties:
-          block_plugin:
-            type: object
-            additionalProperties:
-              $ref: ../schemas.yml#/BlockPlugin
 suggests:
   component_by_family:
     description: >
-      Soft per-family starting component for a block_plugin entry. The schema keeps
-      `component` required, so the explicit entry always wins over these hints — they
-      are a discovery signal only, never merged into validation.
+      Soft per-family starting component for a block_plugin entry. These are a
+      discovery signal only — never merged into validation; an explicit `component`
+      on the entry always wins over the hint.
     properties:
       views_block:
         default: block
@@ -52,21 +43,24 @@ entity_type: block_plugin
 section: config
 ```
 
-The static per-entry shape — the `plugin` ID form, the render `component`, the render
-`layout`, and the providing `module` — is the hard contract carried by the `BlockPlugin`
-type in this directory's `schemas.yml`, injected into `config.block_plugin` by this
-blueprint's `extends:`. Author entries against that type; this body describes only the
-surrounding intent, export behaviour, the authoring-time vs. runtime split, dependencies,
-and non-goals.
+A `block_plugin` entry is an **open config entry** — exactly like every other config
+type (`view`, `canvas_page`, `block_content`, `media`), it carries **no** authoring-time
+schema and no enforced per-entry shape; `config.block_plugin` falls back to the core
+config model's open `additionalProperties: true`, accepting arbitrary keys per type. An
+entry typically names the block `plugin` ID and the render `component`, and may carry a
+render `layout` or a providing `module` — but none of these is a hard contract checked
+here. This body describes only the surrounding intent, export behaviour, the
+authoring-time vs. runtime split, dependencies, and non-goals.
 
 ## Authoring-time vs. runtime
 
 The Drupal block-plugin space is open, and Drupal resolves each block's `settings` schema
-dynamically per plugin (`block.settings.[%parent.plugin]`). What can be checked while
-authoring — without a site — is only the *shape* of an entry; its plugin-specific
-`settings` stay free-form here. Everything that needs the actual Drupal install is
-deferred to when the modelled config is exported and applied to a live target (the
-`config-verify` round-trip), where Drupal's own config schema resolves:
+dynamically per plugin (`block.settings.[%parent.plugin]`). Nothing about an entry is
+enforced while authoring — without a site there is no schema to check a `block_plugin`
+entry against, so the whole entry (including its plugin-specific `settings`) stays
+free-form here. Everything that needs the actual Drupal install is deferred to when the
+modelled config is exported and applied to a live target (the `sync-verify` round-trip),
+where Drupal's own config schema resolves:
 
 - whether the named `plugin` actually exists on the target,
 - whether `settings` matches Drupal's real `block.settings.<plugin>`,
@@ -77,10 +71,11 @@ would reject every legitimate contrib/custom plugin and drift from the installed
 
 ## Render component
 
-Every entry names the SDC that renders the block. The `component_by_family` suggestions
-in this blueprint's frontmatter offer a per-family starting point for discovery, but the
-entry must still name its own component and that explicit choice always wins — there is
-no hidden plugin-to-component lookup at export time.
+An entry typically names the SDC that renders the block. The `component_by_family`
+suggestions in this blueprint's frontmatter offer a per-family starting point for
+discovery, but they are a soft signal only — never merged into validation. An explicit
+`component` on the entry always wins, and there is no hidden plugin-to-component lookup at
+export time.
 
 ## Drupal Config Export Pattern
 
@@ -103,7 +98,7 @@ is exported twice.
   flag is never re-modelled on the block entry.
 - **Providing module.** A core-provided plugin (e.g. views, user, block_content, system)
   needs no module entry. A block from a non-core provider must name its providing `module`;
-  a non-core plugin left without one is a `config-verify` failure, not a silently empty block.
+  a non-core plugin left without one is a `sync-verify` failure, not a silently empty block.
 
 ## Content blocks as plugins
 

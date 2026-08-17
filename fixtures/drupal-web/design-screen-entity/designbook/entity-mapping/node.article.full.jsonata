@@ -1,0 +1,16 @@
+/* node.article (full) → test_integration_drupal:card
+ * Route-bearing editorial article main content.
+ * Input: one record from data/node.article.yml
+ * Output: SceneNode[]
+ */
+[
+  {
+    "component": "test_integration_drupal:card",
+    "props": {
+      "title": title
+    },
+    "slots": {
+      "content": field_body
+    }
+  }
+]

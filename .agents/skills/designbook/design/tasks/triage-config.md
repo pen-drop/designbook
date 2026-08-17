@@ -3,7 +3,7 @@ name: designbook:design:triage-config
 title: "Triage Config: {{ story_id }}"
 trigger:
   steps: [triage-config]
-domain: [config-verify]
+domain: [sync-verify]
 priority: 10
 params:
   type: object
@@ -27,19 +27,21 @@ result:
 
 # Triage Config
 
-Config-verify triage: reads all draft issues from the compare stage, consolidates duplicates
+Sync-verify triage: reads all draft issues from the compare stage, consolidates duplicates
 and overlapping issues, rewrites descriptions as work instructions, and passes the
 consolidated `issues` array as workflow params for the polish stage.
 
 This is design-verify's triage with the fix axis flipped. The candidate is the **backend
-render**; the reference is the frozen **Storybook render**. Every consolidated issue names the
-**backend config** as its fix surface, so the single `polish-config` pass adjusts the config
-that produced the render — never the reference component.
+render**; the reference is the live **Storybook render**. Every consolidated issue names the
+**backend config** (the display config for a `config` kind; the synced page's block/layout/
+`page_layout` config for a `scene` kind — a Scene's content lives inline in that config) as its
+fix surface, so the single `polish-config` pass adjusts what produced the render — never the
+reference component.
 
 > ⛔ The Storybook component, scene, and story are the **reference**. Never name a
 > component/scene/story file as an issue's fix surface — the only fix surface is the backend
-> config. The loaded config-type and backend-integration rules define which config surface maps
-> to the rendered subject.
+> config. The loaded subject-mapping and backend-integration rules define which backend
+> surface maps to the rendered subject.
 
 ## Step 1: Read All Draft Issues
 

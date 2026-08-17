@@ -1,20 +1,40 @@
 import { describe, it, expect } from 'vitest';
 import type { ResolverContext } from '../types.js';
-import { resolveConfigSyncDir, configSyncDirResolver } from '../config-sync-dir.js';
+import { resolveConfigSyncDir, configSyncDirResolver, deriveDocrootFromConfig } from '../config-sync-dir.js';
+import type { DesignbookConfig } from '../../config.js';
 
-function makeContext(): ResolverContext {
-  return { config: {} as ResolverContext['config'], params: {} };
+function makeContext(config: Partial<DesignbookConfig> = {}, params: Record<string, unknown> = {}): ResolverContext {
+  return { config: config as DesignbookConfig, params };
 }
 
 describe('resolveConfigSyncDir', () => {
-  it('returns settings $config_directories[sync] resolved against docroot', () => {
+  it('returns settings syncRelative resolved against docroot', () => {
     const dir = resolveConfigSyncDir({ docroot: '/srv/app/web', syncRelative: '../config/sync' });
     expect(dir).toBe('/srv/app/config/sync');
   });
 
-  it('falls back to <docroot>/sites/default/files/config_*/sync when unset', () => {
+  it('falls back to <docroot>/sites/default/files/sync when unset', () => {
     const dir = resolveConfigSyncDir({ docroot: '/srv/app/web', syncRelative: null });
-    expect(dir).toMatch(/\/sites\/default\/.*\/sync$/);
+    expect(dir).toBe('/srv/app/web/sites/default/files/sync');
+  });
+});
+
+describe('deriveDocrootFromConfig', () => {
+  it('uses workspace/web when workspace is set', () => {
+    // resolve() is absolute; we only assert the path shape ends with /web
+    const docroot = deriveDocrootFromConfig({
+      workspace: '/tmp/ws-example',
+      data: '/tmp/ws-example/web/themes/custom/t/designbook',
+    });
+    expect(docroot).toMatch(/\/web$/);
+  });
+
+  it('extracts …/web from designbook.home theme path', () => {
+    const docroot = deriveDocrootFromConfig({
+      'designbook.home': '/proj/web/themes/custom/test_integration_drupal',
+      data: '/proj/web/themes/custom/test_integration_drupal/designbook',
+    });
+    expect(docroot).toBe('/proj/web');
   });
 });
 
@@ -26,22 +46,18 @@ describe('configSyncDirResolver.resolve', () => {
     expect(first.resolved).toBe(true);
     expect(first.value).toBe(absolutePath);
 
-    // The engine re-runs the resolver on every stage transition, seeding
-    // `input` from the param's current value — which, on reruns, is this
-    // resolver's own previous output. A second (or Nth) run must not append
-    // the sync-dir suffix again.
     const second = await configSyncDirResolver.resolve(String(first.value), {}, makeContext());
     expect(second.resolved).toBe(true);
     expect(second.value).toBe(absolutePath);
   });
 
   it('returns an absolute input unchanged, even with no config at all', async () => {
-    const absolutePath = '/srv/app/web/sites/default/files/config_default/sync';
+    const absolutePath = '/srv/app/web/sites/default/files/sync';
     const result = await configSyncDirResolver.resolve(absolutePath, {}, makeContext());
     expect(result).toEqual({ resolved: true, value: absolutePath, input: absolutePath });
   });
 
-  it('still computes from docroot when input is not already absolute', async () => {
+  it('still computes from declaration docroot when input is not absolute', async () => {
     const result = await configSyncDirResolver.resolve(
       'some-non-absolute-input',
       {
@@ -52,5 +68,24 @@ describe('configSyncDirResolver.resolve', () => {
     );
     expect(result.resolved).toBe(true);
     expect(result.value).toBe('/srv/app/config/sync');
+  });
+
+  it('produces path from designbook.home without declaration docroot', async () => {
+    const result = await configSyncDirResolver.resolve(
+      '',
+      {},
+      makeContext({
+        'designbook.home': '/proj/web/themes/custom/test_integration_drupal',
+        data: '/proj/web/themes/custom/test_integration_drupal/designbook',
+      }),
+    );
+    expect(result.resolved).toBe(true);
+    expect(result.value).toBe('/proj/web/sites/default/files/sync');
+  });
+
+  it('fails clearly when docroot cannot be derived', async () => {
+    const result = await configSyncDirResolver.resolve('', {}, makeContext({}));
+    expect(result.resolved).toBe(false);
+    expect(result.error).toMatch(/could not derive Drupal docroot/);
   });
 });

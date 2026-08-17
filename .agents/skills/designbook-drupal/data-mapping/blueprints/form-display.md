@@ -29,16 +29,20 @@ For a bundle's `form_modes`, `sync-to`'s resolve-filter emits up to two config n
   form modes (the `default` mode is built in). This blueprint's display references that mode; the
   definition unit is authored from its own name and `label` and must import before the display.
 
-## Scope — the display binding, not the widget layout
+## Scope — the display binding, not the form presentation
 
 This blueprint authors the **existence and binding** of a form display for a form mode, not its per-field
-widget layout. Author the identity keys — `uuid`, `langcode: en`, `status: true`,
-`id: <et>.<bundle>.<form_mode>`, `targetEntityType: <et>`, `bundle: <bundle>`, `mode: <form_mode>` — and
-leave `content` and `hidden` empty: Drupal assigns each field its default widget at runtime, so an empty
-form display imports cleanly and stays out of the field-selection / widget-configuration semantics that
-are out of scope. Which component renders the form is a theme-layer concern (the form mode's `template`
-maps to the form SDC there), not a member of this config. Drupal computes `dependencies` at import; do
-not hand-author the full dependency graph.
+widget layout and not the form's presentation. Author the identity keys — `uuid`, `langcode: en`,
+`status: true`, `id: <et>.<bundle>.<form_mode>`, `targetEntityType: <et>`, `bundle: <bundle>`,
+`mode: <form_mode>` — and leave `content` and `hidden` empty: Drupal assigns each field its default widget
+at runtime, so an empty form display imports cleanly and stays out of the field-selection /
+widget-configuration semantics that are out of scope. Drupal computes `dependencies` at import; do not
+hand-author the full dependency graph.
+
+A form is a theme-methods-only surface, so its **presentation runs through a presenter-template**
+(`template: presenter` on the form mode), generated as Twig theme markup — not authored here. This
+config is only the minimal binding; hand-authoring form presentation into `core.entity_form_display.*`
+is no longer the prescribed path.
 
 ## Reference shape (generic)
 

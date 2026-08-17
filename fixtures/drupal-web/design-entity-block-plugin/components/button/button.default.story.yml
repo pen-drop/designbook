@@ -1,0 +1,8 @@
+component: test_integration_drupal:button
+name: Default
+variant: primary
+props:
+  url: /de/registrieren
+  size: lg
+slots:
+  label: Jetzt registrieren

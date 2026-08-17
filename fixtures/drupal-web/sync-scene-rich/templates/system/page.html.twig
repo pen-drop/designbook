@@ -1,0 +1,15 @@
+{#
+  Minimal page template for the sync-verify-scene case. The base fixture theme's
+  own page/breadcrumb/status-messages/menu--footer templates hard-include
+  `ui_suite_daisyui:*` SDC components, which this fixture does not provision — that
+  500s every rendered page. These minimal overrides render the regions so a synced
+  Layout Builder node page returns HTTP 200 for sync-verify (kind: scene).
+#}
+<div class="layout-container">
+  <header role="banner">{{ page.header }}</header>
+  <main role="main">
+    <a id="main-content" tabindex="-1"></a>
+    {{ page.content }}
+  </main>
+  {% if page.sidebar %}<aside>{{ page.sidebar }}</aside>{% endif %}
+</div>

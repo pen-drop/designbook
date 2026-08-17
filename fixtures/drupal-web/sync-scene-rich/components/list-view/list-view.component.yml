@@ -1,0 +1,24 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: List View
+status: experimental
+group: Data Display
+description: >
+  View-listing wrapper — renders enumerated row-bundle records in a rows slot. This is the SDC a
+  view's `template: list-view` names: the UI-Patterns row-style target the view binds its rows to
+  (the declarative half of a view; its pager/exposed-filter wrapper is the theme-methods-only
+  presenter-template).
+provider: test_integration_drupal
+thirdPartySettings:
+  sdcStorybook:
+    disableBasicStory: true
+slots:
+  rows:
+    title: Rows
+    description: The listed rows — each an SDC render of one row-bundle record in its listed view-mode.
+props:
+  type: object
+  properties:
+    title:
+      title: Title
+      type: string
+      description: Optional listing heading.

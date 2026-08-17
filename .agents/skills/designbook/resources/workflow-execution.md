@@ -206,11 +206,15 @@ File results declared in `result:` frontmatter MUST be submitted via `workflow d
 
 Results are validated against `schema.definitions` (base + blueprint extensions + rule constraints). JSON Schema first, then semantic validators listed under `validators:`. If `valid: false`, the response lists errors; fix and resubmit via `workflow done` or `workflow result`.
 
+The definition map every `workflow done` validates against is generated **once**, at `workflow create`, over **every** step of the workflow — the full result-key composition, the definition-level enum-union (below), and all `$ref`-collected definitions — and persisted as **`schema.yml`** beside `tasks.yml`. This is the single validation source: there is no first-task-only snapshot and no per-stage-transition re-merge. It is safe to generate the whole map up front because a workflow's schema shape is the **static full picture** — every step's task, rules, and blueprints are known at create from step name + config + domain, never from runtime data. A runtime stage expansion (e.g. a scene branch → N config units) instantiates N copies of an already-known fixed shape; it introduces no new type, so the one `schema.yml` covers every later unit.
+
+A loaded skill can **widen a closed enum** on those definitions from its own rule/blueprint `extends:` frontmatter (additive union — the mirror of `constrains:`), including an enum on a shared definition reached only through a nested `$ref` (keyed by the definition name). The union is folded into `schema.yml` at create, so it is already in force when the step that carries the value runs.
+
 ### tasks.yml runtime format
 
 You generally don't read `tasks.yml` directly, but when debugging you'll see:
 
-**Top-level fields:** `title`, `workflow` (workflow ID), `status`, `parent` (optional — parent workflow name), `stages` (list of stage names), `tasks` (list of task entries with `id`, `stage`, `status`, `params`, `task_file`, `rules`, `blueprints`, `result`).
+**Top-level fields:** `title`, `workflow` (workflow ID), `status`, `parent` (optional — parent workflow name), `stages` (list of stage names), `tasks` (list of task entries with `id`, `stage`, `status`, `params`, `task_file`, `rules`, `blueprints`, `result`). The validation definition map is **not** inline here — it lives in the sibling **`schema.yml`** (generated once at create, see *Validation* above).
 
 **Workflow-level status:** `running`, `waiting`, `completed`, `incomplete`.
 

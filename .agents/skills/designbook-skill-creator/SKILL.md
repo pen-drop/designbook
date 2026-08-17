@@ -70,6 +70,11 @@ Each rule file contains narrative + correct/wrong examples (authoring guidance) 
 `## Checks` table (validation source of truth). The same files are loaded by the
 validator runner — see [resources/validate.md](resources/validate.md).
 
+On top of the structural rules above, [rules/writing-files.md](rules/writing-files.md) governs the
+**writing layer** — context pointers, the two loads, information hierarchy, completion criteria,
+and pruning — for every agent-read document, including `SKILL.md` descriptions and the always-loaded
+`CLAUDE.md`. Load it before writing any such prose (`WRITE-01` .. `WRITE-04`).
+
 ## Schema Reference
 
 See [`resources/schemas.md`](resources/schemas.md) for `schemas.yml` format, `$ref` syntax, and result conventions.

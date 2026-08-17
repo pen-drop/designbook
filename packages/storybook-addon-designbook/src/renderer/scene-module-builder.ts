@@ -60,6 +60,17 @@ export function defaultSdcResolver(componentId: string, designbookDir: string): 
   return null;
 }
 
+/**
+ * Default sibling-JS resolver for SDC components: the co-located `<name>.js`
+ * next to the resolved `.component.yml`. Returns null when absent.
+ */
+export function defaultSdcScriptResolver(componentId: string, designbookDir: string): string | null {
+  const componentYml = defaultSdcResolver(componentId, designbookDir);
+  if (!componentYml) return null;
+  const js = componentYml.replace(/\.component\.yml$/, '.js');
+  return existsSync(js) ? js : null;
+}
+
 // ── Data loading ────────────────────────────────────────────────────────
 
 export function loadDataModel(designbookDir: string): DataModel {
@@ -153,6 +164,11 @@ export interface SceneModuleOptions {
    * Defaults to the SDC wrapper: { render: (p, s) => alias.default.component({...p, ...s}) }
    */
   wrapImport?: (alias: string) => string;
+  /**
+   * Optional sibling-JS resolver: component ID → absolute `<name>.js` path (or null).
+   * Defaults to the SDC `defaultSdcScriptResolver`.
+   */
+  resolveScriptPath?: (componentId: string) => string | null;
 }
 
 /**
@@ -232,11 +248,15 @@ export async function buildSceneModule(
   const wrapImport =
     options.wrapImport ?? ((alias) => `{ render: (p, s) => ${alias}.default.component({...p, ...s}) }`);
 
+  const resolveScriptPath =
+    options.resolveScriptPath ?? ((componentId) => defaultSdcScriptResolver(componentId, designbookDir));
+
   return buildCsfModule({
     group,
     source: fileBase + '.scenes.yml',
     scenes: resolvedScenes,
     resolveImportPath,
     wrapImport,
+    resolveScriptPath,
   });
 }

@@ -1,0 +1,17 @@
+{#
+/**
+ * Hero — a title, formatted content body, and a call-to-action link.
+ * Rendered from block_content.hero (default view mode).
+ */
+#}
+<div{{ attributes.addClass(['hero', 'flex', 'flex-col', 'gap-[var(--grid-md)]', 'py-[var(--layout-spacing-lg)]']) }}>
+  {% if title %}
+    <h1 class="font-heading text-headline text-primary">{{ title }}</h1>
+  {% endif %}
+  {% if content %}
+    <div class="font-body text-body-md text-foreground">{{ content }}</div>
+  {% endif %}
+  {% if action %}
+    <div class="mt-[var(--layout-spacing-sm)]">{{ action }}</div>
+  {% endif %}
+</div>

@@ -56,7 +56,9 @@ result:
 
 Gather one entity view-mode and its component plan. No section or shell planning — this
 workflow renders one standalone entity root plus any renderable entity references required
-by the shared entity-reference rendering rule.
+by the shared entity-reference rendering rule. A standalone entity render has no scene file
+and bears no route, so the screen-scene main-content rule (`screen-scene-constraints.md`) is a
+screen concern and is out of scope here.
 
 ## Steps
 

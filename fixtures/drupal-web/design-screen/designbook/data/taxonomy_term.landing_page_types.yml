@@ -1,0 +1,12 @@
+- id: '1'
+  name: Aktuelles
+  __designbook:
+    section: startseite
+- id: '2'
+  name: Service
+  __designbook:
+    section: startseite
+- id: '3'
+  name: Veranstaltung
+  __designbook:
+    section: startseite

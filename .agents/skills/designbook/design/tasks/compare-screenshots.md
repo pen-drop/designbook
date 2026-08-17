@@ -40,7 +40,7 @@ result:
 Compare each story screenshot against its frozen baseline for the current
 `(element, state, breakpoint)` triple.
 
-- Story file: `designbook/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png`
+- Story file: `$DESIGNBOOK_DATA/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png`
 - Baseline file: `{{ reference_dir }}/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png`
 
 Use the loaded `screen-compare` rule for the compare procedure.

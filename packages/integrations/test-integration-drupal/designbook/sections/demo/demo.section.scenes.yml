@@ -1,0 +1,14 @@
+id: demo
+title: Demo
+description: 'Behavior demo: a scene placing the disclosure component so its Drupal behavior can be exercised in the browser (DESIGNBOOK-48 AC-7).'
+status: planned
+order: 1
+group: Sections/Demo
+scenes:
+  - name: Disclosure demo
+    section: demo
+    items:
+      - component: test_integration_drupal:disclosure
+        props:
+          label: Toggle
+          content: Panel content

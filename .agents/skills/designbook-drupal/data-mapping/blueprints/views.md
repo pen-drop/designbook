@@ -4,79 +4,113 @@ name: views
 priority: 10
 trigger:
   domain: data-mapping
+  config_name: 'views.view.*'
+filter:
+  backend: drupal
 ---
 
-# Blueprint: List View — Wrapper Mapping
+# Blueprint: List View Mapping
 
-Applies when `map-entity` runs for `entity_type: view` (i.e. a `config.view` bundle).
+Applies when `map-entity` runs for a View (`entity_type: view` — a `config.view` bundle). The same
+blueprint also binds the view's Drupal config at `sync-to:transform` through its
+`trigger.config_name: 'views.view.*'` — the config-name binding `form-display` and
+`layout-builder-display` use — so a view binds like the other displays, not by prose alone.
 
-## Behavior
+## A view is a combination — presenter-template + UI-Patterns styles
 
-Wraps the resolved rows in a wrapper component. The wrapper provides slots for the row list, an optional summary, and a pager.
-If you not sure which you want to use ask the user.
+Views are not a single-kind surface. Without Display Builder you cannot avoid combining **two**
+templates for one view, and both must be modelled:
 
-## JSONata Pattern
+- **The view template** — the wrapper that renders the view as a whole: title, the rows region,
+  the **pager**, and the **exposed filter**. This is **theme-methods-only** — there is no
+  config-only way to express it without Display Builder — so it is a **presenter-template** (Twig).
+- **The view styles / row-style template** — how each listed row renders. This binds through **UI
+  Patterns**: the view's style/row plugin carries the shared `{component_id, variant_id, props,
+  slots}` block, so each row is an SDC component render, not a raw view field. This is the
+  declarative half.
+
+So one view declares `template: list-view` in its `config.view.<id>` `view_modes` entry — that
+value is the **UI-Patterns row-style** binding — and `sync-to` **also** generates the
+**presenter-template** for the view wrapper (with its pager and exposed filter). A view therefore
+emits config (the `views.view.<id>` with its UI-Patterns row style) *and* a presenter-template
+(the wrapper); neither alone is a whole view.
+
+## A view mapping is self-contained
+
+A view scene node (`entity: "view.<id>"`, with no `record`/`select`) is resolved with an **empty
+context**: the entity builder evaluates the view mapping against `{}`, not against a sample record.
+So a view mapping MUST be **self-contained** — it enumerates the rows it lists directly and reads
+nothing from `$`. A mapping that dereferences `$` (e.g. `$view.rows`, `$.items_per_page`) resolves
+to empty and the listing renders blank.
+
+The rows a view lists are the records of its **row bundle** — the content `entity_type`/`bundle`/
+`view_mode` the view's `row` declares. The `design-screen` intake adds that row bundle to
+`sample_data_bundles`, so its records exist; the mapping then references those records by index.
+Because the rows are real row-bundle records, the entity-mapping validator finds them (no
+"No sample records found") and the same enumeration renders the list.
+
+## JSONata Pattern — flat list
+
+Emit a flat array, one entry per listed row-bundle record. Top-level entries use the
+`{ "type": "entity", … }` form (at the mapping's top level the validator accepts a `component` node
+or a `type: "entity"` node; the `entity: "type.bundle"` string form is a scene-node shorthand, not a
+mapping-output top-level form):
 
 ```jsonata
-(
-  $view := $;
-  {
-    "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:list-view",
-    "props": {
-      "items_per_page": $view.items_per_page
-    },
-    "slots": {
-      "rows": $view.rows,
-      "summary": {
-        "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:view-summary",
-        "props": {
-          "count": $count($view.rows),
-          "items_per_page": $view.items_per_page
-        }
-      },
-      "pager": {
-        "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:pager",
-        "props": {
-          "items_per_page": $view.items_per_page,
-          "current_page": 1
-        }
-      }
-    }
+[
+  { "type": "entity", "entity_type": "<row_entity_type>", "bundle": "<row_bundle>", "view_mode": "<row_view_mode>", "record": 0 },
+  { "type": "entity", "entity_type": "<row_entity_type>", "bundle": "<row_bundle>", "view_mode": "<row_view_mode>", "record": 1 }
+  /* one entry per row-bundle record the view lists */
+]
+```
+
+Each entry renders the row bundle in its listed view-mode; the entity builder resolves each record.
+
+## Optional wrapper (summary / pager)
+
+When `list-view` / `view-summary` / `pager` components exist, wrap the same enumerated array in the
+wrapper's `rows` slot — still self-contained (rows are enumerated, never read from `$`):
+
+```jsonata
+{
+  "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:list-view",
+  "slots": {
+    "rows": [
+      { "type": "entity", "entity_type": "<row_entity_type>", "bundle": "<row_bundle>", "view_mode": "<row_view_mode>", "record": 0 },
+      { "type": "entity", "entity_type": "<row_entity_type>", "bundle": "<row_bundle>", "view_mode": "<row_view_mode>", "record": 1 }
+    ]
   }
-)
+}
 ```
 
-## Slots
+## A View's Display Type Decides Its Role
 
-| Slot      | Content                                           | Required |
-|-----------|---------------------------------------------------|----------|
-| `rows`    | `ComponentNode[]` of resolved entity references   | yes      |
-| `summary` | Result count component (e.g. "Showing 6 of 24")   | optional |
-| `pager`   | Pager component                                   | optional |
+The same view can be a page's main content or beiwerk beside it — its **display type** decides:
 
-## Rules
+- A view **page display** owns a route and can be a screen's route-bearing main content.
+- A view **block** (`views_block:*`) owns no route; it is a block that sits beside the main content.
 
-- Output is a single `ComponentNode` wrapping the rows — not a bare array
-- `rows` slot receives `$view.rows` directly — entity builder resolves each entry
-- Include `summary` and `pager` slots — the SDC component decides whether to render them
-- `$PROVIDER` is resolved at generation time from `DESIGNBOOK_COMPONENT_NAMESPACE`
-- `items_per_page` comes from the view record in `data.yml`
+A View that a screen renders as its main content is modelled as a `config.view.<id>` bundle (its own
+`view_modes` entry) so the renderer resolves it; the Drupal config-object name `views.view.<id>`
+stays the sync/export address.
 
-## Fallback: Inline ComponentNode Array
+## Drupal config export — the `### to_drupal` pattern
 
-When `list-view`, `view-summary`, and `pager` components do not exist in the project, use a flat `ComponentNode[]` array instead of the wrapper pattern. Map each row directly to its target component:
+At `sync-to:transform` this blueprint authors the `views.view.<id>` config. `prepared` (the
+prepare-fetched schema) is authoritative for the shape; the view's data-model `def` supplies the
+content — base table, row bundle/view-mode, filters, sort, and the `list-view` template.
 
-```jsonata
-(
-  $view := $;
-  $map($view.rows, function($row) {
-    { "entity": $row.entity_type & "." & $row.bundle, "view_mode": $row.view_mode, "record": $row.record }
-  })
-)
-```
+Bind the view's **row output to its SDC component through the shared UI Patterns block** — the
+`{component_id, variant_id, props, slots}` mechanism (see `ui-patterns.md`): the view's row/style
+plugin carries that block, so a rendered list is a component render — the same UI-Patterns
+manifestation a `field-map` display uses — not a raw view row. The view's `template: list-view`
+names the component the rows bind to.
 
-If rows reference entities via `entity` objects, emit them directly. If rows contain inline data, map each to a `ComponentNode` with the appropriate component.
+This authors only the **UI-Patterns half** (the row style). The **view wrapper** — the view
+template with its **pager** and **exposed filter** — is theme-methods-only, so `sync-to` also emits
+a **presenter-template** (Twig) for it (the presenter-template blueprint carries the *how*). A view
+is the combination of the two: neither the UI-Patterns row config nor the wrapper presenter-template
+is a whole view on its own.
 
-## Validator Limitation
-
-> ⚠️ The entity-mapping validator cannot look up `config.view` records in `data.yml` — it only checks the `content:` section. View entity mappings that use `$view.rows` will fail validation with "No sample records found." **Workaround:** use static `ComponentNode[]` arrays that the validator can check, or manually mark the task as done after verifying the output is correct.
+The concrete config keys come from `prepared`; treat the row-binding intent here as the starting
+point, not a fixed key layout.

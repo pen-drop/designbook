@@ -30,7 +30,7 @@ import {
   inferTaskType,
   expandFileDeclarations,
   expandResultDeclarations,
-  resolveSchemasForTasks,
+  rewriteRefsInSchema,
   deriveSkillsRootFromTaskFile,
   resolveStageTaskParams,
   type TaskFileDeclaration,
@@ -209,6 +209,26 @@ export function writeWorkflowAtomic(filePath: string, data: WorkflowFile): void 
   const tmpPath = filePath + '.tmp';
   writeFileSync(tmpPath, stringifyYaml(toWrite));
   renameSync(tmpPath, filePath);
+}
+
+/** DESIGNBOOK-51: filename of the single, once-generated workflow validation schema map. */
+export const SCHEMA_FILE = 'schema.yml';
+
+/**
+ * Persist the ONE full-workflow validation schema map (`{TypeName: schemaObject}`) next to
+ * `tasks.yml`. Written once at `workflow create` and read verbatim by every `workflow done`
+ * validation — the single source that replaced the first-task `data.schemas` snapshot and the
+ * per-stage-transition re-merge (DESIGNBOOK-51 Ziel A).
+ */
+export function writeSchemaMap(changesDir: string, schemas: Record<string, object>): void {
+  writeFileSync(resolve(changesDir, SCHEMA_FILE), stringifyYaml(schemas ?? {}));
+}
+
+/** Read the workflow's validation schema map from `schema.yml`; `{}` when absent. */
+export function readSchemaMap(changesDir: string): Record<string, object> {
+  const filePath = resolve(changesDir, SCHEMA_FILE);
+  if (!existsSync(filePath)) return {};
+  return (parseYaml(readFileSync(filePath, 'utf-8')) as Record<string, object> | null) ?? {};
 }
 
 /**
@@ -590,7 +610,6 @@ export function workflowCreate(
     started_at: timestamp(),
     completed_at: undefined,
     ...(workspaceRoot ? { workspace_root: workspaceRoot } : {}),
-    ...(schemas && Object.keys(schemas).length > 0 ? { schemas } : {}),
     ...(envMap && Object.keys(envMap).length > 0 ? { env_map: envMap } : {}),
     ...(initialScope && Object.keys(initialScope).length > 0 ? { scope: initialScope } : {}),
     tasks: tasks.map((t, i) => ({
@@ -620,6 +639,9 @@ export function workflowCreate(
   const dir = resolve(dataDir, 'workflows', 'changes', name);
   mkdirSync(dir, { recursive: true });
   writeWorkflowAtomic(resolve(dir, 'tasks.yml'), data);
+  // DESIGNBOOK-51: the validation schema map lives in its own `schema.yml` (the single source
+  // every `workflow done` reads), not inline in tasks.yml.
+  writeSchemaMap(dir, schemas ?? {});
 
   return name;
 }
@@ -961,9 +983,10 @@ export function workflowPlan(
 
   data.tasks = [...preserved, ...newTasks];
 
-  // Store resolved schemas (from $ref resolution at create time)
+  // DESIGNBOOK-51: resolved schemas are folded into the single `schema.yml` (the source every
+  // `workflow done` validates against), merged over whatever the create step already wrote.
   if (schemas && Object.keys(schemas).length > 0) {
-    data.schemas = { ...(data.schemas ?? {}), ...schemas };
+    writeSchemaMap(changesDir, { ...readSchemaMap(changesDir), ...schemas });
   }
   // Store env map for scope-driven expansion in workflowDone
   if (envMap && Object.keys(envMap).length > 0) {
@@ -1091,7 +1114,11 @@ export async function workflowDone(
   // Component existence is validated at done-time by the `scene` validator's
   // live-index inventory walk (validateSceneAgainstInventory), which always
   // reflects the current Storybook index — no stale schema-level enum needed.
-  const validationSchemas = (data.schemas ?? {}) as Record<string, object>;
+  //
+  // DESIGNBOOK-51: the validation schema map is the ONE `schema.yml` generated at create over
+  // every step (definition-level enum-union included) — not the first-task `data.schemas`
+  // snapshot. `stage_loaded`/`step_resolved` remain non-validation expansion structures.
+  const validationSchemas = readSchemaMap(changesDir);
 
   // ── Process --data: distribute keys to result entries ──────────────
   if (options?.data && task.result) {
@@ -1473,25 +1500,36 @@ export async function workflowDone(
       );
       if (expanded.length > 0) {
         data.tasks.push(...expanded);
+        // DESIGNBOOK-51 (Ziel A): no per-stage-transition schema re-merge into the validation
+        // source. A stage expansion instantiates N copies of an already-known fixed shape (e.g. a
+        // scene branch → N ConfigNameUnits) — it introduces no new type. The full validation schema
+        // map was generated once at `workflow create` (over every step, definition-level enum-union
+        // included) and persisted as `schema.yml`, which every `workflow done` reads.
+        //
+        // The expanded tasks still need their result schemas' file-system `$ref`s rewritten to the
+        // AJV-local `#/<Type>` form so they resolve against that registry at validation. This
+        // rewrite is a per-task-schema concern (it mutates the persisted task.result schema), NOT a
+        // second validation source — the resolved definitions are discarded into a throwaway map.
         const pluginSkillSources = options?.config
           ? (resolvePluginSkillSources({ env: process.env, home: homedir(), config: options.config })?.sources ?? [])
           : [];
-        // Project layout: derive skills root from the task file path.
-        // Plugin layout (config `skills`): task files have no `/skills/` marker —
-        // fall back to the task file's directory and let plugin sources resolve
-        // skill-qualified $refs into the sibling plugin-cache roots.
         const skillsRoot =
           deriveSkillsRootFromTaskFile(expanded[0]?.task_file) ??
           (expanded[0]?.task_file ? dirname(expanded[0]!.task_file) : undefined);
         if (skillsRoot) {
-          const mergedSchemas = resolveSchemasForTasks(
-            expanded,
-            skillsRoot,
-            { ...(data.schemas ?? {}) },
-            pluginSkillSources,
-          );
-          if (Object.keys(mergedSchemas).length > 0) {
-            data.schemas = mergedSchemas;
+          const discard: Record<string, object> = {};
+          for (const t of expanded) {
+            for (const entry of Object.values(t.result ?? {})) {
+              if (entry?.schema && typeof entry.schema === 'object') {
+                rewriteRefsInSchema(
+                  entry.schema as Record<string, unknown>,
+                  t.task_file!,
+                  skillsRoot,
+                  discard,
+                  pluginSkillSources,
+                );
+              }
+            }
           }
         }
         expandedFromScope = expanded.map((t) => ({
@@ -1895,7 +1933,8 @@ export async function workflowResult(
 
   // Component existence is validated by the `scene` validator's live-index
   // inventory walk (validateSceneAgainstInventory) — mirrors workflowDone.
-  const validationSchemas = (data.schemas ?? {}) as Record<string, object>;
+  // DESIGNBOOK-51: validation reads the single `schema.yml`, not `data.schemas`.
+  const validationSchemas = readSchemaMap(changesDir);
 
   // ── File result: only accepted for submission: direct declarations ───────
   if (isFileResult) {

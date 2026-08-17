@@ -1,0 +1,48 @@
+component: test_integration_drupal:signage
+name: Full
+variant: full
+slots:
+  items:
+    - type: component
+      component: test_integration_drupal:signage_item
+      props:
+        title: ausbilden
+        description: Ausbilderinnen und Ausbilder finden auf Leando anwendungsbezogene Themenbeiträge, qualitätsgesicherte Informationen zu aktuellen Trends sowie nützliche Praxis-Tipps.
+        icon: school
+        links:
+          - title: Ausbildung
+            url: /de/ausbildung
+        buttonAnonymous:
+          title: Registrieren
+          url: /de/user/register
+        buttonAuthenticated:
+          title: Anmelden
+          url: /de/user/login
+    - type: component
+      component: test_integration_drupal:signage_item
+      props:
+        title: prüfen
+        description: Prüferinnen und Prüfer finden auf Leando nützliche Informationen für die Praxis - von gesetzlichen Grundlagen bis Arbeitshilfen.
+        icon: checklist
+        links:
+          - title: Prüfung
+            url: /de/pruefung
+        buttonAnonymous:
+          title: Registrieren
+          url: /de/user/register
+        buttonAuthenticated:
+          title: Prüfungsbereich öffnen
+          url: /de/pruefung
+    - type: component
+      component: test_integration_drupal:signage_item
+      props:
+        title: vernetzen
+        description: Tauschen Sie sich aus und teilen Sie Ihre Erfahrungen in unseren Communitys. Angemeldet steht der volle Funktionsumfang bereit.
+        icon: groups
+        links: []
+        buttonAnonymous:
+          title: Registrieren
+          url: /de/user/register
+        buttonAuthenticated:
+          title: Community öffnen
+          url: /de/community

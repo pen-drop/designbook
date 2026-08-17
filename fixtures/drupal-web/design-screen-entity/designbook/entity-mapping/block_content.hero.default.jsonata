@@ -1,0 +1,14 @@
+/* block_content.hero (default) → test_integration_drupal:hero
+ * Input: one record from data/block_content.hero.yml
+ * Output: SceneNode[]
+ */
+[
+  {
+    "component": "test_integration_drupal:hero",
+    "slots": {
+      "title": field_title,
+      "content": field_content,
+      "action": field_action.title
+    }
+  }
+]

@@ -60,3 +60,17 @@ components:
 - Canvas uses the entity type `canvas_page` (not `node`)
 - Nested components carry their own `props` and `slots` inline — no further resolution needed
 - Sections can have multiple levels of nesting (unlike Layout Builder which is flat)
+
+## Config expansion (sync-to Scene sync)
+
+Starting point for the config unit `sync-to` emits when a Scene's page uses
+`build_form: canvas`. A Scene resolves to **config only** — never a `canvas_page` content
+entity, never a content payload, never a backend content step:
+
+- **Page layout config** — a single `page_layout` config entity carrying the Scene's component
+  tree inline as its `components` field, exactly the nested `ComponentNode[]` shown above. It
+  has its own route/URL; the visible content lives inline in this config, self-contained with
+  no entity references.
+
+Canvas emits only this one config unit. This is an overridable starting point — a project whose
+Display-Builder page config differs replaces it.

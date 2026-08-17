@@ -26,6 +26,12 @@ Validate all skills
 
 Scan the skill directory for all `.md` files in `tasks/`, `rules/`, `blueprints/`, and `workflows/`; plus any `schemas.yml`; plus `SKILL.md`. For the core skill (`designbook/`), scan all `skills/<workflow>/tasks/`, `skills/<workflow>/rules/`, `skills/<workflow>/workflows/`, the shared `design/` and `scenes/` content roots (beside `skills/`), and integration-skill `blueprints/` directories.
 
+**Always-loaded repo-root files.** For a "validate all skills" run (or when validating the writing
+layer), also scan the repo-root `CLAUDE.md`. `AGENTS.md` is a symlink to the same inode — dedupe on
+inode and treat `CLAUDE.md` as canonical, so the always-loaded file is scanned once. The
+`writing-files.md` rule carries `applies-to: CLAUDE.md`, so its `WRITE-` checks and the
+always-loaded metric reach the file.
+
 Also locate every `schemas.yml` for `$ref` resolution.
 
 ### Step 2 — Load rule files
@@ -60,6 +66,15 @@ For each file:
 | `body_lines` | Lines in markdown body |
 | `body_ratio` | body_lines / lines (0.0–1.0) |
 
+**Writing-layer metrics (report-only — no deduction in Step 5).** These surface the always-loaded
+cost and sprawl signals of [writing-files.md](../rules/writing-files.md); they are reported, never
+scored, so soft signals do not swamp the existing scores.
+
+| Metric | Applies to | Description |
+|---|---|---|
+| `always_loaded_cost` | `CLAUDE.md` and every model-invocable `SKILL.md` `description:` | description word-count + `body_lines` — the permanent per-turn context load |
+| `body_sprawl` | any body | advisory flag when `body_lines` exceeds a soft per-type reference (no hard cap) |
+
 ### Step 4b — Schema audit
 
 For each top-level type in every `schemas.yml`, plus every `params:`/`result:` block in tasks:
@@ -87,6 +102,10 @@ Per file: start at 100.
 | body_ratio > 0.8 on tasks | −5 |
 
 Minimum: 0. Skill score = average of all file scores.
+
+`WRITE-01 .. WRITE-04` findings are all `warning`, so they weigh through the existing mapping
+(−10) with no new weight and no change to the contract. The Step-4 writing-layer metrics
+(`always_loaded_cost`, `body_sprawl`) are **report-only** and never deduct.
 
 ### Step 6 — Output report
 
@@ -150,6 +169,7 @@ rephrasing — happens in the rule file, not here.
 - Schema rules: [../rules/schema-files.md](../rules/schema-files.md) — `SCHEMA-01` .. `SCHEMA-04`
 - Workflow rules: [../rules/workflow-files.md](../rules/workflow-files.md) — `WORKFLOW-01`
 - Common rules: [../rules/common-rules.md](../rules/common-rules.md) — `COMMON-01`, `COMMON-02`
+- Writing-layer rules: [../rules/writing-files.md](../rules/writing-files.md) — `WRITE-01` .. `WRITE-04`
 
 ## Maintenance
 

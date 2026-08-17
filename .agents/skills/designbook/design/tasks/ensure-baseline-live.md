@@ -33,7 +33,7 @@ each:
 
 # Ensure Baseline (live)
 
-Live-reference baseline for `config-verify`, where the reference **is** the current
+Live-reference baseline for `sync-verify`, where the reference **is** the current
 Storybook render — not a frozen design. The Storybook render tracks the mapped
 component/story source and the freshly generated CSS, so the baseline is
 **re-captured every run**, unconditionally: there is no reuse-if-present branch and
