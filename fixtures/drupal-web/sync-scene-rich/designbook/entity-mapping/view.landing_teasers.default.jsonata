@@ -1,5 +1,5 @@
 {
-  "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:list-view",
+  "component": "test_integration_drupal:list-view",
   "slots": {
     "rows": [
       { "type": "entity", "entity_type": "node", "bundle": "landing_page", "view_mode": "teaser", "record": 0 },

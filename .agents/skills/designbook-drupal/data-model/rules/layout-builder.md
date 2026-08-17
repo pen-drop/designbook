@@ -14,6 +14,24 @@ Applies when the Layout Builder module is active. Layout Builder assembles a dis
 - `template: field-map` → a **config-managed** display: `allow_custom: false`, sections authored into `core.entity_view_display.*`, identical for every entity. `sync-to` authors these (the `layout-builder-display` mapping).
 - `template: layout-builder` → a **per-entity content override**: `allow_custom: true`, sections live per entity in the `layout_builder__layout` base field. This is content, not config — `sync-to` does not author its sections.
 
+## An overridable display must ship its override field
+
+An `allow_custom: true` display stores its sections in the bundle's `layout_builder__layout` field,
+so that field must exist before any entity can carry an override. Outside a config import Drupal
+creates it itself (`LayoutBuilderEntityViewDisplay::preSave` adds it when the overridable flag flips
+on), but a config import may not create config objects that are not part of the imported set — the
+field is silently never created, and writing an override then fails with an unknown-field error.
+
+Therefore a bundle whose view mode is a Layout-Builder **content override** must emit the override
+field's two config objects **as part of the same sync set** as its display:
+
+- `field.storage.<et>.layout_builder__layout` — type `layout_section`, `locked: true`
+- `field.field.<et>.<bundle>.layout_builder__layout` — label `Layout`
+
+Order them before the display unit that turns `allow_custom` on, like every other
+field-before-display dependency. A `field-map` (config-managed, `allow_custom: false`) display stores
+nothing per entity and emits neither.
+
 ## Purpose: landing-page
 
 When a bundle has `purpose: landing-page`:

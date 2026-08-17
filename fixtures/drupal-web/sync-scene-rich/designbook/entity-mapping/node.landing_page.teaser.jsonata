@@ -2,12 +2,16 @@
   $node := $;
   [
     {
-      "component": "$DESIGNBOOK_COMPONENT_NAMESPACE:card",
+      "component": "test_integration_drupal:card",
       "variant": "default",
-      "props": {
-        "title": $node.field_short_title,
-        "published": true
-      }
+      /* `published` is a non-field boolean control value → a prop.
+         `field_short_title` is field-rendered content → the card's `content` slot
+         (reference-field-semantics: a single-value title still renders through its
+         formatter, so it is a slot, never a scalar prop). The Drupal teaser display
+         places the same field as a field_block in region `content`, so the live row
+         and this reference render identically. */
+      "props": { "published": true },
+      "slots": { "content": $node.field_short_title }
     }
   ]
 )

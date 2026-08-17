@@ -26,12 +26,15 @@ prompt: |
      from this workspace root. backend_cmd resolves from designbook.config.yml.
      It must emit config units for: the node.landing + block_content.hero + node.landing_page
      bundles and their fields; the block_content.hero.default display; the views.view.landing_teasers
-     config (rows bound to their SDC via the UI-Patterns block); and the node.landing.full
-     Layout-Builder display with layout_builder enabled, allow_custom true, and **empty default
-     sections** (template: layout-builder = content override — never inline_block/block_serialized
-     sections in that YAML). The landing_teasers View's wrapper (pager / exposed filter) is
-     theme-methods-only, so ALSO write a presenter-template (Twig) for the View wrapper.
-     No content units.
+     config (rows bound to their SDC via the UI-Patterns block, plus the block_1 Block display the
+     scene's views_block plugin resolves); the node.landing.full Layout-Builder display with
+     layout_builder enabled, allow_custom true, and **empty default sections**
+     (template: layout-builder = content override — never inline_block/block_serialized sections in
+     that YAML); and — because an overridable display cannot create its own field during a config
+     import — the override field itself, field.storage.node.layout_builder__layout plus
+     field.field.node.landing.layout_builder__layout. The landing_teasers View's wrapper (pager /
+     exposed filter) is theme-methods-only, so ALSO write a presenter-template (Twig) for the View
+     wrapper. No content units.
   2. Record the sync-to `workflow summary --json` — including `presenter_templates` (non-empty) and
      `uncovered_units` (expected empty).
   3. Import config if the sync stage did not already: backend_cmd.import (partial cim).

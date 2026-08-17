@@ -11,7 +11,8 @@ description: >
   has empty default sections; the seed attaches the entity override that carries these blocks and
   creates the view's row content), NOT a design-screen scene, so the design-screen
   route-bearer invariant (screen-scene-constraints, gated to design-screen:create-scene) does not
-  apply. Config side live-validated; full render-fidelity re-run pending the next coordinated live run.
+  apply. Both config and render sides are live-validated end-to-end from a clean Drupal 11.3.13
+  baseline; the remaining sync-verify delta is the page's shell chrome, tracked in DESIGNBOOK-53.
 status: planned
 order: 1
 group: Designbook/Sections/Landing
@@ -25,6 +26,9 @@ scenes:
             - entity: block_content.hero
               view_mode: default
               record: 0
-            # the landing_teasers View placed beside the main content = a views_block (block_plugin);
-            # a View node is self-contained (no record / view_mode).
+            # the landing_teasers View placed beside the main content = a views_block (block_plugin).
+            # A View node is self-contained in its DATA — no `record`/`select`, so its mapping
+            # evaluates against {} and enumerates the row-bundle records itself. It still names
+            # its `view_mode`: that is what locates entity-mapping/view.<id>.<view_mode>.jsonata.
             - entity: view.landing_teasers
+              view_mode: default

@@ -1,9 +1,14 @@
 # DESIGNBOOK-42 rich scene fixture.
-# Validation state (reconciled): the CONFIG side is live-validated (config:import green, 13 units,
-# sync-verify ScoreReport against real Drupal 11.3.13); the RENDER side ships its artifacts here —
-# hero (inline_block via the seed override), the view block, and the view's row content
-# (node.landing_page rows seeded + list-view/card mappings) — with the full render-fidelity re-run
-# PENDING the next coordinated live run on the shared DDEV host.
+# Validation state: BOTH sides live-validated end-to-end on real Drupal 11.3.13, from a clean
+# baseline (2026-08-17).
+#   - CONFIG: sync-to emitted 17 units, config:import green, stage-4 uncovered_units empty, and
+#     2 presenter-templates written for the View wrapper (views-view + pager).
+#   - RENDER: the synced page answers HTTP 200 and renders both block kinds plus the view listing
+#     all three seeded node.landing_page teaser rows through the list-view wrapper; sync-verify
+#     produced a ScoreReport (avg_diff_percent 0.2167, 1 check).
+# Remaining fidelity delta is page CHROME, not this fixture's config: the page still renders
+# Drupal's stock page-template regions instead of the design-system shell header/footer. Closing
+# it is the abgetrennte follow-up DESIGNBOOK-53 (shell regions declared + synced).
 # Exercises the new sync-to paths in one Layout-Builder Scene:
 #   - a block_content block (hero)               → block-decision ⇒ block_content
 #   - a block_plugin block (the view as a block) → block-decision ⇒ block_plugin
@@ -46,8 +51,11 @@ config:
   # A view rendered as a block reaches the page as a block_plugin (a plugin placement), not a route.
   # A `views_block:<view>-<display>` plugin needs the view to expose that Block display. This open
   # view config carries only `view_modes.default`; the `block_1` Block display is authored on
-  # `views.view.landing_teasers` at sync time by the views blueprint (validated live: config:import
-  # succeeded with the block_1 display present, so the plugin id resolves).
+  # `views.view.landing_teasers` at sync time by the views blueprint (validated live: after
+  # config:import the block manager resolves `views_block:landing_teasers-block_1`, and the seeded
+  # override renders it). Note the Block display INHERITS its options from `default` and carries no
+  # `defaults` map — Drupal types that key as a flat option->boolean map, so a nested entry there
+  # aborts config:import.
   block_plugin:
     landing_teasers_block:
       plugin: 'views_block:landing_teasers-block_1'
