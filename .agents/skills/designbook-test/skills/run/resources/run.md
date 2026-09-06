@@ -2,12 +2,15 @@
 
 Promptfoo is the only workflow execution runner for `debo-test`. The calling
 agent prepares inputs and inspects evidence; it does not execute intake or tasks
-inline and does not dispatch a separate case-driver subagent. Codex CLI inside
+inline and does not dispatch a separate case-driver subagent. The selected CLI inside
 Promptfoo loads the domain skill and its saved-workflow executor.
 
 ## Inputs
 
 Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]`.
+Accept `--provider codex|claude` and `--model <id>` and forward them to the runner.
+For requested parallel model comparisons, use two independent Promptfoo runs as in
+[the Promptfoo guide](../../../../../../promptfoo/README.md#automated-testing-promptfoo).
 Resolve paths from the ticket's repository/worktree root. The default workspace
 is `promptfoo/workspaces/<suite>-<case>`. Each concurrent run needs a distinct
 workspace and report directory. Use `promptfoo/reports/<run-id>/` for evidence.
@@ -31,14 +34,14 @@ failure. Keep quality thresholds fixed across baseline and candidates.
 ```
 
 The provider rebuilds the workspace with `setup-workspace.sh`, layers fixtures
-with `setup-test.sh`, then invokes Codex CLI using the configured model and
+with `setup-test.sh`, then invokes the selected CLI using the configured model and
 one-hour timeout. For `sync-*` cases it provisions Drupal and imports the committed
-DB baseline through `start-drupal-workspace.sh` before Codex starts. Case
+DB baseline through `start-drupal-workspace.sh` before the model starts. Case
 assertions run in Promptfoo. Its `afterAll` hook appends each result to the
 versioned `promptfoo/results.csv` across runs, including failures and phase,
 commit, model, token and timing fields. Commit this CSV with the tested changes;
 raw evidence stays outside Git. The generated config and
-Codex JSONL, stderr, prompt, usage and available `dbo.log` copies are saved beside
+CLI JSONL, stderr, prompt, usage and available `dbo.log` copies are saved beside
 the report. CLI commands run from the workspace root containing
 `designbook.config.yml`; the theme directory is its own git repository.
 
@@ -54,7 +57,7 @@ For design-shell, design-entity and design-screen, the Promptfoo runner always e
 assertions. Other rendered-design fixtures declare `verify: <case>` to use the
 same pipeline. Only the verifier case's prompt is reused; its fixtures are never
 layered over the main output. Both CSV rows share a `run_id`; the verification row
-has `workflow_id=design-verify` and its own Codex tokens and measured score.
+has `workflow_id=design-verify` and its own CLI tokens and measured score.
 
 Read both `main.json` and `verify.json` plus the generated `pipeline.json`.
 The runner returns success only when both evaluations pass. Verification requires
@@ -75,7 +78,7 @@ For main, verification and each repair attempt:
 1. Read the Promptfoo result, saved workflow and `workflow summary <path>` from
    the workspace root. Completed tasks alone do not prove a visual pass.
 2. Inspect the actual produced artifacts and verify the before/after definitions.
-3. Audit Codex JSONL and CLI logs for failed commands, schema/validation errors,
+3. Audit the selected CLI's JSONL and command logs for failed commands, schema/validation errors,
    retries, skipped steps, unexplained termination and missing required inputs.
    Use the actual tool-call/result evidence, not the final agent message. Missing
    or incomplete execution evidence makes the run unevaluable. A missing separate

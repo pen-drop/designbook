@@ -24,10 +24,10 @@ async function fixture(t) {
     );
     await writeFile(join(path, "definition-before.yml"), yaml.dump({ id }));
   };
-  const stub = async (body) => {
+  const stub = async (body, command = "codex") => {
     const bin = join(root, "bin");
     await mkdir(bin, { recursive: true });
-    await writeFile(join(bin, "codex"), `#!/usr/bin/env node\n${body}\n`, {
+    await writeFile(join(bin, command), `#!/usr/bin/env node\n${body}\n`, {
       mode: 0o755,
     });
     const original = process.env.PATH;
@@ -52,6 +52,29 @@ const completed = [
 ];
 const emit = (events) =>
   `for (const event of ${JSON.stringify(events)}) console.log(JSON.stringify(event));`;
+const claudeCompleted = [
+  {
+    type: "result",
+    subtype: "success",
+    is_error: false,
+    result: "Done",
+    usage: {
+      input_tokens: 10,
+      cache_creation_input_tokens: 10,
+      cache_read_input_tokens: 80,
+      output_tokens: 10,
+      output_tokens_details: { thinking_tokens: 4 },
+    },
+    modelUsage: {
+      "claude-opus-5": {
+        inputTokens: 10,
+        cacheCreationInputTokens: 10,
+        cacheReadInputTokens: 80,
+        outputTokens: 10,
+      },
+    },
+  },
+];
 
 test("exact workflow IDs preserve failed attempts and archive does not imply completion", async (t) => {
   const { provider, workspace, workflow } = await fixture(t);
@@ -160,6 +183,27 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   assert.equal(main.tests[0].vars.case, "design-shell");
   assert.equal(main.providers[0].config.timeout, 3600000);
   assert.equal(main.providers[0].config.model, "gpt-5.6-luna");
+  const claude = await generate([
+    "--provider",
+    "claude",
+    "--storybook-port",
+    "41201",
+  ]);
+  assert.equal(claude.providers[0].config.model, "claude-opus-5");
+  assert.match(claude.providers[0].id, /claude-cli\.mjs$/);
+  assert.equal(claude.tests[0].vars.storybook_port, 41201);
+  const automaticVerify = yaml.load(
+    await readFile(claude.tags.verify_config, "utf8"),
+  );
+  assert.match(automaticVerify.providers[0].id, /claude-cli\.mjs$/);
+  assert.equal(automaticVerify.providers[0].config.model, "claude-opus-5");
+  assert.equal(automaticVerify.tests[0].vars.suite, undefined);
+  const prepared = await generate([
+    "--provider",
+    "claude",
+    "--prepared-workspace",
+  ]);
+  assert.deepEqual(prepared.tests[0].vars, { workspace });
   const verify = await generate([
     "--phase",
     "verify",
@@ -182,57 +226,89 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   );
 });
 
-test("real Promptfoo loads the Codex class and verifies without resetting the workspace", async (t) => {
-  const { root, workspace, workflow, stub } = await fixture(t);
-  await stub(emit(completed));
-  await workflow("archive", "verification", "design-verify", "completed", {
-    outtake: measuredTask(0, true),
-  });
-  const marker = join(workspace, "main-artifact.txt");
-  await writeFile(marker, "preserve");
-  const promptFile = join(root, "verify.txt");
-  await writeFile(promptFile, "Verify this workspace");
-  const report = join(root, "report.json");
-  execFileSync(
-    "node",
-    [
-      "promptfoo/scripts/run-single.mjs",
-      "design-shell",
-      "--suite",
-      "drupal-web",
-      "--workspace",
-      workspace,
-      "--output",
-      report,
-      "--phase",
-      "verify",
-      "--prompt-file",
-      promptFile,
-      "--no-progress-bar",
-      "--history",
-      join(root, "history.csv"),
-    ],
-    {
-      encoding: "utf8",
-      timeout: 60000,
-      env: {
-        ...process.env,
-        PROMPTFOO_DISABLE_TELEMETRY: "1",
-        PROMPTFOO_CONFIG_DIR: join(root, "promptfoo-state"),
+for (const cli of ["codex", "claude"])
+  test(`real Promptfoo loads ${cli} and verifies without resetting the workspace`, async (t) => {
+    const { root, workspace, workflow, stub } = await fixture(t);
+    await stub(emit(cli === "codex" ? completed : claudeCompleted), cli);
+    await workflow("archive", "verification", "design-verify", "completed", {
+      outtake: measuredTask(0, true),
+    });
+    const marker = join(workspace, "main-artifact.txt");
+    await writeFile(marker, "preserve");
+    const promptFile = join(root, "verify.txt");
+    await writeFile(promptFile, "Verify this workspace");
+    const report = join(root, "report.json");
+    execFileSync(
+      "node",
+      [
+        "promptfoo/scripts/run-single.mjs",
+        "design-shell",
+        "--provider",
+        cli,
+        "--suite",
+        "drupal-web",
+        "--workspace",
+        workspace,
+        "--output",
+        report,
+        "--phase",
+        "verify",
+        "--prompt-file",
+        promptFile,
+        "--no-progress-bar",
+        "--history",
+        join(root, "history.csv"),
+      ],
+      {
+        encoding: "utf8",
+        timeout: 60000,
+        env: {
+          ...process.env,
+          PROMPTFOO_DISABLE_TELEMETRY: "1",
+          PROMPTFOO_CONFIG_DIR: join(root, "promptfoo-state"),
+        },
       },
-    },
+    );
+    const results = JSON.parse(await readFile(report, "utf8"));
+    assert.equal(results.results.stats.successes, 1);
+    assert.equal(results.results.stats.failures, 0);
+    assert.equal(await readFile(marker, "utf8"), "preserve");
+    const response = results.results.results[0].response;
+    assert.equal(response.output.usage.input_tokens, 100);
+    assert.equal(response.output.cli, cli);
+    assert.equal(response.tokenUsage.total, 110);
+    const history = await readFile(join(root, "history.csv"), "utf8");
+    assert.match(history, /input_tokens,cached_input_tokens/);
+    assert.match(history, /"100","80","20","10","4","110"/);
+    assert.match(history, /"0","1","1","0","1",/);
+  });
+
+test("Claude usage requires a successful terminal result and complete native counters", async () => {
+  const { claudeRuntime } = await import("../providers/claude-cli.mjs");
+  assert.throws(() => claudeRuntime.parse([]), /missing result/);
+  assert.throws(
+    () =>
+      claudeRuntime.parse([
+        { type: "result", subtype: "error_max_turns", is_error: true },
+      ]),
+    /did not complete/,
   );
-  const results = JSON.parse(await readFile(report, "utf8"));
-  assert.equal(results.results.stats.successes, 1);
-  assert.equal(results.results.stats.failures, 0);
-  assert.equal(await readFile(marker, "utf8"), "preserve");
-  const response = results.results.results[0].response;
-  assert.equal(response.output.usage.input_tokens, 100);
-  assert.equal(response.tokenUsage.total, 110);
-  const history = await readFile(join(root, "history.csv"), "utf8");
-  assert.match(history, /input_tokens,cached_input_tokens/);
-  assert.match(history, /"100","80","20","10","4","110"/);
-  assert.match(history, /"0","1","1"\n$/);
+  const event = structuredClone(claudeCompleted[0]);
+  delete event.usage.cache_creation_input_tokens;
+  assert.throws(
+    () => claudeRuntime.parse([event]),
+    /invalid Claude token usage/,
+  );
+  const valid = structuredClone(claudeCompleted[0]);
+  delete valid.usage.output_tokens_details;
+  assert.equal(
+    claudeRuntime.parse([valid]).usage.reasoning_output_tokens,
+    undefined,
+  );
+  assert.equal(
+    claudeRuntime.parse(claudeCompleted).usage.cache_write_input_tokens,
+    10,
+  );
 });
 
 test("missing or changed definition snapshots fail the integrity gate", async (t) => {
@@ -392,9 +468,111 @@ test("verification exports the selected measured score and rejects missing or in
     results: [{ success: false, response: { output } }],
   });
   const written = await readFile(csv, "utf8");
-  assert.match(written, /"3","0","1"\n$/);
+  assert.match(written, /"3","0","1","1","0",/);
   assert.match(written, /"100","80","20","10","4","110"/);
   assert.doesNotMatch(written, /999999/);
+});
+
+test("CSV exports per-check verification details and aggregates unequal report sizes", async (t) => {
+  const { verificationDetails, afterAll } =
+    await import("../extensions/result-history.mjs");
+  const { root } = await fixture(t);
+  const task = (story, differences) => {
+    const checks = differences.map((diff, index) => ({
+      breakpoint: index ? "xl" : "sm",
+      element: 'region, "quoted"',
+      score: diff > 0.3 ? 2 : 0,
+      passed: diff <= 0.3,
+      diff_percent: diff,
+      critical: 0,
+      major: diff > 0.3 ? 1 : 0,
+      minor: 0,
+    }));
+    const final = {
+      score: checks.reduce((sum, check) => sum + check.score, 0),
+      checks,
+    };
+    return {
+      status: "done",
+      results: {
+        "score-report": {
+          valid: true,
+          value: {
+            story_id: story,
+            reference_url: "https://reference.example/",
+            threshold: 0.3,
+            final,
+            first_shot: final,
+          },
+        },
+      },
+    };
+  };
+  const output = {
+    completedWorkflows: {
+      selected: {
+        state: {
+          tasks: {
+            a: task("first", [0.1]),
+            b: task("second", [0.2, 0.3, 0.4]),
+          },
+        },
+      },
+    },
+  };
+  const details = verificationDetails(output, "selected");
+  assert.equal(details.verify_avg_diff_ratio, 0.25);
+  assert.equal(details.verify_max_diff_ratio, 0.4);
+  assert.equal(details.verify_checks_failed, 1);
+  assert.equal(details.verify_pass_rate, 0.75);
+  assert.equal(details.verify_issues_critical, 0);
+  assert.equal(details.verify_issues_major, 1);
+  assert.equal(details.verify_issues_minor, 0);
+  assert.equal(details.verify_initial_score, 2);
+  assert.equal(details.verify_score_delta, 0);
+  assert.deepEqual(JSON.parse(details.verify_story_ids), ["first", "second"]);
+  assert.deepEqual(JSON.parse(details.verify_reference_urls), [
+    "https://reference.example/",
+  ]);
+  assert.deepEqual(JSON.parse(details.verify_breakpoints), ["sm", "xl"]);
+  assert.equal(JSON.parse(details.verify_checks_json).length, 4);
+  assert.deepEqual(JSON.parse(details.verify_thresholds_json), [
+    { story_id: "first", threshold_ratio: 0.3 },
+    { story_id: "second", threshold_ratio: 0.3 },
+  ]);
+  const csv = join(root, "details.csv");
+  await afterAll({
+    evalId: "details",
+    config: { tags: { history_csv: csv, workflow_id: "selected" } },
+    results: [{ success: false, response: { output } }],
+  });
+  const [header, row] = (await readFile(csv, "utf8")).trim().split("\n");
+  const cells = [...row.matchAll(/"((?:[^"]|"")*)"(?:,|$)/g)].map((match) =>
+    match[1].replaceAll('""', '"'),
+  );
+  assert.equal(cells.length, header.split(",").length);
+  assert.deepEqual(
+    JSON.parse(cells[header.split(",").indexOf("verify_checks_json")]),
+    JSON.parse(details.verify_checks_json),
+  );
+
+  const report =
+    output.completedWorkflows.selected.state.tasks.a.results["score-report"]
+      .value;
+  delete report.final.checks[0].diff_percent;
+  delete report.final.checks[0].critical;
+  delete report.first_shot;
+  const missing = verificationDetails(output, "selected");
+  assert.equal(missing.verify_avg_diff_ratio, undefined);
+  assert.equal(missing.verify_max_diff_ratio, undefined);
+  assert.equal(missing.verify_issues_critical, undefined);
+  assert.equal(missing.verify_initial_score, undefined);
+  assert.equal(missing.verify_score_delta, undefined);
+  assert.deepEqual(verificationDetails(output, "missing"), {});
+  output.completedWorkflows.selected.state.tasks.a.results[
+    "score-report"
+  ].valid = false;
+  assert.deepEqual(verificationDetails(output, "selected"), {});
 });
 
 test("verification assertion rejects visual failures and changes to main artifacts", async (t) => {

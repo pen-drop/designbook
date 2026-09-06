@@ -67,6 +67,17 @@ assert:                      # assertions evaluated by promptfoo
 npx promptfoo view
 ```
 
+Select a CLI with `--provider codex|claude` and optionally `--model <id>`.
+Defaults are `gpt-5.6-luna` and `claude-opus-5`; both use the one-hour limit in
+`configs/base.yaml`. The automatic verify phase uses the same provider/model.
+`--storybook-port <port>` provisions this workspace's server before measurement.
+
+Run two independent `run-single.sh` invocations with distinct workspaces and
+report directories to compare models. Prepare fresh workspaces sequentially
+through the provider's `setupWorkspace` before starting concurrent model calls;
+`--prepared-workspace` preserves that preparation. Ordinary single runs rebuild
+their workspace.
+
 ## debo-test
 
 `/debo-test run <suite> <case>` and `/debo-test research <suite> <case>` use
@@ -88,7 +99,7 @@ The read-only `is-clear` audit does not execute a workflow.
 Each invocation writes its generated config and evidence alongside its report.
 Default reports use unique run directories; an existing explicit `--output` path
 is rejected so earlier results remain intact.
-`--config-only` validates/generates configuration without starting Codex or rebuilding
+`--config-only` validates/generates configuration without starting a model or rebuilding
 a workspace. Main phases rebuild fixtures; verify phases require the existing
 workspace and a prompt file. CLI JSONL/stderr and available dbo.log files are kept
 for auditing; usage is reported per phase. Design-shell, design-entity and design-screen always start a separate design-verify evaluation after the main
@@ -108,11 +119,33 @@ by Git. Research also keeps its per-experiment history in `research-runs/`.
 Promptfoo's `afterAll` hook appends one row per evaluated result to
 [`results.csv`](results.csv), which is versioned in Git. It includes evaluation ID,
 suite/case/phase, workflow ID, shared run ID, source commit and dirty flag, model,
-assertion outcome, Codex tokens, wall time and the report path. Verification rows
+assertion outcome, native CLI tokens, wall time and the report path. Verification rows
 also record `verify_score` (sum of check severity scores, lower is better),
 `verify_checks_passed` and `verify_checks_total` from the selected workflow's
 validated score-report. Missing/invalid reports stay blank; a measured zero stays
-zero. Token columns on the verify row belong only to that Codex session; embedded
+zero. Additional verification columns contain:
+
+- `verify_checks_failed`, `verify_pass_rate`: failed checks and passed/total ratio.
+- `verify_avg_diff_ratio`, `verify_max_diff_ratio`: mean and worst pixel deviation
+  across all checks. Ratios use 0–1: `0.03` means 3%. If any check lacks a pixel
+  measurement, both aggregates stay blank.
+- `verify_issues_critical`, `verify_issues_major`, `verify_issues_minor`: summed
+  issue occurrences across checks, including the same defect at multiple breakpoints.
+- `verify_initial_score`, `verify_score_delta`: first-shot score and initial minus
+  final score. Positive delta means improvement; missing initial evidence stays blank.
+- `verify_story_ids`, `verify_reference_urls`, `verify_breakpoints`: JSON arrays
+  identifying the measured scope.
+- `verify_thresholds_json`: per-story thresholds as ratios; `verify_checks_json`:
+  each check's story, region, breakpoint, score, pass/fail, pixel ratio and severities.
+
+These are raw reported measurements. The separate evidence audit determines whether
+captures are valid designs; CSV values alone do not establish visual validity.
+`cli` identifies the runner. For Claude, input totals include ordinary input,
+cache creation and cache reads; `cache_write_input_tokens` is the creation subset,
+while `cached_input_tokens` counts reads. Uncached input includes cache writes.
+Reasoning is recorded only when the CLI supplies it; missing counts stay blank.
+Per-model native Claude usage is also retained in the JSON report.
+Token columns on the verify row belong only to that CLI session; embedded
 agent estimates in score-report are ignored. Main/verify rows remain separate; a main phase pass
 alone does not establish overall design quality. Failed attempts are included and
 missing token measurements stay blank. Writes are locked for parallel runs.

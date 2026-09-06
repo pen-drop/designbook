@@ -3,11 +3,12 @@
 Use for standalone verification; the normal design runner already executes
 this phase automatically. Inputs are the original suite/case, existing workspace and run directory containing
 `main.json`. Run from the ticket's repository/worktree root. This sub-skill owns the
-follow-up verification; all domain execution uses Promptfoo with Codex CLI.
+follow-up verification; all domain execution uses Promptfoo with the main run's CLI and model.
 
 ## 1. Resolve the actual comparison
 
 Read `main.json`, its saved workflow paths and the actual artifacts. Identify the
+main output's `cli` and `model` for the runner arguments below. Identify the
 produced story/scene, original reference, all requested regions, breakpoints,
 selectors and fixed thresholds. A suite's `design-verify-*` case may supply
 comparison criteria; use its prompt only. Keep the main artifacts and fixtures.
@@ -28,13 +29,14 @@ its artifacts and usage cannot replace the initial measurement.
 ```bash
 ./promptfoo/scripts/run-single.sh "$CASE" --suite "$SUITE" \
   --phase verify --workspace "$WORKSPACE" \
+  --provider "$CLI" --model "$MODEL" \
   --prompt-file "$RUN_DIR/verify-prompt.txt" \
   --output "$RUN_DIR/verify.json"
 ```
 
-This starts a new Codex session in the existing workspace. It does not rebuild or
+This starts a new CLI session in the existing workspace. It does not rebuild or
 layer fixtures. Promptfoo appends a separate CSV row with the same `run_id`,
-`phase=verify` and `workflow_id=design-verify`. The token columns measure this Codex
+`phase=verify` and `workflow_id=design-verify`. The token columns measure this CLI
 session; `verify_score` comes from validated score-report results in this saved
 workflow. It is the severity sum: lower is better, zero means no scored issues.
 `verify_checks_passed` and `verify_checks_total` record comparison coverage.
@@ -42,7 +44,7 @@ Missing or invalid measurements stay blank, never synthetic zero.
 
 ## 3. Audit and return
 
-Inspect the saved definition snapshot, Codex/CLI logs, validated score-report and
+Inspect the saved definition snapshot, CLI logs, validated score-report and
 real capture/comparison artifacts. Match all requested regions and breakpoints,
 reference paths and thresholds. Confirm the checked artifact hashes still match
 the main output. A completed workflow or a CSV score alone is insufficient.
@@ -51,7 +53,7 @@ Storybook, with no server error page or missing selector substituted for a regio
 Missing comparisons, unresolved errors or changed main artifacts fail this check.
 
 Save `verification.json` with `passed`, findings and evidence paths, workflow ID,
-measured score/check counts, the Promptfoo report and Codex usage. Return those
+measured score/check counts, the Promptfoo report and native CLI usage. Return those
 values to the caller, which performs the shared run audit and aggregates main plus
 verification tokens in `summary.json`. Keep recovered errors and their costs.
 A repaired design needs a fresh verification in its own run directory.

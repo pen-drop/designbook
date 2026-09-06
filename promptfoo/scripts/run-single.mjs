@@ -27,12 +27,18 @@ for (let i = 0; i < args.length; i++) {
       "prompt-file",
       "validate",
       "history",
+      "provider",
+      "model",
+      "storybook-port",
     ].includes(key)
   ) {
     if (!args[i + 1] || args[i + 1].startsWith("--"))
       throw new Error(`Missing value for --${key}`);
     opts[key] = args[++i];
-  } else if (["--list", "--config-only"].includes(args[i])) opts[key] = true;
+  } else if (
+    ["--list", "--config-only", "--prepared-workspace"].includes(args[i])
+  )
+    opts[key] = true;
   else if (!opts.case && !args[i].startsWith("-")) opts.case = args[i];
   else extra.push(args[i]);
 }
@@ -48,6 +54,8 @@ if (opts.list || !opts.case) {
 }
 if (!["main", "verify"].includes(opts.phase))
   throw new Error("phase must be main or verify");
+if (opts["prepared-workspace"] && !opts.workspace)
+  throw new Error("prepared-workspace requires an explicit --workspace");
 if (opts.phase === "verify" && (!opts.workspace || !opts["prompt-file"])) {
   throw new Error(
     "Verification needs --workspace and --prompt-file, and preserves the main artifacts",
@@ -59,6 +67,23 @@ const caseDoc = yaml.load(
 const base = yaml.load(
   readFileSync(join(repo, "promptfoo/configs/base.yaml"), "utf8"),
 );
+const cli = opts.provider || "codex";
+if (!["codex", "claude"].includes(cli))
+  throw new Error("provider must be codex or claude");
+const model =
+  opts.model ||
+  (cli === "claude" ? "claude-opus-5" : base.providers[0].config.model);
+const storybookPort =
+  opts["storybook-port"] === undefined
+    ? undefined
+    : Number(opts["storybook-port"]);
+if (
+  storybookPort !== undefined &&
+  (!Number.isInteger(storybookPort) ||
+    storybookPort < 1024 ||
+    storybookPort > 65535)
+)
+  throw new Error("storybook-port must be an integer from 1024 to 65535");
 const requestedOutput = resolve(
   repo,
   opts.output ||
@@ -95,8 +120,9 @@ prompt +=
   "If required inputs are missing, record the failure and end the run; this test has no interactive user.";
 const providers = base.providers.map((p) => ({
   ...p,
-  id: `file://${resolve(repo, "promptfoo/configs", p.id.slice(7))}`,
-  config: { ...p.config, evidenceDir: join(runDir, "evidence") },
+  id: `file://${join(repo, "promptfoo/providers", `${cli}-cli.mjs`)}`,
+  label: model,
+  config: { ...p.config, model, evidenceDir: join(runDir, "evidence") },
 }));
 const assertions =
   opts.phase === "main"
@@ -131,6 +157,7 @@ const config = {
     history_csv: resolve(repo, opts.history || "promptfoo/results.csv"),
     report: relative(repo, output),
     model: providers[0].config.model,
+    cli,
     git_commit: execFileSync("git", ["rev-parse", "HEAD"], {
       cwd: repo,
       encoding: "utf8",
@@ -163,8 +190,15 @@ const config = {
   tests: [
     {
       vars:
-        opts.phase === "main"
-          ? { suite: opts.suite, case: opts.case, workspace }
+        opts.phase === "main" && !opts["prepared-workspace"]
+          ? {
+              suite: opts.suite,
+              case: opts.case,
+              workspace,
+              ...(storybookPort === undefined
+                ? {}
+                : { storybook_port: storybookPort }),
+            }
           : { workspace },
       assert: assertions,
     },
