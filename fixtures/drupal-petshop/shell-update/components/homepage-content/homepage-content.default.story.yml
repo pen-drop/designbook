@@ -1,0 +1,4 @@
+title: Homepage-Content
+component: test_integration_drupal:homepage-content
+props:
+  heading: Find your next companion

@@ -76,7 +76,7 @@ reader should be able to guess from the filename alone which file type the rule 
 - `misc.md`
 
 Prefer the name of the output file type or transform over the name of the task that
-produces it. `twig-component-format.md` is better than `create-component-rules.md`
+produces it. `twig-component-format.md` is better than `write-component-rules.md`
 because multiple tasks may produce Twig components.
 
 ## Rules Never Declare `params:`

@@ -24,10 +24,10 @@ The suite name still selects fixtures; it does not select the workspace when
 
 After `setup-workspace.sh` the workspace is a Drupal tree:
 
-| Path | Use for |
-|---|---|
-| `$WORKSPACE` (**workspace root**) | All `_debo workflow *`, `sync-to`, `config`, `eval "$(_debo config)"` |
-| `$WORKSPACE/web/themes/custom/test_integration_drupal` (**theme dir**) | Storybook start/status/stop only; theme git repo for fixture diffs |
+| Path                                                                   | Use for                                                               |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `$WORKSPACE` (**workspace root**)                                      | All `_debo workflow *`, `sync-to`, `config`, `eval "$(_debo config)"` |
+| `$WORKSPACE/web/themes/custom/test_integration_drupal` (**theme dir**) | Storybook start/status/stop only; theme git repo for fixture diffs    |
 
 `designbook.config.yml` lives at the **workspace root**. Never put a second copy in the theme dir (it shadows the root). `setup-test.sh` merges case config overrides into the root config.
 
@@ -99,10 +99,10 @@ Skip this step entirely when no `--validate` option was given.
 
 **Gates by validate workflow:**
 
-| Validate workflow | Proceed when |
-|---|---|
+| Validate workflow                            | Proceed when                                                                                                       |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `design-verify` (scores vs design reference) | Case prompt has a `reference_url` (or equivalent). Otherwise report skipped (no reference) and continue to step 6. |
-| `sync-verify` (scores backend vs Storybook) | Storybook is running and the main-run summary (or case) names the story/scene. No design `reference_url` required. |
+| `sync-verify` (scores backend vs Storybook)  | Storybook is running and the main-run summary (or case) names the story/scene. No design `reference_url` required. |
 
 After the main run completes, invoke the selected verification intake with the produced story and case reference. Execute its saved document with the same per-task subagent policy. The verification intake owns the separate automatic repair handoff. Record each check and repair path.
 
@@ -131,3 +131,90 @@ After the workflow completes:
    - For each changed/new file under the theme, copy it to `fixtures/<suite>/<fixture-name>/` preserving the theme-relative path
    - Report: "✓ Fixture saved to fixtures/<suite>/<fixture-name>/"
 8. If the user declines: do nothing, workspace remains
+
+## Case evidence and scoring
+
+When a case declares `evidence`, collect its listed theme-relative files plus changed
+case artifacts through the shared [scorer](../../../resources/eval-score.mjs).
+`setup-test.sh`'s fixture commit is the baseline. Keep that commit fixed throughout
+the case; pass `--baseline <commit>` if the theme HEAD changes. The scorer exposes
+parsed `fileContents` and `baselineContents`, SHA-256 `fileHashes` and
+`baselineHashes`, and `unchangedFiles`. Missing files never count as preserved.
+`evidence.mappings` selects bounded `{file, data, record?}` JSONata evaluations for
+semantic assertions. Component inventory contains existing metadata paths only.
+
+Before execution, bind each case observation to a concrete story URL, selector,
+viewport and expected value in the saved definition. After the real commands and
+browser interactions, save one JSON evidence file per execution:
+
+```json
+{
+  "build": {
+    "command": "pnpm build-storybook",
+    "cwd": "/absolute/workspace/web/themes/custom/test_integration_drupal",
+    "exitCode": 0,
+    "stdout": "<actual captured build output>"
+  },
+  "checks": [
+    {
+      "url": "<actual checked story URL>",
+      "result": { "ok": true },
+      "observations": { "<case observation key>": "<observed value>" }
+    }
+  ]
+}
+```
+
+Copy the complete actual `CHECK_RESULT` object into `result`; the abbreviated
+example shows only the field assertions consume. Record observations from browser
+measurements/interactions at the declared selectors and viewport, with supporting
+logs/screenshots beside the evidence. Expected values in a case are acceptance
+criteria, never substitutes for observations. A static build and a console check
+alone do not establish behavior.
+
+Run from the workspace root, using absolute paths:
+
+```bash
+node <repo>/.agents/skills/designbook-test/resources/eval-score.mjs \
+  --workflow <saved-tasks.yml> --case <case.yaml> \
+  --data-dir <theme>/designbook --theme-dir <theme> \
+  --definition-before <definition-before.yml> --evidence <evidence.json> \
+  --snapshot <artifact-snapshot.json>
+```
+
+The before-file contains only the definition object. Require a positive assertion
+count, all assertions passed and no failures. The process exit code alone does not
+mean the case passed. Every execution must contain the exact nonempty planned task
+set, completed state and valid required results; the scorer exposes this as
+`runs[].complete`. The workflow-ID maps remain useful for single-run cases;
+`runs[]` is the execution-path identity for repeated cases.
+
+When `repeat: {count: 2, same_prompt: true}` is present, setup once and complete
+step 4 twice with the identical domain request. Save a distinct definition and
+execution path for each run. Capture the first run's artifact snapshot and evidence
+before starting the second. The first scoring call can fail the not-yet-complete
+repeat assertions; it still writes its snapshot. After both runs, write a JSON
+manifest array with one entry per execution:
+
+```json
+[
+  {
+    "workflow": "<first-tasks.yml>",
+    "definitionBefore": "<first-before.yml>",
+    "evidence": "<first-evidence.json>",
+    "artifactSnapshot": "<first-snapshot.json>"
+  },
+  {
+    "workflow": "<second-tasks.yml>",
+    "definitionBefore": "<second-before.yml>",
+    "evidence": "<second-evidence.json>",
+    "artifactSnapshot": "<second-snapshot.json>"
+  }
+]
+```
+
+Pass `--runs <manifest.json>` on the final scoring call, with `--workflow` and
+`--definition-before` selecting the second execution. Collect both workflow summaries.
+Each run keeps its own definition comparison, command results, browser observations
+and snapshot even when both definitions have the same ID. Rebuilding or relayering
+between these two executions invalidates the repeat case.

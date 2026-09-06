@@ -1,14 +1,16 @@
 ---
 name: design-shell-intake
-description: Domain decisions required before planning design-shell artifacts.
+description: Domain decisions for creating or changing the selected shell artifacts.
 ---
 
-# design-shell intake
+# Shell intake
 
-Inspect the application reference and existing shell. Decide header, navigation, content and footer composition, slots, responsive behavior and supporting component IDs. Enumerate all components and the shell scene output before planning.
+Select the canonical `design-system:shell` target in `design-system/design-system.scenes.yml`, preserving its file identity and the existing scene named `shell`. Inspect the page/header/footer composition, navigation labels and destinations, slots, scripting, responsive behavior and every consuming screen.
 
-Use the request and existing project artifacts as input. Load the effective planning catalogue using the [shared builder](../../../resources/workflow-building.md) before deciding framework/backend-specific constraints. Ask only questions not answered by those inputs.
+Record the requested delta, concrete desktop/mobile acceptance criteria, preserved structure and affected consumers. A clear text request is sufficient; a new visual reference is optional. Set `scene_scope: shell`; preserve exactly one content injection point and plan verification of consuming screens with their route-bearing content intact. Enumerate all required component/story/consumer edits. Reuse the existing file; include `create-scene-file` only when it is absent, with canonical shell metadata.
 
-Completion: every target, structural parameter, dependency and applicable rule is determined. Record the complete decisions as definition inputs and concrete task parameters; intake itself creates no run task or progress entry.
+Use the request and existing artifacts with the effective catalogue from the [shared builder](../../../resources/workflow-building.md). For reference handling, preserved inputs, fixed dependencies and build/browser evidence, follow the [write planning contract](../../../design/resources/write-planning.md).
+
+Completion: all identities, requested deltas, preserved content, acceptance criteria, consumer targets, outputs, dependencies and applicable rules are fixed in definition inputs and task parameters. Clarify unresolved identity or scope before saving a runnable definition.
 
 Follow the [shared builder](../../../resources/workflow-building.md), then invoke [execute-workflow](../../execute-workflow/SKILL.md) with the saved document path automatically.

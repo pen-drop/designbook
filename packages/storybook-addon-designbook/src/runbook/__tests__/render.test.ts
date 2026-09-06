@@ -78,8 +78,8 @@ const CTX: RenderContext = {
   ]),
   ruleIndex: { 'markup-derivation': [{ stage: 'intake', task: 'intake' }] },
   blueprintIndex: { 'static-assets': [{ stage: 'intake', task: 'intake' }] },
-  ruleTriggerSteps: new Map([['/x/rules/markup-derivation.md', ['create-component', 'create-scene']]]),
-  blueprintTriggerSteps: new Map([['/x/blueprints/static-assets.md', ['create-scene', 'design-shell:intake']]]),
+  ruleTriggerSteps: new Map([['/x/rules/markup-derivation.md', ['write-component', 'write-scene']]]),
+  blueprintTriggerSteps: new Map([['/x/blueprints/static-assets.md', ['write-scene', 'design-shell:intake']]]),
   schemaDefinitions: {
     Component: { type: 'object', required: ['name'], properties: { name: { type: 'string' } } },
     DesignHint: { type: 'object', properties: { variant: { type: 'string' } } },
@@ -171,7 +171,7 @@ describe('renderPlan', () => {
 
   it('renders rules appendix with trigger steps and applied-in-tasks', () => {
     expect(out).toMatch(
-      /# Rules\n\n## Rule: markup-derivation\n\*Triggered on\*: `create-component`, `create-scene`\n\*Applied in tasks\*: intake\.intake/,
+      /# Rules\n\n## Rule: markup-derivation\n\*Triggered on\*: `write-component`, `write-scene`\n\*Applied in tasks\*: intake\.intake/,
     );
   });
 

@@ -138,7 +138,7 @@ Declare canonical output paths. The planning agent resolves them before executio
 
 ## Stage = Filename, No Duplication
 
-A task file's filename IS its stage assignment. `tasks/create-component.md` applies to stage `create-component`. Never declare `stage:` in frontmatter — it is redundant and becomes stale.
+A task file's filename IS its stage assignment. `tasks/write-component.md` applies to stage `write-component`. Never declare `stage:` in frontmatter — it is redundant and becomes stale.
 
 ## Validation Is Automatic
 
@@ -159,7 +159,7 @@ Implementation details that vary between integrations belong in **blueprints** (
 
 ## `tasks/` — Naming Rule
 
-**Filename = stage name.** `tasks/create-component.md` applies to stage `create-component`. The AI discovers tasks by scanning all skill directories for `tasks/<stage>.md`. No explicit stage declaration in frontmatter.
+**Filename = stage name.** `tasks/write-component.md` applies to stage `write-component`. The AI discovers tasks by scanning all skill directories for `tasks/<stage>.md`. No explicit stage declaration in frontmatter.
 
 ### Workflow-qualified tasks
 

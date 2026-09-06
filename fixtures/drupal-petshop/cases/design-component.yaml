@@ -3,26 +3,80 @@ fixtures:
   - tokens
   - css-generate
   - sections
-
-prompt: |
-  You are working in the directory {{workspace}}.
-  Run the /debo design-component workflow. Do NOT ask any questions.
-  Create an "avatar" component for PetMatch that displays: user photo, user name, and a role label.
-  The component should have variants: small, medium (default), and large.
-  Execute the workflow now.
-
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-component.
+  Create PetMatch's avatar component (test_integration_drupal:avatar) with top-level variants small, medium and large, and props username, role, image_url. Select the canonical variant through props.variant in stories. Render the photo with the user name as alt text, plus visible name and role. Variants: small photo 32x32px, medium/default 48x48px, large 64x64px; all circular. Author small, medium, large and default (medium) story files using Alex Morgan / Volunteer. Use a self-contained fixture image or embedded image data. Render all three stories and inspect each image's computed width and height, shape and visible text.
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual `pnpm build-storybook` (theme cwd), artifact validation, and `npx storybook-addon-designbook storybook check <story-url>` for every affected story. Run browser observations at desktop 1280x800 and mobile 390x844 where applicable. A build is separate from browser verification.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - small.width: 32
+    - small.height: 32
+    - medium.width: 48
+    - medium.height: 48
+    - large.width: 64
+    - large.height: 64
+    - avatar.text: 'Alex Morgan / Volunteer'
+    - avatar.circular: True
+  Preserve the definition before execution and score this case; validate workflow: none. Execute now without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - components/avatar/avatar.component.yml
+    - components/avatar/avatar.twig
+    - components/avatar/avatar.small.story.yml
+    - components/avatar/avatar.default.story.yml
+    - components/avatar/avatar.medium.story.yml
+    - components/avatar/avatar.large.story.yml
 assert:
   - type: javascript
-    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.component.yml'))
+    value: output.runs.length === 1 && output.runs.every(r => r.complete && r.definitionUnchanged)
   - type: javascript
-    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.twig'))
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
   - type: javascript
-    value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.story.yml'))
+    value: |-
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0 && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && r.evidence.build.cwd.endsWith('/web/themes/custom/test_integration_drupal') && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url) && c.result?.ok === true))
   - type: javascript
-    value: output.completedWorkflows['design-component']?.state?.status === 'completed'
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["small.width"] ===
+      32))
   - type: javascript
-    value: Object.values(output.completedWorkflows['design-component']?.state?.tasks || {}).every(t => t.status === 'done')
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["small.height"]
+      === 32))
   - type: javascript
-    value: Object.keys(output.pendingWorkflows).length === 0
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["medium.width"]
+      === 48))
   - type: javascript
-    value: output.definitionUnchanged === true
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["medium.height"]
+      === 48))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["large.width"] ===
+      64))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["large.height"]
+      === 64))
+  - type: javascript
+    value: |-
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["avatar.text"] === "Alex Morgan / Volunteer"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["avatar.circular"]
+      === true))
+  - type: javascript
+    value: |-
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file]) => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults).forEach(walk); return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_drupal:') && output.componentIds.includes(ref.split(':')[1]));
+  - type: javascript
+    value: "['small','medium','large'].every(v => output.fileContents['components/avatar/avatar.component.yml']?.variants?.[v])"
+  - type: javascript
+    value: |-
+      ['username','role','image_url'].every(p => output.fileContents['components/avatar/avatar.component.yml']?.props?.properties?.[p]?.type === 'string')
+  - type: javascript
+    value: |-
+      ['small','default','medium','large'].every(v => output.fileContents[`components/avatar/avatar.${v}.story.yml`]?.component === 'test_integration_drupal:avatar')
+  - type: javascript
+    value: output.fileContents['components/avatar/avatar.default.story.yml']?.props?.variant === 'medium'
+  - type: javascript
+    value: output.runs.every(r => new Set(r.evidence.checks.map(c => c.url)).size >= 3)

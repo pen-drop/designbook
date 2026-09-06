@@ -106,7 +106,7 @@ Materialize `reference_overviews` as exactly the two full-page overviews capture
 
 ## Completeness Requirements
 
-The extracted `DesignReference` is the single source of truth for every downstream stage (intake, create-component, create-scene, verify). All fields below map directly to binding derivations in the `markup-derivation` rule: every row, interactive element, form, image, and breakpoint you populate here MUST be structurally represented in the markup produced by `create-component` and `create-scene`. A field left empty here cannot be used there — thin extraction propagates directly into markup mismatches in `design-verify`.
+The extracted `DesignReference` is the single source of truth for every downstream stage (intake, write-component, write-scene, verify). All fields below map directly to binding derivations in the `markup-derivation` rule: every row, interactive element, form, image, and breakpoint you populate here MUST be structurally represented in the markup produced by `write-component` and `write-scene`. A field left empty here cannot be used there — thin extraction propagates directly into markup mismatches in `design-verify`.
 
 Treat the schema fields as a checklist — when a field is observable in the reference, it MUST be populated.
 

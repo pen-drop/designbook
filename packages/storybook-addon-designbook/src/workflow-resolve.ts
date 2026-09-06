@@ -945,7 +945,7 @@ function isPluginRootPath(p: string): boolean {
  * installed plugin is only a fallback for steps the project does not define.
  *
  * Without this, the same step resolves task files from BOTH roots, and
- * `each:`-expansion materializes every task once per root (a `create-component`
+ * `each:`-expansion materializes every task once per root (a `write-component`
  * present in both roots expands every component twice; sample-data runs twice,
  * the stale plugin copy writing the legacy per-section data.yml).
  */
@@ -1096,7 +1096,7 @@ export function resolveTaskFiles(
       broadMatches.sort((a, b) => b.specificity - a.specificity);
       return [broadMatches[0]!.path];
     }
-    // Fallback: direct skill-dir resolution (e.g. designbook-drupal:create-component)
+    // Fallback: direct skill-dir resolution (e.g. designbook-drupal:write-component)
     const parts = stage.split(':', 2);
     const skillName = parts[0] ?? '';
     const taskName = parts[1] ?? '';

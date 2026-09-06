@@ -20,7 +20,7 @@ title: Design Component
 description: Produce the component artifacts selected during intake
 stages:
   component:
-    steps: [create-component]
+    steps: [write-component]
 ---
 ```
 

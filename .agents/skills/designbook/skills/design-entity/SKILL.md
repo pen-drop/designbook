@@ -1,7 +1,8 @@
 ---
 name: design-entity
+user-invocable: true
 description: >
-  Build one entity view-mode (mapping + sample data) and preview it standalone. Use when the user mentions an entity view-mode, `*.demo.yml`, or entity mapping.
+  Create or change one entity view or form mode. Use for entity mappings, sample data for a mode, or its standalone preview.
 ---
 
-For this request, follow [intake](resources/intake.md).
+For creation or a targeted change, follow [intake](resources/intake.md).

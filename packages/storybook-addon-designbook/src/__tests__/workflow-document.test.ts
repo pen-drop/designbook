@@ -94,6 +94,18 @@ describe('fixed task lifecycle', () => {
     const path = await setup();
     expect((await taskContext(path, 'write')).context[0]!.content).toBe('Use the agreed audience.');
   });
+  it('preserves literal source baselines in embedded context while keeping structural inputs concrete', async () => {
+    const def = definition();
+    const twig = '<div{{ attributes.addClass(["avatar"]) }}>{{ label }}</div>';
+    def.context.baseline = { source: '/tmp/components/avatar/avatar.twig', content: twig };
+    def.tasks[0]!.context.push('baseline');
+    def.tasks[0]!.params = { component_id: 'theme:avatar', source_path: '/tmp/components/avatar/avatar.twig' };
+    const path = await setup(def);
+    expect((await taskContext(path, 'write')).context.find((entry) => entry?.content === twig)).toBeDefined();
+    expect((await readDocument(path)).definition).toEqual(def);
+    def.inputs.source = twig;
+    expect(() => validateDefinition(def)).toThrow('unresolved');
+  });
   it('leaves invalid results open and completes the same task after correction', async () => {
     const path = await setup();
     const before = (await readDocument(path)).definition;

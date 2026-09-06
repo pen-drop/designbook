@@ -1,6 +1,6 @@
 ---
 title: Design Shell
-description: Design the application shell -- page component with header, content, and footer slots
+description: Create or change the application shell. Use for shared header, footer, navigation, or shell content injection.
 params:
   section:
     type: object
@@ -30,19 +30,20 @@ params:
       - header
       - footer
 stages:
-  reference:
-    steps:
-      - extract-reference
   component:
     steps:
-      - create-component
+      - write-component
+  consumers:
+    steps:
+      - create-sample-data
+      - map-entity
   scene:
     steps:
       - create-scene-file
-      - create-scene
+      - write-scene
   validate:
     steps:
       - validate
 ---
 
-Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.
+Creation/change building blocks: intake selects only necessary writes and absent-file initialization. Reference analysis is completed before execution. Include explicit prerequisite builds/index refreshes and final build/browser checks for all affected targets. Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.

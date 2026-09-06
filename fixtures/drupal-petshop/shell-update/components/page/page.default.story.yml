@@ -1,0 +1,17 @@
+title: "Page"
+component: "test_integration_drupal:page"
+slots:
+  header:
+    - type: "element"
+      tag: "div"
+      value: "[Header placeholder]"
+  content:
+    - type: "element"
+      tag: "div"
+      attributes:
+        class: "p-8 text-center text-on-surface-variant"
+      value: "Content area"
+  footer:
+    - type: "element"
+      tag: "div"
+      value: "[Footer placeholder]"

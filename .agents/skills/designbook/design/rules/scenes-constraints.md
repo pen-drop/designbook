@@ -1,18 +1,11 @@
 ---
 trigger:
-  steps: [create-scene-file, create-scene, map-entity]
+  steps: [create-scene-file, write-scene, map-entity]
 ---
 
 # Scenes Critical Constraints
 
-> ⛔ **Rebuild Storybook before create-scene when components were created in the same run.**
-> The `components` inventory for the scene is resolved from Storybook's live
-> `/index.json` + SDC namespace map, both built once at startup. Components
-> created earlier in the same workflow run are absent until a rebuild, so the
-> resolver returns `Available: (none)` and scene validation fails one stage
-> before `validate` ever runs. Run `_debo storybook start --force` once before
-> the first `create-scene` of a run that added components — a preflight, not a
-> failure recovery.
+Intake fixes the component IDs used by scene and mapping outputs. If this run writes components, the saved graph includes a Storybook build/restart and index refresh before dependent scene or mapping work. A refresh supplies artifact data for those declared IDs only; newly discovered scope blocks the run. Every prerequisite is an explicit task, never a runtime preflight added by this rule.
 
 > Full `*.scenes.yml` format and `SceneNode` types: see [scenes/schemas.yml](../../scenes/schemas.yml).
 

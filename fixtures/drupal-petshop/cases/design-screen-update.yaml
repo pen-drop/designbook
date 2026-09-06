@@ -1,0 +1,130 @@
+fixtures:
+  - vision
+  - tokens
+  - css-generate
+  - screen-prerequisites
+  - shell-update
+  - screen-update
+prompt: |-
+  You are working in {{workspace}}. Invoke /debo design-screen for homepage.
+  In designbook/sections/homepage/homepage.section.scenes.yml select only scene name homepage. Change its supplementary notice text to "Meet your companion this weekend". Preserve the route entity, shell inheritance, selected scene docs/section, sibling adoption-info scene, scene order and every file metadata field. Existing components and mappings suffice. Keep every other fixture artifact byte-identical.
+  Repeat this identical request twice in this same workspace, with a separately saved immutable definition and execution path each time. Complete and capture bounded artifact snapshot/evidence for the first execution before starting the second; never run setup between repetitions. Both executions must build and render homepage plus adoption-info. The second result must equal the first semantically with exactly one homepage entry.
+  During intake freeze concrete story URLs, selectors and checks in the saved definition. Plan actual `pnpm build-storybook` (theme cwd), artifact validation, and `npx storybook-addon-designbook storybook check <story-url>` for every affected story. Run browser observations at desktop 1280x800 and mobile 390x844 where applicable. A build is separate from browser verification.
+  After execution save evidence JSON from actual command outputs and browser observations, as specified by debo-test run's evidence contract. The required observation keys and exact expected values are:
+    - homepage.notice: 'Meet your companion this weekend'
+    - sibling.notice: 'Bring identification to your appointment'
+    - homepage.heading: 'Find your next companion'
+  Preserve the definition before execution and score this case; validate workflow: none. Execute now without clarification; all requested targets and acceptance criteria are supplied.
+validate: none
+evidence:
+  files:
+    - components/homepage-content/homepage-content.component.yml
+    - components/homepage-content/homepage-content.default.story.yml
+    - components/homepage-content/homepage-content.twig
+    - components/notice/notice.component.yml
+    - components/notice/notice.default.story.yml
+    - components/notice/notice.twig
+    - components/page/page.component.yml
+    - components/page/page.default.story.yml
+    - components/page/page.twig
+    - components/site-footer/site-footer.component.yml
+    - components/site-footer/site-footer.default.story.yml
+    - components/site-footer/site-footer.twig
+    - components/site-header/site-header.component.yml
+    - components/site-header/site-header.default.story.yml
+    - components/site-header/site-header.twig
+    - designbook/data-model.yml
+    - designbook/data/node.homepage.yml
+    - designbook/design-system/design-system.scenes.yml
+    - designbook/design-system/design-tokens.yml
+    - designbook/designbook-css-tailwind/generate-color.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-color.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-font.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-leading.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-text.jsonata
+    - designbook/designbook-css-tailwind/generate-primitive-weight.jsonata
+    - designbook/designbook-css-tailwind/generate-typography.jsonata
+    - designbook/entity-mapping/node.homepage.full.jsonata
+    - designbook/sections/homepage/homepage.section.scenes.yml
+    - designbook/vision.yml
+assert:
+  - type: javascript
+    value: output.runs.length === 2 && output.runs.every(r => r.complete && r.definitionUnchanged)
+  - type: javascript
+    value: Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.build?.command === 'pnpm build-storybook' && r.evidence.build.exitCode === 0
+      && typeof r.evidence.build.stdout === 'string' && r.evidence.build.stdout.trim().length > 0 && r.evidence.build.cwd.endsWith('/web/themes/custom/test_integration_drupal')
+      && Array.isArray(r.evidence.checks) && r.evidence.checks.length > 0 && r.evidence.checks.every(c => /^https?:/.test(c.url)
+      && c.result?.ok === true))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["homepage.notice"]
+      === "Meet your companion this weekend"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["sibling.notice"]
+      === "Bring identification to your appointment"))
+  - type: javascript
+    value:
+      output.runs.every(r => r.evidence?.checks?.some(c => c.result?.ok === true && c.observations?.["homepage.heading"]
+      === "Find your next companion"))
+  - type: javascript
+    value:
+      const refs = []; const walk = value => { if (!value || typeof value !== 'object') return; if (typeof value.component
+      === 'string') refs.push(value.component); Object.values(value).forEach(walk); }; Object.entries(output.fileContents).filter(([file])
+      => /\.(scenes|story)\.yml$/.test(file)).forEach(([,value]) => walk(value)); Object.values(output.mappingResults).forEach(walk);
+      return refs.length > 0 && refs.every(ref => ref.startsWith('test_integration_drupal:') && output.componentIds.includes(ref.split(':')[1]));
+  - type: javascript
+    value:
+      output.fileContents['designbook/sections/homepage/homepage.section.scenes.yml']?.id === 'homepage' && output.fileContents['designbook/sections/homepage/homepage.section.scenes.yml'].scenes.filter(s
+      => s.name === 'homepage').length === 1
+  - type: javascript
+    value:
+      const selected=output.fileContents['designbook/sections/homepage/homepage.section.scenes.yml']?.scenes.find(s =>
+      s.name === 'homepage'); const roots=selected?.items?.filter(i => i.scene === 'design-system:shell'); return roots?.length
+      === 1 && roots[0].with.content.filter(i => i.entity === 'node.homepage' && i.view_mode === 'full').length === 1;
+  - type: javascript
+    value:
+      const now=output.fileContents['designbook/sections/homepage/homepage.section.scenes.yml'], before=output.baselineContents['designbook/sections/homepage/homepage.section.scenes.yml'];
+      return JSON.stringify(now.scenes[1]) === JSON.stringify(before.scenes[1]) && JSON.stringify({...now,scenes:undefined})
+      === JSON.stringify({...before,scenes:undefined}) && now.scenes[0].docs === before.scenes[0].docs && now.scenes[0].section
+      === before.scenes[0].section && now.scenes.map(s=>s.name).join(',') === 'homepage,adoption-info';
+  - type: javascript
+    value:
+      output.fileContents['designbook/sections/homepage/homepage.section.scenes.yml'].scenes[0].items[0].with.content[1].props.text
+      === 'Meet your companion this weekend'
+  - type: javascript
+    value:
+      output.runs.length === 2 && output.runs[0].path !== output.runs[1].path && output.runs.every(r => r.artifacts?.fileContents?.['designbook/sections/homepage/homepage.section.scenes.yml'])
+      && JSON.stringify(output.runs[0].artifacts.fileContents['designbook/sections/homepage/homepage.section.scenes.yml'])
+      === JSON.stringify(output.runs[1].artifacts.fileContents['designbook/sections/homepage/homepage.section.scenes.yml'])
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/design-system/design-system.scenes.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/data-model.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/data/node.homepage.yml')
+  - type: javascript
+    value: output.unchangedFiles.includes('designbook/entity-mapping/node.homepage.full.jsonata')
+  - type: javascript
+    value: output.unchangedFiles.includes('components/notice/notice.twig')
+  - type: javascript
+    value: JSON.stringify(output.componentIds.sort()) === JSON.stringify(output.baselineComponentIds.sort())
+  - type: javascript
+    value:
+      '["components/homepage-content/homepage-content.component.yml", "components/homepage-content/homepage-content.default.story.yml",
+      "components/homepage-content/homepage-content.twig", "components/notice/notice.component.yml", "components/notice/notice.default.story.yml",
+      "components/notice/notice.twig", "components/page/page.component.yml", "components/page/page.default.story.yml", "components/page/page.twig",
+      "components/site-footer/site-footer.component.yml", "components/site-footer/site-footer.default.story.yml", "components/site-footer/site-footer.twig",
+      "components/site-header/site-header.component.yml", "components/site-header/site-header.default.story.yml", "components/site-header/site-header.twig",
+      "designbook/data-model.yml", "designbook/data/node.homepage.yml", "designbook/design-system/design-system.scenes.yml",
+      "designbook/design-system/design-tokens.yml", "designbook/designbook-css-tailwind/generate-color.jsonata", "designbook/designbook-css-tailwind/generate-primitive-color.jsonata",
+      "designbook/designbook-css-tailwind/generate-primitive-font.jsonata", "designbook/designbook-css-tailwind/generate-primitive-leading.jsonata",
+      "designbook/designbook-css-tailwind/generate-primitive-text.jsonata", "designbook/designbook-css-tailwind/generate-primitive-weight.jsonata",
+      "designbook/designbook-css-tailwind/generate-typography.jsonata", "designbook/entity-mapping/node.homepage.full.jsonata",
+      "designbook/vision.yml"].every(file => output.unchangedFiles.includes(file))'
+repeat:
+  count: 2
+  same_prompt: true
