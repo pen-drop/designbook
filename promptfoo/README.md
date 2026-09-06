@@ -63,10 +63,6 @@ assert:                      # assertions evaluated by promptfoo
 ./promptfoo/scripts/run-single.sh data-model-canvas
 ./promptfoo/scripts/run-single.sh --list
 
-# All cases
-node promptfoo/scripts/generate-configs.mjs
-npx promptfoo eval -c promptfoo/promptfooconfig.yaml
-
 # View results
 npx promptfoo view
 ```
@@ -82,7 +78,8 @@ The read-only `is-clear` audit does not execute a workflow.
 ```bash
 ./promptfoo/scripts/run-single.sh design-shell --suite drupal-web \
   --workspace promptfoo/workspaces/shell-a --output promptfoo/reports/shell-a/main.json
-# After preparing a verification prompt for the actual output (no fixture reset):
+# The command above automatically runs design-verify and writes verify.json.
+# For an explicitly requested standalone recheck:
 ./promptfoo/scripts/run-single.sh design-shell --suite drupal-web --phase verify \
   --workspace promptfoo/workspaces/shell-a --prompt-file verify-prompt.txt \
   --output promptfoo/reports/shell-a/verify.json
@@ -94,8 +91,13 @@ is rejected so earlier results remain intact.
 `--config-only` validates/generates configuration without starting Codex or rebuilding
 a workspace. Main phases rebuild fixtures; verify phases require the existing
 workspace and a prompt file. CLI JSONL/stderr and available dbo.log files are kept
-for auditing; usage is reported per phase. An individual main-phase report is not
-the full debo-test quality verdict. All rendered design tests need design-verify.
+for auditing; usage is reported per phase. Design-shell, design-entity and design-screen always start a separate design-verify evaluation after the main
+phase. Fixtures may declare `verify: <case>` to select its criteria; only that
+case's prompt is used. Both reports share a run directory and `run_id`. The runner
+fails if either phase fails, comparisons do not pass, or verification changes
+main artifacts. The shared skill still audits the real capture/comparison logs.
+Calling `promptfoo eval` directly on an individual generated config runs only
+that phase; use `run-single.sh` for the complete pipeline.
 
 ## Results across runs
 
@@ -105,8 +107,13 @@ The JSON reports and raw evidence under `promptfoo/reports/` are local and ignor
 by Git. Research also keeps its per-experiment history in `research-runs/`.
 Promptfoo's `afterAll` hook appends one row per evaluated result to
 [`results.csv`](results.csv), which is versioned in Git. It includes evaluation ID,
-suite/case/phase, source commit and dirty flag, model, assertion outcome, tokens,
-wall time and the report path. Main/verify rows remain separate; a main phase pass
+suite/case/phase, workflow ID, shared run ID, source commit and dirty flag, model,
+assertion outcome, Codex tokens, wall time and the report path. Verification rows
+also record `verify_score` (sum of check severity scores, lower is better),
+`verify_checks_passed` and `verify_checks_total` from the selected workflow's
+validated score-report. Missing/invalid reports stay blank; a measured zero stays
+zero. Token columns on the verify row belong only to that Codex session; embedded
+agent estimates in score-report are ignored. Main/verify rows remain separate; a main phase pass
 alone does not establish overall design quality. Failed attempts are included and
 missing token measurements stay blank. Writes are locked for parallel runs.
 `--history <path>` selects another CSV, for example in isolated runner tests.

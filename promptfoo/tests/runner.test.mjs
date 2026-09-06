@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import yaml from "js-yaml";
 import Provider from "../providers/codex-cli.mjs";
 
@@ -15,12 +15,12 @@ async function fixture(t) {
   const provider = new Provider({
     config: { evidenceDir: join(root, "evidence"), timeout: 5000 },
   });
-  const workflow = async (folder, directory, id, status) => {
+  const workflow = async (folder, directory, id, status, tasks = {}) => {
     const path = join(workspace, "designbook/workflows", folder, directory);
     await mkdir(path, { recursive: true });
     await writeFile(
       join(path, "tasks.yml"),
-      yaml.dump({ definition: { id }, state: { status } }),
+      yaml.dump({ definition: { id }, state: { status, tasks } }),
     );
     await writeFile(join(path, "definition-before.yml"), yaml.dump({ id }));
   };
@@ -185,7 +185,9 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
 test("real Promptfoo loads the Codex class and verifies without resetting the workspace", async (t) => {
   const { root, workspace, workflow, stub } = await fixture(t);
   await stub(emit(completed));
-  await workflow("archive", "verification", "design-verify", "completed");
+  await workflow("archive", "verification", "design-verify", "completed", {
+    outtake: measuredTask(0, true),
+  });
   const marker = join(workspace, "main-artifact.txt");
   await writeFile(marker, "preserve");
   const promptFile = join(root, "verify.txt");
@@ -230,6 +232,7 @@ test("real Promptfoo loads the Codex class and verifies without resetting the wo
   const history = await readFile(join(root, "history.csv"), "utf8");
   assert.match(history, /input_tokens,cached_input_tokens/);
   assert.match(history, /"100","80","20","10","4","110"/);
+  assert.match(history, /"0","1","1"\n$/);
 });
 
 test("missing or changed definition snapshots fail the integrity gate", async (t) => {
@@ -325,4 +328,192 @@ test("snapshot helper preserves multiline instruction content and refuses overwr
       ),
     /EEXIST/,
   );
+});
+
+function measuredTask(score, passed) {
+  const measurement = {
+    score,
+    checks: [{ breakpoint: "sm", element: "header", score, passed }],
+  };
+  return {
+    status: "done",
+    results: {
+      "score-report": {
+        valid: true,
+        value: {
+          first_shot: measurement,
+          final: measurement,
+          delta: 0,
+          tokens: { input: 999999, output: 999999 },
+        },
+      },
+    },
+  };
+}
+
+test("verification exports the selected measured score and rejects missing or inconsistent evidence", async (t) => {
+  const { verificationMetrics, afterAll } =
+    await import("../extensions/result-history.mjs");
+  const { root } = await fixture(t);
+  const output = {
+    usage: completed[1].usage,
+    completedWorkflows: {
+      stale: { state: { tasks: { outtake: measuredTask(0, true) } } },
+      selected: { state: { tasks: { outtake: measuredTask(3, false) } } },
+    },
+  };
+  assert.deepEqual(verificationMetrics(output, "selected"), {
+    score: 3,
+    passed: 0,
+    total: 1,
+  });
+  assert.deepEqual(verificationMetrics(output, "missing"), {});
+  const task = output.completedWorkflows.selected.state.tasks.outtake;
+  task.results["score-report"].valid = false;
+  assert.deepEqual(verificationMetrics(output, "selected"), {});
+  task.results["score-report"].valid = true;
+  task.results["score-report"].value.final = { score: 0, checks: [] };
+  assert.deepEqual(verificationMetrics(output, "selected"), {});
+  task.results["score-report"].value.final = {
+    score: 0,
+    checks: [{ score: 3, passed: false }],
+  };
+  assert.deepEqual(verificationMetrics(output, "selected"), {});
+  output.completedWorkflows.selected.state.tasks.outtake = measuredTask(
+    3,
+    false,
+  );
+  const csv = join(root, "verification.csv");
+  await afterAll({
+    evalId: "failed-visual",
+    config: {
+      tags: { history_csv: csv, workflow_id: "selected", phase: "verify" },
+    },
+    results: [{ success: false, response: { output } }],
+  });
+  const written = await readFile(csv, "utf8");
+  assert.match(written, /"3","0","1"\n$/);
+  assert.match(written, /"100","80","20","10","4","110"/);
+  assert.doesNotMatch(written, /999999/);
+});
+
+test("verification assertion rejects visual failures and changes to main artifacts", async (t) => {
+  const { default: verifyResult } =
+    await import("../extensions/verify-result.mjs");
+  const { root } = await fixture(t);
+  const mainReport = join(root, "main.json");
+  await writeFile(
+    mainReport,
+    JSON.stringify({
+      results: {
+        results: [
+          {
+            response: { output: { fileHashes: { "shell.twig": "original" } } },
+          },
+        ],
+      },
+    }),
+  );
+  const context = { vars: { workflow_id: "verify", main_report: mainReport } };
+  const output = {
+    completedWorkflows: {
+      verify: { state: { tasks: { outtake: measuredTask(0, true) } } },
+    },
+    fileHashes: { "shell.twig": "original" },
+  };
+  assert.equal(verifyResult(output, context).pass, true);
+  output.fileHashes["shell.twig"] = "repaired";
+  assert.equal(verifyResult(output, context).pass, false);
+  output.fileHashes["shell.twig"] = "original";
+  output.completedWorkflows.verify.state.tasks.outtake = measuredTask(2, false);
+  assert.equal(verifyResult(output, context).pass, false);
+  output.completedWorkflows.verify.state.tasks = {};
+  assert.equal(verifyResult(output, context).pass, false);
+});
+
+test("shell, entity and screen pipelines always invoke verification and fails if either phase fails", async (t) => {
+  const { root, workspace } = await fixture(t);
+  const bin = join(root, "bin");
+  await mkdir(bin);
+  const calls = join(root, "calls.jsonl");
+  await writeFile(
+    join(bin, "pnpm"),
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const yaml = require(${JSON.stringify(resolve("node_modules/js-yaml"))});
+const config = yaml.load(fs.readFileSync(process.argv[process.argv.indexOf('-c') + 1], 'utf8'));
+fs.appendFileSync(${JSON.stringify(calls)}, JSON.stringify(config) + '\\n');
+fs.writeFileSync(config.outputPath, '{}');
+process.exitCode = Number(config.tags.phase === 'main' ? process.env.TEST_MAIN_EXIT : process.env.TEST_VERIFY_EXIT);
+`,
+    { mode: 0o755 },
+  );
+  for (const [caseName, mainExit, verifyExit] of [
+    ["design-shell", 0, 0],
+    ["design-shell", 100, 0],
+    ["design-shell", 0, 100],
+    ["design-entity", 0, 0],
+    ["design-screen", 0, 0],
+  ]) {
+    const report = join(
+      root,
+      `${caseName}-${mainExit}-${verifyExit}`,
+      "main.json",
+    );
+    const child = spawnSync(
+      "node",
+      [
+        "promptfoo/scripts/run-single.mjs",
+        caseName,
+        "--suite",
+        "drupal-web",
+        "--workspace",
+        workspace,
+        "--output",
+        report,
+      ],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          TEST_MAIN_EXIT: String(mainExit),
+          TEST_VERIFY_EXIT: String(verifyExit),
+        },
+      },
+    );
+    assert.equal(child.status, mainExit || verifyExit ? 1 : 0, child.stderr);
+  }
+  const configs = (await readFile(calls, "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.deepEqual(
+    configs.map((c) => c.tags.phase),
+    [
+      "main",
+      "verify",
+      "main",
+      "verify",
+      "main",
+      "verify",
+      "main",
+      "verify",
+      "main",
+      "verify",
+    ],
+  );
+  for (let index = 0; index < configs.length; index += 2) {
+    const main = configs[index],
+      verify = configs[index + 1];
+    assert.equal(main.tags.run_id, verify.tags.run_id);
+    assert.equal(verify.tags.workflow_id, "design-verify");
+    assert.equal(verify.tests[0].vars.workspace, workspace);
+    assert.equal(verify.tests[0].vars.suite, undefined);
+    assert.equal(verify.tests[0].vars.case, undefined);
+    assert.equal(verify.tests[0].vars.main_report, main.outputPath);
+    if (main.tags.case === "design-shell")
+      assert.match(verify.prompts[0], /threshold 3%/);
+    assert.match(verify.prompts[0], /original reference/);
+  }
 });

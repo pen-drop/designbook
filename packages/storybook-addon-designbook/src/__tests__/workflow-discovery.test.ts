@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveSkillsRoot } from '../config.js';
 import { resolveWorkflowFile, listWorkflowDefinitions } from '../cli/workflow-discovery.js';
+import { resolveTaskFilesRich } from '../planning-sources.js';
 
 function tmp(prefix: string): string {
   return mkdtempSync(resolve(tmpdir(), prefix));
@@ -51,5 +52,26 @@ describe('resolveSkillsRoot: walk-up from a subdirectory', () => {
     // by real path so the symlinked and canonical routes count as the same file.
     expect(realpathSync(resolveWorkflowFile('design-shell', agentsDir))).toBe(realpathSync(workflowFile));
     expect(listWorkflowDefinitions(agentsDir)).toContain('design-shell');
+  });
+
+  it('resolves a slash-command alias to one canonical task and workflow source', () => {
+    const { workspaceRoot, themeDir, workflowFile } = mkWorkspace();
+    const skills = join(workspaceRoot, '.agents', 'skills');
+    const taskDir = join(skills, 'designbook', 'design', 'tasks');
+    mkdirSync(taskDir);
+    const taskFile = join(taskDir, 'create-shell.md');
+    writeFileSync(taskFile, '---\ntrigger:\n  steps: [create-shell]\n---\nCreate the shell.\n');
+    symlinkSync('designbook/design', join(skills, 'design-shell'));
+
+    const agentsDir = resolveSkillsRoot(themeDir);
+    const tasks = resolveTaskFilesRich('create-shell', { data: '/tmp', technology: 'html' }, agentsDir);
+    expect(tasks.map(({ path, name }) => ({ path, name }))).toEqual([
+      { path: taskFile, name: 'designbook:design:create-shell' },
+    ]);
+    expect(
+      resolveTaskFilesRich('design-shell:create-shell', { data: '/tmp', technology: 'html' }, agentsDir)[0]?.path,
+    ).toBe(taskFile);
+    expect(resolveWorkflowFile('design-shell', agentsDir)).toBe(workflowFile);
+    expect(listWorkflowDefinitions(agentsDir)).toEqual(['design-shell']);
   });
 });

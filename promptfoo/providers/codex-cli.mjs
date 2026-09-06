@@ -286,7 +286,9 @@ class CodexCliProvider {
         output: {
           text,
           ...run,
-          ...artifacts,
+          // Remove YAML alias identity before Promptfoo persists the JSON output;
+          // otherwise shared first_shot/final objects can be dropped as circular.
+          ...JSON.parse(JSON.stringify(artifacts)),
         },
         metadata: { evidenceDir },
         ...(tokenUsage ? { tokenUsage } : {}),

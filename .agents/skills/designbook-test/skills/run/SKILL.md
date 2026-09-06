@@ -9,4 +9,5 @@ metadata:
 Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]` and follow [run procedure](resources/run.md).
 
 All workflow execution uses Promptfoo. The procedure owns workspace isolation,
-mandatory visual verification for design-shell, evidence auditing and reporting.
+mandatory visual verification for design-shell, design-entity and design-screen,
+evidence auditing and reporting.

@@ -22,8 +22,52 @@ const columns = [
   "total_tokens",
   "duration_ms",
   "report",
+  "workflow_id",
+  "run_id",
+  "verify_score",
+  "verify_checks_passed",
+  "verify_checks_total",
 ];
 const cell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+
+// Read only the selected workflow's validated outtake reports. Token usage comes
+// from Codex separately; agent-reported report.tokens is not measurement evidence.
+export function verificationMetrics(output, workflowId) {
+  const workflow =
+    output?.completedWorkflows?.[workflowId] ||
+    output?.pendingWorkflows?.[workflowId];
+  const tasks = Object.values(workflow?.state?.tasks || {});
+  const reports = tasks.filter((task) => task.results?.["score-report"]);
+  if (!reports.length) return {};
+  let score = 0,
+    passed = 0,
+    total = 0;
+  for (const task of reports) {
+    const result = task.results["score-report"];
+    const measurement = result.value?.final;
+    const checks = measurement?.checks;
+    if (
+      task.status !== "done" ||
+      result.valid !== true ||
+      !Number.isSafeInteger(measurement?.score) ||
+      measurement.score < 0 ||
+      !Array.isArray(checks) ||
+      !checks.length ||
+      checks.some(
+        (check) =>
+          !Number.isSafeInteger(check.score) ||
+          check.score < 0 ||
+          typeof check.passed !== "boolean",
+      ) ||
+      checks.reduce((sum, check) => sum + check.score, 0) !== measurement.score
+    )
+      return {};
+    score += measurement.score;
+    passed += checks.filter((check) => check.passed).length;
+    total += checks.length;
+  }
+  return { score, passed, total };
+}
 
 // Invoked by Promptfoo after evaluation. One row per result, including failures.
 export async function afterAll({ results, evalId, config, suite }) {
@@ -33,6 +77,7 @@ export async function afterAll({ results, evalId, config, suite }) {
   const rows = results.map((result) => {
     const output = result.response?.output;
     const usage = output?.usage;
+    const verification = verificationMetrics(output, tags.workflow_id);
     const checks = result.gradingResult?.componentResults || [];
     return [
       new Date().toISOString(),
@@ -54,6 +99,11 @@ export async function afterAll({ results, evalId, config, suite }) {
       usage ? usage.input_tokens + usage.output_tokens : undefined,
       result.latencyMs,
       tags.report,
+      tags.workflow_id,
+      tags.run_id,
+      verification.score,
+      verification.passed,
+      verification.total,
     ]
       .map(cell)
       .join(",");

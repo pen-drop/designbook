@@ -83,7 +83,9 @@ let prompt = opts["prompt-file"]
 if (typeof prompt !== "string" || !prompt.trim())
   throw new Error("Case needs a nonempty prompt");
 const workflowId =
-  opts.phase === "main" ? opts.case : opts.validate || "design-verify";
+  opts.phase === "main"
+    ? caseDoc.workflow || opts.case
+    : opts.validate || "design-verify";
 prompt = prompt.replaceAll("{{workspace}}", workspace);
 prompt += `\nUse ${JSON.stringify(workflowId)} as the primary saved workflow definition.id for this phase.`;
 prompt +=
@@ -124,6 +126,8 @@ const config = {
     suite: opts.suite,
     case: opts.case,
     phase: opts.phase,
+    workflow_id: workflowId,
+    run_id: relative(repo, dirname(output)),
     history_csv: resolve(repo, opts.history || "promptfoo/results.csv"),
     report: relative(repo, output),
     model: providers[0].config.model,
@@ -146,6 +150,7 @@ const config = {
             "promptfoo/configs",
             "packages",
             "scripts",
+            "fixtures",
           ],
           { cwd: repo, encoding: "utf8" },
         ).trim(),
@@ -166,17 +171,116 @@ const config = {
   ],
 };
 const configPath = join(runDir, "promptfooconfig.yaml");
+let verifyConfig;
+let verifyConfigPath;
+const designCase =
+  /^(design-shell|design-entity|design-screen|design-section)(?:-|$)/.test(
+    opts.case,
+  );
+if (opts.phase === "main" && (designCase || caseDoc.verify)) {
+  const verificationCase =
+    caseDoc.verify ||
+    opts.case
+      .replace(/^design-section/, "design-screen")
+      .replace(/^design-/, "design-verify-");
+  const verificationCasePath = join(cases, `${verificationCase}.yaml`);
+  const criteria = existsSync(verificationCasePath)
+    ? yaml.load(readFileSync(verificationCasePath, "utf8")).prompt
+    : "Run /debo design-verify against the design just produced, using the original reference, regions, breakpoints and thresholds from its saved inputs. Missing comparison inputs fail the check; never compare the generated design to itself.";
+  const verifyOutput = join(dirname(output), "verify.json");
+  if (output === verifyOutput || existsSync(verifyOutput))
+    throw new Error(
+      `Choose a fresh run directory; verification output is reserved: ${verifyOutput}`,
+    );
+  verifyConfigPath = join(runDir, "verify-promptfooconfig.yaml");
+  const verifyPrompt =
+    criteria.replaceAll("{{workspace}}", workspace) +
+    `\nCheck the ACTUAL design created by the main workflow ${JSON.stringify(workflowId)} in this workspace. Keep its artifacts and fixtures. Do not import verification fixtures. Read that saved main definition for the original reference and targets; these take precedence over example stories/references in the criteria above. If the main run had no reference, fail with missing-reference evidence. Never substitute a different reference or compare output to itself.\n` +
+    "Before capturing, confirm the produced scene exists and the Storybook server belongs to this workspace. Missing scenes, error pages or missing target selectors fail verification; preserve their evidence without grading them as rendered designs.\n" +
+    `Use "design-verify" as the saved verification definition.id. After workflow create, run node ${JSON.stringify(join(repo, "promptfoo/scripts/snapshot-definition.mjs"))} <saved-tasks.yml>, then execute-workflow. Preserve the complete score-report and capture/comparison evidence. Return the check findings; any repair belongs to a separate test run and must not mutate these main artifacts.\n` +
+    "Run CLI commands from the workspace root. Missing inputs are failures; this test has no interactive user.";
+  verifyConfig = {
+    ...config,
+    description: `${opts.suite}/${opts.case}: verify`,
+    outputPath: verifyOutput,
+    prompts: [verifyPrompt],
+    providers: providers.map((provider) => ({
+      ...provider,
+      config: {
+        ...provider.config,
+        evidenceDir: join(runDir, "verify-evidence"),
+      },
+    })),
+    tags: {
+      ...config.tags,
+      phase: "verify",
+      workflow_id: "design-verify",
+      report: relative(repo, verifyOutput),
+    },
+    tests: [
+      {
+        vars: { workspace, workflow_id: "design-verify", main_report: output },
+        assert: [
+          {
+            type: "javascript",
+            value:
+              "output.completedWorkflows['design-verify']?.state?.status === 'completed'",
+          },
+          {
+            type: "javascript",
+            value:
+              "output.workflowErrors.length === 0 && Object.keys(output.pendingWorkflows).length === 0 && output.definitionUnchanged === true",
+          },
+          {
+            type: "javascript",
+            value: `file://${join(repo, "promptfoo/extensions/verify-result.mjs")}`,
+          },
+        ],
+      },
+    ],
+  };
+  config.tags.verify_config = verifyConfigPath;
+  writeFileSync(
+    verifyConfigPath,
+    yaml.dump(verifyConfig, { lineWidth: 120, noRefs: true }),
+  );
+}
+if (opts.phase === "verify" && workflowId === "design-verify") {
+  config.tests[0].vars.workflow_id = workflowId;
+  config.tests[0].assert.push({
+    type: "javascript",
+    value: `file://${join(repo, "promptfoo/extensions/verify-result.mjs")}`,
+  });
+}
 writeFileSync(configPath, yaml.dump(config, { lineWidth: 120, noRefs: true }));
 console.log(configPath);
 if (!opts["config-only"]) {
-  const child = spawnSync(
-    "pnpm",
-    ["exec", "promptfoo", "eval", "-c", configPath, "--no-cache", ...extra],
-    {
-      cwd: repo,
-      stdio: "inherit",
-    },
+  const evaluate = (path) => {
+    const child = spawnSync(
+      "pnpm",
+      ["exec", "promptfoo", "eval", "-c", path, "--no-cache", ...extra],
+      { cwd: repo, stdio: "inherit" },
+    );
+    if (child.error) throw child.error;
+    return child.status ?? 1;
+  };
+  const mainStatus = evaluate(configPath);
+  if (!verifyConfig) process.exit(mainStatus);
+  // A failed main assertion still gets a separate verification attempt. Its
+  // failure remains in the original report and in the combined exit status.
+  const verifyStatus = evaluate(verifyConfigPath);
+  const passed = mainStatus === 0 && verifyStatus === 0;
+  writeFileSync(
+    join(runDir, "pipeline.json"),
+    JSON.stringify(
+      {
+        passed,
+        main: { report: output, exitCode: mainStatus },
+        verify: { report: verifyConfig.outputPath, exitCode: verifyStatus },
+      },
+      null,
+      2,
+    ) + "\n",
   );
-  if (child.error) throw child.error;
-  process.exit(child.status ?? 1);
+  process.exit(passed ? 0 : 1);
 }

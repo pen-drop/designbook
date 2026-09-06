@@ -6,8 +6,8 @@
  * deduplication. Knows nothing about JSON Schema.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve, relative } from 'node:path';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { dirname, resolve, relative } from 'node:path';
 import fm from 'front-matter';
 import { globSync } from 'glob';
 import { normalizeExtensions, getExtensionIds, getExtensionSkillIds, type DesignbookConfig } from './config.js';
@@ -364,11 +364,19 @@ export function resolveFiles(
     }
   }
 
-  for (const { filePath, source } of candidates) {
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    // Slash-command aliases point into the same skill tree. Resolve once before
+    // deriving names or relative schema references from the discovered path.
+    const filePath = realpathSync(candidate.filePath);
+    if (seen.has(filePath)) continue;
+    seen.add(filePath);
+    const source = candidate.source && { ...candidate.source, root: realpathSync(candidate.source.root) };
+    const namingRoot = source ? agentsDir : dirname(realpathSync(resolve(agentsDir, 'skills')));
     const frontmatter = parseFrontmatter(filePath);
     const trigger = frontmatter?.trigger as Record<string, unknown> | undefined;
     const filter = frontmatter?.filter as Record<string, unknown> | undefined;
-    const name = deriveArtifactName(filePath, agentsDir, frontmatter, source);
+    const name = deriveArtifactName(filePath, namingRoot, frontmatter, source);
 
     const triggerCount = trigger ? Object.keys(trigger).length : 0;
     const filterCount = filter ? Object.keys(filter).length : 0;
@@ -429,7 +437,8 @@ function deduplicateByNameAs(files: ResolvedFile[], agentsDir: string, warnings:
     const asValue = file.frontmatter?.as as string | undefined;
     if (asValue) {
       // Resolve short name: derive skill from file path
-      const rel = relative(resolve(agentsDir, 'skills'), file.path).replace(/\\/g, '/');
+      const skillsDir = resolve(agentsDir, 'skills');
+      const rel = relative(existsSync(skillsDir) ? realpathSync(skillsDir) : skillsDir, file.path).replace(/\\/g, '/');
       const skill = rel.split('/')[0] ?? '';
       const resolvedAs = resolveShortName(asValue, skill);
       const priority = typeof file.frontmatter?.priority === 'number' ? (file.frontmatter.priority as number) : 0;
@@ -552,12 +561,14 @@ export function resolveTaskFilesRich(
     const taskName = parts[1] ?? '';
     const taskPath = resolve(agentsDir, 'skills', skillName, 'tasks', `${taskName}.md`);
     if (existsSync(taskPath)) {
+      const canonicalPath = realpathSync(taskPath);
       console.warn(
         `[designbook] task "${taskPath}" resolved by filename — add trigger.steps: [${step}] to frontmatter`,
       );
-      const frontmatter = parseFrontmatter(taskPath);
-      const name = deriveArtifactName(taskPath, agentsDir, frontmatter);
-      return [{ path: taskPath, name, specificity: 0, frontmatter }];
+      const frontmatter = parseFrontmatter(canonicalPath);
+      const namingRoot = dirname(realpathSync(resolve(agentsDir, 'skills')));
+      const name = deriveArtifactName(canonicalPath, namingRoot, frontmatter);
+      return [{ path: canonicalPath, name, specificity: 0, frontmatter }];
     }
     const pluginTaskPath = resolveExplicitTaskInPluginSources(skillName, taskName, sources);
     if (pluginTaskPath) {

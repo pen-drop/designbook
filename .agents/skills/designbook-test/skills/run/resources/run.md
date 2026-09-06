@@ -47,40 +47,26 @@ executes the saved path. The prompt requires a `definition-before.yml` copy of t
 object in the same directory as each created `tasks.yml`, before execution. Inspect those copies after execution; absence or mutation
 fails the integrity check. Record every attempted path, including failed retries.
 
-## 2. Verify the resulting design
+## 2. Inspect the automatic verification
 
-**Every design-shell run must execute design-verify after the main run.** Apply
-this same visual gate to cases producing rendered designs. Nonvisual cases such
-as vision/data-model use their artifact checks; record visual verification as
-not applicable with the reason. A missing design reference is a failure for a
-rendered-design test, not permission to skip verification.
+For design-shell, design-entity and design-screen, the Promptfoo runner always executes a second, separate
+`design-verify` evaluation after the main evaluation, including after failed main
+assertions. Other rendered-design fixtures declare `verify: <case>` to use the
+same pipeline. Only the verifier case's prompt is reused; its fixtures are never
+layered over the main output. Both CSV rows share a `run_id`; the verification row
+has `workflow_id=design-verify` and its own Codex tokens and measured score.
 
-Prepare `$RUN_DIR/verify-prompt.txt` using the main run's actual scene/story,
-original reference, regions, breakpoints and fixed thresholds. Instruct the
-`design-verify` intake to verify that output and execute its separate saved
-workflow. A suite's verification case can supply comparison criteria, but use
-its prompt only: do not layer its fixtures over the output being tested.
+Read both `main.json` and `verify.json` plus the generated `pipeline.json`.
+The runner returns success only when both evaluations pass. Verification requires
+a validated score-report, passing comparison thresholds and unchanged main
+artifacts. The evidence audit below remains required. Missing references or
+comparison inputs fail verification rather than skipping it.
 
-```bash
-./promptfoo/scripts/run-single.sh "$CASE" --suite "$SUITE" \
-  --phase verify --workspace "$WORKSPACE" \
-  --prompt-file "$RUN_DIR/verify-prompt.txt" \
-  --output "$RUN_DIR/verify.json"
-```
-
-This phase preserves the main workspace and runs a new Codex session through
-Promptfoo. Keep a snapshot/hash inventory of the main artifacts before the
-check. If verification triggers repair, record that separate path and its costs;
-its repaired output does not turn the initial design into a passing candidate.
-Any accepted repaired design needs a fresh design-verify run against it.
-
-`--validate <workflow>` requests an additional check using the same phase and
-its own prompt/report. It cannot replace mandatory design-verify. A main case
-which already performs design-verify needs no duplicate check only when saved
-paths, logs and artifact hashes prove it checked the final artifacts.
-
-Run verification even after failed main assertions if a renderable result
-exists. Otherwise record verification as blocked; the overall run fails.
+Use [debo-test verify](../../verify/SKILL.md) only for an explicit standalone check
+or a new check after repair. Do not duplicate the automatic verifier. Nonvisual
+cases such as vision/data-model mark visual verification not applicable.
+`--validate <workflow>` adds another check; it cannot replace the pipeline verifier.
+Include every phase in the final audit and token totals before returning.
 
 ## 3. Audit evidence and determine outcome
 
@@ -98,11 +84,16 @@ For main, verification and each repair attempt:
    used the intended reference/thresholds, and produced real capture/comparison
    artifacts. Check measured pass/fail results and unresolved issues. Missing
    comparison output fails even when the workflow status is completed.
+   Inspect the screenshot content: a server error page, absent target selector or
+   capture from another workspace invalidates the measurement even when its pixel
+   difference falls below the threshold. Keep the raw CSV score as reported and
+   mark the run unevaluable in the audit; exclude it from research comparisons.
 5. Write `log-validation.json` with `passed`, `findings` (phase, evidence path,
    event/line, issue, resolved) and `friction.json` (locus, issue, guessed). Retain
    recovered errors as findings and include their usage; unresolved errors fail.
 6. Write `summary.json`: `passed`, `gates` (assertions, artifacts, definitions,
-   logs, visual), workflow/report paths, per-phase `usage` and `durationMs`, plus
+   logs, visual), workflow/report paths, `verification` (score, checks passed/total),
+   per-phase `usage` and `durationMs`, plus
    aggregate `tokens` (input, cached, uncached, output, reasoning, total).
    `uncached = input - cached`; `total = input + output`. Cached and reasoning
    are subsets, not extra additions. Missing usage is unknown, never zero.

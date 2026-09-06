@@ -1,7 +1,7 @@
 ---
 name: debo-test
 user-invocable: true
-argument-hint: "[run|research|is-clear] <suite> [<case>] [--workspace <path>]"
+argument-hint: "[run|verify|research|is-clear] <suite> [<case>] [--workspace <path>]"
 description: >
   Test Designbook workflows with fresh fixture workspaces, saved-document execution,
   research scoring, or a read-only planning clarity audit. Use when testing a
@@ -15,6 +15,7 @@ Choose the matching testing sub-skill:
 | Command | Sub-skill | Purpose |
 |---|---|---|
 | `run` | [skills/run/](skills/run/SKILL.md) | Run one fixture case through Promptfoo |
+| `verify` | [skills/verify/](skills/verify/SKILL.md) | Verify a run’s actual design through Promptfoo |
 | `research` | [skills/research/](skills/research/SKILL.md) | Improve instructions using Promptfoo evaluations |
 | `is-clear` | [skills/is-clear/](skills/is-clear/SKILL.md) | Audit whether a planning catalogue answers a question |
 

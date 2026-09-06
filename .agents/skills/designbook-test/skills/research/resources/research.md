@@ -2,8 +2,9 @@
 
 Use when improving a Designbook skill against a fixture case. Promptfoo is the
 only workflow runner. Reuse the [run procedure](../../../skills/run/resources/run.md)
-for every train/validation case, including mandatory design-verify for rendered
-designs and the artifact, definition and log gates. Research never runs domain
+for every train/validation case. The Promptfoo pipeline automatically follows
+design-shell, design-entity and design-screen with a separate design-verify evaluation. Apply the artifact,
+definition and log gates to both phases. Research never runs domain
 intake or task execution on its own thread or through a separate driver agent.
 
 ## Inputs
