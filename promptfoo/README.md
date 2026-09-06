@@ -30,7 +30,7 @@ scripts/
 promptfoo/
 ├── configs/
 │   └── base.yaml                   # Provider settings (model, timeout)
-├── providers/claude-cli.mjs        # Claude CLI provider
+├── providers/codex-cli.mjs        # Codex CLI provider
 └── scripts/
     ├── run-single.sh               # Run one case
     ├── generate-configs.mjs        # Generate monolith from case files

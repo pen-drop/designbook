@@ -18,20 +18,20 @@ prompts:
       Stop after reporting. Do NOT proceed to intake or task execution.
 
 providers:
-  - id: file://../../providers/claude-cli.mjs
-    label: claude-opus-4-6
+  - id: file://../../providers/codex-cli.mjs
+    label: gpt-5.6-luna
     config:
-      model: claude-opus-4-6
-      timeout: 120000
+      model: gpt-5.6-luna
+      timeout: 3600000
       max_turns: 20
 
 defaultTest:
   options:
     provider:
-      id: file://../../providers/claude-cli.mjs
+      id: file://../../providers/codex-cli.mjs
       config:
-        model: claude-opus-4-6
-        timeout: 120000
+        model: gpt-5.6-luna
+        timeout: 3600000
         max_turns: 20
 
 tests:
