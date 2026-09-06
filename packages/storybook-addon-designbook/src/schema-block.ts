@@ -5,7 +5,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
-import { resolveSchemaRef } from './workflow-resolve.js';
+import { resolveSchemaRef } from './planning-schema.js';
 import type { SkillSource } from './skill-sources.js';
 import { interpolate } from './template/interpolate.js';
 

@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { resolveWorkflowFile, listWorkflowDefinitions } from '../workflow-discovery.js';
 import { deriveSkillSourcesFromBase, type SkillSource } from '../../skill-sources.js';
-import { resolveSchemaRef, deriveArtifactName, resolveFiles, buildRuntimeContext } from '../../workflow-resolve.js';
+import { resolveSchemaRef } from '../../planning-schema.js';
+import { deriveArtifactName, resolveFiles, buildRuntimeContext } from '../../planning-sources.js';
 
 // The marketplace cache base inside the plugin-cache fixture (the `skills` config root).
 const MARKETPLACE_BASE = resolve(__dirname, 'fixtures', 'plugin-cache', 'designbook');

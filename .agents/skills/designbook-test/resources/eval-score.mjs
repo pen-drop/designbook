@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // eval-score.mjs — the ONE eval scorer for design + sync cases. All eval-
 // execution lives here (skill layer), NOT in the addon CLI. Shells the pure
-// `workflow summary --json`, then applies the case metric + assertions.
+// `workflow summary`, then applies the case metric + assertions.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { execSync, execFileSync } from 'node:child_process';
 import vm from 'node:vm';
@@ -21,7 +21,7 @@ const drushCmd = arg('drush-cmd', 'ddev drush');
 
 const caseDoc = parseYaml(readFileSync(caseFile, 'utf-8')) ?? {};
 const quote = value => `'${String(value).replace(/'/g, `'\\''`)}'`;
-const summary = JSON.parse(execSync(`${summaryCmd} ${quote(workflow)} --json`, { encoding: 'utf-8' }));
+const summary = JSON.parse(execSync(`${summaryCmd} ${quote(workflow)}`, { encoding: 'utf-8' }));
 
 // assertions — ported from scoring/composite.ts, faithful `output` shape.
 const ASSERTION_TIMEOUT_MS = 1000;

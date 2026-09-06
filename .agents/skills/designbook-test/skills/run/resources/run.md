@@ -112,7 +112,7 @@ After the workflow completes, retrieve and display the summary from the **worksp
 
 ```bash
 cd "$WORKSPACE"
-npx storybook-addon-designbook workflow summary <path> --json
+npx storybook-addon-designbook workflow summary <path>
 ```
 
 Display the full JSON output so the user can review scores before deciding on a snapshot. When a validate workflow ran (step 5), display its summary too, passing its saved document path.

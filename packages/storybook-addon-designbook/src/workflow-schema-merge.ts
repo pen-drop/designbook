@@ -8,7 +8,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { load as parseYaml } from 'js-yaml';
-import { resolveSchemaRef, collectLocalRefsFromSchema } from './workflow-resolve.js';
+import { resolveSchemaRef, collectLocalRefsFromSchema } from './planning-schema.js';
 import type { SkillSource } from './skill-sources.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────

@@ -34,7 +34,6 @@ result:
   properties:
     scene-file:
       path: $DESIGNBOOK_DATA/{{ scene_path }}
-      flush: immediate
       type: object
       validators:
         - scene

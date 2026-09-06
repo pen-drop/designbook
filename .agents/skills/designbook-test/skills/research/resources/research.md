@@ -42,7 +42,7 @@ metric: scoreReport.successRate
 direction: min
 ```
 
-- `metric` — JSONata expression evaluated against the `eval-score.mjs` JSON output (which extends the saved `workflow summary --json` shape). Use fields from that one saved workflow, such as `flowRate`, `scoreReport.successRate`, or a task result. A validation or repair workflow is a separate run and is never nested under an `after` hook. Defaults to `flowRate` if omitted.
+- `metric` — JSONata expression evaluated against the `eval-score.mjs` JSON output (which extends the saved `workflow summary` shape). Use fields from that one saved workflow, such as `flowRate`, `scoreReport.successRate`, or a task result. A validation or repair workflow is a separate run and is never nested under an `after` hook. Defaults to `flowRate` if omitted.
 - `direction` — `min` or `max`; controls whether lower or higher metric values are considered improvements. `min` means lower-is-better (e.g. visual diff score); `max` means higher-is-better (e.g. flow-rate percentage). Defaults to `max` if omitted.
 - `expected_config` — (sync cases only) list of Drupal config keys (e.g. `system.site`) that the workflow is expected to sync to the Drupal DB. Presence of this field marks the case as a sync case: `eval-score.mjs` checks these keys as the existence component of the metric, and Score-a-case resets the Drupal DB baseline (step 1b) before layering the case so a prior case's synced config cannot leak.
 
@@ -118,7 +118,7 @@ Given an iteration number `N` and a case `c`, produce its metric value:
      stall waiting. The research loop treats such a return, and any thrown error, as a
      **crash** for this case (see Decide). A case that keeps needing a user is a fixture
      defect — fix the fixture, not the loop.
-   - Report contract: return `status: done` plus the saved workflow path (the scorer will call `workflow summary --json` internally), or
+   - Report contract: return `status: done` plus the saved workflow path (the scorer will call `workflow summary` internally), or
      `status: error` with the reason. No task bodies, rule text, or file contents.
    - **Friction log (the trajectory signal).** In the same report, return a `friction`
      list capturing where the driver had to guess, found a task/rule/blueprint
@@ -133,7 +133,7 @@ Given an iteration number `N` and a case `c`, produce its metric value:
      ```
      Empty list if the run was unambiguous. On `status: error`, the blocking question
      MUST appear here with `guessed: false`.
-4. Score: `node ../../.agents/skills/designbook-test/resources/eval-score.mjs --workflow <path> --definition-before <definition.yml> --theme-dir <theme-dir> --case ../../fixtures/$SUITE/cases/c.yaml --data-dir <designbook-data-dir>` → write the full JSON output to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`. The returned `.metric` field is this case's score. The scorer reads the case `metric:` field (default `flowRate`) and applies it internally by shelling `workflow summary --json`.
+4. Score: `node ../../.agents/skills/designbook-test/resources/eval-score.mjs --workflow <path> --definition-before <definition.yml> --theme-dir <theme-dir> --case ../../fixtures/$SUITE/cases/c.yaml --data-dir <designbook-data-dir>` → write the full JSON output to `research-runs/<slug>/iterations/<NNN>/cases/c/summary.json`. The returned `.metric` field is this case's score. The scorer reads the case `metric:` field (default `flowRate`) and applies it internally by shelling `workflow summary`.
 5. Generate the audit per [`audit criteria`](../../../resources/audit-criteria.md) → `iterations/<NNN>/cases/c/audit.md`.
 6. Save the dbo.log digest (`digestLog` JSON) → `iterations/<NNN>/cases/c/log-digest.json`.
 7. Save the driver's `friction` list → `iterations/<NNN>/cases/c/friction.json` (`[]` if none).

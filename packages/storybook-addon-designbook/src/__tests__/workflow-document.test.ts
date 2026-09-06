@@ -1,8 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createDocument, validateDefinition, validateDocument, type WorkflowDefinition } from '../workflow-document.js';
+import { dump, load } from 'js-yaml';
+import {
+  createDocument,
+  validateDefinition,
+  validateDocument,
+  type WorkflowDefinition,
+  type WorkflowDocument,
+} from '../workflow-document.js';
 import { saveDefinition, readDocument, startTask, completeTask, taskContext, blockTask } from '../workflow-store.js';
 
 function definition(): WorkflowDefinition {
@@ -100,13 +107,27 @@ describe('fixed task lifecycle', () => {
     await startTask(path, 'write');
     await expect(completeTask(path, 'write', { vision: '' })).rejects.toThrow('validation failed');
     const failed = await readDocument(path);
-    expect(failed.state.tasks.write!.status).toBe('in-progress');
+    expect(failed.state.tasks.write!.status).toBe('pending');
     expect(failed.state.tasks.write!.errors).not.toEqual([]);
     await startTask(path, 'write', 'Expand vision to include the audience');
     const done = await completeTask(path, 'write', { vision: 'Vision for owners' });
     expect(done.state.status).toBe('completed');
     expect(done.state.tasks.write!.attempts).toBe(2);
     expect(done.definition).toEqual(before);
+  });
+  it('refuses an identical retry that records no corrective action', async () => {
+    const path = await setup();
+    await startTask(path, 'write');
+    await expect(completeTask(path, 'write', { vision: '' })).rejects.toThrow('validation failed');
+    await expect(completeTask(path, 'write', { vision: '' })).rejects.toThrow('Start task write');
+    await expect(startTask(path, 'write')).rejects.toThrow('corrective action');
+    await expect(startTask(path, 'write', '   ')).rejects.toThrow('corrective action');
+    expect((await readDocument(path)).state.tasks.write!.attempts).toBe(1);
+  });
+  it('refuses a second agent claiming a task another one is running', async () => {
+    const path = await setup();
+    await startTask(path, 'write');
+    await expect(startTask(path, 'write')).rejects.toThrow('corrective action');
   });
   it('requires a corrective action to resume a recorded blockade', async () => {
     const path = await setup();
@@ -145,8 +166,24 @@ describe('fixed task lifecycle', () => {
     await startTask(path, 'write');
     await expect(completeTask(path, 'write', { vision: '' })).rejects.toThrow();
     await expect(readFile(file)).rejects.toThrow();
+    await startTask(path, 'write', 'Wrote a non-empty vision');
     await completeTask(path, 'write', { vision: 'Owners' });
     expect(await readFile(file, 'utf8')).toContain('Owners');
+    await expect(readdir(join(dir, '.debo-stage'))).rejects.toThrow();
+  });
+});
+
+describe('cross-process serialization', () => {
+  it('releases its lock after every mutation and takes over an abandoned one', async () => {
+    const path = await setup();
+    await startTask(path, 'write');
+    await expect(readFile(`${path}.lock`)).rejects.toThrow();
+    const stale = new Date(Date.now() - 10 * 60_000);
+    await writeFile(`${path}.lock`, '999999 abandoned');
+    await utimes(`${path}.lock`, stale, stale);
+    const done = await completeTask(path, 'write', { vision: 'Owners' });
+    expect(done.state.status).toBe('completed');
+    await expect(readFile(`${path}.lock`)).rejects.toThrow();
   });
 });
 
@@ -178,6 +215,7 @@ describe('completion and reference boundaries', () => {
     const path = await setup(def);
     await startTask(path, 'write');
     await expect(completeTask(path, 'write', { vision: 'x' })).rejects.toThrow('validation failed');
+    await startTask(path, 'write', 'Submitted a vision that meets the shared minimum length');
     expect((await completeTask(path, 'write', { vision: 'Owners' })).state.status).toBe('completed');
   });
   it('does not replace an existing run during definition persistence', async () => {
@@ -185,6 +223,14 @@ describe('completion and reference boundaries', () => {
     await startTask(path, 'write');
     await expect(saveDefinition(path, definition())).rejects.toThrow();
     expect((await readDocument(path)).state.tasks.write!.status).toBe('in-progress');
+  });
+  it('rejects a saved definition edited between two CLI calls', async () => {
+    const path = await setup();
+    const doc = load(await readFile(path, 'utf8')) as WorkflowDocument;
+    doc.definition.tasks[0]!.outputs.vision!.required = false;
+    await writeFile(path, dump(doc));
+    await expect(readDocument(path)).rejects.toThrow('edited after the run was created');
+    await expect(startTask(path, 'write')).rejects.toThrow('edited after the run was created');
   });
 });
 
@@ -209,6 +255,27 @@ describe('artifact and verification contracts', () => {
     const done = await completeTask(path, 'write', {});
     expect(done.state.tasks.write!.results.css!.value).toContain('@theme static');
     expect(done.state.status).toBe('completed');
+  });
+
+  it('validates a staged file under the exact name it will carry on disk', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'workflow-stage-'));
+    dirs.push(dir);
+    const file = join(dir, 'node.article.full.jsonata');
+    const def = definition();
+    def.tasks[0]!.outputs.vision = {
+      required: true,
+      schema: { type: 'string', minLength: 1 },
+      path: file,
+      submission: 'data',
+      // The validator only passes while the staged file still carries its real name.
+      validators: [
+        `cmd:node -e "process.exit(require('path').basename(process.argv[1]) === 'node.article.full.jsonata' ? 0 : 1)" {{ file }}`,
+      ],
+    };
+    const path = await setup(def);
+    await startTask(path, 'write');
+    expect((await completeTask(path, 'write', { vision: '$' })).state.status).toBe('completed');
+    expect(await readFile(file, 'utf8')).toContain('$');
   });
 
   it.each([{ issues: [] }, { issues: [{ id: 'wrong-color', target: 'hero' }] }])(
@@ -272,6 +339,7 @@ it('allows an absent optional direct output and discards prior optional submissi
   const path = await setup(def);
   await startTask(path, 'write');
   await expect(completeTask(path, 'write', { vision: '', optional: 'previous' })).rejects.toThrow();
+  await startTask(path, 'write', 'Dropped the optional value and wrote a valid vision');
   const done = await completeTask(path, 'write', { vision: 'Owners' });
   expect(done.state.status).toBe('completed');
   expect(Object.keys(done.state.tasks.write!.results)).toEqual(['vision']);
