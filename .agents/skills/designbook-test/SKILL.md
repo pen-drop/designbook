@@ -14,14 +14,14 @@ Choose the matching testing sub-skill:
 
 | Command | Sub-skill | Purpose |
 |---|---|---|
-| `run` | [skills/run/](skills/run/SKILL.md) | Execute one fixture case in a fresh workspace |
-| `research` | [skills/research/](skills/research/SKILL.md) | Run the bounded skill-improvement loop |
+| `run` | [skills/run/](skills/run/SKILL.md) | Run one fixture case through Promptfoo |
+| `research` | [skills/research/](skills/research/SKILL.md) | Improve instructions using Promptfoo evaluations |
 | `is-clear` | [skills/is-clear/](skills/is-clear/SKILL.md) | Audit whether a planning catalogue answers a question |
 
 Shared resources:
 
 - [audit criteria](resources/audit-criteria.md) — file-level research audit
-- [eval scorer](resources/eval-score.mjs) — saved-workflow summary and case assertions
+- [run procedure](skills/run/resources/run.md) — shared Promptfoo execution and quality gates
 
 Unknown commands stop with the available sub-skills. Each sub-skill owns its
 arguments and detailed procedure; this index only routes the request.

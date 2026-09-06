@@ -6,7 +6,6 @@
  *   output.text            — raw Codex CLI final message
  *   output.newFiles        — list of new file paths (relative to workspace)
  *   output.completedWorkflows — keyed by workflow id, parsed workflow document
- *   output.archivedWorkflows — compatibility alias for completedWorkflows
  *   output.pendingWorkflows  — keyed by workflow id (indicates failure)
  *   output.fileContents    — parsed YAML/text content of new files
  *   output.fileHashes      — sha256 (hex) of every output file, computed by the
@@ -15,14 +14,22 @@
  *                            for identity/difference in a trustworthy way.
  *
  * Workspace setup:
- *   If vars contain `suite` + `case`, runs scripts/setup-test.sh automatically.
- *   Otherwise falls back to vars.workspace (legacy).
+ *   If vars contain `suite` + `case`, rebuilds the workspace and layers case fixtures automatically.
+ *   For a verification phase, vars.workspace selects the already prepared workspace.
  */
 import { execFile, execFileSync } from "node:child_process";
-import { readdir, readFile, stat } from "node:fs/promises";
+import {
+  readdir,
+  readFile,
+  stat,
+  mkdir,
+  writeFile,
+  mkdtemp,
+} from "node:fs/promises";
 import { readFileSync as readFileSyncFs, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -36,10 +43,7 @@ try {
 
 class CodexCliProvider {
   constructor(options = {}) {
-    // Promptfoo versions pass provider settings either as `options.config`
-    // or directly as the second argument. Accept both so the configured
-    // timeout/model are actually honored by the CLI process.
-    this.config = options.config || options || {};
+    this.config = options.config || {};
     this.model = this.config.model || "gpt-5.6-luna";
     this.timeout = this.config.timeout || 3_600_000;
     this.id = () => `codex-cli:${this.model}`;
@@ -56,22 +60,57 @@ class CodexCliProvider {
     if (suite && caseName) {
       const repoRoot = resolve(process.cwd());
       const setupScript = join(repoRoot, "scripts", "setup-test.sh");
-      const workspaceDir = join(repoRoot, "promptfoo", "workspaces", `${suite}-${caseName}`);
+      const workspaceDir = resolve(
+        repoRoot,
+        vars.workspace ||
+          join("promptfoo", "workspaces", `${suite}-${caseName}`),
+      );
 
-      console.log(`Setting up workspace: ${suite}/${caseName} → ${workspaceDir}`);
+      console.log(
+        `Setting up workspace: ${suite}/${caseName} → ${workspaceDir}`,
+      );
+      execFileSync(
+        join(repoRoot, "scripts", "setup-workspace.sh"),
+        [suite, "--into", workspaceDir],
+        {
+          cwd: repoRoot,
+          stdio: "pipe",
+        },
+      );
       execFileSync(setupScript, [suite, caseName, "--into", workspaceDir], {
         cwd: repoRoot,
         stdio: "pipe",
       });
 
+      if (caseName.startsWith("sync-")) {
+        // Provision/import the committed DB baseline before the measured workflow.
+        execFileSync(
+          join(repoRoot, "scripts", "start-drupal-workspace.sh"),
+          ["--workspace", workspaceDir],
+          {
+            cwd: repoRoot,
+            stdio: "pipe",
+          },
+        );
+      }
+
       // Read prompt from case file if config prompt is a placeholder
       let prompt = configPrompt;
       if (!prompt || prompt === "{{prompt}}") {
-        const caseFile = join(repoRoot, "fixtures", suite, "cases", `${caseName}.yaml`);
+        const caseFile = join(
+          repoRoot,
+          "fixtures",
+          suite,
+          "cases",
+          `${caseName}.yaml`,
+        );
         if (existsSync(caseFile)) {
           const caseData = yaml.load(readFileSyncFs(caseFile, "utf-8"));
           if (caseData?.prompt) {
-            prompt = caseData.prompt.replace(/\{\{workspace\}\}/g, workspaceDir);
+            prompt = caseData.prompt.replace(
+              /\{\{workspace\}\}/g,
+              workspaceDir,
+            );
           }
         }
       } else {
@@ -81,14 +120,34 @@ class CodexCliProvider {
       return { cwd: workspaceDir, prompt };
     }
 
-    // Legacy: workspace path directly in vars
-    const cwd = vars?.workspace || process.cwd();
-    const prompt = configPrompt?.replace(/\{\{workspace\}\}/g, cwd) || configPrompt;
+    // Verification uses the same workspace without resetting its artifacts.
+    const cwd = resolve(vars?.workspace || process.cwd());
+    const prompt =
+      configPrompt?.replace(/\{\{workspace\}\}/g, cwd) || configPrompt;
     return { cwd, prompt };
   }
 
   async callApi(prompt, context) {
-    const { cwd, prompt: resolvedPrompt } = this.setupWorkspace(context?.vars, prompt);
+    const evidenceRoot = resolve(
+      this.config.evidenceDir || "promptfoo/reports/evidence",
+    );
+    await mkdir(evidenceRoot, { recursive: true });
+    const evidenceDir = await mkdtemp(join(evidenceRoot, "run-"));
+    let cwd, resolvedPrompt;
+    try {
+      ({ cwd, prompt: resolvedPrompt } = this.setupWorkspace(
+        context?.vars,
+        prompt,
+      ));
+    } catch (err) {
+      await writeFile(
+        join(evidenceDir, "setup-error.txt"),
+        `${err.message}\n${err.stdout || ""}\n${err.stderr || ""}`,
+      );
+      return { error: err.message, metadata: { evidenceDir } };
+    }
+    await writeFile(join(evidenceDir, "prompt.txt"), resolvedPrompt);
+    const started = Date.now();
     const args = [
       "exec",
       "--json",
@@ -104,21 +163,39 @@ class CodexCliProvider {
 
     try {
       const raw = await new Promise((resolve, reject) => {
-        console.log(`Running Codex CLI in ${cwd} with model ${this.model}, timeout ${this.timeout}ms`);
-        const child = execFile("codex", args, {
-          cwd,
-          timeout: this.timeout,
-          maxBuffer: 50 * 1024 * 1024,
-          env: { ...process.env },
-        }, (err, stdout, stderr) => {
-          if (err && err.killed) {
-            reject(new Error(`Codex CLI timed out after ${this.timeout}ms`));
-          } else if (err) {
-            reject(new Error(`Codex CLI error: ${err.message}\nstderr: ${stderr}`));
-          } else {
-            resolve(stdout);
-          }
-        });
+        console.log(
+          `Running Codex CLI in ${cwd} with model ${this.model}, timeout ${this.timeout}ms`,
+        );
+        const child = execFile(
+          "codex",
+          args,
+          {
+            cwd,
+            timeout: this.timeout,
+            maxBuffer: 50 * 1024 * 1024,
+            env: { ...process.env },
+          },
+          async (err, stdout, stderr) => {
+            try {
+              await Promise.all([
+                writeFile(join(evidenceDir, "codex.jsonl"), stdout),
+                writeFile(join(evidenceDir, "stderr.log"), stderr),
+              ]);
+            } catch (logError) {
+              reject(logError);
+              return;
+            }
+            if (err && err.killed) {
+              reject(new Error(`Codex CLI timed out after ${this.timeout}ms`));
+            } else if (err) {
+              reject(
+                new Error(`Codex CLI error: ${err.message}\nstderr: ${stderr}`),
+              );
+            } else {
+              resolve(stdout);
+            }
+          },
+        );
         // The prompt is passed as an argv value. Close stdin so Codex does not
         // wait for an additional prompt after completing that request.
         child.stdin?.end();
@@ -127,11 +204,13 @@ class CodexCliProvider {
       const events = String(raw)
         .split(/\r?\n/)
         .filter(Boolean)
-        .flatMap((line) => {
-          try { return [JSON.parse(line)]; } catch { return []; }
-        });
+        .map((line) => JSON.parse(line));
       const messages = events
-        .filter((event) => event?.type === "item.completed" && event.item?.type === "agent_message")
+        .filter(
+          (event) =>
+            event?.type === "item.completed" &&
+            event.item?.type === "agent_message",
+        )
         .map((event) => {
           if (typeof event.item.text === "string") return event.item.text;
           if (Array.isArray(event.item.content)) {
@@ -143,31 +222,93 @@ class CodexCliProvider {
           return "";
         })
         .filter(Boolean);
-      const usage = events.findLast((event) => event?.type === "turn.completed" && event.usage)?.usage;
+      if (
+        !events.some((event) => event.type === "turn.completed") ||
+        events.some((event) => event.type === "turn.failed")
+      ) {
+        throw new Error(
+          "Codex CLI did not complete successfully; inspect codex.jsonl",
+        );
+      }
+      const usage = events.findLast(
+        (event) => event?.type === "turn.completed" && event.usage,
+      )?.usage;
+      if (
+        ["input_tokens", "cached_input_tokens", "output_tokens"].some(
+          (key) => !Number.isSafeInteger(usage?.[key]) || usage[key] < 0,
+        ) ||
+        usage.cached_input_tokens > usage.input_tokens
+      ) {
+        throw new Error(
+          "Missing or invalid Codex token usage; inspect codex.jsonl",
+        );
+      }
       const text = messages.at(-1) || String(raw);
 
       // Collect all workspace artifacts after the run
       const artifacts = await this.collectArtifacts(cwd);
 
-      const tokenUsage = usage ? {
-        prompt: usage.input_tokens || 0,
-        completion: usage.output_tokens || 0,
-        cached: usage.cached_input_tokens || 0,
-        total: (usage.input_tokens || 0) + (usage.output_tokens || 0),
-        numRequests: 1,
-        completionDetails: { reasoning: usage.reasoning_output_tokens || 0 },
-      } : undefined;
+      const tokenUsage = {
+        prompt: usage.input_tokens,
+        completion: usage.output_tokens,
+        cached: usage.cached_input_tokens,
+        total: usage.input_tokens + usage.output_tokens,
+        ...(Number.isSafeInteger(usage.reasoning_output_tokens)
+          ? {
+              completionDetails: { reasoning: usage.reasoning_output_tokens },
+            }
+          : {}),
+      };
 
+      const run = {
+        model: this.model,
+        workspace: cwd,
+        usage,
+        durationMs: Date.now() - started,
+        evidenceDir,
+      };
+      await writeFile(
+        join(evidenceDir, "run.json"),
+        JSON.stringify(run, null, 2),
+      );
+      const logFiles = await this.walkDir(
+        await this.resolveDesignbookDir(cwd),
+        cwd,
+        (path) => path.endsWith("dbo.log"),
+      );
+      for (const [i, file] of logFiles.entries()) {
+        await writeFile(
+          join(evidenceDir, `cli-${i}.log`),
+          await readFile(join(cwd, file.path)),
+        );
+      }
       return {
         output: {
           text,
-          usage,
+          ...run,
           ...artifacts,
         },
+        metadata: { evidenceDir },
         ...(tokenUsage ? { tokenUsage } : {}),
       };
     } catch (err) {
-      return { error: err.message };
+      await writeFile(join(evidenceDir, "error.txt"), err.message);
+      await writeFile(
+        join(evidenceDir, "run.json"),
+        JSON.stringify(
+          {
+            model: this.model,
+            workspace: cwd,
+            durationMs: Date.now() - started,
+            usage: null,
+            evidenceDir,
+            error: err.message,
+          },
+          null,
+          2,
+        ),
+      );
+      return { error: err.message, metadata: { evidenceDir } };
     }
   }
 
@@ -180,31 +321,48 @@ class CodexCliProvider {
     const result = {
       newFiles: [],
       completedWorkflows: {},
-      archivedWorkflows: {},
       pendingWorkflows: {},
+      workflowErrors: [],
+      definitionUnchanged: false,
+      definitionErrors: [],
       fileContents: {},
       fileHashes: {},
     };
 
     try {
       // 1. All output files — scan workspace root, exclude noise dirs and workflow internals
-      const excludeDirs = new Set(["node_modules", ".git", ".pnpm-store", "vendor"]);
-      const designbookRelative = relative(workspaceDir, designbookDir).replaceAll("\\", "/");
-      const allOutputFiles = await this.walkDir(workspaceDir, workspaceDir, (rel) => {
-        const parts = rel.split("/");
-        if (parts.some((part) => excludeDirs.has(part))) return false;
-        if (rel.startsWith(`${designbookRelative}/workflows/`)) return false;
-        return true;
-      }, (rel) => !rel.split("/").some((part) => excludeDirs.has(part)));
+      const excludeDirs = new Set([
+        "node_modules",
+        ".git",
+        ".pnpm-store",
+        "vendor",
+      ]);
+      const designbookRelative = relative(
+        workspaceDir,
+        designbookDir,
+      ).replaceAll("\\", "/");
+      const allOutputFiles = await this.walkDir(
+        workspaceDir,
+        workspaceDir,
+        (rel) => {
+          const parts = rel.split("/");
+          if (parts.some((part) => excludeDirs.has(part))) return false;
+          if (rel.startsWith(`${designbookRelative}/workflows/`)) return false;
+          return true;
+        },
+        (rel) => !rel.split("/").some((part) => excludeDirs.has(part)),
+      );
 
       // Keep the public artifact contract stable: files below the configured
       // Designbook home are exposed under the virtual designbook/ prefix.
       const pathMap = new Map();
       result.newFiles = allOutputFiles.map((f) => {
         const actual = f.path.replaceAll("\\", "/");
-        const virtual = actual === designbookRelative || actual.startsWith(`${designbookRelative}/`)
-          ? `designbook/${actual.slice(designbookRelative.length + 1)}`
-          : actual;
+        const virtual =
+          actual === designbookRelative ||
+          actual.startsWith(`${designbookRelative}/`)
+            ? `designbook/${actual.slice(designbookRelative.length + 1)}`
+            : actual;
         pathMap.set(virtual, actual);
         return virtual;
       });
@@ -237,54 +395,73 @@ class CodexCliProvider {
       //     binary artifacts (e.g. reference PNGs) that are too large for fileContents.
       for (const filePath of result.newFiles) {
         try {
-          const bytes = await readFile(join(workspaceDir, pathMap.get(filePath) || filePath));
-          result.fileHashes[filePath] = createHash("sha256").update(bytes).digest("hex");
+          const bytes = await readFile(
+            join(workspaceDir, pathMap.get(filePath) || filePath),
+          );
+          result.fileHashes[filePath] = createHash("sha256")
+            .update(bytes)
+            .digest("hex");
         } catch {
           // skip unreadable
         }
       }
 
-      // 3. Read both the current and archived static workflow documents.
-      // The current contract is { definition, state }; older fixtures used
-      // { workflow, ... }. Completed documents are exposed under the key used
-      // by the assertions, while incomplete current documents remain pending.
-      const parseWorkflowDir = async (dir, source) => {
-        const files = await this.walkDir(dir, workspaceDir, () => true);
-        for (const f of files.filter((file) => file.path.endsWith("tasks.yml"))) {
+      // Completion follows saved state. Run IDs remain exact; retries are evidence.
+      for (const folder of ["changes", "archive"]) {
+        const files = await this.walkDir(
+          join(designbookDir, "workflows", folder),
+          workspaceDir,
+          () => true,
+        );
+        for (const f of files.filter((file) =>
+          file.path.endsWith("/tasks.yml"),
+        )) {
           try {
-            const parsed = yaml.load(await readFile(join(workspaceDir, f.path), "utf-8"));
-            const id = parsed?.definition?.id || parsed?.workflow;
-            if (!id) continue;
-            const complete = source === "archive" || parsed?.state?.status === "completed";
-            const canonicalId = this.canonicalWorkflowId(id);
-            if (complete) {
-              result.completedWorkflows[id] = parsed;
-              result.completedWorkflows[canonicalId] = parsed;
-            } else {
-              result.pendingWorkflows[id] = parsed;
-              result.pendingWorkflows[canonicalId] = parsed;
+            const parsed = yaml.load(
+              await readFile(join(workspaceDir, f.path), "utf-8"),
+            );
+            if (!parsed?.definition?.id || !parsed?.state?.status)
+              throw new Error("Invalid workflow document");
+            const target =
+              parsed.state.status === "completed"
+                ? result.completedWorkflows
+                : result.pendingWorkflows;
+            if (
+              result.completedWorkflows[parsed.definition.id] ||
+              result.pendingWorkflows[parsed.definition.id]
+            )
+              throw new Error(`Duplicate workflow id: ${parsed.definition.id}`);
+            target[parsed.definition.id] = parsed;
+            try {
+              const before = yaml.load(
+                await readFile(
+                  join(workspaceDir, dirname(f.path), "definition-before.yml"),
+                  "utf-8",
+                ),
+              );
+              if (!isDeepStrictEqual(before, parsed.definition))
+                throw new Error("Definition changed during execution");
+            } catch (err) {
+              result.definitionErrors.push({
+                path: f.path,
+                error: err.message,
+              });
             }
-          } catch {
-            // skip malformed workflow documents
+          } catch (err) {
+            result.workflowErrors.push({ path: f.path, error: err.message });
           }
         }
-      };
-
-      await parseWorkflowDir(join(designbookDir, "workflows", "changes"), "changes");
-      await parseWorkflowDir(join(designbookDir, "workflows", "archive"), "archive");
-      // A retry can leave an earlier failed document in changes/. Once the
-      // canonical workflow has completed, that stale pending entry no longer
-      // represents the run's outcome.
-      for (const id of Object.keys(result.pendingWorkflows)) {
-        if (result.completedWorkflows[id] || result.completedWorkflows[this.canonicalWorkflowId(id)]) {
-          delete result.pendingWorkflows[id];
-        }
       }
-      result.archivedWorkflows = result.completedWorkflows;
-    } catch {
-      // workspace scan failed
+    } catch (err) {
+      result.workflowErrors.push({ error: err.message });
     }
 
+    result.definitionUnchanged =
+      result.definitionErrors.length === 0 &&
+      result.workflowErrors.length === 0 &&
+      Object.keys(result.completedWorkflows).length +
+        Object.keys(result.pendingWorkflows).length >
+        0;
     return result;
   }
 
@@ -299,7 +476,12 @@ class CodexCliProvider {
         const fullPath = join(dir, entry.name);
         const relPath = relative(baseDir, fullPath);
         if (entry.isDirectory() && directoryFilter(relPath)) {
-          const sub = await this.walkDir(fullPath, baseDir, filter, directoryFilter);
+          const sub = await this.walkDir(
+            fullPath,
+            baseDir,
+            filter,
+            directoryFilter,
+          );
           results.push(...sub);
         } else if (entry.isFile() && filter(relPath)) {
           try {
@@ -310,59 +492,23 @@ class CodexCliProvider {
           }
         }
       }
-    } catch {
-      // dir doesn't exist
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
     }
     return results;
   }
 
   async resolveDesignbookDir(workspaceDir) {
-    const candidates = [join(workspaceDir, "designbook")];
+    let config;
     try {
-      const config = yaml.load(await readFile(join(workspaceDir, "designbook.config.yml"), "utf-8"));
-      if (config?.designbook?.home) candidates.push(join(workspaceDir, config.designbook.home, "designbook"));
-    } catch {
-      // Use conventional locations when no config can be read.
+      config = yaml.load(
+        await readFile(join(workspaceDir, "designbook.config.yml"), "utf-8"),
+      );
+    } catch (err) {
+      if (err.code !== "ENOENT") throw err;
     }
-    candidates.push(join(workspaceDir, "web", "themes", "custom", "test_integration_drupal", "designbook"));
-    // Prefer the directory that actually contains workflow state when a
-    // workspace has both a root-level definition staging directory and the
-    // configured Drupal Designbook home.
-    for (const candidate of candidates) {
-      for (const subdir of ["workflows/archive", "workflows/changes"]) {
-        try {
-          const info = await stat(join(candidate, subdir));
-          if (info.isDirectory()) return candidate;
-        } catch {
-          // continue
-        }
-      }
-    }
-    for (const candidate of candidates) {
-      try {
-        const info = await stat(candidate);
-        if (info.isDirectory()) return candidate;
-      } catch {
-        // continue
-      }
-    }
-    return candidates[0];
-  }
-
-  canonicalWorkflowId(id) {
-    const names = [
-      "design-verify", "design-component", "design-screen", "design-entity",
-      "design-shell", "design-guidelines", "design-guideline", "data-model",
-      "sample-data", "css-generate", "sync-verify", "sync-to", "sync-scene",
-      "shape-section", "sections", "tokens", "vision", "repair",
-    ];
-    return names.find((name) => id === name || id.startsWith(`${name}-`)) || id;
+    return resolve(workspaceDir, config?.designbook?.home || ".", "designbook");
   }
 }
 
-export default function (providerPath, options) {
-  // Promptfoo instantiates JavaScript providers with the provider options as
-  // the first constructor argument. Keep the two-argument form working for
-  // direct callers as well.
-  return new CodexCliProvider(options || providerPath || {});
-}
+export default CodexCliProvider;

@@ -23,7 +23,6 @@ providers:
     config:
       model: gpt-5.6-luna
       timeout: 3600000
-      max_turns: 20
 
 defaultTest:
   options:
@@ -32,7 +31,6 @@ defaultTest:
       config:
         model: gpt-5.6-luna
         timeout: 3600000
-        max_turns: 20
 
 tests:
   - description: "designbook: bootstrap + create resolves stages"
