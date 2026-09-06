@@ -50,7 +50,7 @@ Implementation guidance belongs in blueprints (overridable) or rules (hard const
 
 Task results are declared in the `result:` frontmatter field with a JSON Schema. Two types:
 
-- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `submission: data | direct` (default `data`) and `flush: deferred | immediate` (default `deferred`) control who writes the file and when. Optional `validators:` for semantic validation. Optional JSON Schema type (inline or `$ref`). Optional `prepare:` (`{ cmd, as }`) to fetch a runtime validation schema by running an opaque command. Optional `generator:` (`{ jsonata }`) when the result is produced by an author-then-run JSONata artifact persisted at the given path.
+- **File results** (with `path:`) — files written to disk. Path template supports `$ENV` and `{{ param }}`. Optional `submission: data | direct` (default `data`) and `flush: deferred | immediate` (default `deferred`) control who writes the file and when. Optional `validators:` for semantic validation. Optional JSON Schema type (inline or `$ref`). Prepare schema queries during intake and embed the schema. Optional `generator:` (`{ jsonata }`) when the result is produced by an author-then-run JSONata artifact persisted at the given path.
 - **Data results** (without `path:`) — structured data returned via `--data`. JSON Schema type required (inline or `$ref`).
 
 Both support `$ref` to `schemas.yml` definitions (see [`resources/schemas.md`](../resources/schemas.md)).
@@ -132,32 +132,9 @@ Each issue needs a `severity`:
 
 No `## Result: scene` needed — the schema type `string` is self-explanatory.
 
-## Stages Flush After Completion
+## Output completion
 
-After each stage completes, all output files are **flushed** — renamed from their temporary working names to their final canonical names. This flush is what makes outputs referenceable by later stages.
-
-Consequence: a task file must declare the **final flushed paths** in `result:`, not temporary names. If stage B needs to read a file produced by stage A, it references the flushed name as a file-input param (with `path:` extension field).
-
-```markdown
-# Stage A task — produces flushed output
-result:
-  type: object
-  required: [component-yml]
-  properties:
-    component-yml:
-      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
-
-# Stage B task — declares file-input param for flushed output
-params:
-  type: object
-  required: [component_yml]
-  properties:
-    component_yml:
-      path: $DESIGNBOOK_DIRS_COMPONENTS/{{ component }}/{{ component }}.component.yml
-      type: object
-```
-
-Never reference unflushed (in-progress) file names from another stage — the file will not exist at that path until the producing stage has completed and flushed.
+Declare canonical output paths. The planning agent resolves them before execution. Validated data outputs are flushed when their task completes; consumers declare the producing task as a dependency. The executor reads the saved output contract.
 
 ## Stage = Filename, No Duplication
 

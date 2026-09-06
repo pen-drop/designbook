@@ -1,11 +1,18 @@
 ---
-title: "Map Entity: {{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode : mapping.view_mode }}"
+title: >-
+  Map Entity: {{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode
+  : mapping.view_mode }}
 trigger:
-  steps: [design-screen:map-entity, design-entity:map-entity]
-domain: [data-mapping]
+  steps:
+    - design-screen:map-entity
+    - design-entity:map-entity
+domain:
+  - data-mapping
 params:
   type: object
-  required: [mapping, data_model]
+  required:
+    - mapping
+    - data_model
   properties:
     mapping:
       type: object
@@ -14,17 +21,18 @@ params:
       path: $DESIGNBOOK_DATA/data-model.yml
       workflow: debo-data-model
       type: object
-each:
-  mapping:
-    expr: "entity_mappings"
-    schema: { $ref: ../schemas.yml#/EntityMapping }
 result:
   type: object
-  required: [entity-mapping]
+  required:
+    - entity-mapping
   properties:
     entity-mapping:
-      path: "$DESIGNBOOK_DATA/{{ mapping.mode_kind = 'form' ? 'form-mapping' : 'entity-mapping' }}/{{ mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode : mapping.view_mode }}.jsonata"
-      validators: [entity-mapping]
+      path: >-
+        $DESIGNBOOK_DATA/{{ mapping.mode_kind = 'form' ? 'form-mapping' : 'entity-mapping' }}/{{
+        mapping.entity_type }}.{{ mapping.bundle }}.{{ mapping.mode_kind = 'form' ? mapping.form_mode :
+        mapping.view_mode }}.jsonata
+      validators:
+        - entity-mapping
 ---
 
 # Map Entity
@@ -41,7 +49,7 @@ A pure JSONata expression returning `ComponentNode[]`. See [jsonata-reference](.
 
 ## Data Mapping Pattern
 
-Read the data-mapping blueprint from `task.blueprints[]` filtered by `type: data-mapping`. The matching blueprint provides the JSONata pattern and rules for the declared template.
+Read the data-mapping blueprint embedded in the task context. The matching blueprint provides the JSONata pattern and rules for the declared template.
 
 ## Constraints
 

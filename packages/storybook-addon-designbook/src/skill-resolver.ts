@@ -144,12 +144,12 @@ export function resolvePluginSkillSources(ctx: ResolveContext): { runtime: strin
  */
 export function resolveSkillSources(
   configDir: string,
-  overrides?: { env?: NodeJS.ProcessEnv; home?: string },
+  overrides?: { env?: NodeJS.ProcessEnv; home?: string; config?: DesignbookConfig },
 ): SkillSource[] {
   const ctx: ResolveContext = {
     env: overrides?.env ?? process.env,
     home: overrides?.home ?? homedir(),
-    config: loadConfig(configDir),
+    config: overrides?.config ?? loadConfig(configDir),
   };
 
   const projectSources = resolveProjectSkillSources(configDir);

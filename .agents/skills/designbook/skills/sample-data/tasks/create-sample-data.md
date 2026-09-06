@@ -1,11 +1,17 @@
 ---
-title: "Create Sample Data: {{ bundle.entity_type }}.{{ bundle.bundle }}"
+title: 'Create Sample Data: {{ bundle.entity_type }}.{{ bundle.bundle }}'
 trigger:
-  steps: [create-sample-data]
-domain: [sample-data]
+  steps:
+    - create-sample-data
+domain:
+  - sample-data
 params:
   type: object
-  required: [section_id, bundle, data_model, components_dir]
+  required:
+    - section_id
+    - bundle
+    - data_model
+    - components_dir
   properties:
     section_id:
       type: string
@@ -14,10 +20,14 @@ params:
       $ref: ../schemas.yml#/BundleRef
     sample_data_bundles:
       type: array
-      description: The entity_type+bundle pairs to generate, supplied by intake (rendered entities + their reference targets). The source the each expansion iterates.
+      description: >-
+        The entity_type+bundle pairs to generate, supplied by intake (rendered entities + their reference
+        targets). The source the each expansion iterates.
       items:
         $ref: ../schemas.yml#/BundleRef
-    entities: { type: array, default: [] }
+    entities:
+      type: array
+      default: []
     data_model:
       path: $DESIGNBOOK_DATA/data-model.yml
       workflow: /debo-data-model
@@ -28,16 +38,14 @@ params:
       description: Available components — required for canvas bundle generation (rule canvas.md)
 result:
   type: object
-  required: [sample-data]
+  required:
+    - sample-data
   properties:
     sample-data:
       path: $DESIGNBOOK_DATA/data/{{ bundle.entity_type }}.{{ bundle.bundle }}.yml
       $ref: ../schemas.yml#/SampleDataBundle
-      validators: [data]
-each:
-  bundle:
-    expr: "sample_data_bundles"
-    schema: { $ref: ../schemas.yml#/BundleRef }
+      validators:
+        - data
 ---
 
 # Sample Data

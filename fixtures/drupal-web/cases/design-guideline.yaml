@@ -26,9 +26,9 @@ assert:
   - type: javascript
     value: output.newFiles.includes('designbook/design-system/guidelines.yml')
   - type: javascript
-    value: output.archivedWorkflows['design-guidelines']?.status === 'completed'
+    value: output.completedWorkflows['design-guidelines']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['design-guidelines']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['design-guidelines']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript

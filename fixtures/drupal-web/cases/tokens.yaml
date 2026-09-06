@@ -13,9 +13,9 @@ assert:
   - type: javascript
     value: output.newFiles.includes('designbook/design-system/design-tokens.yml')
   - type: javascript
-    value: output.archivedWorkflows['tokens']?.status === 'completed'
+    value: output.completedWorkflows['tokens']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['tokens']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['tokens']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0
   - type: javascript

@@ -1,10 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-NAME="${1:?usage: start-drupal-workspace.sh <name>}"
-WS="$REPO_ROOT/workspaces/$NAME"
+NAME=""
+WORKSPACE_OVERRIDE=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --workspace) WORKSPACE_OVERRIDE="${2:?--workspace needs a directory}"; shift 2 ;;
+    --workspace=*) WORKSPACE_OVERRIDE="${1#*=}"; shift ;;
+    -*) echo "Unknown option: $1" >&2; exit 1 ;;
+    *) [[ -z "$NAME" ]] || { echo "Unexpected argument: $1" >&2; exit 1; }; NAME="$1"; shift ;;
+  esac
+done
+if [[ -n "$WORKSPACE_OVERRIDE" ]]; then
+  [[ "$WORKSPACE_OVERRIDE" = /* ]] && WS="$WORKSPACE_OVERRIDE" || WS="$REPO_ROOT/$WORKSPACE_OVERRIDE"
+  WS="$(realpath -m "$WS")"
+  DISPLAY_NAME="$WS"
+else
+  NAME="${NAME:-drupal}"
+  WS="$REPO_ROOT/workspaces/$NAME"
+  DISPLAY_NAME="$NAME"
+fi
 THEME="test_integration_drupal"
-[ -d "$WS" ] || { echo "No workspace $WS — run setup-workspace.sh $NAME first" >&2; exit 1; }
+[ -d "$WS" ] || { echo "No workspace $WS — run setup-workspace.sh ${NAME:-<name>} first" >&2; exit 1; }
 cd "$WS"
 ddev start
 
@@ -39,4 +56,4 @@ echo "→ building theme CSS ($THEME)"
 ddev drush cr
 
 ddev drush status
-echo "✓ Drupal up for workspace $NAME (theme $THEME enabled, CSS built)"
+echo "✓ Drupal up for workspace $DISPLAY_NAME (theme $THEME enabled, CSS built)"

@@ -88,11 +88,8 @@ Review the full issue list across all checks and breakpoints:
 5. **Assign priority** — `critical` before `major`. Within same severity, group by config surface
    (so one polish task can close multiple deviations on one config).
 
-## Step 3: Report Consolidated Issues
+## Result: issues
 
-The polish stage uses `each: issues`. Report the consolidated issues array as a task result so the
-engine can expand them. Each issue object carries `id`, `severity`, `description`, and the config
-surface the `polish-config` task needs; `file_hint` (when present) names the **backend config
-surface**, not a component file.
-
-The workflow engine expands `polish-config` tasks from the `issues` result via `each: issues`.
+Return the complete consolidated issue list with stable IDs, severity, affected targets and evidence.
+Completion: every input finding is accounted for. After this check completes, its intake hands
+these issues to a separate repair intake; the checking workflow's task list remains fixed.

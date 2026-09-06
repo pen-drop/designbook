@@ -16,9 +16,9 @@ assert:
   - type: javascript
     value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.component.yml'))
   - type: javascript
-    value: output.archivedWorkflows['design-shell']?.status === 'completed'
+    value: output.completedWorkflows['design-shell']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['design-shell']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['design-shell']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: |
       return output.text.includes('build-storybook') || output.text.includes('Build completed');

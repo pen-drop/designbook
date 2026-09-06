@@ -21,7 +21,7 @@ params:
       type: object
 result:
   type: object
-  required: [design-tokens]
+  required: [design_tokens]
   properties:
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
@@ -30,13 +30,12 @@ result:
 
 # Design Tokens
 
-Derive a W3C Design Token YAML. When the `extract` param is present, it is the authoritative source — see the `extract-mapping` rule for value-origin constraints and completeness requirements. Fall back to vision or user input only when extract is missing and the workflow is interactive.
+Derive a W3C Design Token YAML. When the `extract` param is present, it is the authoritative source — see the `extract-mapping` rule for value-origin constraints and completeness requirements. Use the agreed intake decisions when there is no reference extract.
 
-When the workflow runs interactively and extract is missing, guide the user through choosing colors, typography, and additional token groups; present choices, let them confirm or adjust, and summarize all tokens before saving.
 
-Follow the `merged_schema` for required token structure — blueprints extend the schema with component-level token groups. Read the css-naming blueprint from `task.blueprints[]` filtered by `type: css-naming` for token group names and CSS variable mapping. Apply renderer hints per the `renderer-hints` rule.
+Follow the embedded output schema for required token structure, including component groups contributed by blueprints. Use the css-naming blueprint in the task context for token group names and CSS variable mapping. Apply any renderer-hints rule included in that context.
 
-## Result: design-tokens
+## Result: design_tokens
 
 Three fixed levels per schema: `primitive` → `semantic` → `component`. Each leaf is a `TokenLeaf` with `$value` and `$type`.
 

@@ -1,17 +1,22 @@
 ---
-title: "Create Scene: {{ scene.name }}"
+title: 'Create Scene: {{ scene.name }}'
 trigger:
-  steps: [create-scene]
-domain: [components, scenes]
+  steps:
+    - create-scene
+domain:
+  - components
+  - scenes
 params:
   type: object
-  required: [scene_path, components_dir]
+  required:
+    - scene_path
+    - components_dir
   properties:
     scene_path:
       type: string
       description: >
-        File path (relative to $DESIGNBOOK_DATA) of the target SceneFile.
-        Supplied by the calling workflow via the scene_path resolver.
+        File path (relative to $DESIGNBOOK_DATA) of the target SceneFile. Supplied by the calling workflow via
+        the scene_path resolver.
     components_dir:
       path: $DESIGNBOOK_DIRS_COMPONENTS
       type: string
@@ -20,16 +25,19 @@ params:
       type: array
       resolve: components_index
       description: >
-        Live inventory of components currently rendered in Storybook.
-        Every `component:` field in the scene result MUST match one of these ids —
-        the compiled schema enum enforces this automatically.
+        Live inventory of components currently rendered in Storybook. Every `component:` field in the scene
+        result MUST match one of these ids — the compiled schema enum enforces this automatically.
       items:
         type: object
-        required: [id]
+        required:
+          - id
         properties:
-          id: { type: string }
-          import_path: { type: string }
-          story_id: { type: string }
+          id:
+            type: string
+          import_path:
+            type: string
+          story_id:
+            type: string
     reference:
       type: object
       default: null
@@ -42,22 +50,20 @@ params:
       path: $DESIGNBOOK_DATA/data-model.yml
       type: object
     section_scenes:
-      path: "$DESIGNBOOK_DATA/{{ scene_path }}"
+      path: $DESIGNBOOK_DATA/{{ scene_path }}
       type: object
       $ref: ../schemas.yml#/SceneFile
 result:
   type: object
-  required: [scene-file]
+  required:
+    - scene-file
   properties:
     scene-file:
-      path: "$DESIGNBOOK_DATA/{{ scene_path }}"
+      path: $DESIGNBOOK_DATA/{{ scene_path }}
       flush: immediate
-      validators: [scene]
+      validators:
+        - scene
       $ref: ../schemas.yml#/SceneFile
-each:
-  scene:
-    expr: "scenes"
-    schema: { $ref: ../schemas.yml#/SceneDef }
 ---
 
 # Create Scene

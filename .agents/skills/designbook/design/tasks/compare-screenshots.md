@@ -1,11 +1,18 @@
 ---
 name: designbook:design:compare-screenshots
-title: "Compare Screenshots: {{ story_id }} ({{ screenshot.breakpoint }}/{{ screenshot.element }}--{{ screenshot.state }})"
+title: >-
+  Compare Screenshots: {{ story_id }} ({{ screenshot.breakpoint }}/{{ screenshot.element }}--{{
+  screenshot.state }})
 trigger:
-  steps: [compare, re-compare]
+  steps:
+    - compare
+    - re-compare
 params:
   type: object
-  required: [screenshot, reference_dir, story_id]
+  required:
+    - screenshot
+    - reference_dir
+    - story_id
   properties:
     screenshot:
       $ref: ../schemas.yml#/Screenshot
@@ -13,17 +20,15 @@ params:
       $ref: ../../scenes/schemas.yml#/StoryId
     reference_dir:
       type: string
-      description: "Absolute path to the reference directory (references/<hash>/) containing frozen baseline PNGs."
+      description: Absolute path to the reference directory (references/<hash>/) containing frozen baseline PNGs.
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
-each:
-  screenshot:
-    expr: "story_screenshots"
-    schema: { $ref: ../schemas.yml#/Screenshot }
 result:
   type: object
-  required: [issues, compare_artifacts]
+  required:
+    - issues
+    - compare_artifacts
   properties:
     issues:
       type: array

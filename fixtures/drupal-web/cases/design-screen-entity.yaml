@@ -37,10 +37,10 @@ assert:
     value: output.newFiles.some(f => f.endsWith('.scenes.yml'))
   - type: javascript
     value: |
-      return output.archivedWorkflows['design-screen']?.status === 'completed';
+      return output.completedWorkflows['design-screen']?.state?.status === 'completed';
   - type: javascript
     value: |
-      return output.archivedWorkflows['design-screen']?.tasks?.every(t => t.status === 'done');
+      return Object.values(output.completedWorkflows['design-screen']?.state?.tasks || {}).every(t => t.status === 'done');
   - type: javascript
     value: |
       return output.text.includes('build-storybook') || output.text.includes('Build completed');

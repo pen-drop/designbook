@@ -156,7 +156,11 @@ export function deepMergeExtends(target: JsonSchema, source: Record<string, unkn
             typeof existing === 'object' &&
             incoming &&
             typeof incoming === 'object' &&
-            ('properties' in existing || 'properties' in incoming || 'required' in incoming)
+            ('properties' in existing ||
+              'properties' in incoming ||
+              'required' in incoming ||
+              'additionalProperties' in incoming ||
+              'items' in incoming)
           ) {
             deepMergeExtends(existing, incoming, sourcePath);
             continue;
@@ -171,6 +175,16 @@ export function deepMergeExtends(target: JsonSchema, source: Record<string, unkn
     }
     if (key === 'required' && Array.isArray(value)) {
       target.required = [...(target.required ?? []), ...(value as string[])];
+      continue;
+    }
+    if (
+      (key === 'additionalProperties' || key === 'items') &&
+      value &&
+      typeof value === 'object' &&
+      target[key] &&
+      typeof target[key] === 'object'
+    ) {
+      deepMergeExtends(target[key] as JsonSchema, value as Record<string, unknown>, sourcePath);
       continue;
     }
     // For non-properties keys, merge normally

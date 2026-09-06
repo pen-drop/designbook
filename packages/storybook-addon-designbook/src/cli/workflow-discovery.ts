@@ -2,10 +2,7 @@ import { readFileSync } from 'node:fs';
 import { globSync } from 'glob';
 import { basename } from 'node:path';
 import { load as parseYaml } from 'js-yaml';
-import type { AfterDeclaration } from '../workflow-types.js';
 import type { SkillSource } from '../skill-sources.js';
-
-export type { AfterDeclaration };
 
 /** Keep only plugin-origin sources — project layout is covered by the agentsDir glob. */
 function pluginSources(sources?: SkillSource[]): SkillSource[] {
@@ -21,7 +18,6 @@ export interface WorkflowDefinition {
   id: string;
   file: string;
   stages: WorkflowStage[];
-  after: AfterDeclaration[];
 }
 
 export function resolveWorkflowFile(workflowId: string, agentsDir: string, sources?: SkillSource[]): string {
@@ -67,14 +63,5 @@ export function loadWorkflowDefinition(
     name,
     steps: def.steps ?? [],
   }));
-  const after: AfterDeclaration[] = (fm?.after ?? [])
-    .filter(
-      (a): a is { workflow: string; when?: string; params?: Record<string, string> } => typeof a?.workflow === 'string',
-    )
-    .map((a) => ({
-      workflow: a.workflow,
-      ...(a.when !== undefined ? { when: a.when } : {}),
-      ...(a.params ? { params: a.params } : {}),
-    }));
-  return { id: workflowId, file, stages, after };
+  return { id: workflowId, file, stages };
 }

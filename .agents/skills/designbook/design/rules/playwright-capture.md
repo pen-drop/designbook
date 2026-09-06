@@ -8,22 +8,11 @@ trigger:
 
 Hard constraints for capturing screenshots via Playwright. All browser interaction uses `playwright-cli` — see [cli-playwright.md](../../resources/cli-playwright.md) for the full command reference.
 
-## Staged File Flow
+## Declared output paths
 
-Screenshots MUST go through the workflow staging pipeline. Before capturing:
-
-1. **Get the staged path** from the workflow:
-   ```bash
-   STAGED=$(_debo workflow get-file $WORKFLOW_NAME $TASK_ID --key screenshot | jq -r '.staged_path')
-   mkdir -p "$(dirname "$STAGED")"
-   ```
-
-2. **Capture to the staged path** (see Capture Modes below).
-
-3. **Register the result** so the file gets tracked and validated:
-   ```bash
-   _debo workflow result --task $TASK_ID --key screenshot --external
-   ```
+Capture directly to the absolute screenshot output path in the saved task definition (`submission: direct`).
+Create its directory before capture. The executor submits the existing task to done, which validates the declared image output.
+In the examples below, `STAGED` denotes that declared output path.
 
 ## Capture Modes
 

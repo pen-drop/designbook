@@ -71,7 +71,7 @@ Always double quotes (`"`) in every YAML file. Single quotes break the SDC Story
 ## .story.yml
 
 - **One file per variant**: `<name>.<variant>.story.yml`. Default story is `<name>.default.story.yml`. The name segment is mandatory — never `<name>.story.yml`.
-- **Flat format** — top-level keys are `name`, `props`, `slots`. No `stories:` wrapper.
+- **Flat format** — top-level keys are `component`, `name`, `props`, `slots`. Select a declared variant through `props.variant`; a top-level `variant` is ignored by the Storybook SDC loader. No `stories:` wrapper.
 - **One story per file** — never combine multiple stories using `---` YAML document separators.
 - **Story node `type:`** ∈ `element`, `component`, `image`.
 - **Placeholder images** use service URLs (`https://placehold.co/600x400`). Local file paths are not served by Storybook.

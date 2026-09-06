@@ -1,16 +1,19 @@
 ---
-title: "Create Scene File: {{ section.id }}"
+title: 'Create Scene File: {{ section.id }}'
 trigger:
-  steps: [create-scene-file]
+  steps:
+    - create-scene-file
 params:
   type: object
-  required: [section, vision]
+  required:
+    - section
+    - vision
   properties:
     section:
       type: object
       description: >
-        SceneFile-top-level metadata for the file being created
-        (id, title, description, status, order, group).
+        SceneFile-top-level metadata for the file being created (id, title, description, status, order,
+        group).
       $ref: ../schemas.yml#/SceneFile
     vision:
       path: $DESIGNBOOK_DATA/vision.yml
@@ -25,20 +28,19 @@ params:
       from: section.id
 result:
   type: object
-  required: [scene-file, scene_id]
+  required:
+    - scene-file
+    - scene_id
   properties:
     scene-file:
-      path: "$DESIGNBOOK_DATA/{{ scene_path }}"
+      path: $DESIGNBOOK_DATA/{{ scene_path }}
       flush: immediate
       type: object
-      validators: [scene]
+      validators:
+        - scene
       $ref: ../schemas.yml#/SceneFile
     scene_id:
       $ref: ../schemas.yml#/SceneId
-each:
-  section:
-    expr: "section"
-    schema: { $ref: ../schemas.yml#/SceneFile }
 ---
 
 # Create Scene File
@@ -46,33 +48,6 @@ each:
 Initialise the scene file for a section (or the design-system shell) with an empty `scenes: []` array. The file format is `SceneFile`; "section" is the content-semantic label used by the roadmap workflows.
 
 **Idempotency:** if the file at `$DESIGNBOOK_DATA/{{ scene_path }}` already exists, leave it unchanged and emit it as the `scene-file` result verbatim. Only write when the file is missing.
-
-## Gathering (shape-section workflow only)
-
-When called from the `shape-section` workflow, help the user define a specification for one roadmap section before the file is written.
-
-### Select Section
-
-Parse the sections from the product vision. Check which sections already have specs at `${DESIGNBOOK_DATA}/sections/[section-id]/*.section.scenes.yml`.
-
-**Section ID conversion:** Convert the section title to kebab-case: lowercase, remove `&`, replace non-alphanumeric with `-`, trim dashes.
-
-If only one section is unspecified, auto-select it. If a section already has a spec, ask: "Update it or start fresh?"
-
-### Gather Section Requirements
-
-Ask 4–6 clarifying questions based on the section context. Key areas:
-
-- "What are the main user actions or tasks in this section?"
-- "What information should be displayed? (Consider the data model entities)"
-- "What are the key user flows?"
-- "What UI patterns fit best? (e.g., list view, grid, cards, detail page, form)"
-- "What's in scope and what's explicitly out of scope?"
-- "Should this section be wrapped in the application shell?"
-
-### Present Draft Specification
-
-Show the specification and iterate until satisfied.
 
 ## Output Format
 
@@ -95,7 +70,7 @@ id: {{ section.id }}
 group: "Designbook/Sections/{{ section.title }}"
 title: "{{ section.title }}"
 description: "{{ section.description }}"
-status: shaped
+status: planned
 order: {{ section.order }}
 scenes: []
 ```
@@ -124,7 +99,7 @@ scenes: []
 
 ## Constraints
 
-- Be conversational only in the `shape-section` workflow; for other workflows write the skeleton without dialog.
+- Use the section specification already recorded by intake; do not gather requirements during execution.
 - Keep specs focused on *what* the file needs, not *how* to implement it
 - Reference the data model entities when discussing what information to display
 - Each user flow should describe a complete path (start → action → result)

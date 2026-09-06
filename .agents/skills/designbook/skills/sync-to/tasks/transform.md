@@ -1,11 +1,17 @@
 ---
-title: "Transform config-name unit to Drupal config YAML"
+title: Transform config-name unit to Drupal config YAML
 trigger:
-  steps: [sync-to:transform]
-domain: [data-mapping, data-model]
+  steps:
+    - sync-to:transform
+domain:
+  - data-mapping
+  - data-model
 params:
   type: object
-  required: [units, backend_cmd, config_sync_dir]
+  required:
+    - units
+    - backend_cmd
+    - config_sync_dir
   properties:
     units:
       type: array
@@ -16,66 +22,63 @@ params:
       type: object
       resolve: backend_cmd
       description: >
-        Backend command strings from designbook.config.yml. Provides schema_cmd
-        (append config name → JSON Schema on stdout), validate_cmd (append
-        config name + yaml path → exit non-zero on violation), and import (run
-        as-is by the sync stage to apply the config-sync directory).
-      required: [schema_cmd, validate_cmd]
+        Backend command strings from designbook.config.yml. Provides schema_cmd (append config name → JSON
+        Schema on stdout), validate_cmd (append config name + yaml path → exit non-zero on violation), and
+        import (run as-is by the sync stage to apply the config-sync directory).
+      required:
+        - schema_cmd
+        - validate_cmd
       properties:
         schema_cmd:
           type: string
           description: >
-            Command prefix for fetching a config JSON Schema. The engine appends
-            the config name before running (e.g. "ddev drush designbook:config-schema").
-          examples: ["ddev drush designbook:config-schema"]
+            Command prefix for fetching a config JSON Schema. The engine appends the config name before
+            running (e.g. "ddev drush designbook:config-schema").
+          examples:
+            - ddev drush designbook:config-schema
         validate_cmd:
           type: string
           description: >
-            Command prefix for validating a config YAML file. The engine appends
-            the config name and yaml path before running
-            (e.g. "ddev drush designbook:config-validate").
-          examples: ["ddev drush designbook:config-validate"]
+            Command prefix for validating a config YAML file. The engine appends the config name and yaml path
+            before running (e.g. "ddev drush designbook:config-validate").
+          examples:
+            - ddev drush designbook:config-validate
         import:
           type: string
           description: >
-            Complete command run as-is by the sync stage to import the
-            config-sync directory into the live backend. Not used by transform
-            itself; declared here so the shared backend_cmd shape validates
+            Complete command run as-is by the sync stage to import the config-sync directory into the live
+            backend. Not used by transform itself; declared here so the shared backend_cmd shape validates
             when the config supplies it.
-          examples: ["ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync"]
+          examples:
+            - ddev drush config:import --partial -y --source=/var/www/html/web/sites/default/files/sync
         exists_cmd:
           type: string
           description: >
-            Command prefix that exits 0 iff a config object already exists in
-            the live backend; append the config name. Not used by transform
-            itself (the resolve-filter stage already dropped existing units);
-            declared here so the shared backend_cmd shape validates when the
-            config supplies it.
-          examples: ["ddev drush config:get"]
+            Command prefix that exits 0 iff a config object already exists in the live backend; append the
+            config name. Not used by transform itself (the resolve-filter stage already dropped existing
+            units); declared here so the shared backend_cmd shape validates when the config supplies it.
+          examples:
+            - ddev drush config:get
     config_sync_dir:
       type: string
       description: Absolute path to the Drupal config-sync directory where YAML files are written.
       resolve: config_sync_dir
 result:
   type: object
-  required: [config-file]
+  required:
+    - config-file
   properties:
     config-file:
-      path: "{{ config_sync_dir }}/{{ unit.config_name }}.yml"
+      path: '{{ config_sync_dir }}/{{ unit.config_name }}.yml'
       description: >
-        The Drupal configuration YAML file written directly to the config-sync directory.
-        Filename derives from the iteration binding unit.config_name. Shape is
-        authoritative from the prepare-fetched schema (stored as prepared).
+        The Drupal configuration YAML file written directly to the config-sync directory. Filename derives
+        from the iteration binding unit.config_name. Shape is authoritative from the prepare-fetched schema
+        (stored as prepared).
       prepare:
-        cmd: "{{ backend_cmd.schema_cmd }} {{ unit.config_name }}"
+        cmd: '{{ backend_cmd.schema_cmd }} {{ unit.config_name }}'
         as: prepared
       generator:
-        jsonata: "$DESIGNBOOK_DATA/sync/{{ unit.config_name }}.jsonata"
-each:
-  unit:
-    expr: "units"
-    schema:
-      $ref: ../schemas.yml#/ConfigNameUnit
+        jsonata: $DESIGNBOOK_DATA/sync/{{ unit.config_name }}.jsonata
 ---
 
 # Transform

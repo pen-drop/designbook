@@ -81,6 +81,11 @@ Screenshot: &Screenshot
     element: *ElementId
     state: { type: string, description: "rest | interaction-state name" }
     breakpoint: *BreakpointId
+    threshold:
+      type: number
+      minimum: 0
+      maximum: 1
+      description: Maximum differing-pixel ratio accepted by this planned check; set during intake.
     selector:
       type: string
       description: >
@@ -863,13 +868,12 @@ DesignWorkflowOutput:
         (compare expected, produced nothing) → 0.0; an artifact missing diff_percent or
         severity, or an expected check absent from the matrix → effective_deviation 1.0
         for that check (a failed measurement never raises the score). 0 = no match,
-        1 = perfect match. The engine derives flow_rate from this after archiving and
-        never overwrites it.
+        1 = perfect match. The summary derives flowRate from this value and recorded task attempts.
     flow_rate:
       type: number
       description: >
-        Composite-Score für den Research-Loop. Wird von der Engine deterministisch
-        beim Archivieren berechnet: flow_rate = success_rate * 100 - friction
+        Composite-Score für den Research-Loop. Wird von der Summary deterministisch
+        aus dem Laufzustand berechnet: flow_rate = success_rate * 100 - friction
         (errors*5 + retries*2 + unresolved*3). Wird nie vom AI geschrieben.
     summary:
       type: string
@@ -884,8 +888,7 @@ DesignWorkflowOutput:
     metrics:
       type: object
       description: >
-        Prozessmetriken aus dbo.log — werden von der Engine beim Archivieren
-        deterministisch befüllt. Darf vom AI nicht geschrieben werden.
+        Prozessmetriken aus dem gespeicherten Laufzustand; die Summary berechnet sie.
       properties:
         errors:
           type: integer

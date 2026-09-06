@@ -1,12 +1,15 @@
 ---
-title: "Create Component {{ component.component }}"
+title: Create Component {{ component.component }}
+domain: [components]
 trigger:
-  steps: [create-component]
+  steps:
+    - create-component
 filter:
   frameworks.component: sdc
 params:
   type: object
-  required: [component]
+  required:
+    - component
   properties:
     component:
       $ref: designbook/design/schemas.yml#/Component
@@ -20,22 +23,21 @@ params:
       from: reference_url
 result:
   type: object
-  required: [component-yml, component-twig, component-story]
+  required:
+    - component-yml
+    - component-twig
+    - component-story
   properties:
     component-yml:
-      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.component.yml"
+      path: ${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.component.yml
       $ref: designbook-drupal/components/schemas.yml#/SdcComponent
     component-twig:
-      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.twig"
+      path: ${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.twig
     component-story:
-      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.default.story.yml"
+      path: ${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.default.story.yml
       $ref: designbook-drupal/components/schemas.yml#/SdcStory
     component-js:
-      path: "${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.js"
-each:
-  component:
-    expr: "components"
-    schema: { $ref: designbook/design/schemas.yml#/Component }
+      path: ${DESIGNBOOK_HOME}/components/{{ component.component }}/{{ component.component }}.js
 ---
 
 # Create Component
@@ -65,3 +67,5 @@ When `component.design_hint.markup` is empty, fall back to the blueprint default
 3. Derive `<name>.component.yml` from `component.slots` + `component.design_hint.props`.
 4. **Render referenced children via slots, not props.** When `component.slots` includes a slot that holds rendered child entities (a `type: reference` field that targets a renderable bundle, e.g. a Wegweiser's `signage_item` cards), declare it as a **slot** in `<name>.component.yml` and render it in the Twig with `{{ slotName }}` (or `{% block slotName %}{% endblock %}`) — the resolved child component markup is injected there. Do NOT declare referenced children as a flat data prop and do NOT iterate per-child fields in the parent Twig; each child bundle has its own component + mapping that renders those fields.
 5. Generate the default story exercising every slot and the default of every prop.
+
+Completion requires a browser render of every declared variant. Confirm the visible differences specified by intake before submitting the component outputs.

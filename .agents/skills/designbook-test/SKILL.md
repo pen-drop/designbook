@@ -1,75 +1,27 @@
 ---
 name: debo-test
 user-invocable: true
-argument-hint: "<subcommand> <suite> <case>"
-subcommands:
-  run:
-    hint: "<suite> [<case>] [--validate <workflow>]"
-    description: Set up a test workspace and run a workflow case (optionally run a validate workflow after)
-  research:
-    hint: "<suite> <case> [--val-cases <x,y>] [--iterations N] [--target T] [--plateau M] [--baseline-only] [--scope <glob>] [--metric <jsonata>] [--direction min|max]"
-    description: Autonomous skill-improvement loop with a held-out val gate; --baseline-only for a single audit pass
-  is-clear:
-    hint: "<workflow> <task> <question>"
-    description: Audit whether a specific question is answered by the loaded rules, blueprints, and schema of a workflow task. Suggests rule, schema, or task-body changes when the answer is missing.
+argument-hint: "[run|research|is-clear] <suite> [<case>] [--workspace <path>]"
 description: >
-  Test workspace runner and autonomous research loop for designbook workflows.
-  Use for manual testing with pre-built fixture data, or for iterative skill improvement.
+  Test Designbook workflows with fresh fixture workspaces, saved-document execution,
+  research scoring, or a read-only planning clarity audit. Use when testing a
+  Designbook workflow or improving its agent-facing instructions.
 metadata:
   internal: true
 ---
 
-## Dispatch
+Choose the matching testing sub-skill:
 
-Parse `$ARGUMENTS` as: `<subcommand> <suite> [<case>] [options]`
-
-| Subcommand | Signature | Description |
+| Command | Sub-skill | Purpose |
 |---|---|---|
-| `run` | `<suite> [<case>] [--validate <workflow>]` | Set up workspace and run a test case; `--validate` runs a validate workflow after (typically `design-verify`) |
-| `research` | `<suite> <case> [options]` | Autonomous improvement loop |
-| `is-clear` | `<workflow> <task> <question>` | Read-only clarity audit against a workflow's plan |
+| `run` | [skills/run/](skills/run/SKILL.md) | Execute one fixture case in a fresh workspace |
+| `research` | [skills/research/](skills/research/SKILL.md) | Run the bounded skill-improvement loop |
+| `is-clear` | [skills/is-clear/](skills/is-clear/SKILL.md) | Audit whether a planning catalogue answers a question |
 
-Unknown subcommand → print available subcommands and stop.
+Shared resources:
 
----
+- [audit criteria](resources/audit-criteria.md) — file-level research audit
+- [eval scorer](resources/eval-score.mjs) — saved-workflow summary and case assertions
 
-## run
-
-Parse from `$ARGUMENTS` (after `run <suite> [<case>]`):
-- `--validate <workflow>` — after the main workflow completes, run this workflow to validate the produced story (typically `design-verify`). Default: none (no validation pass).
-
-Load `workflows/run.md` and follow it.
-
----
-
-## research
-
-Parse from `$ARGUMENTS` (after `research <suite> <case>`):
-- `--val-cases <x,y,...>` (comma-separated held-out gate set; default empty = gate on the train score itself)
-- `--iterations N` (default 25)
-- `--target T` (default 100)
-- `--plateau M` (default 5)
-- `--baseline-only` — single audit pass (iteration 0 only); equivalent to `--iterations 0`
-- `--scope <glob>` (comma-separated)
-- `--metric <jsonata>` — decision metric expression; default = case yaml `metric:` field, fallback `flowRate`
-- `--direction min|max` — metric direction; default = case yaml `direction:` field, fallback `max`
-
-If `<case>` is missing: error "research requires a case", list available cases, stop.
-
-Load `workflows/research.md` and follow it.
-
----
-
-## is-clear
-
-Parse `$ARGUMENTS` after `is-clear` as: `<workflow> <task>` followed by everything remaining as `<question>` (no quoting required; rest-of-line is the question).
-
-Load `workflows/is-clear.md` and follow it.
-
----
-
-## Error Handling
-
-- If `fixtures/<suite>/` does not exist: list available suites from `fixtures/`
-- If `fixtures/<suite>/cases/<case>.yaml` does not exist: list available cases
-- If `setup-test.sh` fails: show the error and stop
+Unknown commands stop with the available sub-skills. Each sub-skill owns its
+arguments and detailed procedure; this index only routes the request.

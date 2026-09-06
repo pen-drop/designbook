@@ -17,10 +17,9 @@ trigger:
 > Full `*.scenes.yml` format and `SceneNode` types: see [scenes/schemas.yml](../../scenes/schemas.yml).
 
 > ⛔ **`component:` values MUST always use `provider:component` format.**
-> Write `$DESIGNBOOK_COMPONENT_NAMESPACE:header`, NEVER just `header`.
-> The engine substitutes `$DESIGNBOOK_COMPONENT_NAMESPACE` (and any `$VAR` /
-> `${VAR}` env token) on `workflow done --data` submission. The scene file on
-> disk contains the resolved provider literal (e.g. `test_integration_drupal:page`).
+> Resolve the provider from the saved configuration before submission.
+> Use the concrete literal (e.g. `test_integration_drupal:header`), never just
+> `header` or an environment placeholder. `done` does not substitute variables.
 
 ```yaml
 # ✅ Correct — provider prefix on every component, including nested slots

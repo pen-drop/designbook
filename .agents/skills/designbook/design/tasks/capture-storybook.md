@@ -1,11 +1,17 @@
 ---
 name: designbook:design:capture-storybook
-title: "Capture Storybook: {{ story_id }} ({{ screenshot.breakpoint }}/{{ screenshot.element }}--{{ screenshot.state }})"
+title: >-
+  Capture Storybook: {{ story_id }} ({{ screenshot.breakpoint }}/{{ screenshot.element }}--{{ screenshot.state
+  }})
 trigger:
-  steps: [capture, re-capture]
+  steps:
+    - capture
+    - re-capture
 params:
   type: object
-  required: [screenshot, story_id]
+  required:
+    - screenshot
+    - story_id
   properties:
     screenshot:
       $ref: ../schemas.yml#/Screenshot
@@ -20,16 +26,16 @@ params:
       type: object
 result:
   type: object
-  required: [screenshot_file]
+  required:
+    - screenshot_file
   properties:
     screenshot_file:
-      path: "$DESIGNBOOK_DATA/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png"
+      path: >-
+        $DESIGNBOOK_DATA/stories/{{ story_id }}/screenshots/{{ screenshot.breakpoint }}--{{ screenshot.element
+        }}--{{ screenshot.state }}.png
       submission: direct
-      validators: [image]
-each:
-  screenshot:
-    expr: "story_screenshots"
-    schema: { $ref: ../schemas.yml#/Screenshot }
+      validators:
+        - image
 ---
 
 # Capture Storybook

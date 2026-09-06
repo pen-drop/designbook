@@ -25,9 +25,9 @@ assert:
   # The workflow completes — under the old `#/BlockPlugin` schema the offending entry would have
   # failed result validation at `workflow done` and the workflow would not reach `completed`.
   - type: javascript
-    value: output.archivedWorkflows['data-model']?.status === 'completed'
+    value: output.completedWorkflows['data-model']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['data-model']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['data-model']?.state?.tasks || {}).every(t => t.status === 'done')
   # The open entry survives verbatim — it is accepted, not rejected and not "repaired".
   - type: javascript
     value: |
@@ -46,7 +46,7 @@ assert:
   # (the blueprint no longer injects `#/BlockPlugin` via `extends:`).
   - type: javascript
     value: |
-      const loaded = output.archivedWorkflows['data-model']?.stage_loaded || {};
-      return Object.values(loaded).some(s => s.rules?.some(r => r.endsWith('drupal-data-model.md')));
+      const loaded = output.completedWorkflows['data-model']?.definition?.context || {};
+      return Object.values(loaded).some(s => s.source?.endsWith('drupal-data-model.md'));
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0

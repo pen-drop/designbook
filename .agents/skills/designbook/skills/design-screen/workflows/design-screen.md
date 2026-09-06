@@ -4,42 +4,33 @@ description: Create screen design components for a section (one scene per run)
 params:
   story_id:
     type: string
-    resolve: story_id
-    sources: [scenes]
   scene_path:
     type: string
-    resolve: scene_path
-    from: story_id
-  reference_url: { type: string, default: "" }
+  reference_url:
+    type: string
+    default: ''
   reference_folder:
     type: string
-    resolve: reference_folder
-    from: reference_url
   breakpoints:
     type: array
-    resolve: breakpoints
-    from: story_id
 stages:
   reference:
-    steps: [extract-reference]
-    isolate: true
-  intake:
-    steps: [intake]
-    domain: [data-model]
-    interactive: true
+    steps:
+      - extract-reference
   component:
-    steps: [create-component]
-    isolate: true
+    steps:
+      - create-component
   sample-data:
-    steps: [create-sample-data]
+    steps:
+      - create-sample-data
   entity-mapping:
-    steps: [map-entity]
+    steps:
+      - map-entity
   scene:
-    steps: [create-scene]
-    domain: [data-model]
-    isolate: true
-engine: direct
-before:
-  - workflow: css-generate
-    execute: if-never-run
+    steps:
+      - create-scene
+    domain:
+      - data-model
 ---
+
+Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.

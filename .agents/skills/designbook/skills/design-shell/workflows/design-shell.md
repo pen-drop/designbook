@@ -6,47 +6,43 @@ params:
     type: object
     default:
       id: shell
-      group: "Designbook/Design System"
-      title: "Shell"
+      group: Designbook/Design System
+      title: Shell
       status: planned
   scene_id:
     type: string
     default: design-system:shell
   story_id:
     type: string
-    resolve: story_id
-    from: scene_id
   scene_path:
     type: string
-    resolve: scene_path
-    from: section.id
-  reference_url: { type: string, default: "" }
+  reference_url:
+    type: string
+    default: ''
   reference_folder:
     type: string
-    resolve: reference_folder
-    from: reference_url
   breakpoints:
     type: array
     default: []
   regions:
     type: array
-    default: [header, footer]
+    default:
+      - header
+      - footer
 stages:
   reference:
-    steps: [extract-reference]
-    isolate: true
-  intake:
-    steps: [intake]
+    steps:
+      - extract-reference
   component:
-    steps: [create-component]
-    isolate: true
+    steps:
+      - create-component
   scene:
-    steps: [create-scene-file, create-scene]
-    isolate: true
+    steps:
+      - create-scene-file
+      - create-scene
   validate:
-    steps: [validate]
-engine: direct
-before:
-  - workflow: css-generate
-    execute: if-never-run
+    steps:
+      - validate
 ---
+
+Template for the planning agent. Use the ordered steps as building blocks. Enumerate repeated targets during intake and write each concrete task explicitly; these stages do not execute or expand at runtime.

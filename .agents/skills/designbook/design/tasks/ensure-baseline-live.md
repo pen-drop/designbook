@@ -1,34 +1,37 @@
 ---
 name: designbook:design:ensure-baseline-live
-title: "Ensure Baseline (live): {{ screenshot.element }} ({{ screenshot.breakpoint }}/{{ screenshot.state }})"
+title: 'Ensure Baseline (live): {{ screenshot.element }} ({{ screenshot.breakpoint }}/{{ screenshot.state }})'
 trigger:
-  steps: [ensure-baseline-live]
+  steps:
+    - ensure-baseline-live
 priority: 10
 params:
   type: object
-  required: [screenshot, reference_dir]
+  required:
+    - screenshot
+    - reference_dir
   properties:
     screenshot:
       type: object
       $ref: ../schemas.yml#/Screenshot
     reference_dir:
       type: string
-      description: "Absolute path to the reference directory (references/<hash>/) where the live Storybook baseline PNG is (re)captured each run."
+      description: >-
+        Absolute path to the reference directory (references/<hash>/) where the live Storybook baseline PNG is
+        (re)captured each run.
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
 result:
   type: object
-  required: [screenshot_file]
+  required:
+    - screenshot_file
   properties:
     screenshot_file:
-      path: "{{ reference_dir }}/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png"
+      path: '{{ reference_dir }}/{{ screenshot.breakpoint }}--{{ screenshot.element }}--{{ screenshot.state }}.png'
       submission: direct
-      validators: [image]
-each:
-  screenshot:
-    expr: "reference_screenshots"
-    schema: { $ref: ../schemas.yml#/Screenshot }
+      validators:
+        - image
 ---
 
 # Ensure Baseline (live)

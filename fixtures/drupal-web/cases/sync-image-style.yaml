@@ -5,7 +5,7 @@ fixtures:
 
 prompt: |
   You are working in the directory {{workspace}}.
-  Run the /debo sync-to workflow in eval mode (gate: soft) to export all image
+  Run the /debo sync-to workflow to export all image
   styles to Drupal config.
   Filter the export to config_key prefix image.style. Author the per-config-name
   JSONata against the prepare-fetched schema, write each config YAML, validate,

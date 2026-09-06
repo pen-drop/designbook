@@ -40,9 +40,9 @@ assert:
     value: |
       return !output.newFiles.some(f => /entity-mapping\/.*\.jsonata$/.test(f));
   - type: javascript
-    value: output.archivedWorkflows['design-entity']?.status === 'completed'
+    value: output.completedWorkflows['design-entity']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['design-entity']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['design-entity']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: |
       return output.text.includes('build-storybook') || output.text.includes('Build completed');

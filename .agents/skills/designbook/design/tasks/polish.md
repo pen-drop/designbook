@@ -1,13 +1,15 @@
 ---
 name: designbook:design:polish
-title: "Polish {{ issue.id }}"
-description: "{{ issue.description }}"
+title: Polish {{ issue.id }}
+description: '{{ issue.description }}'
 trigger:
-  steps: [polish]
+  steps:
+    - polish
 priority: 50
 params:
   type: object
-  required: [issue]
+  required:
+    - issue
   properties:
     issue:
       type: object
@@ -15,17 +17,13 @@ params:
     design_tokens:
       path: $DESIGNBOOK_DATA/design-system/design-tokens.yml
       type: object
-each:
-  issue:
-    expr: "issues"
-    schema: { $ref: ../schemas.yml#/Issue }
 ---
 
 # Polish
 
 Fixes a single consolidated issue from the triage stage. Each polish task receives one issue with actionable description and concrete values.
 
-## Params (from `each: issues` expansion)
+## Parameters from the repair intake
 
 | Field | Description |
 |---|---|

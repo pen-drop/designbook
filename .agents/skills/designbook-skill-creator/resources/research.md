@@ -12,7 +12,7 @@ debo-test <suite> <case> --research
 ```
 
 See:
-- `.agents/skills/designbook-test/workflows/research.md` — the loop protocol
+- `.agents/skills/designbook-test/skills/research/resources/research.md` — the loop protocol
 - `.agents/skills/designbook-test/resources/audit-criteria.md` — audit criteria (used by the loop and as a checklist when authoring skill files)
 
 When authoring or reviewing a task/rule/blueprint, the audit dimensions are useful even outside a research run:

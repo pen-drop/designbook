@@ -1,6 +1,7 @@
 fixtures:
   - vision
   - tokens
+  - css-generate
   - sections
 
 prompt: |
@@ -18,8 +19,10 @@ assert:
   - type: javascript
     value: output.newFiles.some(f => f.includes('components/') && f.endsWith('.story.yml'))
   - type: javascript
-    value: output.archivedWorkflows['design-component']?.status === 'completed'
+    value: output.completedWorkflows['design-component']?.state?.status === 'completed'
   - type: javascript
-    value: output.archivedWorkflows['design-component']?.tasks?.every(t => t.status === 'done')
+    value: Object.values(output.completedWorkflows['design-component']?.state?.tasks || {}).every(t => t.status === 'done')
   - type: javascript
     value: Object.keys(output.pendingWorkflows).length === 0
+  - type: javascript
+    value: output.definitionUnchanged === true

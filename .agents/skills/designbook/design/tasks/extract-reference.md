@@ -18,12 +18,12 @@ params:
       $ref: ../../skills/vision/schemas.yml#/Vision
     elements:
       type: array
-      description: "Named comparison subjects (id + reference selector). When not supplied, ask the user which page regions to capture."
+      description: "Named comparison subjects (id + reference selector). Selected during intake before planning."
       items:
         $ref: ../schemas.yml#/Element
     breakpoints:
       type: array
-      description: "Breakpoint ids to capture (e.g. sm, md, lg). When not supplied, ask the user which breakpoints to include."
+      description: "Breakpoint ids to capture (e.g. sm, md, lg). Selected during intake before planning."
       items:
         $ref: ../schemas.yml#/BreakpointId
 result:
@@ -73,21 +73,16 @@ When `{{ reference_dir }}/meta.yml` already exists and `--refresh-reference` is 
 
 If `{{ reference_dir }}/extract.json` already exists (and neither `meta.yml` is missing nor `--refresh-reference` is set), return results from it without re-extracting.
 
-## Ask: elements and breakpoints
+## Declared capture scope
 
-When `elements` or `breakpoints` are not supplied as params, ask the user before extracting:
-
-- **Breakpoints**: which viewport sizes to cover (e.g. `sm`, `md`, `lg`, `xl`). Default to all breakpoints found in `design-tokens.yml`.
-- **Elements**: which named subjects to compare (id + CSS selector on the reference page). Use stable surface ids such as `scene-header`, `scene-footer`, `scene-hero`, `entity-<entity_type>-<bundle>-<view_mode>`, or `component-<name>`. Reserve `full` for a true whole-page or whole-screen comparison; use an empty selector to express full-area capture instead of naming the subject `full`. Ask the user to confirm or extend the default set derived from extracted landmarks.
-
-Persist the confirmed values into the `Reference` `elements` array written to `meta.yml`.
+Use the elements, states, selectors and breakpoints recorded in task params. If required capture scope is missing, block with the missing parameter names. Extraction must not choose new comparison targets or change the planned capture matrix.
 
 ## Write meta.yml
 
 After extraction completes, write `{{ reference_dir }}/meta.yml` as a `Reference`:
 
 - `source`: populate from the reference URL's resolved origin, screenId (when available from vision.yml), and hasMarkup flag.
-- `elements`: the confirmed element list. For each element, derive `states` from `extract.json`'s `interactive[]` entries whose selector matches the element's selector — add each `CaptureState` found (name + steps). If no interactive behavior is found, default to `[{ name: rest }]`.
+- `elements`: the confirmed element list. Preserve its declared `states` and steps from intake.
 - `extract`: `"extract.json"` (relative path to the DesignReference).
 - `assets_dir`: `"assets/"`.
 
