@@ -75,11 +75,18 @@ const caseDoc = yaml.load(
 const base = yaml.load(
   readFileSync(join(repo, "promptfoo/configs/base.yaml"), "utf8"),
 );
-const cli = opts.provider || "codex";
+const designIntake =
+  opts.phase === "main" &&
+  /^(design-shell|design-entity|design-screen|design-section|design-component)(?:-|$)/.test(
+    caseDoc.workflow || opts.case,
+  );
+const planner = designIntake ? base.modelRoles.planner : undefined;
+const cli = opts.provider || planner?.provider || "codex";
 if (!["codex", "claude", "grok"].includes(cli))
   throw new Error("provider must be codex, claude or grok");
 const model =
   opts.model ||
+  (!opts.provider && planner?.model) ||
   (cli === "grok"
     ? "grok-4.6"
     : cli === "claude"
@@ -114,14 +121,12 @@ const workspace = resolve(
   repo,
   opts.workspace || `promptfoo/workspaces/${opts.suite}-${opts.case}`,
 );
-const designIntake =
-  opts.phase === "main" &&
-  /^(design-shell|design-entity|design-screen|design-section|design-component)(?:-|$)/.test(
-    caseDoc.workflow || opts.case,
-  );
-const splitExecution = Boolean(
-  opts["executor-provider"] || opts["executor-model"],
-);
+const splitExecution =
+  designIntake || Boolean(opts["executor-provider"] || opts["executor-model"]);
+if (designIntake && !opts["executor-provider"] && !opts["executor-model"]) {
+  opts["executor-provider"] = base.modelRoles.executor.provider;
+  opts["executor-model"] = base.modelRoles.executor.model;
+}
 if (splitExecution && (!opts["executor-provider"] || !opts["executor-model"]))
   throw new Error(
     "Specify both --executor-provider and --executor-model for separate step execution",
@@ -230,6 +235,8 @@ const config = {
     ...(executor
       ? {
           execution_mode: "separate-steps",
+          planner_cli: cli,
+          planner_model: model,
           executor_cli: executor.cli,
           executor_model: executor.model,
         }

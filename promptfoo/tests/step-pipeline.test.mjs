@@ -290,3 +290,45 @@ test("runner exposes explicit planner/executor selection without changing verifi
     /requires a nonrepeated design case/,
   );
 });
+
+test("planner and executor models are independently configurable within one provider", (t) => {
+  const f = fixture(t);
+  for (const [cli, planner, worker] of [
+    ["codex", "gpt-6-astra", "gpt-5.6-luna"],
+    ["claude", "opus", "sonnet"],
+    ["codex", "gpt-5.6-luna", "gpt-5.6-luna"],
+  ]) {
+    const path = execFileSync(
+      "node",
+      [
+        "promptfoo/scripts/run-single.mjs",
+        "design-shell",
+        "--suite",
+        "drupal-web",
+        "--workspace",
+        f.workspace,
+        "--output",
+        join(f.runDir, "report.json"),
+        "--config-only",
+        "--provider",
+        cli,
+        "--model",
+        planner,
+        "--executor-provider",
+        cli,
+        "--executor-model",
+        worker,
+      ],
+      { encoding: "utf8" },
+    ).trim();
+    const config = yaml.load(readFileSync(path, "utf8"));
+    assert.equal(config.tags.execution_mode, "separate-steps");
+    assert.equal(config.tags.planner_cli, cli);
+    assert.equal(config.tags.planner_model, planner);
+    assert.equal(config.tags.executor_cli, cli);
+    assert.equal(config.tags.executor_model, worker);
+    assert.equal(config.providers[0].config.model, planner);
+    const verify = yaml.load(readFileSync(config.tags.verify_config, "utf8"));
+    assert.equal(verify.providers[0].config.model, planner);
+  }
+});

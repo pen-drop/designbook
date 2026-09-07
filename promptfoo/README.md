@@ -246,8 +246,11 @@ internal links. Runtime state/results remain in JSON inspection and reports.
 
 ### Separate planner and step executor
 
-For a design case, select a capable intake/planning/verification model and an
-explicit execution model:
+Every design intake test uses separately configured planner and executor roles.
+Set defaults in `configs/base.yaml` under `modelRoles.planner` and
+`modelRoles.executor` (each with `provider` and `model`). The checked-in defaults
+are Opus and Luna; any supported provider/model combination is configurable,
+including the same model for both roles. Override either role explicitly:
 
 ```bash
 ./promptfoo/scripts/run-single.sh design-shell --suite drupal-web \
@@ -257,11 +260,18 @@ explicit execution model:
   --output promptfoo/reports/shell-split/main.json
 ```
 
-The pipeline is `intake → plan → execute-step × N → verify`. Both executor flags
-are required. This mode currently supports nonrepeated design cases without a
+For example, choose Codex for both roles with
+`--provider codex --model gpt-6-astra --executor-provider codex --executor-model gpt-5.6-luna`,
+or Claude with `--provider claude --model opus --executor-provider claude --executor-model sonnet`.
+Model IDs/aliases are forwarded to the selected native CLI; configuration tests
+verify routing, not account availability or model quality.
+
+The pipeline is `intake → plan → execute-step × N → verify`. To override the
+executor, supply both executor flags. `--provider` and `--model` configure the
+planner; automatic verification uses that same configuration. This mode currently supports nonrepeated design cases without a
 case evidence manifest (including `drupal-web/design-shell`); unsupported cases
-fail before workspace provisioning. Existing invocations retain their current
-pipeline. `--config-only` records the selected roles; plan and step configs are
+fail before workspace provisioning instead of falling back to one model.
+Standalone verification and non-design utility cases retain their own pipeline. `--config-only` records the selected roles; plan and step configs are
 generated after the validated intake fixes the workspace paths.
 
 Planning copies the effective contracts exactly, fixes every design decision and

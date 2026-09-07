@@ -16,8 +16,11 @@ calling tester; invoking them inside a driver would rebuild its active fixtures.
 
 Parse `run <suite> [<case>] [--workspace <path>] [--validate <workflow>]`.
 Accept `--provider codex|claude|grok` and `--model <id>` and forward them to the runner.
-Also forward an explicit `--executor-provider codex|claude|grok` together with
-`--executor-model <id>` for separate planner/step calls. This mode currently
+Design tests always use separate planner and executor calls. Both provider/model
+roles are configurable in `promptfoo/configs/base.yaml` under `modelRoles`.
+`--provider` and `--model` override planning and verification. Forward executor overrides with
+`--executor-provider codex|claude|grok` together with `--executor-model <id>`.
+The same model may be selected for both roles; never merge their calls. The separate-step runner currently
 requires a nonrepeated design case without a case evidence manifest. Intake,
 planning and verification use the primary model; each step uses a fresh executor
 call containing only that step's resolved work order.
@@ -50,8 +53,9 @@ reference, presents the selector table and saves the effective discovery catalog
 Deterministic checks require concrete selectors, matching reference metadata,
 all declared capture files and no created/executed workflow. A passing intake
 writes a compact external handoff; a failed intake prevents main execution.
-The execution part preserves that workspace, reuses the catalogue and reference
-evidence, authors the complete definition and executes it. Capture/asset/catalogue
+The planning call preserves that workspace, reuses the catalogue and reference
+evidence and authors the complete definition. Fresh executor calls then carry out
+one complete step each, receiving only the resolved work order for that step. Capture/asset/catalogue
 bytes remain fixed; YAML reference metadata must retain the same complete value
 across any result-writer formatting. The main gate checks the native intake
 presentation before workflow creation and checks the declared selector scope.

@@ -83,68 +83,29 @@ const claudeCompleted = [
   },
 ];
 
-test("text-only design cases retain semantic evidence through the Promptfoo runner", async (t) => {
+test("unsupported evidence and repeated design cases fail instead of using a combined call", async (t) => {
   const { root, workspace } = await fixture(t);
   for (const name of ["component", "screen", "shell", "entity"]) {
     for (const suffix of ["", "-update"]) {
-      const caseName = `design-${name}${suffix}`;
-      const path = execFileSync(
-        "node",
-        [
-          "promptfoo/scripts/run-single.mjs",
-          caseName,
-          "--suite",
-          "drupal-petshop",
-          "--workspace",
-          workspace,
-          "--output",
-          join(root, `${caseName}.json`),
-          "--config-only",
-        ],
-        { encoding: "utf8" },
-      ).trim();
-      const config = yaml.load(await readFile(path, "utf8"));
-      assert.equal(config.tags.verify_config, undefined);
-      assert.equal(config.providers[0].config.requireDesignIntake, true);
-      const intake = yaml.load(
-        await readFile(config.tags.intake_config, "utf8"),
+      assert.throws(
+        () =>
+          execFileSync(
+            "node",
+            [
+              "promptfoo/scripts/run-single.mjs",
+              `design-${name}${suffix}`,
+              "--suite",
+              "drupal-petshop",
+              "--workspace",
+              workspace,
+              "--output",
+              join(root, `${name}${suffix}.json`),
+              "--config-only",
+            ],
+            { stdio: "pipe" },
+          ),
+        /requires a nonrepeated design case without a case evidence manifest/,
       );
-      assert.match(intake.prompts[0], /^This is the first, intake-only part/);
-      assert.equal(intake.tests[0].vars.suite, "drupal-petshop");
-      assert.equal(config.tests[0].vars.suite, undefined);
-      assert.equal(intake.providers[0].config.intakeOnly, true);
-      assert.ok(
-        config.tests[0].assert.some((assertion) =>
-          assertion.value.endsWith("/design-intake.mjs"),
-        ),
-      );
-      assert.match(
-        config.providers[0].config.caseFile,
-        new RegExp(`${caseName}\\.yaml$`),
-      );
-      assert.match(config.prompts[0], /case-runs\.json/);
-      assert.match(config.prompts[0], /already running inside Promptfoo/);
-      assert.match(
-        config.prompts[0],
-        /Prior test workspaces, saved definitions, generated artifacts and reports are not inputs/,
-      );
-      assert.equal(
-        config.tests[0].vars.case_file,
-        config.providers[0].config.caseFile,
-      );
-      assert.ok(
-        config.tests[0].assert.some((assertion) =>
-          assertion.value.endsWith("/case-result.mjs"),
-        ),
-      );
-      if (caseName === "design-screen-update") {
-        assert.match(config.prompts[0], /distinct saved definition IDs/);
-        assert.match(config.prompts[0], /design-screen-update-2/);
-        assert.doesNotMatch(
-          config.prompts[0],
-          /as the primary saved workflow definition.id/,
-        );
-      }
     }
   }
 });
@@ -503,7 +464,9 @@ test("generated main/verify configs isolate setup and preserve paths", async (t)
   assert.equal(mainIntake.tests[0].vars.case, "design-shell");
   assert.equal(main.tests[0].vars.case, undefined);
   assert.equal(main.providers[0].config.timeout, 3600000);
-  assert.equal(main.providers[0].config.model, "gpt-5.6-luna");
+  assert.equal(main.providers[0].config.model, "claude-opus-5");
+  assert.equal(main.tags.executor_model, "gpt-5.6-luna");
+  assert.equal(main.tags.execution_mode, "separate-steps");
   const claude = await generate([
     "--provider",
     "claude",
@@ -1021,7 +984,7 @@ test("verification assertion rejects visual failures and changes to main artifac
   assert.equal(verifyResult(output, context).pass, false);
 });
 
-test("shell, entity and screen pipelines always invoke verification and fails if either phase fails", async (t) => {
+test("shell, entity and screen still verify when intake fails or omits its handoff", async (t) => {
   const { root, workspace } = await fixture(t);
   const bin = join(root, "bin");
   await mkdir(bin);
@@ -1074,11 +1037,7 @@ process.exitCode = Number(config.tags.phase === 'intake' ? process.env.TEST_INTA
         },
       },
     );
-    assert.equal(
-      child.status,
-      intakeExit || mainExit || verifyExit ? 1 : 0,
-      child.stderr,
-    );
+    assert.equal(child.status, 1, child.stderr);
   }
   const configs = (await readFile(calls, "utf8"))
     .trim()
@@ -1086,28 +1045,18 @@ process.exitCode = Number(config.tags.phase === 'intake' ? process.env.TEST_INTA
     .map((line) => JSON.parse(line));
   assert.deepEqual(
     configs.map((c) => c.tags.phase),
-    [
-      ...Array.from({ length: 5 }, () => ["intake", "main", "verify"]).flat(),
-      "intake",
-      "verify",
-    ],
+    Array.from({ length: 6 }, () => ["intake", "verify"]).flat(),
   );
-  for (let index = 0; index < configs.length - 2; index += 3) {
+  for (let index = 0; index < configs.length; index += 2) {
     const intake = configs[index],
-      main = configs[index + 1],
-      verify = configs[index + 2];
-    assert.equal(intake.tags.run_id, main.tags.run_id);
+      verify = configs[index + 1];
+    assert.equal(intake.tags.run_id, verify.tags.run_id);
     assert.equal(intake.tests[0].vars.suite, "drupal-web");
-    assert.equal(main.tests[0].vars.suite, undefined);
     assert.equal(verify.providers[0].config.intakeHandoffInput, undefined);
-    assert.equal(main.tags.run_id, verify.tags.run_id);
     assert.equal(verify.tags.workflow_id, "design-verify");
     assert.equal(verify.tests[0].vars.workspace, workspace);
     assert.equal(verify.tests[0].vars.suite, undefined);
     assert.equal(verify.tests[0].vars.case, undefined);
-    assert.equal(verify.tests[0].vars.main_report, main.outputPath);
-    if (main.tags.case === "design-shell")
-      assert.match(verify.prompts[0], /threshold 3%/);
     assert.match(verify.prompts[0], /original reference/);
   }
 });
